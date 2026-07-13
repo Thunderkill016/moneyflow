@@ -29,7 +29,10 @@ export function CommitmentDialog({ open, commitment, accounts, categories, onClo
       <label><span>Thanh toán từ</span><select name="accountId" defaultValue={commitment?.accountId ?? accounts[0]?.id}>{accounts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <p className="account-form-hint">Khi xác nhận đã thanh toán, MoneyFlow sẽ tạo một giao dịch chi từ tài khoản này.</p>
       {error && <p className="field-error" role="alert">{error}</p>}
-      <button className="primary-button account-submit" type="submit" disabled={submitting || !accounts.length || !categories.length}><Icon name="check" />{submitting ? "Đang lưu..." : "Lưu khoản định kỳ"}</button>
+      <div className="dialog-footer-actions">
+        <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>Hủy</button>
+        <button className="primary-button account-submit" type="submit" disabled={submitting || !accounts.length || !categories.length}><Icon name="check" />{submitting ? "Đang lưu..." : "Lưu khoản định kỳ"}</button>
+      </div>
     </form>
   </dialog>;
 }

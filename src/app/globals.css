@@ -342,6 +342,39 @@ select:focus-visible {
 .form-grid select, .form-grid input { width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 11px; background: white; padding: 0 12px; outline: 0; font-size: 12px; }
 .form-grid select:focus, .form-grid input:focus { border-color: #6ca288; }
 .dialog-submit { width: 100%; min-height: 48px; margin-top: 24px; }
+.dialog-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+.dialog-footer-actions button,
+.dialog-footer-actions a {
+  min-height: 44px;
+  padding: 0 20px;
+  font-size: 13px;
+  font-weight: 630;
+}
+@media (max-width: 760px) {
+  .dialog-footer-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: white;
+    padding-top: 12px;
+    box-shadow: 0 -10px 10px white;
+    flex-direction: column-reverse;
+    gap: 8px;
+    margin-top: 16px;
+    width: 100%;
+  }
+  .dialog-footer-actions button,
+  .dialog-footer-actions a {
+    width: 100%;
+    max-width: none;
+  }
+}
 .transfer-accounts { display: grid; grid-template-columns: 1fr 42px 1fr; align-items: end; gap: 10px; margin-top: 24px; }
 .transfer-accounts label > span, .transfer-note > span { display: block; margin-bottom: 8px; color: var(--muted); font-size: 11px; font-weight: 620; }
 .transfer-accounts select, .transfer-note input { width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 11px; background: white; padding: 0 12px; outline: 0; font-size: 12px; }

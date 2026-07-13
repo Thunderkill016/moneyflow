@@ -87,7 +87,10 @@ export function AccountDialog({
         <label><span>{kind === "credit_card" ? "Dư nợ hiện tại" : "Số dư ban đầu"}</span><div className="account-money-input"><input name="initialBalance" inputMode="decimal" defaultValue={formatMoneyInput(String(Math.abs(account?.initialBalance ?? 0)))} placeholder="0" onInput={(event) => { event.currentTarget.value = formatMoneyInput(event.currentTarget.value); setError(""); }} /><strong>₫</strong></div></label>
         <p className="account-form-hint">{kind === "credit_card" ? "Dư nợ được ghi âm vào tổng tài sản của bạn." : "Dùng số dư tại thời điểm bắt đầu sử dụng MoneyFlow."}</p>
         {error && <p className="field-error" role="alert">{error}</p>}
-        <button className="primary-button account-submit" type="submit" disabled={submitting}><Icon name="check" />{submitting ? "Đang lưu..." : account ? "Lưu thay đổi" : "Thêm tài khoản"}</button>
+        <div className="dialog-footer-actions">
+          <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>Hủy</button>
+          <button className="primary-button account-submit" type="submit" disabled={submitting}><Icon name="check" />{submitting ? "Đang lưu..." : account ? "Lưu thay đổi" : "Thêm tài khoản"}</button>
+        </div>
       </form>
     </dialog>
   );

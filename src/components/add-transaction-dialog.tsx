@@ -196,9 +196,12 @@ export function AddTransactionDialog({
           </label>
         </div>
 
-        <button className="primary-button dialog-submit" type="submit" disabled={disabled || submitting || !accounts.length || !availableCategories.length}>
-          <Icon name="check" />{submitting ? "Đang lưu..." : "Lưu giao dịch"}
-        </button>
+        <div className="dialog-footer-actions">
+          <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>Hủy</button>
+          <button className="primary-button" type="submit" disabled={disabled || submitting || !accounts.length || !availableCategories.length}>
+            <Icon name="check" />{submitting ? "Đang lưu..." : "Lưu giao dịch"}
+          </button>
+        </div>
       </form>
     </dialog>
   );

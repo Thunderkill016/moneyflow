@@ -53,7 +53,10 @@ export function BudgetDialog({ open, budget, categories, monthStart, onClose, on
       <label><span>Hạn mức tháng</span><div className="account-money-input"><input name="limit" inputMode="decimal" defaultValue={budget ? formatMoneyInput(String(budget.limit)) : ""} placeholder="0" onInput={(event) => { event.currentTarget.value = formatMoneyInput(event.currentTarget.value); setError(""); }} autoFocus={Boolean(budget)} /><strong>₫</strong></div></label>
       <p className="account-form-hint">MoneyFlow sẽ so sánh hạn mức với các giao dịch trong danh mục này.</p>
       {error && <p className="field-error" role="alert">{error}</p>}
-      <button className="primary-button account-submit" type="submit" disabled={submitting || !categories.length}><Icon name="check" />{submitting ? "Đang lưu..." : budget ? "Lưu thay đổi" : "Thêm ngân sách"}</button>
+      <div className="dialog-footer-actions">
+        <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>Hủy</button>
+        <button className="primary-button account-submit" type="submit" disabled={submitting || !categories.length}><Icon name="check" />{submitting ? "Đang lưu..." : budget ? "Lưu thay đổi" : "Thêm ngân sách"}</button>
+      </div>
     </form>
   </dialog>;
 }
