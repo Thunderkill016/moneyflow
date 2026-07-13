@@ -1,0 +1,160 @@
+import "server-only";
+
+import { z } from "zod";
+import { requireViewer } from "@/server/auth";
+import { createClient } from "@/lib/supabase/server";
+import {
+  demoAccounts,
+  demoCategories,
+  sampleTransactions,
+  type AccountOption,
+  type CategoryOption,
+  type Transaction,
+} from "@/lib/sample-data";
+
+export type FinanceWorkspace = {
+  transactions: Transaction[];
+  accounts: AccountOption[];
+  categories: CategoryOption[];
+  totalBalance: number;
+  today: string;
+  dataError: string | null;
+};
+
+const accountSchema = z.object({ id: z.string().uuid(), name: z.string().min(1) });
+const categorySchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  kind: z.enum(["income", "expense"]),
+  icon: z.string().nullable(),
+  color: z.string().nullable(),
+});
+const feedSchema = z.object({
+  id: z.string().uuid(),
+  kind: z.enum(["income", "expense", "transfer"]),
+  note: z.string(),
+  occurred_on: z.string(),
+  created_at: z.string(),
+  amount_minor: z.union([z.number(), z.string()]),
+  account_id: z.string().uuid(),
+  account_name: z.string().min(1),
+  category_id: z.string().uuid().nullable(),
+  category_name: z.string().nullable(),
+  destination_account_id: z.string().uuid().nullable().optional(),
+  destination_account_name: z.string().nullable().optional(),
+  is_recurring_payment: z.boolean().optional(),
+});
+
+function currentDateInVietnam() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function shiftDate(date: string, days: number) {
+  const value = new Date(`${date}T00:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
+export function formatRelativeDate(date: string) {
+  const today = currentDateInVietnam();
+  if (date === today) return "Hôm nay";
+  if (date === shiftDate(today, -1)) return "Hôm qua";
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Asia/Ho_Chi_Minh",
+  }).format(new Date(`${date}T00:00:00+07:00`));
+}
+
+export function mapTransactionFeedRow(value: unknown): Transaction {
+  const row = feedSchema.parse(value);
+  const amount = Math.abs(Number(row.amount_minor));
+  if (!Number.isSafeInteger(amount) || amount <= 0) {
+    throw new Error("invalid_transaction_amount");
+  }
+
+  return {
+    id: row.id,
+    kind: row.kind,
+    categoryId: row.category_id ?? "",
+    category: row.kind === "transfer" ? "Chuyển tiền" : row.category_name ?? "Chưa phân loại",
+    note: row.note || row.category_name || "Giao dịch",
+    accountId: row.account_id,
+    account: row.account_name,
+    destinationAccountId: row.destination_account_id ?? undefined,
+    destinationAccount: row.destination_account_name ?? undefined,
+    isRecurringPayment: row.is_recurring_payment ?? false,
+    amount,
+    occurredOn: row.occurred_on,
+    occurredAt: row.created_at,
+    relativeDate: formatRelativeDate(row.occurred_on),
+  };
+}
+
+function demoWorkspace(): FinanceWorkspace {
+  return {
+    transactions: sampleTransactions,
+    accounts: demoAccounts,
+    categories: demoCategories,
+    totalBalance: 15_735_000,
+    today: currentDateInVietnam(),
+    dataError: null,
+  };
+}
+
+export async function getFinanceWorkspace(): Promise<FinanceWorkspace> {
+  const viewer = await requireViewer();
+  if (viewer.isDemo) return demoWorkspace();
+
+  const supabase = await createClient();
+  if (!supabase) return { ...demoWorkspace(), dataError: "Không thể kết nối dữ liệu." };
+
+  const [accountsResult, categoriesResult, feedResult, balancesResult] = await Promise.all([
+    supabase.from("accounts").select("id,name").eq("is_archived", false).order("created_at"),
+    supabase.from("categories").select("id,name,kind,icon,color").order("created_at"),
+    supabase
+      .from("transaction_feed")
+      .select("id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment")
+      .order("occurred_on", { ascending: false })
+      .order("created_at", { ascending: false }),
+    supabase.from("account_balances").select("balance_minor"),
+  ]);
+
+  if (accountsResult.error || categoriesResult.error || feedResult.error || balancesResult.error) {
+    return {
+      transactions: [],
+      accounts: [],
+      categories: [],
+      totalBalance: 0,
+      today: currentDateInVietnam(),
+      dataError: "Chưa tải được dữ liệu tài chính. Hãy thử tải lại trang.",
+    };
+  }
+
+  try {
+    const accounts = z.array(accountSchema).parse(accountsResult.data) satisfies AccountOption[];
+    const categories = z.array(categorySchema).parse(categoriesResult.data) satisfies CategoryOption[];
+    const transactions = z.array(z.unknown()).parse(feedResult.data).map(mapTransactionFeedRow);
+    const totalBalance = (balancesResult.data ?? []).reduce((sum, item) => {
+      const amount = Number(item.balance_minor);
+      if (!Number.isSafeInteger(amount)) throw new Error("invalid_account_balance");
+      return sum + amount;
+    }, 0);
+
+    return { transactions, accounts, categories, totalBalance, today: currentDateInVietnam(), dataError: null };
+  } catch {
+    return {
+      transactions: [],
+      accounts: [],
+      categories: [],
+      totalBalance: 0,
+      today: currentDateInVietnam(),
+      dataError: "Dữ liệu tài chính không đúng định dạng. Hãy liên hệ hỗ trợ.",
+    };
+  }
+}

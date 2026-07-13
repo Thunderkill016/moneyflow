@@ -1,0 +1,53 @@
+begin;
+select plan(45);
+
+select has_table('public', 'profiles', 'profiles exists');
+select has_table('public', 'accounts', 'accounts exists');
+select has_table('public', 'categories', 'categories exists');
+select has_table('public', 'financial_transactions', 'financial_transactions exists');
+select has_table('public', 'transaction_entries', 'transaction_entries exists');
+select has_table('public', 'monthly_budgets', 'monthly_budgets exists');
+select has_table('public', 'recurring_commitments', 'recurring commitments exists');
+select has_table('public', 'commitment_occurrences', 'commitment occurrences exists');
+select has_table('public', 'savings_goals', 'savings goals exists');
+select has_table('public', 'savings_goal_allocations', 'savings goal allocations exists');
+select has_view('public', 'account_balances', 'account_balances exists');
+select has_view('public', 'transaction_feed', 'transaction_feed exists');
+select has_view('public', 'budget_progress', 'budget_progress exists');
+select has_view('public', 'recurring_commitment_feed', 'recurring commitment feed exists');
+
+select ok((select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), 'profiles has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.accounts'::regclass), 'accounts has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.categories'::regclass), 'categories has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.financial_transactions'::regclass), 'transactions has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.transaction_entries'::regclass), 'entries has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.monthly_budgets'::regclass), 'budgets has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.recurring_commitments'::regclass), 'recurring commitments has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.commitment_occurrences'::regclass), 'commitment occurrences has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.savings_goals'::regclass), 'savings goals has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.savings_goal_allocations'::regclass), 'savings goal allocations has RLS');
+
+select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid'], 'create RPC exists');
+select has_function('public', 'soft_delete_money_transaction', array['uuid'], 'soft delete RPC exists');
+select has_function('public', 'create_financial_account', array['text', 'account_kind', 'bigint'], 'create account RPC exists');
+select has_function('public', 'update_financial_account', array['uuid', 'text', 'account_kind', 'bigint'], 'update account RPC exists');
+select has_function('public', 'set_financial_account_archived', array['uuid', 'boolean'], 'archive account RPC exists');
+select has_function('public', 'upsert_monthly_budget', array['uuid', 'date', 'bigint'], 'upsert budget RPC exists');
+select has_function('public', 'delete_monthly_budget', array['uuid'], 'delete budget RPC exists');
+select has_function('public', 'upsert_recurring_commitment', array['uuid', 'text', 'bigint', 'integer', 'uuid', 'uuid'], 'upsert recurring commitment RPC exists');
+select has_function('public', 'set_recurring_commitment_archived', array['uuid', 'boolean'], 'archive recurring commitment RPC exists');
+select has_function('public', 'pay_recurring_commitment', array['uuid', 'date', 'date', 'uuid'], 'pay recurring commitment RPC exists');
+select has_function('public', 'undo_recurring_commitment_payment', array['uuid', 'date'], 'undo recurring commitment RPC exists');
+select has_function('public', 'upsert_savings_goal', array['uuid', 'text', 'bigint', 'date'], 'upsert savings goal RPC exists');
+select has_function('public', 'adjust_savings_goal', array['uuid', 'bigint'], 'adjust savings goal RPC exists');
+select has_function('public', 'set_savings_goal_archived', array['uuid', 'boolean'], 'archive savings goal RPC exists');
+select has_function('public', 'create_account_transfer', array['uuid', 'uuid', 'bigint', 'date', 'text', 'uuid'], 'account transfer RPC exists');
+select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text'], 'update transaction RPC exists');
+select has_function('public', 'update_account_transfer', array['uuid', 'uuid', 'uuid', 'bigint', 'date', 'text'], 'update transfer RPC exists');
+select col_type_is('public', 'transaction_entries', 'amount_minor', 'bigint', 'money uses bigint');
+select col_type_is('public', 'savings_goals', 'allocated_minor', 'bigint', 'goal allocations use bigint');
+select col_not_null('public', 'financial_transactions', 'idempotency_key', 'idempotency key is required');
+select col_has_check('public', 'profiles', 'full_name', 'profile display name length is constrained');
+
+select * from finish();
+rollback;

@@ -1,0 +1,1 @@
+export default function Loading() { return <div className="app-shell"><div className="page-column"><main className="dashboard goals-workspace" aria-busy="true"><div className="loading-line wide" /><div className="loading-card" /><div className="loading-card tall" /></main></div></div>; }

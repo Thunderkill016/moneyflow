@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MoneyFlow
 
-## Getting Started
+MoneyFlow is a Vietnamese-first personal finance web app. Its core experience answers one useful question: **How much can I safely spend today?**
 
-First, run the development server:
+This repository contains an interactive dashboard and transaction flow, plus Supabase Auth and a protected PostgreSQL ledger schema. Without Supabase credentials, it automatically runs in local demo mode and stores demo transactions in the browser.
+
+## Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+To enable real authentication and the database, follow [docs/supabase-setup.md](docs/supabase-setup.md).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Quality checks
 
-## Learn More
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Current scope
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Responsive dashboard
+- "Có thể chi hôm nay" calculation
+- Expense and income entry
+- Browser persistence with validated local data in demo mode
+- Supabase-backed accounts, categories, balances, and transaction feed for signed-in users
+- Monthly budget progress and recent transactions
+- Dedicated transaction manager with search and filters
+- Safe transaction editing and confirmed deletion, including two-sided account transfers
+- Account manager for cash, bank, e-wallet, credit card, and savings balances
+- Secure account create/update/archive RPCs with last-active-account protection
+- Monthly category budgets with ledger-derived progress and overspending states
+- Budget-aware safe-to-spend calculation
+- Recurring commitments that reserve unpaid bills and post real ledger expenses when paid
+- Savings goals with earmarked balances and deadline-based daily saving guidance
+- Goal-aware safe-to-spend calculation that protects planned savings
+- Atomic account transfers with balanced source and destination ledger entries
+- Weekly, monthly, and annual reports with period comparison, category breakdown, trends, and secure CSV export
+- Unit tests for core financial calculations
+- Email/password, Google OAuth, password reset, and sign-out flows
+- Cookie-based Supabase SSR session refresh
+- PostgreSQL ledger migration with Row Level Security
+- Idempotent transaction creation, atomic editing, and soft-delete RPCs
+- Server-side data access with authenticated transaction create/update/delete actions
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Not production-ready yet
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Full RLS integration tests, receipt attachments, and legal/privacy flows are still required before handling real financial data.
