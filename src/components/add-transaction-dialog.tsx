@@ -153,7 +153,7 @@ export function AddTransactionDialog({
           <div>
             <input
               autoFocus
-              inputMode="numeric"
+              inputMode="decimal"
               autoComplete="off"
               placeholder="0"
               value={amount}

@@ -84,7 +84,7 @@ export function AccountDialog({
         <label><span>Loại tài khoản</span><select value={kind} onChange={(event) => { setKind(event.target.value as AccountKind); setError(""); }}>
           {(Object.entries(accountKindLabels) as [AccountKind, string][]).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
         </select></label>
-        <label><span>{kind === "credit_card" ? "Dư nợ hiện tại" : "Số dư ban đầu"}</span><div className="account-money-input"><input name="initialBalance" inputMode="numeric" defaultValue={formatMoneyInput(String(Math.abs(account?.initialBalance ?? 0)))} placeholder="0" onInput={(event) => { event.currentTarget.value = formatMoneyInput(event.currentTarget.value); setError(""); }} /><strong>₫</strong></div></label>
+        <label><span>{kind === "credit_card" ? "Dư nợ hiện tại" : "Số dư ban đầu"}</span><div className="account-money-input"><input name="initialBalance" inputMode="decimal" defaultValue={formatMoneyInput(String(Math.abs(account?.initialBalance ?? 0)))} placeholder="0" onInput={(event) => { event.currentTarget.value = formatMoneyInput(event.currentTarget.value); setError(""); }} /><strong>₫</strong></div></label>
         <p className="account-form-hint">{kind === "credit_card" ? "Dư nợ được ghi âm vào tổng tài sản của bạn." : "Dùng số dư tại thời điểm bắt đầu sử dụng MoneyFlow."}</p>
         {error && <p className="field-error" role="alert">{error}</p>}
         <button className="primary-button account-submit" type="submit" disabled={submitting}><Icon name="check" />{submitting ? "Đang lưu..." : account ? "Lưu thay đổi" : "Thêm tài khoản"}</button>

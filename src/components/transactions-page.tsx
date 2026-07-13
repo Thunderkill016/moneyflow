@@ -13,20 +13,11 @@ import {
   type CreateTransactionInput,
   type Transaction,
 } from "@/lib/sample-data";
-import { UserChip, type ViewerSummary } from "@/components/user-chip";
+import { type ViewerSummary } from "@/components/user-chip";
 import { TransferDialog } from "@/components/transfer-dialog";
 import { EditTransactionDialog } from "@/components/edit-transaction-dialog";
 import type { CreateTransferInput, UpdateMoneyTransactionInput, UpdateTransferInput } from "@/lib/sample-data";
-
-const navItems = [
-  { label: "Tổng quan", icon: "home" as const, href: "/" },
-  { label: "Giao dịch", icon: "arrows" as const, href: "/transactions" },
-  { label: "Ngân sách", icon: "target" as const, href: "/budgets" },
-  { label: "Báo cáo", icon: "chart" as const, href: "/reports" },
-  { label: "Định kỳ", icon: "calendar" as const, href: "/commitments" },
-  { label: "Mục tiêu", icon: "flag" as const, href: "/goals" },
-  { label: "Tài khoản", icon: "wallet" as const, href: "/accounts" },
-];
+import { AppShell } from "@/components/layout/app-shell";
 
 type KindFilter = "all" | Transaction["kind"];
 
@@ -76,6 +67,40 @@ export function TransactionsPage({ viewer, workspace }: { viewer: ViewerSummary;
     [filtered],
   );
 
+  const grouped = useMemo(() => {
+    const groups: {
+      date: string;
+      relativeDate: string;
+      displayDate: string;
+      transactions: typeof filtered;
+      netForDay: number;
+    }[] = [];
+
+    for (const tx of filtered) {
+      let group = groups.find((g) => g.date === tx.occurredOn);
+      if (!group) {
+        const parts = tx.occurredOn.split("-");
+        const displayDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : tx.occurredOn;
+        group = {
+          date: tx.occurredOn,
+          relativeDate: tx.relativeDate,
+          displayDate,
+          transactions: [],
+          netForDay: 0,
+        };
+        groups.push(group);
+      }
+      group.transactions.push(tx);
+      if (tx.kind === "income") {
+        group.netForDay += tx.amount;
+      } else if (tx.kind === "expense") {
+        group.netForDay -= tx.amount;
+      }
+    }
+
+    return groups;
+  }, [filtered]);
+
   async function handleAdd(input: CreateTransactionInput) {
     const result = await addTransaction(input);
     if (result.ok && result.transaction) {
@@ -97,106 +122,112 @@ export function TransactionsPage({ viewer, workspace }: { viewer: ViewerSummary;
     window.setTimeout(() => setNotice(""), 3500);
   }
 
-  async function handleTransfer(input: CreateTransferInput) { const result = await addTransfer(input); if (result.ok && result.transaction) { setTransferOpen(false); setNotice(`Đã chuyển ${formatMoney(result.transaction.amount)} từ ${result.transaction.account} sang ${result.transaction.destinationAccount}.`); window.setTimeout(() => setNotice(""), 3500); } return result; }
+  async function handleUpdate(input: UpdateMoneyTransactionInput | UpdateTransferInput) {
+    const result = await updateTransaction(input);
+    if (result.ok) {
+      setEditing(null);
+      setNotice("Đã cập nhật giao dịch.");
+      window.setTimeout(() => setNotice(""), 3500);
+    }
+    return result;
+  }
 
-  async function handleUpdate(input: UpdateMoneyTransactionInput | UpdateTransferInput) { const result = await updateTransaction(input); if (result.ok && result.transaction) { setEditing(null); setNotice(`Đã cập nhật ${result.transaction.note}.`); window.setTimeout(() => setNotice(""), 3500); } return result; }
+  async function handleTransfer(input: CreateTransferInput) {
+    const result = await addTransfer(input);
+    if (result.ok) {
+      setTransferOpen(false);
+      setNotice("Đã chuyển ví thành công.");
+      window.setTimeout(() => setNotice(""), 3500);
+    }
+    return result;
+  }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="Điều hướng chính">
-        <Link className="brand" href="/" aria-label="MoneyFlow, trang tổng quan">
-          <span className="brand-mark"><span /></span><span>MoneyFlow</span>
-        </Link>
-        <nav>
-          {navItems.map((item) => (
-            <Link href={item.href} className={item.href === "/transactions" ? "active" : ""} key={item.label}>
-              <Icon name={item.icon} /><span>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <a href="#cai-dat"><Icon name="settings" /><span>Cài đặt</span></a>
-          <UserChip viewer={viewer} />
-        </div>
-      </aside>
-
-      <div className="page-column">
-        <header className="topbar">
-          <Link className="mobile-brand brand" href="/" aria-label="MoneyFlow">
-            <span className="brand-mark"><span /></span><span>MoneyFlow</span>
-          </Link>
-          <div className="desktop-search">
-            <Icon name="search" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Tìm giao dịch" placeholder="Tìm giao dịch..." />
-            <kbd>⌘ K</kbd>
+    <AppShell
+      viewer={viewer}
+      primaryAction={{
+        label: "Thêm giao dịch",
+        onClick: () => setDialogOpen(true),
+        disabled: Boolean(workspace.dataError),
+      }}
+      fabAction={{
+        label: "Thêm giao dịch",
+        onClick: () => setDialogOpen(true),
+        disabled: Boolean(workspace.dataError),
+      }}
+      notice={notice}
+    >
+      <main className="dashboard transactions-workspace">
+        {workspace.dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{workspace.dataError}</span></div>}
+        <section className="transactions-title-row">
+          <div>
+            <p className="eyebrow">Dòng tiền của bạn</p>
+            <h1>Sổ giao dịch</h1>
+            <p>Kiểm tra và quản lý mọi khoản thu chi phát sinh.</p>
           </div>
-          <div className="topbar-actions">
-            <button className="icon-button" aria-label="Thông báo"><Icon name="bell" /><span className="notification-dot" /></button>
-            <button className="primary-button desktop-add" onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}><Icon name="plus" />Thêm giao dịch</button>
-            <span className="mobile-avatar avatar">M</span>
+          <div className="page-heading-actions">
+            <button className="secondary-button" onClick={() => setTransferOpen(true)} disabled={workspace.accounts.length < 2 || Boolean(workspace.dataError)}>
+              <Icon name="arrows" /> Chuyển tiền ví
+            </button>
           </div>
-        </header>
+        </section>
 
-        <main className="dashboard transactions-workspace">
-          {workspace.dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{workspace.dataError}</span></div>}
-          <section className="transactions-title-row">
-            <div><p className="eyebrow">Dòng tiền của bạn</p><h1>Giao dịch</h1><p>Tìm, kiểm tra và quản lý mọi khoản thu chi ở một nơi.</p></div>
-            <div className="page-heading-actions"><button className="secondary-button" onClick={() => setTransferOpen(true)} disabled={Boolean(workspace.dataError) || workspace.accounts.length < 2}><Icon name="arrows" />Chuyển tiền</button><button className="primary-button mobile-page-add" onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}><Icon name="plus" />Thêm mới</button></div>
-          </section>
+        <section className="transaction-summary">
+          <div><span className="font-mono">{filtered.length}</span><p>Giao dịch</p></div>
+          <div><span className="positive font-mono">+{formatMoney(filteredTotals.income)}</span><p>Tổng thu</p></div>
+          <div><span className="negative font-mono">−{formatMoney(filteredTotals.expense)}</span><p>Tổng chi</p></div>
+        </section>
 
-          <section className="transaction-summary" aria-label="Tóm tắt các giao dịch đang hiển thị">
-            <div><span>{filtered.length}</span><p>Giao dịch</p></div>
-            <div><span className="positive">+{formatMoney(filteredTotals.income)}</span><p>Tổng thu</p></div>
-            <div><span className="negative">−{formatMoney(filteredTotals.expense)}</span><p>Tổng chi</p></div>
-          </section>
-
-          <section className="transaction-manager panel">
-            <div className="manager-toolbar">
-              <label className="mobile-manager-search">
-                <Icon name="search" />
-                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo ghi chú, danh mục..." aria-label="Tìm trong giao dịch" />
-              </label>
-              <div className="filter-group" aria-label="Lọc theo loại">
-                {(["all", "expense", "income", "transfer"] as KindFilter[]).map((value) => (
-                  <button key={value} className={kind === value ? "active" : ""} onClick={() => setKind(value)} aria-pressed={kind === value}>
-                    {value === "all" ? "Tất cả" : value === "expense" ? "Khoản chi" : value === "income" ? "Khoản thu" : "Chuyển tiền"}
-                  </button>
-                ))}
-              </div>
-              <label className="account-filter"><span className="sr-only">Lọc theo tài khoản</span><select value={account} onChange={(event) => setAccount(event.target.value)}><option value="all">Mọi tài khoản</option>{workspace.accounts.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}</select></label>
+        <section className="transaction-manager panel">
+          <div className="manager-toolbar">
+            <label className="mobile-manager-search">
+              <Icon name="search" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo ghi chú, danh mục..." aria-label="Tìm trong giao dịch" />
+            </label>
+            <div className="filter-group" aria-label="Lọc theo loại">
+              {(["all", "expense", "income", "transfer"] as KindFilter[]).map((value) => (
+                <button key={value} className={kind === value ? "active" : ""} onClick={() => setKind(value)} aria-pressed={kind === value}>
+                  {value === "all" ? "Tất cả" : value === "expense" ? "Khoản chi" : value === "income" ? "Khoản thu" : "Chuyển tiền"}
+                </button>
+              ))}
             </div>
+            <label className="account-filter"><span className="sr-only">Lọc theo tài khoản</span><select value={account} onChange={(event) => setAccount(event.target.value)}><option value="all">Mọi tài khoản</option>{workspace.accounts.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}</select></label>
+          </div>
 
-            {filtered.length ? (
-              <div className="manager-list">
-                <div className="manager-header" aria-hidden="true"><span>Giao dịch</span><span>Thời gian</span><span>Số tiền</span><span /></div>
-                {filtered.map((transaction) => {
-                  const meta = categoryMeta[transaction.category] ?? categoryMeta["Thu nhập khác"];
-                  return (
-                    <article className="manager-row" key={transaction.id}>
-                      <span className={`transaction-icon ${meta.color}`}><Icon name={meta.icon as IconName} /></span>
-                      <span className="transaction-detail"><strong>{transaction.note}</strong><small>{transaction.kind === "transfer" ? `${transaction.account} → ${transaction.destinationAccount}` : `${transaction.category} · ${transaction.account}`}{transaction.isRecurringPayment ? " · Từ lịch định kỳ" : ""}</small></span>
-                      <time dateTime={transaction.occurredAt}>{transaction.relativeDate}</time>
-                      <strong className={transaction.kind === "income" ? "manager-amount income" : transaction.kind === "transfer" ? "manager-amount transfer" : "manager-amount"}>{transaction.kind === "income" ? "+" : transaction.kind === "transfer" ? "↔ " : "−"}{formatMoney(transaction.amount)}</strong>
-                      {transaction.isRecurringPayment ? <Link href="/commitments" className="recurring-lock" title="Quản lý ở trang Định kỳ" aria-label={`Quản lý ${transaction.note} ở trang Định kỳ`}><Icon name="lock" /></Link> : <span className="manager-actions"><button className="edit-button" onClick={() => setEditing(transaction)} disabled={isMutating} aria-label={`Sửa giao dịch ${transaction.note}`}><Icon name="edit" /></button><button className="delete-button" onClick={() => handleDelete(transaction)} disabled={isMutating} aria-label={`Xóa giao dịch ${transaction.note}`}><Icon name="trash" /></button></span>}
-                    </article>
-                  );
-                })}
-              </div>
-            ) : transactions.length ? (
-              <div className="filter-empty"><span><Icon name="search" /></span><h2>Không tìm thấy giao dịch</h2><p>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</p><button onClick={() => { setQuery(""); setKind("all"); setAccount("all"); }}>Xóa bộ lọc</button></div>
-            ) : (
-              <div className="filter-empty"><span><Icon name="arrows" /></span><h2>Chưa có giao dịch</h2><p>Thêm khoản thu hoặc chi đầu tiên để bắt đầu theo dõi dòng tiền.</p><button onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>Thêm giao dịch</button></div>
-            )}
-          </section>
-        </main>
-      </div>
+          {grouped.length ? (
+            <div className="manager-list">
+              <div className="manager-header" aria-hidden="true"><span>Giao dịch</span><span>Thời gian</span><span>Số tiền</span><span /></div>
+              {grouped.map((group) => (
+                <div key={group.date}>
+                  <div className="date-group-header">
+                    <span className="date-group-title">{group.relativeDate}, {group.displayDate}</span>
+                    <span className={`date-group-total font-mono ${group.netForDay > 0 ? "positive" : group.netForDay < 0 ? "negative" : ""}`}>
+                      Tổng: {group.netForDay > 0 ? "+" : group.netForDay < 0 ? "−" : ""}{formatMoney(Math.abs(group.netForDay))}
+                    </span>
+                  </div>
+                  {group.transactions.map((transaction) => {
+                    const meta = categoryMeta[transaction.category] ?? categoryMeta["Thu nhập khác"];
+                    return (
+                      <article className="manager-row" key={transaction.id}>
+                        <span className={`transaction-icon ${meta.color}`}><Icon name={meta.icon as IconName} /></span>
+                        <span className="transaction-detail"><strong>{transaction.note}</strong><small>{transaction.kind === "transfer" ? `${transaction.account} → ${transaction.destinationAccount}` : `${transaction.category} · ${transaction.account}`}{transaction.isRecurringPayment ? " · Từ lịch định kỳ" : ""}</small></span>
+                        <time dateTime={transaction.occurredAt}>{transaction.relativeDate}</time>
+                        <strong className={`font-mono ${transaction.kind === "income" ? "manager-amount income" : transaction.kind === "transfer" ? "manager-amount transfer" : "manager-amount"}`}>{transaction.kind === "income" ? "+ ↑ " : transaction.kind === "transfer" ? "↔ " : "− ↓ "}{formatMoney(transaction.amount)}</strong>
+                        {transaction.isRecurringPayment ? <Link href="/commitments" className="recurring-lock" title="Quản lý ở trang Định kỳ" aria-label={`Quản lý ${transaction.note} ở trang Định kỳ`}><Icon name="lock" /></Link> : <span className="manager-actions"><button className="edit-button" onClick={() => setEditing(transaction)} disabled={isMutating} aria-label={`Sửa giao dịch ${transaction.note}`}><Icon name="edit" /></button><button className="delete-button" onClick={() => handleDelete(transaction)} disabled={isMutating} aria-label={`Xóa giao dịch ${transaction.note}`}><Icon name="trash" /></button></span>}
+                      </article>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          ) : transactions.length ? (
+            <div className="filter-empty"><span><Icon name="search" /></span><h2>Không tìm thấy giao dịch</h2><p>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</p><button onClick={() => { setQuery(""); setKind("all"); setAccount("all"); }}>Xóa bộ lọc</button></div>
+          ) : (
+            <div className="filter-empty"><span><Icon name="arrows" /></span><h2>Chưa có giao dịch</h2><p>Thêm khoản thu hoặc chi đầu tiên để bắt đầu theo dõi dòng tiền.</p><button onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>Thêm giao dịch</button></div>
+          )}
+        </section>
+      </main>
 
-      <nav className="mobile-nav" aria-label="Điều hướng di động">
-        {navItems.map((item) => (
-          <Link href={item.href} className={item.href === "/transactions" ? "active" : ""} key={item.label}><Icon name={item.icon} /><span>{item.label}</span></Link>
-        ))}
-      </nav>
-      <button className="mobile-fab" onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)} aria-label="Thêm giao dịch"><Icon name="plus" /></button>
       <AddTransactionDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
@@ -207,7 +238,7 @@ export function TransactionsPage({ viewer, workspace }: { viewer: ViewerSummary;
       />
       <TransferDialog open={transferOpen} accounts={workspace.accounts} onClose={() => setTransferOpen(false)} onTransfer={handleTransfer} />
       {editing && <EditTransactionDialog key={editing.id} transaction={editing} accounts={workspace.accounts} categories={workspace.categories} onClose={() => setEditing(null)} onSave={handleUpdate} disabled={isMutating || Boolean(workspace.dataError)} />}
-      <div className={notice ? "toast visible" : "toast"} role="status" aria-live="polite"><span><Icon name="check" /></span>{notice}</div>
-    </div>
+    </AppShell>
   );
 }
+

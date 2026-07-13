@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon, type IconName } from "@/components/icons";
-import { Button } from "@/components/ui/button";
 import { calculateDashboardSummary } from "@/lib/finance";
 import {
   categoryMeta,
@@ -15,20 +14,11 @@ import {
 } from "@/lib/sample-data";
 import { formatMoney } from "@/lib/money";
 import { useTransactions } from "@/hooks/use-transactions";
-import { UserChip, viewerInitial, type ViewerSummary } from "@/components/user-chip";
+import { type ViewerSummary } from "@/components/user-chip";
 import { budgetProgress, type BudgetSummary } from "@/lib/budgets";
 import { commitmentTotals, type RecurringCommitment } from "@/lib/commitments";
 import { goalProgress, goalTotals, type SavingsGoal } from "@/lib/goals";
-
-const navItems = [
-  { label: "Tổng quan", icon: "home" as const, href: "/" },
-  { label: "Giao dịch", icon: "arrows" as const, href: "/transactions" },
-  { label: "Ngân sách", icon: "target" as const, href: "/budgets" },
-  { label: "Báo cáo", icon: "chart" as const, href: "/reports" },
-  { label: "Định kỳ", icon: "calendar" as const, href: "/commitments" },
-  { label: "Mục tiêu", icon: "flag" as const, href: "/goals" },
-  { label: "Tài khoản", icon: "wallet" as const, href: "/accounts" },
-];
+import { AppShell } from "@/components/layout/app-shell";
 
 const spendBars = [38, 54, 46, 72, 58, 84, 64, 91, 52, 68, 44, 61, 76, 48];
 
@@ -130,45 +120,20 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
   const protectedTotal = reservedCommitments + savings.allocated;
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="Điều hướng chính">
-        <Link className="brand" href="/" aria-label="MoneyFlow, trang tổng quan">
-          <span className="brand-mark"><span /></span>
-          <span>MoneyFlow</span>
-        </Link>
-        <nav>
-          {navItems.map((item, index) => (
-            <Link href={item.href} className={index === 0 ? "active" : ""} key={item.label}>
-              <Icon name={item.icon} />
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <a href="#cai-dat"><Icon name="settings" /><span>Cài đặt</span></a>
-          <UserChip viewer={viewer} />
-        </div>
-      </aside>
-
-      <div className="page-column">
-        <header className="topbar" id="top">
-          <Link className="mobile-brand brand" href="/" aria-label="MoneyFlow">
-            <span className="brand-mark"><span /></span>
-            <span>MoneyFlow</span>
-          </Link>
-          <div className="desktop-search">
-            <Icon name="search" />
-            <input aria-label="Tìm kiếm" placeholder="Tìm giao dịch..." />
-            <kbd>⌘ K</kbd>
-          </div>
-          <div className="topbar-actions">
-            <Button variant="icon" size="icon" aria-label="Thông báo"><Icon name="bell" /><span className="notification-dot" /></Button>
-            <Button className="desktop-add" onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>
-              <Icon name="plus" /> Thêm giao dịch
-            </Button>
-            <span className="mobile-avatar avatar">{viewerInitial(viewer)}</span>
-          </div>
-        </header>
+    <AppShell
+      viewer={viewer}
+      primaryAction={{
+        label: "Thêm giao dịch",
+        onClick: () => setDialogOpen(true),
+        disabled: Boolean(workspace.dataError),
+      }}
+      fabAction={{
+        label: "Thêm giao dịch",
+        onClick: () => setDialogOpen(true),
+        disabled: Boolean(workspace.dataError),
+      }}
+      notice={notice}
+    >
 
         <main className="dashboard">
           {workspace.dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{workspace.dataError}</span></div>}
@@ -186,7 +151,7 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
               <div className="safe-card-top">
                 <div>
                   <p>Có thể chi hôm nay</p>
-                  <h2>{formatMoney(totals.safeToday)}</h2>
+                  <h2 className="font-mono">{formatMoney(totals.safeToday)}</h2>
                 </div>
                 <span className="status-badge"><span /> An toàn</span>
               </div>
@@ -195,7 +160,7 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
               </div>
               <div className="safe-copy">
                 <span className="trend-icon"><Icon name="arrowUp" /></span>
-                <p>{protectedTotal > 0 ? <>Đã bảo vệ <strong>{formatMoney(protectedTotal)}</strong> cho hóa đơn và mục tiêu.</> : <>Nếu giữ nhịp này, cuối tháng bạn còn khoảng <strong>{formatMoney(totals.forecast)}</strong>.</>}</p>
+                <p>{protectedTotal > 0 ? <>Đã bảo vệ <strong className="font-mono">{formatMoney(protectedTotal)}</strong> cho hóa đơn và mục tiêu.</> : <>Nếu giữ nhịp này, cuối tháng bạn còn khoảng <strong className="font-mono">{formatMoney(totals.forecast)}</strong>.</>}</p>
               </div>
               <button className="hero-add" onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>
                 <Icon name="plus" /> Ghi một khoản mới
@@ -204,12 +169,12 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
 
             <article className="month-card">
               <div className="card-title-row">
-                <div><p>Số dư hiện tại</p><h2>{formatMoney(totals.balance)}</h2></div>
+                <div><p>Số dư hiện tại</p><h2 className="font-mono">{formatMoney(totals.balance)}</h2></div>
                 <span className="round-icon green"><Icon name="wallet" /></span>
               </div>
               <div className="month-stats">
-                <div><span><Icon name="arrowDown" /> Thu nhập</span><strong>{formatMoney(totals.income, true)}</strong></div>
-                <div><span><Icon name="arrowUp" /> Chi tiêu</span><strong>{formatMoney(totals.expense, true)}</strong></div>
+                <div><span><Icon name="arrowDown" /> Thu nhập</span><strong className="font-mono">{formatMoney(totals.income, true)}</strong></div>
+                <div><span><Icon name="arrowUp" /> Chi tiêu</span><strong className="font-mono">{formatMoney(totals.expense, true)}</strong></div>
               </div>
               <div className="mini-chart" aria-label="Biểu đồ chi tiêu 14 ngày gần đây">
                 {chartBars.map((height, index) => <span key={index} style={{ height: `${height}%` }} className={index === chartBars.length - 1 ? "today" : ""} />)}
@@ -232,8 +197,8 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
                       <span className={`transaction-icon ${meta.color}`}><Icon name={meta.icon as IconName} /></span>
                       <span className="transaction-detail"><strong>{transaction.note}</strong><small>{transaction.kind === "transfer" ? `${transaction.account} → ${transaction.destinationAccount}` : `${transaction.category} · ${transaction.account}`}</small></span>
                       <span className="transaction-time">{transaction.relativeDate}</span>
-                      <strong className={transaction.kind === "income" ? "amount income" : transaction.kind === "transfer" ? "amount transfer" : "amount"}>
-                        {transaction.kind === "income" ? "+" : transaction.kind === "transfer" ? "↔ " : "−"}{formatMoney(transaction.amount)}
+                      <strong className={`font-mono ${transaction.kind === "income" ? "amount income" : transaction.kind === "transfer" ? "amount transfer" : "amount"}`}>
+                        {transaction.kind === "income" ? "+ ↑ " : transaction.kind === "transfer" ? "↔ " : "− ↓ "}{formatMoney(transaction.amount)}
                       </strong>
                     </div>
                   );
@@ -248,9 +213,22 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
                   <Link className="icon-button" href="/budgets" aria-label="Mở chi tiết ngân sách"><Icon name="arrowRight" /></Link>
                 </div>
                 {featuredBudget ? <>
-                  <div className="budget-number"><strong>{formatMoney(featuredBudget.spent)}</strong><span>/ {formatMoney(featuredBudget.limit)}</span></div>
-                  <div className="budget-track" aria-label={`Đã dùng ${featuredProgress} phần trăm`}><span style={{ width: `${Math.min(100, featuredProgress)}%` }} /></div>
-                  <div className="budget-foot"><span>Đã dùng {featuredProgress}%</span><strong>{featuredBudget.spent > featuredBudget.limit ? `Vượt ${formatMoney(featuredBudget.spent - featuredBudget.limit)}` : `Còn ${formatMoney(featuredBudget.limit - featuredBudget.spent)}`}</strong></div>
+                  <div className="budget-number"><strong className="font-mono">{formatMoney(featuredBudget.spent)}</strong><span className="font-mono">/ {formatMoney(featuredBudget.limit)}</span></div>
+                  <div className="budget-track" aria-label={`Đã dùng ${featuredProgress} phần trăm`}>
+                    <span 
+                      style={{ 
+                        width: `${Math.min(100, featuredProgress)}%`,
+                        backgroundColor: featuredProgress >= 100 
+                          ? "var(--color-danger-default)" 
+                          : featuredProgress >= 80 
+                          ? "#f97316" 
+                          : featuredProgress >= 50 
+                          ? "var(--color-warning-default)" 
+                          : "var(--color-success-default)"
+                      }} 
+                    />
+                  </div>
+                  <div className="budget-foot"><span>Đã dùng {featuredProgress}%</span><strong className="font-mono">{featuredBudget.spent > featuredBudget.limit ? `Vượt ${formatMoney(featuredBudget.spent - featuredBudget.limit)}` : `Còn ${formatMoney(featuredBudget.limit - featuredBudget.spent)}`}</strong></div>
                 </> : <div className="budget-empty"><p>Chưa đặt hạn mức cho tháng này.</p><Link href="/budgets">Thiết lập ngân sách</Link></div>}
               </article>
 
@@ -261,21 +239,11 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
 
               <article className="goal-dashboard-panel panel">
                 <div className="section-heading compact"><div><h2>Mục tiêu tiết kiệm</h2><p>{featuredGoal?.name ?? "Chưa có mục tiêu"}</p></div><Link className="icon-button" href="/goals" aria-label="Mở mục tiêu tiết kiệm"><Icon name="arrowRight" /></Link></div>
-                {featuredGoal ? <><div className="budget-number"><strong>{formatMoney(featuredGoal.allocated)}</strong><span>/ {formatMoney(featuredGoal.target)}</span></div><div className="budget-track"><span style={{ width: `${goalProgress(featuredGoal)}%` }} /></div><div className="budget-foot"><span>Đã đạt {goalProgress(featuredGoal)}%</span><strong>{savings.plannedDaily > 0 ? `${formatMoney(savings.plannedDaily)}/ngày` : "Tự do tiến độ"}</strong></div></> : <div className="budget-empty"><p>Dành tiền cho một điều bạn muốn đạt được.</p><Link href="/goals">Tạo mục tiêu</Link></div>}
+                {featuredGoal ? <><div className="budget-number"><strong className="font-mono">{formatMoney(featuredGoal.allocated)}</strong><span className="font-mono">/ {formatMoney(featuredGoal.target)}</span></div><div className="budget-track"><span style={{ width: `${goalProgress(featuredGoal)}%` }} /></div><div className="budget-foot"><span>Đã đạt {goalProgress(featuredGoal)}%</span><strong className="font-mono">{savings.plannedDaily > 0 ? `${formatMoney(savings.plannedDaily)}/ngày` : "Tự do tiến độ"}</strong></div></> : <div className="budget-empty"><p>Dành tiền cho một điều bạn muốn đạt được.</p><Link href="/goals">Tạo mục tiêu</Link></div>}
               </article>
             </div>
           </section>
         </main>
-      </div>
-
-      <nav className="mobile-nav" aria-label="Điều hướng di động">
-        {navItems.map((item, index) => (
-          <Link href={item.href} className={index === 0 ? "active" : ""} key={item.label}>
-            <Icon name={item.icon} /><span>{item.label}</span>
-          </Link>
-        ))}
-      </nav>
-      <button className="mobile-fab" onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)} aria-label="Thêm giao dịch"><Icon name="plus" /></button>
 
       <AddTransactionDialog
         open={dialogOpen}
@@ -285,9 +253,6 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
         categories={workspace.categories}
         disabled={isMutating || Boolean(workspace.dataError)}
       />
-      <div className={notice ? "toast visible" : "toast"} role="status" aria-live="polite">
-        <span><Icon name="check" /></span>{notice}
-      </div>
-    </div>
+    </AppShell>
   );
 }
