@@ -2,7 +2,14 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
-const protectedPaths = ["/", "/transactions"];
+const protectedPaths = [
+  "/transactions",
+  "/accounts",
+  "/budgets",
+  "/commitments",
+  "/goals",
+  "/reports",
+];
 const authPaths = ["/login", "/register", "/forgot-password"];
 
 export async function updateSession(request: NextRequest) {
