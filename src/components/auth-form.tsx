@@ -11,6 +11,7 @@ import {
   type AuthState,
 } from "@/app/(auth)/actions";
 import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 
 type Mode = "login" | "register" | "forgot" | "update";
 
@@ -72,7 +73,7 @@ export function AuthForm({ mode, next = "/", demoMode = false }: { mode: Mode; n
             )}
             {mode === "login" && <Link className="forgot-link" href="/forgot-password">Quên mật khẩu?</Link>}
             {state.message && <div className={state.success ? "auth-message success" : "auth-message"} role="status">{state.message}</div>}
-            <button className="primary-button auth-submit" disabled={pending} type="submit">{pending ? "Đang xử lý..." : content.submit}<Icon name="arrowRight" /></button>
+            <Button className="auth-submit" disabled={pending} type="submit">{pending ? "Đang xử lý..." : content.submit}<Icon name="arrowRight" /></Button>
           </form>
 
           {mode === "login" && <p className="auth-switch">Chưa có tài khoản? <Link href="/register">Đăng ký miễn phí</Link></p>}

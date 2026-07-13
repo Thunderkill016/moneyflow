@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon, type IconName } from "@/components/icons";
+import { Button } from "@/components/ui/button";
 import { calculateDashboardSummary } from "@/lib/finance";
 import {
   categoryMeta,
@@ -161,10 +162,10 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
             <kbd>⌘ K</kbd>
           </div>
           <div className="topbar-actions">
-            <button className="icon-button" aria-label="Thông báo"><Icon name="bell" /><span className="notification-dot" /></button>
-            <button className="primary-button desktop-add" onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>
+            <Button variant="icon" size="icon" aria-label="Thông báo"><Icon name="bell" /><span className="notification-dot" /></Button>
+            <Button className="desktop-add" onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>
               <Icon name="plus" /> Thêm giao dịch
-            </button>
+            </Button>
             <span className="mobile-avatar avatar">{viewerInitial(viewer)}</span>
           </div>
         </header>

@@ -2,6 +2,14 @@
 
 import { signOut } from "@/app/(auth)/actions";
 import { Icon } from "@/components/icons";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type ViewerSummary = { email: string | null; displayName: string | null; isDemo: boolean };
 
@@ -19,7 +27,7 @@ function ChipContent({ viewer }: { viewer: ViewerSummary }) {
     <>
       <span className="avatar">{viewerInitial(viewer)}</span>
       <span><strong>{name}</strong><small>{viewer.isDemo ? "Chế độ demo" : viewer.email || "Đăng xuất an toàn"}</small></span>
-      <Icon name="arrowRight" />
+      <Icon name="arrowDown" />
     </>
   );
 }
@@ -27,10 +35,28 @@ function ChipContent({ viewer }: { viewer: ViewerSummary }) {
 export function UserChip({ viewer }: { viewer: ViewerSummary }) {
   if (viewer.isDemo) return <div className="profile-chip"><ChipContent viewer={viewer} /></div>;
   return (
-    <form action={signOut}>
-      <button className="profile-chip profile-chip-button" type="submit" aria-label={`Đăng xuất tài khoản ${viewerLabel(viewer)}`}>
-        <ChipContent viewer={viewer} />
-      </button>
-    </form>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="profile-chip profile-chip-button" type="button" aria-label={`Mở menu tài khoản ${viewerLabel(viewer)}`}>
+          <ChipContent viewer={viewer} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" align="end" className="profile-menu">
+        <DropdownMenuLabel>
+          <span>Tài khoản đang dùng</span>
+          <strong>{viewerLabel(viewer)}</strong>
+          <small>{viewer.email}</small>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <a href="#cai-dat"><Icon name="settings" />Cài đặt tài khoản</a>
+        </DropdownMenuItem>
+        <form action={signOut}>
+          <DropdownMenuItem asChild className="danger">
+            <button type="submit"><Icon name="arrowRight" />Đăng xuất</button>
+          </DropdownMenuItem>
+        </form>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
