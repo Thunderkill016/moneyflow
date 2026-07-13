@@ -54,7 +54,15 @@ export function AuthForm({ mode, next = "/", demoMode = false }: { mode: Mode; n
 
           {(mode === "login" || mode === "register") && (
             <form action={signInWithGoogle}>
-              <button className="google-button" type="submit"><span>G</span>Tiếp tục với Google</button>
+              <button className="google-button" type="submit">
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18">
+                  <path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.91c1.7-1.56 2.69-3.86 2.69-6.6z"/>
+                  <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.2l-2.91-2.26c-.8.54-1.85.86-3.05.86-2.34 0-4.32-1.58-5.03-3.7H.95v2.32A9 9 0 0 0 9 18z"/>
+                  <path fill="#FBBC05" d="M3.97 10.7a5.4 5.4 0 0 1 0-3.4V4.98H.95a9 9 0 0 0 0 8.04l3.02-2.32z"/>
+                  <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.3A9 9 0 0 0 .95 4.98l3.02 2.32C4.68 5.16 6.66 3.58 9 3.58z"/>
+                </svg>
+                Tiếp tục với Google
+              </button>
             </form>
           )}
 
