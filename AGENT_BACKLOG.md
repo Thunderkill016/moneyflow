@@ -191,9 +191,10 @@
 
 
 ### TASK-027 — Budgets/goals under Insights only
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Ensure primary nav stays inbox-first; budgets/commitments/goals linked from Insights or More.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `9136daf` planning under Insights hub + More Kế hoạch; primary nav stays inbox-first.
 
 ### TASK-028 — Landing A/B microcopy polish VN
 - **Status:** `ready`
@@ -209,6 +210,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-027 | `9136daf` budgets/commitments/goals under Insights + More (not primary nav) |
 | 2026-07-15 | TASK-026 | `73aa479` inbox keyboard j/k x a c n (desktop power) |
 | 2026-07-15 | TASK-025 | `0b27a7e` fingerprint duplicates + transfer pairs (opposite amount same day) in Inbox |
 | 2026-07-15 | TASK-024 | `5e1f8bc` import_batches + inbox_candidates RLS; local→server migrate when authed |
