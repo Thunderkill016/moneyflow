@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
@@ -30,6 +31,12 @@ import {
   updateCandidateForClient,
 } from "@/lib/inbox/client-inbox";
 import { annotateCandidates, type DetectedCandidate } from "@/lib/inbox/detect";
+import {
+  isEditableKeyboardTarget,
+  moveFocusIndex,
+  resolveApproveTargetIds,
+  resolveInboxShortcut,
+} from "@/lib/inbox/keyboard";
 import {
   applyBulkCategory,
   buildLedgerPost,
@@ -85,6 +92,7 @@ export function InboxPage({
   viewer: ViewerSummary;
   workspace: InboxWorkspace;
 }) {
+  const router = useRouter();
   const { addTransaction, addTransfer, isMutating } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
@@ -100,6 +108,8 @@ export function InboxPage({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  /** Keyboard focus row in the visible list (−1 = none until j/k). */
+  const [focusedIndex, setFocusedIndex] = useState(-1);
   const candidatesRef = useRef<InboxCandidate[]>(candidates);
   useEffect(() => {
     candidatesRef.current = candidates;
@@ -171,6 +181,11 @@ export function InboxPage({
     () => sortCandidatesNewest(filterCandidates(detected, filter)),
     [detected, filter],
   );
+  const visibleRef = useRef(visible);
+  useEffect(() => {
+    visibleRef.current = visible;
+  }, [visible]);
+
   const reviewCandidate = useMemo((): DetectedCandidate | null => {
     const found = detected.find((item) => item.id === reviewId && item.status === "pending");
     return found ?? null;
@@ -182,6 +197,33 @@ export function InboxPage({
     );
     return selectedIds.filter((id) => pendingIds.has(id));
   }, [candidates, selectedIds]);
+
+  const activeSelectedIdsRef = useRef(activeSelectedIds);
+  useEffect(() => {
+    activeSelectedIdsRef.current = activeSelectedIds;
+  }, [activeSelectedIds]);
+
+  /** Display focus index (clamped if list shrank); −1 until j/k used. */
+  const safeFocusedIndex =
+    visible.length === 0
+      ? -1
+      : focusedIndex < 0
+        ? -1
+        : Math.min(focusedIndex, visible.length - 1);
+
+  const focusedIndexRef = useRef(safeFocusedIndex);
+  useEffect(() => {
+    focusedIndexRef.current = safeFocusedIndex;
+  }, [safeFocusedIndex]);
+
+  // Scroll focused row into view (keyboard j/k).
+  useEffect(() => {
+    if (safeFocusedIndex < 0) return;
+    const el = document.querySelector<HTMLElement>(
+      `[data-inbox-index="${safeFocusedIndex}"]`,
+    );
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [safeFocusedIndex]);
 
   async function persist(next: InboxCandidate[], changedIds: string[]) {
     const result = await persistCandidateListForClient(viewer.isDemo, next, changedIds);
@@ -392,6 +434,95 @@ export function InboxPage({
     }
   }
 
+  const handleBulkApplyRef = useRef(handleBulkApply);
+  const bulkBusyRef = useRef(bulkBusy);
+  const isMutatingRef = useRef(isMutating);
+  const reviewOpen = reviewId != null && reviewCandidate != null;
+  const reviewOpenRef = useRef(reviewOpen);
+  useEffect(() => {
+    handleBulkApplyRef.current = handleBulkApply;
+    bulkBusyRef.current = bulkBusy;
+    isMutatingRef.current = isMutating;
+    reviewOpenRef.current = reviewOpen;
+  });
+
+  // Desktop power keys: j/k · x · a · c · n (wireframes Keyboard section).
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented) return;
+      if (isEditableKeyboardTarget(event.target)) return;
+      if (reviewOpenRef.current) return;
+
+      const action = resolveInboxShortcut(event.key, {
+        metaKey: event.metaKey,
+        ctrlKey: event.ctrlKey,
+        altKey: event.altKey,
+      });
+      if (!action) return;
+
+      if (action === "capture") {
+        event.preventDefault();
+        router.push("/capture");
+        return;
+      }
+      if (action === "quick_add") {
+        event.preventDefault();
+        router.push("/capture/quick");
+        return;
+      }
+
+      if (loadState !== "ready") return;
+      const list = visibleRef.current;
+      if (list.length === 0 && (action === "next" || action === "prev" || action === "toggle_select")) {
+        return;
+      }
+
+      if (action === "next" || action === "prev") {
+        event.preventDefault();
+        const dir = action === "next" ? 1 : -1;
+        setFocusedIndex((current) => moveFocusIndex(current, dir, list.length));
+        return;
+      }
+
+      if (action === "toggle_select") {
+        const idx = focusedIndexRef.current;
+        if (idx < 0 || idx >= list.length) {
+          setNotice("Dùng J/K chọn hàng rồi X để đánh dấu.");
+          return;
+        }
+        event.preventDefault();
+        const id = list[idx]!.id;
+        setSelectedIds((current) =>
+          current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+        );
+        return;
+      }
+
+      if (action === "approve") {
+        if (bulkBusyRef.current || isMutatingRef.current) return;
+        const focused =
+          focusedIndexRef.current >= 0 && focusedIndexRef.current < list.length
+            ? list[focusedIndexRef.current]!.id
+            : null;
+        const ids = resolveApproveTargetIds(activeSelectedIdsRef.current, focused);
+        if (ids.length === 0) {
+          setNotice("Chọn mục bằng X (hoặc J/K rồi A) để duyệt.");
+          return;
+        }
+        event.preventDefault();
+        void handleBulkApplyRef.current({
+          action: "approve",
+          selectedIds: ids,
+          includeLowConfidence: false,
+          categoryId: "",
+        });
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [loadState, router]);
+
   const allVisibleSelected =
     visible.length > 0 && visible.every((item) => activeSelectedIds.includes(item.id));
 
@@ -537,12 +668,15 @@ export function InboxPage({
               <span />
             </div>
             <ul className="inbox-rows">
-              {visible.map((candidate) => {
+              {visible.map((candidate, index) => {
                 const selected = activeSelectedIds.includes(candidate.id);
+                const focused = safeFocusedIndex === index;
                 return (
                   <li key={candidate.id}>
                     <article
-                      className={`inbox-row${candidate.confidence === "low" ? " low-conf" : ""}${selected ? " selected" : ""}`}
+                      data-inbox-index={index}
+                      className={`inbox-row${candidate.confidence === "low" ? " low-conf" : ""}${selected ? " selected" : ""}${focused ? " focused" : ""}`}
+                      aria-current={focused ? "true" : undefined}
                     >
                       <label className="inbox-col-check">
                         <span className="sr-only">Chọn {candidate.merchant}</span>
@@ -611,6 +745,11 @@ export function InboxPage({
             <p className="inbox-list-footer">
               Hiển thị {visible.length} / {pendingCount} mục chờ duyệt. Chọn nhiều để duyệt hàng
               loạt; conf thấp không tự vào sổ.
+            </p>
+            <p className="inbox-kbd-hint" aria-label="Phím tắt Inbox">
+              <span className="inbox-kbd-label">Phím tắt:</span>{" "}
+              <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>X</kbd> chọn · <kbd>A</kbd> duyệt ·{" "}
+              <kbd>C</kbd> Capture · <kbd>N</kbd> Thêm nhanh
             </p>
           </section>
         )}

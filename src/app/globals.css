@@ -2631,9 +2631,44 @@ input[aria-invalid="true"] {
 .inbox-row:last-child { border-bottom: 0; }
 .inbox-row:hover { background: #fbfcfb; }
 .inbox-row.selected { background: #f1f8f4; }
+.inbox-row.focused {
+  outline: 2px solid var(--green);
+  outline-offset: -2px;
+  background: #f7faf8;
+}
+.inbox-row.selected.focused {
+  background: #e8f5ec;
+}
 .inbox-row.low-conf {
   border-left: 3px solid var(--color-warning-default, #d97706);
   padding-left: 15px;
+}
+.inbox-kbd-hint {
+  margin: 0;
+  padding: 10px 18px 14px;
+  border-top: 1px solid #edf0ee;
+  color: #7a8680;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.inbox-kbd-hint .inbox-kbd-label {
+  font-weight: 620;
+  color: #64706a;
+}
+.inbox-kbd-hint kbd {
+  display: inline-block;
+  min-width: 1.25em;
+  padding: 1px 5px;
+  border: 1px solid #d5dcd7;
+  border-radius: 4px;
+  background: #f4f6f5;
+  color: #3d4742;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 1px 0 #e4eae6;
 }
 .inbox-row-date {
   color: #89948e;
@@ -2960,7 +2995,26 @@ input[aria-invalid="true"] {
 [data-theme="dark"] .inbox-list-header { background: var(--color-bg-tertiary); }
 [data-theme="dark"] .inbox-row:hover { background: var(--color-bg-tertiary); }
 [data-theme="dark"] .inbox-row.selected { background: rgba(74, 222, 128, 0.08); }
+[data-theme="dark"] .inbox-row.focused {
+  background: rgba(74, 222, 128, 0.06);
+}
+[data-theme="dark"] .inbox-row.selected.focused {
+  background: rgba(74, 222, 128, 0.12);
+}
 [data-theme="dark"] .inbox-row { border-bottom-color: var(--color-border-default); }
+[data-theme="dark"] .inbox-kbd-hint {
+  border-top-color: var(--color-border-default);
+  color: var(--color-text-secondary, #94a3b8);
+}
+[data-theme="dark"] .inbox-kbd-hint .inbox-kbd-label {
+  color: var(--color-text-secondary, #cbd5e1);
+}
+[data-theme="dark"] .inbox-kbd-hint kbd {
+  border-color: var(--color-border-default);
+  background: var(--color-bg-tertiary, #1e293b);
+  color: var(--color-text-primary, #e2e8f0);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
 [data-theme="dark"] .inbox-explain { background: var(--color-bg-tertiary); border-color: var(--color-border-default); }
 [data-theme="dark"] .inbox-review-form .field input,
 [data-theme="dark"] .inbox-review-form .field select,
