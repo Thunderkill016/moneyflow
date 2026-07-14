@@ -449,14 +449,16 @@
 
 
 ### TASK-132 — Performance budgets Lighthouse
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Fix LCP/CLS on insights and landing; document scores.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `9cbc822` landing RSC + proxy LCP path; font/CLS reserves; insights dialog code-split; docs/performance-budgets.md
 
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-132 | `9cbc822` LCP/CLS landing+insights; static `/`; budgets doc; dialog dynamic import |
 | 2026-07-15 | TASK-131 | `8b53750` power-user CSV → ledger direct; map columns; fingerprint dedupe; skip inbox |
 | 2026-07-15 | TASK-130 | `c644aa4` privacy-first due-commitment web notifications; opt-in; no amounts |
 | 2026-07-15 | TASK-129 | `fbaa1cd` multi-currency accounts read-only; no cross-currency transfer; VND insights total |
