@@ -299,9 +299,10 @@
 - **Completed:** 2026-07-15 — `571a50a` /categories add/rename/archive; unique name per kind; migration is_archived; seed defaults kept.
 
 ### TASK-108 — Budget threshold calm UI
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Budgets page + insights card: 80% "Gần hạn mức", 100%+ "Đã vượt X" — không guilt language. Colors + text not color alone.
 - **Done khi:** copy/states; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `8426ee3` calm thresholds: Gần hạn mức (80%) / Đã vượt X (100%+); lib helpers + budgets page + Insights card; text+color.
 
 ### TASK-109 — Export CSV discoverability
 - **Status:** `ready`
@@ -394,6 +395,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-108 | `8426ee3` budget calm thresholds: Gần hạn mức / Đã vượt X; text+color on budgets + Insights |
 | 2026-07-15 | TASK-107 | `571a50a` /categories add/rename/archive; unique per kind; is_archived migration |
 | 2026-07-15 | TASK-106 | `3928fab` soft-delete undo toast 8s Hoàn tác (demo + restore RPC); migration limitation documented |
 | 2026-07-15 | TASK-105 | `624cca2` global CTA Ghi chi tiêu (topbar+FAB → quick add); Insights/tx same pattern |
