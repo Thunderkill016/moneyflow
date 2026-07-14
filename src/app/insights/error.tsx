@@ -2,11 +2,7 @@
 
 import { RouteError } from "@/components/route-error";
 
-/**
- * Root segment error boundary (wireframes §21).
- * No raw financial payload in message, console, analytics, or contact URL.
- */
-export default function ErrorBoundary({
+export default function InsightsError({
   error,
   reset,
 }: {
@@ -19,7 +15,7 @@ export default function ErrorBoundary({
       reset={reset}
       homeHref="/insights"
       homeLabel="Về Tổng quan"
-      routeKey="root"
+      routeKey="insights"
     />
   );
 }

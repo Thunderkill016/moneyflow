@@ -317,7 +317,7 @@
 - **Completed:** 2026-07-15 — `b7b9bf8` public `/privacy` VN: data/no bank pwd/RLS/retention/export-xóa/liên hệ; footer + register links.
 
 ### TASK-111 — Page states audit P0 routes
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Audit /insights /transactions /accounts /budgets /reports /settings: mỗi trang loading.tsx hoặc skeleton, empty, error boundary/inline. Fix thiếu.
 - **Done khi:** checklist trong PR message; lint/typecheck/test pass.
 
