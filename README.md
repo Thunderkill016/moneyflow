@@ -11,33 +11,19 @@ This repository has a dashboard + transaction flow, Supabase Auth, and a protect
 
 ## Autopilot (khi bạn ngủ)
 
-Agent tự lấy task từ `AGENT_BACKLOG.md` (Inbox-first wireframe order), code, lint/typecheck/test, commit, push `origin main`.
+Agent lấy **một** task `ready` (**TASK-100…125** — Wave thu chi MVP), code, lint/typecheck/test, commit, push.
 
-**Yêu cầu:** `grok` trong PATH (`~/.local/bin/grok`, đã login); máy không sleep; network cho model API + `git push`.
+**Luật:** [docs/AUTOPILOT_PLAN.md](docs/AUTOPILOT_PLAN.md) · [docs/research/05_PRODUCT_AND_ARCHITECTURE.md](docs/research/05_PRODUCT_AND_ARCHITECTURE.md) · [AGENTS.md](AGENTS.md)
 
 ```bash
 cd /home/thunder/Code/moneyflow
-chmod +x scripts/agent-*.sh
-
-# Smoke: task tiếp theo (ghi logs/agent/.next-task.json)
-bash scripts/agent-pick-task.sh
-
-# Một cycle (refill → pick → headless agent)
-bash scripts/agent-orchestrator.sh
-
-# Daemon liên tục (systemd user service, fallback nohup)
+bash scripts/agent-pick-task.sh      # phải ra TASK-100+
 bash scripts/agent-daemon-start.sh
-
-# Xem log
 tail -f logs/agent/daemon.log
-
-# Dừng
 bash scripts/agent-daemon-stop.sh
 ```
 
-**Logs:** `logs/agent/daemon.log`, `logs/agent/*_TASK-*.log`, circuit breaker `logs/agent/.orchestrator-state` (3 FAIL → nghỉ dài; reset: `rm -f logs/agent/.orchestrator-state`).
-
-Chi tiết: [AGENT_AUTOPILOT.md](AGENT_AUTOPILOT.md) · hàng đợi: [AGENT_BACKLOG.md](AGENT_BACKLOG.md) · roadmap pool: [AGENT_ROADMAP.md](AGENT_ROADMAP.md)
+Chi tiết: [AGENT_AUTOPILOT.md](AGENT_AUTOPILOT.md) · [AGENT_BACKLOG.md](AGENT_BACKLOG.md) · [AGENT_ROADMAP.md](AGENT_ROADMAP.md)
 
 ## Docs
 

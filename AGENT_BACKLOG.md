@@ -7,7 +7,9 @@
 
 1. `ready` &lt; 2 → `bash scripts/agent-refill-backlog.sh` (từ `AGENT_ROADMAP.md`)
 2. Không chờ user tạo task
-3. Thứ tự ưu tiên: **số TASK nhỏ hơn trước** (wireframe screen order)
+3. Thứ tự ưu tiên: **số TASK nhỏ hơn trước** trong các task `ready`
+4. **Luật sản phẩm:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` + `docs/AUTOPILOT_PLAN.md`
+5. **Cấm:** đổi landing sang hộp thư; bank sync; AI advisor; family; OCR; envelope onboarding
 
 ## An toàn
 
@@ -223,19 +225,161 @@
 - **Completed:** 2026-07-15 — `3853e0e` paste_analyzed/committed + import_batch_created/committed/cancelled via safe-analytics (counts/source only)
 
 ### TASK-032 — Mask account numbers in UI snippets
-- **Status:** `ready`
+- **Status:** `cancelled`
+- **Note:** Deferred; covered by TASK-123 Wave C.
 - **Mô tả:** Redact/mask STK-like digit runs in raw_snippet display (review/explain/preview) while keeping merchant readable; pure helper + tests.
 - **Source:** roadmap pool refill
 
 ### TASK-033 — Retention job clear expired import raw
-- **Status:** `ready`
+- **Status:** `cancelled`
+- **Note:** Deferred post Wave A; privacy prefs already exist.
 - **Mô tả:** Honor privacy rawRetention: on load/inbox, drop import drafts older than 7/30 days or immediately when delete_now; keep batch meta.
 - **Source:** roadmap pool refill
 
 ### TASK-034 — Merchant normalize dictionary v1
-- **Status:** `ready`
+- **Status:** `cancelled`
+- **Note:** Deferred P2 capture polish.
 - **Mô tả:** Local map common VN merchant aliases (Grab, Highlands, Shopee…) → display name + optional default category hint on parse.
 - **Source:** roadmap pool refill
+
+
+---
+
+## Hàng đợi Wave A–C — Thu chi MVP (theo AUTOPILOT_PLAN.md)
+
+> Capture/Inbox TASK-001…030 = **done** (module phụ).  
+> Auto **chỉ** lấy task `ready` dưới đây (MF-100+).
+
+### TASK-100 — Default home logged-in → /insights
+- **Status:** `ready`
+- **Mô tả:** Đổi post-auth redirect và `/` khi đã login từ `/inbox` sang `/insights` (Tổng quan thu chi). Cập nhật `auth-redirect.ts` + proxy + tests. Không xóa route inbox. Tham chiếu docs/AUTOPILOT_PLAN.md Wave A MF-100 và research G5.
+- **Done khi:** login/register/onboarding skip → insights; tests auth-redirect pass; lint/typecheck/test pass.
+
+### TASK-101 — Nav IA thu chi (primary Tổng quan)
+- **Status:** `ready`
+- **Mô tả:** Cập nhật app-shell + nav-ia: primary desktop/mobile = Tổng quan(/insights), Giao dịch(/transactions), Capture(/capture), Tài khoản(/accounts), More. Inbox chuyển More hoặc dưới Capture. Budgets/commitments/goals vẫn secondary (Insights cards / More Kế hoạch). Tests nav-ia. Không clone competitor.
+- **Done khi:** nav matches G5; tests pass; lint/typecheck/test pass.
+
+### TASK-102 — Onboarding thu chi (ví + ghi chi + insights)
+- **Status:** `ready`
+- **Mô tả:** Viết lại onboarding 3 bước: (1) trust no bank password + export (2) xác nhận/tạo ví tiền mặt (3) optional quick expense hoặc skip → /insights. Bỏ bắt buộc paste/upload làm bước chính. Cập nhật onboarding.ts tests.
+- **Done khi:** flow thu chi; ends at insights; tests pass.
+
+### TASK-103 — Insights dashboard G5 widgets
+- **Status:** `ready`
+- **Mô tả:** Polish /insights: số dư tổng, thu tháng, chi tháng, ròng, top categories (list/bar không pie home), recent txns, safe-to-spend secondary + 1 dòng giải thích, CTA Ghi chi, cards budget/commitment/goal. Loading/empty/error. Dùng finance.ts existing.
+- **Done khi:** 4 câu JTBD trả lời được trên 1 màn; states OK; lint/typecheck/test pass.
+
+### TASK-104 — Lock landing thu chi (regression test)
+- **Status:** `ready`
+- **Mô tả:** Thêm test (node test) assert landing source hoặc exported copy strings: phải có "có thể chi" hoặc "thu chi"; forbid "Hộp thư cho mọi giao dịch" và "Universal Financial Inbox". Không đổi layout landing đang G5 trừ khi broken.
+- **Done khi:** test fail nếu revert inbox copy; lint/typecheck/test pass.
+
+### TASK-105 — Global CTA Ghi chi tiêu (quick add)
+- **Status:** `ready`
+- **Mô tả:** AppShell primaryAction/FAB mặc định mở quick add expense (dialog hoặc /capture/quick) label "Ghi chi tiêu". Insights/transactions dùng cùng pattern. Shortcut N giữ.
+- **Done khi:** CTA rõ trên desktop+mobile; lint/typecheck/test pass.
+
+### TASK-106 — Soft-delete undo toast transactions
+- **Status:** `ready`
+- **Mô tả:** Khi xóa giao dịch (soft delete), toast 8s với Hoàn tác gọi restore nếu API/demo hỗ trợ; không thì document limitation. Calm copy.
+- **Done khi:** undo path works demo và/hoặc server; lint/typecheck/test pass.
+
+### TASK-107 — Category manager tối thiểu
+- **Status:** `ready`
+- **Mô tả:** UI thêm/đổi tên/ẩn (archive) category income+expense cho user; không subcategory. Settings hoặc trang /categories. Seed defaults giữ. Validate name unique per kind.
+- **Done khi:** CRUD category; tests domain; lint/typecheck/test pass.
+
+### TASK-108 — Budget threshold calm UI
+- **Status:** `ready`
+- **Mô tả:** Budgets page + insights card: 80% "Gần hạn mức", 100%+ "Đã vượt X" — không guilt language. Colors + text not color alone.
+- **Done khi:** copy/states; lint/typecheck/test pass.
+
+### TASK-109 — Export CSV discoverability
+- **Status:** `ready`
+- **Mô tả:** Link/button Xuất CSV từ /insights và /reports trỏ /settings/export hoặc trigger download. Reuse export-data.ts formula escape tests.
+- **Done khi:** 1 click path từ insights; tests pass.
+
+### TASK-110 — Static /privacy policy VN
+- **Status:** `ready`
+- **Mô tả:** Trang /privacy nội dung VN tối thiểu: data thu thập, không password NH, RLS, retention, export/xóa, liên hệ. Link footer landing + register. Không legalese copy đối thủ.
+- **Done khi:** page public; links; lint/typecheck/test pass.
+
+### TASK-111 — Page states audit P0 routes
+- **Status:** `ready`
+- **Mô tả:** Audit /insights /transactions /accounts /budgets /reports /settings: mỗi trang loading.tsx hoặc skeleton, empty, error boundary/inline. Fix thiếu.
+- **Done khi:** checklist trong PR message; lint/typecheck/test pass.
+
+### TASK-112 — Mobile responsive pass core
+- **Status:** `ready`
+- **Mô tả:** Kiểm tra mobile CSS: bottom nav 5, FAB không che list cuối, dialogs full-width, tables scroll. Fix regressions insights/transactions/accounts.
+- **Done khi:** no horizontal overflow major pages; lint/typecheck/test pass.
+
+### TASK-113 — Demo mode banner
+- **Status:** `ready`
+- **Mô tả:** Khi viewer.isDemo, banner sticky "Chế độ demo — dữ liệu lưu trên trình duyệt" + CTA Đăng ký. AppShell.
+- **Done khi:** banner; lint/typecheck/test pass.
+
+### TASK-114 — Commitments pay flow polish
+- **Status:** `ready`
+- **Mô tả:** Pay commitment → expense ledger; empty/error; reserve hiển thị trên insights. Fix bugs only, no new product.
+- **Done khi:** happy path + tests commitments; lint/typecheck/test pass.
+
+### TASK-115 — Goals card on Insights
+- **Status:** `ready`
+- **Mô tả:** Featured goal progress trên insights; link /goals; empty CTA tạo mục tiêu.
+- **Done khi:** card; lint/typecheck/test pass.
+
+### TASK-116 — E2E expense path Playwright
+- **Status:** `ready`
+- **Mô tả:** Playwright: open landing → demo or login → add expense via quick add → insights/dashboard shows amount → open export or download path. Không phụ thuộc inbox. Update/replace inbox-only smoke nếu conflict.
+- **Done khi:** e2e script documented in package.json; pass locally; lint/typecheck/test pass.
+
+### TASK-117 — Expand domain unit tests
+- **Status:** `ready`
+- **Mô tả:** Tests: balance after expense/edit/soft-delete; transfer excluded from expense totals; budget spent ignores transfer; safe-to-spend non-negative integer.
+- **Done khi:** new tests green; lint/typecheck/test pass.
+
+### TASK-118 — Document RLS verification
+- **Status:** `ready`
+- **Mô tả:** docs/security-rls-check.md: how to run existing SQL tests or manual checklist; fix gaps if easy. Không require live prod.
+- **Done khi:** doc + any script; lint/typecheck/test pass.
+
+### TASK-119 — A11y baseline pass
+- **Status:** `ready`
+- **Mô tả:** Labels on money forms; focus visible; expense/income not color-only (+/−); dialog focus trap check. Fix critical issues on insights + add dialog.
+- **Done khi:** notes in PR; lint/typecheck/test pass.
+
+### TASK-120 — Production build green
+- **Status:** `ready`
+- **Mô tả:** `npm run build` must pass. Fix eslint setState-in-effect in inbox-review-panel and any TS errors. Prefer minimal fix.
+- **Done khi:** build exit 0; lint/typecheck/test pass.
+
+### TASK-121 — Soft rate limit note + basic guard
+- **Status:** `ready`
+- **Mô tả:** Simple rate limit on upload/import server action or document middleware plan; client debounce double-submit already via idempotency.
+- **Done khi:** guard or doc; lint/typecheck/test pass.
+
+### TASK-122 — Transactions list pagination or cap
+- **Status:** `ready`
+- **Mô tả:** If list can be huge, paginate or "load more" 50; keep filters. Demo OK.
+- **Done khi:** no render 1000 rows at once; lint/typecheck/test pass.
+
+### TASK-123 — Mask account-like digits in snippets
+- **Status:** `ready`
+- **Mô tả:** Helper mask STK patterns in raw snippets UI (inbox/review); unit tests. Never log unmasked via safe-log.
+- **Done khi:** tests; lint/typecheck/test pass.
+
+### TASK-124 — README G5 product section
+- **Status:** `ready`
+- **Mô tả:** README: positioning thu chi, run dev, quality commands, link docs/research/05 and AUTOPILOT_PLAN, autopilot start/stop. Remove inbox-only product claim as primary.
+- **Done khi:** README accurate; lint/typecheck/test pass.
+
+### TASK-125 — AGENTS.md guardrails G5
+- **Status:** `ready`
+- **Mô tả:** Update AGENTS.md: product law G5; forbid landing inbox slogan; forbid bank sync/AI/family tasks; point AUTOPILOT_PLAN wave order.
+- **Done khi:** AGENTS.md updated; lint/typecheck/test pass.
+
 
 ## Nhật ký
 
