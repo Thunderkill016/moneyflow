@@ -384,9 +384,10 @@
 - **Completed:** 2026-07-15 — `ecce20d` soft import rate limit (15/min/user) on batch+candidates actions; `docs/rate-limit.md` middleware plan
 
 ### TASK-122 — Transactions list pagination or cap
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** If list can be huge, paginate or "load more" 50; keep filters. Demo OK.
 - **Done khi:** no render 1000 rows at once; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `02d42c1` load-more 50 on ledger/timeline; filters+totals full set; `transaction-list` helper + tests
 
 ### TASK-123 — Mask account-like digits in snippets
 - **Status:** `cancelled`
@@ -409,6 +410,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-122 | `02d42c1` transactions list load-more 50; keep filters; no 1000-row paint |
 | 2026-07-15 | TASK-121 | `ecce20d` soft rate limit import actions + docs/rate-limit.md middleware plan |
 | 2026-07-15 | TASK-120 | `21968d2` production build green; lint/typecheck/test + `npm run build` exit 0 |
 | 2026-07-15 | TASK-119 | `658c460` a11y baseline: labels, focus-visible, +/− signs, dialog focus trap/restore |
