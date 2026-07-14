@@ -144,9 +144,10 @@
 - **Completed:** 2026-07-15 — `bbf6328` /settings hub + appearance theme + error §21 polish; inbox skeletons already present.
 
 ### TASK-020 — Autopilot smoke + README autopilot section
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Ensure scripts executable; README section how to start/stop daemon; `bash scripts/agent-pick-task.sh` works; no code feature required beyond docs verify.
 - **Done khi:** docs accurate; scripts ok.
+- **Completed:** 2026-07-15 — `99de308` scripts +x; README daemon start/stop/pick; pick-task verified.
 
 ---
 
@@ -170,6 +171,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-020 | `99de308` README autopilot start/stop + scripts executable + pick-task ok |
 | 2026-07-15 | TASK-019 | `bbf6328` /settings hub + appearance + error §21; inbox skeletons ok |
 | 2026-07-15 | TASK-018 | `63cc8e8` /settings/delete-account XÓA confirm + wipe local + signOut |
 | 2026-07-15 | TASK-017 | `7c3192e` /settings/export CSV/JSON giao dịch + ứng viên client-side |
