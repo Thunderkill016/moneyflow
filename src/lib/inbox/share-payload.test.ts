@@ -57,9 +57,10 @@ describe("share-payload", () => {
     );
   });
 
-  test("classifySharedFile routes csv xlsx text", () => {
+  test("classifySharedFile routes csv xlsx pdf text", () => {
     assert.equal(classifySharedFile("a.csv", "text/csv"), "csv");
     assert.equal(classifySharedFile("a.xlsx", ""), "xlsx");
+    assert.equal(classifySharedFile("a.pdf", "application/pdf"), "pdf");
     assert.equal(classifySharedFile("note.txt", "text/plain"), "text");
     assert.equal(classifySharedFile("pic.png", "image/png"), "unsupported");
   });
@@ -120,6 +121,24 @@ describe("share-payload", () => {
     });
     assert.equal(plan.ok, false);
     assert.ok(plan.errors.some((e) => /Excel|CSV/i.test(e)));
+  });
+
+  test("planShareImport rejects pdf binary with Vietnamese error", () => {
+    const plan = planShareImport({
+      title: "",
+      text: "",
+      url: "",
+      files: [
+        {
+          name: "sao-ke.pdf",
+          type: "application/pdf",
+          text: "%PDF-fake",
+          size: 9,
+        },
+      ],
+    });
+    assert.equal(plan.ok, false);
+    assert.ok(plan.errors.some((e) => /PDF|Upload/i.test(e)));
   });
 
   test("planShareImport empty payload fails clearly", () => {

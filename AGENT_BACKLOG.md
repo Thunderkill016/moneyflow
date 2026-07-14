@@ -165,8 +165,24 @@
 - **Completed:** 2026-07-15 — `74fcf81` first-sheet xlsx via sheetjs → statement matrix + upload preview (source xlsx).
 
 ### TASK-023 — PDF text extract one bank template
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Text-layer PDF sample fixture + parser; no OCR.
+- **Source:** roadmap pool refill
+
+
+### TASK-024 — Supabase migration import_batches + candidates
+- **Status:** `ready`
+- **Mô tả:** Persist inbox server-side with RLS; migrate from local store when authed.
+- **Source:** roadmap pool refill
+
+### TASK-025 — Duplicate + transfer detection
+- **Status:** `ready`
+- **Mô tả:** Fingerprint duplicates; suggest transfer pairs opposite amount same day.
+- **Source:** roadmap pool refill
+
+### TASK-026 — Keyboard shortcuts inbox
+- **Status:** `ready`
+- **Mô tả:** j/k, x select, a approve, c capture, n quick add per wireframes.
 - **Source:** roadmap pool refill
 
 ## Nhật ký

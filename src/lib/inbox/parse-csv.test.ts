@@ -135,7 +135,8 @@ test("validateUploadFile size and type", () => {
   if (!big.ok) assert.match(big.error, /10MB/);
 
   const pdf = validateUploadFile({ name: "scan.pdf", size: 1000 });
-  assert.equal(pdf.ok, false);
+  assert.equal(pdf.ok, true);
+  if (pdf.ok) assert.equal(pdf.kind, "pdf");
 
   const xlsx = validateUploadFile({ name: "book.xlsx", size: 2000 });
   assert.equal(xlsx.ok, true);

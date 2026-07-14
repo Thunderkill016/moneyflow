@@ -644,9 +644,9 @@ function parseDataRow(
   };
 }
 
-export type ImportCandidateSource = "csv" | "xlsx";
+export type ImportCandidateSource = "csv" | "xlsx" | "pdf";
 
-/** Map parsed statement rows to store inputs (source csv/xlsx + batch id). */
+/** Map parsed statement rows to store inputs (source csv/xlsx/pdf + batch id). */
 export function toCsvCandidateInputs(
   rows: ParsedCsvRow[],
   importBatchId: string,
@@ -671,7 +671,9 @@ export function validateUploadFile(file: {
   name: string;
   size: number;
   type?: string;
-}): { ok: true; kind: "csv" | "xlsx" | "other" } | { ok: false; error: string } {
+}):
+  | { ok: true; kind: "csv" | "xlsx" | "pdf" | "other" }
+  | { ok: false; error: string } {
   if (!file || !file.name) {
     return { ok: false, error: "Chưa chọn file." };
   }
@@ -699,14 +701,11 @@ export function validateUploadFile(file: {
     return { ok: true, kind: "xlsx" };
   }
   if (lower.endsWith(".pdf") || file.type === "application/pdf") {
-    return {
-      ok: false,
-      error:
-        "PDF chưa hỗ trợ ở bước này. Xuất CSV từ ngân hàng hoặc Excel rồi tải lại.",
-    };
+    return { ok: true, kind: "pdf" };
   }
   return {
     ok: false,
-    error: "Định dạng không hỗ trợ. Chọn CSV (ưu tiên) hoặc XLS/XLSX.",
+    error:
+      "Định dạng không hỗ trợ. Chọn CSV, XLS/XLSX, hoặc PDF text-layer (MF DEMO BANK).",
   };
 }

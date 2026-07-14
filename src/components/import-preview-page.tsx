@@ -170,7 +170,11 @@ export function ImportPreviewPage({
     setActionError("");
     try {
       const source =
-        state.batch.source === "xlsx" ? ("xlsx" as const) : ("csv" as const);
+        state.batch.source === "xlsx"
+          ? ("xlsx" as const)
+          : state.batch.source === "pdf"
+            ? ("pdf" as const)
+            : ("csv" as const);
       const inputs = toCsvCandidateInputs(
         state.rows,
         state.batch.id,

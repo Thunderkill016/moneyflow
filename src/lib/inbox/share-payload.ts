@@ -110,7 +110,7 @@ export function hasShareContent(payload: SharePayload): boolean {
 export function classifySharedFile(
   name: string,
   type: string,
-): "csv" | "xlsx" | "text" | "unsupported" {
+): "csv" | "xlsx" | "pdf" | "text" | "unsupported" {
   const check = validateUploadFile({
     name: name || "shared.txt",
     size: 1,
@@ -118,6 +118,7 @@ export function classifySharedFile(
   });
   if (check.ok && check.kind === "csv") return "csv";
   if (check.ok && check.kind === "xlsx") return "xlsx";
+  if (check.ok && check.kind === "pdf") return "pdf";
 
   const lower = (name || "").toLowerCase();
   const mime = (type || "").toLowerCase();
@@ -187,6 +188,12 @@ export function planShareImport(payload: SharePayload): SharePlan {
       // Share bridge only carries UTF-8 text; binary XLSX needs Capture → Upload.
       errors.push(
         `“${file.name}”: Share chưa nhận file Excel nhị phân — mở Capture → Upload để parse sheet đầu (.xlsx/.xls).`,
+      );
+      continue;
+    }
+    if (kind === "pdf") {
+      errors.push(
+        `“${file.name}”: Share chưa nhận PDF nhị phân — mở Capture → Upload để parse PDF text-layer (MF DEMO BANK).`,
       );
       continue;
     }

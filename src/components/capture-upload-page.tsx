@@ -24,13 +24,15 @@ import {
   MAX_UPLOAD_BYTES,
   parseCsvStatement,
   validateUploadFile,
+  type ImportCandidateSource,
 } from "@/lib/inbox/parse-csv";
+import { parsePdfStatement } from "@/lib/inbox/parse-pdf";
 import { parseXlsxStatement } from "@/lib/inbox/parse-xlsx";
 
 type Phase = "idle" | "reading" | "error";
 
 const ACCEPT =
-  ".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+  ".csv,.xlsx,.xls,.pdf,text/csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -95,20 +97,34 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
 
       setPhase("reading");
       try {
-        const isExcel = check.kind === "xlsx";
-        const result = isExcel
-          ? parseXlsxStatement(await file.arrayBuffer(), {
-              fileName: file.name,
-            })
-          : parseCsvStatement(await file.text(), { fileName: file.name });
+        const kind = check.kind;
+        const source: ImportCandidateSource =
+          kind === "xlsx" ? "xlsx" : kind === "pdf" ? "pdf" : "csv";
+
+        let result;
+        if (kind === "xlsx") {
+          result = parseXlsxStatement(await file.arrayBuffer(), {
+            fileName: file.name,
+          });
+        } else if (kind === "pdf") {
+          result = parsePdfStatement(await file.arrayBuffer(), {
+            fileName: file.name,
+          });
+        } else {
+          result = parseCsvStatement(await file.text(), {
+            fileName: file.name,
+          });
+        }
 
         if (!result.ok || result.rows.length === 0) {
           setPhase("error");
           setError(
             result.error ??
-              (isExcel
+              (kind === "xlsx"
                 ? "Không phân tích được Excel (chỉ sheet đầu)."
-                : "Không phân tích được CSV."),
+                : kind === "pdf"
+                  ? "Không phân tích được PDF text-layer."
+                  : "Không phân tích được CSV."),
           );
           return;
         }
@@ -116,7 +132,7 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
         // Gate: create batch + draft rows, then Import Preview before Inbox.
         const batch = addStoredImportBatch({
           fileName: result.fileName,
-          source: isExcel ? "xlsx" : "csv",
+          source,
           status: "parsed",
           rowCount: result.rows.length,
           warningCount: result.warningCount,
@@ -130,7 +146,7 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
       } catch {
         setPhase("error");
         setError(
-          "Không đọc được file. Thử CSV UTF-8 hoặc .xlsx nhỏ hơn 10MB.",
+          "Không đọc được file. Thử CSV UTF-8, .xlsx, hoặc PDF text-layer (≤10MB).",
         );
       }
     },
@@ -180,9 +196,10 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
             </p>
             <h1>Tải sao kê / file giao dịch</h1>
             <p>
-              Kéo thả CSV hoặc Excel (.xlsx/.xls — chỉ sheet đầu). Sau khi
-              parse, bạn xem map cột và preview trước khi đưa vào Inbox — không
-              ghi thẳng vào sổ.
+              Kéo thả CSV, Excel (.xlsx/.xls — sheet đầu), hoặc PDF text-layer
+              (mẫu MF DEMO BANK). Sau khi parse, bạn xem map cột và preview
+              trước khi đưa vào Inbox — không ghi thẳng vào sổ. Chưa hỗ trợ OCR
+              ảnh quét.
             </p>
           </div>
           <div className="page-heading-actions">
@@ -215,11 +232,12 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
             <p className="capture-upload-drop-title">
               {phase === "reading"
                 ? "Đang phân tích…"
-                : "Kéo thả CSV, XLS, XLSX"}
+                : "Kéo thả CSV, XLS, XLSX, PDF"}
             </p>
             <p id="upload-limits" className="capture-upload-drop-meta">
-              tối đa {formatBytes(MAX_UPLOAD_BYTES)} · không chờ hành · CSV hoặc
-              Excel (sheet đầu) · bước tiếp theo: Import Preview
+              tối đa {formatBytes(MAX_UPLOAD_BYTES)} · không chờ hành · CSV /
+              Excel (sheet đầu) / PDF text-layer · bước tiếp theo: Import
+              Preview
             </p>
             <span className="capture-upload-or">Hoặc</span>
             <label
