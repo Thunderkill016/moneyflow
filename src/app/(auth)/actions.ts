@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { POST_AUTH_REDIRECT, safeNextPath } from "@/lib/auth-redirect";
+import { ONBOARDING_PATH } from "@/lib/onboarding";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = {
@@ -62,27 +63,35 @@ export async function register(_: AuthState, formData: FormData): Promise<AuthSt
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
 
+  const nextPath = safeNextPath(String(formData.get("next") ?? ""), ONBOARDING_PATH);
   const supabase = await createClient();
   if (!supabase) return configurationError();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(POST_AUTH_REDIRECT)}`,
+      emailRedirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`,
     },
   });
   if (error) return { message: "Không thể tạo tài khoản. Email có thể đã được sử dụng." };
 
+  // Immediate session (email confirm off) → onboarding for first capture.
+  if (data.session) redirect(nextPath);
+
   return { success: true, message: "Kiểm tra email để xác nhận tài khoản MoneyFlow." };
 }
 
-export async function signInWithGoogle() {
+export async function signInWithGoogle(formData?: FormData) {
+  const nextPath = safeNextPath(
+    formData ? String(formData.get("next") ?? "") : "",
+    POST_AUTH_REDIRECT,
+  );
   const supabase = await createClient();
   if (!supabase) redirect("/login?error=config");
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(POST_AUTH_REDIRECT)}` },
+    options: { redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}` },
   });
   if (error || !data.url) redirect("/login?error=oauth");
   redirect(data.url);

@@ -130,6 +130,7 @@ export function AuthForm({
 
           {(mode === "login" || mode === "register") && (
             <form action={signInWithGoogle}>
+              <input type="hidden" name="next" value={next} />
               <button className="google-button" type="submit" disabled={pending}>
                 <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18">
                   <path
