@@ -63,7 +63,7 @@
 - **Status:** `done`
 - **Mô tả:** `/capture` page or sheet: three actions Paste / Upload / Quick linking to subroutes. Mobile-friendly. Wireframes CaptureMenu.
 - **Done khi:** routes + UI; lint/typecheck/test pass.
-- **Completed:** 2026-07-15 — pending SHA `/capture` CaptureMenu + shared CAPTURE_OPTIONS.
+- **Completed:** 2026-07-15 — `13816e0` `/capture` CaptureMenu + shared CAPTURE_OPTIONS.
 
 ### TASK-007 — Paste Anything flow
 - **Status:** `ready`
