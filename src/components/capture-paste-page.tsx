@@ -20,6 +20,7 @@ import {
 } from "@/lib/inbox/parse-text";
 import { readStoredRules } from "@/lib/inbox/rules-store";
 import { formatMoney } from "@/lib/money";
+import { trackProductEvent } from "@/lib/safe-analytics";
 import { safeUserNotice } from "@/lib/safe-log";
 
 type Phase = "edit" | "preview" | "error";
@@ -119,6 +120,13 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
         setNeedsReviewCount(result.needsReviewCount);
         setPhase("preview");
         setError("");
+        // Counts + source hint only — never paste body / raw_snippet.
+        trackProductEvent("paste_analyzed", {
+          candidate_count: next.length,
+          needs_review_count: result.needsReviewCount,
+          source_hint: sourceHint,
+          apply_rules: applyRules,
+        });
       } catch {
         setPhase("error");
         setCandidates([]);
@@ -150,6 +158,12 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
       }
       const pending = await getPendingCountForClient(viewer.isDemo);
       setInboxCount(pending);
+      // Counts + source only — never paste body.
+      trackProductEvent("paste_committed", {
+        candidate_count: inputs.length,
+        source: "paste",
+        source_hint: sourceHint,
+      });
       setNotice(
         safeUserNotice(
           `Đã đưa ${inputs.length} mục vào Inbox — chưa ghi sổ.`,

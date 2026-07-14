@@ -27,6 +27,7 @@ import {
 } from "@/lib/inbox/parse-csv";
 import { parsePdfStatement } from "@/lib/inbox/parse-pdf";
 import { parseXlsxStatement } from "@/lib/inbox/parse-xlsx";
+import { trackProductEvent } from "@/lib/safe-analytics";
 
 type Phase = "idle" | "reading" | "error";
 
@@ -145,6 +146,14 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
           return;
         }
         writeImportDraft(batchResult.batch.id, result.rows);
+        // Counts + source enum only — never file body / raw rows / fileName free text.
+        trackProductEvent("import_batch_created", {
+          row_count: result.rows.length,
+          source_type: source,
+          warning_count: result.warningCount,
+          skipped_rows: result.skippedRows,
+          map_confidence: result.mapConfidence,
+        });
         router.push(`/imports/${batchResult.batch.id}/preview`);
       } catch {
         setPhase("error");

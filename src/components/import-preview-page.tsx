@@ -30,6 +30,7 @@ import {
   type ParsedCsvRow,
 } from "@/lib/inbox/parse-csv";
 import { formatMoney } from "@/lib/money";
+import { trackProductEvent } from "@/lib/safe-analytics";
 
 const PREVIEW_LIMIT = 10;
 
@@ -210,6 +211,16 @@ export function ImportPreviewPage({
       }
       removeImportDraft(state.batch.id);
 
+      // Counts + source enum only — never fileName / row bodies / raw_snippet.
+      trackProductEvent("import_batch_committed", {
+        candidate_count: inputs.length,
+        row_count: state.batch.rowCount,
+        source_type: source,
+        warning_count: state.batch.warningCount,
+        skipped_rows: state.batch.skippedRows,
+        map_confidence: state.batch.mapConfidence,
+      });
+
       const pending = await getPendingCountForClient(viewer.isDemo);
       setInboxCount(pending);
       setNotice(
@@ -237,6 +248,15 @@ export function ImportPreviewPage({
         return;
       }
       removeImportDraft(state.batch.id);
+      trackProductEvent("import_batch_cancelled", {
+        row_count: state.batch.rowCount,
+        source_type:
+          state.batch.source === "xlsx"
+            ? "xlsx"
+            : state.batch.source === "pdf"
+              ? "pdf"
+              : "csv",
+      });
       setNotice(`Đã hủy import ${state.batch.fileName}.`);
       router.push("/capture/upload");
     } catch {
