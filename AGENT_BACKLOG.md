@@ -66,9 +66,10 @@
 - **Completed:** 2026-07-15 — `13816e0` `/capture` CaptureMenu + shared CAPTURE_OPTIONS.
 
 ### TASK-007 — Paste Anything flow
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** `/capture/paste`: textarea, source hint, Phân tích → parse text (regex VND, simple NL like `cafe 45k`) into candidates via store → redirect inbox or show preview count. Explain uncertain fields. `src/lib/inbox/parse-text.ts` + tests. Wireframes §6.
 - **Done khi:** paste creates candidates; tests for parser; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `7508add` `/capture/paste` + parse-text VND/NL + preview uncertain → inbox candidates.
 
 ### TASK-008 — Quick Add in Capture
 - **Status:** `ready`
@@ -141,6 +142,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-007 | `7508add` /capture/paste + parse-text → inbox candidates |
 | 2026-07-15 | TASK-006 | `13816e0` /capture chooser Paste/Upload/Quick |
 | 2026-07-15 | TASK-005 | `e29a2d3` /inbox shell + candidate-store CRUD + demo rows |
 | 2026-07-14 | TASK-004 | `9193653` Inbox-first nav + post-auth /inbox |
