@@ -4,8 +4,15 @@ import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
 const protectedPaths = [
-  "/transactions",
+  "/inbox",
+  "/capture",
+  "/timeline",
   "/accounts",
+  "/rules",
+  "/imports",
+  "/insights",
+  "/settings",
+  "/transactions",
   "/budgets",
   "/commitments",
   "/goals",
@@ -48,7 +55,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isAuthenticated && authPaths.includes(path)) {
-    // POST_AUTH_REDIRECT is `/` until `/inbox` ships (TASK-005); see lib/auth-redirect.ts
+    // Inbox-first: see lib/auth-redirect.ts (POST_AUTH_REDIRECT = /inbox)
     const homeUrl = request.nextUrl.clone();
     homeUrl.pathname = POST_AUTH_REDIRECT;
     homeUrl.search = "";

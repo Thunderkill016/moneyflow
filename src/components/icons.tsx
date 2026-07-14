@@ -11,18 +11,23 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  ClipboardPaste,
   CreditCard,
   Flag,
   Home,
   HeartPulse,
+  Inbox,
   Landmark,
+  ListOrdered,
   LockKeyhole,
   type LucideIcon,
   type LucideProps,
+  MoreHorizontal,
   Pencil,
   Plus,
   ReceiptText,
   RotateCcw,
+  Scale,
   Search,
   Settings2,
   ShoppingBag,
@@ -30,6 +35,7 @@ import {
   Sparkles,
   Target,
   Trash2,
+  Upload,
   WalletCards,
   X,
 } from "lucide-react";
@@ -64,7 +70,14 @@ export type IconName =
   | "flag"
   | "lock"
   | "heart"
-  | "book";
+  | "book"
+  | "inbox"
+  | "timeline"
+  | "rules"
+  | "imports"
+  | "more"
+  | "paste"
+  | "upload";
 
 const icons: Record<IconName, LucideIcon> = {
   home: Home,
@@ -97,6 +110,13 @@ const icons: Record<IconName, LucideIcon> = {
   lock: LockKeyhole,
   heart: HeartPulse,
   book: BookOpen,
+  inbox: Inbox,
+  timeline: ListOrdered,
+  rules: Scale,
+  imports: Archive,
+  more: MoreHorizontal,
+  paste: ClipboardPaste,
+  upload: Upload,
 };
 
 export function Icon({ name, ...props }: LucideProps & { name: IconName }) {
