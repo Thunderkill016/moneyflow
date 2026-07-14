@@ -1,5 +1,5 @@
 begin;
-select plan(45);
+select plan(50);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
@@ -11,6 +11,8 @@ select has_table('public', 'recurring_commitments', 'recurring commitments exist
 select has_table('public', 'commitment_occurrences', 'commitment occurrences exists');
 select has_table('public', 'savings_goals', 'savings goals exists');
 select has_table('public', 'savings_goal_allocations', 'savings goal allocations exists');
+select has_table('public', 'import_batches', 'import_batches exists');
+select has_table('public', 'inbox_candidates', 'inbox_candidates exists');
 select has_view('public', 'account_balances', 'account_balances exists');
 select has_view('public', 'transaction_feed', 'transaction_feed exists');
 select has_view('public', 'budget_progress', 'budget_progress exists');
@@ -26,6 +28,9 @@ select ok((select relrowsecurity from pg_class where oid = 'public.recurring_com
 select ok((select relrowsecurity from pg_class where oid = 'public.commitment_occurrences'::regclass), 'commitment occurrences has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.savings_goals'::regclass), 'savings goals has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.savings_goal_allocations'::regclass), 'savings goal allocations has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.import_batches'::regclass), 'import_batches has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.inbox_candidates'::regclass), 'inbox_candidates has RLS');
+select col_type_is('public', 'inbox_candidates', 'amount_minor', 'bigint', 'inbox candidate money uses bigint');
 
 select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid'], 'create RPC exists');
 select has_function('public', 'soft_delete_money_transaction', array['uuid'], 'soft delete RPC exists');

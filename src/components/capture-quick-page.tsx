@@ -9,10 +9,9 @@ import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
-  addStoredCandidate,
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
+  addCandidatesForClient,
+  getPendingCountForClient,
+} from "@/lib/inbox/client-inbox";
 import type {
   AccountOption,
   CategoryOption,
@@ -51,15 +50,14 @@ export function CaptureQuickPage({
   const [formOpen, setFormOpen] = useState(true);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      try {
-        setInboxCount(countPending(readStoredCandidates()));
-      } catch {
-        setInboxCount(0);
-      }
+    let cancelled = false;
+    void getPendingCountForClient(viewer.isDemo).then((count) => {
+      if (!cancelled) setInboxCount(count);
     });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [viewer.isDemo]);
 
   useEffect(() => {
     if (!notice) return;
@@ -77,22 +75,24 @@ export function CaptureQuickPage({
 
     try {
       // Optional high-confidence trail in inbox store (already committed to ledger).
-      addStoredCandidate({
-        kind: input.kind,
-        amount: input.amount,
-        merchant,
-        note: input.note.trim(),
-        occurredOn: input.occurredOn,
-        source: "manual",
-        confidence: "high",
-        status: "approved",
-        categoryId: input.categoryId,
-        category: category?.name,
-        accountId: input.accountId,
-        account: account?.name,
-        rawSnippet: merchant,
-      });
-      setInboxCount(countPending(readStoredCandidates()));
+      await addCandidatesForClient(viewer.isDemo, [
+        {
+          kind: input.kind,
+          amount: input.amount,
+          merchant,
+          note: input.note.trim(),
+          occurredOn: input.occurredOn,
+          source: "manual",
+          confidence: "high",
+          status: "approved",
+          categoryId: input.categoryId,
+          category: category?.name,
+          accountId: input.accountId,
+          account: account?.name,
+          rawSnippet: merchant,
+        },
+      ]);
+      setInboxCount(await getPendingCountForClient(viewer.isDemo));
     } catch {
       /* candidate mirror is optional — ledger save already succeeded */
     }

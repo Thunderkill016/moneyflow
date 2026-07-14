@@ -7,16 +7,14 @@ import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
+  deleteImportBatchForClient,
+  loadImportBatchesForClient,
+} from "@/lib/inbox/client-inbox";
 import {
   formatImportBatchDateShort,
   formatImportBatchStats,
   importBatchSourceLabel,
   importBatchStatusLabel,
-  readStoredImportBatches,
-  removeStoredImportBatch,
   sortImportBatchesNewestFirst,
   type ImportBatch,
 } from "@/lib/inbox/import-batch-store";
@@ -24,7 +22,7 @@ import { removeImportDraft } from "@/lib/inbox/import-draft-store";
 
 /**
  * Import history (wireframes-inbox §15).
- * Lists local batches; preview link; delete raw meta (+ leftover draft).
+ * Lists batches (local demo or server when authed); preview; delete raw meta.
  */
 export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
   const [ready, setReady] = useState(false);
@@ -34,24 +32,34 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
   const [notice, setNotice] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  function reload() {
+  async function reload() {
     try {
-      setBatches(sortImportBatchesNewestFirst(readStoredImportBatches()));
-      setInboxCount(countPending(readStoredCandidates()));
+      const result = await loadImportBatchesForClient(viewer.isDemo);
+      if (!result.ok) {
+        setError(result.message);
+        setBatches([]);
+        return;
+      }
+      setBatches(sortImportBatchesNewestFirst(result.batches));
+      setInboxCount(result.pendingCount);
       setError(null);
     } catch {
-      setError("Không đọc được lịch sử import từ trình duyệt. Thử tải lại trang.");
+      setError("Không đọc được lịch sử import. Thử tải lại trang.");
       setBatches([]);
     }
   }
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      reload();
-      setReady(true);
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
+    let cancelled = false;
+    void (async () => {
+      await reload();
+      if (!cancelled) setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per auth mode
+  }, [viewer.isDemo]);
 
   useEffect(() => {
     if (!notice) return;
@@ -59,7 +67,7 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  function deleteRaw(batch: ImportBatch) {
+  async function deleteRaw(batch: ImportBatch) {
     if (deletingId) return;
     const ok = window.confirm(
       `Xóa meta import “${batch.fileName}”? Bản nháp raw (nếu còn) cũng bị xóa. Ứng viên đã vào Inbox không bị xóa.`,
@@ -68,8 +76,12 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
     setDeletingId(batch.id);
     try {
       removeImportDraft(batch.id);
-      removeStoredImportBatch(batch.id);
-      reload();
+      const result = await deleteImportBatchForClient(viewer.isDemo, batch.id);
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      await reload();
       setNotice("Đã xóa meta import.");
     } catch {
       setError("Không xóa được meta import. Thử lại.");
@@ -95,8 +107,10 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
             <p className="eyebrow">Sao kê &amp; file</p>
             <h1>Lịch sử import</h1>
             <p>
-              Các lượt tải lên / dán đã lưu trên thiết bị này. Xóa meta không xóa
-              giao dịch đã duyệt trong sổ.
+              {viewer.isDemo
+                ? "Các lượt tải lên / dán đã lưu trên thiết bị này."
+                : "Các lượt tải lên / dán đã đồng bộ theo tài khoản (RLS)."}{" "}
+              Xóa meta không xóa giao dịch đã duyệt trong sổ.
             </p>
           </div>
           <div className="page-heading-actions">

@@ -15,10 +15,9 @@ import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
-import { addStoredImportBatch } from "@/lib/inbox/import-batch-store";
+  addImportBatchForClient,
+  getPendingCountForClient,
+} from "@/lib/inbox/client-inbox";
 import { writeImportDraft } from "@/lib/inbox/import-draft-store";
 import {
   MAX_UPLOAD_BYTES,
@@ -54,15 +53,14 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      try {
-        setInboxCount(countPending(readStoredCandidates()));
-      } catch {
-        setInboxCount(0);
-      }
+    let cancelled = false;
+    void getPendingCountForClient(viewer.isDemo).then((count) => {
+      if (!cancelled) setInboxCount(count);
     });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [viewer.isDemo]);
 
   useEffect(() => {
     if (!notice) return;
@@ -130,7 +128,7 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
         }
 
         // Gate: create batch + draft rows, then Import Preview before Inbox.
-        const batch = addStoredImportBatch({
+        const batchResult = await addImportBatchForClient(viewer.isDemo, {
           fileName: result.fileName,
           source,
           status: "parsed",
@@ -141,8 +139,13 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
           headers: result.headers,
           columnMap: result.columnMap,
         });
-        writeImportDraft(batch.id, result.rows);
-        router.push(`/imports/${batch.id}/preview`);
+        if (!batchResult.ok) {
+          setPhase("error");
+          setError(batchResult.message);
+          return;
+        }
+        writeImportDraft(batchResult.batch.id, result.rows);
+        router.push(`/imports/${batchResult.batch.id}/preview`);
       } catch {
         setPhase("error");
         setError(
@@ -150,7 +153,7 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
         );
       }
     },
-    [router],
+    [router, viewer.isDemo],
   );
 
   function onInputChange(event: ChangeEvent<HTMLInputElement>) {

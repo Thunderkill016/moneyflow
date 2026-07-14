@@ -7,15 +7,15 @@ import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
-  addStoredCandidate,
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
+  addCandidatesForClient,
+  getPendingCountForClient,
+  loadImportBatchesForClient,
+  markBatchCancelledForClient,
+  markBatchCommittedForClient,
+} from "@/lib/inbox/client-inbox";
 import {
   getStoredImportBatch,
   importBatchStatusLabel,
-  markImportBatchCancelled,
-  markImportBatchCommitted,
   type ImportBatch,
 } from "@/lib/inbox/import-batch-store";
 import {
@@ -90,10 +90,23 @@ export function ImportPreviewPage({
   const [cancelling, setCancelling] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  const reload = useCallback(() => {
+  const reload = useCallback(async () => {
     setActionError("");
     try {
-      const batch = getStoredImportBatch(batchId);
+      let batch: ImportBatch | null = null;
+      if (viewer.isDemo) {
+        batch = getStoredImportBatch(batchId);
+      } else {
+        const listed = await loadImportBatchesForClient(false);
+        if (!listed.ok) {
+          setState({ phase: "error", message: listed.message });
+          return;
+        }
+        batch = listed.batches.find((item) => item.id === batchId) ?? null;
+        // Fresh upload may still only be in local until first list; fall back.
+        if (!batch) batch = getStoredImportBatch(batchId);
+      }
+
       if (!batch) {
         setState({ phase: "empty" });
         return;
@@ -125,19 +138,19 @@ export function ImportPreviewPage({
         message: "Không đọc được lô import trên máy này.",
       });
     }
-  }, [batchId]);
+  }, [batchId, viewer.isDemo]);
 
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      try {
-        setInboxCount(countPending(readStoredCandidates()));
-      } catch {
-        setInboxCount(0);
-      }
-      reload();
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [reload]);
+    let cancelled = false;
+    void (async () => {
+      const count = await getPendingCountForClient(viewer.isDemo);
+      if (!cancelled) setInboxCount(count);
+      await reload();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reload, viewer.isDemo]);
 
   useEffect(() => {
     if (!notice) return;
@@ -164,7 +177,7 @@ export function ImportPreviewPage({
       ? Math.round(state.batch.mapConfidence * 100)
       : 0;
 
-  function commitToInbox() {
+  async function commitToInbox() {
     if (state.phase !== "ready" || committing || cancelling) return;
     setCommitting(true);
     setActionError("");
@@ -180,13 +193,24 @@ export function ImportPreviewPage({
         state.batch.id,
         source,
       );
-      for (const input of inputs) {
-        addStoredCandidate(input);
+      const addResult = await addCandidatesForClient(viewer.isDemo, inputs);
+      if (!addResult.ok) {
+        setActionError(addResult.message);
+        setCommitting(false);
+        return;
       }
-      markImportBatchCommitted(state.batch.id);
+      const markResult = await markBatchCommittedForClient(
+        viewer.isDemo,
+        state.batch.id,
+      );
+      if (!markResult.ok) {
+        setActionError(markResult.message);
+        setCommitting(false);
+        return;
+      }
       removeImportDraft(state.batch.id);
 
-      const pending = countPending(readStoredCandidates());
+      const pending = await getPendingCountForClient(viewer.isDemo);
       setInboxCount(pending);
       setNotice(
         `Đã đưa ${inputs.length} mục từ ${state.batch.fileName} vào Inbox — chưa ghi sổ.`,
@@ -198,12 +222,20 @@ export function ImportPreviewPage({
     }
   }
 
-  function cancelImport() {
+  async function cancelImport() {
     if (state.phase !== "ready" || committing || cancelling) return;
     setCancelling(true);
     setActionError("");
     try {
-      markImportBatchCancelled(state.batch.id);
+      const markResult = await markBatchCancelledForClient(
+        viewer.isDemo,
+        state.batch.id,
+      );
+      if (!markResult.ok) {
+        setActionError(markResult.message);
+        setCancelling(false);
+        return;
+      }
       removeImportDraft(state.batch.id);
       setNotice(`Đã hủy import ${state.batch.fileName}.`);
       router.push("/capture/upload");

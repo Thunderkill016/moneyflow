@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
 import { InboxBulkBar, type BulkApplyPayload } from "@/components/inbox-bulk-bar";
@@ -18,14 +18,17 @@ import {
   countPending,
   filterCandidates,
   formatCandidateDate,
-  readStoredCandidates,
   sampleCandidates,
   sortCandidatesNewest,
-  updateStoredCandidate,
   writeStoredCandidates,
   type InboxCandidate,
   type InboxFilter,
 } from "@/lib/inbox/candidate-store";
+import {
+  loadInboxForClient,
+  persistCandidateListForClient,
+  updateCandidateForClient,
+} from "@/lib/inbox/client-inbox";
 import {
   applyBulkCategory,
   buildLedgerPost,
@@ -96,44 +99,48 @@ export function InboxPage({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const candidatesRef = useRef<InboxCandidate[]>(candidates);
+  useEffect(() => {
+    candidatesRef.current = candidates;
+  }, [candidates]);
 
-  const load = useCallback((opts?: { showLoading?: boolean }) => {
-    const showLoading = opts?.showLoading ?? false;
-    if (showLoading) {
-      setLoadState("loading");
-      setErrorMessage("");
-    }
-    window.requestAnimationFrame(() => {
-      try {
-        const stored = readStoredCandidates();
-        setCandidates(stored);
+  const load = useCallback(
+    async (opts?: { showLoading?: boolean }) => {
+      const showLoading = opts?.showLoading ?? false;
+      if (showLoading) {
+        setLoadState("loading");
         setErrorMessage("");
-        setLoadState("ready");
-      } catch {
-        setErrorMessage("Không tải được inbox");
-        setLoadState("error");
       }
-    });
-  }, []);
+      const result = await loadInboxForClient(viewer.isDemo);
+      if (!result.ok) {
+        setErrorMessage(result.message || "Không tải được inbox");
+        setLoadState("error");
+        return;
+      }
+      setCandidates(result.candidates);
+      setErrorMessage("");
+      setLoadState("ready");
+    },
+    [viewer.isDemo],
+  );
 
   useEffect(() => {
     let cancelled = false;
-    const frame = window.requestAnimationFrame(() => {
+    void (async () => {
+      const result = await loadInboxForClient(viewer.isDemo);
       if (cancelled) return;
-      try {
-        const stored = readStoredCandidates();
-        setCandidates(stored);
-        setLoadState("ready");
-      } catch {
-        setErrorMessage("Không tải được inbox");
+      if (!result.ok) {
+        setErrorMessage(result.message || "Không tải được inbox");
         setLoadState("error");
+        return;
       }
-    });
+      setCandidates(result.candidates);
+      setLoadState("ready");
+    })();
     return () => {
       cancelled = true;
-      window.cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [viewer.isDemo]);
 
   useEffect(() => {
     if (!notice) return;
@@ -158,14 +165,25 @@ export function InboxPage({
     return selectedIds.filter((id) => pendingIds.has(id));
   }, [candidates, selectedIds]);
 
-  function persist(next: InboxCandidate[]) {
-    writeStoredCandidates(next);
-    setCandidates(next);
+  async function persist(next: InboxCandidate[], changedIds: string[]) {
+    const result = await persistCandidateListForClient(viewer.isDemo, next, changedIds);
+    if (!result.ok) {
+      setErrorMessage(result.message);
+      setNotice(result.message);
+      return false;
+    }
+    setCandidates(result.candidates);
+    return true;
   }
 
   function seedDemo() {
+    if (!viewer.isDemo) {
+      setNotice("Dữ liệu mẫu chỉ dùng ở chế độ demo trên thiết bị.");
+      return;
+    }
     const next = sampleCandidates.map((item) => ({ ...item }));
-    persist(next);
+    writeStoredCandidates(next);
+    setCandidates(next);
     setSelectedIds([]);
     setNotice("Đã nạp dữ liệu mẫu vào Inbox.");
   }
@@ -216,19 +234,28 @@ export function InboxPage({
       return { ok: false, message: result.message || "Không thể ghi sổ." };
     }
 
-    const next = markCandidatesStatus(readStoredCandidates(), [payload.candidateId], "approved", {
-      kind: payload.draft.kind,
-      amount: payload.draft.amount,
-      merchant: payload.draft.merchant.trim() || "Không rõ",
-      note: payload.draft.note.trim(),
-      occurredOn: payload.draft.occurredOn,
-      categoryId: category?.id,
-      category: category?.name,
-      accountId: account?.id,
-      account: account?.name,
-      possibleDuplicate: payload.draft.possibleDuplicate,
-    });
-    persist(next);
+    const next = markCandidatesStatus(
+      candidatesRef.current,
+      [payload.candidateId],
+      "approved",
+      {
+        kind: payload.draft.kind,
+        amount: payload.draft.amount,
+        merchant: payload.draft.merchant.trim() || "Không rõ",
+        note: payload.draft.note.trim(),
+        occurredOn: payload.draft.occurredOn,
+        categoryId: category?.id,
+        category: category?.name,
+        accountId: account?.id,
+        account: account?.name,
+        possibleDuplicate: payload.draft.possibleDuplicate,
+      },
+    );
+    const saved = await persist(next, [payload.candidateId]);
+    if (!saved) {
+      return { ok: false, message: "Đã ghi sổ nhưng chưa cập nhật được trạng thái Inbox." };
+    }
+    candidatesRef.current = next;
     setSelectedIds((current) => current.filter((id) => id !== payload.candidateId));
     setNotice(`Đã duyệt “${payload.draft.merchant.trim() || "giao dịch"}” vào sổ.`);
     return { ok: true };
@@ -240,18 +267,28 @@ export function InboxPage({
     return postOne(payload);
   }
 
-  function handleReject(candidateId: string) {
-    const target = candidates.find((item) => item.id === candidateId);
-    const next = markCandidatesStatus(readStoredCandidates(), [candidateId], "rejected");
-    persist(next);
+  async function handleReject(candidateId: string) {
+    const target = candidatesRef.current.find((item) => item.id === candidateId);
+    const next = markCandidatesStatus(candidatesRef.current, [candidateId], "rejected");
+    const saved = await persist(next, [candidateId]);
+    if (!saved) return;
+    candidatesRef.current = next;
     setSelectedIds((current) => current.filter((id) => id !== candidateId));
     setReviewId(null);
     setNotice(`Đã từ chối${target ? ` “${target.merchant}”` : ""}.`);
   }
 
-  function handleMarkDuplicate(candidateId: string) {
-    const next = updateStoredCandidate({ id: candidateId, possibleDuplicate: true });
-    setCandidates(next);
+  async function handleMarkDuplicate(candidateId: string) {
+    const result = await updateCandidateForClient(
+      viewer.isDemo,
+      { id: candidateId, possibleDuplicate: true },
+      candidates,
+    );
+    if (!result.ok) {
+      setNotice(result.message);
+      return;
+    }
+    setCandidates(result.candidates);
     setNotice("Đã đánh dấu có thể trùng. Hãy kiểm tra trước khi duyệt.");
   }
 
@@ -260,11 +297,13 @@ export function InboxPage({
     try {
       if (payload.action === "reject") {
         const next = markCandidatesStatus(
-          readStoredCandidates(),
+          candidatesRef.current,
           payload.selectedIds,
           "rejected",
         );
-        persist(next);
+        const saved = await persist(next, payload.selectedIds);
+        if (!saved) return;
+        candidatesRef.current = next;
         setSelectedIds([]);
         setNotice(`Đã từ chối ${payload.selectedIds.length} mục.`);
         return;
@@ -277,17 +316,19 @@ export function InboxPage({
           return;
         }
         const next = applyBulkCategory(
-          readStoredCandidates(),
+          candidatesRef.current,
           payload.selectedIds,
           category,
         );
-        persist(next);
+        const saved = await persist(next, payload.selectedIds);
+        if (!saved) return;
+        candidatesRef.current = next;
         setNotice(`Đã gán danh mục “${category.name}” (chỉ dòng khớp loại thu/chi).`);
         return;
       }
 
       // approve — never auto-post low conf without opt-in (partitionBulkApprove)
-      const list = readStoredCandidates();
+      const list = candidatesRef.current;
       const { eligible, skippedLow } = partitionBulkApprove(
         list,
         payload.selectedIds,

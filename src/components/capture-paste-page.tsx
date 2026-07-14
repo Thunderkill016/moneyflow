@@ -7,10 +7,9 @@ import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
-  addStoredCandidate,
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
+  addCandidatesForClient,
+  getPendingCountForClient,
+} from "@/lib/inbox/client-inbox";
 import { applyRulesToParsed } from "@/lib/inbox/apply-rules";
 import {
   SOURCE_HINT_LABELS,
@@ -70,15 +69,14 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
 
   useEffect(() => {
     textareaRef.current?.focus();
-    const frame = window.requestAnimationFrame(() => {
-      try {
-        setInboxCount(countPending(readStoredCandidates()));
-      } catch {
-        setInboxCount(0);
-      }
+    let cancelled = false;
+    void getPendingCountForClient(viewer.isDemo).then((count) => {
+      if (!cancelled) setInboxCount(count);
     });
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [viewer.isDemo]);
 
   useEffect(() => {
     if (!notice) return;
@@ -136,16 +134,20 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
     window.requestAnimationFrame(() => textareaRef.current?.focus());
   }
 
-  function commitToInbox() {
+  async function commitToInbox() {
     if (candidates.length === 0 || committing) return;
     setCommitting(true);
     setError("");
     try {
       const inputs = toCreateCandidateInputs(candidates);
-      for (const input of inputs) {
-        addStoredCandidate(input);
+      const result = await addCandidatesForClient(viewer.isDemo, inputs);
+      if (!result.ok) {
+        setError(result.message);
+        setPhase("error");
+        setCommitting(false);
+        return;
       }
-      const pending = countPending(readStoredCandidates());
+      const pending = await getPendingCountForClient(viewer.isDemo);
       setInboxCount(pending);
       setNotice(`Đã đưa ${inputs.length} mục vào Inbox — chưa ghi sổ.`);
       router.push("/inbox");

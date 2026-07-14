@@ -7,14 +7,11 @@ import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
-  addStoredCandidate,
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
-import {
-  addStoredImportBatch,
-  markImportBatchCommitted,
-} from "@/lib/inbox/import-batch-store";
+  addCandidatesForClient,
+  addImportBatchForClient,
+  getPendingCountForClient,
+  markBatchCommittedForClient,
+} from "@/lib/inbox/client-inbox";
 import {
   consumeSharePayloadFromSession,
   csvPlanToCandidates,
@@ -59,97 +56,115 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
     ranRef.current = true;
 
     const frame = window.requestAnimationFrame(() => {
-      try {
-        setInboxCount(countPending(readStoredCandidates()));
-      } catch {
-        setInboxCount(0);
-      }
-
-      let payload: SharePayload | null = null;
-      try {
-        payload = consumeSharePayloadFromSession();
-      } catch {
-        payload = null;
-      }
-
-      if (!payload || !hasShareContent(payload)) {
-        // Fallback: GET query (manual test / share_target GET clients)
-        const fromQuery = sharePayloadFromSearchParams(searchParams);
-        if (hasShareContent(fromQuery)) {
-          payload = fromQuery;
+      void (async () => {
+        try {
+          setInboxCount(await getPendingCountForClient(viewer.isDemo));
+        } catch {
+          setInboxCount(0);
         }
-      }
 
-      if (!payload || !hasShareContent(payload)) {
-        setPhase("empty");
-        return;
-      }
+        let payload: SharePayload | null = null;
+        try {
+          payload = consumeSharePayloadFromSession();
+        } catch {
+          payload = null;
+        }
 
-      try {
-        const plan = planShareImport(payload);
-        if (!plan.ok || plan.candidateCount === 0) {
-          setErrors(
-            plan.errors.length > 0
-              ? plan.errors
-              : ["Không tạo được ứng viên từ nội dung chia sẻ."],
-          );
-          setPhase("error");
+        if (!payload || !hasShareContent(payload)) {
+          // Fallback: GET query (manual test / share_target GET clients)
+          const fromQuery = sharePayloadFromSearchParams(searchParams);
+          if (hasShareContent(fromQuery)) {
+            payload = fromQuery;
+          }
+        }
+
+        if (!payload || !hasShareContent(payload)) {
+          setPhase("empty");
           return;
         }
 
-        let written = 0;
-        for (const input of plan.pasteCandidates) {
-          addStoredCandidate(input);
-          written += 1;
-        }
-
-        let csvFileCount = 0;
-        for (const csvPlan of plan.csvPlans) {
-          const batch = addStoredImportBatch({
-            fileName: csvPlan.fileName,
-            source: "csv",
-            status: "parsed",
-            rowCount: csvPlan.parse.rows.length,
-            warningCount: csvPlan.parse.warningCount,
-            skippedRows: csvPlan.parse.skippedRows,
-            mapConfidence: csvPlan.parse.mapConfidence,
-            headers: csvPlan.parse.headers,
-            columnMap: csvPlan.parse.columnMap,
-          });
-          const inputs = csvPlanToCandidates(csvPlan, batch.id);
-          for (const input of inputs) {
-            addStoredCandidate(input);
-            written += 1;
+        try {
+          const plan = planShareImport(payload);
+          if (!plan.ok || plan.candidateCount === 0) {
+            setErrors(
+              plan.errors.length > 0
+                ? plan.errors
+                : ["Không tạo được ứng viên từ nội dung chia sẻ."],
+            );
+            setPhase("error");
+            return;
           }
-          markImportBatchCommitted(batch.id);
-          csvFileCount += 1;
+
+          let written = 0;
+          if (plan.pasteCandidates.length > 0) {
+            const pasteResult = await addCandidatesForClient(
+              viewer.isDemo,
+              plan.pasteCandidates,
+            );
+            if (!pasteResult.ok) {
+              setErrors([pasteResult.message]);
+              setPhase("error");
+              return;
+            }
+            written += pasteResult.candidates.length;
+          }
+
+          let csvFileCount = 0;
+          for (const csvPlan of plan.csvPlans) {
+            const batchResult = await addImportBatchForClient(viewer.isDemo, {
+              fileName: csvPlan.fileName,
+              source: "csv",
+              status: "parsed",
+              rowCount: csvPlan.parse.rows.length,
+              warningCount: csvPlan.parse.warningCount,
+              skippedRows: csvPlan.parse.skippedRows,
+              mapConfidence: csvPlan.parse.mapConfidence,
+              headers: csvPlan.parse.headers,
+              columnMap: csvPlan.parse.columnMap,
+            });
+            if (!batchResult.ok) {
+              setErrors([batchResult.message]);
+              setPhase("error");
+              return;
+            }
+            const inputs = csvPlanToCandidates(csvPlan, batchResult.batch.id);
+            const candResult = await addCandidatesForClient(viewer.isDemo, inputs);
+            if (!candResult.ok) {
+              setErrors([candResult.message]);
+              setPhase("error");
+              return;
+            }
+            written += candResult.candidates.length;
+            await markBatchCommittedForClient(viewer.isDemo, batchResult.batch.id);
+            csvFileCount += 1;
+          }
+
+          const pending = await getPendingCountForClient(viewer.isDemo);
+          setInboxCount(pending);
+          setSuccess({
+            candidateCount: written,
+            pasteCount: plan.pasteCandidates.length,
+            csvFileCount,
+            warnings: [...plan.warnings, ...plan.errors],
+          });
+          setNotice(
+            `Đã đưa ${written} mục vào Inbox từ chia sẻ — chưa ghi sổ.`,
+          );
+          setPhase("success");
+
+          // Auto-continue to Inbox after a short beat (user can stay via cancel)
+          window.setTimeout(() => {
+            router.push("/inbox");
+          }, 1400);
+        } catch {
+          setErrors(["Lỗi khi xử lý nội dung chia sẻ. Thử lại từ app nguồn."]);
+          setPhase("error");
         }
-
-        const pending = countPending(readStoredCandidates());
-        setInboxCount(pending);
-        setSuccess({
-          candidateCount: written,
-          pasteCount: plan.pasteCandidates.length,
-          csvFileCount,
-          warnings: [...plan.warnings, ...plan.errors],
-        });
-        setNotice(
-          `Đã đưa ${written} mục vào Inbox từ chia sẻ — chưa ghi sổ.`,
-        );
-        setPhase("success");
-
-        // Auto-continue to Inbox after a short beat (user can stay via cancel)
-        window.setTimeout(() => {
-          router.push("/inbox");
-        }, 1400);
-      } catch {
-        setErrors(["Lỗi khi xử lý nội dung chia sẻ. Thử lại từ app nguồn."]);
-        setPhase("error");
-      }
+      })();
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [router, searchParams]);
+  }, [router, searchParams, viewer.isDemo]);
 
   return (
     <AppShell

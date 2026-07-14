@@ -172,7 +172,7 @@
 
 
 ### TASK-024 — Supabase migration import_batches + candidates
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Persist inbox server-side with RLS; migrate from local store when authed.
 - **Source:** roadmap pool refill
 
