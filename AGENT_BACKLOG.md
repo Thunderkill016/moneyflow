@@ -210,7 +210,7 @@
 
 
 ### TASK-030 — Security pass raw logs
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Ensure no raw statement in console/toasts/analytics.
 - **Source:** roadmap pool refill
 

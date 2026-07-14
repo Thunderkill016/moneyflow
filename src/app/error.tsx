@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import { logClientError } from "@/lib/safe-log";
+import { trackProductEvent } from "@/lib/safe-analytics";
 
 /**
  * Segment error boundary (wireframes-inbox §21).
- * No raw financial payload in message or contact URL.
+ * No raw financial payload in message, console, analytics, or contact URL.
  */
 export default function ErrorBoundary({
   error,
@@ -24,7 +26,11 @@ export default function ErrorBoundary({
   )}`;
 
   useEffect(() => {
-    console.error(error);
+    logClientError("route_error", error);
+    // Counts only — never error.message / stack / statement body.
+    trackProductEvent("route_error", {
+      has_digest: Boolean(error.digest),
+    });
   }, [error]);
 
   return (

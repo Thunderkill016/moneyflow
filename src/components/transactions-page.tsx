@@ -18,6 +18,7 @@ import { TransferDialog } from "@/components/transfer-dialog";
 import { EditTransactionDialog } from "@/components/edit-transaction-dialog";
 import type { CreateTransferInput, UpdateMoneyTransactionInput, UpdateTransferInput } from "@/lib/sample-data";
 import { AppShell } from "@/components/layout/app-shell";
+import { safeUserNotice } from "@/lib/safe-log";
 
 type KindFilter = "all" | Transaction["kind"];
 
@@ -117,7 +118,12 @@ export function TransactionsPage({
     const result = await addTransaction(input);
     if (result.ok && result.transaction) {
       setDialogOpen(false);
-      setNotice(`Đã thêm ${result.transaction.note}.`);
+      setNotice(
+        safeUserNotice(
+          `Đã thêm ${result.transaction.note}.`,
+          "Đã thêm giao dịch.",
+        ),
+      );
       window.setTimeout(() => setNotice(""), 3500);
     }
     return result;
@@ -130,7 +136,12 @@ export function TransactionsPage({
     );
     if (!confirmed) return;
     const result = await deleteTransaction(transaction.id);
-    setNotice(result.ok ? `Đã xóa ${transaction.note}.` : result.message);
+    setNotice(
+      safeUserNotice(
+        result.ok ? `Đã xóa ${transaction.note}.` : result.message,
+        result.ok ? "Đã xóa giao dịch." : "Không xóa được giao dịch.",
+      ),
+    );
     window.setTimeout(() => setNotice(""), 3500);
   }
 

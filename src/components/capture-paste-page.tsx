@@ -20,6 +20,7 @@ import {
 } from "@/lib/inbox/parse-text";
 import { readStoredRules } from "@/lib/inbox/rules-store";
 import { formatMoney } from "@/lib/money";
+import { safeUserNotice } from "@/lib/safe-log";
 
 type Phase = "edit" | "preview" | "error";
 
@@ -149,7 +150,11 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
       }
       const pending = await getPendingCountForClient(viewer.isDemo);
       setInboxCount(pending);
-      setNotice(`Đã đưa ${inputs.length} mục vào Inbox — chưa ghi sổ.`);
+      setNotice(
+        safeUserNotice(
+          `Đã đưa ${inputs.length} mục vào Inbox — chưa ghi sổ.`,
+        ),
+      );
       router.push("/inbox");
     } catch {
       setError("Không lưu được vào Inbox. Thử lại.");

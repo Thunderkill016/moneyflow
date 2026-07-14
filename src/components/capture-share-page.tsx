@@ -148,6 +148,7 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
             warnings: [...plan.warnings, ...plan.errors],
           });
           setNotice(
+            // Counts only — never echo shared statement/paste body into the toast.
             `Đã đưa ${written} mục vào Inbox từ chia sẻ — chưa ghi sổ.`,
           );
           setPhase("success");

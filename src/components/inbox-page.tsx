@@ -45,6 +45,7 @@ import {
   partitionBulkApprove,
 } from "@/lib/inbox/review";
 import { formatMoney } from "@/lib/money";
+import { safeUserNotice } from "@/lib/safe-log";
 import type {
   AccountOption,
   CategoryOption,
@@ -317,7 +318,12 @@ export function InboxPage({
     }
     candidatesRef.current = next;
     setSelectedIds((current) => current.filter((id) => id !== payload.candidateId));
-    setNotice(`Đã duyệt “${payload.draft.merchant.trim() || "giao dịch"}” vào sổ.`);
+    setNotice(
+      safeUserNotice(
+        `Đã duyệt “${payload.draft.merchant.trim() || "giao dịch"}” vào sổ.`,
+        "Đã duyệt giao dịch vào sổ.",
+      ),
+    );
     return { ok: true };
   }
 
@@ -335,7 +341,12 @@ export function InboxPage({
     candidatesRef.current = next;
     setSelectedIds((current) => current.filter((id) => id !== candidateId));
     setReviewId(null);
-    setNotice(`Đã từ chối${target ? ` “${target.merchant}”` : ""}.`);
+    setNotice(
+      safeUserNotice(
+        `Đã từ chối${target ? ` “${target.merchant}”` : ""}.`,
+        "Đã từ chối.",
+      ),
+    );
   }
 
   async function handleMarkDuplicate(candidateId: string) {
