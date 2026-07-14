@@ -281,7 +281,7 @@
 - **Completed:** 2026-07-15 — `b7d5cdd` landing-copy.test.ts locks G5 thu chi / có thể chi; forbids inbox slogans.
 
 ### TASK-105 — Global CTA Ghi chi tiêu (quick add)
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** AppShell primaryAction/FAB mặc định mở quick add expense (dialog hoặc /capture/quick) label "Ghi chi tiêu". Insights/transactions dùng cùng pattern. Shortcut N giữ.
 - **Done khi:** CTA rõ trên desktop+mobile; lint/typecheck/test pass.
 

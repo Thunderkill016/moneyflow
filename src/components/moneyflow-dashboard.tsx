@@ -18,7 +18,7 @@ import { type ViewerSummary } from "@/components/user-chip";
 import { budgetProgress, type BudgetSummary } from "@/lib/budgets";
 import { commitmentTotals, type RecurringCommitment } from "@/lib/commitments";
 import { goalProgress, goalTotals, type SavingsGoal } from "@/lib/goals";
-import { PLANNING_LINKS } from "@/lib/nav-ia";
+import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/empty-state";
 
@@ -157,14 +157,16 @@ export function MoneyFlowDashboard({
     <AppShell
       viewer={viewer}
       primaryAction={{
-        label: "Ghi chi",
+        label: GHI_CHI_TIEU_LABEL,
         onClick: openGhiChi,
         disabled: actionsDisabled,
+        icon: "plus",
       }}
       fabAction={{
-        label: "Ghi chi",
+        label: GHI_CHI_TIEU_LABEL,
         onClick: openGhiChi,
         disabled: actionsDisabled,
+        icon: "plus",
       }}
       notice={notice}
     >
@@ -192,7 +194,7 @@ export function MoneyFlowDashboard({
               onClick={openGhiChi}
               disabled={actionsDisabled}
             >
-              <Icon name="plus" /> Ghi chi
+              <Icon name="plus" /> {GHI_CHI_TIEU_LABEL}
             </button>
           </div>
         </section>
@@ -245,7 +247,7 @@ export function MoneyFlowDashboard({
             icon="wallet"
             title="Chưa có giao dịch nào"
             description="Ghi khoản chi đầu tiên để thấy số dư, thu–chi tháng và danh mục chi tiêu."
-            actionLabel="Ghi chi"
+            actionLabel={GHI_CHI_TIEU_LABEL}
             onAction={openGhiChi}
             secondaryLabel="Thêm tài khoản"
             secondaryHref="/accounts"
@@ -302,7 +304,7 @@ export function MoneyFlowDashboard({
                       <h3>Chưa có chi tiêu tháng này</h3>
                       <p>Khi bạn ghi chi, danh mục sẽ hiện ở đây dưới dạng thanh ngang.</p>
                       <button type="button" onClick={openGhiChi} disabled={actionsDisabled}>
-                        Ghi chi
+                        {GHI_CHI_TIEU_LABEL}
                       </button>
                     </div>
                   )}
@@ -389,7 +391,7 @@ export function MoneyFlowDashboard({
                 onClick={openGhiChi}
                 disabled={actionsDisabled}
               >
-                <Icon name="plus" /> Ghi chi
+                <Icon name="plus" /> {GHI_CHI_TIEU_LABEL}
               </button>
             </article>
 

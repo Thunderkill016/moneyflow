@@ -18,6 +18,7 @@ import { TransferDialog } from "@/components/transfer-dialog";
 import { EditTransactionDialog } from "@/components/edit-transaction-dialog";
 import type { CreateTransferInput, UpdateMoneyTransactionInput, UpdateTransferInput } from "@/lib/sample-data";
 import { AppShell } from "@/components/layout/app-shell";
+import { GHI_CHI_TIEU_HREF, GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
 import { safeUserNotice } from "@/lib/safe-log";
 
 type KindFilter = "all" | Transaction["kind"];
@@ -171,25 +172,29 @@ export function TransactionsPage({
       primaryAction={
         isTimeline
           ? {
-              label: "Mở Inbox",
-              href: "/inbox",
+              label: GHI_CHI_TIEU_LABEL,
+              href: GHI_CHI_TIEU_HREF,
+              icon: "plus",
             }
           : {
-              label: "Thêm giao dịch",
+              label: GHI_CHI_TIEU_LABEL,
               onClick: () => setDialogOpen(true),
               disabled: Boolean(workspace.dataError),
+              icon: "plus",
             }
       }
       fabAction={
         isTimeline
           ? {
-              label: "Capture",
-              href: "/capture",
+              label: GHI_CHI_TIEU_LABEL,
+              href: GHI_CHI_TIEU_HREF,
+              icon: "plus",
             }
           : {
-              label: "Thêm giao dịch",
+              label: GHI_CHI_TIEU_LABEL,
               onClick: () => setDialogOpen(true),
               disabled: Boolean(workspace.dataError),
+              icon: "plus",
             }
       }
       notice={notice}
@@ -284,7 +289,7 @@ export function TransactionsPage({
               </div>
             </div>
           ) : (
-            <div className="filter-empty"><span><Icon name="arrows" /></span><h2>Chưa có giao dịch</h2><p>Thêm khoản thu hoặc chi đầu tiên để bắt đầu theo dõi dòng tiền.</p><button onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>Thêm giao dịch</button></div>
+            <div className="filter-empty"><span><Icon name="arrows" /></span><h2>Chưa có giao dịch</h2><p>Ghi khoản chi hoặc thu đầu tiên để bắt đầu theo dõi dòng tiền.</p><button onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>{GHI_CHI_TIEU_LABEL}</button></div>
           )}
         </section>
       </main>

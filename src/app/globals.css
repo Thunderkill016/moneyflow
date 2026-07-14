@@ -1846,7 +1846,8 @@ select:focus-visible {
   }
   .capture-sheet .dialog-handle,
   .more-sheet .dialog-handle { display: block; }
-  .mobile-fab { position: fixed; right: 18px; bottom: 85px; z-index: 34; display: grid; width: 52px; height: 52px; cursor: pointer; place-items: center; border: 4px solid var(--canvas); border-radius: 17px; background: var(--green); color: white; box-shadow: 0 10px 24px rgb(13 76 45 / 25%); }
+  .mobile-fab { position: fixed; right: 18px; bottom: 85px; z-index: 34; display: grid; width: 52px; height: 52px; cursor: pointer; place-items: center; border: 4px solid var(--canvas); border-radius: 17px; background: var(--green); color: white; text-decoration: none; box-shadow: 0 10px 24px rgb(13 76 45 / 25%); }
+  a.mobile-fab { color: white; }
   .mobile-fab svg { width: 22px; }
   .transaction-dialog { width: 100%; max-width: none; max-height: 91dvh; margin: auto 0 0; border: 0; border-radius: 24px 24px 0 0; padding: 15px 18px 24px; }
   .dialog-handle { display: block; width: 42px; height: 4px; margin: 0 auto 18px; border-radius: 99px; background: #d9dfdb; }

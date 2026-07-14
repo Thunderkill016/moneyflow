@@ -8,6 +8,8 @@ import { UserChip, type ViewerSummary } from "@/components/user-chip";
 import { CAPTURE_OPTIONS } from "@/lib/capture/options";
 import {
   APP_HOME_HREF,
+  GHI_CHI_TIEU_HREF,
+  GHI_CHI_TIEU_LABEL,
   isPlanningPath,
   MORE_NAV_LINKS,
   PLANNING_LINKS,
@@ -17,6 +19,13 @@ import {
 
 /** Default badge when page does not pass `inboxCount` from candidate store. */
 const INBOX_BADGE_COUNT = 0;
+
+/** Default topbar/FAB CTA when a page does not pass primaryAction / fabAction. */
+const DEFAULT_GHI_CHI_ACTION: PrimaryAction = {
+  label: GHI_CHI_TIEU_LABEL,
+  href: GHI_CHI_TIEU_HREF,
+  icon: "plus",
+};
 
 type NavItem = PrimaryNavItem | {
   kind: "link";
@@ -76,6 +85,10 @@ export function AppShell({
   const [moreOpen, setMoreOpen] = useState(false);
   const captureTitleId = useId();
   const moreTitleId = useId();
+
+  const resolvedPrimary = primaryAction ?? DEFAULT_GHI_CHI_ACTION;
+  /** FAB stays global “Ghi chi tiêu” unless the page sets `fabAction`. */
+  const resolvedFab = fabAction ?? DEFAULT_GHI_CHI_ACTION;
 
   function openCapture() {
     setMoreOpen(false);
@@ -175,35 +188,30 @@ export function AppShell({
           )}
 
           <div className="topbar-actions">
-            <button
-              type="button"
-              className="primary-button desktop-add"
-              onClick={openCapture}
-            >
-              <Icon name="plus" />
-              Capture
-            </button>
-            {primaryAction && (
-              primaryAction.href ? (
-                <Link
-                  className="secondary-button desktop-add"
-                  href={primaryAction.href}
-                  aria-disabled={primaryAction.disabled}
-                >
-                  <Icon name={primaryAction.icon ?? "arrowDown"} />
-                  {primaryAction.label}
-                </Link>
-              ) : (
-                <button
-                  className="secondary-button desktop-add"
-                  onClick={primaryAction.onClick}
-                  disabled={primaryAction.disabled}
-                  type="button"
-                >
-                  <Icon name={primaryAction.icon ?? "plus"} />
-                  {primaryAction.label}
-                </button>
-              )
+            {resolvedPrimary.href ? (
+              <Link
+                className="primary-button desktop-add"
+                href={resolvedPrimary.href}
+                aria-disabled={resolvedPrimary.disabled || undefined}
+                onClick={
+                  resolvedPrimary.disabled
+                    ? (event) => event.preventDefault()
+                    : undefined
+                }
+              >
+                <Icon name={resolvedPrimary.icon ?? "plus"} />
+                {resolvedPrimary.label}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="primary-button desktop-add"
+                onClick={resolvedPrimary.onClick}
+                disabled={resolvedPrimary.disabled}
+              >
+                <Icon name={resolvedPrimary.icon ?? "plus"} />
+                {resolvedPrimary.label}
+              </button>
             )}
             <span className="mobile-avatar avatar">
               {viewer.displayName?.[0]?.toUpperCase() ?? (viewer.isDemo ? "M" : "U")}
@@ -272,15 +280,29 @@ export function AppShell({
         })}
       </nav>
 
-      {fabAction && (
+      {resolvedFab.href ? (
+        <Link
+          className="mobile-fab"
+          href={resolvedFab.href}
+          aria-label={resolvedFab.label}
+          aria-disabled={resolvedFab.disabled || undefined}
+          onClick={
+            resolvedFab.disabled
+              ? (event) => event.preventDefault()
+              : undefined
+          }
+        >
+          <Icon name={resolvedFab.icon ?? "plus"} />
+        </Link>
+      ) : (
         <button
           className="mobile-fab"
-          onClick={fabAction.onClick}
-          disabled={fabAction.disabled}
-          aria-label={fabAction.label}
+          onClick={resolvedFab.onClick}
+          disabled={resolvedFab.disabled}
+          aria-label={resolvedFab.label}
           type="button"
         >
-          <Icon name={fabAction.icon ?? "plus"} />
+          <Icon name={resolvedFab.icon ?? "plus"} />
         </button>
       )}
 

@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   APP_HOME_HREF,
+  GHI_CHI_TIEU_HREF,
+  GHI_CHI_TIEU_LABEL,
   isPlanningPath,
   isPrimaryNavHref,
   MORE_NAV_LINKS,
@@ -11,6 +13,11 @@ import {
   PRIMARY_NAV,
   PRIMARY_NAV_HREFS,
 } from "./nav-ia.ts";
+
+test("global CTA Ghi chi tiêu targets quick add", () => {
+  assert.equal(GHI_CHI_TIEU_LABEL, "Ghi chi tiêu");
+  assert.equal(GHI_CHI_TIEU_HREF, "/capture/quick");
+});
 
 test("primary nav is thu chi: Tổng quan · Giao dịch · Capture · Tài khoản", () => {
   const labels = PRIMARY_NAV.map((item) => item.label);

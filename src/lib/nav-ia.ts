@@ -79,6 +79,13 @@ export const PRIMARY_NAV_HREFS = PRIMARY_NAV.filter(
 /** Default brand / home when logged in. */
 export const APP_HOME_HREF = "/insights" as const;
 
+/**
+ * Global primary CTA (desktop topbar + mobile FAB) — TASK-105.
+ * Opens quick-add expense; pages may override with dialog `onClick` but keep the same label.
+ */
+export const GHI_CHI_TIEU_LABEL = "Ghi chi tiêu" as const;
+export const GHI_CHI_TIEU_HREF = "/capture/quick" as const;
+
 /** Routes that must stay off the primary sidebar / mobile tabs. */
 export const PLANNING_PATHS = ["/budgets", "/commitments", "/goals"] as const;
 

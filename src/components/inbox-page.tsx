@@ -541,18 +541,6 @@ export function InboxPage({
     <AppShell
       viewer={viewer}
       inboxCount={pendingCount}
-      primaryAction={{
-        label: "Capture",
-        href: "/capture",
-        icon: "plus",
-      }}
-      fabAction={{
-        label: "Capture",
-        onClick: () => {
-          window.location.href = "/capture";
-        },
-        icon: "plus",
-      }}
       notice={notice}
     >
       <main className="dashboard inbox-workspace">
