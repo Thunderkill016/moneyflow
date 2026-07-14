@@ -5181,3 +5181,30 @@ input[aria-invalid="true"] {
   color: var(--color-danger-text, #fca5a5);
 }
 
+
+/* TASK-107 — Category manager */
+.categories-workspace .categories-kind-filter {
+  grid-template-columns: 1fr 1fr 1fr;
+  margin-top: 0;
+  margin-bottom: 22px;
+  max-width: 420px;
+}
+.categories-workspace .category-kind-expense {
+  background: #fde8e4;
+  color: #b4533a;
+}
+.categories-workspace .category-kind-income {
+  background: #e4f5ea;
+  color: #1f7a45;
+}
+.categories-workspace .category-card.is-archived {
+  opacity: 0.78;
+}
+[data-theme="dark"] .categories-workspace .category-kind-expense {
+  background: rgba(180, 83, 58, 0.22);
+  color: #f5b4a4;
+}
+[data-theme="dark"] .categories-workspace .category-kind-income {
+  background: rgba(31, 122, 69, 0.22);
+  color: #8fd9ad;
+}

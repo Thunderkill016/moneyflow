@@ -8,6 +8,7 @@ const protectedPaths = [
   "/capture",
   "/timeline",
   "/accounts",
+  "/categories",
   "/rules",
   "/imports",
   "/insights",

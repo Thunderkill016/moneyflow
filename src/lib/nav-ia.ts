@@ -148,6 +148,12 @@ export const MORE_NAV_LINKS: SecondaryNavItem[] = [
     description: "Thu chi theo kỳ",
   },
   {
+    label: "Danh mục",
+    href: "/categories",
+    icon: "spark",
+    description: "Thêm, đổi tên, ẩn danh mục thu chi",
+  },
+  {
     label: "Cài đặt",
     href: "/settings",
     icon: "settings",

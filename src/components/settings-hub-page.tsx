@@ -20,6 +20,12 @@ type SettingsLink = {
 
 const SETTINGS_LINKS: SettingsLink[] = [
   {
+    href: "/categories",
+    title: "Danh mục",
+    description: "Thêm, đổi tên hoặc ẩn danh mục chi tiêu và thu nhập.",
+    icon: "spark",
+  },
+  {
     href: "/settings/privacy",
     title: "Quyền riêng tư",
     description: "Giữ file gốc, opt-in cải thiện parser, nhật ký xuất/xóa.",
@@ -80,8 +86,8 @@ export function SettingsHubPage({ viewer }: { viewer: ViewerSummary }) {
             <p className="eyebrow">Tài khoản</p>
             <h1>Cài đặt</h1>
             <p>
-              Quyền riêng tư, xuất dữ liệu, giao diện và xóa tài khoản. Dữ liệu
-              của bạn thuộc về bạn.
+              Danh mục thu chi, quyền riêng tư, xuất dữ liệu, giao diện và xóa
+              tài khoản. Dữ liệu của bạn thuộc về bạn.
             </p>
           </div>
           <div className="page-heading-actions">

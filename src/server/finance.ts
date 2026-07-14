@@ -116,7 +116,11 @@ export async function getFinanceWorkspace(): Promise<FinanceWorkspace> {
 
   const [accountsResult, categoriesResult, feedResult, balancesResult] = await Promise.all([
     supabase.from("accounts").select("id,name").eq("is_archived", false).order("created_at"),
-    supabase.from("categories").select("id,name,kind,icon,color").order("created_at"),
+    supabase
+      .from("categories")
+      .select("id,name,kind,icon,color")
+      .eq("is_archived", false)
+      .order("created_at"),
     supabase
       .from("transaction_feed")
       .select("id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment")

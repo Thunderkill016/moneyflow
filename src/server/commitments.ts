@@ -63,7 +63,12 @@ export async function getCommitmentsWorkspace(): Promise<CommitmentsWorkspace> {
     supabase.from("recurring_commitment_feed").select("id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived").order("due_day"),
     supabase.from("commitment_occurrences").select("commitment_id,transaction_id").eq("month_start", monthStart),
     supabase.from("accounts").select("id,name").eq("is_archived", false).order("created_at"),
-    supabase.from("categories").select("id,name,kind,icon,color").eq("kind", "expense").order("created_at"),
+    supabase
+      .from("categories")
+      .select("id,name,kind,icon,color")
+      .eq("kind", "expense")
+      .eq("is_archived", false)
+      .order("created_at"),
   ]);
   if (feed.error || occurrences.error || accounts.error || categories.error) return { ...empty, dataError: "Chưa tải được khoản định kỳ. Hãy thử lại." };
   try {

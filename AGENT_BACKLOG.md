@@ -293,7 +293,7 @@
 - **Completed:** 2026-07-15 — `3928fab` soft-delete toast 8s + Hoàn tác; demo restore + RPC restore_money_transaction; limitation doc.
 
 ### TASK-107 — Category manager tối thiểu
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** UI thêm/đổi tên/ẩn (archive) category income+expense cho user; không subcategory. Settings hoặc trang /categories. Seed defaults giữ. Validate name unique per kind.
 - **Done khi:** CRUD category; tests domain; lint/typecheck/test pass.
 

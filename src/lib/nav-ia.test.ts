@@ -59,7 +59,15 @@ test("primary nav never includes planning or demoted inbox tools", () => {
     );
   }
 
-  const demoted = ["/inbox", "/timeline", "/rules", "/imports", "/reports", "/settings"];
+  const demoted = [
+    "/inbox",
+    "/timeline",
+    "/rules",
+    "/imports",
+    "/reports",
+    "/categories",
+    "/settings",
+  ];
   for (const path of demoted) {
     assert.equal(
       isPrimaryNavHref(path),
@@ -67,6 +75,11 @@ test("primary nav never includes planning or demoted inbox tools", () => {
       `${path} must stay out of primary hrefs`,
     );
   }
+
+  assert.ok(
+    MORE_NAV_LINKS.some((item) => item.href === "/categories"),
+    "categories linked from More",
+  );
 });
 
 test("planning links cover budgets, commitments, goals", () => {

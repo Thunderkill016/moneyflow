@@ -95,6 +95,7 @@ export async function getBudgetsWorkspace(): Promise<BudgetsWorkspace> {
       .from("categories")
       .select("id,name,kind,icon,color")
       .eq("kind", "expense")
+      .eq("is_archived", false)
       .order("created_at"),
   ]);
 
