@@ -184,14 +184,32 @@
 - **Completed:** 2026-07-15 — `0b27a7e` fingerprint + transfer-pair detect; Inbox badges/filters/explain.
 
 ### TASK-026 — Keyboard shortcuts inbox
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** j/k, x select, a approve, c capture, n quick add per wireframes.
+- **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `73aa479` j/k focus, x select, a approve, c capture, n quick add.
+
+
+### TASK-027 — Budgets/goals under Insights only
+- **Status:** `ready`
+- **Mô tả:** Ensure primary nav stays inbox-first; budgets/commitments/goals linked from Insights or More.
+- **Source:** roadmap pool refill
+
+### TASK-028 — Landing A/B microcopy polish VN
+- **Status:** `ready`
+- **Mô tả:** Tighten landing after user feedback; no layout clone.
+- **Source:** roadmap pool refill
+
+### TASK-029 — E2E smoke playwright inbox happy path
+- **Status:** `ready`
+- **Mô tả:** Optional playwright: landing → register skip → paste → inbox visible.
 - **Source:** roadmap pool refill
 
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-026 | `73aa479` inbox keyboard j/k x a c n (desktop power) |
 | 2026-07-15 | TASK-025 | `0b27a7e` fingerprint duplicates + transfer pairs (opposite amount same day) in Inbox |
 | 2026-07-15 | TASK-024 | `5e1f8bc` import_batches + inbox_candidates RLS; local→server migrate when authed |
 | 2026-07-15 | TASK-023 | `2332130` PDF text-layer MF DEMO BANK fixture + parser (no OCR); upload accept .pdf |
