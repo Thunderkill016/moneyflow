@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isTransaction } from "./transaction-store.ts";
+import type { Transaction } from "./sample-data.ts";
+import { isTransaction, restoreTransactionInList } from "./transaction-store.ts";
 
-const validTransaction = {
+const validTransaction: Transaction = {
   id: "transaction-1",
   kind: "expense",
   categoryId: "category-1",
@@ -33,4 +34,16 @@ test("transfer requires a distinct destination account", () => {
   assert.equal(isTransaction(transfer), true);
   assert.equal(isTransaction({ ...transfer, destinationAccountId: "account-1" }), false);
   assert.equal(isTransaction({ ...transfer, destinationAccount: undefined }), false);
+});
+
+test("restoreTransactionInList re-inserts deleted row idempotently", () => {
+  const remaining = [{ ...validTransaction, id: "keep-1", note: "Còn lại" }];
+  const deleted = { ...validTransaction, id: "gone-1", note: "Đã xóa" };
+  const once = restoreTransactionInList(remaining, deleted);
+  assert.equal(once.length, 2);
+  assert.equal(once[0]?.id, "gone-1");
+  assert.equal(once[1]?.id, "keep-1");
+  const twice = restoreTransactionInList(once, deleted);
+  assert.equal(twice.length, 2);
+  assert.deepEqual(twice, once);
 });

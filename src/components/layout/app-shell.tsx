@@ -56,6 +56,12 @@ export type PrimaryAction = {
   icon?: IconName;
 };
 
+export type NoticeAction = {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+};
+
 export type AppShellProps = {
   viewer: ViewerSummary;
   primaryAction?: PrimaryAction;
@@ -68,6 +74,8 @@ export type AppShellProps = {
   /** Override placeholder badge (default 0). Shown on More → Hộp thư. */
   inboxCount?: number;
   notice?: string;
+  /** Optional toast action (e.g. Hoàn tác after soft-delete). */
+  noticeAction?: NoticeAction;
   children: React.ReactNode;
 };
 
@@ -78,6 +86,7 @@ export function AppShell({
   searchBar,
   inboxCount = INBOX_BADGE_COUNT,
   notice,
+  noticeAction,
   children,
 }: AppShellProps) {
   const pathname = usePathname();
@@ -325,13 +334,17 @@ export function AppShell({
         let variant: "success" | "error" | "warning" | "info" = "success";
         let icon: IconName = "check";
 
-        if (text.includes("lỗi") || text.includes("thất bại") || text.includes("không thể") || text.includes("hãy")) {
+        if (noticeAction) {
+          // Undo toast: calm info treatment (design-system §15.2).
+          variant = "info";
+          icon = "restore";
+        } else if (text.includes("lỗi") || text.includes("thất bại") || text.includes("không thể") || text.includes("hãy") || text.includes("không khôi phục") || text.includes("chưa thể hoàn tác")) {
           variant = "error";
           icon = "bell";
         } else if (text.includes("cảnh báo") || text.includes("chưa") || text.includes("yêu cầu")) {
           variant = "warning";
           icon = "bell";
-        } else if (text.includes("thông tin") || text.includes("chi tiết") || text.includes("đang")) {
+        } else if (text.includes("thông tin") || text.includes("chi tiết") || text.includes("đang") || text.includes("khôi phục")) {
           variant = "info";
           icon = "bell";
         }
@@ -339,7 +352,18 @@ export function AppShell({
         return (
           <div className={`toast ${notice ? "visible" : ""} ${variant}`} role="status" aria-live="polite">
             <span><Icon name={icon} /></span>
-            <span>{notice}</span>
+            <span className="toast-message">{notice}</span>
+            {notice && noticeAction ? (
+              <button
+                type="button"
+                className="toast-action"
+                onClick={noticeAction.onClick}
+                disabled={noticeAction.disabled}
+              >
+                <Icon name="restore" />
+                {noticeAction.label}
+              </button>
+            ) : null}
           </div>
         );
       })()}

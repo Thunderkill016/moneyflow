@@ -5,6 +5,7 @@ import {
   createTransactionAction,
   createTransferAction,
   deleteTransactionAction,
+  restoreTransactionAction,
   updateTransactionAction,
   updateTransferAction,
   type TransactionActionResult,
@@ -18,7 +19,11 @@ import type {
   UpdateMoneyTransactionInput,
   UpdateTransferInput,
 } from "@/lib/sample-data";
-import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
+import {
+  readStoredTransactions,
+  restoreTransactionInList,
+  writeStoredTransactions,
+} from "@/lib/transaction-store";
 
 type Options = {
   initialTransactions: Transaction[];
@@ -101,6 +106,30 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     }
   }
 
+  /** Undo soft-delete: demo re-inserts snapshot; server clears deleted_at via RPC. */
+  async function restoreTransaction(transaction: Transaction): Promise<TransactionActionResult> {
+    if (isDemo) {
+      setTransactions((current) => {
+        const next = restoreTransactionInList(current, transaction);
+        writeStoredTransactions(next);
+        return next;
+      });
+      return { ok: true, transaction };
+    }
+
+    setIsMutating(true);
+    try {
+      const result = await restoreTransactionAction(transaction.id);
+      if (result.ok) {
+        const restored = result.transaction ?? transaction;
+        setTransactions((current) => restoreTransactionInList(current, restored));
+      }
+      return result.ok ? { ok: true, transaction: result.transaction ?? transaction } : result;
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
   async function addTransfer(input: CreateTransferInput): Promise<TransactionActionResult> {
     const source = accounts.find((item) => item.id === input.sourceAccountId); const destination = accounts.find((item) => item.id === input.destinationAccountId);
     if (!source || !destination || source.id === destination.id) return { ok: false, message: "Chọn hai tài khoản khác nhau." };
@@ -138,5 +167,13 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     } finally { setIsMutating(false); }
   }
 
-  return { transactions, addTransaction, addTransfer, updateTransaction, deleteTransaction, isMutating };
+  return {
+    transactions,
+    addTransaction,
+    addTransfer,
+    updateTransaction,
+    deleteTransaction,
+    restoreTransaction,
+    isMutating,
+  };
 }

@@ -45,3 +45,15 @@ export function readStoredTransactions() {
 export function writeStoredTransactions(transactions: Transaction[]) {
   localStorage.setItem(TRANSACTION_STORAGE_KEY, JSON.stringify(transactions));
 }
+
+/**
+ * Re-insert a soft-deleted transaction for undo.
+ * No-op if the id is already present (idempotent restore).
+ */
+export function restoreTransactionInList(
+  current: Transaction[],
+  restored: Transaction,
+): Transaction[] {
+  if (current.some((item) => item.id === restored.id)) return current;
+  return [restored, ...current];
+}

@@ -34,6 +34,7 @@ select col_type_is('public', 'inbox_candidates', 'amount_minor', 'bigint', 'inbo
 
 select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid'], 'create RPC exists');
 select has_function('public', 'soft_delete_money_transaction', array['uuid'], 'soft delete RPC exists');
+select has_function('public', 'restore_money_transaction', array['uuid'], 'restore soft-deleted transaction RPC exists');
 select has_function('public', 'create_financial_account', array['text', 'account_kind', 'bigint'], 'create account RPC exists');
 select has_function('public', 'update_financial_account', array['uuid', 'text', 'account_kind', 'bigint'], 'update account RPC exists');
 select has_function('public', 'set_financial_account_archived', array['uuid', 'boolean'], 'archive account RPC exists');

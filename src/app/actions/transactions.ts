@@ -116,6 +116,65 @@ export async function deleteTransactionAction(id: string): Promise<TransactionAc
   return { ok: true };
 }
 
+/**
+ * Clear soft-delete (`deleted_at`) for a transaction owned by the current user.
+ * Requires migration `restore_money_transaction` (20260715001100).
+ * Limitation: if the RPC is not applied on the project, restore fails with a calm message
+ * (demo mode restores from client memory only — see useTransactions).
+ */
+export async function restoreTransactionAction(id: string): Promise<TransactionActionResult> {
+  const parsed = idSchema.safeParse(id);
+  if (!parsed.success) return { ok: false, message: "Mã giao dịch không hợp lệ." };
+
+  const viewer = await requireViewer();
+  if (viewer.isDemo) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
+
+  const { data, error } = await supabase.rpc("restore_money_transaction", {
+    p_transaction_id: parsed.data,
+  });
+
+  if (error) {
+    const missingFn =
+      error.message.includes("restore_money_transaction") ||
+      error.message.includes("Could not find the function") ||
+      error.code === "PGRST202" ||
+      error.code === "42883";
+    if (missingFn) {
+      return {
+        ok: false,
+        message: "Chưa thể hoàn tác trên máy chủ. Giao dịch vẫn đang ẩn — áp dụng migration restore nếu bạn quản trị dự án.",
+      };
+    }
+    return { ok: false, message: "Không khôi phục được giao dịch. Hãy thử lại." };
+  }
+  if (data !== true) {
+    return { ok: false, message: "Giao dịch không còn để khôi phục (có thể đã được xóa vĩnh viễn)." };
+  }
+
+  const { data: row, error: readError } = await supabase
+    .from("transaction_feed")
+    .select(feedColumns)
+    .eq("id", parsed.data)
+    .single();
+
+  if (readError || !row) {
+    refreshFinancePages();
+    return { ok: true };
+  }
+
+  try {
+    const transaction = mapTransactionFeedRow(row);
+    refreshFinancePages();
+    return { ok: true, transaction };
+  } catch {
+    refreshFinancePages();
+    return { ok: true };
+  }
+}
+
 export async function updateTransactionAction(input: UpdateMoneyTransactionInput): Promise<TransactionActionResult> {
   const parsed = updateSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Thông tin giao dịch chưa hợp lệ." };

@@ -287,7 +287,7 @@
 - **Completed:** 2026-07-15 — `624cca2` AppShell default Ghi chi tiêu → /capture/quick; Insights/tx dialog same label; N giữ.
 
 ### TASK-106 — Soft-delete undo toast transactions
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Khi xóa giao dịch (soft delete), toast 8s với Hoàn tác gọi restore nếu API/demo hỗ trợ; không thì document limitation. Calm copy.
 - **Done khi:** undo path works demo và/hoặc server; lint/typecheck/test pass.
 

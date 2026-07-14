@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon, type IconName } from "@/components/icons";
 import { useTransactions } from "@/hooks/use-transactions";
@@ -20,6 +20,10 @@ import type { CreateTransferInput, UpdateMoneyTransactionInput, UpdateTransferIn
 import { AppShell } from "@/components/layout/app-shell";
 import { GHI_CHI_TIEU_HREF, GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
 import { safeUserNotice } from "@/lib/safe-log";
+
+/** Undo window for soft-delete (design-system: 8s with Hoàn tác). */
+const DELETE_UNDO_MS = 8000;
+const NOTICE_MS = 3500;
 
 type KindFilter = "all" | Transaction["kind"];
 
@@ -45,7 +49,15 @@ export function TransactionsPage({
   variant?: TransactionsPageVariant;
 }) {
   const isTimeline = variant === "timeline";
-  const { transactions, addTransaction, addTransfer, updateTransaction, deleteTransaction, isMutating } = useTransactions({
+  const {
+    transactions,
+    addTransaction,
+    addTransfer,
+    updateTransaction,
+    deleteTransaction,
+    restoreTransaction,
+    isMutating,
+  } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
     categories: workspace.categories,
@@ -58,6 +70,29 @@ export function TransactionsPage({
   const [kind, setKind] = useState<KindFilter>("all");
   const [account, setAccount] = useState("all");
   const [notice, setNotice] = useState("");
+  const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
+  const noticeTimerRef = useRef<number | null>(null);
+  const pendingUndoRef = useRef<Transaction | null>(null);
+
+  function clearNoticeTimer() {
+    if (noticeTimerRef.current != null) {
+      window.clearTimeout(noticeTimerRef.current);
+      noticeTimerRef.current = null;
+    }
+  }
+
+  function showNotice(message: string, ms = NOTICE_MS) {
+    clearNoticeTimer();
+    setPendingUndo(null);
+    pendingUndoRef.current = null;
+    setNotice(message);
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice("");
+      noticeTimerRef.current = null;
+    }, ms);
+  }
+
+  useEffect(() => () => clearNoticeTimer(), []);
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("vi");
@@ -119,39 +154,75 @@ export function TransactionsPage({
     const result = await addTransaction(input);
     if (result.ok && result.transaction) {
       setDialogOpen(false);
-      setNotice(
+      showNotice(
         safeUserNotice(
           `Đã thêm ${result.transaction.note}.`,
           "Đã thêm giao dịch.",
         ),
       );
-      window.setTimeout(() => setNotice(""), 3500);
     }
     return result;
   }
 
   async function handleDelete(transaction: Transaction) {
-    if (transaction.isRecurringPayment) { setNotice("Khoản này được quản lý ở trang Định kỳ."); window.setTimeout(() => setNotice(""), 3500); return; }
+    if (transaction.isRecurringPayment) {
+      showNotice("Khoản này được quản lý ở trang Định kỳ.");
+      return;
+    }
     const confirmed = window.confirm(
       `Xóa giao dịch “${transaction.note}” (${formatMoney(transaction.amount)})? Giao dịch sẽ được ẩn khỏi sổ của bạn.`,
     );
     if (!confirmed) return;
     const result = await deleteTransaction(transaction.id);
+    if (!result.ok) {
+      showNotice(safeUserNotice(result.message, "Không xóa được giao dịch."));
+      return;
+    }
+
+    // Soft-delete success: calm toast + 8s Hoàn tác (demo + server restore).
+    clearNoticeTimer();
+    pendingUndoRef.current = transaction;
+    setPendingUndo(transaction);
     setNotice(
       safeUserNotice(
-        result.ok ? `Đã xóa ${transaction.note}.` : result.message,
-        result.ok ? "Đã xóa giao dịch." : "Không xóa được giao dịch.",
+        `Đã xóa ${transaction.note}.`,
+        "Đã xóa giao dịch.",
       ),
     );
-    window.setTimeout(() => setNotice(""), 3500);
+    noticeTimerRef.current = window.setTimeout(() => {
+      setNotice("");
+      setPendingUndo(null);
+      pendingUndoRef.current = null;
+      noticeTimerRef.current = null;
+    }, DELETE_UNDO_MS);
+  }
+
+  async function handleUndoDelete() {
+    const snapshot = pendingUndoRef.current;
+    if (!snapshot) return;
+    clearNoticeTimer();
+    setPendingUndo(null);
+    pendingUndoRef.current = null;
+    setNotice("");
+
+    const result = await restoreTransaction(snapshot);
+    if (result.ok) {
+      showNotice("Đã khôi phục giao dịch.");
+    } else {
+      showNotice(
+        safeUserNotice(
+          result.message,
+          "Không khôi phục được. Giao dịch vẫn đang ẩn.",
+        ),
+      );
+    }
   }
 
   async function handleUpdate(input: UpdateMoneyTransactionInput | UpdateTransferInput) {
     const result = await updateTransaction(input);
     if (result.ok) {
       setEditing(null);
-      setNotice("Đã cập nhật giao dịch.");
-      window.setTimeout(() => setNotice(""), 3500);
+      showNotice("Đã cập nhật giao dịch.");
     }
     return result;
   }
@@ -160,8 +231,7 @@ export function TransactionsPage({
     const result = await addTransfer(input);
     if (result.ok) {
       setTransferOpen(false);
-      setNotice("Đã chuyển ví thành công.");
-      window.setTimeout(() => setNotice(""), 3500);
+      showNotice("Đã chuyển ví thành công.");
     }
     return result;
   }
@@ -198,6 +268,17 @@ export function TransactionsPage({
             }
       }
       notice={notice}
+      noticeAction={
+        pendingUndo
+          ? {
+              label: "Hoàn tác",
+              onClick: () => {
+                void handleUndoDelete();
+              },
+              disabled: isMutating,
+            }
+          : undefined
+      }
     >
       <main className={`dashboard transactions-workspace${isTimeline ? " timeline-workspace" : ""}`}>
         {workspace.dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{workspace.dataError}</span></div>}

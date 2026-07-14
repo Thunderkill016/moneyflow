@@ -927,38 +927,70 @@ select:focus-visible {
 .toast.success {
   border-left-color: var(--color-success-default);
 }
-.toast.success > span {
+.toast.success > span:first-child {
   background: var(--color-success-subtle);
   color: var(--color-success-text);
 }
 .toast.error {
   border-left-color: var(--color-danger-default);
 }
-.toast.error > span {
+.toast.error > span:first-child {
   background: var(--color-danger-subtle);
   color: var(--color-danger-text);
 }
 .toast.warning {
   border-left-color: var(--color-warning-default);
 }
-.toast.warning > span {
+.toast.warning > span:first-child {
   background: var(--color-warning-subtle);
   color: var(--color-warning-text);
 }
 .toast.info {
   border-left-color: var(--color-info-default);
 }
-.toast.info > span {
+.toast.info > span:first-child {
   background: var(--color-info-subtle);
   color: var(--color-info-text);
 }
-.toast > span {
+.toast > span:first-child {
   display: grid;
   width: 28px;
   height: 28px;
   place-items: center;
+  flex: 0 0 28px;
   border-radius: var(--radius-md);
   background: var(--color-bg-secondary);
+}
+.toast-message {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.toast-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-info-subtle);
+  color: var(--color-info-text);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 680;
+  cursor: pointer;
+}
+.toast-action:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+.toast-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.toast-action svg {
+  width: 14px;
+  height: 14px;
 }
 .toast svg {
   width: 14px;

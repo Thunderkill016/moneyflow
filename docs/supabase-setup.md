@@ -61,7 +61,18 @@ Review the SQL diff before pushing to any production project.
 - Server pages call `getClaims()` again before rendering protected data.
 - Every user-owned table has Row Level Security.
 - Financial transaction rows are read-only through the Data API.
-- Creation and soft deletion use narrowly scoped RPC functions.
+- Creation, soft deletion, and restore use narrowly scoped RPC functions.
 - RPC functions derive `user_id` from `auth.uid()` and never accept it from the browser.
 - Money is stored as signed `bigint` minor units in ledger entries.
 - Idempotency keys prevent duplicate transaction creation during retries.
+
+## Soft-delete undo (restore)
+
+After the user soft-deletes a transaction, the UI shows an **8s** toast with **Hoàn tác**.
+
+| Mode | Behavior |
+|------|----------|
+| **Demo** | Client re-inserts the snapshot into localStorage (`moneyflow-demo-transactions-v1`). |
+| **Authenticated** | Calls RPC `restore_money_transaction` (migration `20260715001100_restore_money_transaction.sql`) to clear `deleted_at`. |
+
+**Limitation:** If the cloud project has not applied that migration, server restore fails with a calm message; the row stays soft-deleted. Apply migrations (`supabase db push` / reset) to enable server-side undo. Hard purge of account data is separate and not undoable from this toast.
