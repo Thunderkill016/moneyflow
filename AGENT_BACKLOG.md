@@ -102,9 +102,10 @@
 - **Completed:** 2026-07-15 — `435fe49` `/timeline` + TransactionsPage variant timeline; empty CTA Inbox.
 
 ### TASK-013 — Insights demote dashboard
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Move current dashboard to `/insights`; `/` logged-in users redirect to `/inbox`. Landing stays public on `/` when logged out. Wireframes §17.
 - **Done khi:** home routing correct; insights still show safe-to-spend; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `42ada1f` `/insights` dashboard + `/` logged-in → `/inbox`; landing public when logged out.
 
 ### TASK-014 — Rules page stub
 - **Status:** `ready`
@@ -147,6 +148,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-013 | `42ada1f` /insights demote dashboard; / → /inbox when logged in |
 | 2026-07-15 | TASK-012 | `435fe49` /timeline đã duyệt + empty CTA Inbox |
 | 2026-07-15 | TASK-011 | `b22b5b8` review panel + explain + bulk; low conf opt-in only |
 | 2026-07-15 | TASK-010 | `ea7e66c` import preview map + 10-row table + Đưa vào Inbox gate |
