@@ -78,7 +78,7 @@
 - **Completed:** 2026-07-15 — `52288cf` `/capture/quick` embedded AddTransactionDialog + date/keep-open/remember prefs + high-conf candidate mirror.
 
 ### TASK-009 — Upload statement UI + CSV parse
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** `/capture/upload` dropzone max 10MB; accept csv/xlsx text csv first; parse CSV heuristic columns date/amount/desc; create import batch + candidates. Trust microcopy. `parse-csv.ts` + fixtures/tests. Wireframes §8.
 - **Done khi:** CSV upload → candidates; tests; lint/typecheck/test pass.
 
