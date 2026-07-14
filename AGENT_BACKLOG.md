@@ -411,9 +411,10 @@
 
 
 ### TASK-126 — Weekly review email stub (optional)
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Optional in-app weekly summary card (not email provider); calm copy. Skip if no demand.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `db1d5ea` Insights weekly summary card (in-app, not email); calm VN copy; transfers excluded
 
 ### TASK-127 — Recurring income templates
 - **Status:** `ready`
@@ -429,6 +430,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-126 | `db1d5ea` in-app weekly summary card on Insights; calm copy; no email provider |
 | 2026-07-15 | TASK-125 | `a154639` AGENTS.md G5 guardrails; forbid inbox landing + bank/AI/family; Wave A→B→C |
 | 2026-07-15 | TASK-124 | `3f88fb4` README G5: thu chi primary; link 05 + AUTOPILOT_PLAN; run/quality/autopilot |
 | 2026-07-15 | TASK-122 | `02d42c1` transactions list load-more 50; keep filters; no 1000-row paint |
