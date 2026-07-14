@@ -172,9 +172,10 @@
 
 
 ### TASK-024 — Supabase migration import_batches + candidates
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Persist inbox server-side with RLS; migrate from local store when authed.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `5e1f8bc` import_batches + inbox_candidates RLS; migrate local when authed; capture/inbox dual store.
 
 ### TASK-025 — Duplicate + transfer detection
 - **Status:** `ready`
@@ -190,6 +191,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-024 | `5e1f8bc` import_batches + inbox_candidates RLS; local→server migrate when authed |
 | 2026-07-15 | TASK-023 | `2332130` PDF text-layer MF DEMO BANK fixture + parser (no OCR); upload accept .pdf |
 | 2026-07-15 | TASK-022 | `74fcf81` first-sheet XLSX/XLS parse (xlsx) → Import Preview; share still Upload-only |
 | 2026-07-15 | TASK-021 | `d0dc0f6` PWA share_target → /capture/share queue text/CSV into inbox |
