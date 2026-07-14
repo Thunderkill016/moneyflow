@@ -139,9 +139,9 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
           {workspace.dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{workspace.dataError}</span></div>}
           <section className="welcome-row">
             <div>
-              <p className="eyebrow">Tổng quan tài chính</p>
+              <p className="eyebrow">Insights</p>
               <h1>Chào buổi sáng, {displayName}.</h1>
-              <p>Hôm nay dòng tiền của bạn vẫn đang đi đúng hướng.</p>
+              <p>Tóm tắt sau khi dữ liệu đã tin cậy — ưu tiên xử lý Inbox trước.</p>
             </div>
             <button className="date-pill"><span>Tháng này</span><Icon name="arrowDown" /></button>
           </section>

@@ -53,7 +53,6 @@ const moreLegacy: { label: string; href: string; icon: IconName }[] = [
   { label: "Báo cáo", href: "/reports", icon: "chart" },
   { label: "Định kỳ", href: "/commitments", icon: "calendar" },
   { label: "Mục tiêu", href: "/goals", icon: "flag" },
-  { label: "Tổng quan (cũ)", href: "/", icon: "home" },
 ];
 
 const mobileTabs: NavItem[] = [
