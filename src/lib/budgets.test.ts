@@ -6,7 +6,65 @@ import {
   budgetRemaining,
   budgetStatusLabel,
   budgetThreshold,
+  sumBudgetSpent,
 } from "./budgets.ts";
+import type { Transaction } from "./sample-data.ts";
+
+const foodExpense: Transaction = {
+  id: "food-1",
+  kind: "expense",
+  categoryId: "cat-food",
+  category: "Ăn uống",
+  note: "Cà phê",
+  accountId: "cash",
+  account: "Tiền mặt",
+  amount: 45_000,
+  occurredOn: "2026-07-10",
+  occurredAt: "2026-07-10T08:00:00.000Z",
+  relativeDate: "Tuần này",
+};
+
+const foodExpense2: Transaction = {
+  ...foodExpense,
+  id: "food-2",
+  amount: 80_000,
+  occurredOn: "2026-07-14",
+};
+
+const transportExpense: Transaction = {
+  ...foodExpense,
+  id: "transport-1",
+  categoryId: "cat-transport",
+  category: "Di chuyển",
+  amount: 30_000,
+};
+
+const transferOut: Transaction = {
+  ...foodExpense,
+  id: "xfer-1",
+  kind: "transfer",
+  categoryId: "cat-food", // even if mis-tagged, transfer must not count
+  category: "Chuyển tiền",
+  amount: 500_000,
+  destinationAccountId: "bank",
+  destinationAccount: "Ngân hàng",
+};
+
+const income: Transaction = {
+  ...foodExpense,
+  id: "income-1",
+  kind: "income",
+  categoryId: "cat-salary",
+  category: "Lương",
+  amount: 10_000_000,
+};
+
+const priorMonthFood: Transaction = {
+  ...foodExpense,
+  id: "food-june",
+  amount: 200_000,
+  occurredOn: "2026-06-20",
+};
 
 test("budget progress can report overspending without hiding it", () => {
   assert.equal(budgetProgress({ spent: 750_000, limit: 1_000_000 }), 75);
@@ -46,4 +104,39 @@ test("budgetBarColor returns distinct tokens per threshold (pair with text)", ()
   assert.notEqual(ok, near);
   assert.notEqual(near, over);
   assert.ok(over.includes("danger") || over.includes("EF4444") || over.includes("DC2626") || over.includes("var(--color-danger"));
+});
+
+// --- TASK-117: budget spent ignores transfer ---
+
+test("sumBudgetSpent only counts expenses for the category and month", () => {
+  const spent = sumBudgetSpent(
+    [foodExpense, foodExpense2, transportExpense, priorMonthFood, income],
+    "cat-food",
+    "2026-07-01",
+  );
+  assert.equal(spent, 125_000);
+  assert.ok(Number.isSafeInteger(spent));
+});
+
+test("sumBudgetSpent ignores transfers even with matching categoryId", () => {
+  const withoutTransfer = sumBudgetSpent([foodExpense], "cat-food", "2026-07-01");
+  const withTransfer = sumBudgetSpent(
+    [foodExpense, transferOut],
+    "cat-food",
+    "2026-07-01",
+  );
+  assert.equal(withoutTransfer, 45_000);
+  assert.equal(withTransfer, 45_000);
+  assert.equal(
+    sumBudgetSpent([transferOut], "cat-food", "2026-07-01"),
+    0,
+  );
+});
+
+test("sumBudgetSpent after soft-delete drops the expense amount", () => {
+  const active = [foodExpense, foodExpense2];
+  assert.equal(sumBudgetSpent(active, "cat-food", "2026-07-01"), 125_000);
+  // Soft-delete foodExpense2 → exclude from active list
+  const afterDelete = active.filter((item) => item.id !== "food-2");
+  assert.equal(sumBudgetSpent(afterDelete, "cat-food", "2026-07-01"), 45_000);
 });

@@ -1,3 +1,4 @@
+import type { Transaction } from "./sample-data.ts";
 import { formatMoney } from "./money.ts";
 
 export type BudgetSummary = {
@@ -10,6 +11,30 @@ export type BudgetSummary = {
   limit: number;
   spent: number;
 };
+
+/**
+ * Sum of expense amounts for a category in a month (YYYY-MM…).
+ * Transfers and income never count toward budget spent.
+ * Soft-deleted rows must already be excluded from `transactions`.
+ */
+export function sumBudgetSpent(
+  transactions: Transaction[],
+  categoryId: string,
+  monthStart: string,
+): number {
+  const monthPrefix = monthStart.slice(0, 7);
+  let spent = 0;
+  for (const item of transactions) {
+    if (item.kind !== "expense") continue;
+    if (item.categoryId !== categoryId) continue;
+    if (!item.occurredOn.startsWith(monthPrefix)) continue;
+    if (!Number.isSafeInteger(item.amount) || item.amount <= 0) continue;
+    const next = spent + item.amount;
+    if (!Number.isSafeInteger(next)) continue;
+    spent = next;
+  }
+  return spent;
+}
 
 export type SaveBudgetInput = {
   categoryId: string;

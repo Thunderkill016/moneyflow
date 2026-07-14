@@ -14,6 +14,47 @@ export function sumTransactions(
     .reduce((sum, transaction) => sum + transaction.amount, 0);
 }
 
+/**
+ * Net effect of ledger rows on total assets (all accounts combined).
+ * Income +, expense −, transfer 0 (moves money between own accounts).
+ * Soft-deleted rows must be omitted from `transactions` before calling.
+ */
+export function netTransactionEffect(transactions: Transaction[]): number {
+  let total = 0;
+  for (const item of transactions) {
+    if (item.kind === "income") total += item.amount;
+    else if (item.kind === "expense") total -= item.amount;
+    // transfer: no net change to total assets
+  }
+  return total;
+}
+
+/**
+ * Total balance after applying active transactions to an opening/total balance.
+ * Pass only non-deleted rows (soft delete = exclude from list).
+ */
+export function balanceAfterTransactions(
+  openingBalance: number,
+  transactions: Transaction[],
+): number {
+  const next = openingBalance + netTransactionEffect(transactions);
+  if (!Number.isSafeInteger(next)) {
+    throw new Error("unsafe_balance_total");
+  }
+  return next;
+}
+
+/** Month expense total; transfers never count as expense. */
+export function monthExpenseTotal(
+  transactions: Transaction[],
+  monthPrefix: string,
+): number {
+  return sumTransactions(
+    transactions,
+    (item) => item.kind === "expense" && item.occurredOn.startsWith(monthPrefix),
+  );
+}
+
 type DashboardSummaryOptions = {
   isDemo?: boolean;
   totalBalance?: number;

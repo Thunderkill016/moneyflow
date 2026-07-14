@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon, type IconName } from "@/components/icons";
-import { calculateDashboardSummary, topExpenseCategories } from "@/lib/finance";
+import {
+  calculateDashboardSummary,
+  netTransactionEffect,
+  topExpenseCategories,
+} from "@/lib/finance";
 import {
   categoryMeta,
   type AccountOption,
@@ -21,6 +25,7 @@ import {
   budgetRemaining,
   budgetStatusLabel,
   budgetThreshold,
+  sumBudgetSpent,
   type BudgetSummary,
 } from "@/lib/budgets";
 import { hydrateCommitmentsWithOccurrences } from "@/lib/commitment-occurrence-store";
@@ -45,13 +50,6 @@ import {
 import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/empty-state";
-
-function netTransactions(transactions: Transaction[]) {
-  return transactions.reduce(
-    (sum, item) => sum + (item.kind === "income" ? item.amount : item.kind === "expense" ? -item.amount : 0),
-    0,
-  );
-}
 
 type DashboardWorkspace = {
   transactions: Transaction[];
@@ -112,22 +110,20 @@ export function MoneyFlowDashboard({
 
   const currentBalance = useMemo(() => {
     if (viewer.isDemo) return workspace.totalBalance;
-    return workspace.totalBalance + netTransactions(transactions) - netTransactions(workspace.transactions);
+    return (
+      workspace.totalBalance +
+      netTransactionEffect(transactions) -
+      netTransactionEffect(workspace.transactions)
+    );
   }, [transactions, viewer.isDemo, workspace.totalBalance, workspace.transactions]);
 
   const liveBudgets = useMemo(
     () =>
       budgets.map((budget) => {
-        const spend = (items: Transaction[]) =>
-          items
-            .filter(
-              (item) =>
-                item.kind === "expense" &&
-                item.categoryId === budget.categoryId &&
-                item.occurredOn.startsWith(budget.monthStart.slice(0, 7)),
-            )
-            .reduce((sum, item) => sum + item.amount, 0);
-        return { ...budget, spent: budget.spent + spend(transactions) - spend(workspace.transactions) };
+        const spentDelta =
+          sumBudgetSpent(transactions, budget.categoryId, budget.monthStart) -
+          sumBudgetSpent(workspace.transactions, budget.categoryId, budget.monthStart);
+        return { ...budget, spent: budget.spent + spentDelta };
       }),
     [budgets, transactions, workspace.transactions],
   );

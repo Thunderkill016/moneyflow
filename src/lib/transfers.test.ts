@@ -19,3 +19,13 @@ test("invalid or same-account transfers do not change balances", () => {
   assert.equal(applyTransferBalances(accounts, "source", "source", 100_000), accounts);
   assert.equal(applyTransferBalances(accounts, "source", "destination", 0), accounts);
 });
+
+test("transfer uses integer minor units only; rejects float or negative", () => {
+  assert.equal(applyTransferBalances(accounts, "source", "destination", 12.5), accounts);
+  assert.equal(applyTransferBalances(accounts, "source", "destination", -100_000), accounts);
+  const ok = applyTransferBalances(accounts, "source", "destination", 1);
+  assert.equal(ok[0]?.balance, 1_999_999);
+  assert.equal(ok[1]?.balance, 500_001);
+  assert.ok(Number.isSafeInteger(ok[0]?.balance));
+  assert.ok(Number.isSafeInteger(ok[1]?.balance));
+});

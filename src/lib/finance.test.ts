@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  balanceAfterTransactions,
   calculateBudgetProgress,
   calculateDashboardSummary,
   DAILY_ALLOWANCE,
+  monthExpenseTotal,
+  netTransactionEffect,
+  OPENING_BALANCE,
   topExpenseCategories,
 } from "./finance.ts";
 import type { Transaction } from "./sample-data.ts";
@@ -25,6 +29,7 @@ const expense: Transaction = {
 const transport: Transaction = {
   ...expense,
   id: "test-transport",
+  categoryId: "test-transport",
   category: "Di chuyển",
   note: "Grab",
   amount: 50_000,
@@ -34,6 +39,7 @@ const incomeTxn: Transaction = {
   ...expense,
   id: "test-income",
   kind: "income",
+  categoryId: "test-income",
   category: "Lương",
   note: "Lương tháng",
   amount: 500_000,
@@ -43,9 +49,11 @@ const transfer: Transaction = {
   ...expense,
   id: "test-transfer",
   kind: "transfer",
+  categoryId: "",
   category: "Chuyển tiền",
   note: "Chuyển ví",
   amount: 200_000,
+  destinationAccountId: "test-momo",
   destinationAccount: "MoMo",
 };
 
@@ -154,4 +162,108 @@ test("top expense categories only count the current month", () => {
   assert.equal(categories.length, 1);
   assert.equal(categories[0]?.name, "Ăn uống");
   assert.equal(categories[0]?.share, 100);
+});
+
+// --- TASK-117 domain expansion: balance / edit / soft-delete / transfer / safe-to-spend ---
+
+test("balance after expense reduces total assets by integer amount", () => {
+  const opening = 1_000_000;
+  assert.equal(balanceAfterTransactions(opening, [expense]), 900_000);
+  assert.equal(netTransactionEffect([expense]), -100_000);
+});
+
+test("balance after income increases total assets", () => {
+  assert.equal(balanceAfterTransactions(1_000_000, [incomeTxn]), 1_500_000);
+  assert.equal(netTransactionEffect([incomeTxn]), 500_000);
+});
+
+test("balance after transfer is unchanged (total assets preserved)", () => {
+  assert.equal(netTransactionEffect([transfer]), 0);
+  assert.equal(balanceAfterTransactions(1_000_000, [transfer]), 1_000_000);
+  assert.equal(
+    balanceAfterTransactions(1_000_000, [expense, incomeTxn, transfer]),
+    1_400_000,
+  );
+});
+
+test("balance after edit uses the new expense amount", () => {
+  const opening = OPENING_BALANCE;
+  const original = balanceAfterTransactions(opening, [expense]);
+  assert.equal(original, opening - 100_000);
+
+  const edited: Transaction = { ...expense, amount: 40_000, note: "Đã sửa" };
+  const afterEdit = balanceAfterTransactions(opening, [edited]);
+  assert.equal(afterEdit, opening - 40_000);
+  assert.equal(afterEdit - original, 60_000);
+
+  // Demo dashboard balance follows the same edit delta
+  const before = calculateDashboardSummary([expense]);
+  const after = calculateDashboardSummary([edited]);
+  assert.equal(after.balance, before.balance + 60_000);
+  assert.equal(after.expense, before.expense - 60_000);
+});
+
+test("balance after soft-delete restores assets (deleted row excluded from sum)", () => {
+  const opening = 2_000_000;
+  const withExpense = balanceAfterTransactions(opening, [expense, transport]);
+  assert.equal(withExpense, 1_850_000);
+
+  // Soft-delete = omit from active list (deleted_at filter on server / remove in demo)
+  const afterSoftDelete = balanceAfterTransactions(opening, [transport]);
+  assert.equal(afterSoftDelete, 1_950_000);
+  assert.equal(afterSoftDelete - withExpense, expense.amount);
+
+  const empty = balanceAfterTransactions(opening, []);
+  assert.equal(empty, opening);
+
+  const demoBefore = calculateDashboardSummary([expense]);
+  const demoAfterDelete = calculateDashboardSummary([]);
+  assert.equal(demoAfterDelete.balance, demoBefore.balance + expense.amount);
+});
+
+test("transfer is excluded from month expense totals and dashboard expense", () => {
+  const month = "2026-07";
+  assert.equal(monthExpenseTotal([expense, transfer, incomeTxn], month), 100_000);
+  assert.equal(monthExpenseTotal([transfer], month), 0);
+
+  const withTransfer = calculateDashboardSummary([expense, transfer], {
+    isDemo: false,
+    totalBalance: 1_000_000,
+    today: "2026-07-14",
+  });
+  const expenseOnly = calculateDashboardSummary([expense], {
+    isDemo: false,
+    totalBalance: 1_000_000,
+    today: "2026-07-14",
+  });
+  assert.equal(withTransfer.expense, 100_000);
+  assert.equal(withTransfer.expense, expenseOnly.expense);
+  assert.equal(withTransfer.income, 0);
+  // Transfer must not affect net either (not income, not expense)
+  assert.equal(withTransfer.net, expenseOnly.net);
+});
+
+test("safe-to-spend is a non-negative safe integer (floor division)", () => {
+  const over = calculateDashboardSummary([{ ...expense, amount: DAILY_ALLOWANCE + 50_000 }]);
+  assert.equal(over.safeToday, 0);
+  assert.ok(Number.isSafeInteger(over.safeToday));
+  assert.ok(over.safeToday >= 0);
+
+  // Remainder days yield floor (integer) allowance, never fractional
+  const live = calculateDashboardSummary([], {
+    isDemo: false,
+    totalBalance: 1_000_001, // not divisible cleanly
+    today: "2026-07-14",
+  });
+  assert.ok(Number.isSafeInteger(live.safeToday));
+  assert.ok(Number.isSafeInteger(live.dailyAllowance));
+  assert.ok(live.safeToday >= 0);
+  assert.equal(live.safeToday, live.dailyAllowance);
+  // 1_000_001 / remainingDays is floored inside calculateDashboardSummary
+  assert.equal(live.dailyAllowance, Math.floor(live.dailyAllowance));
+
+  const normal = calculateDashboardSummary([expense]);
+  assert.ok(Number.isSafeInteger(normal.safeToday));
+  assert.ok(normal.safeToday >= 0);
+  assert.equal(normal.safeToday, DAILY_ALLOWANCE - 100_000);
 });
