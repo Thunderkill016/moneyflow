@@ -144,11 +144,27 @@
 - **Completed:** 2026-07-15 — `bbf6328` /settings hub + appearance theme + error §21 polish; inbox skeletons already present.
 
 ### TASK-020 — Autopilot smoke + README autopilot section
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Ensure scripts executable; README section how to start/stop daemon; `bash scripts/agent-pick-task.sh` works; no code feature required beyond docs verify.
 - **Done khi:** docs accurate; scripts ok.
 
 ---
+
+
+### TASK-021 — PWA share target capture
+- **Status:** `ready`
+- **Mô tả:** Web app manifest share_target → `/capture/share` queue text/files into inbox store.
+- **Source:** roadmap pool refill
+
+### TASK-022 — XLSX parse
+- **Status:** `ready`
+- **Mô tả:** Parse first sheet xlsx with lightweight lib or document CSV-only until justified dependency.
+- **Source:** roadmap pool refill
+
+### TASK-023 — PDF text extract one bank template
+- **Status:** `ready`
+- **Mô tả:** Text-layer PDF sample fixture + parser; no OCR.
+- **Source:** roadmap pool refill
 
 ## Nhật ký
 
