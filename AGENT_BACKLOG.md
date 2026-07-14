@@ -326,7 +326,7 @@
 - **Status:** `done`
 - **Mô tả:** Kiểm tra mobile CSS: bottom nav 5, FAB không che list cuối, dialogs full-width, tables scroll. Fix regressions insights/transactions/accounts.
 - **Done khi:** no horizontal overflow major pages; lint/typecheck/test pass.
-- **Completed:** 2026-07-15 — 659cc1f mobile chrome: 5-tab nav + safe-area, FAB clearance, full-width dialogs, table-scroll; insights/tx/accounts regressions.
+- **Completed:** 2026-07-15 — `68588b7` mobile chrome: 5-tab nav + safe-area, FAB clearance, full-width dialogs, table-scroll; insights/tx/accounts regressions.
 
 ### TASK-113 — Demo mode banner
 - **Status:** `ready`
@@ -399,7 +399,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-112 | 659cc1f mobile pass: bottom nav 5 + FAB clear + dialogs full-width + table scroll |
+| 2026-07-15 | TASK-112 | `68588b7` mobile pass: bottom nav 5 + FAB clear + dialogs full-width + table scroll |
 | 2026-07-15 | TASK-111 | `09269b8` P0 page states: loading skeletons + error.tsx per route; empty/inline OK |
 | 2026-07-15 | TASK-110 | `b7b9bf8` static /privacy policy VN + footer/register links |
 | 2026-07-15 | TASK-109 | `c143426` export CSV discoverability: Insights → /settings/export; Reports period download paths |
