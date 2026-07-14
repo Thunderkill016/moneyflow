@@ -329,9 +329,10 @@
 - **Completed:** 2026-07-15 — `68588b7` mobile chrome: 5-tab nav + safe-area, FAB clearance, full-width dialogs, table-scroll; insights/tx/accounts regressions.
 
 ### TASK-113 — Demo mode banner
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Khi viewer.isDemo, banner sticky "Chế độ demo — dữ liệu lưu trên trình duyệt" + CTA Đăng ký. AppShell.
 - **Done khi:** banner; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `06568ef` sticky demo banner under topbar + Đăng ký CTA; source contract test.
 
 ### TASK-114 — Commitments pay flow polish
 - **Status:** `ready`
@@ -399,6 +400,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-113 | `06568ef` demo sticky banner + Đăng ký when viewer.isDemo |
 | 2026-07-15 | TASK-112 | `68588b7` mobile pass: bottom nav 5 + FAB clear + dialogs full-width + table scroll |
 | 2026-07-15 | TASK-111 | `09269b8` P0 page states: loading skeletons + error.tsx per route; empty/inline OK |
 | 2026-07-15 | TASK-110 | `b7b9bf8` static /privacy policy VN + footer/register links |
