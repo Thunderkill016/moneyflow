@@ -2576,6 +2576,100 @@ select:focus-visible {
   flex-basis: 100%;
 }
 
+/* Public privacy policy (TASK-110) */
+.privacy-policy-main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 20px 64px;
+}
+
+.privacy-policy-header h1 {
+  margin: 8px 0 12px;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.privacy-policy-lead {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+}
+
+.privacy-policy-updated {
+  margin: 0 0 28px;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
+.privacy-policy-body {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.privacy-policy-section h2 {
+  margin: 0 0 10px;
+  font-size: 1.15rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.privacy-policy-section p,
+.privacy-policy-section li {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.privacy-policy-section ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.privacy-policy-section strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.privacy-policy-section a {
+  color: var(--color-text-primary);
+  font-weight: 550;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.privacy-policy-section a:hover {
+  color: var(--color-accent, var(--color-text-primary));
+}
+
+.privacy-policy-section p + p {
+  margin-top: 10px;
+}
+
+.privacy-policy-back {
+  margin: 40px 0 0;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+
+.privacy-policy-back a {
+  color: var(--color-text-primary);
+  font-weight: 550;
+  text-decoration: none;
+}
+
+.privacy-policy-back a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 @media (max-width: 1024px) {
   .landing-hero {
     grid-template-columns: 1fr;

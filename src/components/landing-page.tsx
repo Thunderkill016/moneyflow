@@ -270,7 +270,7 @@ export function LandingPage() {
           <nav className="landing-footer-links" aria-label="Liên kết">
             <Link href="/login">Đăng nhập</Link>
             <span aria-hidden="true">·</span>
-            <a href="#trust-heading">Riêng tư</a>
+            <Link href="/privacy">Riêng tư</Link>
             <span aria-hidden="true">·</span>
             <a href="#how-heading">Cách dùng</a>
             <span aria-hidden="true">·</span>

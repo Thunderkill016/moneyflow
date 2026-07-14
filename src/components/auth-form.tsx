@@ -224,7 +224,7 @@ export function AuthForm({
                   />
                   <span>
                     Tôi đồng ý với{" "}
-                    <Link href="/#privacy" className="auth-privacy-link">
+                    <Link href="/privacy" className="auth-privacy-link">
                       chính sách quyền riêng tư
                     </Link>
                   </span>
