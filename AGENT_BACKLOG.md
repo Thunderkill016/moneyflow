@@ -141,7 +141,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-006 | pending `/capture` chooser Paste/Upload/Quick |
+| 2026-07-15 | TASK-006 | `13816e0` /capture chooser Paste/Upload/Quick |
 | 2026-07-15 | TASK-005 | `e29a2d3` /inbox shell + candidate-store CRUD + demo rows |
 | 2026-07-14 | TASK-004 | `9193653` Inbox-first nav + post-auth /inbox |
 | 2026-07-14 | TASK-003 | `0ce187e` onboarding 3-step + register → /onboarding; skip → / until inbox |
