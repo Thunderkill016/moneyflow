@@ -281,9 +281,10 @@
 - **Completed:** 2026-07-15 — `b7d5cdd` landing-copy.test.ts locks G5 thu chi / có thể chi; forbids inbox slogans.
 
 ### TASK-105 — Global CTA Ghi chi tiêu (quick add)
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** AppShell primaryAction/FAB mặc định mở quick add expense (dialog hoặc /capture/quick) label "Ghi chi tiêu". Insights/transactions dùng cùng pattern. Shortcut N giữ.
 - **Done khi:** CTA rõ trên desktop+mobile; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `624cca2` AppShell default Ghi chi tiêu → /capture/quick; Insights/tx dialog same label; N giữ.
 
 ### TASK-106 — Soft-delete undo toast transactions
 - **Status:** `ready`
@@ -391,6 +392,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-105 | `624cca2` global CTA Ghi chi tiêu (topbar+FAB → quick add); Insights/tx same pattern |
 | 2026-07-15 | TASK-104 | `b7d5cdd` landing-copy regression: require thu chi/có thể chi; forbid inbox slogans |
 | 2026-07-15 | TASK-103 | `2837d68` insights G5: số dư/thu/chi/ròng + top categories bar + safe secondary + Ghi chi |
 | 2026-07-15 | TASK-102 | `46567fd` onboarding thu chi: trust + ví tiền mặt + optional ghi chi → /insights |
