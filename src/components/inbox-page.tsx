@@ -29,6 +29,7 @@ import {
   persistCandidateListForClient,
   updateCandidateForClient,
 } from "@/lib/inbox/client-inbox";
+import { annotateCandidates, type DetectedCandidate } from "@/lib/inbox/detect";
 import {
   applyBulkCategory,
   buildLedgerPost,
@@ -148,15 +149,32 @@ export function InboxPage({
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  const pendingCount = useMemo(() => countPending(candidates), [candidates]);
+  const detected = useMemo(
+    () =>
+      annotateCandidates(
+        candidates,
+        workspace.transactions.map((tx) => ({
+          id: tx.id,
+          kind: tx.kind,
+          amount: tx.amount,
+          occurredOn: tx.occurredOn,
+          note: tx.note,
+          account: tx.account,
+          accountId: tx.accountId,
+        })),
+      ),
+    [candidates, workspace.transactions],
+  );
+
+  const pendingCount = useMemo(() => countPending(detected), [detected]);
   const visible = useMemo(
-    () => sortCandidatesNewest(filterCandidates(candidates, filter)),
-    [candidates, filter],
+    () => sortCandidatesNewest(filterCandidates(detected, filter)),
+    [detected, filter],
   );
-  const reviewCandidate = useMemo(
-    () => candidates.find((item) => item.id === reviewId && item.status === "pending") ?? null,
-    [candidates, reviewId],
-  );
+  const reviewCandidate = useMemo((): DetectedCandidate | null => {
+    const found = detected.find((item) => item.id === reviewId && item.status === "pending");
+    return found ?? null;
+  }, [detected, reviewId]);
 
   const activeSelectedIds = useMemo(() => {
     const pendingIds = new Set(
@@ -552,6 +570,12 @@ export function InboxPage({
                         )}
                         {candidate.possibleDuplicate ? (
                           <span className="preview-chip sm warning">Trùng?</span>
+                        ) : null}
+                        {candidate.possibleTransfer ? (
+                          <span className="preview-chip sm info">CK?</span>
+                        ) : null}
+                        {candidate.kind === "transfer" && !candidate.possibleTransfer ? (
+                          <span className="preview-chip sm info">CK</span>
                         ) : null}
                       </button>
                       <strong

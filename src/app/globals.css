@@ -1811,6 +1811,11 @@ select:focus-visible {
   color: var(--color-success-text);
 }
 
+.preview-chip.info {
+  background: var(--color-info-subtle, #dbeafe);
+  color: var(--color-info-text, #1d4ed8);
+}
+
 .preview-inbox-list {
   list-style: none;
   margin: 0;

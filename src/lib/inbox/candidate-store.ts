@@ -33,6 +33,13 @@ export type InboxCandidate = {
   status: CandidateStatus;
   /** Possible duplicate of another candidate or ledger row. */
   possibleDuplicate?: boolean;
+  /** Fingerprint hash (computed; optional on store). */
+  fingerprint?: string;
+  /** Peer candidate id sharing fingerprint (detection). */
+  duplicateOfId?: string;
+  /** Suggested transfer pair peer (detection). */
+  possibleTransfer?: boolean;
+  transferPairId?: string;
   categoryId?: string;
   category?: string;
   accountId?: string;
@@ -139,21 +146,36 @@ export const sampleCandidates: InboxCandidate[] = [
     status: "pending",
     category: "Di chuyển",
     account: "Vietcombank",
+    rawSnippet: "GRAB *TRIP 89.000",
     createdAt: "2026-07-11T14:22:00.000Z",
   },
   {
     id: "cand-demo-4",
-    kind: "transfer",
+    kind: "expense",
     amount: 2_000_000,
-    merchant: "CK nội bộ",
+    merchant: "CK ra tiết kiệm",
     note: "Chuyển sang tiết kiệm",
     occurredOn: "2026-07-10",
-    source: "manual",
+    source: "csv",
     confidence: "medium",
     status: "pending",
-    possibleDuplicate: true,
     account: "Vietcombank",
+    rawSnippet: "CK ra tiet kiem 2000000",
     createdAt: "2026-07-10T09:00:00.000Z",
+  },
+  {
+    id: "cand-demo-4b",
+    kind: "income",
+    amount: 2_000_000,
+    merchant: "CK vào tiết kiệm",
+    note: "Nhận từ VCB",
+    occurredOn: "2026-07-10",
+    source: "csv",
+    confidence: "medium",
+    status: "pending",
+    account: "Tiết kiệm",
+    rawSnippet: "CK vao tiet kiem 2000000",
+    createdAt: "2026-07-10T09:01:00.000Z",
   },
   {
     id: "cand-demo-5",
@@ -167,6 +189,20 @@ export const sampleCandidates: InboxCandidate[] = [
     status: "pending",
     category: "Mua sắm",
     createdAt: "2026-07-10T18:40:00.000Z",
+  },
+  {
+    id: "cand-demo-6",
+    kind: "expense",
+    amount: 89_000,
+    merchant: "GRAB *TRIP",
+    note: "Di chuyển",
+    occurredOn: "2026-07-11",
+    source: "paste",
+    confidence: "medium",
+    status: "pending",
+    account: "Vietcombank",
+    rawSnippet: "GRAB *TRIP 89.000",
+    createdAt: "2026-07-11T15:00:00.000Z",
   },
 ];
 
@@ -200,6 +236,10 @@ export function isCandidate(value: unknown): value is InboxCandidate {
     typeof item.createdAt === "string" &&
     Number.isFinite(Date.parse(item.createdAt)) &&
     (item.possibleDuplicate === undefined || typeof item.possibleDuplicate === "boolean") &&
+    (item.fingerprint === undefined || typeof item.fingerprint === "string") &&
+    (item.duplicateOfId === undefined || typeof item.duplicateOfId === "string") &&
+    (item.possibleTransfer === undefined || typeof item.possibleTransfer === "boolean") &&
+    (item.transferPairId === undefined || typeof item.transferPairId === "string") &&
     (item.categoryId === undefined || typeof item.categoryId === "string") &&
     (item.category === undefined || typeof item.category === "string") &&
     (item.accountId === undefined || typeof item.accountId === "string") &&
@@ -224,7 +264,9 @@ export function filterCandidates(
     case "duplicate":
       return pending.filter((item) => item.possibleDuplicate === true);
     case "transfer":
-      return pending.filter((item) => item.kind === "transfer");
+      return pending.filter(
+        (item) => item.kind === "transfer" || item.possibleTransfer === true,
+      );
     case "all":
     default:
       return pending;

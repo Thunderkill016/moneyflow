@@ -134,10 +134,32 @@ export function buildExplainLines(candidate: InboxCandidate): ExplainLine[] {
     text: `Nguồn: ${SOURCE_LABELS[candidate.source]}${batch}`,
   });
 
-  if (candidate.possibleDuplicate) {
+  if (candidate.fingerprint) {
     lines.push({
       kind: "audit",
-      text: "Cảnh báo: có thể trùng với giao dịch khác",
+      text: `Fingerprint: ${candidate.fingerprint}`,
+    });
+  }
+
+  if (candidate.possibleDuplicate) {
+    const peer = candidate.duplicateOfId
+      ? ` · ứng viên ${candidate.duplicateOfId}`
+      : "";
+    lines.push({
+      kind: "audit",
+      text: `Cảnh báo: có thể trùng (cùng fingerprint)${peer}`,
+    });
+  }
+
+  if (candidate.possibleTransfer && candidate.transferPairId) {
+    lines.push({
+      kind: "audit",
+      text: `Gợi ý chuyển khoản: cùng số tiền · cùng ngày · đối ứng với ${candidate.transferPairId}`,
+    });
+  } else if (candidate.kind === "transfer") {
+    lines.push({
+      kind: "audit",
+      text: "Loại: chuyển khoản (đã gắn kind=transfer)",
     });
   }
 

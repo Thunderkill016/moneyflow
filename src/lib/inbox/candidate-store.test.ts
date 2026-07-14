@@ -85,9 +85,34 @@ test("filter and count pending", () => {
   assert.ok(countPending(list) >= 1);
   const needsReview = filterCandidates(list, "needs_review");
   assert.ok(needsReview.every((item) => item.confidence === "low" && item.status === "pending"));
-  const transfers = filterCandidates(list, "transfer");
-  assert.ok(transfers.every((item) => item.kind === "transfer"));
-  const duplicates = filterCandidates(list, "duplicate");
+  const transfers = filterCandidates(
+    [
+      ...list,
+      {
+        ...valid,
+        id: "t1",
+        kind: "transfer",
+        status: "pending",
+      },
+      {
+        ...valid,
+        id: "t2",
+        kind: "expense",
+        possibleTransfer: true,
+        status: "pending",
+      },
+    ],
+    "transfer",
+  );
+  assert.ok(
+    transfers.every((item) => item.kind === "transfer" || item.possibleTransfer === true),
+  );
+  assert.ok(transfers.some((item) => item.id === "t1"));
+  assert.ok(transfers.some((item) => item.id === "t2"));
+  const duplicates = filterCandidates(
+    [{ ...valid, id: "d1", possibleDuplicate: true, status: "pending" }],
+    "duplicate",
+  );
   assert.ok(duplicates.every((item) => item.possibleDuplicate === true));
 });
 
