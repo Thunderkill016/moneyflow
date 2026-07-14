@@ -30,7 +30,14 @@ import {
   unpaidActiveCount,
   type RecurringCommitment,
 } from "@/lib/commitments";
-import { goalProgress, goalTotals, type SavingsGoal } from "@/lib/goals";
+import {
+  dailyGoalSaving,
+  goalProgress,
+  goalRemaining,
+  goalTotals,
+  pickFeaturedGoal,
+  type SavingsGoal,
+} from "@/lib/goals";
 import {
   EXPORT_CSV_LABEL,
   EXPORT_SETTINGS_HREF,
@@ -177,7 +184,13 @@ export function MoneyFlowDashboard({
   const featuredStatus = featuredBudget ? budgetStatusLabel(featuredBudget) : "";
   const featuredRemaining = featuredBudget ? budgetRemaining(featuredBudget) : 0;
   const displayName = viewer.displayName || (viewer.isDemo ? "Minh" : "bạn");
-  const featuredGoal = [...goals].filter((goal) => !goal.isArchived).sort((a, b) => goalProgress(b) - goalProgress(a))[0];
+  const featuredGoal = pickFeaturedGoal(goals);
+  const featuredGoalProgress = featuredGoal ? goalProgress(featuredGoal) : 0;
+  const featuredGoalDaily = featuredGoal
+    ? dailyGoalSaving(featuredGoal, workspace.today)
+    : 0;
+  const featuredGoalLeft = featuredGoal ? goalRemaining(featuredGoal) : 0;
+  const featuredGoalAchieved = featuredGoalProgress >= 100;
   const protectedTotal = reservedCommitments + savings.allocated;
   const isEmptyLedger = transactions.length === 0;
   const actionsDisabled = Boolean(workspace.dataError);
@@ -525,13 +538,16 @@ export function MoneyFlowDashboard({
               </div>
             </article>
 
-            <article className="goal-dashboard-panel panel">
+            <article
+              className={`goal-dashboard-panel panel${featuredGoalAchieved ? " achieved" : ""}`}
+              aria-label="Mục tiêu tiết kiệm nổi bật"
+            >
               <div className="section-heading compact">
                 <div>
                   <h2>Mục tiêu tiết kiệm</h2>
                   <p>{featuredGoal?.name ?? "Chưa có mục tiêu"}</p>
                 </div>
-                <Link className="icon-button" href="/goals" aria-label="Mở mục tiêu tiết kiệm">
+                <Link className="icon-button" href="/goals" aria-label="Mở trang mục tiêu tiết kiệm">
                   <Icon name="arrowRight" />
                 </Link>
               </div>
@@ -541,17 +557,36 @@ export function MoneyFlowDashboard({
                     <strong className="font-mono">{formatMoney(featuredGoal.allocated)}</strong>
                     <span className="font-mono">/ {formatMoney(featuredGoal.target)}</span>
                   </div>
-                  <div className="budget-track">
-                    <span style={{ width: `${goalProgress(featuredGoal)}%` }} />
+                  <div
+                    className="budget-track"
+                    role="progressbar"
+                    aria-valuenow={featuredGoalProgress}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${featuredGoal.name}: đã đạt ${featuredGoalProgress} phần trăm`}
+                  >
+                    <span style={{ width: `${featuredGoalProgress}%` }} />
                   </div>
                   <div className="budget-foot">
-                    <span>Đã đạt {goalProgress(featuredGoal)}%</span>
+                    <span>
+                      {featuredGoalAchieved
+                        ? "Đã đạt mục tiêu"
+                        : `Đã đạt ${featuredGoalProgress}%`}
+                      {!featuredGoalAchieved && featuredGoalLeft > 0
+                        ? ` · Còn ${formatMoney(featuredGoalLeft)}`
+                        : ""}
+                    </span>
                     <strong className="font-mono">
-                      {savings.plannedDaily > 0
-                        ? `${formatMoney(savings.plannedDaily)}/ngày`
-                        : "Tự do tiến độ"}
+                      {featuredGoalAchieved
+                        ? "Hoàn thành"
+                        : featuredGoalDaily > 0
+                          ? `${formatMoney(featuredGoalDaily)}/ngày`
+                          : "Tự do tiến độ"}
                     </strong>
                   </div>
+                  <p className="goal-dashboard-more">
+                    <Link href="/goals">Xem tất cả mục tiêu →</Link>
+                  </p>
                 </>
               ) : (
                 <div className="budget-empty">

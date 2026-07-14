@@ -1172,6 +1172,22 @@ select:focus-visible {
 .goal-allocation-context p { margin: 4px 0 0; color: var(--muted); font-size: 9px; }
 .goal-dialog label small { color: var(--muted); font-weight: 450; }
 .goal-dashboard-panel { padding-bottom: 22px; }
+.goal-dashboard-panel .budget-track span { background: #7657a4; }
+.goal-dashboard-panel.achieved .budget-track span { background: var(--green); }
+.goal-dashboard-panel.achieved .budget-foot span { color: var(--green); font-weight: 650; }
+.goal-dashboard-more { margin: 12px 0 0; }
+.goal-dashboard-more a {
+  color: #7657a4;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.goal-dashboard-more a:hover { text-decoration: underline; }
+.goal-dashboard-more a:focus-visible {
+  outline: 2px solid #7657a4;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
 
 .accounts-workspace { padding-top: 38px; }
 .accounts-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }

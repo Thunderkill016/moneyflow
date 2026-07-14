@@ -341,7 +341,7 @@
 - **Completed:** 2026-07-15 — `4d5423b` pay → expense ledger (demo + occurrence map); loading/error/empty; Insights reserve sync
 
 ### TASK-115 — Goals card on Insights
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Featured goal progress trên insights; link /goals; empty CTA tạo mục tiêu.
 - **Done khi:** card; lint/typecheck/test pass.
 

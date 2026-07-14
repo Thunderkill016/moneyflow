@@ -14,14 +14,36 @@ export function goalProgress(goal: SavingsGoal) {
   return Math.min(100, Math.max(0, Math.round((goal.allocated / goal.target) * 100)));
 }
 
+/** Remaining minor units until target (never negative). */
+export function goalRemaining(goal: SavingsGoal) {
+  return Math.max(0, goal.target - goal.allocated);
+}
+
 export function daysUntil(date: string, today: string) {
   return Math.max(1, Math.ceil((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000));
 }
 
 export function dailyGoalSaving(goal: SavingsGoal, today: string) {
-  const remaining = Math.max(0, goal.target - goal.allocated);
+  const remaining = goalRemaining(goal);
   if (!goal.deadline || remaining === 0 || goal.isArchived) return 0;
   return Math.ceil(remaining / daysUntil(goal.deadline, today));
+}
+
+/**
+ * Featured goal for Insights widget: highest progress among active goals
+ * (wireframes §2.4). Tie-break: sooner deadline, then name.
+ */
+export function pickFeaturedGoal(goals: SavingsGoal[]): SavingsGoal | null {
+  const active = goals.filter((goal) => !goal.isArchived);
+  if (active.length === 0) return null;
+  return [...active].sort((a, b) => {
+    const progressDelta = goalProgress(b) - goalProgress(a);
+    if (progressDelta !== 0) return progressDelta;
+    if (a.deadline && b.deadline) return a.deadline.localeCompare(b.deadline);
+    if (a.deadline) return -1;
+    if (b.deadline) return 1;
+    return a.name.localeCompare(b.name, "vi");
+  })[0]!;
 }
 
 export function goalTotals(goals: SavingsGoal[], today: string) {
