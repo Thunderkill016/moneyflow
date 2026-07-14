@@ -9,6 +9,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/*/*.test.ts",
+    "check:rls": "bash scripts/check-rls-migrations.sh",
+    "test:db": "SUPABASE_TELEMETRY_DISABLED=1 npx supabase test db",
     "test:e2e": "playwright test",
     "test:e2e:install": "playwright install chromium"
   },

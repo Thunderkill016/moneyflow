@@ -66,6 +66,9 @@ Review the SQL diff before pushing to any production project.
 - Money is stored as signed `bigint` minor units in ledger entries.
 - Idempotency keys prevent duplicate transaction creation during retries.
 
+**RLS verification** (static scan, local pgTAP, manual checklist — no live prod required):  
+see [security-rls-check.md](./security-rls-check.md). Quick: `npm run check:rls` · Docker: `npm run test:db`.
+
 ## Soft-delete undo (restore)
 
 After the user soft-deletes a transaction, the UI shows an **8s** toast with **Hoàn tác**.

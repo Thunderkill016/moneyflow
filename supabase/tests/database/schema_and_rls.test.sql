@@ -1,5 +1,5 @@
 begin;
-select plan(50);
+select plan(66);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
@@ -30,6 +30,25 @@ select ok((select relrowsecurity from pg_class where oid = 'public.savings_goals
 select ok((select relrowsecurity from pg_class where oid = 'public.savings_goal_allocations'::regclass), 'savings goal allocations has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.import_batches'::regclass), 'import_batches has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.inbox_candidates'::regclass), 'inbox_candidates has RLS');
+
+-- Named own-row policies (gap fill TASK-118)
+select has_policy('public', 'profiles', 'profiles_select_own', 'profiles select policy');
+select has_policy('public', 'accounts', 'accounts_select_own', 'accounts select policy');
+select has_policy('public', 'categories', 'categories_select_own', 'categories select policy');
+select has_policy('public', 'financial_transactions', 'transactions_select_own', 'transactions select policy');
+select has_policy('public', 'transaction_entries', 'entries_select_own', 'entries select policy');
+select has_policy('public', 'monthly_budgets', 'monthly_budgets_select_own', 'budgets select policy');
+select has_policy('public', 'recurring_commitments', 'recurring_commitments_select_own', 'commitments select policy');
+select has_policy('public', 'commitment_occurrences', 'commitment_occurrences_select_own', 'commitment occurrences select policy');
+select has_policy('public', 'savings_goals', 'savings_goals_select_own', 'goals select policy');
+select has_policy('public', 'savings_goal_allocations', 'savings_goal_allocations_select_own', 'goal allocations select policy');
+select has_policy('public', 'import_batches', 'import_batches_select_own', 'import_batches select policy');
+select has_policy('public', 'inbox_candidates', 'inbox_candidates_select_own', 'inbox_candidates select policy');
+select has_policy('public', 'inbox_candidates', 'inbox_candidates_insert_own', 'inbox_candidates insert policy');
+select has_policy('public', 'import_batches', 'import_batches_insert_own', 'import_batches insert policy');
+select has_policy('public', 'accounts', 'accounts_insert_own', 'accounts insert policy');
+select has_policy('public', 'categories', 'categories_insert_own', 'categories insert policy');
+
 select col_type_is('public', 'inbox_candidates', 'amount_minor', 'bigint', 'inbox candidate money uses bigint');
 
 select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid'], 'create RPC exists');

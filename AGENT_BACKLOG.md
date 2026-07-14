@@ -359,9 +359,10 @@
 - **Completed:** 2026-07-15 — `47fab43` domain tests: balance after expense/edit/soft-delete; transfer excluded from expense; budget spent ignores transfer; safe-to-spend ≥0 integer
 
 ### TASK-118 — Document RLS verification
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** docs/security-rls-check.md: how to run existing SQL tests or manual checklist; fix gaps if easy. Không require live prod.
 - **Done khi:** doc + any script; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — pending SHA
 
 ### TASK-119 — A11y baseline pass
 - **Status:** `ready`
@@ -404,6 +405,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-118 | pending — RLS verification doc + static check + pgTAP has_policy gaps |
 | 2026-07-15 | TASK-117 | `47fab43` domain tests: balance edit/soft-delete; transfer≠expense; budget ignores transfer; safe-to-spend integer |
 | 2026-07-15 | TASK-116 | `04ca419` Playwright expense path: landing→demo→quick add→insights→export; replaces inbox smoke |
 | 2026-07-15 | TASK-115 | `0b8d7b8` featured goal progress on Insights; link /goals; empty CTA |

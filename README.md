@@ -35,6 +35,7 @@ Chi tiết: [AGENT_AUTOPILOT.md](AGENT_AUTOPILOT.md) · [AGENT_BACKLOG.md](AGENT
 - [Design system](docs/design-system.md)
 - [Wireframes (legacy dashboard-era)](docs/wireframes.md)
 - [Supabase setup](docs/supabase-setup.md)
+- [RLS verification](docs/security-rls-check.md) — static + local pgTAP + manual checklist
 - [Research archive](docs/RESEARCH_PRODUCT_STRATEGY.md)
 
 ## Run locally
@@ -54,6 +55,10 @@ npm run lint
 npm run typecheck
 npm run test
 npm run build
+
+# RLS surface (static migrations; no Docker) — see docs/security-rls-check.md
+npm run check:rls
+# Optional local Supabase pgTAP (needs Docker): npm run test:db
 
 # Optional E2E smoke (Playwright): landing → demo → quick-add expense → insights → export
 # First time: npm run test:e2e:install
@@ -88,4 +93,4 @@ npm run test:e2e
 
 ## Not production-ready yet
 
-Full RLS integration tests, receipt attachments, and legal/privacy flows are still required before handling real financial data.
+Schema RLS is declared in migrations and checked statically (`npm run check:rls`) plus optional local pgTAP (`npm run test:db`). Two-user cross-tenant integration tests, receipt attachments, and fuller legal flows are still recommended before handling real financial data. See [docs/security-rls-check.md](docs/security-rls-check.md).
