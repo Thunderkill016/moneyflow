@@ -114,9 +114,10 @@
 - **Completed:** 2026-07-15 — `572b443` `/rules` localStorage CRUD contains→category; optional apply on paste parse.
 
 ### TASK-015 — Import history
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** `/imports` list batches from store; delete raw meta; link preview. Wireframes §15.
 - **Done khi:** page works; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `4b1f2bd` `/imports` list batches + Xóa raw (meta+draft) + link preview/Inbox.
 
 ### TASK-016 — Privacy settings
 - **Status:** `ready`
@@ -149,6 +150,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-015 | `4b1f2bd` /imports lịch sử import + Xóa raw + preview links |
 | 2026-07-15 | TASK-014 | `572b443` /rules local rules + apply on parse optional |
 | 2026-07-15 | TASK-013 | `42ada1f` /insights demote dashboard; / → /inbox when logged in |
 | 2026-07-15 | TASK-012 | `435fe49` /timeline đã duyệt + empty CTA Inbox |
