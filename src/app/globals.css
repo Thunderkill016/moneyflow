@@ -4448,3 +4448,113 @@ input[aria-invalid="true"] {
 [data-theme="dark"] .export-date-field {
   color: var(--color-text-primary, #f8fafc);
 }
+
+/* Delete account (wireframes §20) */
+.delete-account-workspace { max-width: 640px; }
+.delete-account-danger-panel {
+  padding: 18px 16px 16px;
+  border: 1px solid var(--color-danger-default, #dc2626);
+  background: var(--color-danger-subtle, #fef2f2);
+}
+.delete-account-danger-panel h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-danger-text, #b91c1c);
+}
+.delete-account-list {
+  margin: 0 0 12px;
+  padding-left: 1.15rem;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-primary, #0f172a);
+}
+.delete-account-irreversible {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--color-danger-text, #b91c1c);
+}
+.delete-account-server-note {
+  margin-bottom: 0;
+}
+.delete-account-confirm-label {
+  display: block;
+  margin: 0 0 8px;
+}
+.delete-account-confirm-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-default, #e2e8f0);
+  border-radius: 12px;
+  background: var(--color-bg-primary, #fff);
+  color: var(--color-text-primary, #0f172a);
+  font-size: 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  letter-spacing: 0.06em;
+}
+.delete-account-confirm-input:focus {
+  outline: none;
+  border-color: var(--color-danger-default, #dc2626);
+  box-shadow: 0 0 0 3px var(--color-danger-subtle, #fef2f2);
+}
+.delete-account-confirm-input[aria-invalid="true"] {
+  border-color: var(--color-danger-default, #dc2626);
+}
+.delete-account-confirm-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted, #6b7670);
+}
+.delete-account-actions {
+  flex-wrap: wrap;
+}
+.delete-account-submit {
+  display: inline-flex;
+  min-height: 44px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--color-danger-default, #dc2626);
+  border-radius: 12px;
+  background: var(--color-danger-default, #dc2626);
+  padding: 0 16px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.delete-account-submit:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+.delete-account-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.delete-account-submit:focus-visible {
+  outline: 2px solid var(--color-danger-default, #dc2626);
+  outline-offset: 2px;
+}
+
+[data-theme="dark"] .delete-account-danger-panel {
+  background: var(--color-danger-subtle, #450a0a);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+[data-theme="dark"] .delete-account-danger-panel h2,
+[data-theme="dark"] .delete-account-irreversible {
+  color: var(--color-danger-text, #fca5a5);
+}
+[data-theme="dark"] .delete-account-list {
+  color: var(--color-text-primary, #f8fafc);
+}
+[data-theme="dark"] .delete-account-confirm-input {
+  background: var(--color-bg-secondary, #0f172a);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary, #f8fafc);
+}
+

@@ -127,3 +127,20 @@ export async function signOut() {
   if (supabase) await supabase.auth.signOut();
   redirect("/login");
 }
+
+/**
+ * Finalize account deletion after client local wipe (wireframes §20).
+ *
+ * Hard-delete of Supabase Auth user + server rows requires `service_role`
+ * (or admin Edge Function) — not available from the Next.js app with only
+ * the publishable key. We end the session and redirect; UI documents the
+ * server purge limitation.
+ */
+export async function finalizeAccountDeletion() {
+  const supabase = await createClient();
+  if (supabase) {
+    // No admin.deleteUser with publishable key — sign out only.
+    await supabase.auth.signOut();
+  }
+  redirect("/login?deleted=1");
+}
