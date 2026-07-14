@@ -4,15 +4,37 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# MoneyFlow project rules
+# Money Flow — project rules (agents)
 
-- MoneyFlow is a Vietnamese-first personal finance product. The core promise is to show how much a person can safely spend today.
-- Prioritize financial correctness, privacy, accessibility, mobile usability, and maintainable code.
-- Store money as integer minor units. Never use floating-point arithmetic for persisted money.
-- Keep financial rules outside visual components as the domain grows.
-- Treat all browser input as untrusted. Resolve the authenticated user on the server once authentication exists.
-- Every user-owned database table must use Row Level Security when Supabase is introduced.
-- Do not add a dependency without explaining the value it provides.
-- Every data page needs loading, empty, error, and responsive states before production release.
-- Before coding, inspect the current implementation and relevant local Next.js docs in `node_modules/next/dist/docs/`.
-- After coding, run type checking, linting, relevant tests, and the production build.
+## Product
+
+- Money Flow is a **Vietnamese-first** finance product.
+- Strategic UX: **Universal Financial Inbox** — capture → normalize → review-by-exception → commit → insights.
+- Secondary insight: **Hôm nay có thể chi bao nhiêu?** (after data is trusted).
+- Docs: `docs/UX_RESEARCH_AND_REDESIGN.md`, `docs/wireframes-inbox.md`, `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/PRODUCT.md`.
+
+## Autopilot
+
+1. Read `AGENT_BACKLOG.md` — only do the first task with **Status: `ready`**.
+2. One task per session. Set `in_progress` → implement → lint/typecheck/test → commit → push if pass → `done`.
+3. If `ready` &lt; 2: `bash scripts/agent-refill-backlog.sh`.
+4. Never ask the user questions during headless autopilot — decide and ship minimal scope.
+5. Fail twice → `blocked` + reason. Do not force-push. Do not edit `.env.local` / secrets. Do not delete migrations.
+
+## Engineering
+
+- Money = **integer minor units** (VND đồng). No float for persisted money.
+- Financial rules outside visual components.
+- Treat browser input as untrusted; resolve auth on server.
+- User-owned tables need **RLS** when using Supabase.
+- Every data page: **loading, empty, error, success** (and uncertain when capture/parse).
+- No dependency without justifying value.
+- Before code: inspect current impl + Next.js local docs under `node_modules/next/dist/docs/`.
+- After code: `npm run lint && npm run typecheck && npm run test` (and `npm run build` if routes/layout change).
+
+## Design
+
+- Inbox-first navigation. Do **not** put chart dashboard as default home.
+- Never auto-post low-confidence transactions.
+- Do not clone competitor layouts/colors/copy/icons.
+- Dark + light, a11y basics (focus, contrast, money not color-only).

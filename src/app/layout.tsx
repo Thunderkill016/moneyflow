@@ -15,9 +15,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MoneyFlow — Biết hôm nay có thể chi bao nhiêu",
+  title: "Money Flow — Hộp thư giao dịch tài chính",
   description:
-    "GPS tài chính cá nhân giúp người Việt hiểu dòng tiền và chi tiêu an toàn mỗi ngày.",
+    "Dán text, tải sao kê, duyệt ngoại lệ. Không gõ lại từng dòng. Không hỏi mật khẩu ngân hàng.",
 };
 
 export default function RootLayout({
@@ -27,6 +27,24 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('moneyflow-theme') || 'system';
+                  var resolved = theme;
+                  if (theme === 'system') {
+                    resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+                  document.documentElement.setAttribute('data-theme', resolved);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );

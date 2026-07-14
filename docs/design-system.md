@@ -1154,6 +1154,8 @@ docs/
 ```
 FONTS:       Inter (UI) + JetBrains Mono (numbers)
 ACCENT:      Light #3B82F6 / Dark #60A5FA — MỘT màu duy nhất
+  (App runtime hiện có thể dùng green trust — mọi thay đổi token phải
+   cập nhật file này TRƯỚC; không clone bảng màu đối thủ.)
 SPACING:     4px base → 4, 8, 12, 16, 20, 24, 32, 40, 48, 64
 RADIUS:      2 xs, 4 sm, 8 md, 12 lg, 16 xl, 9999 full
 SHADOWS:     sm (1+2), md (4+12), lg (8+24), xl (16+48)
@@ -1164,11 +1166,90 @@ TOUCH:       Min 44×44px
 FONT MIN:    14px body, 12px caption
 CONTRAST:    4.5:1 text, 3:1 large text / icons
 BREAKPOINTS: 0-639 mobile, 640-1023 tablet, 1024-1439 desktop, 1440+ wide
-NAV:         Bottom tabs (mobile ≤768), Sidebar (desktop ≥768)
+NAV:         Inbox-first · Bottom ≤5 tabs mobile · Sidebar desktop
+HOME:        /inbox (không phải chart dashboard)
 MONEY:       Always monospace. Right-aligned. Never truncated in detail views.
-NEGATIVE:    Red + ↓ + − sign (triple redundancy)
-STATES:      Loading, Empty, Content, Error, Offline, Success (mỗi trang)
-CHARTS:      No pie. No 3D. Max 5-6 colors. Line=trend, Bar=compare, Progress=budget.
-DIALOGS:     Max 85vh. Destructive = explicit button text. No "OK".
+NEGATIVE:    Sign + direction icon + color (triple redundancy)
+STATES:      Loading, Empty, Content, Error, Offline, Success, Uncertain
+CHARTS:      No pie home. Insights only. Max sparkline on secondary views.
+DIALOGS:     Max 85vh / 1 screen. Destructive = explicit label.
 DARK MODE:   #0A0A0B base. Not inverted. Elevation = lighter surface.
+INBOX:       See § Inbox-first components below + wireframes-inbox.md
+```
+
+---
+
+## Inbox-first components (Design delta)
+
+> Bổ sung cho định vị **Universal Financial Inbox**.  
+> Chi tiết research: [UX_RESEARCH_AND_REDESIGN.md](./UX_RESEARCH_AND_REDESIGN.md) · wireframe: [wireframes-inbox.md](./wireframes-inbox.md)
+
+### Navigation IA
+
+| Priority | Desktop nav | Mobile tab |
+|---|---|---|
+| 1 | **Inbox** (badge count) | Inbox |
+| 2 | Capture (menu) | Capture |
+| 3 | Timeline | Timeline |
+| 4 | Accounts | Accounts |
+| 5 | Rules, Imports, Insights, Settings | More |
+
+### ConfidenceBadge
+
+| Level | Label (text bắt buộc) | Token gợi ý |
+|---|---|---|
+| high | Khá chắc | success-subtle |
+| medium | Tạm ổn | warning-subtle |
+| low | Cần xem | warning/danger-subtle |
+
+Không dùng màu làm kênh duy nhất.
+
+### SourceBadge
+
+Values: `paste` · `csv` · `xlsx` · `pdf` · `manual` · `notification` · `email`  
+Style: neutral chip, caption weight, no brand logos of banks.
+
+### CandidateRow
+
+- min-height 52–56px  
+- columns: select · date · merchant · money · source · confidence · overflow  
+- selected: accent-subtle bg  
+- low conf: left border warning 3px  
+
+### BulkActionBar
+
+- appears when selection ≥ 1  
+- sticky bottom (mobile) / top of list (desktop)  
+- actions: Approve · Reject · Category · Account · More  
+- dangerous bulk: confirm if includes low-conf without explicit opt-in  
+
+### ExplainPanel
+
+Always show for low confidence review:
+
+1. Parser id + version  
+2. Matched rules  
+3. Raw snippet with highlight  
+4. User control: edit fields before approve  
+
+### ImportStepper
+
+`Upload → Extract → Normalize → Preview → Inbox`  
+Each step: loading / error / success.
+
+### CaptureMenu
+
+Three equal-weight actions (not buried): Paste · Upload · Quick add.
+
+### Rules (anti-patterns)
+
+```
+RULE-I1: Home route = Inbox, not Insights/Dashboard.
+RULE-I2: Never auto-post candidates with low confidence.
+RULE-I3: Preview required before batch creates >N candidates (N default 1).
+RULE-I4: Bulk approve default skips low-conf unless user opts in.
+RULE-I5: No pie charts on Inbox or Capture.
+RULE-I6: No glassmorphism / heavy gradient on financial surfaces.
+RULE-I7: Raw financial text never in toast/analytics payloads.
+RULE-I8: Every money change shows direction (+/−/↔) independent of color.
 ```

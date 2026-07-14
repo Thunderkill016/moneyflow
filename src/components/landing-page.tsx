@@ -3,177 +3,241 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 
+/**
+ * Landing — Inbox-first positioning (wireframes-inbox.md §1).
+ * Original layout/copy; does not clone competitor marketing.
+ */
 export function LandingPage() {
   return (
     <div className="landing-page">
-      {/* Landing Nav */}
-      <nav className="landing-nav" aria-label="Điều hướng chính">
-        <Link className="brand" href="/">
-          <span className="brand-mark"><span /></span>
-          <span>MoneyFlow</span>
+      <nav className="landing-nav" aria-label="Điều hướng trang chủ">
+        <Link className="brand" href="/" aria-label="Money Flow, trang chủ">
+          <span className="brand-mark">
+            <span />
+          </span>
+          <span>Money Flow</span>
         </Link>
         <div className="landing-nav-actions">
-          <Link href="/login" className="secondary-button" style={{ minHeight: "38px", paddingInline: "16px", fontSize: "12px" }}>
+          <Link href="/login" className="landing-link">
             Đăng nhập
           </Link>
-          <Link href="/register" className="primary-button" style={{ minHeight: "38px", paddingInline: "16px", fontSize: "12px" }}>
-            Đăng ký miễn phí
+          <Link href="/register" className="primary-button landing-nav-cta">
+            Bắt đầu miễn phí
           </Link>
         </div>
       </nav>
 
-      {/* Hero Section */}
       <header className="landing-hero">
         <div className="landing-hero-content">
+          <p className="landing-eyebrow">Universal Financial Inbox</p>
           <h1>
-            Tài chính bình yên,<br />
-            bắt đầu từ <span>số 0</span>.
+            Hộp thư cho mọi
+            <br />
+            giao dịch tài chính
           </h1>
-          <p>
-            MoneyFlow biến những con số phức tạp thành một quyết định đơn giản mỗi ngày: 
-            <strong> Hôm nay bạn có thể chi bao nhiêu?</strong> Giúp bạn tích lũy thông minh mà không bị stress.
+          <p className="landing-lead">
+            Dán text, tải sao kê, duyệt ngoại lệ — không gõ lại từng dòng. Hệ thống chuẩn hóa;{" "}
+            <strong>bạn quyết định</strong> trước khi vào sổ.
+          </p>
+          <p className="landing-trust-line">
+            <Icon name="lock" />
+            Không bao giờ hỏi mật khẩu hay OTP ngân hàng.
           </p>
           <div className="landing-hero-ctas">
             <Link href="/register" className="cta-primary">
-              Bắt đầu miễn phí <Icon name="arrowRight" style={{ marginLeft: "8px", width: "16px" }} />
+              Bắt đầu miễn phí
+              <Icon name="arrowRight" />
             </Link>
             <Link href="/login" className="cta-secondary">
-              Xem Bản Demo <Icon name="spark" style={{ marginLeft: "8px", width: "16px" }} />
+              Đăng nhập
             </Link>
           </div>
         </div>
 
-        {/* CSS Mockup Card */}
-        <div className="landing-hero-preview">
-          <div className="preview-dashboard-card">
-            <div className="preview-header">
-              <span className="preview-allowance">Có thể chi hôm nay</span>
-              <span className="preview-status"><span /> An toàn</span>
-            </div>
-            <div className="preview-amount font-mono">180.000 ₫</div>
-            <div className="preview-bar"><span /></div>
-            
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "var(--color-text-secondary)", marginBottom: "24px" }}>
-              <div>Số dư ví: <strong className="font-mono" style={{ color: "var(--color-text-primary)" }}>5.450.000 ₫</strong></div>
-              <div>Hạn mức ngày: <strong className="font-mono" style={{ color: "var(--color-text-primary)" }}>200.000 ₫</strong></div>
+        {/* Abstract inbox preview — not a competitor dashboard clone */}
+        <div className="landing-hero-preview" aria-hidden="true">
+          <div className="preview-inbox-card">
+            <div className="preview-inbox-top">
+              <div>
+                <span className="preview-inbox-label">Inbox</span>
+                <strong className="preview-inbox-count">Cần duyệt · 12</strong>
+              </div>
+              <span className="preview-chip warning">3 cần xem</span>
             </div>
 
-            <div className="preview-transactions-list">
-              <div className="preview-item">
-                <div className="preview-item-info">
-                  <span className="preview-item-icon">☕</span>
-                  <div className="preview-item-text">
-                    <strong>Cafe sáng</strong>
-                    <span>Ăn uống · Ví tiền mặt</span>
-                  </div>
+            <ul className="preview-inbox-list">
+              <li className="preview-inbox-row low">
+                <span className="preview-check" />
+                <div className="preview-row-main">
+                  <strong>HIGHLANDS COFFEE Q1</strong>
+                  <small>paste · SMS NH</small>
                 </div>
-                <span className="preview-item-value expense font-mono">− ↓ 45.000 ₫</span>
-              </div>
+                <span className="preview-money expense font-mono">−45.000 ₫</span>
+                <span className="preview-chip warning sm">Cần xem</span>
+              </li>
+              <li className="preview-inbox-row">
+                <span className="preview-check on" />
+                <div className="preview-row-main">
+                  <strong>LUONG CT ABC</strong>
+                  <small>csv · Techcombank</small>
+                </div>
+                <span className="preview-money income font-mono">+25.000.000 ₫</span>
+                <span className="preview-chip ok sm">Khá chắc</span>
+              </li>
+              <li className="preview-inbox-row">
+                <span className="preview-check on" />
+                <div className="preview-row-main">
+                  <strong>Grab *TRIP</strong>
+                  <small>csv · MoMo</small>
+                </div>
+                <span className="preview-money expense font-mono">−89.000 ₫</span>
+                <span className="preview-chip ok sm">Khá chắc</span>
+              </li>
+              <li className="preview-inbox-row">
+                <span className="preview-check" />
+                <div className="preview-row-main">
+                  <strong>CK den *1234</strong>
+                  <small>paste · có thể chuyển khoản</small>
+                </div>
+                <span className="preview-money transfer font-mono">↔ 2.000.000 ₫</span>
+                <span className="preview-chip sm">CK?</span>
+              </li>
+            </ul>
 
-              <div className="preview-item">
-                <div className="preview-item-info">
-                  <span className="preview-item-icon">💰</span>
-                  <div className="preview-item-text">
-                    <strong>Lương dự án</strong>
-                    <span>Thu nhập · Vietcombank</span>
-                  </div>
-                </div>
-                <span className="preview-item-value income font-mono">+ ↑ 1.500.000 ₫</span>
-              </div>
-
-              <div className="preview-item">
-                <div className="preview-item-info">
-                  <span className="preview-item-icon">🔄</span>
-                  <div className="preview-item-text">
-                    <strong>Chuyển ví tiết kiệm</strong>
-                    <span>Chuyển khoản · Ví → MoMo</span>
-                  </div>
-                </div>
-                <span className="preview-item-value font-mono" style={{ color: "var(--color-text-secondary)" }}>↔ 2.000.000 ₫</span>
-              </div>
+            <div className="preview-inbox-foot">
+              <span>Đã chọn 2 dòng khá chắc</span>
+              <span className="preview-bulk-btn">Duyệt đã chọn</span>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Curriculum / Steps Section */}
-      <section className="landing-section" style={{ borderTop: "1px solid var(--color-border-default)" }}>
+      <section className="landing-section" aria-labelledby="how-heading">
         <div className="landing-section-heading">
-          <p>Từng bước nhỏ</p>
-          <h2>Lộ trình làm chủ tiền bạc</h2>
-          <span>Không nhồi nhét lý thuyết. Bạn học cách tích lũy và kiểm soát chi tiêu qua việc thực hành hàng ngày.</span>
+          <p>Cách hoạt động</p>
+          <h2 id="how-heading">Bốn bước — không cần học phương pháp ngân sách</h2>
+          <span>Đưa data vào · máy chuẩn hóa · bạn duyệt ngoại lệ · xuất hoặc ghi sổ.</span>
         </div>
-
-        <div className="steps-grid">
-          <div className="step-card">
-            <span className="step-num">1</span>
-            <h3>Ví tài chính</h3>
-            <p>Đăng ký các tài khoản thực tế của bạn như Tiền mặt, Thẻ ngân hàng, hoặc Thẻ tín dụng để có cái nhìn tổng quan ròng.</p>
-          </div>
-
-          <div className="step-card">
-            <span className="step-num">2</span>
-            <h3>Ngân sách tháng</h3>
-            <p>Thiết lập hạn mức tối giản cho từng danh mục ăn uống, mua sắm. MoneyFlow sẽ tự động phân bổ hạn mức chi tiêu hàng ngày.</p>
-          </div>
-
-          <div className="step-card">
-            <span className="step-num">3</span>
-            <h3>Mục tiêu tương lai</h3>
-            <p>Đặt mục tiêu mua laptop, quỹ khẩn cấp. Một phần tiền của bạn sẽ được khóa riêng để đảm bảo bạn không lỡ tiêu mất.</p>
-          </div>
-
-          <div className="step-card">
-            <span className="step-num">4</span>
-            <h3>Chi tiêu định kỳ</h3>
-            <p>Khai báo tiền nhà, hóa đơn điện nước. Hệ thống tự giữ trước số tiền này để bạn luôn trả đúng hạn mà không lo thiếu hụt.</p>
-          </div>
-        </div>
+        <ol className="steps-grid steps-flow">
+          <li className="step-card">
+            <span className="step-num" aria-hidden="true">
+              1
+            </span>
+            <h3>Đưa dữ liệu vào</h3>
+            <p>Dán SMS/noti, tải CSV/Excel/PDF sao kê, hoặc thêm nhanh một khoản.</p>
+          </li>
+          <li className="step-card">
+            <span className="step-num" aria-hidden="true">
+              2
+            </span>
+            <h3>Chuẩn hóa</h3>
+            <p>Nhận diện nguồn, số tiền, ngày, merchant — gắn độ tin cậy từng dòng.</p>
+          </li>
+          <li className="step-card">
+            <span className="step-num" aria-hidden="true">
+              3
+            </span>
+            <h3>Bạn duyệt</h3>
+            <p>Review-by-exception: bulk dòng chắc, sửa dòng mơ hồ. Thấy nguồn và lý do đoán.</p>
+          </li>
+          <li className="step-card">
+            <span className="step-num" aria-hidden="true">
+              4
+            </span>
+            <h3>Xuất hoặc ghi sổ</h3>
+            <p>CSV/Excel sạch, hoặc vào sổ Money Flow để xem có thể chi hôm nay.</p>
+          </li>
+        </ol>
       </section>
 
-      {/* Features Section */}
-      <section className="landing-section" style={{ borderTop: "1px solid var(--color-border-default)" }}>
+      <section className="landing-section landing-section-alt" aria-labelledby="fit-heading">
         <div className="landing-section-heading">
-          <p>Đặc trưng cốt lõi</p>
-          <h2>Thiết kế dành cho sự bình yên</h2>
-          <span>Mỗi chi tiết giao diện đều được tính toán kỹ lưỡng để mang lại cảm giác an tâm và kiểm soát tốt nhất.</span>
+          <p>Phù hợp nếu bạn</p>
+          <h2 id="fit-heading">Không phải app “biểu đồ đẹp rồi bỏ cuộc”</h2>
+          <span>Money Flow cho người có data rải rác và ghét gõ lại từng giao dịch.</span>
         </div>
-
-        <div className="features-grid">
-          <div className="feature-card">
-            <div className="feature-icon-box">
-              <Icon name="spark" />
-            </div>
-            <h3>Tiết lộ dần dần</h3>
-            <p>Chỉ hiển thị những gì bạn cần biết ngay lúc này. Ẩn đi các thống kê phức tạp để giữ tinh thần của bạn thoải mái.</p>
-          </div>
-
-          <div className="feature-card success-theme">
-            <div className="feature-icon-box">
-              <Icon name="check" />
-            </div>
-            <h3>Triple Redundancy</h3>
-            <p>Kết hợp màu sắc sắc nét, ký tự âm dương (+/−) và mũi tên chỉ hướng để bạn dễ dàng quét nhanh dòng tiền mà không nhầm lẫn.</p>
-          </div>
-
-          <div className="feature-card warning-theme">
-            <div className="feature-icon-box">
-              <Icon name="lock" />
-            </div>
-            <h3>Bảo mật tối đa</h3>
-            <p>Cơ chế Row Level Security (RLS) của Supabase bảo vệ an toàn tuyệt đối thông tin. Dữ liệu của bạn chỉ có bạn đọc được.</p>
-          </div>
-        </div>
+        <ul className="fit-grid">
+          <li className="fit-card">
+            <Icon name="wallet" />
+            <h3>Nhiều tài khoản & ví</h3>
+            <p>Ngân hàng, MoMo, tiền mặt… một inbox thay vì mười app.</p>
+          </li>
+          <li className="fit-card">
+            <Icon name="receipt" />
+            <h3>Đang dùng Excel / Sheets</h3>
+            <p>Tải sao kê → file sạch. Không bắt bạn đổi cả cách làm việc.</p>
+          </li>
+          <li className="fit-card">
+            <Icon name="edit" />
+            <h3>Lười nhập tay từng món</h3>
+            <p>Đã bỏ app chi tiêu vì ghi sổ mỗi tối. Capture + duyệt lô là việc chính.</p>
+          </li>
+        </ul>
       </section>
 
-      {/* Footer */}
+      <section className="landing-section" aria-labelledby="trust-heading">
+        <div className="landing-section-heading">
+          <p>Tin cậy</p>
+          <h2 id="trust-heading">Bạn giữ quyền kiểm soát</h2>
+          <span>Thiết kế cho dữ liệu nhạy cảm — không hứa suông “AI thần thánh”.</span>
+        </div>
+        <ul className="trust-grid">
+          <li>
+            <Icon name="lock" />
+            <div>
+              <strong>Không mật khẩu ngân hàng</strong>
+              <p>Chỉ file/text bạn chủ động đưa vào. Không đọc OTP.</p>
+            </div>
+          </li>
+          <li>
+            <Icon name="check" />
+            <div>
+              <strong>Duyệt trước khi vào sổ</strong>
+              <p>Độ tin cậy thấp không tự ghi. Luôn thấy nguồn và lý do.</p>
+            </div>
+          </li>
+          <li>
+            <Icon name="archive" />
+            <div>
+              <strong>Raw lưu ngắn</strong>
+              <p>File gốc có thể xóa sau parse. Bạn chọn thời gian giữ.</p>
+            </div>
+          </li>
+          <li>
+            <Icon name="arrowDown" />
+            <div>
+              <strong>Export & xóa tài khoản</strong>
+              <p>Mang data đi bất cứ lúc nào. Xóa hết khi không còn dùng.</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section className="landing-cta-band" aria-labelledby="cta-band-heading">
+        <h2 id="cta-band-heading">Bắt đầu với một lần dán hoặc một file sao kê</h2>
+        <p>Không cần liên kết ngân hàng. Không cần học zero-based budgeting.</p>
+        <Link href="/register" className="cta-primary">
+          Tạo tài khoản miễn phí
+          <Icon name="arrowRight" />
+        </Link>
+      </section>
+
       <footer className="landing-footer">
-        <div style={{ maxWidth: "1200px", margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "20px" }}>
-          <Link className="brand" href="/" style={{ opacity: 0.8 }}>
-            <span className="brand-mark"><span /></span>
-            <span>MoneyFlow</span>
+        <div className="landing-footer-inner">
+          <Link className="brand" href="/">
+            <span className="brand-mark">
+              <span />
+            </span>
+            <span>Money Flow</span>
           </Link>
-          <p style={{ margin: 0 }}>© {new Date().getFullYear()} MoneyFlow. Tài chính cá nhân tối giản cho người Việt.</p>
+          <nav className="landing-footer-links" aria-label="Liên kết pháp lý">
+            <Link href="/login">Đăng nhập</Link>
+            <span aria-hidden="true">·</span>
+            <a href="#trust-heading">Quyền riêng tư</a>
+            <span aria-hidden="true">·</span>
+            <a href="#how-heading">Cách hoạt động</a>
+          </nav>
+          <p>© {new Date().getFullYear()} Money Flow. Hộp thư giao dịch — bạn duyệt trước khi ghi sổ.</p>
         </div>
       </footer>
     </div>

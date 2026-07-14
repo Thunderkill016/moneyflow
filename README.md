@@ -1,8 +1,42 @@
 # MoneyFlow
 
-MoneyFlow is a Vietnamese-first personal finance web app. Its core experience answers one useful question: **How much can I safely spend today?**
+MoneyFlow is a **personal finance web app** — built first so the owner can track **income and expenses** and answer:
 
-This repository contains an interactive dashboard and transaction flow, plus Supabase Auth and a protected PostgreSQL ledger schema. Without Supabase credentials, it automatically runs in local demo mode and stores demo transactions in the browser.
+> **Hôm nay mình có thể chi bao nhiêu?**
+
+Not a bank aggregator. Not an AI advisor. Not a startup “universal inbox” product (yet).  
+Primary user: **you** — manage your own money cleanly.
+
+This repository has a dashboard + transaction flow, Supabase Auth, and a protected PostgreSQL ledger. Without Supabase credentials it runs in local demo mode (browser storage).
+
+## Autopilot (khi bạn ngủ)
+
+Agent tự lấy task từ `AGENT_BACKLOG.md` (theo wireframe Inbox-first), code, test, commit, push.
+
+```bash
+# Bật daemon
+bash scripts/agent-daemon-start.sh
+
+# Xem log
+tail -f logs/agent/daemon.log
+
+# Dừng
+bash scripts/agent-daemon-stop.sh
+```
+
+Chi tiết: [AGENT_AUTOPILOT.md](AGENT_AUTOPILOT.md) · hàng đợi: [AGENT_BACKLOG.md](AGENT_BACKLOG.md)
+
+## Docs
+
+- [Product focus (simple)](docs/PRODUCT.md) — what we build now vs later
+- [UX research & redesign (Inbox-first)](docs/UX_RESEARCH_AND_REDESIGN.md) — audit đối thủ, IA, flows, decisions
+- [Wireframes Inbox-first](docs/wireframes-inbox.md) — 24 màn hình low-fi
+- [Competitor & open-source research](docs/COMPETITOR_AND_OSS_RESEARCH.md)
+- [UX principles](docs/UX_PRINCIPLES.md)
+- [Design system](docs/design-system.md)
+- [Wireframes (legacy dashboard-era)](docs/wireframes.md)
+- [Supabase setup](docs/supabase-setup.md)
+- [Research archive](docs/RESEARCH_PRODUCT_STRATEGY.md)
 
 ## Run locally
 

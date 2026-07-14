@@ -33,13 +33,19 @@
 
 ## 1. Product Philosophy
 
-### The Core Question
+### The Core Questions (two beats)
 
-MoneyFlow exists to answer one question:
+Money Flow is designed as a **Universal Financial Inbox** first:
 
-> **"Hôm nay mình có thể chi bao nhiêu?"**
+1. **Capture & review:** *Giao dịch đã vào và đã được mình duyệt chưa?*  
+   Inbox-first · Capture-first · Review-by-exception.
+2. **Decision (secondary):** *Hôm nay mình có thể chi bao nhiêu?*  
+   Insights after the ledger is trustworthy.
 
-Every screen, every interaction, every animation must serve this question — directly or indirectly.
+Manual Quick Add remains first-class for daily coffee-scale entry.  
+Parsers / paste / upload exist to remove re-typing — not to replace user control.
+
+Full UX research & redesign: [`UX_RESEARCH_AND_REDESIGN.md`](./UX_RESEARCH_AND_REDESIGN.md) · wireframes: [`wireframes-inbox.md`](./wireframes-inbox.md).
 
 ### Design Philosophy
 
@@ -58,20 +64,20 @@ MoneyFlow follows "Calm Finance" — financial tools should reduce anxiety, not 
 
 ### What the User Needs (Priority Order)
 
-When a user opens MoneyFlow, they need to know — in this order:
+When a user opens Money Flow:
 
-1. **Mình có bao nhiêu tiền?** — Total available across all accounts.
-2. **Có gì thay đổi?** — What happened since last visit (transactions, budget alerts).
-3. **Có gì cần chú ý?** — Overspending, upcoming bills, goal progress.
-4. **Mình nên làm gì tiếp?** — Actionable next step (pay a bill, review budget, log expense).
+1. **Inbox còn gì?** — Candidates cần duyệt (badge).
+2. **Đưa data vào** — Paste / Upload / Quick (≤ 2 taps).
+3. **Vì sao máy đoán vậy?** — Source + confidence + explain.
+4. **Sau khi sổ sạch:** có bao nhiêu tiền / có thể chi hôm nay / cần chú ý gì.
 
-Charts are secondary. **Insights are primary.**
+Charts are secondary. **Inbox triage is primary; Insights are secondary.**
 
 ### Three-Second Rule
 
 Every critical action must complete within 3 seconds:
-- Log an expense: < 3 seconds
-- Check safe-to-spend: < 1 second (visible on launch)
+- Log an expense or income: < 3 seconds
+- Check safe-to-spend: < 1 second (visible on launch when data exists)
 - Check account balance: < 2 seconds
 - Pay a recurring bill: < 3 seconds
 
