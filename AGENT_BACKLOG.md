@@ -203,14 +203,22 @@
 - **Completed:** 2026-07-15 — `10ab1fc` landing VN microcopy polish (no layout clone); drop EN jargon.
 
 ### TASK-029 — E2E smoke playwright inbox happy path
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Optional playwright: landing → register skip → paste → inbox visible.
+- **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — PENDING_SHA e2e smoke landing→register skip→paste→inbox (demo mode)
+
+
+### TASK-030 — Security pass raw logs
+- **Status:** `ready`
+- **Mô tả:** Ensure no raw statement in console/toasts/analytics.
 - **Source:** roadmap pool refill
 
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-029 | PENDING_SHA Playwright E2E smoke landing→onboarding skip→paste→inbox |
 | 2026-07-15 | TASK-028 | `10ab1fc` landing VN microcopy polish — wireframe hero, no EN jargon, layout unchanged |
 | 2026-07-15 | TASK-027 | `9136daf` budgets/commitments/goals under Insights + More (not primary nav) |
 | 2026-07-15 | TASK-026 | `73aa479` inbox keyboard j/k x a c n (desktop power) |

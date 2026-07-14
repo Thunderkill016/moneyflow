@@ -68,6 +68,10 @@ npm run lint
 npm run typecheck
 npm run test
 npm run build
+
+# Optional E2E smoke (Playwright): landing → register skip → paste → inbox
+# First time: npm run test:e2e:install
+npm run test:e2e
 ```
 
 ## Current scope
