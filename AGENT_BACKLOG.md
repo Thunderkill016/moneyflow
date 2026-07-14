@@ -66,7 +66,7 @@
 - **Completed:** 2026-07-15 — `13816e0` `/capture` CaptureMenu + shared CAPTURE_OPTIONS.
 
 ### TASK-007 — Paste Anything flow
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** `/capture/paste`: textarea, source hint, Phân tích → parse text (regex VND, simple NL like `cafe 45k`) into candidates via store → redirect inbox or show preview count. Explain uncertain fields. `src/lib/inbox/parse-text.ts` + tests. Wireframes §6.
 - **Done khi:** paste creates candidates; tests for parser; lint/typecheck/test pass.
 
