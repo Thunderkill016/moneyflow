@@ -25,6 +25,7 @@ import {
   parseCsvStatement,
   validateUploadFile,
 } from "@/lib/inbox/parse-csv";
+import { parseXlsxStatement } from "@/lib/inbox/parse-xlsx";
 
 type Phase = "idle" | "reading" | "error";
 
@@ -92,28 +93,30 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
         return;
       }
 
-      if (check.kind === "xlsx") {
-        setPhase("error");
-        setError(
-          "Excel (.xlsx/.xls) chưa đọc trực tiếp — xuất CSV (UTF-8) từ Excel rồi tải lại. Ưu tiên CSV.",
-        );
-        return;
-      }
-
       setPhase("reading");
       try {
-        const text = await file.text();
-        const result = parseCsvStatement(text, { fileName: file.name });
+        const isExcel = check.kind === "xlsx";
+        const result = isExcel
+          ? parseXlsxStatement(await file.arrayBuffer(), {
+              fileName: file.name,
+            })
+          : parseCsvStatement(await file.text(), { fileName: file.name });
+
         if (!result.ok || result.rows.length === 0) {
           setPhase("error");
-          setError(result.error ?? "Không phân tích được CSV.");
+          setError(
+            result.error ??
+              (isExcel
+                ? "Không phân tích được Excel (chỉ sheet đầu)."
+                : "Không phân tích được CSV."),
+          );
           return;
         }
 
         // Gate: create batch + draft rows, then Import Preview before Inbox.
         const batch = addStoredImportBatch({
           fileName: result.fileName,
-          source: "csv",
+          source: isExcel ? "xlsx" : "csv",
           status: "parsed",
           rowCount: result.rows.length,
           warningCount: result.warningCount,
@@ -126,7 +129,9 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
         router.push(`/imports/${batch.id}/preview`);
       } catch {
         setPhase("error");
-        setError("Không đọc được file. Thử CSV UTF-8 nhỏ hơn 10MB.");
+        setError(
+          "Không đọc được file. Thử CSV UTF-8 hoặc .xlsx nhỏ hơn 10MB.",
+        );
       }
     },
     [router],
@@ -175,8 +180,9 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
             </p>
             <h1>Tải sao kê / file giao dịch</h1>
             <p>
-              Kéo thả CSV (ưu tiên). Sau khi parse, bạn xem map cột và preview
-              trước khi đưa vào Inbox — không ghi thẳng vào sổ.
+              Kéo thả CSV hoặc Excel (.xlsx/.xls — chỉ sheet đầu). Sau khi
+              parse, bạn xem map cột và preview trước khi đưa vào Inbox — không
+              ghi thẳng vào sổ.
             </p>
           </div>
           <div className="page-heading-actions">
@@ -212,8 +218,8 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
                 : "Kéo thả CSV, XLS, XLSX"}
             </p>
             <p id="upload-limits" className="capture-upload-drop-meta">
-              tối đa {formatBytes(MAX_UPLOAD_BYTES)} · không chờ hành · ưu tiên
-              CSV · bước tiếp theo: Import Preview
+              tối đa {formatBytes(MAX_UPLOAD_BYTES)} · không chờ hành · CSV hoặc
+              Excel (sheet đầu) · bước tiếp theo: Import Preview
             </p>
             <span className="capture-upload-or">Hoặc</span>
             <label

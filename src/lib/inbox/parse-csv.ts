@@ -416,8 +416,6 @@ export function parseCsvStatement(
   options: ParseCsvOptions = {},
 ): ParseCsvResult {
   const fileName = options.fileName ?? "statement.csv";
-  const today = options.today ?? todayInHoChiMinh();
-  const maxRows = options.maxRows ?? 5000;
 
   if (!text || !text.trim()) {
     return emptyFail(fileName, "File trống hoặc không đọc được nội dung.");
@@ -426,6 +424,25 @@ export function parseCsvStatement(
   const matrix = parseCsvMatrix(text);
   if (matrix.length === 0) {
     return emptyFail(fileName, "Không tìm thấy dòng dữ liệu trong CSV.");
+  }
+
+  return parseStatementFromMatrix(matrix, options);
+}
+
+/**
+ * Shared statement heuristics over a string matrix (CSV or first XLSX sheet).
+ * Money amounts stay integer VND đồng.
+ */
+export function parseStatementFromMatrix(
+  matrix: string[][],
+  options: ParseCsvOptions = {},
+): ParseCsvResult {
+  const fileName = options.fileName ?? "statement.csv";
+  const today = options.today ?? todayInHoChiMinh();
+  const maxRows = options.maxRows ?? 5000;
+
+  if (!matrix || matrix.length === 0) {
+    return emptyFail(fileName, "Không tìm thấy dòng dữ liệu trong file.");
   }
 
   // Header = first row if it looks non-numeric / has text labels
@@ -437,7 +454,10 @@ export function parseCsvStatement(
   const dataRows = hasHeader ? matrix.slice(1) : matrix;
 
   if (dataRows.length === 0) {
-    return emptyFail(fileName, "CSV chỉ có tiêu đề, không có dòng giao dịch.");
+    return emptyFail(
+      fileName,
+      "File chỉ có tiêu đề, không có dòng giao dịch.",
+    );
   }
 
   const { map, confidence } = mapCsvColumns(hasHeader ? first : headers);
@@ -489,7 +509,7 @@ export function parseCsvStatement(
       skippedRows,
       warningCount: 0,
       error:
-        "Không trích được giao dịch hợp lệ. Cần cột ngày, số tiền và mô tả (CSV).",
+        "Không trích được giao dịch hợp lệ. Cần cột ngày, số tiền và mô tả.",
     };
   }
 
@@ -624,10 +644,13 @@ function parseDataRow(
   };
 }
 
-/** Map parsed CSV rows to store inputs (source csv + batch id). */
+export type ImportCandidateSource = "csv" | "xlsx";
+
+/** Map parsed statement rows to store inputs (source csv/xlsx + batch id). */
 export function toCsvCandidateInputs(
   rows: ParsedCsvRow[],
   importBatchId: string,
+  source: ImportCandidateSource = "csv",
 ): CreateCandidateInput[] {
   return rows.map((item) => ({
     kind: item.kind,
@@ -635,7 +658,7 @@ export function toCsvCandidateInputs(
     merchant: item.merchant,
     note: item.note,
     occurredOn: item.occurredOn,
-    source: "csv" as const,
+    source,
     confidence: item.confidence,
     status: "pending" as const,
     rawSnippet: item.rawSnippet,

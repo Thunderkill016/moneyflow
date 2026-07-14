@@ -113,7 +113,7 @@ export function ImportPreviewPage({
         setState({
           phase: "error",
           message:
-            "Không còn dữ liệu preview cho lô này. Tải lại file CSV từ Capture → Upload.",
+            "Không còn dữ liệu preview cho lô này. Tải lại file CSV/Excel từ Capture → Upload.",
         });
         return;
       }
@@ -169,7 +169,13 @@ export function ImportPreviewPage({
     setCommitting(true);
     setActionError("");
     try {
-      const inputs = toCsvCandidateInputs(state.rows, state.batch.id);
+      const source =
+        state.batch.source === "xlsx" ? ("xlsx" as const) : ("csv" as const);
+      const inputs = toCsvCandidateInputs(
+        state.rows,
+        state.batch.id,
+        source,
+      );
       for (const input of inputs) {
         addStoredCandidate(input);
       }

@@ -184,8 +184,9 @@ export function planShareImport(payload: SharePayload): SharePlan {
 
     const kind = classifySharedFile(file.name, file.type);
     if (kind === "xlsx") {
+      // Share bridge only carries UTF-8 text; binary XLSX needs Capture → Upload.
       errors.push(
-        `“${file.name}”: Excel chưa đọc trực tiếp — xuất CSV (UTF-8) rồi chia sẻ lại.`,
+        `“${file.name}”: Share chưa nhận file Excel nhị phân — mở Capture → Upload để parse sheet đầu (.xlsx/.xls).`,
       );
       continue;
     }

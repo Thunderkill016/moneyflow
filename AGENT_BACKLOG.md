@@ -159,7 +159,7 @@
 - **Completed:** 2026-07-15 — `d0dc0f6` manifest share_target + `/capture/share` POST bridge → inbox candidates (text/CSV).
 
 ### TASK-022 — XLSX parse
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Parse first sheet xlsx with lightweight lib or document CSV-only until justified dependency.
 - **Source:** roadmap pool refill
 
