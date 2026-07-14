@@ -84,9 +84,10 @@
 - **Completed:** 2026-07-15 — `5827e33` `/capture/upload` dropzone + parse-csv + import-batch + candidates.
 
 ### TASK-010 — Import Preview
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** `/imports/[batchId]/preview` or step after upload: show mapped columns, 10-row preview, summary counts, confirm “Đưa vào Inbox”. Wireframes §9.
 - **Done khi:** preview gate before batch finalize; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `ea7e66c` `/imports/[batchId]/preview` gate + draft store; upload → preview → Inbox.
 
 ### TASK-011 — Review single + bulk bar + explain
 - **Status:** `ready`
@@ -144,6 +145,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-010 | `ea7e66c` import preview map + 10-row table + Đưa vào Inbox gate |
 | 2026-07-15 | TASK-009 | `5827e33` /capture/upload dropzone + parse-csv + import batch → inbox |
 | 2026-07-15 | TASK-008 | `52288cf` /capture/quick + dialog date/keep-open/prefs + high-conf candidate |
 | 2026-07-15 | TASK-007 | `7508add` /capture/paste + parse-text → inbox candidates |
