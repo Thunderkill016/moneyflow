@@ -51,7 +51,7 @@
 - **Status:** `done`
 - **Mô tả:** Update `app-shell.tsx` nav: desktop Inbox, Capture, Timeline, Accounts, Rules, Imports, Insights, Settings; mobile 5 tabs Inbox/Capture/Timeline/Accounts/More. Capture opens sheet or `/capture`. Badge placeholder for inbox count (0 ok). Active states; brand link → `/inbox`. Update `lib/supabase/proxy.ts` protectedPaths + post-auth redirect to `/inbox`. Wireframes §0/§4.
 - **Done khi:** nav matches IA; old routes still reachable from More/Insights; lint/typecheck/test pass.
-- **Completed:** 2026-07-14 — pending SHA
+- **Completed:** 2026-07-14 — `9193653` app-shell IA + capture/more sheets; POST_AUTH=/inbox; protectedPaths
 
 ### TASK-005 — Financial Inbox page shell
 - **Status:** `ready`
@@ -138,6 +138,7 @@
 ## Nhật ký
 
 | Date | Task | Note |
+| 2026-07-14 | TASK-004 | `9193653` Inbox-first nav + post-auth /inbox |
 |------|------|------|
 | 2026-07-14 | TASK-003 | `0ce187e` onboarding 3-step + register → /onboarding; skip → / until inbox |
 | 2026-07-14 | TASK-002 | `34402bc` auth trust copy + privacy checkbox; redirect `/` until inbox |
