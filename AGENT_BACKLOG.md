@@ -39,7 +39,7 @@
 - **Status:** `done`
 - **Mô tả:** Polish `/login`, `/register`, forgot/update password per wireframes-inbox §2: microcopy “Dữ liệu của bạn thuộc về bạn”; register checkbox đồng ý privacy (link `#` hoặc section); errors inline; loading on submit; redirect sau login về `/inbox` nếu route đã có, else `/` (document). Không redesign form từ zero nếu `auth-form.tsx` đã ổn — chỉ copy + a11y + redirect target. Tham chiếu `docs/wireframes-inbox.md`.
 - **Done khi:** auth pages match trust copy; lint/typecheck/test pass; commit.
-- **Completed:** 2026-07-14 — `fc3cdc8` trust microcopy + privacy checkbox + POST_AUTH_REDIRECT=`/` (inbox chưa có); a11y/errors/loading.
+- **Completed:** 2026-07-14 — `34402bc` trust microcopy + privacy checkbox + POST_AUTH_REDIRECT=`/` (inbox chưa có); a11y/errors/loading.
 
 ### TASK-003 — Onboarding 3-step first capture
 - **Status:** `ready`
@@ -137,5 +137,5 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-14 | TASK-002 | `fc3cdc8` auth trust copy + privacy checkbox; redirect `/` until inbox |
+| 2026-07-14 | TASK-002 | `34402bc` auth trust copy + privacy checkbox; redirect `/` until inbox |
 | 2026-07-14 | TASK-001 | Landing Inbox-first shipped pre-autopilot |
