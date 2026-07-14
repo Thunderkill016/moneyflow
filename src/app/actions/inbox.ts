@@ -26,6 +26,11 @@ import {
   type InboxCandidateRow,
   type ImportBatchRow,
 } from "@/lib/inbox/inbox-map";
+import {
+  importActionLimiter,
+  importRateKey,
+  rateLimitUserMessage,
+} from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import {
   listInboxFromServer,
@@ -150,6 +155,13 @@ async function requireAuthedClient() {
   return { ok: true as const, viewer, supabase };
 }
 
+/** Soft per-user guard on import/upload create paths (TASK-121). */
+function checkImportRateLimit(userId: string): InboxActionResult | null {
+  const result = importActionLimiter.check(importRateKey(userId));
+  if (result.ok) return null;
+  return { ok: false, message: rateLimitUserMessage(result.retryAfterMs) };
+}
+
 export async function listInboxAction(): Promise<InboxListResult> {
   return listInboxFromServer();
 }
@@ -181,6 +193,9 @@ export async function createInboxCandidatesAction(
 
   const auth = await requireAuthedClient();
   if (!auth.ok) return { ok: false, message: auth.message };
+
+  const limited = checkImportRateLimit(auth.viewer.id);
+  if (limited) return limited;
 
   const prepared: InboxCandidate[] = [];
   for (const raw of inputs) {
@@ -312,6 +327,9 @@ export async function createImportBatchAction(
 
   const auth = await requireAuthedClient();
   if (!auth.ok) return { ok: false, message: auth.message };
+
+  const limited = checkImportRateLimit(auth.viewer.id);
+  if (limited) return limited;
 
   const batch = prepareBatchForServer(parsed.data);
   const row = batchToInsertRow(batch, auth.viewer.id, { localId: null });

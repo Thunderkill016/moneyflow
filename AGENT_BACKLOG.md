@@ -378,7 +378,7 @@
 - **Completed:** 2026-07-15 — `21968d2` build/lint/typecheck/test green; inbox-review-panel uses key remount (no setState-in-effect); no TS errors
 
 ### TASK-121 — Soft rate limit note + basic guard
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Simple rate limit on upload/import server action or document middleware plan; client debounce double-submit already via idempotency.
 - **Done khi:** guard or doc; lint/typecheck/test pass.
 
