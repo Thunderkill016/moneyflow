@@ -178,9 +178,10 @@
 - **Completed:** 2026-07-15 — `5e1f8bc` import_batches + inbox_candidates RLS; migrate local when authed; capture/inbox dual store.
 
 ### TASK-025 — Duplicate + transfer detection
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Fingerprint duplicates; suggest transfer pairs opposite amount same day.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `0b27a7e` fingerprint + transfer-pair detect; Inbox badges/filters/explain.
 
 ### TASK-026 — Keyboard shortcuts inbox
 - **Status:** `ready`
@@ -191,6 +192,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-025 | `0b27a7e` fingerprint duplicates + transfer pairs (opposite amount same day) in Inbox |
 | 2026-07-15 | TASK-024 | `5e1f8bc` import_batches + inbox_candidates RLS; local→server migrate when authed |
 | 2026-07-15 | TASK-023 | `2332130` PDF text-layer MF DEMO BANK fixture + parser (no OCR); upload accept .pdf |
 | 2026-07-15 | TASK-022 | `74fcf81` first-sheet XLSX/XLS parse (xlsx) → Import Preview; share still Upload-only |
