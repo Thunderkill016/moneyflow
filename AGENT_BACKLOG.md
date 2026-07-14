@@ -228,7 +228,7 @@
 - **Status:** `done`
 - **Mô tả:** Redact/mask STK-like digit runs in raw_snippet display (review/explain/preview) while keeping merchant readable; pure helper + tests.
 - **Source:** roadmap pool refill
-- **Completed:** 2026-07-15 — `04177ae` mask-account helper + tests; review/explain/paste display mask STK (merchant + money kept)
+- **Completed:** 2026-07-15 — `42724ee` mask-account helper + tests; review/explain/paste display mask STK (merchant + money kept)
 
 ### TASK-033 — Retention job clear expired import raw
 - **Status:** `cancelled`
@@ -386,7 +386,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-032 | `04177ae` mask STK-like digits in raw_snippet UI (review/explain/paste); pure helper + tests |
+| 2026-07-15 | TASK-032 | `42724ee` mask STK-like digits in raw_snippet UI (review/explain/paste); pure helper + tests |
 | 2026-07-15 | TASK-031 | `3853e0e` wire trackProductEvent on paste/upload/import commit (counts/source only) |
 | 2026-07-15 | TASK-030 | `b235880` no raw statement in console/toasts/analytics (safe-log + safe-analytics) |
 | 2026-07-15 | TASK-029 | 1a9b197 Playwright E2E smoke landing→onboarding skip→paste→inbox |
