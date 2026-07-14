@@ -384,7 +384,7 @@
 - **Completed:** 2026-07-15 — `ecce20d` soft import rate limit (15/min/user) on batch+candidates actions; `docs/rate-limit.md` middleware plan
 
 ### TASK-122 — Transactions list pagination or cap
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** If list can be huge, paginate or "load more" 50; keep filters. Demo OK.
 - **Done khi:** no render 1000 rows at once; lint/typecheck/test pass.
 

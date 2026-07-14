@@ -3297,6 +3297,25 @@ input[aria-invalid="true"] {
 .transaction-detail {
   min-width: 0;
 }
+/* TASK-122: progressive "load more" footer under ledger / timeline */
+.list-load-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 18px;
+  padding: 16px 18px 20px;
+  border-top: 1px solid var(--color-border-default, var(--border));
+  text-align: center;
+}
+.list-load-more-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.list-load-more-button {
+  min-height: 40px;
+}
 
 /* Topbar theme toggle styling */
 .topbar-theme-toggle {

@@ -20,6 +20,11 @@ import type { CreateTransferInput, UpdateMoneyTransactionInput, UpdateTransferIn
 import { AppShell } from "@/components/layout/app-shell";
 import { GHI_CHI_TIEU_HREF, GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
 import { safeUserNotice } from "@/lib/safe-log";
+import {
+  TRANSACTION_PAGE_SIZE,
+  nextVisibleCount,
+  windowTransactions,
+} from "@/lib/transaction-list";
 
 /** Undo window for soft-delete (design-system: 8s with Hoàn tác). */
 const DELETE_UNDO_MS = 8000;
@@ -69,6 +74,19 @@ export function TransactionsPage({
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [account, setAccount] = useState("all");
+  /**
+   * Progressive render cap keyed by active filters.
+   * When filters change, key mismatches → fall back to PAGE_SIZE (no setState-in-effect).
+   */
+  const filterKey = `${kind}\0${account}\0${query}`;
+  const [pageState, setPageState] = useState({
+    filterKey,
+    visibleCount: TRANSACTION_PAGE_SIZE,
+  });
+  const visibleCount =
+    pageState.filterKey === filterKey
+      ? pageState.visibleCount
+      : TRANSACTION_PAGE_SIZE;
   const [notice, setNotice] = useState("");
   const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
@@ -108,6 +126,18 @@ export function TransactionsPage({
     });
   }, [account, kind, query, transactions]);
 
+  const listWindow = useMemo(
+    () => windowTransactions(filtered, visibleCount),
+    [filtered, visibleCount],
+  );
+
+  function loadMore() {
+    setPageState({
+      filterKey,
+      visibleCount: nextVisibleCount(visibleCount),
+    });
+  }
+
   const filteredTotals = useMemo(
     () => ({
       income: filtered.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amount, 0),
@@ -116,16 +146,17 @@ export function TransactionsPage({
     [filtered],
   );
 
+  /** Group only the visible window — avoids painting 1000+ DOM rows. */
   const grouped = useMemo(() => {
     const groups: {
       date: string;
       relativeDate: string;
       displayDate: string;
-      transactions: typeof filtered;
+      transactions: Transaction[];
       netForDay: number;
     }[] = [];
 
-    for (const tx of filtered) {
+    for (const tx of listWindow.visible) {
       let group = groups.find((g) => g.date === tx.occurredOn);
       if (!group) {
         const parts = tx.occurredOn.split("-");
@@ -148,7 +179,7 @@ export function TransactionsPage({
     }
 
     return groups;
-  }, [filtered]);
+  }, [listWindow.visible]);
 
   async function handleAdd(input: CreateTransactionInput) {
     const result = await addTransaction(input);
@@ -352,6 +383,29 @@ export function TransactionsPage({
                   })}
                 </div>
               ))}
+              {listWindow.hasMore || listWindow.total > TRANSACTION_PAGE_SIZE ? (
+                <div className="list-load-more" role="status">
+                  <p className="list-load-more-meta">
+                    Đang hiện{" "}
+                    <span className="font-mono">{listWindow.shown}</span>
+                    {" / "}
+                    <span className="font-mono">{listWindow.total}</span>
+                    {" giao dịch"}
+                    {listWindow.hasMore
+                      ? ` · còn ${listWindow.remaining} nữa`
+                      : ""}
+                  </p>
+                  {listWindow.hasMore ? (
+                    <button
+                      type="button"
+                      className="secondary-button list-load-more-button"
+                      onClick={loadMore}
+                    >
+                      Tải thêm {Math.min(TRANSACTION_PAGE_SIZE, listWindow.remaining)}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           ) : transactions.length ? (
             <div className="filter-empty"><span><Icon name="search" /></span><h2>Không tìm thấy giao dịch</h2><p>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</p><button onClick={() => { setQuery(""); setKind("all"); setAccount("all"); }}>Xóa bộ lọc</button></div>
