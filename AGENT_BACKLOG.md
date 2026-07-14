@@ -305,9 +305,10 @@
 - **Completed:** 2026-07-15 — `8426ee3` calm thresholds: Gần hạn mức (80%) / Đã vượt X (100%+); lib helpers + budgets page + Insights card; text+color.
 
 ### TASK-109 — Export CSV discoverability
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Link/button Xuất CSV từ /insights và /reports trỏ /settings/export hoặc trigger download. Reuse export-data.ts formula escape tests.
 - **Done khi:** 1 click path từ insights; tests pass.
+- **Completed:** 2026-07-15 — `c143426` Insights Xuất CSV → /settings/export; Reports download + shared export-data paths/tests.
 
 ### TASK-110 — Static /privacy policy VN
 - **Status:** `ready`
@@ -395,6 +396,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-109 | `c143426` export CSV discoverability: Insights → /settings/export; Reports period download paths |
 | 2026-07-15 | TASK-108 | `8426ee3` budget calm thresholds: Gần hạn mức / Đã vượt X; text+color on budgets + Insights |
 | 2026-07-15 | TASK-107 | `571a50a` /categories add/rename/archive; unique per kind; is_archived migration |
 | 2026-07-15 | TASK-106 | `3928fab` soft-delete undo toast 8s Hoàn tác (demo + restore RPC); migration limitation documented |
