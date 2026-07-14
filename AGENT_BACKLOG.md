@@ -396,9 +396,10 @@
 - **Done khi:** tests; lint/typecheck/test pass.
 
 ### TASK-124 — README G5 product section
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** README: positioning thu chi, run dev, quality commands, link docs/research/05 and AUTOPILOT_PLAN, autopilot start/stop. Remove inbox-only product claim as primary.
 - **Done khi:** README accurate; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `d4d42e6` README G5 thu chi primary; inbox optional tooling; run/quality/autopilot docs
 
 ### TASK-125 — AGENTS.md guardrails G5
 - **Status:** `ready`
@@ -410,6 +411,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-124 | `d4d42e6` README G5: thu chi primary; link 05 + AUTOPILOT_PLAN; run/quality/autopilot |
 | 2026-07-15 | TASK-122 | `02d42c1` transactions list load-more 50; keep filters; no 1000-row paint |
 | 2026-07-15 | TASK-121 | `ecce20d` soft rate limit import actions + docs/rate-limit.md middleware plan |
 | 2026-07-15 | TASK-120 | `21968d2` production build green; lint/typecheck/test + `npm run build` exit 0 |
