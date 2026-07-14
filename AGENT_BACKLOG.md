@@ -378,9 +378,10 @@
 - **Completed:** 2026-07-15 — `21968d2` build/lint/typecheck/test green; inbox-review-panel uses key remount (no setState-in-effect); no TS errors
 
 ### TASK-121 — Soft rate limit note + basic guard
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Simple rate limit on upload/import server action or document middleware plan; client debounce double-submit already via idempotency.
 - **Done khi:** guard or doc; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `ecce20d` soft import rate limit (15/min/user) on batch+candidates actions; `docs/rate-limit.md` middleware plan
 
 ### TASK-122 — Transactions list pagination or cap
 - **Status:** `ready`
@@ -408,6 +409,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-121 | `ecce20d` soft rate limit import actions + docs/rate-limit.md middleware plan |
 | 2026-07-15 | TASK-120 | `21968d2` production build green; lint/typecheck/test + `npm run build` exit 0 |
 | 2026-07-15 | TASK-119 | `658c460` a11y baseline: labels, focus-visible, +/− signs, dialog focus trap/restore |
 | 2026-07-15 | TASK-118 | `c61ddf2` docs/security-rls-check.md + check:rls + pgTAP has_policy |
