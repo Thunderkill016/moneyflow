@@ -220,7 +220,7 @@
 - **Status:** `done`
 - **Mô tả:** Call trackProductEvent on paste/upload/import commit with counts/source only (use safe-analytics); never raw. Optional dev no-op sink OK.
 - **Source:** roadmap pool refill
-- **Completed:** 2026-07-15 — `d817b2e` paste_analyzed/committed + import_batch_created/committed/cancelled via safe-analytics (counts/source only)
+- **Completed:** 2026-07-15 — `3853e0e` paste_analyzed/committed + import_batch_created/committed/cancelled via safe-analytics (counts/source only)
 
 ### TASK-032 — Mask account numbers in UI snippets
 - **Status:** `ready`
@@ -241,7 +241,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-031 | `d817b2e` wire trackProductEvent on paste/upload/import commit (counts/source only) |
+| 2026-07-15 | TASK-031 | `3853e0e` wire trackProductEvent on paste/upload/import commit (counts/source only) |
 | 2026-07-15 | TASK-030 | `b235880` no raw statement in console/toasts/analytics (safe-log + safe-analytics) |
 | 2026-07-15 | TASK-029 | 1a9b197 Playwright E2E smoke landing→onboarding skip→paste→inbox |
 | 2026-07-15 | TASK-028 | `10ab1fc` landing VN microcopy polish — wireframe hero, no EN jargon, layout unchanged |
