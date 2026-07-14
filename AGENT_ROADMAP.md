@@ -52,3 +52,28 @@ Tasks not yet in backlog or future after TASK-020.
 - **Status:** `pool`
 - **Mô tả:** Ensure no raw statement in console/toasts/analytics.
 - **Priority:** P1
+
+### TASK-031 — Wire privacy-safe analytics events on capture
+- **Status:** `pool`
+- **Mô tả:** Call trackProductEvent on paste/upload/import commit with counts/source only (use safe-analytics); never raw. Optional dev no-op sink OK.
+- **Priority:** P2
+
+### TASK-032 — Mask account numbers in UI snippets
+- **Status:** `pool`
+- **Mô tả:** Redact/mask STK-like digit runs in raw_snippet display (review/explain/preview) while keeping merchant readable; pure helper + tests.
+- **Priority:** P1
+
+### TASK-033 — Retention job clear expired import raw
+- **Status:** `pool`
+- **Mô tả:** Honor privacy rawRetention: on load/inbox, drop import drafts older than 7/30 days or immediately when delete_now; keep batch meta.
+- **Priority:** P1
+
+### TASK-034 — Merchant normalize dictionary v1
+- **Status:** `pool`
+- **Mô tả:** Local map common VN merchant aliases (Grab, Highlands, Shopee…) → display name + optional default category hint on parse.
+- **Priority:** P2
+
+### TASK-035 — Inbox empty-state onboarding tips
+- **Status:** `pool`
+- **Mô tả:** Empty Inbox: 3 tip cards (paste/upload/quick) + trust line; no dashboard charts. Wireframes §5.
+- **Priority:** P3
