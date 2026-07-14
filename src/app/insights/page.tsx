@@ -7,13 +7,13 @@ import { getCommitmentsWorkspace } from "@/server/commitments";
 import { getGoalsWorkspace } from "@/server/goals";
 
 export const metadata: Metadata = {
-  title: "Insights — Money Flow",
-  description: "Có thể chi hôm nay, tóm tắt tháng và cảnh báo — phụ sau Inbox.",
+  title: "Tổng quan — Money Flow",
+  description: "Số dư, thu–chi tháng, danh mục chi tiêu và gợi ý có thể chi hôm nay.",
 };
 
 /**
- * Insights (wireframes-inbox §17): demoted dashboard.
- * Safe-to-spend + month summary; not the default home.
+ * Tổng quan thu chi (G5): số dư / thu / chi / ròng + top categories + recent +
+ * safe-to-spend secondary + planning cards. Default logged-in home.
  */
 export default async function Page() {
   const viewer = await requireViewer();

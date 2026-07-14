@@ -24,6 +24,40 @@ type DashboardSummaryOptions = {
   plannedDailySavings?: number;
 };
 
+export type CategoryShare = {
+  name: string;
+  amount: number;
+  /** 0–100 share of month expense (integer). */
+  share: number;
+};
+
+/** Top expense categories for the month of `today`. Transfers never count. */
+export function topExpenseCategories(
+  transactions: Transaction[],
+  { today = "2026-07-14", limit = 5 }: { today?: string; limit?: number } = {},
+): CategoryShare[] {
+  const monthPrefix = today.slice(0, 7);
+  const totals = new Map<string, number>();
+  let expense = 0;
+  for (const item of transactions) {
+    if (item.kind !== "expense" || !item.occurredOn.startsWith(monthPrefix)) continue;
+    if (!Number.isSafeInteger(item.amount) || item.amount <= 0) continue;
+    const next = (totals.get(item.category) ?? 0) + item.amount;
+    if (!Number.isSafeInteger(next)) continue;
+    totals.set(item.category, next);
+    expense += item.amount;
+  }
+  if (!Number.isSafeInteger(expense)) expense = 0;
+  return [...totals.entries()]
+    .map(([name, amount]) => ({
+      name,
+      amount,
+      share: expense > 0 ? Math.min(100, Math.max(0, Math.round((amount / expense) * 100))) : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, "vi"))
+    .slice(0, Math.max(0, limit));
+}
+
 export function calculateDashboardSummary(
   transactions: Transaction[],
   { isDemo = true, totalBalance = 0, today = "2026-07-14", remainingBudget, reservedCommitments = 0, reservedSavings = 0, plannedDailySavings = 0 }: DashboardSummaryOptions = {},
@@ -52,9 +86,11 @@ export function calculateDashboardSummary(
     const demoDailyAllowance = reservedTotal > 0 || plannedDailySavings > 0
       ? Math.max(0, Math.min(DAILY_ALLOWANCE, demoBalanceAllowance) - Math.max(0, plannedDailySavings))
       : DAILY_ALLOWANCE;
+    const expense = MONTHLY_EXPENSE_BEFORE_SAMPLE + recordedExpense;
     return {
       income,
-      expense: MONTHLY_EXPENSE_BEFORE_SAMPLE + recordedExpense,
+      expense,
+      net: income - expense,
       balance: demoBalance,
       safeToday: Math.max(0, demoDailyAllowance - todayExpense),
       dailyAllowance: demoDailyAllowance,
@@ -74,6 +110,7 @@ export function calculateDashboardSummary(
   return {
     income,
     expense: recordedExpense,
+    net: income - recordedExpense,
     balance: totalBalance,
     safeToday: Math.max(0, dailyAllowance - todayExpense),
     dailyAllowance,

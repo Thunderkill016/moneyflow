@@ -269,7 +269,7 @@
 - **Completed:** 2026-07-15 — `46567fd` onboarding trust + ví tiền mặt + optional quick expense → /insights; no paste/upload primary.
 
 ### TASK-103 — Insights dashboard G5 widgets
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Polish /insights: số dư tổng, thu tháng, chi tháng, ròng, top categories (list/bar không pie home), recent txns, safe-to-spend secondary + 1 dòng giải thích, CTA Ghi chi, cards budget/commitment/goal. Loading/empty/error. Dùng finance.ts existing.
 - **Done khi:** 4 câu JTBD trả lời được trên 1 màn; states OK; lint/typecheck/test pass.
 

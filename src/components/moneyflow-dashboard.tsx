@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon, type IconName } from "@/components/icons";
-import { calculateDashboardSummary } from "@/lib/finance";
+import { calculateDashboardSummary, topExpenseCategories } from "@/lib/finance";
 import {
   categoryMeta,
   type AccountOption,
@@ -20,20 +20,13 @@ import { commitmentTotals, type RecurringCommitment } from "@/lib/commitments";
 import { goalProgress, goalTotals, type SavingsGoal } from "@/lib/goals";
 import { PLANNING_LINKS } from "@/lib/nav-ia";
 import { AppShell } from "@/components/layout/app-shell";
-
-const spendBars = [38, 54, 46, 72, 58, 84, 64, 91, 52, 68, 44, 61, 76, 48];
+import { EmptyState } from "@/components/empty-state";
 
 function netTransactions(transactions: Transaction[]) {
   return transactions.reduce(
     (sum, item) => sum + (item.kind === "income" ? item.amount : item.kind === "expense" ? -item.amount : 0),
     0,
   );
-}
-
-function addDays(date: string, amount: number) {
-  const value = new Date(`${date}T00:00:00.000Z`);
-  value.setUTCDate(value.getUTCDate() + amount);
-  return value.toISOString().slice(0, 10);
 }
 
 type DashboardWorkspace = {
@@ -45,7 +38,25 @@ type DashboardWorkspace = {
   dataError: string | null;
 };
 
-export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, goals }: { viewer: ViewerSummary; workspace: DashboardWorkspace; budgets: BudgetSummary[]; commitments: RecurringCommitment[]; goals: SavingsGoal[] }) {
+function formatSignedMoney(amount: number) {
+  if (amount > 0) return `+ ${formatMoney(amount)}`;
+  if (amount < 0) return `− ${formatMoney(Math.abs(amount))}`;
+  return formatMoney(0);
+}
+
+export function MoneyFlowDashboard({
+  viewer,
+  workspace,
+  budgets,
+  commitments,
+  goals,
+}: {
+  viewer: ViewerSummary;
+  workspace: DashboardWorkspace;
+  budgets: BudgetSummary[];
+  commitments: RecurringCommitment[];
+  goals: SavingsGoal[];
+}) {
   const { transactions, addTransaction: addTransactionToStore, isMutating } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
@@ -66,12 +77,22 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
     return workspace.totalBalance + netTransactions(transactions) - netTransactions(workspace.transactions);
   }, [transactions, viewer.isDemo, workspace.totalBalance, workspace.transactions]);
 
-  const liveBudgets = useMemo(() => budgets.map((budget) => {
-    const spend = (items: Transaction[]) => items
-      .filter((item) => item.kind === "expense" && item.categoryId === budget.categoryId && item.occurredOn.startsWith(budget.monthStart.slice(0, 7)))
-      .reduce((sum, item) => sum + item.amount, 0);
-    return { ...budget, spent: budget.spent + spend(transactions) - spend(workspace.transactions) };
-  }), [budgets, transactions, workspace.transactions]);
+  const liveBudgets = useMemo(
+    () =>
+      budgets.map((budget) => {
+        const spend = (items: Transaction[]) =>
+          items
+            .filter(
+              (item) =>
+                item.kind === "expense" &&
+                item.categoryId === budget.categoryId &&
+                item.occurredOn.startsWith(budget.monthStart.slice(0, 7)),
+            )
+            .reduce((sum, item) => sum + item.amount, 0);
+        return { ...budget, spent: budget.spent + spend(transactions) - spend(workspace.transactions) };
+      }),
+    [budgets, transactions, workspace.transactions],
+  );
   const remainingBudget = liveBudgets.length
     ? liveBudgets.reduce((sum, item) => sum + Math.max(0, item.limit - item.spent), 0)
     : undefined;
@@ -79,29 +100,32 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
   const savings = goalTotals(goals, workspace.today);
 
   const totals = useMemo(
-    () => calculateDashboardSummary(transactions, {
-      isDemo: viewer.isDemo,
-      totalBalance: currentBalance,
-      today: workspace.today,
+    () =>
+      calculateDashboardSummary(transactions, {
+        isDemo: viewer.isDemo,
+        totalBalance: currentBalance,
+        today: workspace.today,
+        remainingBudget,
+        reservedCommitments,
+        reservedSavings: savings.allocated,
+        plannedDailySavings: savings.plannedDaily,
+      }),
+    [
+      currentBalance,
       remainingBudget,
       reservedCommitments,
-      reservedSavings: savings.allocated,
-      plannedDailySavings: savings.plannedDaily,
-    }),
-    [currentBalance, remainingBudget, reservedCommitments, savings.allocated, savings.plannedDaily, transactions, viewer.isDemo, workspace.today],
+      savings.allocated,
+      savings.plannedDaily,
+      transactions,
+      viewer.isDemo,
+      workspace.today,
+    ],
   );
 
-  const chartBars = useMemo(() => {
-    if (viewer.isDemo) return spendBars;
-    const amounts = Array.from({ length: 14 }, (_, index) => {
-      const date = addDays(workspace.today, index - 13);
-      return transactions
-        .filter((item) => item.kind === "expense" && item.occurredOn === date)
-        .reduce((sum, item) => sum + item.amount, 0);
-    });
-    const highest = Math.max(1, ...amounts);
-    return amounts.map((amount) => amount === 0 ? 4 : Math.max(12, Math.round((amount / highest) * 100)));
-  }, [transactions, viewer.isDemo, workspace.today]);
+  const topCategories = useMemo(
+    () => topExpenseCategories(transactions, { today: workspace.today, limit: 5 }),
+    [transactions, workspace.today],
+  );
 
   async function addTransaction(input: CreateTransactionInput) {
     const result = await addTransactionToStore(input);
@@ -119,150 +143,363 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
   const displayName = viewer.displayName || (viewer.isDemo ? "Minh" : "bạn");
   const featuredGoal = [...goals].filter((goal) => !goal.isArchived).sort((a, b) => goalProgress(b) - goalProgress(a))[0];
   const protectedTotal = reservedCommitments + savings.allocated;
+  const isEmptyLedger = transactions.length === 0;
+  const actionsDisabled = Boolean(workspace.dataError);
+
+  const openGhiChi = () => setDialogOpen(true);
+
+  const safeExplain =
+    protectedTotal > 0
+      ? `Số dư khả dụng (đã giữ trước ${formatMoney(protectedTotal)} cho hóa đơn và mục tiêu) chia đều cho các ngày còn lại trong tháng.`
+      : "Số dư khả dụng chia đều cho các ngày còn lại trong tháng, trừ chi đã ghi hôm nay.";
 
   return (
     <AppShell
       viewer={viewer}
       primaryAction={{
-        label: "Thêm giao dịch",
-        onClick: () => setDialogOpen(true),
-        disabled: Boolean(workspace.dataError),
+        label: "Ghi chi",
+        onClick: openGhiChi,
+        disabled: actionsDisabled,
       }}
       fabAction={{
-        label: "Thêm giao dịch",
-        onClick: () => setDialogOpen(true),
-        disabled: Boolean(workspace.dataError),
+        label: "Ghi chi",
+        onClick: openGhiChi,
+        disabled: actionsDisabled,
       }}
       notice={notice}
     >
+      <main className="dashboard insights-dashboard">
+        {workspace.dataError ? (
+          <div className="data-alert" role="alert">
+            <Icon name="bell" />
+            <span>{workspace.dataError}</span>
+          </div>
+        ) : null}
 
-        <main className="dashboard">
-          {workspace.dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{workspace.dataError}</span></div>}
-          <section className="welcome-row">
-            <div>
-              <p className="eyebrow">Insights</p>
-              <h1>Chào buổi sáng, {displayName}.</h1>
-              <p>Tóm tắt sau khi dữ liệu đã tin cậy — ưu tiên xử lý Inbox trước.</p>
-            </div>
-            <button className="date-pill"><span>Tháng này</span><Icon name="arrowDown" /></button>
-          </section>
+        <section className="welcome-row">
+          <div>
+            <p className="eyebrow">Tổng quan</p>
+            <h1>Chào {displayName}.</h1>
+            <p>Còn bao nhiêu, tháng này thu–chi thế nào, tiền đi đâu — một màn hình.</p>
+          </div>
+          <div className="welcome-actions">
+            <span className="date-pill" aria-hidden="true">
+              <span>Tháng này</span>
+            </span>
+            <button
+              type="button"
+              className="primary-button insights-ghi-chi"
+              onClick={openGhiChi}
+              disabled={actionsDisabled}
+            >
+              <Icon name="plus" /> Ghi chi
+            </button>
+          </div>
+        </section>
 
-          <nav className="insights-planning-nav" aria-label="Kế hoạch từ Insights">
-            <p className="insights-planning-label">Kế hoạch</p>
-            <ul>
-              {PLANNING_LINKS.map((item) => (
-                <li key={item.href}>
-                  <Link href={item.href} className="insights-planning-link">
-                    <Icon name={item.icon} />
-                    <span>
-                      <strong>{item.label}</strong>
-                      {item.description ? <small>{item.description}</small> : null}
-                    </span>
-                    <Icon name="arrowRight" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+        <nav className="insights-planning-nav" aria-label="Kế hoạch từ Tổng quan">
+          <p className="insights-planning-label">Kế hoạch</p>
+          <ul>
+            {PLANNING_LINKS.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="insights-planning-link">
+                  <Icon name={item.icon} />
+                  <span>
+                    <strong>{item.label}</strong>
+                    {item.description ? <small>{item.description}</small> : null}
+                  </span>
+                  <Icon name="arrowRight" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
-          <section className="hero-grid" aria-label="Tình hình tài chính hôm nay">
-            <article className="safe-card">
+        <section className="insights-kpi" aria-label="Tóm tắt tháng này">
+          <article>
+            <span>Số dư tổng</span>
+            <strong className="font-mono">{formatMoney(totals.balance)}</strong>
+            <small>Trên mọi ví đang dùng</small>
+          </article>
+          <article>
+            <span>Thu tháng</span>
+            <strong className="font-mono amount income">+ {formatMoney(totals.income)}</strong>
+            <small>Không gồm chuyển ví</small>
+          </article>
+          <article>
+            <span>Chi tháng</span>
+            <strong className="font-mono amount">− {formatMoney(totals.expense)}</strong>
+            <small>Không gồm chuyển ví</small>
+          </article>
+          <article>
+            <span>Ròng</span>
+            <strong className={`font-mono ${totals.net >= 0 ? "amount income" : "amount"}`}>
+              {formatSignedMoney(totals.net)}
+            </strong>
+            <small>Thu trừ chi tháng này</small>
+          </article>
+        </section>
+
+        {isEmptyLedger && !workspace.dataError ? (
+          <EmptyState
+            icon="wallet"
+            title="Chưa có giao dịch nào"
+            description="Ghi khoản chi đầu tiên để thấy số dư, thu–chi tháng và danh mục chi tiêu."
+            actionLabel="Ghi chi"
+            onAction={openGhiChi}
+            secondaryLabel="Thêm tài khoản"
+            secondaryHref="/accounts"
+            className="insights-empty"
+          />
+        ) : null}
+
+        <section className="content-grid insights-main-grid">
+          <div className="insights-main-stack">
+            {!isEmptyLedger ? (
+              <>
+                <article className="panel categories-panel">
+                  <div className="section-heading">
+                    <div>
+                      <h2>Chi theo danh mục</h2>
+                      <p>Top danh mục tháng này — thanh ngang, không biểu đồ tròn.</p>
+                    </div>
+                    <Link className="section-link" href="/reports">
+                      Báo cáo <Icon name="arrowRight" />
+                    </Link>
+                  </div>
+                  {topCategories.length ? (
+                    <ul className="insights-category-list">
+                      {topCategories.map((item) => {
+                        const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                        return (
+                          <li className="insights-category-row" key={item.name}>
+                            <span className={`transaction-icon ${meta.color}`}>
+                              <Icon name={meta.icon as IconName} />
+                            </span>
+                            <div className="insights-category-meta">
+                              <div className="insights-category-labels">
+                                <strong>{item.name}</strong>
+                                <span className="font-mono">{formatMoney(item.amount)}</span>
+                              </div>
+                              <div
+                                className="insights-category-bar"
+                                role="img"
+                                aria-label={`${item.name}: ${item.share}% chi tháng`}
+                              >
+                                <i style={{ width: `${Math.max(item.share, item.amount > 0 ? 4 : 0)}%` }} />
+                              </div>
+                              <small>{item.share}%</small>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <div className="panel-empty compact">
+                      <span>
+                        <Icon name="chart" />
+                      </span>
+                      <h3>Chưa có chi tiêu tháng này</h3>
+                      <p>Khi bạn ghi chi, danh mục sẽ hiện ở đây dưới dạng thanh ngang.</p>
+                      <button type="button" onClick={openGhiChi} disabled={actionsDisabled}>
+                        Ghi chi
+                      </button>
+                    </div>
+                  )}
+                </article>
+
+                <article className="transactions-panel panel">
+                  <div className="section-heading">
+                    <div>
+                      <h2>Giao dịch gần đây</h2>
+                      <p>Cập nhật ngay khi bạn ghi khoản mới.</p>
+                    </div>
+                    <Link className="section-link" href="/transactions">
+                      Xem tất cả <Icon name="arrowRight" />
+                    </Link>
+                  </div>
+                  <div className="transaction-list">
+                    {transactions.slice(0, 5).map((transaction) => {
+                      const meta = categoryMeta[transaction.category] ?? categoryMeta["Thu nhập khác"];
+                      return (
+                        <div className="transaction-row" key={transaction.id}>
+                          <span className={`transaction-icon ${meta.color}`}>
+                            <Icon name={meta.icon as IconName} />
+                          </span>
+                          <span className="transaction-detail">
+                            <strong>{transaction.note}</strong>
+                            <small>
+                              {transaction.kind === "transfer"
+                                ? `${transaction.account} → ${transaction.destinationAccount}`
+                                : `${transaction.category} · ${transaction.account}`}
+                            </small>
+                          </span>
+                          <span className="transaction-time">{transaction.relativeDate}</span>
+                          <strong
+                            className={`font-mono ${
+                              transaction.kind === "income"
+                                ? "amount income"
+                                : transaction.kind === "transfer"
+                                  ? "amount transfer"
+                                  : "amount"
+                            }`}
+                          >
+                            {transaction.kind === "income"
+                              ? "+ ↑ "
+                              : transaction.kind === "transfer"
+                                ? "↔ "
+                                : "− ↓ "}
+                            {formatMoney(transaction.amount)}
+                          </strong>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </article>
+              </>
+            ) : null}
+          </div>
+
+          <div className="right-stack">
+            <article className="safe-card safe-card-secondary" aria-label="Có thể chi hôm nay">
               <div className="safe-card-top">
                 <div>
                   <p>Có thể chi hôm nay</p>
                   <h2 className="font-mono">{formatMoney(totals.safeToday)}</h2>
                 </div>
-                <span className="status-badge"><span /> An toàn</span>
+                <span className="status-badge">
+                  <span /> Gợi ý
+                </span>
               </div>
               <div className="safe-meter" aria-label="Mức chi tiêu hôm nay">
-                <span style={{ width: `${totals.dailyAllowance > 0 ? Math.min(100, 100 - (totals.safeToday / totals.dailyAllowance) * 100) : 0}%` }} />
+                <span
+                  style={{
+                    width: `${
+                      totals.dailyAllowance > 0
+                        ? Math.min(100, 100 - (totals.safeToday / totals.dailyAllowance) * 100)
+                        : 0
+                    }%`,
+                  }}
+                />
               </div>
-              <div className="safe-copy">
-                <span className="trend-icon"><Icon name="arrowUp" /></span>
-                <p>{protectedTotal > 0 ? <>Đã bảo vệ <strong className="font-mono">{formatMoney(protectedTotal)}</strong> cho hóa đơn và mục tiêu.</> : <>Nếu giữ nhịp này, cuối tháng bạn còn khoảng <strong className="font-mono">{formatMoney(totals.forecast)}</strong>.</>}</p>
-              </div>
-              <button className="hero-add" onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>
-                <Icon name="plus" /> Ghi một khoản mới
+              <p className="safe-explain">{safeExplain}</p>
+              <button
+                type="button"
+                className="hero-add"
+                onClick={openGhiChi}
+                disabled={actionsDisabled}
+              >
+                <Icon name="plus" /> Ghi chi
               </button>
             </article>
 
-            <article className="month-card">
-              <div className="card-title-row">
-                <div><p>Số dư hiện tại</p><h2 className="font-mono">{formatMoney(totals.balance)}</h2></div>
-                <span className="round-icon green"><Icon name="wallet" /></span>
-              </div>
-              <div className="month-stats">
-                <div><span><Icon name="arrowDown" /> Thu nhập</span><strong className="font-mono">{formatMoney(totals.income, true)}</strong></div>
-                <div><span><Icon name="arrowUp" /> Chi tiêu</span><strong className="font-mono">{formatMoney(totals.expense, true)}</strong></div>
-              </div>
-              <div className="mini-chart" aria-label="Biểu đồ chi tiêu 14 ngày gần đây">
-                {chartBars.map((height, index) => <span key={index} style={{ height: `${height}%` }} className={index === chartBars.length - 1 ? "today" : ""} />)}
-              </div>
-              <div className="chart-labels"><span>01 thg 7</span><span>Hôm nay</span></div>
-            </article>
-          </section>
-
-          <section className="content-grid">
-            <article className="transactions-panel panel">
-              <div className="section-heading">
-                <div><h2>Giao dịch gần đây</h2><p>Cập nhật ngay khi bạn ghi khoản mới.</p></div>
-                <Link className="section-link" href="/transactions">Xem tất cả <Icon name="arrowRight" /></Link>
-              </div>
-              <div className="transaction-list">
-                {transactions.length ? transactions.slice(0, 5).map((transaction) => {
-                  const meta = categoryMeta[transaction.category] ?? categoryMeta["Thu nhập khác"];
-                  return (
-                    <div className="transaction-row" key={transaction.id}>
-                      <span className={`transaction-icon ${meta.color}`}><Icon name={meta.icon as IconName} /></span>
-                      <span className="transaction-detail"><strong>{transaction.note}</strong><small>{transaction.kind === "transfer" ? `${transaction.account} → ${transaction.destinationAccount}` : `${transaction.category} · ${transaction.account}`}</small></span>
-                      <span className="transaction-time">{transaction.relativeDate}</span>
-                      <strong className={`font-mono ${transaction.kind === "income" ? "amount income" : transaction.kind === "transfer" ? "amount transfer" : "amount"}`}>
-                        {transaction.kind === "income" ? "+ ↑ " : transaction.kind === "transfer" ? "↔ " : "− ↓ "}{formatMoney(transaction.amount)}
-                      </strong>
-                    </div>
-                  );
-                }) : <div className="panel-empty"><span><Icon name="arrows" /></span><h3>Chưa có giao dịch</h3><p>Ghi khoản đầu tiên để MoneyFlow bắt đầu phân tích dòng tiền.</p><button onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>Thêm giao dịch</button></div>}
-              </div>
-            </article>
-
-            <div className="right-stack">
-              <article className="budget-panel panel">
-                <div className="section-heading compact">
-                  <div><h2>Ngân sách tháng</h2><p>{featuredBudget?.categoryName ?? "Chưa thiết lập"}</p></div>
-                  <Link className="icon-button" href="/budgets" aria-label="Mở chi tiết ngân sách"><Icon name="arrowRight" /></Link>
+            <article className="budget-panel panel">
+              <div className="section-heading compact">
+                <div>
+                  <h2>Ngân sách tháng</h2>
+                  <p>{featuredBudget?.categoryName ?? "Chưa thiết lập"}</p>
                 </div>
-                {featuredBudget ? <>
-                  <div className="budget-number"><strong className="font-mono">{formatMoney(featuredBudget.spent)}</strong><span className="font-mono">/ {formatMoney(featuredBudget.limit)}</span></div>
+                <Link className="icon-button" href="/budgets" aria-label="Mở chi tiết ngân sách">
+                  <Icon name="arrowRight" />
+                </Link>
+              </div>
+              {featuredBudget ? (
+                <>
+                  <div className="budget-number">
+                    <strong className="font-mono">{formatMoney(featuredBudget.spent)}</strong>
+                    <span className="font-mono">/ {formatMoney(featuredBudget.limit)}</span>
+                  </div>
                   <div className="budget-track" aria-label={`Đã dùng ${featuredProgress} phần trăm`}>
-                    <span 
-                      style={{ 
+                    <span
+                      style={{
                         width: `${Math.min(100, featuredProgress)}%`,
-                        backgroundColor: featuredProgress >= 100 
-                          ? "var(--color-danger-default)" 
-                          : featuredProgress >= 80 
-                          ? "#f97316" 
-                          : featuredProgress >= 50 
-                          ? "var(--color-warning-default)" 
-                          : "var(--color-success-default)"
-                      }} 
+                        backgroundColor:
+                          featuredProgress >= 100
+                            ? "var(--color-danger-default)"
+                            : featuredProgress >= 80
+                              ? "#f97316"
+                              : featuredProgress >= 50
+                                ? "var(--color-warning-default)"
+                                : "var(--color-success-default)",
+                      }}
                     />
                   </div>
-                  <div className="budget-foot"><span>Đã dùng {featuredProgress}%</span><strong className="font-mono">{featuredBudget.spent > featuredBudget.limit ? `Vượt ${formatMoney(featuredBudget.spent - featuredBudget.limit)}` : `Còn ${formatMoney(featuredBudget.limit - featuredBudget.spent)}`}</strong></div>
-                </> : <div className="budget-empty"><p>Chưa đặt hạn mức cho tháng này.</p><Link href="/budgets">Thiết lập ngân sách</Link></div>}
-              </article>
+                  <div className="budget-foot">
+                    <span>Đã dùng {featuredProgress}%</span>
+                    <strong className="font-mono">
+                      {featuredBudget.spent > featuredBudget.limit
+                        ? `Vượt ${formatMoney(featuredBudget.spent - featuredBudget.limit)}`
+                        : `Còn ${formatMoney(featuredBudget.limit - featuredBudget.spent)}`}
+                    </strong>
+                  </div>
+                </>
+              ) : (
+                <div className="budget-empty">
+                  <p>Chưa đặt hạn mức cho tháng này.</p>
+                  <Link href="/budgets">Thiết lập ngân sách</Link>
+                </div>
+              )}
+            </article>
 
-              <article className="insight-panel">
-                <span className="round-icon purple"><Icon name="calendar" /></span>
-                <div><p className="eyebrow">Khoản định kỳ</p><h2>{reservedCommitments ? `${formatMoney(reservedCommitments)} đang được giữ trước` : "Chưa có hóa đơn cần giữ trước"}</h2><p>{reservedCommitments ? <Link href="/commitments">Xem lịch thanh toán và đánh dấu đã trả →</Link> : <Link href="/commitments">Thêm khoản định kỳ đầu tiên →</Link>}</p></div>
-              </article>
+            <article className="insight-panel">
+              <span className="round-icon purple">
+                <Icon name="calendar" />
+              </span>
+              <div>
+                <p className="eyebrow">Khoản định kỳ</p>
+                <h2>
+                  {reservedCommitments
+                    ? `${formatMoney(reservedCommitments)} đang được giữ trước`
+                    : "Chưa có hóa đơn cần giữ trước"}
+                </h2>
+                <p>
+                  {reservedCommitments ? (
+                    <Link href="/commitments">Xem lịch thanh toán và đánh dấu đã trả →</Link>
+                  ) : (
+                    <Link href="/commitments">Thêm khoản định kỳ đầu tiên →</Link>
+                  )}
+                </p>
+              </div>
+            </article>
 
-              <article className="goal-dashboard-panel panel">
-                <div className="section-heading compact"><div><h2>Mục tiêu tiết kiệm</h2><p>{featuredGoal?.name ?? "Chưa có mục tiêu"}</p></div><Link className="icon-button" href="/goals" aria-label="Mở mục tiêu tiết kiệm"><Icon name="arrowRight" /></Link></div>
-                {featuredGoal ? <><div className="budget-number"><strong className="font-mono">{formatMoney(featuredGoal.allocated)}</strong><span className="font-mono">/ {formatMoney(featuredGoal.target)}</span></div><div className="budget-track"><span style={{ width: `${goalProgress(featuredGoal)}%` }} /></div><div className="budget-foot"><span>Đã đạt {goalProgress(featuredGoal)}%</span><strong className="font-mono">{savings.plannedDaily > 0 ? `${formatMoney(savings.plannedDaily)}/ngày` : "Tự do tiến độ"}</strong></div></> : <div className="budget-empty"><p>Dành tiền cho một điều bạn muốn đạt được.</p><Link href="/goals">Tạo mục tiêu</Link></div>}
-              </article>
-            </div>
-          </section>
-        </main>
+            <article className="goal-dashboard-panel panel">
+              <div className="section-heading compact">
+                <div>
+                  <h2>Mục tiêu tiết kiệm</h2>
+                  <p>{featuredGoal?.name ?? "Chưa có mục tiêu"}</p>
+                </div>
+                <Link className="icon-button" href="/goals" aria-label="Mở mục tiêu tiết kiệm">
+                  <Icon name="arrowRight" />
+                </Link>
+              </div>
+              {featuredGoal ? (
+                <>
+                  <div className="budget-number">
+                    <strong className="font-mono">{formatMoney(featuredGoal.allocated)}</strong>
+                    <span className="font-mono">/ {formatMoney(featuredGoal.target)}</span>
+                  </div>
+                  <div className="budget-track">
+                    <span style={{ width: `${goalProgress(featuredGoal)}%` }} />
+                  </div>
+                  <div className="budget-foot">
+                    <span>Đã đạt {goalProgress(featuredGoal)}%</span>
+                    <strong className="font-mono">
+                      {savings.plannedDaily > 0
+                        ? `${formatMoney(savings.plannedDaily)}/ngày`
+                        : "Tự do tiến độ"}
+                    </strong>
+                  </div>
+                </>
+              ) : (
+                <div className="budget-empty">
+                  <p>Dành tiền cho một điều bạn muốn đạt được.</p>
+                  <Link href="/goals">Tạo mục tiêu</Link>
+                </div>
+              )}
+            </article>
+          </div>
+        </section>
+      </main>
 
       <AddTransactionDialog
         open={dialogOpen}
@@ -270,7 +507,7 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
         onAdd={addTransaction}
         accounts={workspace.accounts}
         categories={workspace.categories}
-        disabled={isMutating || Boolean(workspace.dataError)}
+        disabled={isMutating || actionsDisabled}
       />
     </AppShell>
   );
