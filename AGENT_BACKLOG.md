@@ -372,9 +372,10 @@
 - **Notes:** Native `<dialog showModal>` traps focus; Escape/Hủy/close restore opener. Kind control shows “Khoản chi (−) / Khoản thu (+)”; amount field shows ± sign. Insights KPI/categories/recent rows use signed money + aria-label. CSS re-enables focus ring on `.amount-field input` (was outline:0). Tests: `money.test.ts`, `a11y-baseline.test.ts`.
 
 ### TASK-120 — Production build green
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** `npm run build` must pass. Fix eslint setState-in-effect in inbox-review-panel and any TS errors. Prefer minimal fix.
 - **Done khi:** build exit 0; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — build/lint/typecheck/test green; inbox-review-panel uses key remount (no setState-in-effect); no TS errors
 
 ### TASK-121 — Soft rate limit note + basic guard
 - **Status:** `ready`
@@ -407,6 +408,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-120 | production build green; lint/typecheck/test + `npm run build` exit 0 |
 | 2026-07-15 | TASK-119 | `658c460` a11y baseline: labels, focus-visible, +/− signs, dialog focus trap/restore |
 | 2026-07-15 | TASK-118 | `c61ddf2` docs/security-rls-check.md + check:rls + pgTAP has_policy |
 | 2026-07-15 | TASK-117 | `47fab43` domain tests: balance edit/soft-delete; transfer≠expense; budget ignores transfer; safe-to-spend integer |
