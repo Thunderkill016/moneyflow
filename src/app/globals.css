@@ -1057,16 +1057,27 @@ select:focus-visible {
 .budget-list-section { margin-top: 28px; }
 .budget-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
 .budget-category-card { border: 1px solid var(--line); border-radius: 18px; background: white; padding: 20px; box-shadow: var(--shadow); }
+.budget-category-card.watch { border-color: #f0e0b8; }
+.budget-category-card.near { border-color: #f5c9a0; }
 .budget-category-card.over { border-color: #efcfca; }
 .budget-category-top { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 11px; }
 .budget-category-top h3 { margin: 0; font-size: 13px; }
 .budget-category-top p { margin: 4px 0 0; color: var(--green); font-size: 9px; }
-.budget-category-card.over .budget-category-top p, .budget-category-card.over .budget-category-top > strong { color: var(--danger); }
+.budget-category-card.watch .budget-category-top p,
+.budget-category-card.watch .budget-category-top > strong { color: var(--color-warning-default, #d97706); }
+.budget-category-card.near .budget-category-top p,
+.budget-category-card.near .budget-category-top > strong { color: #ea580c; }
+.budget-category-card.over .budget-category-top p,
+.budget-category-card.over .budget-category-top > strong { color: var(--danger); }
 .budget-category-top > strong { color: var(--green); font-size: 14px; }
+.budget-status-text { font-weight: 650; }
+.budget-status-remaining { font-weight: 500; opacity: 0.9; }
 .budget-category-numbers { display: flex; align-items: baseline; gap: 4px; margin-top: 18px; }
 .budget-category-numbers span:first-child { font-size: 17px; font-weight: 680; }
 .budget-category-numbers span:last-child { color: var(--muted); font-size: 9px; }
 .budget-category-card.over .budget-track span { background: var(--danger); }
+.budget-panel-near .budget-status-text { color: #ea580c; font-weight: 650; }
+.budget-panel-over .budget-status-text { color: var(--danger); font-weight: 650; }
 .budget-category-actions { display: flex; justify-content: flex-end; gap: 5px; margin-top: 13px; border-top: 1px solid var(--line); padding-top: 11px; }
 .budget-category-actions button { display: inline-flex; min-height: 34px; cursor: pointer; align-items: center; gap: 5px; border: 0; border-radius: 8px; background: transparent; padding: 0 9px; color: var(--muted); font-size: 9px; font-weight: 650; }
 .budget-category-actions button:hover { background: #f1f5f2; color: var(--green); }

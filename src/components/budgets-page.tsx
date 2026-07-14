@@ -6,7 +6,15 @@ import { deleteBudgetAction, saveBudgetAction } from "@/app/actions/budgets";
 import { BudgetDialog } from "@/components/budget-dialog";
 import { Icon, type IconName } from "@/components/icons";
 import { type ViewerSummary } from "@/components/user-chip";
-import { budgetProgress, budgetRemaining, type BudgetSummary, type SaveBudgetInput } from "@/lib/budgets";
+import {
+  budgetBarColor,
+  budgetProgress,
+  budgetRemaining,
+  budgetStatusLabel,
+  budgetThreshold,
+  type BudgetSummary,
+  type SaveBudgetInput,
+} from "@/lib/budgets";
 import { formatMoney } from "@/lib/money";
 import { categoryMeta, type CategoryOption } from "@/lib/sample-data";
 import { AppShell } from "@/components/layout/app-shell";
@@ -83,7 +91,7 @@ export function BudgetsPage({ viewer, initialBudgets, categories, monthStart, da
             <strong className="font-mono">{formatMoney(totals.spent)}</strong>
           </div>
           <div>
-            <span>{totals.spent > totals.limit ? "Vượt hạn mức" : "Còn lại"}</span>
+            <span>{totals.spent > totals.limit ? "Đã vượt" : "Còn lại"}</span>
             <strong className={`font-mono ${totals.spent > totals.limit ? "negative" : "positive"}`}>
               {formatMoney(Math.abs(totals.limit - totals.spent))}
             </strong>
@@ -101,33 +109,45 @@ export function BudgetsPage({ viewer, initialBudgets, categories, monthStart, da
               {budgets.map((budget) => {
                 const progress = budgetProgress(budget);
                 const remaining = budgetRemaining(budget);
+                const level = budgetThreshold(budget);
+                const statusText = budgetStatusLabel(budget);
                 const meta = categoryMeta[budget.categoryName] ?? categoryMeta["Thu nhập khác"];
+                const cardMod =
+                  level === "over" ? " over" : level === "near" ? " near" : level === "watch" ? " watch" : "";
                 return (
-                  <article className={remaining < 0 ? "budget-category-card over" : "budget-category-card"} key={budget.id}>
+                  <article className={`budget-category-card${cardMod}`} key={budget.id}>
                     <div className="budget-category-top">
                       <span className={`transaction-icon ${meta.color}`}><Icon name={meta.icon as IconName} /></span>
                       <div>
                         <h3>{budget.categoryName}</h3>
-                        <p>{remaining < 0 ? `Vượt ${formatMoney(Math.abs(remaining))}` : `Còn ${formatMoney(remaining)}`}</p>
+                        <p>
+                          <span className="budget-status-text">{statusText}</span>
+                          {level === "near" && remaining > 0 ? (
+                            <span className="budget-status-remaining"> · Còn {formatMoney(remaining)}</span>
+                          ) : null}
+                        </p>
                       </div>
-                      <strong>{Math.min(progress, 999)}%</strong>
+                      <strong aria-label={`Đã dùng ${Math.min(progress, 999)} phần trăm`}>
+                        {Math.min(progress, 999)}%
+                      </strong>
                     </div>
                     <div className="budget-category-numbers">
                       <span className="font-mono">{formatMoney(budget.spent)}</span>
                       <span className="font-mono">/ {formatMoney(budget.limit)}</span>
                     </div>
-                    <div className="budget-track" aria-label={`Đã dùng ${progress} phần trăm`}>
-                      <span 
-                        style={{ 
-                          width: `${Math.min(100, progress)}%`, 
-                          backgroundColor: progress >= 100 
-                            ? "var(--color-danger-default)" 
-                            : progress >= 80 
-                            ? "#f97316" 
-                            : progress >= 50 
-                            ? "var(--color-warning-default)" 
-                            : "var(--color-success-default)" 
-                        }} 
+                    <div
+                      className="budget-track"
+                      role="progressbar"
+                      aria-valuenow={Math.min(progress, 100)}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-label={`${statusText}. Đã dùng ${progress} phần trăm`}
+                    >
+                      <span
+                        style={{
+                          width: `${Math.min(100, progress)}%`,
+                          backgroundColor: budgetBarColor(level),
+                        }}
                       />
                     </div>
                     <div className="budget-category-actions">

@@ -15,7 +15,14 @@ import {
 import { formatMoney } from "@/lib/money";
 import { useTransactions } from "@/hooks/use-transactions";
 import { type ViewerSummary } from "@/components/user-chip";
-import { budgetProgress, type BudgetSummary } from "@/lib/budgets";
+import {
+  budgetBarColor,
+  budgetProgress,
+  budgetRemaining,
+  budgetStatusLabel,
+  budgetThreshold,
+  type BudgetSummary,
+} from "@/lib/budgets";
 import { commitmentTotals, type RecurringCommitment } from "@/lib/commitments";
 import { goalProgress, goalTotals, type SavingsGoal } from "@/lib/goals";
 import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
@@ -140,6 +147,9 @@ export function MoneyFlowDashboard({
 
   const featuredBudget = [...liveBudgets].sort((a, b) => budgetProgress(b) - budgetProgress(a))[0];
   const featuredProgress = featuredBudget ? budgetProgress(featuredBudget) : 0;
+  const featuredLevel = featuredBudget ? budgetThreshold(featuredBudget) : null;
+  const featuredStatus = featuredBudget ? budgetStatusLabel(featuredBudget) : "";
+  const featuredRemaining = featuredBudget ? budgetRemaining(featuredBudget) : 0;
   const displayName = viewer.displayName || (viewer.isDemo ? "Minh" : "bạn");
   const featuredGoal = [...goals].filter((goal) => !goal.isArchived).sort((a, b) => goalProgress(b) - goalProgress(a))[0];
   const protectedTotal = reservedCommitments + savings.allocated;
@@ -395,7 +405,15 @@ export function MoneyFlowDashboard({
               </button>
             </article>
 
-            <article className="budget-panel panel">
+            <article
+              className={`budget-panel panel${
+                featuredLevel === "over"
+                  ? " budget-panel-over"
+                  : featuredLevel === "near"
+                    ? " budget-panel-near"
+                    : ""
+              }`}
+            >
               <div className="section-heading compact">
                 <div>
                   <h2>Ngân sách tháng</h2>
@@ -405,34 +423,35 @@ export function MoneyFlowDashboard({
                   <Icon name="arrowRight" />
                 </Link>
               </div>
-              {featuredBudget ? (
+              {featuredBudget && featuredLevel ? (
                 <>
                   <div className="budget-number">
                     <strong className="font-mono">{formatMoney(featuredBudget.spent)}</strong>
                     <span className="font-mono">/ {formatMoney(featuredBudget.limit)}</span>
                   </div>
-                  <div className="budget-track" aria-label={`Đã dùng ${featuredProgress} phần trăm`}>
+                  <div
+                    className="budget-track"
+                    role="progressbar"
+                    aria-valuenow={Math.min(featuredProgress, 100)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${featuredStatus}. Đã dùng ${featuredProgress} phần trăm`}
+                  >
                     <span
                       style={{
                         width: `${Math.min(100, featuredProgress)}%`,
-                        backgroundColor:
-                          featuredProgress >= 100
-                            ? "var(--color-danger-default)"
-                            : featuredProgress >= 80
-                              ? "#f97316"
-                              : featuredProgress >= 50
-                                ? "var(--color-warning-default)"
-                                : "var(--color-success-default)",
+                        backgroundColor: budgetBarColor(featuredLevel),
                       }}
                     />
                   </div>
                   <div className="budget-foot">
-                    <span>Đã dùng {featuredProgress}%</span>
-                    <strong className="font-mono">
-                      {featuredBudget.spent > featuredBudget.limit
-                        ? `Vượt ${formatMoney(featuredBudget.spent - featuredBudget.limit)}`
-                        : `Còn ${formatMoney(featuredBudget.limit - featuredBudget.spent)}`}
-                    </strong>
+                    <span className={`budget-status-text budget-status-${featuredLevel}`}>
+                      {featuredStatus}
+                      {featuredLevel === "near" && featuredRemaining > 0
+                        ? ` · Còn ${formatMoney(featuredRemaining)}`
+                        : ""}
+                    </span>
+                    <strong className="font-mono">Đã dùng {featuredProgress}%</strong>
                   </div>
                 </>
               ) : (
