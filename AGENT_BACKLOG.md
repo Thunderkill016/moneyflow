@@ -263,7 +263,7 @@
 - **Completed:** 2026-07-15 — `2bb7d3c` primary Tổng quan·Giao dịch·Capture·Tài khoản·More; Inbox → More + Capture sheet.
 
 ### TASK-102 — Onboarding thu chi (ví + ghi chi + insights)
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Viết lại onboarding 3 bước: (1) trust no bank password + export (2) xác nhận/tạo ví tiền mặt (3) optional quick expense hoặc skip → /insights. Bỏ bắt buộc paste/upload làm bước chính. Cập nhật onboarding.ts tests.
 - **Done khi:** flow thu chi; ends at insights; tests pass.
 

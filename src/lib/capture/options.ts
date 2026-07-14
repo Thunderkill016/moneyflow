@@ -1,7 +1,7 @@
 /**
  * Capture chooser options (wireframes-inbox CaptureMenu §0 / §24).
  * Shared by Capture sheet (AppShell) and /capture page.
- * Hrefs stay in sync with CAPTURE_METHOD_HREF in onboarding.ts.
+ * Onboarding (TASK-102) no longer forces paste/upload as a primary step.
  */
 
 export type CaptureOptionId = "paste" | "upload" | "quick";
