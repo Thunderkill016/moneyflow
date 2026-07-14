@@ -21,6 +21,7 @@ const idSchema = z.string().uuid();
 function refreshBudgetPages() {
   revalidatePath("/");
   revalidatePath("/budgets");
+  revalidatePath("/insights");
 }
 
 export async function saveBudgetAction(input: SaveBudgetInput): Promise<BudgetActionResult> {

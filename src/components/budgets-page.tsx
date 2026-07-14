@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { deleteBudgetAction, saveBudgetAction } from "@/app/actions/budgets";
 import { BudgetDialog } from "@/components/budget-dialog";
@@ -62,7 +63,12 @@ export function BudgetsPage({ viewer, initialBudgets, categories, monthStart, da
         {dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{dataError}</span></div>}
         <section className="budgets-heading">
           <div>
-            <p className="eyebrow">Kế hoạch chi tiêu</p>
+            <p className="eyebrow">
+              <Link href="/insights" className="planning-back-link">
+                Insights
+              </Link>
+              {" · "}Kế hoạch chi tiêu
+            </p>
             <h1>Ngân sách</h1>
             <p>{monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1)} · Đặt giới hạn vừa sức cho từng danh mục.</p>
           </div>

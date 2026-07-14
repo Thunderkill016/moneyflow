@@ -191,7 +191,7 @@
 
 
 ### TASK-027 — Budgets/goals under Insights only
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Ensure primary nav stays inbox-first; budgets/commitments/goals linked from Insights or More.
 - **Source:** roadmap pool refill
 

@@ -10,7 +10,7 @@ import { mapGoalRow } from "@/server/goals";
 export type GoalActionResult = { ok: true; goal?: SavingsGoal; allocated?: number } | { ok: false; message: string };
 const saveSchema = z.object({ id: z.string().uuid().optional(), name: z.string().trim().min(1).max(80), target: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable() });
 const idSchema = z.string().uuid();
-function refresh() { revalidatePath("/"); revalidatePath("/goals"); }
+function refresh() { revalidatePath("/"); revalidatePath("/goals"); revalidatePath("/insights"); }
 
 export async function saveGoalAction(input: SaveGoalInput): Promise<GoalActionResult> {
   const parsed = saveSchema.safeParse(input); if (!parsed.success) return { ok: false, message: "Thông tin mục tiêu chưa hợp lệ." };

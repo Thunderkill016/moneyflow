@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { adjustGoalAction, archiveGoalAction, saveGoalAction } from "@/app/actions/goals";
 import { GoalAllocationDialog, GoalDialog } from "@/components/goal-dialogs";
@@ -39,7 +40,12 @@ export function GoalsPage({ viewer, initialGoals, today, dataError }: { viewer: 
         {dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{dataError}</span></div>}
         <section className="budgets-heading">
           <div>
-            <p className="eyebrow">Tiền cho tương lai</p>
+            <p className="eyebrow">
+              <Link href="/insights" className="planning-back-link">
+                Insights
+              </Link>
+              {" · "}Tiền cho tương lai
+            </p>
             <h1>Mục tiêu tiết kiệm</h1>
             <p>Khóa một phần số dư cho điều quan trọng mà không làm sai tổng tài sản.</p>
           </div>

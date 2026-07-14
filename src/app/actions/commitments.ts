@@ -12,7 +12,7 @@ const saveSchema = z.object({ id: z.string().uuid().optional(), name: z.string()
 const idSchema = z.string().uuid();
 const monthSchema = z.string().regex(/^\d{4}-\d{2}-01$/);
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
-function refresh() { revalidatePath("/"); revalidatePath("/commitments"); revalidatePath("/transactions"); }
+function refresh() { revalidatePath("/"); revalidatePath("/commitments"); revalidatePath("/transactions"); revalidatePath("/insights"); }
 
 export async function saveCommitmentAction(input: SaveCommitmentInput, monthStart: string): Promise<CommitmentActionResult> {
   const parsed = saveSchema.safeParse(input);

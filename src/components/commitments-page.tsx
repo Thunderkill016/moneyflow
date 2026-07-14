@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { archiveCommitmentAction, payCommitmentAction, saveCommitmentAction, undoCommitmentPaymentAction } from "@/app/actions/commitments";
 import { CommitmentDialog } from "@/components/commitment-dialog";
@@ -44,7 +45,12 @@ export function CommitmentsPage({ viewer, initialCommitments, accounts, categori
         {dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{dataError}</span></div>}
         <section className="budgets-heading">
           <div>
-            <p className="eyebrow">Tiền phải trả</p>
+            <p className="eyebrow">
+              <Link href="/insights" className="planning-back-link">
+                Insights
+              </Link>
+              {" · "}Tiền phải trả
+            </p>
             <h1>Khoản định kỳ</h1>
             <p>Giữ trước tiền hóa đơn để con số “có thể chi” luôn thực tế.</p>
           </div>

@@ -18,6 +18,7 @@ import { type ViewerSummary } from "@/components/user-chip";
 import { budgetProgress, type BudgetSummary } from "@/lib/budgets";
 import { commitmentTotals, type RecurringCommitment } from "@/lib/commitments";
 import { goalProgress, goalTotals, type SavingsGoal } from "@/lib/goals";
+import { PLANNING_LINKS } from "@/lib/nav-ia";
 import { AppShell } from "@/components/layout/app-shell";
 
 const spendBars = [38, 54, 46, 72, 58, 84, 64, 91, 52, 68, 44, 61, 76, 48];
@@ -145,6 +146,24 @@ export function MoneyFlowDashboard({ viewer, workspace, budgets, commitments, go
             </div>
             <button className="date-pill"><span>Tháng này</span><Icon name="arrowDown" /></button>
           </section>
+
+          <nav className="insights-planning-nav" aria-label="Kế hoạch từ Insights">
+            <p className="insights-planning-label">Kế hoạch</p>
+            <ul>
+              {PLANNING_LINKS.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} className="insights-planning-link">
+                    <Icon name={item.icon} />
+                    <span>
+                      <strong>{item.label}</strong>
+                      {item.description ? <small>{item.description}</small> : null}
+                    </span>
+                    <Icon name="arrowRight" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
 
           <section className="hero-grid" aria-label="Tình hình tài chính hôm nay">
             <article className="safe-card">

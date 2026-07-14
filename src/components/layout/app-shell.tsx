@@ -6,6 +6,11 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { UserChip, type ViewerSummary } from "@/components/user-chip";
 import { CAPTURE_OPTIONS } from "@/lib/capture/options";
+import {
+  isPlanningPath,
+  MORE_OTHER_LINKS,
+  PLANNING_LINKS,
+} from "@/lib/nav-ia";
 
 /** Default badge when page does not pass `inboxCount` from candidate store. */
 const INBOX_BADGE_COUNT = 0;
@@ -29,6 +34,7 @@ type NavActionItem = {
 
 type NavItem = NavHrefItem | NavActionItem;
 
+/** Inbox-first primary nav — never budgets / commitments / goals. */
 const desktopNav: NavItem[] = [
   { kind: "link", label: "Inbox", icon: "inbox", href: "/inbox", badge: INBOX_BADGE_COUNT, mobileTab: true },
   { kind: "action", label: "Capture", icon: "plus", action: "capture", mobileTab: true },
@@ -44,15 +50,6 @@ const morePrimary: { label: string; href: string; icon: IconName }[] = [
   { label: "Imports", href: "/imports", icon: "imports" },
   { label: "Insights", href: "/insights", icon: "chart" },
   { label: "Cài đặt", href: "/settings", icon: "settings" },
-];
-
-/** Legacy routes kept reachable from More until IA fully migrates. */
-const moreLegacy: { label: string; href: string; icon: IconName }[] = [
-  { label: "Giao dịch", href: "/transactions", icon: "arrows" },
-  { label: "Ngân sách", href: "/budgets", icon: "target" },
-  { label: "Báo cáo", href: "/reports", icon: "chart" },
-  { label: "Định kỳ", href: "/commitments", icon: "calendar" },
-  { label: "Mục tiêu", href: "/goals", icon: "flag" },
 ];
 
 const mobileTabs: NavItem[] = [
@@ -143,11 +140,20 @@ export function AppShell({
                 </button>
               );
             }
+            const insightsRelated =
+              item.href === "/insights" && isPlanningPath(pathname);
+            const active = pathIsActive(pathname, item.href) || insightsRelated;
             return (
               <Link
                 href={item.href}
-                className={pathIsActive(pathname, item.href) ? "active" : ""}
+                className={active ? "active" : ""}
                 key={item.label}
+                aria-current={active ? "page" : undefined}
+                title={
+                  insightsRelated
+                    ? "Kế hoạch (ngân sách · định kỳ · mục tiêu) nằm dưới Insights"
+                    : undefined
+                }
               >
                 <Icon name={item.icon} />
                 <span>{item.label}</span>
@@ -259,7 +265,8 @@ export function AppShell({
             const moreActive =
               moreOpen ||
               morePrimary.some((m) => pathIsActive(pathname, m.href)) ||
-              moreLegacy.some((m) => pathIsActive(pathname, m.href));
+              PLANNING_LINKS.some((m) => pathIsActive(pathname, m.href)) ||
+              MORE_OTHER_LINKS.some((m) => pathIsActive(pathname, m.href));
             return (
               <button
                 type="button"
@@ -464,9 +471,23 @@ function MoreSheet({
           </Link>
         ))}
       </nav>
-      <p className="more-sheet-section-label">Cũ · vẫn dùng được</p>
-      <nav className="more-sheet-nav" aria-label="Màn hình cũ">
-        {moreLegacy.map((item) => (
+      <p className="more-sheet-section-label">Kế hoạch · từ Insights</p>
+      <nav className="more-sheet-nav" aria-label="Kế hoạch tài chính">
+        {PLANNING_LINKS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={pathIsActive(pathname, item.href) ? "active" : ""}
+            onClick={onClose}
+          >
+            <Icon name={item.icon} />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+      <p className="more-sheet-section-label">Khác</p>
+      <nav className="more-sheet-nav" aria-label="Màn hình khác">
+        {MORE_OTHER_LINKS.map((item) => (
           <Link
             key={item.href}
             href={item.href}
