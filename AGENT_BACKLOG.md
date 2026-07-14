@@ -251,9 +251,10 @@
 > Auto **chỉ** lấy task `ready` dưới đây (MF-100+).
 
 ### TASK-100 — Default home logged-in → /insights
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Đổi post-auth redirect và `/` khi đã login từ `/inbox` sang `/insights` (Tổng quan thu chi). Cập nhật `auth-redirect.ts` + proxy + tests. Không xóa route inbox. Tham chiếu docs/AUTOPILOT_PLAN.md Wave A MF-100 và research G5.
 - **Done khi:** login/register/onboarding skip → insights; tests auth-redirect pass; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `1675e6d` POST_AUTH_REDIRECT + `/` logged-in + onboarding skip → `/insights`; inbox route kept.
 
 ### TASK-101 — Nav IA thu chi (primary Tổng quan)
 - **Status:** `ready`
@@ -386,6 +387,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-100 | `1675e6d` post-auth + home + onboarding skip → /insights (Tổng quan thu chi) |
 | 2026-07-15 | TASK-032 | `42724ee` mask STK-like digits in raw_snippet UI (review/explain/paste); pure helper + tests |
 | 2026-07-15 | TASK-031 | `3853e0e` wire trackProductEvent on paste/upload/import commit (counts/source only) |
 | 2026-07-15 | TASK-030 | `b235880` no raw statement in console/toasts/analytics (safe-log + safe-analytics) |
