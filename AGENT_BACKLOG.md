@@ -341,9 +341,10 @@
 - **Completed:** 2026-07-15 — `4d5423b` pay → expense ledger (demo + occurrence map); loading/error/empty; Insights reserve sync
 
 ### TASK-115 — Goals card on Insights
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Featured goal progress trên insights; link /goals; empty CTA tạo mục tiêu.
 - **Done khi:** card; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `0b8d7b8` featured goal on Insights + progress a11y + empty CTA /goals
 
 ### TASK-116 — E2E expense path Playwright
 - **Status:** `ready`
@@ -401,6 +402,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-115 | `0b8d7b8` featured goal progress on Insights; link /goals; empty CTA |
 | 2026-07-15 | TASK-114 | `4d5423b` pay commitment → expense ledger; reserve on insights; empty/error |
 | 2026-07-15 | TASK-113 | `06568ef` demo sticky banner + Đăng ký when viewer.isDemo |
 | 2026-07-15 | TASK-112 | `68588b7` mobile pass: bottom nav 5 + FAB clear + dialogs full-width + table scroll |
