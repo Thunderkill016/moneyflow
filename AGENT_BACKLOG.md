@@ -430,9 +430,10 @@
 
 
 ### TASK-129 — Multi-currency accounts read-only
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Display FX accounts without transfer across currency. Post-MVP.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `fbaa1cd` multi-currency account display; totals per currency; same-currency transfer only; no FX rate
 
 ### TASK-130 — Push notification opt-in bills
 - **Status:** `ready`
@@ -448,6 +449,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-129 | `fbaa1cd` multi-currency accounts read-only; no cross-currency transfer; VND insights total |
 | 2026-07-15 | TASK-128 | `b158ac6` split expense multi-entry; Chia khoản chi; reports/budgets expand lines |
 | 2026-07-15 | TASK-127 | `5b2937f` lương định kỳ income templates separate from bill commitments |
 | 2026-07-15 | TASK-126 | `db1d5ea` in-app weekly summary card on Insights; calm copy; no email provider |
