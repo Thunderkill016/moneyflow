@@ -16,7 +16,7 @@ import {
   type CreateTransactionInput,
   type Transaction,
 } from "@/lib/sample-data";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, formatMoneyWithKind, formatSignedMoney } from "@/lib/money";
 import { useTransactions } from "@/hooks/use-transactions";
 import { type ViewerSummary } from "@/components/user-chip";
 import {
@@ -59,12 +59,6 @@ type DashboardWorkspace = {
   today: string;
   dataError: string | null;
 };
-
-function formatSignedMoney(amount: number) {
-  if (amount > 0) return `+ ${formatMoney(amount)}`;
-  if (amount < 0) return `− ${formatMoney(Math.abs(amount))}`;
-  return formatMoney(0);
-}
 
 export function MoneyFlowDashboard({
   viewer,
@@ -271,22 +265,37 @@ export function MoneyFlowDashboard({
         <section className="insights-kpi" aria-label="Tóm tắt tháng này">
           <article>
             <span>Số dư tổng</span>
-            <strong className="font-mono">{formatMoney(totals.balance)}</strong>
+            <strong className="font-mono" aria-label={`Số dư tổng ${formatMoney(totals.balance)}`}>
+              {formatMoney(totals.balance)}
+            </strong>
             <small>Trên mọi ví đang dùng</small>
           </article>
           <article>
             <span>Thu tháng</span>
-            <strong className="font-mono amount income">+ {formatMoney(totals.income)}</strong>
+            <strong
+              className="font-mono amount income"
+              aria-label={`Thu tháng cộng ${formatMoney(totals.income)}`}
+            >
+              {formatMoneyWithKind(totals.income, "income")}
+            </strong>
             <small>Không gồm chuyển ví</small>
           </article>
           <article>
             <span>Chi tháng</span>
-            <strong className="font-mono amount">− {formatMoney(totals.expense)}</strong>
+            <strong
+              className="font-mono amount"
+              aria-label={`Chi tháng trừ ${formatMoney(totals.expense)}`}
+            >
+              {formatMoneyWithKind(totals.expense, "expense")}
+            </strong>
             <small>Không gồm chuyển ví</small>
           </article>
           <article>
             <span>Ròng</span>
-            <strong className={`font-mono ${totals.net >= 0 ? "amount income" : "amount"}`}>
+            <strong
+              className={`font-mono ${totals.net >= 0 ? "amount income" : "amount"}`}
+              aria-label={`Ròng ${formatSignedMoney(totals.net)}`}
+            >
               {formatSignedMoney(totals.net)}
             </strong>
             <small>Thu trừ chi tháng này</small>
@@ -332,7 +341,12 @@ export function MoneyFlowDashboard({
                             <div className="insights-category-meta">
                               <div className="insights-category-labels">
                                 <strong>{item.name}</strong>
-                                <span className="font-mono">{formatMoney(item.amount)}</span>
+                                <span
+                                  className="font-mono amount"
+                                  aria-label={`Chi ${formatMoney(item.amount)}`}
+                                >
+                                  {formatMoneyWithKind(item.amount, "expense")}
+                                </span>
                               </div>
                               <div
                                 className="insights-category-bar"
@@ -396,7 +410,15 @@ export function MoneyFlowDashboard({
                                   ? "amount transfer"
                                   : "amount"
                             }`}
+                            aria-label={
+                              transaction.kind === "income"
+                                ? `Thu cộng ${formatMoney(transaction.amount)}`
+                                : transaction.kind === "transfer"
+                                  ? `Chuyển ${formatMoney(transaction.amount)}`
+                                  : `Chi trừ ${formatMoney(transaction.amount)}`
+                            }
                           >
+                            {/* Sign + direction: never color-only (design-system RULE 4) */}
                             {transaction.kind === "income"
                               ? "+ ↑ "
                               : transaction.kind === "transfer"

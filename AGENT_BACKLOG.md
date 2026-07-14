@@ -365,7 +365,7 @@
 - **Completed:** 2026-07-15 — `c61ddf2` docs/security-rls-check.md + check:rls + pgTAP has_policy
 
 ### TASK-119 — A11y baseline pass
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Labels on money forms; focus visible; expense/income not color-only (+/−); dialog focus trap check. Fix critical issues on insights + add dialog.
 - **Done khi:** notes in PR; lint/typecheck/test pass.
 
