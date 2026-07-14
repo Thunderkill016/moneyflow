@@ -45,7 +45,7 @@
 - **Status:** `done`
 - **Mô tả:** Add `/onboarding` (client or server): 3 steps — trust promises, choose first capture method (paste/upload/quick), CTA into capture or skip to inbox. Store `moneyflow-onboarding-done` in localStorage; after register redirect to onboarding if not done. Minimal UI using design tokens. Wireframes §3.
 - **Done khi:** route works; skip path; lint/typecheck/test pass.
-- **Completed:** 2026-07-14 — `/onboarding` 3-step flow + `moneyflow-onboarding-done`; register → onboarding.
+- **Completed:** 2026-07-14 — `0ce187e` `/onboarding` 3-step + `moneyflow-onboarding-done`; register → onboarding.
 
 ### TASK-004 — App shell Inbox-first navigation
 - **Status:** `ready`
@@ -138,6 +138,6 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-14 | TASK-003 | onboarding 3-step + register redirect; SHA pending commit |
+| 2026-07-14 | TASK-003 | `0ce187e` onboarding 3-step + register → /onboarding; skip → / until inbox |
 | 2026-07-14 | TASK-002 | `34402bc` auth trust copy + privacy checkbox; redirect `/` until inbox |
 | 2026-07-14 | TASK-001 | Landing Inbox-first shipped pre-autopilot |
