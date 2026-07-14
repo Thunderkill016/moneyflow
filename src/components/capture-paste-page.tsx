@@ -11,6 +11,7 @@ import {
   countPending,
   readStoredCandidates,
 } from "@/lib/inbox/candidate-store";
+import { applyRulesToParsed } from "@/lib/inbox/apply-rules";
 import {
   SOURCE_HINT_LABELS,
   parsePasteText,
@@ -18,6 +19,7 @@ import {
   type ParsedCandidate,
   type PasteSourceHint,
 } from "@/lib/inbox/parse-text";
+import { readStoredRules } from "@/lib/inbox/rules-store";
 import { formatMoney } from "@/lib/money";
 
 type Phase = "edit" | "preview" | "error";
@@ -55,6 +57,8 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
 
   const [text, setText] = useState("");
   const [sourceHint, setSourceHint] = useState<PasteSourceHint>("auto");
+  /** Apply local contains→category rules after parse (TASK-014). Default on. */
+  const [applyRules, setApplyRules] = useState(true);
   const [phase, setPhase] = useState<Phase>("edit");
   const [candidates, setCandidates] = useState<ParsedCandidate[]>([]);
   const [needsReviewCount, setNeedsReviewCount] = useState(0);
@@ -104,7 +108,15 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
           setAnalyzing(false);
           return;
         }
-        setCandidates(result.candidates);
+        let next = result.candidates;
+        if (applyRules) {
+          try {
+            next = applyRulesToParsed(next, readStoredRules());
+          } catch {
+            /* keep unparsed-category candidates if rules store fails */
+          }
+        }
+        setCandidates(next);
         setNeedsReviewCount(result.needsReviewCount);
         setPhase("preview");
         setError("");
@@ -228,6 +240,21 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                 </div>
               </fieldset>
 
+              <label className="capture-paste-apply-rules">
+                <input
+                  type="checkbox"
+                  checked={applyRules}
+                  onChange={(event) => setApplyRules(event.target.checked)}
+                  disabled={analyzing}
+                />
+                <span>
+                  Áp dụng quy tắc danh mục{" "}
+                  <Link className="capture-paste-rules-link" href="/rules">
+                    (Quản lý)
+                  </Link>
+                </span>
+              </label>
+
               {error && (
                 <p id="paste-error" className="capture-paste-error" role="alert">
                   {error}
@@ -295,6 +322,11 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                         {confidenceLabel(item.confidence)}
                       </span>
                       <span className="preview-chip sm source-badge">paste</span>
+                      {item.category && (
+                        <span className="preview-chip sm category-badge" title={item.matchedRuleSummary}>
+                          {item.category}
+                        </span>
+                      )}
                     </div>
                     {item.explanations.length > 0 && (
                       <ul className="capture-paste-explanations">

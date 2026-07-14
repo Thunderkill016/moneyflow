@@ -108,7 +108,7 @@
 - **Completed:** 2026-07-15 — `42ada1f` `/insights` dashboard + `/` logged-in → `/inbox`; landing public when logged out.
 
 ### TASK-014 — Rules page stub
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** `/rules` list local rules JSON in localStorage; add simple contains→category rule; apply on parse optionally. Wireframes §14. Minimal.
 - **Done khi:** CRUD rules local; lint/typecheck/test pass.
 

@@ -25,6 +25,10 @@ export type ParsedCandidate = {
   /** Vietnamese tips for fields that need review. */
   explanations: string[];
   rawSnippet: string;
+  /** Set when a local rule matched (TASK-014). */
+  category?: string;
+  matchedRuleId?: string;
+  matchedRuleSummary?: string;
 };
 
 export type ParseTextOptions = {
@@ -437,6 +441,7 @@ export function toCreateCandidateInputs(
     confidence: item.confidence,
     status: "pending" as const,
     rawSnippet: item.rawSnippet,
+    category: item.category,
   }));
 }
 
