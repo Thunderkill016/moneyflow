@@ -317,9 +317,10 @@
 - **Completed:** 2026-07-15 — `b7b9bf8` public `/privacy` VN: data/no bank pwd/RLS/retention/export-xóa/liên hệ; footer + register links.
 
 ### TASK-111 — Page states audit P0 routes
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Audit /insights /transactions /accounts /budgets /reports /settings: mỗi trang loading.tsx hoặc skeleton, empty, error boundary/inline. Fix thiếu.
 - **Done khi:** checklist trong PR message; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `09269b8` P0 loading skeletons + segment error.tsx (RouteError) + root home /insights; empty/dataError already OK; checklist tests.
 
 ### TASK-112 — Mobile responsive pass core
 - **Status:** `ready`
@@ -397,6 +398,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-111 | `09269b8` P0 page states: loading skeletons + error.tsx per route; empty/inline OK |
 | 2026-07-15 | TASK-110 | `b7b9bf8` static /privacy policy VN + footer/register links |
 | 2026-07-15 | TASK-109 | `c143426` export CSV discoverability: Insights → /settings/export; Reports period download paths |
 | 2026-07-15 | TASK-108 | `8426ee3` budget calm thresholds: Gần hạn mức / Đã vượt X; text+color on budgets + Insights |
