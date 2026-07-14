@@ -135,7 +135,7 @@
 - **Status:** `done`
 - **Mô tả:** `/settings/delete-account` type XÓA confirm; clear local stores; if Supabase call delete or signOut + document server delete limitation. Wireframes §20. Careful destructive.
 - **Done khi:** local wipe works; lint/typecheck/test pass.
-- **Completed:** 2026-07-15 — ffcbe63 /settings/delete-account type XÓA + clear local + signOut; server hard-delete documented.
+- **Completed:** 2026-07-15 — `63cc8e8` /settings/delete-account type XÓA + clear local + signOut; server hard-delete documented.
 
 ### TASK-019 — Settings hub + error page polish
 - **Status:** `ready`
@@ -153,7 +153,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-018 | `ffcbe63` /settings/delete-account XÓA confirm + wipe local + signOut |
+| 2026-07-15 | TASK-018 | `63cc8e8` /settings/delete-account XÓA confirm + wipe local + signOut |
 | 2026-07-15 | TASK-017 | `7c3192e` /settings/export CSV/JSON giao dịch + ứng viên client-side |
 | 2026-07-15 | TASK-016 | `d3f5ec2` /settings/privacy retention + improve parser opt-in off |
 | 2026-07-15 | TASK-015 | `4b1f2bd` /imports lịch sử import + Xóa raw + preview links |
