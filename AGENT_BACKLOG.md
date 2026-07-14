@@ -90,9 +90,10 @@
 - **Completed:** 2026-07-15 — `ea7e66c` `/imports/[batchId]/preview` gate + draft store; upload → preview → Inbox.
 
 ### TASK-011 — Review single + bulk bar + explain
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Candidate detail/review panel: edit fields, ExplainPanel (parser, rules, raw), approve → create real transaction via existing `useTransactions`/`createTransactionAction`, reject, bulk bar approve/reject/category. Never auto-post low conf without opt-in. Wireframes §10–12.
 - **Done khi:** approve writes ledger (demo or server); bulk works; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — (pending SHA) review panel + explain + bulk approve/reject/category; low conf never auto-post.
 
 ### TASK-012 — Timeline route
 - **Status:** `ready`
@@ -145,6 +146,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-011 | (pending) review panel + explain + bulk; low conf opt-in only |
 | 2026-07-15 | TASK-010 | `ea7e66c` import preview map + 10-row table + Đưa vào Inbox gate |
 | 2026-07-15 | TASK-009 | `5827e33` /capture/upload dropzone + parse-csv + import batch → inbox |
 | 2026-07-15 | TASK-008 | `52288cf` /capture/quick + dialog date/keep-open/prefs + high-conf candidate |
