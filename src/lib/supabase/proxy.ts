@@ -22,9 +22,23 @@ const protectedPaths = [
 ];
 const authPaths = ["/login", "/register", "/forgot-password"];
 
+/** Supabase SSR cookies look like `sb-<ref>-auth-token` (and chunked variants). */
+function hasSupabaseAuthCookie(request: NextRequest): boolean {
+  return request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth"));
+}
+
 export async function updateSession(request: NextRequest) {
   const config = getSupabaseConfig();
   if (!config) return NextResponse.next({ request });
+
+  const path = request.nextUrl.pathname;
+
+  // TASK-132 LCP: public marketing `/` with no session cookies skips auth getClaims.
+  if (path === "/" && !hasSupabaseAuthCookie(request)) {
+    return NextResponse.next({ request });
+  }
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(config.url, config.publishableKey, {
@@ -44,7 +58,6 @@ export async function updateSession(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const isAuthenticated = Boolean(data?.claims?.sub);
-  const path = request.nextUrl.pathname;
   const needsAuth = protectedPaths.some(
     (protectedPath) => path === protectedPath || path.startsWith(`${protectedPath}/`),
   );
@@ -56,8 +69,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isAuthenticated && authPaths.includes(path)) {
-    // Thu chi home: see lib/auth-redirect.ts (POST_AUTH_REDIRECT = /insights)
+  // Logged-in: auth screens + public `/` → Tổng quan (POST_AUTH_REDIRECT)
+  if (isAuthenticated && (authPaths.includes(path) || path === "/")) {
     const homeUrl = request.nextUrl.clone();
     homeUrl.pathname = POST_AUTH_REDIRECT;
     homeUrl.search = "";

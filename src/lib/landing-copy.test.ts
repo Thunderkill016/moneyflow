@@ -28,6 +28,15 @@ test("landing source exists and is non-empty", () => {
   assert.match(source, /export function LandingPage/);
 });
 
+test("landing is Server Component (TASK-132 LCP)", () => {
+  const source = readLandingSource();
+  assert.equal(
+    /^\s*["']use client["']/.test(source),
+    false,
+    "landing must remain a Server Component for LCP",
+  );
+});
+
 test("landing positions as thu chi / có thể chi (G5), not inbox-only product", () => {
   const source = readLandingSource();
   const hasCoTheChi = source.includes("có thể chi");

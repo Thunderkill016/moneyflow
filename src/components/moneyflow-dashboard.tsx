@@ -1,9 +1,16 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon, type IconName } from "@/components/icons";
+
+/** Defer heavy dialog JS until user opens Ghi chi — improves insights TBT/LCP path. */
+const AddTransactionDialog = dynamic(
+  () =>
+    import("@/components/add-transaction-dialog").then((mod) => mod.AddTransactionDialog),
+  { ssr: false },
+);
 import {
   calculateDashboardSummary,
   netTransactionEffect,

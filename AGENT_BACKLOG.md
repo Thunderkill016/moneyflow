@@ -449,7 +449,7 @@
 
 
 ### TASK-132 — Performance budgets Lighthouse
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Fix LCP/CLS on insights and landing; document scores.
 - **Source:** roadmap pool refill
 

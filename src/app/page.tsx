@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
 import { LandingPage } from "@/components/landing-page";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
-import { getViewer } from "@/server/auth";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 /**
- * Public home: landing when logged out.
- * Logged-in (and demo) users → Tổng quan thu chi (`/insights`).
+ * Public home: static landing when Supabase is configured (logged-out).
+ * Demo (no Supabase) → /insights. Authenticated users redirected in proxy
+ * (skip RSC viewer fetch for better LCP — TASK-132).
  */
-export default async function Home() {
-  const viewer = await getViewer();
-  if (viewer) {
+export default function Home() {
+  if (!isSupabaseConfigured()) {
     redirect(POST_AUTH_REDIRECT);
   }
   return <LandingPage />;

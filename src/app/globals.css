@@ -596,10 +596,23 @@ select:focus-visible {
 .insights-kpi strong {
   margin-top: 8px;
   overflow: hidden;
+  min-height: 1.35em;
   font-size: clamp(15px, 1.9vw, 22px);
+  line-height: 1.3;
   letter-spacing: -.035em;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  /* Avoid mono fallback reflow shifting KPI row height */
+  contain: layout style;
+}
+
+/* Insights main stack: stable columns reduce CLS while cards hydrate */
+.insights-dashboard .insights-main-grid {
+  contain: layout;
+}
+.insights-dashboard .welcome-row h1 {
+  min-height: 1.2em;
 }
 .insights-kpi small {
   margin-top: 6px;
@@ -2167,6 +2180,8 @@ select:focus-visible {
   grid-template-columns: 1.05fr 0.95fr;
   gap: 48px;
   align-items: center;
+  /* Reserve above-fold height so font swap / preview paint less CLS */
+  min-height: min(560px, 72vh);
 }
 
 .landing-eyebrow {
@@ -2178,13 +2193,16 @@ select:focus-visible {
   text-transform: uppercase;
 }
 
-.landing-hero-content h1 {
+.landing-hero-content h1,
+.landing-hero-title {
   margin: 0 0 16px;
   font-size: clamp(32px, 4.5vw, 48px);
   line-height: 1.15;
   font-weight: 750;
   letter-spacing: -0.03em;
   color: var(--color-text-primary);
+  /* Explicit box for LCP text metrics */
+  min-height: 2.3em;
 }
 
 .landing-lead {
@@ -2270,12 +2288,23 @@ select:focus-visible {
 }
 
 /* Dashboard product preview (landing thu chi) */
+.landing-hero-preview {
+  min-height: 420px;
+  contain: layout style;
+}
 .preview-dash-card {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-default);
   border-radius: 16px;
   box-shadow: var(--shadow-md);
   overflow: hidden;
+  min-height: 420px;
+}
+
+/* Below-fold landing: skip paint work until near viewport (LCP/CLS) */
+.landing-below-fold {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 480px;
 }
 .preview-dash-safe {
   padding: 20px 20px 16px;
@@ -2872,6 +2901,12 @@ select:focus-visible {
     gap: 36px;
     padding: 36px 20px 56px;
     text-align: center;
+    min-height: 0;
+  }
+
+  .landing-hero-preview,
+  .preview-dash-card {
+    min-height: 360px;
   }
 
   .landing-lead,
@@ -2906,6 +2941,11 @@ select:focus-visible {
     min-height: 36px !important;
     padding-inline: 12px !important;
     font-size: 12px !important;
+  }
+
+  .landing-hero-preview,
+  .preview-dash-card {
+    min-height: 320px;
   }
 
   .steps-grid {
