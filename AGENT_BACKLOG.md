@@ -96,9 +96,10 @@
 - **Completed:** 2026-07-15 — `b22b5b8` review panel + explain + bulk approve/reject/category; low conf never auto-post.
 
 ### TASK-012 — Timeline route
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** `/timeline` wraps or redirects to approved transactions list (reuse transactions-page with copy “đã duyệt”). Empty → CTA Inbox. Wireframes §16.
 - **Done khi:** route usable; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `435fe49` `/timeline` + TransactionsPage variant timeline; empty CTA Inbox.
 
 ### TASK-013 — Insights demote dashboard
 - **Status:** `ready`
@@ -146,6 +147,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-012 | `435fe49` /timeline đã duyệt + empty CTA Inbox |
 | 2026-07-15 | TASK-011 | `b22b5b8` review panel + explain + bulk; low conf opt-in only |
 | 2026-07-15 | TASK-010 | `ea7e66c` import preview map + 10-row table + Đưa vào Inbox gate |
 | 2026-07-15 | TASK-009 | `5827e33` /capture/upload dropzone + parse-csv + import batch → inbox |
