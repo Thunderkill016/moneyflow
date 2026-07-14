@@ -10,6 +10,11 @@ import {
   type TransactionKind,
 } from "@/lib/sample-data";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import {
+  readQuickAddPrefs,
+  todayInVietnam,
+  writeQuickAddPrefs,
+} from "@/lib/quick-add-prefs";
 
 export function AddTransactionDialog({
   open,
@@ -18,6 +23,9 @@ export function AddTransactionDialog({
   accounts,
   categories,
   disabled = false,
+  embedded = false,
+  title = "Thêm vào MoneyFlow",
+  eyebrow = "Giao dịch mới",
 }: {
   open: boolean;
   onClose: () => void;
@@ -25,14 +33,23 @@ export function AddTransactionDialog({
   accounts: AccountOption[];
   categories: CategoryOption[];
   disabled?: boolean;
+  /** Render as page panel (no modal) for `/capture/quick`. */
+  embedded?: boolean;
+  title?: string;
+  eyebrow?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
+  const prefsHydratedRef = useRef(false);
+
   const [kind, setKind] = useState<TransactionKind>("expense");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [note, setNote] = useState("");
   const [accountId, setAccountId] = useState("");
+  const [occurredOn, setOccurredOn] = useState(() => todayInVietnam());
+  const [keepOpen, setKeepOpen] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -48,11 +65,34 @@ export function AddTransactionDialog({
     : availableCategories[0]?.id ?? "";
 
   useEffect(() => {
+    if (prefsHydratedRef.current) return;
+    prefsHydratedRef.current = true;
+    const frame = window.requestAnimationFrame(() => {
+      const prefs = readQuickAddPrefs();
+      setKind(prefs.kind);
+      setKeepOpen(prefs.keepOpen);
+      if (prefs.accountId) setAccountId(prefs.accountId);
+      if (prefs.categoryId) setCategoryId(prefs.categoryId);
+      setOccurredOn(todayInVietnam());
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (embedded) return;
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) dialog.showModal();
     if (!open && dialog.open) dialog.close();
-  }, [open]);
+  }, [open, embedded]);
+
+  useEffect(() => {
+    if (!open && !embedded) return;
+    const frame = window.requestAnimationFrame(() => {
+      amountInputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [open, embedded]);
 
   function markInputChanged() {
     idempotencyKeyRef.current = null;
@@ -61,8 +101,18 @@ export function AddTransactionDialog({
 
   function changeKind(nextKind: TransactionKind) {
     setKind(nextKind);
-    setCategoryId(categories.find((item) => item.kind === nextKind)?.id ?? "");
+    const nextCategory = categories.find((item) => item.kind === nextKind)?.id ?? "";
+    setCategoryId(nextCategory);
     markInputChanged();
+  }
+
+  function persistPrefs(next: {
+    kind: TransactionKind;
+    accountId: string;
+    categoryId: string;
+    keepOpen: boolean;
+  }) {
+    writeQuickAddPrefs(next);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -78,14 +128,13 @@ export function AddTransactionDialog({
       return;
     }
 
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(occurredOn)) {
+      setError("Chọn ngày giao dịch hợp lệ.");
+      return;
+    }
+
     const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
     idempotencyKeyRef.current = idempotencyKey;
-    const occurredOn = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Ho_Chi_Minh",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
 
     setSubmitting(true);
     let result: { ok: boolean; message?: string };
@@ -110,10 +159,192 @@ export function AddTransactionDialog({
       return;
     }
 
+    persistPrefs({
+      kind,
+      accountId: selectedAccountId,
+      categoryId: selectedCategoryId,
+      keepOpen,
+    });
+
     idempotencyKeyRef.current = null;
     setAmount("");
     setNote("");
     setError("");
+
+    if (keepOpen) {
+      window.requestAnimationFrame(() => amountInputRef.current?.focus());
+      return;
+    }
+
+    onClose();
+  }
+
+  const formBody = (
+    <form onSubmit={handleSubmit}>
+      <div className="segmented-control" aria-label="Loại giao dịch">
+        <button
+          type="button"
+          className={kind === "expense" ? "active" : ""}
+          onClick={() => changeKind("expense")}
+          aria-pressed={kind === "expense"}
+        >
+          Khoản chi
+        </button>
+        <button
+          type="button"
+          className={kind === "income" ? "active" : ""}
+          onClick={() => changeKind("income")}
+          aria-pressed={kind === "income"}
+        >
+          Khoản thu
+        </button>
+      </div>
+
+      <label className="amount-field">
+        <span>Số tiền</span>
+        <div>
+          <input
+            ref={amountInputRef}
+            autoFocus
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0"
+            value={amount}
+            onChange={(event) => {
+              setAmount(formatMoneyInput(event.target.value));
+              markInputChanged();
+            }}
+            aria-describedby={error ? "amount-error" : undefined}
+          />
+          <strong>₫</strong>
+        </div>
+      </label>
+      {error && (
+        <p id="amount-error" className="field-error" role="alert">
+          {error}
+        </p>
+      )}
+
+      <fieldset className="category-fieldset">
+        <legend>Danh mục</legend>
+        <div className="category-grid">
+          {availableCategories.map((item) => {
+            const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+            return (
+              <button
+                type="button"
+                key={item.id}
+                className={
+                  selectedCategoryId === item.id ? "category-choice selected" : "category-choice"
+                }
+                onClick={() => {
+                  setCategoryId(item.id);
+                  markInputChanged();
+                }}
+                aria-pressed={selectedCategoryId === item.id}
+              >
+                <span className={`transaction-icon ${meta.color}`}>
+                  <Icon name={meta.icon as IconName} />
+                </span>
+                <span>{item.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <div className="form-grid">
+        <label>
+          <span>Tài khoản</span>
+          <select
+            value={selectedAccountId}
+            onChange={(event) => {
+              setAccountId(event.target.value);
+              markInputChanged();
+            }}
+          >
+            {accounts.map((item) => (
+              <option value={item.id} key={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Ngày</span>
+          <input
+            type="date"
+            value={occurredOn}
+            onChange={(event) => {
+              setOccurredOn(event.target.value);
+              markInputChanged();
+            }}
+          />
+        </label>
+        <label className="form-span-full">
+          <span>Ghi chú</span>
+          <input
+            value={note}
+            onChange={(event) => {
+              setNote(event.target.value);
+              markInputChanged();
+            }}
+            placeholder="Ví dụ: Cơm trưa"
+            maxLength={500}
+          />
+        </label>
+      </div>
+
+      <label className="keep-open-row">
+        <input
+          type="checkbox"
+          checked={keepOpen}
+          onChange={(event) => {
+            const next = event.target.checked;
+            setKeepOpen(next);
+            persistPrefs({
+              kind,
+              accountId: selectedAccountId,
+              categoryId: selectedCategoryId,
+              keepOpen: next,
+            });
+          }}
+        />
+        <span>Lưu xong thêm tiếp</span>
+      </label>
+
+      <div className="dialog-footer-actions">
+        <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>
+          Hủy
+        </button>
+        <button
+          className="primary-button"
+          type="submit"
+          disabled={disabled || submitting || !accounts.length || !availableCategories.length}
+        >
+          <Icon name="check" />
+          {submitting ? "Đang lưu..." : "Lưu"}
+        </button>
+      </div>
+    </form>
+  );
+
+  if (embedded) {
+    if (!open) return null;
+    return (
+      <section
+        className="transaction-dialog transaction-dialog-embedded capture-quick-form"
+        aria-labelledby="transaction-dialog-title"
+      >
+        <div className="dialog-heading">
+          <div>
+            <p className="eyebrow">{eyebrow}</p>
+            <h2 id="transaction-dialog-title">{title}</h2>
+          </div>
+        </div>
+        {formBody}
+      </section>
+    );
   }
 
   return (
@@ -130,79 +361,14 @@ export function AddTransactionDialog({
       <div className="dialog-handle" aria-hidden="true" />
       <div className="dialog-heading">
         <div>
-          <p className="eyebrow">Giao dịch mới</p>
-          <h2 id="transaction-dialog-title">Thêm vào MoneyFlow</h2>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2 id="transaction-dialog-title">{title}</h2>
         </div>
         <button className="icon-button" type="button" onClick={onClose} aria-label="Đóng">
           <Icon name="close" />
         </button>
       </div>
-
-      <form onSubmit={handleSubmit}>
-        <div className="segmented-control" aria-label="Loại giao dịch">
-          <button type="button" className={kind === "expense" ? "active" : ""} onClick={() => changeKind("expense")} aria-pressed={kind === "expense"}>
-            Khoản chi
-          </button>
-          <button type="button" className={kind === "income" ? "active" : ""} onClick={() => changeKind("income")} aria-pressed={kind === "income"}>
-            Khoản thu
-          </button>
-        </div>
-
-        <label className="amount-field">
-          <span>Số tiền</span>
-          <div>
-            <input
-              autoFocus
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="0"
-              value={amount}
-              onChange={(event) => {
-                setAmount(formatMoneyInput(event.target.value));
-                markInputChanged();
-              }}
-              aria-describedby={error ? "amount-error" : undefined}
-            />
-            <strong>₫</strong>
-          </div>
-        </label>
-        {error && <p id="amount-error" className="field-error">{error}</p>}
-
-        <fieldset className="category-fieldset">
-          <legend>Danh mục</legend>
-          <div className="category-grid">
-            {availableCategories.map((item) => {
-              const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
-              return (
-                <button type="button" key={item.id} className={selectedCategoryId === item.id ? "category-choice selected" : "category-choice"} onClick={() => { setCategoryId(item.id); markInputChanged(); }} aria-pressed={selectedCategoryId === item.id}>
-                  <span className={`transaction-icon ${meta.color}`}><Icon name={meta.icon as IconName} /></span>
-                  <span>{item.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
-
-        <div className="form-grid">
-          <label>
-            <span>Tài khoản</span>
-            <select value={selectedAccountId} onChange={(event) => { setAccountId(event.target.value); markInputChanged(); }}>
-              {accounts.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}
-            </select>
-          </label>
-          <label>
-            <span>Ghi chú</span>
-            <input value={note} onChange={(event) => { setNote(event.target.value); markInputChanged(); }} placeholder="Ví dụ: Cơm trưa" maxLength={500} />
-          </label>
-        </div>
-
-        <div className="dialog-footer-actions">
-          <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>Hủy</button>
-          <button className="primary-button" type="submit" disabled={disabled || submitting || !accounts.length || !availableCategories.length}>
-            <Icon name="check" />{submitting ? "Đang lưu..." : "Lưu giao dịch"}
-          </button>
-        </div>
-      </form>
+      {formBody}
     </dialog>
   );
 }

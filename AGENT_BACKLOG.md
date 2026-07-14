@@ -72,9 +72,10 @@
 - **Completed:** 2026-07-15 — `7508add` `/capture/paste` + parse-text VND/NL + preview uncertain → inbox candidates.
 
 ### TASK-008 — Quick Add in Capture
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** `/capture/quick` reuses `AddTransactionDialog` or page form; optional also write a high-confidence candidate. Keep remember prefs + date + keep-open from existing dialog. Wireframes §7.
 - **Done khi:** quick add works from capture route; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `2e38a77` `/capture/quick` embedded AddTransactionDialog + date/keep-open/remember prefs + high-conf candidate mirror.
 
 ### TASK-009 — Upload statement UI + CSV parse
 - **Status:** `ready`
@@ -142,6 +143,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-008 | `2e38a77` /capture/quick + dialog date/keep-open/prefs + high-conf candidate |
 | 2026-07-15 | TASK-007 | `7508add` /capture/paste + parse-text → inbox candidates |
 | 2026-07-15 | TASK-006 | `13816e0` /capture chooser Paste/Upload/Quick |
 | 2026-07-15 | TASK-005 | `e29a2d3` /inbox shell + candidate-store CRUD + demo rows |
