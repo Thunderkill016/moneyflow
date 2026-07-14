@@ -423,9 +423,10 @@
 - **Completed:** 2026-07-15 — `5b2937f` /income-templates + migration; income ≠ commitments reserve
 
 ### TASK-128 — Split transaction
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Split one expense across 2+ categories; ledger multi-entry. Post-MVP.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `b158ac6` multi-entry split expense; Chia khoản chi dialog; reports expand lines
 
 
 ### TASK-129 — Multi-currency accounts read-only
@@ -447,6 +448,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-128 | `b158ac6` split expense multi-entry; Chia khoản chi; reports/budgets expand lines |
 | 2026-07-15 | TASK-127 | `5b2937f` lương định kỳ income templates separate from bill commitments |
 | 2026-07-15 | TASK-126 | `db1d5ea` in-app weekly summary card on Insights; calm copy; no email provider |
 | 2026-07-15 | TASK-125 | `a154639` AGENTS.md G5 guardrails; forbid inbox landing + bank/AI/family; Wave A→B→C |
