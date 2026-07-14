@@ -126,9 +126,10 @@
 - **Completed:** 2026-07-15 — `d3f5ec2` `/settings/privacy` local retention + improve-parser opt-in default off.
 
 ### TASK-017 — Export data page
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** `/settings/export` export approved txns and/or candidates CSV client-side. Wireframes §19. Reuse reports CSV escape if possible.
 - **Done khi:** download works; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `7c3192e` `/settings/export` CSV/JSON client-side + date range + lastExport stamp.
 
 ### TASK-018 — Delete account UI
 - **Status:** `ready`
@@ -151,6 +152,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-017 | `7c3192e` /settings/export CSV/JSON giao dịch + ứng viên client-side |
 | 2026-07-15 | TASK-016 | `d3f5ec2` /settings/privacy retention + improve parser opt-in off |
 | 2026-07-15 | TASK-015 | `4b1f2bd` /imports lịch sử import + Xóa raw + preview links |
 | 2026-07-15 | TASK-014 | `572b443` /rules local rules + apply on parse optional |
