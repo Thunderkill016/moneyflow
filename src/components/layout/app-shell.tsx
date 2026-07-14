@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { UserChip, type ViewerSummary } from "@/components/user-chip";
+import { CAPTURE_OPTIONS } from "@/lib/capture/options";
 
 /** Default badge when page does not pass `inboxCount` from candidate store. */
 const INBOX_BADGE_COUNT = 0;
@@ -53,27 +54,6 @@ const moreLegacy: { label: string; href: string; icon: IconName }[] = [
   { label: "Định kỳ", href: "/commitments", icon: "calendar" },
   { label: "Mục tiêu", href: "/goals", icon: "flag" },
   { label: "Tổng quan (cũ)", href: "/", icon: "home" },
-];
-
-const captureOptions: { label: string; description: string; href: string; icon: IconName }[] = [
-  {
-    label: "Dán text / SMS",
-    description: "Dán tin nhắn hoặc dòng ghi chép",
-    href: "/capture/paste",
-    icon: "paste",
-  },
-  {
-    label: "Tải sao kê / file",
-    description: "CSV, Excel hoặc PDF sao kê",
-    href: "/capture/upload",
-    icon: "upload",
-  },
-  {
-    label: "Thêm nhanh 1 khoản",
-    description: "Nhập tay một giao dịch",
-    href: "/capture/quick",
-    icon: "plus",
-  },
 ];
 
 const mobileTabs: NavItem[] = [
@@ -150,12 +130,14 @@ export function AppShell({
         <nav>
           {navWithBadge.map((item) => {
             if (item.kind === "action") {
+              const captureActive = captureOpen || pathIsActive(pathname, "/capture");
               return (
                 <button
                   type="button"
                   key={item.label}
-                  className={captureOpen ? "active" : ""}
+                  className={captureActive ? "active" : ""}
                   onClick={openCapture}
+                  aria-current={captureActive ? "page" : undefined}
                 >
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
@@ -260,12 +242,14 @@ export function AppShell({
       <nav className="mobile-nav" aria-label="Điều hướng di động">
         {mobileTabs.map((item) => {
           if (item.kind === "action") {
+            const captureActive = captureOpen || pathIsActive(pathname, "/capture");
             return (
               <button
                 type="button"
                 key={item.label}
-                className={captureOpen ? "active" : ""}
+                className={captureActive ? "active" : ""}
                 onClick={openCapture}
+                aria-current={captureActive ? "page" : undefined}
               >
                 <Icon name={item.icon} />
                 <span>{item.label}</span>
@@ -401,7 +385,7 @@ function CaptureSheet({
         Chọn cách đưa dữ liệu vào hộp thư — bạn duyệt trước khi vào sổ.
       </p>
       <div className="capture-sheet-actions">
-        {captureOptions.map((option) => (
+        {CAPTURE_OPTIONS.map((option) => (
           <Link
             key={option.href}
             href={option.href}

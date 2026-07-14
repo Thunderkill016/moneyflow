@@ -2713,3 +2713,156 @@ input[aria-invalid="true"] {
 [data-theme="dark"] .inbox-row:hover { background: var(--color-bg-tertiary); }
 [data-theme="dark"] .inbox-row { border-bottom-color: var(--color-border-default); }
 
+/* Capture chooser page (wireframes CaptureMenu) */
+.capture-workspace { padding-bottom: 88px; max-width: 640px; }
+.capture-title-row { margin-bottom: 8px; }
+.capture-menu {
+  margin-top: 8px;
+  padding: 22px 20px 20px;
+}
+.capture-menu-heading {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.capture-menu-lead {
+  margin: 0 0 18px;
+  color: #6b7670;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.capture-menu-actions {
+  display: grid;
+  gap: 10px;
+}
+.capture-menu-option {
+  display: grid;
+  grid-template-columns: 48px 1fr 18px;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  color: inherit;
+  text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.capture-menu-option:hover {
+  background: #f3f8f4;
+  border-color: #b7d0c0;
+}
+.capture-menu-option:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.capture-menu-option-icon {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--green-soft);
+  color: var(--green);
+}
+.capture-menu-option-icon svg { width: 22px; height: 22px; }
+.capture-menu-option > svg { width: 18px; height: 18px; color: #8e9993; }
+.capture-menu-option-text { min-width: 0; }
+.capture-menu-option-text strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 680;
+  letter-spacing: -0.01em;
+}
+.capture-menu-option-text small {
+  display: block;
+  margin-top: 4px;
+  color: #7a8680;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.capture-menu-trust {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  color: #6b7670;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.capture-menu-trust svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin-top: 1px;
+  color: var(--green);
+}
+.capture-skeleton-block {
+  margin-top: 24px;
+  display: grid;
+  gap: 12px;
+  max-width: 560px;
+}
+.capture-skeleton-row {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  grid-template-rows: auto auto;
+  gap: 8px 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+}
+.capture-skel-icon {
+  grid-row: 1 / span 2;
+  width: 48px !important;
+  height: 48px !important;
+  margin: 0 !important;
+  border-radius: 14px !important;
+}
+.capture-skel-label {
+  width: min(100%, 180px) !important;
+  height: 14px !important;
+  margin: 6px 0 0 !important;
+}
+.capture-skel-desc {
+  width: min(100%, 240px) !important;
+  height: 12px !important;
+  margin: 0 !important;
+}
+
+@media (max-width: 639px) {
+  .capture-menu { padding: 18px 14px 16px; border-radius: 18px; }
+  .capture-menu-option {
+    min-height: 68px;
+    padding: 12px 12px;
+    gap: 12px;
+    grid-template-columns: 44px 1fr 16px;
+  }
+  .capture-menu-option-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .capture-menu-option-text strong { font-size: 14px; }
+}
+
+[data-theme="dark"] .capture-menu-lead,
+[data-theme="dark"] .capture-menu-trust { color: var(--color-text-secondary); }
+[data-theme="dark"] .capture-menu-option {
+  border-color: var(--color-border-default);
+}
+[data-theme="dark"] .capture-menu-option:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border-strong, #3a4a40);
+}
+[data-theme="dark"] .capture-menu-option-text small { color: var(--color-text-secondary); }
+[data-theme="dark"] .capture-menu-trust { border-top-color: var(--color-border-default); }
+[data-theme="dark"] .capture-skeleton-row {
+  border-color: var(--color-border-default);
+  background: var(--color-bg-secondary, var(--surface));
+}
+
