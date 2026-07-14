@@ -123,7 +123,7 @@
 - **Status:** `done`
 - **Mô tả:** `/settings/privacy` retention options local prefs; opt-in improve parser default off. Wireframes §18.
 - **Done khi:** prefs persist; lint/typecheck/test pass.
-- **Completed:** 2026-07-15 — `PENDING` `/settings/privacy` local retention + improve-parser opt-in default off.
+- **Completed:** 2026-07-15 — `d3f5ec2` `/settings/privacy` local retention + improve-parser opt-in default off.
 
 ### TASK-017 — Export data page
 - **Status:** `ready`
@@ -151,7 +151,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-016 | `PENDING` /settings/privacy retention + improve parser opt-in off |
+| 2026-07-15 | TASK-016 | `d3f5ec2` /settings/privacy retention + improve parser opt-in off |
 | 2026-07-15 | TASK-015 | `4b1f2bd` /imports lịch sử import + Xóa raw + preview links |
 | 2026-07-15 | TASK-014 | `572b443` /rules local rules + apply on parse optional |
 | 2026-07-15 | TASK-013 | `42ada1f` /insights demote dashboard; / → /inbox when logged in |
