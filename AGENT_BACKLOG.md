@@ -347,9 +347,10 @@
 - **Completed:** 2026-07-15 — `0b8d7b8` featured goal on Insights + progress a11y + empty CTA /goals
 
 ### TASK-116 — E2E expense path Playwright
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Playwright: open landing → demo or login → add expense via quick add → insights/dashboard shows amount → open export or download path. Không phụ thuộc inbox. Update/replace inbox-only smoke nếu conflict.
 - **Done khi:** e2e script documented in package.json; pass locally; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `04ca419` expense-path E2E replaces inbox smoke; landing→demo→quick add→insights→export download
 
 ### TASK-117 — Expand domain unit tests
 - **Status:** `ready`
@@ -402,6 +403,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-116 | `04ca419` Playwright expense path: landing→demo→quick add→insights→export; replaces inbox smoke |
 | 2026-07-15 | TASK-115 | `0b8d7b8` featured goal progress on Insights; link /goals; empty CTA |
 | 2026-07-15 | TASK-114 | `4d5423b` pay commitment → expense ledger; reserve on insights; empty/error |
 | 2026-07-15 | TASK-113 | `06568ef` demo sticky banner + Đăng ký when viewer.isDemo |
