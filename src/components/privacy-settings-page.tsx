@@ -264,8 +264,9 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
                 </li>
               </ul>
               <p className="privacy-activity-hint">
-                Nhật ký chỉ lưu trên trình duyệt này. Trang Xuất / Xóa tài khoản
-                (sắp có) sẽ ghi lại các mốc này.
+                Nhật ký chỉ lưu trên trình duyệt này.{" "}
+                <Link href="/settings/export">Xuất dữ liệu</Link> ghi mốc xuất;
+                Xóa tài khoản (sắp có) sẽ ghi mốc xóa.
               </p>
             </section>
 

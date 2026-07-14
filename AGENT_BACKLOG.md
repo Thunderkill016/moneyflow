@@ -126,7 +126,7 @@
 - **Completed:** 2026-07-15 — `d3f5ec2` `/settings/privacy` local retention + improve-parser opt-in default off.
 
 ### TASK-017 — Export data page
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** `/settings/export` export approved txns and/or candidates CSV client-side. Wireframes §19. Reuse reports CSV escape if possible.
 - **Done khi:** download works; lint/typecheck/test pass.
 

@@ -134,10 +134,16 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
   };
 }
 
-function csvCell(value: string | number) {
+/** Escape a CSV cell; prefixes formulas to reduce spreadsheet injection risk. */
+export function escapeCsvCell(value: string | number) {
   let text = String(value);
   if (typeof value === "string" && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
   return `"${text.replaceAll('"', '""')}"`;
+}
+
+/** Build UTF-8 BOM CSV from header + row matrix (integer money as-is). */
+export function rowsToCsv(header: string[], rows: Array<Array<string | number>>) {
+  return `\uFEFF${[header, ...rows].map((row) => row.map(escapeCsvCell).join(",")).join("\r\n")}\r\n`;
 }
 
 export function transactionsToCsv(transactions: Transaction[]) {
@@ -151,5 +157,5 @@ export function transactionsToCsv(transactions: Transaction[]) {
     item.destinationAccount ?? "",
     item.kind === "expense" ? -item.amount : item.kind === "income" ? item.amount : item.amount,
   ]);
-  return `\uFEFF${[header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n")}\r\n`;
+  return rowsToCsv(header, rows);
 }
