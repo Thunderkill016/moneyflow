@@ -153,9 +153,10 @@
 
 
 ### TASK-021 — PWA share target capture
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Web app manifest share_target → `/capture/share` queue text/files into inbox store.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `d0dc0f6` manifest share_target + `/capture/share` POST bridge → inbox candidates (text/CSV).
 
 ### TASK-022 — XLSX parse
 - **Status:** `ready`
@@ -171,6 +172,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-021 | `d0dc0f6` PWA share_target → /capture/share queue text/CSV into inbox |
 | 2026-07-15 | TASK-020 | `99de308` README autopilot start/stop + scripts executable + pick-task ok |
 | 2026-07-15 | TASK-019 | `bbf6328` /settings hub + appearance + error §21; inbox skeletons ok |
 | 2026-07-15 | TASK-018 | `63cc8e8` /settings/delete-account XÓA confirm + wipe local + signOut |
