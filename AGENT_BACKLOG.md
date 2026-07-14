@@ -287,9 +287,10 @@
 - **Completed:** 2026-07-15 — `624cca2` AppShell default Ghi chi tiêu → /capture/quick; Insights/tx dialog same label; N giữ.
 
 ### TASK-106 — Soft-delete undo toast transactions
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Khi xóa giao dịch (soft delete), toast 8s với Hoàn tác gọi restore nếu API/demo hỗ trợ; không thì document limitation. Calm copy.
 - **Done khi:** undo path works demo và/hoặc server; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `3928fab` soft-delete toast 8s + Hoàn tác; demo restore + RPC restore_money_transaction; limitation doc.
 
 ### TASK-107 — Category manager tối thiểu
 - **Status:** `ready`
@@ -392,6 +393,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-106 | `3928fab` soft-delete undo toast 8s Hoàn tác (demo + restore RPC); migration limitation documented |
 | 2026-07-15 | TASK-105 | `624cca2` global CTA Ghi chi tiêu (topbar+FAB → quick add); Insights/tx same pattern |
 | 2026-07-15 | TASK-104 | `b7d5cdd` landing-copy regression: require thu chi/có thể chi; forbid inbox slogans |
 | 2026-07-15 | TASK-103 | `2837d68` insights G5: số dư/thu/chi/ròng + top categories bar + safe secondary + Ghi chi |
