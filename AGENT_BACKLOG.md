@@ -402,9 +402,10 @@
 - **Completed:** 2026-07-15 — `3f88fb4` README G5 thu chi primary; inbox optional tooling; run/quality/autopilot docs
 
 ### TASK-125 — AGENTS.md guardrails G5
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Update AGENTS.md: product law G5; forbid landing inbox slogan; forbid bank sync/AI/family tasks; point AUTOPILOT_PLAN wave order.
 - **Done khi:** AGENTS.md updated; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `a154639` AGENTS.md G5 product law; forbid inbox landing + bank/AI/family tasks; Wave A→B→C order
 
 
 
@@ -428,6 +429,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-125 | `a154639` AGENTS.md G5 guardrails; forbid inbox landing + bank/AI/family; Wave A→B→C |
 | 2026-07-15 | TASK-124 | `3f88fb4` README G5: thu chi primary; link 05 + AUTOPILOT_PLAN; run/quality/autopilot |
 | 2026-07-15 | TASK-122 | `02d42c1` transactions list load-more 50; keep filters; no 1000-row paint |
 | 2026-07-15 | TASK-121 | `ecce20d` soft rate limit import actions + docs/rate-limit.md middleware plan |
