@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
 const protectedPaths = [
@@ -47,10 +48,11 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isAuthenticated && authPaths.includes(path)) {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/";
-    dashboardUrl.search = "";
-    return NextResponse.redirect(dashboardUrl);
+    // POST_AUTH_REDIRECT is `/` until `/inbox` ships (TASK-005); see lib/auth-redirect.ts
+    const homeUrl = request.nextUrl.clone();
+    homeUrl.pathname = POST_AUTH_REDIRECT;
+    homeUrl.search = "";
+    return NextResponse.redirect(homeUrl);
   }
 
   return response;

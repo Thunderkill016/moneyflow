@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { POST_AUTH_REDIRECT, safeNextPath } from "@/lib/auth-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = {
@@ -19,15 +20,13 @@ const registerSchema = z.object({
   fullName: z.string().trim().min(2, "Tên cần ít nhất 2 ký tự.").max(80),
   email: emailSchema,
   password: passwordSchema,
+  privacyAccepted: z
+    .string()
+    .refine((value) => value === "1" || value === "on" || value === "true", {
+      message: "Bạn cần đồng ý với chính sách quyền riêng tư.",
+    }),
 });
 const loginSchema = z.object({ email: emailSchema, password: z.string().min(1, "Nhập mật khẩu.") });
-
-function safeNext(value: FormDataEntryValue | null, fallback = "/") {
-  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
-    return fallback;
-  }
-  return value;
-}
 
 function siteUrl() {
   return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
@@ -51,7 +50,7 @@ export async function login(_: AuthState, formData: FormData): Promise<AuthState
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { message: "Email hoặc mật khẩu không đúng." };
 
-  redirect(safeNext(formData.get("next")));
+  redirect(safeNextPath(String(formData.get("next") ?? ""), POST_AUTH_REDIRECT));
 }
 
 export async function register(_: AuthState, formData: FormData): Promise<AuthState> {
@@ -59,6 +58,7 @@ export async function register(_: AuthState, formData: FormData): Promise<AuthSt
     fullName: formData.get("fullName"),
     email: formData.get("email"),
     password: formData.get("password"),
+    privacyAccepted: formData.get("privacyAccepted") ?? "",
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
 
@@ -69,7 +69,7 @@ export async function register(_: AuthState, formData: FormData): Promise<AuthSt
     password: parsed.data.password,
     options: {
       data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${siteUrl()}/auth/callback`,
+      emailRedirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(POST_AUTH_REDIRECT)}`,
     },
   });
   if (error) return { message: "Không thể tạo tài khoản. Email có thể đã được sử dụng." };
@@ -82,7 +82,7 @@ export async function signInWithGoogle() {
   if (!supabase) redirect("/login?error=config");
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${siteUrl()}/auth/callback` },
+    options: { redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(POST_AUTH_REDIRECT)}` },
   });
   if (error || !data.url) redirect("/login?error=oauth");
   redirect(data.url);
@@ -110,7 +110,7 @@ export async function updatePassword(_: AuthState, formData: FormData): Promise<
   if (!supabase) return configurationError();
   const { error } = await supabase.auth.updateUser({ password: parsed.data });
   if (error) return { message: "Liên kết đã hết hạn. Hãy yêu cầu một liên kết mới." };
-  redirect("/");
+  redirect(POST_AUTH_REDIRECT);
 }
 
 export async function signOut() {
