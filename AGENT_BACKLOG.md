@@ -269,9 +269,10 @@
 - **Completed:** 2026-07-15 — `46567fd` onboarding trust + ví tiền mặt + optional quick expense → /insights; no paste/upload primary.
 
 ### TASK-103 — Insights dashboard G5 widgets
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Polish /insights: số dư tổng, thu tháng, chi tháng, ròng, top categories (list/bar không pie home), recent txns, safe-to-spend secondary + 1 dòng giải thích, CTA Ghi chi, cards budget/commitment/goal. Loading/empty/error. Dùng finance.ts existing.
 - **Done khi:** 4 câu JTBD trả lời được trên 1 màn; states OK; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `2837d68` G5 insights: KPI số dư/thu/chi/ròng, top categories bar, recent, safe-to-spend secondary + Ghi chi.
 
 ### TASK-104 — Lock landing thu chi (regression test)
 - **Status:** `ready`
@@ -389,6 +390,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-103 | `2837d68` insights G5: số dư/thu/chi/ròng + top categories bar + safe secondary + Ghi chi |
 | 2026-07-15 | TASK-102 | `46567fd` onboarding thu chi: trust + ví tiền mặt + optional ghi chi → /insights |
 | 2026-07-15 | TASK-101 | `2bb7d3c` nav IA thu chi: Tổng quan·Giao dịch·Capture·Tài khoản·More; Inbox demoted |
 | 2026-07-15 | TASK-100 | `1675e6d` post-auth + home + onboarding skip → /insights (Tổng quan thu chi) |
