@@ -263,9 +263,10 @@
 - **Completed:** 2026-07-15 — `2bb7d3c` primary Tổng quan·Giao dịch·Capture·Tài khoản·More; Inbox → More + Capture sheet.
 
 ### TASK-102 — Onboarding thu chi (ví + ghi chi + insights)
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Viết lại onboarding 3 bước: (1) trust no bank password + export (2) xác nhận/tạo ví tiền mặt (3) optional quick expense hoặc skip → /insights. Bỏ bắt buộc paste/upload làm bước chính. Cập nhật onboarding.ts tests.
 - **Done khi:** flow thu chi; ends at insights; tests pass.
+- **Completed:** 2026-07-15 — `46567fd` onboarding trust + ví tiền mặt + optional quick expense → /insights; no paste/upload primary.
 
 ### TASK-103 — Insights dashboard G5 widgets
 - **Status:** `ready`
@@ -388,6 +389,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-102 | `46567fd` onboarding thu chi: trust + ví tiền mặt + optional ghi chi → /insights |
 | 2026-07-15 | TASK-101 | `2bb7d3c` nav IA thu chi: Tổng quan·Giao dịch·Capture·Tài khoản·More; Inbox demoted |
 | 2026-07-15 | TASK-100 | `1675e6d` post-auth + home + onboarding skip → /insights (Tổng quan thu chi) |
 | 2026-07-15 | TASK-032 | `42724ee` mask STK-like digits in raw_snippet UI (review/explain/paste); pure helper + tests |
