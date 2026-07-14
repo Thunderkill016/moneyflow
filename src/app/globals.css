@@ -3508,6 +3508,28 @@ input[aria-invalid="true"] {
   color: var(--color-text-secondary);
 }
 
+/* PWA share target (TASK-021) */
+.capture-share-workspace { max-width: 640px; }
+.capture-share-panel { margin-top: 8px; padding: 22px 20px 20px; }
+.capture-share-state { display: flex; flex-direction: column; gap: 12px; }
+.capture-share-lead {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.capture-share-error-list,
+.capture-share-warning-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--color-text-secondary);
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+.capture-share-error-list { color: var(--color-danger, #b91c1c); }
+@media (max-width: 640px) {
+  .capture-share-panel { padding: 18px 14px 16px; border-radius: 18px; }
+}
+
 /* Import Preview (wireframes §9) */
 .import-preview-workspace { max-width: 720px; }
 .import-preview-panel { margin-top: 8px; padding: 22px 20px 20px; }

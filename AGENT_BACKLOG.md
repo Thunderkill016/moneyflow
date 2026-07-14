@@ -153,7 +153,7 @@
 
 
 ### TASK-021 — PWA share target capture
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Web app manifest share_target → `/capture/share` queue text/files into inbox store.
 - **Source:** roadmap pool refill
 
