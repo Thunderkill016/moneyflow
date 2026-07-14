@@ -160,6 +160,11 @@ export function addStoredImportBatch(input: CreateImportBatchInput): ImportBatch
   return batch;
 }
 
+export function getStoredImportBatch(id: string): ImportBatch | null {
+  if (!id) return null;
+  return readStoredImportBatches().find((item) => item.id === id) ?? null;
+}
+
 export function markImportBatchCommitted(
   id: string,
   committedAt = new Date().toISOString(),
@@ -178,8 +183,31 @@ export function markImportBatchCommitted(
   return updated;
 }
 
+export function markImportBatchCancelled(id: string): ImportBatch | null {
+  const list = readStoredImportBatches();
+  const index = list.findIndex((item) => item.id === id);
+  if (index === -1) return null;
+  const current = list[index]!;
+  if (current.status === "committed") return current;
+  const updated: ImportBatch = {
+    ...current,
+    status: "cancelled",
+  };
+  const next = [...list];
+  next[index] = updated;
+  writeStoredImportBatches(next);
+  return updated;
+}
+
 export function removeStoredImportBatch(id: string): ImportBatch[] {
   const next = readStoredImportBatches().filter((item) => item.id !== id);
   writeStoredImportBatches(next);
   return next;
+}
+
+/** Status label for import preview / history UI (Vietnamese). */
+export function importBatchStatusLabel(status: ImportBatchStatus): string {
+  if (status === "parsed") return "Chờ xác nhận";
+  if (status === "committed") return "Đã vào Inbox";
+  return "Đã hủy";
 }

@@ -2,8 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createImportBatch,
+  getStoredImportBatch,
+  importBatchStatusLabel,
   isImportBatch,
+  markImportBatchCancelled,
+  markImportBatchCommitted,
   upsertImportBatch,
+  writeStoredImportBatches,
   type ImportBatch,
 } from "./import-batch-store.ts";
 
@@ -89,4 +94,36 @@ test("upsertImportBatch inserts and replaces", () => {
   const list2 = upsertImportBatch(list1, updated);
   assert.equal(list2.length, 1);
   assert.equal(list2[0]?.rowCount, 9);
+});
+
+test("importBatchStatusLabel Vietnamese", () => {
+  assert.equal(importBatchStatusLabel("parsed"), "Chờ xác nhận");
+  assert.equal(importBatchStatusLabel("committed"), "Đã vào Inbox");
+  assert.equal(importBatchStatusLabel("cancelled"), "Đã hủy");
+});
+
+test("get / commit / cancel batch in memory storage helpers", () => {
+  // jsdom-less node tests: storage APIs no-op without window; pure create still works.
+  const a = createImportBatch({
+    id: "imp-storage",
+    fileName: "b.csv",
+    source: "csv",
+    rowCount: 2,
+    warningCount: 1,
+    mapConfidence: 0.8,
+    headers: ["Date", "Amount"],
+    columnMap: {
+      date: 0,
+      amount: 1,
+      desc: null,
+      debit: null,
+      credit: null,
+    },
+  });
+  assert.equal(a.status, "parsed");
+  // Without window, get/mark return empty/null — ensure no throw
+  assert.equal(getStoredImportBatch("imp-storage"), null);
+  assert.equal(markImportBatchCommitted("missing"), null);
+  assert.equal(markImportBatchCancelled("missing"), null);
+  writeStoredImportBatches([]);
 });

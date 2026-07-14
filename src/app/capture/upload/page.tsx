@@ -5,7 +5,7 @@ import { requireViewer } from "@/server/auth";
 export const metadata: Metadata = {
   title: "Tải sao kê — Capture — Money Flow",
   description:
-    "Tải CSV sao kê, map cột ngày/số tiền/mô tả, đưa ứng viên vào Inbox để duyệt.",
+    "Tải CSV sao kê, map cột ngày/số tiền/mô tả, xem Import Preview rồi đưa vào Inbox.",
 };
 
 export default async function Page() {

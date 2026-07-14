@@ -84,7 +84,7 @@
 - **Completed:** 2026-07-15 — `5827e33` `/capture/upload` dropzone + parse-csv + import-batch + candidates.
 
 ### TASK-010 — Import Preview
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** `/imports/[batchId]/preview` or step after upload: show mapped columns, 10-row preview, summary counts, confirm “Đưa vào Inbox”. Wireframes §9.
 - **Done khi:** preview gate before batch finalize; lint/typecheck/test pass.
 
