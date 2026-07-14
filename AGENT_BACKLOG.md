@@ -54,9 +54,10 @@
 - **Completed:** 2026-07-14 — `9193653` app-shell IA + capture/more sheets; POST_AUTH=/inbox; protectedPaths
 
 ### TASK-005 — Financial Inbox page shell
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Create `/inbox` page with AppShell: filters chips, empty/loading/error states, candidate list from local store (`src/lib/inbox/candidate-store.ts` localStorage). Demo sample candidates if empty optional. Row: date, merchant, money mono, source badge, confidence badge. Primary Capture CTA. Wireframes §5. No full approve pipeline yet if TASK-011 pending — at least UI + store CRUD.
 - **Done khi:** `/inbox` renders states; store unit-tested lightly; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `5868b44` `/inbox` + candidate-store localStorage + filters/states; demo seed.
 
 ### TASK-006 — Capture chooser
 - **Status:** `ready`
@@ -139,6 +140,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-005 | `5868b44` /inbox shell + candidate-store CRUD + demo rows |
 | 2026-07-14 | TASK-004 | `9193653` Inbox-first nav + post-auth /inbox |
 | 2026-07-14 | TASK-003 | `0ce187e` onboarding 3-step + register → /onboarding; skip → / until inbox |
 | 2026-07-14 | TASK-002 | `34402bc` auth trust copy + privacy checkbox; redirect `/` until inbox |

@@ -8,9 +8,9 @@ export const ONBOARDING_PATH = "/onboarding";
 
 /**
  * After onboarding skip / already-done redirect.
- * Prefer `/inbox` once TASK-005 ships; home is safe until then.
+ * Inbox-first home (TASK-005).
  */
-export const ONBOARDING_SKIP_HREF = "/";
+export const ONBOARDING_SKIP_HREF = "/inbox";
 
 export type CaptureMethod = "paste" | "upload" | "quick";
 

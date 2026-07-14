@@ -1,7 +1,6 @@
 /**
  * Default path after successful login / session restore.
  * Wireframes (`docs/wireframes-inbox.md` §2) — Inbox-first home.
- * Route shell lands in TASK-005; redirect target is already `/inbox`.
  */
 export const POST_AUTH_REDIRECT = "/inbox";
 

@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { UserChip, type ViewerSummary } from "@/components/user-chip";
 
-/** Placeholder until inbox candidate store ships (TASK-005). */
+/** Default badge when page does not pass `inboxCount` from candidate store. */
 const INBOX_BADGE_COUNT = 0;
 
 type NavHrefItem = {
