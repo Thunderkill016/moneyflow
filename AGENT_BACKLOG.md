@@ -353,9 +353,10 @@
 - **Completed:** 2026-07-15 — `04ca419` expense-path E2E replaces inbox smoke; landing→demo→quick add→insights→export download
 
 ### TASK-117 — Expand domain unit tests
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Tests: balance after expense/edit/soft-delete; transfer excluded from expense totals; budget spent ignores transfer; safe-to-spend non-negative integer.
 - **Done khi:** new tests green; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `47fab43` domain tests: balance after expense/edit/soft-delete; transfer excluded from expense; budget spent ignores transfer; safe-to-spend ≥0 integer
 
 ### TASK-118 — Document RLS verification
 - **Status:** `ready`
@@ -403,6 +404,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-117 | `47fab43` domain tests: balance edit/soft-delete; transfer≠expense; budget ignores transfer; safe-to-spend integer |
 | 2026-07-15 | TASK-116 | `04ca419` Playwright expense path: landing→demo→quick add→insights→export; replaces inbox smoke |
 | 2026-07-15 | TASK-115 | `0b8d7b8` featured goal progress on Insights; link /goals; empty CTA |
 | 2026-07-15 | TASK-114 | `4d5423b` pay commitment → expense ledger; reserve on insights; empty/error |
