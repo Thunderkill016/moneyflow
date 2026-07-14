@@ -7,15 +7,18 @@ import { Icon, type IconName } from "@/components/icons";
 import { UserChip, type ViewerSummary } from "@/components/user-chip";
 import { CAPTURE_OPTIONS } from "@/lib/capture/options";
 import {
+  APP_HOME_HREF,
   isPlanningPath,
-  MORE_OTHER_LINKS,
+  MORE_NAV_LINKS,
   PLANNING_LINKS,
+  PRIMARY_NAV,
+  type PrimaryNavItem,
 } from "@/lib/nav-ia";
 
 /** Default badge when page does not pass `inboxCount` from candidate store. */
 const INBOX_BADGE_COUNT = 0;
 
-type NavHrefItem = {
+type NavItem = PrimaryNavItem | {
   kind: "link";
   label: string;
   icon: IconName;
@@ -24,36 +27,10 @@ type NavHrefItem = {
   mobileTab?: boolean;
 };
 
-type NavActionItem = {
-  kind: "action";
-  label: string;
-  icon: IconName;
-  action: "capture";
-  mobileTab?: boolean;
-};
-
-type NavItem = NavHrefItem | NavActionItem;
-
-/** Inbox-first primary nav — never budgets / commitments / goals. */
-const desktopNav: NavItem[] = [
-  { kind: "link", label: "Inbox", icon: "inbox", href: "/inbox", badge: INBOX_BADGE_COUNT, mobileTab: true },
-  { kind: "action", label: "Capture", icon: "plus", action: "capture", mobileTab: true },
-  { kind: "link", label: "Timeline", icon: "timeline", href: "/timeline", mobileTab: true },
-  { kind: "link", label: "Tài khoản", icon: "wallet", href: "/accounts", mobileTab: true },
-  { kind: "link", label: "Quy tắc", icon: "rules", href: "/rules" },
-  { kind: "link", label: "Imports", icon: "imports", href: "/imports" },
-  { kind: "link", label: "Insights", icon: "chart", href: "/insights" },
-];
-
-const morePrimary: { label: string; href: string; icon: IconName }[] = [
-  { label: "Quy tắc", href: "/rules", icon: "rules" },
-  { label: "Imports", href: "/imports", icon: "imports" },
-  { label: "Insights", href: "/insights", icon: "chart" },
-  { label: "Cài đặt", href: "/settings", icon: "settings" },
-];
-
 const mobileTabs: NavItem[] = [
-  ...desktopNav.filter((item) => item.mobileTab),
+  ...PRIMARY_NAV.filter(
+    (item) => item.kind === "action" || item.mobileTab,
+  ),
   { kind: "link", label: "Thêm", icon: "more", href: "#more" },
 ];
 
@@ -79,7 +56,7 @@ export type AppShellProps = {
     onChange: (value: string) => void;
     placeholder?: string;
   };
-  /** Override placeholder badge (default 0). */
+  /** Override placeholder badge (default 0). Shown on More → Hộp thư. */
   inboxCount?: number;
   notice?: string;
   children: React.ReactNode;
@@ -100,12 +77,6 @@ export function AppShell({
   const captureTitleId = useId();
   const moreTitleId = useId();
 
-  const navWithBadge = desktopNav.map((item) =>
-    item.kind === "link" && item.href === "/inbox"
-      ? { ...item, badge: inboxCount }
-      : item,
-  );
-
   function openCapture() {
     setMoreOpen(false);
     setCaptureOpen(true);
@@ -119,12 +90,12 @@ export function AppShell({
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Điều hướng chính">
-        <Link className="brand" href="/inbox" aria-label="Money Flow, về Inbox">
+        <Link className="brand" href={APP_HOME_HREF} aria-label="Money Flow, về Tổng quan">
           <span className="brand-mark"><span /></span>
           <span>Money Flow</span>
         </Link>
         <nav>
-          {navWithBadge.map((item) => {
+          {PRIMARY_NAV.map((item) => {
             if (item.kind === "action") {
               const captureActive = captureOpen || pathIsActive(pathname, "/capture");
               return (
@@ -151,17 +122,12 @@ export function AppShell({
                 aria-current={active ? "page" : undefined}
                 title={
                   insightsRelated
-                    ? "Kế hoạch (ngân sách · định kỳ · mục tiêu) nằm dưới Insights"
+                    ? "Kế hoạch (ngân sách · định kỳ · mục tiêu) nằm dưới Tổng quan"
                     : undefined
                 }
               >
                 <Icon name={item.icon} />
                 <span>{item.label}</span>
-                {typeof item.badge === "number" && item.badge > 0 ? (
-                  <span className="nav-badge" aria-label={`${item.badge} mục chờ duyệt`}>
-                    {item.badge > 99 ? "99+" : item.badge}
-                  </span>
-                ) : null}
               </Link>
             );
           })}
@@ -180,7 +146,11 @@ export function AppShell({
 
       <div className="page-column">
         <header className="topbar">
-          <Link className="mobile-brand brand" href="/inbox" aria-label="Money Flow, về Inbox">
+          <Link
+            className="mobile-brand brand"
+            href={APP_HOME_HREF}
+            aria-label="Money Flow, về Tổng quan"
+          >
             <span className="brand-mark"><span /></span>
             <span>Money Flow</span>
           </Link>
@@ -264,9 +234,8 @@ export function AppShell({
           if (item.href === "#more") {
             const moreActive =
               moreOpen ||
-              morePrimary.some((m) => pathIsActive(pathname, m.href)) ||
-              PLANNING_LINKS.some((m) => pathIsActive(pathname, m.href)) ||
-              MORE_OTHER_LINKS.some((m) => pathIsActive(pathname, m.href));
+              MORE_NAV_LINKS.some((m) => pathIsActive(pathname, m.href)) ||
+              PLANNING_LINKS.some((m) => pathIsActive(pathname, m.href));
             return (
               <button
                 type="button"
@@ -278,24 +247,26 @@ export function AppShell({
               >
                 <Icon name={item.icon} />
                 <span>{item.label}</span>
+                {inboxCount > 0 ? (
+                  <span className="nav-badge mobile-nav-badge" aria-hidden="true">
+                    {inboxCount > 99 ? "99+" : inboxCount}
+                  </span>
+                ) : null}
               </button>
             );
           }
-          const badge =
-            item.href === "/inbox" && inboxCount > 0 ? inboxCount : undefined;
+          const insightsRelated =
+            item.href === "/insights" && isPlanningPath(pathname);
+          const active = pathIsActive(pathname, item.href) || insightsRelated;
           return (
             <Link
               href={item.href}
-              className={pathIsActive(pathname, item.href) ? "active" : ""}
+              className={active ? "active" : ""}
               key={item.label}
+              aria-current={active ? "page" : undefined}
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
-              {badge != null ? (
-                <span className="nav-badge mobile-nav-badge" aria-hidden="true">
-                  {badge > 99 ? "99+" : badge}
-                </span>
-              ) : null}
             </Link>
           );
         })}
@@ -317,12 +288,14 @@ export function AppShell({
         open={captureOpen}
         onClose={() => setCaptureOpen(false)}
         titleId={captureTitleId}
+        inboxCount={inboxCount}
       />
       <MoreSheet
         open={moreOpen}
         onClose={() => setMoreOpen(false)}
         titleId={moreTitleId}
         pathname={pathname}
+        inboxCount={inboxCount}
       />
 
       {(() => {
@@ -356,10 +329,12 @@ function CaptureSheet({
   open,
   onClose,
   titleId,
+  inboxCount,
 }: {
   open: boolean;
   onClose: () => void;
   titleId: string;
+  inboxCount: number;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -382,13 +357,13 @@ function CaptureSheet({
     >
       <div className="dialog-handle" />
       <div className="dialog-heading">
-        <h2 id={titleId}>Đưa giao dịch vào</h2>
+        <h2 id={titleId}>Ghi giao dịch</h2>
         <button type="button" className="icon-button" onClick={onClose} aria-label="Đóng">
           <Icon name="close" />
         </button>
       </div>
       <p className="capture-sheet-lead">
-        Chọn cách đưa dữ liệu vào hộp thư — bạn duyệt trước khi vào sổ.
+        Chọn cách ghi nhanh hoặc đưa dữ liệu vào để duyệt trước khi vào sổ.
       </p>
       <div className="capture-sheet-actions">
         {CAPTURE_OPTIONS.map((option) => (
@@ -409,14 +384,19 @@ function CaptureSheet({
           </Link>
         ))}
       </div>
+      <p className="capture-sheet-alt">
+        <Link href="/inbox" onClick={onClose}>
+          Mở Hộp thư
+          {inboxCount > 0 ? ` (${inboxCount > 99 ? "99+" : inboxCount})` : ""}
+        </Link>
+        {" · "}
+        <Link href="/capture" onClick={onClose}>
+          Trang Capture
+        </Link>
+      </p>
       <button type="button" className="secondary-button capture-sheet-cancel" onClick={onClose}>
         Hủy
       </button>
-      <p className="capture-sheet-alt">
-        <Link href="/capture" onClick={onClose}>
-          Mở trang Capture
-        </Link>
-      </p>
     </dialog>
   );
 }
@@ -426,11 +406,13 @@ function MoreSheet({
   onClose,
   titleId,
   pathname,
+  inboxCount,
 }: {
   open: boolean;
   onClose: () => void;
   titleId: string;
   pathname: string;
+  inboxCount: number;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -458,36 +440,31 @@ function MoreSheet({
           <Icon name="close" />
         </button>
       </div>
-      <nav className="more-sheet-nav" aria-label="Mục khác">
-        {morePrimary.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={pathIsActive(pathname, item.href) ? "active" : ""}
-            onClick={onClose}
-          >
-            <Icon name={item.icon} />
-            <span>{item.label}</span>
-          </Link>
-        ))}
+      <nav className="more-sheet-nav" aria-label="Công cụ khác">
+        {MORE_NAV_LINKS.map((item) => {
+          const badge =
+            item.href === "/inbox" && inboxCount > 0 ? inboxCount : undefined;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={pathIsActive(pathname, item.href) ? "active" : ""}
+              onClick={onClose}
+            >
+              <Icon name={item.icon} />
+              <span>{item.label}</span>
+              {badge != null ? (
+                <span className="nav-badge" aria-label={`${badge} mục chờ duyệt`}>
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              ) : null}
+            </Link>
+          );
+        })}
       </nav>
-      <p className="more-sheet-section-label">Kế hoạch · từ Insights</p>
+      <p className="more-sheet-section-label">Kế hoạch · từ Tổng quan</p>
       <nav className="more-sheet-nav" aria-label="Kế hoạch tài chính">
         {PLANNING_LINKS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={pathIsActive(pathname, item.href) ? "active" : ""}
-            onClick={onClose}
-          >
-            <Icon name={item.icon} />
-            <span>{item.label}</span>
-          </Link>
-        ))}
-      </nav>
-      <p className="more-sheet-section-label">Khác</p>
-      <nav className="more-sheet-nav" aria-label="Màn hình khác">
-        {MORE_OTHER_LINKS.map((item) => (
           <Link
             key={item.href}
             href={item.href}

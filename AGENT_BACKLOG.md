@@ -257,7 +257,7 @@
 - **Completed:** 2026-07-15 — `1675e6d` POST_AUTH_REDIRECT + `/` logged-in + onboarding skip → `/insights`; inbox route kept.
 
 ### TASK-101 — Nav IA thu chi (primary Tổng quan)
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Cập nhật app-shell + nav-ia: primary desktop/mobile = Tổng quan(/insights), Giao dịch(/transactions), Capture(/capture), Tài khoản(/accounts), More. Inbox chuyển More hoặc dưới Capture. Budgets/commitments/goals vẫn secondary (Insights cards / More Kế hoạch). Tests nav-ia. Không clone competitor.
 - **Done khi:** nav matches G5; tests pass; lint/typecheck/test pass.
 
