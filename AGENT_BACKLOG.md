@@ -138,8 +138,8 @@
 ## Nhật ký
 
 | Date | Task | Note |
-| 2026-07-14 | TASK-004 | `9193653` Inbox-first nav + post-auth /inbox |
 |------|------|------|
+| 2026-07-14 | TASK-004 | `9193653` Inbox-first nav + post-auth /inbox |
 | 2026-07-14 | TASK-003 | `0ce187e` onboarding 3-step + register → /onboarding; skip → / until inbox |
 | 2026-07-14 | TASK-002 | `34402bc` auth trust copy + privacy checkbox; redirect `/` until inbox |
 | 2026-07-14 | TASK-001 | Landing Inbox-first shipped pre-autopilot |
