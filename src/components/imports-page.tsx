@@ -110,13 +110,18 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
               {viewer.isDemo
                 ? "Các lượt tải lên / dán đã lưu trên thiết bị này."
                 : "Các lượt tải lên / dán đã đồng bộ theo tài khoản (RLS)."}{" "}
-              Xóa meta không xóa giao dịch đã duyệt trong sổ.
+              Xóa meta không xóa giao dịch đã duyệt trong sổ. Power-user: import
+              CSV thẳng vào sổ (bỏ Inbox).
             </p>
           </div>
           <div className="page-heading-actions">
             <Link className="primary-button" href="/capture/upload">
               <Icon name="upload" />
               Tải lên
+            </Link>
+            <Link className="secondary-button" href="/imports/direct">
+              <Icon name="imports" />
+              CSV → sổ
             </Link>
             <Link className="secondary-button" href="/inbox">
               <Icon name="inbox" />
@@ -150,11 +155,11 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
           <EmptyState
             icon="imports"
             title="Chưa có lượt import"
-            description="Tải CSV sao kê hoặc dán text — sau khi map cột, lượt import hiện ở đây."
+            description="Tải CSV sao kê vào Inbox, hoặc import CSV thẳng vào sổ (power-user, có dedupe)."
             actionLabel="Tải sao kê"
             actionHref="/capture/upload"
-            secondaryLabel="Về Inbox"
-            secondaryHref="/inbox"
+            secondaryLabel="CSV → sổ"
+            secondaryHref="/imports/direct"
           />
         )}
 

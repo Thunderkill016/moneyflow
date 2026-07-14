@@ -58,6 +58,11 @@ export type ParseCsvOptions = {
   today?: string;
   /** Max data rows to parse (safety). Default 5000. */
   maxRows?: number;
+  /**
+   * Power-user column map override (TASK-131).
+   * When set, replaces auto-detect; mapConfidence becomes 1.
+   */
+  columnMap?: CsvColumnMap;
 };
 
 const DATE_HEADERS =
@@ -460,7 +465,11 @@ export function parseStatementFromMatrix(
     );
   }
 
-  const { map, confidence } = mapCsvColumns(hasHeader ? first : headers);
+  const auto = mapCsvColumns(hasHeader ? first : headers);
+  const map = options.columnMap
+    ? normalizeColumnMap(options.columnMap)
+    : auto.map;
+  const confidence = options.columnMap ? 1 : auto.confidence;
 
   if (
     map.amount === null &&
@@ -546,6 +555,30 @@ function emptyFail(fileName: string, error: string): ParseCsvResult {
     skippedRows: 0,
     warningCount: 0,
     error,
+  };
+}
+
+/** Clamp optional indices; invalid indices become null. */
+export function normalizeColumnMap(map: CsvColumnMap): CsvColumnMap {
+  const clamp = (n: number | null): number | null =>
+    n === null || !Number.isInteger(n) || n < 0 ? null : n;
+  return {
+    date: clamp(map.date),
+    amount: clamp(map.amount),
+    desc: clamp(map.desc),
+    debit: clamp(map.debit),
+    credit: clamp(map.credit),
+  };
+}
+
+/** Empty map for UI state before auto-detect. */
+export function emptyColumnMap(): CsvColumnMap {
+  return {
+    date: null,
+    amount: null,
+    desc: null,
+    debit: null,
+    credit: null,
   };
 }
 

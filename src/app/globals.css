@@ -4555,10 +4555,64 @@ input[aria-invalid="true"] {
   gap: 12px;
 }
 
+/* TASK-131 power-user direct CSV → ledger */
+.direct-import-workspace { max-width: 760px; }
+.direct-import-map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px 14px;
+  margin: 8px 0 16px;
+}
+.direct-import-map-field {
+  display: grid;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--color-text-secondary);
+}
+.direct-import-map-field select {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-primary);
+  padding: 8px 10px;
+  font: inherit;
+}
+.direct-import-map-field select:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+.direct-import-dedupe {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 18px;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+.direct-import-dedupe input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.direct-import-result {
+  margin: 12px 0;
+  padding: 14px 16px;
+  background: var(--color-accent-subtle);
+  border: 1px solid var(--color-border-default);
+}
+.direct-import-actions {
+  margin-top: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 @media (max-width: 640px) {
   .import-preview-panel { padding: 18px 14px 16px; border-radius: 18px; }
   .import-preview-map-row { grid-template-columns: 72px 1fr; }
   .import-preview-merchant { max-width: 140px; }
+  .direct-import-map-grid { grid-template-columns: 1fr; }
 }
 
 [data-theme="dark"] .import-preview-status-label,

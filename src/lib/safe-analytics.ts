@@ -23,6 +23,7 @@ export type ProductEventName =
   | "import_batch_created"
   | "import_batch_committed"
   | "import_batch_cancelled"
+  | "import_direct_committed"
   | "paste_analyzed"
   | "paste_committed"
   | "candidate_approved"

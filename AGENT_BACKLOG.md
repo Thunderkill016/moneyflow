@@ -442,8 +442,14 @@
 - **Completed:** 2026-07-15 — `c644aa4` opt-in SW notifications for due commitments; no amounts in payload; /settings/notifications
 
 ### TASK-131 — CSV import to ledger direct (skip inbox)
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Power-user import mapped CSV → approved transactions with dedupe.
+- **Source:** roadmap pool refill
+
+
+### TASK-132 — Performance budgets Lighthouse
+- **Status:** `ready`
+- **Mô tả:** Fix LCP/CLS on insights and landing; document scores.
 - **Source:** roadmap pool refill
 
 ## Nhật ký
