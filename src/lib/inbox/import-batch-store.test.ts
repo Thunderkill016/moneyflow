@@ -2,11 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   createImportBatch,
+  formatImportBatchDateShort,
+  formatImportBatchStats,
   getStoredImportBatch,
+  importBatchSourceLabel,
   importBatchStatusLabel,
   isImportBatch,
   markImportBatchCancelled,
   markImportBatchCommitted,
+  sortImportBatchesNewestFirst,
   upsertImportBatch,
   writeStoredImportBatches,
   type ImportBatch,
@@ -100,6 +104,89 @@ test("importBatchStatusLabel Vietnamese", () => {
   assert.equal(importBatchStatusLabel("parsed"), "Chờ xác nhận");
   assert.equal(importBatchStatusLabel("committed"), "Đã vào Inbox");
   assert.equal(importBatchStatusLabel("cancelled"), "Đã hủy");
+});
+
+test("importBatchSourceLabel", () => {
+  assert.equal(importBatchSourceLabel("csv"), "CSV");
+  assert.equal(importBatchSourceLabel("xlsx"), "Excel");
+  assert.equal(importBatchSourceLabel("pdf"), "PDF");
+  assert.equal(importBatchSourceLabel("paste"), "Dán text");
+});
+
+test("formatImportBatchDateShort formats local day/month", () => {
+  assert.equal(formatImportBatchDateShort("not-a-date"), "—");
+  const short = formatImportBatchDateShort("2026-07-14T12:00:00.000Z");
+  assert.match(short, /^\d{2}\/\d{2}$/);
+});
+
+test("formatImportBatchStats wireframe-style", () => {
+  assert.equal(
+    formatImportBatchStats({
+      rowCount: 120,
+      warningCount: 4,
+      skippedRows: 0,
+      status: "committed",
+    }),
+    "120 dòng · 4 lỗi",
+  );
+  assert.equal(
+    formatImportBatchStats({
+      rowCount: 3,
+      warningCount: 0,
+      skippedRows: 2,
+      status: "parsed",
+    }),
+    "3 dòng · 0 lỗi · bỏ 2",
+  );
+  assert.equal(
+    formatImportBatchStats({
+      rowCount: 0,
+      warningCount: 0,
+      skippedRows: 0,
+      status: "cancelled",
+    }),
+    "Đã hủy",
+  );
+});
+
+test("sortImportBatchesNewestFirst", () => {
+  const older = createImportBatch({
+    id: "imp-old",
+    fileName: "old.csv",
+    source: "csv",
+    rowCount: 1,
+    warningCount: 0,
+    mapConfidence: 1,
+    headers: ["a"],
+    columnMap: {
+      date: null,
+      amount: null,
+      desc: null,
+      debit: null,
+      credit: null,
+    },
+    createdAt: "2026-07-01T00:00:00.000Z",
+  });
+  const newer = createImportBatch({
+    id: "imp-new",
+    fileName: "new.csv",
+    source: "csv",
+    rowCount: 2,
+    warningCount: 0,
+    mapConfidence: 1,
+    headers: ["a"],
+    columnMap: {
+      date: null,
+      amount: null,
+      desc: null,
+      debit: null,
+      credit: null,
+    },
+    createdAt: "2026-07-14T00:00:00.000Z",
+  });
+  const sorted = sortImportBatchesNewestFirst([older, newer]);
+  assert.equal(sorted[0]?.id, "imp-new");
+  assert.equal(sorted[1]?.id, "imp-old");
 });
 
 test("get / commit / cancel batch in memory storage helpers", () => {

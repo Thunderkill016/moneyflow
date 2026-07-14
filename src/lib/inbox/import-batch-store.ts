@@ -211,3 +211,50 @@ export function importBatchStatusLabel(status: ImportBatchStatus): string {
   if (status === "committed") return "Đã vào Inbox";
   return "Đã hủy";
 }
+
+/** Source badge for import history list (Vietnamese-friendly). */
+export function importBatchSourceLabel(source: ImportBatchSource): string {
+  if (source === "csv") return "CSV";
+  if (source === "xlsx") return "Excel";
+  if (source === "pdf") return "PDF";
+  return "Dán text";
+}
+
+/** Short date for history rows, e.g. 14/07 (local timezone). */
+export function formatImportBatchDateShort(iso: string): string {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return "—";
+  const d = new Date(ms);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}`;
+}
+
+/**
+ * Stats line for history: "120 dòng · 4 lỗi" (wireframes §15).
+ * Cancelled batches show status only.
+ */
+export function formatImportBatchStats(
+  batch: Pick<
+    ImportBatch,
+    "rowCount" | "warningCount" | "skippedRows" | "status"
+  >,
+): string {
+  if (batch.status === "cancelled") return "Đã hủy";
+  const parts = [`${batch.rowCount} dòng`, `${batch.warningCount} lỗi`];
+  if (batch.skippedRows > 0) {
+    parts.push(`bỏ ${batch.skippedRows}`);
+  }
+  return parts.join(" · ");
+}
+
+/** Newest first by createdAt (stable for equal timestamps). */
+export function sortImportBatchesNewestFirst(
+  batches: ImportBatch[],
+): ImportBatch[] {
+  return [...batches].sort((a, b) => {
+    const diff = Date.parse(b.createdAt) - Date.parse(a.createdAt);
+    if (diff !== 0) return diff;
+    return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+  });
+}

@@ -114,7 +114,7 @@
 - **Completed:** 2026-07-15 — `572b443` `/rules` localStorage CRUD contains→category; optional apply on paste parse.
 
 ### TASK-015 — Import history
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** `/imports` list batches from store; delete raw meta; link preview. Wireframes §15.
 - **Done khi:** page works; lint/typecheck/test pass.
 
