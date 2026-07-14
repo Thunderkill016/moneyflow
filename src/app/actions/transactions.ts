@@ -111,7 +111,13 @@ export async function createTransferAction(input: CreateTransferInput): Promise<
   const viewer = await requireViewer(); if (viewer.isDemo) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
   const supabase = await createClient(); if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
   const value = parsed.data; const { data: transactionId, error } = await supabase.rpc("create_account_transfer", { p_source_account_id: value.sourceAccountId, p_destination_account_id: value.destinationAccountId, p_amount_minor: value.amount, p_occurred_on: value.occurredOn, p_note: value.note, p_idempotency_key: value.idempotencyKey });
-  if (error || typeof transactionId !== "string") return { ok: false, message: "Không thể chuyển tiền. Hãy kiểm tra hai tài khoản và thử lại." };
+  if (error || typeof transactionId !== "string") {
+    const msg = error?.message ?? "";
+    if (msg.includes("currency_mismatch")) {
+      return { ok: false, message: "Chỉ chuyển được giữa hai tài khoản cùng loại tiền. Chưa hỗ trợ đổi ngoại tệ." };
+    }
+    return { ok: false, message: "Không thể chuyển tiền. Hãy kiểm tra hai tài khoản và thử lại." };
+  }
   const { data, error: readError } = await supabase.from("transaction_feed").select(feedColumns).eq("id", transactionId).single();
   if (readError || !data) { refreshFinancePages(); return { ok: false, message: "Đã chuyển nhưng chưa tải lại được giao dịch." }; }
   try { const transaction = mapTransactionFeedRow(data); refreshFinancePages(); revalidatePath("/accounts"); return { ok: true, transaction }; }

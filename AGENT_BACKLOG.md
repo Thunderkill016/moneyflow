@@ -430,7 +430,7 @@
 
 
 ### TASK-129 — Multi-currency accounts read-only
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Display FX accounts without transfer across currency. Post-MVP.
 - **Source:** roadmap pool refill
 

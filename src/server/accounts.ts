@@ -43,6 +43,8 @@ const demoAccountRows: AccountSummary[] = [
   { id: "demo-account-mb", name: "MB Bank", kind: "bank", currencyCode: "VND", initialBalance: 1_126_000, balance: 15_454_000, isArchived: false },
   { id: "demo-account-cash", name: "Tiền mặt", kind: "cash", currencyCode: "VND", initialBalance: 0, balance: 239_000, isArchived: false },
   { id: "demo-account-momo", name: "MoMo", kind: "e_wallet", currencyCode: "VND", initialBalance: 0, balance: 42_000, isArchived: false },
+  /** 200.00 USD in minor units (cents) — display only; no cross-currency transfer. */
+  { id: "demo-account-usd", name: "USD du lịch", kind: "cash", currencyCode: "USD", initialBalance: 20_000, balance: 20_000, isArchived: false },
 ];
 
 export async function getAccountsWorkspace(): Promise<AccountsWorkspace> {

@@ -14,6 +14,8 @@ export type SaveAccountInput = {
   id?: string;
   name: string;
   kind: AccountKind;
+  /** ISO 4217; only applied on create (currency is immutable after). */
+  currencyCode?: string;
   initialBalance: number;
 };
 

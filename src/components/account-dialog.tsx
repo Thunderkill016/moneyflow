@@ -3,7 +3,13 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
 import { accountKindLabels, type AccountKind, type AccountSummary, type SaveAccountInput } from "@/lib/accounts";
-import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import {
+  SUPPORTED_CURRENCY_CODES,
+  currencySelectLabel,
+  currencySymbolHint,
+  normalizeCurrencyCode,
+} from "@/lib/currency";
+import { formatMoneyInput, formatMoneyInputFromMinor, parseMoneyInputToMinor } from "@/lib/money";
 
 export function AccountDialog({
   open,
@@ -19,8 +25,11 @@ export function AccountDialog({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [kind, setKind] = useState<AccountKind>(account?.kind ?? "cash");
+  const [currencyCode, setCurrencyCode] = useState(normalizeCurrencyCode(account?.currencyCode ?? "VND"));
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const isEdit = Boolean(account);
+  const symbol = currencySymbolHint(currencyCode);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -33,7 +42,7 @@ export function AccountDialog({
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const name = String(formData.get("name") ?? "").trim();
-    const amount = parseMoneyInput(String(formData.get("initialBalance") ?? ""));
+    const amount = parseMoneyInputToMinor(String(formData.get("initialBalance") ?? ""), currencyCode);
     if (!name || name.length > 80) {
       setError("Tên tài khoản cần từ 1 đến 80 ký tự.");
       return;
@@ -50,6 +59,7 @@ export function AccountDialog({
         id: account?.id,
         name,
         kind,
+        currencyCode: isEdit ? account?.currencyCode : currencyCode,
         initialBalance: kind === "credit_card" ? -amount : amount,
       });
     } catch {
@@ -85,8 +95,52 @@ export function AccountDialog({
         <label><span>Loại tài khoản</span><select value={kind} onChange={(event) => { setKind(event.target.value as AccountKind); setError(""); }}>
           {(Object.entries(accountKindLabels) as [AccountKind, string][]).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
         </select></label>
-        <label><span>{kind === "credit_card" ? "Dư nợ hiện tại" : "Số dư ban đầu"}</span><div className="account-money-input"><input name="initialBalance" inputMode="decimal" defaultValue={formatMoneyInput(String(Math.abs(account?.initialBalance ?? 0)))} placeholder="0" onInput={(event) => { event.currentTarget.value = formatMoneyInput(event.currentTarget.value); setError(""); }} /><strong>₫</strong></div></label>
-        <p className="account-form-hint">{kind === "credit_card" ? "Dư nợ được ghi âm vào tổng tài sản của bạn." : "Dùng số dư tại thời điểm bắt đầu sử dụng MoneyFlow."}</p>
+        <label>
+          <span>Loại tiền</span>
+          {isEdit ? (
+            <input value={currencySelectLabel(currencyCode)} readOnly disabled aria-readonly="true" />
+          ) : (
+            <select
+              value={currencyCode}
+              onChange={(event) => {
+                setCurrencyCode(normalizeCurrencyCode(event.target.value));
+                setError("");
+              }}
+            >
+              {SUPPORTED_CURRENCY_CODES.map((code) => (
+                <option value={code} key={code}>{currencySelectLabel(code)}</option>
+              ))}
+            </select>
+          )}
+        </label>
+        {!isEdit && currencyCode !== "VND" && (
+          <p className="account-form-hint">
+            Tài khoản ngoại tệ chỉ để theo dõi số dư. Không chuyển được sang tài khoản loại tiền khác (chưa hỗ trợ đổi ngoại tệ).
+          </p>
+        )}
+        <label>
+          <span>{kind === "credit_card" ? "Dư nợ hiện tại" : "Số dư ban đầu"}</span>
+          <div className="account-money-input">
+            <input
+              name="initialBalance"
+              inputMode="decimal"
+              defaultValue={formatMoneyInputFromMinor(account?.initialBalance ?? 0, currencyCode)}
+              placeholder="0"
+              onInput={(event) => {
+                event.currentTarget.value = formatMoneyInput(event.currentTarget.value);
+                setError("");
+              }}
+            />
+            <strong>{symbol}</strong>
+          </div>
+        </label>
+        <p className="account-form-hint">
+          {kind === "credit_card"
+            ? "Dư nợ được ghi âm vào tổng tài sản của bạn."
+            : currencyCode === "VND"
+              ? "Dùng số dư tại thời điểm bắt đầu sử dụng MoneyFlow."
+              : "Nhập số nguyên đơn vị chính (ví dụ 200 USD). Phần lẻ nhỏ nhất được quy đổi theo chuẩn loại tiền."}
+        </p>
         {error && <p className="field-error" role="alert">{error}</p>}
         <div className="dialog-footer-actions">
           <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>Hủy</button>

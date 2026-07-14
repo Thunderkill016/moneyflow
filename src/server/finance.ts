@@ -21,7 +21,15 @@ export type FinanceWorkspace = {
   dataError: string | null;
 };
 
-const accountSchema = z.object({ id: z.string().uuid(), name: z.string().min(1) });
+const accountSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1),
+  currency_code: z.string().length(3).optional(),
+}).transform((row) => ({
+  id: row.id,
+  name: row.name,
+  currencyCode: row.currency_code ?? "VND",
+}));
 const categorySchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
@@ -146,7 +154,7 @@ export async function getFinanceWorkspace(): Promise<FinanceWorkspace> {
   if (!supabase) return { ...demoWorkspace(), dataError: "Không thể kết nối dữ liệu." };
 
   const [accountsResult, categoriesResult, feedResult, balancesResult] = await Promise.all([
-    supabase.from("accounts").select("id,name").eq("is_archived", false).order("created_at"),
+    supabase.from("accounts").select("id,name,currency_code").eq("is_archived", false).order("created_at"),
     supabase
       .from("categories")
       .select("id,name,kind,icon,color")
@@ -157,7 +165,8 @@ export async function getFinanceWorkspace(): Promise<FinanceWorkspace> {
       .select("id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines")
       .order("occurred_on", { ascending: false })
       .order("created_at", { ascending: false }),
-    supabase.from("account_balances").select("balance_minor"),
+    // Join currency so insights totalBalance stays VND-only (no FX mix).
+    supabase.from("account_balances").select("account_id,balance_minor,currency_code"),
   ]);
 
   if (accountsResult.error || categoriesResult.error || feedResult.error || balancesResult.error) {
@@ -175,7 +184,10 @@ export async function getFinanceWorkspace(): Promise<FinanceWorkspace> {
     const accounts = z.array(accountSchema).parse(accountsResult.data) satisfies AccountOption[];
     const categories = z.array(categorySchema).parse(categoriesResult.data) satisfies CategoryOption[];
     const transactions = z.array(z.unknown()).parse(feedResult.data).map(mapTransactionFeedRow);
+    // Safe-to-spend / insights use VND only — FX accounts are display-only (TASK-129).
     const totalBalance = (balancesResult.data ?? []).reduce((sum, item) => {
+      const code = String(item.currency_code ?? "VND").toUpperCase();
+      if (code !== "VND") return sum;
       const amount = Number(item.balance_minor);
       if (!Number.isSafeInteger(amount)) throw new Error("invalid_account_balance");
       return sum + amount;

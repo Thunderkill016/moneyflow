@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import type { AccountSummary, SaveAccountInput } from "@/lib/accounts";
+import { SUPPORTED_CURRENCY_CODES, normalizeCurrencyCode } from "@/lib/currency";
 import { requireViewer } from "@/server/auth";
 import { mapAccountRow } from "@/server/accounts";
 
@@ -15,6 +16,12 @@ const saveSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().trim().min(1).max(80),
   kind: z.enum(["cash", "bank", "e_wallet", "credit_card", "savings"]),
+  currencyCode: z
+    .string()
+    .trim()
+    .transform((value) => normalizeCurrencyCode(value))
+    .refine((value) => (SUPPORTED_CURRENCY_CODES as readonly string[]).includes(value), "unsupported_currency")
+    .optional(),
   initialBalance: z.number().int().min(-Number.MAX_SAFE_INTEGER).max(Number.MAX_SAFE_INTEGER),
 });
 const archiveSchema = z.object({ id: z.string().uuid(), archived: z.boolean() });
@@ -28,6 +35,7 @@ function refreshAccountPages() {
 function accountError(message: string) {
   if (message.includes("account_limit_reached")) return "Bạn đã đạt giới hạn 30 tài khoản.";
   if (message.includes("last_active_account")) return "Cần giữ lại ít nhất một tài khoản hoạt động.";
+  if (message.includes("invalid_currency_code")) return "Loại tiền chưa được hỗ trợ.";
   return "Không thể cập nhật tài khoản. Hãy thử lại.";
 }
 
@@ -51,10 +59,12 @@ export async function saveAccountAction(input: SaveAccountInput): Promise<Accoun
     if (error) return { ok: false, message: accountError(error.message) };
     if (data !== true) return { ok: false, message: "Không tìm thấy tài khoản." };
   } else {
+    const currencyCode = parsed.data.currencyCode ?? "VND";
     const { data, error } = await supabase.rpc("create_financial_account", {
       p_name: parsed.data.name,
       p_kind: parsed.data.kind,
       p_initial_balance_minor: parsed.data.initialBalance,
+      p_currency_code: currencyCode,
     });
     if (error || typeof data !== "string") {
       return { ok: false, message: accountError(error?.message ?? "create_failed") };

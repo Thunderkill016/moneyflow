@@ -29,6 +29,8 @@ export type Transaction = {
 export type AccountOption = {
   id: string;
   name: string;
+  /** ISO 4217; defaults to VND when omitted (legacy callers). */
+  currencyCode?: string;
 };
 
 export type CategoryOption = {
@@ -97,9 +99,10 @@ export const categoryMeta: Record<string, { icon: string; color: string }> = {
 };
 
 export const demoAccounts: AccountOption[] = [
-  { id: "demo-account-mb", name: "MB Bank" },
-  { id: "demo-account-cash", name: "Tiền mặt" },
-  { id: "demo-account-momo", name: "MoMo" },
+  { id: "demo-account-mb", name: "MB Bank", currencyCode: "VND" },
+  { id: "demo-account-cash", name: "Tiền mặt", currencyCode: "VND" },
+  { id: "demo-account-momo", name: "MoMo", currencyCode: "VND" },
+  { id: "demo-account-usd", name: "USD du lịch", currencyCode: "USD" },
 ];
 
 export const demoCategories: CategoryOption[] = Object.entries(categories).flatMap(

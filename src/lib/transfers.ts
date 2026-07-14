@@ -1,7 +1,16 @@
-import type { AccountSummary } from "@/lib/accounts";
+import type { AccountSummary } from "./accounts.ts";
+import { canTransferSameCurrency } from "./currency.ts";
 
+/**
+ * Apply a same-currency transfer. Cross-currency returns accounts unchanged
+ * (no FX rate engine — TASK-129 read-only multi-currency).
+ */
 export function applyTransferBalances(accounts: AccountSummary[], sourceId: string, destinationId: string, amount: number) {
   if (sourceId === destinationId || !Number.isSafeInteger(amount) || amount <= 0) return accounts;
+  const source = accounts.find((item) => item.id === sourceId);
+  const destination = accounts.find((item) => item.id === destinationId);
+  if (!source || !destination) return accounts;
+  if (!canTransferSameCurrency(source, destination)) return accounts;
   return accounts.map((account) => {
     if (account.id === sourceId) return { ...account, balance: account.balance - amount };
     if (account.id === destinationId) return { ...account, balance: account.balance + amount };
