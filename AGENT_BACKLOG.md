@@ -402,10 +402,27 @@
 - **Completed:** 2026-07-15 — `3f88fb4` README G5 thu chi primary; inbox optional tooling; run/quality/autopilot docs
 
 ### TASK-125 — AGENTS.md guardrails G5
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Update AGENTS.md: product law G5; forbid landing inbox slogan; forbid bank sync/AI/family tasks; point AUTOPILOT_PLAN wave order.
 - **Done khi:** AGENTS.md updated; lint/typecheck/test pass.
 
+
+
+
+### TASK-126 — Weekly review email stub (optional)
+- **Status:** `ready`
+- **Mô tả:** Optional in-app weekly summary card (not email provider); calm copy. Skip if no demand.
+- **Source:** roadmap pool refill
+
+### TASK-127 — Recurring income templates
+- **Status:** `ready`
+- **Mô tả:** Lương định kỳ as income template separate from bill commitments.
+- **Source:** roadmap pool refill
+
+### TASK-128 — Split transaction
+- **Status:** `ready`
+- **Mô tả:** Split one expense across 2+ categories; ledger multi-entry. Post-MVP.
+- **Source:** roadmap pool refill
 
 ## Nhật ký
 
