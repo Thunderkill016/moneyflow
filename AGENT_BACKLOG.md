@@ -335,9 +335,10 @@
 - **Completed:** 2026-07-15 — `06568ef` sticky demo banner under topbar + Đăng ký CTA; source contract test.
 
 ### TASK-114 — Commitments pay flow polish
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Pay commitment → expense ledger; empty/error; reserve hiển thị trên insights. Fix bugs only, no new product.
 - **Done khi:** happy path + tests commitments; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `4d5423b` pay → expense ledger (demo + occurrence map); loading/error/empty; Insights reserve sync
 
 ### TASK-115 — Goals card on Insights
 - **Status:** `ready`
@@ -400,6 +401,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-114 | `4d5423b` pay commitment → expense ledger; reserve on insights; empty/error |
 | 2026-07-15 | TASK-113 | `06568ef` demo sticky banner + Đăng ký when viewer.isDemo |
 | 2026-07-15 | TASK-112 | `68588b7` mobile pass: bottom nav 5 + FAB clear + dialogs full-width + table scroll |
 | 2026-07-15 | TASK-111 | `09269b8` P0 page states: loading skeletons + error.tsx per route; empty/inline OK |
