@@ -436,9 +436,10 @@
 - **Completed:** 2026-07-15 — `fbaa1cd` multi-currency account display; totals per currency; same-currency transfer only; no FX rate
 
 ### TASK-130 — Push notification opt-in bills
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Web push for due commitments; privacy-first. Post-MVP.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `c644aa4` opt-in SW notifications for due commitments; no amounts in payload; /settings/notifications
 
 ### TASK-131 — CSV import to ledger direct (skip inbox)
 - **Status:** `ready`
@@ -449,6 +450,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-130 | `c644aa4` privacy-first due-commitment web notifications; opt-in; no amounts |
 | 2026-07-15 | TASK-129 | `fbaa1cd` multi-currency accounts read-only; no cross-currency transfer; VND insights total |
 | 2026-07-15 | TASK-128 | `b158ac6` split expense multi-entry; Chia khoản chi; reports/budgets expand lines |
 | 2026-07-15 | TASK-127 | `5b2937f` lương định kỳ income templates separate from bill commitments |
