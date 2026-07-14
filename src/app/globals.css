@@ -5595,6 +5595,14 @@ input[aria-invalid="true"] {
   color: var(--color-danger-text, #fca5a5);
 }
 
+/* TASK-130 — Notification settings for due commitments */
+.notification-settings-workspace .notification-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 
 /* TASK-107 — Category manager */
 .categories-workspace .categories-kind-filter {

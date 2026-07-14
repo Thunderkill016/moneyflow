@@ -32,6 +32,12 @@ const SETTINGS_LINKS: SettingsLink[] = [
     icon: "lock",
   },
   {
+    href: "/settings/notifications",
+    title: "Thông báo cam kết",
+    description: "Opt-in nhắc khoản đến hạn. Không hiện số tiền.",
+    icon: "bell",
+  },
+  {
     href: "/settings/export",
     title: "Xuất dữ liệu",
     description: "Tải giao dịch đã duyệt hoặc ứng viên Inbox (CSV/JSON).",
@@ -86,8 +92,8 @@ export function SettingsHubPage({ viewer }: { viewer: ViewerSummary }) {
             <p className="eyebrow">Tài khoản</p>
             <h1>Cài đặt</h1>
             <p>
-              Danh mục thu chi, quyền riêng tư, xuất dữ liệu, giao diện và xóa
-              tài khoản. Dữ liệu của bạn thuộc về bạn.
+              Danh mục thu chi, quyền riêng tư, thông báo cam kết, xuất dữ liệu,
+              giao diện và xóa tài khoản. Dữ liệu của bạn thuộc về bạn.
             </p>
           </div>
           <div className="page-heading-actions">

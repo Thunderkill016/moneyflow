@@ -13,6 +13,7 @@ import { IMPORT_DRAFT_STORAGE_KEY } from "./inbox/import-draft-store.ts";
 import { RULES_STORAGE_KEY } from "./inbox/rules-store.ts";
 import { ONBOARDING_STORAGE_KEY } from "./onboarding.ts";
 import { PRIVACY_PREFS_KEY } from "./privacy-prefs.ts";
+import { PUSH_PREFS_KEY } from "./push-prefs.ts";
 import { QUICK_ADD_PREFS_KEY } from "./quick-add-prefs.ts";
 import { THEME_STORAGE_KEY } from "./theme-prefs.ts";
 import { TRANSACTION_STORAGE_KEY } from "./transaction-store.ts";
@@ -39,6 +40,7 @@ export const LOCAL_DATA_STORAGE_KEYS: readonly string[] = [
   INCOME_TEMPLATE_STORAGE_KEY,
   INCOME_TEMPLATE_OCCURRENCE_STORAGE_KEY,
   PRIVACY_PREFS_KEY,
+  PUSH_PREFS_KEY,
   QUICK_ADD_PREFS_KEY,
   ONBOARDING_STORAGE_KEY,
 ];

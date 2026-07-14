@@ -31,6 +31,7 @@ import {
   type SaveCommitmentInput,
 } from "@/lib/commitments";
 import { formatMoney } from "@/lib/money";
+import { maybeNotifyDueCommitments } from "@/lib/push-client";
 import { categoryMeta, type AccountOption, type CategoryOption } from "@/lib/sample-data";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 
@@ -88,6 +89,22 @@ export function CommitmentsPage({
     const timer = window.setTimeout(() => setNotice(""), 4000);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  /** TASK-130: once hydrated, maybe fire privacy-safe due reminder (opt-in, 1×/day). */
+  useEffect(() => {
+    if (!hydrated) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void maybeNotifyDueCommitments(items, { today }).then((result) => {
+        if (cancelled || result !== "shown") return;
+        // Quiet success — OS notification is the primary signal; avoid noisy toast.
+      });
+    }, 800);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [hydrated, items, today]);
 
   const active = useMemo(
     () =>
@@ -293,7 +310,12 @@ export function CommitmentsPage({
               Tiền phải trả
             </p>
             <h1>Khoản định kỳ</h1>
-            <p>Giữ trước tiền hóa đơn để con số “có thể chi” luôn thực tế.</p>
+            <p>
+              Giữ trước tiền hóa đơn để con số “có thể chi” luôn thực tế.{" "}
+              <Link href="/settings/notifications" className="planning-back-link">
+                Nhắc đến hạn (opt-in)
+              </Link>
+            </p>
           </div>
         </section>
 

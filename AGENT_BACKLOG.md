@@ -436,7 +436,7 @@
 - **Completed:** 2026-07-15 — `fbaa1cd` multi-currency account display; totals per currency; same-currency transfer only; no FX rate
 
 ### TASK-130 — Push notification opt-in bills
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Web push for due commitments; privacy-first. Post-MVP.
 - **Source:** roadmap pool refill
 
