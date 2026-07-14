@@ -31,6 +31,7 @@ const feedColumns = "id,kind,note,occurred_on,created_at,amount_minor,account_id
 function refreshFinancePages() {
   revalidatePath("/");
   revalidatePath("/transactions");
+  revalidatePath("/timeline");
   revalidatePath("/accounts");
   revalidatePath("/budgets");
 }

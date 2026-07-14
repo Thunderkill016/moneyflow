@@ -96,7 +96,7 @@
 - **Completed:** 2026-07-15 — `b22b5b8` review panel + explain + bulk approve/reject/category; low conf never auto-post.
 
 ### TASK-012 — Timeline route
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** `/timeline` wraps or redirects to approved transactions list (reuse transactions-page with copy “đã duyệt”). Empty → CTA Inbox. Wireframes §16.
 - **Done khi:** route usable; lint/typecheck/test pass.
 

@@ -21,6 +21,9 @@ import { AppShell } from "@/components/layout/app-shell";
 
 type KindFilter = "all" | Transaction["kind"];
 
+/** `timeline` = wireframes §16 (đã duyệt); `ledger` = classic sổ giao dịch. */
+export type TransactionsPageVariant = "ledger" | "timeline";
+
 type TransactionsWorkspace = {
   transactions: Transaction[];
   accounts: AccountOption[];
@@ -30,7 +33,16 @@ type TransactionsWorkspace = {
   dataError: string | null;
 };
 
-export function TransactionsPage({ viewer, workspace }: { viewer: ViewerSummary; workspace: TransactionsWorkspace }) {
+export function TransactionsPage({
+  viewer,
+  workspace,
+  variant = "ledger",
+}: {
+  viewer: ViewerSummary;
+  workspace: TransactionsWorkspace;
+  variant?: TransactionsPageVariant;
+}) {
+  const isTimeline = variant === "timeline";
   const { transactions, addTransaction, addTransfer, updateTransaction, deleteTransaction, isMutating } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
@@ -145,35 +157,59 @@ export function TransactionsPage({ viewer, workspace }: { viewer: ViewerSummary;
   return (
     <AppShell
       viewer={viewer}
-      primaryAction={{
-        label: "Thêm giao dịch",
-        onClick: () => setDialogOpen(true),
-        disabled: Boolean(workspace.dataError),
-      }}
-      fabAction={{
-        label: "Thêm giao dịch",
-        onClick: () => setDialogOpen(true),
-        disabled: Boolean(workspace.dataError),
-      }}
+      primaryAction={
+        isTimeline
+          ? {
+              label: "Mở Inbox",
+              href: "/inbox",
+            }
+          : {
+              label: "Thêm giao dịch",
+              onClick: () => setDialogOpen(true),
+              disabled: Boolean(workspace.dataError),
+            }
+      }
+      fabAction={
+        isTimeline
+          ? {
+              label: "Capture",
+              href: "/capture",
+            }
+          : {
+              label: "Thêm giao dịch",
+              onClick: () => setDialogOpen(true),
+              disabled: Boolean(workspace.dataError),
+            }
+      }
       notice={notice}
     >
-      <main className="dashboard transactions-workspace">
+      <main className={`dashboard transactions-workspace${isTimeline ? " timeline-workspace" : ""}`}>
         {workspace.dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{workspace.dataError}</span></div>}
         <section className="transactions-title-row">
           <div>
-            <p className="eyebrow">Dòng tiền của bạn</p>
-            <h1>Sổ giao dịch</h1>
-            <p>Kiểm tra và quản lý mọi khoản thu chi phát sinh.</p>
+            <p className="eyebrow">{isTimeline ? "Sổ đã duyệt" : "Dòng tiền của bạn"}</p>
+            <h1>{isTimeline ? "Dòng thời gian (đã duyệt)" : "Sổ giao dịch"}</h1>
+            <p>
+              {isTimeline
+                ? "Các giao dịch đã được duyệt từ Inbox — nguồn tin cậy cho số dư và insights."
+                : "Kiểm tra và quản lý mọi khoản thu chi phát sinh."}
+            </p>
           </div>
           <div className="page-heading-actions">
-            <button className="secondary-button" onClick={() => setTransferOpen(true)} disabled={workspace.accounts.length < 2 || Boolean(workspace.dataError)}>
-              <Icon name="arrows" /> Chuyển tiền ví
-            </button>
+            {isTimeline ? (
+              <Link className="secondary-button" href="/reports/export?period=month">
+                <Icon name="archive" /> Export
+              </Link>
+            ) : (
+              <button className="secondary-button" onClick={() => setTransferOpen(true)} disabled={workspace.accounts.length < 2 || Boolean(workspace.dataError)}>
+                <Icon name="arrows" /> Chuyển tiền ví
+              </button>
+            )}
           </div>
         </section>
 
         <section className="transaction-summary">
-          <div><span className="font-mono">{filtered.length}</span><p>Giao dịch</p></div>
+          <div><span className="font-mono">{filtered.length}</span><p>{isTimeline ? "Đã duyệt" : "Giao dịch"}</p></div>
           <div><span className="positive font-mono">+{formatMoney(filteredTotals.income)}</span><p>Tổng thu</p></div>
           <div><span className="negative font-mono">−{formatMoney(filteredTotals.expense)}</span><p>Tổng chi</p></div>
         </section>
@@ -182,7 +218,7 @@ export function TransactionsPage({ viewer, workspace }: { viewer: ViewerSummary;
           <div className="manager-toolbar">
             <label className="mobile-manager-search">
               <Icon name="search" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo ghi chú, danh mục..." aria-label="Tìm trong giao dịch" />
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo ghi chú, danh mục..." aria-label={isTimeline ? "Tìm trong dòng thời gian" : "Tìm trong giao dịch"} />
             </label>
             <div className="filter-group" aria-label="Lọc theo loại">
               {(["all", "expense", "income", "transfer"] as KindFilter[]).map((value) => (
@@ -222,6 +258,20 @@ export function TransactionsPage({ viewer, workspace }: { viewer: ViewerSummary;
             </div>
           ) : transactions.length ? (
             <div className="filter-empty"><span><Icon name="search" /></span><h2>Không tìm thấy giao dịch</h2><p>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</p><button onClick={() => { setQuery(""); setKind("all"); setAccount("all"); }}>Xóa bộ lọc</button></div>
+          ) : isTimeline ? (
+            <div className="filter-empty">
+              <span><Icon name="timeline" /></span>
+              <h2>Chưa có giao dịch đã duyệt</h2>
+              <p>Chưa có giao dịch sạch — hãy xử lý Inbox hoặc Capture để đưa khoản vào sổ.</p>
+              <div className="empty-state-actions">
+                <Link className="primary-button" href="/inbox">
+                  <Icon name="inbox" /> Mở Inbox
+                </Link>
+                <Link className="secondary-button" href="/capture">
+                  <Icon name="plus" /> Capture
+                </Link>
+              </div>
+            </div>
           ) : (
             <div className="filter-empty"><span><Icon name="arrows" /></span><h2>Chưa có giao dịch</h2><p>Thêm khoản thu hoặc chi đầu tiên để bắt đầu theo dõi dòng tiền.</p><button onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>Thêm giao dịch</button></div>
           )}
