@@ -305,7 +305,7 @@
 - **Completed:** 2026-07-15 — `8426ee3` calm thresholds: Gần hạn mức (80%) / Đã vượt X (100%+); lib helpers + budgets page + Insights card; text+color.
 
 ### TASK-109 — Export CSV discoverability
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Link/button Xuất CSV từ /insights và /reports trỏ /settings/export hoặc trigger download. Reuse export-data.ts formula escape tests.
 - **Done khi:** 1 click path từ insights; tests pass.
 

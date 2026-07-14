@@ -8,6 +8,21 @@ import { CONFIDENCE_LABELS, SOURCE_LABELS } from "./inbox/candidate-store.ts";
 import { rowsToCsv, transactionsToCsv } from "./reports.ts";
 import type { Transaction } from "./sample-data.ts";
 
+/**
+ * Discoverability (TASK-109): one-click path from Insights → export hub.
+ * Reports may also trigger period download via `/reports/export`.
+ */
+export const EXPORT_CSV_LABEL = "Xuất CSV" as const;
+/** Settings export page — date range, kinds, formula-safe CSV/JSON. */
+export const EXPORT_SETTINGS_HREF = "/settings/export" as const;
+
+/** Period report CSV download (server route; integer money + formula escape). */
+export function reportCsvDownloadHref(period: string = "month"): string {
+  const safe =
+    period === "week" || period === "year" || period === "month" ? period : "month";
+  return `/reports/export?period=${safe}`;
+}
+
 export type ExportDataKind = "transactions" | "candidates" | "all";
 export type ExportFormat = "csv" | "json";
 

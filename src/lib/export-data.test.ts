@@ -4,8 +4,11 @@ import type { InboxCandidate } from "./inbox/candidate-store.ts";
 import {
   buildExportContent,
   candidatesToCsv,
+  EXPORT_CSV_LABEL,
+  EXPORT_SETTINGS_HREF,
   exportFilename,
   filterByOccurredOnRange,
+  reportCsvDownloadHref,
   signedExportAmount,
 } from "./export-data.ts";
 import type { Transaction } from "./sample-data.ts";
@@ -121,4 +124,13 @@ test("exportFilename includes kind and optional range", () => {
     exportFilename("all", "json", { from: "", to: "" }, new Date("2026-07-15T00:00:00.000Z")),
     "moneyflow-toan-bo-2026-07-15.json",
   );
+});
+
+test("export discoverability paths: Insights hub + Reports download", () => {
+  assert.equal(EXPORT_CSV_LABEL, "Xuất CSV");
+  assert.equal(EXPORT_SETTINGS_HREF, "/settings/export");
+  assert.equal(reportCsvDownloadHref("month"), "/reports/export?period=month");
+  assert.equal(reportCsvDownloadHref("week"), "/reports/export?period=week");
+  assert.equal(reportCsvDownloadHref("year"), "/reports/export?period=year");
+  assert.equal(reportCsvDownloadHref("nope"), "/reports/export?period=month");
 });

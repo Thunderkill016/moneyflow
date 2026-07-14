@@ -610,6 +610,12 @@ select:focus-visible {
   font-size: 13px;
   font-weight: 650;
 }
+.insights-export-csv {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 650;
+}
 .insights-empty {
   margin-top: 18px;
   border: 1px solid var(--line);

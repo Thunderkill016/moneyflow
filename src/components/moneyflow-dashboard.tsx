@@ -25,6 +25,10 @@ import {
 } from "@/lib/budgets";
 import { commitmentTotals, type RecurringCommitment } from "@/lib/commitments";
 import { goalProgress, goalTotals, type SavingsGoal } from "@/lib/goals";
+import {
+  EXPORT_CSV_LABEL,
+  EXPORT_SETTINGS_HREF,
+} from "@/lib/export-data";
 import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/empty-state";
@@ -198,6 +202,12 @@ export function MoneyFlowDashboard({
             <span className="date-pill" aria-hidden="true">
               <span>Tháng này</span>
             </span>
+            <Link
+              className="secondary-button insights-export-csv"
+              href={EXPORT_SETTINGS_HREF}
+            >
+              <Icon name="arrowDown" /> {EXPORT_CSV_LABEL}
+            </Link>
             <button
               type="button"
               className="primary-button insights-ghi-chi"

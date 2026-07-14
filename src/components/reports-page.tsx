@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
 import { type ViewerSummary } from "@/components/user-chip";
+import {
+  EXPORT_CSV_LABEL,
+  EXPORT_SETTINGS_HREF,
+  reportCsvDownloadHref,
+} from "@/lib/export-data";
 import { formatMoney } from "@/lib/money";
 import type { ReportPeriod } from "@/lib/reports";
 import { categoryMeta } from "@/lib/sample-data";
@@ -39,14 +44,17 @@ export function ReportsPage({
   const maxExpense = Math.max(1, ...report.trend.map((item) => item.expense));
   const averageExpense = expenseDays.length ? Math.round(report.totals.expense / expenseDays.length) : 0;
 
+  const csvDownloadHref = reportCsvDownloadHref(period);
+  const exportDisabled = Boolean(workspace.dataError);
+
   return (
     <AppShell
       viewer={viewer}
       primaryAction={{
-        label: "Xuất CSV",
-        href: `/reports/export?period=${period}`,
+        label: EXPORT_CSV_LABEL,
+        href: csvDownloadHref,
         icon: "arrowDown",
-        disabled: Boolean(workspace.dataError),
+        disabled: exportDisabled,
       }}
     >
       <main className="dashboard reports-workspace">
@@ -60,8 +68,12 @@ export function ReportsPage({
             <h1>Báo cáo</h1>
             <p>{dateLabel(report.range.currentStart)} – {dateLabel(report.range.currentEnd)} · So với kỳ liền trước cùng số ngày.</p>
           </div>
-          <Link className="secondary-button report-export" href={`/reports/export?period=${period}`} aria-disabled={Boolean(workspace.dataError)}>
-            <Icon name="arrowDown" />Xuất CSV
+          <Link
+            className="secondary-button report-export"
+            href={exportDisabled ? EXPORT_SETTINGS_HREF : csvDownloadHref}
+            aria-disabled={exportDisabled || undefined}
+          >
+            <Icon name="arrowDown" />{EXPORT_CSV_LABEL}
           </Link>
         </section>
 
