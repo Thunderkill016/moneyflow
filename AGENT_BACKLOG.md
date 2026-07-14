@@ -159,9 +159,10 @@
 - **Completed:** 2026-07-15 — `d0dc0f6` manifest share_target + `/capture/share` POST bridge → inbox candidates (text/CSV).
 
 ### TASK-022 — XLSX parse
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Parse first sheet xlsx with lightweight lib or document CSV-only until justified dependency.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `74fcf81` first-sheet xlsx via sheetjs → statement matrix + upload preview (source xlsx).
 
 ### TASK-023 — PDF text extract one bank template
 - **Status:** `ready`
@@ -172,6 +173,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-022 | `74fcf81` first-sheet XLSX/XLS parse (xlsx) → Import Preview; share still Upload-only |
 | 2026-07-15 | TASK-021 | `d0dc0f6` PWA share_target → /capture/share queue text/CSV into inbox |
 | 2026-07-15 | TASK-020 | `99de308` README autopilot start/stop + scripts executable + pick-task ok |
 | 2026-07-15 | TASK-019 | `bbf6328` /settings hub + appearance + error §21; inbox skeletons ok |
