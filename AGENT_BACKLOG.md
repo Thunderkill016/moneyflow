@@ -257,9 +257,10 @@
 - **Completed:** 2026-07-15 — `1675e6d` POST_AUTH_REDIRECT + `/` logged-in + onboarding skip → `/insights`; inbox route kept.
 
 ### TASK-101 — Nav IA thu chi (primary Tổng quan)
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Cập nhật app-shell + nav-ia: primary desktop/mobile = Tổng quan(/insights), Giao dịch(/transactions), Capture(/capture), Tài khoản(/accounts), More. Inbox chuyển More hoặc dưới Capture. Budgets/commitments/goals vẫn secondary (Insights cards / More Kế hoạch). Tests nav-ia. Không clone competitor.
 - **Done khi:** nav matches G5; tests pass; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `2bb7d3c` primary Tổng quan·Giao dịch·Capture·Tài khoản·More; Inbox → More + Capture sheet.
 
 ### TASK-102 — Onboarding thu chi (ví + ghi chi + insights)
 - **Status:** `ready`
@@ -387,6 +388,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-101 | `2bb7d3c` nav IA thu chi: Tổng quan·Giao dịch·Capture·Tài khoản·More; Inbox demoted |
 | 2026-07-15 | TASK-100 | `1675e6d` post-auth + home + onboarding skip → /insights (Tổng quan thu chi) |
 | 2026-07-15 | TASK-032 | `42724ee` mask STK-like digits in raw_snippet UI (review/explain/paste); pure helper + tests |
 | 2026-07-15 | TASK-031 | `3853e0e` wire trackProductEvent on paste/upload/import commit (counts/source only) |
