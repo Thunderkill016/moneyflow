@@ -74,6 +74,7 @@ export function AccountDialog({
       onClose={onClose}
       aria-labelledby="account-dialog-title"
     >
+      <div className="dialog-handle" aria-hidden="true" />
       <div className="dialog-heading">
         <div><p className="eyebrow">Sổ tài chính</p><h2 id="account-dialog-title">{account ? "Sửa tài khoản" : "Thêm tài khoản"}</h2></div>
         <button className="icon-button" type="button" onClick={onClose} disabled={submitting} aria-label="Đóng"><Icon name="close" /></button>
