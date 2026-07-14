@@ -228,6 +228,22 @@ export function AppShell({
           </div>
         </header>
 
+        {viewer.isDemo ? (
+          <div
+            className="banner-alert info demo-mode-banner"
+            role="status"
+            aria-live="polite"
+          >
+            <Icon name="bell" aria-hidden="true" />
+            <span className="demo-mode-banner-text">
+              Chế độ demo — dữ liệu lưu trên trình duyệt
+            </span>
+            <Link href="/register" className="demo-mode-banner-cta">
+              Đăng ký
+            </Link>
+          </div>
+        ) : null}
+
         {children}
       </div>
 

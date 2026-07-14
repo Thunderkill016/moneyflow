@@ -329,7 +329,7 @@
 - **Completed:** 2026-07-15 — `68588b7` mobile chrome: 5-tab nav + safe-area, FAB clearance, full-width dialogs, table-scroll; insights/tx/accounts regressions.
 
 ### TASK-113 — Demo mode banner
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Khi viewer.isDemo, banner sticky "Chế độ demo — dữ liệu lưu trên trình duyệt" + CTA Đăng ký. AppShell.
 - **Done khi:** banner; lint/typecheck/test pass.
 

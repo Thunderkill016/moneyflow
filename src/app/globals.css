@@ -3088,6 +3088,64 @@ select:focus-visible {
 .banner-alert.offline { background: var(--color-bg-tertiary); border: 1px solid var(--color-border-strong); color: var(--color-text-secondary); }
 .banner-alert button { margin-left: auto; cursor: pointer; border: 0; background: transparent; color: inherit; font-weight: 650; font-size: 12px; }
 
+/* Demo mode: sticky under topbar (TASK-113) — not dismissible */
+.demo-mode-banner {
+  position: sticky;
+  top: 78px;
+  z-index: var(--z-sticky);
+  gap: 10px;
+  margin: 0;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  padding: 10px clamp(16px, 4vw, 62px);
+  box-shadow: 0 1px 0 rgb(10 48 28 / 4%);
+}
+.demo-mode-banner-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 550;
+}
+.demo-mode-banner-cta {
+  flex: 0 0 auto;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid currentColor;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 680;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.demo-mode-banner-cta:hover {
+  background: rgb(255 255 255 / 45%);
+}
+.demo-mode-banner-cta:focus-visible {
+  outline: 2px solid var(--color-border-focus, currentColor);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .demo-mode-banner {
+    top: 66px;
+    padding: 9px 16px;
+    font-size: 12px;
+    gap: 8px;
+  }
+  .demo-mode-banner-cta {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 11px;
+  }
+}
+
 /* Chart Tooltip */
 .chart-tooltip {
   display: grid;
