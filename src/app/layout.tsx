@@ -15,9 +15,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Money Flow — Hộp thư giao dịch tài chính",
+  title: "MoneyFlow — Quản lý thu chi cá nhân",
   description:
-    "Dán text, tải sao kê, duyệt ngoại lệ — không gõ lại từng dòng. Không hỏi mật khẩu ngân hàng. Bạn quyết định trước khi vào sổ.",
+    "Ghi thu chi nhanh, nhiều ví, ngân sách danh mục, báo cáo tháng. Biết hôm nay có thể chi bao nhiêu. Xuất CSV. Không quảng cáo trong luồng chính.",
 };
 
 export default function RootLayout({

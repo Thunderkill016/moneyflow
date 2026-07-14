@@ -4,19 +4,19 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 
 /**
- * Landing — Inbox-first positioning (wireframes-inbox.md §1).
- * Original layout/copy; does not clone competitor marketing.
- * TASK-028: VN microcopy tightened (no English eyebrow/jargon).
+ * Landing — personal expense tracker (research G5 / docs/research/05).
+ * JTBD: ghi nhanh → còn bao nhiêu tiền & tháng này chi vào đâu.
+ * Original layout; no competitor brand clone.
  */
 export function LandingPage() {
   return (
     <div className="landing-page">
       <nav className="landing-nav" aria-label="Điều hướng trang chủ">
-        <Link className="brand" href="/" aria-label="Money Flow, trang chủ">
+        <Link className="brand" href="/" aria-label="MoneyFlow, trang chủ">
           <span className="brand-mark">
             <span />
           </span>
-          <span>Money Flow</span>
+          <span>MoneyFlow</span>
         </Link>
         <div className="landing-nav-actions">
           <Link href="/login" className="landing-link">
@@ -30,23 +30,24 @@ export function LandingPage() {
 
       <header className="landing-hero">
         <div className="landing-hero-content">
-          <p className="landing-eyebrow">Hộp thư giao dịch</p>
+          <p className="landing-eyebrow">Quản lý thu chi cá nhân</p>
           <h1>
-            Hộp thư cho mọi
+            Biết hôm nay
             <br />
-            giao dịch tài chính của bạn
+            có thể chi bao nhiêu
           </h1>
           <p className="landing-lead">
-            Dán text, tải sao kê, duyệt ngoại lệ — không gõ lại từng dòng.{" "}
-            <strong>Bạn quyết định</strong> trước khi vào sổ.
+            Ghi thu chi trong vài giây, theo dõi nhiều ví, thấy rõ tháng này tiền đi đâu.{" "}
+            <strong>Bình tĩnh, rõ ràng</strong> — không ép phương pháp ngân sách phức tạp, không quảng
+            cáo trong luồng chính.
           </p>
           <p className="landing-trust-line">
             <Icon name="lock" />
-            Không bao giờ hỏi mật khẩu hay OTP ngân hàng.
+            Dữ liệu của bạn. Xuất CSV bất cứ lúc nào. Không hỏi mật khẩu ngân hàng.
           </p>
           <div className="landing-hero-ctas">
             <Link href="/register" className="cta-primary">
-              Bắt đầu miễn phí
+              Dùng miễn phí
               <Icon name="arrowRight" />
             </Link>
             <Link href="/login" className="cta-secondary">
@@ -55,59 +56,54 @@ export function LandingPage() {
           </div>
         </div>
 
-        {/* Abstract inbox preview — not a competitor dashboard clone */}
         <div className="landing-hero-preview" aria-hidden="true">
-          <div className="preview-inbox-card">
-            <div className="preview-inbox-top">
-              <div>
-                <span className="preview-inbox-label">Inbox</span>
-                <strong className="preview-inbox-count">Cần duyệt · 12</strong>
-              </div>
-              <span className="preview-chip warning">3 cần xem</span>
+          <div className="preview-dash-card">
+            <div className="preview-dash-safe">
+              <p className="preview-dash-safe-label">Có thể chi hôm nay</p>
+              <p className="preview-dash-safe-amount font-mono">392.000 ₫</p>
+              <p className="preview-dash-safe-hint">
+                Đã trừ hóa đơn giữ trước và quỹ tiết kiệm earmark.
+              </p>
             </div>
-
-            <ul className="preview-inbox-list">
-              <li className="preview-inbox-row low">
-                <span className="preview-check" />
-                <div className="preview-row-main">
-                  <strong>HIGHLANDS COFFEE Q1</strong>
-                  <small>dán · SMS NH</small>
+            <div className="preview-dash-stats">
+              <div className="preview-dash-stat income">
+                <span>Thu tháng này</span>
+                <strong className="font-mono">+25.000.000 ₫</strong>
+              </div>
+              <div className="preview-dash-stat expense">
+                <span>Chi tháng này</span>
+                <strong className="font-mono">−8.420.000 ₫</strong>
+              </div>
+            </div>
+            <ul className="preview-dash-list">
+              <li className="preview-dash-row">
+                <span className="preview-dash-icon food">ĂU</span>
+                <div className="preview-dash-row-main">
+                  <strong>Cà phê sáng</strong>
+                  <small>Ăn uống · Tiền mặt</small>
                 </div>
                 <span className="preview-money expense font-mono">−45.000 ₫</span>
-                <span className="preview-chip warning sm">Cần xem</span>
               </li>
-              <li className="preview-inbox-row">
-                <span className="preview-check on" />
-                <div className="preview-row-main">
-                  <strong>LUONG CT ABC</strong>
-                  <small>csv · Techcombank</small>
+              <li className="preview-dash-row">
+                <span className="preview-dash-icon pay">L</span>
+                <div className="preview-dash-row-main">
+                  <strong>Lương tháng 7</strong>
+                  <small>Thu nhập · Techcombank</small>
                 </div>
                 <span className="preview-money income font-mono">+25.000.000 ₫</span>
-                <span className="preview-chip ok sm">Khá chắc</span>
               </li>
-              <li className="preview-inbox-row">
-                <span className="preview-check on" />
-                <div className="preview-row-main">
-                  <strong>Grab *TRIP</strong>
-                  <small>csv · MoMo</small>
-                </div>
-                <span className="preview-money expense font-mono">−89.000 ₫</span>
-                <span className="preview-chip ok sm">Khá chắc</span>
-              </li>
-              <li className="preview-inbox-row">
-                <span className="preview-check" />
-                <div className="preview-row-main">
-                  <strong>CK den *1234</strong>
-                  <small>dán · có thể chuyển khoản</small>
+              <li className="preview-dash-row">
+                <span className="preview-dash-icon move">CK</span>
+                <div className="preview-dash-row-main">
+                  <strong>Chuyển quỹ tiết kiệm</strong>
+                  <small>Chuyển khoản · không tính chi</small>
                 </div>
                 <span className="preview-money transfer font-mono">↔ 2.000.000 ₫</span>
-                <span className="preview-chip sm">CK?</span>
               </li>
             </ul>
-
-            <div className="preview-inbox-foot">
-              <span>Đã chọn 2 dòng khá chắc</span>
-              <span className="preview-bulk-btn">Duyệt đã chọn</span>
+            <div className="preview-dash-foot">
+              <span>3 ví · Ngân sách Ăn uống còn 62%</span>
+              <span className="preview-dash-cta">+ Ghi khoản chi</span>
             </div>
           </div>
         </div>
@@ -115,108 +111,148 @@ export function LandingPage() {
 
       <section className="landing-section" aria-labelledby="how-heading">
         <div className="landing-section-heading">
-          <p>Cách hoạt động</p>
-          <h2 id="how-heading">Bốn bước — không cần học ngân sách phức tạp</h2>
-          <span>Đưa dữ liệu vào · máy chuẩn hóa · bạn duyệt ngoại lệ · xuất hoặc ghi sổ.</span>
+          <p>Cách dùng</p>
+          <h2 id="how-heading">Bốn bước, không cần học zero-based</h2>
+          <span>Đủ để kiểm soát tiền hằng ngày — không biến thành phần mềm kế toán.</span>
         </div>
         <ol className="steps-grid steps-flow">
           <li className="step-card">
             <span className="step-num" aria-hidden="true">
               1
             </span>
-            <h3>Đưa dữ liệu vào</h3>
-            <p>Dán SMS/noti, tải CSV/Excel/PDF sao kê, hoặc thêm nhanh một khoản.</p>
+            <h3>Thêm ví</h3>
+            <p>Tiền mặt, ngân hàng, MoMo, thẻ… số dư ban đầu một lần là xong.</p>
           </li>
           <li className="step-card">
             <span className="step-num" aria-hidden="true">
               2
             </span>
-            <h3>Chuẩn hóa</h3>
-            <p>Nhận diện nguồn, số tiền, ngày, merchant — gắn độ tin cậy từng dòng.</p>
+            <h3>Ghi nhanh</h3>
+            <p>Số tiền + danh mục. Nhớ ví và loại lần trước. Dưới mười giây cho khoản quen.</p>
           </li>
           <li className="step-card">
             <span className="step-num" aria-hidden="true">
               3
             </span>
-            <h3>Bạn duyệt</h3>
-            <p>Duyệt theo ngoại lệ: chọn hàng loạt dòng chắc, sửa dòng mơ hồ. Thấy nguồn và lý do đoán.</p>
+            <h3>Nhìn tổng quan</h3>
+            <p>Còn bao nhiêu, thu/chi tháng này, chi nhiều nhất ở đâu, sắp đến hạn gì.</p>
           </li>
           <li className="step-card">
             <span className="step-num" aria-hidden="true">
               4
             </span>
-            <h3>Xuất hoặc ghi sổ</h3>
-            <p>CSV/Excel sạch, hoặc vào sổ Money Flow để xem hôm nay có thể chi bao nhiêu.</p>
+            <h3>Ngân sách & xuất</h3>
+            <p>Hạn mức theo danh mục. Báo cáo tháng. Xuất CSV khi cần mang về Excel.</p>
           </li>
         </ol>
       </section>
 
-      <section className="landing-section landing-section-alt" aria-labelledby="fit-heading">
+      <section className="landing-section landing-section-alt" aria-labelledby="who-heading">
         <div className="landing-section-heading">
-          <p>Phù hợp nếu bạn</p>
-          <h2 id="fit-heading">Không phải app “biểu đồ đẹp rồi bỏ cuộc”</h2>
-          <span>Cho người có dữ liệu rải rác và ghét gõ lại từng giao dịch.</span>
+          <p>Dành cho ai</p>
+          <h2 id="who-heading">Đơn giản với người mới, đủ cho người dùng Sheet</h2>
+          <span>Không phán xét. Không gamification sến. Không khóa tính năng cơ bản sau paywall.</span>
         </div>
         <ul className="fit-grid">
           <li className="fit-card">
             <Icon name="wallet" />
-            <h3>Nhiều tài khoản & ví</h3>
-            <p>Ngân hàng, MoMo, tiền mặt… một hộp thư thay vì mười app.</p>
+            <h3>Nhiều ví thật</h3>
+            <p>Tiền mặt + ngân hàng + ví điện tử. Chuyển khoản nội bộ không bị tính là chi tiêu.</p>
           </li>
           <li className="fit-card">
             <Icon name="receipt" />
-            <h3>Đang dùng Excel / Sheets</h3>
-            <p>Tải sao kê → file sạch. Không bắt bạn đổi cả cách làm việc.</p>
+            <h3>Đang dùng Excel</h3>
+            <p>Ghi trên điện thoại cho nhanh, cuối tháng export CSV — không dual-entry mãi.</p>
           </li>
           <li className="fit-card">
             <Icon name="edit" />
-            <h3>Lười nhập tay từng món</h3>
-            <p>Đã bỏ app chi tiêu vì ghi sổ mỗi tối. Capture + duyệt lô là việc chính.</p>
+            <h3>Từng bỏ app chi tiêu</h3>
+            <p>Vì nhập mệt hoặc ads. MoneyFlow tối ưu đường ghi nhanh và free core thật.</p>
           </li>
         </ul>
       </section>
 
-      <section className="landing-section" aria-labelledby="trust-heading">
+      <section className="landing-section" aria-labelledby="features-heading">
+        <div className="landing-section-heading">
+          <p>Tính năng cốt lõi</p>
+          <h2 id="features-heading">Đủ dùng mỗi ngày</h2>
+          <span>Mọi thứ gắn với việc kiểm soát tiền — không trang trí.</span>
+        </div>
+        <ul className="feature-grid">
+          <li className="feature-card-landing">
+            <Icon name="plus" />
+            <h3>Thu · Chi · Chuyển</h3>
+            <p>Ba loại rõ ràng. Sửa/xóa an toàn. Số tiền luôn là số nguyên đồng.</p>
+          </li>
+          <li className="feature-card-landing">
+            <Icon name="target" />
+            <h3>Ngân sách danh mục</h3>
+            <p>Hạn mức tháng, còn lại bao nhiêu, cảnh báo nhẹ khi gần vượt — không ép envelope.</p>
+          </li>
+          <li className="feature-card-landing">
+            <Icon name="calendar" />
+            <h3>Định kỳ & mục tiêu</h3>
+            <p>Giữ trước tiền thuê nhà, theo dõi quỹ tiết kiệm — tổng quan biết trừ phần đã earmark.</p>
+          </li>
+          <li className="feature-card-landing">
+            <Icon name="chart" />
+            <h3>Báo cáo tháng</h3>
+            <p>Thu vs chi, theo danh mục, so sánh kỳ. Biểu đồ phục vụ quyết định, không chỉ đẹp.</p>
+          </li>
+          <li className="feature-card-landing">
+            <Icon name="arrowDown" />
+            <h3>Xuất dữ liệu</h3>
+            <p>CSV của bạn. Không lock-in. Phù hợp ai quen Sheets.</p>
+          </li>
+          <li className="feature-card-landing">
+            <Icon name="lock" />
+            <h3>Riêng tư</h3>
+            <p>Mỗi user chỉ thấy data của mình. Không hỏi mật khẩu ngân hàng.</p>
+          </li>
+        </ul>
+      </section>
+
+      <section className="landing-section landing-section-alt" aria-labelledby="trust-heading">
         <div className="landing-section-heading">
           <p>Tin cậy</p>
-          <h2 id="trust-heading">Bạn giữ quyền kiểm soát</h2>
-          <span>Thiết kế cho dữ liệu nhạy cảm — không hứa suông “AI thần thánh”.</span>
+          <h2 id="trust-heading">Thiết kế bình tĩnh với tiền của bạn</h2>
+          <span>Không “AI thần thánh”. Không guilt trip khi chi một ly cà phê.</span>
         </div>
         <ul className="trust-grid">
           <li>
-            <Icon name="lock" />
-            <div>
-              <strong>Không mật khẩu ngân hàng</strong>
-              <p>Chỉ file/text bạn chủ động đưa vào. Không đọc OTP.</p>
-            </div>
-          </li>
-          <li>
             <Icon name="check" />
             <div>
-              <strong>Duyệt trước khi vào sổ</strong>
-              <p>Độ tin cậy thấp không tự ghi. Luôn thấy nguồn và lý do.</p>
+              <strong>Sổ đúng trước khi “thông minh”</strong>
+              <p>Chuyển khoản cân hai phía. Soft delete. Không float cho số tiền.</p>
             </div>
           </li>
           <li>
-            <Icon name="archive" />
+            <Icon name="lock" />
             <div>
-              <strong>Raw lưu ngắn</strong>
-              <p>File gốc có thể xóa sau khi parse. Bạn chọn thời gian giữ.</p>
+              <strong>Không liên kết ngân hàng (MVP)</strong>
+              <p>Bạn chủ động ghi. Không phụ thuộc open banking hay OTP.</p>
             </div>
           </li>
           <li>
             <Icon name="arrowDown" />
             <div>
               <strong>Export & xóa tài khoản</strong>
-              <p>Mang dữ liệu đi bất cứ lúc nào. Xóa hết khi không còn dùng.</p>
+              <p>Mang data đi. Xóa khi không còn dùng. Quyền sở hữu rõ.</p>
+            </div>
+          </li>
+          <li>
+            <Icon name="spark" />
+            <div>
+              <strong>Tiếng Việt, mobile web</strong>
+              <p>Dùng tốt trên điện thoại và máy tính. Dark mode có sẵn.</p>
             </div>
           </li>
         </ul>
       </section>
 
       <section className="landing-cta-band" aria-labelledby="cta-band-heading">
-        <h2 id="cta-band-heading">Bắt đầu với một lần dán hoặc một file sao kê</h2>
-        <p>Không cần liên kết ngân hàng. Không cần học phương pháp ngân sách phức tạp.</p>
+        <h2 id="cta-band-heading">Bắt đầu bằng một khoản chi hôm nay</h2>
+        <p>Miễn phí để dùng core. Không cần học phương pháp. Không cần liên kết ngân hàng.</p>
         <Link href="/register" className="cta-primary">
           Tạo tài khoản miễn phí
           <Icon name="arrowRight" />
@@ -229,16 +265,21 @@ export function LandingPage() {
             <span className="brand-mark">
               <span />
             </span>
-            <span>Money Flow</span>
+            <span>MoneyFlow</span>
           </Link>
-          <nav className="landing-footer-links" aria-label="Liên kết pháp lý">
+          <nav className="landing-footer-links" aria-label="Liên kết">
             <Link href="/login">Đăng nhập</Link>
             <span aria-hidden="true">·</span>
-            <a href="#trust-heading">Quyền riêng tư</a>
+            <a href="#trust-heading">Riêng tư</a>
             <span aria-hidden="true">·</span>
-            <a href="#how-heading">Cách hoạt động</a>
+            <a href="#how-heading">Cách dùng</a>
+            <span aria-hidden="true">·</span>
+            <a href="#features-heading">Tính năng</a>
           </nav>
-          <p>© {new Date().getFullYear()} Money Flow. Hộp thư giao dịch — bạn duyệt trước khi ghi sổ.</p>
+          <p>
+            © {new Date().getFullYear()} MoneyFlow. Quản lý thu chi cá nhân — rõ ràng, bình tĩnh, của
+            bạn.
+          </p>
         </div>
       </footer>
     </div>

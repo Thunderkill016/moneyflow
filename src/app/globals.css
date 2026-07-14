@@ -1677,7 +1677,7 @@ select:focus-visible {
 
 
 /* ===================================================================
-   Landing — Inbox-first (original; no competitor clone)
+   Landing — Personal expense / thu chi (G5 positioning)
    =================================================================== */
 .landing-page {
   min-height: 100vh;
@@ -1827,6 +1827,97 @@ select:focus-visible {
 
 .landing-hero-ctas .cta-secondary:hover {
   background: var(--color-bg-secondary);
+}
+
+/* Dashboard product preview (landing thu chi) */
+.preview-dash-card {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-default);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.preview-dash-safe {
+  padding: 20px 20px 16px;
+  background: linear-gradient(145deg, var(--color-accent-default), color-mix(in srgb, var(--color-accent-default) 75%, #0a3d24));
+  color: #fff;
+}
+.preview-dash-safe-label { margin: 0; font-size: 12px; font-weight: 600; opacity: 0.9; }
+.preview-dash-safe-amount {
+  margin: 8px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1;
+}
+.preview-dash-safe-hint { margin: 10px 0 0; font-size: 12px; opacity: 0.88; line-height: 1.4; }
+.preview-dash-stats {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
+  background: var(--color-border-default);
+  border-bottom: 1px solid var(--color-border-default);
+}
+.preview-dash-stat { background: var(--color-bg-primary); padding: 14px 16px; }
+.preview-dash-stat span {
+  display: block; font-size: 11px; font-weight: 650; color: var(--color-text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.preview-dash-stat strong { display: block; margin-top: 6px; font-size: 16px; font-weight: 700; }
+.preview-dash-stat.income strong { color: var(--color-success-text); }
+.preview-dash-list {
+  list-style: none; margin: 0; padding: 10px; display: flex; flex-direction: column; gap: 6px;
+}
+.preview-dash-row {
+  display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px;
+  align-items: center; padding: 10px; border-radius: 12px; background: var(--color-bg-secondary);
+}
+.preview-dash-icon {
+  width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+  font-size: 11px; font-weight: 700; background: var(--color-accent-subtle); color: var(--color-accent-text);
+}
+.preview-dash-icon.food { background: #fff1f0; color: #b5473d; }
+.preview-dash-icon.pay { background: var(--color-success-subtle); color: var(--color-success-text); }
+.preview-dash-icon.move { background: var(--color-info-subtle); color: var(--color-info-text); }
+[data-theme="dark"] .preview-dash-icon.food {
+  background: color-mix(in srgb, var(--color-danger-default) 18%, transparent);
+  color: var(--color-danger-text);
+}
+.preview-dash-row-main strong {
+  display: block; font-size: 13px; font-weight: 650; color: var(--color-text-primary);
+}
+.preview-dash-row-main small {
+  display: block; margin-top: 2px; font-size: 11px; color: var(--color-text-tertiary);
+}
+.preview-dash-row .preview-money { font-size: 13px; font-weight: 650; white-space: nowrap; }
+.preview-money.expense { color: var(--color-text-primary); }
+.preview-money.income { color: var(--color-success-text); }
+.preview-money.transfer { color: var(--color-text-secondary); }
+.preview-dash-foot {
+  padding: 12px 16px 16px; border-top: 1px solid var(--color-border-default);
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 12px; color: var(--color-text-secondary); font-weight: 550;
+}
+.preview-dash-cta {
+  padding: 8px 12px; border-radius: 10px; background: var(--color-accent-subtle);
+  color: var(--color-accent-text); font-weight: 700; font-size: 12px;
+}
+[data-theme="dark"] .preview-dash-card { background: var(--color-bg-secondary); }
+
+.feature-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+  list-style: none; margin: 0; padding: 0;
+}
+.feature-card-landing {
+  background: var(--color-bg-primary); border: 1px solid var(--color-border-default);
+  border-radius: 14px; padding: 22px 20px;
+}
+.feature-card-landing svg {
+  width: 22px; height: 22px; color: var(--color-accent-default); margin-bottom: 12px;
+}
+.feature-card-landing h3 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.feature-card-landing p {
+  margin: 0; font-size: 13px; line-height: 1.55; color: var(--color-text-secondary);
+}
+@media (max-width: 1024px) {
+  .feature-grid { grid-template-columns: 1fr; padding-inline: 20px; }
+}
+@media (max-width: 640px) {
+  .preview-dash-safe-amount { font-size: 28px; }
 }
 
 /* Inbox preview mock */
