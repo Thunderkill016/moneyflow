@@ -365,9 +365,11 @@
 - **Completed:** 2026-07-15 — `c61ddf2` docs/security-rls-check.md + check:rls + pgTAP has_policy
 
 ### TASK-119 — A11y baseline pass
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Labels on money forms; focus visible; expense/income not color-only (+/−); dialog focus trap check. Fix critical issues on insights + add dialog.
 - **Done khi:** notes in PR; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `658c460` a11y: form labels; focus-visible amount/kind/category; +/− not color-only; dialog trap+restore focus (insights + add dialog)
+- **Notes:** Native `<dialog showModal>` traps focus; Escape/Hủy/close restore opener. Kind control shows “Khoản chi (−) / Khoản thu (+)”; amount field shows ± sign. Insights KPI/categories/recent rows use signed money + aria-label. CSS re-enables focus ring on `.amount-field input` (was outline:0). Tests: `money.test.ts`, `a11y-baseline.test.ts`.
 
 ### TASK-120 — Production build green
 - **Status:** `ready`
@@ -405,6 +407,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-119 | `658c460` a11y baseline: labels, focus-visible, +/− signs, dialog focus trap/restore |
 | 2026-07-15 | TASK-118 | `c61ddf2` docs/security-rls-check.md + check:rls + pgTAP has_policy |
 | 2026-07-15 | TASK-117 | `47fab43` domain tests: balance edit/soft-delete; transfer≠expense; budget ignores transfer; safe-to-spend integer |
 | 2026-07-15 | TASK-116 | `04ca419` Playwright expense path: landing→demo→quick add→insights→export; replaces inbox smoke |
