@@ -140,3 +140,20 @@ test("sumBudgetSpent after soft-delete drops the expense amount", () => {
   const afterDelete = active.filter((item) => item.id !== "food-2");
   assert.equal(sumBudgetSpent(afterDelete, "cat-food", "2026-07-01"), 45_000);
 });
+
+test("sumBudgetSpent counts only matching split line portion", () => {
+  const split: Transaction = {
+    ...foodExpense,
+    id: "split-budget",
+    categoryId: "cat-food",
+    category: "Chia · 2 danh mục",
+    amount: 100_000,
+    splits: [
+      { categoryId: "cat-food", category: "Ăn uống", amount: 60_000 },
+      { categoryId: "cat-transport", category: "Di chuyển", amount: 40_000 },
+    ],
+  };
+  assert.equal(sumBudgetSpent([split], "cat-food", "2026-07-01"), 60_000);
+  assert.equal(sumBudgetSpent([split], "cat-transport", "2026-07-01"), 40_000);
+  assert.equal(sumBudgetSpent([split], "cat-other", "2026-07-01"), 0);
+});

@@ -423,8 +423,24 @@
 - **Completed:** 2026-07-15 — `5b2937f` /income-templates + migration; income ≠ commitments reserve
 
 ### TASK-128 — Split transaction
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Split one expense across 2+ categories; ledger multi-entry. Post-MVP.
+- **Source:** roadmap pool refill
+
+
+### TASK-129 — Multi-currency accounts read-only
+- **Status:** `ready`
+- **Mô tả:** Display FX accounts without transfer across currency. Post-MVP.
+- **Source:** roadmap pool refill
+
+### TASK-130 — Push notification opt-in bills
+- **Status:** `ready`
+- **Mô tả:** Web push for due commitments; privacy-first. Post-MVP.
+- **Source:** roadmap pool refill
+
+### TASK-131 — CSV import to ledger direct (skip inbox)
+- **Status:** `ready`
+- **Mô tả:** Power-user import mapped CSV → approved transactions with dedupe.
 - **Source:** roadmap pool refill
 
 ## Nhật ký

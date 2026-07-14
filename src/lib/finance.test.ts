@@ -267,3 +267,44 @@ test("safe-to-spend is a non-negative safe integer (floor division)", () => {
   assert.ok(normal.safeToday >= 0);
   assert.equal(normal.safeToday, DAILY_ALLOWANCE - 100_000);
 });
+
+test("topExpenseCategories expands split multi-entry lines", () => {
+  const split: Transaction = {
+    ...expense,
+    id: "split-expense",
+    category: "Chia · 2 danh mục",
+    amount: 150_000,
+    splits: [
+      { categoryId: "c1", category: "Ăn uống", amount: 100_000 },
+      { categoryId: "c2", category: "Di chuyển", amount: 50_000 },
+    ],
+  };
+  // split 100k food + 50k move; transport 50k move; no plain expense row
+  const top = topExpenseCategories([split, transport], { today: "2026-07-14", limit: 5 });
+  const food = top.find((row) => row.name === "Ăn uống");
+  const move = top.find((row) => row.name === "Di chuyển");
+  assert.equal(food?.amount, 100_000);
+  assert.equal(move?.amount, 100_000);
+  assert.ok((food?.share ?? 0) > 0);
+  // label "Chia · 2 danh mục" must not appear as a category bucket
+  assert.equal(
+    top.find((row) => row.name.startsWith("Chia")),
+    undefined,
+  );
+});
+
+test("split expense total counts once toward month expense and balance", () => {
+  const split: Transaction = {
+    ...expense,
+    id: "split-once",
+    category: "Chia · 2 danh mục",
+    amount: 90_000,
+    splits: [
+      { categoryId: "c1", category: "Ăn uống", amount: 40_000 },
+      { categoryId: "c2", category: "Mua sắm", amount: 50_000 },
+    ],
+  };
+  assert.equal(monthExpenseTotal([split], "2026-07"), 90_000);
+  assert.equal(netTransactionEffect([split]), -90_000);
+  assert.equal(balanceAfterTransactions(OPENING_BALANCE, [split]), OPENING_BALANCE - 90_000);
+});

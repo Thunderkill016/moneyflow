@@ -47,3 +47,18 @@ test("restoreTransactionInList re-inserts deleted row idempotently", () => {
   assert.equal(twice.length, 2);
   assert.deepEqual(twice, once);
 });
+
+test("accepts split expense when line amounts sum to total", () => {
+  const split = {
+    ...validTransaction,
+    category: "Chia · 2 danh mục",
+    amount: 90_000,
+    splits: [
+      { categoryId: "c1", category: "Ăn uống", amount: 50_000 },
+      { categoryId: "c2", category: "Di chuyển", amount: 40_000 },
+    ],
+  };
+  assert.equal(isTransaction(split), true);
+  assert.equal(isTransaction({ ...split, amount: 100_000 }), false);
+  assert.equal(isTransaction({ ...split, splits: [{ categoryId: "c1", category: "Ăn uống", amount: 90_000 }] }), false);
+});

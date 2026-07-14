@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  createSplitExpenseAction,
   createTransactionAction,
   createTransferAction,
   deleteTransactionAction,
@@ -13,12 +14,14 @@ import {
 import type {
   AccountOption,
   CategoryOption,
+  CreateSplitExpenseInput,
   CreateTransactionInput,
   CreateTransferInput,
   Transaction,
   UpdateMoneyTransactionInput,
   UpdateTransferInput,
 } from "@/lib/sample-data";
+import { buildSplitExpenseTransaction } from "@/lib/splits";
 import {
   readStoredTransactions,
   restoreTransactionInList,
@@ -140,6 +143,41 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     setIsMutating(true); try { const result = await createTransferAction(input); if (result.ok && result.transaction) setTransactions((current) => [result.transaction as Transaction, ...current.filter((item) => item.id !== result.transaction?.id)]); return result; } finally { setIsMutating(false); }
   }
 
+  async function addSplitExpense(input: CreateSplitExpenseInput): Promise<TransactionActionResult> {
+    const account = accounts.find((item) => item.id === input.accountId);
+    if (!account) return { ok: false, message: "Tài khoản chưa hợp lệ." };
+
+    if (isDemo) {
+      const built = buildSplitExpenseTransaction({
+        id: crypto.randomUUID(),
+        input,
+        account,
+        categories,
+      });
+      if (!built.ok) return { ok: false, message: built.message };
+      setTransactions((current) => {
+        const next = [built.transaction, ...current];
+        writeStoredTransactions(next);
+        return next;
+      });
+      return { ok: true, transaction: built.transaction };
+    }
+
+    setIsMutating(true);
+    try {
+      const result = await createSplitExpenseAction(input);
+      if (result.ok && result.transaction) {
+        setTransactions((current) => [
+          result.transaction as Transaction,
+          ...current.filter((item) => item.id !== result.transaction?.id),
+        ]);
+      }
+      return result;
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
   async function updateTransaction(input: UpdateMoneyTransactionInput | UpdateTransferInput): Promise<TransactionActionResult> {
     if (isDemo) {
       const existing = transactions.find((item) => item.id === input.id);
@@ -171,6 +209,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     transactions,
     addTransaction,
     addTransfer,
+    addSplitExpense,
     updateTransaction,
     deleteTransaction,
     restoreTransaction,

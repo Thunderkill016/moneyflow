@@ -72,7 +72,7 @@ export type CategoryShare = {
   share: number;
 };
 
-/** Top expense categories for the month of `today`. Transfers never count. */
+/** Top expense categories for the month of `today`. Transfers never count. Split lines expanded. */
 export function topExpenseCategories(
   transactions: Transaction[],
   { today = "2026-07-14", limit = 5 }: { today?: string; limit?: number } = {},
@@ -83,9 +83,17 @@ export function topExpenseCategories(
   for (const item of transactions) {
     if (item.kind !== "expense" || !item.occurredOn.startsWith(monthPrefix)) continue;
     if (!Number.isSafeInteger(item.amount) || item.amount <= 0) continue;
-    const next = (totals.get(item.category) ?? 0) + item.amount;
-    if (!Number.isSafeInteger(next)) continue;
-    totals.set(item.category, next);
+    const parts =
+      item.splits && item.splits.length >= 2
+        ? item.splits
+            .filter((line) => Number.isSafeInteger(line.amount) && line.amount > 0 && line.category)
+            .map((line) => ({ name: line.category, amount: line.amount }))
+        : [{ name: item.category, amount: item.amount }];
+    for (const part of parts) {
+      const next = (totals.get(part.name) ?? 0) + part.amount;
+      if (!Number.isSafeInteger(next)) continue;
+      totals.set(part.name, next);
+    }
     expense += item.amount;
   }
   if (!Number.isSafeInteger(expense)) expense = 0;
@@ -111,10 +119,16 @@ export function calculateDashboardSummary(
     periodTransactions,
     (item) => item.kind === "expense" && item.occurredOn === today,
   );
-  const foodExpense = sumTransactions(
-    periodTransactions,
-    (item) => item.kind === "expense" && item.category === "Ăn uống",
-  );
+  const foodExpense = periodTransactions.reduce((sum, item) => {
+    if (item.kind !== "expense") return sum;
+    if (item.splits && item.splits.length >= 2) {
+      const part = item.splits
+        .filter((line) => line.category === "Ăn uống" && Number.isSafeInteger(line.amount))
+        .reduce((s, line) => s + line.amount, 0);
+      return sum + part;
+    }
+    return item.category === "Ăn uống" ? sum + item.amount : sum;
+  }, 0);
   const todayDate = new Date(`${today}T00:00:00.000Z`);
   const dayOfMonth = todayDate.getUTCDate();
   const daysInMonth = new Date(Date.UTC(todayDate.getUTCFullYear(), todayDate.getUTCMonth() + 1, 0)).getUTCDate();

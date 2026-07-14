@@ -26,8 +26,21 @@ export function sumBudgetSpent(
   let spent = 0;
   for (const item of transactions) {
     if (item.kind !== "expense") continue;
-    if (item.categoryId !== categoryId) continue;
     if (!item.occurredOn.startsWith(monthPrefix)) continue;
+
+    // Multi-entry split: only the portion for this category counts.
+    if (item.splits && item.splits.length >= 2) {
+      for (const line of item.splits) {
+        if (line.categoryId !== categoryId) continue;
+        if (!Number.isSafeInteger(line.amount) || line.amount <= 0) continue;
+        const next = spent + line.amount;
+        if (!Number.isSafeInteger(next)) continue;
+        spent = next;
+      }
+      continue;
+    }
+
+    if (item.categoryId !== categoryId) continue;
     if (!Number.isSafeInteger(item.amount) || item.amount <= 0) continue;
     const next = spent + item.amount;
     if (!Number.isSafeInteger(next)) continue;

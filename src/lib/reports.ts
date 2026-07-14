@@ -115,6 +115,13 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
   const categoryTotals = new Map<string, number>();
   for (const item of current) {
     if (item.kind !== "expense") continue;
+    if (item.splits && item.splits.length >= 2) {
+      for (const line of item.splits) {
+        if (!line.category || !Number.isSafeInteger(line.amount) || line.amount <= 0) continue;
+        categoryTotals.set(line.category, safeAdd(categoryTotals.get(line.category) ?? 0, line.amount));
+      }
+      continue;
+    }
     categoryTotals.set(item.category, safeAdd(categoryTotals.get(item.category) ?? 0, item.amount));
   }
   const categories = [...categoryTotals.entries()]
@@ -148,14 +155,31 @@ export function rowsToCsv(header: string[], rows: Array<Array<string | number>>)
 
 export function transactionsToCsv(transactions: Transaction[]) {
   const header = ["Ngày", "Loại", "Ghi chú", "Danh mục", "Tài khoản nguồn", "Tài khoản đích", "Số tiền (VND)"];
-  const rows = transactions.map((item) => [
-    item.occurredOn,
-    item.kind === "income" ? "Thu nhập" : item.kind === "expense" ? "Chi tiêu" : "Chuyển tiền",
-    item.note,
-    item.category,
-    item.account,
-    item.destinationAccount ?? "",
-    item.kind === "expense" ? -item.amount : item.kind === "income" ? item.amount : item.amount,
-  ]);
+  const rows: Array<Array<string | number>> = [];
+  for (const item of transactions) {
+    if (item.kind === "expense" && item.splits && item.splits.length >= 2) {
+      for (const line of item.splits) {
+        rows.push([
+          item.occurredOn,
+          "Chi tiêu",
+          item.note,
+          line.category,
+          item.account,
+          "",
+          -line.amount,
+        ]);
+      }
+      continue;
+    }
+    rows.push([
+      item.occurredOn,
+      item.kind === "income" ? "Thu nhập" : item.kind === "expense" ? "Chi tiêu" : "Chuyển tiền",
+      item.note,
+      item.category,
+      item.account,
+      item.destinationAccount ?? "",
+      item.kind === "expense" ? -item.amount : item.kind === "income" ? item.amount : item.amount,
+    ]);
+  }
   return rowsToCsv(header, rows);
 }

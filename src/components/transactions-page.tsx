@@ -15,10 +15,17 @@ import {
 } from "@/lib/sample-data";
 import { type ViewerSummary } from "@/components/user-chip";
 import { TransferDialog } from "@/components/transfer-dialog";
+import { SplitExpenseDialog } from "@/components/split-expense-dialog";
 import { EditTransactionDialog } from "@/components/edit-transaction-dialog";
-import type { CreateTransferInput, UpdateMoneyTransactionInput, UpdateTransferInput } from "@/lib/sample-data";
+import type {
+  CreateSplitExpenseInput,
+  CreateTransferInput,
+  UpdateMoneyTransactionInput,
+  UpdateTransferInput,
+} from "@/lib/sample-data";
 import { AppShell } from "@/components/layout/app-shell";
 import { GHI_CHI_TIEU_HREF, GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
+import { isSplitExpense } from "@/lib/splits";
 import { safeUserNotice } from "@/lib/safe-log";
 import {
   TRANSACTION_PAGE_SIZE,
@@ -58,6 +65,7 @@ export function TransactionsPage({
     transactions,
     addTransaction,
     addTransfer,
+    addSplitExpense,
     updateTransaction,
     deleteTransaction,
     restoreTransaction,
@@ -70,7 +78,9 @@ export function TransactionsPage({
   });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const expenseCategoryCount = workspace.categories.filter((c) => c.kind === "expense").length;
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [account, setAccount] = useState("all");
@@ -267,6 +277,28 @@ export function TransactionsPage({
     return result;
   }
 
+  async function handleSplit(input: CreateSplitExpenseInput) {
+    const result = await addSplitExpense(input);
+    if (result.ok) {
+      setSplitOpen(false);
+      showNotice(
+        safeUserNotice(
+          result.transaction ? `Đã chia: ${result.transaction.note}.` : "Đã chia khoản chi.",
+          "Đã chia khoản chi.",
+        ),
+      );
+    }
+    return result;
+  }
+
+  function handleEditClick(transaction: Transaction) {
+    if (isSplitExpense(transaction)) {
+      showNotice("Khoản chia danh mục: xóa rồi tạo lại nếu cần sửa các dòng.");
+      return;
+    }
+    setEditing(transaction);
+  }
+
   return (
     <AppShell
       viewer={viewer}
@@ -329,9 +361,22 @@ export function TransactionsPage({
                 <Icon name="archive" /> Export
               </Link>
             ) : (
-              <button className="secondary-button" onClick={() => setTransferOpen(true)} disabled={workspace.accounts.length < 2 || Boolean(workspace.dataError)}>
-                <Icon name="arrows" /> Chuyển tiền ví
-              </button>
+              <>
+                <button
+                  className="secondary-button"
+                  onClick={() => setSplitOpen(true)}
+                  disabled={
+                    expenseCategoryCount < 2 ||
+                    workspace.accounts.length < 1 ||
+                    Boolean(workspace.dataError)
+                  }
+                >
+                  <Icon name="spark" /> Chia khoản chi
+                </button>
+                <button className="secondary-button" onClick={() => setTransferOpen(true)} disabled={workspace.accounts.length < 2 || Boolean(workspace.dataError)}>
+                  <Icon name="arrows" /> Chuyển tiền ví
+                </button>
+              </>
             )}
           </div>
         </section>
@@ -374,10 +419,10 @@ export function TransactionsPage({
                     return (
                       <article className="manager-row" key={transaction.id}>
                         <span className={`transaction-icon ${meta.color}`}><Icon name={meta.icon as IconName} /></span>
-                        <span className="transaction-detail"><strong>{transaction.note}</strong><small>{transaction.kind === "transfer" ? `${transaction.account} → ${transaction.destinationAccount}` : `${transaction.category} · ${transaction.account}`}{transaction.isRecurringPayment ? " · Từ lịch định kỳ" : ""}</small></span>
+                        <span className="transaction-detail"><strong>{transaction.note}</strong><small>{transaction.kind === "transfer" ? `${transaction.account} → ${transaction.destinationAccount}` : isSplitExpense(transaction) ? `${transaction.category} · ${transaction.account} · ${transaction.splits!.map((s) => `${s.category} ${formatMoney(s.amount)}`).join(" · ")}` : `${transaction.category} · ${transaction.account}`}{transaction.isRecurringPayment ? " · Từ lịch định kỳ" : ""}</small></span>
                         <time dateTime={transaction.occurredAt}>{transaction.relativeDate}</time>
                         <strong className={`font-mono ${transaction.kind === "income" ? "manager-amount income" : transaction.kind === "transfer" ? "manager-amount transfer" : "manager-amount"}`}>{transaction.kind === "income" ? "+ ↑ " : transaction.kind === "transfer" ? "↔ " : "− ↓ "}{formatMoney(transaction.amount)}</strong>
-                        {transaction.isRecurringPayment ? <Link href="/commitments" className="recurring-lock" title="Quản lý ở trang Định kỳ" aria-label={`Quản lý ${transaction.note} ở trang Định kỳ`}><Icon name="lock" /></Link> : <span className="manager-actions"><button className="edit-button" onClick={() => setEditing(transaction)} disabled={isMutating} aria-label={`Sửa giao dịch ${transaction.note}`}><Icon name="edit" /></button><button className="delete-button" onClick={() => handleDelete(transaction)} disabled={isMutating} aria-label={`Xóa giao dịch ${transaction.note}`}><Icon name="trash" /></button></span>}
+                        {transaction.isRecurringPayment ? <Link href="/commitments" className="recurring-lock" title="Quản lý ở trang Định kỳ" aria-label={`Quản lý ${transaction.note} ở trang Định kỳ`}><Icon name="lock" /></Link> : <span className="manager-actions"><button className="edit-button" onClick={() => handleEditClick(transaction)} disabled={isMutating} aria-label={isSplitExpense(transaction) ? `Khoản chia ${transaction.note} — xóa rồi tạo lại để sửa` : `Sửa giao dịch ${transaction.note}`}><Icon name="edit" /></button><button className="delete-button" onClick={() => handleDelete(transaction)} disabled={isMutating} aria-label={`Xóa giao dịch ${transaction.note}`}><Icon name="trash" /></button></span>}
                       </article>
                     );
                   })}
@@ -438,6 +483,14 @@ export function TransactionsPage({
         disabled={isMutating || Boolean(workspace.dataError)}
       />
       <TransferDialog open={transferOpen} accounts={workspace.accounts} onClose={() => setTransferOpen(false)} onTransfer={handleTransfer} />
+      <SplitExpenseDialog
+        open={splitOpen}
+        accounts={workspace.accounts}
+        categories={workspace.categories}
+        onClose={() => setSplitOpen(false)}
+        onSplit={handleSplit}
+        disabled={isMutating || Boolean(workspace.dataError)}
+      />
       {editing && <EditTransactionDialog key={editing.id} transaction={editing} accounts={workspace.accounts} categories={workspace.categories} onClose={() => setEditing(null)} onSave={handleUpdate} disabled={isMutating || Boolean(workspace.dataError)} />}
     </AppShell>
   );

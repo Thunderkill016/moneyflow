@@ -3,7 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import type { CreateTransactionInput, CreateTransferInput, Transaction, UpdateMoneyTransactionInput, UpdateTransferInput } from "@/lib/sample-data";
+import type {
+  CreateSplitExpenseInput,
+  CreateTransactionInput,
+  CreateTransferInput,
+  Transaction,
+  UpdateMoneyTransactionInput,
+  UpdateTransferInput,
+} from "@/lib/sample-data";
+import { validateSplitLines, splitValidationMessage } from "@/lib/splits";
 import { requireViewer } from "@/server/auth";
 import { mapTransactionFeedRow } from "@/server/finance";
 
@@ -24,9 +32,24 @@ const createSchema = z.object({
 const idSchema = z.string().uuid();
 const transferFields = z.object({ sourceAccountId: z.string().uuid(), destinationAccountId: z.string().uuid(), amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER), note: z.string().trim().max(500), occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), idempotencyKey: z.string().uuid() });
 const transferSchema = transferFields.refine((value) => value.sourceAccountId !== value.destinationAccountId);
+const splitExpenseSchema = z.object({
+  accountId: z.string().uuid(),
+  note: z.string().trim().max(500),
+  occurredOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  idempotencyKey: z.string().uuid(),
+  lines: z
+    .array(
+      z.object({
+        categoryId: z.string().uuid(),
+        amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+      }),
+    )
+    .min(2)
+    .max(12),
+});
 const updateSchema = createSchema.omit({ idempotencyKey: true }).extend({ id: z.string().uuid() });
 const updateTransferSchema = transferFields.omit({ idempotencyKey: true }).extend({ id: z.string().uuid(), kind: z.literal("transfer") }).refine((value) => value.sourceAccountId !== value.destinationAccountId);
-const feedColumns = "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment";
+const feedColumns = "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
 
 function refreshFinancePages() {
   revalidatePath("/");
@@ -93,6 +116,61 @@ export async function createTransferAction(input: CreateTransferInput): Promise<
   if (readError || !data) { refreshFinancePages(); return { ok: false, message: "Đã chuyển nhưng chưa tải lại được giao dịch." }; }
   try { const transaction = mapTransactionFeedRow(data); refreshFinancePages(); revalidatePath("/accounts"); return { ok: true, transaction }; }
   catch { refreshFinancePages(); return { ok: false, message: "Đã chuyển nhưng dữ liệu trả về không hợp lệ." }; }
+}
+
+/** One expense, multiple category entries (ledger multi-entry). */
+export async function createSplitExpenseAction(
+  input: CreateSplitExpenseInput,
+): Promise<TransactionActionResult> {
+  const parsed = splitExpenseSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "Thông tin chia khoản chi chưa hợp lệ." };
+
+  const linesCheck = validateSplitLines(parsed.data.lines);
+  if (!linesCheck.ok) return { ok: false, message: splitValidationMessage(linesCheck.error) };
+
+  const viewer = await requireViewer();
+  if (viewer.isDemo) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
+
+  const value = parsed.data;
+  const pLines = value.lines.map((line) => ({
+    category_id: line.categoryId,
+    amount_minor: line.amount,
+  }));
+
+  const { data: transactionId, error } = await supabase.rpc("create_split_expense", {
+    p_account_id: value.accountId,
+    p_lines: pLines,
+    p_occurred_on: value.occurredOn,
+    p_note: value.note,
+    p_idempotency_key: value.idempotencyKey,
+  });
+
+  if (error || typeof transactionId !== "string") {
+    return { ok: false, message: "Không thể chia khoản chi. Hãy kiểm tra danh mục và thử lại." };
+  }
+
+  const { data, error: readError } = await supabase
+    .from("transaction_feed")
+    .select(feedColumns)
+    .eq("id", transactionId)
+    .single();
+
+  if (readError || !data) {
+    refreshFinancePages();
+    return { ok: false, message: "Đã lưu nhưng chưa tải lại được giao dịch. Hãy làm mới trang." };
+  }
+
+  try {
+    const transaction = mapTransactionFeedRow(data);
+    refreshFinancePages();
+    return { ok: true, transaction };
+  } catch {
+    refreshFinancePages();
+    return { ok: false, message: "Đã lưu nhưng dữ liệu trả về không hợp lệ." };
+  }
 }
 
 export async function deleteTransactionAction(id: string): Promise<TransactionActionResult> {

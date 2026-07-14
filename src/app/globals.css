@@ -5616,3 +5616,85 @@ input[aria-invalid="true"] {
   background: rgba(31, 122, 69, 0.22);
   color: #8fd9ad;
 }
+
+/* TASK-128 — split expense dialog */
+.split-expense-dialog .split-lines-fieldset {
+  border: 1px solid var(--line, #d8e3dc);
+  border-radius: 16px;
+  padding: 12px 14px 14px;
+  margin: 0 0 16px;
+}
+.split-expense-dialog .split-lines-fieldset legend {
+  padding: 0 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink-muted, #4a6354);
+}
+.split-lines-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.split-line-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.split-line-category select,
+.split-line-amount input {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid #d8e3dc;
+  background: #fbfdfb;
+  padding: 0 12px;
+  color: inherit;
+}
+.split-line-amount {
+  position: relative;
+  display: block;
+}
+.split-line-amount span[aria-hidden="true"] {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.split-line-amount input {
+  padding-right: 28px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+.split-line-remove {
+  flex-shrink: 0;
+}
+.split-add-line {
+  margin-top: 10px;
+  width: 100%;
+}
+@media (max-width: 560px) {
+  .split-line-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "cat remove"
+      "amt remove";
+  }
+  .split-line-category { grid-area: cat; }
+  .split-line-amount { grid-area: amt; }
+  .split-line-remove { grid-area: remove; align-self: center; }
+}
+[data-theme="dark"] .split-expense-dialog .split-lines-fieldset {
+  border-color: var(--color-border-strong, #2a3d32);
+}
+[data-theme="dark"] .split-line-category select,
+[data-theme="dark"] .split-line-amount input {
+  border-color: var(--color-border-strong, #2a3d32);
+  background: var(--color-surface-raised, #152019);
+}

@@ -29,6 +29,12 @@ const categorySchema = z.object({
   icon: z.string().nullable(),
   color: z.string().nullable(),
 });
+const splitLineSchema = z.object({
+  category_id: z.string().uuid(),
+  category_name: z.string().min(1),
+  amount_minor: z.union([z.number(), z.string()]),
+});
+
 const feedSchema = z.object({
   id: z.string().uuid(),
   kind: z.enum(["income", "expense", "transfer"]),
@@ -43,6 +49,8 @@ const feedSchema = z.object({
   destination_account_id: z.string().uuid().nullable().optional(),
   destination_account_name: z.string().nullable().optional(),
   is_recurring_payment: z.boolean().optional(),
+  /** Multi-entry expense lines when split across categories (TASK-128). */
+  split_lines: z.array(splitLineSchema).nullable().optional(),
 });
 
 function currentDateInVietnam() {
@@ -78,6 +86,28 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
     throw new Error("invalid_transaction_amount");
   }
 
+  const splits =
+    row.kind === "expense" && row.split_lines && row.split_lines.length >= 2
+      ? row.split_lines.map((line) => {
+          const lineAmount = Math.abs(Number(line.amount_minor));
+          if (!Number.isSafeInteger(lineAmount) || lineAmount <= 0) {
+            throw new Error("invalid_split_amount");
+          }
+          return {
+            categoryId: line.category_id,
+            category: line.category_name,
+            amount: lineAmount,
+          };
+        })
+      : undefined;
+
+  if (splits) {
+    const sum = splits.reduce((acc, line) => acc + line.amount, 0);
+    if (!Number.isSafeInteger(sum) || sum !== amount) {
+      throw new Error("invalid_split_total");
+    }
+  }
+
   return {
     id: row.id,
     kind: row.kind,
@@ -89,6 +119,7 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
     destinationAccountId: row.destination_account_id ?? undefined,
     destinationAccount: row.destination_account_name ?? undefined,
     isRecurringPayment: row.is_recurring_payment ?? false,
+    splits,
     amount,
     occurredOn: row.occurred_on,
     occurredAt: row.created_at,
@@ -123,7 +154,7 @@ export async function getFinanceWorkspace(): Promise<FinanceWorkspace> {
       .order("created_at"),
     supabase
       .from("transaction_feed")
-      .select("id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment")
+      .select("id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines")
       .order("occurred_on", { ascending: false })
       .order("created_at", { ascending: false }),
     supabase.from("account_balances").select("balance_minor"),

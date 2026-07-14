@@ -1,5 +1,12 @@
 export type TransactionKind = "expense" | "income";
 
+/** Multi-entry expense lines (TASK-128). Present when one chi is split across categories. */
+export type TransactionSplitLine = {
+  categoryId: string;
+  category: string;
+  amount: number;
+};
+
 export type Transaction = {
   id: string;
   kind: TransactionKind | "transfer";
@@ -11,6 +18,8 @@ export type Transaction = {
   destinationAccountId?: string;
   destinationAccount?: string;
   isRecurringPayment?: boolean;
+  /** 2+ lines when expense is split across categories (ledger multi-entry). */
+  splits?: TransactionSplitLine[];
   amount: number;
   occurredOn: string;
   occurredAt: string;
@@ -47,6 +56,15 @@ export type CreateTransferInput = {
   note: string;
   occurredOn: string;
   idempotencyKey: string;
+};
+
+/** One expense, 2+ category lines (integer minor units each). */
+export type CreateSplitExpenseInput = {
+  accountId: string;
+  note: string;
+  occurredOn: string;
+  idempotencyKey: string;
+  lines: { categoryId: string; amount: number }[];
 };
 
 export type UpdateMoneyTransactionInput = Omit<CreateTransactionInput, "idempotencyKey"> & {

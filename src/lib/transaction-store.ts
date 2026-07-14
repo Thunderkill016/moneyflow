@@ -1,11 +1,12 @@
 import { sampleTransactions, type Transaction } from "./sample-data.ts";
+import { isSplitLine, sumSplitAmounts } from "./splits.ts";
 
 export const TRANSACTION_STORAGE_KEY = "moneyflow-demo-transactions-v1";
 
 export function isTransaction(value: unknown): value is Transaction {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<Transaction>;
-  return (
+  const baseOk =
     typeof item.id === "string" &&
     (item.kind === "expense" || item.kind === "income" || item.kind === "transfer") &&
     typeof item.categoryId === "string" &&
@@ -26,8 +27,14 @@ export function isTransaction(value: unknown): value is Transaction {
       typeof item.destinationAccountId === "string" &&
       typeof item.destinationAccount === "string" &&
       item.destinationAccountId !== item.accountId
-    ))
-  );
+    ));
+  if (!baseOk) return false;
+
+  if (item.splits === undefined) return true;
+  if (!Array.isArray(item.splits) || item.splits.length < 2) return false;
+  if (item.kind !== "expense") return false;
+  if (!item.splits.every(isSplitLine)) return false;
+  return sumSplitAmounts(item.splits) === item.amount;
 }
 
 export function readStoredTransactions() {
