@@ -1,8 +1,9 @@
 /**
  * Default path after successful login / session restore.
- * Wireframes (`docs/wireframes-inbox.md` §2) — Inbox-first home.
+ * Product home = Tổng quan thu chi (`/insights`). Inbox remains a capture tool.
+ * Wave A MF-100 / research G5 — see docs/AUTOPILOT_PLAN.md.
  */
-export const POST_AUTH_REDIRECT = "/inbox";
+export const POST_AUTH_REDIRECT = "/insights";
 
 /** Only same-origin relative paths; blocks open redirects (`//evil.com`). */
 export function safeNextPath(

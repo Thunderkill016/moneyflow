@@ -12,7 +12,7 @@ import {
 test("onboarding storage key and paths are stable", () => {
   assert.equal(ONBOARDING_STORAGE_KEY, "moneyflow-onboarding-done");
   assert.equal(ONBOARDING_PATH, "/onboarding");
-  assert.equal(ONBOARDING_SKIP_HREF, "/inbox");
+  assert.equal(ONBOARDING_SKIP_HREF, "/insights");
 });
 
 test("isOnboardingDoneValue accepts 1/true only", () => {

@@ -55,7 +55,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isAuthenticated && authPaths.includes(path)) {
-    // Inbox-first: see lib/auth-redirect.ts (POST_AUTH_REDIRECT = /inbox)
+    // Thu chi home: see lib/auth-redirect.ts (POST_AUTH_REDIRECT = /insights)
     const homeUrl = request.nextUrl.clone();
     homeUrl.pathname = POST_AUTH_REDIRECT;
     homeUrl.search = "";

@@ -251,7 +251,7 @@
 > Auto **chỉ** lấy task `ready` dưới đây (MF-100+).
 
 ### TASK-100 — Default home logged-in → /insights
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Đổi post-auth redirect và `/` khi đã login từ `/inbox` sang `/insights` (Tổng quan thu chi). Cập nhật `auth-redirect.ts` + proxy + tests. Không xóa route inbox. Tham chiếu docs/AUTOPILOT_PLAN.md Wave A MF-100 và research G5.
 - **Done khi:** login/register/onboarding skip → insights; tests auth-redirect pass; lint/typecheck/test pass.
 

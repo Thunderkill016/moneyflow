@@ -8,9 +8,9 @@ export const ONBOARDING_PATH = "/onboarding";
 
 /**
  * After onboarding skip / already-done redirect.
- * Inbox-first home (TASK-005).
+ * Product home = Tổng quan thu chi (TASK-100 / MF-100).
  */
-export const ONBOARDING_SKIP_HREF = "/inbox";
+export const ONBOARDING_SKIP_HREF = "/insights";
 
 export type CaptureMethod = "paste" | "upload" | "quick";
 
