@@ -420,7 +420,7 @@
 - **Status:** `done`
 - **Mô tả:** Lương định kỳ as income template separate from bill commitments.
 - **Source:** roadmap pool refill
-- **Completed:** 2026-07-15 — `d41bae5` /income-templates + migration; income ≠ commitments reserve
+- **Completed:** 2026-07-15 — `5b2937f` /income-templates + migration; income ≠ commitments reserve
 
 ### TASK-128 — Split transaction
 - **Status:** `ready`
@@ -431,7 +431,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-127 | `d41bae5` lương định kỳ income templates separate from bill commitments |
+| 2026-07-15 | TASK-127 | `5b2937f` lương định kỳ income templates separate from bill commitments |
 | 2026-07-15 | TASK-126 | `db1d5ea` in-app weekly summary card on Insights; calm copy; no email provider |
 | 2026-07-15 | TASK-125 | `a154639` AGENTS.md G5 guardrails; forbid inbox landing + bank/AI/family; Wave A→B→C |
 | 2026-07-15 | TASK-124 | `3f88fb4` README G5: thu chi primary; link 05 + AUTOPILOT_PLAN; run/quality/autopilot |
