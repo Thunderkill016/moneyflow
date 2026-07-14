@@ -197,7 +197,7 @@
 - **Completed:** 2026-07-15 — `9136daf` planning under Insights hub + More Kế hoạch; primary nav stays inbox-first.
 
 ### TASK-028 — Landing A/B microcopy polish VN
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Tighten landing after user feedback; no layout clone.
 - **Source:** roadmap pool refill
 

@@ -17,7 +17,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Money Flow — Hộp thư giao dịch tài chính",
   description:
-    "Dán text, tải sao kê, duyệt ngoại lệ. Không gõ lại từng dòng. Không hỏi mật khẩu ngân hàng.",
+    "Dán text, tải sao kê, duyệt ngoại lệ — không gõ lại từng dòng. Không hỏi mật khẩu ngân hàng. Bạn quyết định trước khi vào sổ.",
 };
 
 export default function RootLayout({
