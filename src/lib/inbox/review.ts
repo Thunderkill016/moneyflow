@@ -4,6 +4,7 @@
  * Money stays integer VND đồng.
  */
 
+import { maskAccountLikeDigits } from "../mask-account.ts";
 import type {
   AccountOption,
   CategoryOption,
@@ -169,7 +170,8 @@ export function buildExplainLines(candidate: InboxCandidate): ExplainLine[] {
   });
 
   if (candidate.rawSnippet) {
-    lines.push({ kind: "raw", text: candidate.rawSnippet });
+    // Display only — never expose STK-like digit runs in Explain raw (TASK-032).
+    lines.push({ kind: "raw", text: maskAccountLikeDigits(candidate.rawSnippet) });
   }
 
   return lines;

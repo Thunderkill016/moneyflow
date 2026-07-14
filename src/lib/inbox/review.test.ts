@@ -100,6 +100,19 @@ test("buildExplainLines covers parser, rule, source, raw", () => {
   assert.ok(lines.some((line) => /45\.000/.test(line.text)));
 });
 
+test("buildExplainLines masks STK-like digits in raw line", () => {
+  const withStk: InboxCandidate = {
+    ...expense,
+    rawSnippet: "HIGHLANDS STK 0123456789 -45.000đ",
+  };
+  const raw = buildExplainLines(withStk).find((line) => line.kind === "raw");
+  assert.ok(raw);
+  assert.ok(raw!.text.includes("HIGHLANDS"));
+  assert.ok(raw!.text.includes("45.000"));
+  assert.ok(!raw!.text.includes("0123456789"));
+  assert.ok(raw!.text.includes("•"));
+});
+
 test("resolve account and category by name", () => {
   assert.equal(resolveAccountId(expense, accounts), "acc-cash");
   assert.equal(resolveCategoryId(expense, categories, "expense"), "cat-food");

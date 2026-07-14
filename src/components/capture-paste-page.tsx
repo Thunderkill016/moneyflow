@@ -19,6 +19,7 @@ import {
   type PasteSourceHint,
 } from "@/lib/inbox/parse-text";
 import { readStoredRules } from "@/lib/inbox/rules-store";
+import { maskSnippetForDisplay } from "@/lib/mask-account";
 import { formatMoney } from "@/lib/money";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import { safeUserNotice } from "@/lib/safe-log";
@@ -359,7 +360,7 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                     {item.rawSnippet && (
                       <p className="capture-paste-raw">
                         <span className="sr-only">Gốc: </span>
-                        {item.rawSnippet}
+                        {maskSnippetForDisplay(item.rawSnippet)}
                       </p>
                     )}
                   </li>

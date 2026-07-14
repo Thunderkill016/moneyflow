@@ -14,6 +14,7 @@ import {
   type CandidateReviewDraft,
   type LedgerPostResult,
 } from "@/lib/inbox/review";
+import { maskSnippetForDisplay } from "@/lib/mask-account";
 import { formatMoney, formatMoneyInput, parseMoneyInput } from "@/lib/money";
 import type { AccountOption, CategoryOption } from "@/lib/sample-data";
 
@@ -237,7 +238,9 @@ export function InboxReviewPanel({
               maxLength={200}
             />
             {candidate.rawSnippet ? (
-              <small className="field-hint">raw: “{candidate.rawSnippet}”</small>
+              <small className="field-hint">
+                raw: “{maskSnippetForDisplay(candidate.rawSnippet)}”
+              </small>
             ) : null}
           </label>
 

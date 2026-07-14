@@ -225,10 +225,10 @@
 - **Completed:** 2026-07-15 — `3853e0e` paste_analyzed/committed + import_batch_created/committed/cancelled via safe-analytics (counts/source only)
 
 ### TASK-032 — Mask account numbers in UI snippets
-- **Status:** `cancelled`
-- **Note:** Deferred; covered by TASK-123 Wave C.
+- **Status:** `done`
 - **Mô tả:** Redact/mask STK-like digit runs in raw_snippet display (review/explain/preview) while keeping merchant readable; pure helper + tests.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `04177ae` mask-account helper + tests; review/explain/paste display mask STK (merchant + money kept)
 
 ### TASK-033 — Retention job clear expired import raw
 - **Status:** `cancelled`
@@ -366,7 +366,8 @@
 - **Done khi:** no render 1000 rows at once; lint/typecheck/test pass.
 
 ### TASK-123 — Mask account-like digits in snippets
-- **Status:** `ready`
+- **Status:** `cancelled`
+- **Note:** Covered by TASK-032 (`mask-account.ts` + UI display + tests).
 - **Mô tả:** Helper mask STK patterns in raw snippets UI (inbox/review); unit tests. Never log unmasked via safe-log.
 - **Done khi:** tests; lint/typecheck/test pass.
 
@@ -385,6 +386,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-032 | `04177ae` mask STK-like digits in raw_snippet UI (review/explain/paste); pure helper + tests |
 | 2026-07-15 | TASK-031 | `3853e0e` wire trackProductEvent on paste/upload/import commit (counts/source only) |
 | 2026-07-15 | TASK-030 | `b235880` no raw statement in console/toasts/analytics (safe-log + safe-analytics) |
 | 2026-07-15 | TASK-029 | 1a9b197 Playwright E2E smoke landing→onboarding skip→paste→inbox |
