@@ -16,6 +16,7 @@ const protectedPaths = [
   "/transactions",
   "/budgets",
   "/commitments",
+  "/income-templates",
   "/goals",
   "/reports",
 ];

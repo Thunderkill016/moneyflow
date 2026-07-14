@@ -19,6 +19,8 @@ const REQUIRED_TABLES = [
   "monthly_budgets",
   "recurring_commitments",
   "commitment_occurrences",
+  "recurring_income_templates",
+  "income_template_occurrences",
   "savings_goals",
   "savings_goal_allocations",
   "import_batches",

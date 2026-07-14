@@ -87,9 +87,14 @@ export const GHI_CHI_TIEU_LABEL = "Ghi chi tiêu" as const;
 export const GHI_CHI_TIEU_HREF = "/capture/quick" as const;
 
 /** Routes that must stay off the primary sidebar / mobile tabs. */
-export const PLANNING_PATHS = ["/budgets", "/commitments", "/goals"] as const;
+export const PLANNING_PATHS = [
+  "/budgets",
+  "/commitments",
+  "/income-templates",
+  "/goals",
+] as const;
 
-/** Ngân sách · Định kỳ · Mục tiêu — secondary only (Insights / More). */
+/** Ngân sách · Định kỳ (chi) · Lương · Mục tiêu — secondary only (Insights / More). */
 export const PLANNING_LINKS: SecondaryNavItem[] = [
   {
     label: "Ngân sách",
@@ -102,6 +107,12 @@ export const PLANNING_LINKS: SecondaryNavItem[] = [
     href: "/commitments",
     icon: "calendar",
     description: "Hóa đơn & khoản giữ trước",
+  },
+  {
+    label: "Lương định kỳ",
+    href: "/income-templates",
+    icon: "wallet",
+    description: "Lương & khoản thu lặp",
   },
   {
     label: "Mục tiêu",

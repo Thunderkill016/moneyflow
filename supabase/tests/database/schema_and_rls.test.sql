@@ -1,5 +1,5 @@
 begin;
-select plan(66);
+select plan(76);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
@@ -9,6 +9,8 @@ select has_table('public', 'transaction_entries', 'transaction_entries exists');
 select has_table('public', 'monthly_budgets', 'monthly_budgets exists');
 select has_table('public', 'recurring_commitments', 'recurring commitments exists');
 select has_table('public', 'commitment_occurrences', 'commitment occurrences exists');
+select has_table('public', 'recurring_income_templates', 'recurring income templates exists');
+select has_table('public', 'income_template_occurrences', 'income template occurrences exists');
 select has_table('public', 'savings_goals', 'savings goals exists');
 select has_table('public', 'savings_goal_allocations', 'savings goal allocations exists');
 select has_table('public', 'import_batches', 'import_batches exists');
@@ -17,6 +19,7 @@ select has_view('public', 'account_balances', 'account_balances exists');
 select has_view('public', 'transaction_feed', 'transaction_feed exists');
 select has_view('public', 'budget_progress', 'budget_progress exists');
 select has_view('public', 'recurring_commitment_feed', 'recurring commitment feed exists');
+select has_view('public', 'recurring_income_template_feed', 'recurring income template feed exists');
 
 select ok((select relrowsecurity from pg_class where oid = 'public.profiles'::regclass), 'profiles has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.accounts'::regclass), 'accounts has RLS');
@@ -26,6 +29,8 @@ select ok((select relrowsecurity from pg_class where oid = 'public.transaction_e
 select ok((select relrowsecurity from pg_class where oid = 'public.monthly_budgets'::regclass), 'budgets has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.recurring_commitments'::regclass), 'recurring commitments has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.commitment_occurrences'::regclass), 'commitment occurrences has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.recurring_income_templates'::regclass), 'recurring income templates has RLS');
+select ok((select relrowsecurity from pg_class where oid = 'public.income_template_occurrences'::regclass), 'income template occurrences has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.savings_goals'::regclass), 'savings goals has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.savings_goal_allocations'::regclass), 'savings goal allocations has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.import_batches'::regclass), 'import_batches has RLS');
@@ -40,6 +45,8 @@ select has_policy('public', 'transaction_entries', 'entries_select_own', 'entrie
 select has_policy('public', 'monthly_budgets', 'monthly_budgets_select_own', 'budgets select policy');
 select has_policy('public', 'recurring_commitments', 'recurring_commitments_select_own', 'commitments select policy');
 select has_policy('public', 'commitment_occurrences', 'commitment_occurrences_select_own', 'commitment occurrences select policy');
+select has_policy('public', 'recurring_income_templates', 'recurring_income_templates_select_own', 'income templates select policy');
+select has_policy('public', 'income_template_occurrences', 'income_template_occurrences_select_own', 'income occurrences select policy');
 select has_policy('public', 'savings_goals', 'savings_goals_select_own', 'goals select policy');
 select has_policy('public', 'savings_goal_allocations', 'savings_goal_allocations_select_own', 'goal allocations select policy');
 select has_policy('public', 'import_batches', 'import_batches_select_own', 'import_batches select policy');
@@ -63,6 +70,10 @@ select has_function('public', 'upsert_recurring_commitment', array['uuid', 'text
 select has_function('public', 'set_recurring_commitment_archived', array['uuid', 'boolean'], 'archive recurring commitment RPC exists');
 select has_function('public', 'pay_recurring_commitment', array['uuid', 'date', 'date', 'uuid'], 'pay recurring commitment RPC exists');
 select has_function('public', 'undo_recurring_commitment_payment', array['uuid', 'date'], 'undo recurring commitment RPC exists');
+select has_function('public', 'upsert_recurring_income_template', array['uuid', 'text', 'bigint', 'integer', 'uuid', 'uuid'], 'upsert income template RPC exists');
+select has_function('public', 'set_recurring_income_template_archived', array['uuid', 'boolean'], 'archive income template RPC exists');
+select has_function('public', 'record_recurring_income_template', array['uuid', 'date', 'date', 'uuid'], 'record income template RPC exists');
+select has_function('public', 'undo_recurring_income_template_receipt', array['uuid', 'date'], 'undo income template receipt RPC exists');
 select has_function('public', 'upsert_savings_goal', array['uuid', 'text', 'bigint', 'date'], 'upsert savings goal RPC exists');
 select has_function('public', 'adjust_savings_goal', array['uuid', 'bigint'], 'adjust savings goal RPC exists');
 select has_function('public', 'set_savings_goal_archived', array['uuid', 'boolean'], 'archive savings goal RPC exists');

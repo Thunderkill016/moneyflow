@@ -5,6 +5,7 @@ import { getFinanceWorkspace } from "@/server/finance";
 import { getBudgetsWorkspace } from "@/server/budgets";
 import { getCommitmentsWorkspace } from "@/server/commitments";
 import { getGoalsWorkspace } from "@/server/goals";
+import { getIncomeTemplatesWorkspace } from "@/server/income-templates";
 
 export const metadata: Metadata = {
   title: "Tổng quan — Money Flow",
@@ -17,13 +18,19 @@ export const metadata: Metadata = {
  */
 export default async function Page() {
   const viewer = await requireViewer();
-  const [workspace, budgetWorkspace, commitmentWorkspace, goalWorkspace] =
-    await Promise.all([
-      getFinanceWorkspace(),
-      getBudgetsWorkspace(),
-      getCommitmentsWorkspace(),
-      getGoalsWorkspace(),
-    ]);
+  const [
+    workspace,
+    budgetWorkspace,
+    commitmentWorkspace,
+    incomeWorkspace,
+    goalWorkspace,
+  ] = await Promise.all([
+    getFinanceWorkspace(),
+    getBudgetsWorkspace(),
+    getCommitmentsWorkspace(),
+    getIncomeTemplatesWorkspace(),
+    getGoalsWorkspace(),
+  ]);
 
   return (
     <MoneyFlowDashboard
@@ -38,10 +45,12 @@ export default async function Page() {
           workspace.dataError ??
           budgetWorkspace.dataError ??
           commitmentWorkspace.dataError ??
+          incomeWorkspace.dataError ??
           goalWorkspace.dataError,
       }}
       budgets={budgetWorkspace.budgets}
       commitments={commitmentWorkspace.commitments}
+      incomeTemplates={incomeWorkspace.templates}
       goals={goalWorkspace.goals}
     />
   );

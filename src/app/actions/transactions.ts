@@ -108,7 +108,7 @@ export async function deleteTransactionAction(id: string): Promise<TransactionAc
   const { data, error } = await supabase.rpc("soft_delete_money_transaction", {
     p_transaction_id: parsed.data,
   });
-  if (error?.message.includes("recurring_payment_locked")) return { ok: false, message: "Khoản này được tạo từ lịch định kỳ. Hãy hoàn tác thanh toán ở trang Định kỳ." };
+  if (error?.message.includes("recurring_payment_locked")) return { ok: false, message: "Khoản này được tạo từ lịch định kỳ. Hãy hoàn tác ở trang Định kỳ hoặc Lương định kỳ." };
   if (error) return { ok: false, message: "Không thể xóa giao dịch. Hãy thử lại." };
   if (data !== true) return { ok: false, message: "Giao dịch không còn tồn tại." };
 
@@ -187,7 +187,7 @@ export async function updateTransactionAction(input: UpdateMoneyTransactionInput
     p_transaction_id: value.id, p_account_id: value.accountId, p_category_id: value.categoryId,
     p_kind: value.kind, p_amount_minor: value.amount, p_occurred_on: value.occurredOn, p_note: value.note,
   });
-  if (error?.message.includes("recurring_payment_locked")) return { ok: false, message: "Khoản này được quản lý ở trang Định kỳ." };
+  if (error?.message.includes("recurring_payment_locked")) return { ok: false, message: "Khoản này được quản lý ở trang Định kỳ hoặc Lương định kỳ." };
   if (error || typeof transactionId !== "string") return { ok: false, message: "Không thể cập nhật giao dịch. Hãy kiểm tra và thử lại." };
   const { data, error: readError } = await supabase.from("transaction_feed").select(feedColumns).eq("id", transactionId).single();
   if (readError || !data) { refreshFinancePages(); return { ok: false, message: "Đã cập nhật nhưng chưa tải lại được giao dịch." }; }

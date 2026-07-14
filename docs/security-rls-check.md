@@ -108,6 +108,7 @@ Expected user-owned tables (all `rls_enabled = true`):
 - `financial_transactions`, `transaction_entries`
 - `monthly_budgets`
 - `recurring_commitments`, `commitment_occurrences`
+- `recurring_income_templates`, `income_template_occurrences`
 - `savings_goals`, `savings_goal_allocations`
 - `import_batches`, `inbox_candidates`
 

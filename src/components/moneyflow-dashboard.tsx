@@ -35,6 +35,12 @@ import {
   unpaidActiveCount,
   type RecurringCommitment,
 } from "@/lib/commitments";
+import { hydrateIncomeTemplatesWithOccurrences } from "@/lib/income-template-store";
+import {
+  incomeTemplateTotals,
+  pendingActiveCount,
+  type RecurringIncomeTemplate,
+} from "@/lib/income-templates";
 import {
   dailyGoalSaving,
   goalProgress,
@@ -76,12 +82,14 @@ export function MoneyFlowDashboard({
   workspace,
   budgets,
   commitments,
+  incomeTemplates = [],
   goals,
 }: {
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
+  incomeTemplates?: RecurringIncomeTemplate[];
   goals: SavingsGoal[];
 }) {
   const { transactions, addTransaction: addTransactionToStore, isMutating } = useTransactions({
@@ -94,15 +102,21 @@ export function MoneyFlowDashboard({
   const [notice, setNotice] = useState("");
   /** Demo: overlay local pay occurrences so reserved matches /commitments after pay. */
   const [demoCommitments, setDemoCommitments] = useState<RecurringCommitment[] | null>(null);
+  const [demoIncomeTemplates, setDemoIncomeTemplates] = useState<
+    RecurringIncomeTemplate[] | null
+  >(null);
 
   useEffect(() => {
     if (!viewer.isDemo) return;
     const monthStart = monthStartFromDate(workspace.today);
     const frame = window.requestAnimationFrame(() => {
       setDemoCommitments(hydrateCommitmentsWithOccurrences(commitments, monthStart));
+      setDemoIncomeTemplates(
+        hydrateIncomeTemplatesWithOccurrences(incomeTemplates, monthStart),
+      );
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [viewer.isDemo, commitments, workspace.today]);
+  }, [viewer.isDemo, commitments, incomeTemplates, workspace.today]);
 
   useEffect(() => {
     if (!notice) return;
@@ -112,6 +126,8 @@ export function MoneyFlowDashboard({
 
   const liveCommitments =
     viewer.isDemo && demoCommitments ? demoCommitments : commitments;
+  const liveIncomeTemplates =
+    viewer.isDemo && demoIncomeTemplates ? demoIncomeTemplates : incomeTemplates;
 
   const currentBalance = useMemo(() => {
     if (viewer.isDemo) return workspace.totalBalance;
@@ -136,6 +152,9 @@ export function MoneyFlowDashboard({
     ? liveBudgets.reduce((sum, item) => sum + Math.max(0, item.limit - item.spent), 0)
     : undefined;
   const reservedCommitments = commitmentTotals(liveCommitments).reserved;
+  const incomeTotals = incomeTemplateTotals(liveIncomeTemplates);
+  const pendingIncomeCount = pendingActiveCount(liveIncomeTemplates);
+  const activeIncomeCount = liveIncomeTemplates.filter((item) => !item.isArchived).length;
   const unpaidCommitments = unpaidActiveCount(liveCommitments);
   const activeCommitmentCount = liveCommitments.filter((item) => !item.isArchived).length;
   const savings = goalTotals(goals, workspace.today);
@@ -652,6 +671,37 @@ export function MoneyFlowDashboard({
                     <Link href="/commitments">Xem lịch khoản định kỳ →</Link>
                   ) : (
                     <Link href="/commitments">Thêm khoản định kỳ đầu tiên →</Link>
+                  )}
+                </p>
+              </div>
+            </article>
+
+            <article className="insight-panel" aria-label="Lương định kỳ chờ nhận">
+              <span className="round-icon green">
+                <Icon name="wallet" />
+              </span>
+              <div>
+                <p className="eyebrow">Lương định kỳ</p>
+                <h2>
+                  {incomeTotals.expected > 0
+                    ? `${formatMoney(incomeTotals.expected)} chờ nhận`
+                    : activeIncomeCount > 0
+                      ? "Tháng này đã ghi nhận hết lương"
+                      : "Chưa có lương định kỳ"}
+                </h2>
+                <p>
+                  {incomeTotals.expected > 0 ? (
+                    <>
+                      <span className="font-mono">
+                        {pendingIncomeCount} khoản chưa nhận
+                      </span>
+                      {" · "}
+                      <Link href="/income-templates">Ghi nhận khi tiền về →</Link>
+                    </>
+                  ) : activeIncomeCount > 0 ? (
+                    <Link href="/income-templates">Xem lịch thu →</Link>
+                  ) : (
+                    <Link href="/income-templates">Thêm lương định kỳ →</Link>
                   )}
                 </p>
               </div>

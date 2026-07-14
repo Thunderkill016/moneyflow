@@ -82,15 +82,23 @@ test("primary nav never includes planning or demoted inbox tools", () => {
   );
 });
 
-test("planning links cover budgets, commitments, goals", () => {
+test("planning links cover budgets, commitments, income templates, goals", () => {
   const hrefs = PLANNING_LINKS.map((item) => item.href).sort();
-  assert.deepEqual(hrefs, ["/budgets", "/commitments", "/goals"].sort());
+  assert.deepEqual(
+    hrefs,
+    ["/budgets", "/commitments", "/goals", "/income-templates"].sort(),
+  );
   assert.ok(PLANNING_LINKS.every((item) => item.label && item.icon));
+  assert.ok(
+    PLANNING_LINKS.some((item) => item.href === "/income-templates"),
+    "lương định kỳ separate from bill commitments",
+  );
 });
 
 test("isPlanningPath matches planning routes only", () => {
   assert.equal(isPlanningPath("/budgets"), true);
   assert.equal(isPlanningPath("/commitments/foo"), true);
+  assert.equal(isPlanningPath("/income-templates"), true);
   assert.equal(isPlanningPath("/goals"), true);
   assert.equal(isPlanningPath("/inbox"), false);
   assert.equal(isPlanningPath("/insights"), false);
