@@ -210,14 +210,16 @@
 
 
 ### TASK-030 — Security pass raw logs
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Ensure no raw statement in console/toasts/analytics.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `b235880` safe-log + safe-analytics; error/toasts redact raw; unit tests
 
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-030 | `b235880` no raw statement in console/toasts/analytics (safe-log + safe-analytics) |
 | 2026-07-15 | TASK-029 | 1a9b197 Playwright E2E smoke landing→onboarding skip→paste→inbox |
 | 2026-07-15 | TASK-028 | `10ab1fc` landing VN microcopy polish — wireframe hero, no EN jargon, layout unchanged |
 | 2026-07-15 | TASK-027 | `9136daf` budgets/commitments/goals under Insights + More (not primary nav) |
