@@ -1,8 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * E2E smoke — TASK-029.
- * Forces demo mode (placeholder Supabase) so the happy path runs without
+ * E2E smoke — TASK-116 (expense path) + any specs under ./e2e.
+ * Forces demo mode (placeholder Supabase) so flows run without
  * creating real accounts or depending on .env.local credentials.
  */
 const PORT = Number(process.env.E2E_PORT || 3100);
