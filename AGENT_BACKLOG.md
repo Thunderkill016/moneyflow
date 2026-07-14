@@ -108,9 +108,10 @@
 - **Completed:** 2026-07-15 — `42ada1f` `/insights` dashboard + `/` logged-in → `/inbox`; landing public when logged out.
 
 ### TASK-014 — Rules page stub
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** `/rules` list local rules JSON in localStorage; add simple contains→category rule; apply on parse optionally. Wireframes §14. Minimal.
 - **Done khi:** CRUD rules local; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `572b443` `/rules` localStorage CRUD contains→category; optional apply on paste parse.
 
 ### TASK-015 — Import history
 - **Status:** `ready`
@@ -148,6 +149,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-014 | `572b443` /rules local rules + apply on parse optional |
 | 2026-07-15 | TASK-013 | `42ada1f` /insights demote dashboard; / → /inbox when logged in |
 | 2026-07-15 | TASK-012 | `435fe49` /timeline đã duyệt + empty CTA Inbox |
 | 2026-07-15 | TASK-011 | `b22b5b8` review panel + explain + bulk; low conf opt-in only |
