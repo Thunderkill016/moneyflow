@@ -293,9 +293,10 @@
 - **Completed:** 2026-07-15 — `3928fab` soft-delete toast 8s + Hoàn tác; demo restore + RPC restore_money_transaction; limitation doc.
 
 ### TASK-107 — Category manager tối thiểu
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** UI thêm/đổi tên/ẩn (archive) category income+expense cho user; không subcategory. Settings hoặc trang /categories. Seed defaults giữ. Validate name unique per kind.
 - **Done khi:** CRUD category; tests domain; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `571a50a` /categories add/rename/archive; unique name per kind; migration is_archived; seed defaults kept.
 
 ### TASK-108 — Budget threshold calm UI
 - **Status:** `ready`
@@ -393,6 +394,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-107 | `571a50a` /categories add/rename/archive; unique per kind; is_archived migration |
 | 2026-07-15 | TASK-106 | `3928fab` soft-delete undo toast 8s Hoàn tác (demo + restore RPC); migration limitation documented |
 | 2026-07-15 | TASK-105 | `624cca2` global CTA Ghi chi tiêu (topbar+FAB → quick add); Insights/tx same pattern |
 | 2026-07-15 | TASK-104 | `b7d5cdd` landing-copy regression: require thu chi/có thể chi; forbid inbox slogans |
