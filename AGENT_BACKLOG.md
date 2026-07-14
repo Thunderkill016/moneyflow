@@ -197,9 +197,10 @@
 - **Completed:** 2026-07-15 — `9136daf` planning under Insights hub + More Kế hoạch; primary nav stays inbox-first.
 
 ### TASK-028 — Landing A/B microcopy polish VN
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Tighten landing after user feedback; no layout clone.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `10ab1fc` landing VN microcopy polish (no layout clone); drop EN jargon.
 
 ### TASK-029 — E2E smoke playwright inbox happy path
 - **Status:** `ready`
@@ -210,6 +211,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-028 | `10ab1fc` landing VN microcopy polish — wireframe hero, no EN jargon, layout unchanged |
 | 2026-07-15 | TASK-027 | `9136daf` budgets/commitments/goals under Insights + More (not primary nav) |
 | 2026-07-15 | TASK-026 | `73aa479` inbox keyboard j/k x a c n (desktop power) |
 | 2026-07-15 | TASK-025 | `0b27a7e` fingerprint duplicates + transfer pairs (opposite amount same day) in Inbox |
