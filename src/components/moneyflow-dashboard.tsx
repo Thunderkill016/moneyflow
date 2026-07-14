@@ -48,6 +48,17 @@ import {
   EXPORT_SETTINGS_HREF,
 } from "@/lib/export-data";
 import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
+import {
+  buildWeeklySummary,
+  formatWeekRangeLabel,
+  WEEKLY_SUMMARY_ARIA,
+  WEEKLY_SUMMARY_EMPTY_LEDGER,
+  WEEKLY_SUMMARY_EMPTY_WEEK,
+  WEEKLY_SUMMARY_REPORTS_HREF,
+  WEEKLY_SUMMARY_REPORTS_LABEL,
+  WEEKLY_SUMMARY_TITLE,
+  weeklyExpenseCompareLine,
+} from "@/lib/weekly-summary";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/empty-state";
 
@@ -156,6 +167,13 @@ export function MoneyFlowDashboard({
     () => topExpenseCategories(transactions, { today: workspace.today, limit: 5 }),
     [transactions, workspace.today],
   );
+
+  const weeklySummary = useMemo(
+    () => buildWeeklySummary(transactions, workspace.today),
+    [transactions, workspace.today],
+  );
+  const weeklyCompareLine = weeklyExpenseCompareLine(weeklySummary.expenseChangePercent);
+  const weeklyHasActivity = weeklySummary.income > 0 || weeklySummary.expense > 0;
 
   async function addTransaction(input: CreateTransactionInput) {
     const result = await addTransactionToStore(input);
@@ -436,6 +454,89 @@ export function MoneyFlowDashboard({
           </div>
 
           <div className="right-stack">
+            <article
+              className="weekly-summary-panel panel"
+              aria-label={WEEKLY_SUMMARY_ARIA}
+            >
+              <div className="section-heading compact">
+                <div>
+                  <h2>{WEEKLY_SUMMARY_TITLE}</h2>
+                  <p>
+                    {formatWeekRangeLabel(weeklySummary.weekStart, weeklySummary.weekEnd)}
+                  </p>
+                </div>
+                <Link
+                  className="icon-button"
+                  href={WEEKLY_SUMMARY_REPORTS_HREF}
+                  aria-label="Mở báo cáo theo tuần"
+                >
+                  <Icon name="arrowRight" />
+                </Link>
+              </div>
+              {weeklyHasActivity ? (
+                <>
+                  <div className="weekly-summary-kpis" role="group" aria-label="Thu chi tuần này">
+                    <div>
+                      <span>Thu</span>
+                      <strong
+                        className="font-mono amount income"
+                        aria-label={`Thu tuần cộng ${formatMoney(weeklySummary.income)}`}
+                      >
+                        {formatMoneyWithKind(weeklySummary.income, "income")}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Chi</span>
+                      <strong
+                        className="font-mono amount"
+                        aria-label={`Chi tuần trừ ${formatMoney(weeklySummary.expense)}`}
+                      >
+                        {formatMoneyWithKind(weeklySummary.expense, "expense")}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Ròng</span>
+                      <strong
+                        className={`font-mono ${weeklySummary.net >= 0 ? "amount income" : "amount"}`}
+                        aria-label={`Ròng ${formatSignedMoney(weeklySummary.net)}`}
+                      >
+                        {formatSignedMoney(weeklySummary.net)}
+                      </strong>
+                    </div>
+                  </div>
+                  {weeklySummary.topCategory ? (
+                    <p className="weekly-summary-top">
+                      Chi nhiều nhất: <strong>{weeklySummary.topCategory}</strong>
+                      {" · "}
+                      <span
+                        className="font-mono"
+                        aria-label={`Chi ${formatMoney(weeklySummary.topCategoryAmount)}`}
+                      >
+                        {formatMoneyWithKind(weeklySummary.topCategoryAmount, "expense")}
+                      </span>
+                    </p>
+                  ) : null}
+                  {weeklyCompareLine ? (
+                    <p className="weekly-summary-compare">{weeklyCompareLine}</p>
+                  ) : null}
+                  <p className="goal-dashboard-more">
+                    <Link href={WEEKLY_SUMMARY_REPORTS_HREF}>{WEEKLY_SUMMARY_REPORTS_LABEL}</Link>
+                  </p>
+                </>
+              ) : (
+                <div className="budget-empty">
+                  <p>{isEmptyLedger ? WEEKLY_SUMMARY_EMPTY_LEDGER : WEEKLY_SUMMARY_EMPTY_WEEK}</p>
+                  {isEmptyLedger ? (
+                    <button type="button" onClick={openGhiChi} disabled={actionsDisabled}>
+                      {GHI_CHI_TIEU_LABEL}
+                    </button>
+                  ) : (
+                    <Link href={WEEKLY_SUMMARY_REPORTS_HREF}>{WEEKLY_SUMMARY_REPORTS_LABEL}</Link>
+                  )}
+                </div>
+              )}
+            </article>
+
             <article className="safe-card safe-card-secondary" aria-label="Có thể chi hôm nay">
               <div className="safe-card-top">
                 <div>

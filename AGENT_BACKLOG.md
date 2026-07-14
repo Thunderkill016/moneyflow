@@ -411,7 +411,7 @@
 
 
 ### TASK-126 — Weekly review email stub (optional)
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Optional in-app weekly summary card (not email provider); calm copy. Skip if no demand.
 - **Source:** roadmap pool refill
 
