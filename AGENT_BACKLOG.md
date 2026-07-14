@@ -335,7 +335,7 @@
 - **Completed:** 2026-07-15 — `06568ef` sticky demo banner under topbar + Đăng ký CTA; source contract test.
 
 ### TASK-114 — Commitments pay flow polish
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Pay commitment → expense ledger; empty/error; reserve hiển thị trên insights. Fix bugs only, no new product.
 - **Done khi:** happy path + tests commitments; lint/typecheck/test pass.
 

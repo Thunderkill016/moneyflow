@@ -23,7 +23,13 @@ import {
   budgetThreshold,
   type BudgetSummary,
 } from "@/lib/budgets";
-import { commitmentTotals, type RecurringCommitment } from "@/lib/commitments";
+import { hydrateCommitmentsWithOccurrences } from "@/lib/commitment-occurrence-store";
+import {
+  commitmentTotals,
+  monthStartFromDate,
+  unpaidActiveCount,
+  type RecurringCommitment,
+} from "@/lib/commitments";
 import { goalProgress, goalTotals, type SavingsGoal } from "@/lib/goals";
 import {
   EXPORT_CSV_LABEL,
@@ -76,12 +82,26 @@ export function MoneyFlowDashboard({
   });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  /** Demo: overlay local pay occurrences so reserved matches /commitments after pay. */
+  const [demoCommitments, setDemoCommitments] = useState<RecurringCommitment[] | null>(null);
+
+  useEffect(() => {
+    if (!viewer.isDemo) return;
+    const monthStart = monthStartFromDate(workspace.today);
+    const frame = window.requestAnimationFrame(() => {
+      setDemoCommitments(hydrateCommitmentsWithOccurrences(commitments, monthStart));
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [viewer.isDemo, commitments, workspace.today]);
 
   useEffect(() => {
     if (!notice) return;
     const timeout = window.setTimeout(() => setNotice(""), 4200);
     return () => window.clearTimeout(timeout);
   }, [notice]);
+
+  const liveCommitments =
+    viewer.isDemo && demoCommitments ? demoCommitments : commitments;
 
   const currentBalance = useMemo(() => {
     if (viewer.isDemo) return workspace.totalBalance;
@@ -107,7 +127,9 @@ export function MoneyFlowDashboard({
   const remainingBudget = liveBudgets.length
     ? liveBudgets.reduce((sum, item) => sum + Math.max(0, item.limit - item.spent), 0)
     : undefined;
-  const reservedCommitments = commitmentTotals(commitments).reserved;
+  const reservedCommitments = commitmentTotals(liveCommitments).reserved;
+  const unpaidCommitments = unpaidActiveCount(liveCommitments);
+  const activeCommitmentCount = liveCommitments.filter((item) => !item.isArchived).length;
   const savings = goalTotals(goals, workspace.today);
 
   const totals = useMemo(
@@ -472,20 +494,30 @@ export function MoneyFlowDashboard({
               )}
             </article>
 
-            <article className="insight-panel">
+            <article className="insight-panel" aria-label="Khoản định kỳ đang giữ trước">
               <span className="round-icon purple">
                 <Icon name="calendar" />
               </span>
               <div>
                 <p className="eyebrow">Khoản định kỳ</p>
                 <h2>
-                  {reservedCommitments
+                  {reservedCommitments > 0
                     ? `${formatMoney(reservedCommitments)} đang được giữ trước`
-                    : "Chưa có hóa đơn cần giữ trước"}
+                    : activeCommitmentCount > 0
+                      ? "Tháng này đã trả hết khoản định kỳ"
+                      : "Chưa có hóa đơn cần giữ trước"}
                 </h2>
                 <p>
-                  {reservedCommitments ? (
-                    <Link href="/commitments">Xem lịch thanh toán và đánh dấu đã trả →</Link>
+                  {reservedCommitments > 0 ? (
+                    <>
+                      <span className="font-mono">
+                        {unpaidCommitments} khoản chưa trả
+                      </span>
+                      {" · "}
+                      <Link href="/commitments">Xem lịch thanh toán và đánh dấu đã trả →</Link>
+                    </>
+                  ) : activeCommitmentCount > 0 ? (
+                    <Link href="/commitments">Xem lịch khoản định kỳ →</Link>
                   ) : (
                     <Link href="/commitments">Thêm khoản định kỳ đầu tiên →</Link>
                   )}

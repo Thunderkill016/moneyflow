@@ -75,6 +75,7 @@ test("LOCAL_DATA_STORAGE_KEYS lists expected product stores", () => {
   assert.ok(LOCAL_DATA_STORAGE_KEYS.includes("moneyflow-inbox-candidates-v1"));
   assert.ok(LOCAL_DATA_STORAGE_KEYS.includes("moneyflow-rules-v1"));
   assert.ok(LOCAL_DATA_STORAGE_KEYS.includes("moneyflow-demo-transactions-v1"));
+  assert.ok(LOCAL_DATA_STORAGE_KEYS.includes("moneyflow-demo-commitment-occurrences-v1"));
   assert.ok(LOCAL_DATA_STORAGE_KEYS.includes("moneyflow-privacy-prefs-v1"));
   assert.ok(!LOCAL_DATA_STORAGE_KEYS.includes(THEME_STORAGE_KEY));
 });

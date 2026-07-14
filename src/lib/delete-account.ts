@@ -16,6 +16,7 @@ import { PRIVACY_PREFS_KEY } from "./privacy-prefs.ts";
 import { QUICK_ADD_PREFS_KEY } from "./quick-add-prefs.ts";
 import { THEME_STORAGE_KEY } from "./theme-prefs.ts";
 import { TRANSACTION_STORAGE_KEY } from "./transaction-store.ts";
+import { COMMITMENT_OCCURRENCE_STORAGE_KEY } from "./commitment-occurrence-store.ts";
 
 /** Exact typed confirmation required (Vietnamese uppercase per wireframe). */
 export const DELETE_CONFIRM_TEXT = "XÓA";
@@ -30,6 +31,7 @@ export const LOCAL_DATA_STORAGE_KEYS: readonly string[] = [
   IMPORT_DRAFT_STORAGE_KEY,
   RULES_STORAGE_KEY,
   TRANSACTION_STORAGE_KEY,
+  COMMITMENT_OCCURRENCE_STORAGE_KEY,
   PRIVACY_PREFS_KEY,
   QUICK_ADD_PREFS_KEY,
   ONBOARDING_STORAGE_KEY,
