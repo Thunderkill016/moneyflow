@@ -442,9 +442,10 @@
 - **Completed:** 2026-07-15 — `c644aa4` opt-in SW notifications for due commitments; no amounts in payload; /settings/notifications
 
 ### TASK-131 — CSV import to ledger direct (skip inbox)
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Power-user import mapped CSV → approved transactions with dedupe.
 - **Source:** roadmap pool refill
+- **Completed:** 2026-07-15 — `8b53750` `/imports/direct` mapped CSV → approved ledger; fingerprint dedupe; skip transfers
 
 
 ### TASK-132 — Performance budgets Lighthouse
@@ -456,6 +457,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-131 | `8b53750` power-user CSV → ledger direct; map columns; fingerprint dedupe; skip inbox |
 | 2026-07-15 | TASK-130 | `c644aa4` privacy-first due-commitment web notifications; opt-in; no amounts |
 | 2026-07-15 | TASK-129 | `fbaa1cd` multi-currency accounts read-only; no cross-currency transfer; VND insights total |
 | 2026-07-15 | TASK-128 | `b158ac6` split expense multi-entry; Chia khoản chi; reports/budgets expand lines |
