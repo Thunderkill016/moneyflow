@@ -311,9 +311,10 @@
 - **Completed:** 2026-07-15 — `c143426` Insights Xuất CSV → /settings/export; Reports download + shared export-data paths/tests.
 
 ### TASK-110 — Static /privacy policy VN
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Trang /privacy nội dung VN tối thiểu: data thu thập, không password NH, RLS, retention, export/xóa, liên hệ. Link footer landing + register. Không legalese copy đối thủ.
 - **Done khi:** page public; links; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `b7b9bf8` public `/privacy` VN: data/no bank pwd/RLS/retention/export-xóa/liên hệ; footer + register links.
 
 ### TASK-111 — Page states audit P0 routes
 - **Status:** `ready`
@@ -396,6 +397,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-110 | `b7b9bf8` static /privacy policy VN + footer/register links |
 | 2026-07-15 | TASK-109 | `c143426` export CSV discoverability: Insights → /settings/export; Reports period download paths |
 | 2026-07-15 | TASK-108 | `8426ee3` budget calm thresholds: Gần hạn mức / Đã vượt X; text+color on budgets + Insights |
 | 2026-07-15 | TASK-107 | `571a50a` /categories add/rename/archive; unique per kind; is_archived migration |
