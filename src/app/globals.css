@@ -950,6 +950,23 @@ select:focus-visible {
 .route-error > div { width: min(460px, 100%); border: 1px solid var(--line); border-radius: 20px; background: white; padding: 34px; box-shadow: var(--shadow); }
 .route-error h1 { margin: 0; font-size: 28px; letter-spacing: -.04em; }
 .route-error p:not(.eyebrow) { margin: 12px 0 22px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.route-error-lead { margin: 12px 0 8px !important; font-size: 14px !important; }
+.route-error-code {
+  margin: 0 0 22px !important;
+  color: var(--muted);
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+.route-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+.route-error-actions .primary-button,
+.route-error-actions .secondary-button {
+  min-height: 44px;
+}
 .loading-line, .loading-card { border-radius: 12px; background: linear-gradient(90deg, #e8ece9 25%, #f4f6f4 50%, #e8ece9 75%); background-size: 200% 100%; animation: loading-shimmer 1.5s infinite; }
 .loading-line { width: 220px; height: 16px; margin-top: 10px; }
 .loading-line.wide { width: 340px; height: 36px; }
@@ -4556,5 +4573,129 @@ input[aria-invalid="true"] {
   background: var(--color-bg-secondary, #0f172a);
   border-color: var(--color-border-default);
   color: var(--color-text-primary, #f8fafc);
+}
+
+/* Settings hub + appearance */
+.settings-hub-workspace { max-width: 720px; }
+.settings-hub-nav { margin-top: 8px; }
+.settings-hub-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.settings-hub-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border-default, var(--line));
+  border-radius: 16px;
+  background: var(--color-bg-secondary, white);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.settings-hub-card:hover {
+  border-color: var(--color-border-strong, #c5d0c9);
+  background: var(--color-bg-tertiary, #f4f7f5);
+}
+.settings-hub-card:focus-visible {
+  outline: 2px solid var(--color-accent-default, #22c55e);
+  outline-offset: 2px;
+}
+.settings-hub-card.is-danger:hover {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: var(--color-danger-subtle, #fef2f2);
+}
+.settings-hub-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--color-accent-subtle, #e8f8ee);
+  color: var(--color-accent-default, #16a34a);
+}
+.settings-hub-icon.is-danger {
+  background: var(--color-danger-subtle, #fef2f2);
+  color: var(--color-danger-default, #dc2626);
+}
+.settings-hub-icon svg { width: 22px; height: 22px; }
+.settings-hub-body {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.settings-hub-title {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--color-text-primary, #0f172a);
+}
+.settings-hub-card.is-danger .settings-hub-title {
+  color: var(--color-danger-text, #b91c1c);
+}
+.settings-hub-desc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-secondary, var(--muted));
+}
+.settings-hub-chevron {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-secondary, var(--muted));
+  opacity: 0.7;
+}
+.settings-hub-skeleton {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+.settings-hub-skel-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px;
+  border: 1px solid var(--color-border-default, var(--line));
+  border-radius: 14px;
+}
+.settings-hub-skel-icon {
+  width: 44px !important;
+  height: 44px !important;
+  margin: 0 !important;
+  border-radius: 14px !important;
+  flex-shrink: 0;
+}
+.settings-hub-skel-text {
+  flex: 1;
+  width: auto !important;
+  height: 18px !important;
+  margin: 0 !important;
+}
+
+[data-theme="dark"] .settings-hub-card {
+  background: var(--color-bg-secondary);
+  border-color: var(--color-border-default);
+}
+[data-theme="dark"] .settings-hub-card:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-border-strong);
+}
+[data-theme="dark"] .settings-hub-title {
+  color: var(--color-text-primary);
+}
+[data-theme="dark"] .settings-hub-card.is-danger:hover {
+  background: var(--color-danger-subtle, #450a0a);
+  border-color: rgba(239, 68, 68, 0.45);
+}
+[data-theme="dark"] .settings-hub-card.is-danger .settings-hub-title {
+  color: var(--color-danger-text, #fca5a5);
 }
 

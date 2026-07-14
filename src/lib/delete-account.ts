@@ -14,6 +14,7 @@ import { RULES_STORAGE_KEY } from "./inbox/rules-store.ts";
 import { ONBOARDING_STORAGE_KEY } from "./onboarding.ts";
 import { PRIVACY_PREFS_KEY } from "./privacy-prefs.ts";
 import { QUICK_ADD_PREFS_KEY } from "./quick-add-prefs.ts";
+import { THEME_STORAGE_KEY } from "./theme-prefs.ts";
 import { TRANSACTION_STORAGE_KEY } from "./transaction-store.ts";
 
 /** Exact typed confirmation required (Vietnamese uppercase per wireframe). */
@@ -36,7 +37,8 @@ export const LOCAL_DATA_STORAGE_KEYS: readonly string[] = [
 
 /** Prefix for sweeping any additional moneyflow-* keys (except theme). */
 export const LOCAL_DATA_KEY_PREFIX = "moneyflow-";
-export const THEME_STORAGE_KEY = "moneyflow-theme";
+/** Re-export for wipe tests and consumers that import from delete-account. */
+export { THEME_STORAGE_KEY };
 
 export function isDeleteConfirmValid(value: string): boolean {
   return value.trim() === DELETE_CONFIRM_TEXT;

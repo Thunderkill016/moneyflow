@@ -153,8 +153,12 @@ export function ExportSettingsPage({
             </p>
           </div>
           <div className="page-heading-actions">
-            <Link className="secondary-button" href="/settings/privacy">
+            <Link className="secondary-button" href="/settings">
               <Icon name="settings" />
+              Cài đặt
+            </Link>
+            <Link className="secondary-button" href="/settings/privacy">
+              <Icon name="lock" />
               Quyền riêng tư
             </Link>
             <Link className="secondary-button" href="/inbox">

@@ -138,7 +138,7 @@
 - **Completed:** 2026-07-15 — `63cc8e8` /settings/delete-account type XÓA + clear local + signOut; server hard-delete documented.
 
 ### TASK-019 — Settings hub + error page polish
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** `/settings` index links privacy/export/delete/appearance; polish `error.tsx` per wireframes §21. Loading skeletons on inbox if missing.
 - **Done khi:** settings hub; lint/typecheck/test pass.
 

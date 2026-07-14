@@ -49,7 +49,7 @@ export function UserChip({ viewer }: { viewer: ViewerSummary }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <a href="#cai-dat"><Icon name="settings" />Cài đặt tài khoản</a>
+          <a href="/settings"><Icon name="settings" />Cài đặt tài khoản</a>
         </DropdownMenuItem>
         <form action={signOut}>
           <DropdownMenuItem asChild className="danger">

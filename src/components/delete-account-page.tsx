@@ -119,9 +119,9 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
             </p>
           </div>
           <div className="page-heading-actions">
-            <Link className="secondary-button" href="/settings/privacy">
+            <Link className="secondary-button" href="/settings">
               <Icon name="settings" />
-              Quyền riêng tư
+              Cài đặt
             </Link>
             <Link className="secondary-button" href="/settings/export">
               <Icon name="arrowDown" />

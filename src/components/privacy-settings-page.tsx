@@ -125,6 +125,10 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
             </p>
           </div>
           <div className="page-heading-actions">
+            <Link className="secondary-button" href="/settings">
+              <Icon name="settings" />
+              Cài đặt
+            </Link>
             <Link className="secondary-button" href="/inbox">
               <Icon name="inbox" />
               Inbox
