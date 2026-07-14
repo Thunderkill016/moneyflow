@@ -275,9 +275,10 @@
 - **Completed:** 2026-07-15 — `2837d68` G5 insights: KPI số dư/thu/chi/ròng, top categories bar, recent, safe-to-spend secondary + Ghi chi.
 
 ### TASK-104 — Lock landing thu chi (regression test)
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Thêm test (node test) assert landing source hoặc exported copy strings: phải có "có thể chi" hoặc "thu chi"; forbid "Hộp thư cho mọi giao dịch" và "Universal Financial Inbox". Không đổi layout landing đang G5 trừ khi broken.
 - **Done khi:** test fail nếu revert inbox copy; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `b7d5cdd` landing-copy.test.ts locks G5 thu chi / có thể chi; forbids inbox slogans.
 
 ### TASK-105 — Global CTA Ghi chi tiêu (quick add)
 - **Status:** `ready`
@@ -390,6 +391,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-104 | `b7d5cdd` landing-copy regression: require thu chi/có thể chi; forbid inbox slogans |
 | 2026-07-15 | TASK-103 | `2837d68` insights G5: số dư/thu/chi/ròng + top categories bar + safe secondary + Ghi chi |
 | 2026-07-15 | TASK-102 | `46567fd` onboarding thu chi: trust + ví tiền mặt + optional ghi chi → /insights |
 | 2026-07-15 | TASK-101 | `2bb7d3c` nav IA thu chi: Tổng quan·Giao dịch·Capture·Tài khoản·More; Inbox demoted |
