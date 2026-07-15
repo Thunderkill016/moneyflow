@@ -91,10 +91,42 @@ export function orderCategoriesByRecent<T extends { id: string }>(
   if (!recentIds?.length) return categories;
   const rank = new Map(recentIds.map((id, index) => [id, index]));
   return [...categories].sort((a, b) => {
-    const ra = rank.has(a.id) ? rank.get(a.id)! : 999;
-    const rb = rank.has(b.id) ? rank.get(b.id)! : 999;
-    return ra - rb;
+    const ra = rank.has(a.id) ? rank.get(a.id)! : Number.POSITIVE_INFINITY;
+    const rb = rank.has(b.id) ? rank.get(b.id)! : Number.POSITIVE_INFINITY;
+    if (ra !== rb) return ra - rb;
+    // Stable among non-recent: keep original relative order
+    return categories.indexOf(a) - categories.indexOf(b);
   });
+}
+
+/** Whether id is in the recent list (for "Gần đây" chip styling). */
+export function isRecentCategoryId(
+  categoryId: string,
+  recentIds: string[] | undefined,
+): boolean {
+  if (!recentIds?.length) return false;
+  return recentIds.includes(categoryId);
+}
+
+/**
+ * Pick category when opening dialog / switching kind (Ivy-style).
+ * preferred → first recent still available → first in list.
+ */
+export function pickCategoryForKind<T extends { id: string }>(
+  categories: T[],
+  recentIds: string[] | undefined,
+  preferredId?: string,
+): string {
+  if (!categories.length) return "";
+  if (preferredId && categories.some((item) => item.id === preferredId)) {
+    return preferredId;
+  }
+  if (recentIds?.length) {
+    for (const id of recentIds) {
+      if (categories.some((item) => item.id === id)) return id;
+    }
+  }
+  return categories[0]!.id;
 }
 
 /** Today in Asia/Ho_Chi_Minh as YYYY-MM-DD. */

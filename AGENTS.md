@@ -18,7 +18,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 | **Insight** | Có thể chi hôm nay (secondary, not inbox brand) |
 | **Lab** | Inbox / paste / import / rules → **Nâng cao** only |
 
-**Read:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` · `docs/REBUILD_MASTER_PLAN.md` · `docs/BEST_OF_MATRIX.md`
+**Read:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` · `docs/REBUILD_MASTER_PLAN.md` · `docs/BEST_OF_MATRIX.md` · `docs/MVP_DEFINITION.md`
 
 ### Forbidden (no human approval)
 

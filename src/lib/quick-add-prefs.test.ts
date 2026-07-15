@@ -3,7 +3,9 @@ import test from "node:test";
 import {
   defaultQuickAddPrefs,
   isQuickAddPrefs,
+  isRecentCategoryId,
   orderCategoriesByRecent,
+  pickCategoryForKind,
   pushRecentCategoryId,
   todayInVietnam,
 } from "./quick-add-prefs.ts";
@@ -65,4 +67,27 @@ test("orderCategoriesByRecent surfaces recent first", () => {
     ["c", "a", "b"],
   );
   assert.deepEqual(orderCategoriesByRecent(cats, undefined), cats);
+  // Unknown recent ids ignored; relative order among non-recent preserved
+  assert.deepEqual(
+    orderCategoriesByRecent(cats, ["x", "b"]).map((x) => x.id),
+    ["b", "a", "c"],
+  );
+});
+
+test("pickCategoryForKind prefers preferred, then recent, then first", () => {
+  const cats = [{ id: "a" }, { id: "b" }, { id: "c" }];
+  assert.equal(pickCategoryForKind([], ["a"], "a"), "");
+  assert.equal(pickCategoryForKind(cats, undefined, undefined), "a");
+  assert.equal(pickCategoryForKind(cats, ["c", "b"], "b"), "b");
+  // Preferred not in list → first recent that exists
+  assert.equal(pickCategoryForKind(cats, ["x", "c", "a"], "missing"), "c");
+  // No recent match → first category
+  assert.equal(pickCategoryForKind(cats, ["x"], undefined), "a");
+});
+
+test("isRecentCategoryId marks ordered recent set", () => {
+  assert.equal(isRecentCategoryId("c1", ["c1", "c2"]), true);
+  assert.equal(isRecentCategoryId("c3", ["c1", "c2"]), false);
+  assert.equal(isRecentCategoryId("c1", undefined), false);
+  assert.equal(isRecentCategoryId("c1", []), false);
 });

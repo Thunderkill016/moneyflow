@@ -11,12 +11,16 @@ import {
 } from "@/lib/sample-data";
 import { formatMoneyInput, moneyKindPrefix, parseMoneyInput } from "@/lib/money";
 import {
+  isRecentCategoryId,
   orderCategoriesByRecent,
+  pickCategoryForKind,
   pushRecentCategoryId,
   readQuickAddPrefs,
   todayInVietnam,
   writeQuickAddPrefs,
 } from "@/lib/quick-add-prefs";
+
+const KEEP_OPEN_SUCCESS = "Đã lưu · nhập khoản tiếp";
 
 export function AddTransactionDialog({
   open,
@@ -26,8 +30,8 @@ export function AddTransactionDialog({
   categories,
   disabled = false,
   embedded = false,
-  title = "Thêm vào MoneyFlow",
-  eyebrow = "Giao dịch mới",
+  title = "Ghi chi tiêu",
+  eyebrow = "Nhập nhanh",
 }: {
   open: boolean;
   onClose: () => void;
@@ -45,6 +49,7 @@ export function AddTransactionDialog({
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const prefsHydratedRef = useRef(false);
+  const savedFlashTimerRef = useRef<number | null>(null);
 
   const [kind, setKind] = useState<TransactionKind>("expense");
   const [amount, setAmount] = useState("");
@@ -55,6 +60,7 @@ export function AddTransactionDialog({
   const [keepOpen, setKeepOpen] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [savedFlash, setSavedFlash] = useState("");
 
   const [recentCategoryIds, setRecentCategoryIds] = useState<string[]>([]);
 
@@ -67,11 +73,44 @@ export function AddTransactionDialog({
     : accounts[0]?.id ?? "";
   const selectedCategoryId = availableCategories.some((item) => item.id === categoryId)
     ? categoryId
-    : availableCategories[0]?.id ?? "";
+    : pickCategoryForKind(availableCategories, recentCategoryIds);
+  const hasRecentForKind = availableCategories.some((item) =>
+    isRecentCategoryId(item.id, recentCategoryIds),
+  );
 
   const kindSign = moneyKindPrefix(kind);
   const amountLabel =
     kind === "expense" ? "Số tiền chi (₫)" : "Số tiền thu (₫)";
+  const submitLabel = submitting
+    ? "Đang lưu..."
+    : keepOpen
+      ? "Lưu & thêm tiếp"
+      : "Lưu";
+
+  function focusAmount(select = true) {
+    const input = amountInputRef.current;
+    if (!input) return;
+    input.focus();
+    if (select && input.value) {
+      input.select();
+    }
+  }
+
+  function clearSavedFlashTimer() {
+    if (savedFlashTimerRef.current != null) {
+      window.clearTimeout(savedFlashTimerRef.current);
+      savedFlashTimerRef.current = null;
+    }
+  }
+
+  function showKeepOpenSuccess() {
+    clearSavedFlashTimer();
+    setSavedFlash(KEEP_OPEN_SUCCESS);
+    savedFlashTimerRef.current = window.setTimeout(() => {
+      setSavedFlash("");
+      savedFlashTimerRef.current = null;
+    }, 2200);
+  }
 
   useEffect(() => {
     if (prefsHydratedRef.current) return;
@@ -81,11 +120,19 @@ export function AddTransactionDialog({
       setKind(prefs.kind);
       setKeepOpen(prefs.keepOpen);
       if (prefs.accountId) setAccountId(prefs.accountId);
-      if (prefs.categoryId) setCategoryId(prefs.categoryId);
       if (prefs.recentCategoryIds?.length) setRecentCategoryIds(prefs.recentCategoryIds);
+      const forKind = categories.filter((item) => item.kind === prefs.kind);
+      const preferred = pickCategoryForKind(
+        forKind,
+        prefs.recentCategoryIds,
+        prefs.categoryId || undefined,
+      );
+      if (preferred) setCategoryId(preferred);
       setOccurredOn(todayInVietnam());
     });
     return () => window.cancelAnimationFrame(frame);
+    // Hydrate once on mount; categories may arrive later via selectedCategoryId fallback.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot prefs hydrate
   }, []);
 
   useEffect(() => {
@@ -97,17 +144,22 @@ export function AddTransactionDialog({
       previouslyFocusedRef.current =
         document.activeElement instanceof HTMLElement ? document.activeElement : null;
       dialog.showModal();
+      // Focus amount after modal opens (Ivy: type first).
+      window.requestAnimationFrame(() => focusAmount(false));
     }
     if (!open && dialog.open) dialog.close();
   }, [open, embedded]);
 
   useEffect(() => {
     if (!open && !embedded) return;
-    const frame = window.requestAnimationFrame(() => {
-      amountInputRef.current?.focus();
-    });
+    // Embedded path (or re-open): amount first for <10s entry.
+    const frame = window.requestAnimationFrame(() => focusAmount(false));
     return () => window.cancelAnimationFrame(frame);
   }, [open, embedded]);
+
+  useEffect(() => {
+    return () => clearSavedFlashTimer();
+  }, []);
 
   function restoreFocus() {
     const prev = previouslyFocusedRef.current;
@@ -119,19 +171,24 @@ export function AddTransactionDialog({
 
   /** Parent sets `open=false`; effect closes the dialog; `onClose` restores focus. */
   function handleRequestClose() {
+    clearSavedFlashTimer();
+    setSavedFlash("");
     onClose();
   }
 
   function markInputChanged() {
     idempotencyKeyRef.current = null;
     setError("");
+    if (savedFlash) setSavedFlash("");
   }
 
   function changeKind(nextKind: TransactionKind) {
     setKind(nextKind);
-    const nextCategory = categories.find((item) => item.kind === nextKind)?.id ?? "";
+    const forKind = categories.filter((item) => item.kind === nextKind);
+    const nextCategory = pickCategoryForKind(forKind, recentCategoryIds);
     setCategoryId(nextCategory);
     markInputChanged();
+    window.requestAnimationFrame(() => focusAmount(false));
   }
 
   function persistPrefs(next: {
@@ -150,7 +207,7 @@ export function AddTransactionDialog({
     const parsedAmount = parseMoneyInput(amount);
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
       setError("Nhập số tiền lớn hơn 0.");
-      amountInputRef.current?.focus();
+      focusAmount(false);
       return;
     }
 
@@ -203,7 +260,8 @@ export function AddTransactionDialog({
     setError("");
 
     if (keepOpen) {
-      window.requestAnimationFrame(() => amountInputRef.current?.focus());
+      showKeepOpenSuccess();
+      window.requestAnimationFrame(() => focusAmount(false));
       return;
     }
 
@@ -249,7 +307,9 @@ export function AddTransactionDialog({
             required
             aria-required="true"
             aria-invalid={error ? true : undefined}
-            aria-describedby={error ? "amount-error" : "amount-hint"}
+            aria-describedby={
+              error ? "amount-error" : savedFlash ? "keep-open-success" : "amount-hint"
+            }
             onChange={(event) => {
               setAmount(formatMoneyInput(event.target.value));
               markInputChanged();
@@ -268,29 +328,52 @@ export function AddTransactionDialog({
           {error}
         </p>
       )}
+      {savedFlash && !error && (
+        <p id="keep-open-success" className="keep-open-success" role="status" aria-live="polite">
+          {savedFlash}
+        </p>
+      )}
 
       <fieldset className="category-fieldset">
-        <legend>Danh mục</legend>
+        <legend>
+          Danh mục
+          {hasRecentForKind ? (
+            <span className="category-legend-hint"> · hay dùng trước lên trước</span>
+          ) : null}
+        </legend>
         <div className="category-grid">
           {availableCategories.map((item) => {
             const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+            const recent = isRecentCategoryId(item.id, recentCategoryIds);
             return (
               <button
                 type="button"
                 key={item.id}
-                className={
-                  selectedCategoryId === item.id ? "category-choice selected" : "category-choice"
-                }
+                className={[
+                  selectedCategoryId === item.id ? "category-choice selected" : "category-choice",
+                  recent ? "category-choice-recent" : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
                 onClick={() => {
                   setCategoryId(item.id);
                   markInputChanged();
+                  window.requestAnimationFrame(() => focusAmount(false));
                 }}
                 aria-pressed={selectedCategoryId === item.id}
+                data-recent={recent ? "true" : undefined}
               >
                 <span className={`transaction-icon ${meta.color}`}>
                   <Icon name={meta.icon as IconName} />
                 </span>
-                <span>{item.name}</span>
+                <span className="category-choice-label">
+                  {item.name}
+                  {recent ? (
+                    <span className="category-recent-badge" aria-label="Gần đây">
+                      Gần đây
+                    </span>
+                  ) : null}
+                </span>
               </button>
             );
           })}
@@ -361,7 +444,10 @@ export function AddTransactionDialog({
             });
           }}
         />
-        <span>Lưu xong thêm tiếp</span>
+        <span>
+          <strong className="keep-open-title">Lưu xong thêm tiếp</strong>
+          <span className="keep-open-hint">Giữ form mở, focus lại số tiền sau mỗi lần lưu</span>
+        </span>
       </label>
 
       <div className="dialog-footer-actions">
@@ -377,9 +463,10 @@ export function AddTransactionDialog({
           className="primary-button"
           type="submit"
           disabled={disabled || submitting || !accounts.length || !availableCategories.length}
+          data-keep-open={keepOpen ? "true" : undefined}
         >
           <Icon name="check" />
-          {submitting ? "Đang lưu..." : "Lưu"}
+          {submitLabel}
         </button>
       </div>
     </form>
