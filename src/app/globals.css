@@ -1480,19 +1480,93 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 }
 .onboarding-brand { margin-bottom: var(--space-6); }
 .onboarding-card > .eyebrow { margin-bottom: var(--space-3); }
-.onboarding-progress {
-  display: flex;
-  gap: var(--space-2);
+.onboarding-progress-header {
+  display: grid;
+  gap: var(--space-3);
   margin-bottom: var(--space-6);
 }
-.onboarding-progress > span {
-  flex: 1;
-  height: 4px;
+.onboarding-progress-fraction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px var(--space-2);
+  margin: 0;
+}
+.onboarding-progress-count {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent-default);
+  font-variant-numeric: tabular-nums;
+}
+.onboarding-progress-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.onboarding-progress {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.onboarding-progress > li {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  justify-items: start;
+}
+.onboarding-progress-dot {
+  display: block;
+  width: 100%;
+  height: 6px;
   border-radius: var(--radius-full);
   background: var(--color-bg-tertiary);
 }
-.onboarding-progress > span.is-active {
+.onboarding-progress > li.is-active .onboarding-progress-dot,
+.onboarding-progress > li.is-done .onboarding-progress-dot {
   background: var(--color-accent-default);
+}
+.onboarding-progress-step-label {
+  font-size: 11px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.onboarding-progress > li.is-active .onboarding-progress-step-label {
+  color: var(--color-text-primary);
+}
+.onboarding-progress > li.is-done .onboarding-progress-step-label {
+  color: var(--color-text-secondary);
+}
+.onboarding-progress-step-name {
+  font-weight: 500;
+  color: inherit;
+}
+@media (max-width: 380px) {
+  .onboarding-progress-step-name { display: none; }
+}
+.onboarding-currency-hint {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-default);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+.onboarding-currency-hint strong {
+  color: var(--color-text-primary);
+  font-weight: 650;
 }
 .onboarding-step h1 {
   margin: 0;

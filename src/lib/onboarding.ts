@@ -1,7 +1,8 @@
 /**
- * First-run onboarding — thu chi (TASK-102).
- * 3 steps: trust → cash wallet → optional quick expense | skip → /insights.
+ * First-run onboarding — thu chi (TASK-102 / R2 polish).
+ * 3 steps: trust → cash wallet (VN defaults) → optional quick expense | skip → /insights.
  * Flag is client-only (localStorage) — no server persistence yet.
+ * Never exit to /inbox (lab).
  */
 
 export const ONBOARDING_STORAGE_KEY = "moneyflow-onboarding-done";
@@ -17,7 +18,50 @@ export const ONBOARDING_DONE_HREF = "/insights";
 /** Optional step-3 path: ghi chi nhanh (not paste/upload). */
 export const ONBOARDING_QUICK_EXPENSE_HREF = "/capture/quick";
 
+/** Allowed post-onboarding destinations (never lab /inbox). */
+export const ONBOARDING_EXIT_HREFS = [
+  ONBOARDING_SKIP_HREF,
+  ONBOARDING_DONE_HREF,
+  ONBOARDING_QUICK_EXPENSE_HREF,
+] as const;
+
 export const DEFAULT_CASH_WALLET_NAME = "Tiền mặt";
+/** Onboarding cash wallet is always VND (đồng). */
+export const DEFAULT_CASH_WALLET_CURRENCY = "VND";
+
+/** Step 3 primary: first expense; secondary: go to insights. */
+export const ONBOARDING_PRIMARY_CTA = "Ghi chi đầu";
+export const ONBOARDING_SECONDARY_CTA = "Vào tổng quan";
+
+export const ONBOARDING_STEP_COUNT = 3 as const;
+
+export type OnboardingStep = 1 | 2 | 3;
+
+export const ONBOARDING_STEPS = [
+  { step: 1 as const, title: "Cam kết của MoneyFlow", shortLabel: "Cam kết" },
+  { step: 2 as const, title: "Ví tiền mặt", shortLabel: "Ví" },
+  { step: 3 as const, title: "Ghi chi đầu tiên", shortLabel: "Ghi chi" },
+] as const;
+
+/** Visible progress label: "Bước 1/3". */
+export function formatOnboardingProgressLabel(step: number): string {
+  const n = isValidOnboardingStep(step) ? step : 1;
+  return `Bước ${n}/${ONBOARDING_STEP_COUNT}`;
+}
+
+export function isValidOnboardingStep(step: number): step is OnboardingStep {
+  return step === 1 || step === 2 || step === 3;
+}
+
+/** True only for product exits after onboarding (insights or quick ghi chi). */
+export function isOnboardingExitHref(href: string): boolean {
+  if (typeof href !== "string" || !href.startsWith("/") || href.startsWith("//")) {
+    return false;
+  }
+  const path = href.split("?")[0]!.split("#")[0]!;
+  if (path === "/insights" || path === "/capture/quick") return true;
+  return false;
+}
 
 /** Step 1 — trust: no bank password + export (+ delete). */
 export const TRUST_PROMISES = [
@@ -80,7 +124,7 @@ export function isValidCashWalletDraft(draft: CashWalletDraft): boolean {
 
 /**
  * Build save payload for create/update cash wallet.
- * Money stays integer minor units.
+ * Money stays integer minor units; currency defaults to VND.
  */
 export function buildCashWalletInput(
   draft: CashWalletDraft,
@@ -89,6 +133,7 @@ export function buildCashWalletInput(
   id?: string;
   name: string;
   kind: "cash";
+  currencyCode: "VND";
   initialBalance: number;
 } {
   const initialBalance =
@@ -99,6 +144,7 @@ export function buildCashWalletInput(
     ...(existingId ? { id: existingId } : {}),
     name: normalizeCashWalletName(draft.name),
     kind: "cash",
+    currencyCode: DEFAULT_CASH_WALLET_CURRENCY,
     initialBalance,
   };
 }

@@ -9,26 +9,27 @@ import { Button } from "@/components/ui/button";
 import type { AccountSummary } from "@/lib/accounts";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
 import {
+  DEFAULT_CASH_WALLET_CURRENCY,
   DEFAULT_CASH_WALLET_NAME,
   ONBOARDING_DONE_HREF,
+  ONBOARDING_PRIMARY_CTA,
   ONBOARDING_QUICK_EXPENSE_HREF,
+  ONBOARDING_SECONDARY_CTA,
   ONBOARDING_SKIP_HREF,
+  ONBOARDING_STEP_COUNT,
+  ONBOARDING_STEPS,
   ONBOARDING_STORAGE_KEY,
   TRUST_PROMISES,
   buildCashWalletInput,
   draftFromCashWallet,
+  formatOnboardingProgressLabel,
   isOnboardingDone,
   isOnboardingDoneValue,
   isValidCashWalletDraft,
   markOnboardingDone,
+  type OnboardingStep,
 } from "@/lib/onboarding";
 import { trackProductEvent } from "@/lib/safe-analytics";
-
-const STEP_TITLES = {
-  1: "Cam kết của MoneyFlow",
-  2: "Ví tiền mặt",
-  3: "Ghi chi đầu tiên",
-} as const;
 
 function subscribeOnboardingStorage(onStoreChange: () => void) {
   if (typeof window === "undefined") return () => {};
@@ -81,7 +82,7 @@ export function OnboardingFlow({
     getOnboardingDoneSnapshot,
     getOnboardingDoneServerSnapshot,
   );
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<OnboardingStep>(1);
   const seed = draftFromCashWallet(initialCash);
   const [walletName, setWalletName] = useState(seed.name);
   const [balanceInput, setBalanceInput] = useState(
@@ -91,6 +92,9 @@ export function OnboardingFlow({
   const [walletConfirmed, setWalletConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const stepMeta = ONBOARDING_STEPS[step - 1]!;
+  const progressLabel = formatOnboardingProgressLabel(step);
 
   useEffect(() => {
     if (alreadyDone || isOnboardingDone()) {
@@ -182,20 +186,33 @@ export function OnboardingFlow({
           <span>MoneyFlow</span>
         </Link>
 
-        <p className="eyebrow">
-          Bước {step}/3 — {STEP_TITLES[step]}
-        </p>
-        <div
-          className="onboarding-progress"
-          role="progressbar"
-          aria-valuenow={step}
-          aria-valuemin={1}
-          aria-valuemax={3}
-          aria-label={`Bước ${step} trên 3`}
-        >
-          <span className={step >= 1 ? "is-active" : undefined} />
-          <span className={step >= 2 ? "is-active" : undefined} />
-          <span className={step >= 3 ? "is-active" : undefined} />
+        <div className="onboarding-progress-header">
+          <p className="onboarding-progress-fraction" aria-live="polite">
+            <span className="onboarding-progress-count">{progressLabel}</span>
+            <span className="onboarding-progress-title">{stepMeta.title}</span>
+          </p>
+          <ol
+            className="onboarding-progress"
+            role="progressbar"
+            aria-valuenow={step}
+            aria-valuemin={1}
+            aria-valuemax={ONBOARDING_STEP_COUNT}
+            aria-label={progressLabel}
+          >
+            {ONBOARDING_STEPS.map((item) => {
+              const state =
+                item.step < step ? "is-done" : item.step === step ? "is-active" : "is-todo";
+              return (
+                <li key={item.step} className={state}>
+                  <span className="onboarding-progress-dot" aria-hidden="true" />
+                  <span className="onboarding-progress-step-label">
+                    {item.step}/{ONBOARDING_STEP_COUNT}
+                    <span className="onboarding-progress-step-name"> · {item.shortLabel}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
         </div>
 
         {step === 1 && (
@@ -250,7 +267,7 @@ export function OnboardingFlow({
                 />
               </label>
               <label className="onboarding-field" htmlFor={`${baseId}-wallet-balance`}>
-                <span>Số dư ban đầu (₫)</span>
+                <span>Số dư ban đầu ({DEFAULT_CASH_WALLET_CURRENCY} · ₫)</span>
                 <input
                   id={`${baseId}-wallet-balance`}
                   type="text"
@@ -265,6 +282,10 @@ export function OnboardingFlow({
                   placeholder="0"
                 />
               </label>
+              <p className="onboarding-currency-hint" role="note">
+                Tiền tệ mặc định: <strong>{DEFAULT_CASH_WALLET_CURRENCY}</strong> (đồng Việt Nam). Đổi
+                loại ví khác sau trong Tài khoản.
+              </p>
             </div>
 
             {error && (
@@ -299,7 +320,9 @@ export function OnboardingFlow({
             </p>
 
             <div className="onboarding-summary" role="status">
-              <strong>Ví: {walletName.trim() || DEFAULT_CASH_WALLET_NAME}</strong>
+              <strong>
+                Ví: {walletName.trim() || DEFAULT_CASH_WALLET_NAME} · {DEFAULT_CASH_WALLET_CURRENCY}
+              </strong>
               <span>
                 Paste / tải sao kê là tùy chọn sau — không phải bước bắt buộc lúc mới vào.
               </span>
@@ -312,23 +335,25 @@ export function OnboardingFlow({
             )}
 
             <div className="onboarding-actions">
-              <Button type="button" variant="secondary" onClick={() => setStep(2)}>
-                Quay lại
+              <Button type="button" variant="secondary" onClick={finishToInsights}>
+                {ONBOARDING_SECONDARY_CTA}
               </Button>
               <Button type="button" className="onboarding-primary" onClick={goQuickExpense}>
-                Ghi chi nhanh
+                {ONBOARDING_PRIMARY_CTA}
                 <Icon name="arrowRight" />
               </Button>
             </div>
-            <button type="button" className="onboarding-skip onboarding-skip-inline" onClick={finishToInsights}>
-              Bỏ qua — vào Tổng quan
+            <button type="button" className="onboarding-skip onboarding-skip-inline" onClick={() => setStep(2)}>
+              Quay lại chỉnh ví
             </button>
           </section>
         )}
 
-        <button type="button" className="onboarding-skip" onClick={skipToInsights}>
-          Để sau — vào Tổng quan
-        </button>
+        {step !== 3 && (
+          <button type="button" className="onboarding-skip" onClick={skipToInsights}>
+            Để sau — vào Tổng quan
+          </button>
+        )}
       </div>
     </main>
   );
