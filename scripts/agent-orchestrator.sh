@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One autopilot cycle for Money Flow
+# One Grok autopilot cycle for MoneyFlow (IDEA.md R*/Q*)
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_DIR="$ROOT/logs/agent"
@@ -33,26 +33,31 @@ if [[ "$BRANCH" != "main" ]]; then
   git checkout main 2>/dev/null || true
 fi
 
-STASHED=0
-if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null || [[ -n "$(git ls-files --others --exclude-standard 2>/dev/null)" ]]; then
-  log "📦 stash local WIP"
-  if git stash push -u -m "moneyflow-autopilot-$(date -u +%Y%m%dT%H%M%SZ)" --quiet 2>/dev/null; then
-    STASHED=1
-  fi
+# Dirty tree (except logs/) → skip. Never stash-destroy human/agent WIP.
+DIRTY=$(git status --porcelain 2>/dev/null | grep -vE '^\?\? logs(/|$)' | grep -vE '^.. logs/' || true)
+if [[ -n "${DIRTY}" ]]; then
+  log "⏭️ dirty working tree (excluding logs/) — skip cycle to avoid stash thrash"
+  echo "$DIRTY" | head -20 | while read -r line; do log "   $line"; done
+  exit 0
 fi
 
 git fetch origin main --quiet 2>/dev/null || true
 git pull --rebase origin main --quiet 2>/dev/null || log "⚠️ pull skipped/failed"
 
-log "📋 refill backlog if needed"
-bash "$ROOT/scripts/agent-refill-backlog.sh" || true
+# Only refill backlog when IDEA has no open R*/Q* (avoid spam)
+OPEN_IDEA=$(grep -cE '^- \[ \] \*\*(R|Q)[0-9]+' IDEA.md 2>/dev/null || true)
+if [[ "${OPEN_IDEA:-0}" -eq 0 ]]; then
+  log "📋 IDEA empty — optional backlog refill"
+  bash "$ROOT/scripts/agent-refill-backlog.sh" || true
+else
+  log "📋 IDEA open items=$OPEN_IDEA — skip backlog refill"
+fi
 
-log "🚀 headless agent"
+log "🚀 Grok headless agent"
 if bash "$ROOT/scripts/agent-run-headless.sh"; then
   log "✅ cycle OK"
   echo "OK" >> "$STATE_FILE"
   tail -10 "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-  [[ "$STASHED" == 1 ]] && git stash pop --quiet 2>/dev/null || true
   log "🏁 orchestrator done"
   exit 0
 fi
@@ -60,5 +65,4 @@ fi
 log "❌ cycle FAIL"
 echo "FAIL" >> "$STATE_FILE"
 tail -10 "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-[[ "$STASHED" == 1 ]] && git stash pop --quiet 2>/dev/null || true
 exit 1

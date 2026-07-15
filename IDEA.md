@@ -35,7 +35,7 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [x] **R0** Auth + UX principles G5 (no inbox brand on login/register)
 - [x] **R1** Landing visual polish: type hierarchy, mobile spacing, trust bar density (keep RSC, no inbox slogans)
 - [x] **R2** Onboarding polish: progress 1/3–3/3 clearer, wallet defaults VN, never route to /inbox
-- [ ] **R3** Insights empty + planning cards consistent one-CTA empty states
+- [x] **R3** Insights empty + planning cards consistent one-CTA empty states
 - [ ] **R4** Ghi chi dialog: amount autofocus, recent categories order, save-and-add-another UX polish
 - [ ] **R5** Transactions: wire AppShell searchBar for ⌘K; transfer “không tính chi” everywhere
 - [ ] **R6** Budgets/commitments/goals pages: shared card shell + calm thresholds + empty 1 CTA audit
@@ -62,7 +62,10 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 
 ## How agent works
 
-1. Skill **ship-feature**: next unchecked item under **Rebuild track** (R*) then Quality bar (Q*)  
+**Runtime locked:** **Grok CLI** + `moneyflow-autopilot` — see `docs/AGENT_RUNTIME.md`.  
+Not primary: Claude Code, Hermes, OpenClaw, Codex (unless user changes this).
+
+1. Skill **ship-feature** / **moneyflow-web**: next unchecked **R*** then **Q***  
 2. Skill **test-driven-development**: test first when behavior changes  
 3. Skill **verification-before-completion**: run lint/typecheck/test before done  
 4. Skill **security-pass**: if touching auth/RLS/actions  

@@ -32,15 +32,8 @@ PY
 )
 
 if [[ -z "${ITEM}" ]]; then
-  # fallback backlog
-  bash "$ROOT/scripts/agent-pick-task.sh" >/dev/null || true
-  TASK_ID=$(python3 -c "import json; print(json.load(open('$LOG_DIR/.next-task.json')).get('task_id',''))" 2>/dev/null || true)
-  TASK_DESC=$(python3 -c "import json; print(json.load(open('$LOG_DIR/.next-task.json')).get('task_desc',''))" 2>/dev/null || true)
-  if [[ -z "$TASK_ID" ]]; then
-    echo "✅ IDEA.md Quality bar complete — no work"
-    exit 0
-  fi
-  ITEM="$TASK_ID: $TASK_DESC"
+  echo "✅ IDEA.md Rebuild + Quality bar complete — no work"
+  exit 0
 fi
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -49,34 +42,36 @@ LOG_FILE="$LOG_DIR/${STAMP}_${SAFE}.log"
 PROMPT_FILE="$LOG_DIR/${STAMP}_${SAFE}.prompt.txt"
 
 cat > "$PROMPT_FILE" <<PROMPT
-You are MoneyFlow autopilot at $ROOT. AFK user. No questions.
+You are MoneyFlow Grok autopilot at $ROOT. AFK user. No questions.
+Runtime locked: Grok CLI only (see docs/AGENT_RUNTIME.md). Do not suggest switching to Claude/Hermes/OpenClaw.
 
-MISSION: Ship the next item using Claude/Shipkit-style skills (not busywork).
+MISSION: Ship ONE IDEA.md item (R* then Q*). Quality > busywork.
 
-READ FIRST:
-1. IDEA.md (source of truth checklist — prefer R* rebuild then Q*)
+READ FIRST (in order):
+1. IDEA.md — check off only the item you complete
 2. docs/REBUILD_MASTER_PLAN.md + docs/BEST_OF_MATRIX.md
-3. AGENTS.md (G5 product law)
-4. .agents/skills/ship-feature/SKILL.md
-5. .agents/skills/test-driven-development/SKILL.md
-6. .agents/skills/verification-before-completion/SKILL.md
-7. If UI/visual: .claude/skills/frontend-design/SKILL.md OR .grok/skills/frontend-design/SKILL.md + frontend-qa
-8. If need browser verify: webapp-testing skill
-9. If auth/RLS: security-pass + supabase-rls
+3. AGENTS.md (G5: thu chi VN, no inbox brand, no bank/AI/family)
+4. .grok/skills/moneyflow-web/SKILL.md (if present)
+5. .agents/skills/ship-feature/SKILL.md
+6. .agents/skills/test-driven-development/SKILL.md when behavior changes
+7. .agents/skills/verification-before-completion/SKILL.md before done
+8. UI: .grok/skills/frontend-design/SKILL.md + .agents/skills/frontend-qa/SKILL.md
+9. Auth/RLS: .agents/skills/security-pass/SKILL.md
 
 NEXT ITEM ONLY:
 $ITEM
 
 EXECUTE:
-1. Follow ship-feature: smallest vertical slice for THIS item only
-2. TDD when changing behavior
-3. Implement under src/ (Next app)
-4. verification-before-completion: run npm run lint && npm run typecheck && npm run test
-   (e2e if R9/Q1; build if R10/Q2/Q3)
-5. Check off the item in IDEA.md
-6. Commit + push origin main
-7. Do NOT invent new backlog spam tasks
-8. Do NOT stash-destroy user WIP without re-applying; minimal diff only
+1. Smallest vertical slice for THIS item only
+2. TDD when money/domain/behavior changes
+3. Implement under src/ (Next App Router)
+4. Run: npm run lint && npm run typecheck && npm run test
+   — also e2e if item is R9 or Q1; build if R10/Q2/Q3
+5. Check off the item in IDEA.md ([x])
+6. Commit with clear message + git push origin main
+7. Do NOT invent AGENT_BACKLOG spam tasks
+8. Do NOT force-push, edit .env.local, or delete migrations
+9. Minimal diff; preserve integer VND + transfer ≠ expense
 
 FORBIDDEN: bank sync, AI advisor, family, OCR, AGPL paste, inbox-first brand on landing/auth
 PROMPT
@@ -85,7 +80,7 @@ echo "🤖 $ITEM"
 echo "📝 $LOG_FILE"
 
 if ! command -v grok >/dev/null 2>&1; then
-  echo "❌ grok CLI not found"
+  echo "❌ grok CLI not found in PATH"
   exit 1
 fi
 

@@ -17,7 +17,7 @@ fi
 echo $$ > "$PIDFILE"
 trap 'rm -f "$PIDFILE"; log "Daemon stopped"; exit 0' INT TERM
 
-log "🟢 Skill-driven autopilot (IDEA.md + ship-feature) pid $$"
+log "🟢 Grok skill-driven autopilot (IDEA.md R*/Q*) pid $$ — docs/AGENT_RUNTIME.md"
 FAIL=0
 while true; do
   if [[ -f "$ROOT/docs/MVP_SHIPPED.md" ]]; then
@@ -34,17 +34,18 @@ while true; do
     sleep 1800
     continue
   fi
-  log "📋 IDEA items left=$LEFT (R*/Q*) — orchestrator"
+  log "📋 IDEA items left=$LEFT (R*/Q*) — Grok orchestrator"
   set +e
   bash "$ROOT/scripts/agent-orchestrator.sh" >> "$LOGFILE" 2>&1
   EXIT=$?
   set -e
   if [[ "$EXIT" -eq 0 ]]; then
     FAIL=0
-    sleep 30
+    # Longer pause: let commits settle; avoid back-to-back thrash
+    sleep 60
   else
     FAIL=$((FAIL+1))
     log "❌ fail streak $FAIL"
-    [[ "$FAIL" -ge 3 ]] && { FAIL=0; sleep 300; } || sleep 90
+    [[ "$FAIL" -ge 3 ]] && { FAIL=0; sleep 300; } || sleep 120
   fi
 done
