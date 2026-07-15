@@ -4,6 +4,7 @@ const PLACEHOLDER_URLS = new Set([
   "placeholder",
   "http://placeholder",
   "https://placeholder",
+  "https://placeholder.supabase.co",
 ]);
 
 const PLACEHOLDER_KEYS = new Set([
@@ -17,7 +18,14 @@ function isPlaceholderValue(value: string, known: Set<string>): boolean {
   const lower = trimmed.toLowerCase();
   if (known.has(trimmed) || known.has(lower)) return true;
   // Generic “placeholder*” / “changeme” / “replace_me” used in docs & CI.
-  if (lower === "changeme" || lower.includes("replace_me")) return true;
+  // Also catches https://placeholder.supabase.co and eyJ….placeholder JWT stubs.
+  if (
+    lower === "changeme" ||
+    lower.includes("replace_me") ||
+    lower.includes("placeholder")
+  ) {
+    return true;
+  }
   return false;
 }
 

@@ -56,6 +56,19 @@ test(".env.example values → demo", () => {
   );
 });
 
+test("mvp-verify host-style placeholders → demo (Q2)", () => {
+  withEnv(
+    {
+      url: "https://placeholder.supabase.co",
+      key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder",
+    },
+    () => {
+      assert.equal(getSupabaseConfig(), null);
+      assert.equal(isSupabaseConfigured(), false);
+    },
+  );
+});
+
 test("real-looking URL + key → configured", () => {
   withEnv(
     {
