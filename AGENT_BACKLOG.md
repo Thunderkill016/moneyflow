@@ -617,9 +617,10 @@
 > Agent: **một task / phiên**, số TASK tăng dần. Cấm bank sync / AI / family / inbox brand.
 
 ### TASK-250 — MVP-DOC lock definition
-- **Status:** `in_progress`
+- **Status:** `done`
 - **Mô tả:** Ensure `docs/MVP_DEFINITION.md` is linked from README and AGENTS.md; unit test contract file exists. No product code change required beyond docs + tiny test reading exit criteria keywords.
 - **Done khi:** docs linked; test asserts MVP_DEFINITION exists; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — `6985ded` README + AGENTS link MVP_DEFINITION; `src/lib/mvp-definition.test.ts` exit-criteria contract.
 
 ### TASK-251 — MVP-STAB money invariants regression suite
 - **Status:** `ready`
@@ -850,6 +851,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-250 | `6985ded` MVP_DEFINITION linked README/AGENTS; mvp-definition.test.ts exit keywords |
 | 2026-07-15 | OSS 400–410 | GitHub best-of map + learn/apply queue |
 | 2026-07-15 | MVP 250–282 | Full MVP hardening queue; 209–224 deferred |
 | 2026-07-15 | queue 207–224 | Full ready queue; daemon on; headless G5 prompt |
