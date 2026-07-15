@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/*/*.test.ts",
+    "mvp-verify": "bash scripts/mvp-verify.sh",
     "check:rls": "bash scripts/check-rls-migrations.sh",
     "test:db": "SUPABASE_TELEMETRY_DISABLED=1 npx supabase test db",
     "test:e2e": "playwright test",
