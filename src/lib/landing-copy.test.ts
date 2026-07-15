@@ -121,6 +121,23 @@ test("landing has honest proof strip", () => {
   assert.match(source, /không tính chi|CK ≠ chi|CK ≠/i);
 });
 
+test("landing has exactly one trust section (no duplicate Tin cậy)", () => {
+  const source = readLandingSource();
+  const trustHeadings = source.match(/id="trust-heading"/g) || [];
+  assert.equal(trustHeadings.length, 1, "trust-heading must appear once");
+  assert.equal(
+    (source.match(/Thiết kế bình tĩnh với tiền của bạn/g) || []).length,
+    1,
+  );
+  assert.equal(source.includes("Monarch"), false, "do not name competitors on landing");
+});
+
+test("landing Excel fit card uses table icon", () => {
+  const source = readLandingSource();
+  assert.match(source, /name="table"/);
+  assert.match(source, /Đang dùng Excel/);
+});
+
 /** R1 — CSS contracts: type hierarchy + mobile spacing + trust bar density. */
 test("landing CSS defines type hierarchy and trust-bar density", () => {
   const css = readGlobalsCss();
@@ -128,6 +145,7 @@ test("landing CSS defines type hierarchy and trust-bar density", () => {
   assert.match(css, /\.landing-hero-title\b/);
   assert.match(css, /\.landing-proof-strip\b/);
   assert.match(css, /\.landing-nav-login\b/);
+  assert.match(css, /\.feature-grid\.feature-grid-core|\.feature-grid-core/);
   // Mobile spacing polish under small viewport
   assert.ok(
     css.includes("@media (max-width: 640px)") &&

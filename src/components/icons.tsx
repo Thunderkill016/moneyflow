@@ -33,6 +33,7 @@ import {
   ShoppingBag,
   Soup,
   Sparkles,
+  Table2,
   Target,
   Trash2,
   Upload,
@@ -77,7 +78,8 @@ export type IconName =
   | "imports"
   | "more"
   | "paste"
-  | "upload";
+  | "upload"
+  | "table";
 
 const icons: Record<IconName, LucideIcon> = {
   home: Home,
@@ -117,6 +119,7 @@ const icons: Record<IconName, LucideIcon> = {
   more: MoreHorizontal,
   paste: ClipboardPaste,
   upload: Upload,
+  table: Table2,
 };
 
 export function Icon({ name, ...props }: LucideProps & { name: IconName }) {

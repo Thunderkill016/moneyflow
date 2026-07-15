@@ -2,9 +2,7 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 
 /**
- * Landing — G5 thu chi (docs/research/05).
- * Ref: Monarch (hero + product mock), YNAB (1 CTA hierarchy + proof strip),
- * fintech CRO (trust near CTA, how-it-works, final CTA). Calm Finance tone.
+ * Landing — G5 thu chi. Fintech CRO + Calm Finance green.
  * Server Component for LCP — no "use client".
  */
 export function LandingPage() {
@@ -18,7 +16,6 @@ export function LandingPage() {
           <span>MoneyFlow</span>
         </Link>
         <div className="landing-nav-actions">
-          {/* Desktop: text login. Mobile: primary only (login in footer). */}
           <Link href="/login" className="landing-link landing-nav-login">
             Đăng nhập
           </Link>
@@ -31,7 +28,6 @@ export function LandingPage() {
       <header className="landing-hero">
         <div className="landing-hero-content">
           <p className="landing-eyebrow">Quản lý thu chi cá nhân</p>
-          {/* LCP element: first-paint HTML */}
           <h1 className="landing-hero-title">
             Biết hôm nay
             <br />
@@ -42,7 +38,6 @@ export function LandingPage() {
             <strong>Bình tĩnh, rõ ràng</strong> — không ép zero-based, không quảng cáo trong
             luồng chính.
           </p>
-          {/* 3 trust chips max (fintech: trust beside CTA) */}
           <ul className="landing-trust-bar" aria-label="Cam kết tin cậy">
             <li>
               <Icon name="lock" size={14} />
@@ -57,7 +52,6 @@ export function LandingPage() {
               <span>Không mật khẩu NH</span>
             </li>
           </ul>
-          {/* Hierarchy: 1 primary + 1 secondary only (YNAB/Monarch pattern) */}
           <div className="landing-hero-ctas">
             <Link href="/register" className="cta-primary">
               Dùng miễn phí
@@ -122,7 +116,6 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* Honest proof strip — product truths, not fabricated % (YNAB-style density, G5 honesty) */}
       <section className="landing-proof-strip" aria-label="Vì sao MoneyFlow">
         <ul className="landing-proof-list">
           <li>
@@ -198,7 +191,7 @@ export function LandingPage() {
             <p>Tiền mặt + ngân hàng + ví điện tử. Chuyển khoản nội bộ không bị tính là chi tiêu.</p>
           </li>
           <li className="fit-card">
-            <Icon name="receipt" size={22} />
+            <Icon name="table" size={22} />
             <h3>Đang dùng Excel</h3>
             <p>Ghi trên điện thoại cho nhanh, cuối tháng export CSV — không dual-entry mãi.</p>
           </li>
@@ -217,7 +210,7 @@ export function LandingPage() {
         <div className="landing-section-heading">
           <p>Tính năng cốt lõi</p>
           <h2 id="features-heading">Một chỗ cho thu chi hằng ngày</h2>
-          <span>Giống Monarch overview — nhưng chỉ phần bạn thật sự dùng mỗi ngày.</span>
+          <span>Chỉ những gì bạn thật sự dùng mỗi ngày — không phình feature.</span>
         </div>
         <ul className="feature-grid feature-grid-core">
           <li className="feature-card-landing">
@@ -243,9 +236,11 @@ export function LandingPage() {
         </ul>
       </section>
 
+      {/* Single trust section only — do not duplicate */}
       <section
-        className="landing-section landing-section-alt landing-below-fold"
+        className="landing-section landing-section-alt landing-below-fold landing-trust-section"
         aria-labelledby="trust-heading"
+        data-landing-section="trust"
       >
         <div className="landing-section-heading">
           <p>Tin cậy</p>
