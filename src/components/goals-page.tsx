@@ -4,11 +4,14 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { adjustGoalAction, archiveGoalAction, saveGoalAction } from "@/app/actions/goals";
+import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
+import { AppShell } from "@/components/layout/app-shell";
+import { PlanningCard } from "@/components/planning-card";
 import { type ViewerSummary } from "@/components/user-chip";
 import { dailyGoalSaving, goalProgress, goalTotals, type SaveGoalInput, type SavingsGoal } from "@/lib/goals";
 import { formatMoney } from "@/lib/money";
-import { AppShell } from "@/components/layout/app-shell";
+import { PAGE_EMPTY_GOAL, PAGE_EMPTY_GOAL_ARCHIVED } from "@/lib/planning-pages";
 
 const GoalDialog = dynamic(
   () => import("@/components/goal-dialogs").then((m) => m.GoalDialog),
@@ -90,10 +93,15 @@ export function GoalsPage({ viewer, initialGoals, today, dataError }: { viewer: 
             {visible.map((goal) => {
               const progress = goalProgress(goal);
               const daily = dailyGoalSaving(goal, today);
+              const achieved = progress === 100;
               return (
-                <article className={`goal-card${progress === 100 ? " achieved" : ""}`} key={goal.id}>
+                <PlanningCard
+                  key={goal.id}
+                  tone={achieved ? "achieved" : "ok"}
+                  className="goal-card"
+                >
                   <div className="goal-card-top">
-                    <span className="round-icon purple"><Icon name={progress === 100 ? "check" : "flag"} /></span>
+                    <span className="round-icon purple"><Icon name={achieved ? "check" : "flag"} /></span>
                     <div>
                       <h3>{goal.name}</h3>
                       <p>{deadlineLabel(goal, today)}</p>
@@ -104,35 +112,45 @@ export function GoalsPage({ viewer, initialGoals, today, dataError }: { viewer: 
                     <strong className="font-mono">{formatMoney(goal.allocated)}</strong>
                     <span className="font-mono">/ {formatMoney(goal.target)}</span>
                   </div>
-                  <div className="budget-track" aria-label={`Đã hoàn thành ${progress} phần trăm`}><span style={{ width: `${progress}%` }} /></div>
+                  <div
+                    className="budget-track"
+                    role="progressbar"
+                    aria-valuenow={progress}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`Đã hoàn thành ${progress} phần trăm`}
+                  >
+                    <span style={{ width: `${progress}%` }} />
+                  </div>
                   <div className="goal-card-foot">
-                    <span>{daily > 0 ? `Nên dành ${formatMoney(daily)}/ngày` : progress === 100 ? "Đã đủ tiền mục tiêu" : "Tự do theo tiến độ của bạn"}</span>
+                    <span>{daily > 0 ? `Nên dành ${formatMoney(daily)}/ngày` : achieved ? "Đã đủ tiền mục tiêu" : "Tự do theo tiến độ của bạn"}</span>
                     <strong className="font-mono">Còn {formatMoney(Math.max(0, goal.target - goal.allocated))}</strong>
                   </div>
                   <div className="goal-actions">
                     {!goal.isArchived && (
                       <>
-                        <button className="goal-allocate" onClick={() => openAllocation(goal, "allocate")} disabled={progress === 100 || busyId === goal.id}><Icon name="lock" />Dành thêm</button>
-                        <button onClick={() => openAllocation(goal, "release")} disabled={goal.allocated === 0 || busyId === goal.id}><Icon name="restore" />Rút ra</button>
-                        <button onClick={() => openGoal(goal)} disabled={busyId === goal.id}><Icon name="edit" />Sửa</button>
+                        <button type="button" className="goal-allocate" onClick={() => openAllocation(goal, "allocate")} disabled={achieved || busyId === goal.id}><Icon name="lock" />Dành thêm</button>
+                        <button type="button" onClick={() => openAllocation(goal, "release")} disabled={goal.allocated === 0 || busyId === goal.id}><Icon name="restore" />Rút ra</button>
+                        <button type="button" onClick={() => openGoal(goal)} disabled={busyId === goal.id}><Icon name="edit" />Sửa</button>
                       </>
                     )}
-                    <button onClick={() => archive(goal)} disabled={busyId === goal.id}>
+                    <button type="button" onClick={() => archive(goal)} disabled={busyId === goal.id}>
                       <Icon name={goal.isArchived ? "restore" : "archive"} />
                       {goal.isArchived ? "Khôi phục" : "Lưu trữ"}
                     </button>
                   </div>
-                </article>
+                </PlanningCard>
               );
             })}
           </section>
         ) : (
-          <section className="budget-page-empty">
-            <span><Icon name="flag" /></span>
-            <h2>{showArchived ? "Không có mục tiêu đã lưu trữ" : "Chưa có mục tiêu tiết kiệm"}</h2>
-            <p>{showArchived ? "Mục tiêu được lưu trữ sẽ xuất hiện tại đây." : "Bắt đầu với một mục tiêu đủ gần để bạn thấy tiến bộ mỗi tuần."}</p>
-            {!showArchived && <button className="primary-button" onClick={() => openGoal(null)}><Icon name="plus" />Tạo mục tiêu đầu tiên</button>}
-          </section>
+          <EmptyState
+            {...(showArchived ? PAGE_EMPTY_GOAL_ARCHIVED : PAGE_EMPTY_GOAL)}
+            actionLabel={
+              !showArchived && !dataError ? PAGE_EMPTY_GOAL.actionLabel : undefined
+            }
+            onAction={!showArchived && !dataError ? () => openGoal(null) : undefined}
+          />
         )}
       </main>
       <GoalDialog key={`goal-${editing?.id ?? "new"}-${dialogVersion}`} open={goalDialogOpen} goal={editing} today={today} onClose={() => setGoalDialogOpen(false)} onSave={save} />

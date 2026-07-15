@@ -38,7 +38,7 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [x] **R3** Insights empty + planning cards consistent one-CTA empty states
 - [x] **R4** Ghi chi dialog: amount autofocus, recent categories order, save-and-add-another UX polish
 - [x] **R5** Transactions: wire AppShell searchBar for ⌘K; transfer “không tính chi” everywhere
-- [ ] **R6** Budgets/commitments/goals pages: shared card shell + calm thresholds + empty 1 CTA audit
+- [x] **R6** Budgets/commitments/goals pages: shared card shell + calm thresholds + empty 1 CTA audit
 - [ ] **R7** Reports month view discoverability + export from reports
 - [ ] **R8** Settings privacy/export/delete trust copy pass (G5)
 - [ ] **R9** `npm run test:e2e` expense path green after rebuild slices

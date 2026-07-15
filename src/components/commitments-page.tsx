@@ -12,13 +12,8 @@ import {
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import { PlanningCard } from "@/components/planning-card";
 import { type ViewerSummary } from "@/components/user-chip";
-
-const CommitmentDialog = dynamic(
-  () =>
-    import("@/components/commitment-dialog").then((m) => m.CommitmentDialog),
-  { ssr: false },
-);
 import {
   hydrateCommitmentsWithOccurrences,
   persistPayOccurrence,
@@ -37,23 +32,21 @@ import {
   type SaveCommitmentInput,
 } from "@/lib/commitments";
 import { formatMoney } from "@/lib/money";
+import {
+  commitmentDueLabel,
+  commitmentDueTone,
+  PAGE_EMPTY_COMMITMENT,
+  PAGE_EMPTY_COMMITMENT_ARCHIVED,
+} from "@/lib/planning-pages";
 import { maybeNotifyDueCommitments } from "@/lib/push-client";
 import { categoryMeta, type AccountOption, type CategoryOption } from "@/lib/sample-data";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 
-function daysBetween(from: string, to: string) {
-  return Math.round(
-    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000,
-  );
-}
-
-function dueLabel(item: RecurringCommitment, today: string) {
-  if (item.isPaid) return "Đã thanh toán";
-  const days = daysBetween(today, item.dueDate);
-  if (days === 0) return "Đến hạn hôm nay";
-  if (days < 0) return `Quá hạn ${Math.abs(days)} ngày`;
-  return `Còn ${days} ngày`;
-}
+const CommitmentDialog = dynamic(
+  () =>
+    import("@/components/commitment-dialog").then((m) => m.CommitmentDialog),
+  { ssr: false },
+);
 
 export function CommitmentsPage({
   viewer,
@@ -377,11 +370,13 @@ export function CommitmentsPage({
                     icon: "receipt",
                     color: "cyan",
                   };
-                  const overdue = !item.isPaid && item.dueDate < today;
+                  const tone = commitmentDueTone(item, today);
+                  const statusText = commitmentDueLabel(item, today);
                   return (
-                    <article
-                      className={`commitment-card${item.isPaid ? " paid" : overdue ? " overdue" : ""}`}
+                    <PlanningCard
                       key={item.id}
+                      tone={tone}
+                      className="commitment-card"
                     >
                       <div className="commitment-main">
                         <span className={`transaction-icon ${meta.color}`}>
@@ -390,7 +385,7 @@ export function CommitmentsPage({
                         <div>
                           <div className="commitment-title">
                             <h3>{item.name}</h3>
-                            <span>{dueLabel(item, today)}</span>
+                            <span className="commitment-due-badge">{statusText}</span>
                           </div>
                           <p>
                             {item.categoryName} · {item.accountName} · hạn ngày {item.dueDay}
@@ -439,20 +434,16 @@ export function CommitmentsPage({
                           {item.isArchived ? "Khôi phục" : "Lưu trữ"}
                         </button>
                       </div>
-                    </article>
+                    </PlanningCard>
                   );
                 })}
               </section>
             ) : (
               <EmptyState
-                icon="calendar"
-                title={showArchived ? "Không có khoản đã lưu trữ" : "Chưa có khoản định kỳ"}
-                description={
-                  showArchived
-                    ? "Các khoản bạn lưu trữ sẽ xuất hiện tại đây."
-                    : "Thêm tiền nhà hoặc hóa đơn để MoneyFlow giữ trước cho bạn."
+                {...(showArchived ? PAGE_EMPTY_COMMITMENT_ARCHIVED : PAGE_EMPTY_COMMITMENT)}
+                actionLabel={
+                  !showArchived && canAdd ? PAGE_EMPTY_COMMITMENT.actionLabel : undefined
                 }
-                actionLabel={!showArchived && canAdd ? "Thêm khoản đầu tiên" : undefined}
                 onAction={!showArchived && canAdd ? () => open(null) : undefined}
               />
             )}
