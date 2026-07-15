@@ -85,4 +85,10 @@ Work in stages — never “rewrite the whole app” in one prompt:
 
 - Daily loop: open → attention → ghi chi → safe-to-spend → export  
 - MVP core first; bank sync / AI advisor never without human approval  
-- See `docs/research/06_INDUSTRY_SYNTHESIS.md`
+- See `docs/research/06_INDUSTRY_SYNTHESIS.md`  
+- GitHub OSS study map: `docs/research/07_GITHUB_OSS_BEST.md` (Actual MIT · Firefly/Ivy **docs only**)  
+
+### OSS usage
+
+- **MIT/Apache:** reimplement patterns in `src/lib`; unit tests  
+- **AGPL/GPL (Firefly, Maybe, Ivy, Paisa, Ghostfolio):** docs/UX/domain only — **never paste source**

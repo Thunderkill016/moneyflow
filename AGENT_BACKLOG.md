@@ -781,12 +781,76 @@
 - **Mô tả:** After all prior MVP tasks done: mark wave complete in docs/MVP_DEFINITION.md exit checklist with date; no new features.
 - **Done khi:** doc updated only when 250–281 done (if earlier tasks open, skip and leave ready).
 
+
+## OSS LEARN → APPLY (GitHub best-of, no AGPL paste)
+
+> Nguồn: `docs/research/07_GITHUB_OSS_BEST.md`  
+> Chỉ **pattern**. MIT: reimplement. AGPL/GPL: docs/UX only.
+
+### TASK-400 — OSS map doc lock + agent test
+- **Status:** `ready`
+- **Mô tả:** Ensure `docs/research/07_GITHUB_OSS_BEST.md` exists; unit test asserts Actual/Firefly/Ivy mentioned + AGPL no-copy rule; link from README research section if present.
+- **Done khi:** test green; lint/typecheck/test.
+
+### TASK-401 — LEARN Actual: budget remaining UX polish
+- **Status:** `ready`
+- **Mô tả:** From Actual (MIT, read UX only): budgets list remaining + progress calm; near/over already exist—ensure remaining amount mono + empty CTA. No envelope method.
+- **Done khi:** budgets UI polish; tests for remaining helper if pure.
+
+### TASK-402 — LEARN Actual: CSV export formula-safe always
+- **Status:** `ready`
+- **Mô tả:** Actual-style ownership: export CSV escapes formulas; period export from reports. Expand tests if thin.
+- **Done khi:** export tests pass.
+
+### TASK-403 — LEARN Firefly docs: transfer never expense (harden)
+- **Status:** `ready`
+- **Mô tả:** Docs-only Firefly: audit all sumExpense/report/budget paths ignore transfer; add missing tests. No Firefly code.
+- **Done khi:** domain tests exhaustive.
+
+### TASK-404 — LEARN Firefly docs: bills → commitments copy
+- **Status:** `ready`
+- **Mô tả:** Commitments list: due/paid calm VN; “giữ trước” language; empty CTA. Domain already—UX polish.
+- **Done khi:** copy + empty state.
+
+### TASK-405 — LEARN Ivy: quick-add amount autofocus + recent cats
+- **Status:** `ready`
+- **Mô tả:** Ivy-style entry: amount focus on open; recent categories ordering; keep-open. Harden dialog.
+- **Done khi:** behavior + prefs tests.
+
+### TASK-406 — LEARN Actual rules spirit: optional category suggest later skip
+- **Status:** `ready`
+- **Mô tả:** Do NOT implement full rules engine. Only document in BEST_OF that rules stay Lab; ensure /rules is Advanced nav only (test).
+- **Done khi:** nav test asserts /rules in ADVANCED only.
+
+### TASK-407 — LEARN Firefly importer spirit: import stays Lab
+- **Status:** `ready`
+- **Mô tả:** Contract test: /imports /imports/direct not in PRIMARY_NAV; Advanced only. No new importer features.
+- **Done khi:** nav-ia tests.
+
+### TASK-408 — LEARN privacy-first (gider.im/Canutin framing)
+- **Status:** `ready`
+- **Mô tả:** Settings privacy + landing trust: no bank password; export/delete links. Copy audit + existing tests green.
+- **Done khi:** privacy/landing tests pass.
+
+### TASK-409 — LEARN Maybe UX: accounts list clarity (not net worth hero)
+- **Status:** `ready`
+- **Mô tả:** Accounts page: balance per wallet clear; transfer CTA; empty Thêm ví. No net-worth dashboard.
+- **Done khi:** empty + balance UI ok.
+
+### TASK-410 — OSS license CI reminder in docs
+- **Status:** `ready`
+- **Mô tả:** Add short section in docs/MVP_DEFINITION or README: forbidden AGPL vendoring; list S-tier study repos. Test file exists.
+- **Done khi:** docs + gate test mentions AGPL forbid.
+
+## Nhật ký
+
 ## Nhật ký
 
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | OSS 400–410 | GitHub best-of map + learn/apply queue |
 | 2026-07-15 | MVP 250–282 | Full MVP hardening queue; 209–224 deferred |
 | 2026-07-15 | queue 207–224 | Full ready queue; daemon on; headless G5 prompt |
 | 2026-07-15 | TASK-205–206 | ⌘K search; moneyflow skills + Grok workflow + industry synthesis |
