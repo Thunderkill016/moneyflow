@@ -654,7 +654,7 @@
 - **Status:** `done`
 - **Mô tả:** Insights shows: số dư, thu tháng, chi tháng, ròng, top categories, recent, Ghi chi CTA, export CTA. Contract test on dashboard source.
 - **Done khi:** contract tests; no missing widget.
-- **Completed:** 2026-07-15 — (pending SHA) insights-kpi-contract.test.ts locks dashboard widgets.
+- **Completed:** 2026-07-15 — `9994dcd` insights-kpi-contract.test.ts locks dashboard widgets.
 
 ### TASK-257 — MVP-CORE safe-to-spend short explain always visible
 - **Status:** `ready`
@@ -858,7 +858,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-256 | insights-kpi-contract: số dư/thu/chi/ròng + top cat + recent + Ghi chi + export CTA |
+| 2026-07-15 | TASK-256 | `9994dcd` insights-kpi-contract: số dư/thu/chi/ròng + top cat + recent + Ghi chi + export CTA |
 | 2026-07-15 | TASK-255 | `4faef2b` production build green with `NEXT_PUBLIC_SUPABASE_*=placeholder`; README Quality one-liner |
 | 2026-07-15 | TASK-253 | `0c3bc28` transfer-expense-contract: demo ledger transfer ≠ month expense / category spend |
 | 2026-07-15 | TASK-251 | `a0233f8` money-invariants regression suite (transfer/soft-delete/integer/budget/safe-to-spend) |
