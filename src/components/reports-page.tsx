@@ -10,15 +10,14 @@ import {
 } from "@/lib/export-data";
 import { formatMoney } from "@/lib/money";
 import type { ReportPeriod } from "@/lib/reports";
+import {
+  formatReportPeriodTitle,
+  REPORT_PERIOD_OPTIONS,
+  reportPeriodHref,
+} from "@/lib/reports";
 import { categoryMeta } from "@/lib/sample-data";
 import type { ReportsWorkspace } from "@/server/reports";
 import { AppShell } from "@/components/layout/app-shell";
-
-const periods: { value: ReportPeriod; label: string }[] = [
-  { value: "week", label: "Tuần này" },
-  { value: "month", label: "Tháng này" },
-  { value: "year", label: "Năm nay" },
-];
 
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat("vi-VN", {
@@ -46,6 +45,8 @@ export function ReportsPage({
 
   const csvDownloadHref = reportCsvDownloadHref(period);
   const exportDisabled = Boolean(workspace.dataError);
+  const periodTitle = formatReportPeriodTitle(period, report.range.currentStart);
+  const rangeCaption = `${dateLabel(report.range.currentStart)} – ${dateLabel(report.range.currentEnd)} · So với kỳ liền trước cùng số ngày.`;
 
   return (
     <AppShell
@@ -66,20 +67,35 @@ export function ReportsPage({
           <div>
             <p className="eyebrow">Bức tranh tài chính</p>
             <h1>Báo cáo</h1>
-            <p>{dateLabel(report.range.currentStart)} – {dateLabel(report.range.currentEnd)} · So với kỳ liền trước cùng số ngày.</p>
+            <p className="reports-period-title" data-period={period}>
+              <span className="reports-period-pill">{periodTitle}</span>
+              <span className="reports-range-caption">{rangeCaption}</span>
+            </p>
           </div>
-          <Link
-            className="secondary-button report-export"
-            href={exportDisabled ? EXPORT_SETTINGS_HREF : csvDownloadHref}
-            aria-disabled={exportDisabled || undefined}
-          >
-            <Icon name="arrowDown" />{EXPORT_CSV_LABEL}
-          </Link>
+          <div className="reports-heading-actions">
+            <Link
+              className="secondary-button report-export"
+              href={exportDisabled ? EXPORT_SETTINGS_HREF : csvDownloadHref}
+              aria-disabled={exportDisabled || undefined}
+            >
+              <Icon name="arrowDown" />
+              {EXPORT_CSV_LABEL}
+              <span className="report-export-period"> · {periodTitle}</span>
+            </Link>
+            <Link className="report-export-advanced" href={EXPORT_SETTINGS_HREF}>
+              Tùy chọn xuất
+            </Link>
+          </div>
         </section>
 
         <nav className="report-periods" aria-label="Chọn kỳ báo cáo">
-          {periods.map((item) => (
-            <Link key={item.value} href={`/reports?period=${item.value}`} className={period === item.value ? "active" : ""} aria-current={period === item.value ? "page" : undefined}>
+          {REPORT_PERIOD_OPTIONS.map((item) => (
+            <Link
+              key={item.value}
+              href={reportPeriodHref(item.value)}
+              className={period === item.value ? "active" : ""}
+              aria-current={period === item.value ? "page" : undefined}
+            >
               {item.label}
             </Link>
           ))}
@@ -127,7 +143,7 @@ export function ReportsPage({
             </section>
 
             <section className="report-panel category-panel">
-              <div className="section-heading"><div><h2>Chi theo danh mục</h2><p>Những nơi tiền của bạn đi nhiều nhất.</p></div></div>
+              <div className="section-heading"><div><h2>Chi theo danh mục</h2><p>Những nơi tiền của bạn đi nhiều nhất · {periodTitle}.</p></div></div>
               {report.categories.length ? (
                 <div className="report-categories">
                   {report.categories.map((item) => {
@@ -150,9 +166,20 @@ export function ReportsPage({
           <section className="report-empty">
             <span><Icon name="chart" /></span><h2>Chưa có dữ liệu trong kỳ</h2>
             <p>Thêm giao dịch hoặc chọn kỳ dài hơn để MoneyFlow tạo báo cáo.</p>
-            <div><Link className="primary-button" href="/transactions"><Icon name="plus" />Thêm giao dịch</Link>{period !== "year" && <Link className="secondary-button" href="/reports?period=year">Xem cả năm</Link>}</div>
+            <div><Link className="primary-button" href="/transactions"><Icon name="plus" />Thêm giao dịch</Link>{period !== "year" && <Link className="secondary-button" href={reportPeriodHref("year")}>Xem cả năm</Link>}</div>
           </section>
         )}
+
+        {!exportDisabled ? (
+          <p className="reports-export-foot">
+            <Link href={csvDownloadHref}>
+              <Icon name="arrowDown" />
+              {EXPORT_CSV_LABEL} {periodTitle}
+            </Link>
+            <span aria-hidden="true"> · </span>
+            <Link href={EXPORT_SETTINGS_HREF}>Khoảng ngày &amp; JSON</Link>
+          </p>
+        ) : null}
       </main>
     </AppShell>
   );

@@ -61,6 +61,10 @@ import {
   EXPORT_CSV_LABEL,
   EXPORT_SETTINGS_HREF,
 } from "@/lib/export-data";
+import {
+  REPORTS_MONTH_HREF,
+  REPORTS_MONTH_LINK_LABEL,
+} from "@/lib/reports";
 import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
 import {
   buildWeeklySummary,
@@ -478,8 +482,8 @@ export function MoneyFlowDashboard({
                       <h2>Chi theo danh mục</h2>
                       <p>Top danh mục tháng này — thanh ngang, không biểu đồ tròn.</p>
                     </div>
-                    <Link className="section-link" href="/reports">
-                      Báo cáo <Icon name="arrowRight" />
+                    <Link className="section-link" href={REPORTS_MONTH_HREF}>
+                      {REPORTS_MONTH_LINK_LABEL} <Icon name="arrowRight" />
                     </Link>
                   </div>
                   {topCategories.length ? (

@@ -1875,8 +1875,69 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .reports-workspace { padding-top: 38px; }
 .reports-heading { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .reports-heading h1 { margin: 0; font-size: clamp(30px, 4vw, 42px); font-weight: 680; letter-spacing: -.05em; }
-.reports-heading > div > p:last-child { margin: 9px 0 0; color: var(--muted); font-size: 12px; }
-.reports-heading > .report-export { display: none; }
+/* R7: export always visible in heading (desktop + mobile) — period CSV one click */
+.reports-heading-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.reports-heading-actions .report-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.report-export-period { font-weight: 600; opacity: 0.85; }
+.report-export-advanced {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-decoration: none;
+}
+.report-export-advanced:hover { color: var(--ink); text-decoration: underline; }
+.reports-period-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 9px 0 0;
+}
+.reports-period-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  background: var(--green-soft, #e8f3ec);
+  color: var(--green, #1f6b45);
+  padding: 2px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.reports-range-caption {
+  color: var(--muted);
+  font-size: 12px;
+}
+.reports-export-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.reports-export-foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.reports-export-foot a:hover { text-decoration: underline; }
 .report-periods { display: inline-flex; gap: 4px; margin-top: 26px; border-radius: 12px; background: #e9eeeb; padding: 4px; }
 .report-periods a { display: grid; min-height: 38px; place-items: center; border-radius: 9px; padding: 0 17px; color: var(--muted); font-size: 11px; font-weight: 650; }
 .report-periods a.active { background: white; color: var(--ink); box-shadow: 0 2px 9px rgb(20 40 28 / 8%); }
@@ -2065,8 +2126,12 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   .reports-heading { align-items: start; flex-wrap: wrap; }
   .reports-heading .eyebrow { display: none; }
   .reports-heading h1 { font-size: 29px; }
-  .reports-heading > div > p:last-child { max-width: 320px; font-size: 10px; line-height: 1.5; }
-  .reports-heading > .report-export { display: inline-flex; width: 100%; }
+  .reports-heading > div > p:last-child { max-width: 100%; font-size: 10px; line-height: 1.5; }
+  .reports-heading-actions { width: 100%; align-items: stretch; }
+  .reports-heading-actions .report-export { width: 100%; justify-content: center; }
+  .report-export-advanced { text-align: center; }
+  .reports-period-title { max-width: 100%; }
+  .reports-range-caption { font-size: 10px; line-height: 1.5; }
   .report-periods { display: grid; width: 100%; grid-template-columns: repeat(3, 1fr); margin-top: 18px; }
   .report-periods a { padding-inline: 8px; }
   .report-metrics { margin-top: 14px; }
@@ -3534,6 +3599,12 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 /* Report periods */
 [data-theme="dark"] .report-periods { background: var(--color-bg-tertiary); }
 [data-theme="dark"] .report-periods a.active { background: var(--color-bg-elevated); color: var(--color-text-primary); }
+[data-theme="dark"] .reports-period-pill {
+  background: color-mix(in srgb, var(--green-soft, #1a3d2a) 70%, transparent);
+  color: var(--green, #6fcf97);
+}
+[data-theme="dark"] .report-export-advanced { color: var(--color-text-secondary, #9aa89f); }
+[data-theme="dark"] .reports-export-foot a { color: var(--color-text-primary); }
 
 /* Data alert */
 [data-theme="dark"] .data-alert { background: var(--color-danger-subtle); border-color: rgba(239, 68, 68, 0.2); color: var(--color-danger-text); }

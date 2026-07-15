@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildFinancialReport, normalizeReportPeriod, reportRange, transactionsToCsv } from "./reports.ts";
+import {
+  buildFinancialReport,
+  formatReportPeriodTitle,
+  normalizeReportPeriod,
+  reportPeriodHref,
+  reportRange,
+  REPORTS_MONTH_HREF,
+  transactionsToCsv,
+} from "./reports.ts";
 import type { Transaction } from "./sample-data.ts";
 
 const transaction = (overrides: Partial<Transaction>): Transaction => ({
@@ -13,6 +21,8 @@ test("builds equal-length current and previous report ranges", () => {
   assert.deepEqual(reportRange("2026-07-14", "week"), { period: "week", currentStart: "2026-07-13", currentEnd: "2026-07-14", previousStart: "2026-07-11", previousEnd: "2026-07-12" });
   assert.deepEqual(reportRange("2026-07-14", "month"), { period: "month", currentStart: "2026-07-01", currentEnd: "2026-07-14", previousStart: "2026-06-17", previousEnd: "2026-06-30" });
   assert.equal(normalizeReportPeriod("unexpected"), "month");
+  assert.equal(REPORTS_MONTH_HREF, reportPeriodHref("month"));
+  assert.equal(formatReportPeriodTitle("month", "2026-07-01"), "Tháng 7/2026");
 });
 
 test("excludes transfers from income and expense totals", () => {

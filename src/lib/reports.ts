@@ -2,6 +2,12 @@ import type { Transaction } from "./sample-data.ts";
 
 export type ReportPeriod = "week" | "month" | "year";
 
+/** R7 — month view is the default reports landing (JTBD: tháng này tiền đi đâu). */
+export const REPORTS_PATH = "/reports" as const;
+export const REPORTS_MONTH_HREF = "/reports?period=month" as const;
+/** Insights → reports deep-link label (discoverable month view). */
+export const REPORTS_MONTH_LINK_LABEL = "Báo cáo tháng" as const;
+
 export type ReportRange = {
   period: ReportPeriod;
   currentStart: string;
@@ -38,6 +44,34 @@ function shiftDate(value: string, days: number) {
 export function normalizeReportPeriod(value: string | null | undefined): ReportPeriod {
   return value === "week" || value === "year" ? value : "month";
 }
+
+/** Canonical period switcher href (always includes `period=` for share/bookmark). */
+export function reportPeriodHref(period: ReportPeriod): string {
+  return `${REPORTS_PATH}?period=${period}`;
+}
+
+/**
+ * Human period title for reports heading.
+ * Month is the product default — “Tháng 7/2026”, not a vague range only.
+ */
+export function formatReportPeriodTitle(
+  period: ReportPeriod,
+  currentStart: string,
+): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(currentStart)) return "Báo cáo";
+  const year = Number(currentStart.slice(0, 4));
+  const month = Number(currentStart.slice(5, 7));
+  if (period === "year") return `Năm ${year}`;
+  if (period === "week") return "Tuần này";
+  return `Tháng ${month}/${year}`;
+}
+
+/** Short period tab labels (segmented control). */
+export const REPORT_PERIOD_OPTIONS: { value: ReportPeriod; label: string }[] = [
+  { value: "week", label: "Tuần này" },
+  { value: "month", label: "Tháng này" },
+  { value: "year", label: "Năm nay" },
+];
 
 export function reportRange(today: string, period: ReportPeriod): ReportRange {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(today)) throw new Error("invalid_report_date");
