@@ -62,14 +62,15 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 
 ## How agent works
 
-**Runtime locked:** **Grok CLI** + `moneyflow-autopilot` — see `docs/AGENT_RUNTIME.md`.  
+**Runtime locked:** **Grok VIP stack** — `docs/AGENT_RUNTIME.md` + `docs/VIP_AGENT_STACK.md`.  
 Not primary: Claude Code, Hermes, OpenClaw, Codex (unless user changes this).
 
-1. Skill **ship-feature** / **moneyflow-web**: next unchecked **R*** then **Q***  
-2. Skill **test-driven-development**: test first when behavior changes  
-3. Skill **verification-before-completion**: run lint/typecheck/test before done  
-4. Skill **security-pass**: if touching auth/RLS/actions  
-5. Skill **frontend-qa**: if UI layout/nav/dialog  
-6. Skill **frontend-design**: when visual polish on landing/insights  
+1. **surgical-coding** + **moneyflow-rebuild** / **ship-feature**: next **R*** then **Q***  
+2. **moneyflow-web**: PFM patterns  
+3. **test-driven-development**: behavior changes  
+4. **verification-before-completion** + **moneyflow-check**: before done  
+5. **frontend-design** / **frontend-qa**: UI  
+6. **security-pass** / **supabase-rls**: auth  
+7. Headless: `--check` + `--experimental-memory` + safety hooks  
 
 When all Rebuild R* + Quality Q* checked → update `docs/MVP_SHIPPED.md`.

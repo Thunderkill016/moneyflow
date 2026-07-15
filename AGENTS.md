@@ -4,133 +4,73 @@
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# MoneyFlow — project rules (agents)
+# MoneyFlow — AGENTS.md (universal project rules)
 
-## Product law (G5 — authoritative)
+**Runtime:** Grok CLI primary — `docs/AGENT_RUNTIME.md` · VIP stack — `docs/VIP_AGENT_STACK.md`  
+**Work queue:** `IDEA.md` (**R*** rebuild → **Q*** quality). Not backlog spam.
 
-Read first (in order):
+## 1. Product law (G5)
 
-1. `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` — **G5** positioning, JTBD, MVP, non-goals
-2. `docs/AUTOPILOT_PLAN.md` — Wave A → B → C order (**TASK-100…125**)
-3. `AGENT_BACKLOG.md` — only tasks with `Status: ready`
-4. `docs/MVP_DEFINITION.md` — **MVP ship exit criteria** (TASK-250… hardening wave)
+| | |
+|--|--|
+| **Product** | Web **thu chi cá nhân** VN |
+| **JTBD** | Ghi nhanh → số dư + tháng này tiền đi đâu |
+| **Insight** | Có thể chi hôm nay (secondary, not inbox brand) |
+| **Lab** | Inbox / paste / import / rules → **Nâng cao** only |
 
-**Positioning:** Vietnamese-first **personal income & expense (thu chi)** web app.
+**Read:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` · `docs/REBUILD_MASTER_PLAN.md` · `docs/BEST_OF_MATRIX.md`
 
-- Core JTBD: log fast → know **balances** and **where money went this month**.
-- Secondary insight: **Hôm nay có thể chi bao nhiêu?** (safe-to-spend is insight, not brand-only).
-- Capture / Inbox / paste / upload = **optional P1 tools**, not the product identity.
+### Forbidden (no human approval)
 
-### Forbidden without human approval
+Bank sync · AI advisor · family · OCR · full YNAB envelope · AGPL code paste · inbox-first landing/auth marketing · force-push · edit `.env.local` · delete migrations
 
-Agents **must not** implement, invent, or refill backlog tasks for:
+## 2. Surgical coding (always)
 
-- Revert landing to “Hộp thư / Universal Financial Inbox” marketing slogans
-- Bank sync / Open Banking / SMS harvesting
-- AI financial advisor / chatbot
-- Family sharing, investments, crypto, OCR, voice
-- Full YNAB envelope onboarding
-- Copying AGPL/GPL code (Firefly, Maybe, Ivy, Ghostfolio) into the repo
-- Force-push, editing `.env.local`, deleting migrations
+1. **Think before code** — read existing files; state plan in 3–6 bullets for multi-file work  
+2. **Simplicity first** — smallest vertical slice; no drive-by refactors  
+3. **Surgical diffs** — only files needed for the IDEA item  
+4. **Goal-driven** — Done = check IDEA box + gates green + commit/push  
 
-## Autopilot (until best MVP)
+## 3. Domain money
 
-**Mission:** keep improving until `docs/MVP_BEST_BAR.md` is met and `docs/MVP_SHIPPED.md` exists.  
-**Do not stop** just because a finite wave finished — run `bash scripts/agent-ensure-work.sh` to refill.
+- Integer **VND đồng** only (no float money)  
+- Transfer = balanced legs; **never** expense totals  
+- Soft delete + undo for destructive  
+- Rules in `src/lib/*` + tests  
+- RLS on user-owned tables  
 
-1. One task per session — first `ready` by **lowest TASK number**.
-2. Prefer **MVP HARDENING (250+)** then **OSS (400+)** then **BEST-MVP catalog (500+)** from ensure-work.
-3. Status `in_progress` → implement → `npm run lint && npm run typecheck && npm run test` → commit → `git push origin main` → `done` + SHA.
-4. If `ready` &lt; 3: `bash scripts/agent-ensure-work.sh` (refill pool + promote deferred + inject catalog). **Never** invent bank-sync/AI/family/inbox-brand.
-5. Fail twice → `blocked` + reason; ensure-work may queue a fix task next cycle.
-6. When bar met: task may write `docs/MVP_SHIPPED.md`; daemon idles 1h between re-checks.
-8. After finite waves/catalog empty: `agent-competitor-gap.py` compares to Money Lover/Ivy/Firefly/Actual/Copilot/Monarch patterns and injects COMP-GAP tasks until **all checks pass** (see `docs/COMPETITOR_GAP_BAR.md`).
-7. Do not invent features outside the task description or MVP bar.
+## 4. Verify before done
 
-## Engineering
+```bash
+npm run lint && npm run typecheck && npm run test
+# R9/Q1: npm run test:e2e
+# R10/Q2/Q3: npm run build  OR  bash scripts/mvp-verify.sh
+```
 
-- Money = **integer minor units** (VND đồng). No float for persisted money.
-- Transfer = two balanced legs; **never** count as expense in reports.
-- Soft delete via `deleted_at` where applicable.
-- Financial rules in `src/lib/*`, not only in visual components.
-- Treat browser input as untrusted; resolve auth on server.
-- User-owned tables: **RLS**.
-- Every data page: loading, empty, error (and uncertain for capture).
-- No dependency without justifying value.
-- Before code: inspect current impl + Next.js docs under `node_modules/next/dist/docs/`.
-- After code: lint, typecheck, test; `npm run build` when routes/layout change or TASK-120.
+Empty states: **one** primary CTA. Money a11y: `+` / `−` / `↔` not color-only.
 
-## Design
+## 5. Skill routing (Grok)
 
-- Calm, non-judgmental Vietnamese copy.
-- Dark + light; a11y: focus, contrast, money not color-only (`+/−/↔`).
-- Charts secondary to insights on dashboard.
+| When | Skill |
+|------|--------|
+| Autopilot / IDEA item | `moneyflow-rebuild` + `ship-feature` |
+| PFM UI / ledger / budgets | `moneyflow-web` |
+| Before claim done | `verification-before-completion` + `moneyflow-check` |
+| Behavior change | `test-driven-development` |
+| UI visual | `frontend-design` + `frontend-qa` |
+| Auth / RLS | `security-pass` + `supabase-rls` |
+| Bug | `systematic-debugging` |
+| Minimal diffs | `surgical-coding` |
 
-## Grok effective workflow (mandatory)
+**Do not** use AtoEnglish skills.
 
-Work in stages — never “rewrite the whole app” in one prompt:
+## 6. Autopilot
 
-1. **Context** — read AGENTS + relevant docs/files  
-2. **Plan** — short bullets for multi-file work  
-3. **Implement** — minimal diff; Core vs Lab per `docs/BEST_OF_MATRIX.md`  
-4. **Verify** — lint / typecheck / test (e2e when expense path)  
-5. **Human-facing** — commit message complete sentences; push only when gates green  
+- Service: `moneyflow-autopilot` → `scripts/agent-daemon.sh`  
+- One IDEA item / cycle · dirty tree (except `logs/`) → skip  
+- No invent backlog while R*/Q* open  
+- When all R*+Q* done → `docs/MVP_SHIPPED.md`
 
-### Skill routing (use these — do not use AtoEnglish skills)
+## 7. Next.js
 
-| Trigger | Skill |
-|---------|--------|
-| autopilot / backlog / 24/7 | `.grok/skills/moneyflow-autopilot` |
-| PFM feature / thu chi UI / ledger | `.grok/skills/moneyflow-web` |
-| after wave / before push | `.grok/skills/moneyflow-check` or global `check-work` |
-| shadcn / form primitives | `shadcn` |
-| design ambiguity | `design` |
-
-### Industry PFM anchors
-
-- Daily loop: open → attention → ghi chi → safe-to-spend → export  
-- MVP core first; bank sync / AI advisor never without human approval  
-- See `docs/research/06_INDUSTRY_SYNTHESIS.md`  
-- GitHub OSS study map: `docs/research/07_GITHUB_OSS_BEST.md` (Actual MIT · Firefly/Ivy **docs only**)  
-- **Task generation only from knowledge:** `docs/research/08_PFM_BEST_IN_CLASS.md` + `agent-competitor-gap.py`  
-
-### Auto-task rules (no busywork)
-
-Allowed: closes a named competitor pattern + JTBD + testable Done khi.  
-Forbidden auto-tasks: green-test-only, empty “quality cycle”, features in G5 non-goals.
-
-### OSS usage
-
-- **MIT/Apache:** reimplement patterns in `src/lib`; unit tests  
-- **AGPL/GPL (Firefly, Maybe, Ivy, Paisa, Ghostfolio):** docs/UX/domain only — **never paste source**
-
-
-## Skills for agents (Claude official + project)
-
-### Official Anthropic ([anthropics/skills](https://github.com/anthropics/skills))
-
-Installed under `.claude/skills/` + `.agents/skills/` + `.grok/skills/`:
-
-| Skill | When (MoneyFlow) |
-|-------|------------------|
-| **frontend-design** | Landing, dashboard visual polish, redesign (not default SaaS purple) |
-| **webapp-testing** | Playwright verify after UI change |
-| **web-artifacts-builder** | Rare: prototype HTML/React artifact (not main Next app) |
-| **theme-factory** | Color/type theme for marketing surfaces |
-| **skill-creator** | Improve project skills |
-| **mcp-builder** | Only if adding MCP tools |
-
-Docs: [Agent Skills overview](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) · install marketplace: `/plugin marketplace add anthropics/skills`
-
-### Project skills (Shipkit/Superpowers adapted)
-
-| Skill | Use |
-|-------|-----|
-| `ship-feature` | Next unchecked item in `IDEA.md` |
-| `test-driven-development` | Behavior change |
-| `verification-before-completion` | Before claim done / commit |
-| `security-pass` | Auth, RLS, actions |
-| `frontend-qa` | Nav, dialog, empty, mobile |
-| `supabase-rls` | Migrations / policies |
-
-Autopilot headless: **IDEA.md** + ship-feature + Anthropic frontend-design/webapp-testing when UI.
+Before novel App Router APIs: check `node_modules/next/dist/docs/`.

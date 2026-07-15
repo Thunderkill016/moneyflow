@@ -3,15 +3,19 @@
 **Chốt 2026-07-15 (user):** giữ **Grok** làm coding agent chính.  
 Không chuyển sang Claude Code / Hermes / OpenClaw / Codex trừ khi user đổi quyết định.
 
+**VIP stack:** `docs/VIP_AGENT_STACK.md` (AGENTS + rules + skills + hooks + `--check` + memory).
+
 ## Stack
 
 | Layer | Tool |
 |-------|------|
-| Interactive + headless coding | **Grok CLI** (`grok`, session + `--yolo`) |
+| Interactive + headless coding | **Grok CLI** (`--check --experimental-memory --yolo`) |
 | AFK loop | `moneyflow-autopilot.service` → `scripts/agent-daemon.sh` |
 | Work queue | `IDEA.md` — **R*** rebuild first, then **Q*** |
-| Product law | `AGENTS.md` + G5 + `docs/REBUILD_MASTER_PLAN.md` |
-| Skills | `.grok/skills/moneyflow-web`, ship-feature, TDD, verification, frontend-qa |
+| Product law | `AGENTS.md` + `.grok/rules/*` + G5 |
+| Skills | `.grok/skills/*` (moneyflow-*, surgical-coding, ship-feature, …) |
+| Hooks | `.grok/hooks/*` + `scripts/hooks/*` (trust once: `/hooks-trust`) |
+| Full gate | `bash scripts/mvp-verify.sh` |
 
 ## Commands
 
