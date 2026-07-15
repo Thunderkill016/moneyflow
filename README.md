@@ -35,6 +35,9 @@ npm run typecheck
 npm run test
 npm run build
 
+# Demo / CI: production build without real Supabase (placeholder → demo mode)
+NEXT_PUBLIC_SUPABASE_URL=placeholder NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=placeholder npm run build
+
 # RLS surface (static migrations; no Docker) — see docs/security-rls-check.md
 npm run check:rls
 # Optional local Supabase pgTAP (needs Docker): npm run test:db
