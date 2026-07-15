@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  ADVANCED_NAV_LINKS,
   APP_HOME_HREF,
   GHI_CHI_TIEU_HREF,
   GHI_CHI_TIEU_LABEL,
@@ -19,12 +20,12 @@ test("global CTA Ghi chi tiêu targets quick add", () => {
   assert.equal(GHI_CHI_TIEU_HREF, "/capture/quick");
 });
 
-test("primary nav is thu chi: Tổng quan · Giao dịch · Capture · Tài khoản", () => {
+test("primary nav is thu chi: Tổng quan · Giao dịch · Nhập nhanh · Tài khoản", () => {
   const labels = PRIMARY_NAV.map((item) => item.label);
   assert.deepEqual(labels, [
     "Tổng quan",
     "Giao dịch",
-    "Capture",
+    "Nhập nhanh",
     "Tài khoản",
   ]);
 
@@ -105,13 +106,20 @@ test("isPlanningPath matches planning routes only", () => {
   assert.equal(isPlanningPath("/transactions"), false);
 });
 
-test("More nav hosts inbox + tools; not transactions (primary)", () => {
+test("More nav is daily tools; lab capture lives under Advanced", () => {
   const hrefs = MORE_NAV_LINKS.map((item) => item.href);
-  assert.ok(hrefs.includes("/inbox"), "Inbox demoted to More");
-  assert.ok(hrefs.includes("/timeline"));
-  assert.ok(hrefs.includes("/rules"));
-  assert.ok(hrefs.includes("/imports"));
   assert.ok(hrefs.includes("/reports"));
+  assert.ok(hrefs.includes("/categories"));
+  assert.ok(hrefs.includes("/settings"));
+  assert.ok(!hrefs.includes("/inbox"), "Inbox is Advanced, not daily More");
+  assert.ok(!hrefs.includes("/transactions"), "transactions is primary");
+
+  const advanced = ADVANCED_NAV_LINKS.map((item) => item.href);
+  assert.ok(advanced.includes("/inbox"), "Inbox demoted to Advanced");
+  assert.ok(advanced.includes("/timeline"));
+  assert.ok(advanced.includes("/rules"));
+  assert.ok(advanced.includes("/imports"));
+  assert.ok(MORE_OTHER_LINKS.some((item) => item.href === "/inbox"));
   assert.ok(hrefs.includes("/settings"));
   assert.equal(
     hrefs.includes("/transactions"),

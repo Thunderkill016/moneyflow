@@ -57,7 +57,7 @@ export const PRIMARY_NAV: PrimaryNavItem[] = [
   },
   {
     kind: "action",
-    label: "Capture",
+    label: "Nhập nhanh",
     icon: "plus",
     action: "capture",
     mobileTab: true,
@@ -123,40 +123,15 @@ export const PLANNING_LINKS: SecondaryNavItem[] = [
 ];
 
 /**
- * Tools reachable from More (and optionally Capture sheet).
- * Inbox is demoted here — not primary activation.
- * Giao dịch is primary, so it is not listed again.
+ * Everyday tools in More (best-of core, not primary tabs).
+ * Lab / power import features live in ADVANCED_NAV_LINKS.
  */
 export const MORE_NAV_LINKS: SecondaryNavItem[] = [
-  {
-    label: "Hộp thư",
-    href: "/inbox",
-    icon: "inbox",
-    description: "Duyệt ứng viên trước khi vào sổ",
-  },
-  {
-    label: "Timeline",
-    href: "/timeline",
-    icon: "timeline",
-    description: "Giao dịch đã duyệt",
-  },
-  {
-    label: "Quy tắc",
-    href: "/rules",
-    icon: "rules",
-    description: "Tự gán danh mục khi dán/import",
-  },
-  {
-    label: "Imports",
-    href: "/imports",
-    icon: "imports",
-    description: "Lịch sử file sao kê",
-  },
   {
     label: "Báo cáo",
     href: "/reports",
     icon: "chart",
-    description: "Thu chi theo kỳ",
+    description: "Thu chi theo kỳ · xuất CSV",
   },
   {
     label: "Danh mục",
@@ -171,10 +146,48 @@ export const MORE_NAV_LINKS: SecondaryNavItem[] = [
   },
 ];
 
+/**
+ * Lab / power features — secondary “Nâng cao” so the app feels focused.
+ * Still reachable; not on the daily path.
+ */
+export const ADVANCED_NAV_LINKS: SecondaryNavItem[] = [
+  {
+    label: "Hộp thư",
+    href: "/inbox",
+    icon: "inbox",
+    description: "Duyệt ứng viên dán/import trước khi vào sổ",
+  },
+  {
+    label: "Timeline đã duyệt",
+    href: "/timeline",
+    icon: "timeline",
+    description: "Lịch sử sau khi duyệt import",
+  },
+  {
+    label: "Quy tắc",
+    href: "/rules",
+    icon: "rules",
+    description: "Tự gán danh mục khi dán/import",
+  },
+  {
+    label: "Imports",
+    href: "/imports",
+    icon: "imports",
+    description: "Lịch sử file sao kê",
+  },
+  {
+    label: "Import CSV thẳng",
+    href: "/imports/direct",
+    icon: "imports",
+    description: "Power user · ghi sổ bỏ qua hộp thư",
+  },
+];
+
 /** @deprecated Prefer MORE_NAV_LINKS — kept for call sites that only need “other” tools. */
-export const MORE_OTHER_LINKS: SecondaryNavItem[] = MORE_NAV_LINKS.filter(
-  (item) => item.href !== "/settings",
-);
+export const MORE_OTHER_LINKS: SecondaryNavItem[] = [
+  ...MORE_NAV_LINKS.filter((item) => item.href !== "/settings"),
+  ...ADVANCED_NAV_LINKS,
+];
 
 export function isPlanningPath(pathname: string): boolean {
   return PLANNING_PATHS.some(

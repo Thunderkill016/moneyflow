@@ -11,6 +11,7 @@ import {
   GHI_CHI_TIEU_HREF,
   GHI_CHI_TIEU_LABEL,
   isPlanningPath,
+  ADVANCED_NAV_LINKS,
   MORE_NAV_LINKS,
   PLANNING_LINKS,
   PRIMARY_NAV,
@@ -502,8 +503,36 @@ function MoreSheet({
           <Icon name="close" />
         </button>
       </div>
-      <nav className="more-sheet-nav" aria-label="Công cụ khác">
-        {MORE_NAV_LINKS.map((item) => {
+      <nav className="more-sheet-nav" aria-label="Công cụ hàng ngày">
+        {MORE_NAV_LINKS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={pathIsActive(pathname, item.href) ? "active" : ""}
+            onClick={onClose}
+          >
+            <Icon name={item.icon} />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+      <p className="more-sheet-section-label">Kế hoạch · từ Tổng quan</p>
+      <nav className="more-sheet-nav" aria-label="Kế hoạch tài chính">
+        {PLANNING_LINKS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={pathIsActive(pathname, item.href) ? "active" : ""}
+            onClick={onClose}
+          >
+            <Icon name={item.icon} />
+            <span>{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+      <p className="more-sheet-section-label">Nâng cao · nhập hàng loạt</p>
+      <nav className="more-sheet-nav" aria-label="Công cụ nâng cao">
+        {ADVANCED_NAV_LINKS.map((item) => {
           const badge =
             item.href === "/inbox" && inboxCount > 0 ? inboxCount : undefined;
           return (
@@ -523,20 +552,6 @@ function MoreSheet({
             </Link>
           );
         })}
-      </nav>
-      <p className="more-sheet-section-label">Kế hoạch · từ Tổng quan</p>
-      <nav className="more-sheet-nav" aria-label="Kế hoạch tài chính">
-        {PLANNING_LINKS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={pathIsActive(pathname, item.href) ? "active" : ""}
-            onClick={onClose}
-          >
-            <Icon name={item.icon} />
-            <span>{item.label}</span>
-          </Link>
-        ))}
       </nav>
     </dialog>
   );

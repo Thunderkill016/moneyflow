@@ -83,7 +83,11 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           ...current.filter((item) => item.id !== result.transaction?.id),
         ]);
       }
-      return result;
+      return result.ok
+        ? result
+        : { ok: false, message: result.message || "Không lưu được giao dịch. Thử lại." };
+    } catch {
+      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
     } finally {
       setIsMutating(false);
     }
@@ -103,7 +107,11 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     try {
       const result = await deleteTransactionAction(id);
       if (result.ok) setTransactions((current) => current.filter((item) => item.id !== id));
-      return result;
+      return result.ok
+        ? result
+        : { ok: false, message: result.message || "Không xóa được giao dịch. Thử lại." };
+    } catch {
+      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
     } finally {
       setIsMutating(false);
     }
@@ -126,21 +134,65 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       if (result.ok) {
         const restored = result.transaction ?? transaction;
         setTransactions((current) => restoreTransactionInList(current, restored));
+        return { ok: true, transaction: result.transaction ?? transaction };
       }
-      return result.ok ? { ok: true, transaction: result.transaction ?? transaction } : result;
+      return {
+        ok: false,
+        message: result.message || "Không khôi phục được giao dịch. Thử lại.",
+      };
+    } catch {
+      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
     } finally {
       setIsMutating(false);
     }
   }
 
   async function addTransfer(input: CreateTransferInput): Promise<TransactionActionResult> {
-    const source = accounts.find((item) => item.id === input.sourceAccountId); const destination = accounts.find((item) => item.id === input.destinationAccountId);
-    if (!source || !destination || source.id === destination.id) return { ok: false, message: "Chọn hai tài khoản khác nhau." };
-    if (isDemo) {
-      const transaction: Transaction = { id: crypto.randomUUID(), kind: "transfer", categoryId: "", category: "Chuyển tiền", note: input.note || "Chuyển tiền", accountId: source.id, account: source.name, destinationAccountId: destination.id, destinationAccount: destination.name, amount: input.amount, occurredOn: input.occurredOn, occurredAt: new Date().toISOString(), relativeDate: "Vừa xong" };
-      setTransactions((current) => { const next = [transaction, ...current]; writeStoredTransactions(next); return next; }); return { ok: true, transaction };
+    const source = accounts.find((item) => item.id === input.sourceAccountId);
+    const destination = accounts.find((item) => item.id === input.destinationAccountId);
+    if (!source || !destination || source.id === destination.id) {
+      return { ok: false, message: "Chọn hai tài khoản khác nhau." };
     }
-    setIsMutating(true); try { const result = await createTransferAction(input); if (result.ok && result.transaction) setTransactions((current) => [result.transaction as Transaction, ...current.filter((item) => item.id !== result.transaction?.id)]); return result; } finally { setIsMutating(false); }
+    if (isDemo) {
+      const transaction: Transaction = {
+        id: crypto.randomUUID(),
+        kind: "transfer",
+        categoryId: "",
+        category: "Chuyển tiền",
+        note: input.note || "Chuyển tiền",
+        accountId: source.id,
+        account: source.name,
+        destinationAccountId: destination.id,
+        destinationAccount: destination.name,
+        amount: input.amount,
+        occurredOn: input.occurredOn,
+        occurredAt: new Date().toISOString(),
+        relativeDate: "Vừa xong",
+      };
+      setTransactions((current) => {
+        const next = [transaction, ...current];
+        writeStoredTransactions(next);
+        return next;
+      });
+      return { ok: true, transaction };
+    }
+    setIsMutating(true);
+    try {
+      const result = await createTransferAction(input);
+      if (result.ok && result.transaction) {
+        setTransactions((current) => [
+          result.transaction as Transaction,
+          ...current.filter((item) => item.id !== result.transaction?.id),
+        ]);
+      }
+      return result.ok
+        ? result
+        : { ok: false, message: result.message || "Không chuyển được. Thử lại." };
+    } catch {
+      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
+    } finally {
+      setIsMutating(false);
+    }
   }
 
   async function addSplitExpense(input: CreateSplitExpenseInput): Promise<TransactionActionResult> {
@@ -172,37 +224,98 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           ...current.filter((item) => item.id !== result.transaction?.id),
         ]);
       }
-      return result;
+      return result.ok
+        ? result
+        : { ok: false, message: result.message || "Không chia được khoản chi. Thử lại." };
+    } catch {
+      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
     } finally {
       setIsMutating(false);
     }
   }
 
-  async function updateTransaction(input: UpdateMoneyTransactionInput | UpdateTransferInput): Promise<TransactionActionResult> {
+  async function updateTransaction(
+    input: UpdateMoneyTransactionInput | UpdateTransferInput,
+  ): Promise<TransactionActionResult> {
     if (isDemo) {
       const existing = transactions.find((item) => item.id === input.id);
-      if (!existing || existing.isRecurringPayment) return { ok: false, message: "Giao dịch này không thể sửa tại đây." };
+      if (!existing || existing.isRecurringPayment) {
+        return { ok: false, message: "Giao dịch này không thể sửa tại đây." };
+      }
       let transaction: Transaction;
       if (input.kind === "transfer") {
         const source = accounts.find((item) => item.id === input.sourceAccountId);
         const destination = accounts.find((item) => item.id === input.destinationAccountId);
-        if (!source || !destination || source.id === destination.id) return { ok: false, message: "Chọn hai tài khoản khác nhau." };
-        transaction = { ...existing, kind: "transfer", categoryId: "", category: "Chuyển tiền", note: input.note || "Chuyển tiền", accountId: source.id, account: source.name, destinationAccountId: destination.id, destinationAccount: destination.name, amount: input.amount, occurredOn: input.occurredOn, relativeDate: "Vừa sửa" };
+        if (!source || !destination || source.id === destination.id) {
+          return { ok: false, message: "Chọn hai tài khoản khác nhau." };
+        }
+        transaction = {
+          ...existing,
+          kind: "transfer",
+          categoryId: "",
+          category: "Chuyển tiền",
+          note: input.note || "Chuyển tiền",
+          accountId: source.id,
+          account: source.name,
+          destinationAccountId: destination.id,
+          destinationAccount: destination.name,
+          amount: input.amount,
+          occurredOn: input.occurredOn,
+          relativeDate: "Vừa sửa",
+        };
       } else {
         const account = accounts.find((item) => item.id === input.accountId);
         const category = categories.find((item) => item.id === input.categoryId);
-        if (!account || !category || category.kind !== input.kind) return { ok: false, message: "Tài khoản hoặc danh mục chưa hợp lệ." };
-        transaction = { ...existing, kind: input.kind, categoryId: category.id, category: category.name, note: input.note || category.name, accountId: account.id, account: account.name, destinationAccountId: undefined, destinationAccount: undefined, amount: input.amount, occurredOn: input.occurredOn, relativeDate: "Vừa sửa" };
+        if (!account || !category || category.kind !== input.kind) {
+          return { ok: false, message: "Tài khoản hoặc danh mục chưa hợp lệ." };
+        }
+        transaction = {
+          ...existing,
+          kind: input.kind,
+          categoryId: category.id,
+          category: category.name,
+          note: input.note || category.name,
+          accountId: account.id,
+          account: account.name,
+          destinationAccountId: undefined,
+          destinationAccount: undefined,
+          amount: input.amount,
+          occurredOn: input.occurredOn,
+          relativeDate: "Vừa sửa",
+        };
       }
-      setTransactions((current) => { const next = current.map((item) => item.id === transaction.id ? transaction : item); writeStoredTransactions(next); return next; });
+      setTransactions((current) => {
+        const next = current.map((item) =>
+          item.id === transaction.id ? transaction : item,
+        );
+        writeStoredTransactions(next);
+        return next;
+      });
       return { ok: true, transaction };
     }
     setIsMutating(true);
     try {
-      const result = input.kind === "transfer" ? await updateTransferAction(input) : await updateTransactionAction(input);
-      if (result.ok && result.transaction) setTransactions((current) => current.map((item) => item.id === result.transaction?.id ? result.transaction as Transaction : item));
-      return result;
-    } finally { setIsMutating(false); }
+      const result =
+        input.kind === "transfer"
+          ? await updateTransferAction(input)
+          : await updateTransactionAction(input);
+      if (result.ok && result.transaction) {
+        setTransactions((current) =>
+          current.map((item) =>
+            item.id === result.transaction?.id
+              ? (result.transaction as Transaction)
+              : item,
+          ),
+        );
+      }
+      return result.ok
+        ? result
+        : { ok: false, message: result.message || "Không cập nhật được. Thử lại." };
+    } catch {
+      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
+    } finally {
+      setIsMutating(false);
+    }
   }
 
   return {

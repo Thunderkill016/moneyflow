@@ -454,10 +454,46 @@
 - **Source:** roadmap pool refill
 - **Completed:** 2026-07-15 — `9cbc822` landing RSC + proxy LCP path; font/CLS reserves; insights dialog code-split; docs/performance-budgets.md
 
+
+---
+
+## Best-of stability wave (post feature-dump)
+
+> Sau “best of all có kỷ luật”. Chỉ ship khi STAB xanh.
+
+### TASK-200 — STAB E2E expense happy path always green
+- **Status:** `ready`
+- **Mô tả:** Playwright: landing → (demo or auth) → open Ghi chi tiêu → add expense → insights KPI/recent updates → open export. Fail CI if broken. No inbox dependency. See docs/BEST_OF_MATRIX.md + plan STAB-01.
+- **Done khi:** npm script e2e passes; lint/typecheck/test pass.
+
+### TASK-201 — STAB demo/server parity error messages
+- **Status:** `done`
+- **Mô tả:** Audit use-transactions: every server path returns VN message on fail; catch network; transfer/split/delete parity with demo. No silent ok:false empty.
+- **Done khi:** unit or manual matrix in docs; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — create/delete/restore/transfer/split/update all catch network + VN fallback messages.
+
+### TASK-202 — BEST attention strip inbox count wire
+- **Status:** `done`
+- **Mô tả:** Pass real inbox pending count into Insights attention strip (candidate store or server). Keep calm copy.
+- **Done khi:** badge reflects pending; tests; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — Insights reads countPending(readStoredCandidates()); attention strip includes inbox.
+
+### TASK-203 — BEST transfer badge copy on transactions list
+- **Status:** `ready`
+- **Mô tả:** Transactions list: transfers show “Chuyển khoản · không tính chi” helper text. Never count in expense totals (already).
+- **Done khi:** UI copy; lint/typecheck/test pass.
+
+### TASK-204 — BEST empty states one-step CTA
+- **Status:** `ready`
+- **Mô tả:** Insights/transactions/accounts empty states: one primary action only (Ghi chi or Thêm ví). Calm Vietnamese.
+- **Done khi:** empty states audited; lint/typecheck/test pass.
+
+
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | best-of wave | Matrix + nav Advanced + attention strip + recent cats + TASK-201/202 |
 | 2026-07-15 | TASK-132 | `9cbc822` LCP/CLS landing+insights; static `/`; budgets doc; dialog dynamic import |
 | 2026-07-15 | TASK-131 | `8b53750` power-user CSV → ledger direct; map columns; fingerprint dedupe; skip inbox |
 | 2026-07-15 | TASK-130 | `c644aa4` privacy-first due-commitment web notifications; opt-in; no amounts |

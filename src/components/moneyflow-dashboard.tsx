@@ -26,6 +26,7 @@ import {
 import { formatMoney, formatMoneyWithKind, formatSignedMoney } from "@/lib/money";
 import { useTransactions } from "@/hooks/use-transactions";
 import { type ViewerSummary } from "@/components/user-chip";
+import { buildAttentionItems } from "@/lib/attention";
 import {
   budgetBarColor,
   budgetProgress,
@@ -74,6 +75,10 @@ import {
 } from "@/lib/weekly-summary";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/empty-state";
+import {
+  countPending,
+  readStoredCandidates,
+} from "@/lib/inbox/candidate-store";
 
 type DashboardWorkspace = {
   transactions: Transaction[];
@@ -107,6 +112,8 @@ export function MoneyFlowDashboard({
   });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  /** Local/demo pending inbox candidates — attention strip only (lab, not brand). */
+  const [inboxCount, setInboxCount] = useState(0);
   /** Demo: overlay local pay occurrences so reserved matches /commitments after pay. */
   const [demoCommitments, setDemoCommitments] = useState<RecurringCommitment[] | null>(null);
   const [demoIncomeTemplates, setDemoIncomeTemplates] = useState<
@@ -124,6 +131,17 @@ export function MoneyFlowDashboard({
     });
     return () => window.cancelAnimationFrame(frame);
   }, [viewer.isDemo, commitments, incomeTemplates, workspace.today]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        setInboxCount(countPending(readStoredCandidates()));
+      } catch {
+        setInboxCount(0);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [transactions.length, notice]);
 
   useEffect(() => {
     if (!notice) return;
@@ -231,6 +249,17 @@ export function MoneyFlowDashboard({
 
   const openGhiChi = () => setDialogOpen(true);
 
+  const attentionItems = useMemo(
+    () =>
+      buildAttentionItems({
+        budgets: liveBudgets,
+        commitments: liveCommitments,
+        inboxCount,
+        today: workspace.today,
+      }),
+    [liveBudgets, liveCommitments, inboxCount, workspace.today],
+  );
+
   const safeExplain =
     protectedTotal > 0
       ? `Số dư khả dụng (đã giữ trước ${formatMoney(protectedTotal)} cho hóa đơn và mục tiêu) chia đều cho các ngày còn lại trong tháng.`
@@ -287,6 +316,26 @@ export function MoneyFlowDashboard({
             </button>
           </div>
         </section>
+
+        {attentionItems.length > 0 ? (
+          <section className="attention-strip" aria-label="Cần chú ý">
+            <p className="attention-strip-label">Cần chú ý</p>
+            <ul className="attention-strip-list">
+              {attentionItems.map((item) => (
+                <li key={item.id}>
+                  <Link
+                    href={item.href}
+                    className={`attention-chip attention-chip-${item.tone}`}
+                  >
+                    <Icon name="bell" />
+                    <span>{item.label}</span>
+                    <Icon name="arrowRight" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <nav className="insights-planning-nav" aria-label="Kế hoạch từ Tổng quan">
           <p className="insights-planning-label">Kế hoạch</p>

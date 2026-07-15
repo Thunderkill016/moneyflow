@@ -11,6 +11,8 @@ import {
 } from "@/lib/sample-data";
 import { formatMoneyInput, moneyKindPrefix, parseMoneyInput } from "@/lib/money";
 import {
+  orderCategoriesByRecent,
+  pushRecentCategoryId,
   readQuickAddPrefs,
   todayInVietnam,
   writeQuickAddPrefs,
@@ -54,10 +56,12 @@ export function AddTransactionDialog({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const availableCategories = useMemo(
-    () => categories.filter((item) => item.kind === kind),
-    [categories, kind],
-  );
+  const [recentCategoryIds, setRecentCategoryIds] = useState<string[]>([]);
+
+  const availableCategories = useMemo(() => {
+    const filtered = categories.filter((item) => item.kind === kind);
+    return orderCategoriesByRecent(filtered, recentCategoryIds);
+  }, [categories, kind, recentCategoryIds]);
   const selectedAccountId = accounts.some((item) => item.id === accountId)
     ? accountId
     : accounts[0]?.id ?? "";
@@ -78,6 +82,7 @@ export function AddTransactionDialog({
       setKeepOpen(prefs.keepOpen);
       if (prefs.accountId) setAccountId(prefs.accountId);
       if (prefs.categoryId) setCategoryId(prefs.categoryId);
+      if (prefs.recentCategoryIds?.length) setRecentCategoryIds(prefs.recentCategoryIds);
       setOccurredOn(todayInVietnam());
     });
     return () => window.cancelAnimationFrame(frame);
@@ -135,7 +140,9 @@ export function AddTransactionDialog({
     categoryId: string;
     keepOpen: boolean;
   }) {
-    writeQuickAddPrefs(next);
+    const recentCategoryIdsNext = pushRecentCategoryId(recentCategoryIds, next.categoryId);
+    setRecentCategoryIds(recentCategoryIdsNext);
+    writeQuickAddPrefs({ ...next, recentCategoryIds: recentCategoryIdsNext });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
