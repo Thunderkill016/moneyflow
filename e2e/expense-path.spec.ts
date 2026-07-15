@@ -35,6 +35,7 @@ test.describe("Expense path (thu chi)", () => {
     page,
   }) => {
     // 1) Public landing (product: thu chi / có thể chi — not inbox-first marketing)
+    // R1: dense trust bar (landing-trust-bar) replaced legacy landing-trust-line.
     await page.goto("/landing");
     await expect(
       page.getByRole("heading", { name: /có thể chi bao nhiêu/i }),
@@ -42,9 +43,10 @@ test.describe("Expense path (thu chi)", () => {
     await expect(page.locator(".landing-eyebrow")).toHaveText(
       /Quản lý thu chi cá nhân/i,
     );
-    await expect(page.locator(".landing-trust-line")).toContainText(
-      /Không hỏi mật khẩu ngân hàng/i,
-    );
+    const trustBar = page.locator(".landing-trust-bar").first();
+    await expect(trustBar).toBeVisible();
+    await expect(trustBar).toContainText(/Không mật khẩu NH/i);
+    await expect(trustBar).toContainText(/Xuất CSV/i);
 
     // 2) Enter app via register CTA; demo mode (placeholder Supabase) unlocks app without auth
     await page.getByRole("link", { name: "Bắt đầu miễn phí" }).first().click();
@@ -112,14 +114,17 @@ test.describe("Expense path (thu chi)", () => {
     ).toContainText(UNIQUE_AMOUNT_DISPLAY);
 
     // 5) Export / download path (settings export — client-side file)
+    // R8: ownership + "Tải sổ thu chi" (not legacy "Tải giao dịch" only).
     await page.goto("/settings/export");
     await expect(page.getByRole("heading", { name: "Xuất dữ liệu" })).toBeVisible();
-    await expect(page.getByText(/Tải giao dịch/i)).toBeVisible();
+    await expect(page.getByText(/Tải sổ thu chi|Tải giao dịch/i)).toBeVisible();
+    await expect(
+      page.getByText(/Dữ liệu của bạn thuộc về bạn/i),
+    ).toBeVisible();
 
-    // Wait until download is enabled (client hydrate of local ledger)
-    const downloadBtn = page
-      .locator("main.export-workspace")
-      .getByRole("button", { name: /Tải xuống/i });
+    // Wait until download is enabled (client hydrate of local ledger).
+    // Primary action may live in AppShell header (R8) or in main form.
+    const downloadBtn = page.getByRole("button", { name: /Tải xuống/i }).first();
     await expect(downloadBtn).toBeEnabled({ timeout: 15_000 });
 
     const [download] = await Promise.all([

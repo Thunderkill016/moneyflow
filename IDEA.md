@@ -41,7 +41,7 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [x] **R6** Budgets/commitments/goals pages: shared card shell + calm thresholds + empty 1 CTA audit
 - [x] **R7** Reports month view discoverability + export from reports
 - [x] **R8** Settings privacy/export/delete trust copy pass (G5)
-- [ ] **R9** `npm run test:e2e` expense path green after rebuild slices
+- [x] **R9** `npm run test:e2e` expense path green after rebuild slices
 - [ ] **R10** `npm run build` green (demo env) + `scripts/mvp-verify.sh` if present
 
 ### Legacy quality bar (still valid if open)
