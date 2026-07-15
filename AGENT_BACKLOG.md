@@ -623,9 +623,10 @@
 - **Completed:** 2026-07-15 — `6985ded` README + AGENTS link MVP_DEFINITION; `src/lib/mvp-definition.test.ts` exit-criteria contract.
 
 ### TASK-251 — MVP-STAB money invariants regression suite
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Expand/confirm unit tests: transfer never expense; soft-delete drops spent; integer only; budget ignores transfer; safe-to-spend integer. Fail if any regress.
 - **Done khi:** tests cover matrix; npm test pass.
+- **Completed:** 2026-07-15 — `a0233f8` money-invariants.test.ts matrix: transfer≠expense, soft-delete spent, integer only, budget ignores transfer, safe-to-spend integer.
 
 ### TASK-252 — MVP-STAB e2e expense path always green
 - **Status:** `ready`
@@ -851,6 +852,7 @@
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-251 | `a0233f8` money-invariants regression suite (transfer/soft-delete/integer/budget/safe-to-spend) |
 | 2026-07-15 | TASK-250 | `6985ded` MVP_DEFINITION linked README/AGENTS; mvp-definition.test.ts exit keywords |
 | 2026-07-15 | OSS 400–410 | GitHub best-of map + learn/apply queue |
 | 2026-07-15 | MVP 250–282 | Full MVP hardening queue; 209–224 deferred |
