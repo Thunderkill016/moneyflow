@@ -50,8 +50,9 @@ READ FIRST:
 3. .agents/skills/ship-feature/SKILL.md
 4. .agents/skills/test-driven-development/SKILL.md
 5. .agents/skills/verification-before-completion/SKILL.md
-6. If UI: .agents/skills/frontend-qa/SKILL.md
-7. If auth/RLS: .agents/skills/security-pass/SKILL.md + supabase-rls
+6. If UI/visual: .claude/skills/frontend-design/SKILL.md + .agents/skills/frontend-qa/SKILL.md
+7. If need browser verify: .claude/skills/webapp-testing/SKILL.md
+8. If auth/RLS: .agents/skills/security-pass/SKILL.md + supabase-rls
 
 NEXT ITEM ONLY:
 $ITEM

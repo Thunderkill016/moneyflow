@@ -105,9 +105,24 @@ Forbidden auto-tasks: green-test-only, empty “quality cycle”, features in G5
 - **AGPL/GPL (Firefly, Maybe, Ivy, Paisa, Ghostfolio):** docs/UX/domain only — **never paste source**
 
 
-## Claude / Shipkit-style skills (preferred)
+## Skills for agents (Claude official + project)
 
-Skills live in `.agents/skills/` (and mirrored under `.grok/skills/`):
+### Official Anthropic ([anthropics/skills](https://github.com/anthropics/skills))
+
+Installed under `.claude/skills/` + `.agents/skills/` + `.grok/skills/`:
+
+| Skill | When (MoneyFlow) |
+|-------|------------------|
+| **frontend-design** | Landing, dashboard visual polish, redesign (not default SaaS purple) |
+| **webapp-testing** | Playwright verify after UI change |
+| **web-artifacts-builder** | Rare: prototype HTML/React artifact (not main Next app) |
+| **theme-factory** | Color/type theme for marketing surfaces |
+| **skill-creator** | Improve project skills |
+| **mcp-builder** | Only if adding MCP tools |
+
+Docs: [Agent Skills overview](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview) · install marketplace: `/plugin marketplace add anthropics/skills`
+
+### Project skills (Shipkit/Superpowers adapted)
 
 | Skill | Use |
 |-------|-----|
@@ -118,4 +133,4 @@ Skills live in `.agents/skills/` (and mirrored under `.grok/skills/`):
 | `frontend-qa` | Nav, dialog, empty, mobile |
 | `supabase-rls` | Migrations / policies |
 
-Autopilot headless reads **IDEA.md** first, not spam backlog.
+Autopilot headless: **IDEA.md** + ship-feature + Anthropic frontend-design/webapp-testing when UI.
