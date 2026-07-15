@@ -33,14 +33,18 @@ Agents **must not** implement, invent, or refill backlog tasks for:
 - Copying AGPL/GPL code (Firefly, Maybe, Ivy, Ghostfolio) into the repo
 - Force-push, editing `.env.local`, deleting migrations
 
-## Autopilot
+## Autopilot (until best MVP)
+
+**Mission:** keep improving until `docs/MVP_BEST_BAR.md` is met and `docs/MVP_SHIPPED.md` exists.  
+**Do not stop** just because a finite wave finished — run `bash scripts/agent-ensure-work.sh` to refill.
 
 1. One task per session — first `ready` by **lowest TASK number**.
-2. Wave order from `docs/AUTOPILOT_PLAN.md`: **A (100–105)** → **B (106–115)** → **C (116–125)** thu chi MVP. Prefer **TASK-100+**. TASK-001…030 are done historical inbox work — do not re-open as product pivot.
+2. Prefer **MVP HARDENING (250+)** then **OSS (400+)** then **BEST-MVP catalog (500+)** from ensure-work.
 3. Status `in_progress` → implement → `npm run lint && npm run typecheck && npm run test` → commit → `git push origin main` → `done` + SHA.
-4. If `ready` &lt; 2: `bash scripts/agent-refill-backlog.sh` (only from `AGENT_ROADMAP.md` pool; never invent bank-sync/AI/family tasks).
-5. Fail twice → `blocked` + reason.
-6. Do not invent features outside the task description.
+4. If `ready` &lt; 3: `bash scripts/agent-ensure-work.sh` (refill pool + promote deferred + inject catalog). **Never** invent bank-sync/AI/family/inbox-brand.
+5. Fail twice → `blocked` + reason; ensure-work may queue a fix task next cycle.
+6. When bar met: task may write `docs/MVP_SHIPPED.md`; daemon idles 1h between re-checks.
+7. Do not invent features outside the task description or MVP bar.
 
 ## Engineering
 

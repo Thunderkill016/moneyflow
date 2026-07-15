@@ -26,6 +26,9 @@ PROMPT_FILE="$LOG_DIR/${STAMP}_${TASK_ID}.prompt.txt"
 cat > "$PROMPT_FILE" <<PROMPT
 You are the 24/7 autopilot agent for MoneyFlow at $ROOT.
 User is AFK. Do NOT ask questions. Decide and ship.
+MISSION: Keep improving until docs/MVP_BEST_BAR.md is met and docs/MVP_SHIPPED.md exists.
+After task: bash scripts/agent-ensure-work.sh if ready low.
+Never invent bank sync, AI advisor, family, OCR, AGPL paste.
 
 PHASE 1 — READ:
 - AGENTS.md (G5 product law + skill routing)

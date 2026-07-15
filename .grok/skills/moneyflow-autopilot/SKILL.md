@@ -1,55 +1,32 @@
 ---
 name: moneyflow-autopilot
 description: >
-  Autonomous development for MoneyFlow (thu chi VN). Use when user says autopilot,
-  agent tự động, làm việc 24/7, chạy backlog, /autopilot, or /moneyflow-autopilot.
-  Reads AGENTS.md + AGENT_BACKLOG.md, executes ONE ready task, tests, commit, push.
-  Never uses AtoEnglish skill. Auto-refills from AGENT_ROADMAP.md when ready < 2.
+  Autonomous development for MoneyFlow until best MVP ships. Use when autopilot,
+  agent tự động, 24/7, /autopilot, /moneyflow-autopilot. Never stops early:
+  agent-ensure-work keeps queue until docs/MVP_SHIPPED.md. G5 only.
 metadata:
-  short-description: "MoneyFlow 24/7 backlog autopilot"
+  short-description: "MoneyFlow autopilot until best MVP"
 ---
 
-# MoneyFlow Autopilot
+# MoneyFlow Autopilot — until best MVP
 
-## Before every session
+## Mission
 
-1. Read `AGENTS.md` (product law G5 + engineering)
-2. Read `docs/MVP_DEFINITION.md` + `docs/BEST_OF_MATRIX.md` if touching nav/features
-3. Read `AGENT_BACKLOG.md`
-4. Prefer **MVP HARDENING WAVE (TASK-250+)** over deferred polish
-5. If `ready` count < 2: `bash scripts/agent-refill-backlog.sh` (only pool; never invent forbidden)
-6. Pick **first** `Status: ready` by lowest TASK number
-7. Never invent bank sync / AI advisor / family / inbox-brand landing
-
-## Execution loop (ONE task only)
-
-1. Set task → `in_progress` in `AGENT_BACKLOG.md`
-2. Minimal diff for that task only
-3. Run: `npm run lint && npm run typecheck && npm run test`
-4. If task touches routes/layout/perf: also `npm run build` or `npm run test:e2e` when relevant
-5. Success: commit with clear message → `git push origin main` (if user/session allows) → `done` + SHA + nhật ký
-6. Fail twice: `blocked` + reason
-
-## Skills to chain
-
-| When | Skill |
-|------|--------|
-| After multi-file TSX UI | `shadcn` / react-best-practices patterns |
-| After any wave | `moneyflow-check` or check-work |
-| Domain/UX feature | `moneyflow-web` |
-| Design ambiguity | `design` then implement |
-
-## Never
-
-- Multiple tasks per session
-- Edit `.env.local` / secrets / force-push / delete migrations
-- Copy AGPL code (Firefly, Ivy, etc.)
-- Feature dump outside BEST_OF_MATRIX Core tier
-- Wait for user to “create tasks” — refill from roadmap
-
-## Scripts
+Work until `docs/MVP_BEST_BAR.md` is met and `docs/MVP_SHIPPED.md` exists.
+**Never stop just because a wave finished.**
 
 ```bash
-bash scripts/agent-refill-backlog.sh
-bash scripts/agent-pick-task.sh
+bash scripts/agent-ensure-work.sh
 ```
+
+## Loop
+
+1. ensure-work (pool + deferred + TASK-500+ catalog)
+2. Pick lowest `ready` TASK
+3. Implement → lint/typecheck/test → commit → push → done
+4. ensure-work again
+5. Only idle 1h when MVP_SHIPPED + 0 ready
+
+## Forbidden
+
+Bank sync · AI advisor · family · OCR · AGPL paste · inbox brand landing
