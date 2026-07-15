@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { UserChip, type ViewerSummary } from "@/components/user-chip";
 import { CAPTURE_OPTIONS } from "@/lib/capture/options";
+import {
+  isSearchShortcut,
+  shouldIgnoreShortcutTarget,
+} from "@/lib/app-shortcuts";
 import {
   APP_HOME_HREF,
   GHI_CHI_TIEU_HREF,
@@ -91,10 +95,12 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [captureOpen, setCaptureOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const captureTitleId = useId();
   const moreTitleId = useId();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const resolvedPrimary = primaryAction ?? DEFAULT_GHI_CHI_ACTION;
   /** FAB stays global “Ghi chi tiêu” unless the page sets `fabAction`. */
@@ -109,6 +115,25 @@ export function AppShell({
     setCaptureOpen(false);
     setMoreOpen(true);
   }
+
+  /** ⌘K / Ctrl+K — focus ledger search or open Giao dịch (power-user daily loop). */
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!isSearchShortcut(event)) return;
+      if (shouldIgnoreShortcutTarget(event.target)) return;
+      event.preventDefault();
+      if (searchBar && searchInputRef.current) {
+        searchInputRef.current.focus();
+        searchInputRef.current.select();
+        return;
+      }
+      if (pathname !== "/transactions" && !pathname.startsWith("/transactions/")) {
+        router.push("/transactions");
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [pathname, router, searchBar]);
 
   return (
     <div className="app-shell">
@@ -182,22 +207,25 @@ export function AppShell({
             <div className="desktop-search">
               <Icon name="search" />
               <input
+                ref={searchInputRef}
+                data-app-search="true"
                 value={searchBar.value}
                 onChange={(e) => searchBar.onChange(e.target.value)}
                 aria-label="Tìm giao dịch"
                 placeholder={searchBar.placeholder ?? "Tìm giao dịch..."}
               />
-              <kbd>⌘ K</kbd>
+              <kbd aria-hidden="true">⌘ K</kbd>
             </div>
           ) : (
             <Link
               className="desktop-search desktop-search-link"
               href="/transactions"
-              aria-label="Tìm giao dịch trên sổ"
+              aria-label="Tìm giao dịch trên sổ (⌘K)"
+              prefetch
             >
               <Icon name="search" />
               <span className="desktop-search-placeholder">Tìm giao dịch...</span>
-              <kbd>⌘ K</kbd>
+              <kbd aria-hidden="true">⌘ K</kbd>
             </Link>
           )}
 

@@ -64,6 +64,9 @@
 - [x] STAB E2E happy path (TASK-200)  
 - [x] Transfer list copy (TASK-203)  
 - [x] Empty states one CTA (TASK-204)  
+- [x] ⌘K search shortcut (TASK-205)  
+- [x] Grok skills + industry synthesis (TASK-206)  
+- [ ] LCP second pass (TASK-207 ready)
 
 ## 6. Product law (remember)
 

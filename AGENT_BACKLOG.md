@@ -491,11 +491,35 @@
 - **Done khi:** empty states audited; lint/typecheck/test pass.
 - **Completed:** 2026-07-15 — Insights/txns/accounts single primary EmptyState CTA.
 
+### TASK-205 — BEST ⌘K search shortcut (daily loop power)
+- **Status:** `done`
+- **Mô tả:** Global Cmd/Ctrl+K focuses transaction search or navigates to /transactions. Pure helpers + unit tests. Lunch Money pattern.
+- **Done khi:** shortcut works; tests; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — app-shortcuts + AppShell keydown.
+
+### TASK-206 — Agent skills + Grok workflow (repo)
+- **Status:** `done`
+- **Mô tả:** Project skills moneyflow-autopilot / moneyflow-web / moneyflow-check; AGENTS.md skill routing; docs/research/06_INDUSTRY_SYNTHESIS.md.
+- **Done khi:** skills on disk; AGENTS updated.
+- **Completed:** 2026-07-15 — `.grok/skills/*` + AGENTS Grok workflow.
+
+### TASK-207 — PERF LCP second pass (landing fonts/CSS)
+- **Status:** `ready`
+- **Mô tả:** After Lighthouse lab (landing LCP ~3.7s): reduce critical CSS/font cost on public landing without breaking VN glyphs. Re-measure optional. See docs/performance-budgets.md.
+- **Done khi:** documented mitigation + lint/typecheck/test pass.
+
+### TASK-208 — BEST onboarding short path to first expense
+- **Status:** `done`
+- **Mô tả:** Ensure onboarding ends with one CTA “Ghi chi tiêu” → quick add or insights open dialog; calm VN; no inbox-first.
+- **Done khi:** flow audited; tests if pure helpers; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — Audit: step 3 primary “Ghi chi nhanh” → `/capture/quick`; skip → `/insights`; tests assert paths; no inbox.
+
 
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-205–206 | ⌘K search; moneyflow skills + Grok workflow + industry synthesis |
 | 2026-07-15 | TASK-200–204 | E2E retag; transfer not-expense copy; empty 1 CTA; 201/202 already done |
 | 2026-07-15 | best-of wave | Matrix + nav Advanced + attention strip + recent cats + TASK-201/202 |
 | 2026-07-15 | TASK-132 | `9cbc822` LCP/CLS landing+insights; static `/`; budgets doc; dialog dynamic import |

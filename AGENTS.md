@@ -59,3 +59,29 @@ Agents **must not** implement, invent, or refill backlog tasks for:
 - Calm, non-judgmental Vietnamese copy.
 - Dark + light; a11y: focus, contrast, money not color-only (`+/−/↔`).
 - Charts secondary to insights on dashboard.
+
+## Grok effective workflow (mandatory)
+
+Work in stages — never “rewrite the whole app” in one prompt:
+
+1. **Context** — read AGENTS + relevant docs/files  
+2. **Plan** — short bullets for multi-file work  
+3. **Implement** — minimal diff; Core vs Lab per `docs/BEST_OF_MATRIX.md`  
+4. **Verify** — lint / typecheck / test (e2e when expense path)  
+5. **Human-facing** — commit message complete sentences; push only when gates green  
+
+### Skill routing (use these — do not use AtoEnglish skills)
+
+| Trigger | Skill |
+|---------|--------|
+| autopilot / backlog / 24/7 | `.grok/skills/moneyflow-autopilot` |
+| PFM feature / thu chi UI / ledger | `.grok/skills/moneyflow-web` |
+| after wave / before push | `.grok/skills/moneyflow-check` or global `check-work` |
+| shadcn / form primitives | `shadcn` |
+| design ambiguity | `design` |
+
+### Industry PFM anchors
+
+- Daily loop: open → attention → ghi chi → safe-to-spend → export  
+- MVP core first; bank sync / AI advisor never without human approval  
+- See `docs/research/06_INDUSTRY_SYNTHESIS.md`

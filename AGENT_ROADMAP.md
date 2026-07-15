@@ -44,6 +44,16 @@ When backlog `ready` &lt; 2, refill **only** `pool` items below (never invent ba
 - **Mô tả:** Fix LCP/CLS on insights and landing; document scores.
 - **Priority:** P2
 
+### TASK-209 — PERF reduce insights client JS (dynamic panels)
+- **Status:** `pool`
+- **Mô tả:** Code-split heavy insights side panels if still in main chunk; keep KPI LCP path light.
+- **Priority:** P2
+
+### TASK-210 — BEST report export discoverability from Insights
+- **Status:** `pool`
+- **Mô tả:** Ensure Xuất CSV / báo cáo one obvious path from Tổng quan without burying in Settings only.
+- **Priority:** P2
+
 ---
 
 ## Explicit never-pool
