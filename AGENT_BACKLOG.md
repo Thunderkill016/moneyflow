@@ -515,10 +515,92 @@
 - **Completed:** 2026-07-15 — Audit: step 3 primary “Ghi chi nhanh” → `/capture/quick`; skip → `/insights`; tests assert paths; no inbox.
 
 
+
+### TASK-209 — PERF reduce insights client JS (dynamic panels)
+- **Status:** `ready`
+- **Mô tả:** Code-split heavy insights side panels if still in main chunk; keep KPI LCP path light.
+- **Source:** roadmap pool refill
+
+### TASK-210 — BEST report export discoverability from Insights
+- **Status:** `ready`
+- **Mô tả:** Ensure Xuất CSV / báo cáo one obvious path from Tổng quan without burying in Settings only.
+- **Source:** roadmap pool refill
+
+### TASK-211 — PERF landing LCP: lighter hero CSS + content-visibility below fold
+- **Status:** `ready`
+- **Mô tả:** Reduce landing critical paint cost: reserve hero, content-visibility on below-fold, avoid heavy above-fold CSS. Keep VN copy. Document in performance-budgets.md.
+- **Done khi:** CSS mitigations + lint/typecheck/test pass.
+
+### TASK-212 — BEST Cmd+K opens search with autofocus on /transactions
+- **Status:** `ready`
+- **Mô tả:** When navigating via ⌘K, focus search input on transactions after route load (query ?focus=search or hash).
+- **Done khi:** autofocus works; tests if pure; lint/typecheck/test pass.
+
+### TASK-213 — STAB e2e transfer never in expense KPI
+- **Status:** `ready`
+- **Mô tả:** Playwright or unit contract: create transfer, assert insights/report expense excludes amount. Demo mode.
+- **Done khi:** test green; lint/typecheck/test pass.
+
+### TASK-214 — BEST budgets empty state one CTA
+- **Status:** `ready`
+- **Mô tả:** /budgets empty: single primary “Thêm ngân sách”; calm VN.
+- **Done khi:** empty audited; lint/typecheck/test pass.
+
+### TASK-215 — BEST goals empty state one CTA
+- **Status:** `ready`
+- **Mô tả:** /goals empty: single primary “Thêm mục tiêu”; calm VN.
+- **Done khi:** empty audited; lint/typecheck/test pass.
+
+### TASK-216 — BEST commitments empty state one CTA
+- **Status:** `ready`
+- **Mô tả:** /commitments empty: single primary “Thêm định kỳ”; calm VN.
+- **Done khi:** empty audited; lint/typecheck/test pass.
+
+### TASK-217 — PERF prefetch Ghi chi /capture/quick on idle
+- **Status:** `ready`
+- **Mô tả:** On insights/transactions mount, router.prefetch capture quick + dialog chunk when idle.
+- **Done khi:** prefetch wired; lint/typecheck/test pass.
+
+### TASK-218 — STAB soft-delete undo copy parity
+- **Status:** `ready`
+- **Mô tả:** Audit soft-delete toasts: always Hoàn tác when restore supported; VN calm copy.
+- **Done khi:** parity; lint/typecheck/test pass.
+
+### TASK-219 — BEST safe-to-spend explain always visible short
+- **Status:** `ready`
+- **Mô tả:** Insights safe-to-spend: short one-line explain always; no collapse friction. Calm VN.
+- **Done khi:** copy; lint/typecheck/test pass.
+
+### TASK-220 — BEST categories empty + first expense CTA
+- **Status:** `ready`
+- **Mô tả:** /categories empty or no expense cats: CTA toward Ghi chi or Thêm danh mục (one primary).
+- **Done khi:** empty audited; lint/typecheck/test pass.
+
+### TASK-221 — PERF Lighthouse remeasure after 207/211
+- **Status:** `ready`
+- **Mô tả:** Re-run Lighthouse mobile landing+insights demo; update docs/performance-budgets.md scores table.
+- **Done khi:** scores documented; lint/typecheck/test pass.
+
+### TASK-222 — STAB demo banner + register CTA always visible
+- **Status:** `ready`
+- **Mô tả:** Demo mode: sticky banner + clear Đăng ký; no cover FAB.
+- **Done khi:** UI check; lint/typecheck/test pass.
+
+### TASK-223 — BEST weekly summary link to reports week range
+- **Status:** `ready`
+- **Mô tả:** Weekly card CTA opens reports with sensible default range if supported, else /reports.
+- **Done khi:** link; lint/typecheck/test pass.
+
+### TASK-224 — STAB npm run build green on CI-like clean
+- **Status:** `ready`
+- **Mô tả:** Ensure production build passes with demo env placeholders; document command in README if needed.
+- **Done khi:** build green; lint/typecheck/test pass.
+
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | queue 207–224 | Full ready queue; daemon on; headless G5 prompt |
 | 2026-07-15 | TASK-205–206 | ⌘K search; moneyflow skills + Grok workflow + industry synthesis |
 | 2026-07-15 | TASK-200–204 | E2E retag; transfer not-expense copy; empty 1 CTA; 201/202 already done |
 | 2026-07-15 | best-of wave | Matrix + nav Advanced + attention strip + recent cats + TASK-201/202 |
