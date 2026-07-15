@@ -648,7 +648,7 @@
 - **Status:** `done`
 - **Mô tả:** `NEXT_PUBLIC_SUPABASE_URL=placeholder` style build succeeds; document one-liner in README Quality section if missing.
 - **Done khi:** build exit 0.
-- **Completed:** 2026-07-15 — `e0e6568` placeholder env → demo mode; README Quality one-liner; config tests; build exit 0.
+- **Completed:** 2026-07-15 — `4faef2b` placeholder env → demo mode; README Quality one-liner; config tests; build exit 0.
 
 ### TASK-256 — MVP-CORE insights KPI completeness
 - **Status:** `ready`
@@ -861,7 +861,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-255 | `e0e6568` production build green with `NEXT_PUBLIC_SUPABASE_*=placeholder`; README Quality one-liner |
+| 2026-07-15 | TASK-255 | `4faef2b` production build green with `NEXT_PUBLIC_SUPABASE_*=placeholder`; README Quality one-liner |
 | 2026-07-15 | TASK-253 | `0c3bc28` transfer-expense-contract: demo ledger transfer ≠ month expense / category spend |
 | 2026-07-15 | TASK-251 | `a0233f8` money-invariants regression suite (transfer/soft-delete/integer/budget/safe-to-spend) |
 | 2026-07-15 | TASK-250 | `6985ded` MVP_DEFINITION linked README/AGENTS; mvp-definition.test.ts exit keywords |
