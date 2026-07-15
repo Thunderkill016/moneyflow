@@ -629,7 +629,7 @@
 - **Completed:** 2026-07-15 — `a0233f8` money-invariants.test.ts matrix: transfer≠expense, soft-delete spent, integer only, budget ignores transfer, safe-to-spend integer.
 
 ### TASK-252 — MVP-STAB e2e expense path always green
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** `npm run test:e2e` expense path must pass (landing→ghi chi→insights→export). Fix selectors/labels if broken.
 - **Done khi:** e2e exit 0; unit tests pass.
 
@@ -843,6 +843,13 @@
 - **Status:** `ready`
 - **Mô tả:** Add short section in docs/MVP_DEFINITION or README: forbidden AGPL vendoring; list S-tier study repos. Test file exists.
 - **Done khi:** docs + gate test mentions AGPL forbid.
+
+
+### TASK-608 — COMP-GAP transaction search + ⌘K
+- **Status:** `ready`
+- **Mô tả:** Transactions searchBar + app-shell Cmd+K shortcut to search. Ref: competitor pattern from LunchMoney. See docs/COMPETITOR_GAP_BAR.md + docs/research/07_GITHUB_OSS_BEST.md. G5 only — no bank sync/AI/family/AGPL paste.
+- **Source:** agent-competitor-gap
+- **Done khi:** gap check passes; lint/typecheck/test pass.
 
 ## Nhật ký
 

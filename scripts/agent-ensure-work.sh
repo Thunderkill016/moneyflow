@@ -201,7 +201,52 @@ Autopilot may idle 1h between re-checks. Human smoke-test recommended.
         print("[ensure-work] wrote docs/MVP_SHIPPED.md")
 PY
 
+# Competitor gap analysis → create tasks until patterns match best-of bar
+python3 "$ROOT/scripts/agent-competitor-gap.py" "$ROOT" 2>/dev/null || true
+
 READY=$(grep -c '\*\*Status:\*\* `ready`' "$BACKLOG" 2>/dev/null || true)
 echo "[ensure-work] final ready=${READY:-0}"
 [[ -f "$SHIPPED" ]] && echo "[ensure-work] MVP_SHIPPED present"
 [[ "${READY:-0}" -ge 1 ]] || exit 1
+
+# Ship only when competitor gaps all pass + no ready/deferred/in_progress
+python3 - "$ROOT" <<'PY'
+import re, json, subprocess, sys
+from pathlib import Path
+from datetime import datetime, timezone
+root = Path(sys.argv[1])
+backlog = (root / "AGENT_BACKLOG.md").read_text(encoding="utf-8")
+ready = len(re.findall(r"\*\*Status:\*\* `ready`", backlog))
+deferred = len(re.findall(r"\*\*Status:\*\* `deferred`", backlog))
+in_prog = len(re.findall(r"\*\*Status:\*\* `in_progress`", backlog))
+# run gap silently for all_pass
+import importlib.util
+spec = importlib.util.spec_from_file_location("gap", root / "scripts" / "agent-competitor-gap.py")
+# Just read report if exists after previous run
+report = root / "docs" / "COMPETITOR_GAP_REPORT.md"
+all_pass = False
+if report.exists():
+    txt = report.read_text(encoding="utf-8")
+    # "Passed: N / N"
+    m = re.search(r"\*\*Passed:\*\* (\d+) / (\d+)", txt)
+    if m and m.group(1) == m.group(2) and int(m.group(1)) > 0:
+        all_pass = True
+shipped = root / "docs" / "MVP_SHIPPED.md"
+if all_pass and ready == 0 and deferred == 0 and in_prog == 0:
+    shipped.write_text(
+        f"""# MVP SHIPPED — MoneyFlow (competitor bar pass)
+
+**Date (UTC):** {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")}  
+**Bars:** `docs/MVP_BEST_BAR.md` + `docs/COMPETITOR_GAP_BAR.md`  
+**Report:** `docs/COMPETITOR_GAP_REPORT.md` — all checks ✅  
+
+Autopilot idle allowed. Re-run `python3 scripts/agent-competitor-gap.py` after major changes.
+""",
+        encoding="utf-8",
+    )
+    print("[ensure-work] MVP_SHIPPED written (competitor bar all pass)")
+elif shipped.exists() and not all_pass:
+    print("[ensure-work] gaps remain — keep working (ship flag may be stale)")
+else:
+    print(f"[ensure-work] ship not yet: all_pass={all_pass} ready={ready} deferred={deferred} in_prog={in_prog}")
+PY

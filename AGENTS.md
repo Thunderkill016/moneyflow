@@ -44,6 +44,7 @@ Agents **must not** implement, invent, or refill backlog tasks for:
 4. If `ready` &lt; 3: `bash scripts/agent-ensure-work.sh` (refill pool + promote deferred + inject catalog). **Never** invent bank-sync/AI/family/inbox-brand.
 5. Fail twice → `blocked` + reason; ensure-work may queue a fix task next cycle.
 6. When bar met: task may write `docs/MVP_SHIPPED.md`; daemon idles 1h between re-checks.
+8. After finite waves/catalog empty: `agent-competitor-gap.py` compares to Money Lover/Ivy/Firefly/Actual/Copilot/Monarch patterns and injects COMP-GAP tasks until **all checks pass** (see `docs/COMPETITOR_GAP_BAR.md`).
 7. Do not invent features outside the task description or MVP bar.
 
 ## Engineering

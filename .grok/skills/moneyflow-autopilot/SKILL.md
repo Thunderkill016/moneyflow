@@ -30,3 +30,11 @@ bash scripts/agent-ensure-work.sh
 ## Forbidden
 
 Bank sync · AI advisor · family · OCR · AGPL paste · inbox brand landing
+
+## Competitor loop (after pool empty)
+
+```bash
+python3 scripts/agent-competitor-gap.py
+# reads docs/COMPETITOR_GAP_BAR.md patterns vs codebase
+# injects TASK-6xx until all pass → MVP_SHIPPED
+```
