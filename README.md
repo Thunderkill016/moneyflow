@@ -14,7 +14,7 @@ Paste / upload / hộp thư ứng viên = **công cụ nhập tùy chọn (P1)**
 
 Auth + ledger PostgreSQL (Supabase). Không có credentials → **demo mode** (lưu trình duyệt).
 
-**Luật sản phẩm:** [docs/research/05_PRODUCT_AND_ARCHITECTURE.md](docs/research/05_PRODUCT_AND_ARCHITECTURE.md) · [docs/AUTOPILOT_PLAN.md](docs/AUTOPILOT_PLAN.md) · [AGENTS.md](AGENTS.md) · [docs/PRODUCT.md](docs/PRODUCT.md)
+**Luật sản phẩm:** [docs/research/05_PRODUCT_AND_ARCHITECTURE.md](docs/research/05_PRODUCT_AND_ARCHITECTURE.md) · [docs/MVP_DEFINITION.md](docs/MVP_DEFINITION.md) · [docs/AUTOPILOT_PLAN.md](docs/AUTOPILOT_PLAN.md) · [AGENTS.md](AGENTS.md) · [docs/PRODUCT.md](docs/PRODUCT.md)
 
 ## Run locally
 
@@ -63,6 +63,7 @@ Chi tiết: [AGENT_AUTOPILOT.md](AGENT_AUTOPILOT.md) · [AGENT_BACKLOG.md](AGENT
 ### Product (đọc trước)
 
 - [Product & architecture (G5)](docs/research/05_PRODUCT_AND_ARCHITECTURE.md) — định vị thu chi, JTBD, non-goals
+- [MVP definition (ship exit criteria)](docs/MVP_DEFINITION.md) — TASK-250… hardening wave gate
 - [Autopilot plan (Wave A–C)](docs/AUTOPILOT_PLAN.md) — TASK-100…125
 - [Product focus (simple)](docs/PRODUCT.md) — now vs later
 - [Agent rules](AGENTS.md)

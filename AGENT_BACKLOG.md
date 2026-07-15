@@ -617,7 +617,7 @@
 > Agent: **một task / phiên**, số TASK tăng dần. Cấm bank sync / AI / family / inbox brand.
 
 ### TASK-250 — MVP-DOC lock definition
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Ensure `docs/MVP_DEFINITION.md` is linked from README and AGENTS.md; unit test contract file exists. No product code change required beyond docs + tiny test reading exit criteria keywords.
 - **Done khi:** docs linked; test asserts MVP_DEFINITION exists; lint/typecheck/test pass.
 
