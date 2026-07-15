@@ -93,11 +93,10 @@ test("landing demo CTA is explicit (no account required)", () => {
 /** Ref polish — hero CTA hierarchy: primary + demo only (no third login in hero). */
 test("landing hero has two CTAs only (register + demo)", () => {
   const source = readLandingSource();
-  const heroCtasBlock = source.match(
-    /landing-hero-ctas[\s\S]*?<\/div>\s*<\/div>\s*<div className="lp-showcase"/,
-  );
-  assert.ok(heroCtasBlock, "hero CTAs block before product showcase");
-  const block = heroCtasBlock[0];
+  const start = source.indexOf("landing-hero-ctas");
+  const end = source.indexOf("lp-showcase", start);
+  assert.ok(start >= 0 && end > start, "hero CTAs then product showcase");
+  const block = source.slice(start, end);
   assert.match(block, /href="\/register"/);
   assert.match(block, /href="\/insights"/);
   assert.equal(
