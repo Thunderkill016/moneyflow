@@ -41,17 +41,31 @@ export function LandingPage() {
             <strong>Bình tĩnh, rõ ràng</strong> — không ép phương pháp ngân sách phức tạp, không quảng
             cáo trong luồng chính.
           </p>
-          <p className="landing-trust-line">
-            <Icon name="lock" size={16} />
-            Dữ liệu của bạn. Xuất CSV bất cứ lúc nào. Không hỏi mật khẩu ngân hàng.
-          </p>
+          <ul className="landing-trust-bar" aria-label="Cam kết tin cậy">
+            <li>
+              <Icon name="lock" size={14} />
+              <span>Data của bạn</span>
+            </li>
+            <li>
+              <Icon name="arrowDown" size={14} />
+              <span>Xuất CSV</span>
+            </li>
+            <li>
+              <Icon name="check" size={14} />
+              <span>Không mật khẩu NH</span>
+            </li>
+            <li>
+              <Icon name="spark" size={14} />
+              <span>Core miễn phí</span>
+            </li>
+          </ul>
           <div className="landing-hero-ctas">
             <Link href="/register" className="cta-primary">
               Dùng miễn phí
               <Icon name="arrowRight" size={16} />
             </Link>
             <Link href="/insights" className="cta-secondary">
-              Thử demo
+              Thử demo không cần tài khoản
             </Link>
             <Link href="/login" className="landing-link landing-hero-login">
               Đăng nhập
@@ -274,6 +288,24 @@ export function LandingPage() {
             Thử demo không cần tài khoản
           </Link>
         </div>
+        <ul className="landing-trust-bar landing-trust-bar--cta" aria-label="Cam kết tin cậy">
+          <li>
+            <Icon name="lock" size={14} />
+            <span>Data của bạn</span>
+          </li>
+          <li>
+            <Icon name="arrowDown" size={14} />
+            <span>Xuất CSV</span>
+          </li>
+          <li>
+            <Icon name="check" size={14} />
+            <span>Không mật khẩu NH</span>
+          </li>
+          <li>
+            <Icon name="spark" size={14} />
+            <span>Core miễn phí</span>
+          </li>
+        </ul>
       </section>
 
       <footer className="landing-footer">

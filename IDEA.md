@@ -33,7 +33,7 @@ Không: bank sync · AI advisor · family · inbox brand · AGPL paste.
 Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 
 - [x] **R0** Auth + UX principles G5 (no inbox brand on login/register)
-- [ ] **R1** Landing visual polish: type hierarchy, mobile spacing, trust bar density (keep RSC, no inbox slogans)
+- [x] **R1** Landing visual polish: type hierarchy, mobile spacing, trust bar density (keep RSC, no inbox slogans)
 - [ ] **R2** Onboarding polish: progress 1/3–3/3 clearer, wallet defaults VN, never route to /inbox
 - [ ] **R3** Insights empty + planning cards consistent one-CTA empty states
 - [ ] **R4** Ghi chi dialog: amount autofocus, recent categories order, save-and-add-another UX polish

@@ -1,6 +1,6 @@
 /**
- * TASK-104 — Lock landing product positioning (G5 thu chi).
- * Regression: fail if marketing reverts to inbox-first slogans.
+ * TASK-104 / R1 — Lock landing product positioning (G5 thu chi) + visual polish contracts.
+ * Regression: fail if marketing reverts to inbox-first slogans or drops RSC / trust bar.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -11,6 +11,7 @@ const LANDING_SOURCE_PATH = join(
   process.cwd(),
   "src/components/landing-page.tsx",
 );
+const GLOBALS_CSS_PATH = join(process.cwd(), "src/app/globals.css");
 
 /** Forbidden inbox-era marketing slogans (AGENTS.md product law). */
 const FORBIDDEN_LANDING_PHRASES = [
@@ -20,6 +21,10 @@ const FORBIDDEN_LANDING_PHRASES = [
 
 function readLandingSource(): string {
   return readFileSync(LANDING_SOURCE_PATH, "utf8");
+}
+
+function readGlobalsCss(): string {
+  return readFileSync(GLOBALS_CSS_PATH, "utf8");
 }
 
 test("landing source exists and is non-empty", () => {
@@ -56,4 +61,44 @@ test("landing forbids inbox-first marketing slogans", () => {
       `landing must not contain forbidden slogan: ${JSON.stringify(phrase)}`,
     );
   }
+});
+
+/** R1 — dense trust bar near hero CTAs (privacy / export / no bank / free). */
+test("landing has dense trust bar with G5 promises", () => {
+  const source = readLandingSource();
+  assert.match(
+    source,
+    /landing-trust-bar/,
+    "hero must use landing-trust-bar for dense trust chips",
+  );
+  assert.match(source, /Xuất CSV|xuất CSV/i);
+  assert.match(source, /mật khẩu ngân hàng|mật khẩu NH/i);
+  assert.ok(
+    source.includes("miễn phí") || source.includes("Miễn phí"),
+    "trust bar / CTA must signal free core",
+  );
+});
+
+/** R1 — clearer demo secondary CTA (rebuild plan Phase 2). */
+test("landing demo CTA is explicit (no account required)", () => {
+  const source = readLandingSource();
+  assert.match(
+    source,
+    /Thử demo không cần tài khoản/,
+    "secondary demo CTA must say account not required",
+  );
+  assert.match(source, /href="\/insights"/);
+});
+
+/** R1 — CSS contracts: type hierarchy + mobile spacing + trust bar density. */
+test("landing CSS defines type hierarchy and trust-bar density", () => {
+  const css = readGlobalsCss();
+  assert.match(css, /\.landing-trust-bar\b/);
+  assert.match(css, /\.landing-hero-title\b/);
+  // Mobile spacing polish under small viewport
+  assert.ok(
+    css.includes("@media (max-width: 640px)") &&
+      (css.includes(".landing-section") || css.includes(".landing-hero")),
+    "globals must tighten landing spacing on mobile (≤640px)",
+  );
 });
