@@ -462,9 +462,10 @@
 > Sau “best of all có kỷ luật”. Chỉ ship khi STAB xanh.
 
 ### TASK-200 — STAB E2E expense happy path always green
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Playwright: landing → (demo or auth) → open Ghi chi tiêu → add expense → insights KPI/recent updates → open export. Fail CI if broken. No inbox dependency. See docs/BEST_OF_MATRIX.md + plan STAB-01.
 - **Done khi:** npm script e2e passes; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — e2e/expense-path.spec.ts retagged TASK-200; unit contract + `npm run test:e2e`.
 
 ### TASK-201 — STAB demo/server parity error messages
 - **Status:** `done`
@@ -479,20 +480,23 @@
 - **Completed:** 2026-07-15 — Insights reads countPending(readStoredCandidates()); attention strip includes inbox.
 
 ### TASK-203 — BEST transfer badge copy on transactions list
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Transactions list: transfers show “Chuyển khoản · không tính chi” helper text. Never count in expense totals (already).
 - **Done khi:** UI copy; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — TRANSFER_LIST_HINT + transferRowSubtitle on list + insights recent.
 
 ### TASK-204 — BEST empty states one-step CTA
-- **Status:** `ready`
+- **Status:** `done`
 - **Mô tả:** Insights/transactions/accounts empty states: one primary action only (Ghi chi or Thêm ví). Calm Vietnamese.
 - **Done khi:** empty states audited; lint/typecheck/test pass.
+- **Completed:** 2026-07-15 — Insights/txns/accounts single primary EmptyState CTA.
 
 
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | TASK-200–204 | E2E retag; transfer not-expense copy; empty 1 CTA; 201/202 already done |
 | 2026-07-15 | best-of wave | Matrix + nav Advanced + attention strip + recent cats + TASK-201/202 |
 | 2026-07-15 | TASK-132 | `9cbc822` LCP/CLS landing+insights; static `/`; budgets doc; dialog dynamic import |
 | 2026-07-15 | TASK-131 | `8b53750` power-user CSV → ledger direct; map columns; fingerprint dedupe; skip inbox |

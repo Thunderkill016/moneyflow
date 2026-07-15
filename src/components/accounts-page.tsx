@@ -19,6 +19,7 @@ import type { CreateTransferInput, Transaction } from "@/lib/sample-data";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 import { applyTransferBalances } from "@/lib/transfers";
 import { AppShell } from "@/components/layout/app-shell";
+import { EmptyState } from "@/components/empty-state";
 
 function accountIcon(kind: AccountSummary["kind"]): IconName {
   if (kind === "bank" || kind === "savings") return "bank";
@@ -270,12 +271,14 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
               ))}
             </div>
           ) : (
-            <div className="account-empty">
-              <Icon name="wallet" />
-              <h2>Chưa có tài khoản hoạt động</h2>
-              <p>Thêm một tài khoản để bắt đầu ghi giao dịch.</p>
-              <button onClick={() => openAccount(null)}>Thêm tài khoản</button>
-            </div>
+            <EmptyState
+              icon="wallet"
+              title="Chưa có tài khoản hoạt động"
+              description="Thêm một ví để bắt đầu ghi giao dịch."
+              actionLabel="Thêm ví"
+              onAction={() => openAccount(null)}
+              className="account-empty"
+            />
           )}
         </section>
 

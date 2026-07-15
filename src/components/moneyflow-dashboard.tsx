@@ -79,6 +79,7 @@ import {
   countPending,
   readStoredCandidates,
 } from "@/lib/inbox/candidate-store";
+import { transferRowSubtitle } from "@/lib/transfers";
 
 type DashboardWorkspace = {
   transactions: Transaction[];
@@ -402,8 +403,6 @@ export function MoneyFlowDashboard({
             description="Ghi khoản chi đầu tiên để thấy số dư, thu–chi tháng và danh mục chi tiêu."
             actionLabel={GHI_CHI_TIEU_LABEL}
             onAction={openGhiChi}
-            secondaryLabel="Thêm tài khoản"
-            secondaryHref="/accounts"
             className="insights-empty"
           />
         ) : null}
@@ -490,7 +489,10 @@ export function MoneyFlowDashboard({
                             <strong>{transaction.note}</strong>
                             <small>
                               {transaction.kind === "transfer"
-                                ? `${transaction.account} → ${transaction.destinationAccount}`
+                                ? transferRowSubtitle(
+                                    transaction.account,
+                                    transaction.destinationAccount,
+                                  )
                                 : `${transaction.category} · ${transaction.account}`}
                             </small>
                           </span>

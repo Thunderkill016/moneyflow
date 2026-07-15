@@ -9,6 +9,9 @@ export type EmptyStateProps = {
   actionLabel?: string;
   onAction?: () => void;
   actionHref?: string;
+  /** Icon on primary CTA (default plus). Use inbox/wallet when not “add”. */
+  actionIcon?: IconName;
+  /** Prefer single primary CTA (TASK-204). Secondary is optional and muted. */
   secondaryLabel?: string;
   secondaryHref?: string;
   className?: string;
@@ -21,6 +24,7 @@ export function EmptyState({
   actionLabel,
   onAction,
   actionHref,
+  actionIcon = "plus",
   secondaryLabel,
   secondaryHref,
   className,
@@ -36,13 +40,13 @@ export function EmptyState({
         <div className="empty-state-actions">
           {actionLabel && onAction && (
             <button className="primary-button" onClick={onAction} type="button">
-              <Icon name="plus" />
+              <Icon name={actionIcon} />
               {actionLabel}
             </button>
           )}
-          {actionLabel && actionHref && (
+          {actionLabel && actionHref && !onAction && (
             <a className="primary-button" href={actionHref}>
-              <Icon name="plus" />
+              <Icon name={actionIcon} />
               {actionLabel}
             </a>
           )}

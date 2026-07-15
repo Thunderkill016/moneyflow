@@ -61,9 +61,9 @@
 - [x] Insights attention strip (budget / bill / inbox)  
 - [x] Quick-add recent categories  
 - [x] STAB/BEST backlog TASK-200–204  
-- [ ] STAB E2E happy path (TASK-200)  
-- [ ] Transfer list copy (TASK-203)  
-- [ ] Empty states one CTA (TASK-204)  
+- [x] STAB E2E happy path (TASK-200)  
+- [x] Transfer list copy (TASK-203)  
+- [x] Empty states one CTA (TASK-204)  
 
 ## 6. Product law (remember)
 

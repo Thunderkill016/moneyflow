@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { AccountSummary } from "./accounts.ts";
-import { applyTransferBalances } from "./transfers.ts";
+import {
+  applyTransferBalances,
+  TRANSFER_LIST_HINT,
+  transferRowSubtitle,
+} from "./transfers.ts";
+
+test("TRANSFER_LIST_HINT is calm Firefly-style not-expense copy", () => {
+  assert.equal(TRANSFER_LIST_HINT, "Chuyển khoản · không tính chi");
+  assert.match(transferRowSubtitle("Cash", "Bank"), /Cash → Bank/);
+  assert.match(transferRowSubtitle("Cash", "Bank"), /không tính chi/);
+});
 
 const accounts: AccountSummary[] = [
   { id: "source", name: "Ngân hàng", kind: "bank", currencyCode: "VND", initialBalance: 0, balance: 2_000_000, isArchived: false },

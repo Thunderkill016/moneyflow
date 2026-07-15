@@ -1,15 +1,16 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * TASK-116 — Core expense path smoke (demo mode).
+ * TASK-200 / TASK-116 — Core expense path always green (demo mode).
  *
  * Flow: landing → demo app → quick-add expense → insights shows amount → export download.
  * Does not depend on Inbox / paste / candidates.
  * Runs against Playwright webServer with placeholder Supabase (demo viewer).
+ * Fail CI if broken: `npm run test:e2e`
  */
 const UNIQUE_AMOUNT = "777000";
 const UNIQUE_AMOUNT_DISPLAY = "777.000";
-const UNIQUE_NOTE = "E2E cafe autopilot TASK-116";
+const UNIQUE_NOTE = "E2E cafe autopilot TASK-200";
 
 test.describe("Expense path (thu chi)", () => {
   test.beforeEach(async ({ context }) => {
@@ -61,21 +62,19 @@ test.describe("Expense path (thu chi)", () => {
     // 3) Quick add expense (ledger path — not inbox)
     await page.goto("/capture/quick");
     await expect(page.getByRole("heading", { level: 1, name: "Thêm nhanh" })).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Khoản chi", exact: true }),
-    ).toBeVisible();
+    // Labels include sign for a11y (not color-only): "Khoản chi (−)"
+    const expenseKind = page.getByRole("button", { name: /Khoản chi/i });
+    await expect(expenseKind).toBeVisible();
+    await expenseKind.click();
 
-    // Ensure expense kind
-    await page.getByRole("button", { name: "Khoản chi", exact: true }).click();
-
-    const amount = page.getByLabel("Số tiền");
+    const amount = page.getByLabel(/Số tiền chi/i);
     await amount.fill(UNIQUE_AMOUNT);
     await expect(amount).toHaveValue(UNIQUE_AMOUNT_DISPLAY);
 
     await page.getByRole("button", { name: "Ăn uống", exact: true }).click();
     await page.getByPlaceholder("Ví dụ: Cơm trưa").fill(UNIQUE_NOTE);
 
-    await page.getByRole("button", { name: "Lưu", exact: true }).click();
+    await page.getByRole("button", { name: /Lưu/i }).click();
 
     // Persist check: demo ledger writes localStorage then may navigate away from form.
     await expect
@@ -86,7 +85,7 @@ test.describe("Expense path (thu chi)", () => {
           try {
             const list = JSON.parse(raw) as Array<{ amount?: number; note?: string }>;
             return list.some(
-              (t) => t.amount === 777_000 && String(t.note ?? "").includes("TASK-116"),
+              (t) => t.amount === 777_000 && String(t.note ?? "").includes("TASK-200"),
             );
           } catch {
             return false;

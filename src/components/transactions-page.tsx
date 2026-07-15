@@ -27,6 +27,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { GHI_CHI_TIEU_HREF, GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
 import { isSplitExpense } from "@/lib/splits";
 import { safeUserNotice } from "@/lib/safe-log";
+import { transferRowSubtitle } from "@/lib/transfers";
+import { EmptyState } from "@/components/empty-state";
 import {
   TRANSACTION_PAGE_SIZE,
   nextVisibleCount,
@@ -419,7 +421,20 @@ export function TransactionsPage({
                     return (
                       <article className="manager-row" key={transaction.id}>
                         <span className={`transaction-icon ${meta.color}`}><Icon name={meta.icon as IconName} /></span>
-                        <span className="transaction-detail"><strong>{transaction.note}</strong><small>{transaction.kind === "transfer" ? `${transaction.account} → ${transaction.destinationAccount}` : isSplitExpense(transaction) ? `${transaction.category} · ${transaction.account} · ${transaction.splits!.map((s) => `${s.category} ${formatMoney(s.amount)}`).join(" · ")}` : `${transaction.category} · ${transaction.account}`}{transaction.isRecurringPayment ? " · Từ lịch định kỳ" : ""}</small></span>
+                        <span className="transaction-detail">
+                          <strong>{transaction.note}</strong>
+                          <small>
+                            {transaction.kind === "transfer"
+                              ? transferRowSubtitle(
+                                  transaction.account,
+                                  transaction.destinationAccount,
+                                )
+                              : isSplitExpense(transaction)
+                                ? `${transaction.category} · ${transaction.account} · ${transaction.splits!.map((s) => `${s.category} ${formatMoney(s.amount)}`).join(" · ")}`
+                                : `${transaction.category} · ${transaction.account}`}
+                            {transaction.isRecurringPayment ? " · Từ lịch định kỳ" : ""}
+                          </small>
+                        </span>
                         <time dateTime={transaction.occurredAt}>{transaction.relativeDate}</time>
                         <strong className={`font-mono ${transaction.kind === "income" ? "manager-amount income" : transaction.kind === "transfer" ? "manager-amount transfer" : "manager-amount"}`}>{transaction.kind === "income" ? "+ ↑ " : transaction.kind === "transfer" ? "↔ " : "− ↓ "}{formatMoney(transaction.amount)}</strong>
                         {transaction.isRecurringPayment ? <Link href="/commitments" className="recurring-lock" title="Quản lý ở trang Định kỳ" aria-label={`Quản lý ${transaction.note} ở trang Định kỳ`}><Icon name="lock" /></Link> : <span className="manager-actions"><button className="edit-button" onClick={() => handleEditClick(transaction)} disabled={isMutating} aria-label={isSplitExpense(transaction) ? `Khoản chia ${transaction.note} — xóa rồi tạo lại để sửa` : `Sửa giao dịch ${transaction.note}`}><Icon name="edit" /></button><button className="delete-button" onClick={() => handleDelete(transaction)} disabled={isMutating} aria-label={`Xóa giao dịch ${transaction.note}`}><Icon name="trash" /></button></span>}
@@ -455,21 +470,24 @@ export function TransactionsPage({
           ) : transactions.length ? (
             <div className="filter-empty"><span><Icon name="search" /></span><h2>Không tìm thấy giao dịch</h2><p>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</p><button onClick={() => { setQuery(""); setKind("all"); setAccount("all"); }}>Xóa bộ lọc</button></div>
           ) : isTimeline ? (
-            <div className="filter-empty">
-              <span><Icon name="timeline" /></span>
-              <h2>Chưa có giao dịch đã duyệt</h2>
-              <p>Chưa có giao dịch sạch — hãy xử lý Inbox hoặc Capture để đưa khoản vào sổ.</p>
-              <div className="empty-state-actions">
-                <Link className="primary-button" href="/inbox">
-                  <Icon name="inbox" /> Mở Inbox
-                </Link>
-                <Link className="secondary-button" href="/capture">
-                  <Icon name="plus" /> Capture
-                </Link>
-              </div>
-            </div>
+            <EmptyState
+              icon="timeline"
+              title="Chưa có giao dịch đã duyệt"
+              description="Duyệt mục trong hộp thư để đưa khoản vào sổ."
+              actionLabel="Mở hộp thư"
+              actionHref="/inbox"
+              actionIcon="inbox"
+              className="filter-empty-as-empty"
+            />
           ) : (
-            <div className="filter-empty"><span><Icon name="arrows" /></span><h2>Chưa có giao dịch</h2><p>Ghi khoản chi hoặc thu đầu tiên để bắt đầu theo dõi dòng tiền.</p><button onClick={() => setDialogOpen(true)} disabled={Boolean(workspace.dataError)}>{GHI_CHI_TIEU_LABEL}</button></div>
+            <EmptyState
+              icon="arrows"
+              title="Chưa có giao dịch"
+              description="Ghi khoản chi đầu tiên để bắt đầu theo dõi dòng tiền."
+              actionLabel={GHI_CHI_TIEU_LABEL}
+              onAction={() => setDialogOpen(true)}
+              className="filter-empty-as-empty"
+            />
           )}
         </section>
       </main>
