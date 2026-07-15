@@ -504,7 +504,7 @@
 - **Completed:** 2026-07-15 — `.grok/skills/*` + AGENTS Grok workflow.
 
 ### TASK-207 — PERF LCP second pass (landing fonts/CSS)
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** After Lighthouse lab (landing LCP ~3.7s): reduce critical CSS/font cost on public landing without breaking VN glyphs. Re-measure optional. See docs/performance-budgets.md.
 - **Done khi:** documented mitigation + lint/typecheck/test pass.
 
@@ -517,89 +517,277 @@
 
 
 ### TASK-209 — PERF reduce insights client JS (dynamic panels)
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Code-split heavy insights side panels if still in main chunk; keep KPI LCP path light.
 - **Source:** roadmap pool refill
 
 ### TASK-210 — BEST report export discoverability from Insights
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Ensure Xuất CSV / báo cáo one obvious path from Tổng quan without burying in Settings only.
 - **Source:** roadmap pool refill
 
 ### TASK-211 — PERF landing LCP: lighter hero CSS + content-visibility below fold
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Reduce landing critical paint cost: reserve hero, content-visibility on below-fold, avoid heavy above-fold CSS. Keep VN copy. Document in performance-budgets.md.
 - **Done khi:** CSS mitigations + lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-212 — BEST Cmd+K opens search with autofocus on /transactions
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** When navigating via ⌘K, focus search input on transactions after route load (query ?focus=search or hash).
 - **Done khi:** autofocus works; tests if pure; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-213 — STAB e2e transfer never in expense KPI
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Playwright or unit contract: create transfer, assert insights/report expense excludes amount. Demo mode.
 - **Done khi:** test green; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-214 — BEST budgets empty state one CTA
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** /budgets empty: single primary “Thêm ngân sách”; calm VN.
 - **Done khi:** empty audited; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-215 — BEST goals empty state one CTA
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** /goals empty: single primary “Thêm mục tiêu”; calm VN.
 - **Done khi:** empty audited; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-216 — BEST commitments empty state one CTA
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** /commitments empty: single primary “Thêm định kỳ”; calm VN.
 - **Done khi:** empty audited; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-217 — PERF prefetch Ghi chi /capture/quick on idle
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** On insights/transactions mount, router.prefetch capture quick + dialog chunk when idle.
 - **Done khi:** prefetch wired; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-218 — STAB soft-delete undo copy parity
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Audit soft-delete toasts: always Hoàn tác when restore supported; VN calm copy.
 - **Done khi:** parity; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-219 — BEST safe-to-spend explain always visible short
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Insights safe-to-spend: short one-line explain always; no collapse friction. Calm VN.
 - **Done khi:** copy; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-220 — BEST categories empty + first expense CTA
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** /categories empty or no expense cats: CTA toward Ghi chi or Thêm danh mục (one primary).
 - **Done khi:** empty audited; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-221 — PERF Lighthouse remeasure after 207/211
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Re-run Lighthouse mobile landing+insights demo; update docs/performance-budgets.md scores table.
 - **Done khi:** scores documented; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-222 — STAB demo banner + register CTA always visible
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Demo mode: sticky banner + clear Đăng ký; no cover FAB.
 - **Done khi:** UI check; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-223 — BEST weekly summary link to reports week range
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Weekly card CTA opens reports with sensible default range if supported, else /reports.
 - **Done khi:** link; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
 
 ### TASK-224 — STAB npm run build green on CI-like clean
-- **Status:** `ready`
+- **Status:** `deferred`
 - **Mô tả:** Ensure production build passes with demo env placeholders; document command in README if needed.
 - **Done khi:** build green; lint/typecheck/test pass.
+- **Deferred:** 2026-07-15 — below MVP gate wave; refill after TASK-250–285
+
+
+## MVP HARDENING WAVE (chuẩn ship — agent ưu tiên)
+
+> Định nghĩa: `docs/MVP_DEFINITION.md`  
+> Agent: **một task / phiên**, số TASK tăng dần. Cấm bank sync / AI / family / inbox brand.
+
+### TASK-250 — MVP-DOC lock definition
+- **Status:** `ready`
+- **Mô tả:** Ensure `docs/MVP_DEFINITION.md` is linked from README and AGENTS.md; unit test contract file exists. No product code change required beyond docs + tiny test reading exit criteria keywords.
+- **Done khi:** docs linked; test asserts MVP_DEFINITION exists; lint/typecheck/test pass.
+
+### TASK-251 — MVP-STAB money invariants regression suite
+- **Status:** `ready`
+- **Mô tả:** Expand/confirm unit tests: transfer never expense; soft-delete drops spent; integer only; budget ignores transfer; safe-to-spend integer. Fail if any regress.
+- **Done khi:** tests cover matrix; npm test pass.
+
+### TASK-252 — MVP-STAB e2e expense path always green
+- **Status:** `ready`
+- **Mô tả:** `npm run test:e2e` expense path must pass (landing→ghi chi→insights→export). Fix selectors/labels if broken.
+- **Done khi:** e2e exit 0; unit tests pass.
+
+### TASK-253 — MVP-STAB transfer excluded from expense (e2e or unit)
+- **Status:** `ready`
+- **Mô tả:** Contract test: transfer amount not in month expense total / category spend. Demo ledger.
+- **Done khi:** test green.
+
+### TASK-254 — MVP-STAB create/delete/restore error VN parity
+- **Status:** `ready`
+- **Mô tả:** Audit use-transactions + dialogs: no empty fail messages; network catch VN on all mutations.
+- **Done khi:** code audit + tests if pure; lint/typecheck/test.
+
+### TASK-255 — MVP-STAB production build green (demo env)
+- **Status:** `ready`
+- **Mô tả:** `NEXT_PUBLIC_SUPABASE_URL=placeholder` style build succeeds; document one-liner in README Quality section if missing.
+- **Done khi:** build exit 0.
+
+### TASK-256 — MVP-CORE insights KPI completeness
+- **Status:** `ready`
+- **Mô tả:** Insights shows: số dư, thu tháng, chi tháng, ròng, top categories, recent, Ghi chi CTA, export CTA. Contract test on dashboard source.
+- **Done khi:** contract tests; no missing widget.
+
+### TASK-257 — MVP-CORE safe-to-spend short explain always visible
+- **Status:** `ready`
+- **Mô tả:** Safe-to-spend card has calm one-line explain always visible (no hide).
+- **Done khi:** UI + calm VN.
+
+### TASK-258 — MVP-CORE attention strip budgets+bills only noise-free
+- **Status:** `ready`
+- **Mô tả:** Attention strip max 4 items; calm copy; inbox optional neutral. No guilt language.
+- **Done khi:** attention.ts tests; UI ok.
+
+### TASK-259 — MVP-CORE empty states all core pages one CTA
+- **Status:** `ready`
+- **Mô tả:** Empty: insights, transactions, accounts, budgets, commitments, goals, categories — exactly one primary CTA each (Ghi chi / Thêm ví / Thêm NS…).
+- **Done khi:** audited all; lint/typecheck/test.
+
+### TASK-260 — MVP-CORE export ≤2 clicks from Insights
+- **Status:** `ready`
+- **Mô tả:** Visible Xuất CSV (or Báo cáo) on Insights; lands on working export. Contract test.
+- **Done khi:** discoverability + test.
+
+### TASK-261 — MVP-CORE transfer list copy “không tính chi”
+- **Status:** `ready`
+- **Mô tả:** Confirm transactions + insights recent use transferRowSubtitle; unit test constant.
+- **Done khi:** present everywhere transfer listed.
+
+### TASK-262 — MVP-CORE Ghi chi path &lt;10s (quick + dialog)
+- **Status:** `ready`
+- **Mô tả:** FAB/topbar open dialog or /capture/quick; recent categories; amount focus. Smoke via e2e or contract.
+- **Done khi:** path documented + e2e or tests.
+
+### TASK-263 — MVP-CORE onboarding → insights/ghi chi only
+- **Status:** `ready`
+- **Mô tả:** Onboarding never redirects to /inbox; skip/done → /insights; quick → /capture/quick. Tests already partial—harden.
+- **Done khi:** tests assert no inbox.
+
+### TASK-264 — MVP-CORE nav Core vs Nâng cao lock
+- **Status:** `ready`
+- **Mô tả:** nav-ia tests: primary never inbox/rules/imports; Advanced has inbox. Landing copy tests still forbid inbox slogans.
+- **Done khi:** nav + landing tests green.
+
+### TASK-265 — MVP-CORE accounts multi-wallet CRUD demo+server
+- **Status:** `ready`
+- **Mô tả:** Add/edit/archive account works demo; server path errors VN. Minimal if already works—add contract test for kinds.
+- **Done khi:** tests or clear done note + gates.
+
+### TASK-266 — MVP-CORE categories unique per kind
+- **Status:** `ready`
+- **Mô tả:** Harden categories validation tests; empty state CTA.
+- **Done khi:** tests pass.
+
+### TASK-267 — MVP-CORE budgets category monthly calm thresholds
+- **Status:** `ready`
+- **Mô tả:** Near/over labels; spent ignores transfer; empty CTA. Tests.
+- **Done khi:** tests + UI empty.
+
+### TASK-268 — MVP-CORE commitments pay→ledger + reserve
+- **Status:** `ready`
+- **Mô tả:** Pay creates expense; insights reserved updates; undo. Contract or unit tests.
+- **Done khi:** tests green.
+
+### TASK-269 — MVP-CORE goals create + progress on insights
+- **Status:** `ready`
+- **Mô tả:** Featured goal or empty CTA on insights; goals page empty CTA.
+- **Done khi:** UI + tests if any.
+
+### TASK-270 — MVP-CORE reports month + transfer excluded
+- **Status:** `ready`
+- **Mô tả:** Reports totals exclude transfer; CSV formula-safe. Existing tests expand if thin.
+- **Done khi:** tests green.
+
+### TASK-271 — MVP-TRUST privacy page + register link
+- **Status:** `ready`
+- **Mô tả:** /privacy linked from footer+register; required topics. Tests already—verify green.
+- **Done khi:** privacy-policy tests pass.
+
+### TASK-272 — MVP-TRUST delete account path calm VN
+- **Status:** `ready`
+- **Mô tả:** Settings delete account: confirm XÓA; clear local stores demo. Tests.
+- **Done khi:** tests pass.
+
+### TASK-273 — MVP-TRUST demo banner not covering FAB
+- **Status:** `ready`
+- **Mô tả:** Demo sticky banner + Đăng ký; FAB still tappable on mobile.
+- **Done khi:** CSS/layout fix if needed.
+
+### TASK-274 — MVP-TRUST no raw statement in logs/toasts
+- **Status:** `ready`
+- **Mô tả:** safe-log/safe-analytics tests pass; no regression.
+- **Done khi:** tests pass.
+
+### TASK-275 — MVP-A11Y money not color-only
+- **Status:** `ready`
+- **Mô tả:** +/−/↔ on income/expense/transfer lists; focus-visible. a11y baseline tests.
+- **Done khi:** a11y tests pass.
+
+### TASK-276 — MVP-A11Y dialogs focus trap Ghi chi
+- **Status:** `ready`
+- **Mô tả:** AddTransactionDialog focus trap/restore; labels on amount. Tests.
+- **Done khi:** a11y tests pass.
+
+### TASK-277 — MVP-MOBILE bottom nav + FAB clear
+- **Status:** `ready`
+- **Mô tả:** Mobile: 4 tabs + more; FAB Ghi chi not obscured; dialogs usable. CSS audit/fix.
+- **Done khi:** no regress; manual CSS checks in code.
+
+### TASK-278 — MVP-PERF LCP document + quick wins
+- **Status:** `ready`
+- **Mô tả:** Apply safe LCP wins (content-visibility below-fold landing, font already trimmed); update performance-budgets.md with latest lab if runnable else note.
+- **Done khi:** doc + code mitigations; tests pass.
+
+### TASK-279 — MVP-PERF code-split remaining dialogs accounts/budgets
+- **Status:** `ready`
+- **Mô tả:** Confirm dynamic() on heavy dialogs; add if missing on income-templates.
+- **Done khi:** dynamic imports present.
+
+### TASK-280 — MVP-GATE checklist automation
+- **Status:** `ready`
+- **Mô tả:** Add `src/lib/mvp-gate.test.ts` asserting MVP_DEFINITION sections + critical routes exist + e2e script in package.json.
+- **Done khi:** gate test green.
+
+### TASK-281 — MVP-GATE final verification script
+- **Status:** `ready`
+- **Mô tả:** Add `scripts/mvp-verify.sh` running lint+typecheck+test+build; document in README. Run once green.
+- **Done khi:** script exits 0; README link.
+
+### TASK-282 — MVP-GATE backlog empty ready after wave
+- **Status:** `ready`
+- **Mô tả:** After all prior MVP tasks done: mark wave complete in docs/MVP_DEFINITION.md exit checklist with date; no new features.
+- **Done khi:** doc updated only when 250–281 done (if earlier tasks open, skip and leave ready).
+
+## Nhật ký
 
 ## Nhật ký
 
 | Date | Task | Note |
 |------|------|------|
+| 2026-07-15 | MVP 250–282 | Full MVP hardening queue; 209–224 deferred |
 | 2026-07-15 | queue 207–224 | Full ready queue; daemon on; headless G5 prompt |
 | 2026-07-15 | TASK-205–206 | ⌘K search; moneyflow skills + Grok workflow + industry synthesis |
 | 2026-07-15 | TASK-200–204 | E2E retag; transfer not-expense copy; empty 1 CTA; 201/202 already done |

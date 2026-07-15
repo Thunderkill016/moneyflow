@@ -13,6 +13,7 @@ Read first (in order):
 1. `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` — **G5** positioning, JTBD, MVP, non-goals
 2. `docs/AUTOPILOT_PLAN.md` — Wave A → B → C order (**TASK-100…125**)
 3. `AGENT_BACKLOG.md` — only tasks with `Status: ready`
+4. `docs/MVP_DEFINITION.md` — **MVP ship exit criteria** (TASK-250… hardening wave)
 
 **Positioning:** Vietnamese-first **personal income & expense (thu chi)** web app.
 

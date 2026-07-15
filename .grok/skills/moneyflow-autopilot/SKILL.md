@@ -14,11 +14,12 @@ metadata:
 ## Before every session
 
 1. Read `AGENTS.md` (product law G5 + engineering)
-2. Read `docs/BEST_OF_MATRIX.md` if touching nav/features
+2. Read `docs/MVP_DEFINITION.md` + `docs/BEST_OF_MATRIX.md` if touching nav/features
 3. Read `AGENT_BACKLOG.md`
-4. If `ready` count < 2: `bash scripts/agent-refill-backlog.sh`
-5. Pick **first** `Status: ready` by lowest TASK number
-6. Never invent bank sync / AI advisor / family / inbox-brand landing
+4. Prefer **MVP HARDENING WAVE (TASK-250+)** over deferred polish
+5. If `ready` count < 2: `bash scripts/agent-refill-backlog.sh` (only pool; never invent forbidden)
+6. Pick **first** `Status: ready` by lowest TASK number
+7. Never invent bank sync / AI advisor / family / inbox-brand landing
 
 ## Execution loop (ONE task only)
 
