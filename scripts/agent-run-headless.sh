@@ -24,31 +24,34 @@ LOG_FILE="$LOG_DIR/${STAMP}_${TASK_ID}.log"
 PROMPT_FILE="$LOG_DIR/${STAMP}_${TASK_ID}.prompt.txt"
 
 cat > "$PROMPT_FILE" <<PROMPT
-You are the 24/7 autopilot agent for Money Flow at $ROOT.
-User is AFK (sleeping). Do NOT ask questions. Decide and ship.
+You are the 24/7 autopilot agent for MoneyFlow at $ROOT.
+User is AFK. Do NOT ask questions. Decide and ship.
 
 PHASE 1 — READ:
-- AGENTS.md, AGENT_BACKLOG.md, AGENT_AUTOPILOT.md
-- docs/wireframes-inbox.md, docs/UX_RESEARCH_AND_REDESIGN.md, docs/design-system.md (relevant sections)
-- Inspect existing src/ for patterns (AppShell, landing, auth, money as integers)
+- AGENTS.md (G5 product law + skill routing)
+- AGENT_BACKLOG.md, docs/BEST_OF_MATRIX.md, docs/research/05_PRODUCT_AND_ARCHITECTURE.md
+- .grok/skills/moneyflow-web/SKILL.md and moneyflow-check/SKILL.md
+- Inspect existing src/ patterns (AppShell, money integers, EmptyState)
 
 PHASE 2 — SINGLE TASK ONLY: $TASK_ID
 $TASK_DESC
 
 PHASE 3 — EXECUTE:
 1. Set this task Status to in_progress in AGENT_BACKLOG.md
-2. Minimal implementation for THIS task only
+2. Minimal implementation for THIS task only (no feature dump)
 3. Run: npm run lint && npm run typecheck && npm run test
-4. If routes/layout changed strongly: npm run build when feasible
-5. On success: git add (never .env.local), commit message "feat(autopilot): $TASK_ID short summary", git push origin main
-6. Set Status to done, add Completed line + short SHA; append nhat ky row
+4. If routes/layout/perf: npm run build when feasible; e2e if expense path
+5. On success: git add (never .env.local, never logs/), commit "feat(autopilot): $TASK_ID short summary", git push origin main
+6. Set Status to done, Completed + SHA; append nhật ký row
 7. On hard block: Status blocked + reason; never force-push
 
-Rules:
-- Inbox-first; no competitor UI clones; money = integer minor units
-- Never edit .env.local or delete migrations
-- Vietnamese UI copy
-- Every new data page: loading/empty/error states
+Rules (G5):
+- Product = thu chi cá nhân — NOT inbox-first brand / NOT landing "Hộp thư"
+- Money = integer VND đồng; transfer never counts as expense
+- Lab (inbox/import/rules) stays under Nâng cao
+- Forbidden without human: bank sync, AI advisor, family, OCR, AGPL copy
+- Calm Vietnamese UI; empty state one primary CTA
+- Use moneyflow-web / moneyflow-check skill patterns
 PROMPT
 
 echo "🤖 $TASK_ID"
