@@ -92,6 +92,12 @@ Work in stages — never “rewrite the whole app” in one prompt:
 - MVP core first; bank sync / AI advisor never without human approval  
 - See `docs/research/06_INDUSTRY_SYNTHESIS.md`  
 - GitHub OSS study map: `docs/research/07_GITHUB_OSS_BEST.md` (Actual MIT · Firefly/Ivy **docs only**)  
+- **Task generation only from knowledge:** `docs/research/08_PFM_BEST_IN_CLASS.md` + `agent-competitor-gap.py`  
+
+### Auto-task rules (no busywork)
+
+Allowed: closes a named competitor pattern + JTBD + testable Done khi.  
+Forbidden auto-tasks: green-test-only, empty “quality cycle”, features in G5 non-goals.
 
 ### OSS usage
 

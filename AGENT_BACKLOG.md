@@ -640,7 +640,7 @@
 - **Completed:** 2026-07-15 — `0c3bc28` transfer-expense-contract.test.ts: demo ledger transfer excluded from monthExpenseTotal, top categories, report categories, budget spent, demo dashboard.
 
 ### TASK-254 — MVP-STAB create/delete/restore error VN parity
-- **Status:** `ready`
+- **Status:** `in_progress`
 - **Mô tả:** Audit use-transactions + dialogs: no empty fail messages; network catch VN on all mutations.
 - **Done khi:** code audit + tests if pure; lint/typecheck/test.
 
