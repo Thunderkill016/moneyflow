@@ -2533,7 +2533,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   font-weight: 650;
 }
 
-/* Dense trust bar — compact chips near CTAs (R1) */
+/* Dense trust bar — compact chips near CTAs (R1 / Monarch-ref) */
 .landing-trust-bar {
   display: flex;
   flex-wrap: wrap;
@@ -2543,6 +2543,49 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   margin: 0 0 22px;
   padding: 0;
   max-width: 36rem;
+}
+
+/* YNAB-style proof density — honest product truths (no fake %) */
+.landing-proof-strip {
+  max-width: 1120px;
+  margin: 0 auto 8px;
+  padding: 0 20px 48px;
+}
+.landing-proof-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 20px 18px;
+  border: 1px solid var(--line, var(--color-border-default, #e2e4e8));
+  border-radius: 16px;
+  background: var(--surface, var(--color-bg-secondary, #f8f9fa));
+}
+.landing-proof-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 4px 8px;
+  text-align: center;
+}
+.landing-proof-list strong {
+  color: var(--color-text-primary, #111218);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.landing-proof-list span {
+  color: var(--color-text-secondary, #555b66);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.feature-grid-core {
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 880px;
+  margin-inline: auto;
 }
 
 .landing-trust-bar li {
@@ -2639,11 +2682,6 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   background: var(--color-bg-primary);
 }
 
-.landing-hero-ctas .landing-hero-login {
-  align-self: center;
-  padding: 0 4px;
-  font-size: 14px;
-}
 .landing-cta-band-actions {
   display: flex;
   flex-wrap: wrap;
@@ -3316,6 +3354,14 @@ a.desktop-search-link:hover { border-color: #9abda8; }
     justify-content: center;
   }
 
+  .landing-proof-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .feature-grid-core {
+    grid-template-columns: 1fr;
+  }
+
   .steps-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -3335,10 +3381,33 @@ a.desktop-search-link:hover { border-color: #9abda8; }
     padding: 14px 16px;
   }
 
+  /* Mobile nav: logo + one primary CTA only (login → footer) */
+  .landing-nav-login {
+    display: none;
+  }
+
   .landing-nav-cta {
     min-height: 36px !important;
     padding-inline: 12px !important;
     font-size: 12px !important;
+  }
+
+  .landing-proof-strip {
+    padding: 0 16px 36px;
+  }
+
+  .landing-proof-list {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 14px 10px;
+  }
+
+  .landing-proof-list strong {
+    font-size: 15px;
+  }
+
+  .landing-proof-list span {
+    font-size: 11px;
   }
 
   .landing-hero {
@@ -3376,6 +3445,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 
   .landing-hero-ctas a {
     width: 100%;
+    justify-content: center;
   }
 
   .landing-hero-ctas .landing-hero-login {

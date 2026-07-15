@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 
 /**
- * Landing — personal expense tracker (research G5 / docs/research/05).
- * JTBD: ghi nhanh → còn bao nhiêu tiền & tháng này chi vào đâu.
- * Server Component (no "use client") for faster LCP — pure static markup.
- * Original layout; no competitor brand clone.
+ * Landing — G5 thu chi (docs/research/05).
+ * Ref: Monarch (hero + product mock), YNAB (1 CTA hierarchy + proof strip),
+ * fintech CRO (trust near CTA, how-it-works, final CTA). Calm Finance tone.
+ * Server Component for LCP — no "use client".
  */
 export function LandingPage() {
   return (
@@ -18,7 +18,8 @@ export function LandingPage() {
           <span>MoneyFlow</span>
         </Link>
         <div className="landing-nav-actions">
-          <Link href="/login" className="landing-link">
+          {/* Desktop: text login. Mobile: primary only (login in footer). */}
+          <Link href="/login" className="landing-link landing-nav-login">
             Đăng nhập
           </Link>
           <Link href="/register" className="primary-button landing-nav-cta">
@@ -30,7 +31,7 @@ export function LandingPage() {
       <header className="landing-hero">
         <div className="landing-hero-content">
           <p className="landing-eyebrow">Quản lý thu chi cá nhân</p>
-          {/* LCP element: keep in first paint HTML (RSC, no client wait) */}
+          {/* LCP element: first-paint HTML */}
           <h1 className="landing-hero-title">
             Biết hôm nay
             <br />
@@ -38,9 +39,10 @@ export function LandingPage() {
           </h1>
           <p className="landing-lead">
             Ghi thu chi trong vài giây, theo dõi nhiều ví, thấy rõ tháng này tiền đi đâu.{" "}
-            <strong>Bình tĩnh, rõ ràng</strong> — không ép phương pháp ngân sách phức tạp, không quảng
-            cáo trong luồng chính.
+            <strong>Bình tĩnh, rõ ràng</strong> — không ép zero-based, không quảng cáo trong
+            luồng chính.
           </p>
+          {/* 3 trust chips max (fintech: trust beside CTA) */}
           <ul className="landing-trust-bar" aria-label="Cam kết tin cậy">
             <li>
               <Icon name="lock" size={14} />
@@ -54,11 +56,8 @@ export function LandingPage() {
               <Icon name="check" size={14} />
               <span>Không mật khẩu NH</span>
             </li>
-            <li>
-              <Icon name="spark" size={14} />
-              <span>Core miễn phí</span>
-            </li>
           </ul>
+          {/* Hierarchy: 1 primary + 1 secondary only (YNAB/Monarch pattern) */}
           <div className="landing-hero-ctas">
             <Link href="/register" className="cta-primary">
               Dùng miễn phí
@@ -66,9 +65,6 @@ export function LandingPage() {
             </Link>
             <Link href="/insights" className="cta-secondary">
               Thử demo không cần tài khoản
-            </Link>
-            <Link href="/login" className="landing-link landing-hero-login">
-              Đăng nhập
             </Link>
           </div>
         </div>
@@ -79,7 +75,7 @@ export function LandingPage() {
               <p className="preview-dash-safe-label">Có thể chi hôm nay</p>
               <p className="preview-dash-safe-amount font-mono">392.000 ₫</p>
               <p className="preview-dash-safe-hint">
-                Đã trừ hóa đơn giữ trước và quỹ tiết kiệm earmark.
+                Đã trừ hóa đơn giữ trước và quỹ tiết kiệm.
               </p>
             </div>
             <div className="preview-dash-stats">
@@ -126,6 +122,28 @@ export function LandingPage() {
         </div>
       </header>
 
+      {/* Honest proof strip — product truths, not fabricated % (YNAB-style density, G5 honesty) */}
+      <section className="landing-proof-strip" aria-label="Vì sao MoneyFlow">
+        <ul className="landing-proof-list">
+          <li>
+            <strong className="font-mono">{"< 10s"}</strong>
+            <span>Ghi khoản chi quen</span>
+          </li>
+          <li>
+            <strong>CK ≠ chi</strong>
+            <span>Chuyển ví không làm lệch báo cáo</span>
+          </li>
+          <li>
+            <strong>CSV</strong>
+            <span>Xuất bất cứ lúc nào — không lock-in</span>
+          </li>
+          <li>
+            <strong>0 bank</strong>
+            <span>Không hỏi mật khẩu ngân hàng</span>
+          </li>
+        </ul>
+      </section>
+
       <section className="landing-section landing-below-fold" aria-labelledby="how-heading">
         <div className="landing-section-heading">
           <p>Cách dùng</p>
@@ -171,7 +189,7 @@ export function LandingPage() {
         <div className="landing-section-heading">
           <p>Dành cho ai</p>
           <h2 id="who-heading">Đơn giản với người mới, đủ cho người dùng Sheet</h2>
-          <span>Không phán xét. Không gamification sến. Không khóa tính năng cơ bản sau paywall.</span>
+          <span>Không phán xét. Không gamification sến. Không khóa core sau paywall.</span>
         </div>
         <ul className="fit-grid">
           <li className="fit-card">
@@ -198,39 +216,29 @@ export function LandingPage() {
       >
         <div className="landing-section-heading">
           <p>Tính năng cốt lõi</p>
-          <h2 id="features-heading">Đủ dùng mỗi ngày</h2>
-          <span>Mọi thứ gắn với việc kiểm soát tiền — không trang trí.</span>
+          <h2 id="features-heading">Một chỗ cho thu chi hằng ngày</h2>
+          <span>Giống Monarch overview — nhưng chỉ phần bạn thật sự dùng mỗi ngày.</span>
         </div>
-        <ul className="feature-grid">
+        <ul className="feature-grid feature-grid-core">
           <li className="feature-card-landing">
             <Icon name="plus" size={22} />
             <h3>Thu · Chi · Chuyển</h3>
-            <p>Ba loại rõ ràng. Sửa/xóa an toàn. Số tiền luôn là số nguyên đồng.</p>
+            <p>Ba loại rõ. Sửa/xóa an toàn. Số nguyên đồng. Chuyển ví không tính chi.</p>
           </li>
           <li className="feature-card-landing">
             <Icon name="target" size={22} />
-            <h3>Ngân sách danh mục</h3>
-            <p>Hạn mức tháng, còn lại bao nhiêu, cảnh báo nhẹ khi gần vượt — không ép envelope.</p>
-          </li>
-          <li className="feature-card-landing">
-            <Icon name="calendar" size={22} />
-            <h3>Định kỳ & mục tiêu</h3>
-            <p>Giữ trước tiền thuê nhà, theo dõi quỹ tiết kiệm — tổng quan biết trừ phần đã earmark.</p>
+            <h3>Có thể chi hôm nay</h3>
+            <p>Số dư khả dụng sau khi giữ trước hóa đơn và mục tiêu — một con số quyết định.</p>
           </li>
           <li className="feature-card-landing">
             <Icon name="chart" size={22} />
-            <h3>Báo cáo tháng</h3>
-            <p>Thu vs chi, theo danh mục, so sánh kỳ. Biểu đồ phục vụ quyết định, không chỉ đẹp.</p>
+            <h3>Tháng này tiền đi đâu</h3>
+            <p>Thu vs chi, top danh mục, báo cáo tháng. Biểu đồ phục vụ quyết định.</p>
           </li>
           <li className="feature-card-landing">
             <Icon name="arrowDown" size={22} />
-            <h3>Xuất dữ liệu</h3>
-            <p>CSV của bạn. Không lock-in. Phù hợp ai quen Sheets.</p>
-          </li>
-          <li className="feature-card-landing">
-            <Icon name="lock" size={22} />
-            <h3>Riêng tư</h3>
-            <p>Mỗi user chỉ thấy data của mình. Không hỏi mật khẩu ngân hàng.</p>
+            <h3>Xuất & riêng tư</h3>
+            <p>CSV của bạn. Không lock-in. Không mật khẩu ngân hàng. Xóa tài khoản được.</p>
           </li>
         </ul>
       </section>
@@ -278,7 +286,7 @@ export function LandingPage() {
 
       <section className="landing-cta-band" aria-labelledby="cta-band-heading">
         <h2 id="cta-band-heading">Bắt đầu bằng một khoản chi hôm nay</h2>
-        <p>Miễn phí để dùng core. Không cần học phương pháp. Không cần liên kết ngân hàng.</p>
+        <p>Miễn phí core. Không học phương pháp. Không liên kết ngân hàng.</p>
         <div className="landing-cta-band-actions">
           <Link href="/register" className="cta-primary">
             Tạo tài khoản miễn phí
@@ -300,10 +308,6 @@ export function LandingPage() {
           <li>
             <Icon name="check" size={14} />
             <span>Không mật khẩu NH</span>
-          </li>
-          <li>
-            <Icon name="spark" size={14} />
-            <span>Core miễn phí</span>
           </li>
         </ul>
       </section>

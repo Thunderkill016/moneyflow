@@ -90,11 +90,44 @@ test("landing demo CTA is explicit (no account required)", () => {
   assert.match(source, /href="\/insights"/);
 });
 
+/** Ref polish — hero CTA hierarchy: primary + demo only (no third login in hero). */
+test("landing hero has two CTAs only (register + demo)", () => {
+  const source = readLandingSource();
+  const heroCtasBlock = source.match(
+    /landing-hero-ctas[\s\S]*?<\/div>\s*<\/div>\s*<div className="landing-hero-preview"/,
+  );
+  assert.ok(heroCtasBlock, "hero CTAs block before preview");
+  const block = heroCtasBlock[0];
+  assert.match(block, /href="\/register"/);
+  assert.match(block, /href="\/insights"/);
+  assert.equal(
+    (block.match(/href="\/login"/g) || []).length,
+    0,
+    "login must not compete in hero CTAs (nav/footer only)",
+  );
+});
+
+/** Ref polish — no English earmark jargon in marketing copy. */
+test("landing avoids English earmark jargon", () => {
+  const source = readLandingSource();
+  assert.equal(source.toLowerCase().includes("earmark"), false);
+});
+
+/** Ref polish — honest proof strip (product truths, not fake % surveys). */
+test("landing has honest proof strip", () => {
+  const source = readLandingSource();
+  assert.match(source, /landing-proof-strip/);
+  assert.match(source, /&lt; 10s|< 10s|10s/);
+  assert.match(source, /không tính chi|CK ≠ chi|CK ≠/i);
+});
+
 /** R1 — CSS contracts: type hierarchy + mobile spacing + trust bar density. */
 test("landing CSS defines type hierarchy and trust-bar density", () => {
   const css = readGlobalsCss();
   assert.match(css, /\.landing-trust-bar\b/);
   assert.match(css, /\.landing-hero-title\b/);
+  assert.match(css, /\.landing-proof-strip\b/);
+  assert.match(css, /\.landing-nav-login\b/);
   // Mobile spacing polish under small viewport
   assert.ok(
     css.includes("@media (max-width: 640px)") &&
