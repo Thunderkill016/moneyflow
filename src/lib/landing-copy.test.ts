@@ -94,9 +94,9 @@ test("landing demo CTA is explicit (no account required)", () => {
 test("landing hero has two CTAs only (register + demo)", () => {
   const source = readLandingSource();
   const heroCtasBlock = source.match(
-    /landing-hero-ctas[\s\S]*?<\/div>\s*<\/div>\s*<div className="landing-hero-preview"/,
+    /landing-hero-ctas[\s\S]*?<\/div>\s*<\/div>\s*<div className="lp-showcase"/,
   );
-  assert.ok(heroCtasBlock, "hero CTAs block before preview");
+  assert.ok(heroCtasBlock, "hero CTAs block before product showcase");
   const block = heroCtasBlock[0];
   assert.match(block, /href="\/register"/);
   assert.match(block, /href="\/insights"/);
@@ -121,21 +121,21 @@ test("landing has honest proof strip", () => {
   assert.match(source, /không tính chi|CK ≠ chi|CK ≠/i);
 });
 
-test("landing has exactly one trust section (no duplicate Tin cậy)", () => {
+test("landing v2 has shadcn-template structure (centered hero + FAQ + benefits)", () => {
   const source = readLandingSource();
-  const trustHeadings = source.match(/id="trust-heading"/g) || [];
-  assert.equal(trustHeadings.length, 1, "trust-heading must appear once");
-  assert.equal(
-    (source.match(/Thiết kế bình tĩnh với tiền của bạn/g) || []).length,
-    1,
-  );
+  assert.match(source, /lp-hero|lp-root/);
+  assert.match(source, /lp-showcase/);
+  assert.match(source, /lp-benefit/);
+  assert.match(source, /id="faq-heading"/);
+  assert.match(source, /<details/);
   assert.equal(source.includes("Monarch"), false, "do not name competitors on landing");
+  // Single trust-heading removed in v2 in favor of FAQ — ok
 });
 
-test("landing Excel fit card uses table icon", () => {
+test("landing Excel / sheet path uses table icon", () => {
   const source = readLandingSource();
   assert.match(source, /name="table"/);
-  assert.match(source, /Đang dùng Excel/);
+  assert.match(source, /Excel|Sheet|CSV/);
 });
 
 /** R1 — CSS contracts: type hierarchy + mobile spacing + trust bar density. */
