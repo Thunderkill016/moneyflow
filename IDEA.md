@@ -45,7 +45,7 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [x] **R10** `npm run build` green (demo env) + `scripts/mvp-verify.sh` if present
 
 ### Legacy quality bar (still valid if open)
-- [ ] **Q1** `npm run test:e2e` expense path always green (fix if red)
+- [x] **Q1** `npm run test:e2e` expense path always green (fix if red)
 - [ ] **Q2** `npm run build` green with demo/placeholder Supabase env
 - [ ] **Q3** `scripts/mvp-verify.sh` = lint + typecheck + test + build
 - [ ] **Q4** Empty states: one primary CTA on budgets/goals/commitments/categories (audit + fix only if multi-CTA)
