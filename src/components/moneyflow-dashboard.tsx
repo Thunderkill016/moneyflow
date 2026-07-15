@@ -353,23 +353,43 @@ export function MoneyFlowDashboard({
           </section>
         ) : null}
 
-        <nav className="insights-planning-nav" aria-label="Kế hoạch từ Tổng quan">
-          <p className="insights-planning-label">Kế hoạch</p>
-          <ul>
-            {PLANNING_LINKS.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="insights-planning-link">
-                  <Icon name={item.icon} />
-                  <span>
-                    <strong>{item.label}</strong>
-                    {item.description ? <small>{item.description}</small> : null}
-                  </span>
-                  <Icon name="arrowRight" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        {/* Hero: PocketGuard-style safe-to-spend — primary decision above fold */}
+        <article className="safe-card safe-card-hero" aria-label="Có thể chi hôm nay">
+          <div className="safe-card-top">
+            <div>
+              <p>Có thể chi hôm nay</p>
+              <h2 className="font-mono">{formatMoney(totals.safeToday)}</h2>
+            </div>
+            <span className="status-badge">
+              <span /> Gợi ý
+            </span>
+          </div>
+          <div className="safe-meter" aria-label="Mức chi tiêu hôm nay">
+            <span
+              style={{
+                width: `${
+                  totals.dailyAllowance > 0
+                    ? Math.min(100, 100 - (totals.safeToday / totals.dailyAllowance) * 100)
+                    : 0
+                }%`,
+              }}
+            />
+          </div>
+          <p className="safe-explain">{safeExplain}</p>
+          <div className="safe-card-hero-actions">
+            <button
+              type="button"
+              className="hero-add"
+              onClick={openGhiChi}
+              disabled={actionsDisabled}
+            >
+              <Icon name="plus" /> {GHI_CHI_TIEU_LABEL}
+            </button>
+            <Link className="safe-export-link" href={EXPORT_SETTINGS_HREF}>
+              <Icon name="arrowDown" /> {EXPORT_CSV_LABEL}
+            </Link>
+          </div>
+        </article>
 
         <section className="insights-kpi" aria-label="Tóm tắt tháng này">
           <article>
@@ -410,6 +430,24 @@ export function MoneyFlowDashboard({
             <small>Thu trừ chi tháng này</small>
           </article>
         </section>
+
+        <nav className="insights-planning-nav" aria-label="Kế hoạch từ Tổng quan">
+          <p className="insights-planning-label">Kế hoạch</p>
+          <ul>
+            {PLANNING_LINKS.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="insights-planning-link">
+                  <Icon name={item.icon} />
+                  <span>
+                    <strong>{item.label}</strong>
+                    {item.description ? <small>{item.description}</small> : null}
+                  </span>
+                  <Icon name="arrowRight" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
 
         {isEmptyLedger && !workspace.dataError ? (
           <EmptyState
@@ -627,38 +665,6 @@ export function MoneyFlowDashboard({
                   )}
                 </div>
               )}
-            </article>
-
-            <article className="safe-card safe-card-secondary" aria-label="Có thể chi hôm nay">
-              <div className="safe-card-top">
-                <div>
-                  <p>Có thể chi hôm nay</p>
-                  <h2 className="font-mono">{formatMoney(totals.safeToday)}</h2>
-                </div>
-                <span className="status-badge">
-                  <span /> Gợi ý
-                </span>
-              </div>
-              <div className="safe-meter" aria-label="Mức chi tiêu hôm nay">
-                <span
-                  style={{
-                    width: `${
-                      totals.dailyAllowance > 0
-                        ? Math.min(100, 100 - (totals.safeToday / totals.dailyAllowance) * 100)
-                        : 0
-                    }%`,
-                  }}
-                />
-              </div>
-              <p className="safe-explain">{safeExplain}</p>
-              <button
-                type="button"
-                className="hero-add"
-                onClick={openGhiChi}
-                disabled={actionsDisabled}
-              >
-                <Icon name="plus" /> {GHI_CHI_TIEU_LABEL}
-              </button>
             </article>
 
             <article

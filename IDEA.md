@@ -1,14 +1,15 @@
 # MoneyFlow — product IDEA (ship-feature source of truth)
 
 **Stack lock:** Next.js App Router · TypeScript · Supabase Auth/Postgres/RLS · integer VND · Vietnamese UI  
-**Law:** `AGENTS.md` + `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` (G5)
+**Law:** `AGENTS.md` + `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` (G5)  
+**Rebuild plan:** `docs/REBUILD_MASTER_PLAN.md`
 
 ## Positioning
 
 Web **thu chi cá nhân** cho người Việt: nhiều ví, ghi nhanh, thấy tháng này tiền đi đâu, xuất CSV.  
 Không: bank sync · AI advisor · family · inbox brand · AGPL paste.
 
-## MVP checklist (ship-feature picks next unchecked)
+## MVP checklist (core — done)
 
 ### Core daily loop
 - [x] Auth + demo mode
@@ -27,7 +28,23 @@ Không: bank sync · AI advisor · family · inbox brand · AGPL paste.
 - [x] Nav Core vs Nâng cao (inbox Advanced)
 - [x] Landing G5 thu chi
 
-### Quality bar (agent: prefer these next)
+## Rebuild track (agent: ship next unchecked **R***)
+
+Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
+
+- [x] **R0** Auth + UX principles G5 (no inbox brand on login/register)
+- [ ] **R1** Landing visual polish: type hierarchy, mobile spacing, trust bar density (keep RSC, no inbox slogans)
+- [ ] **R2** Onboarding polish: progress 1/3–3/3 clearer, wallet defaults VN, never route to /inbox
+- [ ] **R3** Insights empty + planning cards consistent one-CTA empty states
+- [ ] **R4** Ghi chi dialog: amount autofocus, recent categories order, save-and-add-another UX polish
+- [ ] **R5** Transactions: wire AppShell searchBar for ⌘K; transfer “không tính chi” everywhere
+- [ ] **R6** Budgets/commitments/goals pages: shared card shell + calm thresholds + empty 1 CTA audit
+- [ ] **R7** Reports month view discoverability + export from reports
+- [ ] **R8** Settings privacy/export/delete trust copy pass (G5)
+- [ ] **R9** `npm run test:e2e` expense path green after rebuild slices
+- [ ] **R10** `npm run build` green (demo env) + `scripts/mvp-verify.sh` if present
+
+### Legacy quality bar (still valid if open)
 - [ ] **Q1** `npm run test:e2e` expense path always green (fix if red)
 - [ ] **Q2** `npm run build` green with demo/placeholder Supabase env
 - [ ] **Q3** `scripts/mvp-verify.sh` = lint + typecheck + test + build
@@ -45,10 +62,11 @@ Không: bank sync · AI advisor · family · inbox brand · AGPL paste.
 
 ## How agent works
 
-1. Skill **ship-feature**: next unchecked item under Quality bar  
+1. Skill **ship-feature**: next unchecked item under **Rebuild track** (R*) then Quality bar (Q*)  
 2. Skill **test-driven-development**: test first when behavior changes  
 3. Skill **verification-before-completion**: run lint/typecheck/test before done  
 4. Skill **security-pass**: if touching auth/RLS/actions  
 5. Skill **frontend-qa**: if UI layout/nav/dialog  
+6. Skill **frontend-design**: when visual polish on landing/insights  
 
-When all Quality bar checked → update `docs/MVP_SHIPPED.md`.
+When all Rebuild R* + Quality Q* checked → update `docs/MVP_SHIPPED.md`.

@@ -20,13 +20,13 @@ const copy = {
   login: {
     eyebrow: "Chào mừng trở lại",
     title: "Đăng nhập",
-    description: "Tiếp tục với hộp thư giao dịch của bạn.",
+    description: "Tiếp tục quản lý thu chi của bạn.",
     submit: "Đăng nhập",
   },
   register: {
     eyebrow: "Bắt đầu rõ ràng hơn",
     title: "Tạo tài khoản",
-    description: "Đưa dữ liệu vào Inbox — bạn duyệt trước khi vào sổ.",
+    description: "Ghi thu chi, theo dõi nhiều ví, xuất CSV khi cần.",
     submit: "Tạo tài khoản",
   },
   forgot: {
@@ -43,7 +43,10 @@ const copy = {
   },
 } satisfies Record<Mode, { eyebrow: string; title: string; description: string; submit: string }>;
 
+/** G5 trust — no bank password, ownership. Not inbox-first. */
 const TRUST_MICROCOPY = "Dữ liệu của bạn thuộc về bạn.";
+const TRUST_STORY_LINE =
+  "Số đúng. Chuyển khoản không tính chi. Xuất CSV bất cứ lúc nào. Không mật khẩu ngân hàng.";
 
 const initialState: AuthState = {};
 
@@ -104,7 +107,9 @@ export function AuthForm({
             bao nhiêu.
           </p>
         </div>
-        <blockquote>“{TRUST_MICROCOPY} Không mật khẩu ngân hàng. Bạn duyệt trước khi vào sổ.”</blockquote>
+        <blockquote>
+          “{TRUST_MICROCOPY} {TRUST_STORY_LINE}”
+        </blockquote>
       </section>
 
       <section className="auth-panel">

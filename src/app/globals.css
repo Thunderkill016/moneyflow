@@ -715,7 +715,44 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   padding: 12px 0 4px;
 }
 
-/* Safe-to-spend secondary (not home hero) */
+/* Safe-to-spend hero (PocketGuard) — primary decision on Insights */
+.safe-card.safe-card-hero {
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+.safe-card.safe-card-hero .hero-add {
+  display: inline-flex;
+  width: auto;
+  min-width: 160px;
+  margin-top: 0;
+}
+.safe-card-hero-actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+.safe-export-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: rgb(255 255 255 / 88%);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.safe-export-link:hover {
+  color: white;
+  text-decoration: underline;
+}
+.safe-export-link svg {
+  width: 16px;
+  height: 16px;
+}
+/* legacy secondary (if any remaining surfaces) */
 .safe-card.safe-card-secondary {
   padding: 20px 22px 18px;
 }
@@ -2286,6 +2323,34 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   background: var(--color-bg-primary);
 }
 
+.landing-hero-ctas .landing-hero-login {
+  align-self: center;
+  padding: 0 4px;
+  font-size: 14px;
+}
+.landing-cta-band-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+.landing-cta-band-actions .cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 650;
+  text-decoration: none;
+}
+.landing-cta-band-actions .cta-secondary:hover {
+  border-color: var(--accent, #3b82f6);
+}
 .landing-hero-ctas .cta-secondary:hover {
   background: var(--color-bg-secondary);
 }

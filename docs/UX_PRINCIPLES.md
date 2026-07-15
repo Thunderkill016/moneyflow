@@ -33,19 +33,19 @@
 
 ## 1. Product Philosophy
 
-### The Core Questions (two beats)
+### The Core Questions (G5 — thu chi first)
 
-Money Flow is designed as a **Universal Financial Inbox** first:
+MoneyFlow is a **personal income & expense (thu chi)** web app for Vietnamese users:
 
-1. **Capture & review:** *Giao dịch đã vào và đã được mình duyệt chưa?*  
-   Inbox-first · Capture-first · Review-by-exception.
-2. **Decision (secondary):** *Hôm nay mình có thể chi bao nhiêu?*  
-   Insights after the ledger is trustworthy.
+1. **Decision:** *Hôm nay mình có thể chi bao nhiêu?* — safe-to-spend on Insights home.  
+2. **Capture:** *Ghi thu/chi trong vài giây* — FAB / dialog / quick add (&lt; 10s).  
+3. **Clarity:** *Tháng này tiền đi đâu?* — KPI + top categories + reports.  
+4. **Ownership:** *Data của mình* — export CSV, privacy, delete account.
 
-Manual Quick Add remains first-class for daily coffee-scale entry.  
-Parsers / paste / upload exist to remove re-typing — not to replace user control.
+**Inbox / paste / upload / rules** = **Lab (Nâng cao)** only — optional power tools, **not** product brand or primary nav.
 
-Full UX research & redesign: [`UX_RESEARCH_AND_REDESIGN.md`](./UX_RESEARCH_AND_REDESIGN.md) · wireframes: [`wireframes-inbox.md`](./wireframes-inbox.md).
+Authority: `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` · `docs/REBUILD_MASTER_PLAN.md` · `docs/BEST_OF_MATRIX.md`.  
+Historical inbox wireframes remain reference only: [`UX_RESEARCH_AND_REDESIGN.md`](./UX_RESEARCH_AND_REDESIGN.md).
 
 ### Design Philosophy
 
@@ -64,19 +64,20 @@ MoneyFlow follows "Calm Finance" — financial tools should reduce anxiety, not 
 
 ### What the User Needs (Priority Order)
 
-When a user opens Money Flow:
+When a user opens MoneyFlow:
 
-1. **Inbox còn gì?** — Candidates cần duyệt (badge).
-2. **Đưa data vào** — Paste / Upload / Quick (≤ 2 taps).
-3. **Vì sao máy đoán vậy?** — Source + confidence + explain.
-4. **Sau khi sổ sạch:** có bao nhiêu tiền / có thể chi hôm nay / cần chú ý gì.
+1. **Còn chi được bao nhiêu hôm nay?** — Safe-to-spend hero on Insights.
+2. **Cần chú ý gì?** — Attention strip (budget near, bills due) — Copilot pattern.
+3. **Ghi chi nhanh** — FAB / primary action ≤ 2 taps.
+4. **Thu / chi / số dư tháng** — KPI row; top categories.
+5. **Lab only if needed** — Inbox / import under Nâng cao.
 
-Charts are secondary. **Inbox triage is primary; Insights are secondary.**
+Charts are secondary. **Insights + ghi chi are primary; Inbox is lab.**
 
 ### Three-Second Rule
 
 Every critical action must complete within 3 seconds:
-- Log an expense or income: < 3 seconds
+- Log an expense or income: < 3 seconds (target &lt; 10s end-to-end including category)
 - Check safe-to-spend: < 1 second (visible on launch when data exists)
 - Check account balance: < 2 seconds
 - Pay a recurring bill: < 3 seconds

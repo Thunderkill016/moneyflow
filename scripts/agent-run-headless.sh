@@ -5,16 +5,25 @@ LOG_DIR="$ROOT/logs/agent"
 mkdir -p "$LOG_DIR"
 export PATH="/home/thunder/.local/bin:${PATH}"
 
-# Prefer IDEA.md next checkbox over backlog spam
+# Prefer IDEA.md Rebuild R* then Quality Q* (not backlog spam)
 ITEM=$(python3 - <<'PY'
 from pathlib import Path
 import re
 text = Path("IDEA.md").read_text(encoding="utf-8")
+# First pass: R* rebuild track
+for line in text.splitlines():
+    m = re.match(r"^- \[ \] \*\*(R\d+)\*\* (.+)$", line)
+    if m:
+        print(f"{m.group(1)}: {m.group(2)}")
+        raise SystemExit
+# Second pass: Q* quality bar
 for line in text.splitlines():
     m = re.match(r"^- \[ \] \*\*(Q\d+)\*\* (.+)$", line)
     if m:
         print(f"{m.group(1)}: {m.group(2)}")
-        break
+        raise SystemExit
+# Fallback any other open checkbox (not strikethrough)
+for line in text.splitlines():
     m2 = re.match(r"^- \[ \] (.+)$", line)
     if m2 and not m2.group(1).startswith("~~"):
         print(m2.group(1))
@@ -45,14 +54,15 @@ You are MoneyFlow autopilot at $ROOT. AFK user. No questions.
 MISSION: Ship the next item using Claude/Shipkit-style skills (not busywork).
 
 READ FIRST:
-1. IDEA.md (source of truth checklist)
-2. AGENTS.md (G5 product law)
-3. .agents/skills/ship-feature/SKILL.md
-4. .agents/skills/test-driven-development/SKILL.md
-5. .agents/skills/verification-before-completion/SKILL.md
-6. If UI/visual: .claude/skills/frontend-design/SKILL.md + .agents/skills/frontend-qa/SKILL.md
-7. If need browser verify: .claude/skills/webapp-testing/SKILL.md
-8. If auth/RLS: .agents/skills/security-pass/SKILL.md + supabase-rls
+1. IDEA.md (source of truth checklist — prefer R* rebuild then Q*)
+2. docs/REBUILD_MASTER_PLAN.md + docs/BEST_OF_MATRIX.md
+3. AGENTS.md (G5 product law)
+4. .agents/skills/ship-feature/SKILL.md
+5. .agents/skills/test-driven-development/SKILL.md
+6. .agents/skills/verification-before-completion/SKILL.md
+7. If UI/visual: .claude/skills/frontend-design/SKILL.md OR .grok/skills/frontend-design/SKILL.md + frontend-qa
+8. If need browser verify: webapp-testing skill
+9. If auth/RLS: security-pass + supabase-rls
 
 NEXT ITEM ONLY:
 $ITEM
@@ -62,12 +72,13 @@ EXECUTE:
 2. TDD when changing behavior
 3. Implement under src/ (Next app)
 4. verification-before-completion: run npm run lint && npm run typecheck && npm run test
-   (e2e if Q1; build if Q2/Q3)
+   (e2e if R9/Q1; build if R10/Q2/Q3)
 5. Check off the item in IDEA.md
 6. Commit + push origin main
 7. Do NOT invent new backlog spam tasks
+8. Do NOT stash-destroy user WIP without re-applying; minimal diff only
 
-FORBIDDEN: bank sync, AI advisor, family, OCR, AGPL paste, inbox-first brand
+FORBIDDEN: bank sync, AI advisor, family, OCR, AGPL paste, inbox-first brand on landing/auth
 PROMPT
 
 echo "🤖 $ITEM"

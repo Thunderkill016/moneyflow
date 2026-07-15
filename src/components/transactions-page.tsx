@@ -497,11 +497,10 @@ export function TransactionsPage({
           ) : isTimeline ? (
             <EmptyState
               icon="timeline"
-              title="Chưa có giao dịch đã duyệt"
-              description="Duyệt mục trong hộp thư để đưa khoản vào sổ."
-              actionLabel="Mở hộp thư"
-              actionHref="/inbox"
-              actionIcon="inbox"
+              title="Chưa có giao dịch"
+              description="Ghi khoản chi hoặc thu để dòng tiền hiện trên timeline."
+              actionLabel={GHI_CHI_TIEU_LABEL}
+              onAction={() => setDialogOpen(true)}
               className="filter-empty-as-empty"
             />
           ) : (

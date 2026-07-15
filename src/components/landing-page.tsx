@@ -50,7 +50,10 @@ export function LandingPage() {
               Dùng miễn phí
               <Icon name="arrowRight" size={16} />
             </Link>
-            <Link href="/login" className="cta-secondary">
+            <Link href="/insights" className="cta-secondary">
+              Thử demo
+            </Link>
+            <Link href="/login" className="landing-link landing-hero-login">
               Đăng nhập
             </Link>
           </div>
@@ -262,10 +265,15 @@ export function LandingPage() {
       <section className="landing-cta-band" aria-labelledby="cta-band-heading">
         <h2 id="cta-band-heading">Bắt đầu bằng một khoản chi hôm nay</h2>
         <p>Miễn phí để dùng core. Không cần học phương pháp. Không cần liên kết ngân hàng.</p>
-        <Link href="/register" className="cta-primary">
-          Tạo tài khoản miễn phí
-          <Icon name="arrowRight" />
-        </Link>
+        <div className="landing-cta-band-actions">
+          <Link href="/register" className="cta-primary">
+            Tạo tài khoản miễn phí
+            <Icon name="arrowRight" />
+          </Link>
+          <Link href="/insights" className="cta-secondary">
+            Thử demo không cần tài khoản
+          </Link>
+        </div>
       </section>
 
       <footer className="landing-footer">

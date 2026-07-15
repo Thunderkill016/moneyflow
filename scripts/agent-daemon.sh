@@ -21,20 +21,20 @@ log "🟢 Skill-driven autopilot (IDEA.md + ship-feature) pid $$"
 FAIL=0
 while true; do
   if [[ -f "$ROOT/docs/MVP_SHIPPED.md" ]]; then
-    LEFT=$(grep -cE '^- \[ \] \*\*Q' "$ROOT/IDEA.md" 2>/dev/null || true)
+    LEFT=$(grep -cE '^- \[ \] \*\*(R|Q)[0-9]+' "$ROOT/IDEA.md" 2>/dev/null || true)
     if [[ "${LEFT:-0}" -eq 0 ]]; then
       log "🏆 MVP shipped + IDEA clear — idle 1h"
       sleep 3600
       continue
     fi
   fi
-  LEFT=$(grep -cE '^- \[ \] \*\*Q' "$ROOT/IDEA.md" 2>/dev/null || true)
+  LEFT=$(grep -cE '^- \[ \] \*\*(R|Q)[0-9]+' "$ROOT/IDEA.md" 2>/dev/null || true)
   if [[ "${LEFT:-0}" -eq 0 ]]; then
-    log "📭 IDEA Quality bar empty — idle 30m"
+    log "📭 IDEA Rebuild/Quality bar empty — idle 30m"
     sleep 1800
     continue
   fi
-  log "📋 IDEA items left=$LEFT — orchestrator"
+  log "📋 IDEA items left=$LEFT (R*/Q*) — orchestrator"
   set +e
   bash "$ROOT/scripts/agent-orchestrator.sh" >> "$LOGFILE" 2>&1
   EXIT=$?
