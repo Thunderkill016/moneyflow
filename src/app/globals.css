@@ -6361,6 +6361,24 @@ dialog.transaction-dialog {
   }
 }
 
+/* Below-fold insights panels — skip offscreen paint until near viewport */
+.insights-dashboard .weekly-summary-panel,
+.insights-dashboard .insights-planning-nav,
+.insights-dashboard .categories-panel,
+.insights-dashboard .transactions-panel,
+.insights-dashboard .budget-panel,
+.insights-dashboard .insight-panel,
+.insights-dashboard .goal-dashboard-panel {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+/* EmptyState inside former filter-empty slot */
+.filter-empty-as-empty {
+  margin: 24px auto;
+  max-width: 420px;
+}
+
 /* Attention strip — daily loop “cần chú ý” */
 .attention-strip {
   margin: 0 0 20px;

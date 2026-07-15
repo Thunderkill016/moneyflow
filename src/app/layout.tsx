@@ -44,8 +44,11 @@ export default function RootLayout({
     <html
       lang="vi"
       className={`${inter.variable} ${jetbrainsMono.variable} ${inter.className}`}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
     >
       <head>
+        {/* Theme before paint — suppressHydrationWarning on <html> avoids data-theme mismatch. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `

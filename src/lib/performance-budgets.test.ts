@@ -48,10 +48,12 @@ test("home page avoids getViewer round-trip on public landing", () => {
   assert.match(source, /LandingPage/);
 });
 
-test("proxy skips auth getClaims on public / without session cookies", () => {
+test("proxy skips auth getClaims on public pages without session cookies", () => {
   const source = read("src/lib/supabase/proxy.ts");
   assert.match(source, /hasSupabaseAuthCookie/);
-  assert.match(source, /path === "\/"/);
+  assert.match(source, /PUBLIC_NO_AUTH_PATHS|isPublicNoAuthPath/);
+  assert.match(source, /\/landing/);
+  assert.match(source, /\/privacy/);
   assert.match(source, /getClaims/);
 });
 
@@ -62,12 +64,22 @@ test("root layout font strategy favors LCP and reduces CLS", () => {
   assert.match(source, /preload:\s*true/);
   assert.match(source, /preload:\s*false/);
   assert.match(source, /export const viewport/);
+  assert.match(source, /suppressHydrationWarning/);
+  assert.match(source, /data-scroll-behavior/);
 });
 
 test("insights dashboard defers AddTransactionDialog chunk", () => {
   const source = read("src/components/moneyflow-dashboard.tsx");
   assert.match(source, /dynamic\(/);
   assert.match(source, /add-transaction-dialog/);
+  assert.match(source, /ssr:\s*false/);
+});
+
+test("transactions page code-splits dialogs for smaller first paint", () => {
+  const source = read("src/components/transactions-page.tsx");
+  assert.match(source, /dynamic\(/);
+  assert.match(source, /add-transaction-dialog/);
+  assert.match(source, /transfer-dialog/);
   assert.match(source, /ssr:\s*false/);
 });
 

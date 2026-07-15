@@ -29,14 +29,23 @@ function hasSupabaseAuthCookie(request: NextRequest): boolean {
     .some((cookie) => cookie.name.startsWith("sb-") && cookie.name.includes("auth"));
 }
 
+/** Public marketing / legal — no session refresh when cookies absent (TTFB/LCP). */
+const PUBLIC_NO_AUTH_PATHS = ["/", "/landing", "/privacy"] as const;
+
+function isPublicNoAuthPath(path: string): boolean {
+  return (PUBLIC_NO_AUTH_PATHS as readonly string[]).some(
+    (p) => path === p || (p !== "/" && path.startsWith(`${p}/`)),
+  );
+}
+
 export async function updateSession(request: NextRequest) {
   const config = getSupabaseConfig();
   if (!config) return NextResponse.next({ request });
 
   const path = request.nextUrl.pathname;
 
-  // TASK-132 LCP: public marketing `/` with no session cookies skips auth getClaims.
-  if (path === "/" && !hasSupabaseAuthCookie(request)) {
+  // LCP/TTFB: public pages without session cookies skip auth getClaims.
+  if (isPublicNoAuthPath(path) && !hasSupabaseAuthCookie(request)) {
     return NextResponse.next({ request });
   }
 

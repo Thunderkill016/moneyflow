@@ -133,16 +133,30 @@ export function MoneyFlowDashboard({
     return () => window.cancelAnimationFrame(frame);
   }, [viewer.isDemo, commitments, incomeTemplates, workspace.today]);
 
+  // Lab inbox badge — idle only (not on every toast); keeps insights INP calm.
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
       try {
         setInboxCount(countPending(readStoredCandidates()));
       } catch {
         setInboxCount(0);
       }
-    });
-    return () => window.cancelAnimationFrame(frame);
-  }, [transactions.length, notice]);
+    };
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(run, { timeout: 1500 });
+      return () => {
+        cancelled = true;
+        window.cancelIdleCallback(id);
+      };
+    }
+    const t = window.setTimeout(run, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [transactions.length]);
 
   useEffect(() => {
     if (!notice) return;
@@ -269,6 +283,7 @@ export function MoneyFlowDashboard({
   return (
     <AppShell
       viewer={viewer}
+      inboxCount={inboxCount}
       primaryAction={{
         label: GHI_CHI_TIEU_LABEL,
         onClick: openGhiChi,

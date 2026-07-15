@@ -1,8 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon, type IconName } from "@/components/icons";
 import { useTransactions } from "@/hooks/use-transactions";
 import { formatMoney } from "@/lib/money";
@@ -14,9 +14,6 @@ import {
   type Transaction,
 } from "@/lib/sample-data";
 import { type ViewerSummary } from "@/components/user-chip";
-import { TransferDialog } from "@/components/transfer-dialog";
-import { SplitExpenseDialog } from "@/components/split-expense-dialog";
-import { EditTransactionDialog } from "@/components/edit-transaction-dialog";
 import type {
   CreateSplitExpenseInput,
   CreateTransferInput,
@@ -34,6 +31,34 @@ import {
   nextVisibleCount,
   windowTransactions,
 } from "@/lib/transaction-list";
+
+/** Defer dialog chunks until user opens them — smaller first paint on /transactions. */
+const AddTransactionDialog = dynamic(
+  () =>
+    import("@/components/add-transaction-dialog").then(
+      (mod) => mod.AddTransactionDialog,
+    ),
+  { ssr: false },
+);
+const TransferDialog = dynamic(
+  () =>
+    import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  { ssr: false },
+);
+const SplitExpenseDialog = dynamic(
+  () =>
+    import("@/components/split-expense-dialog").then(
+      (mod) => mod.SplitExpenseDialog,
+    ),
+  { ssr: false },
+);
+const EditTransactionDialog = dynamic(
+  () =>
+    import("@/components/edit-transaction-dialog").then(
+      (mod) => mod.EditTransactionDialog,
+    ),
+  { ssr: false },
+);
 
 /** Undo window for soft-delete (design-system: 8s with Hoàn tác). */
 const DELETE_UNDO_MS = 8000;

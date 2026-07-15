@@ -36,14 +36,19 @@ Environment used for this task (agent machine, 2026-07-15):
 | **Landing `/`** | **Target ≤ 2.5s** — path optimized for static HTML LCP (hero `h1`) | **Target ≤ 0.1** — reserved hero/preview heights + size-adjusted font fallback | Server Component landing; no auth `getClaims` when no session cookies |
 | **Insights `/insights`** | **Target ≤ 2.5s** — `loading.tsx` shell + deferred dialog chunk | **Target ≤ 0.1** — KPI `min-height` + tabular nums + layout contain | Dialog code-split; mono font not preloaded |
 
-### Mitigations shipped (TASK-132)
+### Mitigations shipped (TASK-132 + speed pass)
 
 1. **Landing is a Server Component** — no `"use client"`; LCP text in first HTML paint.
-2. **Home routing** — authenticated `/` → `/insights` in proxy; public `/` skips Supabase `getClaims` without auth cookies (faster TTFB/LCP).
+2. **Home routing** — authenticated `/` → `/insights` in proxy; public `/`, `/landing`, `/privacy` skip Supabase `getClaims` without auth cookies (faster TTFB/LCP).
 3. **Fonts** — Inter preloaded + `adjustFontFallback`; JetBrains Mono `preload: false` (not LCP).
 4. **CLS reserves** — hero/preview `min-height`, KPI strong min-height + tabular-nums, `content-visibility` on below-fold landing sections.
 5. **Insights JS** — `AddTransactionDialog` dynamic import (`ssr: false`) so first paint path is lighter.
 6. **Viewport metadata** — explicit `viewport` + theme-color (no late layout from missing meta).
+7. **Hydration** — `suppressHydrationWarning` + theme bootstrap on `<html>`; `data-scroll-behavior="smooth"`.
+8. **Transactions JS** — add/transfer/split/edit dialogs code-split (`dynamic` + `ssr: false`).
+9. **lucide-react** — `optimizePackageImports` in `next.config.ts`.
+10. **Offscreen paint** — `content-visibility: auto` on below-fold insights panels.
+11. **Inbox badge** — `requestIdleCallback`; wire `inboxCount` into AppShell on insights.
 
 ### How to re-measure with Lighthouse
 
