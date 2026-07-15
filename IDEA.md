@@ -42,7 +42,7 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [x] **R7** Reports month view discoverability + export from reports
 - [x] **R8** Settings privacy/export/delete trust copy pass (G5)
 - [x] **R9** `npm run test:e2e` expense path green after rebuild slices
-- [ ] **R10** `npm run build` green (demo env) + `scripts/mvp-verify.sh` if present
+- [x] **R10** `npm run build` green (demo env) + `scripts/mvp-verify.sh` if present
 
 ### Legacy quality bar (still valid if open)
 - [ ] **Q1** `npm run test:e2e` expense path always green (fix if red)
