@@ -96,6 +96,9 @@
   --z-sticky: 5;
   --z-dropdown: 10;
   --z-sidebar: 20;
+  /* Mobile bottom chrome above sticky demo banner (Q5) */
+  --z-mobile-fab: 34;
+  --z-mobile-nav: 35;
   --z-overlay: 100;
   --z-modal: 101;
   --z-toast: 1000;
@@ -2293,7 +2296,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   .mobile-nav {
     position: fixed;
     inset: auto 0 0;
-    z-index: 35;
+    z-index: var(--z-mobile-nav);
     display: grid;
     height: auto;
     min-height: var(--mobile-nav-height);
@@ -2361,7 +2364,8 @@ a.desktop-search-link:hover { border-color: #9abda8; }
     bottom: calc(
       var(--mobile-nav-height) + var(--mobile-fab-gap) + env(safe-area-inset-bottom, 0px)
     );
-    z-index: 34;
+    /* Above sticky demo banner (--z-sticky); below nav (Q5) */
+    z-index: var(--z-mobile-fab);
     display: grid;
     width: var(--mobile-fab-size);
     height: var(--mobile-fab-size);
@@ -3729,6 +3733,10 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   flex: 1 1 auto;
   min-width: 0;
   font-weight: 550;
+  /* Q5: single-line under topbar — banner must not grow over bottom FAB */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .demo-mode-banner-cta {
   flex: 0 0 auto;
@@ -3757,10 +3765,14 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 
 @media (max-width: 760px) {
   .demo-mode-banner {
+    /* Stay under mobile topbar; z stays --z-sticky (below FAB) — Q5 */
     top: 66px;
+    z-index: var(--z-sticky);
     padding: 9px 16px;
     font-size: 12px;
     gap: 8px;
+    flex-wrap: nowrap;
+    max-height: 44px;
   }
   .demo-mode-banner-cta {
     min-height: 30px;
