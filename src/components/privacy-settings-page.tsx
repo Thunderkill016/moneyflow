@@ -20,8 +20,8 @@ import {
 } from "@/lib/privacy-prefs";
 
 /**
- * Privacy settings (wireframes-inbox §18).
- * Local prefs: raw retention + opt-in improve parser (default off).
+ * Privacy settings (wireframes-inbox §18 + R8 G5 trust).
+ * Lead with ownership / no bank password; lab raw/parser prefs secondary.
  */
 export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
   const formId = useId();
@@ -120,18 +120,36 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
             <p className="eyebrow">Cài đặt</p>
             <h1>Quyền riêng tư</h1>
             <p>
-              Kiểm soát thời gian giữ file gốc và việc dùng mẫu ẩn danh. Mặc định
-              không gửi dữ liệu để cải thiện parser.
+              <strong>Dữ liệu của bạn thuộc về bạn.</strong> MoneyFlow không hỏi
+              mật khẩu ngân hàng. Bạn xuất hoặc xóa bất cứ lúc nào.
             </p>
+            <ul className="settings-trust-bar" aria-label="Cam kết tin cậy">
+              <li>
+                <Icon name="lock" size={14} />
+                <span>Không mật khẩu NH</span>
+              </li>
+              <li>
+                <Icon name="arrowDown" size={14} />
+                <span>Xuất CSV</span>
+              </li>
+              <li>
+                <Icon name="trash" size={14} />
+                <span>Xóa khi muốn</span>
+              </li>
+            </ul>
           </div>
           <div className="page-heading-actions">
             <Link className="secondary-button" href="/settings">
               <Icon name="settings" />
               Cài đặt
             </Link>
-            <Link className="secondary-button" href="/inbox">
-              <Icon name="inbox" />
-              Inbox
+            <Link className="secondary-button" href="/settings/export">
+              <Icon name="arrowDown" />
+              Xuất dữ liệu
+            </Link>
+            <Link className="secondary-button" href="/privacy">
+              <Icon name="lock" />
+              Chính sách
             </Link>
           </div>
         </section>
@@ -165,13 +183,35 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
             noValidate
           >
             <section
+              className="panel privacy-panel privacy-trust-panel"
+              aria-labelledby={`${formId}-trust-heading`}
+            >
+              <h2 id={`${formId}-trust-heading`}>Cam kết tin cậy</h2>
+              <p className="privacy-panel-lead">
+                Không kết nối ngân hàng, không lấy mật khẩu NH / OTP. Sổ thu chi
+                của bạn — mang đi (xuất) hoặc xóa khi cần. Chi tiết:{" "}
+                <Link href="/privacy">chính sách quyền riêng tư</Link>.
+              </p>
+              <ul className="privacy-trust-links">
+                <li>
+                  <Link href="/settings/export">Xuất dữ liệu (CSV/JSON)</Link>
+                </li>
+                <li>
+                  <Link href="/settings/delete-account">Xóa tài khoản / dữ liệu thiết bị</Link>
+                </li>
+              </ul>
+            </section>
+
+            <section
               className="panel privacy-panel"
               aria-labelledby={`${formId}-retention-heading`}
             >
-              <h2 id={`${formId}-retention-heading`}>Lưu file gốc (raw)</h2>
+              <h2 id={`${formId}-retention-heading`}>
+                Lưu file gốc (import · Nâng cao)
+              </h2>
               <p className="privacy-panel-lead">
-                Áp dụng cho meta / bản nháp import trên thiết bị này. Bản
-                local-first không upload file gốc lên máy chủ.
+                Chỉ áp dụng khi bạn dán/tải sao kê. Ghi tay thu chi không cần
+                giữ file gốc. Bản local-first không upload raw lên máy chủ.
               </p>
               <fieldset className="privacy-fieldset">
                 <legend className="sr-only">Thời gian giữ file gốc</legend>
@@ -209,7 +249,7 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
               className="panel privacy-panel"
               aria-labelledby={`${formId}-improve-heading`}
             >
-              <h2 id={`${formId}-improve-heading`}>Cải thiện parser</h2>
+              <h2 id={`${formId}-improve-heading`}>Cải thiện parser (tùy chọn)</h2>
               <label
                 className="privacy-check-row"
                 htmlFor={`${formId}-improve`}

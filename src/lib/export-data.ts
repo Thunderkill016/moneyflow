@@ -243,17 +243,18 @@ export const EXPORT_KIND_OPTIONS: {
 }[] = [
   {
     value: "transactions",
-    label: "Giao dịch đã duyệt",
-    description: "Sổ thu chi / timeline đã ghi nhận.",
+    label: "Sổ thu chi",
+    description: "Giao dịch đã ghi — mang đi dưới dạng CSV hoặc JSON.",
   },
   {
     value: "candidates",
-    label: "Ứng viên inbox",
-    description: "Ứng viên local trên thiết bị này (chờ duyệt, đã duyệt, từ chối).",
+    label: "Ứng viên (Nâng cao)",
+    description:
+      "Tùy chọn: ứng viên local trên thiết bị (không bắt buộc cho ghi tay).",
   },
   {
     value: "all",
     label: "Toàn bộ JSON",
-    description: "Gộp giao dịch + ứng viên thành một file JSON.",
+    description: "Gộp sổ thu chi + ứng viên (Nâng cao) thành một file JSON.",
   },
 ];

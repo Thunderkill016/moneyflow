@@ -40,7 +40,7 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [x] **R5** Transactions: wire AppShell searchBar for ⌘K; transfer “không tính chi” everywhere
 - [x] **R6** Budgets/commitments/goals pages: shared card shell + calm thresholds + empty 1 CTA audit
 - [x] **R7** Reports month view discoverability + export from reports
-- [ ] **R8** Settings privacy/export/delete trust copy pass (G5)
+- [x] **R8** Settings privacy/export/delete trust copy pass (G5)
 - [ ] **R9** `npm run test:e2e` expense path green after rebuild slices
 - [ ] **R10** `npm run build` green (demo env) + `scripts/mvp-verify.sh` if present
 

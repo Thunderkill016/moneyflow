@@ -67,7 +67,11 @@ test("clearLocalMoneyFlowStores no-ops with null storage", () => {
 });
 
 test("server delete limitation copy is non-empty Vietnamese note", () => {
-  assert.ok(SERVER_DELETE_LIMITATION_VI.includes("service_role"));
+  assert.ok(SERVER_DELETE_LIMITATION_VI.includes("support@moneyflow.app"));
+  assert.ok(
+    SERVER_DELETE_LIMITATION_VI.includes("chưa tự phục vụ") ||
+      SERVER_DELETE_LIMITATION_VI.includes("chưa có trong app"),
+  );
   assert.ok(SERVER_DELETE_LIMITATION_VI.length > 40);
 });
 

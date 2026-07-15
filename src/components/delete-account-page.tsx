@@ -113,10 +113,21 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
             <p className="eyebrow">Cài đặt · Vùng nguy hiểm</p>
             <h1>Xóa tài khoản</h1>
             <p>
-              Thao tác không hoàn tác sau khi hoàn tất trên thiết bị này. Nên{" "}
-              <Link href="/settings/export">xuất dữ liệu</Link> trước nếu bạn còn
-              cần bản sao.
+              Bạn có thể xóa dữ liệu khi muốn. Thao tác{" "}
+              <strong>không hoàn tác</strong> sau khi hoàn tất trên thiết bị này.
+              Nên <Link href="/settings/export">xuất dữ liệu (CSV)</Link> trước
+              nếu bạn còn cần bản sao.
             </p>
+            <ul className="settings-trust-bar" aria-label="Trước khi xóa">
+              <li>
+                <Icon name="arrowDown" size={14} />
+                <span>Xuất trước khi xóa</span>
+              </li>
+              <li>
+                <Icon name="lock" size={14} />
+                <span>Hạn chế máy chủ ghi rõ</span>
+              </li>
+            </ul>
           </div>
           <div className="page-heading-actions">
             <Link className="secondary-button" href="/settings">
@@ -169,13 +180,12 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
               className="panel delete-account-danger-panel"
               aria-labelledby={`${formId}-will-heading`}
             >
-              <h2 id={`${formId}-will-heading`}>Sẽ xóa</h2>
+              <h2 id={`${formId}-will-heading`}>Sẽ xóa trên thiết bị này</h2>
               <ul className="delete-account-list">
-                <li>Hồ sơ / tùy chọn trên thiết bị (privacy, quick-add, onboarding)</li>
-                <li>Inbox — ứng viên chờ duyệt</li>
+                <li>Tùy chọn local (quyền riêng tư, nhập nhanh, onboarding)</li>
                 <li>Sổ giao dịch demo trên trình duyệt (nếu có)</li>
-                <li>File raw / lô import / bản nháp map cột</li>
-                <li>Rules phân loại cục bộ</li>
+                <li>Ứng viên / import / rules local (Nâng cao, nếu có)</li>
+                <li>File raw và bản nháp map cột (nếu có)</li>
               </ul>
               <p className="delete-account-irreversible">
                 Không hoàn tác sau khi hoàn tất trên thiết bị này.

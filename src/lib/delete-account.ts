@@ -102,6 +102,7 @@ export function clearLocalMoneyFlowStores(
 
 /**
  * Documented product note for UI / support (server hard-delete not self-serve).
+ * Calm VN copy — honest about limits; contact path for full server wipe.
  */
 export const SERVER_DELETE_LIMITATION_VI =
-  "Phiên đăng nhập đã kết thúc. Xóa vĩnh viễn tài khoản Auth và dữ liệu trên máy chủ Supabase cần service_role / job quản trị — chưa có trong app client. Liên hệ hỗ trợ nếu bạn cần xóa hẳn hồ sơ trên server.";
+  "Sau khi xóa, phiên đăng nhập sẽ kết thúc. Xóa hẳn tài khoản Auth và sổ trên máy chủ chưa tự phục vụ trong app — liên hệ support@moneyflow.app nếu bạn cần xóa hồ sơ server. Hạn chế này được ghi rõ, không che giấu.";

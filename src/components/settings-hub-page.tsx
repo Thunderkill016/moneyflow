@@ -28,7 +28,7 @@ const SETTINGS_LINKS: SettingsLink[] = [
   {
     href: "/settings/privacy",
     title: "Quyền riêng tư",
-    description: "Giữ file gốc, opt-in cải thiện parser, nhật ký xuất/xóa.",
+    description: "Không mật khẩu NH. Tùy chọn local, xuất và xóa dữ liệu.",
     icon: "lock",
   },
   {
@@ -40,7 +40,7 @@ const SETTINGS_LINKS: SettingsLink[] = [
   {
     href: "/settings/export",
     title: "Xuất dữ liệu",
-    description: "Tải giao dịch đã duyệt hoặc ứng viên Inbox (CSV/JSON).",
+    description: "Tải sổ thu chi (CSV/JSON). File tạo trên thiết bị của bạn.",
     icon: "arrowDown",
   },
   {
@@ -52,7 +52,7 @@ const SETTINGS_LINKS: SettingsLink[] = [
   {
     href: "/settings/delete-account",
     title: "Xóa tài khoản",
-    description: "Xóa dữ liệu trên thiết bị. Không hoàn tác.",
+    description: "Xóa dữ liệu trên thiết bị. Hạn chế máy chủ được ghi rõ.",
     icon: "trash",
     danger: true,
   },
@@ -60,7 +60,7 @@ const SETTINGS_LINKS: SettingsLink[] = [
 
 /**
  * Settings hub (sitemap /settings).
- * Links privacy, export, appearance, delete-account.
+ * R8 trust: ownership + G5 promises; Lab not branded in heading.
  */
 export function SettingsHubPage({ viewer }: { viewer: ViewerSummary }) {
   const [ready, setReady] = useState(false);
@@ -92,14 +92,32 @@ export function SettingsHubPage({ viewer }: { viewer: ViewerSummary }) {
             <p className="eyebrow">Tài khoản</p>
             <h1>Cài đặt</h1>
             <p>
-              Danh mục thu chi, quyền riêng tư, thông báo cam kết, xuất dữ liệu,
-              giao diện và xóa tài khoản. Dữ liệu của bạn thuộc về bạn.
+              Quyền riêng tư, xuất dữ liệu và xóa tài khoản —{" "}
+              <strong>Dữ liệu của bạn thuộc về bạn.</strong>
             </p>
+            <ul className="settings-trust-bar" aria-label="Cam kết tin cậy">
+              <li>
+                <Icon name="lock" size={14} />
+                <span>Không mật khẩu NH</span>
+              </li>
+              <li>
+                <Icon name="arrowDown" size={14} />
+                <span>Xuất CSV bất cứ lúc nào</span>
+              </li>
+              <li>
+                <Icon name="trash" size={14} />
+                <span>Xóa khi bạn muốn</span>
+              </li>
+            </ul>
           </div>
           <div className="page-heading-actions">
-            <Link className="secondary-button" href="/inbox">
-              <Icon name="inbox" />
-              Inbox
+            <Link className="secondary-button" href="/settings/export">
+              <Icon name="arrowDown" />
+              Xuất dữ liệu
+            </Link>
+            <Link className="secondary-button" href="/privacy">
+              <Icon name="lock" />
+              Chính sách
             </Link>
           </div>
         </section>

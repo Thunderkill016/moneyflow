@@ -147,10 +147,20 @@ export function ExportSettingsPage({
             <p className="eyebrow">Cài đặt</p>
             <h1>Xuất dữ liệu</h1>
             <p>
-              Tải giao dịch đã duyệt và/hoặc ứng viên Inbox dưới dạng CSV hoặc
-              JSON. File được tạo trên thiết bị của bạn — không gửi lên máy chủ
-              chỉ để xuất.
+              <strong>Dữ liệu của bạn thuộc về bạn.</strong> Tải sổ thu chi
+              (CSV/JSON) bất cứ lúc nào. File được tạo trên thiết bị của bạn —
+              không gửi lên máy chủ chỉ để xuất.
             </p>
+            <ul className="settings-trust-bar" aria-label="Cam kết tin cậy">
+              <li>
+                <Icon name="arrowDown" size={14} />
+                <span>Xuất CSV bất cứ lúc nào</span>
+              </li>
+              <li>
+                <Icon name="lock" size={14} />
+                <span>File trên thiết bị</span>
+              </li>
+            </ul>
           </div>
           <div className="page-heading-actions">
             <Link className="secondary-button" href="/settings">
@@ -160,10 +170,6 @@ export function ExportSettingsPage({
             <Link className="secondary-button" href="/settings/privacy">
               <Icon name="lock" />
               Quyền riêng tư
-            </Link>
-            <Link className="secondary-button" href="/inbox">
-              <Icon name="inbox" />
-              Inbox
             </Link>
           </div>
         </section>
@@ -347,14 +353,11 @@ export function ExportSettingsPage({
                 <div className="export-empty">
                   <p>
                     Không có mục nào khớp bộ lọc hiện tại. Thử nới khoảng ngày
-                    hoặc đổi loại dữ liệu.
+                    hoặc đổi loại dữ liệu — hoặc ghi thêm giao dịch rồi xuất.
                   </p>
                   <div className="export-empty-actions">
-                    <Link className="secondary-button" href="/inbox">
-                      Vào Inbox
-                    </Link>
-                    <Link className="secondary-button" href="/timeline">
-                      Timeline đã duyệt
+                    <Link className="primary-button" href="/transactions">
+                      Xem giao dịch
                     </Link>
                   </div>
                 </div>
