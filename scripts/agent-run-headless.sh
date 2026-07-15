@@ -1,69 +1,76 @@
 #!/usr/bin/env bash
-# One Grok headless session for next Money Flow backlog task
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_DIR="$ROOT/logs/agent"
-TASK_FILE="$LOG_DIR/.next-task.json"
 mkdir -p "$LOG_DIR"
-DRY_RUN=0
-[[ "${1:-}" == "--dry-run" ]] && DRY_RUN=1
-
 export PATH="/home/thunder/.local/bin:${PATH}"
 
-bash "$ROOT/scripts/agent-pick-task.sh" >/dev/null
-TASK_ID=$(python3 -c "import json; print(json.load(open('$TASK_FILE'))['task_id'])")
-TASK_DESC=$(python3 -c "import json; print(json.load(open('$TASK_FILE'))['task_desc'])")
+# Prefer IDEA.md next checkbox over backlog spam
+ITEM=$(python3 - <<'PY'
+from pathlib import Path
+import re
+text = Path("IDEA.md").read_text(encoding="utf-8")
+for line in text.splitlines():
+    m = re.match(r"^- \[ \] \*\*(Q\d+)\*\* (.+)$", line)
+    if m:
+        print(f"{m.group(1)}: {m.group(2)}")
+        break
+    m2 = re.match(r"^- \[ \] (.+)$", line)
+    if m2 and not m2.group(1).startswith("~~"):
+        print(m2.group(1))
+        break
+PY
+)
 
-if [[ -z "$TASK_ID" ]]; then
-  echo "✅ No ready tasks"
-  exit 0
+if [[ -z "${ITEM}" ]]; then
+  # fallback backlog
+  bash "$ROOT/scripts/agent-pick-task.sh" >/dev/null || true
+  TASK_ID=$(python3 -c "import json; print(json.load(open('$LOG_DIR/.next-task.json')).get('task_id',''))" 2>/dev/null || true)
+  TASK_DESC=$(python3 -c "import json; print(json.load(open('$LOG_DIR/.next-task.json')).get('task_desc',''))" 2>/dev/null || true)
+  if [[ -z "$TASK_ID" ]]; then
+    echo "✅ IDEA.md Quality bar complete — no work"
+    exit 0
+  fi
+  ITEM="$TASK_ID: $TASK_DESC"
 fi
 
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
-LOG_FILE="$LOG_DIR/${STAMP}_${TASK_ID}.log"
-PROMPT_FILE="$LOG_DIR/${STAMP}_${TASK_ID}.prompt.txt"
+SAFE=$(echo "$ITEM" | tr -cd 'A-Za-z0-9_-' | cut -c1-40)
+LOG_FILE="$LOG_DIR/${STAMP}_${SAFE}.log"
+PROMPT_FILE="$LOG_DIR/${STAMP}_${SAFE}.prompt.txt"
 
 cat > "$PROMPT_FILE" <<PROMPT
-You are the 24/7 autopilot agent for MoneyFlow at $ROOT.
-User is AFK. Do NOT ask questions. Decide and ship.
-MISSION: Keep improving until docs/MVP_BEST_BAR.md is met and docs/MVP_SHIPPED.md exists.
-After task: bash scripts/agent-ensure-work.sh if ready low.
-Never invent bank sync, AI advisor, family, OCR, AGPL paste.
+You are MoneyFlow autopilot at $ROOT. AFK user. No questions.
 
-PHASE 1 — READ:
-- AGENTS.md (G5 product law + skill routing)
-- AGENT_BACKLOG.md, docs/BEST_OF_MATRIX.md, docs/research/05_PRODUCT_AND_ARCHITECTURE.md
-- .grok/skills/moneyflow-web/SKILL.md and moneyflow-check/SKILL.md
-- Inspect existing src/ patterns (AppShell, money integers, EmptyState)
+MISSION: Ship the next item using Claude/Shipkit-style skills (not busywork).
 
-PHASE 2 — SINGLE TASK ONLY: $TASK_ID
-$TASK_DESC
+READ FIRST:
+1. IDEA.md (source of truth checklist)
+2. AGENTS.md (G5 product law)
+3. .agents/skills/ship-feature/SKILL.md
+4. .agents/skills/test-driven-development/SKILL.md
+5. .agents/skills/verification-before-completion/SKILL.md
+6. If UI: .agents/skills/frontend-qa/SKILL.md
+7. If auth/RLS: .agents/skills/security-pass/SKILL.md + supabase-rls
 
-PHASE 3 — EXECUTE:
-1. Set this task Status to in_progress in AGENT_BACKLOG.md
-2. Minimal implementation for THIS task only (no feature dump)
-3. Run: npm run lint && npm run typecheck && npm run test
-4. If routes/layout/perf: npm run build when feasible; e2e if expense path
-5. On success: git add (never .env.local, never logs/), commit "feat(autopilot): $TASK_ID short summary", git push origin main
-6. Set Status to done, Completed + SHA; append nhật ký row
-7. On hard block: Status blocked + reason; never force-push
+NEXT ITEM ONLY:
+$ITEM
 
-Rules (G5):
-- Product = thu chi cá nhân — NOT inbox-first brand / NOT landing "Hộp thư"
-- Money = integer VND đồng; transfer never counts as expense
-- Lab (inbox/import/rules) stays under Nâng cao
-- Forbidden without human: bank sync, AI advisor, family, OCR, AGPL copy
-- Calm Vietnamese UI; empty state one primary CTA
-- Use moneyflow-web / moneyflow-check skill patterns
+EXECUTE:
+1. Follow ship-feature: smallest vertical slice for THIS item only
+2. TDD when changing behavior
+3. Implement under src/ (Next app)
+4. verification-before-completion: run npm run lint && npm run typecheck && npm run test
+   (e2e if Q1; build if Q2/Q3)
+5. Check off the item in IDEA.md
+6. Commit + push origin main
+7. Do NOT invent new backlog spam tasks
+
+FORBIDDEN: bank sync, AI advisor, family, OCR, AGPL paste, inbox-first brand
 PROMPT
 
-echo "🤖 $TASK_ID"
+echo "🤖 $ITEM"
 echo "📝 $LOG_FILE"
-
-if [[ "$DRY_RUN" == 1 ]]; then
-  cat "$PROMPT_FILE"
-  exit 0
-fi
 
 if ! command -v grok >/dev/null 2>&1; then
   echo "❌ grok CLI not found"
@@ -75,7 +82,7 @@ set +e
 grok --prompt-file "$PROMPT_FILE" \
   --cwd "$ROOT" \
   --yolo \
-  --max-turns 100 \
+  --max-turns 80 \
   --output-format plain \
   2>&1 | tee "$LOG_FILE"
 EXIT_CODE=${PIPESTATUS[0]}

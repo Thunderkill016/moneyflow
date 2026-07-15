@@ -1,30 +1,37 @@
 ---
 name: moneyflow-autopilot
 description: >
-  MoneyFlow autopilot until best-in-class PFM MVP. Tasks only from
-  08_PFM_BEST_IN_CLASS + competitor gap scanner — no busywork.
+  MoneyFlow AFK autopilot using Claude/Shipkit-style skills: ship-feature from IDEA.md,
+  TDD, verification-before-completion, security-pass, frontend-qa. Not busywork backlog.
   Triggers: autopilot, 24/7, /moneyflow-autopilot.
 ---
 
-# Autopilot — knowledge-driven only
+# MoneyFlow Autopilot (skill-driven)
 
-## Mission
-Close real gaps vs best PFM webs (ML, Ivy, Firefly, Actual, Copilot, Monarch…)
-until `docs/COMPETITOR_GAP_REPORT.md` is all ✅ → `MVP_SHIPPED.md`.
+## Stop thrashing
 
-## Generate work
-```bash
-bash scripts/agent-ensure-work.sh
-# → refill pool, promote valuable deferred,
-#   python3 scripts/agent-competitor-gap.py  # JTBD + competitor + Done khi
-```
+Do **not** invent 40 confirm-only tasks. Work from **`IDEA.md` Quality bar** only.
 
-## Never inject
-- “Run tests if green only log”
-- Quality cycles without product gap
-- Bank sync / AI / family / AGPL paste / inbox brand
+## Each session (ONE IDEA checkbox)
 
-## Read first
-- docs/research/08_PFM_BEST_IN_CLASS.md
-- docs/MVP_BEST_BAR.md
-- AGENTS.md G5
+1. Read `IDEA.md` → next unchecked Quality item (Q1, Q2, …)  
+2. Load skills in order:
+   - **ship-feature** (how to slice)
+   - **test-driven-development** if behavior changes
+   - **frontend-qa** if UI
+   - **security-pass** if auth/RLS/actions
+   - **verification-before-completion** before claiming done  
+3. Implement minimal slice  
+4. `npm run lint && npm run typecheck && npm run test` (+ e2e/build if required by item)  
+5. Check the box in `IDEA.md`  
+6. Commit + push  
+7. If all Quality boxes checked → write/update `docs/MVP_SHIPPED.md`
+
+## Optional backlog
+
+Only create `AGENT_BACKLOG` tasks that map 1:1 to an **unchecked IDEA.md** item.  
+Cancel ready tasks that say “confirm already works” / “document only”.
+
+## Forbidden
+
+Bank sync · AI advisor · family · OCR · AGPL paste · inbox brand landing

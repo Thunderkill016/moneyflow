@@ -504,10 +504,10 @@
 - **Completed:** 2026-07-15 — `.grok/skills/*` + AGENTS Grok workflow.
 
 ### TASK-207 — PERF LCP second pass (landing fonts/CSS)
-- **Status:** `in_progress`
+- **Status:** `cancelled`
 - **Mô tả:** After Lighthouse lab (landing LCP ~3.7s): reduce critical CSS/font cost on public landing without breaking VN glyphs. Re-measure optional. See docs/performance-budgets.md.
 - **Done khi:** documented mitigation + lint/typecheck/test pass.
-
+- **Cancelled:** stuck/superseded by IDEA.md skill workflow
 ### TASK-208 — BEST onboarding short path to first expense
 - **Status:** `done`
 - **Mô tả:** Ensure onboarding ends with one CTA “Ghi chi tiêu” → quick add or insights open dialog; calm VN; no inbox-first.
@@ -629,10 +629,10 @@
 - **Completed:** 2026-07-15 — `a0233f8` money-invariants.test.ts matrix: transfer≠expense, soft-delete spent, integer only, budget ignores transfer, safe-to-spend integer.
 
 ### TASK-252 — MVP-STAB e2e expense path always green
-- **Status:** `in_progress`
+- **Status:** `cancelled`
 - **Mô tả:** `npm run test:e2e` expense path must pass (landing→ghi chi→insights→export). Fix selectors/labels if broken.
 - **Done khi:** e2e exit 0; unit tests pass.
-
+- **Cancelled:** stuck/superseded by IDEA.md skill workflow
 ### TASK-253 — MVP-STAB transfer excluded from expense (e2e or unit)
 - **Status:** `done`
 - **Mô tả:** Contract test: transfer amount not in month expense total / category spend. Demo ledger.
@@ -640,10 +640,10 @@
 - **Completed:** 2026-07-15 — `0c3bc28` transfer-expense-contract.test.ts: demo ledger transfer excluded from monthExpenseTotal, top categories, report categories, budget spent, demo dashboard.
 
 ### TASK-254 — MVP-STAB create/delete/restore error VN parity
-- **Status:** `in_progress`
+- **Status:** `cancelled`
 - **Mô tả:** Audit use-transactions + dialogs: no empty fail messages; network catch VN on all mutations.
 - **Done khi:** code audit + tests if pure; lint/typecheck/test.
-
+- **Cancelled:** stuck/superseded by IDEA.md skill workflow
 ### TASK-255 — MVP-STAB production build green (demo env)
 - **Status:** `done`
 - **Mô tả:** `NEXT_PUBLIC_SUPABASE_URL=placeholder` style build succeeds; document one-liner in README Quality section if missing.
@@ -657,132 +657,132 @@
 - **Completed:** 2026-07-15 — `9994dcd` insights-kpi-contract.test.ts locks dashboard widgets.
 
 ### TASK-257 — MVP-CORE safe-to-spend short explain always visible
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Safe-to-spend card has calm one-line explain always visible (no hide).
 - **Done khi:** UI + calm VN.
-
+- **Cancelled:** stuck/superseded by IDEA.md skill workflow
 ### TASK-258 — MVP-CORE attention strip budgets+bills only noise-free
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Attention strip max 4 items; calm copy; inbox optional neutral. No guilt language.
 - **Done khi:** attention.ts tests; UI ok.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-259 — MVP-CORE empty states all core pages one CTA
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Empty: insights, transactions, accounts, budgets, commitments, goals, categories — exactly one primary CTA each (Ghi chi / Thêm ví / Thêm NS…).
 - **Done khi:** audited all; lint/typecheck/test.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-260 — MVP-CORE export ≤2 clicks from Insights
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Visible Xuất CSV (or Báo cáo) on Insights; lands on working export. Contract test.
 - **Done khi:** discoverability + test.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-261 — MVP-CORE transfer list copy “không tính chi”
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Confirm transactions + insights recent use transferRowSubtitle; unit test constant.
 - **Done khi:** present everywhere transfer listed.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-262 — MVP-CORE Ghi chi path &lt;10s (quick + dialog)
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** FAB/topbar open dialog or /capture/quick; recent categories; amount focus. Smoke via e2e or contract.
 - **Done khi:** path documented + e2e or tests.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-263 — MVP-CORE onboarding → insights/ghi chi only
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Onboarding never redirects to /inbox; skip/done → /insights; quick → /capture/quick. Tests already partial—harden.
 - **Done khi:** tests assert no inbox.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-264 — MVP-CORE nav Core vs Nâng cao lock
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** nav-ia tests: primary never inbox/rules/imports; Advanced has inbox. Landing copy tests still forbid inbox slogans.
 - **Done khi:** nav + landing tests green.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-265 — MVP-CORE accounts multi-wallet CRUD demo+server
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Add/edit/archive account works demo; server path errors VN. Minimal if already works—add contract test for kinds.
 - **Done khi:** tests or clear done note + gates.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-266 — MVP-CORE categories unique per kind
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Harden categories validation tests; empty state CTA.
 - **Done khi:** tests pass.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-267 — MVP-CORE budgets category monthly calm thresholds
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Near/over labels; spent ignores transfer; empty CTA. Tests.
 - **Done khi:** tests + UI empty.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-268 — MVP-CORE commitments pay→ledger + reserve
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Pay creates expense; insights reserved updates; undo. Contract or unit tests.
 - **Done khi:** tests green.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-269 — MVP-CORE goals create + progress on insights
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Featured goal or empty CTA on insights; goals page empty CTA.
 - **Done khi:** UI + tests if any.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-270 — MVP-CORE reports month + transfer excluded
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Reports totals exclude transfer; CSV formula-safe. Existing tests expand if thin.
 - **Done khi:** tests green.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-271 — MVP-TRUST privacy page + register link
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** /privacy linked from footer+register; required topics. Tests already—verify green.
 - **Done khi:** privacy-policy tests pass.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-272 — MVP-TRUST delete account path calm VN
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Settings delete account: confirm XÓA; clear local stores demo. Tests.
 - **Done khi:** tests pass.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-273 — MVP-TRUST demo banner not covering FAB
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Demo sticky banner + Đăng ký; FAB still tappable on mobile.
 - **Done khi:** CSS/layout fix if needed.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-274 — MVP-TRUST no raw statement in logs/toasts
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** safe-log/safe-analytics tests pass; no regression.
 - **Done khi:** tests pass.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-275 — MVP-A11Y money not color-only
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** +/−/↔ on income/expense/transfer lists; focus-visible. a11y baseline tests.
 - **Done khi:** a11y tests pass.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-276 — MVP-A11Y dialogs focus trap Ghi chi
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** AddTransactionDialog focus trap/restore; labels on amount. Tests.
 - **Done khi:** a11y tests pass.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-277 — MVP-MOBILE bottom nav + FAB clear
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Mobile: 4 tabs + more; FAB Ghi chi not obscured; dialogs usable. CSS audit/fix.
 - **Done khi:** no regress; manual CSS checks in code.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-278 — MVP-PERF LCP document + quick wins
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Apply safe LCP wins (content-visibility below-fold landing, font already trimmed); update performance-budgets.md with latest lab if runnable else note.
 - **Done khi:** doc + code mitigations; tests pass.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-279 — MVP-PERF code-split remaining dialogs accounts/budgets
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Confirm dynamic() on heavy dialogs; add if missing on income-templates.
 - **Done khi:** dynamic imports present.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-280 — MVP-GATE checklist automation
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Add `src/lib/mvp-gate.test.ts` asserting MVP_DEFINITION sections + critical routes exist + e2e script in package.json.
 - **Done khi:** gate test green.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-281 — MVP-GATE final verification script
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Add `scripts/mvp-verify.sh` running lint+typecheck+test+build; document in README. Run once green.
 - **Done khi:** script exits 0; README link.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-282 — MVP-GATE backlog empty ready after wave
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** After all prior MVP tasks done: mark wave complete in docs/MVP_DEFINITION.md exit checklist with date; no new features.
 - **Done khi:** doc updated only when 250–281 done (if earlier tasks open, skip and leave ready).
 
@@ -791,65 +791,64 @@
 
 > Nguồn: `docs/research/07_GITHUB_OSS_BEST.md`  
 > Chỉ **pattern**. MIT: reimplement. AGPL/GPL: docs/UX only.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-400 — OSS map doc lock + agent test
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Ensure `docs/research/07_GITHUB_OSS_BEST.md` exists; unit test asserts Actual/Firefly/Ivy mentioned + AGPL no-copy rule; link from README research section if present.
 - **Done khi:** test green; lint/typecheck/test.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-401 — LEARN Actual: budget remaining UX polish
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** From Actual (MIT, read UX only): budgets list remaining + progress calm; near/over already exist—ensure remaining amount mono + empty CTA. No envelope method.
 - **Done khi:** budgets UI polish; tests for remaining helper if pure.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-402 — LEARN Actual: CSV export formula-safe always
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Actual-style ownership: export CSV escapes formulas; period export from reports. Expand tests if thin.
 - **Done khi:** export tests pass.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-403 — LEARN Firefly docs: transfer never expense (harden)
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Docs-only Firefly: audit all sumExpense/report/budget paths ignore transfer; add missing tests. No Firefly code.
 - **Done khi:** domain tests exhaustive.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-404 — LEARN Firefly docs: bills → commitments copy
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Commitments list: due/paid calm VN; “giữ trước” language; empty CTA. Domain already—UX polish.
 - **Done khi:** copy + empty state.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-405 — LEARN Ivy: quick-add amount autofocus + recent cats
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Ivy-style entry: amount focus on open; recent categories ordering; keep-open. Harden dialog.
 - **Done khi:** behavior + prefs tests.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-406 — LEARN Actual rules spirit: optional category suggest later skip
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Do NOT implement full rules engine. Only document in BEST_OF that rules stay Lab; ensure /rules is Advanced nav only (test).
 - **Done khi:** nav test asserts /rules in ADVANCED only.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-407 — LEARN Firefly importer spirit: import stays Lab
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Contract test: /imports /imports/direct not in PRIMARY_NAV; Advanced only. No new importer features.
 - **Done khi:** nav-ia tests.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-408 — LEARN privacy-first (gider.im/Canutin framing)
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Settings privacy + landing trust: no bank password; export/delete links. Copy audit + existing tests green.
 - **Done khi:** privacy/landing tests pass.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-409 — LEARN Maybe UX: accounts list clarity (not net worth hero)
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Accounts page: balance per wallet clear; transfer CTA; empty Thêm ví. No net-worth dashboard.
 - **Done khi:** empty + balance UI ok.
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-410 — OSS license CI reminder in docs
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Add short section in docs/MVP_DEFINITION or README: forbidden AGPL vendoring; list S-tier study repos. Test file exists.
 - **Done khi:** docs + gate test mentions AGPL forbid.
-
-
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)
 ### TASK-608 — COMP-GAP transaction search + ⌘K
-- **Status:** `ready`
+- **Status:** `cancelled`
 - **Mô tả:** Transactions searchBar + app-shell Cmd+K shortcut to search. Ref: competitor pattern from LunchMoney. See docs/COMPETITOR_GAP_BAR.md + docs/research/07_GITHUB_OSS_BEST.md. G5 only — no bank sync/AI/family/AGPL paste.
 - **Source:** agent-competitor-gap
 - **Done khi:** gap check passes; lint/typecheck/test pass.
@@ -933,3 +932,4 @@
 | 2026-07-14 | TASK-003 | `0ce187e` onboarding 3-step + register → /onboarding; skip → / until inbox |
 | 2026-07-14 | TASK-002 | `34402bc` auth trust copy + privacy checkbox; redirect `/` until inbox |
 | 2026-07-14 | TASK-001 | Landing Inbox-first shipped pre-autopilot |
+- **Cancelled:** 2026-07-15 — superseded by IDEA.md + ship-feature skills (no busywork)

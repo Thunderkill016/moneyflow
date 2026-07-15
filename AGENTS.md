@@ -103,3 +103,19 @@ Forbidden auto-tasks: green-test-only, empty “quality cycle”, features in G5
 
 - **MIT/Apache:** reimplement patterns in `src/lib`; unit tests  
 - **AGPL/GPL (Firefly, Maybe, Ivy, Paisa, Ghostfolio):** docs/UX/domain only — **never paste source**
+
+
+## Claude / Shipkit-style skills (preferred)
+
+Skills live in `.agents/skills/` (and mirrored under `.grok/skills/`):
+
+| Skill | Use |
+|-------|-----|
+| `ship-feature` | Next unchecked item in `IDEA.md` |
+| `test-driven-development` | Behavior change |
+| `verification-before-completion` | Before claim done / commit |
+| `security-pass` | Auth, RLS, actions |
+| `frontend-qa` | Nav, dialog, empty, mobile |
+| `supabase-rls` | Migrations / policies |
+
+Autopilot headless reads **IDEA.md** first, not spam backlog.
