@@ -2,7 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-/** UI text — LCP critical; size-adjusted fallbacks reduce CLS on swap. */
+/**
+ * UI text — LCP critical.
+ * Variable Inter (no static weight list) = one/few files vs many weight files.
+ * Still latin + vietnamese for product copy.
+ */
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
   variable: "--font-inter",
@@ -11,9 +15,12 @@ const inter = Inter({
   preload: true,
 });
 
-/** Money mono — not LCP; skip preload so Inter wins the critical path. */
+/**
+ * Money mono — not LCP; latin digits only; single weight keeps payload small.
+ */
 const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin", "vietnamese"],
+  subsets: ["latin"],
+  weight: ["500"],
   variable: "--font-mono-family",
   display: "swap",
   adjustFontFallback: true,
