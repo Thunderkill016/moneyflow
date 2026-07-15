@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
 /**
  * UI text — LCP critical.
  * Variable Inter (no static weight list) = one/few files vs many weight files.
  * Still latin + vietnamese for product copy.
+ *
+ * Money mono uses the system stack in globals.css (no second webfont).
+ * That cuts transfer/CSS on every route; digits stay tabular via .font-mono.
  */
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -13,18 +16,6 @@ const inter = Inter({
   display: "swap",
   adjustFontFallback: true,
   preload: true,
-});
-
-/**
- * Money mono — not LCP; latin digits only; single weight keeps payload small.
- */
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["500"],
-  variable: "--font-mono-family",
-  display: "swap",
-  adjustFontFallback: true,
-  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -50,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${inter.variable} ${jetbrainsMono.variable} ${inter.className}`}
+      className={`${inter.variable} ${inter.className}`}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >

@@ -52,7 +52,7 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [x] **Q5** Mobile: FAB Ghi chi not covered by demo banner
 - [x] **Q6** Transfer subtitle “không tính chi” everywhere transfers list
 - [x] **Q7** Wire AppShell `searchBar` on `/transactions` for ⌘K focus (Lunch Money)
-- [ ] **Q8** LCP: document current lab scores; one real CSS/font win if cheap
+- [x] **Q8** LCP: document current lab scores; one real CSS/font win if cheap
 
 ### Explicit not now
 - [ ] ~~Bank sync~~ forbidden  

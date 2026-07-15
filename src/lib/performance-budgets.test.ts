@@ -62,10 +62,27 @@ test("root layout font strategy favors LCP and reduces CLS", () => {
   assert.match(source, /display:\s*["']swap["']/);
   assert.match(source, /adjustFontFallback:\s*true/);
   assert.match(source, /preload:\s*true/);
-  assert.match(source, /preload:\s*false/);
+  // Q8: only Inter webfont; money mono is system stack (no JetBrains Google file).
+  assert.equal(
+    /JetBrains|jetbrains/.test(source),
+    false,
+    "layout must not load JetBrains Mono webfont",
+  );
   assert.match(source, /export const viewport/);
   assert.match(source, /suppressHydrationWarning/);
   assert.match(source, /data-scroll-behavior/);
+});
+
+test("CSS uses system mono stack (no second webfont variable)", () => {
+  const css = read("src/app/globals.css");
+  assert.match(css, /--font-mono:\s*ui-monospace/);
+  assert.equal(
+    /--font-mono-family/.test(css),
+    false,
+    "mono must not depend on next/font mono variable",
+  );
+  assert.match(css, /text-rendering:\s*auto/);
+  assert.match(css, /body::before/);
 });
 
 test("insights dashboard defers AddTransactionDialog chunk", () => {

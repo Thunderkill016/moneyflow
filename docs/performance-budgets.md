@@ -54,21 +54,32 @@ Environment: `next build` + `next start` **demo mode** (placeholder Supabase), L
 | `/landing` | **88** | **3.7 s** | **0.003** | **70 ms** | 2.5 s | **426 KiB** (fonts ~171) |
 | `/insights` (demo) | 70 | **4.2 s** | **0.085** | 500 ms* | 2.8 s | **709 KiB** (JS ~421) |
 
-\*TBT lab variance; LCP/transfer improved. JSON: `logs/lighthouse-*.json`.
+\*TBT lab variance; LCP/transfer improved.
+
+**Pass 3 (Q8 — system mono + solid body first paint, 2026-07-15):**
+
+Environment: `NEXT_PUBLIC_SUPABASE_*=placeholder` demo build + `next start`, Lighthouse **13.4** mobile Slow 4G, Chromium headless. JSON: `logs/lighthouse-landing-q8.json`, `logs/lighthouse-insights-q8.json`.
+
+| Page | Perf | LCP | CLS | TBT | SI | Transfer |
+|------|------|-----|-----|-----|-----|----------|
+| `/landing` | **91** | **3.4 s** | **0** | **70 ms** | 2.4 s | **463 KiB** (fonts **141**) |
+| `/insights` (demo) | **85** | **3.6 s** | **0.097** | **180 ms** | 1.5 s | **645 KiB** (fonts **141**) |
+
+Delta vs Pass 2: landing LCP **−0.3 s**, perf **+3**; insights LCP **−0.6 s**, perf **+15**, TBT into budget; fonts **~171 → 141 KiB** (no JetBrains webfont).
 
 | Budget | Landing | Insights | Status |
 |--------|---------|----------|--------|
-| LCP ≤ 2.5 s | 3.7 s | 4.2 s | **Miss** (fonts + CSS still heavy) |
-| CLS ≤ 0.10 | 0.003 | 0.085 | **Pass** |
-| TBT ~INP proxy ≤ 200 ms | 70 ms | 500 ms | Landing pass / Insights miss |
+| LCP ≤ 2.5 s | 3.4 s | 3.6 s | **Miss** (Inter VN + app CSS/JS still dominate) |
+| CLS ≤ 0.10 | 0 | 0.097 | **Pass** |
+| TBT ~INP proxy ≤ 200 ms | 70 ms | 180 ms | **Pass** both |
 
-**Bottlenecks next:** unused CSS (~20 KiB), insights client JS (~420 KiB), Inter VN subset still large.
+**Bottlenecks next:** Inter vietnamese subset (~primary remaining font cost), unused CSS, insights client JS.
 
-### Mitigations shipped (TASK-132 + speed pass)
+### Mitigations shipped (TASK-132 + speed pass + Q8)
 
 1. **Landing is a Server Component** — no `"use client"`; LCP text in first HTML paint.
 2. **Home routing** — authenticated `/` → `/insights` in proxy; public `/`, `/landing`, `/privacy` skip Supabase `getClaims` without auth cookies (faster TTFB/LCP).
-3. **Fonts** — Inter preloaded + `adjustFontFallback`; JetBrains Mono `preload: false` (not LCP).
+3. **Fonts (Q8)** — Inter only (preloaded + `adjustFontFallback`); **money mono = system `ui-monospace` stack** — no second Google webfont.
 4. **CLS reserves** — hero/preview `min-height`, KPI strong min-height + tabular-nums, `content-visibility` on below-fold landing sections.
 5. **Insights JS** — `AddTransactionDialog` dynamic import (`ssr: false`) so first paint path is lighter.
 6. **Viewport metadata** — explicit `viewport` + theme-color (no late layout from missing meta).
@@ -77,27 +88,34 @@ Environment: `next build` + `next start` **demo mode** (placeholder Supabase), L
 9. **lucide-react** — `optimizePackageImports` in `next.config.ts`.
 10. **Offscreen paint** — `content-visibility: auto` on below-fold insights panels.
 11. **Inbox badge** — `requestIdleCallback`; wire `inboxCount` into AppShell on insights.
+12. **Body paint (Q8)** — solid `background-color` first; decorative radial wash on `body::before`; `text-rendering: auto`.
 
 ### How to re-measure with Lighthouse
 
 ```bash
+# Demo mode (matches Pass 3 lab table)
+export NEXT_PUBLIC_SUPABASE_URL=placeholder
+export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=placeholder
 npm run build && npm run start
 # separate terminal:
-npx lighthouse http://localhost:3000/ \
+npx lighthouse http://localhost:3000/landing \
   --only-categories=performance \
   --form-factor=mobile \
   --screenEmulation.mobile \
-  --output=json --output-path=./logs/lighthouse-landing.json
+  --chrome-flags="--headless --no-sandbox" \
+  --output=json --output-path=./logs/lighthouse-landing-q8.json
 
 npx lighthouse http://localhost:3000/insights \
   --only-categories=performance \
   --form-factor=mobile \
-  --output=json --output-path=./logs/lighthouse-insights.json
+  --screenEmulation.mobile \
+  --chrome-flags="--headless --no-sandbox" \
+  --output=json --output-path=./logs/lighthouse-insights-q8.json
 ```
 
 Record Performance score, LCP, CLS, INP (or TBT in older Lighthouse) into the table above when CI/agent has Chromium.
 
-For **demo mode** (Supabase not configured), `/` redirects to `/insights` — measure insights under demo, not marketing landing.
+For **demo mode** (Supabase not configured), `/` redirects to `/insights` — measure insights under demo; marketing landing is `/landing`.
 
 ## Regression guards
 
