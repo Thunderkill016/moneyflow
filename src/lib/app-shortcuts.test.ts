@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isSearchShortcut, shouldIgnoreShortcutTarget } from "./app-shortcuts.ts";
+import {
+  isSearchShortcut,
+  shouldIgnoreShortcutTarget,
+  TRANSACTIONS_SEARCH_HREF,
+  wantsLedgerSearchFocus,
+} from "./app-shortcuts.ts";
 
 test("isSearchShortcut matches Cmd/Ctrl+K", () => {
   assert.equal(isSearchShortcut({ key: "k", metaKey: true }), true);
@@ -8,6 +13,13 @@ test("isSearchShortcut matches Cmd/Ctrl+K", () => {
   assert.equal(isSearchShortcut({ key: "k" }), false);
   assert.equal(isSearchShortcut({ key: "k", metaKey: true, altKey: true }), false);
   assert.equal(isSearchShortcut({ key: "j", metaKey: true }), false);
+});
+
+test("TRANSACTIONS_SEARCH_HREF and wantsLedgerSearchFocus (R5)", () => {
+  assert.equal(TRANSACTIONS_SEARCH_HREF, "/transactions?focus=search");
+  assert.equal(wantsLedgerSearchFocus("?focus=search"), true);
+  assert.equal(wantsLedgerSearchFocus({ get: (n) => (n === "focus" ? "search" : null) }), true);
+  assert.equal(wantsLedgerSearchFocus("?focus=other"), false);
 });
 
 test("shouldIgnoreShortcutTarget blocks generic text inputs", () => {

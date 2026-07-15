@@ -37,7 +37,7 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [x] **R2** Onboarding polish: progress 1/3–3/3 clearer, wallet defaults VN, never route to /inbox
 - [x] **R3** Insights empty + planning cards consistent one-CTA empty states
 - [x] **R4** Ghi chi dialog: amount autofocus, recent categories order, save-and-add-another UX polish
-- [ ] **R5** Transactions: wire AppShell searchBar for ⌘K; transfer “không tính chi” everywhere
+- [x] **R5** Transactions: wire AppShell searchBar for ⌘K; transfer “không tính chi” everywhere
 - [ ] **R6** Budgets/commitments/goals pages: shared card shell + calm thresholds + empty 1 CTA audit
 - [ ] **R7** Reports month view discoverability + export from reports
 - [ ] **R8** Settings privacy/export/delete trust copy pass (G5)
@@ -50,8 +50,8 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [ ] **Q3** `scripts/mvp-verify.sh` = lint + typecheck + test + build
 - [ ] **Q4** Empty states: one primary CTA on budgets/goals/commitments/categories (audit + fix only if multi-CTA)
 - [ ] **Q5** Mobile: FAB Ghi chi not covered by demo banner
-- [ ] **Q6** Transfer subtitle “không tính chi” everywhere transfers list
-- [ ] **Q7** Wire AppShell `searchBar` on `/transactions` for ⌘K focus (Lunch Money)
+- [x] **Q6** Transfer subtitle “không tính chi” everywhere transfers list
+- [x] **Q7** Wire AppShell `searchBar` on `/transactions` for ⌘K focus (Lunch Money)
 - [ ] **Q8** LCP: document current lab scores; one real CSS/font win if cheap
 
 ### Explicit not now

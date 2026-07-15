@@ -329,6 +329,13 @@ export function TransactionsPage({
   return (
     <AppShell
       viewer={viewer}
+      searchBar={{
+        value: query,
+        onChange: setQuery,
+        placeholder: isTimeline
+          ? "Tìm trong dòng thời gian..."
+          : "Tìm giao dịch...",
+      }}
       primaryAction={
         isTimeline
           ? {

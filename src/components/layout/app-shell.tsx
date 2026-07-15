@@ -9,6 +9,8 @@ import { CAPTURE_OPTIONS } from "@/lib/capture/options";
 import {
   isSearchShortcut,
   shouldIgnoreShortcutTarget,
+  TRANSACTIONS_SEARCH_HREF,
+  wantsLedgerSearchFocus,
 } from "@/lib/app-shortcuts";
 import {
   APP_HOME_HREF,
@@ -128,12 +130,27 @@ export function AppShell({
         return;
       }
       if (pathname !== "/transactions" && !pathname.startsWith("/transactions/")) {
-        router.push("/transactions");
+        router.push(TRANSACTIONS_SEARCH_HREF);
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [pathname, router, searchBar]);
+
+  /** After ⌘K navigate: autofocus topbar search when `?focus=search` (R5). */
+  useEffect(() => {
+    if (!searchBar || !searchInputRef.current) return;
+    if (typeof window === "undefined") return;
+    if (!wantsLedgerSearchFocus(window.location.search)) return;
+    const input = searchInputRef.current;
+    input.focus();
+    input.select();
+    // Clean the flag so refresh / back does not re-steal focus.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("focus");
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState(null, "", next);
+  }, [searchBar]);
 
   return (
     <div className="app-shell">
@@ -219,7 +236,7 @@ export function AppShell({
           ) : (
             <Link
               className="desktop-search desktop-search-link"
-              href="/transactions"
+              href={TRANSACTIONS_SEARCH_HREF}
               aria-label="Tìm giao dịch trên sổ (⌘K)"
               prefetch
             >

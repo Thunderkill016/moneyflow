@@ -10,6 +10,7 @@ import {
 } from "@/lib/currency";
 import { formatMoneyInput, parseMoneyInputToMinor } from "@/lib/money";
 import type { CreateTransferInput } from "@/lib/sample-data";
+import { TRANSFER_LIST_HINT } from "@/lib/transfers";
 
 export type TransferAccountOption = {
   id: string;
@@ -259,7 +260,8 @@ export function TransferDialog({
         <div className="transfer-explainer">
           <Icon name="check" />
           <p>
-            <strong>Cùng loại tiền, tổng tài sản không đổi.</strong> Chỉ chuyển giữa hai tài khoản cùng {sourceCurrency}.
+            <strong>Cùng loại tiền, tổng tài sản không đổi · {TRANSFER_LIST_HINT}.</strong>{" "}
+            Chỉ chuyển giữa hai tài khoản cùng {sourceCurrency}.
             Chưa hỗ trợ đổi ngoại tệ hay chuyển chéo loại tiền.
           </p>
         </div>
