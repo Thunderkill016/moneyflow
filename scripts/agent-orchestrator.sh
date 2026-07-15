@@ -52,11 +52,6 @@ if bash "$ROOT/scripts/agent-run-headless.sh"; then
   log "✅ cycle OK"
   echo "OK" >> "$STATE_FILE"
   tail -10 "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-  bash "$ROOT/scripts/agent-report-task.sh" ok || true
-  # Ship notify
-  if [[ -f "$ROOT/docs/MVP_SHIPPED.md" ]]; then
-    bash "$ROOT/scripts/agent-telegram-notify.sh" ship "MoneyFlow · MVP SHIPPED" "docs/MVP_SHIPPED.md present — best-in-class bar met." || true
-  fi
   [[ "$STASHED" == 1 ]] && git stash pop --quiet 2>/dev/null || true
   log "🏁 orchestrator done"
   exit 0
@@ -65,6 +60,5 @@ fi
 log "❌ cycle FAIL"
 echo "FAIL" >> "$STATE_FILE"
 tail -10 "$STATE_FILE" > "${STATE_FILE}.tmp" && mv "${STATE_FILE}.tmp" "$STATE_FILE"
-bash "$ROOT/scripts/agent-report-task.sh" fail || true
 [[ "$STASHED" == 1 ]] && git stash pop --quiet 2>/dev/null || true
 exit 1
