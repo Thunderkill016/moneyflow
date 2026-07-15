@@ -1,9 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { deleteBudgetAction, saveBudgetAction } from "@/app/actions/budgets";
-import { BudgetDialog } from "@/components/budget-dialog";
 import { Icon, type IconName } from "@/components/icons";
 import { type ViewerSummary } from "@/components/user-chip";
 import {
@@ -18,6 +18,11 @@ import {
 import { formatMoney } from "@/lib/money";
 import { categoryMeta, type CategoryOption } from "@/lib/sample-data";
 import { AppShell } from "@/components/layout/app-shell";
+
+const BudgetDialog = dynamic(
+  () => import("@/components/budget-dialog").then((m) => m.BudgetDialog),
+  { ssr: false },
+);
 
 export function BudgetsPage({ viewer, initialBudgets, categories, monthStart, dataError }: { viewer: ViewerSummary; initialBudgets: BudgetSummary[]; categories: CategoryOption[]; monthStart: string; dataError: string | null }) {
   const [budgets, setBudgets] = useState(initialBudgets);

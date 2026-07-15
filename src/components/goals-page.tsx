@@ -1,14 +1,23 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { adjustGoalAction, archiveGoalAction, saveGoalAction } from "@/app/actions/goals";
-import { GoalAllocationDialog, GoalDialog } from "@/components/goal-dialogs";
 import { Icon } from "@/components/icons";
 import { type ViewerSummary } from "@/components/user-chip";
 import { dailyGoalSaving, goalProgress, goalTotals, type SaveGoalInput, type SavingsGoal } from "@/lib/goals";
 import { formatMoney } from "@/lib/money";
 import { AppShell } from "@/components/layout/app-shell";
+
+const GoalDialog = dynamic(
+  () => import("@/components/goal-dialogs").then((m) => m.GoalDialog),
+  { ssr: false },
+);
+const GoalAllocationDialog = dynamic(
+  () => import("@/components/goal-dialogs").then((m) => m.GoalAllocationDialog),
+  { ssr: false },
+);
 
 function deadlineLabel(goal: SavingsGoal, today: string) { if (!goal.deadline) return "Không đặt thời hạn"; if (goalProgress(goal) === 100) return "Đã đạt mục tiêu"; const days = Math.ceil((Date.parse(`${goal.deadline}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000); if (days < 0) return `Quá hạn ${Math.abs(days)} ngày`; if (days === 0) return "Hạn hôm nay"; return `Còn ${days} ngày`; }
 

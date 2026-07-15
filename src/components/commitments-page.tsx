@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -8,11 +9,16 @@ import {
   saveCommitmentAction,
   undoCommitmentPaymentAction,
 } from "@/app/actions/commitments";
-import { CommitmentDialog } from "@/components/commitment-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { type ViewerSummary } from "@/components/user-chip";
+
+const CommitmentDialog = dynamic(
+  () =>
+    import("@/components/commitment-dialog").then((m) => m.CommitmentDialog),
+  { ssr: false },
+);
 import {
   hydrateCommitmentsWithOccurrences,
   persistPayOccurrence,

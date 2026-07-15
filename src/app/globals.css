@@ -462,6 +462,9 @@ select:focus-visible {
 .desktop-search input { min-width: 0; flex: 1; border: 0; outline: 0; color: var(--ink); font-size: 13px; }
 .desktop-search input::placeholder { color: #9aa39e; }
 .desktop-search kbd { border: 1px solid #e2e7e4; border-radius: 6px; background: #f7f8f7; padding: 2px 6px; font-family: inherit; font-size: 10px; }
+a.desktop-search-link { text-decoration: none; color: inherit; cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease; }
+a.desktop-search-link:hover { border-color: #9abda8; }
+.desktop-search-placeholder { min-width: 0; flex: 1; color: #9aa39e; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-actions { display: flex; align-items: center; gap: 12px; }
 .icon-button { position: relative; display: grid; width: 42px; height: 42px; flex: 0 0 42px; cursor: pointer; place-items: center; border: 1px solid var(--line); border-radius: 12px; background: white; transition: background .18s ease, transform .18s ease; }
 .icon-button:hover { background: #f2f5f3; }

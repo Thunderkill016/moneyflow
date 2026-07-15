@@ -6,15 +6,16 @@ import type { MetadataRoute } from "next";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Money Flow — Hộp thư giao dịch",
-    short_name: "Money Flow",
+    // G5: personal thu chi — not “inbox-first” brand
+    name: "MoneyFlow — Quản lý thu chi cá nhân",
+    short_name: "MoneyFlow",
     description:
-      "Dán text, tải sao kê, chia sẻ từ app khác — duyệt trong Inbox trước khi ghi sổ.",
-    start_url: "/inbox",
+      "Ghi thu chi nhanh, nhiều ví, ngân sách danh mục. Biết hôm nay có thể chi bao nhiêu. Xuất CSV.",
+    start_url: "/insights",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#0f172a",
+    background_color: "#F8F9FA",
     theme_color: "#0f766e",
     lang: "vi",
     icons: [

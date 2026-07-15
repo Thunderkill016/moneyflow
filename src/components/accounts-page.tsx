@@ -1,9 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { saveAccountAction, setAccountArchivedAction } from "@/app/actions/accounts";
 import { createTransferAction } from "@/app/actions/transactions";
-import { AccountDialog } from "@/components/account-dialog";
 import { Icon, type IconName } from "@/components/icons";
 import { type ViewerSummary } from "@/components/user-chip";
 import { accountKindLabels, type AccountSummary, type SaveAccountInput } from "@/lib/accounts";
@@ -14,12 +14,20 @@ import {
   transferCurrencyMismatchMessage,
 } from "@/lib/currency";
 import { formatMoney } from "@/lib/money";
-import { TransferDialog } from "@/components/transfer-dialog";
 import type { CreateTransferInput, Transaction } from "@/lib/sample-data";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 import { applyTransferBalances } from "@/lib/transfers";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/empty-state";
+
+const AccountDialog = dynamic(
+  () => import("@/components/account-dialog").then((m) => m.AccountDialog),
+  { ssr: false },
+);
+const TransferDialog = dynamic(
+  () => import("@/components/transfer-dialog").then((m) => m.TransferDialog),
+  { ssr: false },
+);
 
 function accountIcon(kind: AccountSummary["kind"]): IconName {
   if (kind === "bank" || kind === "savings") return "bank";

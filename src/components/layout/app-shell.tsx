@@ -190,11 +190,15 @@ export function AppShell({
               <kbd>⌘ K</kbd>
             </div>
           ) : (
-            <div className="desktop-search">
+            <Link
+              className="desktop-search desktop-search-link"
+              href="/transactions"
+              aria-label="Tìm giao dịch trên sổ"
+            >
               <Icon name="search" />
-              <input aria-label="Tìm kiếm" placeholder="Tìm giao dịch..." readOnly />
+              <span className="desktop-search-placeholder">Tìm giao dịch...</span>
               <kbd>⌘ K</kbd>
-            </div>
+            </Link>
           )}
 
           <div className="topbar-actions">
