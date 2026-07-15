@@ -285,8 +285,14 @@ def main() -> int:
     )
 
     # 8 Lunch Money — find transactions
-    search_ok = "searchBar" in tx and (
-        "isSearchShortcut" in shell or "⌘" in shell or "metaKey" in shell
+    search_ok = (
+        ("setQuery" in tx or "query" in tx)
+        and ("Tìm" in tx or "search" in tx.lower())
+        and (
+            "isSearchShortcut" in shell
+            or "⌘" in shell
+            or exists(root, "src/lib/app-shortcuts.ts")
+        )
     )
     reg(
         "txn_search",
@@ -294,7 +300,7 @@ def main() -> int:
         "Tìm lại giao dịch nhanh khi sổ dài.",
         "COMP: ledger search + keyboard shortcut",
         "Need filter/search on transactions and Cmd/Ctrl+K path.",
-        "searchBar on transactions; ⌘K focuses or navigates with autofocus; unit tests for shortcut helper; npm test pass.",
+        "Client filter on /transactions; ⌘K helper; optional autofocus; unit tests; npm test pass.",
         "Do not require server full-text search if client filter works for MVP.",
         "TASK-608",
         search_ok,

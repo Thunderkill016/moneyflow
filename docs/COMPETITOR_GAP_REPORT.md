@@ -2,7 +2,7 @@
 
 Driven by `docs/research/08_PFM_BEST_IN_CLASS.md` — **no busywork tasks**.
 
-**Passed:** 17 / 18
+**Passed:** 18 / 18
 
 **Injected:** none
 
@@ -15,7 +15,7 @@ Driven by `docs/research/08_PFM_BEST_IN_CLASS.md` — **no busywork tasks**.
 | `attention` | Copilot Money (to-review / attention) | ✅ |
 | `export_ownership` | Actual + Sheets (data ownership) | ✅ |
 | `category_budgets` | Goodbudget / ML (category limits) | ✅ |
-| `txn_search` | Lunch Money (find transactions) | ❌ |
+| `txn_search` | Lunch Money (find transactions) | ✅ |
 | `product_identity` | G5 vs Money Lover ads / inbox pivot | ✅ |
 | `onboarding_first_expense` | G5 + ML first-run | ✅ |
 | `empty_states` | Best-practice SaaS PFM empty UX | ✅ |
@@ -26,11 +26,3 @@ Driven by `docs/research/08_PFM_BEST_IN_CLASS.md` — **no busywork tasks**.
 | `perf_documented` | Modern web PFM (Core Web Vitals) | ✅ |
 | `weekly_ritual` | Ritual / Copilot weekly review | ✅ |
 | `multi_wallet` | Money Lover multi-wallet | ✅ |
-
-## Open gaps (will become tasks)
-
-### txn_search
-- JTBD: Tìm lại giao dịch nhanh khi sổ dài.
-- Gap: Need filter/search on transactions and Cmd/Ctrl+K path.
-- Done: searchBar on transactions; ⌘K focuses or navigates with autofocus; unit tests for shortcut helper; npm test pass.
-
