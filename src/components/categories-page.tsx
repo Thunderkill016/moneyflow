@@ -7,6 +7,7 @@ import {
   setCategoryArchivedAction,
 } from "@/app/actions/categories";
 import { CategoryDialog } from "@/components/category-dialog";
+import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
@@ -16,6 +17,10 @@ import {
   type CategorySummary,
   type SaveCategoryInput,
 } from "@/lib/categories";
+import {
+  PAGE_EMPTY_CATEGORY,
+  PAGE_EMPTY_CATEGORY_FILTER,
+} from "@/lib/planning-pages";
 import type { TransactionKind } from "@/lib/sample-data";
 
 function categoryIcon(name: string | null): IconName {
@@ -284,40 +289,41 @@ export function CategoriesPage({
           </div>
         </section>
 
-        <div
-          className="segmented-control categories-kind-filter"
-          role="group"
-          aria-label="Lọc loại danh mục"
-        >
-          {(
-            [
-              ["all", "Tất cả"],
-              ["expense", "Chi tiêu"],
-              ["income", "Thu nhập"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              className={kindFilter === value ? "active" : undefined}
-              aria-pressed={kindFilter === value}
-              onClick={() => setKindFilter(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {isEmpty && (
-          <div className="account-empty">
-            <Icon name="spark" />
-            <h2>Chưa có danh mục</h2>
-            <p>Thêm danh mục chi hoặc thu để gán khi ghi giao dịch.</p>
-            <button type="button" onClick={() => openCategory(null)}>
-              Thêm danh mục
-            </button>
+        {!isEmpty && !dataError && (
+          <div
+            className="segmented-control categories-kind-filter"
+            role="group"
+            aria-label="Lọc loại danh mục"
+          >
+            {(
+              [
+                ["all", "Tất cả"],
+                ["expense", "Chi tiêu"],
+                ["income", "Thu nhập"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={kindFilter === value ? "active" : undefined}
+                aria-pressed={kindFilter === value}
+                onClick={() => setKindFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         )}
+
+        {isEmpty ? (
+          <EmptyState
+            icon={PAGE_EMPTY_CATEGORY.icon}
+            title={PAGE_EMPTY_CATEGORY.title}
+            description={PAGE_EMPTY_CATEGORY.description}
+            actionLabel={PAGE_EMPTY_CATEGORY.actionLabel}
+            onAction={() => openCategory(null)}
+          />
+        ) : null}
 
         {!isEmpty && !dataError && (
           <>
@@ -354,11 +360,11 @@ export function CategoriesPage({
             {activeExpense.length === 0 &&
               activeIncome.length === 0 &&
               archived.length === 0 && (
-                <div className="account-empty">
-                  <Icon name="search" />
-                  <h2>Không có danh mục phù hợp bộ lọc</h2>
-                  <p>Thử chọn “Tất cả” hoặc thêm danh mục mới.</p>
-                </div>
+                <EmptyState
+                  icon={PAGE_EMPTY_CATEGORY_FILTER.icon}
+                  title={PAGE_EMPTY_CATEGORY_FILTER.title}
+                  description={PAGE_EMPTY_CATEGORY_FILTER.description}
+                />
               )}
           </>
         )}

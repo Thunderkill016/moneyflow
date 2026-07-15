@@ -48,7 +48,7 @@ Authority: `docs/REBUILD_MASTER_PLAN.md`. One item per session.
 - [x] **Q1** `npm run test:e2e` expense path always green (fix if red)
 - [x] **Q2** `npm run build` green with demo/placeholder Supabase env
 - [x] **Q3** `scripts/mvp-verify.sh` = lint + typecheck + test + build
-- [ ] **Q4** Empty states: one primary CTA on budgets/goals/commitments/categories (audit + fix only if multi-CTA)
+- [x] **Q4** Empty states: one primary CTA on budgets/goals/commitments/categories (audit + fix only if multi-CTA)
 - [ ] **Q5** Mobile: FAB Ghi chi not covered by demo banner
 - [x] **Q6** Transfer subtitle “không tính chi” everywhere transfers list
 - [x] **Q7** Wire AppShell `searchBar` on `/transactions` for ⌘K focus (Lunch Money)

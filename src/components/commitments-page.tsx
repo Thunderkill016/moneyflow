@@ -323,8 +323,9 @@ export function CommitmentsPage({
             icon="bell"
             title="Không tải được khoản định kỳ"
             description="Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
-            secondaryLabel="Về Tổng quan"
-            secondaryHref="/insights"
+            actionLabel="Về Tổng quan"
+            actionHref="/insights"
+            actionIcon="home"
           />
         ) : !hydrated ? (
           <section className="commitment-card-grid" aria-busy="true" aria-label="Đang tải khoản định kỳ">

@@ -1,6 +1,6 @@
 /**
- * R6 — Budgets / commitments / goals full-page contracts:
- * shared card shell tones + calm thresholds + empty 1-CTA.
+ * R6 / Q4 — Budgets / commitments / goals / categories full-page contracts:
+ * shared card shell tones + calm thresholds + empty 1-CTA (never multi).
  */
 
 export type PlanningCardTone =
@@ -15,10 +15,10 @@ export type PlanningCardTone =
 
 /** Full-page empty: one primary CTA max (no secondary on happy path). */
 export type PlanningPageEmptyConfig = {
-  icon: "target" | "calendar" | "flag";
+  icon: "target" | "calendar" | "flag" | "spark" | "search";
   title: string;
   description: string;
-  /** Omit when archived-only empty or action unavailable. */
+  /** Omit when archived-only empty, filter empty, or action unavailable. */
   actionLabel?: string;
 };
 
@@ -53,6 +53,20 @@ export const PAGE_EMPTY_GOAL_ARCHIVED: PlanningPageEmptyConfig = {
   icon: "flag",
   title: "Không có mục tiêu đã lưu trữ",
   description: "Mục tiêu được lưu trữ sẽ xuất hiện tại đây.",
+};
+
+export const PAGE_EMPTY_CATEGORY: PlanningPageEmptyConfig = {
+  icon: "spark",
+  title: "Chưa có danh mục",
+  description: "Thêm danh mục chi hoặc thu để gán khi ghi giao dịch.",
+  actionLabel: "Thêm danh mục",
+};
+
+/** Filter empty: copy only — no second primary competing with shell add. */
+export const PAGE_EMPTY_CATEGORY_FILTER: PlanningPageEmptyConfig = {
+  icon: "search",
+  title: "Không có danh mục phù hợp bộ lọc",
+  description: "Thử chọn “Tất cả” hoặc thêm danh mục mới.",
 };
 
 /** Exactly one primary action or none — never multi-CTA empty. */

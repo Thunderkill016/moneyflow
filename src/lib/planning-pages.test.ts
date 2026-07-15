@@ -1,5 +1,5 @@
 /**
- * R6 — Budgets/commitments/goals: shared card shell + calm thresholds + empty 1 CTA.
+ * R6 / Q4 — Budgets/commitments/goals/categories: shared shell + empty 1 CTA.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -11,6 +11,8 @@ import {
   commitmentDueLabel,
   commitmentDueTone,
   PAGE_EMPTY_BUDGET,
+  PAGE_EMPTY_CATEGORY,
+  PAGE_EMPTY_CATEGORY_FILTER,
   PAGE_EMPTY_COMMITMENT,
   PAGE_EMPTY_COMMITMENT_ARCHIVED,
   PAGE_EMPTY_GOAL,
@@ -22,6 +24,7 @@ const root = process.cwd();
 const BUDGETS = join(root, "src/components/budgets-page.tsx");
 const COMMITMENTS = join(root, "src/components/commitments-page.tsx");
 const GOALS = join(root, "src/components/goals-page.tsx");
+const CATEGORIES = join(root, "src/components/categories-page.tsx");
 const SHELL = join(root, "src/components/planning-card.tsx");
 const CSS = join(root, "src/app/globals.css");
 
@@ -30,12 +33,21 @@ function read(path: string) {
 }
 
 test("page empty configs: one CTA or none (never multi)", () => {
-  for (const config of [PAGE_EMPTY_BUDGET, PAGE_EMPTY_COMMITMENT, PAGE_EMPTY_GOAL]) {
+  for (const config of [
+    PAGE_EMPTY_BUDGET,
+    PAGE_EMPTY_COMMITMENT,
+    PAGE_EMPTY_GOAL,
+    PAGE_EMPTY_CATEGORY,
+  ]) {
     assert.equal(pageEmptyPrimaryCtaCount(config), 1);
     assertPageEmptyOneCtaOrNone(config);
     assert.ok(config.actionLabel);
   }
-  for (const config of [PAGE_EMPTY_COMMITMENT_ARCHIVED, PAGE_EMPTY_GOAL_ARCHIVED]) {
+  for (const config of [
+    PAGE_EMPTY_COMMITMENT_ARCHIVED,
+    PAGE_EMPTY_GOAL_ARCHIVED,
+    PAGE_EMPTY_CATEGORY_FILTER,
+  ]) {
     assert.equal(pageEmptyPrimaryCtaCount(config), 0);
     assertPageEmptyOneCtaOrNone(config);
     assert.equal(config.actionLabel, undefined);
@@ -47,6 +59,7 @@ test("page empty copy is calm Vietnamese (no guilt)", () => {
     PAGE_EMPTY_BUDGET,
     PAGE_EMPTY_COMMITMENT,
     PAGE_EMPTY_GOAL,
+    PAGE_EMPTY_CATEGORY,
   ]
     .map((c) => `${c.title} ${c.description} ${c.actionLabel ?? ""}`)
     .join(" ");
@@ -122,10 +135,11 @@ test("budgets / commitments / goals pages use PlanningCard shell", () => {
   }
 });
 
-test("budgets / commitments / goals empties: EmptyState + page empty configs (1 CTA)", () => {
+test("Q4 budgets / commitments / goals / categories empties: EmptyState + 1 primary CTA", () => {
   const budgets = read(BUDGETS);
   const commitments = read(COMMITMENTS);
   const goals = read(GOALS);
+  const categories = read(CATEGORIES);
 
   assert.match(budgets, /EmptyState/);
   assert.match(budgets, /PAGE_EMPTY_BUDGET/);
@@ -136,11 +150,21 @@ test("budgets / commitments / goals empties: EmptyState + page empty configs (1 
   assert.match(commitments, /EmptyState/);
   assert.match(commitments, /PAGE_EMPTY_COMMITMENT/);
   assert.match(commitments, /commitmentDueTone|commitmentDueLabel/);
+  // Error empty uses one primary CTA, not secondary-only multi chrome
+  assert.doesNotMatch(commitments, /secondaryLabel/);
+  assert.match(commitments, /actionLabel="Về Tổng quan"|actionHref="\/insights"/);
 
   assert.match(goals, /EmptyState/);
   assert.match(goals, /PAGE_EMPTY_GOAL/);
   assert.doesNotMatch(goals, /budget-page-empty/);
   assert.doesNotMatch(goals, /secondaryLabel/);
+
+  assert.match(categories, /EmptyState/);
+  assert.match(categories, /PAGE_EMPTY_CATEGORY/);
+  assert.match(categories, /PAGE_EMPTY_CATEGORY_FILTER/);
+  assert.doesNotMatch(categories, /secondaryLabel/);
+  // No ad-hoc multi-button empty block
+  assert.doesNotMatch(categories, /account-empty/);
 });
 
 test("CSS defines shared planning-card shell + calm tone modifiers", () => {
