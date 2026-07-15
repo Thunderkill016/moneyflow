@@ -31,12 +31,17 @@ test("dashboard uses pickFeaturedGoal and progress bar", () => {
 
 test("dashboard links to /goals and empty CTA creates goal", () => {
   const source = read(DASHBOARD);
-  assert.ok(source.includes('href="/goals"'), "expected /goals link");
-  assert.ok(source.includes("Tạo mục tiêu"), "expected empty CTA");
+  assert.ok(source.includes('href="/goals"') || source.includes("PLANNING_EMPTY_GOAL"), "expected /goals link");
   assert.ok(
-    source.includes("Dành tiền cho một điều bạn muốn đạt được."),
-    "expected empty copy",
+    source.includes("Tạo mục tiêu") || source.includes("PLANNING_EMPTY_GOAL"),
+    "expected empty CTA",
   );
+  assert.ok(
+    source.includes("PLANNING_EMPTY_GOAL") ||
+      source.includes("Dành tiền cho một điều bạn muốn đạt được."),
+    "expected empty copy via shared planning empty",
+  );
+  assert.ok(source.includes("PlanningCardEmpty"), "R3: shared planning empty");
   assert.ok(source.includes("Xem tất cả mục tiêu"), "expected list link when featured");
 });
 

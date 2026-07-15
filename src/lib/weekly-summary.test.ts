@@ -129,8 +129,10 @@ test("dashboard wires weekly summary card (contract)", () => {
   assert.match(dashboard, /WEEKLY_SUMMARY_TITLE/);
   assert.match(dashboard, /WEEKLY_SUMMARY_ARIA/);
   assert.match(dashboard, /WEEKLY_SUMMARY_REPORTS_HREF/);
-  assert.match(dashboard, /WEEKLY_SUMMARY_EMPTY_WEEK/);
-  assert.match(dashboard, /WEEKLY_SUMMARY_EMPTY_LEDGER/);
+  // R3: weekly empty via PlanningCardEmpty + shared planning empty configs
+  assert.match(dashboard, /PLANNING_EMPTY_WEEKLY_WEEK|WEEKLY_SUMMARY_EMPTY_WEEK/);
+  assert.match(dashboard, /PLANNING_EMPTY_WEEKLY_LEDGER|WEEKLY_SUMMARY_EMPTY_LEDGER/);
+  assert.match(dashboard, /PlanningCardEmpty/);
   assert.match(dashboard, /weeklyExpenseCompareLine/);
 });
 

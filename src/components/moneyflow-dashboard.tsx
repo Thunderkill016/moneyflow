@@ -66,15 +66,23 @@ import {
   buildWeeklySummary,
   formatWeekRangeLabel,
   WEEKLY_SUMMARY_ARIA,
-  WEEKLY_SUMMARY_EMPTY_LEDGER,
-  WEEKLY_SUMMARY_EMPTY_WEEK,
   WEEKLY_SUMMARY_REPORTS_HREF,
   WEEKLY_SUMMARY_REPORTS_LABEL,
   WEEKLY_SUMMARY_TITLE,
   weeklyExpenseCompareLine,
 } from "@/lib/weekly-summary";
+import {
+  INSIGHTS_LEDGER_EMPTY,
+  PLANNING_EMPTY_BUDGET,
+  PLANNING_EMPTY_COMMITMENT,
+  PLANNING_EMPTY_GOAL,
+  PLANNING_EMPTY_INCOME,
+  PLANNING_EMPTY_WEEKLY_LEDGER,
+  PLANNING_EMPTY_WEEKLY_WEEK,
+} from "@/lib/insights-planning-empty";
 import { AppShell } from "@/components/layout/app-shell";
 import { EmptyState } from "@/components/empty-state";
+import { PlanningCardEmpty } from "@/components/planning-card-empty";
 import {
   countPending,
   readStoredCandidates,
@@ -452,8 +460,8 @@ export function MoneyFlowDashboard({
         {isEmptyLedger && !workspace.dataError ? (
           <EmptyState
             icon="wallet"
-            title="Chưa có giao dịch nào"
-            description="Ghi khoản chi đầu tiên để thấy số dư, thu–chi tháng và danh mục chi tiêu."
+            title={INSIGHTS_LEDGER_EMPTY.title}
+            description={INSIGHTS_LEDGER_EMPTY.description}
             actionLabel={GHI_CHI_TIEU_LABEL}
             onAction={openGhiChi}
             className="insights-empty"
@@ -654,16 +662,11 @@ export function MoneyFlowDashboard({
                   </p>
                 </>
               ) : (
-                <div className="budget-empty">
-                  <p>{isEmptyLedger ? WEEKLY_SUMMARY_EMPTY_LEDGER : WEEKLY_SUMMARY_EMPTY_WEEK}</p>
-                  {isEmptyLedger ? (
-                    <button type="button" onClick={openGhiChi} disabled={actionsDisabled}>
-                      {GHI_CHI_TIEU_LABEL}
-                    </button>
-                  ) : (
-                    <Link href={WEEKLY_SUMMARY_REPORTS_HREF}>{WEEKLY_SUMMARY_REPORTS_LABEL}</Link>
-                  )}
-                </div>
+                <PlanningCardEmpty
+                  {...(isEmptyLedger
+                    ? PLANNING_EMPTY_WEEKLY_LEDGER
+                    : PLANNING_EMPTY_WEEKLY_WEEK)}
+                />
               )}
             </article>
 
@@ -717,10 +720,7 @@ export function MoneyFlowDashboard({
                   </div>
                 </>
               ) : (
-                <div className="budget-empty">
-                  <p>Chưa đặt hạn mức cho tháng này.</p>
-                  <Link href="/budgets">Thiết lập ngân sách</Link>
-                </div>
+                <PlanningCardEmpty {...PLANNING_EMPTY_BUDGET} />
               )}
             </article>
 
@@ -730,28 +730,33 @@ export function MoneyFlowDashboard({
               </span>
               <div>
                 <p className="eyebrow">Khoản định kỳ</p>
-                <h2>
-                  {reservedCommitments > 0
-                    ? `${formatMoney(reservedCommitments)} đang được giữ trước`
-                    : activeCommitmentCount > 0
-                      ? "Tháng này đã trả hết khoản định kỳ"
-                      : "Chưa có hóa đơn cần giữ trước"}
-                </h2>
-                <p>
-                  {reservedCommitments > 0 ? (
-                    <>
-                      <span className="font-mono">
-                        {unpaidCommitments} khoản chưa trả
-                      </span>
-                      {" · "}
-                      <Link href="/commitments">Xem lịch thanh toán và đánh dấu đã trả →</Link>
-                    </>
-                  ) : activeCommitmentCount > 0 ? (
-                    <Link href="/commitments">Xem lịch khoản định kỳ →</Link>
-                  ) : (
-                    <Link href="/commitments">Thêm khoản định kỳ đầu tiên →</Link>
-                  )}
-                </p>
+                {activeCommitmentCount === 0 ? (
+                  <PlanningCardEmpty
+                    {...PLANNING_EMPTY_COMMITMENT}
+                    className="planning-card-empty-inline"
+                  />
+                ) : (
+                  <>
+                    <h2>
+                      {reservedCommitments > 0
+                        ? `${formatMoney(reservedCommitments)} đang được giữ trước`
+                        : "Tháng này đã trả hết khoản định kỳ"}
+                    </h2>
+                    <p>
+                      {reservedCommitments > 0 ? (
+                        <>
+                          <span className="font-mono">
+                            {unpaidCommitments} khoản chưa trả
+                          </span>
+                          {" · "}
+                          <Link href="/commitments">Xem lịch thanh toán và đánh dấu đã trả →</Link>
+                        </>
+                      ) : (
+                        <Link href="/commitments">Xem lịch khoản định kỳ →</Link>
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
             </article>
 
@@ -761,28 +766,33 @@ export function MoneyFlowDashboard({
               </span>
               <div>
                 <p className="eyebrow">Lương định kỳ</p>
-                <h2>
-                  {incomeTotals.expected > 0
-                    ? `${formatMoney(incomeTotals.expected)} chờ nhận`
-                    : activeIncomeCount > 0
-                      ? "Tháng này đã ghi nhận hết lương"
-                      : "Chưa có lương định kỳ"}
-                </h2>
-                <p>
-                  {incomeTotals.expected > 0 ? (
-                    <>
-                      <span className="font-mono">
-                        {pendingIncomeCount} khoản chưa nhận
-                      </span>
-                      {" · "}
-                      <Link href="/income-templates">Ghi nhận khi tiền về →</Link>
-                    </>
-                  ) : activeIncomeCount > 0 ? (
-                    <Link href="/income-templates">Xem lịch thu →</Link>
-                  ) : (
-                    <Link href="/income-templates">Thêm lương định kỳ →</Link>
-                  )}
-                </p>
+                {activeIncomeCount === 0 ? (
+                  <PlanningCardEmpty
+                    {...PLANNING_EMPTY_INCOME}
+                    className="planning-card-empty-inline"
+                  />
+                ) : (
+                  <>
+                    <h2>
+                      {incomeTotals.expected > 0
+                        ? `${formatMoney(incomeTotals.expected)} chờ nhận`
+                        : "Tháng này đã ghi nhận hết lương"}
+                    </h2>
+                    <p>
+                      {incomeTotals.expected > 0 ? (
+                        <>
+                          <span className="font-mono">
+                            {pendingIncomeCount} khoản chưa nhận
+                          </span>
+                          {" · "}
+                          <Link href="/income-templates">Ghi nhận khi tiền về →</Link>
+                        </>
+                      ) : (
+                        <Link href="/income-templates">Xem lịch thu →</Link>
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
             </article>
 
@@ -837,10 +847,7 @@ export function MoneyFlowDashboard({
                   </p>
                 </>
               ) : (
-                <div className="budget-empty">
-                  <p>Dành tiền cho một điều bạn muốn đạt được.</p>
-                  <Link href="/goals">Tạo mục tiêu</Link>
-                </div>
+                <PlanningCardEmpty {...PLANNING_EMPTY_GOAL} />
               )}
             </article>
           </div>
