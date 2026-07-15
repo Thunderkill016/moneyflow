@@ -637,7 +637,7 @@
 - **Status:** `done`
 - **Mô tả:** Contract test: transfer amount not in month expense total / category spend. Demo ledger.
 - **Done khi:** test green.
-- **Completed:** 2026-07-15 — `96c6ad7` transfer-expense-contract.test.ts: demo ledger transfer excluded from monthExpenseTotal, top categories, report categories, budget spent, demo dashboard.
+- **Completed:** 2026-07-15 — `0c3bc28` transfer-expense-contract.test.ts: demo ledger transfer excluded from monthExpenseTotal, top categories, report categories, budget spent, demo dashboard.
 
 ### TASK-254 — MVP-STAB create/delete/restore error VN parity
 - **Status:** `ready`
@@ -860,7 +860,7 @@
 
 | Date | Task | Note |
 |------|------|------|
-| 2026-07-15 | TASK-253 | `96c6ad7` transfer-expense-contract: demo ledger transfer ≠ month expense / category spend |
+| 2026-07-15 | TASK-253 | `0c3bc28` transfer-expense-contract: demo ledger transfer ≠ month expense / category spend |
 | 2026-07-15 | TASK-251 | `a0233f8` money-invariants regression suite (transfer/soft-delete/integer/budget/safe-to-spend) |
 | 2026-07-15 | TASK-250 | `6985ded` MVP_DEFINITION linked README/AGENTS; mvp-definition.test.ts exit keywords |
 | 2026-07-15 | OSS 400–410 | GitHub best-of map + learn/apply queue |
