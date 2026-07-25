@@ -1,5 +1,6 @@
 "use client";
 
+import "@/app/ui-refresh.css";
 import { signOut } from "@/app/(auth)/actions";
 import { Icon } from "@/components/icons";
 import {
