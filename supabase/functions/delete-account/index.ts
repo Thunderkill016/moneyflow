@@ -56,10 +56,11 @@ Deno.serve(async (request: Request) => {
     "SUPABASE_PUBLISHABLE_KEY",
     "SUPABASE_ANON_KEY",
   );
-  // GoTrue admin endpoints require the service-role JWT. A project secret key can
-  // authenticate Data API calls, but must not replace this JWT for auth.admin.*.
-  const serviceRoleKey = firstEnvironmentValue("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !publishableKey || !serviceRoleKey) {
+  const secretKey = firstEnvironmentValue(
+    "SUPABASE_SECRET_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  );
+  if (!supabaseUrl || !publishableKey || !secretKey) {
     return json(500, { ok: false, code: "function_not_configured" });
   }
 
@@ -80,7 +81,7 @@ Deno.serve(async (request: Request) => {
     return json(401, { ok: false, code: "authentication_required" });
   }
 
-  const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+  const adminClient = createClient(supabaseUrl, secretKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
