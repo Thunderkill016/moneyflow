@@ -52,7 +52,11 @@ test("framework runtime uses patched Next, PostCSS and Sharp releases", () => {
   assert.equal(lock.packages?.["node_modules/sharp"]?.version, "0.35.0");
 
   for (const [path, installed] of Object.entries(lock.packages ?? {})) {
-    if (path.endsWith("/postcss")) assert.equal(installed.version, "8.5.19");
-    if (path.endsWith("/sharp")) assert.equal(installed.version, "0.35.0");
+    if (/(?:^|\/)node_modules\/postcss$/.test(path)) {
+      assert.equal(installed.version, "8.5.19");
+    }
+    if (/(?:^|\/)node_modules\/sharp$/.test(path)) {
+      assert.equal(installed.version, "0.35.0");
+    }
   }
 });
