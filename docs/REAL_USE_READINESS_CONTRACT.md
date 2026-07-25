@@ -102,7 +102,7 @@ Applied cloud versions:
 ### R2 — Database security
 
 - [x] Static migration/RLS tests pass in permanent CI.
-- [ ] Local Supabase pgTAP suite has been run against a fresh local reset.
+- [x] Local Supabase pgTAP suite passes after a fresh PostgreSQL 17 start and full local reset.
 - [x] Supabase security advisor findings were reviewed.
 - [x] A synthetic user can read their own default account and categories.
 - [x] User B sees zero account, transaction and inbox rows belonging to User A.
@@ -213,11 +213,26 @@ finalUrl = https://mfvn.vercel.app/login?deleted=1
 
 The password-reset checkbox above means only that the production UI accepted the request and displayed its generic response. It does not claim that a real email was delivered or that a recovery link completed the callback.
 
+## Accepted fresh-database evidence
+
+PR #21 and GitHub Actions run #79 established a permanent database gate:
+
+```text
+PostgreSQL = 17
+initial migration replay = pass
+supabase db reset --local = pass
+seed application = pass
+pgTAP = 78/78 pass
+Docker cleanup = pass
+Next.js lint/typecheck/unit/static-RLS/build = pass
+```
+
+The run also proved that historical migrations can reconstruct the final split-expense, recurring-income, account-currency and security-hardening contracts without relying on cloud-only state.
+
 ## Current gap register
 
 | Reference | Severity | Gap | Required result |
 |---|---|---|---|
-| R2 pgTAP | P2 | Fresh local Docker database suite not executed in this connected run | `npm run test:db` passes after reset |
 | R3 auth email | P2 | Real delivered confirmation/reset callback not completed | Link returns to canonical `/auth/callback` without old origin or localhost |
 | R4 totals | P2 | Browser smoke did not assert dashboard totals exactly once | Create/edit transaction and verify affected totals |
 | R4 transfer | P2 | Transfer accounting not exercised in production browser | Transfer leaves income/expense totals unchanged |
@@ -225,7 +240,7 @@ The password-reset checkbox above means only that the production UI accepted the
 | R6 primary path | P2 | Quick form was opened by direct authenticated route | Repeat through primary action/FAB on a real phone browser |
 | R7 | P2 | Seven-day owner self-use has not started | Complete the consecutive-day run and exit review |
 
-No known P0 or P1 readiness blocker remains after PRs #16, #18 and #19.
+No known P0 or P1 readiness blocker remains after PRs #16, #18, #19 and #21.
 
 ## Defect priority
 
