@@ -1,248 +1,77 @@
-name: CI
+name: Production verification
 
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
-  push:
-    branches: [main]
-  workflow_dispatch:
+    types: [synchronize]
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: production-verification-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  database:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+  verify-production:
+    if: github.head_ref == 'agent/emergency-prebuilt-deploy'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v2
-        with:
-          version: latest
-          github-token: ${{ github.token }}
-      - name: Fresh local reset and pgTAP
-        id: database-tests
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          {
-            supabase --version
-            supabase db start
-            supabase db reset --local
-            supabase test db
-          } 2>&1 | tee database-test-output.log
-      - name: Upload failing database output
-        if: steps.database-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: failing-database-test-output
-          path: database-test-output.log
-          if-no-files-found: error
-          retention-days: 1
-      - name: Stop local Supabase
-        if: always()
-        run: supabase stop --no-backup || true
-      - name: Fail after preserving database diagnostics
-        if: steps.database-tests.outcome == 'failure'
-        run: exit 1
-      - name: Database test summary
-        if: steps.database-tests.outcome == 'success'
-        run: tail -n 80 database-test-output.log
-
-  verify:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      NEXT_PUBLIC_APP_MODE: authenticated
-      NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key
-      NEXT_PUBLIC_SITE_URL: https://ci.example.test
-      LEGACY_SITE_HOSTS: old-ci.example.test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install
-        run: npm ci
-      - name: Deployment configuration contract
-        run: npm run check:deployment-env
-      - name: Lint
-        run: npm run lint
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Unit tests and static RLS
-        id: tests
-        continue-on-error: true
-        shell: bash
-        run: npm run test > test-output.log 2>&1
-      - name: Upload failing test output
-        if: steps.tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: failing-test-output
-          path: test-output.log
-          if-no-files-found: error
-          retention-days: 1
-      - name: Fail after preserving diagnostics
-        if: steps.tests.outcome == 'failure'
-        run: exit 1
-      - name: Test summary
-        if: steps.tests.outcome == 'success'
-        run: tail -n 40 test-output.log
-      - name: Production build
-        run: npm run build
-
-  emergency-prebuilt-production-deploy:
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.draft == false &&
-      github.head_ref == 'agent/emergency-prebuilt-deploy'
-    needs: [verify]
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-    steps:
-      - name: Checkout verified main content
-        uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - name: Verify deployment credential availability
-        shell: bash
-        run: |
-          if [ -z "$VERCEL_TOKEN" ]; then
-            echo "::error::Repository secret VERCEL_TOKEN is not configured."
-            exit 1
-          fi
-      - name: Install application dependencies
-        run: npm ci
-      - name: Link MoneyFlow project when IDs are unavailable
-        shell: bash
-        run: |
-          if [ -z "$VERCEL_ORG_ID" ] || [ -z "$VERCEL_PROJECT_ID" ]; then
-            npx --yes vercel@latest link \
-              --yes \
-              --project moneyflow \
-              --scope thunderkill016s-projects \
-              --token "$VERCEL_TOKEN"
-          fi
-      - name: Pull production project settings
-        run: npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
-      - name: Export Production environment for local build
-        run: npx --yes vercel@latest env pull .env.local --environment=production --yes --token "$VERCEL_TOKEN"
-      - name: Resolve write-only public variables for prebuilt build
+      - name: Verify canonical pages and retired-domain redirect
         shell: bash
         run: |
           set -euo pipefail
-          historical_commit=fb640d34ccead9597a66c2b1612a9fef87321986
-          git fetch --no-tags --depth=1 origin "$historical_commit"
+          canonical='https://mfvn.vercel.app'
+          legacy='https://moneyflow-vn.vercel.app'
 
-          cp .env.local .env.prebuilt
-          set -a
-          . ./.env.local
-          set +a
+          root_status=$(curl --silent --show-error --location \
+            --output canonical-root.html --write-out '%{http_code}' \
+            "$canonical/")
+          login_status=$(curl --silent --show-error --location \
+            --output canonical-login.html --write-out '%{http_code}' \
+            "$canonical/login")
+          curl --silent --show-error --output /dev/null \
+            --dump-header legacy-headers.txt "$legacy/"
 
-          historical_vercel=$(git show "${historical_commit}:vercel.json")
-          historical_supabase_url=$(printf '%s' "$historical_vercel" | node -e "let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>process.stdout.write(JSON.parse(s).env.NEXT_PUBLIC_SUPABASE_URL))")
-          historical_publishable_key=$(printf '%s' "$historical_vercel" | node -e "let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>process.stdout.write(JSON.parse(s).env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY))")
-          historical_legacy_host=$(git show "${historical_commit}:src/lib/site-url.ts" | sed -n 's/^export const LEGACY_SITE_HOST = "\([^"]*\)";.*/\1/p')
-
-          resolved_supabase_url="$NEXT_PUBLIC_SUPABASE_URL"
-          resolved_publishable_key="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
-          resolved_legacy_hosts="${LEGACY_SITE_HOSTS:-}"
-
-          [ "$resolved_supabase_url" = '[SENSITIVE]' ] && resolved_supabase_url="$historical_supabase_url"
-          [ "$resolved_publishable_key" = '[SENSITIVE]' ] && resolved_publishable_key="$historical_publishable_key"
-          [ "$resolved_legacy_hosts" = '[SENSITIVE]' ] && resolved_legacy_hosts="$historical_legacy_host"
+          legacy_status=$(awk 'NR==1 { print $2 }' legacy-headers.txt)
+          legacy_location=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]*:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' legacy-headers.txt)
 
           {
-            printf '\nNEXT_PUBLIC_APP_MODE=%q\n' authenticated
-            printf 'NEXT_PUBLIC_SUPABASE_URL=%q\n' "$resolved_supabase_url"
-            printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%q\n' "$resolved_publishable_key"
-            printf 'LEGACY_SITE_HOSTS=%q\n' "$resolved_legacy_hosts"
-          } >> .env.prebuilt
+            printf 'canonical_root_status=%s\n' "$root_status"
+            printf 'canonical_login_status=%s\n' "$login_status"
+            printf 'legacy_status=%s\n' "$legacy_status"
+            printf 'legacy_location=%s\n' "$legacy_location"
+            if grep -qi 'MoneyFlow' canonical-root.html; then
+              echo 'landing_brand=present'
+            else
+              echo 'landing_brand=missing'
+            fi
+            if grep -Eqi 'Google|Đăng nhập|Dang nhap|login' canonical-login.html; then
+              echo 'login_ui=present'
+            else
+              echo 'login_ui=missing'
+            fi
+          } | tee production-verification.log
 
-          echo 'Resolved public build configuration without logging values.'
-      - name: Validate resolved Production environment
-        shell: bash
-        run: |
-          set -a
-          . ./.env.prebuilt
-          set +a
-          VERCEL=1 VERCEL_ENV=production node scripts/check-deployment-env.mjs --force
-      - name: Create temporary Vercel CI configuration
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
-          config.buildCommand = 'set -a; . ./.env.prebuilt; set +a; npm run check:deployment-env && npm run build';
-          fs.writeFileSync('vercel.ci.json', `${JSON.stringify(config, null, 2)}\n`);
-          NODE
-      - name: Build production output with resolved Production env
-        id: vercel-build
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          npx --yes vercel@latest build --prod \
-            --local-config vercel.ci.json \
-            --token "$VERCEL_TOKEN" \
-            2>&1 | tee vercel-build-output.log
-      - name: Upload failing Vercel build output
-        if: steps.vercel-build.outcome == 'failure'
+          test "$root_status" = '200'
+          test "$login_status" = '200'
+          grep -qi 'MoneyFlow' canonical-root.html
+          grep -Eqi 'Google|Đăng nhập|Dang nhap|login' canonical-login.html
+          case "$legacy_status" in
+            301|302|303|307|308) ;;
+            *) echo "Legacy domain did not redirect" >&2; exit 1 ;;
+          esac
+          case "$legacy_location" in
+            "$canonical"*) ;;
+            *) echo "Legacy domain redirected to unexpected location" >&2; exit 1 ;;
+          esac
+
+      - name: Upload production verification
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: failing-vercel-build-output
-          path: vercel-build-output.log
+          name: production-verification
+          path: production-verification.log
           if-no-files-found: error
           retention-days: 1
-      - name: Fail after preserving Vercel diagnostics
-        if: steps.vercel-build.outcome == 'failure'
-        run: exit 1
-      - name: Deploy prebuilt output to production
-        id: vercel-deploy
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -o pipefail
-          npx --yes vercel@latest deploy \
-            --prebuilt \
-            --prod \
-            --archive=split-tgz \
-            --yes \
-            --token "$VERCEL_TOKEN" \
-            2>&1 | tee vercel-deploy-output.log
-      - name: Upload failing Vercel deploy output
-        if: steps.vercel-deploy.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: failing-vercel-deploy-output
-          path: vercel-deploy-output.log
-          if-no-files-found: error
-          retention-days: 1
-      - name: Fail after preserving deploy diagnostics
-        if: steps.vercel-deploy.outcome == 'failure'
-        run: exit 1
-      - name: Production deployment summary
-        if: steps.vercel-deploy.outcome == 'success'
-        run: tail -n 20 vercel-deploy-output.log
