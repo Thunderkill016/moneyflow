@@ -26,10 +26,9 @@ jobs:
       - name: Run authenticated deployed smoke
         env:
           READINESS_BASE_CANDIDATES: >-
+            https://moneyflow-vn.vercel.app,
             https://moneyflow-thunderkill016s-projects.vercel.app,
             https://moneyflow-git-main-thunderkill016s-projects.vercel.app,
-            https://moneyflow-thunderkill016.vercel.app,
-            https://moneyflow.vercel.app,
             https://moneyflow-git-agent-readiness-a-3a321b-thunderkill016s-projects.vercel.app
           READINESS_EMAIL: moneyflow-readiness-1398c74b@example.invalid
           READINESS_PASSWORD: Mf!6clhUw2T15Nd3m9urVjEwKnd
