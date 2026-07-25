@@ -1,0 +1,81 @@
+name: Temporary full account deletion verification
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.head_ref == 'agent/verify-full-account-delete'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+      - name: Invoke protected deletion function
+        env:
+          READINESS_USER_ID: 762b88d3-44f7-4fc2-9c3b-20672a01ef31
+          READINESS_EMAIL: moneyflow-delete-full-762b88d3@example.com
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          node --input-type=module <<'JS'
+          import { createClient } from '@supabase/supabase-js';
+          import { readFile, writeFile } from 'node:fs/promises';
+
+          const userId = process.env.READINESS_USER_ID;
+          const email = process.env.READINESS_EMAIL;
+          const password = `Mf!${userId.replaceAll('-', '').slice(0, 24)}`;
+          const config = JSON.parse(await readFile('vercel.json', 'utf8'));
+          const url = config.env.NEXT_PUBLIC_SUPABASE_URL;
+          const key = config.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+          const report = { checks: {}, response: null };
+          const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+          };
+
+          const client = createClient(url, key, {
+            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+          });
+          const { data: signIn, error: signInError } = await client.auth.signInWithPassword({ email, password });
+          assert(!signInError && signIn.session, `sign-in failed: ${signInError?.message ?? 'no session'}`);
+          report.checks.passwordLogin = true;
+
+          const { data, error } = await client.functions.invoke('delete-account', {
+            body: { confirm: 'XÓA' },
+          });
+          assert(!error, `function error: ${error?.message ?? 'unknown'}`);
+          assert(data?.ok === true, 'function did not confirm Auth deletion');
+          assert(data?.cleanupVerified === true, 'tenant cleanup was not verified');
+          assert(data?.tenantRowsRemaining === 0, `tenant rows remain: ${data?.tenantRowsRemaining}`);
+          assert(typeof data?.fallbackCleanupAttempted === 'boolean', 'fallback status missing');
+          report.response = data;
+          report.checks.completeCleanupVerified = true;
+
+          const fresh = createClient(url, key, {
+            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+          });
+          const { error: deletedLoginError } = await fresh.auth.signInWithPassword({ email, password });
+          assert(Boolean(deletedLoginError), 'deleted user can still sign in');
+          report.checks.deletedLoginRejected = true;
+          report.status = 'pass';
+          await writeFile('artifacts/full-account-delete-report.json', JSON.stringify(report, null, 2));
+          JS
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-account-delete-evidence
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 1
