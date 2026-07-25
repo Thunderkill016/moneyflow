@@ -1,6 +1,6 @@
 # Supabase setup
 
-MoneyFlow runs in local demo mode when Supabase environment variables are absent. To enable real accounts and the protected database, configure the environment explicitly. Deployment-specific values never belong in source control; see [configuration.md](./configuration.md).
+MoneyFlow uses an explicit runtime mode. `NEXT_PUBLIC_APP_MODE=demo` runs the browser-only demo; `NEXT_PUBLIC_APP_MODE=authenticated` enables real accounts and the protected database. Deployment-specific values never belong in source control; see [configuration.md](./configuration.md).
 
 ## 1. Create a project
 
@@ -14,16 +14,26 @@ Never use the secret/service-role key in browser code.
 cp .env.example .env.local
 ```
 
-Fill in:
+The example starts in demo mode:
 
 ```text
-NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+NEXT_PUBLIC_APP_MODE=demo
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 LEGACY_SITE_HOSTS=
 ```
 
-For production, configure the same variable names in **Vercel Project Settings → Environment Variables**. `NEXT_PUBLIC_SITE_URL` must be the exact HTTPS production origin. Do not put production values in `vercel.json` or TypeScript constants.
+To use real accounts, change the mode and provide both backend values:
+
+```text
+NEXT_PUBLIC_APP_MODE=authenticated
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+For production, configure the same variable names in **Vercel Project Settings → Environment Variables**. Production must use `NEXT_PUBLIC_APP_MODE=authenticated`, and `NEXT_PUBLIC_SITE_URL` must be the exact HTTPS production origin. Do not put production values in `vercel.json` or TypeScript constants.
 
 `LEGACY_SITE_HOSTS` is optional and contains comma-separated retired hostnames during a deliberate domain migration. Remove entries after the migration window.
 
@@ -46,7 +56,7 @@ The `redirectTo` value sent by the application must match the Supabase Redirect 
 npm run check:deployment-env
 ```
 
-Production and hosted builds require HTTPS. Missing or malformed values fail validation instead of falling back to a guessed project or hostname.
+Hosted builds require HTTPS. Missing or malformed values fail validation instead of falling back to a guessed mode, project or hostname.
 
 ## 5. Apply database migrations
 
