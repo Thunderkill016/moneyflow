@@ -3,6 +3,13 @@ import { createClient } from "npm:@supabase/supabase-js@2.110.3";
 
 const DELETE_CONFIRM_TEXT = "XÓA";
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
+const TENANT_TABLES = [
+  { table: "profiles", ownerColumn: "id" },
+  { table: "accounts", ownerColumn: "user_id" },
+  { table: "categories", ownerColumn: "user_id" },
+  { table: "financial_transactions", ownerColumn: "user_id" },
+  { table: "transaction_entries", ownerColumn: "user_id" },
+] as const;
 
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
@@ -89,5 +96,23 @@ Deno.serve(async (request: Request) => {
     return json(409, { ok: false, code: "account_delete_blocked" });
   }
 
-  return json(200, { ok: true });
+  let cleanupVerified = true;
+  let tenantRowsRemaining = 0;
+  for (const { table, ownerColumn } of TENANT_TABLES) {
+    const { count, error } = await adminClient
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq(ownerColumn, user.id);
+    if (error) {
+      cleanupVerified = false;
+      continue;
+    }
+    tenantRowsRemaining += count ?? 0;
+  }
+
+  return json(200, {
+    ok: true,
+    cleanupVerified,
+    tenantRowsRemaining: cleanupVerified ? tenantRowsRemaining : null,
+  });
 });
