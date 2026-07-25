@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { sanitizeSpeedInsightsUrl } from "@/lib/speed-insights";
+import { sanitizeSpeedInsightsUrl } from "./speed-insights.ts";
 
 test("removes query strings and fragments from performance URLs", () => {
   assert.equal(
