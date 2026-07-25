@@ -30,6 +30,20 @@ jobs:
           READINESS_EMAIL: moneyflow-totals-0e2a8f32-00d@example.com
         run: |
           mkdir -p artifacts
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/temporary-dashboard-transfer-readiness.mjs')
+          text = path.read_text()
+          text = text.replace(
+              "const addAccountButton = page.locator('button:visible').filter({ hasText: \"Thêm tài khoản\" }).first();",
+              "const addAccountButton = page.locator('button.mobile-fab[aria-label=\"Thêm tài khoản\"]');",
+          )
+          text = text.replace(
+              "const ghiChiButton = page.locator('button:visible').filter({ hasText: \"Ghi chi tiêu\" }).first();",
+              "const ghiChiButton = page.locator('button.mobile-fab[aria-label=\"Ghi chi tiêu\"]');",
+          )
+          path.write_text(text)
+          PY
           node scripts/temporary-dashboard-transfer-readiness.mjs
       - name: Upload evidence
         if: always()
