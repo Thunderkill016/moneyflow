@@ -36,6 +36,7 @@ Bank sync · AI advisor · family · OCR · full YNAB envelope · AGPL code past
 - Values that vary by deployment belong in environment variables or provider settings, never TypeScript constants, `vercel.json` values or committed `.env` files.
 - Do not guess production hostnames, project URLs, callback URLs, provider IDs or credentials.
 - Missing production configuration must fail validation/build; do not add a fallback to make CI green.
+- Runtime mode is explicit: `NEXT_PUBLIC_APP_MODE=demo|authenticated`. Never infer demo from missing credentials or magic placeholder strings.
 - `NEXT_PUBLIC_SITE_URL` is the exact application origin. Retired domains belong in `LEGACY_SITE_HOSTS`.
 - Supabase Site URL and Redirect URLs must be updated together with the Vercel environment.
 - Before changing auth/deployment config, read `docs/configuration.md` and current official provider documentation.
