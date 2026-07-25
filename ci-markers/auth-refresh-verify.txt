@@ -1,0 +1,2 @@
+Temporary CI marker for authentication refresh verification.
+Do not merge.
