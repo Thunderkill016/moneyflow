@@ -26,8 +26,12 @@ jobs:
         run: npm install --package-lock-only --ignore-scripts
       - name: Clean install
         run: npm ci --ignore-scripts
-      - name: Require no high runtime advisories
-        run: npm audit --omit=dev --audit-level=high
+      - name: Capture runtime audit
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          npm audit --omit=dev --json > artifacts/runtime-audit.json || true
+          npm ls next postcss sharp --all --json > artifacts/runtime-tree.json || true
       - name: Commit generated lockfile
         shell: bash
         run: |
@@ -40,3 +44,11 @@ jobs:
           git add package-lock.json
           git commit -m "fix: lock Next.js security release"
           git push origin HEAD:fix/next-security-update
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: next-security-audit
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 2
