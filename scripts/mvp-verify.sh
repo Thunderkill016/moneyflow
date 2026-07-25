@@ -7,6 +7,7 @@ cd "$ROOT"
 export NEXT_TELEMETRY_DISABLED=1
 
 # Reproducible non-production fixtures. Caller-provided values always win.
+export NEXT_PUBLIC_APP_MODE="${NEXT_PUBLIC_APP_MODE:-authenticated}"
 export NEXT_PUBLIC_SUPABASE_URL="${NEXT_PUBLIC_SUPABASE_URL:-https://ci-project.supabase.co}"
 export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-sb_publishable_ci_test_key}"
 export NEXT_PUBLIC_SITE_URL="${NEXT_PUBLIC_SITE_URL:-https://ci.example.test}"
