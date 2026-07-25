@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
 import "./globals.css";
 
 /**
@@ -64,7 +65,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <PrivacySafeSpeedInsights />
+      </body>
     </html>
   );
 }
