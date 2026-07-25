@@ -23,6 +23,9 @@ jobs:
         run: npm ci
       - name: Verify self-service account deletion
         shell: bash
+        env:
+          READINESS_EMAIL: moneyflow-delete-smoke-4fde95d48bd8400f@example.com
+          READINESS_PASSWORD: Mf!gTnUy6Gi8BwGCK3XjeGYFCcAuqDdY2XeAa1
         run: |
           set +e
           node scripts/account-delete-runtime-smoke.mjs > account-delete-smoke.log 2>&1
