@@ -1,0 +1,41 @@
+name: Temporary export safety readiness
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.head_ref == 'agent/verify-export-safety'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run export discoverability and formula safety smoke
+        env:
+          READINESS_USER_ID: 4a7c1e90-6bcb-4cd7-9e88-2b347b915ab1
+          READINESS_EMAIL: moneyflow-export-4a7c1e90@example.com
+        run: |
+          mkdir -p artifacts
+          node scripts/temporary-export-safety-readiness.mjs
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: export-safety-readiness-evidence
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 3
