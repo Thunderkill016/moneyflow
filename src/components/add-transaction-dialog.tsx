@@ -22,6 +22,14 @@ import {
 
 const KEEP_OPEN_SUCCESS = "Đã lưu · nhập khoản tiếp";
 
+type RepeatableTransactionDraft = {
+  kind: TransactionKind;
+  categoryId: string;
+  accountId: string;
+  amount: number;
+  note: string;
+};
+
 export function AddTransactionDialog({
   open,
   onClose,
@@ -61,6 +69,7 @@ export function AddTransactionDialog({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [savedFlash, setSavedFlash] = useState("");
+  const [lastTransaction, setLastTransaction] = useState<RepeatableTransactionDraft | null>(null);
 
   const [recentCategoryIds, setRecentCategoryIds] = useState<string[]>([]);
 
@@ -76,6 +85,13 @@ export function AddTransactionDialog({
     : pickCategoryForKind(availableCategories, recentCategoryIds);
   const hasRecentForKind = availableCategories.some((item) =>
     isRecentCategoryId(item.id, recentCategoryIds),
+  );
+  const canRepeatLastTransaction = Boolean(
+    lastTransaction &&
+      accounts.some((item) => item.id === lastTransaction.accountId) &&
+      categories.some(
+        (item) => item.id === lastTransaction.categoryId && item.kind === lastTransaction.kind,
+      ),
   );
 
   const kindSign = moneyKindPrefix(kind);
@@ -191,6 +207,21 @@ export function AddTransactionDialog({
     window.requestAnimationFrame(() => focusAmount(false));
   }
 
+  function applyLastTransaction() {
+    if (!lastTransaction || !canRepeatLastTransaction) return;
+    setKind(lastTransaction.kind);
+    setAmount(formatMoneyInput(String(lastTransaction.amount)));
+    setCategoryId(lastTransaction.categoryId);
+    setAccountId(lastTransaction.accountId);
+    setNote(lastTransaction.note);
+    setOccurredOn(todayInVietnam());
+    idempotencyKeyRef.current = null;
+    clearSavedFlashTimer();
+    setSavedFlash("");
+    setError("");
+    window.requestAnimationFrame(() => focusAmount());
+  }
+
   function persistPrefs(next: {
     kind: TransactionKind;
     accountId: string;
@@ -247,6 +278,13 @@ export function AddTransactionDialog({
       return;
     }
 
+    setLastTransaction({
+      kind,
+      accountId: selectedAccountId,
+      categoryId: selectedCategoryId,
+      amount: parsedAmount,
+      note: note.trim(),
+    });
     persistPrefs({
       kind,
       accountId: selectedAccountId,
@@ -288,6 +326,21 @@ export function AddTransactionDialog({
           Khoản thu (+)
         </button>
       </div>
+
+      {lastTransaction && canRepeatLastTransaction ? (
+        <button
+          type="button"
+          className="secondary-button dialog-submit"
+          onClick={applyLastTransaction}
+          disabled={disabled || submitting}
+          data-repeat-last="true"
+          aria-label={`Ghi lại khoản trước ${formatMoneyInput(String(lastTransaction.amount))} đồng${
+            lastTransaction.note ? `, ${lastTransaction.note}` : ""
+          }`}
+        >
+          Ghi lại khoản trước · {formatMoneyInput(String(lastTransaction.amount))} ₫
+        </button>
+      ) : null}
 
       <label className="amount-field" htmlFor="add-tx-amount">
         <span>{amountLabel}</span>
