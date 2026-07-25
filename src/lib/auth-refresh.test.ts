@@ -7,9 +7,9 @@ const authLayout = readFileSync("src/app/(auth)/layout.tsx", "utf8");
 const refresh = readFileSync("src/app/auth-refresh.css", "utf8");
 const authForm = readFileSync("src/components/auth-form.tsx", "utf8");
 
-test("authentication refresh is loaded only by auth routes", () => {
-  assert.doesNotMatch(rootLayout, /auth-refresh\.css/);
-  assert.match(authLayout, /import "\.\.\/auth-refresh\.css"/);
+test("authentication refresh is loaded by the root layout for production stability", () => {
+  assert.match(rootLayout, /import "\.\/auth-refresh\.css"/);
+  assert.doesNotMatch(authLayout, /auth-refresh\.css/);
 });
 
 test("login refresh preserves Google and password authentication controls", () => {
