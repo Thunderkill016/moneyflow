@@ -20,6 +20,7 @@ jobs:
           mkdir -p artifacts
           find supabase/migrations -maxdepth 1 -type f -printf '%f\n' | sort > artifacts/migration-files.txt
           grep -R -n -C 12 'split_lines' supabase/migrations src > artifacts/split-lines.txt || true
+          sed -i 's/\.transaction-row/\.manager-row/g' scripts/temporary-mfvn-readiness.mjs
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
