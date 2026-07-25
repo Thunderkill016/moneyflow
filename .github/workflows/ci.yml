@@ -28,18 +28,24 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
       - name: Unit tests and static RLS
+        id: tests
+        continue-on-error: true
         shell: bash
-        run: |
-          set +e
-          npm run test > test-output.log 2>&1
-          status=$?
-          if [ "$status" -ne 0 ]; then
-            echo "::group::Test failure tail"
-            tail -n 200 test-output.log
-            echo "::endgroup::"
-            exit "$status"
-          fi
-          tail -n 40 test-output.log
+        run: npm run test > test-output.log 2>&1
+      - name: Upload failing test output
+        if: steps.tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: failing-test-output
+          path: test-output.log
+          if-no-files-found: error
+          retention-days: 1
+      - name: Fail after preserving diagnostics
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
+      - name: Test summary
+        if: steps.tests.outcome == 'success'
+        run: tail -n 40 test-output.log
       - name: Production build
         env:
           NEXT_PUBLIC_SUPABASE_URL: placeholder
