@@ -1,0 +1,41 @@
+name: Temporary dashboard and transfer readiness
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.head_ref == 'agent/verify-dashboard-transfer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run dashboard totals and transfer smoke
+        env:
+          READINESS_USER_ID: 0e2a8f32-00d2-4a53-b286-51644a2e14dd
+          READINESS_EMAIL: moneyflow-totals-0e2a8f32-00d@example.com
+        run: |
+          mkdir -p artifacts
+          node scripts/temporary-dashboard-transfer-readiness.mjs
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-transfer-readiness-evidence
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 3
