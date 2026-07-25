@@ -151,16 +151,18 @@ jobs:
           npx --yes vercel@latest env rm NEXT_PUBLIC_APP_MODE production \
             --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
           printf '%s\n' authenticated | npx --yes vercel@latest env add \
-            NEXT_PUBLIC_APP_MODE production --token "$VERCEL_TOKEN"
-      - name: Pull production environment
+            NEXT_PUBLIC_APP_MODE production --force --token "$VERCEL_TOKEN"
+      - name: Pull production project settings
         run: npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
-      - name: Build production output on GitHub runner
+      - name: Build production output with injected Production env
         id: vercel-build
         continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
-          npx --yes vercel@latest build --prod --token "$VERCEL_TOKEN" 2>&1 | tee vercel-build-output.log
+          npx --yes vercel@latest env run -e production --token "$VERCEL_TOKEN" -- \
+            npx --yes vercel@latest build --prod --token "$VERCEL_TOKEN" \
+            2>&1 | tee vercel-build-output.log
       - name: Upload failing Vercel build output
         if: steps.vercel-build.outcome == 'failure'
         uses: actions/upload-artifact@v4
