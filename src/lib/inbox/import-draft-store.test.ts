@@ -6,6 +6,7 @@ import {
   isImportDraft,
   isParsedCsvRow,
   previewDraftRows,
+  pruneImportDraftMap,
 } from "./import-draft-store.ts";
 import type { ParsedCsvRow } from "./parse-csv.ts";
 
@@ -21,6 +22,10 @@ const sampleRow: ParsedCsvRow = {
   rawSnippet: "2026-07-12 | Cafe | 45000",
   rowIndex: 2,
 };
+
+function draft(batchId: string, updatedAt: string) {
+  return { batchId, rows: [sampleRow], updatedAt };
+}
 
 test("isParsedCsvRow accepts valid draft row", () => {
   assert.equal(isParsedCsvRow(sampleRow), true);
@@ -44,6 +49,35 @@ test("isImportDraft validates shape", () => {
       updatedAt: "2026-07-15T10:00:00.000Z",
     }),
     false,
+  );
+});
+
+test("persistent import drafts obey the selected retention window", () => {
+  const now = new Date("2026-07-20T12:00:00.000Z");
+  const map = {
+    recent: draft("recent", "2026-07-20T11:00:00.000Z"),
+    boundary: draft("boundary", "2026-07-13T12:00:00.000Z"),
+    expired: draft("expired", "2026-07-13T11:59:59.999Z"),
+  };
+
+  assert.deepEqual(Object.keys(pruneImportDraftMap(map, "days_7", now)).sort(), [
+    "boundary",
+    "recent",
+  ]);
+  assert.deepEqual(Object.keys(pruneImportDraftMap(map, "days_30", now)).sort(), [
+    "boundary",
+    "expired",
+    "recent",
+  ]);
+});
+
+test("session-only retention removes every persistent draft", () => {
+  const map = {
+    recent: draft("recent", "2026-07-20T11:00:00.000Z"),
+  };
+  assert.deepEqual(
+    pruneImportDraftMap(map, "delete_now", new Date("2026-07-20T12:00:00.000Z")),
+    {},
   );
 });
 
