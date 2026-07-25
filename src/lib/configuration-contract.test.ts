@@ -11,6 +11,8 @@ const siteUrlSource = readFileSync("src/lib/site-url.ts", "utf8");
 const proxySource = readFileSync("src/proxy.ts", "utf8");
 const envExample = readFileSync(".env.example", "utf8");
 const deploymentGuard = readFileSync("scripts/check-deployment-env.mjs", "utf8");
+const mvpVerify = readFileSync("scripts/mvp-verify.sh", "utf8");
+const readme = readFileSync("README.md", "utf8");
 
 test("Vercel configuration contains behavior only, never deployment values", () => {
   assert.equal(vercelConfig.env, undefined);
@@ -44,4 +46,11 @@ test("deployment validation fails instead of supplying application defaults", ()
   assert.doesNotMatch(deploymentGuard, /mfvn|moneyflow-vn|fwpldsdkpzhswpuctbke/i);
   assert.match(deploymentGuard, /process\.exit\(1\)/);
   assert.match(deploymentGuard, /Configure deployment values in Vercel Project Settings/);
+});
+
+test("verification scripts cannot bypass the configuration contract with placeholders", () => {
+  assert.doesNotMatch(mvpVerify, /=placeholder|=changeme|=replace_me/i);
+  assert.match(mvpVerify, /npm run check:deployment-env/);
+  assert.doesNotMatch(readme, /SUPABASE_URL=placeholder|PUBLISHABLE_KEY=placeholder/);
+  assert.match(readme, /Do not push feature or fix commits directly to `main`/);
 });
