@@ -1,0 +1,27 @@
+name: Temporary source snapshot
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Upload repository source
+        uses: actions/upload-artifact@v4
+        with:
+          name: moneyflow-source-snapshot
+          path: |
+            .
+            !.git
+            !node_modules
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
