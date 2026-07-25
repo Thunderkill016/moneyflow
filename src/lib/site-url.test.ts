@@ -1,45 +1,51 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  CANONICAL_SITE_ORIGIN,
+  SiteConfigurationError,
   hostWithoutPort,
   isLegacySiteHost,
   normalizeSiteOrigin,
+  parseLegacySiteHosts,
   resolveSiteOrigin,
 } from "./site-url.ts";
 
-test("production replaces the retired MoneyFlow hostname", () => {
+test("production uses the configured HTTPS origin without product-specific fallbacks", () => {
   assert.equal(
-    resolveSiteOrigin("https://moneyflow-vn.vercel.app", "production"),
-    CANONICAL_SITE_ORIGIN,
-  );
-  assert.equal(resolveSiteOrigin(undefined, "production"), CANONICAL_SITE_ORIGIN);
-});
-
-test("production keeps a valid canonical or future custom origin", () => {
-  assert.equal(
-    resolveSiteOrigin("https://mfvn.vercel.app/old/path", "production"),
-    CANONICAL_SITE_ORIGIN,
-  );
-  assert.equal(
-    resolveSiteOrigin("https://money.example.vn/path", "production"),
-    "https://money.example.vn",
+    resolveSiteOrigin("https://finance.example.com", "production"),
+    "https://finance.example.com",
   );
 });
 
-test("development accepts a configured local origin and has a safe fallback", () => {
-  assert.equal(resolveSiteOrigin("http://localhost:4000/path", "development"), "http://localhost:4000");
-  assert.equal(resolveSiteOrigin(undefined, "development"), "http://localhost:3000");
+test("missing, malformed or insecure production origins fail fast", () => {
+  assert.throws(() => resolveSiteOrigin(undefined, "production"), SiteConfigurationError);
+  assert.throws(() => resolveSiteOrigin("not-a-url", "production"), SiteConfigurationError);
+  assert.throws(
+    () => resolveSiteOrigin("http://finance.example.com", "production"),
+    SiteConfigurationError,
+  );
 });
 
-test("legacy hostname detection ignores ports and forwarded-host suffixes", () => {
-  assert.equal(hostWithoutPort("moneyflow-vn.vercel.app:443"), "moneyflow-vn.vercel.app");
-  assert.equal(isLegacySiteHost("moneyflow-vn.vercel.app:443, proxy.internal"), true);
-  assert.equal(isLegacySiteHost("mfvn.vercel.app"), false);
+test("development accepts an explicitly configured HTTP origin but never invents one", () => {
+  assert.equal(
+    resolveSiteOrigin("http://localhost:4000", "development"),
+    "http://localhost:4000",
+  );
+  assert.throws(() => resolveSiteOrigin(undefined, "development"), SiteConfigurationError);
 });
 
-test("origin normalization rejects malformed or credentialed URLs", () => {
-  assert.equal(normalizeSiteOrigin("not-a-url"), null);
-  assert.equal(normalizeSiteOrigin("ftp://mfvn.vercel.app"), null);
-  assert.equal(normalizeSiteOrigin("https://user:pass@mfvn.vercel.app"), null);
+test("legacy hostname migration is supplied as deployment configuration", () => {
+  const hosts = parseLegacySiteHosts(
+    "old.example.com, older.example.com\nold.example.com",
+  );
+  assert.deepEqual(hosts, ["old.example.com", "older.example.com"]);
+  assert.equal(isLegacySiteHost("old.example.com:443, proxy.internal", hosts), true);
+  assert.equal(isLegacySiteHost("finance.example.com", hosts), false);
+  assert.equal(hostWithoutPort("old.example.com:443"), "old.example.com");
+});
+
+test("origin normalization rejects paths, credentials and non-http protocols", () => {
+  assert.equal(normalizeSiteOrigin("https://finance.example.com"), "https://finance.example.com");
+  assert.equal(normalizeSiteOrigin("https://finance.example.com/path"), null);
+  assert.equal(normalizeSiteOrigin("ftp://finance.example.com"), null);
+  assert.equal(normalizeSiteOrigin("https://user:pass@finance.example.com"), null);
 });
