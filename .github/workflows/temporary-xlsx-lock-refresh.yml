@@ -5,7 +5,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   refresh:
@@ -13,8 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout
+      - name: Checkout branch
         uses: actions/checkout@v4
+        with:
+          ref: fix/xlsx-parser-security
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -26,10 +28,15 @@ jobs:
         run: npm ci --ignore-scripts
       - name: Verify parser and dependency pin
         run: node --experimental-strip-types --test src/lib/dependency-security.test.ts src/lib/inbox/parse-xlsx.test.ts
-      - name: Upload generated lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: patched-xlsx-package-lock
-          path: package-lock.json
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit generated lockfile
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json is already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "fix: lock patched SheetJS release"
+          git push origin HEAD:fix/xlsx-parser-security
