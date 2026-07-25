@@ -1,0 +1,66 @@
+name: Temporary security review round 2
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: github.head_ref == 'agent/security-review-round-2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Collect dependency and source evidence
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          npm audit --json > artifacts/npm-audit.json 2> artifacts/npm-audit.stderr || true
+          npm ls --all --json > artifacts/npm-tree.json 2> artifacts/npm-tree.stderr || true
+          {
+            echo '=== browser execution and navigation sinks ==='
+            rg -n --hidden --glob '!node_modules/**' --glob '!.git/**' \
+              'dangerouslySetInnerHTML|\.innerHTML\s*=|document\.write|eval\(|new Function|window\.location|location\.assign|location\.replace|openWindow\(|clients\.navigate' . || true
+            echo
+            echo '=== secrets and privileged key names ==='
+            rg -n --hidden --glob '!node_modules/**' --glob '!.git/**' \
+              'SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|service_role|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|password\s*[:=]' . || true
+            echo
+            echo '=== database client access ==='
+            rg -n --hidden --glob '!node_modules/**' --glob '!.git/**' \
+              '\.from\(|\.rpc\(|\.insert\(|\.update\(|\.delete\(|\.upsert\(' src scripts supabase || true
+            echo
+            echo '=== SQL grants and privileged functions ==='
+            rg -n --hidden --glob '!node_modules/**' --glob '!.git/**' \
+              'grant all|grant .*truncate|security definer|set search_path|create or replace view' supabase || true
+          } > artifacts/source-scan.txt
+          find .github/workflows -maxdepth 1 -type f -print -exec sed -n '1,220p' {} \; > artifacts/workflows.txt
+      - name: Capture production security headers
+        shell: bash
+        run: |
+          {
+            echo '=== HEAD /login ==='
+            curl -sS -I --max-time 30 https://mfvn.vercel.app/login
+            echo
+            echo '=== GET /login headers ==='
+            curl -sS -D - -o /dev/null --max-time 30 https://mfvn.vercel.app/login
+          } > artifacts/production-headers.txt
+      - name: Upload review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-review-round-2-evidence
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 2
