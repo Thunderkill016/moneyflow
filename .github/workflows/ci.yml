@@ -145,11 +145,13 @@ jobs:
               --scope thunderkill016s-projects \
               --token "$VERCEL_TOKEN"
           fi
-      - name: Set explicit production app mode in Vercel
+      - name: Set exact production app mode in Vercel
         shell: bash
         run: |
-          printf '%s\n' authenticated | npx --yes vercel@latest env add \
-            NEXT_PUBLIC_APP_MODE production --force --token "$VERCEL_TOKEN"
+          npx --yes vercel@latest env rm NEXT_PUBLIC_APP_MODE production \
+            --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
+          printf %s authenticated | npx --yes vercel@latest env add \
+            NEXT_PUBLIC_APP_MODE production --token "$VERCEL_TOKEN"
       - name: Pull production project settings
         run: npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
       - name: Export Production environment for local build
@@ -164,6 +166,7 @@ jobs:
             set -a
             . ./.env.local
             set +a
+            printf 'Resolved NEXT_PUBLIC_APP_MODE=%q\n' "$NEXT_PUBLIC_APP_MODE"
             VERCEL=1 VERCEL_ENV=production node scripts/check-deployment-env.mjs --force
           } 2>&1 | tee production-env-validation.log
       - name: Upload failing Production env validation
