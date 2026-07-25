@@ -5,13 +5,13 @@
   "env": {
     "NEXT_PUBLIC_SUPABASE_URL": "https://fwpldsdkpzhswpuctbke.supabase.co",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_JsTNKJSp1AFD747bBmyTDg_pEPj_HVZ",
-    "NEXT_PUBLIC_SITE_URL": "https://moneyflow-vn.vercel.app"
+    "NEXT_PUBLIC_SITE_URL": "https://mfvn.vercel.app"
   },
   "build": {
     "env": {
       "NEXT_PUBLIC_SUPABASE_URL": "https://fwpldsdkpzhswpuctbke.supabase.co",
       "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_JsTNKJSp1AFD747bBmyTDg_pEPj_HVZ",
-      "NEXT_PUBLIC_SITE_URL": "https://moneyflow-vn.vercel.app"
+      "NEXT_PUBLIC_SITE_URL": "https://mfvn.vercel.app"
     }
   }
 }
