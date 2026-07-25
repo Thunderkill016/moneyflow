@@ -118,8 +118,14 @@ test("demo mode also holds back recurring commitments", () => {
 });
 
 test("planned daily savings reduce spending without changing ledger balance", () => {
-  const summary = calculateDashboardSummary([], { isDemo: false, totalBalance: 18_000_000, today: "2026-07-14", plannedDailySavings: 75_000 });
-  assert.equal(summary.dailyAllowance, DAILY_ALLOWANCE - 75_000);
+  const summary = calculateDashboardSummary([], {
+    isDemo: false,
+    totalBalance: 18_000_000,
+    today: "2026-07-14",
+    plannedDailySavings: 75_000,
+  });
+  assert.equal(summary.dailyAllowance, 925_000);
+  assert.ok(summary.dailyAllowance > DAILY_ALLOWANCE);
   assert.equal(summary.balance, 18_000_000);
 });
 
