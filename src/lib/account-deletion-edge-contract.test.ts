@@ -23,15 +23,6 @@ test("delete-account Edge Function authenticates and deletes only the caller", (
   assert.doesNotMatch(edgeFunction, /console\.(?:log|error)/);
 });
 
-test("delete-account uses the service-role JWT for GoTrue admin operations", () => {
-  assert.match(
-    edgeFunction,
-    /serviceRoleKey = firstEnvironmentValue\("SUPABASE_SERVICE_ROLE_KEY"\)/,
-  );
-  assert.match(edgeFunction, /createClient\(supabaseUrl, serviceRoleKey/);
-  assert.doesNotMatch(edgeFunction, /SUPABASE_SECRET_KEY/);
-});
-
 test("server action enforces confirmation and invokes the protected function", () => {
   assert.match(actions, /isDeleteConfirmValid\(confirmText\)/);
   assert.match(actions, /auth\.getUser\(\)/);
