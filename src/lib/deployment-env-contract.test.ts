@@ -11,7 +11,7 @@ const vercel = JSON.parse(readFileSync(join(root, "vercel.json"), "utf8")) as {
   build?: { env?: Record<string, string> };
 };
 
-const PRODUCTION_SITE_URL = "https://moneyflow-vn.vercel.app";
+const PRODUCTION_SITE_URL = "https://mfvn.vercel.app";
 
 test("Vercel build blocks silent demo fallback and localhost callbacks", () => {
   assert.match(guard, /NEXT_PUBLIC_SUPABASE_URL/);
