@@ -1,0 +1,42 @@
+name: Temporary Next security lock refresh
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.head_ref == 'fix/next-security-update'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/next-security-update
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Refresh lockfile
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Clean install
+        run: npm ci --ignore-scripts
+      - name: Require no high runtime advisories
+        run: npm audit --omit=dev --audit-level=high
+      - name: Commit generated lockfile
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json is already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "fix: lock Next.js security release"
+          git push origin HEAD:fix/next-security-update
