@@ -5,10 +5,12 @@ import { createClient } from "@supabase/supabase-js";
 const vercel = JSON.parse(await readFile(new URL("../vercel.json", import.meta.url), "utf8"));
 const url = vercel.env?.NEXT_PUBLIC_SUPABASE_URL;
 const key = vercel.env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-if (!url || !key) throw new Error("Missing public Supabase configuration in vercel.json.");
+const email = process.env.READINESS_EMAIL;
+const password = process.env.READINESS_PASSWORD;
+if (!url || !key || !email || !password) {
+  throw new Error("Missing public Supabase or synthetic readiness credentials.");
+}
 
-const email = `moneyflow-delete-smoke-${randomUUID()}@example.com`;
-const password = `Mf!${randomUUID()}Aa1`;
 const client = createClient(url, key, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 });
@@ -16,13 +18,12 @@ let deleted = false;
 let signedIn = false;
 
 try {
-  const { data: signUpData, error: signUpError } = await client.auth.signUp({
+  const { data: signInData, error: signInError } = await client.auth.signInWithPassword({
     email,
     password,
-    options: { data: { full_name: "Readiness Delete Smoke" } },
   });
-  if (signUpError || !signUpData.user || !signUpData.session) {
-    throw signUpError ?? new Error("Synthetic signup returned no immediate session.");
+  if (signInError || !signInData.user || !signInData.session) {
+    throw signInError ?? new Error("Synthetic login returned no session.");
   }
   signedIn = true;
 
@@ -96,11 +97,11 @@ try {
   const freshClient = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   });
-  const { error: signInError } = await freshClient.auth.signInWithPassword({
+  const { error: deletedSignInError } = await freshClient.auth.signInWithPassword({
     email,
     password,
   });
-  if (!signInError) {
+  if (!deletedSignInError) {
     throw new Error("Deleted account could still sign in.");
   }
 
