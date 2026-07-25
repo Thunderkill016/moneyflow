@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   calculateDashboardSummary,
   DAILY_ALLOWANCE,
-} from "./dashboard.ts";
+} from "./finance.ts";
 
 test("authenticated allowance is derived from the user's own balance", () => {
   const summary = calculateDashboardSummary([], {
