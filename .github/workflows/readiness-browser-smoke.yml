@@ -1,0 +1,39 @@
+name: Authenticated readiness browser smoke
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run authenticated deployed smoke
+        env:
+          READINESS_BASE_URL: https://moneyflow-git-agent-readiness-a-3a321b-thunderkill016s-projects.vercel.app
+          READINESS_EMAIL: moneyflow-readiness-1398c74b@example.invalid
+          READINESS_PASSWORD: Mf!6clhUw2T15Nd3m9urVjEwKnd
+        run: node scripts/readiness-browser-smoke.mjs
+      - name: Upload readiness evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authenticated-readiness-browser-evidence
+          path: output/readiness-browser
+          if-no-files-found: error
+          retention-days: 1
