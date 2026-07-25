@@ -41,6 +41,7 @@
     "node_modules",
     "e2e",
     "playwright.config.ts",
-    ".next/dev"
+    ".next/dev",
+    "supabase/functions/**"
   ]
 }
