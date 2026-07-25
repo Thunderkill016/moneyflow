@@ -145,6 +145,13 @@ jobs:
               --scope thunderkill016s-projects \
               --token "$VERCEL_TOKEN"
           fi
+      - name: Set explicit production app mode in Vercel
+        shell: bash
+        run: |
+          npx --yes vercel@latest env rm NEXT_PUBLIC_APP_MODE production \
+            --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
+          printf '%s\n' authenticated | npx --yes vercel@latest env add \
+            NEXT_PUBLIC_APP_MODE production --token "$VERCEL_TOKEN"
       - name: Pull production environment
         run: npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
       - name: Build production output on GitHub runner
