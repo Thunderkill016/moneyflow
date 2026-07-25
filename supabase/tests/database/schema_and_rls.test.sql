@@ -36,25 +36,26 @@ select ok((select relrowsecurity from pg_class where oid = 'public.savings_goal_
 select ok((select relrowsecurity from pg_class where oid = 'public.import_batches'::regclass), 'import_batches has RLS');
 select ok((select relrowsecurity from pg_class where oid = 'public.inbox_candidates'::regclass), 'inbox_candidates has RLS');
 
--- Named own-row policies (gap fill TASK-118)
-select has_policy('public', 'profiles', 'profiles_select_own', 'profiles select policy');
-select has_policy('public', 'accounts', 'accounts_select_own', 'accounts select policy');
-select has_policy('public', 'categories', 'categories_select_own', 'categories select policy');
-select has_policy('public', 'financial_transactions', 'transactions_select_own', 'transactions select policy');
-select has_policy('public', 'transaction_entries', 'entries_select_own', 'entries select policy');
-select has_policy('public', 'monthly_budgets', 'monthly_budgets_select_own', 'budgets select policy');
-select has_policy('public', 'recurring_commitments', 'recurring_commitments_select_own', 'commitments select policy');
-select has_policy('public', 'commitment_occurrences', 'commitment_occurrences_select_own', 'commitment occurrences select policy');
-select has_policy('public', 'recurring_income_templates', 'recurring_income_templates_select_own', 'income templates select policy');
-select has_policy('public', 'income_template_occurrences', 'income_template_occurrences_select_own', 'income occurrences select policy');
-select has_policy('public', 'savings_goals', 'savings_goals_select_own', 'goals select policy');
-select has_policy('public', 'savings_goal_allocations', 'savings_goal_allocations_select_own', 'goal allocations select policy');
-select has_policy('public', 'import_batches', 'import_batches_select_own', 'import_batches select policy');
-select has_policy('public', 'inbox_candidates', 'inbox_candidates_select_own', 'inbox_candidates select policy');
-select has_policy('public', 'inbox_candidates', 'inbox_candidates_insert_own', 'inbox_candidates insert policy');
-select has_policy('public', 'import_batches', 'import_batches_insert_own', 'import_batches insert policy');
-select has_policy('public', 'accounts', 'accounts_insert_own', 'accounts insert policy');
-select has_policy('public', 'categories', 'categories_insert_own', 'categories insert policy');
+-- Named own-row policies (gap fill TASK-118). pgTAP does not expose a
+-- has_policy assertion, so test each exact policy name through pg_policies.
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'profiles' and policyname = 'profiles_select_own'), 'profiles select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'accounts' and policyname = 'accounts_select_own'), 'accounts select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'categories' and policyname = 'categories_select_own'), 'categories select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'financial_transactions' and policyname = 'transactions_select_own'), 'transactions select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'transaction_entries' and policyname = 'entries_select_own'), 'entries select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'monthly_budgets' and policyname = 'monthly_budgets_select_own'), 'budgets select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'recurring_commitments' and policyname = 'recurring_commitments_select_own'), 'commitments select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'commitment_occurrences' and policyname = 'commitment_occurrences_select_own'), 'commitment occurrences select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'recurring_income_templates' and policyname = 'recurring_income_templates_select_own'), 'income templates select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'income_template_occurrences' and policyname = 'income_template_occurrences_select_own'), 'income occurrences select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'savings_goals' and policyname = 'savings_goals_select_own'), 'goals select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'savings_goal_allocations' and policyname = 'savings_goal_allocations_select_own'), 'goal allocations select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'import_batches' and policyname = 'import_batches_select_own'), 'import_batches select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'inbox_candidates' and policyname = 'inbox_candidates_select_own'), 'inbox_candidates select policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'inbox_candidates' and policyname = 'inbox_candidates_insert_own'), 'inbox_candidates insert policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'import_batches' and policyname = 'import_batches_insert_own'), 'import_batches insert policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'accounts' and policyname = 'accounts_insert_own'), 'accounts insert policy');
+select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'categories' and policyname = 'categories_insert_own'), 'categories insert policy');
 
 select col_type_is('public', 'inbox_candidates', 'amount_minor', 'bigint', 'inbox candidate money uses bigint');
 
