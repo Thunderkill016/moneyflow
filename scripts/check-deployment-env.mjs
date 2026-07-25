@@ -1,52 +1,98 @@
+const force = process.argv.includes("--force");
 const isVercelBuild = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+const isProduction = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+const requiresHttps = isVercelBuild || isProduction;
 
-if (!isVercelBuild) {
-  console.log("Deployment env guard skipped outside Vercel.");
+if (!isVercelBuild && !force) {
+  console.log("Deployment env guard skipped outside Vercel. Use --force to validate explicitly.");
   process.exit(0);
 }
 
-const required = {
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-};
-
-const invalidNames = Object.entries(required)
-  .filter(([, value]) => {
-    const normalized = value?.trim().toLowerCase() ?? "";
-    return (
-      !normalized ||
-      normalized.includes("placeholder") ||
-      normalized.includes("replace_me") ||
-      normalized === "changeme"
-    );
-  })
-  .map(([name]) => name);
-
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? "";
-let siteUrlInvalid = false;
-try {
-  const parsed = new URL(siteUrl);
-  siteUrlInvalid =
-    parsed.protocol !== "https:" ||
-    parsed.hostname === "localhost" ||
-    parsed.hostname === "127.0.0.1" ||
-    parsed.pathname !== "/" ||
-    Boolean(parsed.search || parsed.hash);
-} catch {
-  siteUrlInvalid = true;
-}
-
-if (siteUrlInvalid && !invalidNames.includes("NEXT_PUBLIC_SITE_URL")) {
-  invalidNames.push("NEXT_PUBLIC_SITE_URL");
-}
-
-if (invalidNames.length > 0) {
-  console.error(
-    `Authenticated deployment blocked: configure ${invalidNames.join(", ")} in Vercel Project Settings.`,
+function isMissingOrTemplate(value) {
+  const normalized = value?.trim().toLowerCase() ?? "";
+  return (
+    !normalized ||
+    normalized.includes("placeholder") ||
+    normalized.includes("replace_me") ||
+    normalized === "changeme"
   );
+}
+
+function parseOrigin(value) {
+  if (!value?.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+    if (url.username || url.password) return null;
+    if (url.pathname !== "/" || url.search || url.hash) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function parseLegacyHosts(value) {
+  return Array.from(
+    new Set(
+      (value ?? "")
+        .split(/[\s,]+/)
+        .map((entry) => entry.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+}
+
+const errors = [];
+const appMode = process.env.NEXT_PUBLIC_APP_MODE?.trim().toLowerCase();
+if (appMode !== "demo" && appMode !== "authenticated") {
+  errors.push('NEXT_PUBLIC_APP_MODE must be "demo" or "authenticated"');
+}
+if (process.env.VERCEL_ENV === "production" && appMode !== "authenticated") {
+  errors.push('Vercel production must use NEXT_PUBLIC_APP_MODE="authenticated"');
+}
+
+if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SITE_URL)) {
+  errors.push("NEXT_PUBLIC_SITE_URL is missing or still a template value");
+}
+
+const siteUrl = parseOrigin(process.env.NEXT_PUBLIC_SITE_URL);
+if (!siteUrl && !isMissingOrTemplate(process.env.NEXT_PUBLIC_SITE_URL)) {
+  errors.push("NEXT_PUBLIC_SITE_URL must be an absolute origin without a path, query string or hash");
+} else if (siteUrl && requiresHttps && siteUrl.protocol !== "https:") {
+  errors.push("NEXT_PUBLIC_SITE_URL must use HTTPS for hosted or production builds");
+}
+
+if (appMode === "authenticated") {
+  if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+    errors.push("NEXT_PUBLIC_SUPABASE_URL is required in authenticated mode");
+  }
+  if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)) {
+    errors.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required in authenticated mode");
+  }
+
+  const supabaseUrl = parseOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  if (!supabaseUrl && !isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+    errors.push("NEXT_PUBLIC_SUPABASE_URL must be an absolute HTTP(S) origin");
+  } else if (supabaseUrl && requiresHttps && supabaseUrl.protocol !== "https:") {
+    errors.push("NEXT_PUBLIC_SUPABASE_URL must use HTTPS for hosted or production builds");
+  }
+}
+
+const legacyHosts = parseLegacyHosts(process.env.LEGACY_SITE_HOSTS);
+for (const host of legacyHosts) {
+  if (host.includes("://") || host.includes("/") || host.includes("@") || host.includes(":")) {
+    errors.push(`LEGACY_SITE_HOSTS contains an invalid hostname: ${host}`);
+  }
+}
+if (siteUrl && legacyHosts.includes(siteUrl.hostname.toLowerCase())) {
+  errors.push("LEGACY_SITE_HOSTS must not contain the configured site hostname");
+}
+
+if (errors.length > 0) {
+  console.error("Deployment configuration is invalid:");
+  for (const error of errors) console.error(`- ${error}`);
+  console.error("Configure deployment values in Vercel Project Settings, not in source control.");
   process.exit(1);
 }
 
-console.log("Authenticated deployment environment is configured.");
+console.log("Deployment configuration contract passed.");

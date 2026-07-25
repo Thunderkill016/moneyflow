@@ -20,23 +20,23 @@ Auth + ledger PostgreSQL (Supabase). Không có credentials → **demo mode** (l
 
 ```bash
 npm install
+cp .env.example .env.local
+# Fill the explicit local values in .env.local
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Auth + database thật: [docs/supabase-setup.md](docs/supabase-setup.md).
+Auth + database thật: [docs/supabase-setup.md](docs/supabase-setup.md). Deployment configuration: [docs/configuration.md](docs/configuration.md).
 
 ## Quality checks
 
 ```bash
+npm run check:deployment-env
 npm run lint
 npm run typecheck
 npm run test
 npm run build
-
-# Demo / CI: production build without real Supabase (placeholder → demo mode)
-NEXT_PUBLIC_SUPABASE_URL=placeholder NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=placeholder npm run build
 
 # RLS surface (static migrations; no Docker) — see docs/security-rls-check.md
 npm run check:rls
@@ -47,9 +47,24 @@ npm run check:rls
 npm run test:e2e
 ```
 
-## Autopilot (khi bạn ngủ)
+Production values live in Vercel Project Settings, never in `vercel.json`, TypeScript constants or committed `.env` files. Missing deployment configuration must fail the build rather than fall back to a guessed hostname.
 
-Agent lấy **một** task `ready` (**TASK-100…125** — Wave thu chi MVP), code, lint/typecheck/test, commit, push `origin main`.
+## Change workflow
+
+Every change follows the same path:
+
+1. create a focused branch;
+2. open a draft pull request;
+3. make the PR ready once the diff is complete;
+4. require lint, typecheck, tests, production build and database checks;
+5. squash merge into `main`;
+6. verify the exact production deployment before claiming the change is live.
+
+Do not push feature or fix commits directly to `main`. Do not create no-op commits to retrigger deployment.
+
+## Autopilot
+
+Agent lấy **một** task `ready` (**TASK-100…125** — Wave thu chi MVP), code, chạy đầy đủ quality gates, rồi xuất thay đổi qua branch + draft PR. Autopilot không được tự push thẳng `main`.
 
 ```bash
 cd /home/thunder/Code/moneyflow
@@ -73,6 +88,7 @@ Chi tiết: [AGENT_AUTOPILOT.md](AGENT_AUTOPILOT.md) · [AGENT_BACKLOG.md](AGENT
 
 ### Engineering & UX
 
+- [Configuration contract](docs/configuration.md)
 - [UX principles](docs/UX_PRINCIPLES.md)
 - [Design system](docs/design-system.md)
 - [Supabase setup](docs/supabase-setup.md)

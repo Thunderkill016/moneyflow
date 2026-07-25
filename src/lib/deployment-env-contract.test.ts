@@ -11,25 +11,25 @@ const vercel = JSON.parse(readFileSync(join(root, "vercel.json"), "utf8")) as {
   build?: { env?: Record<string, string> };
 };
 
-const PRODUCTION_SITE_URL = "https://mfvn.vercel.app";
-
-test("Vercel build blocks silent demo fallback and localhost callbacks", () => {
+test("Vercel build blocks implicit mode, missing backend config and insecure callbacks", () => {
+  assert.match(guard, /NEXT_PUBLIC_APP_MODE/);
   assert.match(guard, /NEXT_PUBLIC_SUPABASE_URL/);
   assert.match(guard, /NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY/);
   assert.match(guard, /NEXT_PUBLIC_SITE_URL/);
-  assert.match(guard, /parsed\.protocol !== "https:"/);
-  assert.match(guard, /parsed\.hostname === "localhost"/);
-  assert.match(guard, /Authenticated deployment blocked/);
-  assert.match(vercel.buildCommand ?? "", /check-deployment-env\.mjs/);
+  assert.match(guard, /requiresHttps/);
+  assert.match(guard, /siteUrl\.protocol !== "https:"/);
+  assert.match(guard, /Vercel production must use NEXT_PUBLIC_APP_MODE/);
+  assert.match(guard, /process\.exit\(1\)/);
+  assert.equal(vercel.buildCommand, "npm run check:deployment-env && npm run build");
 });
 
-test("Vercel uses one canonical HTTPS production origin for auth callbacks", () => {
-  assert.equal(vercel.env?.NEXT_PUBLIC_SITE_URL, PRODUCTION_SITE_URL);
-  assert.equal(vercel.build?.env?.NEXT_PUBLIC_SITE_URL, PRODUCTION_SITE_URL);
-  assert.doesNotMatch(PRODUCTION_SITE_URL, /localhost|127\.0\.0\.1/);
+test("Vercel source config contains no canonical project URL or provider value", () => {
+  assert.equal(vercel.env, undefined);
+  assert.equal(vercel.build?.env, undefined);
+  assert.doesNotMatch(JSON.stringify(vercel), /\.vercel\.app|\.supabase\.co/i);
 });
 
 test("deployment guard never prints environment values", () => {
-  assert.doesNotMatch(guard, /console\.(?:log|error)\([^\n]*required/);
   assert.doesNotMatch(guard, /console\.(?:log|error)\([^\n]*process\.env\.NEXT_PUBLIC/);
+  assert.doesNotMatch(guard, /console\.(?:log|error)\([^\n]*publishableKey/);
 });

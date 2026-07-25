@@ -1,6 +1,6 @@
 # Supabase setup
 
-MoneyFlow runs in local demo mode when Supabase environment variables are absent. To enable real accounts and the protected database:
+MoneyFlow uses an explicit runtime mode. `NEXT_PUBLIC_APP_MODE=demo` runs the browser-only demo; `NEXT_PUBLIC_APP_MODE=authenticated` enables real accounts and the protected database. Deployment-specific values never belong in source control; see [configuration.md](./configuration.md).
 
 ## 1. Create a project
 
@@ -14,28 +14,51 @@ Never use the secret/service-role key in browser code.
 cp .env.example .env.local
 ```
 
-Fill in:
+The example starts in demo mode:
 
 ```text
+NEXT_PUBLIC_APP_MODE=demo
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+LEGACY_SITE_HOSTS=
+```
+
+To use real accounts, change the mode and provide both backend values:
+
+```text
+NEXT_PUBLIC_APP_MODE=authenticated
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-For production, set `NEXT_PUBLIC_SITE_URL` to the HTTPS production origin.
+For production, configure the same variable names in **Vercel Project Settings → Environment Variables**. Production must use `NEXT_PUBLIC_APP_MODE=authenticated`, and `NEXT_PUBLIC_SITE_URL` must be the exact HTTPS production origin. Do not put production values in `vercel.json` or TypeScript constants.
+
+`LEGACY_SITE_HOSTS` is optional and contains comma-separated retired hostnames during a deliberate domain migration. Remove entries after the migration window.
 
 ## 3. Configure Auth redirects
 
-In **Authentication → URL Configuration**, add:
+In **Authentication → URL Configuration**:
 
-```text
-http://localhost:3000/auth/callback
-https://your-production-domain.example/auth/callback
-```
+- set **Site URL** to the exact production `NEXT_PUBLIC_SITE_URL`;
+- add the exact production callback `${NEXT_PUBLIC_SITE_URL}/auth/callback`;
+- add `http://localhost:3000/auth/callback` for local development;
+- add preview patterns only when preview auth is intentionally enabled.
 
 Enable Google in **Authentication → Providers** before testing Google login. Email/password works independently.
 
-## 4. Apply database migrations
+The `redirectTo` value sent by the application must match the Supabase Redirect URLs allow-list. Updating Vercel without updating Supabase, or the reverse, is an incomplete configuration change.
+
+## 4. Verify configuration
+
+```bash
+npm run check:deployment-env
+```
+
+Hosted builds require HTTPS. Missing or malformed values fail validation instead of falling back to a guessed mode, project or hostname.
+
+## 5. Apply database migrations
 
 With Docker installed:
 

@@ -1,86 +1,103 @@
-/**
- * TASK-255 — demo/placeholder Supabase env is unconfigured so production
- * build and local demo mode work without real credentials.
- */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { getSupabaseConfig, isSupabaseConfigured } from "./config.ts";
+import {
+  SupabaseConfigurationError,
+  getAppMode,
+  getSupabaseConfig,
+  isSupabaseConfigured,
+} from "./config.ts";
 
+const MODE_KEY = "NEXT_PUBLIC_APP_MODE";
 const URL_KEY = "NEXT_PUBLIC_SUPABASE_URL";
 const PUB_KEY = "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY";
 
-function withEnv(
-  env: { url?: string | undefined; key?: string | undefined },
-  fn: () => void,
-): void {
-  const prevUrl = process.env[URL_KEY];
-  const prevKey = process.env[PUB_KEY];
-  if (env.url === undefined) delete process.env[URL_KEY];
-  else process.env[URL_KEY] = env.url;
-  if (env.key === undefined) delete process.env[PUB_KEY];
-  else process.env[PUB_KEY] = env.key;
+type TestEnv = {
+  mode?: string;
+  url?: string;
+  key?: string;
+};
+
+function withEnv(env: TestEnv, fn: () => void): void {
+  const previous = {
+    mode: process.env[MODE_KEY],
+    url: process.env[URL_KEY],
+    key: process.env[PUB_KEY],
+  };
+
+  const values: Record<string, string | undefined> = {
+    [MODE_KEY]: env.mode,
+    [URL_KEY]: env.url,
+    [PUB_KEY]: env.key,
+  };
+  for (const [name, value] of Object.entries(values)) {
+    if (value === undefined) delete process.env[name];
+    else process.env[name] = value;
+  }
+
   try {
     fn();
   } finally {
-    if (prevUrl === undefined) delete process.env[URL_KEY];
-    else process.env[URL_KEY] = prevUrl;
-    if (prevKey === undefined) delete process.env[PUB_KEY];
-    else process.env[PUB_KEY] = prevKey;
+    const restore: Record<string, string | undefined> = {
+      [MODE_KEY]: previous.mode,
+      [URL_KEY]: previous.url,
+      [PUB_KEY]: previous.key,
+    };
+    for (const [name, value] of Object.entries(restore)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
   }
 }
 
-test("missing env → demo (not configured)", () => {
-  withEnv({ url: undefined, key: undefined }, () => {
+test("demo mode is explicit and does not require backend values", () => {
+  withEnv({ mode: "demo" }, () => {
+    assert.equal(getAppMode(), "demo");
     assert.equal(getSupabaseConfig(), null);
     assert.equal(isSupabaseConfigured(), false);
   });
 });
 
-test("literal placeholder → demo (TASK-255 style)", () => {
-  withEnv({ url: "placeholder", key: "placeholder" }, () => {
-    assert.equal(getSupabaseConfig(), null);
-    assert.equal(isSupabaseConfigured(), false);
+test("missing or unknown app mode fails instead of guessing demo mode", () => {
+  withEnv({}, () => {
+    assert.throws(() => getAppMode(), SupabaseConfigurationError);
+  });
+  withEnv({ mode: "auto" }, () => {
+    assert.throws(() => getAppMode(), SupabaseConfigurationError);
   });
 });
 
-test(".env.example values → demo", () => {
-  withEnv(
-    {
-      url: "https://your-project-ref.supabase.co",
-      key: "sb_publishable_replace_me",
-    },
-    () => {
-      assert.equal(getSupabaseConfig(), null);
-      assert.equal(isSupabaseConfigured(), false);
-    },
-  );
+test("authenticated mode requires both backend values", () => {
+  withEnv({ mode: "authenticated" }, () => {
+    assert.throws(() => getSupabaseConfig(), SupabaseConfigurationError);
+  });
 });
 
-test("mvp-verify host-style placeholders → demo (Q2)", () => {
+test("authenticated mode returns normalized configuration", () => {
   withEnv(
     {
-      url: "https://placeholder.supabase.co",
-      key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder",
-    },
-    () => {
-      assert.equal(getSupabaseConfig(), null);
-      assert.equal(isSupabaseConfigured(), false);
-    },
-  );
-});
-
-test("real-looking URL + key → configured", () => {
-  withEnv(
-    {
-      url: "https://abcdefghijklmnop.supabase.co",
-      key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example",
+      mode: "authenticated",
+      url: "https://project.example.com",
+      key: "sb_publishable_test_key",
     },
     () => {
       assert.deepEqual(getSupabaseConfig(), {
-        url: "https://abcdefghijklmnop.supabase.co",
-        publishableKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example",
+        url: "https://project.example.com",
+        publishableKey: "sb_publishable_test_key",
       });
       assert.equal(isSupabaseConfigured(), true);
+    },
+  );
+});
+
+test("authenticated mode rejects malformed backend URLs", () => {
+  withEnv(
+    {
+      mode: "authenticated",
+      url: "https://project.example.com/path",
+      key: "sb_publishable_test_key",
+    },
+    () => {
+      assert.throws(() => getSupabaseConfig(), SupabaseConfigurationError);
     },
   );
 });

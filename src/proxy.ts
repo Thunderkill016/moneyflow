@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { CANONICAL_SITE_ORIGIN, isLegacySiteHost } from "@/lib/site-url";
+import { getLegacySiteHosts, getSiteOrigin, isLegacySiteHost } from "@/lib/site-url";
 import { updateSession } from "@/lib/supabase/proxy";
 
 function clearSupabaseAuthCookies(request: NextRequest, response: NextResponse) {
@@ -19,11 +19,11 @@ function clearSupabaseAuthCookies(request: NextRequest, response: NextResponse) 
 function redirectLegacyDomain(request: NextRequest): NextResponse | null {
   const forwardedHost = request.headers.get("x-forwarded-host");
   const host = forwardedHost || request.headers.get("host");
-  if (!isLegacySiteHost(host)) return null;
+  if (!isLegacySiteHost(host, getLegacySiteHosts())) return null;
 
   const destination = new URL(
     `${request.nextUrl.pathname}${request.nextUrl.search}`,
-    CANONICAL_SITE_ORIGIN,
+    getSiteOrigin(),
   );
   const status = request.method === "GET" || request.method === "HEAD" ? 308 : 303;
   const response = NextResponse.redirect(destination, status);
@@ -33,8 +33,8 @@ function redirectLegacyDomain(request: NextRequest): NextResponse | null {
 }
 
 export async function proxy(request: NextRequest) {
-  // The retired hostname must never create a second, isolated auth session.
-  // Clear its cookies and send every request to the canonical production host.
+  // Retired hostnames are deployment configuration, not application constants.
+  // Clear their isolated auth cookies before moving the request to the configured site origin.
   const canonicalRedirect = redirectLegacyDomain(request);
   if (canonicalRedirect) return canonicalRedirect;
 
