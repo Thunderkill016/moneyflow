@@ -1,0 +1,35 @@
+name: Temporary SheetJS lock refresh
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    if: github.head_ref == 'fix/xlsx-parser-security'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Refresh lockfile from official SheetJS tarball
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Clean install
+        run: npm ci --ignore-scripts
+      - name: Verify parser and dependency pin
+        run: node --experimental-strip-types --test src/lib/dependency-security.test.ts src/lib/inbox/parse-xlsx.test.ts
+      - name: Upload generated lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-xlsx-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 1
