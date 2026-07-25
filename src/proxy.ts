@@ -1,7 +1,43 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { CANONICAL_SITE_ORIGIN, isLegacySiteHost } from "@/lib/site-url";
 import { updateSession } from "@/lib/supabase/proxy";
 
+function clearSupabaseAuthCookies(request: NextRequest, response: NextResponse) {
+  for (const cookie of request.cookies.getAll()) {
+    if (cookie.name.startsWith("sb-") && cookie.name.includes("auth-token")) {
+      response.cookies.set(cookie.name, "", {
+        path: "/",
+        expires: new Date(0),
+        maxAge: 0,
+        secure: true,
+        sameSite: "lax",
+      });
+    }
+  }
+}
+
+function redirectLegacyDomain(request: NextRequest): NextResponse | null {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = forwardedHost || request.headers.get("host");
+  if (!isLegacySiteHost(host)) return null;
+
+  const destination = new URL(
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    CANONICAL_SITE_ORIGIN,
+  );
+  const status = request.method === "GET" || request.method === "HEAD" ? 308 : 303;
+  const response = NextResponse.redirect(destination, status);
+  clearSupabaseAuthCookies(request, response);
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
+  // The retired hostname must never create a second, isolated auth session.
+  // Clear its cookies and send every request to the canonical production host.
+  const canonicalRedirect = redirectLegacyDomain(request);
+  if (canonicalRedirect) return canonicalRedirect;
+
   // PWA share_target POSTs multipart to /capture/share — rewrite before auth
   // so the body is not lost on a login redirect (TASK-021).
   if (
