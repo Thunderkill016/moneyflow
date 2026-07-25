@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
  *
  * Flow: landing → demo app → quick-add expense → insights shows amount → export download.
  * Does not depend on Inbox / paste / candidates.
- * Runs against Playwright webServer with placeholder Supabase (demo viewer).
+ * Runs against Playwright webServer with explicit demo mode.
  * Fail CI if broken: `npm run test:e2e`
  */
 const UNIQUE_AMOUNT = "777000";
@@ -35,7 +35,6 @@ test.describe("Expense path (thu chi)", () => {
     page,
   }) => {
     // 1) Public landing (product: thu chi / có thể chi — not inbox-first marketing)
-    // R1: dense trust bar (landing-trust-bar) replaced legacy landing-trust-line.
     await page.goto("/landing");
     await expect(
       page.getByRole("heading", { name: /có thể chi bao nhiêu/i }),
@@ -48,22 +47,40 @@ test.describe("Expense path (thu chi)", () => {
     await expect(trustBar).toContainText(/Không mật khẩu NH/i);
     await expect(trustBar).toContainText(/Xuất CSV/i);
 
-    // 2) Enter app via register CTA; demo mode (placeholder Supabase) unlocks app without auth
+    // 2) Enter app via register CTA; demo mode unlocks app without auth.
     await page.getByRole("link", { name: "Bắt đầu miễn phí" }).first().click();
     await expect(page).toHaveURL(/\/register/);
     await expect(
       page.getByRole("heading", { name: "Tạo tài khoản" }),
     ).toBeVisible();
 
-    // Demo entry: no real credentials — go straight to product home
+    // Demo entry: no real credentials — go straight to product home.
     await page.goto("/insights");
     await expect(page.getByText(/Có thể chi hôm nay/i).first()).toBeVisible({
       timeout: 20_000,
     });
 
+    // Mobile must expose the account sheet from the topbar avatar.
+    if ((page.viewportSize()?.width ?? 1_000) <= 760) {
+      const accountButton = page.getByRole("button", {
+        name: /Mở tài khoản/i,
+      });
+      await expect(accountButton).toBeVisible();
+      await accountButton.click();
+      await expect(
+        page.getByRole("heading", { name: "Thêm & tài khoản" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: /Tạo tài khoản/i }),
+      ).toBeVisible();
+      await page.getByRole("button", { name: "Đóng" }).click();
+    }
+
     // 3) Quick add expense (ledger path — not inbox)
     await page.goto("/capture/quick");
-    await expect(page.getByRole("heading", { level: 1, name: "Thêm nhanh" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Thêm nhanh" }),
+    ).toBeVisible();
     // Labels include sign for a11y (not color-only): "Khoản chi (−)"
     const expenseKind = page.getByRole("button", { name: /Khoản chi/i });
     await expect(expenseKind).toBeVisible();
@@ -80,20 +97,30 @@ test.describe("Expense path (thu chi)", () => {
 
     // Persist check: demo ledger writes localStorage then may navigate away from form.
     await expect
-      .poll(async () => {
-        return page.evaluate(() => {
-          const raw = window.localStorage.getItem("moneyflow-demo-transactions-v1");
-          if (!raw) return false;
-          try {
-            const list = JSON.parse(raw) as Array<{ amount?: number; note?: string }>;
-            return list.some(
-              (t) => t.amount === 777_000 && String(t.note ?? "").includes("TASK-200"),
+      .poll(
+        async () => {
+          return page.evaluate(() => {
+            const raw = window.localStorage.getItem(
+              "moneyflow-demo-transactions-v1",
             );
-          } catch {
-            return false;
-          }
-        });
-      }, { timeout: 15_000 })
+            if (!raw) return false;
+            try {
+              const list = JSON.parse(raw) as Array<{
+                amount?: number;
+                note?: string;
+              }>;
+              return list.some(
+                (transaction) =>
+                  transaction.amount === 777_000 &&
+                  String(transaction.note ?? "").includes("TASK-200"),
+              );
+            } catch {
+              return false;
+            }
+          });
+        },
+        { timeout: 15_000 },
+      )
       .toBe(true);
 
     // 4) Insights shows the expense amount (recent list + category share).
@@ -104,7 +131,9 @@ test.describe("Expense path (thu chi)", () => {
       timeout: 20_000,
     });
 
-    const recentRow = page.locator(".transaction-row").filter({ hasText: UNIQUE_NOTE });
+    const recentRow = page
+      .locator(".transaction-row")
+      .filter({ hasText: UNIQUE_NOTE });
     await expect(recentRow).toBeVisible({ timeout: 20_000 });
     await expect(recentRow).toContainText(UNIQUE_AMOUNT_DISPLAY);
 
@@ -114,17 +143,19 @@ test.describe("Expense path (thu chi)", () => {
     ).toContainText(UNIQUE_AMOUNT_DISPLAY);
 
     // 5) Export / download path (settings export — client-side file)
-    // R8: ownership + "Tải sổ thu chi" (not legacy "Tải giao dịch" only).
     await page.goto("/settings/export");
-    await expect(page.getByRole("heading", { name: "Xuất dữ liệu" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Xuất dữ liệu" }),
+    ).toBeVisible();
     await expect(page.getByText(/Tải sổ thu chi|Tải giao dịch/i)).toBeVisible();
     await expect(
       page.getByText(/Dữ liệu của bạn thuộc về bạn/i),
     ).toBeVisible();
 
     // Wait until download is enabled (client hydrate of local ledger).
-    // Primary action may live in AppShell header (R8) or in main form.
-    const downloadBtn = page.getByRole("button", { name: /Tải xuống/i }).first();
+    const downloadBtn = page
+      .getByRole("button", { name: /Tải xuống/i })
+      .first();
     await expect(downloadBtn).toBeEnabled({ timeout: 15_000 });
 
     const [download] = await Promise.all([
