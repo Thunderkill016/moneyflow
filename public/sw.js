@@ -1,10 +1,55 @@
 /**
  * Money Flow service worker — TASK-130 due-commitment notifications.
  * Privacy-first: notification payloads must not include money amounts.
- * Click opens /commitments (or data.url when provided).
+ * Click opens /commitments (or a validated same-origin data.url).
  */
 
 const SW_VERSION = "moneyflow-sw-v1";
+const DEFAULT_NOTIFICATION_PATH = "/commitments";
+const UNSAFE_NAVIGATION_CHARS = /[\u0000-\u001f\u007f\\]/;
+
+/**
+ * Return only a same-origin path/query/hash suitable for clients.navigate/openWindow.
+ * WHATWG URLs normalize backslashes as path separators, so checking only `//`
+ * is not enough to prevent values such as `/\\evil.example` leaving the app.
+ */
+function safeNotificationPath(rawUrl) {
+  if (
+    typeof rawUrl !== "string" ||
+    !rawUrl.startsWith("/") ||
+    rawUrl.startsWith("//") ||
+    UNSAFE_NAVIGATION_CHARS.test(rawUrl)
+  ) {
+    return DEFAULT_NOTIFICATION_PATH;
+  }
+
+  let destination;
+  try {
+    destination = new URL(rawUrl, self.location.origin);
+  } catch {
+    return DEFAULT_NOTIFICATION_PATH;
+  }
+
+  if (destination.origin !== self.location.origin) {
+    return DEFAULT_NOTIFICATION_PATH;
+  }
+
+  let decodedPathname;
+  try {
+    decodedPathname = decodeURIComponent(destination.pathname);
+  } catch {
+    return DEFAULT_NOTIFICATION_PATH;
+  }
+
+  if (
+    decodedPathname.startsWith("//") ||
+    UNSAFE_NAVIGATION_CHARS.test(decodedPathname)
+  ) {
+    return DEFAULT_NOTIFICATION_PATH;
+  }
+
+  return `${destination.pathname}${destination.search}${destination.hash}`;
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(self.skipWaiting());
@@ -21,10 +66,8 @@ self.addEventListener("notificationclick", (event) => {
     event.notification.data &&
     typeof event.notification.data.url === "string"
       ? event.notification.data.url
-      : "/commitments";
-  // Only same-origin relative paths
-  const path =
-    rawUrl.startsWith("/") && !rawUrl.startsWith("//") ? rawUrl : "/commitments";
+      : DEFAULT_NOTIFICATION_PATH;
+  const path = safeNotificationPath(rawUrl);
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
@@ -53,7 +96,7 @@ self.addEventListener("push", (event) => {
   let body =
     "Bạn có khoản định kỳ đến hạn hoặc sắp đến. Mở Cam kết để xem chi tiết.";
   let tag = "moneyflow-commitment-due";
-  let url = "/commitments";
+  let url = DEFAULT_NOTIFICATION_PATH;
 
   try {
     if (event.data) {
@@ -62,8 +105,8 @@ self.addEventListener("push", (event) => {
         if (typeof data.title === "string" && data.title.trim()) title = data.title.trim();
         if (typeof data.body === "string" && data.body.trim()) body = data.body.trim();
         if (typeof data.tag === "string" && data.tag.trim()) tag = data.tag.trim();
-        if (typeof data.url === "string" && data.url.startsWith("/") && !data.url.startsWith("//")) {
-          url = data.url;
+        if (typeof data.url === "string") {
+          url = safeNotificationPath(data.url);
         }
       }
     }
