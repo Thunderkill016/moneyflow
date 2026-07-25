@@ -2,15 +2,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const layout = readFileSync("src/app/layout.tsx", "utf8");
+const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
+const homePage = readFileSync("src/app/page.tsx", "utf8");
+const landingLayout = readFileSync("src/app/landing/layout.tsx", "utf8");
 const landing = readFileSync("src/app/landing-refresh.css", "utf8");
 
-test("landing refresh loads after the shared product refresh", () => {
-  const productImport = layout.indexOf('import "./ui-refresh.css"');
-  const landingImport = layout.indexOf('import "./landing-refresh.css"');
-
-  assert.ok(productImport >= 0, "ui-refresh.css import is missing");
-  assert.ok(landingImport > productImport, "landing-refresh.css must load last");
+test("landing refresh is loaded only by public landing routes", () => {
+  assert.doesNotMatch(rootLayout, /landing-refresh\.css/);
+  assert.match(homePage, /import "\.\/landing-refresh\.css"/);
+  assert.match(landingLayout, /import "\.\.\/landing-refresh\.css"/);
 });
 
 test("landing refresh keeps the public conversion hierarchy", () => {
