@@ -30,19 +30,19 @@ jobs:
           npm ls --all --json > artifacts/npm-tree.json 2> artifacts/npm-tree.stderr || true
           {
             echo '=== browser execution and navigation sinks ==='
-            rg -n --hidden --glob '!node_modules/**' --glob '!.git/**' \
-              'dangerouslySetInnerHTML|\.innerHTML\s*=|document\.write|eval\(|new Function|window\.location|location\.assign|location\.replace|openWindow\(|clients\.navigate' . || true
+            grep -RInE --exclude-dir=node_modules --exclude-dir=.git \
+              'dangerouslySetInnerHTML|\.innerHTML[[:space:]]*=|document\.write|eval\(|new Function|window\.location|location\.assign|location\.replace|openWindow\(|clients\.navigate' . || true
             echo
             echo '=== secrets and privileged key names ==='
-            rg -n --hidden --glob '!node_modules/**' --glob '!.git/**' \
-              'SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|service_role|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|password\s*[:=]' . || true
+            grep -RInE --exclude-dir=node_modules --exclude-dir=.git \
+              'SUPABASE_SERVICE_ROLE_KEY|SUPABASE_SECRET_KEY|service_role|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|password[[:space:]]*[:=]' . || true
             echo
             echo '=== database client access ==='
-            rg -n --hidden --glob '!node_modules/**' --glob '!.git/**' \
+            grep -RInE \
               '\.from\(|\.rpc\(|\.insert\(|\.update\(|\.delete\(|\.upsert\(' src scripts supabase || true
             echo
             echo '=== SQL grants and privileged functions ==='
-            rg -n --hidden --glob '!node_modules/**' --glob '!.git/**' \
+            grep -RInEi \
               'grant all|grant .*truncate|security definer|set search_path|create or replace view' supabase || true
           } > artifacts/source-scan.txt
           find .github/workflows -maxdepth 1 -type f -print -exec sed -n '1,220p' {} \; > artifacts/workflows.txt
