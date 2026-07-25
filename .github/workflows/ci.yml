@@ -53,11 +53,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes vercel@latest link \
+          npx --yes vercel@57.0.0 link \
             --yes \
             --project moneyflow \
             --scope "$VERCEL_SCOPE" \
             --token "$VERCEL_TOKEN"
+
+      - name: Pull Vercel project settings
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes vercel@57.0.0 pull \
+            --yes \
+            --environment=production \
+            --scope "$VERCEL_SCOPE" \
+            --token "$VERCEL_TOKEN"
+          test -s .vercel/project.json
 
       - name: Resolve public production build configuration
         shell: bash
@@ -113,7 +124,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes vercel@latest build \
+          npx --yes vercel@57.0.0 build \
             --prod \
             --local-config vercel.ci.json \
             --scope "$VERCEL_SCOPE" \
@@ -139,7 +150,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          npx --yes vercel@latest deploy \
+          npx --yes vercel@57.0.0 deploy \
             --prebuilt \
             --prod \
             --archive=split-tgz \
@@ -172,9 +183,9 @@ jobs:
         run: |
           set -euo pipefail
           deployment_url='${{ steps.deploy.outputs.deployment_url }}'
-          npx --yes vercel@latest alias set "$deployment_url" mfvn.vercel.app \
+          npx --yes vercel@57.0.0 alias set "$deployment_url" mfvn.vercel.app \
             --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN" | tee canonical-alias.log
-          npx --yes vercel@latest alias set "$deployment_url" moneyflow-vn.vercel.app \
+          npx --yes vercel@57.0.0 alias set "$deployment_url" moneyflow-vn.vercel.app \
             --scope "$VERCEL_SCOPE" --token "$VERCEL_TOKEN" | tee legacy-alias.log
 
       - name: Verify public production behavior
