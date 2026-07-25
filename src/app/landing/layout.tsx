@@ -1,5 +1,3 @@
-import "../landing-refresh.css";
-
 export default function LandingLayout({
   children,
 }: Readonly<{
