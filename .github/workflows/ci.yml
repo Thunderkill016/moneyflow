@@ -63,6 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      NEXT_PUBLIC_APP_MODE: authenticated
       NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key
       NEXT_PUBLIC_SITE_URL: https://ci.example.test
