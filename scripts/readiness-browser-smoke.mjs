@@ -2,11 +2,14 @@ import { chromium } from "@playwright/test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-const baseURL = process.env.READINESS_BASE_URL;
+const baseCandidates = (process.env.READINESS_BASE_CANDIDATES ?? "")
+  .split(",")
+  .map((value) => value.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 const email = process.env.READINESS_EMAIL;
 const password = process.env.READINESS_PASSWORD;
 
-if (!baseURL || !email || !password) {
+if (baseCandidates.length === 0 || !email || !password) {
   throw new Error("Missing readiness browser environment variables.");
 }
 
@@ -14,7 +17,8 @@ const outputDir = "output/readiness-browser";
 await mkdir(outputDir, { recursive: true });
 
 const evidence = {
-  baseHost: new URL(baseURL).host,
+  baseHost: null,
+  probes: [],
   startedAt: new Date().toISOString(),
   login: false,
   authenticatedMode: false,
@@ -34,13 +38,44 @@ const context = await browser.newContext({
 });
 const page = await context.newPage();
 
+let baseURL = null;
+
 try {
-  const response = await page.goto(`${baseURL}/login`, {
-    waitUntil: "networkidle",
-    timeout: 60_000,
-  });
-  if (!response?.ok()) {
-    throw new Error(`Login page returned HTTP ${response?.status() ?? "unknown"}.`);
+  for (const candidate of baseCandidates) {
+    try {
+      const response = await page.goto(`${candidate}/login`, {
+        waitUntil: "domcontentloaded",
+        timeout: 30_000,
+      });
+      const body = await page.locator("body").innerText();
+      const isMoneyFlow =
+        response?.ok() &&
+        body.includes("MoneyFlow") &&
+        body.includes("Tiền của bạn.") &&
+        body.includes("Đăng nhập") &&
+        !body.includes("Log in to Vercel");
+      evidence.probes.push({
+        host: new URL(candidate).host,
+        status: response?.status() ?? null,
+        isMoneyFlow,
+      });
+      if (isMoneyFlow) {
+        baseURL = candidate;
+        evidence.baseHost = new URL(candidate).host;
+        break;
+      }
+    } catch (error) {
+      evidence.probes.push({
+        host: new URL(candidate).host,
+        status: null,
+        isMoneyFlow: false,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  if (!baseURL) {
+    throw new Error("No public MoneyFlow production alias was reachable.");
   }
 
   const loginBody = await page.locator("body").innerText();
