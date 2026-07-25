@@ -3,8 +3,18 @@
 -- 2) Preserve the category archive invariant after recurring-income migration
 --    replaced update_money_transaction.
 
-revoke all on function public.handle_new_user() from public, anon, authenticated;
-revoke all on function public.rls_auto_enable() from public, anon, authenticated;
+-- Some projects received rls_auto_enable from an earlier dashboard/platform state,
+-- while a fresh local project never creates it. Revoke only when each function exists.
+do $$
+begin
+  if pg_catalog.to_regprocedure('public.handle_new_user()') is not null then
+    execute 'revoke all on function public.handle_new_user() from public, anon, authenticated';
+  end if;
+  if pg_catalog.to_regprocedure('public.rls_auto_enable()') is not null then
+    execute 'revoke all on function public.rls_auto_enable() from public, anon, authenticated';
+  end if;
+end;
+$$;
 
 create or replace function public.update_money_transaction(
   p_transaction_id uuid,
