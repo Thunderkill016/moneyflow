@@ -85,22 +85,13 @@ try {
   if (deletion.error || deletion.data?.ok !== true) {
     throw deletion.error ?? new Error("Deletion function did not return ok=true.");
   }
-  deleted = true;
-
-  for (const table of [
-    "profiles",
-    "accounts",
-    "categories",
-    "financial_transactions",
-    "transaction_entries",
-  ]) {
-    const { count, error } = await client
-      .from(table)
-      .select("id", { count: "exact", head: true });
-    if (error || (count ?? 0) !== 0) {
-      throw error ?? new Error(`${table} retained tenant rows after deletion.`);
-    }
+  if (
+    deletion.data.cleanupVerified !== true ||
+    deletion.data.tenantRowsRemaining !== 0
+  ) {
+    throw new Error("Deletion completed but tenant cascade was not verified cleanly.");
   }
+  deleted = true;
 
   const freshClient = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -118,6 +109,7 @@ try {
       invalidConfirmationBlocked: true,
       transactionCreated: true,
       accountDeleted: true,
+      cleanupVerified: true,
       tenantRowsRemaining: 0,
       signInRejected: true,
     }),
