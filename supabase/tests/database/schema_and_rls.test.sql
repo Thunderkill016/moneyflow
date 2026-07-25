@@ -1,5 +1,5 @@
 begin;
-select plan(76);
+select plan(78);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
