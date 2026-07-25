@@ -1,9 +1,14 @@
 /**
  * Draft rows for an import batch awaiting preview confirm (wireframes §9).
- * Separated from batch meta so raw file content is never re-stored as a file —
- * only parsed candidate drafts until commit or cancel.
+ * The original file is never persisted. Parsed rows are either session-only or
+ * retained for a bounded period according to the user's privacy preference.
  */
 
+import {
+  rawRetentionMaxAgeMs,
+  readPrivacyPrefs,
+  type RawRetention,
+} from "../privacy-prefs.ts";
 import type {
   CandidateConfidence,
   CandidateKind,
@@ -11,12 +16,16 @@ import type {
 import type { ParsedCsvRow, UncertainCsvField } from "./parse-csv.ts";
 
 export const IMPORT_DRAFT_STORAGE_KEY = "moneyflow-import-drafts-v1";
+export const IMPORT_SESSION_DRAFT_STORAGE_KEY =
+  "moneyflow-import-drafts-session-v1";
 
 export type ImportDraft = {
   batchId: string;
   rows: ParsedCsvRow[];
   updatedAt: string;
 };
+
+type BrowserStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
 const CONFIDENCES: CandidateConfidence[] = ["high", "medium", "low"];
 const KINDS: CandidateKind[] = ["expense", "income", "transfer"];
@@ -61,26 +70,41 @@ export function isImportDraft(value: unknown): value is ImportDraft {
   );
 }
 
-function readAll(): Record<string, ImportDraft> {
-  if (typeof window === "undefined") return {};
+function browserStorage(kind: "local" | "session"): BrowserStorage | null {
+  if (typeof window === "undefined") return null;
   try {
-    const saved = localStorage.getItem(IMPORT_DRAFT_STORAGE_KEY);
+    return kind === "local" ? window.localStorage : window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function readMap(
+  storage: BrowserStorage | null,
+  key: string,
+): Record<string, ImportDraft> {
+  if (!storage) return {};
+  try {
+    const saved = storage.getItem(key);
     if (saved === null) return {};
     const parsed: unknown = JSON.parse(saved);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      localStorage.removeItem(IMPORT_DRAFT_STORAGE_KEY);
+      storage.removeItem(key);
       return {};
     }
+
     const out: Record<string, ImportDraft> = {};
-    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
-      if (isImportDraft(value) && value.batchId === key) {
-        out[key] = value;
+    for (const [entryKey, value] of Object.entries(
+      parsed as Record<string, unknown>,
+    )) {
+      if (isImportDraft(value) && value.batchId === entryKey) {
+        out[entryKey] = value;
       }
     }
     return out;
   } catch {
     try {
-      localStorage.removeItem(IMPORT_DRAFT_STORAGE_KEY);
+      storage.removeItem(key);
     } catch {
       /* ignore */
     }
@@ -88,9 +112,66 @@ function readAll(): Record<string, ImportDraft> {
   }
 }
 
-function writeAll(map: Record<string, ImportDraft>): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(IMPORT_DRAFT_STORAGE_KEY, JSON.stringify(map));
+function writeMap(
+  storage: BrowserStorage | null,
+  key: string,
+  map: Record<string, ImportDraft>,
+): void {
+  if (!storage) throw new Error("import_draft_storage_unavailable");
+  if (Object.keys(map).length === 0) {
+    storage.removeItem(key);
+    return;
+  }
+  storage.setItem(key, JSON.stringify(map));
+}
+
+/**
+ * Remove invalid or expired persistent drafts. `delete_now` means persistent
+ * storage must be empty; sessionStorage is handled separately.
+ */
+export function pruneImportDraftMap(
+  map: Record<string, ImportDraft>,
+  retention: RawRetention,
+  now: Date = new Date(),
+): Record<string, ImportDraft> {
+  const maxAgeMs = rawRetentionMaxAgeMs(retention);
+  if (maxAgeMs === null) return {};
+
+  const cutoff = now.getTime() - maxAgeMs;
+  const out: Record<string, ImportDraft> = {};
+  for (const [key, draft] of Object.entries(map)) {
+    if (!isImportDraft(draft) || draft.batchId !== key) continue;
+    const updatedAt = Date.parse(draft.updatedAt);
+    if (!Number.isFinite(updatedAt) || updatedAt < cutoff) continue;
+    out[key] = draft;
+  }
+  return out;
+}
+
+function readPersistentDrafts(now: Date = new Date()): Record<string, ImportDraft> {
+  const storage = browserStorage("local");
+  const map = readMap(storage, IMPORT_DRAFT_STORAGE_KEY);
+  const retention = readPrivacyPrefs().rawRetention;
+  const pruned = pruneImportDraftMap(map, retention, now);
+
+  if (storage && JSON.stringify(pruned) !== JSON.stringify(map)) {
+    writeMap(storage, IMPORT_DRAFT_STORAGE_KEY, pruned);
+  }
+  return pruned;
+}
+
+function readSessionDrafts(): Record<string, ImportDraft> {
+  return readMap(
+    browserStorage("session"),
+    IMPORT_SESSION_DRAFT_STORAGE_KEY,
+  );
+}
+
+function readAll(): Record<string, ImportDraft> {
+  return {
+    ...readPersistentDrafts(),
+    ...readSessionDrafts(),
+  };
 }
 
 export function writeImportDraft(
@@ -100,12 +181,32 @@ export function writeImportDraft(
 ): ImportDraft {
   const draft: ImportDraft = {
     batchId,
-    rows: rows.map((r) => ({ ...r, uncertainFields: [...r.uncertainFields], explanations: [...r.explanations] })),
+    rows: rows.map((row) => ({
+      ...row,
+      uncertainFields: [...row.uncertainFields],
+      explanations: [...row.explanations],
+    })),
     updatedAt,
   };
-  const map = readAll();
-  map[batchId] = draft;
-  writeAll(map);
+
+  const retention = readPrivacyPrefs().rawRetention;
+  const localStorage = browserStorage("local");
+  const sessionStorage = browserStorage("session");
+  const persistent = readPersistentDrafts();
+  const session = readSessionDrafts();
+
+  if (retention === "delete_now") {
+    delete persistent[batchId];
+    session[batchId] = draft;
+    writeMap(localStorage, IMPORT_DRAFT_STORAGE_KEY, persistent);
+    writeMap(sessionStorage, IMPORT_SESSION_DRAFT_STORAGE_KEY, session);
+  } else {
+    delete session[batchId];
+    persistent[batchId] = draft;
+    writeMap(sessionStorage, IMPORT_SESSION_DRAFT_STORAGE_KEY, session);
+    writeMap(localStorage, IMPORT_DRAFT_STORAGE_KEY, persistent);
+  }
+
   return draft;
 }
 
@@ -116,10 +217,29 @@ export function readImportDraft(batchId: string): ImportDraft | null {
 
 export function removeImportDraft(batchId: string): void {
   if (!batchId) return;
-  const map = readAll();
-  if (!(batchId in map)) return;
-  delete map[batchId];
-  writeAll(map);
+
+  const localStorage = browserStorage("local");
+  const sessionStorage = browserStorage("session");
+  const persistent = readPersistentDrafts();
+  const session = readSessionDrafts();
+  let changedPersistent = false;
+  let changedSession = false;
+
+  if (batchId in persistent) {
+    delete persistent[batchId];
+    changedPersistent = true;
+  }
+  if (batchId in session) {
+    delete session[batchId];
+    changedSession = true;
+  }
+
+  if (changedPersistent) {
+    writeMap(localStorage, IMPORT_DRAFT_STORAGE_KEY, persistent);
+  }
+  if (changedSession) {
+    writeMap(sessionStorage, IMPORT_SESSION_DRAFT_STORAGE_KEY, session);
+  }
 }
 
 /** Pure helper: first N rows for preview table. */
