@@ -15,6 +15,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Capture migration diagnostics
+        run: |
+          mkdir -p artifacts
+          find supabase/migrations -maxdepth 1 -type f -printf '%f\n' | sort > artifacts/migration-files.txt
+          grep -R -n -C 12 'split_lines' supabase/migrations src > artifacts/split-lines.txt || true
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -28,9 +33,7 @@ jobs:
         env:
           READINESS_EMAIL: moneyflow-mfvn-48e579e436c9@example.com
           READINESS_PASSWORD: Mf!DueUsQFNap_yNXTR03ZlX8xxAa1
-        run: |
-          mkdir -p artifacts
-          node scripts/temporary-mfvn-readiness.mjs
+        run: node scripts/temporary-mfvn-readiness.mjs
       - name: Upload evidence
         if: always()
         uses: actions/upload-artifact@v4
