@@ -1,4 +1,4 @@
-name: Domain ownership diagnostics
+name: Legacy domain migration
 
 on:
   pull_request:
@@ -6,51 +6,85 @@ on:
     types: [synchronize]
 
 concurrency:
-  group: domain-diagnostics-${{ github.event.pull_request.number }}
+  group: legacy-domain-migration-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  inspect-domains:
+  migrate-and-verify:
     if: github.head_ref == 'agent/emergency-prebuilt-deploy'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
-      - name: Inspect canonical and legacy Vercel domains
+      - name: Point retired hostname at current production deployment
+        id: alias
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
-          {
-            echo '=== canonical inspect ==='
-            npx --yes vercel@latest inspect https://mfvn.vercel.app \
-              --scope thunderkill016s-projects --token "$VERCEL_TOKEN" || true
-            echo
-            echo '=== legacy inspect ==='
-            npx --yes vercel@latest inspect https://moneyflow-vn.vercel.app \
-              --scope thunderkill016s-projects --token "$VERCEL_TOKEN" || true
-            echo
-            echo '=== projects ==='
-            npx --yes vercel@latest project ls \
-              --scope thunderkill016s-projects --token "$VERCEL_TOKEN" || true
-            echo
-            echo '=== canonical headers ==='
-            curl --silent --show-error --output /dev/null --dump-header - \
-              https://mfvn.vercel.app/
-            echo
-            echo '=== legacy headers ==='
-            curl --silent --show-error --output /dev/null --dump-header - \
-              https://moneyflow-vn.vercel.app/
-          } 2>&1 | tee domain-diagnostics.log
+          set -o pipefail
+          npx --yes vercel@latest alias set \
+            moneyflow-913qoxwx1-thunderkill016s-projects.vercel.app \
+            moneyflow-vn.vercel.app \
+            --scope thunderkill016s-projects \
+            --token "$VERCEL_TOKEN" \
+            2>&1 | tee legacy-alias-migration.log
 
-      - name: Upload domain diagnostics
+      - name: Verify canonical and legacy behavior
+        id: verify
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          sleep 3
+          canonical='https://mfvn.vercel.app'
+          legacy='https://moneyflow-vn.vercel.app'
+
+          root_status=$(curl --silent --show-error --location \
+            --output canonical-root.html --write-out '%{http_code}' \
+            "$canonical/")
+          login_status=$(curl --silent --show-error --location \
+            --output canonical-login.html --write-out '%{http_code}' \
+            "$canonical/login")
+          curl --silent --show-error --output /dev/null \
+            --dump-header legacy-headers.txt "$legacy/"
+
+          legacy_status=$(awk 'NR==1 { print $2 }' legacy-headers.txt)
+          legacy_location=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]*:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' legacy-headers.txt)
+
+          {
+            printf 'alias_step_outcome=%s\n' '${{ steps.alias.outcome }}'
+            printf 'canonical_root_status=%s\n' "$root_status"
+            printf 'canonical_login_status=%s\n' "$login_status"
+            printf 'legacy_status=%s\n' "$legacy_status"
+            printf 'legacy_location=%s\n' "$legacy_location"
+          } | tee legacy-domain-verification.log
+
+          test "$root_status" = '200'
+          test "$login_status" = '200'
+          case "$legacy_status" in
+            301|302|303|307|308) ;;
+            *) exit 1 ;;
+          esac
+          case "$legacy_location" in
+            "$canonical"*) ;;
+            *) exit 1 ;;
+          esac
+
+      - name: Upload migration diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: domain-diagnostics
-          path: domain-diagnostics.log
+          name: legacy-domain-migration
+          path: |
+            legacy-alias-migration.log
+            legacy-domain-verification.log
           if-no-files-found: error
           retention-days: 1
+
+      - name: Fail when migration or verification failed
+        if: steps.alias.outcome == 'failure' || steps.verify.outcome == 'failure'
+        run: exit 1
