@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import "./landing-refresh.css";
 import { LandingPage } from "@/components/landing-page";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
