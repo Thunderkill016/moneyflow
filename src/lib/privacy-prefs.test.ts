@@ -6,6 +6,7 @@ import {
   isPrivacyPrefs,
   isRawRetention,
   rawRetentionLabel,
+  rawRetentionMaxAgeMs,
 } from "./privacy-prefs.ts";
 
 test("default privacy prefs: 7 days retention, improve parser off", () => {
@@ -62,10 +63,16 @@ test("isPrivacyPrefs rejects incomplete or wrong shapes", () => {
   );
 });
 
+test("raw retention exposes session-only and bounded persistent windows", () => {
+  assert.equal(rawRetentionMaxAgeMs("delete_now"), null);
+  assert.equal(rawRetentionMaxAgeMs("days_7"), 7 * 86_400_000);
+  assert.equal(rawRetentionMaxAgeMs("days_30"), 30 * 86_400_000);
+});
+
 test("rawRetentionLabel returns Vietnamese labels", () => {
-  assert.equal(rawRetentionLabel("delete_now"), "Xóa ngay sau khi parse");
-  assert.equal(rawRetentionLabel("days_7"), "Giữ 7 ngày");
-  assert.equal(rawRetentionLabel("days_30"), "Giữ 30 ngày");
+  assert.equal(rawRetentionLabel("delete_now"), "Chỉ giữ trong phiên xem trước");
+  assert.equal(rawRetentionLabel("days_7"), "Giữ draft 7 ngày");
+  assert.equal(rawRetentionLabel("days_30"), "Giữ draft 30 ngày");
 });
 
 test("formatPrivacyActivityAt handles null and invalid", () => {

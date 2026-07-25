@@ -2,8 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 /**
  * E2E smoke — TASK-116 (expense path) + any specs under ./e2e.
- * Forces demo mode (placeholder Supabase) so flows run without
- * creating real accounts or depending on .env.local credentials.
+ * Demo mode is explicit so tests cannot silently depend on placeholder
+ * credentials or production configuration inference.
  */
 const PORT = Number(process.env.E2E_PORT || 3100);
 const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${PORT}`;
@@ -12,7 +12,7 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
-  retries: 0,
+  retries: process.env.CI ? 1 : 0,
   workers: 1,
   timeout: 60_000,
   expect: { timeout: 15_000 },
@@ -31,6 +31,10 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "mobile-chromium",
+      use: { ...devices["Pixel 5"] },
+    },
   ],
   webServer: {
     command: `npx next dev --hostname 127.0.0.1 --port ${PORT}`,
@@ -39,9 +43,7 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
-      // Placeholder values → isSupabaseConfigured() === false → demo viewer
-      NEXT_PUBLIC_SUPABASE_URL: "https://your-project-ref.supabase.co",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_replace_me",
+      NEXT_PUBLIC_APP_MODE: "demo",
       NEXT_PUBLIC_SITE_URL: baseURL,
     },
   },

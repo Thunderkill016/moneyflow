@@ -21,7 +21,7 @@ import {
 
 /**
  * Privacy settings (wireframes-inbox §18 + R8 G5 trust).
- * Lead with ownership / no bank password; lab raw/parser prefs secondary.
+ * Lead with ownership / no bank password; parsed-draft preferences secondary.
  */
 export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
   const formId = useId();
@@ -207,15 +207,20 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
               aria-labelledby={`${formId}-retention-heading`}
             >
               <h2 id={`${formId}-retention-heading`}>
-                Lưu file gốc (import · Nâng cao)
+                Giữ draft import (Nâng cao)
               </h2>
               <p className="privacy-panel-lead">
-                Chỉ áp dụng khi bạn dán/tải sao kê. Ghi tay thu chi không cần
-                giữ file gốc. Bản local-first không upload raw lên máy chủ.
+                MoneyFlow không lưu file gốc. Sau khi đọc file, chỉ các dòng đã
+                parse và đoạn mô tả ngắn được giữ trên trình duyệt để bạn xem
+                trước. Tùy chọn bên dưới được áp dụng thật khi mở lại ứng dụng.
               </p>
               <fieldset className="privacy-fieldset">
-                <legend className="sr-only">Thời gian giữ file gốc</legend>
-                <div className="privacy-radio-list" role="radiogroup" aria-label="Lưu file gốc">
+                <legend className="sr-only">Thời gian giữ draft import</legend>
+                <div
+                  className="privacy-radio-list"
+                  role="radiogroup"
+                  aria-label="Thời gian giữ draft import"
+                >
                   {RAW_RETENTION_OPTIONS.map((option) => {
                     const inputId = `${formId}-ret-${option.value}`;
                     const selected = rawRetention === option.value;

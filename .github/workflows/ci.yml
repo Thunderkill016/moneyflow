@@ -105,3 +105,31 @@ jobs:
         run: tail -n 40 test-output.log
       - name: Production build
         run: npm run build
+
+  e2e:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Expense-path browser smoke
+        run: npm run test:e2e
+      - name: Upload failing Playwright output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failing-playwright-output
+          path: output/playwright/
+          if-no-files-found: ignore
+          retention-days: 1

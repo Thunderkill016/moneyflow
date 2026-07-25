@@ -1,15 +1,15 @@
 /**
  * Privacy settings preferences (wireframes-inbox §18).
- * Client-only localStorage — retention intent + opt-in improve parser.
+ * Client-only localStorage — enforced parsed-draft retention + parser opt-in.
  */
 
 export const PRIVACY_PREFS_KEY = "moneyflow-privacy-prefs-v1";
 
-/** How long to keep original import raw after parse. */
+/** How long parsed import drafts may remain available in this browser. */
 export type RawRetention = "delete_now" | "days_7" | "days_30";
 
 export type PrivacyPrefs = {
-  /** Raw file retention policy (local intent). Default: 7 days. */
+  /** Parsed import draft retention policy. Default: 7 days. */
   rawRetention: RawRetention;
   /**
    * Opt-in: allow anonymized samples to improve parser.
@@ -31,25 +31,36 @@ export const RAW_RETENTION_OPTIONS: {
 }[] = [
   {
     value: "delete_now",
-    label: "Xóa ngay sau khi parse",
-    description: "Không giữ file/raw gốc sau khi đã tách ứng viên.",
+    label: "Chỉ giữ trong phiên xem trước",
+    description:
+      "Không ghi draft đã parse vào bộ nhớ dài hạn; đóng tab hoặc hoàn tất import là mất.",
   },
   {
     value: "days_7",
-    label: "Giữ 7 ngày",
-    description: "Giữ raw ngắn hạn để mở lại / gỡ lỗi map cột.",
+    label: "Giữ draft 7 ngày",
+    description: "Tự xóa draft đã parse quá 7 ngày khi MoneyFlow được mở lại.",
   },
   {
     value: "days_30",
-    label: "Giữ 30 ngày",
-    description: "Giữ lâu hơn nếu bạn hay xem lại sao kê.",
+    label: "Giữ draft 30 ngày",
+    description: "Tự xóa draft đã parse quá 30 ngày khi MoneyFlow được mở lại.",
   },
 ];
 
 const RETENTION_VALUES: RawRetention[] = ["delete_now", "days_7", "days_30"];
+const DAY_MS = 86_400_000;
 
 export function isRawRetention(value: unknown): value is RawRetention {
   return typeof value === "string" && (RETENTION_VALUES as string[]).includes(value);
+}
+
+/**
+ * Maximum persistent age for parsed import drafts.
+ * `null` means session-only storage: nothing may remain in localStorage.
+ */
+export function rawRetentionMaxAgeMs(value: RawRetention): number | null {
+  if (value === "delete_now") return null;
+  return (value === "days_7" ? 7 : 30) * DAY_MS;
 }
 
 export function isPrivacyPrefs(value: unknown): value is PrivacyPrefs {

@@ -1,5 +1,6 @@
 import type { Transaction } from "@/lib/sample-data";
 
+/** Demo fixture only. Authenticated calculations must never be capped by it. */
 export const DAILY_ALLOWANCE = 392_000;
 export const OPENING_BALANCE = 1_126_000;
 export const MONTHLY_EXPENSE_BEFORE_SAMPLE = 4_209_000;
@@ -11,7 +12,11 @@ export function sumTransactions(
 ) {
   return transactions
     .filter(predicate)
-    .reduce((sum, transaction) => sum + transaction.amount, 0);
+    .reduce((sum, transaction) => {
+      const next = sum + transaction.amount;
+      if (!Number.isSafeInteger(next)) throw new Error("unsafe_dashboard_total");
+      return next;
+    }, 0);
 }
 
 /**
@@ -25,6 +30,7 @@ export function netTransactionEffect(transactions: Transaction[]): number {
     if (item.kind === "income") total += item.amount;
     else if (item.kind === "expense") total -= item.amount;
     // transfer: no net change to total assets
+    if (!Number.isSafeInteger(total)) throw new Error("unsafe_balance_total");
   }
   return total;
 }
@@ -156,10 +162,16 @@ export function calculateDashboardSummary(
 
   const spendableBalance = Math.max(0, totalBalance - reservedCommitments - reservedSavings);
   const balanceBasedAllowance = Math.floor(spendableBalance / remainingDays);
-  const budgetBasedAllowance = remainingBudget === undefined
-    ? Number.MAX_SAFE_INTEGER
-    : Math.floor(Math.max(0, remainingBudget) / remainingDays);
-  const dailyAllowance = Math.max(0, Math.min(DAILY_ALLOWANCE, balanceBasedAllowance, budgetBasedAllowance) - Math.max(0, plannedDailySavings));
+  const allowanceBeforeSavings = remainingBudget === undefined
+    ? balanceBasedAllowance
+    : Math.min(
+        balanceBasedAllowance,
+        Math.floor(Math.max(0, remainingBudget) / remainingDays),
+      );
+  const dailyAllowance = Math.max(
+    0,
+    allowanceBeforeSavings - Math.max(0, plannedDailySavings),
+  );
   const averageDailyExpense = Math.round(recordedExpense / Math.max(1, dayOfMonth));
 
   return {

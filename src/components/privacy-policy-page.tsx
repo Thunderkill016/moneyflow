@@ -54,8 +54,8 @@ export function PrivacyPolicyPage() {
                 để tách ứng viên giao dịch. Không bắt buộc để dùng ghi tay.
               </li>
               <li>
-                <strong>Tùy chọn thiết bị:</strong> giao diện, quyền riêng tư local (ví dụ giữ
-                file gốc bao lâu), trạng thái onboarding — thường lưu trên trình duyệt.
+                <strong>Tùy chọn thiết bị:</strong> giao diện, thời gian giữ draft import đã
+                parse và trạng thái onboarding — thường lưu trên trình duyệt.
               </li>
               <li>
                 <strong>Sự kiện sản phẩm tối thiểu:</strong> đếm hành động (ví dụ đã paste/upload)
@@ -92,8 +92,9 @@ export function PrivacyPolicyPage() {
                 trừ khi bạn xóa hoặc yêu cầu xóa.
               </li>
               <li>
-                File/raw gốc sau khi import có thể giữ ngắn hạn theo tùy chọn của bạn (xóa
-                ngay, 7 ngày, hoặc 30 ngày) trong Cài đặt → Quyền riêng tư.
+                MoneyFlow không lưu file import gốc. Các dòng đã parse và đoạn mô tả ngắn chỉ
+                được giữ trong phiên xem trước, hoặc tối đa 7/30 ngày theo lựa chọn trong Cài
+                đặt → Quyền riêng tư; draft hết hạn được tự xóa khi ứng dụng được mở lại.
               </li>
               <li>
                 Chia sẻ mẫu ẩn danh để cải thiện bộ phân tích (nếu có) là <strong>tắt mặc
@@ -111,12 +112,12 @@ export function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong>Xóa trên thiết bị:</strong> xóa tài khoản / xóa dữ liệu local xóa các
-                store trên trình duyệt (inbox, tùy chọn, v.v.).
+                store trên trình duyệt (inbox, draft import, tùy chọn, v.v.).
               </li>
               <li>
-                <strong>Xóa phía máy chủ:</strong> đăng xuất và xóa tài khoản theo luồng trong
-                app; hard-delete đầy đủ trên server có thể cần hỗ trợ thêm tùy hạ tầng — chúng
-                tôi ghi rõ hạn chế trong màn hình xóa tài khoản, không che giấu.
+                <strong>Xóa phía máy chủ:</strong> luồng xóa trong app yêu cầu xác nhận, xóa tài
+                khoản Supabase và kiểm tra lại dữ liệu tenant. Nếu việc kiểm tra không hoàn tất,
+                ứng dụng hiển thị trạng thái chưa xác minh thay vì tuyên bố đã xóa sạch.
               </li>
             </ul>
           </section>
