@@ -3,12 +3,46 @@ import { createClient } from "npm:@supabase/supabase-js@2.110.3";
 
 const DELETE_CONFIRM_TEXT = "XÓA";
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
-const TENANT_TABLES = [
+
+type TenantTable = {
+  table: string;
+  ownerColumn: "id" | "user_id";
+};
+
+/** Every persisted tenant table in the MoneyFlow schema. */
+const TENANT_TABLES: readonly TenantTable[] = [
   { table: "profiles", ownerColumn: "id" },
   { table: "accounts", ownerColumn: "user_id" },
   { table: "categories", ownerColumn: "user_id" },
   { table: "financial_transactions", ownerColumn: "user_id" },
   { table: "transaction_entries", ownerColumn: "user_id" },
+  { table: "monthly_budgets", ownerColumn: "user_id" },
+  { table: "recurring_commitments", ownerColumn: "user_id" },
+  { table: "commitment_occurrences", ownerColumn: "user_id" },
+  { table: "recurring_income_templates", ownerColumn: "user_id" },
+  { table: "income_template_occurrences", ownerColumn: "user_id" },
+  { table: "savings_goals", ownerColumn: "user_id" },
+  { table: "savings_goal_allocations", ownerColumn: "user_id" },
+  { table: "import_batches", ownerColumn: "user_id" },
+  { table: "inbox_candidates", ownerColumn: "user_id" },
+] as const;
+
+/** Child-first fallback cleanup if a schema drift prevents an expected cascade. */
+const TENANT_CLEANUP_ORDER: readonly TenantTable[] = [
+  { table: "transaction_entries", ownerColumn: "user_id" },
+  { table: "commitment_occurrences", ownerColumn: "user_id" },
+  { table: "income_template_occurrences", ownerColumn: "user_id" },
+  { table: "savings_goal_allocations", ownerColumn: "user_id" },
+  { table: "inbox_candidates", ownerColumn: "user_id" },
+  { table: "financial_transactions", ownerColumn: "user_id" },
+  { table: "monthly_budgets", ownerColumn: "user_id" },
+  { table: "recurring_commitments", ownerColumn: "user_id" },
+  { table: "recurring_income_templates", ownerColumn: "user_id" },
+  { table: "savings_goals", ownerColumn: "user_id" },
+  { table: "import_batches", ownerColumn: "user_id" },
+  { table: "accounts", ownerColumn: "user_id" },
+  { table: "categories", ownerColumn: "user_id" },
+  { table: "profiles", ownerColumn: "id" },
 ] as const;
 
 function json(status: number, body: Record<string, unknown>) {
@@ -24,6 +58,40 @@ function firstEnvironmentValue(...names: string[]) {
     if (value) return value;
   }
   return null;
+}
+
+async function inspectTenantRows(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+) {
+  let cleanupVerified = true;
+  let tenantRowsRemaining = 0;
+
+  for (const { table, ownerColumn } of TENANT_TABLES) {
+    const { count, error } = await adminClient
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq(ownerColumn, userId);
+    if (error) {
+      cleanupVerified = false;
+      continue;
+    }
+    tenantRowsRemaining += count ?? 0;
+  }
+
+  return { cleanupVerified, tenantRowsRemaining };
+}
+
+async function removeRemainingTenantRows(
+  adminClient: ReturnType<typeof createClient>,
+  userId: string,
+) {
+  let cleanupAttemptSucceeded = true;
+  for (const { table, ownerColumn } of TENANT_CLEANUP_ORDER) {
+    const { error } = await adminClient.from(table).delete().eq(ownerColumn, userId);
+    if (error) cleanupAttemptSucceeded = false;
+  }
+  return cleanupAttemptSucceeded;
 }
 
 Deno.serve(async (request: Request) => {
@@ -95,23 +163,24 @@ Deno.serve(async (request: Request) => {
     return json(409, { ok: false, code: "account_delete_blocked" });
   }
 
-  let cleanupVerified = true;
-  let tenantRowsRemaining = 0;
-  for (const { table, ownerColumn } of TENANT_TABLES) {
-    const { count, error } = await adminClient
-      .from(table)
-      .select("id", { count: "exact", head: true })
-      .eq(ownerColumn, user.id);
-    if (error) {
-      cleanupVerified = false;
-      continue;
-    }
-    tenantRowsRemaining += count ?? 0;
+  let inspection = await inspectTenantRows(adminClient, user.id);
+  let fallbackCleanupAttempted = false;
+  let fallbackCleanupSucceeded: boolean | null = null;
+
+  if (!inspection.cleanupVerified || inspection.tenantRowsRemaining > 0) {
+    fallbackCleanupAttempted = true;
+    fallbackCleanupSucceeded = await removeRemainingTenantRows(adminClient, user.id);
+    inspection = await inspectTenantRows(adminClient, user.id);
   }
 
   return json(200, {
     ok: true,
-    cleanupVerified,
-    tenantRowsRemaining: cleanupVerified ? tenantRowsRemaining : null,
+    cleanupVerified:
+      inspection.cleanupVerified && inspection.tenantRowsRemaining === 0,
+    tenantRowsRemaining: inspection.cleanupVerified
+      ? inspection.tenantRowsRemaining
+      : null,
+    fallbackCleanupAttempted,
+    fallbackCleanupSucceeded,
   });
 });
