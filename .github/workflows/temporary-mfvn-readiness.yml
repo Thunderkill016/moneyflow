@@ -1,0 +1,41 @@
+name: Temporary MFVN production readiness smoke
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    if: github.head_ref == 'agent/verify-mfvn-readiness'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run authenticated MFVN smoke
+        env:
+          READINESS_EMAIL: moneyflow-mfvn-48e579e436c9@example.com
+          READINESS_PASSWORD: Mf!DueUsQFNap_yNXTR03ZlX8xxAa1
+        run: |
+          mkdir -p artifacts
+          node scripts/temporary-mfvn-readiness.mjs
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mfvn-production-readiness-evidence
+          path: artifacts
+          if-no-files-found: error
+          retention-days: 3
