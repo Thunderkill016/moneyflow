@@ -1,0 +1,600 @@
+/*
+ * MoneyFlow interface refresh — July 2026
+ *
+ * This file intentionally sits after globals.css. It modernizes only the
+ * authenticated product shell, preserving the existing component contracts
+ * and the public landing/auth surfaces.
+ */
+
+:root {
+  --mf-shell-width: 236px;
+  --mf-card-radius: 20px;
+  --mf-card-shadow: 0 1px 2px rgb(15 31 22 / 4%), 0 12px 34px rgb(15 31 22 / 6%);
+  --mf-card-shadow-hover: 0 2px 4px rgb(15 31 22 / 5%), 0 18px 42px rgb(15 31 22 / 9%);
+  --mf-glass: color-mix(in srgb, var(--color-bg-elevated) 88%, transparent);
+}
+
+/* App canvas and desktop shell */
+.app-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 82% -14%, rgb(197 231 210 / 34%), transparent 30rem),
+    var(--color-bg-secondary);
+}
+
+.sidebar {
+  width: var(--mf-shell-width) !important;
+  padding: 22px 14px 18px !important;
+  border-right: 1px solid color-mix(in srgb, var(--color-border-default) 82%, transparent) !important;
+  background: color-mix(in srgb, var(--color-bg-elevated) 96%, transparent) !important;
+  box-shadow: 10px 0 36px rgb(15 31 22 / 3%);
+}
+
+.brand {
+  min-height: 44px;
+  padding: 0 10px;
+  gap: 10px !important;
+  font-size: 18px !important;
+  letter-spacing: -0.035em !important;
+}
+
+.brand-mark {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 11px !important;
+  box-shadow: 0 8px 18px rgb(15 107 60 / 20%) !important;
+}
+
+.sidebar nav {
+  margin-top: 24px !important;
+  gap: 5px !important;
+}
+
+.sidebar nav a,
+.sidebar nav button,
+.sidebar-bottom > a {
+  min-height: 46px !important;
+  border-radius: 14px !important;
+  padding-inline: 13px !important;
+  font-size: 14px !important;
+  font-weight: 620 !important;
+}
+
+.sidebar nav a:hover,
+.sidebar nav button:hover,
+.sidebar-bottom > a:hover {
+  background: color-mix(in srgb, var(--color-accent-subtle) 48%, var(--color-bg-secondary)) !important;
+}
+
+.sidebar nav a.active,
+.sidebar nav button.active,
+.sidebar-bottom > a.active {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-accent-subtle) 96%, white),
+    color-mix(in srgb, var(--color-accent-subtle) 58%, white)
+  ) !important;
+  color: var(--color-accent-text) !important;
+  box-shadow: inset 3px 0 0 var(--color-accent-default), 0 6px 18px rgb(15 107 60 / 7%) !important;
+}
+
+.profile-chip {
+  border-top-color: color-mix(in srgb, var(--color-border-default) 76%, transparent) !important;
+  padding-top: 16px !important;
+}
+
+.page-column {
+  margin-left: var(--mf-shell-width) !important;
+  background: transparent !important;
+}
+
+.topbar {
+  height: 72px !important;
+  padding-inline: clamp(20px, 3vw, 44px) !important;
+  border-bottom-color: color-mix(in srgb, var(--color-border-default) 72%, transparent) !important;
+  background: var(--mf-glass) !important;
+  backdrop-filter: blur(18px) saturate(145%) !important;
+}
+
+.desktop-search,
+.icon-button {
+  border-color: color-mix(in srgb, var(--color-border-default) 90%, transparent) !important;
+  background: color-mix(in srgb, var(--color-bg-elevated) 94%, transparent) !important;
+  box-shadow: 0 1px 2px rgb(15 31 22 / 4%) !important;
+}
+
+.desktop-search {
+  height: 44px !important;
+  border-radius: 14px !important;
+}
+
+.icon-button {
+  width: 44px !important;
+  height: 44px !important;
+  flex-basis: 44px !important;
+  border-radius: 14px !important;
+}
+
+/* Shared authenticated actions */
+.app-shell .primary-button {
+  min-height: 44px;
+  border-radius: 14px !important;
+  padding-inline: 18px;
+  background: linear-gradient(135deg, #147846, var(--color-accent-default)) !important;
+  box-shadow: 0 8px 20px rgb(15 107 60 / 18%) !important;
+}
+
+.app-shell .primary-button:hover {
+  background: linear-gradient(135deg, var(--color-accent-default), var(--color-accent-hover)) !important;
+  box-shadow: 0 11px 26px rgb(15 107 60 / 23%) !important;
+  transform: translateY(-1px);
+}
+
+.app-shell .secondary-button {
+  min-height: 44px;
+  border-radius: 14px !important;
+  border-color: color-mix(in srgb, var(--color-accent-default) 24%, var(--color-border-default)) !important;
+  background: color-mix(in srgb, var(--color-bg-elevated) 96%, transparent) !important;
+}
+
+/* Dashboard hierarchy */
+.dashboard {
+  width: min(1180px, 100%) !important;
+  padding: 34px clamp(20px, 3.2vw, 46px) 92px !important;
+}
+
+.welcome-row {
+  align-items: center !important;
+  margin-bottom: 24px !important;
+}
+
+.welcome-row h1 {
+  font-size: clamp(28px, 3vw, 36px) !important;
+  font-weight: 730 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.welcome-row > div > p:last-child {
+  max-width: 46rem;
+  margin-top: 7px !important;
+  color: var(--color-text-secondary) !important;
+  font-size: 14px !important;
+}
+
+.welcome-actions {
+  gap: 9px !important;
+}
+
+.insights-ghi-chi {
+  min-height: 44px !important;
+  padding-inline: 18px !important;
+}
+
+/* Turn the old segmented KPI strip into four scannable cards. */
+.insights-kpi {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 12px;
+  overflow: visible !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.insights-kpi article {
+  position: relative;
+  min-height: 112px;
+  overflow: hidden;
+  border: 1px solid var(--color-border-default) !important;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--color-bg-elevated) 97%, transparent);
+  padding: 18px 18px 16px !important;
+  box-shadow: 0 1px 2px rgb(15 31 22 / 4%);
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.insights-kpi article:first-child {
+  border-left: 1px solid var(--color-border-default) !important;
+}
+
+.insights-kpi article::after {
+  content: "";
+  position: absolute;
+  inset: auto -22px -28px auto;
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-accent-subtle) 72%, transparent);
+  pointer-events: none;
+}
+
+.insights-kpi article:hover {
+  border-color: color-mix(in srgb, var(--color-accent-default) 24%, var(--color-border-default)) !important;
+  box-shadow: var(--mf-card-shadow);
+  transform: translateY(-1px);
+}
+
+.insights-kpi span {
+  position: relative;
+  z-index: 1;
+  font-size: 11px !important;
+  letter-spacing: 0.055em !important;
+}
+
+.insights-kpi strong {
+  position: relative;
+  z-index: 1;
+  margin-top: 9px !important;
+  font-size: clamp(18px, 2vw, 24px) !important;
+  font-weight: 740 !important;
+}
+
+.insights-kpi small {
+  position: relative;
+  z-index: 1;
+  margin-top: 5px !important;
+  font-size: 11px !important;
+}
+
+.safe-card {
+  isolation: isolate;
+  border-radius: 24px !important;
+  padding: 28px 30px 26px !important;
+  background:
+    radial-gradient(circle at 88% 8%, rgb(255 255 255 / 18%), transparent 14rem),
+    linear-gradient(135deg, #17794a 0%, #0f633a 54%, #0a4b2c 100%) !important;
+  box-shadow: 0 20px 48px rgb(11 76 44 / 20%) !important;
+}
+
+.safe-card h2 {
+  font-size: clamp(32px, 4.4vw, 46px) !important;
+  font-weight: 720 !important;
+}
+
+.safe-card .hero-add {
+  min-height: 46px;
+  border-radius: 14px !important;
+  background: white !important;
+  color: #0d5b35 !important;
+  box-shadow: 0 8px 20px rgb(5 35 20 / 16%) !important;
+}
+
+/* Calm card system */
+.app-shell :is(
+  .month-card,
+  .panel,
+  .report-panel,
+  .account-card,
+  .budget-card,
+  .goal-card,
+  .commitment-card,
+  .planning-card,
+  .insights-empty
+) {
+  border-radius: var(--mf-card-radius) !important;
+  border-color: color-mix(in srgb, var(--color-border-default) 92%, transparent) !important;
+  box-shadow: var(--mf-card-shadow) !important;
+}
+
+.app-shell :is(
+  .month-card,
+  .panel,
+  .report-panel,
+  .account-card,
+  .budget-card,
+  .goal-card,
+  .commitment-card,
+  .planning-card
+):hover {
+  border-color: color-mix(in srgb, var(--color-accent-default) 18%, var(--color-border-default)) !important;
+  box-shadow: var(--mf-card-shadow-hover) !important;
+}
+
+.insights-planning-nav {
+  padding: 16px !important;
+  border-radius: var(--mf-card-radius) !important;
+  box-shadow: 0 1px 2px rgb(15 31 22 / 3%) !important;
+}
+
+.insights-planning-nav ul {
+  gap: 12px !important;
+}
+
+.insights-planning-link {
+  min-height: 62px !important;
+  border-radius: 15px !important;
+  padding: 12px 14px !important;
+  background: color-mix(in srgb, var(--color-bg-secondary) 72%, var(--color-bg-elevated)) !important;
+}
+
+.insights-planning-link:hover {
+  background: var(--color-accent-subtle) !important;
+}
+
+.insights-category-list {
+  gap: 10px !important;
+}
+
+.insights-category-row {
+  border: 1px solid color-mix(in srgb, var(--color-border-default) 88%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-bg-secondary) 62%, var(--color-bg-elevated));
+  padding: 12px 14px;
+}
+
+.insights-category-bar {
+  height: 7px !important;
+  background: color-mix(in srgb, var(--color-border-default) 72%, transparent) !important;
+}
+
+.insights-category-bar i {
+  background: linear-gradient(90deg, #1a8a52, var(--color-accent-default)) !important;
+}
+
+.transaction-row {
+  border-radius: 15px;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.transaction-row:hover {
+  background: color-mix(in srgb, var(--color-accent-subtle) 42%, transparent);
+}
+
+/* Dialogs and quick capture */
+.capture-sheet,
+.more-sheet {
+  border-radius: 26px !important;
+  border-color: color-mix(in srgb, var(--color-border-default) 88%, transparent) !important;
+  padding: 24px 22px 22px !important;
+  box-shadow: 0 28px 90px rgb(5 29 15 / 26%) !important;
+}
+
+.capture-sheet-option {
+  min-height: 68px !important;
+  border-radius: 18px !important;
+  background: color-mix(in srgb, var(--color-bg-secondary) 58%, var(--color-bg-elevated));
+}
+
+.capture-sheet-option:hover {
+  background: var(--color-accent-subtle) !important;
+  border-color: color-mix(in srgb, var(--color-accent-default) 28%, var(--color-border-default)) !important;
+}
+
+/* Mobile product chrome */
+.mobile-nav {
+  border-top: 1px solid color-mix(in srgb, var(--color-border-default) 72%, transparent) !important;
+  background: color-mix(in srgb, var(--color-bg-elevated) 88%, transparent) !important;
+  box-shadow: 0 -12px 34px rgb(15 31 22 / 10%);
+  backdrop-filter: blur(20px) saturate(160%) !important;
+}
+
+.mobile-nav a,
+.mobile-nav button {
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 14px;
+}
+
+.mobile-nav a.active,
+.mobile-nav button.active {
+  color: var(--color-accent-text) !important;
+}
+
+.mobile-fab {
+  width: 58px !important;
+  height: 58px !important;
+  border: 4px solid color-mix(in srgb, var(--color-bg-elevated) 94%, transparent) !important;
+  background: linear-gradient(145deg, #16814b, #0b6036) !important;
+  box-shadow: 0 14px 30px rgb(10 84 48 / 30%) !important;
+}
+
+.mobile-fab:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 36px rgb(10 84 48 / 34%) !important;
+}
+
+/* Dark theme keeps elevation quiet and readable. */
+[data-theme="dark"] {
+  --mf-card-shadow: 0 1px 2px rgb(0 0 0 / 24%), 0 14px 34px rgb(0 0 0 / 18%);
+  --mf-card-shadow-hover: 0 2px 4px rgb(0 0 0 / 28%), 0 20px 44px rgb(0 0 0 / 24%);
+  --mf-glass: color-mix(in srgb, var(--color-bg-elevated) 84%, transparent);
+}
+
+[data-theme="dark"] .app-shell {
+  background:
+    radial-gradient(circle at 82% -14%, rgb(32 106 63 / 16%), transparent 30rem),
+    var(--color-bg-primary);
+}
+
+[data-theme="dark"] .sidebar {
+  background: color-mix(in srgb, var(--color-bg-elevated) 96%, transparent) !important;
+  box-shadow: 10px 0 36px rgb(0 0 0 / 18%);
+}
+
+[data-theme="dark"] .sidebar nav a.active,
+[data-theme="dark"] .sidebar nav button.active,
+[data-theme="dark"] .sidebar-bottom > a.active {
+  background: color-mix(in srgb, var(--color-accent-subtle) 82%, var(--color-bg-elevated)) !important;
+}
+
+[data-theme="dark"] .insights-kpi article,
+[data-theme="dark"] .insights-category-row,
+[data-theme="dark"] .insights-planning-link {
+  background: color-mix(in srgb, var(--color-bg-elevated) 94%, transparent) !important;
+}
+
+[data-theme="dark"] .safe-card {
+  background:
+    radial-gradient(circle at 88% 8%, rgb(255 255 255 / 9%), transparent 14rem),
+    linear-gradient(135deg, #17633f 0%, #124d33 58%, #0c3926 100%) !important;
+}
+
+@media (max-width: 1080px) and (min-width: 761px) {
+  :root { --mf-shell-width: 220px; }
+
+  .sidebar { padding-inline: 12px !important; }
+  .dashboard { padding-inline: 26px !important; }
+  .insights-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+
+@media (max-width: 760px) {
+  :root {
+    --mf-card-radius: 18px;
+    --mobile-fab-size: 58px;
+    --mobile-fab-clearance: 72px;
+  }
+
+  .app-shell {
+    background:
+      radial-gradient(circle at 90% -8%, rgb(197 231 210 / 28%), transparent 20rem),
+      var(--color-bg-secondary);
+  }
+
+  .page-column {
+    margin-left: 0 !important;
+  }
+
+  .topbar {
+    height: 62px !important;
+    padding-inline: 16px !important;
+  }
+
+  .dashboard {
+    width: 100% !important;
+    padding: 22px 16px var(--mobile-content-end) !important;
+  }
+
+  .welcome-row {
+    display: grid !important;
+    align-items: start !important;
+    gap: 16px !important;
+    margin-bottom: 20px !important;
+  }
+
+  .welcome-row h1 {
+    font-size: 27px !important;
+  }
+
+  .welcome-actions {
+    width: 100%;
+    justify-content: stretch !important;
+  }
+
+  .welcome-actions > * {
+    flex: 1 1 0;
+  }
+
+  .insights-ghi-chi,
+  .insights-export-csv {
+    min-height: 46px !important;
+    justify-content: center;
+  }
+
+  .insights-kpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+  }
+
+  .insights-kpi article {
+    min-height: 106px;
+    border-radius: 17px;
+    padding: 16px 14px 14px !important;
+  }
+
+  .insights-kpi strong {
+    font-size: clamp(17px, 5.2vw, 21px) !important;
+  }
+
+  .safe-card {
+    border-radius: 22px !important;
+    padding: 24px 20px 22px !important;
+  }
+
+  .safe-card-top {
+    gap: 12px;
+  }
+
+  .safe-card h2 {
+    font-size: clamp(31px, 10vw, 40px) !important;
+  }
+
+  .safe-card-hero-actions {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    gap: 10px !important;
+  }
+
+  .safe-card.safe-card-hero .hero-add {
+    width: 100% !important;
+  }
+
+  .insights-planning-nav {
+    padding: 14px !important;
+  }
+
+  .insights-planning-nav ul {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .insights-planning-link {
+    min-height: 58px !important;
+  }
+
+  .insights-category-row {
+    padding: 11px 12px;
+  }
+
+  .capture-sheet,
+  .more-sheet {
+    width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    margin: auto 8px 8px !important;
+    border-radius: 26px 26px 20px 20px !important;
+    padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .mobile-nav {
+    min-height: var(--mobile-nav-height);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .mobile-fab {
+    width: 58px !important;
+    height: 58px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .dashboard { padding-inline: 14px !important; }
+
+  .insights-kpi {
+    gap: 8px;
+  }
+
+  .insights-kpi article {
+    min-height: 102px;
+    padding-inline: 12px !important;
+  }
+
+  .insights-kpi span,
+  .insights-kpi small {
+    font-size: 10px !important;
+  }
+
+  .welcome-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar nav a,
+  .sidebar nav button,
+  .app-shell .primary-button,
+  .insights-kpi article,
+  .transaction-row,
+  .mobile-fab {
+    transition: none !important;
+  }
+}
