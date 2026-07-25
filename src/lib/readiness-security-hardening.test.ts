@@ -6,7 +6,7 @@ import test from "node:test";
 const migration = readFileSync(
   join(
     process.cwd(),
-    "supabase/migrations/20260725000100_readiness_security_hardening.sql",
+    "supabase/migrations/20260725012245_readiness_security_hardening.sql",
   ),
   "utf8",
 ).toLowerCase();
