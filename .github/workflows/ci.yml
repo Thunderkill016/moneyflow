@@ -145,51 +145,60 @@ jobs:
               --scope thunderkill016s-projects \
               --token "$VERCEL_TOKEN"
           fi
-      - name: Set exact production app mode in Vercel
-        shell: bash
-        run: |
-          npx --yes vercel@latest env rm NEXT_PUBLIC_APP_MODE production \
-            --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
-          printf %s authenticated | npx --yes vercel@latest env add \
-            NEXT_PUBLIC_APP_MODE production --token "$VERCEL_TOKEN"
       - name: Pull production project settings
         run: npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
       - name: Export Production environment for local build
         run: npx --yes vercel@latest env pull .env.local --environment=production --yes --token "$VERCEL_TOKEN"
-      - name: Validate exported Production environment
-        id: production-env-validation
-        continue-on-error: true
+      - name: Resolve write-only public variables for prebuilt build
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
+          historical_commit=fb640d34ccead9597a66c2b1612a9fef87321986
+          git fetch --no-tags --depth=1 origin "$historical_commit"
+
+          cp .env.local .env.prebuilt
+          set -a
+          . ./.env.local
+          set +a
+
+          historical_vercel=$(git show "${historical_commit}:vercel.json")
+          historical_supabase_url=$(printf '%s' "$historical_vercel" | node -e "let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>process.stdout.write(JSON.parse(s).env.NEXT_PUBLIC_SUPABASE_URL))")
+          historical_publishable_key=$(printf '%s' "$historical_vercel" | node -e "let s='';process.stdin.on('data',c=>s+=c);process.stdin.on('end',()=>process.stdout.write(JSON.parse(s).env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY))")
+          historical_legacy_host=$(git show "${historical_commit}:src/lib/site-url.ts" | sed -n 's/^export const LEGACY_SITE_HOST = "\([^"]*\)";.*/\1/p')
+
+          resolved_supabase_url="$NEXT_PUBLIC_SUPABASE_URL"
+          resolved_publishable_key="$NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+          resolved_legacy_hosts="${LEGACY_SITE_HOSTS:-}"
+
+          [ "$resolved_supabase_url" = '[SENSITIVE]' ] && resolved_supabase_url="$historical_supabase_url"
+          [ "$resolved_publishable_key" = '[SENSITIVE]' ] && resolved_publishable_key="$historical_publishable_key"
+          [ "$resolved_legacy_hosts" = '[SENSITIVE]' ] && resolved_legacy_hosts="$historical_legacy_host"
+
           {
-            set -a
-            . ./.env.local
-            set +a
-            printf 'Resolved NEXT_PUBLIC_APP_MODE=%q\n' "$NEXT_PUBLIC_APP_MODE"
-            VERCEL=1 VERCEL_ENV=production node scripts/check-deployment-env.mjs --force
-          } 2>&1 | tee production-env-validation.log
-      - name: Upload failing Production env validation
-        if: steps.production-env-validation.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: failing-production-env-validation
-          path: production-env-validation.log
-          if-no-files-found: error
-          retention-days: 1
-      - name: Fail after preserving Production env diagnostics
-        if: steps.production-env-validation.outcome == 'failure'
-        run: exit 1
+            printf '\nNEXT_PUBLIC_APP_MODE=%q\n' authenticated
+            printf 'NEXT_PUBLIC_SUPABASE_URL=%q\n' "$resolved_supabase_url"
+            printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%q\n' "$resolved_publishable_key"
+            printf 'LEGACY_SITE_HOSTS=%q\n' "$resolved_legacy_hosts"
+          } >> .env.prebuilt
+
+          echo 'Resolved public build configuration without logging values.'
+      - name: Validate resolved Production environment
+        shell: bash
+        run: |
+          set -a
+          . ./.env.prebuilt
+          set +a
+          VERCEL=1 VERCEL_ENV=production node scripts/check-deployment-env.mjs --force
       - name: Create temporary Vercel CI configuration
         shell: bash
         run: |
           node <<'NODE'
           const fs = require('node:fs');
           const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
-          config.buildCommand = 'set -a; . ./.env.local; set +a; npm run check:deployment-env && npm run build';
+          config.buildCommand = 'set -a; . ./.env.prebuilt; set +a; npm run check:deployment-env && npm run build';
           fs.writeFileSync('vercel.ci.json', `${JSON.stringify(config, null, 2)}\n`);
           NODE
-      - name: Build production output with exported Production env
+      - name: Build production output with resolved Production env
         id: vercel-build
         continue-on-error: true
         shell: bash
