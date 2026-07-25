@@ -7,10 +7,10 @@ const homePage = readFileSync("src/app/page.tsx", "utf8");
 const landingLayout = readFileSync("src/app/landing/layout.tsx", "utf8");
 const landing = readFileSync("src/app/landing-refresh.css", "utf8");
 
-test("landing refresh is loaded only by public landing routes", () => {
-  assert.doesNotMatch(rootLayout, /landing-refresh\.css/);
-  assert.match(homePage, /import "\.\/landing-refresh\.css"/);
-  assert.match(landingLayout, /import "\.\.\/landing-refresh\.css"/);
+test("landing refresh is loaded by the root layout for production stability", () => {
+  assert.match(rootLayout, /import "\.\/landing-refresh\.css"/);
+  assert.doesNotMatch(homePage, /landing-refresh\.css/);
+  assert.doesNotMatch(landingLayout, /landing-refresh\.css/);
 });
 
 test("landing refresh keeps the public conversion hierarchy", () => {

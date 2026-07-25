@@ -1,10 +1,13 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { POST_AUTH_REDIRECT, safeNextPath } from "@/lib/auth-redirect";
 import { DELETE_CONFIRM_TEXT, isDeleteConfirmValid } from "@/lib/delete-account";
 import { ONBOARDING_PATH } from "@/lib/onboarding";
+import { getSiteOrigin } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = {
@@ -29,10 +32,6 @@ const registerSchema = z.object({
     }),
 });
 const loginSchema = z.object({ email: emailSchema, password: z.string().min(1, "Nhập mật khẩu.") });
-
-function siteUrl() {
-  return (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
-}
 
 function configurationError(): AuthState {
   return {
@@ -72,7 +71,7 @@ export async function register(_: AuthState, formData: FormData): Promise<AuthSt
     password: parsed.data.password,
     options: {
       data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      emailRedirectTo: `${getSiteOrigin()}/auth/callback?next=${encodeURIComponent(nextPath)}`,
     },
   });
   if (error) return { message: "Không thể tạo tài khoản. Email có thể đã được sử dụng." };
@@ -92,7 +91,9 @@ export async function signInWithGoogle(formData?: FormData) {
   if (!supabase) redirect("/login?error=config");
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}` },
+    options: {
+      redirectTo: `${getSiteOrigin()}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+    },
   });
   if (error || !data.url) redirect("/login?error=oauth");
   redirect(data.url);
@@ -105,7 +106,7 @@ export async function requestPasswordReset(_: AuthState, formData: FormData): Pr
   const supabase = await createClient();
   if (!supabase) return configurationError();
   await supabase.auth.resetPasswordForEmail(parsed.data, {
-    redirectTo: `${siteUrl()}/auth/callback?next=/update-password`,
+    redirectTo: `${getSiteOrigin()}/auth/callback?next=/update-password`,
   });
 
   // Keep the response identical whether the email exists or not.
@@ -125,7 +126,21 @@ export async function updatePassword(_: AuthState, formData: FormData): Promise<
 
 export async function signOut() {
   const supabase = await createClient();
-  if (supabase) await supabase.auth.signOut();
+  try {
+    if (supabase) await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Stale or already-deleted sessions can reject server-side sign-out.
+    // Local cookie cleanup below is the source of truth for this browser.
+  } finally {
+    const cookieStore = await cookies();
+    for (const cookie of cookieStore.getAll()) {
+      if (cookie.name.startsWith("sb-") && cookie.name.includes("auth-token")) {
+        cookieStore.delete(cookie.name);
+      }
+    }
+  }
+
+  revalidatePath("/", "layout");
   redirect("/login");
 }
 
