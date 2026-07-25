@@ -1,5 +1,5 @@
 -- Real-use readiness hardening.
--- 1) Trigger-only SECURITY DEFINER functions must not be callable through Data API.
+-- 1) Trigger-only privileged functions must not be callable through Data API.
 -- 2) Preserve the category archive invariant after recurring-income migration
 --    replaced update_money_transaction.
 
