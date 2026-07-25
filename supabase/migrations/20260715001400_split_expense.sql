@@ -102,7 +102,8 @@ $$;
 revoke all on function public.create_split_expense(uuid, jsonb, date, text, uuid) from public, anon;
 grant execute on function public.create_split_expense(uuid, jsonb, date, text, uuid) to authenticated;
 
--- Feed: sum multi-entry expense/income; expose split_lines jsonb when 2+ categories.
+-- Feed at this migration point only knows recurring commitments. Recurring income
+-- tables are created later and that migration upgrades is_recurring_payment.
 create or replace view public.transaction_feed with (security_invoker = true) as
 select
   transaction_record.id,
@@ -135,7 +136,7 @@ select
   end as category_name,
   (array_agg(account.id) filter (where transaction_record.kind = 'transfer' and entry.amount_minor > 0))[1] as destination_account_id,
   (array_agg(account.name) filter (where transaction_record.kind = 'transfer' and entry.amount_minor > 0))[1] as destination_account_name,
-  bool_or(commitment_occ.id is not null or income_occ.id is not null) as is_recurring_payment,
+  bool_or(commitment_occ.id is not null) as is_recurring_payment,
   case
     when transaction_record.kind = 'expense'
       and count(category.id) filter (where category.id is not null) > 1
@@ -160,9 +161,6 @@ left join public.categories as category
 left join public.commitment_occurrences as commitment_occ
   on commitment_occ.transaction_id = transaction_record.id
   and commitment_occ.user_id = transaction_record.user_id
-left join public.income_template_occurrences as income_occ
-  on income_occ.transaction_id = transaction_record.id
-  and income_occ.user_id = transaction_record.user_id
 where transaction_record.deleted_at is null
 group by transaction_record.id, transaction_record.user_id, transaction_record.kind,
   transaction_record.note, transaction_record.occurred_on, transaction_record.created_at;

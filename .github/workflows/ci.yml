@@ -10,6 +10,47 @@ permissions:
   contents: read
 
 jobs:
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+      - name: Fresh local reset and pgTAP
+        id: database-tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          {
+            supabase --version
+            supabase db start
+            supabase db reset --local
+            supabase test db
+          } 2>&1 | tee database-test-output.log
+      - name: Upload failing database output
+        if: steps.database-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: failing-database-test-output
+          path: database-test-output.log
+          if-no-files-found: error
+          retention-days: 1
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup || true
+      - name: Fail after preserving database diagnostics
+        if: steps.database-tests.outcome == 'failure'
+        run: exit 1
+      - name: Database test summary
+        if: steps.database-tests.outcome == 'success'
+        run: tail -n 80 database-test-output.log
+
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
