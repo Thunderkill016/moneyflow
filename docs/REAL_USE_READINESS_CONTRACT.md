@@ -144,11 +144,11 @@ Production browser evidence on a 390×844 viewport:
 - [x] Sign in through the production MoneyFlow page.
 - [x] Open the authenticated quick-entry form.
 - [x] Add one synthetic expense and confirm it appears exactly once.
-- [ ] Confirm balance, month and category totals change exactly once.
+- [x] Confirm balance, month and category totals change exactly once.
 - [x] Reload and confirm UI persistence.
 - [x] Edit the note and amount and confirm the updated row appears exactly once.
 - [x] Soft-delete and use the UI undo action.
-- [ ] Confirm a transfer does not alter income/expense totals.
+- [x] Confirm a transfer moves account balances but does not alter income, expense, net, total balance or category totals.
 - [x] Permanently delete the authenticated account through the UI.
 - [x] Confirm re-login is rejected and Auth, identity, profile, account, category, transaction and ledger row counts are all zero.
 
@@ -166,7 +166,7 @@ Production browser evidence on a 390×844 viewport:
 On a 390×844 Chromium viewport:
 
 - [x] Sign in without layout obstruction or horizontal overflow.
-- [ ] Open “Ghi chi tiêu” from the primary action/FAB rather than direct route navigation.
+- [x] Open “Ghi chi tiêu” from the production mobile FAB rather than direct route navigation.
 - [x] Amount input receives focus and uses decimal input mode.
 - [x] The quick-entry form requires no horizontal scrolling.
 - [x] Save succeeds and the transaction appears in the manager immediately.
@@ -229,18 +229,41 @@ Next.js lint/typecheck/unit/static-RLS/build = pass
 
 The run also proved that historical migrations can reconstruct the final split-expense, recurring-income, account-currency and security-hardening contracts without relying on cloud-only state.
 
+## Accepted dashboard and transfer evidence
+
+The disposable production run recorded in closed, unmerged PR #23 reported:
+
+```text
+initial total balance = 1.000.000 ₫
+expense = 123.456 ₫
+after-expense balance = 876.544 ₫
+monthly income = 0 ₫
+monthly expense = 123.456 ₫
+net = −123.456 ₫
+Ăn uống = 123.456 ₫
+reload duplicate count = 0
+transfer = 50.000 ₫
+source after transfer = 826.544 ₫
+destination after transfer = 50.000 ₫
+after-transfer total balance = 876.544 ₫
+after-transfer monthly income/expense/net/category = unchanged
+transfer ledger shape = 1 transaction / 2 entries
+consoleErrors = 0
+account cleanup = 0 remaining tenant rows
+```
+
+The mobile production FAB opened the entry dialog, so the accepted path did not depend on direct navigation to `/capture/quick`. The temporary workflow and fixture were closed unmerged and the branch was reset to `main`.
+
 ## Current gap register
 
 | Reference | Severity | Gap | Required result |
 |---|---|---|---|
 | R3 auth email | P2 | Real delivered confirmation/reset callback not completed | Link returns to canonical `/auth/callback` without old origin or localhost |
-| R4 totals | P2 | Browser smoke did not assert dashboard totals exactly once | Create/edit transaction and verify affected totals |
-| R4 transfer | P2 | Transfer accounting not exercised in production browser | Transfer leaves income/expense totals unchanged |
 | R5 spreadsheet | P2 | CSV content was inspected as text, not opened in a spreadsheet | Open and verify columns, dates, amounts and escaping |
-| R6 primary path | P2 | Quick form was opened by direct authenticated route | Repeat through primary action/FAB on a real phone browser |
+| R6 real keyboard | P2 | Headless mobile viewport cannot prove keyboard obstruction behavior | Repeat the primary path on a physical phone browser |
 | R7 | P2 | Seven-day owner self-use has not started | Complete the consecutive-day run and exit review |
 
-No known P0 or P1 readiness blocker remains after PRs #16, #18, #19 and #21.
+No known P0 or P1 readiness blocker remains after PRs #16, #18, #19 and #21 plus the accepted production smoke in PR #23.
 
 ## Defect priority
 
