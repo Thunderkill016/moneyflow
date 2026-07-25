@@ -155,11 +155,12 @@ Production browser evidence on a 390×844 viewport:
 ### R5 — Export and ownership
 
 - [x] Export authenticated data through the production UI.
-- [ ] Open the downloaded CSV in a spreadsheet application.
-- [ ] Exercise formula-leading values in a production export and confirm escaping.
-- [x] Exported note and amount match the edited ledger row.
+- [x] Import the downloaded production CSV into a spreadsheet engine and verify columns, date, amount, displayed value and absence of formula records.
+- [x] Exercise a formula-leading value in a production export and confirm escaping.
+- [x] Exported note and amount match the ledger row.
 - [x] Tenant-isolation evidence and the single-tenant export show no other user's rows.
-- [ ] Confirm export is discoverable through normal navigation without directly entering the settings URL.
+- [x] Confirm export is discoverable through normal navigation without directly entering the settings URL.
+- [ ] Open the same production CSV in an end-user desktop or mobile spreadsheet application.
 
 ### R6 — Mobile daily path
 
@@ -254,16 +255,34 @@ account cleanup = 0 remaining tenant rows
 
 The mobile production FAB opened the entry dialog, so the accepted path did not depend on direct navigation to `/capture/quick`. The temporary workflow and fixture were closed unmerged and the branch was reset to `main`.
 
+## Accepted export-safety evidence
+
+The disposable production run recorded in closed, unmerged PR #25 reported:
+
+```text
+stored note = =1+1
+export navigation = Tổng quan → Xuất CSV → /settings/export
+transaction rows = 1
+raw CSV note = '=1+1
+formula trigger at exported cell start = false
+spreadsheet displayed value = =1+1
+spreadsheet formula records = 0
+consoleErrors = 0
+account cleanup = 0 remaining tenant rows
+```
+
+The production file retained its UTF-8 BOM, Vietnamese headers, `2026-07-25` date, `-1000` integer VND amount and the expected account/category values. The apostrophe prevented formula interpretation while the spreadsheet engine displayed the intended user text. The temporary workflow, CSV and fixture were closed unmerged and the branch was reset to `main`.
+
 ## Current gap register
 
 | Reference | Severity | Gap | Required result |
 |---|---|---|---|
 | R3 auth email | P2 | Real delivered confirmation/reset callback not completed | Link returns to canonical `/auth/callback` without old origin or localhost |
-| R5 spreadsheet | P2 | CSV content was inspected as text, not opened in a spreadsheet | Open and verify columns, dates, amounts and escaping |
+| R5 end-user spreadsheet | P2 | Production CSV was imported into the verification spreadsheet engine, not opened in a normal user-facing app | Open the same export in an end-user spreadsheet application |
 | R6 real keyboard | P2 | Headless mobile viewport cannot prove keyboard obstruction behavior | Repeat the primary path on a physical phone browser |
 | R7 | P2 | Seven-day owner self-use has not started | Complete the consecutive-day run and exit review |
 
-No known P0 or P1 readiness blocker remains after PRs #16, #18, #19 and #21 plus the accepted production smoke in PR #23.
+No known P0 or P1 readiness blocker remains after PRs #16, #18, #19 and #21 plus the accepted production smoke evidence in PRs #23 and #25.
 
 ## Defect priority
 
