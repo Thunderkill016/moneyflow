@@ -3,8 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { signOut } from "@/app/(auth)/actions";
 import { Icon, type IconName } from "@/components/icons";
-import { UserChip, type ViewerSummary } from "@/components/user-chip";
+import {
+  UserChip,
+  viewerInitial,
+  viewerLabel,
+  type ViewerSummary,
+} from "@/components/user-chip";
 import { CAPTURE_OPTIONS } from "@/lib/capture/options";
 import {
   isSearchShortcut,
@@ -34,14 +40,16 @@ const DEFAULT_GHI_CHI_ACTION: PrimaryAction = {
   icon: "plus",
 };
 
-type NavItem = PrimaryNavItem | {
-  kind: "link";
-  label: string;
-  icon: IconName;
-  href: string;
-  badge?: number;
-  mobileTab?: boolean;
-};
+type NavItem =
+  | PrimaryNavItem
+  | {
+      kind: "link";
+      label: string;
+      icon: IconName;
+      href: string;
+      badge?: number;
+      mobileTab?: boolean;
+    };
 
 const mobileTabs: NavItem[] = [
   ...PRIMARY_NAV.filter(
@@ -129,7 +137,10 @@ export function AppShell({
         searchInputRef.current.select();
         return;
       }
-      if (pathname !== "/transactions" && !pathname.startsWith("/transactions/")) {
+      if (
+        pathname !== "/transactions" &&
+        !pathname.startsWith("/transactions/")
+      ) {
         router.push(TRANSACTIONS_SEARCH_HREF);
       }
     }
@@ -155,14 +166,21 @@ export function AppShell({
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Điều hướng chính">
-        <Link className="brand" href={APP_HOME_HREF} aria-label="Money Flow, về Tổng quan">
-          <span className="brand-mark"><span /></span>
+        <Link
+          className="brand"
+          href={APP_HOME_HREF}
+          aria-label="Money Flow, về Tổng quan"
+        >
+          <span className="brand-mark">
+            <span />
+          </span>
           <span>Money Flow</span>
         </Link>
         <nav>
           {PRIMARY_NAV.map((item) => {
             if (item.kind === "action") {
-              const captureActive = captureOpen || pathIsActive(pathname, "/capture");
+              const captureActive =
+                captureOpen || pathIsActive(pathname, "/capture");
               return (
                 <button
                   type="button"
@@ -178,7 +196,8 @@ export function AppShell({
             }
             const insightsRelated =
               item.href === "/insights" && isPlanningPath(pathname);
-            const active = pathIsActive(pathname, item.href) || insightsRelated;
+            const active =
+              pathIsActive(pathname, item.href) || insightsRelated;
             return (
               <Link
                 href={item.href}
@@ -216,7 +235,9 @@ export function AppShell({
             href={APP_HOME_HREF}
             aria-label="Money Flow, về Tổng quan"
           >
-            <span className="brand-mark"><span /></span>
+            <span className="brand-mark">
+              <span />
+            </span>
             <span>Money Flow</span>
           </Link>
 
@@ -227,7 +248,7 @@ export function AppShell({
                 ref={searchInputRef}
                 data-app-search="true"
                 value={searchBar.value}
-                onChange={(e) => searchBar.onChange(e.target.value)}
+                onChange={(event) => searchBar.onChange(event.target.value)}
                 aria-label="Tìm giao dịch"
                 placeholder={searchBar.placeholder ?? "Tìm giao dịch..."}
               />
@@ -241,7 +262,9 @@ export function AppShell({
               prefetch
             >
               <Icon name="search" />
-              <span className="desktop-search-placeholder">Tìm giao dịch...</span>
+              <span className="desktop-search-placeholder">
+                Tìm giao dịch...
+              </span>
               <kbd aria-hidden="true">⌘ K</kbd>
             </Link>
           )}
@@ -272,9 +295,16 @@ export function AppShell({
                 {resolvedPrimary.label}
               </button>
             )}
-            <span className="mobile-avatar avatar">
-              {viewer.displayName?.[0]?.toUpperCase() ?? (viewer.isDemo ? "M" : "U")}
-            </span>
+            <button
+              type="button"
+              className="mobile-account-button"
+              onClick={openMore}
+              aria-label={`Mở tài khoản ${viewerLabel(viewer)}`}
+              aria-haspopup="dialog"
+              aria-expanded={moreOpen}
+            >
+              <span className="avatar">{viewerInitial(viewer)}</span>
+            </button>
           </div>
         </header>
 
@@ -300,7 +330,8 @@ export function AppShell({
       <nav className="mobile-nav" aria-label="Điều hướng di động">
         {mobileTabs.map((item) => {
           if (item.kind === "action") {
-            const captureActive = captureOpen || pathIsActive(pathname, "/capture");
+            const captureActive =
+              captureOpen || pathIsActive(pathname, "/capture");
             return (
               <button
                 type="button"
@@ -317,8 +348,12 @@ export function AppShell({
           if (item.href === "#more") {
             const moreActive =
               moreOpen ||
-              MORE_NAV_LINKS.some((m) => pathIsActive(pathname, m.href)) ||
-              PLANNING_LINKS.some((m) => pathIsActive(pathname, m.href));
+              MORE_NAV_LINKS.some((link) =>
+                pathIsActive(pathname, link.href),
+              ) ||
+              PLANNING_LINKS.some((link) =>
+                pathIsActive(pathname, link.href),
+              );
             return (
               <button
                 type="button"
@@ -331,7 +366,10 @@ export function AppShell({
                 <Icon name={item.icon} />
                 <span>{item.label}</span>
                 {inboxCount > 0 ? (
-                  <span className="nav-badge mobile-nav-badge" aria-hidden="true">
+                  <span
+                    className="nav-badge mobile-nav-badge"
+                    aria-hidden="true"
+                  >
                     {inboxCount > 99 ? "99+" : inboxCount}
                   </span>
                 ) : null}
@@ -393,31 +431,55 @@ export function AppShell({
         titleId={moreTitleId}
         pathname={pathname}
         inboxCount={inboxCount}
+        viewer={viewer}
       />
 
       {(() => {
         const text = (notice || "").toLowerCase();
-        let variant: "success" | "error" | "warning" | "info" = "success";
+        let variant: "success" | "error" | "warning" | "info" =
+          "success";
         let icon: IconName = "check";
 
         if (noticeAction) {
           // Undo toast: calm info treatment (design-system §15.2).
           variant = "info";
           icon = "restore";
-        } else if (text.includes("lỗi") || text.includes("thất bại") || text.includes("không thể") || text.includes("hãy") || text.includes("không khôi phục") || text.includes("chưa thể hoàn tác")) {
+        } else if (
+          text.includes("lỗi") ||
+          text.includes("thất bại") ||
+          text.includes("không thể") ||
+          text.includes("hãy") ||
+          text.includes("không khôi phục") ||
+          text.includes("chưa thể hoàn tác")
+        ) {
           variant = "error";
           icon = "bell";
-        } else if (text.includes("cảnh báo") || text.includes("chưa") || text.includes("yêu cầu")) {
+        } else if (
+          text.includes("cảnh báo") ||
+          text.includes("chưa") ||
+          text.includes("yêu cầu")
+        ) {
           variant = "warning";
           icon = "bell";
-        } else if (text.includes("thông tin") || text.includes("chi tiết") || text.includes("đang") || text.includes("khôi phục")) {
+        } else if (
+          text.includes("thông tin") ||
+          text.includes("chi tiết") ||
+          text.includes("đang") ||
+          text.includes("khôi phục")
+        ) {
           variant = "info";
           icon = "bell";
         }
 
         return (
-          <div className={`toast ${notice ? "visible" : ""} ${variant}`} role="status" aria-live="polite">
-            <span><Icon name={icon} /></span>
+          <div
+            className={`toast ${notice ? "visible" : ""} ${variant}`}
+            role="status"
+            aria-live="polite"
+          >
+            <span>
+              <Icon name={icon} />
+            </span>
             <span className="toast-message">{notice}</span>
             {notice && noticeAction ? (
               <button
@@ -470,7 +532,12 @@ function CaptureSheet({
       <div className="dialog-handle" />
       <div className="dialog-heading">
         <h2 id={titleId}>Ghi giao dịch</h2>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Đóng">
+        <button
+          type="button"
+          className="icon-button"
+          onClick={onClose}
+          aria-label="Đóng"
+        >
           <Icon name="close" />
         </button>
       </div>
@@ -499,14 +566,20 @@ function CaptureSheet({
       <p className="capture-sheet-alt">
         <Link href="/inbox" onClick={onClose}>
           Mở Hộp thư
-          {inboxCount > 0 ? ` (${inboxCount > 99 ? "99+" : inboxCount})` : ""}
+          {inboxCount > 0
+            ? ` (${inboxCount > 99 ? "99+" : inboxCount})`
+            : ""}
         </Link>
         {" · "}
         <Link href="/capture" onClick={onClose}>
           Trang Capture
         </Link>
       </p>
-      <button type="button" className="secondary-button capture-sheet-cancel" onClick={onClose}>
+      <button
+        type="button"
+        className="secondary-button capture-sheet-cancel"
+        onClick={onClose}
+      >
         Hủy
       </button>
     </dialog>
@@ -519,12 +592,14 @@ function MoreSheet({
   titleId,
   pathname,
   inboxCount,
+  viewer,
 }: {
   open: boolean;
   onClose: () => void;
   titleId: string;
   pathname: string;
   inboxCount: number;
+  viewer: ViewerSummary;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -547,8 +622,13 @@ function MoreSheet({
     >
       <div className="dialog-handle" />
       <div className="dialog-heading">
-        <h2 id={titleId}>Thêm</h2>
-        <button type="button" className="icon-button" onClick={onClose} aria-label="Đóng">
+        <h2 id={titleId}>Thêm &amp; tài khoản</h2>
+        <button
+          type="button"
+          className="icon-button"
+          onClick={onClose}
+          aria-label="Đóng"
+        >
           <Icon name="close" />
         </button>
       </div>
@@ -583,7 +663,9 @@ function MoreSheet({
       <nav className="more-sheet-nav" aria-label="Công cụ nâng cao">
         {ADVANCED_NAV_LINKS.map((item) => {
           const badge =
-            item.href === "/inbox" && inboxCount > 0 ? inboxCount : undefined;
+            item.href === "/inbox" && inboxCount > 0
+              ? inboxCount
+              : undefined;
           return (
             <Link
               key={item.href}
@@ -594,7 +676,10 @@ function MoreSheet({
               <Icon name={item.icon} />
               <span>{item.label}</span>
               {badge != null ? (
-                <span className="nav-badge" aria-label={`${badge} mục chờ duyệt`}>
+                <span
+                  className="nav-badge"
+                  aria-label={`${badge} mục chờ duyệt`}
+                >
                   {badge > 99 ? "99+" : badge}
                 </span>
               ) : null}
@@ -602,6 +687,45 @@ function MoreSheet({
           );
         })}
       </nav>
+
+      <section className="more-sheet-account" aria-label="Tài khoản">
+        <div className="more-sheet-account-summary">
+          <span className="avatar">{viewerInitial(viewer)}</span>
+          <span>
+            <strong>{viewerLabel(viewer)}</strong>
+            <small>
+              {viewer.isDemo
+                ? "Dữ liệu demo trên thiết bị"
+                : viewer.email || "Tài khoản MoneyFlow"}
+            </small>
+          </span>
+        </div>
+        <Link
+          href="/settings"
+          className="more-sheet-account-action"
+          onClick={onClose}
+        >
+          <Icon name="settings" />
+          <span>Cài đặt tài khoản</span>
+        </Link>
+        {viewer.isDemo ? (
+          <Link
+            href="/register"
+            className="more-sheet-account-action primary"
+            onClick={onClose}
+          >
+            <Icon name="arrowRight" />
+            <span>Tạo tài khoản</span>
+          </Link>
+        ) : (
+          <form action={signOut} className="more-sheet-signout-form">
+            <button type="submit" className="more-sheet-account-action danger">
+              <Icon name="arrowRight" />
+              <span>Đăng xuất</span>
+            </button>
+          </form>
+        )}
+      </section>
     </dialog>
   );
 }
