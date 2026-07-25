@@ -1,18 +1,12 @@
 const force = process.argv.includes("--force");
 const isVercelBuild = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
-const requiresHttps = isVercelBuild || process.env.NODE_ENV === "production";
+const isProduction = process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production";
+const requiresHttps = isVercelBuild || isProduction;
 
 if (!isVercelBuild && !force) {
   console.log("Deployment env guard skipped outside Vercel. Use --force to validate explicitly.");
   process.exit(0);
 }
-
-const required = {
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
-};
 
 function isMissingOrTemplate(value) {
   const normalized = value?.trim().toLowerCase() ?? "";
@@ -49,15 +43,16 @@ function parseLegacyHosts(value) {
 }
 
 const errors = [];
-for (const [name, value] of Object.entries(required)) {
-  if (isMissingOrTemplate(value)) errors.push(`${name} is missing or still a template value`);
+const appMode = process.env.NEXT_PUBLIC_APP_MODE?.trim().toLowerCase();
+if (appMode !== "demo" && appMode !== "authenticated") {
+  errors.push('NEXT_PUBLIC_APP_MODE must be "demo" or "authenticated"');
+}
+if (process.env.VERCEL_ENV === "production" && appMode !== "authenticated") {
+  errors.push('Vercel production must use NEXT_PUBLIC_APP_MODE="authenticated"');
 }
 
-const supabaseUrl = parseOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
-if (!supabaseUrl && !isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
-  errors.push("NEXT_PUBLIC_SUPABASE_URL must be an absolute HTTP(S) origin");
-} else if (supabaseUrl && supabaseUrl.protocol !== "https:") {
-  errors.push("NEXT_PUBLIC_SUPABASE_URL must use HTTPS");
+if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SITE_URL)) {
+  errors.push("NEXT_PUBLIC_SITE_URL is missing or still a template value");
 }
 
 const siteUrl = parseOrigin(process.env.NEXT_PUBLIC_SITE_URL);
@@ -65,6 +60,22 @@ if (!siteUrl && !isMissingOrTemplate(process.env.NEXT_PUBLIC_SITE_URL)) {
   errors.push("NEXT_PUBLIC_SITE_URL must be an absolute origin without a path, query string or hash");
 } else if (siteUrl && requiresHttps && siteUrl.protocol !== "https:") {
   errors.push("NEXT_PUBLIC_SITE_URL must use HTTPS for hosted or production builds");
+}
+
+if (appMode === "authenticated") {
+  if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+    errors.push("NEXT_PUBLIC_SUPABASE_URL is required in authenticated mode");
+  }
+  if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY)) {
+    errors.push("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is required in authenticated mode");
+  }
+
+  const supabaseUrl = parseOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  if (!supabaseUrl && !isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+    errors.push("NEXT_PUBLIC_SUPABASE_URL must be an absolute HTTP(S) origin");
+  } else if (supabaseUrl && requiresHttps && supabaseUrl.protocol !== "https:") {
+    errors.push("NEXT_PUBLIC_SUPABASE_URL must use HTTPS for hosted or production builds");
+  }
 }
 
 const legacyHosts = parseLegacyHosts(process.env.LEGACY_SITE_HOSTS);
