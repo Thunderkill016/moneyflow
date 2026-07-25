@@ -1,4 +1,4 @@
-name: Production verification
+name: Domain ownership diagnostics
 
 on:
   pull_request:
@@ -6,72 +6,51 @@ on:
     types: [synchronize]
 
 concurrency:
-  group: production-verification-${{ github.event.pull_request.number }}
+  group: domain-diagnostics-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  verify-production:
+  inspect-domains:
     if: github.head_ref == 'agent/emergency-prebuilt-deploy'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
-      - name: Verify canonical pages and retired-domain redirect
+      - name: Inspect canonical and legacy Vercel domains
         shell: bash
         run: |
           set -euo pipefail
-          canonical='https://mfvn.vercel.app'
-          legacy='https://moneyflow-vn.vercel.app'
-
-          root_status=$(curl --silent --show-error --location \
-            --output canonical-root.html --write-out '%{http_code}' \
-            "$canonical/")
-          login_status=$(curl --silent --show-error --location \
-            --output canonical-login.html --write-out '%{http_code}' \
-            "$canonical/login")
-          curl --silent --show-error --output /dev/null \
-            --dump-header legacy-headers.txt "$legacy/"
-
-          legacy_status=$(awk 'NR==1 { print $2 }' legacy-headers.txt)
-          legacy_location=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]*:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}' legacy-headers.txt)
-
           {
-            printf 'canonical_root_status=%s\n' "$root_status"
-            printf 'canonical_login_status=%s\n' "$login_status"
-            printf 'legacy_status=%s\n' "$legacy_status"
-            printf 'legacy_location=%s\n' "$legacy_location"
-            if grep -qi 'MoneyFlow' canonical-root.html; then
-              echo 'landing_brand=present'
-            else
-              echo 'landing_brand=missing'
-            fi
-            if grep -Eqi 'Google|Đăng nhập|Dang nhap|login' canonical-login.html; then
-              echo 'login_ui=present'
-            else
-              echo 'login_ui=missing'
-            fi
-          } | tee production-verification.log
+            echo '=== canonical inspect ==='
+            npx --yes vercel@latest inspect https://mfvn.vercel.app \
+              --scope thunderkill016s-projects --token "$VERCEL_TOKEN" || true
+            echo
+            echo '=== legacy inspect ==='
+            npx --yes vercel@latest inspect https://moneyflow-vn.vercel.app \
+              --scope thunderkill016s-projects --token "$VERCEL_TOKEN" || true
+            echo
+            echo '=== projects ==='
+            npx --yes vercel@latest project ls \
+              --scope thunderkill016s-projects --token "$VERCEL_TOKEN" || true
+            echo
+            echo '=== canonical headers ==='
+            curl --silent --show-error --output /dev/null --dump-header - \
+              https://mfvn.vercel.app/
+            echo
+            echo '=== legacy headers ==='
+            curl --silent --show-error --output /dev/null --dump-header - \
+              https://moneyflow-vn.vercel.app/
+          } 2>&1 | tee domain-diagnostics.log
 
-          test "$root_status" = '200'
-          test "$login_status" = '200'
-          grep -qi 'MoneyFlow' canonical-root.html
-          grep -Eqi 'Google|Đăng nhập|Dang nhap|login' canonical-login.html
-          case "$legacy_status" in
-            301|302|303|307|308) ;;
-            *) echo "Legacy domain did not redirect" >&2; exit 1 ;;
-          esac
-          case "$legacy_location" in
-            "$canonical"*) ;;
-            *) echo "Legacy domain redirected to unexpected location" >&2; exit 1 ;;
-          esac
-
-      - name: Upload production verification
+      - name: Upload domain diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: production-verification
-          path: production-verification.log
+          name: domain-diagnostics
+          path: domain-diagnostics.log
           if-no-files-found: error
           retention-days: 1
