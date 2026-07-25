@@ -1,0 +1,38 @@
+name: Public Supabase client readiness smoke
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Run public Supabase client smoke
+        env:
+          READINESS_SUPABASE_URL: https://fwpldsdkpzhswpuctbke.supabase.co
+          READINESS_SUPABASE_PUBLISHABLE_KEY: sb_publishable_JsTNKJSp1AFD747bBmyTDg_pEPj_HVZ
+          READINESS_EMAIL: moneyflow-readiness-1398c74b@example.invalid
+          READINESS_PASSWORD: Mf!6clhUw2T15Nd3m9urVjEwKnd
+        run: node scripts/readiness-supabase-client-smoke.mjs
+      - name: Upload public-client evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-supabase-client-readiness-evidence
+          path: output/readiness-supabase-client
+          if-no-files-found: error
+          retention-days: 1
