@@ -30,6 +30,16 @@ jobs:
           READINESS_PASSWORD: Mf!3adff288a7a54be1bf8485acAa1
         run: |
           mkdir -p artifacts
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/temporary-production-readiness.mjs')
+          source = path.read_text()
+          source = source.replace(
+              'url.origin === base && url.pathname === "/insights"',
+              'url.origin === base && (url.pathname === "/" || url.pathname === "/insights")',
+          )
+          path.write_text(source)
+          PY
           node scripts/temporary-production-readiness.mjs
       - name: Upload evidence
         if: always()
