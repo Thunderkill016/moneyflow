@@ -2,18 +2,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const layout = readFileSync("src/app/layout.tsx", "utf8");
+const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
+const authLayout = readFileSync("src/app/(auth)/layout.tsx", "utf8");
 const refresh = readFileSync("src/app/auth-refresh.css", "utf8");
 const authForm = readFileSync("src/components/auth-form.tsx", "utf8");
 
-test("authentication refresh loads after shared public and product styles", () => {
-  const productImport = layout.indexOf('import "./ui-refresh.css"');
-  const landingImport = layout.indexOf('import "./landing-refresh.css"');
-  const authImport = layout.indexOf('import "./auth-refresh.css"');
-
-  assert.ok(productImport >= 0, "product refresh import is missing");
-  assert.ok(landingImport > productImport, "landing refresh must follow product styles");
-  assert.ok(authImport > landingImport, "auth refresh must load last");
+test("authentication refresh is loaded only by auth routes", () => {
+  assert.doesNotMatch(rootLayout, /auth-refresh\.css/);
+  assert.match(authLayout, /import "\.\.\/auth-refresh\.css"/);
 });
 
 test("login refresh preserves Google and password authentication controls", () => {

@@ -25,8 +25,6 @@ import {
   validateUploadFile,
   type ImportCandidateSource,
 } from "@/lib/inbox/parse-csv";
-import { parsePdfStatement } from "@/lib/inbox/parse-pdf";
-import { parseXlsxStatement } from "@/lib/inbox/parse-xlsx";
 import { trackProductEvent } from "@/lib/safe-analytics";
 
 type Phase = "idle" | "reading" | "error";
@@ -102,10 +100,12 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
 
         let result;
         if (kind === "xlsx") {
+          const { parseXlsxStatement } = await import("@/lib/inbox/parse-xlsx");
           result = parseXlsxStatement(await file.arrayBuffer(), {
             fileName: file.name,
           });
         } else if (kind === "pdf") {
+          const { parsePdfStatement } = await import("@/lib/inbox/parse-pdf");
           result = parsePdfStatement(await file.arrayBuffer(), {
             fileName: file.name,
           });

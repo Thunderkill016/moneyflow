@@ -3,14 +3,17 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const layout = readFileSync("src/app/layout.tsx", "utf8");
+const productStyles = readFileSync("src/app/product-styles.ts", "utf8");
+const appShell = readFileSync("src/components/layout/app-shell.tsx", "utf8");
+const userChip = readFileSync("src/components/user-chip.tsx", "utf8");
 const refresh = readFileSync("src/app/ui-refresh.css", "utf8");
 
-test("root layout loads the product UI refresh after global styles", () => {
-  const globalImport = layout.indexOf('import "./globals.css"');
-  const refreshImport = layout.indexOf('import "./ui-refresh.css"');
-
-  assert.ok(globalImport >= 0, "globals.css import is missing");
-  assert.ok(refreshImport > globalImport, "ui-refresh.css must load after globals.css");
+test("product UI refresh is route-scoped through the app shell", () => {
+  assert.match(layout, /import "\.\/globals\.css"/);
+  assert.doesNotMatch(layout, /ui-refresh\.css/);
+  assert.match(appShell, /from "@\/components\/user-chip"/);
+  assert.match(userChip, /import "@\/app\/product-styles"/);
+  assert.match(productStyles, /import "\.\/ui-refresh\.css"/);
 });
 
 test("UI refresh preserves the mobile-first finance interaction contract", () => {
