@@ -11,6 +11,26 @@ if (!url || !key || !email || !password) {
   throw new Error("Missing readiness Supabase client environment variables.");
 }
 
+function describeError(error) {
+  if (error instanceof Error) {
+    return {
+      name: error.name,
+      message: error.message,
+      status: error.status ?? null,
+      code: error.code ?? null,
+    };
+  }
+  if (error && typeof error === "object") {
+    return {
+      name: typeof error.name === "string" ? error.name : null,
+      message: typeof error.message === "string" ? error.message : JSON.stringify(error),
+      status: error.status ?? null,
+      code: error.code ?? null,
+    };
+  }
+  return { name: null, message: String(error), status: null, code: null };
+}
+
 const outputDir = "output/readiness-supabase-client";
 await mkdir(outputDir, { recursive: true });
 
@@ -137,7 +157,7 @@ try {
   }
   evidence.restoreVisible = true;
 } catch (error) {
-  evidence.error = error instanceof Error ? error.message : String(error);
+  evidence.error = describeError(error);
   throw error;
 } finally {
   await supabase.auth.signOut();
