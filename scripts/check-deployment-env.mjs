@@ -9,6 +9,7 @@ const required = {
   NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
 };
 
 const invalidNames = Object.entries(required)
@@ -22,6 +23,24 @@ const invalidNames = Object.entries(required)
     );
   })
   .map(([name]) => name);
+
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() ?? "";
+let siteUrlInvalid = false;
+try {
+  const parsed = new URL(siteUrl);
+  siteUrlInvalid =
+    parsed.protocol !== "https:" ||
+    parsed.hostname === "localhost" ||
+    parsed.hostname === "127.0.0.1" ||
+    parsed.pathname !== "/" ||
+    Boolean(parsed.search || parsed.hash);
+} catch {
+  siteUrlInvalid = true;
+}
+
+if (siteUrlInvalid && !invalidNames.includes("NEXT_PUBLIC_SITE_URL")) {
+  invalidNames.push("NEXT_PUBLIC_SITE_URL");
+}
 
 if (invalidNames.length > 0) {
   console.error(
