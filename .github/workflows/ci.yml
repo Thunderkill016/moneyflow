@@ -155,12 +155,28 @@ jobs:
       - name: Export Production environment for local build
         run: npx --yes vercel@latest env pull .env.local --environment=production --yes --token "$VERCEL_TOKEN"
       - name: Validate exported Production environment
+        id: production-env-validation
+        continue-on-error: true
         shell: bash
         run: |
-          set -a
-          . ./.env.local
-          set +a
-          VERCEL=1 VERCEL_ENV=production node scripts/check-deployment-env.mjs --force
+          set -o pipefail
+          {
+            set -a
+            . ./.env.local
+            set +a
+            VERCEL=1 VERCEL_ENV=production node scripts/check-deployment-env.mjs --force
+          } 2>&1 | tee production-env-validation.log
+      - name: Upload failing Production env validation
+        if: steps.production-env-validation.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: failing-production-env-validation
+          path: production-env-validation.log
+          if-no-files-found: error
+          retention-days: 1
+      - name: Fail after preserving Production env diagnostics
+        if: steps.production-env-validation.outcome == 'failure'
+        run: exit 1
       - name: Create temporary Vercel CI configuration
         shell: bash
         run: |
