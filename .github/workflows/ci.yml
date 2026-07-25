@@ -148,20 +148,37 @@ jobs:
       - name: Set explicit production app mode in Vercel
         shell: bash
         run: |
-          npx --yes vercel@latest env rm NEXT_PUBLIC_APP_MODE production \
-            --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
           printf '%s\n' authenticated | npx --yes vercel@latest env add \
             NEXT_PUBLIC_APP_MODE production --force --token "$VERCEL_TOKEN"
       - name: Pull production project settings
         run: npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
-      - name: Build production output with injected Production env
+      - name: Export Production environment for local build
+        run: npx --yes vercel@latest env pull .env.local --environment=production --yes --token "$VERCEL_TOKEN"
+      - name: Validate exported Production environment
+        shell: bash
+        run: |
+          set -a
+          . ./.env.local
+          set +a
+          VERCEL=1 VERCEL_ENV=production node scripts/check-deployment-env.mjs --force
+      - name: Create temporary Vercel CI configuration
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const config = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
+          config.buildCommand = 'set -a; . ./.env.local; set +a; npm run check:deployment-env && npm run build';
+          fs.writeFileSync('vercel.ci.json', `${JSON.stringify(config, null, 2)}\n`);
+          NODE
+      - name: Build production output with exported Production env
         id: vercel-build
         continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
-          npx --yes vercel@latest env run -e production --token "$VERCEL_TOKEN" -- \
-            npx --yes vercel@latest build --prod --token "$VERCEL_TOKEN" \
+          npx --yes vercel@latest build --prod \
+            --local-config vercel.ci.json \
+            --token "$VERCEL_TOKEN" \
             2>&1 | tee vercel-build-output.log
       - name: Upload failing Vercel build output
         if: steps.vercel-build.outcome == 'failure'
