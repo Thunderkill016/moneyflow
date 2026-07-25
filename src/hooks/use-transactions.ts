@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { startTransition, useEffect, useOptimistic, useState } from "react";
 import {
   createSplitExpenseAction,
   createTransactionAction,
@@ -27,6 +27,10 @@ import {
   restoreTransactionInList,
   writeStoredTransactions,
 } from "@/lib/transaction-store";
+import {
+  buildOptimisticTransaction,
+  reduceOptimisticTransactions,
+} from "@/lib/optimistic-transactions";
 
 type Options = {
   initialTransactions: Transaction[];
@@ -37,6 +41,10 @@ type Options = {
 
 export function useTransactions({ initialTransactions, accounts, categories, isDemo }: Options) {
   const [transactions, setTransactions] = useState(initialTransactions);
+  const [optimisticTransactions, addOptimisticTransaction] = useOptimistic(
+    transactions,
+    reduceOptimisticTransactions,
+  );
   const [isMutating, setIsMutating] = useState(false);
 
   useEffect(() => {
@@ -74,23 +82,33 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       return { ok: true, transaction };
     }
 
+    const optimistic = buildOptimisticTransaction(input, accounts, categories);
+    if (!optimistic.ok) return optimistic;
+
     setIsMutating(true);
-    try {
-      const result = await createTransactionAction(input);
-      if (result.ok && result.transaction) {
-        setTransactions((current) => [
-          result.transaction as Transaction,
-          ...current.filter((item) => item.id !== result.transaction?.id),
-        ]);
-      }
-      return result.ok
-        ? result
-        : { ok: false, message: result.message || "Không lưu được giao dịch. Thử lại." };
-    } catch {
-      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
-    } finally {
-      setIsMutating(false);
-    }
+    return await new Promise<TransactionActionResult>((resolve) => {
+      startTransition(async () => {
+        addOptimisticTransaction(optimistic.transaction);
+        try {
+          const result = await createTransactionAction(input);
+          if (result.ok && result.transaction) {
+            setTransactions((current) => [
+              result.transaction as Transaction,
+              ...current.filter((item) => item.id !== result.transaction?.id),
+            ]);
+          }
+          resolve(
+            result.ok
+              ? result
+              : { ok: false, message: result.message || "Không lưu được giao dịch. Thử lại." },
+          );
+        } catch {
+          resolve({ ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." });
+        } finally {
+          setIsMutating(false);
+        }
+      });
+    });
   }
 
   async function deleteTransaction(id: string): Promise<TransactionActionResult> {
@@ -319,7 +337,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
   }
 
   return {
-    transactions,
+    transactions: optimisticTransactions,
     addTransaction,
     addTransfer,
     addSplitExpense,
