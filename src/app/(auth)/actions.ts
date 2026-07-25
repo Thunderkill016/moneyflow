@@ -128,9 +128,10 @@ export async function signOut() {
   const supabase = await createClient();
   try {
     if (supabase) await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Stale or already-deleted sessions can reject server-side sign-out.
+    // Local cookie cleanup below is the source of truth for this browser.
   } finally {
-    // A stale/deleted session can make the Auth logout endpoint fail. The local
-    // browser session must still be removed so the user is never trapped.
     const cookieStore = await cookies();
     for (const cookie of cookieStore.getAll()) {
       if (cookie.name.startsWith("sb-") && cookie.name.includes("auth-token")) {
