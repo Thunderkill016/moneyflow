@@ -29,9 +29,18 @@ Bank sync · AI advisor · family · OCR · full YNAB envelope · AGPL code past
 1. **Think before code** — read existing files; state plan in 3–6 bullets for multi-file work  
 2. **Simplicity first** — smallest vertical slice; no drive-by refactors  
 3. **Surgical diffs** — only files needed for the IDEA item  
-4. **Goal-driven** — Done = check IDEA box + gates green + commit/push  
+4. **Goal-driven** — Done = task scope complete + gates green + reviewed PR merged
 
-## 3. Domain money
+## 3. Configuration-first engineering
+
+- Values that vary by deployment belong in environment variables or provider settings, never TypeScript constants, `vercel.json` values or committed `.env` files.
+- Do not guess production hostnames, project URLs, callback URLs, provider IDs or credentials.
+- Missing production configuration must fail validation/build; do not add a fallback to make CI green.
+- `NEXT_PUBLIC_SITE_URL` is the exact application origin. Retired domains belong in `LEGACY_SITE_HOSTS`.
+- Supabase Site URL and Redirect URLs must be updated together with the Vercel environment.
+- Before changing auth/deployment config, read `docs/configuration.md` and current official provider documentation.
+
+## 4. Domain money
 
 - Integer **VND đồng** only (no float money)  
 - Transfer = balanced legs; **never** expense totals  
@@ -39,9 +48,10 @@ Bank sync · AI advisor · family · OCR · full YNAB envelope · AGPL code past
 - Rules in `src/lib/*` + tests  
 - RLS on user-owned tables  
 
-## 4. Verify before done
+## 5. Verify before done
 
 ```bash
+npm run check:deployment-env
 npm run lint && npm run typecheck && npm run test
 # R9/Q1: npm run test:e2e
 # R10/Q2/Q3: npm run build  OR  bash scripts/mvp-verify.sh
@@ -49,7 +59,19 @@ npm run lint && npm run typecheck && npm run test
 
 Empty states: **one** primary CTA. Money a11y: `+` / `−` / `↔` not color-only.
 
-## 5. Skill routing (Grok)
+A change is not live until the exact production deployment is successful and the affected route/flow is verified.
+
+## 6. Delivery workflow
+
+- Work on a focused branch.
+- Open a draft PR before running the final CI cycle.
+- Mark ready once after the diff is complete.
+- Require lint, typecheck, tests, production build and database gates.
+- Squash merge only after gates pass.
+- Never push feature/fix commits directly to `main`.
+- Never create no-op commits to retrigger Vercel.
+
+## 7. Skill routing (Grok)
 
 | When | Skill |
 |------|--------|
@@ -64,13 +86,14 @@ Empty states: **one** primary CTA. Money a11y: `+` / `−` / `↔` not color-onl
 
 **Do not** use AtoEnglish skills.
 
-## 6. Autopilot
+## 8. Autopilot
 
 - Service: `moneyflow-autopilot` → `scripts/agent-daemon.sh`  
 - One IDEA item / cycle · dirty tree (except `logs/`) → skip  
 - No invent backlog while R*/Q* open  
+- Output through branch + draft PR; do not push directly to `main`  
 - When all R*+Q* done → `docs/MVP_SHIPPED.md`
 
-## 7. Next.js
+## 9. Next.js
 
 Before novel App Router APIs: check `node_modules/next/dist/docs/`.
