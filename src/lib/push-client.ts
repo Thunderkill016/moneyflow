@@ -17,6 +17,42 @@ import {
 } from "./push-prefs.ts";
 
 export const PUSH_SERVICE_WORKER_URL = "/sw.js";
+export const DEFAULT_NOTIFICATION_PATH = "/commitments";
+
+const UNSAFE_URL_CHARACTERS = /[\\\u0000-\u001f\u007f]/;
+
+/**
+ * Notification destinations are untrusted input even when current callers use
+ * a fixed path. WHATWG URL parsing treats backslashes like path separators, so
+ * validate both the raw/decoded value and the resolved origin.
+ */
+export function safeNotificationPath(
+  value: unknown,
+  origin = "https://moneyflow.invalid",
+): string {
+  if (typeof value !== "string" || value.length === 0) {
+    return DEFAULT_NOTIFICATION_PATH;
+  }
+
+  try {
+    const decoded = decodeURIComponent(value);
+    if (
+      !decoded.startsWith("/") ||
+      decoded.startsWith("//") ||
+      UNSAFE_URL_CHARACTERS.test(decoded)
+    ) {
+      return DEFAULT_NOTIFICATION_PATH;
+    }
+
+    const base = new URL(origin);
+    const target = new URL(value, base);
+    if (target.origin !== base.origin) return DEFAULT_NOTIFICATION_PATH;
+
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return DEFAULT_NOTIFICATION_PATH;
+  }
+}
 
 export type NotifyResult =
   | "shown"
@@ -87,6 +123,7 @@ export async function showDueNotification(
   if (Notification.permission !== "granted") return "denied";
 
   try {
+    const safeUrl = safeNotificationPath(payload.url, window.location.origin);
     const reg =
       (await navigator.serviceWorker.getRegistration()) ??
       (await registerPushServiceWorker());
@@ -96,7 +133,7 @@ export async function showDueNotification(
         tag: payload.tag,
         icon: "/icon-192.png",
         badge: "/icon-192.png",
-        data: { url: payload.url },
+        data: { url: safeUrl },
         // Keep silent of sensitive extras — no requireInteraction for calm UX
       });
       return "shown";
@@ -107,12 +144,12 @@ export async function showDueNotification(
       body: payload.body,
       tag: payload.tag,
       icon: "/icon-192.png",
-      data: { url: payload.url },
+      data: { url: safeUrl },
     });
     n.onclick = () => {
       try {
         window.focus();
-        window.location.assign(payload.url);
+        window.location.assign(safeUrl);
       } catch {
         /* ignore */
       }
