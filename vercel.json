@@ -1,5 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "npm run lint && npm run typecheck && npm run test && npm run build"
+  "buildCommand": "node scripts/check-deployment-env.mjs && npm run lint && npm run typecheck && npm run test && npm run build",
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://fwpldsdkpzhswpuctbke.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_JsTNKJSp1AFD747bBmyTDg_pEPj_HVZ"
+  },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_SUPABASE_URL": "https://fwpldsdkpzhswpuctbke.supabase.co",
+      "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_JsTNKJSp1AFD747bBmyTDg_pEPj_HVZ"
+    }
+  }
 }
