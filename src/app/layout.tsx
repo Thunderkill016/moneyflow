@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import "./ui-refresh.css";
-import "./landing-refresh.css";
-import "./auth-refresh.css";
 
 /**
  * UI text — LCP critical.
