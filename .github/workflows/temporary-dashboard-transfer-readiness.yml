@@ -42,6 +42,10 @@ jobs:
               "const ghiChiButton = page.locator('button:visible').filter({ hasText: \"Ghi chi tiêu\" }).first();",
               "const ghiChiButton = page.locator('button.mobile-fab[aria-label=\"Ghi chi tiêu\"]');",
           )
+          text = text.replace(
+              "const netLabel = await page.getByLabel(/^Ròng /).getAttribute(\"aria-label\");",
+              "const netLabel = await page.getByRole(\"region\", { name: \"Tóm tắt tháng này\" }).getByLabel(/^Ròng /).getAttribute(\"aria-label\");",
+          )
           path.write_text(text)
           PY
           node scripts/temporary-dashboard-transfer-readiness.mjs
