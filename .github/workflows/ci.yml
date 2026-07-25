@@ -220,12 +220,29 @@ jobs:
         if: steps.vercel-build.outcome == 'failure'
         run: exit 1
       - name: Deploy prebuilt output to production
+        id: vercel-deploy
+        continue-on-error: true
         shell: bash
         run: |
-          deployment_url=$(npx --yes vercel@latest deploy \
+          set -o pipefail
+          npx --yes vercel@latest deploy \
             --prebuilt \
             --prod \
-            --archive=tgz \
+            --archive=split-tgz \
             --yes \
-            --token "$VERCEL_TOKEN")
-          echo "Production deployment: $deployment_url"
+            --token "$VERCEL_TOKEN" \
+            2>&1 | tee vercel-deploy-output.log
+      - name: Upload failing Vercel deploy output
+        if: steps.vercel-deploy.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: failing-vercel-deploy-output
+          path: vercel-deploy-output.log
+          if-no-files-found: error
+          retention-days: 1
+      - name: Fail after preserving deploy diagnostics
+        if: steps.vercel-deploy.outcome == 'failure'
+        run: exit 1
+      - name: Production deployment summary
+        if: steps.vercel-deploy.outcome == 'success'
+        run: tail -n 20 vercel-deploy-output.log
