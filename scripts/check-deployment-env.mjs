@@ -1,5 +1,6 @@
 const force = process.argv.includes("--force");
 const isVercelBuild = process.env.VERCEL === "1" || Boolean(process.env.VERCEL_ENV);
+const requiresHttps = isVercelBuild || process.env.NODE_ENV === "production";
 
 if (!isVercelBuild && !force) {
   console.log("Deployment env guard skipped outside Vercel. Use --force to validate explicitly.");
@@ -27,6 +28,7 @@ function parseOrigin(value) {
   if (!value?.trim()) return null;
   try {
     const url = new URL(value.trim());
+    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
     if (url.username || url.password) return null;
     if (url.pathname !== "/" || url.search || url.hash) return null;
     return url;
@@ -52,18 +54,22 @@ for (const [name, value] of Object.entries(required)) {
 }
 
 const supabaseUrl = parseOrigin(process.env.NEXT_PUBLIC_SUPABASE_URL);
-if (supabaseUrl && supabaseUrl.protocol !== "https:") {
+if (!supabaseUrl && !isMissingOrTemplate(process.env.NEXT_PUBLIC_SUPABASE_URL)) {
+  errors.push("NEXT_PUBLIC_SUPABASE_URL must be an absolute HTTP(S) origin");
+} else if (supabaseUrl && supabaseUrl.protocol !== "https:") {
   errors.push("NEXT_PUBLIC_SUPABASE_URL must use HTTPS");
 }
 
 const siteUrl = parseOrigin(process.env.NEXT_PUBLIC_SITE_URL);
-if (siteUrl && siteUrl.protocol !== "https:") {
-  errors.push("NEXT_PUBLIC_SITE_URL must use HTTPS for a deployment build");
+if (!siteUrl && !isMissingOrTemplate(process.env.NEXT_PUBLIC_SITE_URL)) {
+  errors.push("NEXT_PUBLIC_SITE_URL must be an absolute origin without a path, query string or hash");
+} else if (siteUrl && requiresHttps && siteUrl.protocol !== "https:") {
+  errors.push("NEXT_PUBLIC_SITE_URL must use HTTPS for hosted or production builds");
 }
 
 const legacyHosts = parseLegacyHosts(process.env.LEGACY_SITE_HOSTS);
 for (const host of legacyHosts) {
-  if (host.includes("://") || host.includes("/") || host.includes("@")) {
+  if (host.includes("://") || host.includes("/") || host.includes("@") || host.includes(":")) {
     errors.push(`LEGACY_SITE_HOSTS contains an invalid hostname: ${host}`);
   }
 }
