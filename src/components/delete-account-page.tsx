@@ -90,11 +90,10 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
       }
 
       const { failedKeys } = clearLocalMoneyFlowStores();
-      const destination =
-        failedKeys.length > 0
-          ? "/login?deleted=1&localCleanup=partial"
-          : "/login?deleted=1";
-      router.replace(destination);
+      const params = new URLSearchParams({ deleted: "1" });
+      if (failedKeys.length > 0) params.set("localCleanup", "partial");
+      if (!result.cleanupVerified) params.set("serverCleanup", "unverified");
+      router.replace(`/login?${params.toString()}`);
       router.refresh();
     } catch {
       setError(

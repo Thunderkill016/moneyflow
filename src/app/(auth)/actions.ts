@@ -130,8 +130,14 @@ export async function signOut() {
 }
 
 export type AccountDeletionResult =
-  | { ok: true }
+  | { ok: true; cleanupVerified: boolean }
   | { ok: false; message: string };
+
+type DeleteAccountFunctionResponse = {
+  ok?: unknown;
+  cleanupVerified?: unknown;
+  tenantRowsRemaining?: unknown;
+};
 
 /** Permanently delete only the currently authenticated user and their tenant rows. */
 export async function finalizeAccountDeletion(
@@ -157,10 +163,11 @@ export async function finalizeAccountDeletion(
     };
   }
 
-  const { error: deleteError } = await supabase.functions.invoke("delete-account", {
-    body: { confirm: DELETE_CONFIRM_TEXT },
-  });
-  if (deleteError) {
+  const { data, error: deleteError } = await supabase.functions.invoke<DeleteAccountFunctionResponse>(
+    "delete-account",
+    { body: { confirm: DELETE_CONFIRM_TEXT } },
+  );
+  if (deleteError || !data || data.ok !== true) {
     return {
       ok: false,
       message:
@@ -168,7 +175,10 @@ export async function finalizeAccountDeletion(
     };
   }
 
+  const cleanupVerified =
+    data.cleanupVerified === true && data.tenantRowsRemaining === 0;
+
   // Best effort: remove the local SSR session cookie after the Auth user is gone.
   await supabase.auth.signOut({ scope: "local" });
-  return { ok: true };
+  return { ok: true, cleanupVerified };
 }
