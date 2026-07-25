@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { POST_AUTH_REDIRECT, safeNextPath } from "@/lib/auth-redirect";
+import { DELETE_CONFIRM_TEXT, isDeleteConfirmValid } from "@/lib/delete-account";
 import { ONBOARDING_PATH } from "@/lib/onboarding";
 import { createClient } from "@/lib/supabase/server";
 
@@ -128,19 +129,46 @@ export async function signOut() {
   redirect("/login");
 }
 
-/**
- * Finalize account deletion after client local wipe (wireframes §20).
- *
- * Hard-delete of Supabase Auth user + server rows requires `service_role`
- * (or admin Edge Function) — not available from the Next.js app with only
- * the publishable key. We end the session and redirect; UI documents the
- * server purge limitation.
- */
-export async function finalizeAccountDeletion() {
-  const supabase = await createClient();
-  if (supabase) {
-    // No admin.deleteUser with publishable key — sign out only.
-    await supabase.auth.signOut();
+export type AccountDeletionResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
+/** Permanently delete only the currently authenticated user and their tenant rows. */
+export async function finalizeAccountDeletion(
+  confirmText: string,
+): Promise<AccountDeletionResult> {
+  if (!isDeleteConfirmValid(confirmText)) {
+    return { ok: false, message: `Gõ chính xác ${DELETE_CONFIRM_TEXT} để xác nhận.` };
   }
-  redirect("/login?deleted=1");
+
+  const supabase = await createClient();
+  if (!supabase) {
+    return { ok: false, message: configurationError().message ?? "Supabase chưa được cấu hình." };
+  }
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+  if (userError || !user) {
+    return {
+      ok: false,
+      message: "Phiên đăng nhập đã hết hạn. Đăng nhập lại trước khi xóa tài khoản.",
+    };
+  }
+
+  const { error: deleteError } = await supabase.functions.invoke("delete-account", {
+    body: { confirm: DELETE_CONFIRM_TEXT },
+  });
+  if (deleteError) {
+    return {
+      ok: false,
+      message:
+        "Không xóa được tài khoản trên máy chủ. Dữ liệu trên thiết bị chưa bị xóa; hãy thử lại.",
+    };
+  }
+
+  // Best effort: remove the local SSR session cookie after the Auth user is gone.
+  await supabase.auth.signOut({ scope: "local" });
+  return { ok: true };
 }

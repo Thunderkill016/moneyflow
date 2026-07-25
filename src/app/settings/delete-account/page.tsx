@@ -5,7 +5,7 @@ import { requireViewer } from "@/server/auth";
 export const metadata: Metadata = {
   title: "Xóa tài khoản — Money Flow",
   description:
-    "Xóa dữ liệu Money Flow trên thiết bị. Gõ XÓA để xác nhận. Thao tác không hoàn tác.",
+    "Xóa vĩnh viễn tài khoản Money Flow, dữ liệu Supabase và dữ liệu trên thiết bị. Gõ XÓA để xác nhận.",
 };
 
 export default async function Page() {

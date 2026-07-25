@@ -11,7 +11,7 @@ import {
   clearLocalMoneyFlowStores,
   DELETE_CONFIRM_TEXT,
   isDeleteConfirmValid,
-  SERVER_DELETE_LIMITATION_VI,
+  SERVER_DELETE_READY_VI,
 } from "@/lib/delete-account";
 import {
   countPending,
@@ -20,7 +20,7 @@ import {
 
 /**
  * Delete account (wireframes-inbox §20).
- * Type XÓA → clear local stores → signOut (server hard-delete limited).
+ * Type XÓA → delete authenticated server account → clear local stores.
  */
 export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
   const formId = useId();
@@ -63,18 +63,16 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
     setDeleting(true);
     setError(null);
     try {
-      const { failedKeys } = clearLocalMoneyFlowStores();
-      if (failedKeys.length > 0) {
-        setError(
-          "Không xóa hết dữ liệu cục bộ. Kiểm tra quyền trình duyệt rồi thử lại.",
-        );
-        setDeleting(false);
-        return;
-      }
-
       if (viewer.isDemo) {
+        const { failedKeys } = clearLocalMoneyFlowStores();
+        if (failedKeys.length > 0) {
+          setError(
+            "Không xóa hết dữ liệu cục bộ. Kiểm tra quyền trình duyệt rồi thử lại.",
+          );
+          setDeleting(false);
+          return;
+        }
         setNotice("Đã xóa dữ liệu trên thiết bị này (chế độ demo).");
-        // Demo has no Auth session — land on public home after wipe.
         window.setTimeout(() => {
           router.replace("/?deleted=1");
           router.refresh();
@@ -82,11 +80,25 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
         return;
       }
 
-      // Real session: sign out; server hard-delete not self-serve (documented).
-      await finalizeAccountDeletion();
+      // Delete server data first so a transient backend failure never destroys the
+      // user's only local copy while leaving the real account untouched.
+      const result = await finalizeAccountDeletion(confirmText);
+      if (!result.ok) {
+        setError(result.message);
+        setDeleting(false);
+        return;
+      }
+
+      const { failedKeys } = clearLocalMoneyFlowStores();
+      const destination =
+        failedKeys.length > 0
+          ? "/login?deleted=1&localCleanup=partial"
+          : "/login?deleted=1";
+      router.replace(destination);
+      router.refresh();
     } catch {
       setError(
-        "Đã xóa dữ liệu cục bộ nhưng không hoàn tất đăng xuất. Thử đăng xuất thủ công.",
+        "Không hoàn tất xóa tài khoản. Dữ liệu cục bộ chưa bị xóa; hãy thử lại.",
       );
       setDeleting(false);
     }
@@ -113,8 +125,8 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
             <p className="eyebrow">Cài đặt · Vùng nguy hiểm</p>
             <h1>Xóa tài khoản</h1>
             <p>
-              Bạn có thể xóa dữ liệu khi muốn. Thao tác{" "}
-              <strong>không hoàn tác</strong> sau khi hoàn tất trên thiết bị này.
+              Bạn có thể xóa tài khoản và toàn bộ sổ khi muốn. Thao tác{" "}
+              <strong>không hoàn tác</strong> sau khi hoàn tất.
               Nên <Link href="/settings/export">xuất dữ liệu (CSV)</Link> trước
               nếu bạn còn cần bản sao.
             </p>
@@ -125,7 +137,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
               </li>
               <li>
                 <Icon name="lock" size={14} />
-                <span>Hạn chế máy chủ ghi rõ</span>
+                <span>Xóa cả máy chủ</span>
               </li>
             </ul>
           </div>
@@ -180,15 +192,21 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
               className="panel delete-account-danger-panel"
               aria-labelledby={`${formId}-will-heading`}
             >
-              <h2 id={`${formId}-will-heading`}>Sẽ xóa trên thiết bị này</h2>
+              <h2 id={`${formId}-will-heading`}>Sẽ xóa vĩnh viễn</h2>
               <ul className="delete-account-list">
                 <li>Tùy chọn local (quyền riêng tư, nhập nhanh, onboarding)</li>
                 <li>Sổ giao dịch demo trên trình duyệt (nếu có)</li>
                 <li>Ứng viên / import / rules local (Nâng cao, nếu có)</li>
                 <li>File raw và bản nháp map cột (nếu có)</li>
+                {!viewer.isDemo && (
+                  <>
+                    <li>Tài khoản đăng nhập Supabase</li>
+                    <li>Ví, danh mục, giao dịch, ngân sách, mục tiêu và mẫu định kỳ trên máy chủ</li>
+                  </>
+                )}
               </ul>
               <p className="delete-account-irreversible">
-                Không hoàn tác sau khi hoàn tất trên thiết bị này.
+                Không hoàn tác sau khi tài khoản máy chủ đã bị xóa.
               </p>
             </section>
 
@@ -200,7 +218,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
               <p className="privacy-panel-lead delete-account-server-note">
                 {viewer.isDemo
                   ? "Bạn đang ở chế độ demo — không có phiên Auth thật. Chỉ xóa dữ liệu localStorage trên trình duyệt này."
-                  : SERVER_DELETE_LIMITATION_VI}
+                  : SERVER_DELETE_READY_VI}
               </p>
             </section>
 

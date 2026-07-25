@@ -5,7 +5,7 @@ import {
   DELETE_CONFIRM_TEXT,
   isDeleteConfirmValid,
   LOCAL_DATA_STORAGE_KEYS,
-  SERVER_DELETE_LIMITATION_VI,
+  SERVER_DELETE_READY_VI,
   THEME_STORAGE_KEY,
 } from "./delete-account.ts";
 
@@ -66,13 +66,11 @@ test("clearLocalMoneyFlowStores no-ops with null storage", () => {
   assert.deepEqual(result, { clearedKeys: [], failedKeys: [] });
 });
 
-test("server delete limitation copy is non-empty Vietnamese note", () => {
-  assert.ok(SERVER_DELETE_LIMITATION_VI.includes("support@moneyflow.app"));
-  assert.ok(
-    SERVER_DELETE_LIMITATION_VI.includes("chưa tự phục vụ") ||
-      SERVER_DELETE_LIMITATION_VI.includes("chưa có trong app"),
-  );
-  assert.ok(SERVER_DELETE_LIMITATION_VI.length > 40);
+test("server delete copy promises authenticated server cleanup", () => {
+  assert.ok(SERVER_DELETE_READY_VI.includes("Supabase"));
+  assert.ok(SERVER_DELETE_READY_VI.includes("xóa vĩnh viễn"));
+  assert.doesNotMatch(SERVER_DELETE_READY_VI, /support@|chưa tự phục vụ/);
+  assert.ok(SERVER_DELETE_READY_VI.length > 40);
 });
 
 test("LOCAL_DATA_STORAGE_KEYS lists expected product stores", () => {
