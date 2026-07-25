@@ -4,8 +4,8 @@ import {
   buildOptimisticTransaction,
   OPTIMISTIC_TRANSACTION_ID_PREFIX,
   reduceOptimisticTransactions,
-} from "@/lib/optimistic-transactions";
-import type { Transaction } from "@/lib/sample-data";
+} from "./optimistic-transactions.ts";
+import type { Transaction } from "./sample-data.ts";
 
 const accounts = [{ id: "account-1", name: "Tiền mặt", currencyCode: "VND" }];
 const categories = [
