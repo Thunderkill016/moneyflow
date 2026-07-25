@@ -7,7 +7,7 @@ const url = vercel.env?.NEXT_PUBLIC_SUPABASE_URL;
 const key = vercel.env?.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 if (!url || !key) throw new Error("Missing public Supabase configuration in vercel.json.");
 
-const email = `moneyflow-delete-smoke-${randomUUID()}@example.invalid`;
+const email = `moneyflow-delete-smoke-${randomUUID()}@example.com`;
 const password = `Mf!${randomUUID()}Aa1`;
 const client = createClient(url, key, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
