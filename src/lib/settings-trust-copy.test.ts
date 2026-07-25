@@ -1,7 +1,7 @@
 /**
  * R8 — Settings privacy / export / delete trust copy pass (G5).
  * JTBD: “Data của tao, mang đi / xóa được không?”
- * Core: ownership, no bank password, export anytime, honest delete limits.
+ * Core: ownership, no bank password, export anytime, permanent self-service deletion.
  * Lab (inbox/parser) must not brand these trust surfaces.
  */
 import assert from "node:assert/strict";
@@ -114,24 +114,18 @@ test("export kind options lead with sổ thu chi core", () => {
   );
 });
 
-test("delete account recommends export and honest server limit", () => {
+test("delete account recommends export and promises permanent server cleanup", () => {
   const s = read(DELETE);
   assert.match(s, /["']\/settings\/export["']/);
   assert.match(s, /Không hoàn tác|không hoàn tác/i);
+  assert.match(s, /finalizeAccountDeletion\(confirmText\)/);
   assertNoInboxBrand(s, "delete account");
 
   const lib = read(DELETE_LIB);
-  assert.ok(lib.includes("SERVER_DELETE_LIMITATION_VI"));
-  assert.match(lib, /support@moneyflow\.app/);
-  assert.ok(
-    lib.includes("chưa tự phục vụ") || lib.includes("chưa có trong app"),
-    "server wipe limitation must be honest for users",
-  );
-  // Product copy stays calm VN — avoid dumping raw admin jargon as the only sentence
-  assert.ok(
-    !lib.includes("service_role") || lib.includes("support@moneyflow.app"),
-    "if technical terms remain, user contact path must stay",
-  );
+  assert.ok(lib.includes("SERVER_DELETE_READY_VI"));
+  assert.match(lib, /Supabase/);
+  assert.match(lib, /xóa vĩnh viễn/i);
+  assert.doesNotMatch(lib, /support@moneyflow\.app|chưa tự phục vụ/);
 });
 
 test("settings trust bar CSS exists", () => {
