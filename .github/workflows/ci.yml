@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests and static RLS
+        id: tests
+        continue-on-error: true
+        shell: bash
+        run: npm run test > test-output.log 2>&1
+      - name: Upload failing test output
+        if: steps.tests.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: failing-test-output
+          path: test-output.log
+          if-no-files-found: error
+          retention-days: 1
+      - name: Fail after preserving diagnostics
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
+      - name: Test summary
+        if: steps.tests.outcome == 'success'
+        run: tail -n 40 test-output.log
+      - name: Production build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: placeholder
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: placeholder
+        run: npm run build
