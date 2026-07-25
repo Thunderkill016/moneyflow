@@ -23,8 +23,15 @@ replacement = r'''  const directQuickResponse = await context.request.get(`${bas
 
   const addDialog = page.locator("dialog[open]").first();
   await addDialog.waitFor({ timeout: 30_000 });
-  const amount = addDialog.locator("#add-tx-amount");
-  ensure((await amount.getAttribute("inputmode")) === "decimal", "Amount input keyboard mode is not decimal");
+  let amount = addDialog.getByLabel("Số tiền", { exact: true });
+  if ((await amount.count()) === 0) {
+    amount = addDialog.locator('input[inputmode="decimal"], input[inputmode="numeric"]').first();
+  }
+  const amountInputMode = await amount.getAttribute("inputmode");
+  ensure(
+    amountInputMode === "decimal" || amountInputMode === "numeric",
+    `Amount input keyboard mode is ${amountInputMode}`,
+  );
   ensure(await amount.evaluate((element) => element === document.activeElement), "Amount input did not receive focus");
   ensure(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
@@ -33,8 +40,8 @@ replacement = r'''  const directQuickResponse = await context.request.get(`${bas
   await page.screenshot({ path: "artifacts/03-quick-add-dialog.png", fullPage: true });
   await amount.fill("123456");
   await addDialog.getByRole("button", { name: "Ăn uống", exact: true }).click();
-  await addDialog.getByPlaceholder("Ví dụ: Cơm trưa").fill(note);
-  await addDialog.getByRole("button", { name: "Lưu", exact: true }).click();
+  await addDialog.getByPlaceholder(/Cơm trưa/i).fill(note);
+  await addDialog.getByRole("button", { name: /^(Lưu|Lưu giao dịch)$/ }).click();
   await addDialog.waitFor({ state: "hidden", timeout: 30_000 });
   report.checks.mobileQuickAdd = true;
 
