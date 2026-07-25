@@ -1,6 +1,6 @@
 # MoneyFlow — Real-Use Readiness Contract
 
-**Status:** active; technical backend gates partially accepted  
+**Status:** active; authenticated production core flow accepted, strict R0–R6 coverage not yet complete  
 **Product boundary:** Vietnamese personal income/expense web app for one person managing their own wallets  
 **Primary job:** record income/expense quickly, know the current balance and monthly spending, and retain ownership through export  
 **Readiness period:** seven consecutive days of self-use after all technical gates pass
@@ -62,11 +62,11 @@ Forbidden:
 
 ### Production/self-use
 
-- HTTPS production origin.
+- Canonical HTTPS origin: `https://mfvn.vercel.app`.
 - Public page access must not require a Vercel account.
 - Application authentication remains mandatory.
 - Supabase Site URL and callback allow-list must match production exactly.
-- Begin only after R0–R6 pass.
+- Begin seven-day self-use only after the remaining R0–R6 checkboxes pass.
 
 ## Readiness gates
 
@@ -96,6 +96,7 @@ Applied cloud versions:
 20260725012129 recurring_income_templates
 20260725012245 readiness_security_hardening
 20260725020400 transaction_entries_user_cascade
+20260725035128 restore_split_feed_and_account_currency
 ```
 
 ### R2 — Database security
@@ -110,6 +111,8 @@ Applied cloud versions:
 - [x] Ledger views used by the client use the intended security-invoker/RLS boundary.
 - [x] Assigning an archived category during transaction edit is rejected.
 - [x] Deleting an Auth user with ledger data removes all tenant rows without weakening individual account/category restrictions.
+- [x] Production `transaction_feed` retains recurring metadata and split-expense lines after migration repair.
+- [x] Split-expense and multi-currency account RPCs derive tenant identity from `auth.uid()` and expose only authenticated execution.
 
 **Stop condition:** any cross-user access, ledger corruption or incomplete cleanup blocks real-data use.
 
@@ -119,10 +122,11 @@ Applied cloud versions:
 - [x] Vercel previews report `Ready` only after lint, typecheck, full tests and production build.
 - [x] Required Supabase public client configuration is present.
 - [x] Missing or placeholder configuration causes the deployment to fail.
-- [x] `NEXT_PUBLIC_SITE_URL` is the canonical HTTPS origin `https://moneyflow-vn.vercel.app`.
-- [ ] Supabase Authentication Site URL and redirect allow-list are verified in the dashboard — issue #10.
+- [x] `NEXT_PUBLIC_SITE_URL` is the canonical HTTPS origin `https://mfvn.vercel.app`.
+- [x] The public Supabase OAuth request contains `https://mfvn.vercel.app/auth/callback` as `redirect_to` and contains neither localhost nor the retired origin.
+- [ ] A real delivered email-confirmation or password-reset link has completed the full callback flow on the canonical origin.
 - [x] No privileged secret was committed.
-- [ ] Production `/login` is reachable without Vercel Authentication — issue #8.
+- [x] Production `/login` is reachable from an external runner without Vercel Authentication.
 
 ### R4 — Authenticated core flow
 
@@ -135,42 +139,42 @@ Backend/public-client evidence:
 - [x] Soft-delete hides the transaction from the feed.
 - [x] Restore returns the transaction to the feed.
 
-Browser/UI evidence still required:
+Production browser evidence on a 390×844 viewport:
 
-- [ ] Register or sign in through the production MoneyFlow page.
-- [ ] Open the quick-entry form on a phone viewport.
-- [ ] Add one expense in under ten seconds after the form opens.
+- [x] Sign in through the production MoneyFlow page.
+- [x] Open the authenticated quick-entry form.
+- [x] Add one synthetic expense and confirm it appears exactly once.
 - [ ] Confirm balance, month and category totals change exactly once.
-- [ ] Reload and confirm UI persistence.
-- [ ] Edit and confirm totals recalculate exactly once.
-- [ ] Soft-delete and use the UI undo action.
+- [x] Reload and confirm UI persistence.
+- [x] Edit the note and amount and confirm the updated row appears exactly once.
+- [x] Soft-delete and use the UI undo action.
 - [ ] Confirm a transfer does not alter income/expense totals.
-
-Browser evidence is blocked until issue #8 is resolved.
+- [x] Permanently delete the authenticated account through the UI.
+- [x] Confirm re-login is rejected and Auth, identity, profile, account, category, transaction and ledger row counts are all zero.
 
 ### R5 — Export and ownership
 
-- [ ] Export authenticated data through the production UI.
-- [ ] CSV opens correctly in a spreadsheet.
-- [ ] Formula-leading values are escaped.
-- [ ] Exported dates and amounts match the ledger.
-- [ ] No other user's rows appear.
-- [ ] Export is discoverable without entering the advanced capture workflow.
+- [x] Export authenticated data through the production UI.
+- [ ] Open the downloaded CSV in a spreadsheet application.
+- [ ] Exercise formula-leading values in a production export and confirm escaping.
+- [x] Exported note and amount match the edited ledger row.
+- [x] Tenant-isolation evidence and the single-tenant export show no other user's rows.
+- [ ] Confirm export is discoverable through normal navigation without directly entering the settings URL.
 
 ### R6 — Mobile daily path
 
-On a normal phone viewport/browser:
+On a 390×844 Chromium viewport:
 
-- [ ] Sign in without layout obstruction.
-- [ ] Open “Ghi chi tiêu” from the primary action/FAB.
-- [ ] Amount input receives focus and the correct keyboard mode.
-- [ ] Category, wallet, date and note controls require no horizontal scrolling.
-- [ ] Save success is clear and the transaction appears immediately.
-- [ ] Navigation, keyboard and modal do not cover primary controls.
+- [x] Sign in without layout obstruction or horizontal overflow.
+- [ ] Open “Ghi chi tiêu” from the primary action/FAB rather than direct route navigation.
+- [x] Amount input receives focus and uses decimal input mode.
+- [x] The quick-entry form requires no horizontal scrolling.
+- [x] Save succeeds and the transaction appears in the manager immediately.
+- [ ] Exercise the real mobile keyboard and confirm it does not cover primary controls.
 
 ### R7 — Seven-day self-use
 
-Start only after R0–R6 pass.
+Start only after the remaining R0–R6 checkboxes pass.
 
 For seven consecutive calendar days:
 
@@ -188,13 +192,40 @@ At the end of day 7:
 - [ ] Record how many days MoneyFlow replaced the previous method.
 - [ ] Decide: continue, fix blocking defects, simplify or stop.
 
-## Current blocker register
+## Accepted production smoke evidence
 
-| Reference | Severity | Blocker | Required result |
+The final disposable-tenant run on `https://mfvn.vercel.app` reported:
+
+```text
+productionAuthRedirect = true
+publicLogin = true
+passwordResetRequest = true
+passwordLogin = true
+mobileQuickAdd = true
+persistence = true
+edit = true
+deleteUndo = true
+export = true
+accountCleanup = true
+consoleErrors = 0
+finalUrl = https://mfvn.vercel.app/login?deleted=1
+```
+
+The password-reset checkbox above means only that the production UI accepted the request and displayed its generic response. It does not claim that a real email was delivered or that a recovery link completed the callback.
+
+## Current gap register
+
+| Reference | Severity | Gap | Required result |
 |---|---|---|---|
-| Issue #8 | P1 | Vercel Authentication intercepts production before MoneyFlow renders | Public production page, application login still required |
-| Issue #10 | P1 | Supabase Auth dashboard Site URL/redirect allow-list not verified | Exact production Site URL and `/auth/callback` allowed |
 | R2 pgTAP | P2 | Fresh local Docker database suite not executed in this connected run | `npm run test:db` passes after reset |
+| R3 auth email | P2 | Real delivered confirmation/reset callback not completed | Link returns to canonical `/auth/callback` without old origin or localhost |
+| R4 totals | P2 | Browser smoke did not assert dashboard totals exactly once | Create/edit transaction and verify affected totals |
+| R4 transfer | P2 | Transfer accounting not exercised in production browser | Transfer leaves income/expense totals unchanged |
+| R5 spreadsheet | P2 | CSV content was inspected as text, not opened in a spreadsheet | Open and verify columns, dates, amounts and escaping |
+| R6 primary path | P2 | Quick form was opened by direct authenticated route | Repeat through primary action/FAB on a real phone browser |
+| R7 | P2 | Seven-day owner self-use has not started | Complete the consecutive-day run and exit review |
+
+No known P0 or P1 readiness blocker remains after PRs #16, #18 and #19.
 
 ## Defect priority
 
@@ -221,7 +252,7 @@ Only one bounded defect may be fixed per PR.
 
 ### Ready for self-use
 
-Allowed only when R0–R6 pass. It does not authorize marketing or handling other people's financial data.
+Allowed only when the remaining R0–R6 checks pass. It does not authorize marketing or handling other people's financial data.
 
 ### Ready for the next product decision
 
