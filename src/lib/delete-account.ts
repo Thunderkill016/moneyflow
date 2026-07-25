@@ -1,10 +1,7 @@
 /**
  * Delete account helpers (wireframes-inbox §20).
- * Typed confirm "XÓA", clear local Money Flow stores, then sign-out.
- *
- * Server limitation: hard-delete of Supabase Auth user / RLS rows requires
- * service_role (or an admin Edge Function). The app only signs the session out
- * after local wipe; document this in UI.
+ * Typed confirm "XÓA", delete the authenticated Supabase account through a
+ * JWT-protected Edge Function, then clear local MoneyFlow stores.
  */
 
 import { CANDIDATE_STORAGE_KEY } from "./inbox/candidate-store.ts";
@@ -100,9 +97,6 @@ export function clearLocalMoneyFlowStores(
   return { clearedKeys, failedKeys };
 }
 
-/**
- * Documented product note for UI / support (server hard-delete not self-serve).
- * Calm VN copy — honest about limits; contact path for full server wipe.
- */
-export const SERVER_DELETE_LIMITATION_VI =
-  "Sau khi xóa, phiên đăng nhập sẽ kết thúc. Xóa hẳn tài khoản Auth và sổ trên máy chủ chưa tự phục vụ trong app — liên hệ support@moneyflow.app nếu bạn cần xóa hồ sơ server. Hạn chế này được ghi rõ, không che giấu.";
+/** Calm Vietnamese copy for the authenticated server-delete consequence. */
+export const SERVER_DELETE_READY_VI =
+  "Tài khoản đăng nhập và toàn bộ sổ MoneyFlow gắn với tài khoản này trên Supabase sẽ bị xóa vĩnh viễn. Các thiết bị khác sẽ không thể tải lại dữ liệu và phải đăng nhập lại.";
