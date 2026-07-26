@@ -67,7 +67,7 @@ export function GoalsPage({ viewer, initialGoals, today, dataError }: { viewer: 
             <span className="round-icon purple"><Icon name="lock" /></span>
             <p>Đã dành riêng</p>
             <strong className="font-mono">{formatMoney(totals.allocated)}</strong>
-            <small>Không tính vào tiền có thể chi</small>
+            <small>Vẫn nằm trong tổng tài sản của bạn</small>
           </div>
           <div>
             <p>Đích của các mục tiêu</p>
