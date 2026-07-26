@@ -142,7 +142,8 @@
   .preview-dash-foot
 ) {
   border-color: var(--lp-dark-border) !important;
-  background: var(--lp-dark-surface) !important;
+  background-color: var(--lp-dark-surface) !important;
+  background-image: none !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .preview-dash-stat + .preview-dash-stat {
@@ -193,6 +194,14 @@
   box-shadow: 0 14px 34px rgb(0 0 0 / 28%) !important;
 }
 
+[data-theme="dark"] .landing-page.lp-root .lp-cta {
+  border-color: rgb(255 255 255 / 14%) !important;
+  background:
+    radial-gradient(circle at 80% 0%, rgb(255 255 255 / 15%), transparent 18rem),
+    linear-gradient(135deg, #177a49, #0d5e36 58%, #084526) !important;
+  box-shadow: 0 28px 64px rgb(0 0 0 / 34%) !important;
+}
+
 [data-theme="dark"] .landing-page.lp-root .lp-cta h2,
 [data-theme="dark"] .landing-page.lp-root .lp-cta > p,
 [data-theme="dark"] .landing-page.lp-root .lp-cta .cta-secondary,
@@ -203,6 +212,11 @@
 [data-theme="dark"] .landing-page.lp-root .lp-cta .cta-primary {
   background: #fff !important;
   color: #0d5f37 !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta .cta-secondary {
+  border-color: rgb(255 255 255 / 30%) !important;
+  background: rgb(255 255 255 / 9%) !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .lp-footer {
