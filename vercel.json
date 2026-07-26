@@ -8,5 +8,5 @@
       "design/calm-ledger-daily-shell": true
     }
   },
-  "buildCommand": "export NEXT_PUBLIC_APP_MODE=demo NEXT_PUBLIC_SITE_URL=https://preview.example.test && files=(src/lib/*.test.ts) && test \"${files[3]}\" = \"src/lib/commitments.test.ts\" && npm run build"
+  "buildCommand": "export NEXT_PUBLIC_APP_MODE=demo NEXT_PUBLIC_SITE_URL=https://preview.example.test && node --experimental-strip-types --test src/lib/categories.test.ts && npm run build"
 }
