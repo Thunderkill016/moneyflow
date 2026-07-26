@@ -3,22 +3,16 @@ import { Inter } from "next/font/google";
 import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
 import "./globals.css";
 import "./ui-refresh.css";
-import "./landing-refresh.css";
-import "./auth-refresh.css";
 import "./benchmark-ux.css";
 import "./safe-to-spend-withdrawal.css";
 import "./cross-device-stabilization.css";
 import "./ai-uiux-refresh.css";
 import "./ai-uiux-guardrails.css";
-import "./landing-dark-mode-guardrails.css";
+import "./calm-ledger-tokens.css";
 
 /**
- * UI text — LCP critical.
- * Variable Inter (no static weight list) = one/few files vs many weight files.
- * Still latin + vietnamese for product copy.
- *
- * Money mono uses the system stack in globals.css (no second webfont).
- * That cuts transfer/CSS on every route; digits stay tabular via .font-mono.
+ * UI text is LCP critical. Inter covers Vietnamese product copy while the
+ * ledger uses the system mono stack exposed by the Calm Ledger tokens.
  */
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -29,17 +23,17 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "MoneyFlow — Quản lý thu chi cá nhân",
+  title: "MoneyFlow — Sổ thu chi cá nhân",
   description:
-    "Ghi thu chi nhanh, nhiều ví, ngân sách danh mục và báo cáo tháng. Xuất CSV. Không quảng cáo trong luồng chính.",
+    "Ghi thu chi nhanh, theo dõi nhiều ví, ngân sách và báo cáo tháng. Xuất CSV bất cứ lúc nào.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F8F9FA" },
-    { media: "(prefers-color-scheme: dark)", color: "#0A0A0B" },
+    { media: "(prefers-color-scheme: light)", color: "#F4F7F5" },
+    { media: "(prefers-color-scheme: dark)", color: "#0D1511" },
   ],
 };
 
@@ -56,7 +50,6 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        {/* Theme before paint — suppressHydrationWarning on <html> avoids data-theme mismatch. */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
