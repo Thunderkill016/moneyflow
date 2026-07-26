@@ -1,5 +1,6 @@
 import { test } from "@playwright/test";
-import { assertKeyboardFocusVisible, seedUiAuditState } from "./responsive-audit";
+import { assertKeyboardFocusVisible } from "./keyboard-focus";
+import { seedUiAuditState } from "./responsive-audit";
 
 test.describe("keyboard navigation audit", () => {
   test.beforeEach(async ({ page }) => {
