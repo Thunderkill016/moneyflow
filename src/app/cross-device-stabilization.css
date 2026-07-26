@@ -1,0 +1,66 @@
+/* Cross-device stabilization primitives.
+ * Keep fixes here shared and root-cause-oriented; do not hide document overflow.
+ */
+
+.app-shell,
+.page-column,
+.dashboard,
+.content-grid,
+.content-grid > *,
+.right-stack,
+.right-stack > *,
+.section-heading,
+.section-heading > *,
+.accounts-summary,
+.accounts-summary > *,
+.account-grid,
+.account-card,
+.insight-panel,
+.insight-panel > div {
+  min-width: 0;
+}
+
+.insight-panel p,
+.insight-panel a,
+.accounts-summary p {
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 761px) and (max-width: 900px) {
+  .topbar {
+    padding-inline: 24px;
+  }
+
+  .dashboard {
+    padding-inline: 24px;
+  }
+
+  /* A compact 82px sidebar leaves phone-like content width on portrait tablets.
+   * Use one readable column instead of squeezing two desktop cards side-by-side.
+   */
+  .right-stack {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .accounts-summary {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding: 24px;
+  }
+
+  .accounts-summary > p {
+    max-width: none;
+    border-top: 1px solid rgb(255 255 255 / 18%);
+    border-left: 0;
+    padding-top: 18px;
+    padding-left: 0;
+  }
+
+  .account-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .insight-panel {
+    grid-template-columns: 39px minmax(0, 1fr);
+  }
+}
