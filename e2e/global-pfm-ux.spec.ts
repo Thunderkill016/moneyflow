@@ -21,6 +21,77 @@ test.describe("Global PFM UX benchmark", () => {
     });
   });
 
+  test("keeps the dark landing proposition readable", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark";
+    });
+
+    await expect(page.locator(".lp-hero-title")).toBeVisible();
+    await expect(page.locator(".lp-hero-lead")).toBeVisible();
+
+    const result = await page.evaluate(() => {
+      type Rgb = { r: number; g: number; b: number };
+
+      const parseRgb = (value: string): Rgb => {
+        const channels = value.match(/[\d.]+/gu)?.slice(0, 3).map(Number);
+        if (!channels || channels.length !== 3) {
+          throw new Error(`Unsupported computed color: ${value}`);
+        }
+        return { r: channels[0], g: channels[1], b: channels[2] };
+      };
+
+      const luminance = ({ r, g, b }: Rgb) => {
+        const linear = [r, g, b].map((channel) => {
+          const normalized = channel / 255;
+          return normalized <= 0.04045
+            ? normalized / 12.92
+            : ((normalized + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+      };
+
+      const contrast = (foreground: Rgb, background: Rgb) => {
+        const light = Math.max(luminance(foreground), luminance(background));
+        const dark = Math.min(luminance(foreground), luminance(background));
+        return (light + 0.05) / (dark + 0.05);
+      };
+
+      const color = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector);
+        if (!element) throw new Error(`Missing element: ${selector}`);
+        return parseRgb(getComputedStyle(element).color);
+      };
+
+      const background = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector);
+        if (!element) throw new Error(`Missing element: ${selector}`);
+        return parseRgb(getComputedStyle(element).backgroundColor);
+      };
+
+      const canvas = background(".landing-page.lp-root");
+      const nav = background(".lp-nav");
+      const navCta = background(".landing-nav-cta");
+      const heroCta = background(".lp-hero-ctas .cta-primary");
+
+      return {
+        title: contrast(color(".lp-hero-title"), canvas),
+        lead: contrast(color(".lp-hero-lead"), canvas),
+        navBrand: contrast(color(".lp-nav .brand"), nav),
+        navPrimary: contrast(color(".landing-nav-cta"), navCta),
+        heroPrimary: contrast(color(".lp-hero-ctas .cta-primary"), heroCta),
+        navSurfaceLuminance: luminance(nav),
+      };
+    });
+
+    expect(result.title).toBeGreaterThanOrEqual(7);
+    expect(result.lead).toBeGreaterThanOrEqual(4.5);
+    expect(result.navBrand).toBeGreaterThanOrEqual(4.5);
+    expect(result.navPrimary).toBeGreaterThanOrEqual(4.5);
+    expect(result.heroPrimary).toBeGreaterThanOrEqual(4.5);
+    expect(result.navSurfaceLuminance).toBeLessThan(0.08);
+  });
+
   test("withdraws untrusted spending advice and keeps a viewport primary action", async ({
     page,
   }) => {
