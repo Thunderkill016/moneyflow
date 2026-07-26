@@ -29,16 +29,6 @@ test.describe("critical browser compatibility audit", () => {
     await expect(page.locator(".lp-hero-title")).toBeVisible();
 
     const colors = await page.evaluate(() => {
-      const normalizeColor = (value: string): string => {
-        const probe = document.createElement("span");
-        probe.style.color = value;
-        document.body.append(probe);
-        const normalized = window.getComputedStyle(probe).color;
-        probe.remove();
-        return normalized;
-      };
-
-      const rootStyle = window.getComputedStyle(document.documentElement);
       const readColor = (selector: string): string => {
         const element = document.querySelector(selector);
         if (!(element instanceof HTMLElement)) throw new Error(`Missing ${selector}`);
@@ -51,8 +41,6 @@ test.describe("critical browser compatibility audit", () => {
       };
 
       return {
-        expectedPrimary: normalizeColor(rootStyle.getPropertyValue("--color-text-primary").trim()),
-        expectedMuted: normalizeColor(rootStyle.getPropertyValue("--color-text-secondary").trim()),
         brand: readColor(".lp-nav .brand"),
         hero: readColor(".lp-hero-title"),
         lead: readColor(".lp-hero-lead"),
@@ -61,12 +49,10 @@ test.describe("critical browser compatibility audit", () => {
       };
     });
 
-    expect(colors.brand).toBe(colors.expectedPrimary);
-    expect(colors.hero).toBe(colors.expectedPrimary);
-    expect(colors.lead).toBe(colors.expectedMuted);
-    expect(colors.navBackground).not.toBe("rgb(255, 255, 255)");
-    expect(colors.proofBackground).not.toBe("rgb(255, 255, 255)");
-    expect(colors.navBackground).not.toBe("rgba(0, 0, 0, 0)");
-    expect(colors.proofBackground).not.toBe("rgba(0, 0, 0, 0)");
+    expect(colors.brand).toBe("rgb(237, 237, 237)");
+    expect(colors.hero).toBe("rgb(237, 237, 237)");
+    expect(colors.lead).toBe("rgb(160, 160, 168)");
+    expect(colors.navBackground).toBe("rgb(26, 26, 30)");
+    expect(colors.proofBackground).toBe("rgb(26, 26, 30)");
   });
 });
