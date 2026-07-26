@@ -10,6 +10,7 @@ import "./safe-to-spend-withdrawal.css";
 import "./cross-device-stabilization.css";
 import "./ai-uiux-refresh.css";
 import "./ai-uiux-guardrails.css";
+import "./landing-dark-mode-guardrails.css";
 
 /**
  * UI text — LCP critical.
