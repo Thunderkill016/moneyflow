@@ -1,0 +1,127 @@
+/*
+ * Screenshot-driven landing guardrails.
+ *
+ * Keep this file after every other visual layer. The public landing can use its
+ * own palette, but its final computed state must remain readable in dark mode.
+ */
+
+[data-theme="dark"] .landing-page.lp-root {
+  --lp-dark-canvas: #0f1411;
+  --lp-dark-surface: #181d1a;
+  --lp-dark-surface-soft: #202622;
+  --lp-dark-line: #334039;
+  --lp-dark-text: #f4f7f5;
+  --lp-dark-muted: #b9c5bd;
+  --lp-dark-brand: #72e39d;
+  background-color: var(--lp-dark-canvas) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-nav {
+  border-color: var(--lp-dark-line) !important;
+  background: rgb(24 29 26 / 94%) !important;
+  box-shadow: 0 10px 34px rgb(0 0 0 / 28%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-nav .brand,
+[data-theme="dark"] .landing-page.lp-root .landing-nav-login {
+  color: var(--lp-dark-text) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .landing-nav-login:hover {
+  background: var(--lp-dark-surface-soft) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-badge,
+[data-theme="dark"] .landing-page.lp-root .lp-hero-trust li {
+  border-color: var(--lp-dark-line) !important;
+  background: rgb(24 29 26 / 90%) !important;
+  color: #dce7e0 !important;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 18%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-badge {
+  color: var(--lp-dark-brand) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-badge-dot {
+  background: var(--lp-dark-brand) !important;
+  box-shadow: 0 0 0 5px rgb(114 227 157 / 13%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-hero-title {
+  color: var(--lp-dark-text) !important;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 16%);
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-hero-gradient {
+  background: linear-gradient(120deg, #7beaab 0%, #4ade80 48%, #98f0ba 100%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-hero-lead {
+  color: var(--lp-dark-muted) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-hero-lead strong {
+  color: #dff8e8 !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-hero-trust li svg {
+  color: var(--lp-dark-brand) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .landing-nav-cta,
+[data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-primary {
+  border-color: transparent !important;
+  background: #14663d !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 26px rgb(0 0 0 / 28%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .landing-nav-cta:hover,
+[data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-primary:hover {
+  background: #19794a !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-secondary {
+  border-color: var(--lp-dark-line) !important;
+  background: var(--lp-dark-surface-soft) !important;
+  color: var(--lp-dark-text) !important;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 20%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-secondary:hover {
+  border-color: #496055 !important;
+  background: #28312c !important;
+}
+
+/* Keep the proposition and enough of the product preview in the first desktop
+ * viewport. Mobile retains its existing carefully tuned stack.
+ */
+@media (min-width: 901px) {
+  .landing-page.lp-root .lp-hero {
+    padding-top: clamp(54px, 6vw, 82px) !important;
+  }
+
+  .landing-page.lp-root .lp-badge {
+    margin-bottom: 18px !important;
+  }
+
+  .landing-page.lp-root .lp-hero-title {
+    margin-bottom: 18px !important;
+  }
+
+  .landing-page.lp-root .lp-hero-lead {
+    margin-bottom: 20px !important;
+  }
+
+  .landing-page.lp-root .lp-hero-trust {
+    margin-bottom: 22px !important;
+  }
+
+  .landing-page.lp-root .lp-hero-ctas {
+    margin-bottom: 32px !important;
+  }
+}
