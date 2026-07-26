@@ -1,70 +1,70 @@
-# MoneyFlow — Product focus
+# MoneyFlow — current product focus
 
-## Mục tiêu thật (ưu tiên #1)
+The detailed product contract lives in [`docs/product/PRINCIPLES.md`](./product/PRINCIPLES.md). This page is the short operational view.
 
-> Xây web để **bạn** quản lý **thu nhập** và **chi tiêu** của chính mình.
+## Goal now
 
-Câu hỏi lõi:
+Build a trustworthy personal income-and-expense ledger that the owner can use every day on a phone.
 
-**Hôm nay mình có thể chi bao nhiêu?**
+The product should make four things easy:
 
----
+1. record income, expense or transfer quickly;
+2. know balances across active accounts;
+3. understand income, expense and where money went;
+4. correct and export data without losing trust in the ledger.
 
-## Đang làm gì (now)
+## Current priorities
 
-Giữ và hoàn thiện những thứ phục vụ dùng hàng ngày:
+1. Complete production readiness and real-device checks.
+2. Use the product for seven consecutive days.
+3. Fix reproducible P0/P1 defects before adding features.
+4. Improve data trust through import provenance, reconciliation and auditability.
+5. Improve UI/UX through researched vertical slices and cross-device evidence.
 
-| Việc | Trạng thái gần đúng |
-|---|---|
-| Đăng nhập / lưu data (Supabase) | Có |
-| Tài khoản (tiền mặt, NH, ví…) | Có |
-| Thêm chi / thu | Có |
-| Sửa / xóa giao dịch | Có |
-| Chuyển khoản nội bộ | Có |
-| Dashboard “có thể chi hôm nay” | Có |
-| Ngân sách theo danh mục | Có |
-| Hóa đơn định kỳ (commitments) | Có |
-| Mục tiêu tiết kiệm | Có |
-| Báo cáo + export CSV | Có |
+## Financial boundary
 
-**Ưu tiên tiếp theo = dùng thật cho bản thân**, không phải thêm vision lớn:
+Total assets are not a spending budget. Budgets, commitments, savings goals and recurring income are planning inputs with different meanings.
 
-1. App ổn định khi bạn ghi chi tiêu mỗi ngày.
-2. Số liệu đúng (tiền integer, transfer cân, không double-count).
-3. Nhập thu/chi **nhanh**, mobile ổn (học Actual/Firefly/YNAB: chọn ngày, nhớ form, phím `N`, lưu & thêm tiếp).
-4. Privacy cơ bản nếu data là tiền thật (đổi mật khẩu, không lộ key).
+MoneyFlow must not present a daily spending recommendation until a researched planning model has reliable income-cycle, obligation, reserve and account-intent data. Unknown inputs remain unknown; they are not replaced with assumptions.
 
-- Nghiên cứu đối thủ & OSS: [`COMPETITOR_AND_OSS_RESEARCH.md`](./COMPETITOR_AND_OSS_RESEARCH.md)  
-- Thiết kế lại Inbox-first: [`UX_RESEARCH_AND_REDESIGN.md`](./UX_RESEARCH_AND_REDESIGN.md)  
-- Wireframe 24 màn: [`wireframes-inbox.md`](./wireframes-inbox.md)
+## Current scope
 
----
+- Supabase authentication and demo mode.
+- Multiple accounts.
+- Income, expense and balanced transfers.
+- Edit, soft delete and recovery paths.
+- Category budgets.
+- Recurring commitments and recurring income templates.
+- Savings goals.
+- Weekly, monthly and yearly reports.
+- CSV export and controlled import tools.
+- Responsive web interface with light/dark support.
 
-## Không làm bây giờ (later / archive)
+## Not now
 
-Những ý trong `RESEARCH_PRODUCT_STRATEGY.md` (Universal Inbox, parser sao kê, Android notification, B2B API, GTM…) là **ghi chú tham khảo**, **không phải roadmap hiện tại**.
+- Bank synchronization or Open Banking.
+- AI financial advice.
+- OCR as a core workflow.
+- Family/shared finance.
+- Business accounting.
+- Native mobile apps.
+- A full envelope-budgeting system.
 
-Chỉ xem xét lại khi:
+These require a new researched specification and explicit human approval.
 
-- Bạn đã dùng app ≥ 2–4 tuần cho tiền thật, **và**
-- Nhập tay trở thành bottleneck rõ ràng.
+## Decision rule
 
----
+Every proposed change must answer:
 
-## Nguyên tắc đơn giản
+> How does this make the ledger more correct, safer or easier to use every day?
 
-1. **Dùng được cho mình trước** > tính năng “hay trên giấy”.
-2. **Thu + chi + số dư đúng** > biểu đồ đẹp.
-3. **Ít màn hình, rõ việc** > clone full YNAB/Money Lover.
-4. Mỗi PR trả lời: *“Cái này giúp tao quản lý tiền tao thế nào?”*
+Feature breadth and visual novelty do not outrank correctness, mobile usability or user trust.
 
----
+## Ready for daily use
 
-## Khi nào coi là “ổn để dùng mỗi ngày”
-
-- [ ] Login được, data không mất
-- [ ] Thêm chi tiêu < 10 giây trên điện thoại
-- [ ] Thấy tổng tiền + có thể chi hôm nay
-- [ ] Sửa sai một giao dịch không làm hỏng sổ
-- [ ] Export CSV khi cần
-- [ ] Bạn thực sự mở app thay vì Excel/ghi chú trong ≥ 1 tuần
+- Production login and recovery work on the correct domain.
+- A physical phone can complete the transaction flow without blocked controls.
+- Balances, transfers and period totals reconcile.
+- CSV export opens safely in common spreadsheet tools.
+- No open P0/P1 defect blocks a core flow.
+- Seven consecutive days of self-use complete without data loss or manual repair.
