@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 /**
  * TASK-200 / TASK-116 — Core expense path always green (demo mode).
  *
- * Flow: landing → demo app → quick-add expense → insights shows amount → export download.
+ * Flow: landing → demo app → quick-add expense → insights shows ledger amount → export download.
  * Does not depend on Inbox / paste / candidates.
  * Runs against Playwright webServer with explicit demo mode.
  * Fail CI if broken: `npm run test:e2e`
@@ -34,10 +34,10 @@ test.describe("Expense path (thu chi)", () => {
   test("landing → demo → quick add expense → insights → export download", async ({
     page,
   }) => {
-    // 1) Public landing (product: thu chi / có thể chi — not inbox-first marketing)
+    // 1) Public landing promises only proven thu-chi behavior.
     await page.goto("/landing");
     await expect(
-      page.getByRole("heading", { name: /có thể chi bao nhiêu/i }),
+      page.getByRole("heading", { name: /Ghi thu chi rõ ràng/i }),
     ).toBeVisible();
     await expect(page.locator(".landing-eyebrow")).toHaveText(
       /Quản lý thu chi cá nhân/i,
@@ -56,9 +56,10 @@ test.describe("Expense path (thu chi)", () => {
 
     // Demo entry: no real credentials — go straight to product home.
     await page.goto("/insights");
-    await expect(page.getByText(/Có thể chi hôm nay/i).first()).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(page.locator(".safe-card-hero")).toBeHidden({ timeout: 20_000 });
+    await expect(
+      page.locator(".welcome-actions .insights-ghi-chi"),
+    ).toBeVisible();
 
     // Mobile must expose the account sheet from the topbar avatar.
     if ((page.viewportSize()?.width ?? 1_000) <= 760) {
@@ -126,7 +127,7 @@ test.describe("Expense path (thu chi)", () => {
     // 4) Insights shows the expense amount (recent list + category share).
     // Demo Chi tháng KPI adds a baseline, so assert the ledger rows/amount not the raw KPI alone.
     await page.goto("/insights");
-    await expect(page.getByText(/Có thể chi hôm nay/i).first()).toBeVisible();
+    await expect(page.locator(".safe-card-hero")).toBeHidden();
     await expect(page.locator("section.insights-kpi")).toBeVisible({
       timeout: 20_000,
     });
