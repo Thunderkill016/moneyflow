@@ -54,22 +54,13 @@ test.describe("critical browser compatibility audit", () => {
     await expect(preview).toBeVisible();
     await expect(finalCta).toBeVisible();
 
-    const colors = await page.evaluate(() => {
-      const readStyle = (selector: string): CSSStyleDeclaration => {
-        const element = document.querySelector(selector);
-        if (!(element instanceof HTMLElement)) throw new Error(`Missing ${selector}`);
-        return window.getComputedStyle(element);
-      };
-
-      return {
-        pageBackground: readStyle("main").parentElement
-          ? window.getComputedStyle(readStyle("main").parentElement as unknown as Element)
-              .backgroundColor
-          : "",
-      };
-    });
-
     const semanticColors = {
+      pageBackground: await page.locator("main").evaluate((element) => {
+        if (!(element.parentElement instanceof HTMLElement)) {
+          throw new Error("Landing root is missing");
+        }
+        return getComputedStyle(element.parentElement).backgroundColor;
+      }),
       brand: await brand.evaluate((element) => getComputedStyle(element).color),
       hero: await hero.evaluate((element) => getComputedStyle(element).color),
       lead: await lead.evaluate((element) => getComputedStyle(element).color),
@@ -87,7 +78,7 @@ test.describe("critical browser compatibility audit", () => {
       ),
     };
 
-    expect(colors.pageBackground).toBe("rgb(13, 21, 17)");
+    expect(semanticColors.pageBackground).toBe("rgb(13, 21, 17)");
     expect(semanticColors.brand).toBe("rgb(240, 247, 243)");
     expect(semanticColors.hero).toBe("rgb(240, 247, 243)");
     expect(semanticColors.lead).toBe("rgb(168, 183, 174)");
