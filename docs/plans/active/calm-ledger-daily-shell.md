@@ -2,7 +2,7 @@
 
 **Status:** evaluating  
 **Owner:** ChatGPT  
-**Issue/PR:** #81 / #83  
+**Issue/PR:** #81 / #83 / #86  
 **Last updated:** 2026-07-27
 
 ## Outcome
@@ -164,7 +164,7 @@ Signed-in users encountered a visually dense shell and an overview whose primary
 | T2 | Migrate AppShell presentation to scoped Calm Ledger module | T1 | code diff | done, verification pending |
 | T3 | Recompose Tổng quan hierarchy and compact planning | T2 | route-scoped CSS diff | done, verification pending |
 | T4 | Add overlap/navigation browser regression checks | T2, T3 | Playwright contract diff | done, execution blocked |
-| T5 | Review, merge, deploy and verify exact production | T4 | PR/CI/Vercel evidence | blocked |
+| T5 | Review, merge, deploy and verify exact production | T4 | PR/CI/Vercel evidence | blocked by #86 |
 
 ## Evaluation
 
@@ -172,22 +172,27 @@ Signed-in users encountered a visually dense shell and an overview whose primary
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Scoped shell styling | PR #83 source diff | implemented, unverified |
-| No duplicate mobile FAB | AppShell source + browser contract | implemented, unverified |
-| Overview hierarchy and states | `/insights` route stylesheet | implemented, unverified |
-| Cross-device/accessibility matrix | GitHub Actions run `30213073671` | blocked before runner steps |
+| Scoped shell styling | PR #83 source diff | implemented, unverified in browser matrix |
+| No duplicate mobile FAB | AppShell source + browser contract | implemented, unverified in browser matrix |
+| Overview hierarchy and states | `/insights` route stylesheet | implemented, unverified in browser matrix |
+| Static compile gate | temporary Vercel diagnostic commit `e09de9cacf212b10c97b1d59f9dfc6b1d89768ea` | knowledge, deployment contract, lint, typecheck and production build passed |
+| Cross-device/accessibility matrix | clean-head Actions run `30214857551` | blocked before runner steps |
 
 ### Review findings
 
-- Correctness: source review complete; executable evidence is still required.
+- Correctness: static compilation passed; full unit/database/browser execution is still required.
 - Security/ownership: no behavior or data-layer changes.
 - UI/UX/accessibility: authored responsive, focus, safe-area and reduced-motion rules; screenshot review pending.
 - Maintainability/duplication: shell is component-owned and overview rules are route-scoped rather than another root refresh layer.
-- Scope compliance: shell and Tổng quan only.
+- Scope compliance: final branch diff contains only the eight intended product, test and work-packet files.
 
 ### Current verification blocker
 
-GitHub Actions runs `30212867362` and `30213073671` failed before checkout: both `verify` and `database` jobs returned no steps and no logs, while `e2e` was skipped. Re-running produced the same zero-step result. This is treated as runner/account infrastructure failure, not proof that the source passes or fails. PR #83 remains draft and must not merge until a normal CI attempt executes the required gates.
+GitHub Actions runs `30212867362`, `30213073671`, `30213235840` and the clean-head retry `30214857551` all failed before checkout: both `verify` and `database` returned no steps and no logs, while `e2e` was skipped. A separate `ubuntu-slim` probe failed in the same zero-step way. Issue #86 tracks the account/runner investigation.
+
+Temporary Vercel preview and slim-workflow probes were removed after diagnosis. `vercel.json` is restored byte-for-byte to the production-only contract, and the PR diff contains no deployment or CI configuration change. Vercel's free preview build rate was reached during diagnosis, so it is not being used as a substitute for the required GitHub database and browser gates.
+
+This is infrastructure failure, not proof that the source passes or fails. PR #83 remains draft and must not merge until a normal CI attempt executes every required gate.
 
 ### Remaining limitations
 
@@ -198,8 +203,9 @@ GitHub Actions runs `30212867362` and `30213073671` failed before checkout: both
 
 - Branch: `design/calm-ledger-daily-shell`
 - PR: #83 (draft)
+- Infrastructure blocker: #86
 - Squash commit: pending
-- CI runs: `30212867362`, `30213073671` — zero-step infrastructure failure
+- Clean-head CI run: `30214857551` — zero-step infrastructure failure
 - Production deployment: pending
 - Production flow verified: pending
 - Work packet moved to `docs/plans/completed/`: no
