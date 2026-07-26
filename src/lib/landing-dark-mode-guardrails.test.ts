@@ -26,8 +26,10 @@ test("landing dark mode keeps critical text and surfaces in one scoped contract"
     assert.match(selectorLine, /^\[data-theme="dark"\] \.landing-page\.lp-root/);
   }
 
-  assert.match(darkGuardrails, /--lp-dark-text:\s*var\(--color-text-primary\)/);
-  assert.match(darkGuardrails, /--lp-dark-muted:\s*var\(--color-text-secondary\)/);
+  assert.match(darkGuardrails, /--lp-dark-surface:\s*#1a1a1e/);
+  assert.match(darkGuardrails, /--lp-dark-text:\s*#ededed/);
+  assert.match(darkGuardrails, /--lp-dark-muted:\s*#a0a0a8/);
+  assert.doesNotMatch(darkGuardrails, /--lp-dark-(?:surface|text|muted):\s*var\(--color-/);
   assert.match(darkGuardrails, /\.lp-nav/);
   assert.match(darkGuardrails, /\.lp-hero-title/);
   assert.match(darkGuardrails, /\.lp-showcase-card/);
