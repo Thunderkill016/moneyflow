@@ -1,5 +1,7 @@
 # MoneyFlow — Design System
 
+> **Current redesign authority (2026):** [Calm Ledger v2](./design/CALM_LEDGER_V2.md). The v2 contract overrides conflicting v1 values below while routes migrate. Product and financial truth remains in [product principles](./product/PRINCIPLES.md).
+
 > Tài liệu này là **luật** cho toàn bộ giao diện MoneyFlow.
 > Mọi component, màu sắc, khoảng cách, animation đều phải tuân theo specs trong file này.
 > Không có ngoại lệ. Nếu cần thay đổi, cập nhật file này trước, rồi mới sửa code.
@@ -127,7 +129,7 @@ RULE 8:  Test với deuteranopia (red-green colorblind) trước khi release.
 
 | Token | Size | Weight | Line Height | Letter Spacing | Dùng cho |
 |-------|------|--------|-------------|---------------|----------|
-| `--text-display-lg` | 36px / 2.25rem | 700 (Bold) | 1.2 (43px) | -0.02em | Hero metric (Có thể chi hôm nay) |
+| `--text-display-lg` | 36px / 2.25rem | 700 (Bold) | 1.2 (43px) | -0.02em | Hero metric (Số dư tổng) |
 | `--text-display-sm` | 28px / 1.75rem | 600 (Semibold) | 1.25 (35px) | -0.015em | Page title |
 | `--text-heading-lg` | 22px / 1.375rem | 600 | 1.3 (29px) | -0.01em | Section heading |
 | `--text-heading-sm` | 18px / 1.125rem | 600 | 1.35 (24px) | 0 | Card title, dialog title |
@@ -1153,9 +1155,8 @@ docs/
 
 ```
 FONTS:       Inter (UI) + JetBrains Mono (numbers)
-ACCENT:      Light #3B82F6 / Dark #60A5FA — MỘT màu duy nhất
-  (App runtime hiện có thể dùng green trust — mọi thay đổi token phải
-   cập nhật file này TRƯỚC; không clone bảng màu đối thủ.)
+ACCENT:      Light #0B6B3A / Dark #4AD58A — MỘT màu thương hiệu
+  (Semantic income/success dùng token riêng và luôn có dấu/icon/label.)
 SPACING:     4px base → 4, 8, 12, 16, 20, 24, 32, 40, 48, 64
 RADIUS:      2 xs, 4 sm, 8 md, 12 lg, 16 xl, 9999 full
 SHADOWS:     sm (1+2), md (4+12), lg (8+24), xl (16+48)
@@ -1167,7 +1168,7 @@ FONT MIN:    14px body, 12px caption
 CONTRAST:    4.5:1 text, 3:1 large text / icons
 BREAKPOINTS: 0-639 mobile, 640-1023 tablet, 1024-1439 desktop, 1440+ wide
 NAV:         Inbox-first · Bottom ≤5 tabs mobile · Sidebar desktop
-HOME:        /inbox (không phải chart dashboard)
+HOME:        /insights (Tổng quan); /inbox là hàng đợi duyệt dữ liệu
 MONEY:       Always monospace. Right-aligned. Never truncated in detail views.
 NEGATIVE:    Sign + direction icon + color (triple redundancy)
 STATES:      Loading, Empty, Content, Error, Offline, Success, Uncertain
@@ -1244,7 +1245,7 @@ Three equal-weight actions (not buried): Paste · Upload · Quick add.
 ### Rules (anti-patterns)
 
 ```
-RULE-I1: Home route = Inbox, not Insights/Dashboard.
+RULE-I1: Home route = Insights/Tổng quan; Inbox is an import-review queue.
 RULE-I2: Never auto-post candidates with low confidence.
 RULE-I3: Preview required before batch creates >N candidates (N default 1).
 RULE-I4: Bulk approve default skips low-conf unless user opts in.
