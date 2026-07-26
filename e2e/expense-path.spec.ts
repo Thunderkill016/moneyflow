@@ -59,20 +59,16 @@ test.describe("Expense path (thu chi)", () => {
     await page.goto("/insights");
     await expect(page.locator(".safe-card-hero")).toBeHidden({ timeout: 20_000 });
 
-    // The primary expense action follows the viewport: in-page on desktop,
-    // the center Calm Ledger navigation action on mobile.
+    // AppShell owns the only surfaced primary expense action. The older
+    // in-page duplicate remains hidden until the full dashboard JSX cleanup.
+    await expect(
+      page.locator(".welcome-actions .insights-ghi-chi"),
+    ).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: "Ghi chi tiêu" }),
+    ).toBeVisible();
+
     const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
-    const welcomeExpenseAction = page.locator(
-      ".welcome-actions .insights-ghi-chi",
-    );
-    if (isMobile) {
-      await expect(welcomeExpenseAction).toBeHidden();
-      await expect(
-        page.getByRole("button", { name: "Ghi chi tiêu" }),
-      ).toBeVisible();
-    } else {
-      await expect(welcomeExpenseAction).toBeVisible();
-    }
 
     // Mobile must expose the account sheet from the topbar avatar.
     if (isMobile) {
