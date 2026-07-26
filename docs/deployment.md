@@ -11,6 +11,19 @@
 7. Vercel automatically deploys only commits on `main`. Feature, verification, and temporary branches must never create preview deployments.
 8. Do not create temporary marker files or empty commits merely to trigger CI. Use `workflow_dispatch` for a manual verification run.
 
+## Vercel branch rule
+
+`vercel.json` must keep `git.deploymentEnabled` as:
+
+```json
+{
+  "**": false,
+  "main": true
+}
+```
+
+The `**` globstar is intentional: MoneyFlow branches contain `/`, for example `agent/...`, `fix/...`, and `perf/...`. Do not replace it with `*`. Vercel treats branches not matched by any rule as deployment-enabled, which can silently recreate preview deployments and exhaust the daily deployment quota.
+
 ## Responsibility split
 
 - GitHub Actions: install, lint, typecheck, tests, production build verification, and database verification.

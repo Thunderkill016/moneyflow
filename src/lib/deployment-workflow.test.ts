@@ -8,9 +8,12 @@ const vercelConfig = JSON.parse(readFileSync("vercel.json", "utf8")) as {
 };
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
 
-test("Vercel deploys automatically only from main", () => {
-  assert.equal(vercelConfig.git?.deploymentEnabled?.["*"], false);
-  assert.equal(vercelConfig.git?.deploymentEnabled?.main, true);
+test("Vercel deploys automatically only from main, including slash-named branches", () => {
+  const rules = vercelConfig.git?.deploymentEnabled;
+
+  assert.equal(rules?.["**"], false);
+  assert.equal(rules?.["*"], undefined);
+  assert.equal(rules?.main, true);
 });
 
 test("Vercel validates deployment config without repeating GitHub verification work", () => {
@@ -18,7 +21,10 @@ test("Vercel validates deployment config without repeating GitHub verification w
     vercelConfig.buildCommand,
     "npm run check:deployment-env && npm run build",
   );
-  assert.doesNotMatch(vercelConfig.buildCommand ?? "", /npm run (lint|typecheck|test)/);
+  assert.doesNotMatch(
+    vercelConfig.buildCommand ?? "",
+    /npm run (lint|typecheck|test)/,
+  );
 });
 
 test("GitHub CI cancels stale runs and skips draft PR verification", () => {
