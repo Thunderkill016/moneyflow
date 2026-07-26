@@ -21,10 +21,10 @@ test.describe("Global PFM UX benchmark", () => {
     });
   });
 
-  test("keeps the dark landing proposition readable", async ({ page }) => {
+  test("keeps the full dark landing readable", async ({ page }) => {
     // CI intentionally runs in demo mode, where `/` redirects to `/insights`.
     // Load a stable public route to get the production CSS bundle, then mount,
-    // measure and remove the minimum landing class structure synchronously so
+    // measure and remove representative landing structures synchronously so
     // React hydration cannot replace the fixture between setup and assertion.
     await page.goto("/privacy");
 
@@ -40,6 +40,7 @@ test.describe("Global PFM UX benchmark", () => {
             <a class="brand" href="/">MoneyFlow</a>
             <a class="primary-button landing-nav-cta" href="/register">Bắt đầu miễn phí</a>
           </nav>
+
           <header class="lp-hero">
             <div class="lp-hero-inner">
               <h1 class="landing-hero-title lp-hero-title">Ghi thu chi rõ ràng</h1>
@@ -49,6 +50,44 @@ test.describe("Global PFM UX benchmark", () => {
               </div>
             </div>
           </header>
+
+          <section class="lp-section">
+            <div class="lp-section-intro">
+              <p class="lp-kicker">Lợi ích</p>
+              <h2>Thu chi rõ — quyết định từ dữ liệu thật</h2>
+              <p>Không đưa lời khuyên khi dữ liệu chưa đủ.</p>
+            </div>
+            <ul class="lp-feature-grid">
+              <li>
+                <h3>Thu · Chi · Chuyển</h3>
+                <p>Ba loại rõ. Soft delete. Số nguyên đồng.</p>
+              </li>
+            </ul>
+            <div class="lp-faq-list">
+              <details class="lp-faq-item" open>
+                <summary>Có xuất dữ liệu được không?</summary>
+                <p>Có. Xuất CSV bất cứ lúc nào.</p>
+              </details>
+            </div>
+          </section>
+
+          <section class="landing-cta-band lp-cta">
+            <h2>Bắt đầu bằng một khoản chi hôm nay</h2>
+            <p>Miễn phí core. Không cần liên kết ngân hàng.</p>
+            <div class="landing-cta-band-actions">
+              <a class="cta-primary lp-btn-lg" href="/register">Tạo tài khoản miễn phí</a>
+            </div>
+          </section>
+
+          <footer class="landing-footer lp-footer">
+            <div class="landing-footer-inner">
+              <a class="brand" href="/">MoneyFlow</a>
+              <nav class="landing-footer-links">
+                <a href="/privacy">Riêng tư</a>
+              </nav>
+              <p>© 2026 MoneyFlow.</p>
+            </div>
+          </footer>
         </div>
       `;
 
@@ -93,19 +132,30 @@ test.describe("Global PFM UX benchmark", () => {
         parseRgb(getComputedStyle(element(selector)).color);
       const background = (selector: string) =>
         parseRgb(getComputedStyle(element(selector)).backgroundColor);
-
-      const canvas = background(".landing-page.lp-root");
-      const nav = background(".lp-nav");
-      const navCta = background(".landing-nav-cta");
-      const heroCta = background(".lp-hero-ctas .cta-primary");
+      const ratio = (foregroundSelector: string, backgroundSelector: string) =>
+        contrast(color(foregroundSelector), background(backgroundSelector));
 
       const measurements = {
-        title: contrast(color(".lp-hero-title"), canvas),
-        lead: contrast(color(".lp-hero-lead"), canvas),
-        navBrand: contrast(color(".lp-nav .brand"), nav),
-        navPrimary: contrast(color(".landing-nav-cta"), navCta),
-        heroPrimary: contrast(color(".lp-hero-ctas .cta-primary"), heroCta),
-        navSurfaceLuminance: luminance(nav),
+        title: ratio(".lp-hero-title", ".landing-page.lp-root"),
+        lead: ratio(".lp-hero-lead", ".landing-page.lp-root"),
+        navBrand: ratio(".lp-nav .brand", ".lp-nav"),
+        navPrimary: ratio(".landing-nav-cta", ".landing-nav-cta"),
+        heroPrimary: ratio(".lp-hero-ctas .cta-primary", ".lp-hero-ctas .cta-primary"),
+        sectionTitle: ratio(".lp-section-intro h2", ".landing-page.lp-root"),
+        sectionCopy: ratio(".lp-section-intro > p:last-child", ".landing-page.lp-root"),
+        featureTitle: ratio(".lp-feature-grid h3", ".lp-feature-grid li"),
+        featureCopy: ratio(".lp-feature-grid p", ".lp-feature-grid li"),
+        faqSummary: ratio(".lp-faq-item summary", ".lp-faq-item"),
+        faqCopy: ratio(".lp-faq-item p", ".lp-faq-item"),
+        ctaTitle: ratio(".lp-cta h2", ".lp-cta"),
+        ctaCopy: ratio(".lp-cta > p", ".lp-cta"),
+        ctaPrimary: ratio(".lp-cta .cta-primary", ".lp-cta .cta-primary"),
+        footerBrand: ratio(".lp-footer .brand", ".lp-footer"),
+        footerLink: ratio(".landing-footer-links a", ".lp-footer"),
+        footerCopy: ratio(".landing-footer-inner > p", ".lp-footer"),
+        navSurfaceLuminance: luminance(background(".lp-nav")),
+        cardSurfaceLuminance: luminance(background(".lp-feature-grid li")),
+        footerSurfaceLuminance: luminance(background(".lp-footer")),
       };
 
       root.remove();
@@ -117,7 +167,21 @@ test.describe("Global PFM UX benchmark", () => {
     expect(result.navBrand).toBeGreaterThanOrEqual(4.5);
     expect(result.navPrimary).toBeGreaterThanOrEqual(4.5);
     expect(result.heroPrimary).toBeGreaterThanOrEqual(4.5);
+    expect(result.sectionTitle).toBeGreaterThanOrEqual(7);
+    expect(result.sectionCopy).toBeGreaterThanOrEqual(4.5);
+    expect(result.featureTitle).toBeGreaterThanOrEqual(7);
+    expect(result.featureCopy).toBeGreaterThanOrEqual(4.5);
+    expect(result.faqSummary).toBeGreaterThanOrEqual(4.5);
+    expect(result.faqCopy).toBeGreaterThanOrEqual(4.5);
+    expect(result.ctaTitle).toBeGreaterThanOrEqual(7);
+    expect(result.ctaCopy).toBeGreaterThanOrEqual(4.5);
+    expect(result.ctaPrimary).toBeGreaterThanOrEqual(4.5);
+    expect(result.footerBrand).toBeGreaterThanOrEqual(7);
+    expect(result.footerLink).toBeGreaterThanOrEqual(4.5);
+    expect(result.footerCopy).toBeGreaterThanOrEqual(4.5);
     expect(result.navSurfaceLuminance).toBeLessThan(0.08);
+    expect(result.cardSurfaceLuminance).toBeLessThan(0.08);
+    expect(result.footerSurfaceLuminance).toBeLessThan(0.04);
   });
 
   test("withdraws untrusted spending advice and keeps a viewport primary action", async ({
