@@ -1,10 +1,9 @@
 -- Delete every MoneyFlow tenant row in one database transaction before the
 -- corresponding Supabase Auth identity is removed by the Edge Function.
 --
--- This function is intentionally SECURITY DEFINER because the caller is the
--- server-only service_role and the operation must bypass tenant RLS. Keep the
--- search path empty, qualify every relation, and revoke the default PUBLIC
--- execute grant immediately.
+-- This privileged function is restricted to the server-only service_role and
+-- must bypass tenant RLS. Keep the search path empty, qualify every relation,
+-- and revoke the default PUBLIC execute grant immediately.
 
 create or replace function public.purge_user_tenant_data(p_user_id uuid)
 returns bigint
