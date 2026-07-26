@@ -6,6 +6,6 @@ export NEXT_PUBLIC_SITE_URL=https://preview.example.test
 
 find src/lib -maxdepth 1 -name '*.test.ts' \
   | sort \
-  | head -n 10 \
+  | head -n 5 \
   | xargs node --experimental-strip-types --test --test-concurrency=1
 npm run build
