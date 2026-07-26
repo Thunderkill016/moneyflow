@@ -8,6 +8,7 @@ import "./auth-refresh.css";
 import "./benchmark-ux.css";
 import "./safe-to-spend-withdrawal.css";
 import "./cross-device-stabilization.css";
+import "./ai-uiux-refresh.css";
 
 /**
  * UI text — LCP critical.
