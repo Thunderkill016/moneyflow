@@ -1,0 +1,652 @@
+/*
+ * MoneyFlow AI-assisted UI/UX refresh — Calm Ledger direction.
+ *
+ * Loaded after the existing product and responsive layers. This file changes
+ * visual hierarchy only; finance calculations and the temporary withdrawal of
+ * the unproven safe-to-spend card remain untouched.
+ */
+
+:root {
+  --aiux-page-max: 1180px;
+  --aiux-surface: #ffffff;
+  --aiux-surface-soft: #f4f7f5;
+  --aiux-surface-quiet: #eef3f0;
+  --aiux-line: #d8e2dc;
+  --aiux-line-strong: #bdcbc2;
+  --aiux-ink: #102018;
+  --aiux-muted: #53645a;
+  --aiux-muted-quiet: #75837b;
+  --aiux-brand: #12633c;
+  --aiux-brand-strong: #0b4a2b;
+  --aiux-brand-soft: #e7f2eb;
+  --aiux-radius-card: 20px;
+  --aiux-radius-control: 12px;
+  --aiux-shadow-card: 0 1px 2px rgb(15 31 22 / 4%), 0 10px 28px rgb(15 31 22 / 5%);
+}
+
+[data-theme="dark"] {
+  --aiux-surface: #181b19;
+  --aiux-surface-soft: #121513;
+  --aiux-surface-quiet: #202521;
+  --aiux-line: #303a33;
+  --aiux-line-strong: #445047;
+  --aiux-ink: #eef4f0;
+  --aiux-muted: #b5c0b9;
+  --aiux-muted-quiet: #8f9c94;
+  --aiux-brand: #4ade80;
+  --aiux-brand-strong: #22c55e;
+  --aiux-brand-soft: #12301f;
+  --aiux-shadow-card: 0 1px 2px rgb(0 0 0 / 24%), 0 14px 34px rgb(0 0 0 / 22%);
+}
+
+/* Product shell: quiet canvas, precise surfaces, fewer decorative shadows. */
+.app-shell {
+  background:
+    linear-gradient(180deg, rgb(231 242 235 / 55%) 0, transparent 260px),
+    var(--color-bg-secondary) !important;
+}
+
+[data-theme="dark"] .app-shell {
+  background:
+    linear-gradient(180deg, rgb(20 74 44 / 18%) 0, transparent 260px),
+    var(--color-bg-primary) !important;
+}
+
+.sidebar {
+  border-right-color: var(--aiux-line) !important;
+  box-shadow: 8px 0 28px rgb(15 31 22 / 3%) !important;
+}
+
+.sidebar nav a.active,
+.sidebar nav button.active,
+.sidebar-bottom > a.active {
+  box-shadow: inset 3px 0 0 var(--aiux-brand) !important;
+}
+
+.topbar {
+  border-bottom-color: var(--aiux-line) !important;
+  box-shadow: 0 1px 0 rgb(15 31 22 / 3%) !important;
+}
+
+/* On Insights the in-page action owns the hierarchy; avoid two desktop primary CTAs. */
+@supports selector(body:has(.insights-dashboard)) {
+  body:has(.insights-dashboard) .topbar .desktop-add {
+    display: none !important;
+  }
+}
+
+/* Dashboard rhythm */
+.insights-dashboard {
+  width: min(var(--aiux-page-max), 100%) !important;
+  display: grid;
+  gap: 20px;
+  padding-top: 28px !important;
+}
+
+.insights-dashboard > * {
+  min-width: 0;
+  margin-block: 0 !important;
+}
+
+.insights-dashboard .welcome-row {
+  align-items: end !important;
+  gap: 24px !important;
+  padding-bottom: 4px;
+}
+
+.insights-dashboard .welcome-row .eyebrow {
+  margin-bottom: 6px;
+  color: var(--aiux-brand) !important;
+  font-size: 11px !important;
+  font-weight: 760 !important;
+  letter-spacing: 0.09em !important;
+  text-transform: uppercase;
+}
+
+.insights-dashboard .welcome-row h1 {
+  color: var(--aiux-ink) !important;
+  font-size: clamp(28px, 3vw, 36px) !important;
+  font-weight: 760 !important;
+  letter-spacing: -0.045em !important;
+}
+
+.insights-dashboard .welcome-row > div > p:last-child {
+  max-width: 620px;
+  color: var(--aiux-muted) !important;
+  font-size: 14px !important;
+  line-height: 1.55;
+}
+
+.insights-dashboard .welcome-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.insights-dashboard .date-pill {
+  min-height: 42px;
+  border: 1px solid var(--aiux-line) !important;
+  border-radius: var(--aiux-radius-control) !important;
+  background: var(--aiux-surface-soft) !important;
+  padding-inline: 13px !important;
+  color: var(--aiux-muted) !important;
+  font-size: 12px;
+  font-weight: 680;
+}
+
+.insights-dashboard .welcome-actions :is(.primary-button, .secondary-button) {
+  min-height: 42px !important;
+  border-radius: var(--aiux-radius-control) !important;
+  box-shadow: none !important;
+}
+
+.insights-dashboard .welcome-actions .primary-button {
+  background: var(--aiux-brand) !important;
+}
+
+.insights-dashboard .welcome-actions .primary-button:hover {
+  background: var(--aiux-brand-strong) !important;
+}
+
+/* Calm attention: obvious enough to act, never styled like an emergency banner. */
+.insights-dashboard .attention-strip {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #e3d6aa !important;
+  border-radius: 16px !important;
+  background: #fffaf0 !important;
+  padding: 12px 14px !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .insights-dashboard .attention-strip {
+  border-color: #59491e !important;
+  background: #292313 !important;
+}
+
+.insights-dashboard .attention-strip-label {
+  margin: 0 !important;
+  color: #765b05 !important;
+  font-size: 11px !important;
+  font-weight: 780 !important;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .insights-dashboard .attention-strip-label {
+  color: #f5d66f !important;
+}
+
+.insights-dashboard .attention-strip-list {
+  min-width: 0;
+  display: flex !important;
+  gap: 8px !important;
+  overflow-x: auto;
+  padding: 0 0 2px !important;
+  scrollbar-width: thin;
+}
+
+.insights-dashboard .attention-chip {
+  min-height: 38px !important;
+  border: 1px solid rgb(118 91 5 / 16%) !important;
+  border-radius: 999px !important;
+  background: rgb(255 255 255 / 68%) !important;
+  padding-inline: 12px !important;
+  color: #4f420f !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .insights-dashboard .attention-chip {
+  border-color: rgb(245 214 111 / 18%) !important;
+  background: rgb(255 255 255 / 6%) !important;
+  color: #f7e6ad !important;
+}
+
+/* Financial hierarchy: one dominant balance card, three contextual cards. */
+.insights-dashboard .insights-kpi {
+  display: grid !important;
+  grid-template-columns: minmax(250px, 1.45fr) repeat(3, minmax(0, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.insights-dashboard .insights-kpi article {
+  min-height: 126px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid var(--aiux-line) !important;
+  border-radius: var(--aiux-radius-card) !important;
+  background: var(--aiux-surface) !important;
+  padding: 18px !important;
+  box-shadow: var(--aiux-shadow-card) !important;
+}
+
+.insights-dashboard .insights-kpi article:hover {
+  border-color: var(--aiux-line-strong) !important;
+  box-shadow: var(--aiux-shadow-card) !important;
+}
+
+.insights-dashboard .insights-kpi article:first-child {
+  position: relative;
+  overflow: hidden;
+  border-color: transparent !important;
+  background:
+    radial-gradient(circle at 100% 0, rgb(105 212 149 / 22%), transparent 48%),
+    linear-gradient(135deg, #0b4227 0%, #12633c 58%, #19754a 100%) !important;
+  color: white !important;
+  box-shadow: 0 18px 42px rgb(11 66 39 / 18%) !important;
+}
+
+.insights-dashboard .insights-kpi article:first-child::before {
+  content: "";
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  right: -48px;
+  bottom: -56px;
+  border: 20px solid rgb(255 255 255 / 7%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.insights-dashboard .insights-kpi article > span {
+  color: var(--aiux-muted) !important;
+  font-size: 11px !important;
+  font-weight: 760 !important;
+  letter-spacing: 0.065em !important;
+  text-transform: uppercase;
+}
+
+.insights-dashboard .insights-kpi article:first-child > span,
+.insights-dashboard .insights-kpi article:first-child > small {
+  color: rgb(255 255 255 / 78%) !important;
+}
+
+.insights-dashboard .insights-kpi strong {
+  overflow-wrap: anywhere;
+  margin-top: auto !important;
+  color: var(--aiux-ink);
+  font-size: clamp(20px, 2vw, 25px) !important;
+  font-weight: 760 !important;
+  letter-spacing: -0.035em;
+}
+
+.insights-dashboard .insights-kpi article:first-child strong {
+  color: white !important;
+  font-size: clamp(27px, 3vw, 38px) !important;
+}
+
+.insights-dashboard .insights-kpi small {
+  margin-top: 8px !important;
+  color: var(--aiux-muted-quiet) !important;
+  font-size: 12px !important;
+  line-height: 1.4;
+}
+
+.insights-dashboard .insights-kpi article:nth-child(2) {
+  box-shadow: inset 0 3px 0 var(--color-success-default), var(--aiux-shadow-card) !important;
+}
+
+.insights-dashboard .insights-kpi article:nth-child(3) {
+  box-shadow: inset 0 3px 0 var(--color-danger-default), var(--aiux-shadow-card) !important;
+}
+
+.insights-dashboard .insights-kpi article:nth-child(4) {
+  box-shadow: inset 0 3px 0 var(--color-info-default), var(--aiux-shadow-card) !important;
+}
+
+/* Planning becomes a clear action rail instead of another dashboard report. */
+.insights-dashboard .insights-planning-nav {
+  border: 1px solid var(--aiux-line) !important;
+  border-radius: var(--aiux-radius-card) !important;
+  background: var(--aiux-surface) !important;
+  padding: 16px !important;
+  box-shadow: none !important;
+}
+
+.insights-dashboard .insights-planning-label {
+  margin: 0 0 10px !important;
+  color: var(--aiux-muted) !important;
+  font-size: 11px !important;
+  font-weight: 760 !important;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.insights-dashboard .insights-planning-nav ul {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.insights-dashboard .insights-planning-link {
+  min-height: 68px !important;
+  border: 1px solid transparent !important;
+  border-radius: 14px !important;
+  background: var(--aiux-surface-soft) !important;
+  padding: 12px !important;
+  color: var(--aiux-ink) !important;
+}
+
+.insights-dashboard .insights-planning-link:hover {
+  border-color: var(--aiux-line-strong) !important;
+  background: var(--aiux-brand-soft) !important;
+}
+
+.insights-dashboard .insights-planning-link > svg:first-child {
+  color: var(--aiux-brand) !important;
+}
+
+.insights-dashboard .insights-planning-link strong {
+  font-size: 13px !important;
+}
+
+.insights-dashboard .insights-planning-link small {
+  margin-top: 3px;
+  color: var(--aiux-muted) !important;
+  font-size: 11px !important;
+  line-height: 1.35;
+}
+
+/* Detail area: fewer floating boxes, stronger grouping. */
+.insights-dashboard .insights-main-grid {
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.72fr) !important;
+  gap: 16px !important;
+  align-items: start;
+}
+
+.insights-dashboard :is(.insights-main-stack, .right-stack) {
+  gap: 16px !important;
+}
+
+.insights-dashboard :is(.panel, .insight-panel) {
+  border: 1px solid var(--aiux-line) !important;
+  border-radius: var(--aiux-radius-card) !important;
+  background: var(--aiux-surface) !important;
+  box-shadow: none !important;
+}
+
+.insights-dashboard :is(.panel, .insight-panel):hover {
+  border-color: var(--aiux-line-strong) !important;
+  box-shadow: none !important;
+}
+
+.insights-dashboard .section-heading {
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--aiux-line);
+}
+
+.insights-dashboard .section-heading h2 {
+  color: var(--aiux-ink) !important;
+  font-size: 17px !important;
+  font-weight: 740 !important;
+  letter-spacing: -0.02em;
+}
+
+.insights-dashboard .section-heading p {
+  margin-top: 4px !important;
+  color: var(--aiux-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+
+.insights-dashboard .section-link {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 10px;
+  padding-inline: 10px;
+  color: var(--aiux-brand) !important;
+  font-size: 12px !important;
+  font-weight: 680;
+}
+
+.insights-dashboard .section-link:hover {
+  background: var(--aiux-brand-soft);
+}
+
+.insights-dashboard .insights-category-row {
+  border-color: transparent !important;
+  background: transparent !important;
+  padding: 10px 0 !important;
+}
+
+.insights-dashboard .insights-category-row + .insights-category-row {
+  border-top: 1px solid var(--aiux-line) !important;
+}
+
+.insights-dashboard .insights-category-bar {
+  height: 6px !important;
+  background: var(--aiux-surface-quiet) !important;
+}
+
+.insights-dashboard .transaction-row {
+  min-height: 64px;
+  border-radius: 12px !important;
+  padding-inline: 6px !important;
+}
+
+.insights-dashboard .transaction-row + .transaction-row {
+  border-top-color: var(--aiux-line) !important;
+}
+
+.insights-dashboard .transaction-detail strong {
+  color: var(--aiux-ink) !important;
+  font-size: 13px !important;
+}
+
+.insights-dashboard .transaction-detail small,
+.insights-dashboard .transaction-time {
+  color: var(--aiux-muted-quiet) !important;
+  font-size: 11px !important;
+}
+
+.insights-dashboard .insight-panel {
+  grid-template-columns: 40px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  padding: 18px !important;
+}
+
+.insights-dashboard .insight-panel h2 {
+  color: var(--aiux-ink) !important;
+  font-size: 16px !important;
+  line-height: 1.35;
+}
+
+.insights-dashboard .insight-panel p {
+  color: var(--aiux-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.45;
+}
+
+@media (max-width: 1120px) and (min-width: 761px) {
+  .insights-dashboard .insights-kpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .insights-dashboard .insights-kpi article:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .insights-dashboard .insights-kpi article:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+
+  .insights-dashboard .insights-planning-nav ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .insights-dashboard .insights-main-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .insights-dashboard .right-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .insights-dashboard {
+    gap: 16px;
+    padding-top: 18px !important;
+  }
+
+  .insights-dashboard .welcome-row {
+    gap: 12px !important;
+    padding-bottom: 0;
+  }
+
+  .insights-dashboard .welcome-row h1 {
+    font-size: 27px !important;
+  }
+
+  .insights-dashboard .welcome-row > div > p:last-child {
+    margin-top: 6px !important;
+    font-size: 13px !important;
+  }
+
+  .insights-dashboard .welcome-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 8px !important;
+  }
+
+  .insights-dashboard .welcome-actions .insights-ghi-chi {
+    display: none !important;
+  }
+
+  .insights-dashboard .welcome-actions .date-pill {
+    display: none !important;
+  }
+
+  .insights-dashboard .welcome-actions .insights-export-csv {
+    width: max-content;
+    min-height: 40px !important;
+    justify-self: start;
+    padding-inline: 12px !important;
+  }
+
+  .insights-dashboard .attention-strip {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: 12px !important;
+  }
+
+  .insights-dashboard .attention-strip-list {
+    margin-inline: -2px;
+  }
+
+  .insights-dashboard .insights-kpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .insights-dashboard .insights-kpi article {
+    min-height: 112px !important;
+    border-radius: 16px !important;
+    padding: 14px !important;
+  }
+
+  .insights-dashboard .insights-kpi article:first-child {
+    grid-column: 1 / -1;
+    min-height: 144px !important;
+  }
+
+  .insights-dashboard .insights-kpi article:nth-child(4) {
+    grid-column: 1 / -1;
+    min-height: 104px !important;
+  }
+
+  .insights-dashboard .insights-kpi article:first-child strong {
+    font-size: clamp(29px, 9vw, 38px) !important;
+  }
+
+  .insights-dashboard .insights-kpi strong {
+    font-size: clamp(17px, 5vw, 21px) !important;
+  }
+
+  .insights-dashboard .insights-planning-nav {
+    overflow: hidden;
+    padding: 12px !important;
+  }
+
+  .insights-dashboard .insights-planning-nav ul {
+    grid-template-columns: none !important;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 82vw);
+    gap: 8px !important;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+
+  .insights-dashboard .insights-planning-nav li {
+    scroll-snap-align: start;
+  }
+
+  .insights-dashboard .insights-planning-link {
+    min-height: 66px !important;
+  }
+
+  .insights-dashboard .insights-main-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .insights-dashboard :is(.insights-main-stack, .right-stack) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .insights-dashboard :is(.panel, .insight-panel) {
+    border-radius: 16px !important;
+  }
+
+  .insights-dashboard .section-heading {
+    align-items: flex-start !important;
+  }
+
+  .insights-dashboard .section-heading p {
+    max-width: 26rem;
+  }
+
+  .insights-dashboard .transaction-row {
+    grid-template-columns: 38px minmax(0, 1fr) auto !important;
+  }
+
+  .insights-dashboard .transaction-time {
+    display: none !important;
+  }
+}
+
+@media (max-width: 350px) {
+  .insights-dashboard .insights-kpi {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .insights-dashboard .insights-kpi article,
+  .insights-dashboard .insights-kpi article:first-child,
+  .insights-dashboard .insights-kpi article:nth-child(4) {
+    grid-column: auto;
+  }
+
+  .insights-dashboard .welcome-actions {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insights-dashboard *,
+  .insights-dashboard *::before,
+  .insights-dashboard *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
