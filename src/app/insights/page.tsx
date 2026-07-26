@@ -7,6 +7,7 @@ import { getCommitmentsWorkspace } from "@/server/commitments";
 import { getGoalsWorkspace } from "@/server/goals";
 import { getIncomeTemplatesWorkspace } from "@/server/income-templates";
 import "./calm-ledger-overview.css";
+import "./calm-ledger-overview-actions.css";
 
 export const metadata: Metadata = {
   title: "Tổng quan — MoneyFlow",
