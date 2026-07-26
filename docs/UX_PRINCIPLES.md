@@ -1,5 +1,7 @@
 # MoneyFlow — UX Principles
 
+> **Current product note (2026):** MoneyFlow is a manual-first ledger. The signed-in home is Tổng quan (`/insights`); Hộp thư is an import-review queue. Safe-to-spend and daily spending advice are withdrawn. [Calm Ledger v2](./design/CALM_LEDGER_V2.md) controls the active redesign where older research below conflicts.
+
 > This document defines the UX philosophy, design principles, and interaction patterns for MoneyFlow.
 > Every design and implementation decision must be traceable to a principle in this document.
 > This is the **law** — not a suggestion.
@@ -37,7 +39,7 @@
 
 MoneyFlow is a **personal income & expense (thu chi)** web app for Vietnamese users:
 
-1. **Decision:** *Hôm nay mình có thể chi bao nhiêu?* — safe-to-spend on Insights home.  
+1. **Decision:** *Số dư và dòng tiền tháng này đang ra sao?* — observed overview on Insights home.  
 2. **Capture:** *Ghi thu/chi trong vài giây* — FAB / dialog / quick add (&lt; 10s).  
 3. **Clarity:** *Tháng này tiền đi đâu?* — KPI + top categories + reports.  
 4. **Ownership:** *Data của mình* — export CSV, privacy, delete account.
@@ -66,7 +68,7 @@ MoneyFlow follows "Calm Finance" — financial tools should reduce anxiety, not 
 
 When a user opens MoneyFlow:
 
-1. **Còn chi được bao nhiêu hôm nay?** — Safe-to-spend hero on Insights.
+1. **Hiện có bao nhiêu và tháng này thay đổi ra sao?** — observed balance and cash-flow hierarchy on Insights.
 2. **Cần chú ý gì?** — Attention strip (budget near, bills due) — Copilot pattern.
 3. **Ghi chi nhanh** — FAB / primary action ≤ 2 taps.
 4. **Thu / chi / số dư tháng** — KPI row; top categories.
@@ -78,7 +80,7 @@ Charts are secondary. **Insights + ghi chi are primary; Inbox is lab.**
 
 Every critical action must complete within 3 seconds:
 - Log an expense or income: < 3 seconds (target &lt; 10s end-to-end including category)
-- Check safe-to-spend: < 1 second (visible on launch when data exists)
+- Check current balance and monthly inflow/outflow: < 1 second when data exists
 - Check account balance: < 2 seconds
 - Pay a recurring bill: < 3 seconds
 
@@ -103,7 +105,7 @@ Every critical action must complete within 3 seconds:
 
 #### 2.1 Information Hierarchy
 
-- **Primary**: The single most important metric (safe-to-spend) dominates the viewport.
+- **Primary**: The current total balance dominates the viewport; monthly inflow/outflow provides context.
 - **Secondary**: Supporting metrics (total balance, monthly budget remaining) are visible but smaller.
 - **Tertiary**: Details (transaction list, category breakdown) require a scroll or tap.
 - Never present all information at equal weight. Hierarchy reduces cognitive load.
@@ -212,7 +214,7 @@ All premium fintech products follow a variation of this hierarchy:
 
 ### MoneyFlow Dashboard Hierarchy
 
-1. **Hero: "Có thể chi hôm nay"** — Largest text on the page. Formatted as currency. Visible without scrolling on any device.
+1. **Hero: "Số dư tổng"** — Largest money value on the page. It is observed ledger data, visible without scrolling.
 2. **Supporting KPIs**: Tổng số dư | Chi tháng này | Ngân sách còn lại — Displayed as cards in a horizontal scroll (mobile) or row (desktop).
 3. **Alerts**: Upcoming bills due, budget overspending, goal milestones — Only shown when relevant. Never show an empty alert section.
 4. **Trend**: Simple sparkline or mini bar chart showing spending vs income for the current month.
@@ -586,7 +588,7 @@ Every empty state must contain exactly three things:
 
 | Token | Size | Weight | Line Height | Usage |
 |-------|------|--------|-------------|-------|
-| `display-lg` | 36px / 2.25rem | 700 | 1.2 | Hero metric (safe-to-spend) |
+| `display-lg` | 36px / 2.25rem | 700 | 1.2 | Hero metric (current balance) |
 | `display-sm` | 28px / 1.75rem | 600 | 1.25 | Page titles |
 | `heading-lg` | 22px / 1.375rem | 600 | 1.3 | Section headings |
 | `heading-sm` | 18px / 1.125rem | 600 | 1.35 | Card titles |
@@ -691,11 +693,11 @@ Colors are defined as **semantic tokens**, not raw values. This enables dark mod
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `accent` | #3B82F6 (Blue-500) | Primary buttons, active states, links |
-| `accent-hover` | #2563EB (Blue-600) | Button hover |
-| `accent-subtle` | #EFF6FF (Blue-50) | Badge backgrounds, highlights |
+| `accent` | #0B6B3A | Primary buttons, active states, links |
+| `accent-hover` | #075A30 | Button hover |
+| `accent-subtle` | #E6F4EB | Badge backgrounds, highlights |
 
-One accent color only. Blue communicates trust, stability, and reliability — critical for financial apps.
+One brand accent only. MoneyFlow green identifies the product and primary actions; semantic income uses a separate token.
 
 #### Semantic Colors
 
@@ -713,7 +715,7 @@ One accent color only. Blue communicates trust, stability, and reliability — c
 ### Color Rules
 
 1. **Neutral dominates.** 80%+ of any screen should be neutral colors.
-2. **One accent color only.** Blue. Used for: primary buttons, active nav items, links.
+2. **One brand accent only.** Green. Used for primary buttons, active navigation and links; never as the only income signal.
 3. **Semantic colors are functional.** Green = positive money. Red = negative money. Never decorative.
 4. **Never combine red + green** as the only differentiator. Always pair with ↑↓ icons and +/- signs.
 5. **Dark mode is not inverted light mode.** Carefully calibrated contrast levels. Deep grays (#0A0A0B), never pure black (#000).
@@ -853,7 +855,7 @@ These rules are **non-negotiable** for any financial application.
 3. **Consistency**: Same number displayed the same way everywhere. If total is `5.000.000 ₫` on dashboard, it's `5.000.000 ₫` in account detail.
 4. **Auditability**: Every transaction can be traced. Edit history visible.
 5. **Reversibility**: Undo/archive over delete. Recovery possible.
-6. **Explainability**: "Có thể chi hôm nay" shows tooltip/breakdown explaining the calculation.
+6. **Explainability**: Every summary states its period, source and exclusions such as internal transfers.
 7. **No dark patterns**: Never auto-enable notifications. Never hide unsubscribe. Never gamify spending.
 8. **Data ownership**: User can export all data (CSV). Data deletion is available and permanent.
 
@@ -945,7 +947,7 @@ For daily reference during implementation:
 
 ```
 FONTS:       Inter (UI) + JetBrains Mono / Geist Mono (numbers)
-ACCENT:      #3B82F6 (Blue-500) — one color only
+ACCENT:      #0B6B3A light / #4AD58A dark — one brand accent
 SPACING:     4px base, 8px standard, 16px cards, 32px sections
 RADIUS:      4px chips, 8px buttons, 12px cards, 16px sheets
 MOTION:      100-150ms micro, 200-300ms state, ease-out enter, ease-in exit
