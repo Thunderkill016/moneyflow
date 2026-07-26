@@ -3,30 +3,39 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
-const authLayout = readFileSync("src/app/(auth)/layout.tsx", "utf8");
-const refresh = readFileSync("src/app/auth-refresh.css", "utf8");
 const authForm = readFileSync("src/components/auth-form.tsx", "utf8");
+const authStyles = readFileSync("src/components/auth-form.module.css", "utf8");
+const tokens = readFileSync("src/app/calm-ledger-tokens.css", "utf8");
 
-test("authentication refresh is loaded by the root layout for production stability", () => {
-  assert.match(rootLayout, /import "\.\/auth-refresh\.css"/);
-  assert.doesNotMatch(authLayout, /auth-refresh\.css/);
+test("authentication uses the Calm Ledger module instead of a global patch", () => {
+  assert.doesNotMatch(rootLayout, /auth-refresh\.css/);
+  assert.match(authForm, /auth-form\.module\.css/);
+  assert.match(rootLayout, /calm-ledger-tokens\.css/);
 });
 
-test("login refresh preserves Google and password authentication controls", () => {
+test("authentication preserves Google and password controls", () => {
   assert.match(authForm, /form action=\{signInWithGoogle\}/);
-  assert.match(authForm, /className="google-button"/);
+  assert.match(authForm, /styles\.googleButton/);
   assert.match(authForm, /name="email"/);
   assert.match(authForm, /name="password"/);
-  assert.match(authForm, /autoComplete=\{mode === "login" \? "current-password" : "new-password"\}/);
+  assert.match(
+    authForm,
+    /mode === "login" \? "current-password" : "new-password"/,
+  );
   assert.match(authForm, /href="\/forgot-password"/);
 });
 
-test("authentication refresh is mobile, dark-mode and reduced-motion aware", () => {
-  assert.match(refresh, /\.auth-page\s*\{/);
-  assert.match(refresh, /\.google-button\s*\{/);
-  assert.match(refresh, /\.auth-form input:not\(\[type="checkbox"\]\)/);
-  assert.match(refresh, /\[data-theme="dark"\] \.auth-card/);
-  assert.match(refresh, /@media \(max-width: 760px\)/);
-  assert.match(refresh, /min-height:\s*52px !important/);
-  assert.match(refresh, /@media \(prefers-reduced-motion: reduce\)/);
+test("auth copy does not restore a spending recommendation", () => {
+  assert.doesNotMatch(authForm, /hôm nay bạn có thể chi bao nhiêu/i);
+  assert.doesNotMatch(authForm, /có thể chi hôm nay/i);
+  assert.match(authForm, /Chuyển ví không tính là chi/);
+});
+
+test("authentication is responsive, themed and motion accessible", () => {
+  assert.match(authStyles, /min-height:\s*100svh/);
+  assert.match(authStyles, /@media \(max-width: 760px\)/);
+  assert.match(authStyles, /min-height:\s*48px/);
+  assert.match(authStyles, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(tokens, /\[data-theme="dark"\]/);
+  assert.doesNotMatch(authStyles, /!important/);
 });
