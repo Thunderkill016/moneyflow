@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 /**
  * TASK-200 / TASK-116 — Core expense path always green (demo mode).
  *
- * Flow: landing → demo app → quick-add expense → insights shows ledger amount → export download.
+ * Flow: landing → register surface → demo app → quick-add expense → insights → export download.
  * Does not depend on Inbox / paste / candidates.
  * Runs against Playwright webServer with explicit demo mode.
  * Fail CI if broken: `npm run test:e2e`
@@ -31,21 +31,22 @@ test.describe("Expense path (thu chi)", () => {
     });
   });
 
-  test("landing → demo → quick add expense → insights → export download", async ({
+  test("landing → register → quick add expense → insights → export download", async ({
     page,
   }) => {
     // 1) Public landing promises only proven thu-chi behavior.
     await page.goto("/landing");
     await expect(
-      page.getByRole("heading", { name: /Ghi thu chi rõ ràng/i }),
+      page.getByRole("heading", { name: /Ghi thu chi trong vài giây/i }),
     ).toBeVisible();
-    await expect(page.locator(".landing-eyebrow")).toHaveText(
-      /Quản lý thu chi cá nhân/i,
-    );
-    const trustBar = page.locator(".landing-trust-bar").first();
-    await expect(trustBar).toBeVisible();
-    await expect(trustBar).toContainText(/Không mật khẩu NH/i);
-    await expect(trustBar).toContainText(/Xuất CSV/i);
+    await expect(page.getByText("Sổ thu chi cá nhân", { exact: true })).toBeVisible();
+    const trustList = page.getByRole("list", {
+      name: "Cam kết của MoneyFlow",
+    });
+    await expect(trustList).toBeVisible();
+    await expect(trustList).toContainText(/Không cần mật khẩu ngân hàng/i);
+    await expect(trustList).toContainText(/Xuất dữ liệu bất cứ lúc nào/i);
+    await expect(trustList).toContainText(/Chuyển ví không tính là chi/i);
 
     // 2) Enter app via register CTA; demo mode unlocks app without auth.
     await page.getByRole("link", { name: "Bắt đầu miễn phí" }).first().click();
