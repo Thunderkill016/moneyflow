@@ -78,6 +78,8 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
+      - name: Project knowledge contract
+        run: npm run check:knowledge
       - name: Deployment configuration contract
         run: npm run check:deployment-env
       - name: Lint
