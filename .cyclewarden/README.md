@@ -17,17 +17,20 @@ It does not replace MoneyFlow's existing product, architecture, issue, test, or 
 
 ## Current result
 
-The active task is `MFVN-001`: complete the final manual readiness gates tracked by issue #27.
+The active task is `MFVN-003`: implement the bounded Calm Ledger foundation and landing/auth slice from issue #81.
 
-This is not an implementation task for a coding agent. It requires the owner to use:
+The owner confirmed that all three manual readiness gates passed. The proposed seven-consecutive-day self-use gate was not marked complete; it was explicitly dropped by the owner as unnecessary after real use.
 
-- an inbox they control for the production email callback;
-- a normal spreadsheet application for synthetic CSV verification;
-- a physical phone for the transaction-form keyboard check.
+The later redesign slices remain dependency-bound:
 
-CycleWarden must not simulate those checks or mark them complete.
+```text
+MFVN-003 foundation + landing/auth     active
+→ MFVN-004 daily flows                 blocked
+→ MFVN-005 planning + settings         blocked
+→ MFVN-006 cross-device acceptance     blocked
+```
 
-The Calm Ledger redesign in issue #81 is represented as later dependency-bound slices. It is not the next task while issue #27 and the following seven-day self-use period remain incomplete.
+A coding agent must complete and verify `MFVN-003` before starting the later slices.
 
 ## One-active-task rule
 
@@ -35,11 +38,13 @@ The Calm Ledger redesign in issue #81 is represented as later dependency-bound s
 
 A task may become ready or active only when every ID in `dependsOn` has status `done`. A new idea may be recorded as proposed or blocked, but it must not silently replace the active task.
 
+A dropped gate is recorded as `dropped`, not falsely reported as `done`. Later dependencies must be updated explicitly when the owner changes the project contract.
+
 ## Pilot value being tested
 
-`AGENTS.md` explains how an agent should work inside the repository. This pilot tests a different responsibility: preserving project-level sequencing and making unfinished dependencies visible across sessions.
+`AGENTS.md` explains how an agent should work inside the repository. This pilot tests a different responsibility: preserving project-level sequencing and making owner decisions and unfinished dependencies visible across sessions.
 
-The concrete value observed in this adoption is that a broad redesign request exists, but the current readiness contract explicitly forbids new feature work. The project-state model makes that constraint visible to `next` selection instead of allowing an agent to follow the newest or largest issue.
+The first observed value was preventing an agent from jumping to the broad redesign before real readiness checks. The next test is whether the same state model keeps the redesign itself bounded to one accepted slice at a time.
 
 ## Safety
 
