@@ -8,5 +8,5 @@
       "design/calm-ledger-daily-shell": true
     }
   },
-  "buildCommand": "bash ./scripts/preview-verify.sh"
+  "buildCommand": "bash scripts/preview-verify.sh"
 }
