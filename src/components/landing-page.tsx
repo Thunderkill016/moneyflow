@@ -2,16 +2,13 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 
 /**
- * Landing rebuild — structure inspired by top open-source templates
- * (MIT patterns only, original MoneyFlow content):
- * - nobruf/shadcn-landing-page: centered hero, badge, product glow, numbered benefits, FAQ
- * - nextjs/saas-starter: bold outcome H1, clear primary CTA hierarchy
- * Product law G5. Server Component (RSC) for LCP.
+ * Public product page. Copy must only promise behavior already proven in the
+ * product. A numeric safe-to-spend claim remains withdrawn until MoneyFlow has
+ * a validated monthly-plan or next-payday planning contract.
  */
 export function LandingPage() {
   return (
     <div className="landing-page lp-root">
-      {/* —— Nav (shadcn template style: logo + actions) —— */}
       <nav className="landing-nav lp-nav" aria-label="Điều hướng trang chủ">
         <Link className="brand" href="/" aria-label="MoneyFlow, trang chủ">
           <span className="brand-mark">
@@ -29,7 +26,6 @@ export function LandingPage() {
         </div>
       </nav>
 
-      {/* —— Hero CENTERED (shadcn-landing hero pattern) —— */}
       <header className="lp-hero">
         <div className="lp-hero-inner">
           <p className="landing-eyebrow lp-badge">
@@ -38,14 +34,13 @@ export function LandingPage() {
           </p>
 
           <h1 className="landing-hero-title lp-hero-title">
-            Biết hôm nay
-            <span className="lp-hero-gradient"> có thể chi bao nhiêu</span>
+            Ghi thu chi rõ ràng,
+            <span className="lp-hero-gradient"> biết tiền đi đâu</span>
           </h1>
 
           <p className="landing-lead lp-hero-lead">
-            Ghi thu chi trong vài giây, theo dõi nhiều ví, thấy rõ tháng này tiền đi đâu.{" "}
-            <strong>Bình tĩnh, rõ ràng</strong> — không ép zero-based, không quảng cáo trong
-            luồng chính.
+            Ghi giao dịch trong vài giây, theo dõi nhiều ví và xem thu–chi theo tháng. {" "}
+            <strong>Dữ liệu quan sát được, không đoán số tiền nên tiêu.</strong>
           </p>
 
           <ul className="landing-trust-bar lp-hero-trust" aria-label="Cam kết tin cậy">
@@ -74,15 +69,14 @@ export function LandingPage() {
           </div>
         </div>
 
-        {/* Product showcase + glow (shadcn template: image under hero with blur) */}
         <div className="lp-showcase" aria-hidden="true">
           <div className="lp-showcase-glow" />
           <div className="preview-dash-card lp-showcase-card">
             <div className="preview-dash-safe">
-              <p className="preview-dash-safe-label">Có thể chi hôm nay</p>
-              <p className="preview-dash-safe-amount font-mono">392.000 ₫</p>
+              <p className="preview-dash-safe-label">Số dư trên các ví</p>
+              <p className="preview-dash-safe-amount font-mono">10.000.000 ₫</p>
               <p className="preview-dash-safe-hint">
-                Đã trừ hóa đơn giữ trước và quỹ tiết kiệm.
+                Dữ liệu sổ thu chi — không phải hạn mức được phép tiêu.
               </p>
             </div>
             <div className="preview-dash-stats">
@@ -130,7 +124,6 @@ export function LandingPage() {
         </div>
       </header>
 
-      {/* —— Proof strip (honest product truths) —— */}
       <section className="landing-proof-strip lp-proof" aria-label="Vì sao MoneyFlow">
         <ul className="landing-proof-list">
           <li>
@@ -152,14 +145,13 @@ export function LandingPage() {
         </ul>
       </section>
 
-      {/* —— Benefits numbered (shadcn benefits pattern) —— */}
       <section className="lp-section" aria-labelledby="benefits-heading">
         <div className="lp-section-split">
           <div className="lp-section-intro">
             <p className="lp-kicker">Lợi ích</p>
-            <h2 id="benefits-heading">Thu chi rõ — quyết định nhanh</h2>
+            <h2 id="benefits-heading">Thu chi rõ — quyết định từ dữ liệu thật</h2>
             <p>
-              Không biến app thành kế toán. Mỗi ngày mở ra, biết còn bao nhiêu và tiền đi đâu.
+              Không biến app thành phần mềm kế toán và không đưa lời khuyên khi dữ liệu chưa đủ.
             </p>
           </div>
           <ul className="lp-benefit-grid">
@@ -176,8 +168,8 @@ export function LandingPage() {
                 <Icon name="target" size={28} />
                 <span className="lp-benefit-num">02</span>
               </div>
-              <h3>Có thể chi hôm nay</h3>
-              <p>Một con số sau khi trừ hóa đơn giữ trước và mục tiêu — không đoán mò.</p>
+              <h3>Kế hoạch tách bạch</h3>
+              <p>Ngân sách, hóa đơn và mục tiêu hiển thị riêng; không giả làm một hạn mức toàn cục.</p>
             </li>
             <li className="lp-benefit-card">
               <div className="lp-benefit-top">
@@ -199,7 +191,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* —— How it works —— */}
       <section className="lp-section lp-section-muted" aria-labelledby="how-heading">
         <div className="lp-section-head">
           <p className="lp-kicker">Cách dùng</p>
@@ -210,32 +201,31 @@ export function LandingPage() {
           <li>
             <span className="lp-step-n">1</span>
             <h3>Thêm ví</h3>
-            <p>Tiền mặt, NH, MoMo… số dư ban đầu một lần.</p>
+            <p>Tiền mặt, ngân hàng, MoMo… nhập số dư ban đầu một lần.</p>
           </li>
           <li>
             <span className="lp-step-n">2</span>
             <h3>Ghi nhanh</h3>
-            <p>Số + danh mục. Nhớ lần trước. Dưới 10 giây.</p>
+            <p>Số tiền + danh mục. Nhớ lần trước. Dưới 10 giây.</p>
           </li>
           <li>
             <span className="lp-step-n">3</span>
             <h3>Tổng quan</h3>
-            <p>Còn bao nhiêu, thu/chi, chi nhiều nhất ở đâu.</p>
+            <p>Số dư, thu/chi, giao dịch gần đây và danh mục chi nhiều.</p>
           </li>
           <li>
             <span className="lp-step-n">4</span>
-            <h3>Ngân sách & CSV</h3>
-            <p>Hạn mức nhẹ. Export Excel khi cần.</p>
+            <h3>Lập kế hoạch</h3>
+            <p>Ngân sách, khoản định kỳ, mục tiêu và xuất CSV khi cần.</p>
           </li>
         </ol>
       </section>
 
-      {/* —— Features icon rings (shadcn features pattern) —— */}
       <section className="lp-section" aria-labelledby="features-heading">
         <div className="lp-section-head">
           <p className="lp-kicker">Tính năng</p>
           <h2 id="features-heading">Một chỗ cho thu chi hằng ngày</h2>
-          <span>Chỉ những gì bạn thật sự dùng — không phình feature.</span>
+          <span>Chỉ những gì đã hoạt động và có thể kiểm chứng.</span>
         </div>
         <ul className="lp-feature-grid">
           <li>
@@ -249,8 +239,8 @@ export function LandingPage() {
             <div className="lp-feature-icon">
               <Icon name="target" size={22} />
             </div>
-            <h3>Có thể chi hôm nay</h3>
-            <p>Safe-to-spend sau khi giữ trước hóa đơn và mục tiêu.</p>
+            <h3>Ngân sách & cam kết</h3>
+            <p>Theo dõi từng kế hoạch riêng, không suy diễn từ tổng tài sản.</p>
           </li>
           <li>
             <div className="lp-feature-icon">
@@ -264,7 +254,7 @@ export function LandingPage() {
               <Icon name="wallet" size={22} />
             </div>
             <h3>Nhiều ví thật</h3>
-            <p>Tiền mặt + NH + ví điện tử. CK không tính chi.</p>
+            <p>Tiền mặt + ngân hàng + ví điện tử. Chuyển ví không tính chi.</p>
           </li>
           <li>
             <div className="lp-feature-icon">
@@ -283,11 +273,10 @@ export function LandingPage() {
         </ul>
       </section>
 
-      {/* —— Who —— */}
       <section className="lp-section lp-section-muted" aria-labelledby="who-heading">
         <div className="lp-section-head">
           <p className="lp-kicker">Dành cho ai</p>
-          <h2 id="who-heading">Người mới, người Sheet, người từng bỏ app</h2>
+          <h2 id="who-heading">Người mới, người dùng Sheet, người từng bỏ app</h2>
         </div>
         <ul className="lp-who-grid">
           <li>
@@ -303,12 +292,11 @@ export function LandingPage() {
           <li>
             <Icon name="edit" size={24} />
             <h3>Từng bỏ app chi tiêu</h3>
-            <p>Vì nhập mệt hoặc ads. Free core, ghi nhanh.</p>
+            <p>Vì nhập mệt hoặc quảng cáo. Core miễn phí, ghi nhanh.</p>
           </li>
         </ul>
       </section>
 
-      {/* —— FAQ (native details = RSC, shadcn FAQ pattern) —— */}
       <section className="lp-section lp-faq" aria-labelledby="faq-heading">
         <div className="lp-section-head">
           <p className="lp-kicker">FAQ</p>
@@ -318,34 +306,39 @@ export function LandingPage() {
           <details className="lp-faq-item" open>
             <summary>MoneyFlow có liên kết ngân hàng không?</summary>
             <p>
-              Không (MVP). Bạn ghi chủ động — không mật khẩu NH, không open banking. Đổi lại: đơn
-              giản, ổn định, data của bạn.
+              Không trong MVP. Bạn ghi chủ động — không mật khẩu ngân hàng, không open banking.
             </p>
           </details>
           <details className="lp-faq-item">
             <summary>Chuyển tiền giữa hai ví có tính là chi không?</summary>
             <p>
-              Không. Chuyển khoản nội bộ cân hai phía và không vào tổng chi tháng — sổ không bị ảo.
+              Không. Chuyển khoản nội bộ cân hai phía và không vào tổng chi tháng.
+            </p>
+          </details>
+          <details className="lp-faq-item">
+            <summary>MoneyFlow có nói tôi nên tiêu bao nhiêu không?</summary>
+            <p>
+              Chưa. MoneyFlow chỉ hiển thị số dư, thu chi và các kế hoạch đã nhập. Một gợi ý chi tiêu
+              chỉ trở lại khi có đủ dữ liệu và phạm vi tính rõ ràng.
             </p>
           </details>
           <details className="lp-faq-item">
             <summary>Có xuất dữ liệu được không?</summary>
-            <p>Có. CSV bất cứ lúc nào từ cài đặt / tổng quan. Không lock-in.</p>
+            <p>Có. Xuất CSV bất cứ lúc nào từ cài đặt hoặc tổng quan.</p>
           </details>
           <details className="lp-faq-item">
             <summary>Có phải trả phí không?</summary>
             <p>
-              Core thu chi (ví, ghi chi, ngân sách, báo cáo, export) miễn phí. Không ads trong luồng
+              Core thu chi, ví, ngân sách, báo cáo và export miễn phí. Không quảng cáo trong luồng
               chính.
             </p>
           </details>
         </div>
       </section>
 
-      {/* —— Final CTA band —— */}
       <section className="landing-cta-band lp-cta" aria-labelledby="cta-band-heading">
         <h2 id="cta-band-heading">Bắt đầu bằng một khoản chi hôm nay</h2>
-        <p>Miễn phí core. Không học phương pháp. Không liên kết ngân hàng.</p>
+        <p>Miễn phí core. Không cần liên kết ngân hàng.</p>
         <div className="landing-cta-band-actions">
           <Link href="/register" className="cta-primary lp-btn-lg">
             Tạo tài khoản miễn phí
