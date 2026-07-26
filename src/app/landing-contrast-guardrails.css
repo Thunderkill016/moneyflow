@@ -10,15 +10,19 @@
   --lp-dark-surface: #181d1a;
   --lp-dark-surface-soft: #202622;
   --lp-dark-line: #334039;
+  --lp-dark-line-strong: #496055;
   --lp-dark-text: #f4f7f5;
   --lp-dark-muted: #b9c5bd;
   --lp-dark-brand: #72e39d;
+  --lp-dark-brand-soft: #25382d;
   background-color: var(--lp-dark-canvas) !important;
 }
 
+/* Navigation and hero */
 [data-theme="dark"] .landing-page.lp-root .lp-nav {
   border-color: var(--lp-dark-line) !important;
-  background: rgb(24 29 26 / 94%) !important;
+  background-color: var(--lp-dark-surface) !important;
+  background-image: none !important;
   box-shadow: 0 10px 34px rgb(0 0 0 / 28%) !important;
 }
 
@@ -34,7 +38,8 @@
 [data-theme="dark"] .landing-page.lp-root .lp-badge,
 [data-theme="dark"] .landing-page.lp-root .lp-hero-trust li {
   border-color: var(--lp-dark-line) !important;
-  background: rgb(24 29 26 / 90%) !important;
+  background-color: var(--lp-dark-surface) !important;
+  background-image: none !important;
   color: #dce7e0 !important;
   box-shadow: 0 6px 20px rgb(0 0 0 / 18%) !important;
 }
@@ -75,26 +80,180 @@
 [data-theme="dark"] .landing-page.lp-root .landing-nav-cta,
 [data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-primary {
   border-color: transparent !important;
-  background: #14663d !important;
+  background-color: #14663d !important;
+  background-image: none !important;
   color: #ffffff !important;
   box-shadow: 0 12px 26px rgb(0 0 0 / 28%) !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .landing-nav-cta:hover,
 [data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-primary:hover {
-  background: #19794a !important;
+  background-color: #19794a !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-secondary {
   border-color: var(--lp-dark-line) !important;
-  background: var(--lp-dark-surface-soft) !important;
+  background-color: var(--lp-dark-surface-soft) !important;
+  background-image: none !important;
   color: var(--lp-dark-text) !important;
   box-shadow: 0 8px 22px rgb(0 0 0 / 20%) !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-secondary:hover {
-  border-color: #496055 !important;
-  background: #28312c !important;
+  border-color: var(--lp-dark-line-strong) !important;
+  background-color: #28312c !important;
+}
+
+/* Section hierarchy */
+[data-theme="dark"] .landing-page.lp-root .lp-kicker {
+  color: var(--lp-dark-brand) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-section-intro h2,
+[data-theme="dark"] .landing-page.lp-root .lp-section-head h2 {
+  color: var(--lp-dark-text) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-section-intro > p,
+[data-theme="dark"] .landing-page.lp-root .lp-section-head > span {
+  color: var(--lp-dark-muted) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-section-muted {
+  border-color: var(--lp-dark-line) !important;
+  background-color: #111714 !important;
+  background-image:
+    radial-gradient(circle at 15% 50%, rgb(33 110 67 / 20%), transparent 28rem),
+    linear-gradient(180deg, #111714, #0e1411) !important;
+}
+
+/* Proof, benefits, steps, features, audiences and FAQ */
+[data-theme="dark"] .landing-page.lp-root .landing-proof-list li,
+[data-theme="dark"] .landing-page.lp-root .lp-benefit-card,
+[data-theme="dark"] .landing-page.lp-root .lp-steps li,
+[data-theme="dark"] .landing-page.lp-root .lp-feature-grid li,
+[data-theme="dark"] .landing-page.lp-root .lp-who-grid li,
+[data-theme="dark"] .landing-page.lp-root .lp-faq-item {
+  border-color: var(--lp-dark-line) !important;
+  background-color: var(--lp-dark-surface) !important;
+  background-image: none !important;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 18%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .landing-proof-list strong,
+[data-theme="dark"] .landing-page.lp-root .lp-benefit-card h3,
+[data-theme="dark"] .landing-page.lp-root .lp-steps h3,
+[data-theme="dark"] .landing-page.lp-root .lp-feature-grid h3,
+[data-theme="dark"] .landing-page.lp-root .lp-who-grid h3,
+[data-theme="dark"] .landing-page.lp-root .lp-faq-item summary {
+  color: var(--lp-dark-text) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .landing-proof-list span,
+[data-theme="dark"] .landing-page.lp-root .lp-benefit-card p,
+[data-theme="dark"] .landing-page.lp-root .lp-steps p,
+[data-theme="dark"] .landing-page.lp-root .lp-feature-grid p,
+[data-theme="dark"] .landing-page.lp-root .lp-who-grid p,
+[data-theme="dark"] .landing-page.lp-root .lp-faq-item p {
+  color: var(--lp-dark-muted) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-benefit-top svg,
+[data-theme="dark"] .landing-page.lp-root .lp-who-grid svg {
+  color: var(--lp-dark-brand) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-feature-icon,
+[data-theme="dark"] .landing-page.lp-root .lp-step-n {
+  border-color: var(--lp-dark-line) !important;
+  background-color: var(--lp-dark-brand-soft) !important;
+  background-image: none !important;
+  color: var(--lp-dark-brand) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-benefit-card:hover,
+[data-theme="dark"] .landing-page.lp-root .lp-feature-grid li:hover,
+[data-theme="dark"] .landing-page.lp-root .lp-faq-item[open] {
+  border-color: var(--lp-dark-line-strong) !important;
+  background-color: var(--lp-dark-surface-soft) !important;
+  box-shadow: 0 16px 36px rgb(0 0 0 / 24%) !important;
+}
+
+/* Final CTA */
+[data-theme="dark"] .landing-page.lp-root .lp-cta {
+  border-color: #3d6d50 !important;
+  background-color: #123d27 !important;
+  background-image:
+    radial-gradient(circle at 80% 0%, rgb(151 240 185 / 16%), transparent 18rem),
+    linear-gradient(135deg, #185c38, #123d27 58%, #0d2f1e) !important;
+  box-shadow: 0 28px 64px rgb(0 0 0 / 34%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta h2 {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta > p {
+  color: #d9e7de !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta .cta-primary {
+  border-color: transparent !important;
+  background-color: #ffffff !important;
+  background-image: none !important;
+  color: #0d5f37 !important;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 24%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta .cta-primary:hover {
+  background-color: #eef7f1 !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta .cta-secondary {
+  border-color: #678a72 !important;
+  background-color: #183d2a !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta .cta-secondary:hover {
+  background-color: #204b35 !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta .landing-trust-bar--cta li {
+  border-color: #678a72 !important;
+  background-color: rgb(12 37 24 / 62%) !important;
+  background-image: none !important;
+  color: #e4eee7 !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta .landing-trust-bar--cta svg {
+  color: var(--lp-dark-brand) !important;
+}
+
+/* Footer */
+[data-theme="dark"] .landing-page.lp-root .lp-footer {
+  border-color: var(--lp-dark-line) !important;
+  background-color: #0c110e !important;
+  background-image: none !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-footer .brand {
+  color: var(--lp-dark-text) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .landing-footer-links,
+[data-theme="dark"] .landing-page.lp-root .landing-footer-inner > p {
+  color: var(--lp-dark-muted) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .landing-footer-links a {
+  color: #d7e3db !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .landing-footer-links a:hover {
+  color: var(--lp-dark-brand) !important;
 }
 
 /* Keep the proposition and enough of the product preview in the first desktop
