@@ -6,9 +6,10 @@ import { getBudgetsWorkspace } from "@/server/budgets";
 import { getCommitmentsWorkspace } from "@/server/commitments";
 import { getGoalsWorkspace } from "@/server/goals";
 import { getIncomeTemplatesWorkspace } from "@/server/income-templates";
+import "./calm-ledger-overview.css";
 
 export const metadata: Metadata = {
-  title: "Tổng quan — Money Flow",
+  title: "Tổng quan — MoneyFlow",
   description: "Số dư, thu–chi tháng, danh mục chi tiêu và trạng thái kế hoạch.",
 };
 
