@@ -110,7 +110,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -121,15 +121,19 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
       - name: Expense-path browser smoke
         run: npm run test:e2e
-      - name: Upload failing Playwright output
-        if: failure()
+      - name: Cross-device UI audit
+        run: npm run test:ui-audit:pr
+      - name: Upload Playwright evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: failing-playwright-output
-          path: output/playwright/
+          name: playwright-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            output/playwright/
+            output/playwright-audit/
           if-no-files-found: ignore
-          retention-days: 1
+          retention-days: 3
