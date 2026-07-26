@@ -249,11 +249,17 @@ select is(
 );
 
 set local role service_role;
-
-select ok(
+select set_config(
+  'moneyflow_test.purged_rows',
   public.purge_user_tenant_data(
     '11111111-1111-4111-8111-111111111111'::uuid
-  ) > 0,
+  )::text,
+  true
+);
+reset role;
+
+select ok(
+  current_setting('moneyflow_test.purged_rows')::bigint > 0,
   'service_role atomically purges tenant A data'
 );
 
@@ -311,10 +317,18 @@ select is(
   'tenant purge does not delete the Auth identity itself'
 );
 
-select is(
+set local role service_role;
+select set_config(
+  'moneyflow_test.purge_retry_rows',
   public.purge_user_tenant_data(
     '11111111-1111-4111-8111-111111111111'::uuid
-  ),
+  )::text,
+  true
+);
+reset role;
+
+select is(
+  current_setting('moneyflow_test.purge_retry_rows')::bigint,
   0::bigint,
   'tenant purge is idempotent after all tenant rows are gone'
 );
@@ -326,6 +340,5 @@ select is(
   'tenant B profile remains after tenant A purge retries'
 );
 
-reset role;
 select * from finish();
 rollback;
