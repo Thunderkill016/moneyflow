@@ -15,8 +15,9 @@ For every non-trivial change:
 1. `README.md` — product and commands.
 2. `ARCHITECTURE.md` — system boundaries and change map.
 3. `docs/product/PRINCIPLES.md` — product truth and financial constraints.
-4. `docs/engineering/AI_DELIVERY_WORKFLOW.md` — research, planning, implementation and review process.
-5. The active work packet under `docs/plans/active/`, when one exists.
+4. `docs/MVP_DEFINITION.md` — current ship/readiness contract.
+5. `docs/engineering/AI_DELIVERY_WORKFLOW.md` — research, planning, implementation and review process.
+6. The active work packet under `docs/plans/active/`, when one exists.
 
 Task-specific references:
 
@@ -25,7 +26,7 @@ Task-specific references:
 | UI/UX | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` |
 | Auth/deployment | `docs/configuration.md`, `docs/supabase-setup.md` |
 | Database/RLS | `docs/security-rls-check.md`, relevant migrations and pgTAP tests |
-| Product behavior | relevant files in `docs/research/` and current GitHub issue/PR |
+| Product behavior | `docs/MVP_DEFINITION.md`, relevant files in `docs/research/` and current GitHub issue/PR |
 
 ## Product law
 
