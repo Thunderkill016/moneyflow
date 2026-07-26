@@ -27,24 +27,6 @@ const TENANT_TABLES: readonly TenantTable[] = [
   { table: "inbox_candidates", ownerColumn: "user_id" },
 ] as const;
 
-/** Child-first fallback cleanup if a schema drift prevents an expected cascade. */
-const TENANT_CLEANUP_ORDER: readonly TenantTable[] = [
-  { table: "transaction_entries", ownerColumn: "user_id" },
-  { table: "commitment_occurrences", ownerColumn: "user_id" },
-  { table: "income_template_occurrences", ownerColumn: "user_id" },
-  { table: "savings_goal_allocations", ownerColumn: "user_id" },
-  { table: "inbox_candidates", ownerColumn: "user_id" },
-  { table: "financial_transactions", ownerColumn: "user_id" },
-  { table: "monthly_budgets", ownerColumn: "user_id" },
-  { table: "recurring_commitments", ownerColumn: "user_id" },
-  { table: "recurring_income_templates", ownerColumn: "user_id" },
-  { table: "savings_goals", ownerColumn: "user_id" },
-  { table: "import_batches", ownerColumn: "user_id" },
-  { table: "accounts", ownerColumn: "user_id" },
-  { table: "categories", ownerColumn: "user_id" },
-  { table: "profiles", ownerColumn: "id" },
-] as const;
-
 function json(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), {
     status,
@@ -80,18 +62,6 @@ async function inspectTenantRows(
   }
 
   return { cleanupVerified, tenantRowsRemaining };
-}
-
-async function removeRemainingTenantRows(
-  adminClient: ReturnType<typeof createClient>,
-  userId: string,
-) {
-  let cleanupAttemptSucceeded = true;
-  for (const { table, ownerColumn } of TENANT_CLEANUP_ORDER) {
-    const { error } = await adminClient.from(table).delete().eq(ownerColumn, userId);
-    if (error) cleanupAttemptSucceeded = false;
-  }
-  return cleanupAttemptSucceeded;
 }
 
 Deno.serve(async (request: Request) => {
@@ -155,32 +125,52 @@ Deno.serve(async (request: Request) => {
       detectSessionInUrl: false,
     },
   });
+
+  // Purge every tenant table inside one Postgres transaction. If any statement
+  // or the final zero-row verification fails, the RPC raises and Postgres rolls
+  // the whole purge back. The Auth identity is deliberately deleted only after
+  // this step has been verified, so a cleanup failure remains retryable.
+  const { data: purgedRows, error: purgeError } = await adminClient.rpc(
+    "purge_user_tenant_data",
+    { p_user_id: user.id },
+  );
+  if (purgeError) {
+    return json(409, { ok: false, code: "tenant_cleanup_blocked" });
+  }
+
+  const inspection = await inspectTenantRows(adminClient, user.id);
+  if (!inspection.cleanupVerified || inspection.tenantRowsRemaining !== 0) {
+    return json(409, {
+      ok: false,
+      code: "tenant_cleanup_unverified",
+      cleanupVerified: inspection.cleanupVerified,
+      tenantRowsRemaining: inspection.cleanupVerified
+        ? inspection.tenantRowsRemaining
+        : null,
+    });
+  }
+
   const { error: deleteError } = await adminClient.auth.admin.deleteUser(
     user.id,
     false,
   );
   if (deleteError) {
-    return json(409, { ok: false, code: "account_delete_blocked" });
-  }
-
-  let inspection = await inspectTenantRows(adminClient, user.id);
-  let fallbackCleanupAttempted = false;
-  let fallbackCleanupSucceeded: boolean | null = null;
-
-  if (!inspection.cleanupVerified || inspection.tenantRowsRemaining > 0) {
-    fallbackCleanupAttempted = true;
-    fallbackCleanupSucceeded = await removeRemainingTenantRows(adminClient, user.id);
-    inspection = await inspectTenantRows(adminClient, user.id);
+    // The user's financial data is already gone, but the Auth identity remains,
+    // so the user can retry this same operation instead of becoming an orphaned
+    // data owner with no identity capable of signing in.
+    return json(409, {
+      ok: false,
+      code: "identity_delete_blocked_after_cleanup",
+      cleanupVerified: true,
+      tenantRowsRemaining: 0,
+      retrySafe: true,
+    });
   }
 
   return json(200, {
     ok: true,
-    cleanupVerified:
-      inspection.cleanupVerified && inspection.tenantRowsRemaining === 0,
-    tenantRowsRemaining: inspection.cleanupVerified
-      ? inspection.tenantRowsRemaining
-      : null,
-    fallbackCleanupAttempted,
-    fallbackCleanupSucceeded,
+    cleanupVerified: true,
+    tenantRowsRemaining: 0,
+    purgedRows: typeof purgedRows === "number" ? purgedRows : null,
   });
 });
