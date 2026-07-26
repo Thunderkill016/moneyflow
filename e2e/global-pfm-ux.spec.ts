@@ -83,6 +83,7 @@ test.describe("Global PFM UX benchmark", () => {
       };
 
       const element = (selector: string) => {
+        if (root.matches(selector)) return root;
         const match = root.querySelector<HTMLElement>(selector);
         if (!match) throw new Error(`Missing fixture element: ${selector}`);
         return match;
