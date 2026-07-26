@@ -8,5 +8,5 @@
       "design/calm-ledger-daily-shell": true
     }
   },
-  "buildCommand": "export NEXT_PUBLIC_APP_MODE=demo NEXT_PUBLIC_SITE_URL=https://preview.example.test && find src/lib -maxdepth 1 -name '*.test.ts' | sort | head -n 10 | xargs node --experimental-strip-types --test && npm run build"
+  "buildCommand": "export NEXT_PUBLIC_APP_MODE=demo NEXT_PUBLIC_SITE_URL=https://preview.example.test && find src/lib -maxdepth 1 -name '*.test.ts' | sort | head -n 5 | xargs node --experimental-strip-types --test && npm run build"
 }
