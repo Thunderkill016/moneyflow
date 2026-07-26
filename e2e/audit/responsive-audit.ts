@@ -66,6 +66,31 @@ async function waitForUiToSettle(page: Page, route: AuditRoute): Promise<void> {
   );
 }
 
+async function primeFullPageRendering(page: Page): Promise<void> {
+  // WebKit may leave below-fold card contents unpainted until they approach the
+  // viewport. A fullPage screenshot can therefore show correct card boxes with
+  // blank interiors. Scroll through the document as a real user would, wait for
+  // two paint frames at each stop, then restore the initial position.
+  await page.evaluate(async () => {
+    const paint = () =>
+      new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+      });
+    const root = document.documentElement;
+    const step = Math.max(320, Math.floor(window.innerHeight * 0.75));
+    const maxY = Math.max(0, root.scrollHeight - window.innerHeight);
+
+    for (let y = 0; y < maxY; y += step) {
+      window.scrollTo({ top: y, behavior: "instant" });
+      await paint();
+    }
+    window.scrollTo({ top: maxY, behavior: "instant" });
+    await paint();
+    window.scrollTo({ top: 0, behavior: "instant" });
+    await paint();
+  });
+}
+
 export async function auditRoute(
   page: Page,
   testInfo: TestInfo,
@@ -77,6 +102,7 @@ export async function auditRoute(
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
   await expect(page.locator("body")).toContainText(/\S/, { timeout: 15_000 });
   await waitForUiToSettle(page, route);
+  await primeFullPageRendering(page);
 
   const frameworkOverlay = page.locator(
     '[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay',
