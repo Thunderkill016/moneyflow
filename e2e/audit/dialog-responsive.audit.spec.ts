@@ -24,11 +24,23 @@ async function firstVisible(locator: Locator): Promise<Locator | null> {
   return null;
 }
 
+async function waitForFirstVisible(locator: Locator, message: string): Promise<Locator> {
+  await expect
+    .poll(async () => Boolean(await firstVisible(locator)), {
+      message,
+      timeout: 10_000,
+    })
+    .toBe(true);
+
+  const visible = await firstVisible(locator);
+  expect(visible, message).not.toBeNull();
+  return visible!;
+}
+
 async function auditOpenDialog(page: Page, testInfo: TestInfo, label: string): Promise<void> {
   const dialogs = page.locator("[role='dialog'], dialog[open], [aria-modal='true']");
-  const dialog = await firstVisible(dialogs);
-  expect(dialog, `${label} must open a visible dialog/sheet`).not.toBeNull();
-  await expect(dialog!).toBeVisible();
+  const dialog = await waitForFirstVisible(dialogs, `${label} must open a visible dialog/sheet`);
+  await expect(dialog).toBeVisible();
 
   const result = await page.evaluate(() => {
     const root = document.documentElement;
@@ -136,9 +148,11 @@ test.describe("core create-dialog states", () => {
       await page.goto(item.path, { waitUntil: "domcontentloaded" });
       await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
 
-      const action = await firstVisible(page.getByRole("button", { name: item.action }));
-      expect(action, `${item.path} must expose ${item.action}`).not.toBeNull();
-      await action!.click();
+      const action = await waitForFirstVisible(
+        page.getByRole("button", { name: item.action }),
+        `${item.path} must expose ${item.action}`,
+      );
+      await action.click();
       await auditOpenDialog(page, testInfo, item.label);
     });
   }
