@@ -55,9 +55,6 @@ async function waitForUiToSettle(page: Page, route: AuditRoute): Promise<void> {
     `${route.path} must finish its visible loading state before UI evidence is captured`,
   ).toHaveCount(0, { timeout: 15_000 });
 
-  // React state can remove the skeleton and paint the populated card on adjacent
-  // frames. Waiting two frames gives screenshots stable, user-visible content
-  // without adding a fixed sleep.
   await page.evaluate(
     () =>
       new Promise<void>((resolve) => {
@@ -67,10 +64,6 @@ async function waitForUiToSettle(page: Page, route: AuditRoute): Promise<void> {
 }
 
 async function primeFullPageRendering(page: Page): Promise<void> {
-  // WebKit may leave below-fold card contents unpainted until they approach the
-  // viewport. A fullPage screenshot can therefore show correct card boxes with
-  // blank interiors. Scroll through the document as a real user would, wait for
-  // two paint frames at each stop, then restore the initial position.
   await page.evaluate(async () => {
     const paint = () =>
       new Promise<void>((resolve) => {
@@ -89,6 +82,35 @@ async function primeFullPageRendering(page: Page): Promise<void> {
     window.scrollTo({ top: 0, behavior: "instant" });
     await paint();
   });
+}
+
+async function attachPaintedRouteDetails(
+  page: Page,
+  testInfo: TestInfo,
+  route: AuditRoute,
+): Promise<void> {
+  if (route.path !== "/insights" || !testInfo.project.name.startsWith("webkit")) return;
+
+  const cards = [
+    { label: "weekly", locator: page.locator(".weekly-summary-panel") },
+    { label: "budget", locator: page.locator(".budget-panel") },
+    { label: "commitments", locator: page.locator(".right-stack .insight-panel").nth(0) },
+    { label: "income", locator: page.locator(".right-stack .insight-panel").nth(1) },
+    { label: "goal", locator: page.locator(".goal-dashboard-panel") },
+  ];
+
+  for (const card of cards) {
+    await expect(card.locator, `${card.label} card must exist on Insights`).toBeVisible();
+    await expect(card.locator, `${card.label} card must contain rendered text`).toContainText(/\S/);
+    await card.locator.scrollIntoViewIfNeeded();
+    const image = await card.locator.screenshot({ animations: "disabled" });
+    await testInfo.attach(`insights-${card.label}-${testInfo.project.name}.png`, {
+      body: image,
+      contentType: "image/png",
+    });
+  }
+
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
 }
 
 export async function auditRoute(
@@ -251,6 +273,8 @@ export async function auditRoute(
     return { viewport, documentWidth, findings };
   });
 
+  await attachPaintedRouteDetails(page, testInfo, route);
+
   const screenshot = await page.screenshot({ fullPage: true, animations: "disabled" });
   const artifactName = `${route.label.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "route"}-${testInfo.project.name}`;
 
@@ -285,9 +309,6 @@ export async function assertKeyboardFocusVisible(page: Page, testInfo: TestInfo)
 
   for (let index = 0; index < 12; index += 1) {
     await page.keyboard.press("Tab");
-    // Chromium/WebKit perform native focus scrolling asynchronously. Waiting for
-    // two paint frames prevents reporting a below-fold control before the browser
-    // has moved it into view, while still catching focus hidden by app chrome.
     await page.evaluate(
       () =>
         new Promise<void>((resolve) => {
