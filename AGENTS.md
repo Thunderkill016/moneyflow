@@ -1,100 +1,89 @@
 <!-- BEGIN:nextjs-agent-rules -->
 # This is NOT the Next.js you know
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+This version has breaking changes. Before using unfamiliar App Router APIs, read the relevant guide in `node_modules/next/dist/docs/` and follow current deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# MoneyFlow — AGENTS.md (universal project rules)
+# MoneyFlow — agent entrypoint
 
-**Runtime:** Grok CLI primary — `docs/AGENT_RUNTIME.md` · VIP stack — `docs/VIP_AGENT_STACK.md`  
-**Work queue:** `IDEA.md` (**R*** rebuild → **Q*** quality). Not backlog spam.
+`AGENTS.md` is a map, not the project encyclopedia. Open only the documents needed for the task, but do not code before understanding the affected system.
 
-## 1. Product law (G5)
+## Required read order
 
-| | |
-|--|--|
-| **Product** | Web **thu chi cá nhân** VN |
-| **JTBD** | Ghi nhanh → số dư + tháng này tiền đi đâu |
-| **Insight** | Có thể chi hôm nay (secondary, not inbox brand) |
-| **Lab** | Inbox / paste / import / rules → **Nâng cao** only |
+For every non-trivial change:
 
-**Read:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` · `docs/REBUILD_MASTER_PLAN.md` · `docs/BEST_OF_MATRIX.md` · `docs/MVP_DEFINITION.md`
+1. `README.md` — product and commands.
+2. `ARCHITECTURE.md` — system boundaries and change map.
+3. `docs/product/PRINCIPLES.md` — product truth and financial constraints.
+4. `docs/MVP_DEFINITION.md` — current ship/readiness contract.
+5. `docs/engineering/AI_DELIVERY_WORKFLOW.md` — research, planning, implementation and review process.
+6. The active work packet under `docs/plans/active/`, when one exists.
 
-### Forbidden (no human approval)
+Task-specific references:
 
-Bank sync · AI advisor · family · OCR · full YNAB envelope · AGPL code paste · inbox-first landing/auth marketing · force-push · edit `.env.local` · delete migrations
+| Task | Read |
+|---|---|
+| UI/UX | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` |
+| Auth/deployment | `docs/configuration.md`, `docs/supabase-setup.md` |
+| Database/RLS | `docs/security-rls-check.md`, relevant migrations and pgTAP tests |
+| Product behavior | `docs/MVP_DEFINITION.md`, relevant files in `docs/research/` and current GitHub issue/PR |
 
-## 2. Surgical coding (always)
+## Product law
 
-1. **Think before code** — read existing files; state plan in 3–6 bullets for multi-file work  
-2. **Simplicity first** — smallest vertical slice; no drive-by refactors  
-3. **Surgical diffs** — only files needed for the IDEA item  
-4. **Goal-driven** — Done = task scope complete + gates green + reviewed PR merged
+- MoneyFlow is a manual-first personal income and expense ledger for Vietnamese users.
+- Core jobs: record a transaction quickly; know balances; understand where money went this month; retain and export trustworthy data.
+- Do not present a daily spending recommendation until the product has an explicit, researched planning contract with reliable income-cycle, commitment and reserve data.
+- Inbox, paste, import and rules are optional advanced capture tools, not the product identity.
+- Do not add bank sync, AI financial advice, OCR, family finance or a full envelope-budgeting system without explicit human approval and a new product specification.
 
-## 3. Configuration-first engineering
+## Financial invariants
 
-- Values that vary by deployment belong in environment variables or provider settings, never TypeScript constants, `vercel.json` values or committed `.env` files.
-- Do not guess production hostnames, project URLs, callback URLs, provider IDs or credentials.
-- Missing production configuration must fail validation/build; do not add a fallback to make CI green.
-- Runtime mode is explicit: `NEXT_PUBLIC_APP_MODE=demo|authenticated`. Never infer demo from missing credentials or magic placeholder strings.
-- `NEXT_PUBLIC_SITE_URL` is the exact application origin. Retired domains belong in `LEGACY_SITE_HOSTS`.
-- Supabase Site URL and Redirect URLs must be updated together with the Vercel environment.
-- Before changing auth/deployment config, read `docs/configuration.md` and current official provider documentation.
+- Store VND as integer đồng; never use floating-point money.
+- Transfers are balanced movements between accounts and never count as income or expense.
+- User-owned data requires RLS and tenant-isolation tests.
+- Destructive ledger actions use soft delete and a recoverable path.
+- Financial calculations live in testable domain modules, not UI components.
+- Never invent missing balances, dates, commitments, income or planning assumptions.
 
-## 4. Domain money
+## Required delivery workflow
 
-- Integer **VND đồng** only (no float money)  
-- Transfer = balanced legs; **never** expense totals  
-- Soft delete + undo for destructive  
-- Rules in `src/lib/*` + tests  
-- RLS on user-owned tables  
+For non-trivial work, copy `docs/templates/FEATURE_WORK_PACKET.md` into `docs/plans/active/<slug>.md` and complete it in order:
 
-## 5. Verify before done
+1. Repository reconnaissance.
+2. External/product research when facts or behavior are not already established.
+3. Specification and acceptance criteria.
+4. Implementation plan and risks.
+5. Small, verifiable tasks.
+6. Implementation on a focused branch.
+7. Independent evaluation against the spec.
+8. CI, browser evidence and production verification.
+9. Move the packet to `docs/plans/completed/` after merge.
+
+A tiny documentation or one-line mechanical fix may use an inline plan, but still requires reading the affected files and running proportionate checks.
+
+## Coding rules
+
+- Prefer the smallest coherent vertical slice; no drive-by refactors.
+- Search for existing components, domain helpers and tests before creating new abstractions.
+- Do not change requirements while implementing. Update the spec first when scope changes.
+- Do not write directly to `main`; use a focused branch and pull request.
+- Keep configuration in environment/provider settings, never guessed constants or committed secrets.
+- One primary action per viewport; money must not be distinguished by color alone.
+
+## Verification
+
+Run the gates appropriate to the change; non-trivial product work requires all of them:
 
 ```bash
+npm run check:knowledge
 npm run check:deployment-env
-npm run lint && npm run typecheck && npm run test
-# R9/Q1: npm run test:e2e
-# R10/Q2/Q3: npm run build  OR  bash scripts/mvp-verify.sh
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run test:db
+npm run test:e2e
+npm run test:ui-audit:pr
 ```
 
-Empty states: **one** primary CTA. Money a11y: `+` / `−` / `↔` not color-only.
-
-A change is not live until the exact production deployment is successful and the affected route/flow is verified.
-
-## 6. Delivery workflow
-
-- Work on a focused branch.
-- Open a draft PR before running the final CI cycle.
-- Mark ready once after the diff is complete.
-- Require lint, typecheck, tests, production build and database gates.
-- Squash merge only after gates pass.
-- Never push feature/fix commits directly to `main`.
-- Never create no-op commits to retrigger Vercel.
-
-## 7. Skill routing (Grok)
-
-| When | Skill |
-|------|--------|
-| Autopilot / IDEA item | `moneyflow-rebuild` + `ship-feature` |
-| PFM UI / ledger / budgets | `moneyflow-web` |
-| Before claim done | `verification-before-completion` + `moneyflow-check` |
-| Behavior change | `test-driven-development` |
-| UI visual | `frontend-design` + `frontend-qa` |
-| Auth / RLS | `security-pass` + `supabase-rls` |
-| Bug | `systematic-debugging` |
-| Minimal diffs | `surgical-coding` |
-
-**Do not** use AtoEnglish skills.
-
-## 8. Autopilot
-
-- Service: `moneyflow-autopilot` → `scripts/agent-daemon.sh`  
-- One IDEA item / cycle · dirty tree (except `logs/`) → skip  
-- No invent backlog while R*/Q* open  
-- Output through branch + draft PR; do not push directly to `main`  
-- When all R*+Q* done → `docs/MVP_SHIPPED.md`
-
-## 9. Next.js
-
-Before novel App Router APIs: check `node_modules/next/dist/docs/`.
+A change is not done because code was generated or tests were claimed. It is done only when the diff matches the specification, required gates pass, visual/browser evidence is reviewed where relevant, the PR is merged, and the exact production deployment is verified.

@@ -1,121 +1,119 @@
 # MoneyFlow
 
-**MoneyFlow** — web quản lý **thu chi** cho người Việt: nhiều ví, ghi nhanh, thấy rõ tháng này tiền đi đâu, xuất được dữ liệu. Bình tĩnh, không phán xét.
+**MoneyFlow** is a Vietnamese personal income-and-expense web ledger: multiple accounts, fast manual capture, clear balances and period reporting, with user-owned export. Calm, factual and non-judgmental.
 
 Core jobs:
 
-1. **Ghi thu/chi nhanh** (mục tiêu < 10 giây)
-2. Biết **số dư** và **tháng này tiền đi đâu**
-3. Insight phụ: **Hôm nay mình có thể chi bao nhiêu?**
+1. Record income, expense or transfer quickly.
+2. Know balances across active accounts.
+3. Understand income, expense and where money went this month.
+4. Correct mistakes and export trustworthy data.
 
-**Không phải:** bank aggregator / Open Banking · AI tư vấn · kế toán doanh nghiệp · sản phẩm “Universal Financial Inbox”.
+MoneyFlow is not currently a bank aggregator, AI financial adviser, business-accounting product or native mobile application. Paste, import, inbox and rules are optional advanced capture tools, not the product identity.
 
-Paste / upload / hộp thư ứng viên = **công cụ nhập tùy chọn (P1)**, không phải định vị sản phẩm.
+## Sources of truth
 
-Auth + ledger PostgreSQL (Supabase). Không có credentials → **demo mode** (lưu trình duyệt).
+Start here before non-trivial work:
 
-**Luật sản phẩm:** [docs/research/05_PRODUCT_AND_ARCHITECTURE.md](docs/research/05_PRODUCT_AND_ARCHITECTURE.md) · [docs/MVP_DEFINITION.md](docs/MVP_DEFINITION.md) · [docs/AUTOPILOT_PLAN.md](docs/AUTOPILOT_PLAN.md) · [AGENTS.md](AGENTS.md) · [docs/PRODUCT.md](docs/PRODUCT.md)
+- [Agent entrypoint](AGENTS.md)
+- [Architecture map](ARCHITECTURE.md)
+- [Product principles](docs/product/PRINCIPLES.md)
+- [MVP definition and readiness gates](docs/MVP_DEFINITION.md)
+- [AI delivery workflow](docs/engineering/AI_DELIVERY_WORKFLOW.md)
+- [Feature work-packet template](docs/templates/FEATURE_WORK_PACKET.md)
+- [Active/completed plan lifecycle](docs/plans/README.md)
+
+UI and infrastructure references:
+
+- [AI-assisted UI/UX workflow](docs/AI_UIUX_WORKFLOW.md)
+- [UX principles](docs/UX_PRINCIPLES.md)
+- [Design system](docs/design-system.md)
+- [Configuration contract](docs/configuration.md)
+- [Supabase setup](docs/supabase-setup.md)
+- [RLS verification](docs/security-rls-check.md)
+
+Historical research remains useful as evidence but does not override the current product and architecture sources of truth.
+
+## Runtime modes
+
+- `authenticated`: Supabase Auth + PostgreSQL with RLS.
+- `demo`: browser-local data for product exploration.
+
+Runtime mode is explicit through `NEXT_PUBLIC_APP_MODE`; it is never inferred from missing credentials.
 
 ## Run locally
 
 ```bash
 npm install
 cp .env.example .env.local
-# Fill the explicit local values in .env.local
+# Fill explicit local values in .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open `http://localhost:3000`.
 
-Auth + database thật: [docs/supabase-setup.md](docs/supabase-setup.md). Deployment configuration: [docs/configuration.md](docs/configuration.md).
+Production values live in Vercel Project Settings, never in committed `.env` files, TypeScript constants or `vercel.json`. Missing deployment configuration must fail validation instead of falling back to a guessed hostname.
 
 ## Quality checks
 
 ```bash
+npm run check:knowledge
 npm run check:deployment-env
 npm run lint
 npm run typecheck
 npm run test
 npm run build
 
-# RLS surface (static migrations; no Docker) — see docs/security-rls-check.md
-npm run check:rls
-# Optional local Supabase pgTAP (needs Docker): npm run test:db
+# Database/RLS, requires Docker
+npm run test:db
 
-# Optional E2E (Playwright): expense path + export smoke
-# First time: npm run test:e2e:install
+# Browser and responsive evidence
+npm run test:e2e:install
 npm run test:e2e
+npm run test:ui-audit:pr
 ```
 
-Production values live in Vercel Project Settings, never in `vercel.json`, TypeScript constants or committed `.env` files. Missing deployment configuration must fail the build rather than fall back to a guessed hostname.
+Each layer proves something different: build success does not prove RLS, browser usability or production behavior.
 
 ## Change workflow
 
-Every change follows the same path:
+Every non-trivial change follows this path:
 
-1. create a focused branch;
-2. open a draft pull request;
-3. make the PR ready once the diff is complete;
-4. require lint, typecheck, tests, production build and database checks;
-5. squash merge into `main`;
-6. verify the exact production deployment before claiming the change is live.
+1. Create a focused branch.
+2. Copy `docs/templates/FEATURE_WORK_PACKET.md` to `docs/plans/active/<slug>.md`.
+3. Audit the repository and relevant history.
+4. Research unresolved external/product questions.
+5. Define acceptance criteria, plan and small tasks.
+6. Implement the smallest coherent vertical slice.
+7. Open a pull request and evaluate the diff against the work packet.
+8. Require static, unit, database and browser gates as applicable.
+9. Review screenshot/artifact evidence for UI changes.
+10. Squash merge and verify the exact production deployment.
+11. Move the packet to `docs/plans/completed/`.
 
 Do not push feature or fix commits directly to `main`. Do not create no-op commits to retrigger deployment.
 
-## Autopilot
+## Current product scope
 
-Agent lấy **một** task `ready` (**TASK-100…125** — Wave thu chi MVP), code, chạy đầy đủ quality gates, rồi xuất thay đổi qua branch + draft PR. Autopilot không được tự push thẳng `main`.
+- Authentication: email/password, supported OAuth and recovery.
+- Demo mode with local browser storage.
+- Multiple accounts: cash, bank, e-wallet, credit and savings representations.
+- Income, expense and balanced internal transfers.
+- Edit, soft delete and recovery paths.
+- Category budgets, recurring commitments, recurring income and savings goals.
+- Weekly, monthly and yearly reports.
+- CSV export and controlled import tooling.
+- Responsive light/dark web UI.
+- PostgreSQL ledger with RLS and pgTAP coverage.
 
-```bash
-cd /home/thunder/Code/moneyflow
-bash scripts/agent-pick-task.sh      # phải ra TASK-100+
-bash scripts/agent-daemon-start.sh   # bật daemon
-tail -f logs/agent/daemon.log
-bash scripts/agent-daemon-stop.sh    # dừng
-```
+VND is represented as integer đồng. Internal transfers never count as income or expense. Total assets are not automatically a spending budget, and missing planning data is never guessed.
 
-Chi tiết: [AGENT_AUTOPILOT.md](AGENT_AUTOPILOT.md) · [AGENT_BACKLOG.md](AGENT_BACKLOG.md) · [AGENT_ROADMAP.md](AGENT_ROADMAP.md) · [docs/AUTOPILOT_PLAN.md](docs/AUTOPILOT_PLAN.md)
+## Current project phase
 
-## Docs
+The near-term goal is to prove MoneyFlow can become the owner's trusted daily ledger:
 
-### Product (đọc trước)
-
-- [Product & architecture (G5)](docs/research/05_PRODUCT_AND_ARCHITECTURE.md) — định vị thu chi, JTBD, non-goals
-- [Global expense web UX benchmark](docs/research/06_GLOBAL_EXPENSE_WEB_UX_BENCHMARK.md) — học YNAB, Monarch, Copilot, Actual, Lunch Money, Rocket Money và Wallet theo từng màn hình
-- [MVP definition (ship exit criteria)](docs/MVP_DEFINITION.md) — TASK-250… hardening wave gate
-- [Autopilot plan (Wave A–C)](docs/AUTOPILOT_PLAN.md) — TASK-100…125
-- [Product focus (simple)](docs/PRODUCT.md) — now vs later
-- [Agent rules](AGENTS.md)
-
-### Engineering & UX
-
-- [Configuration contract](docs/configuration.md)
-- [UX principles](docs/UX_PRINCIPLES.md)
-- [Design system](docs/design-system.md)
-- [Supabase setup](docs/supabase-setup.md)
-- [RLS verification](docs/security-rls-check.md)
-- [Competitor & OSS research](docs/COMPETITOR_AND_OSS_RESEARCH.md)
-
-### Historical / optional capture research
-
-Capture/Inbox research is **optional tooling**, not the product identity:
-
-- [UX research (legacy inbox-first)](docs/UX_RESEARCH_AND_REDESIGN.md)
-- [Wireframes capture/inbox](docs/wireframes-inbox.md)
-- [Wireframes (legacy dashboard-era)](docs/wireframes.md)
-- [Research archive](docs/RESEARCH_PRODUCT_STRATEGY.md)
-
-## Current scope
-
-- Dashboard / insights: số dư, thu–chi tháng, top category, “có thể chi hôm nay”
-- Ghi chi / thu nhanh; sửa / soft-delete; chuyển khoản 2-leg (không đếm expense)
-- Nhiều ví: tiền mặt, NH, ví điện tử, thẻ tín dụng, tiết kiệm
-- Ngân sách theo danh mục; commitments; mục tiêu tiết kiệm
-- Báo cáo tuần/tháng/năm + export CSV
-- Auth: email/password, Google OAuth, reset password; demo mode local
-- PostgreSQL ledger + RLS; money = integer minor units (VND đồng)
-- Optional capture: paste / CSV-XLSX-PDF / inbox candidates (không phải brand chính)
-
-## Not production-ready yet
-
-Schema RLS is declared in migrations and checked statically (`npm run check:rls`) plus optional local pgTAP (`npm run test:db`). Two-user cross-tenant integration tests, receipt attachments, and fuller legal flows are still recommended before handling real financial data. See [docs/security-rls-check.md](docs/security-rls-check.md).
+- complete the readiness gates in [`docs/MVP_DEFINITION.md`](docs/MVP_DEFINITION.md);
+- verify core flows on a physical phone;
+- self-use for seven consecutive days;
+- fix P0/P1 defects before feature expansion;
+- improve reconciliation, provenance and auditability based on real use.

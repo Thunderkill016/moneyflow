@@ -10,6 +10,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/*/*.test.ts",
+    "check:knowledge": "node scripts/check-project-knowledge.mjs",
     "check:deployment-env": "node scripts/check-deployment-env.mjs --force",
     "mvp-verify": "bash scripts/mvp-verify.sh",
     "check:rls": "bash scripts/check-rls-migrations.sh",
