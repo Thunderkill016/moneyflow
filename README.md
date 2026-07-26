@@ -18,6 +18,7 @@ Start here before non-trivial work:
 - [Agent entrypoint](AGENTS.md)
 - [Architecture map](ARCHITECTURE.md)
 - [Product principles](docs/product/PRINCIPLES.md)
+- [MVP definition and readiness gates](docs/MVP_DEFINITION.md)
 - [AI delivery workflow](docs/engineering/AI_DELIVERY_WORKFLOW.md)
 - [Feature work-packet template](docs/templates/FEATURE_WORK_PACKET.md)
 - [Active/completed plan lifecycle](docs/plans/README.md)
@@ -111,7 +112,7 @@ VND is represented as integer đồng. Internal transfers never count as income 
 
 The near-term goal is to prove MoneyFlow can become the owner's trusted daily ledger:
 
-- complete manual production-readiness gates;
+- complete the readiness gates in [`docs/MVP_DEFINITION.md`](docs/MVP_DEFINITION.md);
 - verify core flows on a physical phone;
 - self-use for seven consecutive days;
 - fix P0/P1 defects before feature expansion;
