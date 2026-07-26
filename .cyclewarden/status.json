@@ -1,26 +1,23 @@
 {
   "schemaVersion": 1,
-  "phase": "seven-day-self-use",
-  "activeTaskId": "MFVN-002",
+  "phase": "calm-ledger-foundation",
+  "activeTaskId": "MFVN-003",
   "lastCompletedTaskId": "MFVN-001",
   "blockedTaskIds": [
-    "MFVN-003",
     "MFVN-004",
     "MFVN-005",
     "MFVN-006"
   ],
   "blockers": [],
-  "unresolvedDecisions": [
-    "Confirm and record the calendar date used as day 1 of the seven-day self-use period."
-  ],
+  "unresolvedDecisions": [],
   "next": {
-    "taskId": "MFVN-002",
-    "reason": "All three manual readiness gates were confirmed complete by the owner. Seven consecutive days of real self-use are now the only active dependency-ready work before Calm Ledger redesign implementation."
+    "taskId": "MFVN-003",
+    "reason": "The three manual readiness gates passed. The owner has already used the product and explicitly dropped the fixed seven-day self-use requirement as unnecessary, so the first bounded Calm Ledger foundation slice is now active."
   },
   "ownerSummary": {
-    "whatIsBeingBuilt": "A trustworthy daily personal ledger for Vietnamese users, not a broad financial-advice platform.",
-    "whyThisTaskNow": "The production callback, spreadsheet CSV, and physical-phone keyboard checks have passed. The remaining product-readiness evidence is sustained real use without data loss or critical defects.",
-    "whatNotToDo": "Do not begin issue #81 redesign or unrelated features until seven consecutive self-use days complete and reproducible P0/P1 defects are resolved or explicitly blocking.",
-    "whatComesAfter": "The first bounded Calm Ledger foundation and landing/auth slice, if seven-day self-use supports continuing."
+    "whatIsBeingBuilt": "A trustworthy daily personal ledger for Vietnamese users, now moving into the bounded Calm Ledger visual and information-architecture redesign.",
+    "whyThisTaskNow": "Manual readiness passed and the owner removed the fixed seven-day gate after real use. The next valid work is the foundation plus landing/auth slice from issue #81.",
+    "whatNotToDo": "Do not jump to daily-flow, planning, settings, or cross-device redesign slices before MFVN-003 is verified and accepted.",
+    "whatComesAfter": "MFVN-004, the Calm Ledger daily-flow slice, only after the foundation and landing/auth work is accepted."
   }
 }
