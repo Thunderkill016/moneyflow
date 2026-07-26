@@ -1,0 +1,63 @@
+import { expect, test } from "@playwright/test";
+
+const NOTE = "Benchmark UX cafe";
+
+test.describe("Global PFM UX benchmark", () => {
+  test.beforeEach(async ({ context }) => {
+    await context.addInitScript(() => {
+      try {
+        window.localStorage.clear();
+        window.localStorage.setItem("moneyflow-demo-transactions-v1", "[]");
+        window.localStorage.setItem("moneyflow-inbox-candidates-v1", "[]");
+        window.localStorage.setItem("moneyflow-onboarding-done", "1");
+      } catch {
+        /* ignore */
+      }
+    });
+  });
+
+  test("uses one primary dashboard action and keeps filter totals contextual", async ({
+    page,
+  }) => {
+    await page.goto("/insights");
+    await expect(page.locator(".safe-card-hero .hero-add")).toBeVisible();
+    await expect(
+      page.locator(".welcome-actions .insights-ghi-chi"),
+    ).toBeHidden();
+
+    await page.goto("/capture/quick");
+    await page.getByRole("button", { name: /Khoản chi/i }).click();
+    await page.getByLabel(/Số tiền chi/i).fill("125000");
+    await page.getByRole("button", { name: "Ăn uống", exact: true }).click();
+    await page.getByPlaceholder("Ví dụ: Cơm trưa").fill(NOTE);
+    await page.getByRole("button", { name: /Lưu/i }).click();
+
+    await page.goto("/transactions?category=%C4%82n%20u%E1%BB%91ng&kind=expense");
+    await expect(page.getByLabel("Lọc theo danh mục")).toHaveValue("Ăn uống");
+    await expect(
+      page.getByRole("button", { name: "Khoản chi" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.locator(".transaction-summary").getByText("Ròng", { exact: true }),
+    ).toBeVisible();
+    await expect(page.locator(".manager-row").filter({ hasText: NOTE })).toBeVisible();
+    await expect(page.locator(".transaction-summary")).toContainText("−125.000");
+  });
+
+  test("shows explicit budget decisions and a transaction drill-down", async ({
+    page,
+  }) => {
+    await page.goto("/budgets");
+    const card = page.locator(".budget-category-card").first();
+    await expect(card).toBeVisible();
+    await expect(card.getByText("Hạn mức", { exact: true })).toBeVisible();
+    await expect(card.getByText("Đã chi", { exact: true })).toBeVisible();
+    await expect(card.getByText(/Còn lại|Vượt/, { exact: true })).toBeVisible();
+
+    const drillDown = card.getByRole("link", { name: /Xem giao dịch danh mục/i });
+    await expect(drillDown).toHaveAttribute("href", /\/transactions\?category=/);
+    await drillDown.click();
+    await expect(page).toHaveURL(/\/transactions\?category=/);
+    await expect(page.getByLabel("Lọc theo danh mục")).not.toHaveValue("all");
+  });
+});
