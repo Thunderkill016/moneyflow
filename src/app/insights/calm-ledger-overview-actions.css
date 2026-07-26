@@ -1,0 +1,8 @@
+/*
+ * Interaction ownership for the redesigned overview.
+ * AppShell owns the primary expense action. The older in-page duplicate remains
+ * in the component until the full dashboard JSX cleanup, but is never surfaced.
+ */
+.insights-dashboard .welcome-actions .insights-ghi-chi {
+  display: none;
+}
