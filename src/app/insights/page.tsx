@@ -9,12 +9,15 @@ import { getIncomeTemplatesWorkspace } from "@/server/income-templates";
 
 export const metadata: Metadata = {
   title: "Tổng quan — Money Flow",
-  description: "Số dư, thu–chi tháng, danh mục chi tiêu và gợi ý có thể chi hôm nay.",
+  description: "Số dư, thu–chi tháng, danh mục chi tiêu và trạng thái kế hoạch.",
 };
 
 /**
- * Tổng quan thu chi (G5): số dư / thu / chi / ròng + top categories + recent +
- * safe-to-spend secondary + planning cards. Default logged-in home.
+ * Tổng quan thu chi: số dư / thu / chi / ròng + top categories + recent +
+ * planning cards. Default logged-in home.
+ *
+ * A numeric safe-to-spend guide stays withdrawn until MoneyFlow can prove a
+ * complete income-based plan or a next-payday plan with protected cash.
  */
 export default async function Page() {
   const viewer = await requireViewer();
