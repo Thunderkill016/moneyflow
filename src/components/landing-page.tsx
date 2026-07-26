@@ -115,7 +115,8 @@ export function LandingPage() {
 
           <div
             className={styles.previewWrap}
-            aria-label="Ví dụ tổng quan MoneyFlow"
+            role="img"
+            aria-label="Mô phỏng màn hình tổng quan với số dư, thu chi và ba giao dịch gần đây"
           >
             <div className={styles.preview}>
               <div className={styles.previewTopbar}>
