@@ -1,0 +1,203 @@
+/*
+ * Public landing dark-mode guardrails.
+ *
+ * This stylesheet is intentionally imported after every other UI layer. The
+ * landing page previously received its dark canvas while later global layers
+ * could leave light-theme foregrounds and surfaces in place. Keep every rule
+ * scoped to the public landing root so authenticated product screens are not
+ * affected.
+ */
+
+[data-theme="dark"] .landing-page.lp-root {
+  --lp-dark-surface: var(--color-bg-elevated);
+  --lp-dark-surface-soft: var(--color-bg-tertiary);
+  --lp-dark-border: var(--color-border-default);
+  --lp-dark-text: var(--color-text-primary);
+  --lp-dark-muted: var(--color-text-secondary);
+  color: var(--lp-dark-text) !important;
+  background:
+    radial-gradient(circle at 12% 2%, rgb(18 84 50 / 28%), transparent 34rem),
+    radial-gradient(circle at 92% 8%, rgb(17 63 40 / 28%), transparent 30rem),
+    linear-gradient(180deg, #0b0e0c 0%, #0f1411 48%, #0b0e0c 100%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root::before {
+  background-image:
+    linear-gradient(rgb(74 222 128 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(74 222 128 / 4%) 1px, transparent 1px) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root :is(
+  .lp-nav,
+  .lp-badge,
+  .lp-hero-trust li,
+  .landing-proof-list li,
+  .lp-benefit-card,
+  .lp-steps li,
+  .lp-who-grid li,
+  .lp-faq-item
+) {
+  border-color: var(--lp-dark-border) !important;
+  background: var(--lp-dark-surface) !important;
+  color: var(--lp-dark-text) !important;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 22%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-nav {
+  background: rgb(26 26 30 / 88%) !important;
+  box-shadow: 0 8px 34px rgb(0 0 0 / 28%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root :is(
+  .brand,
+  .landing-nav-login,
+  .lp-hero-title,
+  .lp-section-head h2,
+  .lp-section-intro h2,
+  .lp-benefit-card h3,
+  .lp-steps h3,
+  .lp-feature-grid h3,
+  .lp-who-grid h3,
+  .lp-faq-item summary,
+  .preview-dash-row-main strong,
+  .landing-footer-inner .brand
+) {
+  color: var(--lp-dark-text) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root :is(
+  .lp-hero-lead,
+  .lp-section-head span,
+  .lp-section-intro p,
+  .lp-benefit-card p,
+  .lp-steps p,
+  .lp-feature-grid p,
+  .lp-who-grid p,
+  .lp-faq-item p,
+  .landing-proof-list span,
+  .preview-dash-stat span,
+  .preview-dash-row-main small,
+  .preview-dash-foot,
+  .landing-footer-inner p,
+  .landing-footer-links a
+) {
+  color: var(--lp-dark-muted) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root :is(
+  .lp-kicker,
+  .lp-badge,
+  .landing-proof-list strong,
+  .lp-benefit-top svg,
+  .lp-feature-icon,
+  .lp-who-grid svg,
+  .landing-footer-links a:hover
+) {
+  color: var(--color-accent-text) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-badge-dot {
+  background: var(--color-success-default) !important;
+  box-shadow: 0 0 0 5px rgb(74 222 128 / 14%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .landing-nav-cta,
+[data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-primary {
+  color: #fff !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-secondary {
+  border-color: var(--color-border-strong) !important;
+  background: var(--lp-dark-surface) !important;
+  color: var(--lp-dark-text) !important;
+  box-shadow: 0 7px 20px rgb(0 0 0 / 22%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-secondary:hover {
+  border-color: var(--color-accent-default) !important;
+  background: var(--lp-dark-surface-soft) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-showcase-card {
+  border-color: var(--lp-dark-border) !important;
+  background: var(--lp-dark-surface) !important;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 3%) inset,
+    0 34px 82px rgb(0 0 0 / 34%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root :is(
+  .preview-dash-stats,
+  .preview-dash-list,
+  .preview-dash-foot
+) {
+  border-color: var(--lp-dark-border) !important;
+  background: var(--lp-dark-surface) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .preview-dash-stat + .preview-dash-stat {
+  border-left-color: var(--lp-dark-border) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .preview-dash-row:hover {
+  background: var(--lp-dark-surface-soft) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .preview-dash-safe :is(
+  .preview-dash-safe-label,
+  .preview-dash-safe-amount
+) {
+  color: #fff !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .preview-dash-safe-hint {
+  color: rgb(255 255 255 / 78%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .preview-dash-cta {
+  background: var(--color-accent-subtle) !important;
+  color: var(--color-accent-text) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-section-muted {
+  border-color: var(--lp-dark-border) !important;
+  background:
+    radial-gradient(circle at 15% 50%, rgb(20 91 54 / 22%), transparent 28rem),
+    linear-gradient(180deg, #111714, #0e1411) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-feature-grid li:hover {
+  border-color: var(--lp-dark-border) !important;
+  background: var(--lp-dark-surface) !important;
+  box-shadow: 0 16px 38px rgb(0 0 0 / 28%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-feature-icon,
+[data-theme="dark"] .landing-page.lp-root .lp-step-n {
+  background: var(--color-accent-subtle) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-faq-item[open] {
+  border-color: var(--color-border-strong) !important;
+  box-shadow: 0 14px 34px rgb(0 0 0 / 28%) !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta :is(
+  h2,
+  > p,
+  .cta-secondary,
+  .landing-trust-bar--cta li
+) {
+  color: #fff !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-cta .cta-primary {
+  background: #fff !important;
+  color: #0d5f37 !important;
+}
+
+[data-theme="dark"] .landing-page.lp-root .lp-footer {
+  border-color: var(--lp-dark-border) !important;
+  background: #0d110f !important;
+}
