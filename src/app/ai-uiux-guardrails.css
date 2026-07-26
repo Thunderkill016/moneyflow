@@ -25,6 +25,28 @@
   padding-block: 4px;
 }
 
+/* When the ledger is empty there is no left-hand analytics stack. Do not leave
+ * a large dead column while squeezing every planning card into the sidebar.
+ */
+@media (min-width: 1121px) {
+  .insights-dashboard .insights-empty + .insights-main-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .insights-dashboard .insights-empty + .insights-main-grid .right-stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px !important;
+  }
+
+  .insights-dashboard
+    .insights-empty
+    + .insights-main-grid
+    .goal-dashboard-panel {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 760px) {
   .insights-dashboard .transaction-row .amount {
     font-size: clamp(10px, 3vw, 12px) !important;
