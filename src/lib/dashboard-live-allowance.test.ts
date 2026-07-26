@@ -5,7 +5,7 @@ import {
   DAILY_ALLOWANCE,
 } from "./finance.ts";
 
-test("authenticated allowance is derived from the user's own balance", () => {
+test("authenticated allowance is derived from the user's own current balance", () => {
   const summary = calculateDashboardSummary([], {
     isDemo: false,
     totalBalance: 31_000_000,
@@ -17,11 +17,23 @@ test("authenticated allowance is derived from the user's own balance", () => {
   assert.ok(summary.dailyAllowance > DAILY_ALLOWANCE);
 });
 
-test("authenticated allowance uses the tighter budget constraint", () => {
+test("partial category budgets do not cap the global daily guide", () => {
   const summary = calculateDashboardSummary([], {
     isDemo: false,
     totalBalance: 31_000_000,
     remainingBudget: 3_100_000,
+    today: "2026-07-01",
+  });
+
+  assert.equal(summary.dailyAllowance, 1_000_000);
+});
+
+test("a complete all-spending plan uses the tighter constraint", () => {
+  const summary = calculateDashboardSummary([], {
+    isDemo: false,
+    totalBalance: 31_000_000,
+    remainingBudget: 3_100_000,
+    budgetPlanIsComplete: true,
     today: "2026-07-01",
   });
 
