@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const NOTE = "Benchmark UX cafe";
 const AMOUNT = 125_000;
 
- test.describe("Global PFM UX benchmark", () => {
+test.describe("Global PFM UX benchmark", () => {
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(() => {
       try {
@@ -21,14 +21,14 @@ const AMOUNT = 125_000;
     });
   });
 
-  test("uses one primary dashboard action and keeps filter totals contextual", async ({
+  test("withdraws untrusted spending advice and keeps one primary action", async ({
     page,
   }) => {
     await page.goto("/insights");
-    await expect(page.locator(".safe-card-hero .hero-add")).toBeVisible();
+    await expect(page.locator(".safe-card-hero")).toBeHidden();
     await expect(
       page.locator(".welcome-actions .insights-ghi-chi"),
-    ).toBeHidden();
+    ).toBeVisible();
 
     await page.goto("/capture/quick");
     await page.getByRole("button", { name: /Khoản chi/i, exact: true }).click();

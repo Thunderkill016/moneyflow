@@ -6,6 +6,7 @@ import "./ui-refresh.css";
 import "./landing-refresh.css";
 import "./auth-refresh.css";
 import "./benchmark-ux.css";
+import "./safe-to-spend-withdrawal.css";
 
 /**
  * UI text — LCP critical.
@@ -26,7 +27,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "MoneyFlow — Quản lý thu chi cá nhân",
   description:
-    "Ghi thu chi nhanh, nhiều ví, ngân sách danh mục, báo cáo tháng. Biết hôm nay có thể chi bao nhiêu. Xuất CSV. Không quảng cáo trong luồng chính.",
+    "Ghi thu chi nhanh, nhiều ví, ngân sách danh mục và báo cáo tháng. Xuất CSV. Không quảng cáo trong luồng chính.",
 };
 
 export const viewport: Viewport = {
