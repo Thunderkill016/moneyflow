@@ -58,7 +58,7 @@
     {
       "id": "MFVN-002",
       "title": "Complete seven consecutive days of real self-use",
-      "status": "active",
+      "status": "dropped",
       "dependsOn": ["MFVN-001"],
       "source": "issue #27 and docs/REAL_USE_READINESS_CONTRACT.md",
       "acceptance": [
@@ -69,13 +69,15 @@
       "requiredEvidence": [
         "daily pass or fail record using non-sensitive summaries",
         "bounded issues for reproducible defects"
-      ]
+      ],
+      "droppedAt": "2026-07-27",
+      "dropReason": "The owner has already used the product and explicitly removed the fixed seven-day requirement as unnecessary. This task is dropped, not falsely marked complete."
     },
     {
       "id": "MFVN-003",
       "title": "Implement Calm Ledger foundation and landing/auth slice",
-      "status": "blocked",
-      "dependsOn": ["MFVN-002"],
+      "status": "active",
+      "dependsOn": ["MFVN-001"],
       "source": "issue #81 rollout step 1",
       "acceptance": [
         "one token source of truth replaces additional override layers",
@@ -87,7 +89,8 @@
         "focused unit and build checks",
         "responsive screenshots for affected states",
         "diff review showing no finance or RLS scope escape"
-      ]
+      ],
+      "activatedAt": "2026-07-27"
     },
     {
       "id": "MFVN-004",
