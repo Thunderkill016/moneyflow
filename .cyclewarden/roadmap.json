@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "id": "MFVN-000",
+      "title": "Adopt MoneyFlow into the CycleWarden project model",
+      "status": "done",
+      "dependsOn": [],
+      "source": "issue #85",
+      "acceptance": [
+        "project truth is grounded in current repository sources",
+        "the roadmap represents current readiness constraints",
+        "exactly one task is active",
+        "no runtime code or production configuration changes"
+      ],
+      "requiredEvidence": [
+        ".cyclewarden/project.json",
+        ".cyclewarden/roadmap.json",
+        ".cyclewarden/status.json",
+        ".cyclewarden/README.md"
+      ]
+    },
+    {
+      "id": "MFVN-001",
+      "title": "Complete final manual readiness gates",
+      "status": "active",
+      "dependsOn": ["MFVN-000"],
+      "source": "issue #27",
+      "humanOnly": true,
+      "scope": [
+        "real production auth email callback",
+        "CSV opened in an end-user spreadsheet application",
+        "transaction capture with a physical-phone keyboard"
+      ],
+      "outOfScope": [
+        "new product features",
+        "Calm Ledger redesign implementation",
+        "simulated evidence for human-only checks",
+        "posting raw email links, tokens, sessions, passwords, or real financial data"
+      ],
+      "acceptance": [
+        "production callback returns to the intended mfvn.vercel.app flow without retired or localhost origins",
+        "synthetic CSV preserves Vietnamese text, literal formula-like notes, and integer VND in a normal spreadsheet application",
+        "the physical-phone transaction form remains reachable and usable while the numeric keyboard is open"
+      ],
+      "requiredEvidence": [
+        "pass or fail and timestamp for each manual gate",
+        "final callback origin and path without secrets",
+        "spreadsheet application used without uploading personal data",
+        "device, browser, viewport, and pass or fail without real finance data"
+      ]
+    },
+    {
+      "id": "MFVN-002",
+      "title": "Complete seven consecutive days of real self-use",
+      "status": "blocked",
+      "dependsOn": ["MFVN-001"],
+      "source": "issue #27 and docs/REAL_USE_READINESS_CONTRACT.md",
+      "acceptance": [
+        "seven consecutive calendar days complete without data loss or manual database repair",
+        "core transactions reconcile",
+        "all reproducible P0 and P1 defects are recorded and resolved or explicitly blocking"
+      ],
+      "requiredEvidence": [
+        "daily pass or fail record using non-sensitive summaries",
+        "bounded issues for reproducible defects"
+      ]
+    },
+    {
+      "id": "MFVN-003",
+      "title": "Implement Calm Ledger foundation and landing/auth slice",
+      "status": "blocked",
+      "dependsOn": ["MFVN-002"],
+      "source": "issue #81 rollout step 1",
+      "acceptance": [
+        "one token source of truth replaces additional override layers",
+        "landing first viewport states the product clearly with one primary action",
+        "authentication copy contains no retired safe-to-spend claims",
+        "financial and ownership invariants remain unchanged"
+      ],
+      "requiredEvidence": [
+        "focused unit and build checks",
+        "responsive screenshots for affected states",
+        "diff review showing no finance or RLS scope escape"
+      ]
+    },
+    {
+      "id": "MFVN-004",
+      "title": "Implement Calm Ledger daily-flow slice",
+      "status": "blocked",
+      "dependsOn": ["MFVN-003"],
+      "source": "issue #81 rollout step 2",
+      "acceptance": [
+        "app shell, overview, quick capture, transactions, accounts, and inbox/import follow one consistent information architecture",
+        "navigation and primary actions do not obscure content on supported phones",
+        "existing transaction and transfer semantics remain correct"
+      ],
+      "requiredEvidence": [
+        "relevant Playwright flows",
+        "responsive and dark-mode evidence",
+        "financial regression tests"
+      ]
+    },
+    {
+      "id": "MFVN-005",
+      "title": "Implement Calm Ledger planning and settings slice",
+      "status": "blocked",
+      "dependsOn": ["MFVN-004"],
+      "source": "issue #81 rollout step 3",
+      "acceptance": [
+        "planning, reports, categories, rules, settings, and export use consistent hierarchy and recovery states",
+        "the product never infers a spending plan from total assets alone",
+        "export remains safe and discoverable"
+      ],
+      "requiredEvidence": [
+        "focused route and state tests",
+        "long Vietnamese and large-VND evidence",
+        "spreadsheet safety regression coverage"
+      ]
+    },
+    {
+      "id": "MFVN-006",
+      "title": "Complete Calm Ledger cross-device acceptance",
+      "status": "blocked",
+      "dependsOn": ["MFVN-005"],
+      "source": "issue #81 rollout step 4 and issues #70/#72",
+      "acceptance": [
+        "no horizontal overflow at supported viewports",
+        "critical dark-mode, enlarged-text, keyboard, and WebKit paths pass",
+        "all affected routes have usable loading, empty, content, error, and recovery states"
+      ],
+      "requiredEvidence": [
+        "UI audit matrix",
+        "approved screenshots or artifacts",
+        "physical-device evidence where claimed"
+      ]
+    }
+  ]
+}
