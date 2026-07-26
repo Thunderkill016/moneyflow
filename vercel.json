@@ -4,9 +4,8 @@
   "git": {
     "deploymentEnabled": {
       "**": false,
-      "main": true,
-      "design/calm-ledger-daily-shell": true
+      "main": true
     }
   },
-  "buildCommand": "bash scripts/preview-verify.sh"
+  "buildCommand": "npm run check:deployment-env && npm run build"
 }
