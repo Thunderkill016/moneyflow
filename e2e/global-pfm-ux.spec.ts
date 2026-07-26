@@ -21,14 +21,22 @@ test.describe("Global PFM UX benchmark", () => {
     });
   });
 
-  test("withdraws untrusted spending advice and keeps one primary action", async ({
+  test("withdraws untrusted spending advice and keeps a viewport primary action", async ({
     page,
   }) => {
     await page.goto("/insights");
     await expect(page.locator(".safe-card-hero")).toBeHidden();
-    await expect(
-      page.locator(".welcome-actions .insights-ghi-chi"),
-    ).toBeVisible();
+
+    const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
+    const welcomeExpenseAction = page.locator(
+      ".welcome-actions .insights-ghi-chi",
+    );
+    if (isMobile) {
+      await expect(welcomeExpenseAction).toBeHidden();
+      await expect(page.locator(".mobile-fab")).toBeVisible();
+    } else {
+      await expect(welcomeExpenseAction).toBeVisible();
+    }
 
     await page.goto("/capture/quick");
     await page.getByRole("button", { name: /Khoản chi/i, exact: true }).click();

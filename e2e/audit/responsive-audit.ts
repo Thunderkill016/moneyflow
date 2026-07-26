@@ -48,6 +48,71 @@ export async function applyEnlargedText(page: Page): Promise<void> {
   });
 }
 
+async function waitForUiToSettle(page: Page, route: AuditRoute): Promise<void> {
+  const pendingUi = page.locator("[aria-busy='true']:visible, .loading-card:visible");
+  await expect(
+    pendingUi,
+    `${route.path} must finish its visible loading state before UI evidence is captured`,
+  ).toHaveCount(0, { timeout: 15_000 });
+
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+      }),
+  );
+}
+
+async function primeFullPageRendering(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const paint = () =>
+      new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+      });
+    const root = document.documentElement;
+    const step = Math.max(320, Math.floor(window.innerHeight * 0.75));
+    const maxY = Math.max(0, root.scrollHeight - window.innerHeight);
+
+    for (let y = 0; y < maxY; y += step) {
+      window.scrollTo({ top: y, behavior: "instant" });
+      await paint();
+    }
+    window.scrollTo({ top: maxY, behavior: "instant" });
+    await paint();
+    window.scrollTo({ top: 0, behavior: "instant" });
+    await paint();
+  });
+}
+
+async function attachPaintedRouteDetails(
+  page: Page,
+  testInfo: TestInfo,
+  route: AuditRoute,
+): Promise<void> {
+  if (route.path !== "/insights" || !testInfo.project.name.startsWith("webkit")) return;
+
+  const cards = [
+    { label: "weekly", locator: page.locator(".weekly-summary-panel") },
+    { label: "budget", locator: page.locator(".budget-panel") },
+    { label: "commitments", locator: page.locator(".right-stack .insight-panel").nth(0) },
+    { label: "income", locator: page.locator(".right-stack .insight-panel").nth(1) },
+    { label: "goal", locator: page.locator(".goal-dashboard-panel") },
+  ];
+
+  for (const card of cards) {
+    await expect(card.locator, `${card.label} card must exist on Insights`).toBeVisible();
+    await expect(card.locator, `${card.label} card must contain rendered text`).toContainText(/\S/);
+    await card.locator.scrollIntoViewIfNeeded();
+    const image = await card.locator.screenshot({ animations: "disabled" });
+    await testInfo.attach(`insights-${card.label}-${testInfo.project.name}.png`, {
+      body: image,
+      contentType: "image/png",
+    });
+  }
+
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+}
+
 export async function auditRoute(
   page: Page,
   testInfo: TestInfo,
@@ -58,6 +123,8 @@ export async function auditRoute(
 
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
   await expect(page.locator("body")).toContainText(/\S/, { timeout: 15_000 });
+  await waitForUiToSettle(page, route);
+  await primeFullPageRendering(page);
 
   const frameworkOverlay = page.locator(
     '[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay',
@@ -206,6 +273,8 @@ export async function auditRoute(
     return { viewport, documentWidth, findings };
   });
 
+  await attachPaintedRouteDetails(page, testInfo, route);
+
   const screenshot = await page.screenshot({ fullPage: true, animations: "disabled" });
   const artifactName = `${route.label.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "route"}-${testInfo.project.name}`;
 
@@ -240,9 +309,6 @@ export async function assertKeyboardFocusVisible(page: Page, testInfo: TestInfo)
 
   for (let index = 0; index < 12; index += 1) {
     await page.keyboard.press("Tab");
-    // Chromium/WebKit perform native focus scrolling asynchronously. Waiting for
-    // two paint frames prevents reporting a below-fold control before the browser
-    // has moved it into view, while still catching focus hidden by app chrome.
     await page.evaluate(
       () =>
         new Promise<void>((resolve) => {

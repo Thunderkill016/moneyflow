@@ -1,0 +1,55 @@
+/* Visual-review guardrails for the Calm Ledger dashboard. */
+
+/* Recent-ledger values must remain fully readable on narrow WebKit layouts.
+ * Let the description column shrink instead of clipping the financial value.
+ */
+.insights-dashboard .transaction-row .amount {
+  width: auto !important;
+  max-width: none !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+/* Inline destinations are actions, not decorative micro-copy. Give them a
+ * reliable touch/focus height without turning every sentence into a button.
+ */
+.insights-dashboard :is(
+  .insight-panel p a,
+  .goal-dashboard-more a,
+  .planning-card-empty-cta
+) {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding-block: 4px;
+}
+
+/* When the ledger is empty there is no left-hand analytics stack. Do not leave
+ * a large dead column while squeezing every planning card into the sidebar.
+ */
+@media (min-width: 1121px) {
+  .insights-dashboard .insights-empty + .insights-main-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .insights-dashboard .insights-empty + .insights-main-grid .right-stack {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px !important;
+  }
+
+  .insights-dashboard
+    .insights-empty
+    + .insights-main-grid
+    .goal-dashboard-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 760px) {
+  .insights-dashboard .transaction-row .amount {
+    font-size: clamp(10px, 3vw, 12px) !important;
+    letter-spacing: -0.02em;
+  }
+}
