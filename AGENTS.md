@@ -4,86 +4,123 @@
 This version has breaking changes. Before using unfamiliar App Router APIs, read the relevant guide in `node_modules/next/dist/docs/` and follow current deprecation notices.
 <!-- END:nextjs-agent-rules -->
 
-# MoneyFlow — agent entrypoint
+# MoneyFlow agent guide
 
-`AGENTS.md` is a map, not the project encyclopedia. Open only the documents needed for the task, but do not code before understanding the affected system.
+`AGENTS.md` is the short operating guide for coding agents. Keep task-specific detail in the issue, pull request, code, tests or focused docs. Do not read the whole documentation tree by default.
 
-## Required read order
+## Product mission
 
-For every non-trivial change:
+MoneyFlow is a calm, manual-first personal income-and-expense ledger for Vietnamese users.
 
-1. `README.md` — product and commands.
-2. `ARCHITECTURE.md` — system boundaries and change map.
-3. `docs/product/PRINCIPLES.md` — product truth and financial constraints.
-4. `docs/MVP_DEFINITION.md` — current ship/readiness contract.
-5. `docs/engineering/AI_DELIVERY_WORKFLOW.md` — research, planning, implementation and review process.
-6. The active work packet under `docs/plans/active/`, when one exists.
+Prioritize, in order:
 
-Task-specific references:
+1. Financial correctness and ownership safety.
+2. Reliable completion of the core transaction flow.
+3. Mobile usability and accessibility.
+4. Clear recovery from mistakes.
+5. Maintainability and performance.
+6. Visual polish.
+7. New feature breadth.
 
-| Task | Read |
-|---|---|
-| UI/UX | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` |
-| Auth/deployment | `docs/configuration.md`, `docs/supabase-setup.md` |
-| Database/RLS | `docs/security-rls-check.md`, relevant migrations and pgTAP tests |
-| Product behavior | `docs/MVP_DEFINITION.md`, relevant files in `docs/research/` and current GitHub issue/PR |
+Do not add bank sync, AI financial advice, OCR as a core workflow, family finance, business accounting, crypto/investment features or a full envelope-budgeting system without an explicit approved specification.
 
-## Product law
+## Read only what the task needs
 
-- MoneyFlow is a manual-first personal income and expense ledger for Vietnamese users.
-- Core jobs: record a transaction quickly; know balances; understand where money went this month; retain and export trustworthy data.
-- Do not present a daily spending recommendation until the product has an explicit, researched planning contract with reliable income-cycle, commitment and reserve data.
-- Inbox, paste, import and rules are optional advanced capture tools, not the product identity.
-- Do not add bank sync, AI financial advice, OCR, family finance or a full envelope-budgeting system without explicit human approval and a new product specification.
+Start with:
 
-## Financial invariants
+1. The current user request, issue or accepted specification.
+2. `README.md` for commands and current project phase.
+3. `docs/product/PRINCIPLES.md` for product truth.
+4. `ARCHITECTURE.md` for boundaries, repository map and change-specific verification.
+5. The affected code and its existing tests.
+
+Read additional documents only when relevant:
+
+- Current MVP/readiness work: `docs/MVP_DEFINITION.md`.
+- UI/UX: `docs/design-system.md`, `docs/UX_PRINCIPLES.md` and `docs/AI_UIUX_WORKFLOW.md`.
+- Auth or deployment: `docs/configuration.md` and `docs/supabase-setup.md`.
+- Database or RLS: `docs/security-rls-check.md`, relevant migrations and pgTAP tests.
+- Large, high-risk or multi-session work: `docs/engineering/AI_DELIVERY_WORKFLOW.md` and an active work packet under `docs/plans/active/`.
+
+Historical research is evidence, not current product authority. When documents conflict, prefer the current task, product principles, architecture, tests and current implementation in that order. Stop and report a material unresolved conflict instead of guessing.
+
+## Repository map
+
+- `src/app/`: routes, layouts, server entrypoints and route composition.
+- `src/components/`: reusable UI and feature presentation.
+- `src/hooks/`: client orchestration around stores and mutations.
+- `src/lib/`: financial rules, validation, formatting and pure calculations.
+- `supabase/migrations/`: schema, constraints, policies and indexes.
+- `supabase/tests/`: pgTAP invariants and tenant-isolation checks.
+- `tests/` and Playwright configs: browser, responsive, accessibility and visual checks.
+- `scripts/`: repeatable verification and repository automation.
+- `docs/`: product truth, architecture, decisions, plans and historical research.
+
+## Non-negotiable invariants
 
 - Store VND as integer đồng; never use floating-point money.
 - Transfers are balanced movements between accounts and never count as income or expense.
-- User-owned data requires RLS and tenant-isolation tests.
+- User-owned data requires RLS and tenant-isolation coverage.
 - Destructive ledger actions use soft delete and a recoverable path.
-- Financial calculations live in testable domain modules, not UI components.
-- Never invent missing balances, dates, commitments, income or planning assumptions.
+- Keep financial calculations in testable domain modules, not UI components.
+- Never invent missing balances, dates, commitments, income, reserves or planning assumptions.
+- Export must preserve Vietnamese text, integer values and spreadsheet formula safety.
+- Runtime mode is explicit through `NEXT_PUBLIC_APP_MODE`; missing configuration must fail rather than silently changing mode.
 
-## Required delivery workflow
+## Working rules
 
-For non-trivial work, copy `docs/templates/FEATURE_WORK_PACKET.md` into `docs/plans/active/<slug>.md` and complete it in order:
+Before editing:
 
-1. Repository reconnaissance.
-2. External/product research when facts or behavior are not already established.
-3. Specification and acceptance criteria.
-4. Implementation plan and risks.
-5. Small, verifiable tasks.
-6. Implementation on a focused branch.
-7. Independent evaluation against the spec.
-8. CI, browser evidence and production verification.
-9. Move the packet to `docs/plans/completed/` after merge.
+1. Inspect the current behavior, affected code and existing tests.
+2. Identify shared code, schema or components that could affect neighboring behavior.
+3. State a short plan and the checks appropriate to the change.
 
-A tiny documentation or one-line mechanical fix may use an inline plan, but still requires reading the affected files and running proportionate checks.
+While editing:
 
-## Coding rules
+- Make the smallest coherent change that satisfies the task.
+- Reuse existing components, domain helpers and test patterns before adding abstractions.
+- Do not refactor, rename or reformat unrelated code.
+- Do not silently change requirements when implementation becomes difficult; report the conflict.
+- Add or update tests for meaningful domain, schema or behavioral changes.
+- Keep secrets and environment-specific values out of source control.
+- Use a focused branch and pull request; do not commit feature or fix work directly to `main`.
+- Do not merge unless the user explicitly asks.
 
-- Prefer the smallest coherent vertical slice; no drive-by refactors.
-- Search for existing components, domain helpers and tests before creating new abstractions.
-- Do not change requirements while implementing. Update the spec first when scope changes.
-- Do not write directly to `main`; use a focused branch and pull request.
-- Keep configuration in environment/provider settings, never guessed constants or committed secrets.
-- One primary action per viewport; money must not be distinguished by color alone.
+Research external sources only when the task depends on current APIs, standards, security guidance, financial rules or unfamiliar technology. Prefer official and primary sources, and separate facts from inference.
+
+## Planning depth
+
+Use planning proportional to risk:
+
+- Tiny mechanical change: inspect the affected source, make the change and run a focused check.
+- Normal bounded change: use a short inline plan; no work packet is required by default.
+- High-risk or broad change: create a work packet when the task changes financial calculations, schema/RLS, authentication, deployment, cross-cutting architecture, several user flows, or is expected to span multiple sessions.
+
+A work packet is a coordination tool, not a ceremony required for every multi-file patch.
 
 ## Verification
 
-Run the gates appropriate to the change; non-trivial product work requires all of them:
+Run the smallest set of checks that can actually prove the change, then expand when risk or failures justify it.
 
-```bash
-npm run check:knowledge
-npm run check:deployment-env
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-npm run test:db
-npm run test:e2e
-npm run test:ui-audit:pr
-```
+- Documentation or repository guidance: `npm run check:knowledge`.
+- TypeScript or application code: `npm run lint`, `npm run typecheck` and relevant `npm run test` coverage.
+- Build, routing, configuration or server/client boundary changes: also run `npm run build` and, when relevant, `npm run check:deployment-env`.
+- Database, migration, ownership or RLS changes: run `npm run test:db` and relevant migration checks; Docker is required.
+- User-flow changes: run the relevant Playwright flow with `npm run test:e2e` or a focused Playwright command.
+- UI, responsive, accessibility or visual changes: review the affected states and run the relevant UI audit; do not require the full device matrix for unrelated changes.
+- Release/readiness or high-risk cross-cutting work: run the full applicable gate set documented in `README.md`.
 
-A change is not done because code was generated or tests were claimed. It is done only when the diff matches the specification, required gates pass, visual/browser evidence is reviewed where relevant, the PR is merged, and the exact production deployment is verified.
+A lower-level check does not prove a higher-level property. A green build does not prove financial correctness, RLS isolation, mobile usability or production behavior.
+
+Do not claim a command passed unless it was run successfully. Report checks that could not run and why.
+
+## Completion report
+
+Finish with:
+
+- What changed and why.
+- Files changed.
+- Checks run and exact results.
+- Manual or browser verification performed, when relevant.
+- Remaining uncertainty, risk or follow-up.
+- Anything intentionally left unchanged.
