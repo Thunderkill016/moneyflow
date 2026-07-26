@@ -1,6 +1,5 @@
 /**
- * TASK-104 / R1 — Lock landing product positioning (G5 thu chi) + visual polish contracts.
- * Regression: fail if marketing reverts to inbox-first slogans or drops RSC / trust bar.
+ * Calm Ledger — public landing positioning and structure contracts.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -11,144 +10,88 @@ const LANDING_SOURCE_PATH = join(
   process.cwd(),
   "src/components/landing-page.tsx",
 );
-const GLOBALS_CSS_PATH = join(process.cwd(), "src/app/globals.css");
+const LANDING_CSS_PATH = join(
+  process.cwd(),
+  "src/components/landing-page.module.css",
+);
 
-/** Forbidden inbox-era marketing slogans (AGENTS.md product law). */
 const FORBIDDEN_LANDING_PHRASES = [
   "Hộp thư cho mọi giao dịch",
   "Universal Financial Inbox",
+  "có thể chi",
 ] as const;
 
 function readLandingSource(): string {
   return readFileSync(LANDING_SOURCE_PATH, "utf8");
 }
 
-function readGlobalsCss(): string {
-  return readFileSync(GLOBALS_CSS_PATH, "utf8");
+function readLandingCss(): string {
+  return readFileSync(LANDING_CSS_PATH, "utf8");
 }
 
-test("landing source exists and is non-empty", () => {
+test("landing source exists and remains a Server Component", () => {
   const source = readLandingSource();
   assert.ok(source.length > 100, "landing-page.tsx should have content");
   assert.match(source, /export function LandingPage/);
+  assert.equal(/^\s*["']use client["']/.test(source), false);
 });
 
-test("landing is Server Component (TASK-132 LCP)", () => {
+test("landing positions MoneyFlow as a manual-first personal ledger", () => {
   const source = readLandingSource();
-  assert.equal(
-    /^\s*["']use client["']/.test(source),
-    false,
-    "landing must remain a Server Component for LCP",
-  );
-});
-
-test("landing positions as thu chi / có thể chi (G5), not inbox-only product", () => {
-  const source = readLandingSource();
-  const hasCoTheChi = source.includes("có thể chi");
-  const hasThuChi = source.includes("thu chi");
-  assert.ok(
-    hasCoTheChi || hasThuChi,
-    'landing must include "có thể chi" or "thu chi" (product JTBD copy)',
-  );
-});
-
-test("landing forbids inbox-first marketing slogans", () => {
-  const source = readLandingSource();
+  assert.match(source, /Sổ thu chi cá nhân/);
+  assert.match(source, /Ghi thu chi trong vài giây/);
+  assert.match(source, /từ dữ liệu bạn tự ghi/);
   for (const phrase of FORBIDDEN_LANDING_PHRASES) {
-    assert.equal(
-      source.includes(phrase),
-      false,
-      `landing must not contain forbidden slogan: ${JSON.stringify(phrase)}`,
-    );
+    assert.equal(source.includes(phrase), false, `forbidden: ${phrase}`);
   }
 });
 
-/** R1 — dense trust bar near hero CTAs (privacy / export / no bank / free). */
-test("landing has dense trust bar with G5 promises", () => {
+test("hero has one conversion CTA and one in-page explainer CTA", () => {
   const source = readLandingSource();
-  assert.match(
-    source,
-    /landing-trust-bar/,
-    "hero must use landing-trust-bar for dense trust chips",
-  );
-  assert.match(source, /Xuất CSV|xuất CSV/i);
-  assert.match(source, /mật khẩu ngân hàng|mật khẩu NH/i);
-  assert.ok(
-    source.includes("miễn phí") || source.includes("Miễn phí"),
-    "trust bar / CTA must signal free core",
-  );
-});
-
-/** R1 — clearer demo secondary CTA (rebuild plan Phase 2). */
-test("landing demo CTA is explicit (no account required)", () => {
-  const source = readLandingSource();
-  assert.match(
-    source,
-    /Thử demo không cần tài khoản/,
-    "secondary demo CTA must say account not required",
-  );
-  assert.match(source, /href="\/insights"/);
-});
-
-/** Ref polish — hero CTA hierarchy: primary + demo only (no third login in hero). */
-test("landing hero has two CTAs only (register + demo)", () => {
-  const source = readLandingSource();
-  const start = source.indexOf("landing-hero-ctas");
-  const end = source.indexOf("lp-showcase", start);
-  assert.ok(start >= 0 && end > start, "hero CTAs then product showcase");
+  const start = source.indexOf("styles.heroActions");
+  const end = source.indexOf("styles.trustList", start);
+  assert.ok(start >= 0 && end > start, "hero actions precede trust list");
   const block = source.slice(start, end);
   assert.match(block, /href="\/register"/);
-  assert.match(block, /href="\/insights"/);
-  assert.equal(
-    (block.match(/href="\/login"/g) || []).length,
-    0,
-    "login must not compete in hero CTAs (nav/footer only)",
-  );
+  assert.match(block, /href="#cach-hoat-dong"/);
+  assert.equal(block.includes('href="/insights"'), false);
 });
 
-/** Ref polish — no English earmark jargon in marketing copy. */
-test("landing avoids English earmark jargon", () => {
+test("landing states the financial and ownership rules honestly", () => {
   const source = readLandingSource();
-  assert.equal(source.toLowerCase().includes("earmark"), false);
+  assert.match(source, /Không cần mật khẩu ngân hàng/);
+  assert.match(source, /Xuất CSV/);
+  assert.match(source, /Chuyển ví không tính là chi/);
+  assert.match(source, /không biến số dư thành lời khuyên chi tiêu/);
+  assert.match(source, /Số nguyên đồng/);
 });
 
-/** Ref polish — honest proof strip (product truths, not fake % surveys). */
-test("landing has honest proof strip", () => {
+test("landing includes full product preview, workflow, benefits and FAQ", () => {
   const source = readLandingSource();
-  assert.match(source, /landing-proof-strip/);
-  assert.match(source, /&lt; 10s|< 10s|10s/);
-  assert.match(source, /không tính chi|CK ≠ chi|CK ≠/i);
-});
-
-test("landing v2 has shadcn-template structure (centered hero + FAQ + benefits)", () => {
-  const source = readLandingSource();
-  assert.match(source, /lp-hero|lp-root/);
-  assert.match(source, /lp-showcase/);
-  assert.match(source, /lp-benefit/);
-  assert.match(source, /id="faq-heading"/);
+  assert.match(source, /styles\.previewWrap/);
+  assert.match(source, /styles\.proof/);
+  assert.match(source, /styles\.steps/);
+  assert.match(source, /styles\.features/);
+  assert.match(source, /styles\.ownership/);
+  assert.match(source, /id="faq-title"/);
   assert.match(source, /<details/);
-  assert.equal(source.includes("Monarch"), false, "do not name competitors on landing");
-  // Single trust-heading removed in v2 in favor of FAQ — ok
+  assert.equal(source.includes("Monarch"), false);
 });
 
-test("landing Excel / sheet path uses table icon", () => {
+test("landing preview preserves Thu, Chi and Chuyển semantics", () => {
   const source = readLandingSource();
-  assert.match(source, /name="table"/);
-  assert.match(source, /Excel|Sheet|CSV/);
+  assert.match(source, /Thu tháng này/);
+  assert.match(source, /Chi tháng này/);
+  assert.match(source, /Chuyển ví · không tính thu chi/);
+  assert.match(source, /↔ 2\.000\.000 ₫/);
 });
 
-/** R1 — CSS contracts: type hierarchy + mobile spacing + trust bar density. */
-test("landing CSS defines type hierarchy and trust-bar density", () => {
-  const css = readGlobalsCss();
-  assert.match(css, /\.landing-trust-bar\b/);
-  assert.match(css, /\.landing-hero-title\b/);
-  assert.match(css, /\.landing-proof-strip\b/);
-  assert.match(css, /\.landing-nav-login\b/);
-  assert.match(css, /\.feature-grid\.feature-grid-core|\.feature-grid-core/);
-  // Mobile spacing polish under small viewport
-  assert.ok(
-    css.includes("@media (max-width: 640px)") &&
-      (css.includes(".landing-section") || css.includes(".landing-hero")),
-    "globals must tighten landing spacing on mobile (≤640px)",
-  );
+test("landing module defines responsive, readable and reduced-motion layout", () => {
+  const css = readLandingCss();
+  assert.match(css, /\.hero\b/);
+  assert.match(css, /\.previewWrap\b/);
+  assert.match(css, /\.proof\b/);
+  assert.match(css, /@media \(max-width: 820px\)/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.equal(css.includes("!important"), false);
 });

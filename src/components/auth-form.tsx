@@ -11,8 +11,8 @@ import {
   type AuthState,
 } from "@/app/(auth)/actions";
 import { Icon } from "@/components/icons";
-import { Button } from "@/components/ui/button";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
+import styles from "./auth-form.module.css";
 
 type Mode = "login" | "register" | "forgot" | "update";
 
@@ -20,19 +20,19 @@ const copy = {
   login: {
     eyebrow: "Chào mừng trở lại",
     title: "Đăng nhập",
-    description: "Tiếp tục quản lý thu chi của bạn.",
+    description: "Mở sổ thu chi và tiếp tục từ dữ liệu gần nhất của bạn.",
     submit: "Đăng nhập",
   },
   register: {
-    eyebrow: "Bắt đầu rõ ràng hơn",
+    eyebrow: "Bắt đầu rõ ràng",
     title: "Tạo tài khoản",
-    description: "Ghi thu chi, theo dõi nhiều ví, xuất CSV khi cần.",
+    description: "Tạo một sổ riêng để theo dõi thu, chi và các ví đang dùng.",
     submit: "Tạo tài khoản",
   },
   forgot: {
     eyebrow: "Khôi phục truy cập",
     title: "Quên mật khẩu?",
-    description: "Nhập email và chúng tôi sẽ gửi liên kết đặt lại.",
+    description: "Nhập email tài khoản để nhận liên kết đặt lại mật khẩu.",
     submit: "Gửi liên kết",
   },
   update: {
@@ -41,21 +41,34 @@ const copy = {
     description: "Chọn mật khẩu mới có ít nhất 8 ký tự.",
     submit: "Cập nhật mật khẩu",
   },
-} satisfies Record<Mode, { eyebrow: string; title: string; description: string; submit: string }>;
-
-/** G5 trust — no bank password, ownership. Not inbox-first. */
-const TRUST_MICROCOPY = "Dữ liệu của bạn thuộc về bạn.";
-const TRUST_STORY_LINE =
-  "Số đúng. Chuyển khoản không tính chi. Xuất CSV bất cứ lúc nào. Không mật khẩu ngân hàng.";
+} satisfies Record<
+  Mode,
+  { eyebrow: string; title: string; description: string; submit: string }
+>;
 
 const initialState: AuthState = {};
 
 function FieldError({ id, messages }: { id: string; messages?: string[] }) {
   if (!messages?.[0]) return null;
   return (
-    <small id={id} role="alert">
+    <small className={styles.fieldError} id={id} role="alert">
       {messages[0]}
     </small>
+  );
+}
+
+function Brand({ compact = false }: { compact?: boolean }) {
+  return (
+    <Link
+      className={`${styles.brand} ${compact ? styles.mobileBrand : ""}`}
+      href="/"
+      aria-label="MoneyFlow, trang chủ"
+    >
+      <span className={styles.brandMark} aria-hidden="true">
+        <span />
+      </span>
+      <span>MoneyFlow</span>
+    </Link>
   );
 }
 
@@ -85,59 +98,69 @@ export function AuthForm({
   const privacyErrorId = `${baseId}-privacy-error`;
 
   return (
-    <main className="auth-page">
-      <section className="auth-story" aria-label="Giới thiệu MoneyFlow">
-        <Link className="brand auth-brand" href="/">
-          <span className="brand-mark">
-            <span />
+    <main className={styles.page}>
+      <section className={styles.story} aria-label="Giới thiệu MoneyFlow">
+        <Brand />
+        <div className={styles.storyBody}>
+          <span className={styles.storyIcon} aria-hidden="true">
+            <Icon name="wallet" size={26} />
           </span>
-          <span>MoneyFlow</span>
-        </Link>
-        <div>
-          <span className="auth-orbit">
-            <Icon name="spark" />
-          </span>
+          <p className={styles.storyKicker}>Sổ thu chi cá nhân</p>
           <h1>
             Tiền của bạn.
             <br />
             Rõ ràng mỗi ngày.
           </h1>
           <p>
-            MoneyFlow biến những con số phức tạp thành một quyết định đơn giản: hôm nay bạn có thể chi
-            bao nhiêu.
+            Một nơi để ghi giao dịch, kiểm tra số dư và xem lại các kế hoạch từ
+            chính dữ liệu bạn đã nhập.
           </p>
         </div>
-        <blockquote>
-          “{TRUST_MICROCOPY} {TRUST_STORY_LINE}”
-        </blockquote>
+        <ul className={styles.trustList}>
+          <li>
+            <Icon name="check" size={17} />
+            Chuyển ví không tính là chi
+          </li>
+          <li>
+            <Icon name="check" size={17} />
+            Xuất CSV bất cứ lúc nào
+          </li>
+          <li>
+            <Icon name="check" size={17} />
+            Không cần mật khẩu ngân hàng
+          </li>
+        </ul>
       </section>
 
-      <section className="auth-panel">
-        <div className="auth-card">
-          <Link className="brand auth-mobile-brand" href="/">
-            <span className="brand-mark">
-              <span />
-            </span>
-            <span>MoneyFlow</span>
-          </Link>
-          <p className="eyebrow">{content.eyebrow}</p>
+      <section className={styles.panel}>
+        <div className={styles.card}>
+          <Brand compact />
+          <p className={styles.eyebrow}>{content.eyebrow}</p>
           <h2>{content.title}</h2>
-          <p className="auth-description">{content.description}</p>
-          <p className="auth-trust">{TRUST_MICROCOPY}</p>
+          <p className={styles.description}>{content.description}</p>
 
           {demoMode && mode === "login" && (
-            <div className="demo-notice">
+            <div className={styles.demoNotice} role="status">
               <strong>Đang ở chế độ demo</strong>
-              <span>Thêm Supabase credentials để bật tài khoản thật.</span>
-              <Link href="/">Tiếp tục bản demo</Link>
+              <span>Dữ liệu chỉ được lưu trong trình duyệt này.</span>
+              <Link href="/insights">Tiếp tục bản demo</Link>
             </div>
           )}
 
           {(mode === "login" || mode === "register") && (
             <form action={signInWithGoogle}>
               <input type="hidden" name="next" value={next} />
-              <button className="google-button" type="submit" disabled={pending}>
-                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18">
+              <button
+                className={styles.googleButton}
+                type="submit"
+                disabled={pending}
+              >
+                <svg
+                  aria-hidden="true"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 18 18"
+                >
                   <path
                     fill="#4285F4"
                     d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.91c1.7-1.56 2.69-3.86 2.69-6.6z"
@@ -161,12 +184,12 @@ export function AuthForm({
           )}
 
           {(mode === "login" || mode === "register") && (
-            <div className="auth-divider">
+            <div className={styles.divider}>
               <span>hoặc dùng email</span>
             </div>
           )}
 
-          <form className="auth-form" action={formAction} noValidate>
+          <form className={styles.form} action={formAction} noValidate>
             <input type="hidden" name="next" value={next} />
             {mode === "register" && (
               <label>
@@ -177,10 +200,15 @@ export function AuthForm({
                   autoComplete="name"
                   placeholder="Nguyễn Minh Anh"
                   aria-invalid={Boolean(state.errors?.fullName)}
-                  aria-describedby={state.errors?.fullName ? fullNameErrorId : undefined}
+                  aria-describedby={
+                    state.errors?.fullName ? fullNameErrorId : undefined
+                  }
                   disabled={pending}
                 />
-                <FieldError id={fullNameErrorId} messages={state.errors?.fullName} />
+                <FieldError
+                  id={fullNameErrorId}
+                  messages={state.errors?.fullName}
+                />
               </label>
             )}
             {mode !== "update" && (
@@ -193,7 +221,9 @@ export function AuthForm({
                   autoComplete="email"
                   placeholder="ban@example.com"
                   aria-invalid={Boolean(state.errors?.email)}
-                  aria-describedby={state.errors?.email ? emailErrorId : undefined}
+                  aria-describedby={
+                    state.errors?.email ? emailErrorId : undefined
+                  }
                   disabled={pending}
                 />
                 <FieldError id={emailErrorId} messages={state.errors?.email} />
@@ -206,72 +236,92 @@ export function AuthForm({
                   id={`${baseId}-password`}
                   name="password"
                   type="password"
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
+                  autoComplete={
+                    mode === "login" ? "current-password" : "new-password"
+                  }
                   placeholder="Ít nhất 8 ký tự"
                   aria-invalid={Boolean(state.errors?.password)}
-                  aria-describedby={state.errors?.password ? passwordErrorId : undefined}
+                  aria-describedby={
+                    state.errors?.password ? passwordErrorId : undefined
+                  }
                   disabled={pending}
                 />
-                <FieldError id={passwordErrorId} messages={state.errors?.password} />
+                <FieldError
+                  id={passwordErrorId}
+                  messages={state.errors?.password}
+                />
               </label>
             )}
             {mode === "register" && (
-              <div className="auth-privacy">
-                <label className="auth-privacy-label">
+              <div className={styles.privacy}>
+                <label className={styles.privacyLabel}>
                   <input
                     id={`${baseId}-privacy`}
                     name="privacyAccepted"
                     type="checkbox"
                     value="1"
                     aria-invalid={Boolean(state.errors?.privacyAccepted)}
-                    aria-describedby={state.errors?.privacyAccepted ? privacyErrorId : undefined}
+                    aria-describedby={
+                      state.errors?.privacyAccepted ? privacyErrorId : undefined
+                    }
                     disabled={pending}
                   />
                   <span>
                     Tôi đồng ý với{" "}
-                    <Link href="/privacy" className="auth-privacy-link">
-                      chính sách quyền riêng tư
-                    </Link>
+                    <Link href="/privacy">chính sách quyền riêng tư</Link>
                   </span>
                 </label>
-                <FieldError id={privacyErrorId} messages={state.errors?.privacyAccepted} />
+                <FieldError
+                  id={privacyErrorId}
+                  messages={state.errors?.privacyAccepted}
+                />
               </div>
             )}
             {mode === "login" && (
-              <Link className="forgot-link" href="/forgot-password">
+              <Link className={styles.forgotLink} href="/forgot-password">
                 Quên mật khẩu?
               </Link>
             )}
             {state.message && (
               <div
-                className={state.success ? "auth-message success" : "auth-message"}
+                className={`${styles.message} ${
+                  state.success ? styles.messageSuccess : ""
+                }`}
                 role={state.success ? "status" : "alert"}
               >
                 {state.message}
               </div>
             )}
-            <Button className="auth-submit" disabled={pending} type="submit" aria-busy={pending}>
-              {pending ? "Đang…" : content.submit}
+            <button
+              className={styles.submit}
+              disabled={pending}
+              type="submit"
+              aria-busy={pending}
+            >
+              {pending ? "Đang xử lý…" : content.submit}
               {!pending && <Icon name="arrowRight" />}
-            </Button>
+            </button>
           </form>
 
           {mode === "login" && (
-            <p className="auth-switch">
+            <p className={styles.switchLink}>
               Chưa có tài khoản? <Link href="/register">Tạo tài khoản</Link>
             </p>
           )}
           {mode === "register" && (
-            <p className="auth-switch">
+            <p className={styles.switchLink}>
               Đã có tài khoản? <Link href="/login">Đăng nhập</Link>
             </p>
           )}
           {(mode === "forgot" || mode === "update") && (
-            <p className="auth-switch">
+            <p className={styles.switchLink}>
               <Link href="/login">← Quay lại đăng nhập</Link>
             </p>
           )}
         </div>
+        <p className={styles.panelNote}>
+          MoneyFlow không yêu cầu thông tin đăng nhập ngân hàng.
+        </p>
       </section>
     </main>
   );

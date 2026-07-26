@@ -19,7 +19,7 @@
 | 4 | Ghi chi / thu | dialog + `/capture/quick` | &lt; 10s path |
 | 5 | Transfer ≠ expense | transactions + reports | never in chi totals |
 | 6 | Dashboard | `/insights` | balance, thu, chi, top cat, recent |
-| 7 | Safe-to-spend | insights card | short explain |
+| 7 | Observed monthly overview | total balance + income + expense + net | state period and exclude internal transfers |
 | 8 | Category budgets | `/budgets` | limit + spent calm |
 | 9 | Recurring light | `/commitments` | due + pay/undo |
 | 10 | Goals light | `/goals` | create + allocate |

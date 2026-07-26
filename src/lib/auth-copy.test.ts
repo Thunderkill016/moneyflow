@@ -1,5 +1,5 @@
 /**
- * REBUILD Phase 0 — Auth surfaces sell thu chi (G5), never inbox brand.
+ * Calm Ledger — auth surfaces stay grounded in the manual thu/chi product.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -12,6 +12,7 @@ const FORBIDDEN = [
   "hộp thư giao dịch",
   "Đưa dữ liệu vào Inbox",
   "duyệt trước khi vào sổ",
+  "có thể chi",
 ] as const;
 
 function source(): string {
@@ -22,23 +23,25 @@ test("auth form exists", () => {
   assert.ok(source().includes("export function AuthForm"));
 });
 
-test("login copy is thu chi, not inbox", () => {
+test("login copy is a continuation of the user's ledger", () => {
   const s = source();
-  assert.match(s, /Tiếp tục quản lý thu chi/);
+  assert.match(s, /Mở sổ thu chi và tiếp tục/);
+  assert.match(s, /Chào mừng trở lại/);
   for (const phrase of FORBIDDEN) {
     assert.equal(s.includes(phrase), false, `forbidden: ${phrase}`);
   }
 });
 
-test("register copy is thu chi multi-wallet export", () => {
+test("register copy promises a private ledger, not inferred advice", () => {
   const s = source();
-  assert.match(s, /Ghi thu chi/);
-  assert.match(s, /nhiều ví|xuất CSV|CSV/i);
+  assert.match(s, /Tạo một sổ riêng/);
+  assert.match(s, /theo dõi thu, chi và các ví/);
+  assert.equal(s.includes("nên tiêu"), false);
 });
 
-test("auth story trust is G5 (no bank password, ownership)", () => {
+test("auth story states the manual-first trust contract", () => {
   const s = source();
-  assert.match(s, /Không mật khẩu ngân hàng|không mật khẩu ngân hàng/i);
-  assert.match(s, /Dữ liệu của bạn thuộc về bạn/);
-  assert.equal(s.includes("Bạn duyệt trước khi vào sổ"), false);
+  assert.match(s, /Không cần mật khẩu ngân hàng/);
+  assert.match(s, /Xuất CSV bất cứ lúc nào/);
+  assert.match(s, /Chuyển ví không tính là chi/);
 });

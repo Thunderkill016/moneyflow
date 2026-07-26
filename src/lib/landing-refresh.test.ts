@@ -3,29 +3,34 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
-const homePage = readFileSync("src/app/page.tsx", "utf8");
-const landingLayout = readFileSync("src/app/landing/layout.tsx", "utf8");
-const landing = readFileSync("src/app/landing-refresh.css", "utf8");
+const landingPage = readFileSync("src/components/landing-page.tsx", "utf8");
+const landingStyles = readFileSync(
+  "src/components/landing-page.module.css",
+  "utf8",
+);
+const tokens = readFileSync("src/app/calm-ledger-tokens.css", "utf8");
 
-test("landing refresh is loaded by the root layout for production stability", () => {
-  assert.match(rootLayout, /import "\.\/landing-refresh\.css"/);
-  assert.doesNotMatch(homePage, /landing-refresh\.css/);
-  assert.doesNotMatch(landingLayout, /landing-refresh\.css/);
+test("Calm Ledger public UI replaces legacy global landing layers", () => {
+  assert.match(rootLayout, /import "\.\/calm-ledger-tokens\.css"/);
+  assert.doesNotMatch(rootLayout, /landing-refresh\.css/);
+  assert.doesNotMatch(rootLayout, /landing-dark-mode-guardrails\.css/);
+  assert.match(landingPage, /landing-page\.module\.css/);
 });
 
-test("landing refresh keeps the public conversion hierarchy", () => {
-  assert.match(landing, /\.lp-nav\s*\{/);
-  assert.match(landing, /position:\s*sticky/);
-  assert.match(landing, /\.lp-hero-title\s*\{/);
-  assert.match(landing, /\.lp-showcase-card\s*\{/);
-  assert.match(landing, /\.landing-proof-list\s*\{/);
-  assert.match(landing, /\.lp-cta\s*\{/);
+test("landing keeps one real conversion action and no fake production demo", () => {
+  assert.match(landingPage, /href="\/register"/);
+  assert.match(landingPage, /href="#cach-hoat-dong"/);
+  assert.doesNotMatch(landingPage, /Thử demo không cần tài khoản/);
+  assert.doesNotMatch(landingPage, /href="\/insights"/);
+  assert.match(landingPage, /Chuyển ví không tính là chi/);
 });
 
-test("landing refresh remains mobile and motion accessible", () => {
-  assert.match(landing, /@media \(max-width: 700px\)/);
-  assert.match(landing, /grid-template-columns:\s*1fr/);
-  assert.match(landing, /min-height:\s*52px/);
-  assert.match(landing, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(landing, /transition:\s*none !important/);
+test("landing is responsive, dark-mode aware and motion accessible", () => {
+  assert.match(landingStyles, /min-height:\s*calc\(100svh - 72px\)/);
+  assert.match(landingStyles, /@media \(max-width: 820px\)/);
+  assert.match(landingStyles, /@media \(max-width: 560px\)/);
+  assert.match(landingStyles, /min-height:\s*44px/);
+  assert.match(landingStyles, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(tokens, /\[data-theme="dark"\]/);
+  assert.doesNotMatch(landingStyles, /!important/);
 });
