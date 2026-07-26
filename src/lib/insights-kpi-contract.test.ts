@@ -16,10 +16,10 @@ function read(path: string): string {
   return readFileSync(path, "utf8");
 }
 
-test("insights page mounts MoneyFlowDashboard as home surface", () => {
+test("insights page mounts MoneyFlowDashboard with the bounded finance loader", () => {
   const source = read(PAGE);
   assert.match(source, /MoneyFlowDashboard/);
-  assert.match(source, /getFinanceWorkspace/);
+  assert.match(source, /getDashboardFinanceWorkspace/);
 });
 
 test("dashboard KPI row: số dư, thu tháng, chi tháng, ròng", () => {

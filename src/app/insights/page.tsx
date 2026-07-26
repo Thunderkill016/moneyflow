@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { MoneyFlowDashboard } from "@/components/moneyflow-dashboard";
 import { requireViewer } from "@/server/auth";
-import { getFinanceWorkspace } from "@/server/finance";
+import { getDashboardFinanceWorkspace } from "@/server/finance";
 import { getBudgetsWorkspace } from "@/server/budgets";
 import { getCommitmentsWorkspace } from "@/server/commitments";
 import { getGoalsWorkspace } from "@/server/goals";
@@ -25,7 +25,7 @@ export default async function Page() {
     incomeWorkspace,
     goalWorkspace,
   ] = await Promise.all([
-    getFinanceWorkspace(),
+    getDashboardFinanceWorkspace(),
     getBudgetsWorkspace(),
     getCommitmentsWorkspace(),
     getIncomeTemplatesWorkspace(),
