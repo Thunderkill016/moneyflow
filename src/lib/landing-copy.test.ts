@@ -91,7 +91,7 @@ test("landing module defines responsive, readable and reduced-motion layout", ()
   assert.match(css, /\.hero\b/);
   assert.match(css, /\.previewWrap\b/);
   assert.match(css, /\.proof\b/);
-  assert.match(css, /@media \(max-width: 760px\)/);
+  assert.match(css, /@media \(max-width: 820px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.equal(css.includes("!important"), false);
 });
