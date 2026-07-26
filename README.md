@@ -81,6 +81,7 @@ Chi tiết: [AGENT_AUTOPILOT.md](AGENT_AUTOPILOT.md) · [AGENT_BACKLOG.md](AGENT
 ### Product (đọc trước)
 
 - [Product & architecture (G5)](docs/research/05_PRODUCT_AND_ARCHITECTURE.md) — định vị thu chi, JTBD, non-goals
+- [Global expense web UX benchmark](docs/research/06_GLOBAL_EXPENSE_WEB_UX_BENCHMARK.md) — học YNAB, Monarch, Copilot, Actual, Lunch Money, Rocket Money và Wallet theo từng màn hình
 - [MVP definition (ship exit criteria)](docs/MVP_DEFINITION.md) — TASK-250… hardening wave gate
 - [Autopilot plan (Wave A–C)](docs/AUTOPILOT_PLAN.md) — TASK-100…125
 - [Product focus (simple)](docs/PRODUCT.md) — now vs later
