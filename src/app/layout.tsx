@@ -5,6 +5,7 @@ import "./globals.css";
 import "./ui-refresh.css";
 import "./landing-refresh.css";
 import "./auth-refresh.css";
+import "./benchmark-ux.css";
 
 /**
  * UI text — LCP critical.

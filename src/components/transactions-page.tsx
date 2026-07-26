@@ -3,70 +3,63 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
+import { AppShell } from "@/components/layout/app-shell";
+import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, formatSignedMoney } from "@/lib/money";
 import {
   categoryMeta,
   type AccountOption,
   type CategoryOption,
+  type CreateSplitExpenseInput,
   type CreateTransactionInput,
+  type CreateTransferInput,
   type Transaction,
+  type UpdateMoneyTransactionInput,
+  type UpdateTransferInput,
 } from "@/lib/sample-data";
-import { type ViewerSummary } from "@/components/user-chip";
-import type {
-  CreateSplitExpenseInput,
-  CreateTransferInput,
-  UpdateMoneyTransactionInput,
-  UpdateTransferInput,
-} from "@/lib/sample-data";
-import { AppShell } from "@/components/layout/app-shell";
 import { GHI_CHI_TIEU_HREF, GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
-import { isSplitExpense } from "@/lib/splits";
 import { safeUserNotice } from "@/lib/safe-log";
-import { transferRowSubtitle } from "@/lib/transfers";
-import { EmptyState } from "@/components/empty-state";
+import { isSplitExpense } from "@/lib/splits";
 import {
   TRANSACTION_PAGE_SIZE,
   nextVisibleCount,
   windowTransactions,
 } from "@/lib/transaction-list";
+import { transferRowSubtitle } from "@/lib/transfers";
 
-/** Defer dialog chunks until user opens them — smaller first paint on /transactions. */
 const AddTransactionDialog = dynamic(
   () =>
     import("@/components/add-transaction-dialog").then(
-      (mod) => mod.AddTransactionDialog,
+      (module) => module.AddTransactionDialog,
     ),
   { ssr: false },
 );
 const TransferDialog = dynamic(
-  () =>
-    import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  () => import("@/components/transfer-dialog").then((module) => module.TransferDialog),
   { ssr: false },
 );
 const SplitExpenseDialog = dynamic(
   () =>
     import("@/components/split-expense-dialog").then(
-      (mod) => mod.SplitExpenseDialog,
+      (module) => module.SplitExpenseDialog,
     ),
   { ssr: false },
 );
 const EditTransactionDialog = dynamic(
   () =>
     import("@/components/edit-transaction-dialog").then(
-      (mod) => mod.EditTransactionDialog,
+      (module) => module.EditTransactionDialog,
     ),
   { ssr: false },
 );
 
-/** Undo window for soft-delete (design-system: 8s with Hoàn tác). */
 const DELETE_UNDO_MS = 8000;
 const NOTICE_MS = 3500;
 
 type KindFilter = "all" | Transaction["kind"];
-
-/** `timeline` = wireframes §16 (đã duyệt); `ledger` = classic sổ giao dịch. */
 export type TransactionsPageVariant = "ledger" | "timeline";
 
 type TransactionsWorkspace = {
@@ -78,15 +71,21 @@ type TransactionsWorkspace = {
   dataError: string | null;
 };
 
+type TransactionsPageProps = {
+  viewer: ViewerSummary;
+  workspace: TransactionsWorkspace;
+  variant?: TransactionsPageVariant;
+  initialCategory?: string;
+  initialKind?: KindFilter;
+};
+
 export function TransactionsPage({
   viewer,
   workspace,
   variant = "ledger",
-}: {
-  viewer: ViewerSummary;
-  workspace: TransactionsWorkspace;
-  variant?: TransactionsPageVariant;
-}) {
+  initialCategory = "all",
+  initialKind = "all",
+}: TransactionsPageProps) {
   const isTimeline = variant === "timeline";
   const {
     transactions,
@@ -103,31 +102,22 @@ export function TransactionsPage({
     categories: workspace.categories,
     isDemo: viewer.isDemo,
   });
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
-  const expenseCategoryCount = workspace.categories.filter((c) => c.kind === "expense").length;
   const [query, setQuery] = useState("");
-  const [kind, setKind] = useState<KindFilter>("all");
+  const [kind, setKind] = useState<KindFilter>(initialKind);
   const [account, setAccount] = useState("all");
-  /**
-   * Progressive render cap keyed by active filters.
-   * When filters change, key mismatches → fall back to PAGE_SIZE (no setState-in-effect).
-   */
-  const filterKey = `${kind}\0${account}\0${query}`;
-  const [pageState, setPageState] = useState({
-    filterKey,
-    visibleCount: TRANSACTION_PAGE_SIZE,
-  });
-  const visibleCount =
-    pageState.filterKey === filterKey
-      ? pageState.visibleCount
-      : TRANSACTION_PAGE_SIZE;
+  const [category, setCategory] = useState(initialCategory);
   const [notice, setNotice] = useState("");
   const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
   const pendingUndoRef = useRef<Transaction | null>(null);
+  const expenseCategoryCount = workspace.categories.filter(
+    (item) => item.kind === "expense",
+  ).length;
 
   function clearNoticeTimer() {
     if (noticeTimerRef.current != null) {
@@ -149,6 +139,16 @@ export function TransactionsPage({
 
   useEffect(() => () => clearNoticeTimer(), []);
 
+  const filterKey = `${kind}\0${account}\0${category}\0${query}`;
+  const [pageState, setPageState] = useState({
+    filterKey,
+    visibleCount: TRANSACTION_PAGE_SIZE,
+  });
+  const visibleCount =
+    pageState.filterKey === filterKey
+      ? pageState.visibleCount
+      : TRANSACTION_PAGE_SIZE;
+
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("vi");
     return transactions.filter((transaction) => {
@@ -158,32 +158,33 @@ export function TransactionsPage({
           .toLocaleLowerCase("vi")
           .includes(normalizedQuery);
       const matchesKind = kind === "all" || transaction.kind === kind;
-      const matchesAccount = account === "all" || transaction.account === account || transaction.destinationAccount === account;
-      return matchesQuery && matchesKind && matchesAccount;
+      const matchesAccount =
+        account === "all" ||
+        transaction.account === account ||
+        transaction.destinationAccount === account;
+      const matchesCategory =
+        category === "all" ||
+        transaction.category === category ||
+        transaction.splits?.some((line) => line.category === category);
+      return matchesQuery && matchesKind && matchesAccount && matchesCategory;
     });
-  }, [account, kind, query, transactions]);
+  }, [account, category, kind, query, transactions]);
 
   const listWindow = useMemo(
     () => windowTransactions(filtered, visibleCount),
     [filtered, visibleCount],
   );
 
-  function loadMore() {
-    setPageState({
-      filterKey,
-      visibleCount: nextVisibleCount(visibleCount),
-    });
-  }
+  const filteredTotals = useMemo(() => {
+    const income = filtered
+      .filter((item) => item.kind === "income")
+      .reduce((sum, item) => sum + item.amount, 0);
+    const expense = filtered
+      .filter((item) => item.kind === "expense")
+      .reduce((sum, item) => sum + item.amount, 0);
+    return { income, expense, net: income - expense };
+  }, [filtered]);
 
-  const filteredTotals = useMemo(
-    () => ({
-      income: filtered.filter((item) => item.kind === "income").reduce((sum, item) => sum + item.amount, 0),
-      expense: filtered.filter((item) => item.kind === "expense").reduce((sum, item) => sum + item.amount, 0),
-    }),
-    [filtered],
-  );
-
-  /** Group only the visible window — avoids painting 1000+ DOM rows. */
   const grouped = useMemo(() => {
     const groups: {
       date: string;
@@ -193,30 +194,48 @@ export function TransactionsPage({
       netForDay: number;
     }[] = [];
 
-    for (const tx of listWindow.visible) {
-      let group = groups.find((g) => g.date === tx.occurredOn);
+    for (const transaction of listWindow.visible) {
+      let group = groups.find((item) => item.date === transaction.occurredOn);
       if (!group) {
-        const parts = tx.occurredOn.split("-");
-        const displayDate = parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : tx.occurredOn;
+        const parts = transaction.occurredOn.split("-");
+        const displayDate =
+          parts.length === 3
+            ? `${parts[2]}/${parts[1]}/${parts[0]}`
+            : transaction.occurredOn;
         group = {
-          date: tx.occurredOn,
-          relativeDate: tx.relativeDate,
+          date: transaction.occurredOn,
+          relativeDate: transaction.relativeDate,
           displayDate,
           transactions: [],
           netForDay: 0,
         };
         groups.push(group);
       }
-      group.transactions.push(tx);
-      if (tx.kind === "income") {
-        group.netForDay += tx.amount;
-      } else if (tx.kind === "expense") {
-        group.netForDay -= tx.amount;
-      }
+      group.transactions.push(transaction);
+      if (transaction.kind === "income") group.netForDay += transaction.amount;
+      if (transaction.kind === "expense") group.netForDay -= transaction.amount;
     }
 
     return groups;
   }, [listWindow.visible]);
+
+  const hasActiveFilters =
+    query.trim().length > 0 || kind !== "all" || account !== "all" || category !== "all";
+
+  function loadMore() {
+    setPageState({
+      filterKey,
+      visibleCount: nextVisibleCount(visibleCount),
+    });
+  }
+
+  function clearFilters() {
+    setQuery("");
+    setKind("all");
+    setAccount("all");
+    setCategory("all");
+    window.history.replaceState(null, "", window.location.pathname);
+  }
 
   async function handleAdd(input: CreateTransactionInput) {
     const result = await addTransaction(input);
@@ -241,21 +260,18 @@ export function TransactionsPage({
       `Xóa giao dịch “${transaction.note}” (${formatMoney(transaction.amount)})? Giao dịch sẽ được ẩn khỏi sổ của bạn.`,
     );
     if (!confirmed) return;
+
     const result = await deleteTransaction(transaction.id);
     if (!result.ok) {
       showNotice(safeUserNotice(result.message, "Không xóa được giao dịch."));
       return;
     }
 
-    // Soft-delete success: calm toast + 8s Hoàn tác (demo + server restore).
     clearNoticeTimer();
     pendingUndoRef.current = transaction;
     setPendingUndo(transaction);
     setNotice(
-      safeUserNotice(
-        `Đã xóa ${transaction.note}.`,
-        "Đã xóa giao dịch.",
-      ),
+      safeUserNotice(`Đã xóa ${transaction.note}.`, "Đã xóa giao dịch."),
     );
     noticeTimerRef.current = window.setTimeout(() => {
       setNotice("");
@@ -286,7 +302,9 @@ export function TransactionsPage({
     }
   }
 
-  async function handleUpdate(input: UpdateMoneyTransactionInput | UpdateTransferInput) {
+  async function handleUpdate(
+    input: UpdateMoneyTransactionInput | UpdateTransferInput,
+  ) {
     const result = await updateTransaction(input);
     if (result.ok) {
       setEditing(null);
@@ -310,7 +328,9 @@ export function TransactionsPage({
       setSplitOpen(false);
       showNotice(
         safeUserNotice(
-          result.transaction ? `Đã chia: ${result.transaction.note}.` : "Đã chia khoản chi.",
+          result.transaction
+            ? `Đã chia: ${result.transaction.note}.`
+            : "Đã chia khoản chi.",
           "Đã chia khoản chi.",
         ),
       );
@@ -369,24 +389,34 @@ export function TransactionsPage({
         pendingUndo
           ? {
               label: "Hoàn tác",
-              onClick: () => {
-                void handleUndoDelete();
-              },
+              onClick: () => void handleUndoDelete(),
               disabled: isMutating,
             }
           : undefined
       }
     >
-      <main className={`dashboard transactions-workspace${isTimeline ? " timeline-workspace" : ""}`}>
-        {workspace.dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{workspace.dataError}</span></div>}
+      <main
+        className={`dashboard transactions-workspace${
+          isTimeline ? " timeline-workspace" : ""
+        }`}
+      >
+        {workspace.dataError ? (
+          <div className="data-alert" role="alert">
+            <Icon name="bell" />
+            <span>{workspace.dataError}</span>
+          </div>
+        ) : null}
+
         <section className="transactions-title-row">
           <div>
-            <p className="eyebrow">{isTimeline ? "Sổ đã duyệt" : "Dòng tiền của bạn"}</p>
+            <p className="eyebrow">
+              {isTimeline ? "Sổ đã duyệt" : "Dòng tiền của bạn"}
+            </p>
             <h1>{isTimeline ? "Dòng thời gian (đã duyệt)" : "Sổ giao dịch"}</h1>
             <p>
               {isTimeline
-                ? "Các giao dịch đã được duyệt từ Inbox — nguồn tin cậy cho số dư và insights."
-                : "Kiểm tra và quản lý mọi khoản thu chi phát sinh."}
+                ? "Các giao dịch đã được duyệt — nguồn tin cậy cho số dư và insights."
+                : "Lọc giao dịch và xem Thu, Chi, Ròng cập nhật ngay theo kết quả."}
             </p>
           </div>
           <div className="page-heading-actions">
@@ -407,7 +437,13 @@ export function TransactionsPage({
                 >
                   <Icon name="spark" /> Chia khoản chi
                 </button>
-                <button className="secondary-button" onClick={() => setTransferOpen(true)} disabled={workspace.accounts.length < 2 || Boolean(workspace.dataError)}>
+                <button
+                  className="secondary-button"
+                  onClick={() => setTransferOpen(true)}
+                  disabled={
+                    workspace.accounts.length < 2 || Boolean(workspace.dataError)
+                  }
+                >
                   <Icon name="arrows" /> Chuyển tiền ví
                 </button>
               </>
@@ -415,44 +451,158 @@ export function TransactionsPage({
           </div>
         </section>
 
-        <section className="transaction-summary">
-          <div><span className="font-mono">{filtered.length}</span><p>{isTimeline ? "Đã duyệt" : "Giao dịch"}</p></div>
-          <div><span className="positive font-mono">+{formatMoney(filteredTotals.income)}</span><p>Tổng thu</p></div>
-          <div><span className="negative font-mono">−{formatMoney(filteredTotals.expense)}</span><p>Tổng chi</p></div>
+        <section
+          className="transaction-summary transaction-summary-four"
+          aria-label="Tóm tắt theo bộ lọc"
+          aria-live="polite"
+        >
+          <div>
+            <span className="font-mono">{filtered.length}</span>
+            <p>{isTimeline ? "Đã duyệt" : "Giao dịch"}</p>
+          </div>
+          <div>
+            <span className="positive font-mono">
+              +{formatMoney(filteredTotals.income)}
+            </span>
+            <p>Tổng thu</p>
+          </div>
+          <div>
+            <span className="negative font-mono">
+              −{formatMoney(filteredTotals.expense)}
+            </span>
+            <p>Tổng chi</p>
+          </div>
+          <div>
+            <span
+              className={`font-mono ${
+                filteredTotals.net > 0
+                  ? "summary-net-positive"
+                  : filteredTotals.net < 0
+                    ? "summary-net-negative"
+                    : ""
+              }`}
+            >
+              {formatSignedMoney(filteredTotals.net)}
+            </span>
+            <p>Ròng</p>
+          </div>
         </section>
 
         <section className="transaction-manager panel">
           <div className="manager-toolbar">
             <label className="mobile-manager-search">
               <Icon name="search" />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo ghi chú, danh mục..." aria-label={isTimeline ? "Tìm trong dòng thời gian" : "Tìm trong giao dịch"} />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Tìm theo ghi chú, danh mục..."
+                aria-label={
+                  isTimeline ? "Tìm trong dòng thời gian" : "Tìm trong giao dịch"
+                }
+              />
             </label>
+
             <div className="filter-group" aria-label="Lọc theo loại">
-              {(["all", "expense", "income", "transfer"] as KindFilter[]).map((value) => (
-                <button key={value} className={kind === value ? "active" : ""} onClick={() => setKind(value)} aria-pressed={kind === value}>
-                  {value === "all" ? "Tất cả" : value === "expense" ? "Khoản chi" : value === "income" ? "Khoản thu" : "Chuyển tiền"}
-                </button>
-              ))}
+              {(["all", "expense", "income", "transfer"] as KindFilter[]).map(
+                (value) => (
+                  <button
+                    key={value}
+                    className={kind === value ? "active" : ""}
+                    onClick={() => setKind(value)}
+                    aria-pressed={kind === value}
+                  >
+                    {value === "all"
+                      ? "Tất cả"
+                      : value === "expense"
+                        ? "Khoản chi"
+                        : value === "income"
+                          ? "Khoản thu"
+                          : "Chuyển tiền"}
+                  </button>
+                ),
+              )}
             </div>
-            <label className="account-filter"><span className="sr-only">Lọc theo tài khoản</span><select value={account} onChange={(event) => setAccount(event.target.value)}><option value="all">Mọi tài khoản</option>{workspace.accounts.map((item) => <option value={item.name} key={item.id}>{item.name}</option>)}</select></label>
+
+            <label className="category-filter account-filter">
+              <span className="sr-only">Lọc theo danh mục</span>
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                aria-label="Lọc theo danh mục"
+              >
+                <option value="all">Mọi danh mục</option>
+                {workspace.categories.map((item) => (
+                  <option value={item.name} key={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="account-filter">
+              <span className="sr-only">Lọc theo tài khoản</span>
+              <select
+                value={account}
+                onChange={(event) => setAccount(event.target.value)}
+                aria-label="Lọc theo tài khoản"
+              >
+                <option value="all">Mọi tài khoản</option>
+                {workspace.accounts.map((item) => (
+                  <option value={item.name} key={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                className="filter-reset-button"
+                onClick={clearFilters}
+              >
+                Xóa bộ lọc
+              </button>
+            ) : null}
           </div>
 
           {grouped.length ? (
             <div className="manager-list">
-              <div className="manager-header" aria-hidden="true"><span>Giao dịch</span><span>Thời gian</span><span>Số tiền</span><span /></div>
+              <div className="manager-header" aria-hidden="true">
+                <span>Giao dịch</span>
+                <span>Thời gian</span>
+                <span>Số tiền</span>
+                <span />
+              </div>
+
               {grouped.map((group) => (
                 <div key={group.date}>
                   <div className="date-group-header">
-                    <span className="date-group-title">{group.relativeDate}, {group.displayDate}</span>
-                    <span className={`date-group-total font-mono ${group.netForDay > 0 ? "positive" : group.netForDay < 0 ? "negative" : ""}`}>
-                      Tổng: {group.netForDay > 0 ? "+" : group.netForDay < 0 ? "−" : ""}{formatMoney(Math.abs(group.netForDay))}
+                    <span className="date-group-title">
+                      {group.relativeDate}, {group.displayDate}
+                    </span>
+                    <span
+                      className={`date-group-total font-mono ${
+                        group.netForDay > 0
+                          ? "positive"
+                          : group.netForDay < 0
+                            ? "negative"
+                            : ""
+                      }`}
+                    >
+                      Tổng: {formatSignedMoney(group.netForDay)}
                     </span>
                   </div>
+
                   {group.transactions.map((transaction) => {
-                    const meta = categoryMeta[transaction.category] ?? categoryMeta["Thu nhập khác"];
+                    const meta =
+                      categoryMeta[transaction.category] ??
+                      categoryMeta["Thu nhập khác"];
                     return (
                       <article className="manager-row" key={transaction.id}>
-                        <span className={`transaction-icon ${meta.color}`}><Icon name={meta.icon as IconName} /></span>
+                        <span className={`transaction-icon ${meta.color}`}>
+                          <Icon name={meta.icon as IconName} />
+                        </span>
                         <span className="transaction-detail">
                           <strong>{transaction.note}</strong>
                           <small>
@@ -462,30 +612,83 @@ export function TransactionsPage({
                                   transaction.destinationAccount,
                                 )
                               : isSplitExpense(transaction)
-                                ? `${transaction.category} · ${transaction.account} · ${transaction.splits!.map((s) => `${s.category} ${formatMoney(s.amount)}`).join(" · ")}`
+                                ? `${transaction.category} · ${transaction.account} · ${transaction.splits!
+                                    .map(
+                                      (line) =>
+                                        `${line.category} ${formatMoney(line.amount)}`,
+                                    )
+                                    .join(" · ")}`
                                 : `${transaction.category} · ${transaction.account}`}
-                            {transaction.isRecurringPayment ? " · Từ lịch định kỳ" : ""}
+                            {transaction.isRecurringPayment
+                              ? " · Từ lịch định kỳ"
+                              : ""}
                           </small>
                         </span>
-                        <time dateTime={transaction.occurredAt}>{transaction.relativeDate}</time>
-                        <strong className={`font-mono ${transaction.kind === "income" ? "manager-amount income" : transaction.kind === "transfer" ? "manager-amount transfer" : "manager-amount"}`}>{transaction.kind === "income" ? "+ ↑ " : transaction.kind === "transfer" ? "↔ " : "− ↓ "}{formatMoney(transaction.amount)}</strong>
-                        {transaction.isRecurringPayment ? <Link href="/commitments" className="recurring-lock" title="Quản lý ở trang Định kỳ" aria-label={`Quản lý ${transaction.note} ở trang Định kỳ`}><Icon name="lock" /></Link> : <span className="manager-actions"><button className="edit-button" onClick={() => handleEditClick(transaction)} disabled={isMutating} aria-label={isSplitExpense(transaction) ? `Khoản chia ${transaction.note} — xóa rồi tạo lại để sửa` : `Sửa giao dịch ${transaction.note}`}><Icon name="edit" /></button><button className="delete-button" onClick={() => handleDelete(transaction)} disabled={isMutating} aria-label={`Xóa giao dịch ${transaction.note}`}><Icon name="trash" /></button></span>}
+                        <time dateTime={transaction.occurredAt}>
+                          {transaction.relativeDate}
+                        </time>
+                        <strong
+                          className={`font-mono ${
+                            transaction.kind === "income"
+                              ? "manager-amount income"
+                              : transaction.kind === "transfer"
+                                ? "manager-amount transfer"
+                                : "manager-amount"
+                          }`}
+                        >
+                          {transaction.kind === "income"
+                            ? "+ ↑ "
+                            : transaction.kind === "transfer"
+                              ? "↔ "
+                              : "− ↓ "}
+                          {formatMoney(transaction.amount)}
+                        </strong>
+                        {transaction.isRecurringPayment ? (
+                          <Link
+                            href="/commitments"
+                            className="recurring-lock"
+                            title="Quản lý ở trang Định kỳ"
+                            aria-label={`Quản lý ${transaction.note} ở trang Định kỳ`}
+                          >
+                            <Icon name="lock" />
+                          </Link>
+                        ) : (
+                          <span className="manager-actions">
+                            <button
+                              className="edit-button"
+                              onClick={() => handleEditClick(transaction)}
+                              disabled={isMutating}
+                              aria-label={
+                                isSplitExpense(transaction)
+                                  ? `Khoản chia ${transaction.note} — xóa rồi tạo lại để sửa`
+                                  : `Sửa giao dịch ${transaction.note}`
+                              }
+                            >
+                              <Icon name="edit" />
+                            </button>
+                            <button
+                              className="delete-button"
+                              onClick={() => handleDelete(transaction)}
+                              disabled={isMutating}
+                              aria-label={`Xóa giao dịch ${transaction.note}`}
+                            >
+                              <Icon name="trash" />
+                            </button>
+                          </span>
+                        )}
                       </article>
                     );
                   })}
                 </div>
               ))}
+
               {listWindow.hasMore || listWindow.total > TRANSACTION_PAGE_SIZE ? (
                 <div className="list-load-more" role="status">
                   <p className="list-load-more-meta">
-                    Đang hiện{" "}
-                    <span className="font-mono">{listWindow.shown}</span>
+                    Đang hiện <span className="font-mono">{listWindow.shown}</span>
                     {" / "}
-                    <span className="font-mono">{listWindow.total}</span>
-                    {" giao dịch"}
-                    {listWindow.hasMore
-                      ? ` · còn ${listWindow.remaining} nữa`
-                      : ""}
+                    <span className="font-mono">{listWindow.total}</span> giao dịch
+                    {listWindow.hasMore ? ` · còn ${listWindow.remaining} nữa` : ""}
                   </p>
                   {listWindow.hasMore ? (
                     <button
@@ -500,21 +703,23 @@ export function TransactionsPage({
               ) : null}
             </div>
           ) : transactions.length ? (
-            <div className="filter-empty"><span><Icon name="search" /></span><h2>Không tìm thấy giao dịch</h2><p>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</p><button onClick={() => { setQuery(""); setKind("all"); setAccount("all"); }}>Xóa bộ lọc</button></div>
-          ) : isTimeline ? (
-            <EmptyState
-              icon="timeline"
-              title="Chưa có giao dịch"
-              description="Ghi khoản chi hoặc thu để dòng tiền hiện trên timeline."
-              actionLabel={GHI_CHI_TIEU_LABEL}
-              onAction={() => setDialogOpen(true)}
-              className="filter-empty-as-empty"
-            />
+            <div className="filter-empty">
+              <span>
+                <Icon name="search" />
+              </span>
+              <h2>Không tìm thấy giao dịch</h2>
+              <p>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</p>
+              <button onClick={clearFilters}>Xóa bộ lọc</button>
+            </div>
           ) : (
             <EmptyState
-              icon="arrows"
+              icon={isTimeline ? "timeline" : "arrows"}
               title="Chưa có giao dịch"
-              description="Ghi khoản chi đầu tiên để bắt đầu theo dõi dòng tiền."
+              description={
+                isTimeline
+                  ? "Ghi khoản chi hoặc thu để dòng tiền hiện trên timeline."
+                  : "Ghi khoản chi đầu tiên để bắt đầu theo dõi dòng tiền."
+              }
               actionLabel={GHI_CHI_TIEU_LABEL}
               onAction={() => setDialogOpen(true)}
               className="filter-empty-as-empty"
@@ -531,7 +736,12 @@ export function TransactionsPage({
         categories={workspace.categories}
         disabled={isMutating || Boolean(workspace.dataError)}
       />
-      <TransferDialog open={transferOpen} accounts={workspace.accounts} onClose={() => setTransferOpen(false)} onTransfer={handleTransfer} />
+      <TransferDialog
+        open={transferOpen}
+        accounts={workspace.accounts}
+        onClose={() => setTransferOpen(false)}
+        onTransfer={handleTransfer}
+      />
       <SplitExpenseDialog
         open={splitOpen}
         accounts={workspace.accounts}
@@ -540,8 +750,17 @@ export function TransactionsPage({
         onSplit={handleSplit}
         disabled={isMutating || Boolean(workspace.dataError)}
       />
-      {editing && <EditTransactionDialog key={editing.id} transaction={editing} accounts={workspace.accounts} categories={workspace.categories} onClose={() => setEditing(null)} onSave={handleUpdate} disabled={isMutating || Boolean(workspace.dataError)} />}
+      {editing ? (
+        <EditTransactionDialog
+          key={editing.id}
+          transaction={editing}
+          accounts={workspace.accounts}
+          categories={workspace.categories}
+          onClose={() => setEditing(null)}
+          onSave={handleUpdate}
+          disabled={isMutating || Boolean(workspace.dataError)}
+        />
+      ) : null}
     </AppShell>
   );
 }
-
