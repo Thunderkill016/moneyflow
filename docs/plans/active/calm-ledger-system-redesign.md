@@ -28,7 +28,7 @@ layer.
 - Domain and environment behavior continue to come from the existing config
   contract, never from hard-coded deployment values.
 
-## Evidence
+## Repository reconnaissance
 
 ### Current UI
 
@@ -80,7 +80,9 @@ layer.
   equivalent to a 2px perimeter and 3:1 contrast.
   <https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html>
 
-## Design contract
+## Specification
+
+### Design contract
 
 ### Direction
 
@@ -114,7 +116,13 @@ glassmorphism, card soup, or gamified financial language.
 Hộp thư appears in the advanced group and may show a count. It does not replace
 Tổng quan as the signed-in home.
 
-## Delivery slices
+## Implementation plan
+
+Migrate by vertical slice so each PR can ship independently, retain production
+behavior, and remove the legacy selectors it supersedes. Public surfaces go
+first; the shared signed-in shell follows before route-specific content.
+
+## Tasks
 
 ### Slice 1 — Foundation + public surfaces
 
@@ -142,7 +150,7 @@ Tổng quan as the signed-in home.
 - [ ] Migrate rules, imports, settings and export.
 - [ ] Remove superseded refresh/guardrail files and dead selectors.
 
-## Verification
+## Evaluation
 
 - Lint, typecheck, unit tests and production build.
 - Chromium: 320, 360, 390, 768, 1024, 1366 and 1440.
