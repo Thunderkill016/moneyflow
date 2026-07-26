@@ -10,6 +10,7 @@ import "./safe-to-spend-withdrawal.css";
 import "./cross-device-stabilization.css";
 import "./ai-uiux-refresh.css";
 import "./ai-uiux-guardrails.css";
+import "./landing-contrast-guardrails.css";
 
 /**
  * UI text — LCP critical.
@@ -42,38 +43,10 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="vi"
-      className={`${inter.variable} ${inter.className}`}
-      data-scroll-behavior="smooth"
-      suppressHydrationWarning
-    >
-      <head>
-        {/* Theme before paint — suppressHydrationWarning on <html> avoids data-theme mismatch. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  var theme = localStorage.getItem('moneyflow-theme') || 'system';
-                  var resolved = theme;
-                  if (theme === 'system') {
-                    resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-                  }
-                  document.documentElement.setAttribute('data-theme', resolved);
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
-      <body>
+    <html lang="vi" suppressHydrationWarning>
+      <body className={`${inter.variable} antialiased`}>
         {children}
         <PrivacySafeSpeedInsights />
       </body>
