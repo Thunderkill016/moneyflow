@@ -20,7 +20,7 @@ test("dashboard starts at month boundary when it is earlier than weekly comparis
 });
 
 test("dashboard includes previous weekly comparison across a month boundary", () => {
-  assert.equal(dashboardTransactionStart("2026-08-02"), "2026-07-21");
+  assert.equal(dashboardTransactionStart("2026-08-02"), "2026-07-20");
 });
 
 test("dashboard keeps a small explicit recent-activity window", () => {
