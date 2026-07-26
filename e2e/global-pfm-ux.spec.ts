@@ -23,13 +23,18 @@ test.describe("Global PFM UX benchmark", () => {
 
   test("keeps the dark landing proposition readable", async ({ page }) => {
     // CI intentionally runs in demo mode, where `/` redirects to `/insights`.
-    // Load a stable public route to get the production CSS bundle, then mount
-    // the minimum real landing class structure needed to verify final computed
-    // contrast without changing runtime routing or duplicating style values.
+    // Load a stable public route to get the production CSS bundle, then mount,
+    // measure and remove the minimum landing class structure synchronously so
+    // React hydration cannot replace the fixture between setup and assertion.
     await page.goto("/privacy");
-    await page.evaluate(() => {
+
+    const result = await page.evaluate(() => {
+      type Rgb = { r: number; g: number; b: number };
+
       document.documentElement.dataset.theme = "dark";
-      document.body.innerHTML = `
+
+      const fixture = document.createElement("div");
+      fixture.innerHTML = `
         <div class="landing-page lp-root">
           <nav class="landing-nav lp-nav">
             <a class="brand" href="/">MoneyFlow</a>
@@ -46,13 +51,12 @@ test.describe("Global PFM UX benchmark", () => {
           </header>
         </div>
       `;
-    });
 
-    await expect(page.locator(".lp-hero-title")).toBeVisible();
-    await expect(page.locator(".lp-hero-lead")).toBeVisible();
-
-    const result = await page.evaluate(() => {
-      type Rgb = { r: number; g: number; b: number };
+      const root = fixture.firstElementChild;
+      if (!(root instanceof HTMLElement)) {
+        throw new Error("Failed to create landing contrast fixture");
+      }
+      document.body.append(root);
 
       const parseRgb = (value: string): Rgb => {
         const channels = value.match(/[\d.]+/gu)?.slice(0, 3).map(Number);
@@ -78,24 +82,23 @@ test.describe("Global PFM UX benchmark", () => {
         return (light + 0.05) / (dark + 0.05);
       };
 
-      const color = (selector: string) => {
-        const element = document.querySelector<HTMLElement>(selector);
-        if (!element) throw new Error(`Missing element: ${selector}`);
-        return parseRgb(getComputedStyle(element).color);
+      const element = (selector: string) => {
+        const match = root.querySelector<HTMLElement>(selector);
+        if (!match) throw new Error(`Missing fixture element: ${selector}`);
+        return match;
       };
 
-      const background = (selector: string) => {
-        const element = document.querySelector<HTMLElement>(selector);
-        if (!element) throw new Error(`Missing element: ${selector}`);
-        return parseRgb(getComputedStyle(element).backgroundColor);
-      };
+      const color = (selector: string) =>
+        parseRgb(getComputedStyle(element(selector)).color);
+      const background = (selector: string) =>
+        parseRgb(getComputedStyle(element(selector)).backgroundColor);
 
       const canvas = background(".landing-page.lp-root");
       const nav = background(".lp-nav");
       const navCta = background(".landing-nav-cta");
       const heroCta = background(".lp-hero-ctas .cta-primary");
 
-      return {
+      const measurements = {
         title: contrast(color(".lp-hero-title"), canvas),
         lead: contrast(color(".lp-hero-lead"), canvas),
         navBrand: contrast(color(".lp-nav .brand"), nav),
@@ -103,6 +106,9 @@ test.describe("Global PFM UX benchmark", () => {
         heroPrimary: contrast(color(".lp-hero-ctas .cta-primary"), heroCta),
         navSurfaceLuminance: luminance(nav),
       };
+
+      root.remove();
+      return measurements;
     });
 
     expect(result.title).toBeGreaterThanOrEqual(7);
