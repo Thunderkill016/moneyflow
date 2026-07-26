@@ -48,6 +48,24 @@ export async function applyEnlargedText(page: Page): Promise<void> {
   });
 }
 
+async function waitForUiToSettle(page: Page, route: AuditRoute): Promise<void> {
+  const pendingUi = page.locator("[aria-busy='true']:visible, .loading-card:visible");
+  await expect(
+    pendingUi,
+    `${route.path} must finish its visible loading state before UI evidence is captured`,
+  ).toHaveCount(0, { timeout: 15_000 });
+
+  // React state can remove the skeleton and paint the populated card on adjacent
+  // frames. Waiting two frames gives screenshots stable, user-visible content
+  // without adding a fixed sleep.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+      }),
+  );
+}
+
 export async function auditRoute(
   page: Page,
   testInfo: TestInfo,
@@ -58,6 +76,7 @@ export async function auditRoute(
 
   await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
   await expect(page.locator("body")).toContainText(/\S/, { timeout: 15_000 });
+  await waitForUiToSettle(page, route);
 
   const frameworkOverlay = page.locator(
     '[data-nextjs-dialog], .vite-error-overlay, #webpack-dev-server-client-overlay',
