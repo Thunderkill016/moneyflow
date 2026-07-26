@@ -23,7 +23,7 @@
     {
       "id": "MFVN-001",
       "title": "Complete final manual readiness gates",
-      "status": "active",
+      "status": "done",
       "dependsOn": ["MFVN-000"],
       "source": "issue #27",
       "humanOnly": true,
@@ -48,12 +48,17 @@
         "final callback origin and path without secrets",
         "spreadsheet application used without uploading personal data",
         "device, browser, viewport, and pass or fail without real finance data"
+      ],
+      "completedAt": "2026-07-27",
+      "completionEvidence": [
+        "The owner confirmed that all three manual readiness gates passed.",
+        "No secrets, personal finance data, callback tokens, or raw session data were recorded in CycleWarden state."
       ]
     },
     {
       "id": "MFVN-002",
       "title": "Complete seven consecutive days of real self-use",
-      "status": "blocked",
+      "status": "active",
       "dependsOn": ["MFVN-001"],
       "source": "issue #27 and docs/REAL_USE_READINESS_CONTRACT.md",
       "acceptance": [
