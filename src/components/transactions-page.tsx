@@ -75,16 +75,16 @@ type TransactionsPageProps = {
   viewer: ViewerSummary;
   workspace: TransactionsWorkspace;
   variant?: TransactionsPageVariant;
+  initialCategory?: string;
+  initialKind?: KindFilter;
 };
-
-function isKindFilter(value: string | null): value is Exclude<KindFilter, "all"> {
-  return value === "expense" || value === "income" || value === "transfer";
-}
 
 export function TransactionsPage({
   viewer,
   workspace,
   variant = "ledger",
+  initialCategory = "all",
+  initialKind = "all",
 }: TransactionsPageProps) {
   const isTimeline = variant === "timeline";
   const {
@@ -108,9 +108,9 @@ export function TransactionsPage({
   const [splitOpen, setSplitOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [query, setQuery] = useState("");
-  const [kind, setKind] = useState<KindFilter>("all");
+  const [kind, setKind] = useState<KindFilter>(initialKind);
   const [account, setAccount] = useState("all");
-  const [category, setCategory] = useState("all");
+  const [category, setCategory] = useState(initialCategory);
   const [notice, setNotice] = useState("");
   const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
@@ -118,20 +118,6 @@ export function TransactionsPage({
   const expenseCategoryCount = workspace.categories.filter(
     (item) => item.kind === "expense",
   ).length;
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const requestedCategory = params.get("category");
-    const requestedKind = params.get("kind");
-
-    if (
-      requestedCategory &&
-      workspace.categories.some((item) => item.name === requestedCategory)
-    ) {
-      setCategory(requestedCategory);
-    }
-    if (isKindFilter(requestedKind)) setKind(requestedKind);
-  }, [workspace.categories]);
 
   function clearNoticeTimer() {
     if (noticeTimerRef.current != null) {
