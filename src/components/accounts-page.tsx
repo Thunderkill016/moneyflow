@@ -35,7 +35,15 @@ function accountIcon(kind: AccountSummary["kind"]): IconName {
   return "wallet";
 }
 
-export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: ViewerSummary; initialAccounts: AccountSummary[]; dataError: string | null }) {
+export function AccountsPage({
+  viewer,
+  initialAccounts,
+  dataError,
+}: {
+  viewer: ViewerSummary;
+  initialAccounts: AccountSummary[];
+  dataError: string | null;
+}) {
   const [accounts, setAccounts] = useState(initialAccounts);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -57,7 +65,16 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
     const frame = window.requestAnimationFrame(() => {
       const restored = readStoredTransactions()
         .filter((transaction) => transaction.kind === "transfer" && transaction.destinationAccountId)
-        .reduce((current, transaction) => applyTransferBalances(current, transaction.accountId, transaction.destinationAccountId!, transaction.amount), initialAccounts);
+        .reduce(
+          (current, transaction) =>
+            applyTransferBalances(
+              current,
+              transaction.accountId,
+              transaction.destinationAccountId!,
+              transaction.amount,
+            ),
+          initialAccounts,
+        );
       setAccounts(restored);
     });
     return () => window.cancelAnimationFrame(frame);
@@ -108,7 +125,13 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
 
     const result = await saveAccountAction(input);
     if (result.ok && result.account) {
-      setAccounts((current) => input.id ? current.map((item) => item.id === input.id ? result.account as AccountSummary : item) : [...current, result.account as AccountSummary]);
+      setAccounts((current) =>
+        input.id
+          ? current.map((item) =>
+              item.id === input.id ? (result.account as AccountSummary) : item,
+            )
+          : [...current, result.account as AccountSummary],
+      );
       setDialogOpen(false);
       setNotice(input.id ? "Đã cập nhật tài khoản." : "Đã thêm tài khoản.");
     }
@@ -117,12 +140,26 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
 
   async function toggleArchived(account: AccountSummary) {
     const archived = !account.isArchived;
-    if (archived && !window.confirm(`Lưu trữ tài khoản “${account.name}”? Tài khoản sẽ không xuất hiện khi thêm giao dịch mới.`)) return;
+    if (
+      archived &&
+      !window.confirm(
+        `Lưu trữ tài khoản “${account.name}”? Tài khoản sẽ không xuất hiện khi thêm giao dịch mới.`,
+      )
+    ) {
+      return;
+    }
     setBusyId(account.id);
-    const result = viewer.isDemo ? { ok: true as const } : await setAccountArchivedAction(account.id, archived);
+    const result = viewer.isDemo
+      ? { ok: true as const }
+      : await setAccountArchivedAction(account.id, archived);
     setBusyId(null);
-    if (!result.ok) { setNotice(result.message); return; }
-    setAccounts((current) => current.map((item) => item.id === account.id ? { ...item, isArchived: archived } : item));
+    if (!result.ok) {
+      setNotice(result.message);
+      return;
+    }
+    setAccounts((current) =>
+      current.map((item) => (item.id === account.id ? { ...item, isArchived: archived } : item)),
+    );
     setNotice(archived ? "Đã lưu trữ tài khoản." : "Đã khôi phục tài khoản.");
   }
 
@@ -152,16 +189,24 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
         relativeDate: "Vừa xong",
       };
       writeStoredTransactions([transaction, ...readStoredTransactions()]);
-      setAccounts((current) => applyTransferBalances(current, source.id, destination.id, input.amount));
+      setAccounts((current) =>
+        applyTransferBalances(current, source.id, destination.id, input.amount),
+      );
       setTransferOpen(false);
-      setNotice(`Đã chuyển ${formatMoney(input.amount, false, source.currencyCode)} sang ${destination.name}.`);
+      setNotice(
+        `Đã chuyển ${formatMoney(input.amount, false, source.currencyCode)} sang ${destination.name}.`,
+      );
       return { ok: true };
     }
     const result = await createTransferAction(input);
     if (result.ok) {
-      setAccounts((current) => applyTransferBalances(current, source.id, destination.id, input.amount));
+      setAccounts((current) =>
+        applyTransferBalances(current, source.id, destination.id, input.amount),
+      );
       setTransferOpen(false);
-      setNotice(`Đã chuyển ${formatMoney(input.amount, false, source.currencyCode)} sang ${destination.name}.`);
+      setNotice(
+        `Đã chuyển ${formatMoney(input.amount, false, source.currencyCode)} sang ${destination.name}.`,
+      );
     }
     return result;
   }
@@ -182,12 +227,20 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
       notice={notice}
     >
       <main className="dashboard accounts-workspace">
-        {dataError && <div className="data-alert" role="alert"><Icon name="bell" /><span>{dataError}</span></div>}
+        {dataError && (
+          <div className="data-alert" role="alert">
+            <Icon name="bell" />
+            <span>{dataError}</span>
+          </div>
+        )}
         <section className="accounts-heading">
           <div>
             <p className="eyebrow">Nơi giữ tiền</p>
             <h1>Tài khoản</h1>
-            <p>Quản lý tiền mặt, ngân hàng, ví điện tử{hasFx ? ", ngoại tệ" : ""} và các khoản nợ ở một nơi.</p>
+            <p>
+              Quản lý tiền mặt, ngân hàng, ví điện tử{hasFx ? ", ngoại tệ" : ""} và các khoản
+              nợ ở một nơi.
+            </p>
           </div>
           <div className="page-heading-actions">
             <button
@@ -195,7 +248,8 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
               onClick={() => setTransferOpen(true)}
               disabled={Boolean(dataError) || !canOpenTransfer}
             >
-              <Icon name="arrows" />Chuyển tiền
+              <Icon name="arrows" />
+              Chuyển tiền
             </button>
           </div>
         </section>
@@ -227,8 +281,8 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
           </div>
           <p>
             {hasFx
-              ? "Số dư VND dùng cho dự báo “có thể chi hôm nay”. Tài khoản ngoại tệ chỉ hiển thị — chưa chuyển chéo loại tiền hay quy đổi tỷ giá."
-              : "Số dư này được dùng làm nền cho dự báo “có thể chi hôm nay”. Hãy nhập số dư ban đầu đúng với thực tế."}
+              ? "Mỗi loại tiền được theo dõi riêng. MoneyFlow chưa chuyển chéo loại tiền hoặc quy đổi theo tỷ giá."
+              : "Số dư được tính từ số dư ban đầu và các giao dịch đã ghi. Hãy đối chiếu định kỳ với số dư thực tế."}
           </p>
         </section>
 
@@ -263,15 +317,20 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
                       Số dư ban đầu: {formatMoney(account.initialBalance, false, account.currencyCode)}
                     </span>
                     <div>
-                      <button onClick={() => openAccount(account)} aria-label={`Sửa ${account.name}`}>
-                        <Icon name="edit" />Sửa
+                      <button
+                        onClick={() => openAccount(account)}
+                        aria-label={`Sửa ${account.name}`}
+                      >
+                        <Icon name="edit" />
+                        Sửa
                       </button>
                       <button
                         onClick={() => toggleArchived(account)}
                         disabled={busyId === account.id}
                         aria-label={`Lưu trữ ${account.name}`}
                       >
-                        <Icon name="archive" />Lưu trữ
+                        <Icon name="archive" />
+                        Lưu trữ
                       </button>
                     </div>
                   </div>
@@ -313,8 +372,12 @@ export function AccountsPage({ viewer, initialAccounts, dataError }: { viewer: V
                   <span className="font-mono">
                     {formatMoney(account.balance, false, account.currencyCode)}
                   </span>
-                  <button onClick={() => toggleArchived(account)} disabled={busyId === account.id}>
-                    <Icon name="restore" />Khôi phục
+                  <button
+                    onClick={() => toggleArchived(account)}
+                    disabled={busyId === account.id}
+                  >
+                    <Icon name="restore" />
+                    Khôi phục
                   </button>
                 </article>
               ))}
