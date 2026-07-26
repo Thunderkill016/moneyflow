@@ -87,4 +87,62 @@ test.describe("critical browser compatibility audit", () => {
     expect(semanticColors.ctaBackground).toBe("rgb(74, 213, 138)");
     expect(semanticColors.ctaTitle).toBe("rgb(7, 21, 14)");
   });
+
+  test("signed-in shell exposes one authored navigation model", async ({ page }) => {
+    await page.goto("/insights", { waitUntil: "domcontentloaded" });
+    await expect(
+      page.getByRole("heading", { level: 1, name: /Chào/i }),
+    ).toBeVisible();
+    await expect(page.locator(".safe-card-hero")).toBeHidden();
+    await expect(page.locator(".mobile-fab")).toHaveCount(0);
+
+    const viewportWidth = page.viewportSize()?.width ?? 1_440;
+    const mobileNavigation = page.getByRole("navigation", {
+      name: "Điều hướng di động",
+    });
+    const desktopNavigation = page.getByRole("complementary", {
+      name: "Điều hướng chính",
+    });
+
+    if (viewportWidth <= 760) {
+      await expect(mobileNavigation).toBeVisible();
+      await expect(desktopNavigation).toBeHidden();
+      await expect(
+        mobileNavigation.getByRole("button", { name: "Ghi chi tiêu" }),
+      ).toBeVisible();
+
+      const metrics = await mobileNavigation.evaluate((navigation) => {
+        if (!(navigation.parentElement instanceof HTMLElement)) {
+          throw new Error("App shell is missing");
+        }
+        const navigationHeight = navigation.getBoundingClientRect().height;
+        const shellPaddingBottom = Number.parseFloat(
+          getComputedStyle(navigation.parentElement).paddingBottom,
+        );
+        return {
+          itemCount: navigation.children.length,
+          navigationHeight,
+          shellPaddingBottom,
+          documentOverflow:
+            document.documentElement.scrollWidth -
+            document.documentElement.clientWidth,
+        };
+      });
+
+      expect(metrics.itemCount).toBe(5);
+      expect(metrics.shellPaddingBottom).toBeGreaterThanOrEqual(
+        metrics.navigationHeight - 2,
+      );
+      expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
+    } else {
+      await expect(desktopNavigation).toBeVisible();
+      await expect(mobileNavigation).toBeHidden();
+      await expect(
+        page.getByRole("link", { name: "MoneyFlow, về Tổng quan" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Ghi chi tiêu" }),
+      ).toBeVisible();
+    }
+  });
 });
