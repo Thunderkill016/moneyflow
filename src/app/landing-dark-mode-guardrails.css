@@ -1,19 +1,24 @@
 /*
  * Public landing dark-mode guardrails.
  *
- * This stylesheet is intentionally imported after every other UI layer. The
- * landing page previously received its dark canvas while later global layers
- * could leave light-theme foregrounds and surfaces in place. Keep every rule
- * scoped to the public landing root so authenticated product screens are not
- * affected.
+ * This stylesheet is intentionally imported after every other UI layer. Some
+ * older global refresh files redeclare the shared semantic tokens on :root
+ * after the main dark token block, so the public landing must own a complete
+ * dark palette instead of indirectly inheriting those reset light values.
+ * Keep every rule scoped to the public landing root so authenticated product
+ * screens are not affected.
  */
 
 [data-theme="dark"] .landing-page.lp-root {
-  --lp-dark-surface: var(--color-bg-elevated);
-  --lp-dark-surface-soft: var(--color-bg-tertiary);
-  --lp-dark-border: var(--color-border-default);
-  --lp-dark-text: var(--color-text-primary);
-  --lp-dark-muted: var(--color-text-secondary);
+  --lp-dark-surface: #1a1a1e;
+  --lp-dark-surface-soft: #1e1f23;
+  --lp-dark-border: #2a2b30;
+  --lp-dark-border-strong: #3a3b42;
+  --lp-dark-text: #ededed;
+  --lp-dark-muted: #a0a0a8;
+  --lp-dark-accent: #4ade80;
+  --lp-dark-accent-subtle: #052e16;
+  --lp-dark-accent-text: #86efac;
   color: var(--lp-dark-text) !important;
   background:
     radial-gradient(circle at 12% 2%, rgb(18 84 50 / 28%), transparent 34rem),
@@ -38,13 +43,14 @@
   .lp-faq-item
 ) {
   border-color: var(--lp-dark-border) !important;
-  background: var(--lp-dark-surface) !important;
+  background-color: var(--lp-dark-surface) !important;
+  background-image: none !important;
   color: var(--lp-dark-text) !important;
   box-shadow: 0 10px 28px rgb(0 0 0 / 22%) !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .lp-nav {
-  background: rgb(26 26 30 / 88%) !important;
+  background-color: var(--lp-dark-surface) !important;
   box-shadow: 0 8px 34px rgb(0 0 0 / 28%) !important;
 }
 
@@ -93,11 +99,11 @@
   .lp-who-grid svg,
   .landing-footer-links a:hover
 ) {
-  color: var(--color-accent-text) !important;
+  color: var(--lp-dark-accent-text) !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .lp-badge-dot {
-  background: var(--color-success-default) !important;
+  background: var(--lp-dark-accent) !important;
   box-shadow: 0 0 0 5px rgb(74 222 128 / 14%) !important;
 }
 
@@ -111,14 +117,14 @@
 }
 
 [data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-secondary {
-  border-color: var(--color-border-strong) !important;
+  border-color: var(--lp-dark-border-strong) !important;
   background: var(--lp-dark-surface) !important;
   color: var(--lp-dark-text) !important;
   box-shadow: 0 7px 20px rgb(0 0 0 / 22%) !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .lp-hero-ctas .cta-secondary:hover {
-  border-color: var(--color-accent-default) !important;
+  border-color: var(--lp-dark-accent) !important;
   background: var(--lp-dark-surface-soft) !important;
 }
 
@@ -159,8 +165,8 @@
 }
 
 [data-theme="dark"] .landing-page.lp-root .preview-dash-cta {
-  background: var(--color-accent-subtle) !important;
-  color: var(--color-accent-text) !important;
+  background: var(--lp-dark-accent-subtle) !important;
+  color: var(--lp-dark-accent-text) !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .lp-section-muted {
@@ -178,12 +184,12 @@
 
 [data-theme="dark"] .landing-page.lp-root .lp-feature-icon,
 [data-theme="dark"] .landing-page.lp-root .lp-step-n {
-  background: var(--color-accent-subtle) !important;
+  background: var(--lp-dark-accent-subtle) !important;
   box-shadow: none !important;
 }
 
 [data-theme="dark"] .landing-page.lp-root .lp-faq-item[open] {
-  border-color: var(--color-border-strong) !important;
+  border-color: var(--lp-dark-border-strong) !important;
   box-shadow: 0 14px 34px rgb(0 0 0 / 28%) !important;
 }
 
