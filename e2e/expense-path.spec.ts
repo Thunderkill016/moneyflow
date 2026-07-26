@@ -60,14 +60,16 @@ test.describe("Expense path (thu chi)", () => {
     await expect(page.locator(".safe-card-hero")).toBeHidden({ timeout: 20_000 });
 
     // The primary expense action follows the viewport: in-page on desktop,
-    // persistent FAB on mobile. Test the user-reachable action, not one legacy selector.
+    // the center Calm Ledger navigation action on mobile.
     const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
     const welcomeExpenseAction = page.locator(
       ".welcome-actions .insights-ghi-chi",
     );
     if (isMobile) {
       await expect(welcomeExpenseAction).toBeHidden();
-      await expect(page.locator(".mobile-fab")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Ghi chi tiêu" }),
+      ).toBeVisible();
     } else {
       await expect(welcomeExpenseAction).toBeVisible();
     }
