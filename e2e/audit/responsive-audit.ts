@@ -240,6 +240,16 @@ export async function assertKeyboardFocusVisible(page: Page, testInfo: TestInfo)
 
   for (let index = 0; index < 12; index += 1) {
     await page.keyboard.press("Tab");
+    // Chromium/WebKit perform native focus scrolling asynchronously. Waiting for
+    // two paint frames prevents reporting a below-fold control before the browser
+    // has moved it into view, while still catching focus hidden by app chrome.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+        }),
+    );
+
     const focusState = await page.evaluate(() => {
       const active = document.activeElement;
       if (!(active instanceof HTMLElement) || active === document.body) return null;
@@ -251,9 +261,8 @@ export async function assertKeyboardFocusVisible(page: Page, testInfo: TestInfo)
         right: rect.right,
         bottom: rect.bottom,
         left: rect.left,
-        width: rect.width,
-        height: rect.height,
         outline: style.outlineStyle,
+        outlineWidth: style.outlineWidth,
         boxShadow: style.boxShadow,
         viewportWidth: document.documentElement.clientWidth,
         viewportHeight: document.documentElement.clientHeight,
@@ -262,16 +271,22 @@ export async function assertKeyboardFocusVisible(page: Page, testInfo: TestInfo)
 
     if (!focusState) continue;
     const outside =
-      focusState.right < 0 ||
-      focusState.left > focusState.viewportWidth ||
-      focusState.bottom < 0 ||
-      focusState.top > focusState.viewportHeight;
+      focusState.right < -1 ||
+      focusState.left > focusState.viewportWidth + 1 ||
+      focusState.bottom < -1 ||
+      focusState.top > focusState.viewportHeight + 1;
     if (outside) findings.push(`${focusState.element} is outside the viewport after Tab ${index + 1}`);
 
-    const hasVisibleFocus =
-      focusState.outline !== "none" ||
-      (focusState.boxShadow !== "none" && focusState.boxShadow !== "rgba(0, 0, 0, 0) 0px 0px 0px 0px");
-    if (!hasVisibleFocus) findings.push(`${focusState.element} has no visible focus indicator`);
+    const hasOutline =
+      focusState.outline !== "none" &&
+      focusState.outlineWidth !== "0px" &&
+      focusState.outlineWidth !== "0";
+    const hasBoxShadow =
+      focusState.boxShadow !== "none" &&
+      focusState.boxShadow !== "rgba(0, 0, 0, 0) 0px 0px 0px 0px";
+    if (!hasOutline && !hasBoxShadow) {
+      findings.push(`${focusState.element} has no visible focus indicator`);
+    }
   }
 
   await testInfo.attach(`keyboard-${testInfo.project.name}.json`, {
