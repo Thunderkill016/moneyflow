@@ -29,23 +29,21 @@ test.describe("critical browser compatibility audit", () => {
     await expect(page.locator(".lp-hero-title")).toBeVisible();
 
     const colors = await page.evaluate(() => {
-      const readColor = (selector: string): string => {
+      const readStyle = (selector: string): CSSStyleDeclaration => {
         const element = document.querySelector(selector);
         if (!(element instanceof HTMLElement)) throw new Error(`Missing ${selector}`);
-        return window.getComputedStyle(element).color;
-      };
-      const readBackground = (selector: string): string => {
-        const element = document.querySelector(selector);
-        if (!(element instanceof HTMLElement)) throw new Error(`Missing ${selector}`);
-        return window.getComputedStyle(element).backgroundColor;
+        return window.getComputedStyle(element);
       };
 
       return {
-        brand: readColor(".lp-nav .brand"),
-        hero: readColor(".lp-hero-title"),
-        lead: readColor(".lp-hero-lead"),
-        navBackground: readBackground(".lp-nav"),
-        proofBackground: readBackground(".landing-proof-list li"),
+        brand: readStyle(".lp-nav .brand").color,
+        hero: readStyle(".lp-hero-title").color,
+        lead: readStyle(".lp-hero-lead").color,
+        navBackground: readStyle(".lp-nav").backgroundColor,
+        proofBackground: readStyle(".landing-proof-list li").backgroundColor,
+        previewBackground: readStyle(".preview-dash-stats").backgroundColor,
+        ctaBackgroundImage: readStyle(".lp-cta").backgroundImage,
+        ctaTitle: readStyle(".lp-cta h2").color,
       };
     });
 
@@ -54,5 +52,8 @@ test.describe("critical browser compatibility audit", () => {
     expect(colors.lead).toBe("rgb(160, 160, 168)");
     expect(colors.navBackground).toBe("rgb(26, 26, 30)");
     expect(colors.proofBackground).toBe("rgb(26, 26, 30)");
+    expect(colors.previewBackground).toBe("rgb(26, 26, 30)");
+    expect(colors.ctaBackgroundImage).toContain("linear-gradient");
+    expect(colors.ctaTitle).toBe("rgb(255, 255, 255)");
   });
 });
