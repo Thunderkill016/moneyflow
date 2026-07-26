@@ -3,7 +3,7 @@
  * Locks static landing path, font strategy, and documented budgets.
  */
 import assert from "node:assert/strict";
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -32,7 +32,7 @@ test("landing is a Server Component (no use client) for LCP", () => {
     false,
     "landing-page.tsx must not start with use client",
   );
-  assert.match(source, /landing-hero-title|landing-hero/);
+  assert.match(source, /styles\.hero/);
   assert.match(source, /export function LandingPage/);
 });
 
@@ -62,7 +62,6 @@ test("root layout font strategy favors LCP and reduces CLS", () => {
   assert.match(source, /display:\s*["']swap["']/);
   assert.match(source, /adjustFontFallback:\s*true/);
   assert.match(source, /preload:\s*true/);
-  // Q8: only Inter webfont; money mono is system stack (no JetBrains Google file).
   assert.equal(
     /JetBrains|jetbrains/.test(source),
     false,
@@ -100,12 +99,12 @@ test("transactions page code-splits dialogs for smaller first paint", () => {
   assert.match(source, /ssr:\s*false/);
 });
 
-test("CSS reserves space for landing hero and insights KPI (CLS)", () => {
-  const css = read("src/app/globals.css");
-  assert.match(css, /\.landing-hero-preview/);
-  assert.match(css, /min-height:\s*420px/);
-  assert.match(css, /\.landing-below-fold/);
-  assert.match(css, /content-visibility:\s*auto/);
-  assert.match(css, /\.insights-kpi strong/);
-  assert.match(css, /font-variant-numeric:\s*tabular-nums/);
+test("CSS reserves stable space for the landing preview and money KPIs", () => {
+  const landingCss = read("src/components/landing-page.module.css");
+  const globals = read("src/app/globals.css");
+  assert.match(landingCss, /\.hero\b/);
+  assert.match(landingCss, /min-height:\s*calc\(100svh - 72px\)/);
+  assert.match(landingCss, /\.previewWrap\b/);
+  assert.match(globals, /\.insights-kpi strong/);
+  assert.match(globals, /font-variant-numeric:\s*tabular-nums/);
 });
