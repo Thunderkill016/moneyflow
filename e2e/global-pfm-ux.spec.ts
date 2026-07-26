@@ -1,15 +1,20 @@
 import { expect, test } from "@playwright/test";
 
 const NOTE = "Benchmark UX cafe";
+const AMOUNT = 125_000;
 
-test.describe("Global PFM UX benchmark", () => {
+ test.describe("Global PFM UX benchmark", () => {
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(() => {
       try {
+        if (window.localStorage.getItem("__mf_e2e_benchmark_seeded") === "1") {
+          return;
+        }
         window.localStorage.clear();
         window.localStorage.setItem("moneyflow-demo-transactions-v1", "[]");
         window.localStorage.setItem("moneyflow-inbox-candidates-v1", "[]");
         window.localStorage.setItem("moneyflow-onboarding-done", "1");
+        window.localStorage.setItem("__mf_e2e_benchmark_seeded", "1");
       } catch {
         /* ignore */
       }
@@ -26,16 +31,43 @@ test.describe("Global PFM UX benchmark", () => {
     ).toBeHidden();
 
     await page.goto("/capture/quick");
-    await page.getByRole("button", { name: /Khoản chi/i }).click();
-    await page.getByLabel(/Số tiền chi/i).fill("125000");
+    await page.getByRole("button", { name: /Khoản chi/i, exact: true }).click();
+    await page.getByLabel(/Số tiền chi/i).fill(String(AMOUNT));
     await page.getByRole("button", { name: "Ăn uống", exact: true }).click();
     await page.getByPlaceholder("Ví dụ: Cơm trưa").fill(NOTE);
-    await page.getByRole("button", { name: /Lưu/i }).click();
+    await page.getByRole("button", { name: "Lưu", exact: true }).click();
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate(
+            ({ note, amount }) => {
+              const raw = window.localStorage.getItem(
+                "moneyflow-demo-transactions-v1",
+              );
+              if (!raw) return false;
+              try {
+                const list = JSON.parse(raw) as Array<{
+                  note?: string;
+                  amount?: number;
+                }>;
+                return list.some(
+                  (item) => item.note === note && item.amount === amount,
+                );
+              } catch {
+                return false;
+              }
+            },
+            { note: NOTE, amount: AMOUNT },
+          ),
+        { timeout: 15_000 },
+      )
+      .toBe(true);
 
     await page.goto("/transactions?category=%C4%82n%20u%E1%BB%91ng&kind=expense");
     await expect(page.getByLabel("Lọc theo danh mục")).toHaveValue("Ăn uống");
     await expect(
-      page.getByRole("button", { name: "Khoản chi" }),
+      page.getByRole("button", { name: "Khoản chi", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
     await expect(
       page.locator(".transaction-summary").getByText("Ròng", { exact: true }),
