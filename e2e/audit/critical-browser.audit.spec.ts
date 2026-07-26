@@ -26,7 +26,33 @@ test.describe("critical browser compatibility audit", () => {
 
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-    await expect(page.locator(".lp-hero-title")).toBeVisible();
+
+    const navigation = page.getByRole("navigation", {
+      name: "Điều hướng trang chủ",
+    });
+    const brand = navigation.getByRole("link", {
+      name: "MoneyFlow, trang chủ",
+    });
+    const hero = page.getByRole("heading", {
+      level: 1,
+      name: "Ghi thu chi trong vài giây. Biết chính xác tiền đi đâu.",
+    });
+    const lead = page.locator("#landing-title + p");
+    const proof = page.getByRole("region", { name: "Điểm nổi bật" });
+    const preview = page.getByRole("img", {
+      name: /Mô phỏng màn hình tổng quan/i,
+    });
+    const finalCta = page.getByRole("region", {
+      name: "Ghi khoản đầu tiên của bạn hôm nay",
+    });
+    const finalCtaTitle = page.getByRole("heading", {
+      level: 2,
+      name: "Ghi khoản đầu tiên của bạn hôm nay",
+    });
+
+    await expect(hero).toBeVisible();
+    await expect(preview).toBeVisible();
+    await expect(finalCta).toBeVisible();
 
     const colors = await page.evaluate(() => {
       const readStyle = (selector: string): CSSStyleDeclaration => {
@@ -36,24 +62,38 @@ test.describe("critical browser compatibility audit", () => {
       };
 
       return {
-        brand: readStyle(".lp-nav .brand").color,
-        hero: readStyle(".lp-hero-title").color,
-        lead: readStyle(".lp-hero-lead").color,
-        navBackground: readStyle(".lp-nav").backgroundColor,
-        proofBackground: readStyle(".landing-proof-list li").backgroundColor,
-        previewBackground: readStyle(".preview-dash-stats").backgroundColor,
-        ctaBackgroundImage: readStyle(".lp-cta").backgroundImage,
-        ctaTitle: readStyle(".lp-cta h2").color,
+        pageBackground: readStyle("main").parentElement
+          ? window.getComputedStyle(readStyle("main").parentElement as unknown as Element)
+              .backgroundColor
+          : "",
       };
     });
 
-    expect(colors.brand).toBe("rgb(237, 237, 237)");
-    expect(colors.hero).toBe("rgb(237, 237, 237)");
-    expect(colors.lead).toBe("rgb(160, 160, 168)");
-    expect(colors.navBackground).toBe("rgb(26, 26, 30)");
-    expect(colors.proofBackground).toBe("rgb(26, 26, 30)");
-    expect(colors.previewBackground).toBe("rgb(26, 26, 30)");
-    expect(colors.ctaBackgroundImage).toContain("linear-gradient");
-    expect(colors.ctaTitle).toBe("rgb(255, 255, 255)");
+    const semanticColors = {
+      brand: await brand.evaluate((element) => getComputedStyle(element).color),
+      hero: await hero.evaluate((element) => getComputedStyle(element).color),
+      lead: await lead.evaluate((element) => getComputedStyle(element).color),
+      proofBackground: await proof.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+      previewBackground: await preview.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+      ctaBackground: await finalCta.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+      ctaTitle: await finalCtaTitle.evaluate(
+        (element) => getComputedStyle(element).color,
+      ),
+    };
+
+    expect(colors.pageBackground).toBe("rgb(13, 21, 17)");
+    expect(semanticColors.brand).toBe("rgb(240, 247, 243)");
+    expect(semanticColors.hero).toBe("rgb(240, 247, 243)");
+    expect(semanticColors.lead).toBe("rgb(168, 183, 174)");
+    expect(semanticColors.proofBackground).toBe("rgb(20, 31, 25)");
+    expect(semanticColors.previewBackground).toBe("rgb(26, 40, 32)");
+    expect(semanticColors.ctaBackground).toBe("rgb(74, 213, 138)");
+    expect(semanticColors.ctaTitle).toBe("rgb(7, 21, 14)");
   });
 });
