@@ -1,0 +1,17 @@
+/*
+ * Temporary product-safety withdrawal.
+ *
+ * MoneyFlow cannot currently prove a trustworthy "safe to spend" number:
+ * it has neither a complete income-based monthly plan nor an account-specific
+ * next-payday plan. Do not expose a balance-derived daily allowance as advice.
+ *
+ * Keep the normal dashboard entry action available while the planning model is
+ * redesigned and validated from real use.
+ */
+.safe-card-hero {
+  display: none !important;
+}
+
+.insights-dashboard .welcome-actions .insights-ghi-chi {
+  display: inline-flex;
+}
