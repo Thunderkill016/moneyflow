@@ -5,12 +5,12 @@ import test from "node:test";
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
 const authForm = readFileSync("src/components/auth-form.tsx", "utf8");
 const authStyles = readFileSync("src/components/auth-form.module.css", "utf8");
-const tokens = readFileSync("src/app/calm-ledger-tokens.css", "utf8");
+const documentTheme = readFileSync("src/app/document-theme.css", "utf8");
 
 test("authentication uses the Calm Ledger module instead of a global patch", () => {
   assert.doesNotMatch(rootLayout, /auth-refresh\.css/);
   assert.match(authForm, /auth-form\.module\.css/);
-  assert.match(rootLayout, /calm-ledger-tokens\.css/);
+  assert.match(rootLayout, /document-theme\.css/);
 });
 
 test("authentication preserves Google and password controls", () => {
@@ -36,6 +36,6 @@ test("authentication is responsive, themed and motion accessible", () => {
   assert.match(authStyles, /@media \(max-width: 760px\)/);
   assert.match(authStyles, /min-height:\s*48px/);
   assert.match(authStyles, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(tokens, /\[data-theme="dark"\]/);
+  assert.match(documentTheme, /html\[data-theme="dark"\]/);
   assert.doesNotMatch(authStyles, /!important/);
 });
