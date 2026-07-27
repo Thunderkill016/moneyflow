@@ -3,12 +3,15 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const layout = readFileSync("src/app/layout.tsx", "utf8");
+const legacy = readFileSync("src/app/legacy.css", "utf8");
 const userChip = readFileSync("src/components/user-chip.tsx", "utf8");
 const refresh = readFileSync("src/app/ui-refresh.css", "utf8");
 
-test("product UI refresh is loaded by the root layout for production stability", () => {
-  assert.match(layout, /import "\.\/globals\.css"/);
-  assert.match(layout, /import "\.\/ui-refresh\.css"/);
+test("product UI refresh is isolated behind the legacy compatibility entry", () => {
+  assert.match(layout, /import "\.\/legacy\.css"/);
+  assert.doesNotMatch(layout, /import "\.\/ui-refresh\.css"/);
+  assert.match(legacy, /@import "\.\/globals\.css"/);
+  assert.match(legacy, /@import "\.\/ui-refresh\.css"/);
   assert.doesNotMatch(userChip, /product-styles/);
 });
 

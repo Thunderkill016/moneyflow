@@ -1,3 +1,15 @@
+/*
+ * MoneyFlow document and theme authority.
+ *
+ * This is the only non-legacy owner for:
+ * - semantic Calm Ledger tokens
+ * - resolved light/dark theme values
+ * - html/body canvas, margin and padding
+ * - global focus visibility
+ * - document-level reduced motion
+ *
+ * Route and component styles must not target html or body.
+ */
 :root {
   --mf-canvas: #f4f7f5;
   --mf-surface: #ffffff;
@@ -43,7 +55,7 @@
   --mf-ease: cubic-bezier(0.2, 0.75, 0.2, 1);
 }
 
-[data-theme="dark"] {
+html[data-theme="dark"] {
   --mf-canvas: #0d1511;
   --mf-surface: #141f19;
   --mf-surface-muted: #1a2820;
@@ -74,6 +86,28 @@
   --mf-shadow-lg: 0 24px 64px rgb(0 0 0 / 38%);
 }
 
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  color: var(--mf-text);
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body {
+  background: #f4f7f5 !important;
+}
+
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background: #0d1511 !important;
+}
+
+body {
+  padding: 0 !important;
+  font-family: var(--mf-font-sans);
+}
+
 :focus-visible {
   outline: 2px solid var(--mf-focus);
   outline-offset: 3px;
@@ -82,5 +116,14 @@
 @media (prefers-reduced-motion: reduce) {
   html:focus-within {
     scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

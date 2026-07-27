@@ -1,0 +1,19 @@
+/*
+ * Temporary compatibility layer for pre-Calm-Ledger global styling.
+ *
+ * Ownership rule:
+ * - Do not add another import here.
+ * - Do not create another root-level refresh/guardrail/override stylesheet.
+ * - Move selectors out when their route or component receives a real owner.
+ *
+ * The order below is intentionally identical to the previous root-layout
+ * import order so Phase 0–1 changes architecture without silently restyling
+ * the product.
+ */
+@import "./globals.css";
+@import "./ui-refresh.css";
+@import "./benchmark-ux.css";
+@import "./safe-to-spend-withdrawal.css";
+@import "./cross-device-stabilization.css";
+@import "./ai-uiux-refresh.css";
+@import "./ai-uiux-guardrails.css";

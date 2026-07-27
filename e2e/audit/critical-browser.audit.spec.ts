@@ -3,7 +3,7 @@ import { auditRoute, seedUiAuditState, type AuditRoute } from "./responsive-audi
 
 const CRITICAL_ROUTES: AuditRoute[] = [
   { label: "landing", path: "/landing" },
-  { label: "insights", path: "/insights" },
+  { label: "insights", path: "/dashboard" },
   { label: "quick-capture", path: "/capture/quick" },
   { label: "transactions", path: "/transactions" },
 ];

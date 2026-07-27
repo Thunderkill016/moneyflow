@@ -65,7 +65,7 @@ jobs:
     env:
       NEXT_PUBLIC_APP_MODE: authenticated
       NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key # gitleaks:allow test value
       NEXT_PUBLIC_SITE_URL: https://ci.example.test
       LEGACY_SITE_HOSTS: old-ci.example.test
     steps:
@@ -82,6 +82,8 @@ jobs:
         run: npm run check:knowledge
       - name: Deployment configuration contract
         run: npm run check:deployment-env
+      - name: CSS ownership and debt budgets
+        run: npm run check:css-ownership
       - name: Lint
         run: npm run lint
       - name: Typecheck
@@ -112,7 +114,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     needs: verify
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -127,7 +129,7 @@ jobs:
         run: npx playwright install --with-deps chromium webkit
       - name: Expense-path browser smoke
         run: npm run test:e2e
-      - name: Cross-device UI audit
+      - name: Production cross-device UI audit
         run: npm run test:ui-audit:pr
       - name: Upload Playwright evidence
         if: always()

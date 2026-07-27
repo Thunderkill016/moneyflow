@@ -163,10 +163,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npx next dev --hostname 127.0.0.1 --port ${PORT}`,
+    command: `npm run build && npx next start -H 127.0.0.1 -p ${PORT}`,
     url: baseURL,
     reuseExistingServer: false,
-    timeout: 120_000,
+    timeout: 240_000,
     env: {
       ...process.env,
       NEXT_PUBLIC_APP_MODE: "demo",

@@ -1,18 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
-import "./globals.css";
-import "./ui-refresh.css";
-import "./benchmark-ux.css";
-import "./safe-to-spend-withdrawal.css";
-import "./cross-device-stabilization.css";
-import "./ai-uiux-refresh.css";
-import "./ai-uiux-guardrails.css";
-import "./calm-ledger-tokens.css";
+import "./legacy.css";
+import "./document-theme.css";
 
 /**
  * UI text is LCP critical. Inter covers Vietnamese product copy while the
- * ledger uses the system mono stack exposed by the Calm Ledger tokens.
+ * ledger uses the system mono stack exposed by the document/theme authority.
  */
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
