@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "initiativeId": "MFVN-003",
+  "decision": {
+    "value": "build",
+    "decidedAt": "2026-07-27",
+    "reason": "This is a bounded improvement to an existing product the owner already uses. Manual readiness passed, the current landing/auth UI and token cascade have documented defects, and no external product can replace correcting MoneyFlow itself."
+  },
+  "problem": {
+    "statement": "MoneyFlow's visual foundation and public/auth entry states are not yet a coherent Calm Ledger experience: token declarations and override layers drift, the first viewport and CTA hierarchy need a bounded contract, and auth must remain financially honest.",
+    "observedEvidence": [
+      "Issue #81 records the current UI audit, rollout order and acceptance criteria.",
+      "src/app/globals.css declares the intended design-token source of truth but also retains compatibility aliases and later override risk.",
+      "src/components/landing-page.tsx owns the public first viewport and CTA hierarchy.",
+      "src/components/auth-form.tsx owns login/register copy and demo-mode messaging.",
+      "The owner confirmed all three manual readiness gates passed before redesign work began."
+    ],
+    "currentWorkaround": "Continue patching individual CSS modules and copy without a single feature specification.",
+    "workaroundCost": "High risk of another override layer, inconsistent entry states and scope expansion into later redesign slices."
+  },
+  "existingSolutions": [
+    {
+      "name": "Keep the current UI unchanged",
+      "decision": "rejected",
+      "reason": "It preserves the documented audit defects and does not meet the owner-approved Calm Ledger direction."
+    },
+    {
+      "name": "Replace MoneyFlow with an existing finance product",
+      "decision": "rejected",
+      "reason": "The task is to improve the owner's existing ledger, data model and workflow; another product cannot modify this repository."
+    },
+    {
+      "name": "Add a new UI framework or component library",
+      "decision": "rejected",
+      "reason": "The repository already has Next.js, React, Tailwind, Radix primitives and reusable components. A new library would add migration cost without proving value."
+    },
+    {
+      "name": "Use Spec Kit for feature-level specification",
+      "decision": "adopted",
+      "reason": "Spec Kit already provides the specification, plan and task workflow. CycleWarden should select and bound the initiative rather than duplicate that layer."
+    }
+  ],
+  "manualTest": {
+    "status": "completed",
+    "method": "Review the current production-facing entry states, source files and issue #81 audit before changing code.",
+    "result": "The bounded foundation plus landing/auth slice remains justified; later daily-flow, planning and cross-device slices remain out of scope."
+  },
+  "usageCost": {
+    "interactionCost": "No new user workflow is introduced; this slice changes presentation and copy only.",
+    "maintenanceCost": "Must reduce rather than add CSS override layers and must reuse the existing stack."
+  },
+  "killCriteria": [
+    "stop if the work requires changing financial calculations, database schema, RLS or runtime mode",
+    "stop if a second token or override source is introduced instead of consolidating the existing source",
+    "stop if the slice expands into authenticated daily flows, planning, settings or reports",
+    "stop if responsive evidence cannot demonstrate improvement on the supported entry-state viewports"
+  ],
+  "buildEvidence": [
+    "owner-approved issue #81 rollout step 1",
+    "completed manual readiness gates",
+    "current product principles and architecture invariants",
+    "repository source audit for globals.css, landing-page.tsx and auth-form.tsx"
+  ]
+}
