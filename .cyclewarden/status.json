@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "phase": "calm-ledger-foundation",
+  "phase": "calm-ledger-foundation-specification",
   "activeTaskId": "MFVN-003",
   "lastCompletedTaskId": "MFVN-001",
   "blockedTaskIds": [
@@ -9,15 +9,19 @@
     "MFVN-006"
   ],
   "blockers": [],
-  "unresolvedDecisions": [],
+  "unresolvedDecisions": [
+    "After T001, decide which compatibility aliases and entry-state overrides can be removed safely in the first implementation patch.",
+    "After at least one implementation task, decide whether Spec Kit reduces scope drift enough to justify permanent CW integration."
+  ],
   "next": {
     "taskId": "MFVN-003",
-    "reason": "The three manual readiness gates passed. The owner has already used the product and explicitly dropped the fixed seven-day self-use requirement as unnecessary, so the first bounded Calm Ledger foundation slice is now active."
+    "specKitTaskId": "T001",
+    "reason": "The build-or-not assessment is build and Spec Kit artifacts now bound the slice. The only valid next work is a token and override inventory; application code must not change during T001."
   },
   "ownerSummary": {
-    "whatIsBeingBuilt": "A trustworthy daily personal ledger for Vietnamese users, now moving into the bounded Calm Ledger visual and information-architecture redesign.",
-    "whyThisTaskNow": "Manual readiness passed and the owner removed the fixed seven-day gate after real use. The next valid work is the foundation plus landing/auth slice from issue #81.",
-    "whatNotToDo": "Do not jump to daily-flow, planning, settings, or cross-device redesign slices before MFVN-003 is verified and accepted.",
-    "whatComesAfter": "MFVN-004, the Calm Ledger daily-flow slice, only after the foundation and landing/auth work is accepted."
+    "whatIsBeingBuilt": "A bounded Calm Ledger visual foundation plus public landing and shared authentication presentation for the existing MoneyFlow product.",
+    "whyThisTaskNow": "Manual readiness passed, issue #81 documents current entry-state and CSS-foundation defects, and the owner approved testing CW with Spec Kit on the first redesign slice.",
+    "whatNotToDo": "Do not edit application code during T001. Do not start landing/auth implementation, add a library, change finance/auth/data behavior or enter MFVN-004 daily flows.",
+    "whatComesAfter": "Review token-inventory.md. Only an approved smallest consolidation proposal may activate T002."
   }
 }
