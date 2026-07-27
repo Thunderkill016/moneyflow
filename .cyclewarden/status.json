@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "phase": "calm-ledger-foundation-specification",
+  "phase": "calm-ledger-foundation-inventory-review",
   "activeTaskId": "MFVN-003",
   "lastCompletedTaskId": "MFVN-001",
   "blockedTaskIds": [
@@ -8,20 +8,29 @@
     "MFVN-005",
     "MFVN-006"
   ],
-  "blockers": [],
+  "blockers": [
+    {
+      "taskId": "MFVN-003",
+      "specKitTaskId": "T001",
+      "type": "review-gate",
+      "reason": "The token and override inventory is complete. T002 application-code work remains locked until the bounded consolidation proposal is reviewed and approved."
+    }
+  ],
   "unresolvedDecisions": [
-    "After T001, decide which compatibility aliases and entry-state overrides can be removed safely in the first implementation patch.",
+    "Confirm that Calm Ledger v2 --mf-* tokens are the canonical contract for the current landing and auth modules.",
+    "Verify remaining consumers of legacy global landing/auth selector families before any deletion.",
     "After at least one implementation task, decide whether Spec Kit reduces scope drift enough to justify permanent CW integration."
   ],
   "next": {
     "taskId": "MFVN-003",
     "specKitTaskId": "T001",
-    "reason": "The build-or-not assessment is build and Spec Kit artifacts now bound the slice. The only valid next work is a token and override inventory; application code must not change during T001."
+    "specKitTaskStatus": "verify",
+    "reason": "Review token-inventory.md. No application task is valid yet; T002 must not start automatically."
   },
   "ownerSummary": {
     "whatIsBeingBuilt": "A bounded Calm Ledger visual foundation plus public landing and shared authentication presentation for the existing MoneyFlow product.",
-    "whyThisTaskNow": "Manual readiness passed, issue #81 documents current entry-state and CSS-foundation defects, and the owner approved testing CW with Spec Kit on the first redesign slice.",
-    "whatNotToDo": "Do not edit application code during T001. Do not start landing/auth implementation, add a library, change finance/auth/data behavior or enter MFVN-004 daily flows.",
-    "whatComesAfter": "Review token-inventory.md. Only an approved smallest consolidation proposal may activate T002."
+    "whyThisTaskNow": "The build-or-not assessment is build, Spec Kit artifacts bound the slice, and T001 found the concrete cascade problem before code changes began.",
+    "whatNotToDo": "Do not edit CSS or application code, add a library, change finance/auth/data behavior, rewrite all token namespaces or enter MFVN-004 while T001 is under review.",
+    "whatComesAfter": "Approve, revise or reject the smallest consolidation proposal. Only approval may activate T002."
   }
 }
