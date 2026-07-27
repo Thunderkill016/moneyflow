@@ -37,8 +37,19 @@ COMMAND=$(echo "$PARSED" | sed -n '2p')
 PATHF=$(echo "$PARSED" | sed -n '3p')
 
 deny() {
-  python3 -c 'import json,sys; print(json.dumps({"decision":"deny","reason":sys.argv[1]}))' "$1"
-  exit 2
+  # Claude Code drops stdout JSON whenever a hook exits 2 (stderr becomes the
+  # reason instead), so blocking must exit 0 and use hookSpecificOutput.
+  python3 -c '
+import json, sys
+print(json.dumps({
+    "hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": sys.argv[1],
+    }
+}))
+' "$1"
+  exit 0
 }
 
 if [[ "$TOOL" == "run_terminal_command" || "$TOOL" == "Bash" || "$TOOL" == "bash" ]]; then
@@ -62,5 +73,4 @@ if [[ "$PATHF" == *".env.local"* || "$PATHF" == *"/secrets/"* ]]; then
   deny "Editing secrets/env.local is forbidden"
 fi
 
-echo '{"decision":"allow"}'
 exit 0
