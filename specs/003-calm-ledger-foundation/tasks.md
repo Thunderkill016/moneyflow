@@ -18,11 +18,13 @@ Only the task named by CycleWarden may be active. Completing this file does not 
 
 **Purpose**: Prevent the redesign from adding another override layer.
 
-- [ ] **T001 [US3] Inventory canonical tokens, compatibility aliases, duplicate declarations, literal repeated visual values and global override sections in `src/app/globals.css`, `src/components/landing-page.module.css` and `src/components/auth-form.module.css`; record the smallest consolidation proposal in `specs/003-calm-ledger-foundation/token-inventory.md` without changing runtime code.**
+- [x] **T001 [US3] Inventory canonical tokens, compatibility aliases, duplicate declarations, literal repeated visual values and global override sections in `src/app/globals.css`, `src/components/landing-page.module.css` and `src/components/auth-form.module.css`; record the smallest consolidation proposal in `specs/003-calm-ledger-foundation/token-inventory.md` without changing runtime code.**
+
+**Result**: `specs/003-calm-ledger-foundation/token-inventory.md`
 
 **Independent Test**: Another reviewer can identify the canonical declaration, each retained alias, every proposed removal and the affected module from the inventory alone.
 
-**Checkpoint**: Stop for review. T002 cannot start until the inventory proves the patch will reduce or preserve complexity rather than add another layer.
+**Checkpoint**: T001 is complete and awaiting review. T002 cannot start until the inventory proves the patch will reduce or preserve complexity rather than add another layer.
 
 ---
 
@@ -89,6 +91,6 @@ Tasks are sequential by default for this solo-agent pilot. Parallel execution is
 
 ## Current CycleWarden handoff
 
-**Active Spec Kit task**: `T001`
+**Current Spec Kit task**: `T001 — verify`
 
-The coding agent must produce only `token-inventory.md` and evidence from current source inspection. It must not change application code, redesign the landing page or edit auth presentation during T001.
+Review `token-inventory.md`. Application code, landing/auth presentation and T002 remain locked until the inventory proposal is explicitly approved.
