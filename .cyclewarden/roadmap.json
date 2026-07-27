@@ -79,6 +79,19 @@
       "status": "active",
       "dependsOn": ["MFVN-001"],
       "source": "issue #81 rollout step 1",
+      "assessment": ".cyclewarden/assessment.json",
+      "specKit": {
+        "referenceRelease": "github/spec-kit@v0.8.14",
+        "constitution": ".specify/memory/constitution.md",
+        "spec": "specs/003-calm-ledger-foundation/spec.md",
+        "research": "specs/003-calm-ledger-foundation/research.md",
+        "plan": "specs/003-calm-ledger-foundation/plan.md",
+        "tasks": "specs/003-calm-ledger-foundation/tasks.md",
+        "quickstart": "specs/003-calm-ledger-foundation/quickstart.md",
+        "currentTaskId": "T001",
+        "currentTaskTitle": "Inventory canonical tokens and entry-state override risk",
+        "allowedOutput": "specs/003-calm-ledger-foundation/token-inventory.md"
+      },
       "acceptance": [
         "one token source of truth replaces additional override layers",
         "landing first viewport states the product clearly with one primary action",
@@ -86,6 +99,8 @@
         "financial and ownership invariants remain unchanged"
       ],
       "requiredEvidence": [
+        ".cyclewarden/assessment.json with decision build",
+        "Spec Kit spec, research, plan, tasks and quickstart artifacts",
         "focused unit and build checks",
         "responsive screenshots for affected states",
         "diff review showing no finance or RLS scope escape"
