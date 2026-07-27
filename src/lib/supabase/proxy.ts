@@ -11,6 +11,7 @@ const protectedPaths = [
   "/categories",
   "/rules",
   "/imports",
+  "/dashboard",
   "/insights",
   "/settings",
   "/transactions",
