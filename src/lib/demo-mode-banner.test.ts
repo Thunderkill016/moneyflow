@@ -23,7 +23,7 @@ function css(): string {
 test("AppShell shows demo banner only when viewer.isDemo", () => {
   const source = shell();
   assert.match(source, /viewer\.isDemo\s*\?/);
-  assert.match(source, /className="banner-alert info demo-mode-banner"/);
+  assert.match(source, /className=\{styles\.demoBanner\}/);
   assert.ok(
     source.includes("Chế độ demo — dữ liệu lưu trên trình duyệt"),
     "expected sticky demo copy",
