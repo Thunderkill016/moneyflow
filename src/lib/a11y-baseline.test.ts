@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
+import { readDashboardSource } from "./test-support/dashboard-source.ts";
 
 /**
  * TASK-119 — A11y baseline contracts for insights + add money dialog.
@@ -43,11 +44,14 @@ test("AddTransactionDialog: labels, kind signs, native modal focus trap", () => 
 });
 
 test("Insights dashboard: signed money for thu/chi KPI + recent rows", () => {
-  const src = read("src/components/moneyflow-dashboard.tsx");
-  assert.match(src, /formatSignedMoney|formatMoneyWithKind|moneyKindPrefix/);
-  // KPI thu/chi use + / − text, not color alone.
-  assert.match(src, /\+\s*\{?formatMoney|formatMoneyWithKind\([^,]+,\s*"income"/);
-  assert.match(src, /−\s*\{?formatMoney|formatMoneyWithKind\([^,]+,\s*"expense"/);
-  // Category spend rows (all expenses) show minus.
-  assert.match(src, /formatMoneyWithKind\(item\.amount,\s*"expense"\)|−\s*\{formatMoney\(item\.amount\)\}/);
+  const src = readDashboardSource();
+  assert.match(src, /MoneyValue/);
+  // KPI thu/chi use explicit ledger kinds, not color alone.
+  assert.match(src, /mode="kind"[\s\S]{0,100}kind="income"/);
+  assert.match(src, /mode="kind"[\s\S]{0,100}kind="expense"/);
+  // Category spend rows (all expenses) use the shared expense-kind contract.
+  assert.match(
+    src,
+    /amount=\{item\.amount\}[\s\S]{0,100}kind="expense"/,
+  );
 });
