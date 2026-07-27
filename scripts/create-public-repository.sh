@@ -265,22 +265,32 @@ if [[ "$SNAPSHOT_STATUS" -ne 0 ]]; then
 fi
 [[ -f "$RELEASE_DIR/gitleaks-snapshot.json" ]] || printf '[]\n' > "$RELEASE_DIR/gitleaks-snapshot.json"
 
-printf '==> Kiểm tra source public\n'
+printf '==> Kiểm tra source public bằng cấu hình CI giả\n'
 npm ci
-npm run check:deployment-env
+env \
+  NEXT_PUBLIC_APP_MODE=authenticated \
+  NEXT_PUBLIC_SUPABASE_URL=https://ci-project.supabase.co \
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_test_key \
+  NEXT_PUBLIC_SITE_URL=https://ci.example.test \
+  LEGACY_SITE_HOSTS=old-ci.example.test \
+  npm run check:deployment-env
 npm run lint
 npm run typecheck
-npm run build
+env \
+  NEXT_PUBLIC_APP_MODE=authenticated \
+  NEXT_PUBLIC_SUPABASE_URL=https://ci-project.supabase.co \
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_ci_test_key \
+  NEXT_PUBLIC_SITE_URL=https://ci.example.test \
+  LEGACY_SITE_HOSTS=old-ci.example.test \
+  npm run build
 rm -rf node_modules .next out build coverage
 
 printf '==> Tạo Git history mới chỉ có một commit\n'
 git init -b main
-if ! git config user.name >/dev/null 2>&1; then
-  GH_LOGIN="$(gh api user --jq .login)"
-  GH_ID="$(gh api user --jq .id)"
-  git config user.name "$GH_LOGIN"
-  git config user.email "${GH_ID}+${GH_LOGIN}@users.noreply.github.com"
-fi
+GH_LOGIN="$(gh api user --jq .login)"
+GH_ID="$(gh api user --jq .id)"
+git config user.name "$GH_LOGIN"
+git config user.email "${GH_ID}+${GH_LOGIN}@users.noreply.github.com"
 git add --all
 git commit -m "Initial public snapshot from MoneyFlow ${SOURCE_SHA:0:12}"
 
