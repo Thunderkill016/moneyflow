@@ -1,10 +1,10 @@
 /**
  * Default path after successful login / session restore.
- * Product home = Tổng quan thu chi (`/insights`). Inbox remains a capture tool (lab).
+ * Product home = Tổng quan thu chi (`/dashboard`). Inbox remains a capture tool (lab).
  * Wave A MF-100 / research G5 — see docs/AUTOPILOT_PLAN.md.
  * R2: never land post-auth on /inbox.
  */
-export const POST_AUTH_REDIRECT = "/insights";
+export const POST_AUTH_REDIRECT = "/dashboard";
 
 const REDIRECT_VALIDATION_ORIGIN = "https://moneyflow.invalid";
 const UNSAFE_REDIRECT_CHARS = /[\u0000-\u001f\u007f\\]/;
