@@ -1,0 +1,857 @@
+.shell {
+  min-height: 100svh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  background: var(--mf-canvas);
+  color: var(--mf-text);
+  font-family: var(--mf-font-sans);
+}
+
+.shell,
+.shell * {
+  box-sizing: border-box;
+}
+
+.shell :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.sidebar {
+  position: sticky;
+  z-index: 30;
+  top: 0;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--mf-border);
+  background: var(--mf-surface);
+  padding: 22px 16px 18px;
+}
+
+.brand {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  border-radius: var(--mf-radius-md);
+  padding: 6px 9px;
+  font-size: 18px;
+  font-weight: 780;
+  letter-spacing: -0.025em;
+}
+
+.brandMark {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--mf-brand);
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.brandMark > span {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--mf-on-brand);
+  border-radius: 50%;
+}
+
+.primaryNav {
+  margin-top: 30px;
+  display: grid;
+  gap: 5px;
+}
+
+.navLink,
+.navButton,
+.settingsLink {
+  width: 100%;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid transparent;
+  border-radius: var(--mf-radius-md);
+  background: transparent;
+  color: var(--mf-text-muted);
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 660;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--mf-fast) var(--mf-ease),
+    border-color var(--mf-fast) var(--mf-ease),
+    color var(--mf-fast) var(--mf-ease);
+}
+
+.navLink:hover,
+.navButton:hover,
+.settingsLink:hover {
+  background: var(--mf-surface-muted);
+  color: var(--mf-text);
+}
+
+.navActive {
+  border-color: color-mix(in srgb, var(--mf-brand) 28%, var(--mf-border));
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+}
+
+.navLink svg,
+.navButton svg,
+.settingsLink svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.sidebarBottom {
+  margin-top: auto;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--mf-border);
+  padding-top: 14px;
+}
+
+.profileSlot :global(.profile-chip) {
+  width: 100%;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-canvas);
+  color: var(--mf-text);
+  padding: 8px 10px;
+  font: inherit;
+  text-align: left;
+}
+
+.profileSlot :global(.profile-chip-button) {
+  cursor: pointer;
+}
+
+.profileSlot :global(.profile-chip-button:hover) {
+  border-color: var(--mf-border-strong);
+  background: var(--mf-surface-muted);
+}
+
+.profileSlot :global(.avatar),
+.mobileAccountButton .avatar,
+.accountSummary .avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.profileSlot :global(.profile-chip-copy) {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.profileSlot :global(.profile-chip-copy strong),
+.profileSlot :global(.profile-chip-copy small) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profileSlot :global(.profile-chip-copy strong) {
+  font-size: 13px;
+}
+
+.profileSlot :global(.profile-chip-copy small) {
+  color: var(--mf-text-soft);
+  font-size: 11px;
+}
+
+.pageColumn {
+  min-width: 0;
+  min-height: 100svh;
+}
+
+.topbar {
+  position: sticky;
+  z-index: 25;
+  top: 0;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid var(--mf-border);
+  background: color-mix(in srgb, var(--mf-canvas) 91%, transparent);
+  padding: 10px clamp(22px, 3vw, 42px);
+  backdrop-filter: blur(16px);
+}
+
+.mobileBrand {
+  display: none;
+}
+
+.search,
+.searchLink {
+  width: min(100%, 520px);
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-surface);
+  color: var(--mf-text-soft);
+  padding: 0 12px;
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.search:focus-within,
+.searchLink:hover {
+  border-color: var(--mf-border-strong);
+}
+
+.search input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--mf-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.search input::placeholder,
+.searchPlaceholder {
+  color: var(--mf-text-soft);
+}
+
+.search kbd,
+.searchLink kbd {
+  border: 1px solid var(--mf-border);
+  border-radius: 6px;
+  background: var(--mf-surface-muted);
+  color: var(--mf-text-soft);
+  padding: 3px 7px;
+  font-family: var(--mf-font-sans);
+  font-size: 11px;
+}
+
+.topbarActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.primaryAction {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-brand);
+  color: var(--mf-on-brand);
+  padding: 0 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 740;
+  cursor: pointer;
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.primaryAction:hover {
+  background: var(--mf-brand-hover);
+}
+
+.primaryAction:disabled,
+.primaryAction[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.mobileAccountButton {
+  display: none;
+}
+
+.demoBanner {
+  width: min(calc(100% - 40px), 1080px);
+  min-height: 42px;
+  margin: 18px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+  padding: 9px 14px;
+  font-size: 13px;
+}
+
+.demoBanner a {
+  margin-left: 4px;
+  font-weight: 780;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.mobileNav {
+  display: none;
+}
+
+.badge {
+  min-width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  margin-left: auto;
+  border-radius: 999px;
+  background: var(--mf-expense);
+  color: #fff;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.sheet {
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(86svh, 760px);
+  overflow: auto;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-xl);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  padding: 20px;
+  box-shadow: var(--mf-shadow-lg);
+}
+
+.sheet::backdrop {
+  background: var(--mf-overlay);
+  backdrop-filter: blur(4px);
+}
+
+.dialogHandle {
+  display: none;
+}
+
+.dialogHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.dialogHeading h2 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.025em;
+}
+
+.iconButton {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-surface-muted);
+  color: var(--mf-text);
+  cursor: pointer;
+}
+
+.sheetLead {
+  margin: 10px 0 18px;
+  color: var(--mf-text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.captureActions,
+.sheetNav {
+  display: grid;
+  gap: 8px;
+}
+
+.captureOption,
+.sheetNavLink,
+.accountAction {
+  min-height: 56px;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-canvas);
+  color: var(--mf-text);
+  padding: 9px 12px;
+}
+
+.captureOption:hover,
+.sheetNavLink:hover,
+.accountAction:hover {
+  border-color: var(--mf-border-strong);
+  background: var(--mf-surface-muted);
+}
+
+.captureOptionIcon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+}
+
+.captureOption strong,
+.captureOption small {
+  display: block;
+}
+
+.captureOption strong {
+  font-size: 14px;
+}
+
+.captureOption small {
+  margin-top: 3px;
+  color: var(--mf-text-soft);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.sheetAlt {
+  margin: 16px 0 0;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.sheetAlt a {
+  color: var(--mf-brand-text);
+  font-weight: 700;
+}
+
+.cancelButton {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 16px;
+  border: 1px solid var(--mf-border-strong);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sectionLabel {
+  margin: 22px 2px 8px;
+  color: var(--mf-text-soft);
+  font-size: 11px;
+  font-weight: 780;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.sheetNavLink {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  min-height: 48px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.sheetNavActive {
+  border-color: color-mix(in srgb, var(--mf-brand) 30%, var(--mf-border));
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+}
+
+.accountSection {
+  margin-top: 22px;
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--mf-border);
+  padding-top: 18px;
+}
+
+.accountSummary {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  padding: 3px 4px 10px;
+}
+
+.accountSummary > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.accountSummary strong,
+.accountSummary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountSummary small {
+  color: var(--mf-text-soft);
+  font-size: 11px;
+}
+
+.accountAction {
+  grid-template-columns: 22px minmax(0, 1fr);
+  min-height: 46px;
+  font-size: 13px;
+  font-weight: 690;
+}
+
+.accountActionPrimary {
+  border-color: transparent;
+  background: var(--mf-brand);
+  color: var(--mf-on-brand);
+}
+
+.accountActionDanger {
+  color: var(--mf-expense);
+}
+
+.signoutForm {
+  display: contents;
+}
+
+.toast {
+  position: fixed;
+  z-index: 80;
+  right: 24px;
+  bottom: 24px;
+  max-width: min(420px, calc(100vw - 32px));
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  translate: 0 24px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  padding: 10px 12px;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: var(--mf-shadow-lg);
+  transition:
+    opacity var(--mf-normal) var(--mf-ease),
+    translate var(--mf-normal) var(--mf-ease);
+}
+
+.toastVisible {
+  translate: 0;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.toastIcon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+}
+
+.toastError .toastIcon {
+  background: var(--mf-expense-subtle);
+  color: var(--mf-expense);
+}
+
+.toastWarning .toastIcon {
+  background: var(--mf-warning-subtle);
+  color: var(--mf-warning);
+}
+
+.toastMessage {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.toastAction {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+@media (max-width: 1100px) {
+  .shell {
+    grid-template-columns: 84px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    align-items: center;
+    padding-inline: 10px;
+  }
+
+  .brand {
+    justify-content: center;
+    padding-inline: 4px;
+  }
+
+  .brand > span:last-child,
+  .navLink > span,
+  .navButton > span,
+  .settingsLink > span,
+  .profileSlot :global(.profile-chip-copy),
+  .profileSlot :global(.profile-chip > svg:last-child) {
+    display: none;
+  }
+
+  .primaryNav,
+  .sidebarBottom {
+    width: 100%;
+  }
+
+  .navLink,
+  .navButton,
+  .settingsLink {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .profileSlot :global(.profile-chip) {
+    display: flex;
+    justify-content: center;
+    border: 0;
+    background: transparent;
+    padding: 6px;
+  }
+}
+
+@media (max-width: 760px) {
+  .shell {
+    display: block;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .pageColumn {
+    min-height: calc(100svh - 76px);
+  }
+
+  .topbar {
+    min-height: 62px;
+    gap: 10px;
+    padding: 8px 14px;
+  }
+
+  .mobileBrand {
+    min-width: 0;
+    display: inline-flex;
+    padding: 0;
+    font-size: 16px;
+  }
+
+  .mobileBrand .brandMark {
+    width: 30px;
+    height: 30px;
+  }
+
+  .search,
+  .searchLink {
+    display: none;
+  }
+
+  .topbarActions {
+    margin-left: auto;
+  }
+
+  .primaryAction {
+    display: none;
+  }
+
+  .mobileAccountButton {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--mf-border);
+    border-radius: 50%;
+    background: var(--mf-surface);
+    color: var(--mf-text);
+    padding: 0;
+  }
+
+  .demoBanner {
+    width: calc(100% - 24px);
+    justify-content: flex-start;
+    margin-top: 10px;
+    padding-inline: 11px;
+  }
+
+  .demoBanner > span {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .mobileNav {
+    position: fixed;
+    z-index: 50;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    min-height: calc(68px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: start;
+    border-top: 1px solid var(--mf-border);
+    background: color-mix(in srgb, var(--mf-surface) 96%, transparent);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    box-shadow: 0 -10px 30px rgb(0 0 0 / 8%);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobileNavItem {
+    position: relative;
+    min-width: 0;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 4px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--mf-text-soft);
+    padding: 5px 2px;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 670;
+  }
+
+  .mobileNavItem svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .mobileNavActive {
+    background: var(--mf-brand-subtle);
+    color: var(--mf-brand-text);
+  }
+
+  .mobileCapture {
+    color: var(--mf-on-brand);
+  }
+
+  .mobileCapture::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 1px;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    background: var(--mf-brand);
+    box-shadow: var(--mf-shadow-md);
+  }
+
+  .mobileCapture span {
+    margin-top: 5px;
+    color: var(--mf-brand-text);
+  }
+
+  .mobileCapture svg {
+    margin-top: 7px;
+  }
+
+  .badge {
+    position: absolute;
+    top: 3px;
+    right: max(5px, calc(50% - 25px));
+    margin: 0;
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: none;
+    max-height: min(88svh, 760px);
+    margin: auto 0 0;
+    border-width: 1px 0 0;
+    border-radius: 24px 24px 0 0;
+    padding: 12px 16px calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .dialogHandle {
+    width: 42px;
+    height: 4px;
+    display: block;
+    margin: 0 auto 12px;
+    border-radius: 999px;
+    background: var(--mf-border-strong);
+  }
+
+  .toast {
+    right: 12px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    left: 12px;
+    max-width: none;
+  }
+}
+
+@media (max-width: 390px) {
+  .mobileNavItem {
+    font-size: 9px;
+  }
+
+  .mobileBrand > span:last-child {
+    display: none;
+  }
+
+  .demoBanner {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink,
+  .navButton,
+  .settingsLink,
+  .toast {
+    transition: none;
+  }
+}
