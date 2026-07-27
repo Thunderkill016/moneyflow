@@ -126,8 +126,6 @@ printf '==> Xuất snapshot từ commit %s\n' "$SOURCE_SHA"
 git archive --format=tar "$SOURCE_REF" | tar -xf - -C "$SNAPSHOT"
 cd "$SNAPSHOT"
 
-# Remove private project state and local coding-agent material. These files are
-# not required to build or run MoneyFlow and should not be published.
 rm -rf \
   .agents \
   .claude \
@@ -155,9 +153,6 @@ rm -f \
   docs/MVP_SHIPPED.md \
   docs/REAL_USE_READINESS_CONTRACT.md
 
-# Mark the two known test-only values so the fresh public history scans cleanly.
-# The SQL value is a UUID idempotency fixture. The TypeScript value is a fake
-# publishable-key string and is not accepted by production configuration.
 python3 <<'PY'
 from pathlib import Path
 
@@ -188,9 +183,6 @@ for path, (needle, marker) in replacements.items():
     path.write_text("".join(output))
 PY
 
-# Replace private automation with public-safe gates. Full finance, database and
-# browser checks remain enabled; only the private project-knowledge gate is
-# omitted because private plans were intentionally removed from the snapshot.
 rm -rf .github
 mkdir -p .github/workflows
 cat > .github/workflows/ci.yml <<'YAML'
