@@ -3,7 +3,7 @@ import { auditRoute, seedUiAuditState, type AuditRoute } from "./responsive-audi
 
 const CRITICAL_ROUTES: AuditRoute[] = [
   { label: "landing", path: "/landing" },
-  { label: "insights", path: "/insights" },
+  { label: "dashboard", path: "/dashboard" },
   { label: "quick-capture", path: "/capture/quick" },
   { label: "transactions", path: "/transactions" },
 ];
@@ -89,7 +89,7 @@ test.describe("critical browser compatibility audit", () => {
   });
 
   test("signed-in shell exposes one authored navigation model", async ({ page }) => {
-    await page.goto("/insights", { waitUntil: "domcontentloaded" });
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
     await expect(
       page.getByRole("heading", { level: 1, name: /Chào/i }),
     ).toBeVisible();
