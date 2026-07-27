@@ -6,9 +6,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import { MoneyValue } from "@/components/money-value";
+import styles from "./transactions-page.module.css";
 import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
-import { formatMoney, formatSignedMoney } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import {
   categoryMeta,
   type AccountOption,
@@ -427,6 +429,7 @@ export function TransactionsPage({
             ) : (
               <>
                 <button
+                  type="button"
                   className="secondary-button"
                   onClick={() => setSplitOpen(true)}
                   disabled={
@@ -438,6 +441,7 @@ export function TransactionsPage({
                   <Icon name="spark" /> Chia khoản chi
                 </button>
                 <button
+                  type="button"
                   className="secondary-button"
                   onClick={() => setTransferOpen(true)}
                   disabled={
@@ -452,7 +456,7 @@ export function TransactionsPage({
         </section>
 
         <section
-          className="transaction-summary transaction-summary-four"
+          className={`transaction-summary transaction-summary-four ${styles.summary}`}
           aria-label="Tóm tắt theo bộ lọc"
           aria-live="polite"
         >
@@ -461,29 +465,29 @@ export function TransactionsPage({
             <p>{isTimeline ? "Đã duyệt" : "Giao dịch"}</p>
           </div>
           <div>
-            <span className="positive font-mono">
-              +{formatMoney(filteredTotals.income)}
-            </span>
+            <MoneyValue
+              amount={filteredTotals.income}
+              mode="kind"
+              kind="income"
+              label="Tổng thu"
+            />
             <p>Tổng thu</p>
           </div>
           <div>
-            <span className="negative font-mono">
-              −{formatMoney(filteredTotals.expense)}
-            </span>
+            <MoneyValue
+              amount={filteredTotals.expense}
+              mode="kind"
+              kind="expense"
+              label="Tổng chi"
+            />
             <p>Tổng chi</p>
           </div>
           <div>
-            <span
-              className={`font-mono ${
-                filteredTotals.net > 0
-                  ? "summary-net-positive"
-                  : filteredTotals.net < 0
-                    ? "summary-net-negative"
-                    : ""
-              }`}
-            >
-              {formatSignedMoney(filteredTotals.net)}
-            </span>
+            <MoneyValue
+              amount={filteredTotals.net}
+              mode="signed"
+              label="Ròng"
+            />
             <p>Ròng</p>
           </div>
         </section>
@@ -506,6 +510,7 @@ export function TransactionsPage({
               {(["all", "expense", "income", "transfer"] as KindFilter[]).map(
                 (value) => (
                   <button
+                    type="button"
                     key={value}
                     className={kind === value ? "active" : ""}
                     onClick={() => setKind(value)}
@@ -581,16 +586,13 @@ export function TransactionsPage({
                     <span className="date-group-title">
                       {group.relativeDate}, {group.displayDate}
                     </span>
-                    <span
-                      className={`date-group-total font-mono ${
-                        group.netForDay > 0
-                          ? "positive"
-                          : group.netForDay < 0
-                            ? "negative"
-                            : ""
-                      }`}
-                    >
-                      Tổng: {formatSignedMoney(group.netForDay)}
+                    <span className="date-group-total">
+                      <span>Tổng:</span>{" "}
+                      <MoneyValue
+                        amount={group.netForDay}
+                        mode="signed"
+                        label={`Tổng ${group.displayDate}`}
+                      />
                     </span>
                   </div>
 
@@ -627,22 +629,14 @@ export function TransactionsPage({
                         <time dateTime={transaction.occurredAt}>
                           {transaction.relativeDate}
                         </time>
-                        <strong
-                          className={`font-mono ${
-                            transaction.kind === "income"
-                              ? "manager-amount income"
-                              : transaction.kind === "transfer"
-                                ? "manager-amount transfer"
-                                : "manager-amount"
-                          }`}
-                        >
-                          {transaction.kind === "income"
-                            ? "+ ↑ "
-                            : transaction.kind === "transfer"
-                              ? "↔ "
-                              : "− ↓ "}
-                          {formatMoney(transaction.amount)}
-                        </strong>
+                        <MoneyValue
+                          amount={transaction.amount}
+                          mode="kind"
+                          kind={transaction.kind}
+                          direction
+                          emphasis="strong"
+                          className="manager-amount"
+                        />
                         {transaction.isRecurringPayment ? (
                           <Link
                             href="/commitments"
@@ -655,6 +649,7 @@ export function TransactionsPage({
                         ) : (
                           <span className="manager-actions">
                             <button
+                              type="button"
                               className="edit-button"
                               onClick={() => handleEditClick(transaction)}
                               disabled={isMutating}
@@ -667,6 +662,7 @@ export function TransactionsPage({
                               <Icon name="edit" />
                             </button>
                             <button
+                              type="button"
                               className="delete-button"
                               onClick={() => handleDelete(transaction)}
                               disabled={isMutating}
@@ -709,7 +705,9 @@ export function TransactionsPage({
               </span>
               <h2>Không tìm thấy giao dịch</h2>
               <p>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</p>
-              <button onClick={clearFilters}>Xóa bộ lọc</button>
+              <button type="button" onClick={clearFilters}>
+                Xóa bộ lọc
+              </button>
             </div>
           ) : (
             <EmptyState
