@@ -1,0 +1,277 @@
+name: Public snapshot security audit
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-snapshot-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  audit-and-package:
+    if: github.head_ref == 'ops/public-snapshot-audit'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_PUBLIC_APP_MODE: authenticated
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key
+      NEXT_PUBLIC_SITE_URL: https://ci.example.test
+      LEGACY_SITE_HOSTS: old-ci.example.test
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install pinned Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='8.30.1'
+          archive="gitleaks_${version}_linux_x64.tar.gz"
+          url="https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}"
+          curl --fail --location --silent --show-error "$url" --output "/tmp/${archive}"
+          echo '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks_8.30.1_linux_x64.tar.gz' | sha256sum --check --strict
+          tar -xzf "/tmp/${archive}" -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Scan complete Git history
+        id: secret-scan
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public-release
+          gitleaks git . \
+            --redact \
+            --report-format json \
+            --report-path public-release/gitleaks-report.json \
+            --exit-code 17
+          test -f public-release/gitleaks-report.json || printf '[]\n' > public-release/gitleaks-report.json
+
+      - name: Build clean snapshot
+        if: steps.secret-scan.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          snapshot="$GITHUB_WORKSPACE/public-release/snapshot"
+          rm -rf "$snapshot"
+          mkdir -p "$snapshot"
+          git archive --format=tar HEAD | tar -xf - -C "$snapshot"
+
+          cd "$snapshot"
+
+          # Never publish repository-local state, local agents, generated evidence,
+          # provider state, or the temporary packaging workflow itself.
+          rm -rf \
+            .cyclewarden \
+            .claude \
+            .codex \
+            .agents \
+            .vercel \
+            logs \
+            output \
+            test-results \
+            playwright-report \
+            blob-report
+          rm -f \
+            AGENT_AUTOPILOT.md \
+            AGENT_BACKLOG.md \
+            IDEA.md \
+            CLAUDE.md \
+            .github/workflows/public-snapshot-audit.yml
+
+          # Replace private-repository workflow history with a small public-safe CI.
+          rm -rf .github
+          mkdir -p .github/workflows
+          cat > .github/workflows/ci.yml <<'YAML'
+          name: CI
+
+          on:
+            pull_request:
+            push:
+              branches: [main]
+
+          permissions:
+            contents: read
+
+          concurrency:
+            group: ci-${{ github.workflow }}-${{ github.ref }}
+            cancel-in-progress: true
+
+          jobs:
+            verify:
+              runs-on: ubuntu-latest
+              timeout-minutes: 20
+              env:
+                NEXT_PUBLIC_APP_MODE: authenticated
+                NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
+                NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key
+                NEXT_PUBLIC_SITE_URL: https://ci.example.test
+                LEGACY_SITE_HOSTS: old-ci.example.test
+              steps:
+                - uses: actions/checkout@v4
+                - uses: actions/setup-node@v4
+                  with:
+                    node-version: 22
+                    cache: npm
+                - run: npm ci
+                - run: npm run check:deployment-env
+                - run: npm run lint
+                - run: npm run typecheck
+                - run: npm run test
+                - run: npm run build
+          YAML
+
+          cat > .github/workflows/secret-scan.yml <<'YAML'
+          name: Secret scan
+
+          on:
+            pull_request:
+            push:
+              branches: [main]
+
+          permissions:
+            contents: read
+
+          jobs:
+            gitleaks:
+              runs-on: ubuntu-latest
+              timeout-minutes: 10
+              steps:
+                - uses: actions/checkout@v4
+                  with:
+                    fetch-depth: 0
+                - name: Install pinned Gitleaks
+                  shell: bash
+                  run: |
+                    set -euo pipefail
+                    version='8.30.1'
+                    archive="gitleaks_${version}_linux_x64.tar.gz"
+                    curl --fail --location --silent --show-error \
+                      "https://github.com/gitleaks/gitleaks/releases/download/v${version}/${archive}" \
+                      --output "/tmp/${archive}"
+                    echo '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks_8.30.1_linux_x64.tar.gz' | sha256sum --check --strict
+                    tar -xzf "/tmp/${archive}" -C /tmp gitleaks
+                    sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+                - run: gitleaks git . --redact --verbose
+          YAML
+
+          cat > README.md <<'MARKDOWN'
+          # MoneyFlow
+
+          MoneyFlow là ứng dụng web quản lý thu chi cá nhân dành cho người Việt: ghi giao dịch, theo dõi số dư, xem dòng tiền theo tháng, quản lý ngân sách và xuất dữ liệu.
+
+          ## Công nghệ
+
+          - Next.js, React và TypeScript
+          - Supabase Auth và PostgreSQL với Row Level Security
+          - Playwright, Node test và pgTAP
+          - Vercel
+
+          ## Chạy cục bộ
+
+          ```bash
+          npm ci
+          cp .env.example .env.local
+          npm run dev
+          ```
+
+          `.env.example` mặc định dùng demo mode. Để dùng Supabase thật, chuyển `NEXT_PUBLIC_APP_MODE` sang `authenticated` và điền các biến public tương ứng trong `.env.local`. Không commit `.env.local` hay service-role key.
+
+          ## Kiểm tra
+
+          ```bash
+          npm run check:deployment-env
+          npm run lint
+          npm run typecheck
+          npm run test
+          npm run build
+          ```
+
+          Website production: https://mfvn.vercel.app
+
+          ## Bảo mật
+
+          Không đăng token, mật khẩu, link khôi phục, session cookie hoặc dữ liệu tài chính thật trong issue. Xem `SECURITY.md`.
+
+          ## Quyền sử dụng
+
+          Mã nguồn được công khai để xem và phục vụ phát triển MoneyFlow. Không có quyền sao chép, phân phối hoặc sử dụng thương mại nếu chưa có sự cho phép bằng văn bản. Xem `LICENSE`.
+          MARKDOWN
+
+          cat > LICENSE <<'TEXT'
+          Copyright (c) 2026 Thunderkill016. All rights reserved.
+
+          This source code is publicly viewable, but no permission is granted to
+          copy, modify, distribute, sublicense, sell, host, or use it commercially
+          without prior written permission from the copyright holder.
+          TEXT
+
+          cat > SECURITY.md <<'MARKDOWN'
+          # Security policy
+
+          Hãy dùng GitHub Security Advisories của repository để báo cáo lỗ hổng riêng tư.
+
+          Không mở issue công khai chứa:
+
+          - mật khẩu, API key, token hoặc session cookie;
+          - link xác nhận email hay khôi phục mật khẩu;
+          - dữ liệu tài chính, sao kê hoặc thông tin định danh thật;
+          - chi tiết khai thác chưa được khắc phục.
+
+          MoneyFlow không bao giờ yêu cầu đưa `SUPABASE_SERVICE_ROLE_KEY` vào mã frontend hoặc biến `NEXT_PUBLIC_*`.
+          MARKDOWN
+
+          cat > PUBLIC_SNAPSHOT.md <<MARKDOWN
+          # Public snapshot
+
+          Snapshot này được tạo từ commit \`${GITHUB_SHA}\` của repository riêng tư.
+
+          Không bao gồm lịch sử Git, issues, pull requests, CycleWarden state, agent backlog, log, provider state hay workflow đóng gói tạm thời.
+          MARKDOWN
+
+          # Validate the publishable working tree, not only the private source tree.
+          npm ci
+          npm run check:deployment-env
+          npm run lint
+          npm run typecheck
+          npm run build
+
+          # Scan the snapshot itself once more before archiving it.
+          gitleaks dir . \
+            --redact \
+            --report-format json \
+            --report-path "$GITHUB_WORKSPACE/public-release/snapshot-gitleaks-report.json" \
+            --exit-code 18
+          test -f "$GITHUB_WORKSPACE/public-release/snapshot-gitleaks-report.json" || printf '[]\n' > "$GITHUB_WORKSPACE/public-release/snapshot-gitleaks-report.json"
+
+          cd "$GITHUB_WORKSPACE/public-release"
+          (cd snapshot && zip -qry ../moneyflow-public-snapshot.zip .)
+          sha256sum moneyflow-public-snapshot.zip > moneyflow-public-snapshot.zip.sha256
+
+      - name: Upload redacted audit and snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: moneyflow-public-snapshot-${{ github.sha }}
+          path: |
+            public-release/gitleaks-report.json
+            public-release/snapshot-gitleaks-report.json
+            public-release/moneyflow-public-snapshot.zip
+            public-release/moneyflow-public-snapshot.zip.sha256
+          if-no-files-found: warn
+          retention-days: 3
+
+      - name: Block release when history scan fails
+        if: steps.secret-scan.outcome == 'failure'
+        run: |
+          echo 'Gitleaks found one or more findings. Review the redacted report; no public snapshot was produced.'
+          exit 1
