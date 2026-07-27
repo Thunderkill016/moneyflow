@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { PlanningCardEmptyConfig } from "@/lib/insights-planning-empty";
+import type { PlanningCardEmptyConfig } from "@/lib/dashboard-planning-empty";
 
 export type PlanningCardEmptyProps = PlanningCardEmptyConfig & {
   className?: string;
