@@ -29,11 +29,10 @@ import {
   PRIMARY_NAV,
   type PrimaryNavItem,
 } from "@/lib/nav-ia";
+import styles from "./app-shell.module.css";
 
-/** Default badge when page does not pass `inboxCount` from candidate store. */
 const INBOX_BADGE_COUNT = 0;
 
-/** Default topbar/FAB CTA when a page does not pass primaryAction / fabAction. */
 const DEFAULT_GHI_CHI_ACTION: PrimaryAction = {
   label: GHI_CHI_TIEU_LABEL,
   href: GHI_CHI_TIEU_HREF,
@@ -63,6 +62,10 @@ function pathIsActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function cx(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
+}
+
 export type PrimaryAction = {
   label: string;
   onClick?: () => void;
@@ -86,10 +89,8 @@ export type AppShellProps = {
     onChange: (value: string) => void;
     placeholder?: string;
   };
-  /** Override placeholder badge (default 0). Shown on More → Hộp thư. */
   inboxCount?: number;
   notice?: string;
-  /** Optional toast action (e.g. Hoàn tác after soft-delete). */
   noticeAction?: NoticeAction;
   children: React.ReactNode;
 };
@@ -113,8 +114,7 @@ export function AppShell({
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const resolvedPrimary = primaryAction ?? DEFAULT_GHI_CHI_ACTION;
-  /** FAB stays global “Ghi chi tiêu” unless the page sets `fabAction`. */
-  const resolvedFab = fabAction ?? DEFAULT_GHI_CHI_ACTION;
+  const resolvedMobilePrimary = fabAction ?? DEFAULT_GHI_CHI_ACTION;
 
   function openCapture() {
     setMoreOpen(false);
@@ -126,7 +126,15 @@ export function AppShell({
     setMoreOpen(true);
   }
 
-  /** ⌘K / Ctrl+K — focus ledger search or open Giao dịch (power-user daily loop). */
+  function runAction(action: PrimaryAction) {
+    if (action.disabled) return;
+    if (action.href) {
+      router.push(action.href);
+      return;
+    }
+    action.onClick?.();
+  }
+
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (!isSearchShortcut(event)) return;
@@ -148,7 +156,6 @@ export function AppShell({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [pathname, router, searchBar]);
 
-  /** After ⌘K navigate: autofocus topbar search when `?focus=search` (R5). */
   useEffect(() => {
     if (!searchBar || !searchInputRef.current) return;
     if (typeof window === "undefined") return;
@@ -156,44 +163,38 @@ export function AppShell({
     const input = searchInputRef.current;
     input.focus();
     input.select();
-    // Clean the flag so refresh / back does not re-steal focus.
     const url = new URL(window.location.href);
     url.searchParams.delete("focus");
-    const next = `${url.pathname}${url.search}${url.hash}`;
-    window.history.replaceState(null, "", next);
+    window.history.replaceState(
+      null,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
   }, [searchBar]);
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar" aria-label="Điều hướng chính">
-        <Link
-          className="brand"
-          href={APP_HOME_HREF}
-          aria-label="Money Flow, về Tổng quan"
-        >
-          <span className="brand-mark">
-            <span />
-          </span>
-          <span>Money Flow</span>
-        </Link>
-        <nav>
+    <div className={styles.shell}>
+      <aside className={styles.sidebar} aria-label="Điều hướng chính">
+        <Brand />
+        <nav className={styles.primaryNav}>
           {PRIMARY_NAV.map((item) => {
             if (item.kind === "action") {
-              const captureActive =
+              const active =
                 captureOpen || pathIsActive(pathname, "/capture");
               return (
                 <button
                   type="button"
                   key={item.label}
-                  className={captureActive ? "active" : ""}
+                  className={cx(styles.navButton, active && styles.navActive)}
                   onClick={openCapture}
-                  aria-current={captureActive ? "page" : undefined}
+                  aria-current={active ? "page" : undefined}
                 >
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
                 </button>
               );
             }
+
             const insightsRelated =
               item.href === "/insights" && isPlanningPath(pathname);
             const active =
@@ -201,12 +202,12 @@ export function AppShell({
             return (
               <Link
                 href={item.href}
-                className={active ? "active" : ""}
+                className={cx(styles.navLink, active && styles.navActive)}
                 key={item.label}
                 aria-current={active ? "page" : undefined}
                 title={
                   insightsRelated
-                    ? "Kế hoạch (ngân sách · định kỳ · mục tiêu) nằm dưới Tổng quan"
+                    ? "Kế hoạch nằm dưới Tổng quan"
                     : undefined
                 }
               >
@@ -216,33 +217,30 @@ export function AppShell({
             );
           })}
         </nav>
-        <div className="sidebar-bottom">
+
+        <div className={styles.sidebarBottom}>
           <Link
             href="/settings"
-            className={pathIsActive(pathname, "/settings") ? "active" : ""}
+            className={cx(
+              styles.settingsLink,
+              pathIsActive(pathname, "/settings") && styles.navActive,
+            )}
           >
             <Icon name="settings" />
             <span>Cài đặt</span>
           </Link>
-          <UserChip viewer={viewer} />
+          <div className={styles.profileSlot}>
+            <UserChip viewer={viewer} />
+          </div>
         </div>
       </aside>
 
-      <div className="page-column">
-        <header className="topbar">
-          <Link
-            className="mobile-brand brand"
-            href={APP_HOME_HREF}
-            aria-label="Money Flow, về Tổng quan"
-          >
-            <span className="brand-mark">
-              <span />
-            </span>
-            <span>Money Flow</span>
-          </Link>
+      <div className={styles.pageColumn}>
+        <header className={styles.topbar}>
+          <Brand mobile />
 
           {searchBar ? (
-            <div className="desktop-search">
+            <div className={styles.search}>
               <Icon name="search" />
               <input
                 ref={searchInputRef}
@@ -256,23 +254,23 @@ export function AppShell({
             </div>
           ) : (
             <Link
-              className="desktop-search desktop-search-link"
+              className={styles.searchLink}
               href={TRANSACTIONS_SEARCH_HREF}
               aria-label="Tìm giao dịch trên sổ (⌘K)"
               prefetch
             >
               <Icon name="search" />
-              <span className="desktop-search-placeholder">
+              <span className={styles.searchPlaceholder}>
                 Tìm giao dịch...
               </span>
               <kbd aria-hidden="true">⌘ K</kbd>
             </Link>
           )}
 
-          <div className="topbar-actions">
+          <div className={styles.topbarActions}>
             {resolvedPrimary.href ? (
               <Link
-                className="primary-button desktop-add"
+                className={styles.primaryAction}
                 href={resolvedPrimary.href}
                 aria-disabled={resolvedPrimary.disabled || undefined}
                 onClick={
@@ -287,7 +285,7 @@ export function AppShell({
             ) : (
               <button
                 type="button"
-                className="primary-button desktop-add"
+                className={styles.primaryAction}
                 onClick={resolvedPrimary.onClick}
                 disabled={resolvedPrimary.disabled}
               >
@@ -295,70 +293,75 @@ export function AppShell({
                 {resolvedPrimary.label}
               </button>
             )}
+
             <button
               type="button"
-              className="mobile-account-button"
+              className={styles.mobileAccountButton}
               onClick={openMore}
               aria-label={`Mở tài khoản ${viewerLabel(viewer)}`}
               aria-haspopup="dialog"
               aria-expanded={moreOpen}
             >
-              <span className="avatar">{viewerInitial(viewer)}</span>
+              <span className={styles.avatar}>{viewerInitial(viewer)}</span>
             </button>
           </div>
         </header>
 
         {viewer.isDemo ? (
-          <div
-            className="banner-alert info demo-mode-banner"
-            role="status"
-            aria-live="polite"
-          >
+          <div className={styles.demoBanner} role="status" aria-live="polite">
             <Icon name="bell" aria-hidden="true" />
-            <span className="demo-mode-banner-text">
-              Chế độ demo — dữ liệu lưu trên trình duyệt
-            </span>
-            <Link href="/register" className="demo-mode-banner-cta">
-              Đăng ký
-            </Link>
+            <span>Chế độ demo — dữ liệu lưu trên trình duyệt</span>
+            <Link href="/register">Đăng ký</Link>
           </div>
         ) : null}
 
         {children}
       </div>
 
-      <nav className="mobile-nav" aria-label="Điều hướng di động">
+      <nav className={styles.mobileNav} aria-label="Điều hướng di động">
         {mobileTabs.map((item) => {
           if (item.kind === "action") {
-            const captureActive =
-              captureOpen || pathIsActive(pathname, "/capture");
+            const active = pathIsActive(pathname, "/capture");
             return (
               <button
                 type="button"
                 key={item.label}
-                className={captureActive ? "active" : ""}
-                onClick={openCapture}
-                aria-current={captureActive ? "page" : undefined}
+                className={cx(
+                  styles.mobileNavItem,
+                  styles.mobileCapture,
+                  active && styles.mobileNavActive,
+                )}
+                onClick={() => runAction(resolvedMobilePrimary)}
+                aria-current={active ? "page" : undefined}
+                aria-label={resolvedMobilePrimary.label}
+                disabled={resolvedMobilePrimary.disabled}
               >
-                <Icon name={item.icon} />
-                <span>{item.label}</span>
+                <Icon name={resolvedMobilePrimary.icon ?? item.icon} />
+                <span>Ghi</span>
               </button>
             );
           }
+
           if (item.href === "#more") {
-            const moreActive =
+            const active =
               moreOpen ||
               MORE_NAV_LINKS.some((link) =>
                 pathIsActive(pathname, link.href),
               ) ||
               PLANNING_LINKS.some((link) =>
                 pathIsActive(pathname, link.href),
+              ) ||
+              ADVANCED_NAV_LINKS.some((link) =>
+                pathIsActive(pathname, link.href),
               );
             return (
               <button
                 type="button"
                 key={item.label}
-                className={moreActive ? "active" : ""}
+                className={cx(
+                  styles.mobileNavItem,
+                  active && styles.mobileNavActive,
+                )}
                 onClick={openMore}
                 aria-haspopup="dialog"
                 aria-expanded={moreOpen}
@@ -366,23 +369,25 @@ export function AppShell({
                 <Icon name={item.icon} />
                 <span>{item.label}</span>
                 {inboxCount > 0 ? (
-                  <span
-                    className="nav-badge mobile-nav-badge"
-                    aria-hidden="true"
-                  >
+                  <span className={styles.badge} aria-hidden="true">
                     {inboxCount > 99 ? "99+" : inboxCount}
                   </span>
                 ) : null}
               </button>
             );
           }
+
           const insightsRelated =
             item.href === "/insights" && isPlanningPath(pathname);
-          const active = pathIsActive(pathname, item.href) || insightsRelated;
+          const active =
+            pathIsActive(pathname, item.href) || insightsRelated;
           return (
             <Link
               href={item.href}
-              className={active ? "active" : ""}
+              className={cx(
+                styles.mobileNavItem,
+                active && styles.mobileNavActive,
+              )}
               key={item.label}
               aria-current={active ? "page" : undefined}
             >
@@ -392,32 +397,6 @@ export function AppShell({
           );
         })}
       </nav>
-
-      {resolvedFab.href ? (
-        <Link
-          className="mobile-fab"
-          href={resolvedFab.href}
-          aria-label={resolvedFab.label}
-          aria-disabled={resolvedFab.disabled || undefined}
-          onClick={
-            resolvedFab.disabled
-              ? (event) => event.preventDefault()
-              : undefined
-          }
-        >
-          <Icon name={resolvedFab.icon ?? "plus"} />
-        </Link>
-      ) : (
-        <button
-          className="mobile-fab"
-          onClick={resolvedFab.onClick}
-          disabled={resolvedFab.disabled}
-          aria-label={resolvedFab.label}
-          type="button"
-        >
-          <Icon name={resolvedFab.icon ?? "plus"} />
-        </button>
-      )}
 
       <CaptureSheet
         open={captureOpen}
@@ -433,69 +412,23 @@ export function AppShell({
         inboxCount={inboxCount}
         viewer={viewer}
       />
-
-      {(() => {
-        const text = (notice || "").toLowerCase();
-        let variant: "success" | "error" | "warning" | "info" =
-          "success";
-        let icon: IconName = "check";
-
-        if (noticeAction) {
-          // Undo toast: calm info treatment (design-system §15.2).
-          variant = "info";
-          icon = "restore";
-        } else if (
-          text.includes("lỗi") ||
-          text.includes("thất bại") ||
-          text.includes("không thể") ||
-          text.includes("hãy") ||
-          text.includes("không khôi phục") ||
-          text.includes("chưa thể hoàn tác")
-        ) {
-          variant = "error";
-          icon = "bell";
-        } else if (
-          text.includes("cảnh báo") ||
-          text.includes("chưa") ||
-          text.includes("yêu cầu")
-        ) {
-          variant = "warning";
-          icon = "bell";
-        } else if (
-          text.includes("thông tin") ||
-          text.includes("chi tiết") ||
-          text.includes("đang") ||
-          text.includes("khôi phục")
-        ) {
-          variant = "info";
-          icon = "bell";
-        }
-
-        return (
-          <div
-            className={`toast ${notice ? "visible" : ""} ${variant}`}
-            role="status"
-            aria-live="polite"
-          >
-            <span>
-              <Icon name={icon} />
-            </span>
-            <span className="toast-message">{notice}</span>
-            {notice && noticeAction ? (
-              <button
-                type="button"
-                className="toast-action"
-                onClick={noticeAction.onClick}
-                disabled={noticeAction.disabled}
-              >
-                <Icon name="restore" />
-                {noticeAction.label}
-              </button>
-            ) : null}
-          </div>
-        );
-      })()}
+      <Toast notice={notice} action={noticeAction} />
     </div>
+  );
+}
+
+function Brand({ mobile = false }: { mobile?: boolean }) {
+  return (
+    <Link
+      className={cx(styles.brand, mobile && styles.mobileBrand)}
+      href={APP_HOME_HREF}
+      aria-label="MoneyFlow, về Tổng quan"
+    >
+      <span className={styles.brandMark} aria-hidden="true">
+        <span />
+      </span>
+      <span>MoneyFlow</span>
+    </Link>
   );
 }
 
@@ -522,37 +455,37 @@ function CaptureSheet({
   return (
     <dialog
       ref={dialogRef}
-      className="capture-sheet"
+      className={styles.sheet}
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(event) => {
         if (event.target === dialogRef.current) onClose();
       }}
     >
-      <div className="dialog-handle" />
-      <div className="dialog-heading">
+      <div className={styles.dialogHandle} />
+      <div className={styles.dialogHeading}>
         <h2 id={titleId}>Ghi giao dịch</h2>
         <button
           type="button"
-          className="icon-button"
+          className={styles.iconButton}
           onClick={onClose}
           aria-label="Đóng"
         >
           <Icon name="close" />
         </button>
       </div>
-      <p className="capture-sheet-lead">
+      <p className={styles.sheetLead}>
         Chọn cách ghi nhanh hoặc đưa dữ liệu vào để duyệt trước khi vào sổ.
       </p>
-      <div className="capture-sheet-actions">
+      <div className={styles.captureActions}>
         {CAPTURE_OPTIONS.map((option) => (
           <Link
             key={option.href}
             href={option.href}
-            className="capture-sheet-option"
+            className={styles.captureOption}
             onClick={onClose}
           >
-            <span className="capture-sheet-option-icon">
+            <span className={styles.captureOptionIcon}>
               <Icon name={option.icon} />
             </span>
             <span>
@@ -563,7 +496,7 @@ function CaptureSheet({
           </Link>
         ))}
       </div>
-      <p className="capture-sheet-alt">
+      <p className={styles.sheetAlt}>
         <Link href="/inbox" onClick={onClose}>
           Mở Hộp thư
           {inboxCount > 0
@@ -572,12 +505,12 @@ function CaptureSheet({
         </Link>
         {" · "}
         <Link href="/capture" onClick={onClose}>
-          Trang Capture
+          Trang nhập liệu
         </Link>
       </p>
       <button
         type="button"
-        className="secondary-button capture-sheet-cancel"
+        className={styles.cancelButton}
         onClick={onClose}
       >
         Hủy
@@ -613,71 +546,62 @@ function MoreSheet({
   return (
     <dialog
       ref={dialogRef}
-      className="more-sheet"
+      className={styles.sheet}
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(event) => {
         if (event.target === dialogRef.current) onClose();
       }}
     >
-      <div className="dialog-handle" />
-      <div className="dialog-heading">
+      <div className={styles.dialogHandle} />
+      <div className={styles.dialogHeading}>
         <h2 id={titleId}>Thêm &amp; tài khoản</h2>
         <button
           type="button"
-          className="icon-button"
+          className={styles.iconButton}
           onClick={onClose}
           aria-label="Đóng"
         >
           <Icon name="close" />
         </button>
       </div>
-      <nav className="more-sheet-nav" aria-label="Công cụ hàng ngày">
-        {MORE_NAV_LINKS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={pathIsActive(pathname, item.href) ? "active" : ""}
-            onClick={onClose}
-          >
-            <Icon name={item.icon} />
-            <span>{item.label}</span>
-          </Link>
-        ))}
-      </nav>
-      <p className="more-sheet-section-label">Kế hoạch · từ Tổng quan</p>
-      <nav className="more-sheet-nav" aria-label="Kế hoạch tài chính">
-        {PLANNING_LINKS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={pathIsActive(pathname, item.href) ? "active" : ""}
-            onClick={onClose}
-          >
-            <Icon name={item.icon} />
-            <span>{item.label}</span>
-          </Link>
-        ))}
-      </nav>
-      <p className="more-sheet-section-label">Nâng cao · nhập hàng loạt</p>
-      <nav className="more-sheet-nav" aria-label="Công cụ nâng cao">
+
+      <SheetLinks
+        label="Công cụ hàng ngày"
+        items={MORE_NAV_LINKS}
+        pathname={pathname}
+        onClose={onClose}
+      />
+      <p className={styles.sectionLabel}>Kế hoạch · từ Tổng quan</p>
+      <SheetLinks
+        label="Kế hoạch tài chính"
+        items={PLANNING_LINKS}
+        pathname={pathname}
+        onClose={onClose}
+      />
+      <p className={styles.sectionLabel}>Nâng cao · nhập hàng loạt</p>
+      <nav className={styles.sheetNav} aria-label="Công cụ nâng cao">
         {ADVANCED_NAV_LINKS.map((item) => {
           const badge =
             item.href === "/inbox" && inboxCount > 0
               ? inboxCount
               : undefined;
+          const active = pathIsActive(pathname, item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={pathIsActive(pathname, item.href) ? "active" : ""}
+              className={cx(
+                styles.sheetNavLink,
+                active && styles.sheetNavActive,
+              )}
               onClick={onClose}
             >
               <Icon name={item.icon} />
               <span>{item.label}</span>
               {badge != null ? (
                 <span
-                  className="nav-badge"
+                  className={styles.badge}
                   aria-label={`${badge} mục chờ duyệt`}
                 >
                   {badge > 99 ? "99+" : badge}
@@ -688,9 +612,9 @@ function MoreSheet({
         })}
       </nav>
 
-      <section className="more-sheet-account" aria-label="Tài khoản">
-        <div className="more-sheet-account-summary">
-          <span className="avatar">{viewerInitial(viewer)}</span>
+      <section className={styles.accountSection} aria-label="Tài khoản">
+        <div className={styles.accountSummary}>
+          <span className={styles.avatar}>{viewerInitial(viewer)}</span>
           <span>
             <strong>{viewerLabel(viewer)}</strong>
             <small>
@@ -702,7 +626,7 @@ function MoreSheet({
         </div>
         <Link
           href="/settings"
-          className="more-sheet-account-action"
+          className={styles.accountAction}
           onClick={onClose}
         >
           <Icon name="settings" />
@@ -711,15 +635,24 @@ function MoreSheet({
         {viewer.isDemo ? (
           <Link
             href="/register"
-            className="more-sheet-account-action primary"
+            className={cx(
+              styles.accountAction,
+              styles.accountActionPrimary,
+            )}
             onClick={onClose}
           >
             <Icon name="arrowRight" />
             <span>Tạo tài khoản</span>
           </Link>
         ) : (
-          <form action={signOut} className="more-sheet-signout-form">
-            <button type="submit" className="more-sheet-account-action danger">
+          <form action={signOut} className={styles.signoutForm}>
+            <button
+              type="submit"
+              className={cx(
+                styles.accountAction,
+                styles.accountActionDanger,
+              )}
+            >
               <Icon name="arrowRight" />
               <span>Đăng xuất</span>
             </button>
@@ -727,5 +660,110 @@ function MoreSheet({
         )}
       </section>
     </dialog>
+  );
+}
+
+function SheetLinks({
+  label,
+  items,
+  pathname,
+  onClose,
+}: {
+  label: string;
+  items: typeof MORE_NAV_LINKS;
+  pathname: string;
+  onClose: () => void;
+}) {
+  return (
+    <nav className={styles.sheetNav} aria-label={label}>
+      {items.map((item) => {
+        const active = pathIsActive(pathname, item.href);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cx(
+              styles.sheetNavLink,
+              active && styles.sheetNavActive,
+            )}
+            onClick={onClose}
+          >
+            <Icon name={item.icon} />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function Toast({
+  notice,
+  action,
+}: {
+  notice?: string;
+  action?: NoticeAction;
+}) {
+  const text = (notice || "").toLowerCase();
+  let variant: "success" | "error" | "warning" | "info" = "success";
+  let icon: IconName = "check";
+
+  if (action) {
+    variant = "info";
+    icon = "restore";
+  } else if (
+    text.includes("lỗi") ||
+    text.includes("thất bại") ||
+    text.includes("không thể") ||
+    text.includes("hãy") ||
+    text.includes("không khôi phục") ||
+    text.includes("chưa thể hoàn tác")
+  ) {
+    variant = "error";
+    icon = "bell";
+  } else if (
+    text.includes("cảnh báo") ||
+    text.includes("chưa") ||
+    text.includes("yêu cầu")
+  ) {
+    variant = "warning";
+    icon = "bell";
+  } else if (
+    text.includes("thông tin") ||
+    text.includes("chi tiết") ||
+    text.includes("đang") ||
+    text.includes("khôi phục")
+  ) {
+    variant = "info";
+    icon = "bell";
+  }
+
+  return (
+    <div
+      className={cx(
+        styles.toast,
+        notice && styles.toastVisible,
+        variant === "error" && styles.toastError,
+        variant === "warning" && styles.toastWarning,
+      )}
+      role="status"
+      aria-live="polite"
+    >
+      <span className={styles.toastIcon}>
+        <Icon name={icon} />
+      </span>
+      <span className={styles.toastMessage}>{notice}</span>
+      {notice && action ? (
+        <button
+          type="button"
+          className={styles.toastAction}
+          onClick={action.onClick}
+          disabled={action.disabled}
+        >
+          <Icon name="restore" />
+          {action.label}
+        </button>
+      ) : null}
+    </div>
   );
 }

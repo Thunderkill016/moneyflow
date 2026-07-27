@@ -6,13 +6,21 @@ import { getBudgetsWorkspace } from "@/server/budgets";
 import { getCommitmentsWorkspace } from "@/server/commitments";
 import { getGoalsWorkspace } from "@/server/goals";
 import { getIncomeTemplatesWorkspace } from "@/server/income-templates";
+import "./calm-ledger-overview.css";
+import "./calm-ledger-overview-actions.css";
 
 export const metadata: Metadata = {
   title: "Tổng quan — MoneyFlow",
   description: "Số dư, thu–chi tháng, danh mục chi tiêu và trạng thái kế hoạch.",
 };
 
-/** Canonical signed-in home. */
+/**
+ * Canonical signed-in home: balances, monthly income/expense/net, category
+ * distribution, recent transactions and planning status.
+ *
+ * A numeric safe-to-spend guide stays withdrawn until MoneyFlow can prove a
+ * complete income-based plan or a next-payday plan with protected cash.
+ */
 export default async function DashboardPage() {
   const viewer = await requireViewer();
   const [

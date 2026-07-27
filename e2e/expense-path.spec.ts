@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 /**
  * TASK-200 / TASK-116 — Core expense path always green (demo mode).
  *
- * Flow: landing → register surface → demo app → quick-add expense → insights → export download.
+ * Flow: landing → register surface → demo app → quick-add expense → dashboard → export download.
  * Does not depend on Inbox / paste / candidates.
  * Runs against Playwright webServer with explicit demo mode.
  * Fail CI if broken: `npm run test:e2e`
@@ -20,7 +20,7 @@ test.describe("Expense path (thu chi)", () => {
       try {
         if (window.localStorage.getItem("__mf_e2e_expense_seeded") === "1") return;
         window.localStorage.clear();
-        // Empty ledger so the new expense is unambiguous on Insights/export.
+        // Empty ledger so the new expense is unambiguous on Dashboard/export.
         window.localStorage.setItem("moneyflow-demo-transactions-v1", "[]");
         window.localStorage.setItem("moneyflow-inbox-candidates-v1", "[]");
         window.localStorage.setItem("moneyflow-onboarding-done", "1");
@@ -31,7 +31,7 @@ test.describe("Expense path (thu chi)", () => {
     });
   });
 
-  test("landing → register → quick add expense → insights → export download", async ({
+  test("landing → register → quick add expense → dashboard → export download", async ({
     page,
   }) => {
     // 1) Public landing promises only proven thu-chi behavior.
@@ -56,21 +56,19 @@ test.describe("Expense path (thu chi)", () => {
     ).toBeVisible();
 
     // Demo entry: no real credentials — go straight to product home.
-    await page.goto("/insights");
+    await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden({ timeout: 20_000 });
 
-    // The primary expense action follows the viewport: in-page on desktop,
-    // persistent FAB on mobile. Test the user-reachable action, not one legacy selector.
+    // AppShell owns the only surfaced primary expense action. The older
+    // in-page duplicate remains hidden until the full dashboard JSX cleanup.
+    await expect(
+      page.locator(".welcome-actions .insights-ghi-chi"),
+    ).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: "Ghi chi tiêu" }),
+    ).toBeVisible();
+
     const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
-    const welcomeExpenseAction = page.locator(
-      ".welcome-actions .insights-ghi-chi",
-    );
-    if (isMobile) {
-      await expect(welcomeExpenseAction).toBeHidden();
-      await expect(page.locator(".mobile-fab")).toBeVisible();
-    } else {
-      await expect(welcomeExpenseAction).toBeVisible();
-    }
 
     // Mobile must expose the account sheet from the topbar avatar.
     if (isMobile) {
@@ -135,9 +133,9 @@ test.describe("Expense path (thu chi)", () => {
       )
       .toBe(true);
 
-    // 4) Insights shows the expense amount (recent list + category share).
+    // 4) Dashboard shows the expense amount (recent list + category share).
     // Demo Chi tháng KPI adds a baseline, so assert the ledger rows/amount not the raw KPI alone.
-    await page.goto("/insights");
+    await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden();
     await expect(page.locator("section.insights-kpi")).toBeVisible({
       timeout: 20_000,
