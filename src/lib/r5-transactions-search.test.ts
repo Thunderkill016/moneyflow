@@ -10,6 +10,7 @@ import {
   TRANSACTIONS_SEARCH_HREF,
   wantsLedgerSearchFocus,
 } from "./app-shortcuts.ts";
+import { readDashboardSource } from "./test-support/dashboard-source.ts";
 import {
   TRANSFER_LIST_HINT,
   TRANSFER_NOT_EXPENSE_HINT,
@@ -56,13 +57,13 @@ test("R5: transfer list hint constant is “không tính chi”", () => {
 
 test("R5: transfer surfaces use shared not-expense copy", () => {
   const tx = readSrc("src/components/transactions-page.tsx");
-  const dash = readSrc("src/components/moneyflow-dashboard.tsx");
+  const dash = readDashboardSource();
   const transferDlg = readSrc("src/components/transfer-dialog.tsx");
   const editDlg = readSrc("src/components/edit-transaction-dialog.tsx");
 
   for (const [label, src] of [
     ["transactions-page", tx],
-    ["moneyflow-dashboard", dash],
+    ["dashboard-composition", dash],
   ] as const) {
     assert.match(src, /transferRowSubtitle/, `${label} must use transferRowSubtitle`);
   }

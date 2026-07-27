@@ -1,0 +1,45 @@
+.value {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  display: inline-block;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  color: inherit;
+  font-family: var(--mf-font-money);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  line-height: 1.15;
+}
+
+.strong {
+  font-weight: 780;
+  letter-spacing: -0.025em;
+}
+
+.alignStart {
+  text-align: start;
+}
+
+.alignEnd {
+  text-align: end;
+}
+
+.neutral {
+  color: inherit;
+}
+
+.income {
+  color: var(--mf-income);
+}
+
+.expense {
+  color: var(--mf-expense);
+}
+
+.transfer {
+  color: var(--mf-transfer);
+}
