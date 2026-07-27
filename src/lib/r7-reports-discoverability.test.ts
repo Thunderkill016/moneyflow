@@ -19,6 +19,7 @@ import {
   REPORTS_PATH,
   reportPeriodHref,
 } from "./reports.ts";
+import { readDashboardSource } from "./test-support/dashboard-source.ts";
 
 const root = join(import.meta.dirname, "../..");
 
@@ -47,10 +48,14 @@ test("R7: formatReportPeriodTitle emphasizes month view", () => {
 
 test("R7: period options cover week/month/year with VN labels", () => {
   assert.deepEqual(
-    REPORT_PERIOD_OPTIONS.map((o) => o.value),
+    REPORT_PERIOD_OPTIONS.map((option) => option.value),
     ["week", "month", "year"],
   );
-  assert.ok(REPORT_PERIOD_OPTIONS.some((o) => o.value === "month" && o.label === "Tháng này"));
+  assert.ok(
+    REPORT_PERIOD_OPTIONS.some(
+      (option) => option.value === "month" && option.label === "Tháng này",
+    ),
+  );
 });
 
 test("R7: export from reports uses period download + settings hub", () => {
@@ -69,13 +74,12 @@ test("R7: reports page wires period title, tabs, and dual export paths", () => {
   assert.match(page, /EXPORT_SETTINGS_HREF/);
   assert.match(page, /primaryAction=\{\{/);
   assert.match(page, /report-export/);
-  // Period CSV + advanced settings must both be reachable from the page.
   assert.match(page, /\/reports\/export|reportCsvDownloadHref/);
   assert.match(page, /settings\/export|EXPORT_SETTINGS_HREF/);
 });
 
 test("R7: Insights deep-links to month reports (not bare /reports)", () => {
-  const dash = readSrc("src/components/moneyflow-dashboard.tsx");
+  const dash = readDashboardSource();
   assert.match(dash, /REPORTS_MONTH_HREF|\/reports\?period=month/);
   assert.match(dash, /REPORTS_MONTH_LINK_LABEL|Báo cáo tháng/);
   assert.equal(REPORTS_MONTH_LINK_LABEL, "Báo cáo tháng");
@@ -91,7 +95,6 @@ test("R7: reports export route still exists for one-click CSV", () => {
 
 test("R7: desktop does not hide reports heading export", () => {
   const css = readSrc("src/app/globals.css");
-  // Heading export must remain visible on desktop (not display:none base rule).
   assert.doesNotMatch(
     css,
     /\.reports-heading\s*>\s*\.report-export\s*\{\s*display:\s*none/,
