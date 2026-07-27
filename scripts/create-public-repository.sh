@@ -90,9 +90,9 @@ if [[ "$HISTORY_STATUS" -ne 0 && "$HISTORY_STATUS" -ne 17 ]]; then
 fi
 [[ -f "$HISTORY_REPORT" ]] || printf '[]\n' > "$HISTORY_REPORT"
 
-# These six fingerprints were manually reviewed against the original commits.
-# They are one SQL test UUID, one fake JWT placeholder, and public browser-side
-# Supabase/Vercel configuration. Any other finding still blocks publication.
+# Reviewed exceptions are pinned by exact fingerprint, not by broad rule/path.
+# The six entries are one SQL test UUID, one fake JWT placeholder, and public
+# browser-side Supabase/Vercel configuration. Any seventh finding still blocks.
 python3 - "$HISTORY_REPORT" <<'PY'
 import json
 import sys
