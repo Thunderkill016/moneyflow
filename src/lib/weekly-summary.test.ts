@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import type { Transaction } from "./sample-data.ts";
+import { readDashboardSource } from "./test-support/dashboard-source.ts";
 import {
   buildWeeklySummary,
   formatWeekDayLabel,
@@ -39,7 +40,6 @@ test("formatWeekDayLabel and range are compact vi dates", () => {
 });
 
 test("buildWeeklySummary uses Mon–today week and integer money", () => {
-  // 2026-07-15 = Wednesday → week start Monday 13/7
   const summary = buildWeeklySummary(
     [
       txn({ amount: 80_000, occurredOn: "2026-07-14", category: "Ăn uống" }),
@@ -56,9 +56,7 @@ test("buildWeeklySummary uses Mon–today week and integer money", () => {
         occurredOn: "2026-07-15",
         category: "Di chuyển",
       }),
-      // Outside week
       txn({ id: "old", amount: 999_000, occurredOn: "2026-07-10" }),
-      // Transfer never counts
       txn({
         id: "xfer",
         kind: "transfer",
@@ -78,7 +76,7 @@ test("buildWeeklySummary uses Mon–today week and integer money", () => {
   assert.equal(summary.income, 500_000);
   assert.equal(summary.expense, 120_000);
   assert.equal(summary.net, 380_000);
-  assert.equal(summary.transactionCount, 4); // income + 2 expense + transfer meta count
+  assert.equal(summary.transactionCount, 4);
   assert.equal(summary.topCategory, "Ăn uống");
   assert.equal(summary.topCategoryAmount, 80_000);
   assert.ok(Number.isSafeInteger(summary.income));
@@ -112,26 +110,27 @@ test("weeklyExpenseCompareLine is calm and non-judgmental", () => {
   assert.match(weeklyExpenseCompareLine(0) ?? "", /tương đương/);
   assert.match(weeklyExpenseCompareLine(25) ?? "", /cao hơn khoảng 25%/);
   assert.match(weeklyExpenseCompareLine(-10) ?? "", /thấp hơn khoảng 10%/);
-  // No guilt words
-  for (const p of [0, 25, -10] as const) {
-    const line = weeklyExpenseCompareLine(p) ?? "";
+  for (const percent of [0, 25, -10] as const) {
+    const line = weeklyExpenseCompareLine(percent) ?? "";
     assert.doesNotMatch(line, /lãng phí|tệ|sai|phải tiết kiệm|overspend/i);
   }
 });
 
 test("dashboard wires weekly summary card (contract)", () => {
-  const dashboard = readFileSync(
-    join(process.cwd(), "src/components/moneyflow-dashboard.tsx"),
-    "utf8",
-  );
+  const dashboard = readDashboardSource();
   assert.match(dashboard, /buildWeeklySummary/);
   assert.match(dashboard, /weekly-summary-panel/);
   assert.match(dashboard, /WEEKLY_SUMMARY_TITLE/);
   assert.match(dashboard, /WEEKLY_SUMMARY_ARIA/);
   assert.match(dashboard, /WEEKLY_SUMMARY_REPORTS_HREF/);
-  // R3: weekly empty via PlanningCardEmpty + shared planning empty configs
-  assert.match(dashboard, /PLANNING_EMPTY_WEEKLY_WEEK|WEEKLY_SUMMARY_EMPTY_WEEK/);
-  assert.match(dashboard, /PLANNING_EMPTY_WEEKLY_LEDGER|WEEKLY_SUMMARY_EMPTY_LEDGER/);
+  assert.match(
+    dashboard,
+    /PLANNING_EMPTY_WEEKLY_WEEK|WEEKLY_SUMMARY_EMPTY_WEEK/,
+  );
+  assert.match(
+    dashboard,
+    /PLANNING_EMPTY_WEEKLY_LEDGER|WEEKLY_SUMMARY_EMPTY_LEDGER/,
+  );
   assert.match(dashboard, /PlanningCardEmpty/);
   assert.match(dashboard, /weeklyExpenseCompareLine/);
 });
