@@ -1,211 +1,151 @@
-# Calm Ledger daily shell and overview
+# Calm Ledger daily shell and dashboard
 
 **Status:** evaluating  
 **Owner:** ChatGPT  
-**Issue/PR:** #81 / #83 / #86  
+**Issue/PR:** #81 / #92  
+**Supersedes:** #83  
 **Last updated:** 2026-07-27
 
 ## Outcome
 
-The signed-in MoneyFlow home uses the same Calm Ledger system as the new public surfaces. On phone, tablet and desktop, users can understand their current balance and monthly ledger, reach the primary expense action without content being covered, and move between Tổng quan, Giao dịch, Tài khoản and secondary tools through one coherent navigation model.
+The signed-in MoneyFlow home uses the Calm Ledger system established for the public surfaces. On phone, tablet and desktop, users can understand current balance and monthly movement, reach the primary expense action without content being covered, and navigate through one coherent information architecture.
+
+The canonical signed-in route is `/dashboard`. `/insights` remains a compatibility redirect only.
+
+## Product decisions
+
+- Tổng quan remains the signed-in home; Inbox stays secondary and only becomes prominent when items require review.
+- Phone navigation has exactly five destinations.
+- The center phone action performs `Ghi chi tiêu`; there is no duplicate floating action button.
+- Desktop exposes one primary action in the topbar.
+- The overview prioritizes total balance, month income/expense/net, category distribution and recent transactions.
+- Planning summaries remain secondary and compact; values and formulas do not change.
+- No `Có thể chi hôm nay`, safe-to-spend value or daily spending recommendation is shown.
+- VND remains integer; transfers remain excluded from income/expense.
+
+## Foundation alignment
+
+This slice is rebuilt from current `main` after:
+
+- #90 made `/dashboard` the canonical signed-in route;
+- #91 established two root CSS owners, one document/theme authority, frozen legacy compatibility imports and CSS ownership gates.
+
+New styling follows those boundaries:
+
+1. `src/components/layout/app-shell.module.css` owns reusable shell presentation.
+2. `src/app/dashboard/calm-ledger-overview.css` owns dashboard presentation.
+3. `src/app/dashboard/calm-ledger-overview-actions.css` owns the temporary hidden duplicate action until dashboard JSX cleanup.
+4. No new root stylesheet, `html`/`body` selector or override layer is added.
 
 ## Repository reconnaissance
 
-### Current behavior
+### Reused behavior
 
-- `/insights` is the authenticated home and is composed by `MoneyFlowDashboard` inside `AppShell`.
-- Before this slice, the shell depended on broad legacy global classes for sidebar, topbar, mobile navigation, FAB, sheets and toast.
-- The overview stacked many planning cards after the daily ledger; empty states created long blank-looking blocks and reduced the prominence of balance, monthly movement and recent transactions.
-- Existing UI-audit evidence showed the mobile bottom navigation and FAB competing with content near the viewport edge.
-- Business calculations, stores, auth, RLS and route behavior already work and are reused unchanged.
+- `src/components/layout/app-shell.tsx` keeps search shortcuts, capture/more dialogs, account access, sign-out, toast and undo behavior.
+- `src/components/moneyflow-dashboard.tsx` keeps finance calculations, mutation behavior and all live/empty/error states.
+- `src/lib/nav-ia.ts` remains the navigation source of truth.
+- Existing stores, auth, schema, Supabase policies and deployment configuration remain unchanged.
 
-### Relevant repository areas
+### Current defects addressed
 
-| Area | Why it matters | Reuse/change/avoid |
+- The old shell depended on broad legacy global classes.
+- Mobile had both a bottom navigation capture action and a floating capture button.
+- Fixed navigation could compete with or cover content near the viewport edge.
+- Overview hierarchy gave secondary planning blocks too much visual weight.
+- PR #83 diverged from `main` after the canonical route and CSS foundation landed.
+
+## Implementation
+
+| File | Change | Ownership |
 |---|---|---|
-| `src/components/layout/app-shell.tsx` | Shared signed-in navigation, actions, sheets and toast | Reuse behavior; move presentation to a scoped Calm Ledger module |
-| `src/components/layout/app-shell.module.css` | New component-owned signed-in shell visual system | Own phone/tablet/desktop shell, dialogs and toast |
-| `src/components/moneyflow-dashboard.tsx` | Tổng quan hierarchy and all live finance/planning states | Reuse calculations and mutations unchanged |
-| `src/app/insights/calm-ledger-overview.css` | Route-owned overview hierarchy | Scope every rule to `.insights-dashboard`; do not leak into other routes |
-| `src/lib/nav-ia.ts` | Controlling information architecture | Reuse; keep five phone destinations and secondary groups |
-| `src/app/calm-ledger-tokens.css` | Semantic light/dark tokens established in Slice 1 | Reuse as the only new token source |
-| `e2e/audit/*` | Cross-device, dark, keyboard and 200% text evidence | Extend with shell-specific coverage |
+| `src/components/layout/app-shell.tsx` | Attach scoped classes, remove duplicate FAB, normalize brand and dialogs, keep one mobile action model | Shared shell behavior |
+| `src/components/layout/app-shell.module.css` | Phone/tablet/desktop shell, dialogs, account surfaces and toast | Component owner |
+| `src/app/dashboard/page.tsx` | Load dashboard route styles while preserving server data assembly | Canonical route |
+| `src/app/dashboard/calm-ledger-overview.css` | Money hierarchy, responsive layout and compact planning presentation | Route owner |
+| `src/app/dashboard/calm-ledger-overview-actions.css` | Hide the obsolete in-page expense action | Temporary route interaction owner |
+| `e2e/expense-path.spec.ts` | Exercise the canonical `/dashboard` expense flow and shell-owned action | Core browser smoke |
+| `e2e/audit/critical-browser.audit.spec.ts` | Audit `/dashboard`, five phone items, no FAB, safe-area padding and overflow | Cross-device contract |
 
-### Existing tests and constraints
+## Acceptance criteria
 
-- Related unit/source tests cover navigation IA, overview calculations, empty planning copy and financial formatting.
-- Database/RLS behavior is unchanged; the standard fresh reset and pgTAP gate remains mandatory.
-- Browser smoke covers landing → register surface → expense capture → Tổng quan → export.
-- Product rules: `/insights` stays home; Hộp thư is secondary; one primary action per viewport; VND remains integer; transfers do not affect income/expense; no daily spending recommendation.
+- [ ] App shell presentation is component-scoped and uses Calm Ledger tokens in light and dark mode.
+- [ ] Desktop has one stable sidebar and one topbar primary action.
+- [ ] Phone has exactly five navigation destinations and no separate FAB.
+- [ ] Bottom navigation reserves sufficient page padding for all content and focusable controls.
+- [ ] Dashboard prioritizes balance, monthly income/expense/net, category distribution and recent transactions.
+- [ ] Empty planning data is compact and populated planning values remain unchanged.
+- [ ] No horizontal overflow at 320, 360, 390, 768, 1024, 1366 and 1440 px.
+- [ ] Dark mode, keyboard, 200% text and WebKit critical paths pass.
+- [ ] Financial semantics, persistence, ownership and RLS remain unchanged.
 
-### Similar implementation and recent history
+## Required states
 
-- Slice 1 PR #82 established semantic Calm Ledger tokens and component-scoped CSS modules for landing/auth.
-- This slice preserves component behavior while replacing shell visual ownership inside `AppShell` and keeping overview rules route-scoped rather than adding another root-level refresh layer.
+- Loading: existing server loading behavior remains unchanged.
+- Empty ledger: one useful first action; no blank placeholder wall.
+- Populated ledger: exact large VND values and long Vietnamese labels remain readable.
+- Error: data errors remain visible and unsafe mutations remain disabled.
+- Recovery: toast and undo behavior remain available.
+- Mobile/tablet/desktop: authored layouts rather than accidental wrapping.
+- Accessibility: semantic landmarks/dialogs, visible focus, 44 px targets and reduced motion.
 
-### Open questions
+## Risks and checks
 
-- [x] Should Inbox replace Tổng quan? No; issue #81 fixes Tổng quan as home.
-- [x] Should the FAB and bottom navigation both expose capture? No. The center navigation action is the phone capture entry; the separate floating button is removed.
-- [x] Should planning calculations change? No; only hierarchy and presentation change in this slice.
-
-## Research
-
-No new external research is required. Issue #81 already records the approved navigation and WCAG target/focus evidence. This slice applies those decisions to existing behavior.
-
-### Alternatives considered
-
-| Option | Advantages | Risks | Decision |
-|---|---|---|---|
-| Add another root-level override stylesheet | Fast | Repeats the cascade failure that caused the redesign | Rejected |
-| Rewrite all signed-in routes together | Maximum visual consistency at once | Oversized diff, weak rollback and difficult review | Rejected |
-| Component-scoped shell + route-scoped Tổng quan vertical slice | Reviewable, preserves domain behavior, reusable by following routes | Some old global selectors remain unused until later cleanup | Selected |
-
-### Research decision
-
-Use a CSS module anchored to `AppShell`, a route-owned stylesheet fully scoped to `.insights-dashboard`, and existing semantic tokens. Remove duplicate mobile capture affordances and make the daily ledger the first decision layer. Planning remains reachable in compact secondary areas without inventing recommendations.
-
-## Specification
-
-### Problem
-
-Signed-in users encountered a visually dense shell and an overview whose primary money values competed with navigation, a floating action and many planning blocks. On narrow screens, fixed controls could cover content. The public redesign now sets a clearer standard that the product experience must match.
-
-### User stories
-
-- As a returning user, I can see total balance, this month's income/expense and recent ledger activity immediately.
-- As a phone user, I can add an expense and navigate without controls covering content.
-- As a user with or without planning data, I can find budgets, commitments, recurring income and goals without blank placeholder cards dominating the home.
-- As a keyboard or low-vision user, I can identify focus and use the shell at 200% text.
-
-### Acceptance criteria
-
-- [ ] App shell presentation is component-scoped and uses Calm Ledger tokens in light/dark mode.
-- [ ] Desktop has one stable sidebar and one clear topbar primary action.
-- [ ] Phone has exactly five navigation destinations and no separate FAB covering content.
-- [ ] Bottom navigation reserves enough page padding for all focusable content.
-- [ ] Tổng quan prioritizes balance, month income/expense/net, category distribution and recent transactions.
-- [ ] Empty planning data is visually compact rather than dominating the home.
-- [ ] Populated planning data remains reachable and preserves current values/statuses.
-- [ ] No horizontal overflow at 320–1440px; keyboard, dark mode, WebKit and 200% text pass.
-
-### Required states
-
-- Loading: server workspace loading behavior remains unchanged.
-- Empty: empty ledger has one useful first action; empty planning is compact.
-- Populated: large VND and long Vietnamese labels wrap or truncate intentionally without hiding exact detail values.
-- Validation/error: data errors stay visible and disable unsafe mutation actions.
-- Recovery/undo: existing toast and undo action remain available.
-- Long data / large VND: tabular money typography and integer đồng are preserved.
-- Mobile/tablet/desktop: phone bottom bar, tablet compact rail and desktop sidebar are authored layouts.
-- Accessibility: 44px targets, semantic landmarks/dialogs, visible focus and reduced motion.
-
-### Financial and security constraints
-
-- No guessed financial data, safe-to-spend value or daily recommendation is surfaced.
-- Integer VND, transfer exclusion and deterministic totals remain unchanged.
-- No schema, auth, ownership or RLS changes.
-
-### Out of scope
-
-- Redesigning quick-capture fields/dialogs, transactions, accounts, Inbox/import, reports or settings content.
-- Changing finance formulas, persistence, Supabase configuration or deployment settings.
-- Removing every unused legacy selector; final cleanup follows route migration.
-
-## Implementation plan
-
-### Architecture fit
-
-`AppShell` owns cross-route navigation and fixed UI. `MoneyFlowDashboard` owns overview behavior while `src/lib` owns calculations. Shell presentation moves into a component CSS module. Overview presentation is loaded by the `/insights` route and every selector is constrained to `.insights-dashboard`, leaving domain and data boundaries untouched.
-
-### Implemented changes
-
-| File/area | Change | Reason |
-|---|---|---|
-| `src/components/layout/app-shell.module.css` | Authored phone/tablet/desktop shell, sheets and toast | Replace legacy shell styling without root cascade growth |
-| `src/components/layout/app-shell.tsx` | Attach scoped shell, remove duplicate phone FAB, normalize brand, keep five phone slots | Make one navigation model authoritative |
-| `src/app/insights/calm-ledger-overview.css` | Reorder visual hierarchy, emphasize monthly ledger, compact planning states and author responsive layouts | Match Calm Ledger daily decision hierarchy without finance changes |
-| `src/app/insights/page.tsx` | Load the route-owned overview stylesheet | Keep overview styling isolated to `/insights` |
-| `e2e/expense-path.spec.ts` | Follow the center mobile `Ghi chi tiêu` action | Preserve the core expense flow after removing the FAB |
-| `e2e/audit/critical-browser.audit.spec.ts` | Assert five mobile items, no FAB, safe-area padding, no horizontal overflow and desktop shell landmarks | Prevent covered content and navigation drift |
-
-### Data and migration impact
-
-- Schema/migration: none.
-- Backfill: none.
-- Compatibility: presentation and navigation wiring only; routes and stores remain compatible.
-- Rollback: revert PR #83; Slice 1 public surfaces remain independent.
-
-### Risks and counterexamples
-
-| Risk/counterexample | Prevention or test |
+| Risk | Prevention |
 |---|---|
-| Old global classes override the shell module | Module-generated shell selectors own the fixed UI boundary |
-| Route CSS leaks after client navigation | Every overview selector starts with `.insights-dashboard` |
-| Removing FAB makes capture hard to find | Keep centered `Ghi chi tiêu` phone action and desktop topbar action |
-| Long values overflow cards | Use `minmax(0,1fr)`, tabular money, wrapping labels and responsive stacks |
-| Planning data disappears | Keep all links and populated summaries; only compact presentation |
-| Dialog behavior regresses | Preserve native `<dialog>` logic and test opening/closing from mobile navigation |
+| Legacy globals override the new shell | CSS Module-generated selectors own the shell boundary |
+| Route CSS leaks after navigation | Dashboard rules are scoped to `.insights-dashboard` |
+| Capture becomes harder to find | Center phone action and desktop topbar action remain visible |
+| Fixed navigation covers content | Shell padding is asserted against navigation height |
+| Large values overflow | `minmax(0, 1fr)`, tabular money and intentional wrapping/truncation |
+| Route migration regresses | Browser tests target `/dashboard`; `/insights` is not verification authority |
+| Planning values change | Presentation-only change; no calculation/store edits |
 
-### Verification plan
+## Verification plan
 
-- Static: knowledge contract, deployment contract, lint, typecheck.
-- Unit/domain: full test suite; no finance behavior changes expected.
-- Database: fresh Supabase reset + pgTAP.
-- Browser flow: core expense smoke and mobile shell navigation.
-- Responsive/visual: 320, 360, 390, 768, 1024, 1366, 1440; light/dark; WebKit.
-- Production/manual: exact merge deployment and `/insights` smoke after merge.
+Before ready/merge:
 
-## Tasks
+- [ ] `npm run check:knowledge`
+- [ ] `npm run check:deployment-env`
+- [ ] `npm run check:css-ownership`
+- [ ] `npm run lint`
+- [ ] `npm run typecheck`
+- [ ] `npm test`
+- [ ] static RLS checks
+- [ ] production build
+- [ ] fresh Supabase reset + pgTAP
+- [ ] expense-path browser smoke
+- [ ] production cross-device Chromium/WebKit audit
+- [ ] screenshot review in light/dark phone and desktop
 
-| ID | Task | Dependency | Evidence | Status |
-|---|---|---|---|---|
-| T1 | Add focused work packet and shell acceptance contract | none | plan diff | done |
-| T2 | Migrate AppShell presentation to scoped Calm Ledger module | T1 | code diff | done, verification pending |
-| T3 | Recompose Tổng quan hierarchy and compact planning | T2 | route-scoped CSS diff | done, verification pending |
-| T4 | Add overlap/navigation browser regression checks | T2, T3 | Playwright contract diff | done, execution blocked |
-| T5 | Review, merge, deploy and verify exact production | T4 | PR/CI/Vercel evidence | blocked by #86 |
+After merge:
 
-## Evaluation
+- [ ] verify the exact Vercel production deployment commit;
+- [ ] open `/dashboard` directly and through the `/insights` compatibility redirect;
+- [ ] confirm expense capture, recent transaction display and export.
 
-### Acceptance evidence
+## Scope boundary
 
-| Criterion | Evidence | Result |
-|---|---|---|
-| Scoped shell styling | PR #83 source diff | implemented, unverified in browser matrix |
-| No duplicate mobile FAB | AppShell source + browser contract | implemented, unverified in browser matrix |
-| Overview hierarchy and states | `/insights` route stylesheet | implemented, unverified in browser matrix |
-| Static compile gate | temporary Vercel diagnostic commit `e09de9cacf212b10c97b1d59f9dfc6b1d89768ea` | knowledge, deployment contract, lint, typecheck and production build passed |
-| Cross-device/accessibility matrix | clean-head Actions run `30214857551` | blocked before runner steps |
+Included:
 
-### Review findings
+- shared signed-in shell;
+- dashboard visual hierarchy;
+- shell/dashboard browser contracts.
 
-- Correctness: static compilation passed; full unit/database/browser execution is still required.
-- Security/ownership: no behavior or data-layer changes.
-- UI/UX/accessibility: authored responsive, focus, safe-area and reduced-motion rules; screenshot review pending.
-- Maintainability/duplication: shell is component-owned and overview rules are route-scoped rather than another root refresh layer.
-- Scope compliance: final branch diff contains only the eight intended product, test and work-packet files.
+Deferred to later focused slices of #81:
 
-### Current verification blocker
-
-GitHub Actions runs `30212867362`, `30213073671`, `30213235840` and the clean-head retry `30214857551` all failed before checkout: both `verify` and `database` returned no steps and no logs, while `e2e` was skipped. A separate `ubuntu-slim` probe failed in the same zero-step way. Issue #86 tracks the account/runner investigation.
-
-Temporary Vercel preview and slim-workflow probes were removed after diagnosis. `vercel.json` is restored byte-for-byte to the production-only contract, and the PR diff contains no deployment or CI configuration change. Vercel's free preview build rate was reached during diagnosis, so it is not being used as a substitute for the required GitHub database and browser gates.
-
-This is infrastructure failure, not proof that the source passes or fails. PR #83 remains draft and must not merge until a normal CI attempt executes every required gate.
-
-### Remaining limitations
-
-- Physical Android/iOS verification remains required before claiming full device readiness.
-- Other signed-in routes retain legacy presentation until their focused slices.
+- quick-capture field redesign;
+- transactions and accounts pages;
+- Inbox/import review experience;
+- budgets, recurring commitments, salary, goals and reports;
+- categories, rules, settings and export presentation;
+- final legacy selector deletion after route migrations.
 
 ## Delivery record
 
-- Branch: `design/calm-ledger-daily-shell`
-- PR: #83 (draft)
-- Infrastructure blocker: #86
-- Squash commit: pending
-- Clean-head CI run: `30214857551` — zero-step infrastructure failure
+- Branch: `design/calm-ledger-dashboard-shell`
+- Draft PR: #92
+- Base: current `main` after #90 and #91
+- Replacement: #83 is superseded and must not merge
+- Verification: pending executable CI and artifact review
+- Merge commit: pending
 - Production deployment: pending
-- Production flow verified: pending
-- Work packet moved to `docs/plans/completed/`: no
