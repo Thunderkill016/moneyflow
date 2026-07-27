@@ -90,7 +90,16 @@
         "quickstart": "specs/003-calm-ledger-foundation/quickstart.md",
         "currentTaskId": "T001",
         "currentTaskTitle": "Inventory canonical tokens and entry-state override risk",
-        "allowedOutput": "specs/003-calm-ledger-foundation/token-inventory.md"
+        "currentTaskStatus": "verify",
+        "allowedOutput": "specs/003-calm-ledger-foundation/token-inventory.md",
+        "currentEvidence": [
+          "specs/003-calm-ledger-foundation/token-inventory.md",
+          "T001 changed no application or styling source file",
+          "inventory identifies eight global CSS imports and three overlapping token vocabularies",
+          "inventory proposes a bounded entry-state cleanup rather than a global token rewrite"
+        ],
+        "nextTaskId": null,
+        "nextTaskReason": "T002 remains locked until the T001 inventory proposal is reviewed and approved."
       },
       "acceptance": [
         "one token source of truth replaces additional override layers",
