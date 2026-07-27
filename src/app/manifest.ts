@@ -11,7 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "MoneyFlow",
     description:
       "Ghi thu chi nhanh, nhiều ví, ngân sách danh mục. Biết hôm nay có thể chi bao nhiêu. Xuất CSV.",
-    start_url: "/insights",
+    start_url: "/dashboard",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",

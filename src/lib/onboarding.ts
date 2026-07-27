@@ -1,6 +1,6 @@
 /**
  * First-run onboarding — thu chi (TASK-102 / R2 polish).
- * 3 steps: trust → cash wallet (VN defaults) → optional quick expense | skip → /insights.
+ * 3 steps: trust → cash wallet (VN defaults) → optional quick expense | skip → /dashboard.
  * Flag is client-only (localStorage) — no server persistence yet.
  * Never exit to /inbox (lab).
  */
@@ -12,8 +12,8 @@ export const ONBOARDING_PATH = "/onboarding";
  * After onboarding skip / finish / already-done redirect.
  * Product home = Tổng quan thu chi.
  */
-export const ONBOARDING_SKIP_HREF = "/insights";
-export const ONBOARDING_DONE_HREF = "/insights";
+export const ONBOARDING_SKIP_HREF = "/dashboard";
+export const ONBOARDING_DONE_HREF = "/dashboard";
 
 /** Optional step-3 path: ghi chi nhanh (not paste/upload). */
 export const ONBOARDING_QUICK_EXPENSE_HREF = "/capture/quick";
@@ -29,7 +29,7 @@ export const DEFAULT_CASH_WALLET_NAME = "Tiền mặt";
 /** Onboarding cash wallet is always VND (đồng). */
 export const DEFAULT_CASH_WALLET_CURRENCY = "VND";
 
-/** Step 3 primary: first expense; secondary: go to insights. */
+/** Step 3 primary: first expense; secondary: go to dashboard. */
 export const ONBOARDING_PRIMARY_CTA = "Ghi chi đầu";
 export const ONBOARDING_SECONDARY_CTA = "Vào tổng quan";
 
@@ -53,13 +53,13 @@ export function isValidOnboardingStep(step: number): step is OnboardingStep {
   return step === 1 || step === 2 || step === 3;
 }
 
-/** True only for product exits after onboarding (insights or quick ghi chi). */
+/** True only for product exits after onboarding (dashboard or quick ghi chi). */
 export function isOnboardingExitHref(href: string): boolean {
   if (typeof href !== "string" || !href.startsWith("/") || href.startsWith("//")) {
     return false;
   }
   const path = href.split("?")[0]!.split("#")[0]!;
-  if (path === "/insights" || path === "/capture/quick") return true;
+  if (path === "/dashboard" || path === "/capture/quick") return true;
   return false;
 }
 

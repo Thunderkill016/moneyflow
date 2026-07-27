@@ -6,7 +6,7 @@
  *
  * Capture is a primary action (sheet / /capture), not a planning route.
  * Inbox, rules, imports, timeline, reports live under More (or Capture sheet).
- * Budgets / commitments / goals stay secondary (Insights cards + More → Kế hoạch).
+ * Budgets / commitments / goals stay secondary (Dashboard cards + More → Kế hoạch).
  */
 
 import type { IconName } from "@/components/icons";
@@ -44,7 +44,7 @@ export const PRIMARY_NAV: PrimaryNavItem[] = [
   {
     kind: "link",
     label: "Tổng quan",
-    href: "/insights",
+    href: "/dashboard",
     icon: "chart",
     mobileTab: true,
   },
@@ -77,7 +77,7 @@ export const PRIMARY_NAV_HREFS = PRIMARY_NAV.filter(
 ).map((item) => item.href);
 
 /** Default brand / home when logged in. */
-export const APP_HOME_HREF = "/insights" as const;
+export const APP_HOME_HREF = "/dashboard" as const;
 
 /**
  * Global primary CTA (desktop topbar + mobile FAB) — TASK-105.
@@ -94,7 +94,7 @@ export const PLANNING_PATHS = [
   "/goals",
 ] as const;
 
-/** Ngân sách · Định kỳ (chi) · Lương · Mục tiêu — secondary only (Insights / More). */
+/** Ngân sách · Định kỳ (chi) · Lương · Mục tiêu — secondary only (Dashboard / More). */
 export const PLANNING_LINKS: SecondaryNavItem[] = [
   {
     label: "Ngân sách",
