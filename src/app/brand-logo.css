@@ -36,15 +36,15 @@ a[aria-label^="MoneyFlow"] > span:first-child > span {
   transform: none !important;
 }
 
-/* The representative dashboard inside the landing hero uses the same mark. */
-[role="img"] span[aria-hidden="true"]:empty {
+/* The representative dashboard inside the public landing hero uses the mark. */
+main#noi-dung [role="img"] span[aria-hidden="true"]:empty {
   position: relative;
   overflow: hidden;
   border: 0;
   background: var(--mf-brand);
 }
 
-[role="img"] span[aria-hidden="true"]:empty::after {
+main#noi-dung [role="img"] span[aria-hidden="true"]:empty::after {
   position: absolute;
   inset: 24%;
   background: var(--mf-on-brand);
@@ -68,7 +68,7 @@ a[aria-label^="MoneyFlow"] > span:first-child > span {
 
 @media (forced-colors: active) {
   a[aria-label^="MoneyFlow"] > span:first-child > span,
-  [role="img"] span[aria-hidden="true"]:empty::after {
+  main#noi-dung [role="img"] span[aria-hidden="true"]:empty::after {
     background: CanvasText;
   }
 }
