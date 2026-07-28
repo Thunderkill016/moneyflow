@@ -66,7 +66,7 @@ is_secret_path() {
     .env.example|*/.env.example)
       return 1
       ;;
-    .env|*/.env|.env.*|*/.env.*|*/secrets/*|secrets/*|*/credentials/*|credentials/*)
+    .env|*/.env|.env.*|*/.env.*|secrets|*/secrets|secrets/*|*/secrets/*|credentials|*/credentials|credentials/*|*/credentials/*)
       return 0
       ;;
   esac
@@ -79,7 +79,7 @@ if is_secret_path "$PATHF"; then
 fi
 
 case "$LOWER_COMMAND" in
-  *".env.local"*|*".env.production"*|*"/secrets/"*|*"/credentials/"*)
+  *".env.local"*|*".env.production"*|*"secrets/"*|*"credentials/"*)
     deny "Agent shell access to local environment or secret material is forbidden"
     ;;
 esac
