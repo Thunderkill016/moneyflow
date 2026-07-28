@@ -80,6 +80,8 @@ jobs:
         run: npm ci
       - name: Project knowledge contract
         run: npm run check:knowledge
+      - name: Claude Code operating contract
+        run: npm run check:claude-workflow
       - name: Deployment configuration contract
         run: npm run check:deployment-env
       - name: CSS ownership and debt budgets
