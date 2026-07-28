@@ -94,7 +94,7 @@ export const categoryMeta: Record<string, { icon: string; color: string }> = {
   "Giáo dục": { icon: "book", color: "blue" },
   Lương: { icon: "wallet", color: "green" },
   Thưởng: { icon: "spark", color: "green" },
-  "Thu nhập khác": { icon: "plus", color: "green" },
+  "Thu nhập khác": { icon: "bank", color: "green" },
   "Chuyển tiền": { icon: "arrows", color: "blue" },
 };
 

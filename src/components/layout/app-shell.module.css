@@ -53,10 +53,12 @@
 }
 
 .brandMark > span {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--mf-on-brand);
+  width: 13px;
+  height: 13px;
+  border: 2.5px solid var(--mf-on-brand);
+  border-top-color: transparent;
   border-radius: 50%;
+  transform: rotate(45deg);
 }
 
 .primaryNav {

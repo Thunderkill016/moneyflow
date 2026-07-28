@@ -640,9 +640,11 @@ export function InboxPage({
                 <Link className="secondary-button" href="/capture/quick">
                   Thêm nhanh
                 </Link>
-                <button type="button" className="secondary-button" onClick={seedDemo}>
-                  Nạp dữ liệu mẫu
-                </button>
+                {viewer.isDemo && (
+                  <button type="button" className="secondary-button" onClick={seedDemo}>
+                    Nạp dữ liệu mẫu
+                  </button>
+                )}
               </div>
             )}
           </section>

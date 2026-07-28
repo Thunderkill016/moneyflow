@@ -280,7 +280,12 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
               aria-labelledby={`${formId}-window-heading`}
             >
               <h2 id={`${formId}-window-heading`}>Cửa sổ nhắc</h2>
-              <fieldset className="privacy-fieldset">
+              {!enabled && (
+                <p className="privacy-panel-lead">
+                  Bật &quot;Bật nhắc khoản định kỳ đến hạn&quot; ở trên để áp dụng cửa sổ nhắc.
+                </p>
+              )}
+              <fieldset className="privacy-fieldset" disabled={!enabled}>
                 <legend className="sr-only">Số ngày trước hạn</legend>
                 <div
                   className="privacy-radio-list"
@@ -294,7 +299,7 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
                       <label
                         key={option.value}
                         htmlFor={inputId}
-                        className={`privacy-radio-card${selected ? " is-selected" : ""}`}
+                        className={`privacy-radio-card${selected ? " is-selected" : ""}${!enabled ? " is-disabled" : ""}`}
                       >
                         <input
                           id={inputId}
@@ -306,7 +311,7 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
                             setDaysAhead(option.value);
                             setDirty(true);
                           }}
-                          disabled={saving}
+                          disabled={saving || !enabled}
                         />
                         <span className="privacy-radio-body">
                           <span className="privacy-radio-label">{option.label}</span>

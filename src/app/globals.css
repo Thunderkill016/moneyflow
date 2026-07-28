@@ -1317,7 +1317,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .planning-card--near,
 .planning-card--soon { border-color: #f5c9a0; }
 .planning-card--over,
-.planning-card--overdue { border-color: #efcfca; }
+.planning-card--overdue { border-color: #efcfca; border-left-width: 4px; }
 .planning-card--paid { background: #fbfcfb; }
 .planning-card--achieved { border-color: #bfdbc8; background: #fbfefc; }
 /* Domain layout hooks (shell comes from .planning-card) */
@@ -1362,7 +1362,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   padding: 18px 20px 13px;
   box-shadow: var(--shadow);
 }
-.commitment-card.overdue { border-color: #efcfca; }
+.commitment-card.overdue { border-color: #efcfca; border-left-width: 4px; }
 .commitment-card.paid { background: #fbfcfb; }
 .commitment-main { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 13px; }
 .commitment-main > div { min-width: 0; }
@@ -5835,6 +5835,15 @@ input[aria-invalid="true"] {
   box-shadow: 0 0 0 1px var(--green, #16a34a);
   background: rgba(22, 163, 74, 0.06);
 }
+.privacy-radio-card.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.privacy-radio-card.is-disabled.is-selected {
+  border-color: var(--color-border-default, #e2e8f0);
+  box-shadow: none;
+  background: var(--color-bg-primary, #fff);
+}
 .privacy-radio-card input[type="radio"] {
   width: 16px;
   height: 16px;
@@ -6735,7 +6744,7 @@ body {
 .planning-card--near,
 .planning-card--soon { border-color: #f5c9a0 !important; }
 .planning-card--over,
-.planning-card--overdue { border-color: #efcfca !important; }
+.planning-card--overdue { border-color: #efcfca !important; border-left-width: 4px !important; }
 .planning-card--paid { background: #fbfcfb !important; }
 .planning-card--achieved {
   border-color: #bfdbc8 !important;
@@ -7721,4 +7730,57 @@ dialog.transaction-dialog {
     color-mix(in srgb, var(--color-accent-subtle) 50%, var(--color-bg-secondary)),
     var(--color-bg-secondary)
   );
+}
+
+/* ===================================================================
+   DARK THEME TOKEN RESTORATION
+   The "UI REFRESH" :root block above (~line 6512) redefines these same
+   custom properties unconditionally, with equal selector specificity to
+   the original [data-theme="dark"] block near the top of this file — so
+   by source order it silently wins and overwrites the dark values for
+   every consumer that reads these tokens without its own dark-specific
+   override (e.g. .budget-overview text/bg went invisible: light text on
+   a light background computed from the wrong --color-bg-secondary).
+   Re-declared last so dark mode is correct regardless of what earlier
+   :root blocks in this file redefine.
+   =================================================================== */
+[data-theme="dark"] {
+  --color-bg-primary: #0A0A0B;
+  --color-bg-secondary: #141416;
+  --color-bg-tertiary: #1E1F23;
+  --color-bg-elevated: #1A1A1E;
+  --color-border-default: #2A2B30;
+  --color-border-strong: #3A3B42;
+  --color-border-focus: #4ADE80;
+  --color-text-primary: #EDEDED;
+  --color-text-secondary: #A0A0A8;
+  --color-text-tertiary: #6B6B76;
+  --color-text-disabled: #4A4A54;
+  --color-text-inverse: #111218;
+  --color-overlay: rgba(0, 0, 0, 0.7);
+  --color-accent-default: #4ADE80;
+  --color-accent-hover: #22C55E;
+  --color-accent-pressed: #16A34A;
+  --color-accent-subtle: #052E16;
+  --color-accent-text: #86EFAC;
+  --color-accent-gradient: linear-gradient(145deg, #22C55E, #16A34A);
+  --color-success-default: #22C55E;
+  --color-success-subtle: #052E16;
+  --color-success-text: #86EFAC;
+  --color-danger-default: #EF4444;
+  --color-danger-subtle: #450A0A;
+  --color-danger-text: #FCA5A5;
+  --color-warning-default: #F59E0B;
+  --color-warning-subtle: #451A03;
+  --color-warning-text: #FCD34D;
+  --color-info-default: #60A5FA;
+  --color-info-subtle: #1E3A5F;
+  --color-info-text: #93C5FD;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 42px rgba(0, 0, 0, 0.35);
+  --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --lime: #1a3a1f;
 }

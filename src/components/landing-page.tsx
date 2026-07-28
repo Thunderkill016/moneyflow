@@ -68,6 +68,11 @@ export function LandingPage() {
             </span>
             <span>MoneyFlow</span>
           </Link>
+          <div className={styles.navLinks}>
+            <a href="#cach-hoat-dong">Cách hoạt động</a>
+            <a href="#features-title">Tính năng</a>
+            <a href="#faq-title">Câu hỏi</a>
+          </div>
           <div className={styles.navActions}>
             <Link href="/login" className={styles.loginLink}>
               Đăng nhập

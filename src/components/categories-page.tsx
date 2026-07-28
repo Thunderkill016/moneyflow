@@ -85,7 +85,7 @@ function CategorySection({
               </div>
             </div>
             <div className="account-card-foot">
-              <span>{item.isDefault ? "Seed giữ lại" : "Tự tạo"}</span>
+              <span>{item.isDefault ? "Có sẵn" : "Tự tạo"}</span>
               <div>
                 {!item.isArchived && (
                   <button

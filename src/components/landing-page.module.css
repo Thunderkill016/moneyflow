@@ -58,8 +58,7 @@
   margin: 0 auto;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  gap: 32px;
 }
 
 .brand {
@@ -83,10 +82,34 @@
 }
 
 .brandMark > span {
-  width: 13px;
-  height: 13px;
-  border: 2px solid var(--mf-on-brand);
+  width: 14px;
+  height: 14px;
+  border: 2.5px solid var(--mf-on-brand);
+  border-top-color: transparent;
   border-radius: 50%;
+  transform: rotate(45deg);
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.navLinks a {
+  color: var(--mf-text-muted);
+  font-size: 14px;
+  font-weight: 620;
+}
+
+.navLinks a:hover {
+  color: var(--mf-text);
+}
+
+@media (max-width: 860px) {
+  .navLinks {
+    display: none;
+  }
 }
 
 .navActions,
@@ -94,6 +117,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.navActions {
+  margin-left: auto;
 }
 
 .loginLink {

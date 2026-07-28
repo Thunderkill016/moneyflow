@@ -62,10 +62,12 @@
 }
 
 .brandMark > span {
-  width: 13px;
-  height: 13px;
-  border: 2px solid currentColor;
+  width: 14px;
+  height: 14px;
+  border: 2.5px solid currentColor;
+  border-top-color: transparent;
   border-radius: 50%;
+  transform: rotate(45deg);
 }
 
 .storyBody {
