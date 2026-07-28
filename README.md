@@ -25,6 +25,7 @@ Start here before non-trivial work:
 
 UI and infrastructure references:
 
+- [Design handbook](docs/DESIGN_HANDBOOK.md)
 - [AI-assisted UI/UX workflow](docs/AI_UIUX_WORKFLOW.md)
 - [UX principles](docs/UX_PRINCIPLES.md)
 - [Design system](docs/design-system.md)
