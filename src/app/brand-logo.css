@@ -1,9 +1,9 @@
 /*
- * MoneyFlow brand mark
+ * Canonical MoneyFlow brand mark v1
  *
- * The existing brand links intentionally keep their accessible text and
- * component-owned sizing. This global identity layer replaces only the small
- * decorative glyph so landing, auth and signed-in shell share one mark.
+ * The existing brand links keep their accessible text and component-owned
+ * sizing. This shared identity layer replaces only the decorative glyph so
+ * landing, auth and signed-in shell use one approved mark.
  */
 
 a[aria-label^="MoneyFlow"] > span:first-child {
