@@ -53,3 +53,75 @@
     letter-spacing: -0.02em;
   }
 }
+
+/* Canonical MoneyFlow brand mark v1.
+ *
+ * Existing brand links keep their accessible text and component-owned sizing.
+ * This compatibility rule replaces only the decorative glyph while the
+ * repeated brand wrappers are migrated to a shared component.
+ */
+a[aria-label^="MoneyFlow"] > span:first-child {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+a[aria-label^="MoneyFlow"] > span:first-child > span {
+  width: 56% !important;
+  height: 56% !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--mf-on-brand, currentColor);
+  clip-path: polygon(
+    0 0,
+    24% 0,
+    50% 52%,
+    76% 0,
+    100% 0,
+    100% 100%,
+    77% 100%,
+    77% 39%,
+    58% 78%,
+    42% 78%,
+    23% 39%,
+    23% 100%,
+    0 100%
+  );
+  transform: none !important;
+}
+
+main#noi-dung [role="img"] span[aria-hidden="true"]:empty {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  background: var(--mf-brand);
+}
+
+main#noi-dung [role="img"] span[aria-hidden="true"]:empty::after {
+  position: absolute;
+  inset: 24%;
+  background: var(--mf-on-brand);
+  clip-path: polygon(
+    0 0,
+    24% 0,
+    50% 52%,
+    76% 0,
+    100% 0,
+    100% 100%,
+    77% 100%,
+    77% 39%,
+    58% 78%,
+    42% 78%,
+    23% 39%,
+    23% 100%,
+    0 100%
+  );
+  content: "";
+}
+
+@media (forced-colors: active) {
+  a[aria-label^="MoneyFlow"] > span:first-child > span,
+  main#noi-dung [role="img"] span[aria-hidden="true"]:empty::after {
+    background: CanvasText;
+  }
+}

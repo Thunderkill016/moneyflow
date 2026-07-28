@@ -10,15 +10,21 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "MoneyFlow — Quản lý thu chi cá nhân",
     short_name: "MoneyFlow",
     description:
-      "Ghi thu chi nhanh, nhiều ví, ngân sách danh mục. Biết hôm nay có thể chi bao nhiêu. Xuất CSV.",
+      "Ghi thu chi nhanh, theo dõi nhiều ví, ngân sách và báo cáo tháng. Xuất CSV bất cứ lúc nào.",
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#F8F9FA",
-    theme_color: "#0f766e",
+    background_color: "#F4F7F5",
+    theme_color: "#0B6B3A",
     lang: "vi",
     icons: [
+      {
+        src: "/icon.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "any",
+      },
       {
         src: "/icon-192.png",
         sizes: "192x192",

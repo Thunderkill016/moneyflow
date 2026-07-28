@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">MoneyFlow</title>
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="#0B6B3A"/>
+  <path d="M17 43V23.5C17 21.57 18.57 20 20.5 20H22.6L32 34.2L41.4 20H43.5C45.43 20 47 21.57 47 23.5V43"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="5.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>
