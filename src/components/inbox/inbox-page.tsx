@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
-import { InboxBulkBar, type BulkApplyPayload } from "@/components/inbox-bulk-bar";
+import { InboxBulkBar, type BulkApplyPayload } from "@/components/inbox/inbox-bulk-bar";
 import {
   InboxReviewPanel,
   type ReviewSubmitPayload,
-} from "@/components/inbox-review-panel";
+} from "@/components/inbox/inbox-review-panel";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";

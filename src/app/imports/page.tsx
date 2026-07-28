@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ImportsPage } from "@/components/imports-page";
+import { ImportsPage } from "@/components/inbox/imports-page";
 import { requireViewer } from "@/server/auth";
 
 export const metadata: Metadata = {

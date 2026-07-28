@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { InboxExplainPanel } from "@/components/inbox-explain-panel";
+import { InboxExplainPanel } from "@/components/inbox/inbox-explain-panel";
 import {
   CONFIDENCE_LABELS,
   type InboxCandidate,

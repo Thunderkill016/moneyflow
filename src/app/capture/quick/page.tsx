@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CaptureQuickPage } from "@/components/capture-quick-page";
+import { CaptureQuickPage } from "@/components/inbox/capture-quick-page";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
 
