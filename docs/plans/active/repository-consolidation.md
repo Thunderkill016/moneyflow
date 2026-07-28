@@ -3,13 +3,21 @@
 **Status:** discovery
 **Owner:** agent
 **Issue/PR:** none yet — inventory only, no branch/PR opened for this phase
-**Last updated:** 2026-07-28
+**Last updated:** 2026-07-28 (update 2: human owner decided the Grok question — see "Update 2" note in section B/C)
 
 **Scope of this document (Phase 1 only):** classify every notable file/PR/branch into
 `KEEP / MOVE / MERGE / ARCHIVE / DELETE / UNKNOWN`. **No file was moved, merged, archived
-or deleted while producing this inventory.** No open PR was closed or merged. This packet
-is the audit; later phases (doc consolidation, GitHub cleanup, domain-by-domain code
-moves) each get their own packet and human sign-off before any change lands.
+or deleted while producing the initial inventory below.** No open PR was closed or
+merged. This packet is the audit; later phases (doc consolidation, GitHub cleanup,
+domain-by-domain code moves) each get their own packet and human sign-off before any
+change lands.
+
+**Amendment (2026-07-28, same session):** the human owner reviewed the single highest-
+priority open question raised by this inventory — the competing Grok-branded agent
+runtime (`.grok/`, `IDEA.md` and its dependents) — and explicitly decided to remove it.
+That one, narrowly-scoped deletion was carried out and is recorded in sections B/C and
+task T2 below. It is the only file removal actioned by this packet; every other
+MOVE/MERGE/ARCHIVE/DELETE candidate below remains a proposal awaiting its own decision.
 
 ## Outcome
 
@@ -72,7 +80,7 @@ re-deriving the facts from scratch.
 
 ### Open questions
 
-- [ ] Should `.grok/` and `IDEA.md` be retired outright, or does the human owner still use the Grok-oriented workflow for some sessions? (This determines whether it's ARCHIVE or KEEP-but-reconciled.)
+- [x] Should `.grok/` and `IDEA.md` be retired outright, or does the human owner still use the Grok-oriented workflow for some sessions? — **Resolved 2026-07-28: retired.** See "Update 2" in sections B/C.
 - [ ] For each of the 4 stale active packets below: has the referenced production flow actually been verified, or only merged? (`docs/plans/active/README.md` and `AGENTS.md` §8 require production verification before moving to `completed/`, not just a merged PR.)
 - [ ] Is `src/lib/inbox/client-inbox.ts` misplaced (should live under `hooks/`), or should the `lib` ownership rule carve out an exception for client facades that call server actions?
 
@@ -176,7 +184,7 @@ flow was actually verified (per `AGENTS.md` §8) before re-filing as `completed/
 | Topic | Documents involved | Finding | Classification |
 |---|---|---|---|
 | "What is MoneyFlow" | `docs/PRODUCT.md` (70 ln) vs `docs/product/PRINCIPLES.md` (102 ln) | `CLAUDE.md` source precedence and `README.md` both name only `PRINCIPLES.md`. But `scripts/check-project-knowledge.mjs` (CI-enforced) still scans `docs/PRODUCT.md` as a "current truth" file. `docs/PRODUCT.md` is referenced only from other legacy/historical docs (a completed packet, `REBUILD_MASTER_PLAN.md`, `UX_RESEARCH_AND_REDESIGN.md`, `docs/research/01_RESEARCH_PLAN.md`, `docs/cyclewarden/...`) | **MERGE/ARCHIVE** `docs/PRODUCT.md` into `PRINCIPLES.md` if it holds anything not already there, then update `check-project-knowledge.mjs`'s `currentTruthFiles` list to drop it |
-| "How should the agent operate" | `CLAUDE.md` + `AGENTS.md` + `.claude/` (current) vs `IDEA.md` + `.grok/` (declares itself "locked", not Claude) | `IDEA.md` is still read by the live `SessionStart` hook this very session. This is an active conflict, not dead history. | **UNKNOWN — needs human decision**, highest-priority open question in this packet |
+| "How should the agent operate" | `CLAUDE.md` + `AGENTS.md` + `.claude/` (current) vs `IDEA.md` + `.grok/` (declared itself "locked", not Claude) | ~~`IDEA.md` is still read by the live `SessionStart` hook.~~ **Update 2 (2026-07-28): human owner decided — remove Grok.** Deleted: `.grok/` (entire dir), `IDEA.md`, `AGENT_AUTOPILOT.md`, `docs/AGENT_RUNTIME.md`, `docs/VIP_AGENT_STACK.md`, `docs/AUTOPILOT_PLAN.md`, and the self-contained script chain `scripts/agent-{daemon,daemon-start,daemon-stop,orchestrator,pick-task,refill-backlog,run-headless}.sh`. Edited `docs/CLAUDE_SKILLS.md` to drop its `.grok/skills/` line. `scripts/hooks/session-start.sh` guarded `IDEA.md` with `[[ -f IDEA.md ]]`, so its absence was a no-op, not a break; the now-dead `IDEA.md`-reading branch was also removed from that hook for clarity. `npm run check:knowledge` still passes. | **DONE** |
 | "What's the MVP" | `docs/MVP_DEFINITION.md` (58 ln, current per `AGENTS.md` table) vs `docs/MVP_BEST_BAR.md` (56 ln) vs `docs/MVP_SHIPPED.md` (39 ln) | `MVP_BEST_BAR.md`/`MVP_SHIPPED.md` referenced only by `IDEA.md`, `.grok/`, `docs/AGENT_RUNTIME.md`, `docs/REAL_USE_READINESS_CONTRACT.md`, `docs/REBUILD_MASTER_PLAN.md`, `docs/COMPETITOR_GAP_BAR.md` — all part of the same legacy/Grok cluster, not from `AGENTS.md`/`README.md` | **ARCHIVE** as a unit once the `.grok`/`IDEA.md` question (above) is resolved |
 
 ### C. Legacy autopilot cluster (root + `docs/` + `scripts/` + `.grok/`)
@@ -190,10 +198,21 @@ script name below returned nothing):
 - `.grok/` (entire directory): hooks, skills, rules — a second, parallel agent-operating system to `.claude/`
 
 All internally consistent with each other and with `IDEA.md`, but disconnected from
-`AGENTS.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `README.md`, and CI. **Classification:
-ARCHIVE candidate as one cluster**, contingent on the same open question as row B
-(does the human owner still use this runtime for any session?). Not deleted or moved
-in this phase.
+`AGENTS.md`, `ARCHITECTURE.md`, `CLAUDE.md`, `README.md`, and CI.
+
+**Update 2 (2026-07-28):** the Grok-branded subset of this cluster was deleted per the
+human owner's explicit decision — `IDEA.md`, `AGENT_AUTOPILOT.md`, `docs/AGENT_RUNTIME.md`,
+`docs/VIP_AGENT_STACK.md`, `docs/AUTOPILOT_PLAN.md`, `.grok/`, and the
+`scripts/agent-daemon*/orchestrator/pick-task/refill-backlog/run-headless.sh` chain.
+Root-level `AGENT_BACKLOG.md` (935 ln, backlog-in-Markdown) and `AGENT_ROADMAP.md`
+(zero inbound references even before this cleanup) were **not** part of this decision
+and remain open — they aren't Grok-branded by name, just adjacent legacy backlog
+tooling, so they still need their own human call (task T4 below). Two now-orphaned
+in-repo references surfaced by the deletion: `docs/MVP_SHIPPED.md` (still points at
+`IDEA.md`'s R\*/Q\* queue) and `docs/REBUILD_MASTER_PLAN.md` (still points at `IDEA.md`
+and `.grok/skills/frontend-design`) — both already flagged as part of this same legacy
+cluster in row B above, so no new classification needed, just noting the dangling
+reference for whoever resolves T4.
 
 ### D. Boundary check (`lib` must not import `app`/`components`/`server`)
 
@@ -247,9 +266,9 @@ No action taken on any of these three PRs in this phase.
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
 | T1 | Produce this Phase 1 inventory | none | this document | done |
-| T2 | Human owner decides `.grok`/`IDEA.md` vs `.claude`/`CLAUDE.md` question | T1 | decision recorded in this packet | todo (blocked on human) |
-| T3 | Human owner confirms production verification for the 4 stale active packets, then agent moves each to `completed/` | T1, T2 not required | updated packets + this table | todo (blocked on human) |
-| T4 | Human owner approves ARCHIVE of the legacy autopilot cluster (section C) | T2 | follow-up packet | todo (blocked on human) |
+| T2 | Human owner decides `.grok`/`IDEA.md` vs `.claude`/`CLAUDE.md` question | T1 | Grok cluster deleted (commit on `claude/doc-du-an-qnj7ya`); see "Update 2" in section B/C | done |
+| T3 | Human owner confirms production verification for the 4 stale active packets, then agent moves each to `completed/` | T1 | updated packets + this table | todo (blocked on human) |
+| T4 | Human owner approves ARCHIVE of the remaining non-Grok legacy autopilot cluster (`AGENT_BACKLOG.md`, `AGENT_ROADMAP.md`, `docs/MVP_BEST_BAR.md`, `docs/MVP_SHIPPED.md`, `docs/REBUILD_MASTER_PLAN.md`, `docs/COMPETITOR_GAP_BAR.md`, `docs/COMPETITOR_GAP_REPORT.md`, `docs/REAL_USE_READINESS_CONTRACT.md`) | T2 (done) | follow-up packet | todo (blocked on human) |
 | T5 | Resolve `client-inbox.ts` boundary question (section D) | none | follow-up packet or inline decision | todo (blocked on human) |
 | T6 | Merge/retire `docs/PRODUCT.md` and update `check-project-knowledge.mjs`'s `currentTruthFiles` | none | follow-up packet | todo (blocked on human) |
 
