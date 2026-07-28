@@ -29,11 +29,11 @@ It deliberately excludes coins, wallets, cards, currency signs, arrows, rising c
 | Asset | Source |
 |---|---|
 | App/favicon vector | `src/app/icon.svg` |
-| Shared in-product mark geometry | `src/app/brand-logo.css` |
-| Global identity import | `src/app/layout.tsx` |
+| Shared in-product mark geometry | `src/app/ai-uiux-guardrails.css` (compatibility boundary) |
+| Root CSS ownership | `src/app/legacy.css` → `src/app/ai-uiux-guardrails.css` |
 | Installed-app metadata | `src/app/manifest.ts` |
 
-Do not create a second logo source unless a reviewed change replaces these files in the same pull request.
+The current repeated brand wrappers have not yet been consolidated into one shared component. Until that migration, the approved geometry lives in the existing frozen compatibility boundary rather than adding another root-global stylesheet. Do not create a second logo source.
 
 ## Canonical construction
 
