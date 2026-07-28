@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# SessionStart: print compact context for Grok logs (passive; exit 0).
+# SessionStart: print compact repository context for coding-agent sessions.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
-echo "[moneyflow] Grok VIP session — runtime locked (docs/AGENT_RUNTIME.md)"
+echo "[moneyflow] agent session — read CLAUDE.md and AGENTS.md before changing code"
 if [[ -f IDEA.md ]]; then
   NEXT=$(python3 - <<'PY'
 from pathlib import Path
@@ -17,8 +17,8 @@ for line in text.splitlines():
 else:
     print("(no open R*/Q*)")
 PY
-)
+  )
   echo "[moneyflow] next IDEA: $NEXT"
 fi
-echo "[moneyflow] gates: npm run lint && npm run typecheck && npm run test"
+echo "[moneyflow] gates: npm run check:knowledge && npm run lint && npm run typecheck && npm run test"
 exit 0
