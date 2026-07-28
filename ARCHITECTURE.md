@@ -93,7 +93,7 @@ Authenticated user-owned records require RLS. Database constraints and tests are
 ## Verification layers
 
 ```text
-Static contract      check:knowledge, check:deployment-env, lint, typecheck
+Static contract      check:knowledge, check:deployment-env, check:architecture, lint, typecheck
 Domain behavior      node unit tests
 Database truth       Supabase reset + pgTAP
 User flows           Playwright browser smoke
