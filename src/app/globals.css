@@ -482,7 +482,7 @@ a.desktop-search-link { text-decoration: none; color: inherit; cursor: pointer; 
 a.desktop-search-link:hover { border-color: #9abda8; }
 .desktop-search-placeholder { min-width: 0; flex: 1; color: #9aa39e; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar-actions { display: flex; align-items: center; gap: 12px; }
-.icon-button { position: relative; display: grid; width: 42px; height: 42px; flex: 0 0 42px; cursor: pointer; place-items: center; border: 1px solid var(--line); border-radius: 12px; background: white; transition: background .18s ease, transform .18s ease; }
+.icon-button { position: relative; display: grid; width: 44px; height: 44px; flex: 0 0 44px; cursor: pointer; place-items: center; border: 1px solid var(--line); border-radius: 12px; background: white; transition: background .18s ease, transform .18s ease; }
 .icon-button:hover { background: #f2f5f3; }
 .icon-button:active { transform: scale(.96); }
 .icon-button svg { width: 19px; height: 19px; }
@@ -2125,7 +2125,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   .mobile-brand { font-size: 17px; }
   .mobile-brand .brand-mark { width: 28px; height: 28px; border-radius: 9px; }
   .mobile-avatar { display: grid; width: 34px; height: 34px; }
-  .topbar-actions .icon-button { width: 38px; height: 38px; flex-basis: 38px; border: 0; background: transparent; }
+  .topbar-actions .icon-button { border: 0; background: transparent; }
   /* Body already clears nav+FAB; keep modest content pad only */
   .dashboard {
     padding: 28px 16px 28px;
