@@ -1,5 +1,5 @@
 begin;
-select plan(78);
+select plan(86);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
@@ -58,6 +58,14 @@ select ok(exists(select 1 from pg_policies where schemaname = 'public' and table
 select ok(exists(select 1 from pg_policies where schemaname = 'public' and tablename = 'categories' and policyname = 'categories_insert_own'), 'categories insert policy');
 
 select col_type_is('public', 'inbox_candidates', 'amount_minor', 'bigint', 'inbox candidate money uses bigint');
+select col_type_is('public', 'inbox_candidates', 'source_row_index', 'integer', 'inbox candidate source row uses integer');
+select col_has_check('public', 'inbox_candidates', 'source_row_index', 'inbox candidate source row is constrained');
+select col_type_is('public', 'import_batches', 'parser_version', 'text', 'import parser version uses text');
+select col_not_null('public', 'import_batches', 'parser_version', 'import parser version is required');
+select col_has_check('public', 'import_batches', 'parser_version', 'import parser version is constrained');
+select col_type_is('public', 'import_batches', 'mapping_version', 'text', 'import mapping version uses text');
+select col_not_null('public', 'import_batches', 'mapping_version', 'import mapping version is required');
+select col_has_check('public', 'import_batches', 'mapping_version', 'import mapping version is constrained');
 
 select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid'], 'create RPC exists');
 select has_function('public', 'soft_delete_money_transaction', array['uuid'], 'soft delete RPC exists');

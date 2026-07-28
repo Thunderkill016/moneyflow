@@ -14,10 +14,10 @@ import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 
 const CANDIDATE_COLUMNS =
-  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at";
+  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,source_row_index,local_id,created_at";
 
 const BATCH_COLUMNS =
-  "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at";
+  "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,parser_version,mapping_version,local_id,created_at,committed_at";
 
 export type InboxListResult =
   | { ok: true; candidates: InboxCandidate[]; batches: ImportBatch[] }

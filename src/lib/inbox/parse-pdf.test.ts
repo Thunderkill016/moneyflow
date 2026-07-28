@@ -116,6 +116,10 @@ test("toCsvCandidateInputs source pdf", () => {
   assert.equal(inputs.length, result.rows.length);
   assert.ok(inputs.every((i) => i.source === "pdf"));
   assert.ok(inputs.every((i) => i.importBatchId === "imp-pdf-1"));
+  assert.deepEqual(
+    inputs.map((item) => item.sourceRowIndex),
+    result.rows.map((row) => row.rowIndex),
+  );
 });
 
 test("isPdfUpload", () => {

@@ -61,6 +61,7 @@ export type InboxCandidateRow = {
   account_name: string | null;
   raw_snippet: string | null;
   import_batch_id: string | null;
+  source_row_index: number | null;
   local_id: string | null;
   created_at: string;
 };
@@ -76,6 +77,8 @@ export type ImportBatchRow = {
   map_confidence: number;
   headers: unknown;
   column_map: unknown;
+  parser_version: string;
+  mapping_version: string;
   local_id: string | null;
   created_at: string;
   committed_at: string | null;
@@ -134,6 +137,7 @@ export function mapCandidateRow(row: InboxCandidateRow): InboxCandidate {
     account: row.account_name ?? undefined,
     rawSnippet: row.raw_snippet ?? undefined,
     importBatchId: row.import_batch_id ?? undefined,
+    sourceRowIndex: row.source_row_index ?? undefined,
     createdAt: row.created_at,
   };
   if (!isCandidate(candidate)) {
@@ -154,6 +158,8 @@ export function mapBatchRow(row: ImportBatchRow): ImportBatch {
     mapConfidence: row.map_confidence,
     headers: asStringArray(row.headers),
     columnMap: asColumnMap(row.column_map),
+    parserVersion: row.parser_version,
+    mappingVersion: row.mapping_version,
     createdAt: row.created_at,
     committedAt: row.committed_at ?? undefined,
   };
@@ -200,6 +206,7 @@ export function candidateToInsertRow(
       options?.importBatchId !== undefined
         ? options.importBatchId
         : optionalUuid(candidate.importBatchId),
+    source_row_index: candidate.sourceRowIndex ?? null,
     local_id: options?.localId === undefined ? null : options.localId,
     created_at: candidate.createdAt,
   };
@@ -223,6 +230,8 @@ export function batchToInsertRow(
     map_confidence: batch.mapConfidence,
     headers: batch.headers,
     column_map: batch.columnMap,
+    parser_version: batch.parserVersion,
+    mapping_version: batch.mappingVersion,
     local_id: options?.localId === undefined ? null : options.localId,
     created_at: batch.createdAt,
     committed_at: batch.committedAt ?? null,

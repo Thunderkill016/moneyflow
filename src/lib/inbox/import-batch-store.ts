@@ -6,6 +6,9 @@
 import type { CsvColumnMap } from "./parse-csv.ts";
 
 export const IMPORT_BATCH_STORAGE_KEY = "moneyflow-import-batches-v1";
+export const LEGACY_IMPORT_VERSION = "legacy-v1";
+export const CURRENT_MAPPING_VERSION = "column-map-v1";
+export const MAX_IMPORT_VERSION_LENGTH = 64;
 
 export type ImportBatchSource = "csv" | "xlsx" | "pdf" | "paste";
 
@@ -27,6 +30,8 @@ export type ImportBatch = {
   mapConfidence: number;
   headers: string[];
   columnMap: CsvColumnMap;
+  parserVersion: string;
+  mappingVersion: string;
   createdAt: string;
   /** ISO time when candidates were written to inbox. */
   committedAt?: string;
@@ -42,6 +47,8 @@ export type CreateImportBatchInput = {
   mapConfidence: number;
   headers: string[];
   columnMap: CsvColumnMap;
+  parserVersion?: string;
+  mappingVersion?: string;
   id?: string;
   createdAt?: string;
   committedAt?: string;
@@ -64,7 +71,19 @@ function isColumnMap(value: unknown): value is CsvColumnMap {
 const SOURCES: ImportBatchSource[] = ["csv", "xlsx", "pdf", "paste"];
 const STATUSES: ImportBatchStatus[] = ["parsed", "committed", "cancelled"];
 
-export function isImportBatch(value: unknown): value is ImportBatch {
+function isImportVersion(value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= MAX_IMPORT_VERSION_LENGTH
+  );
+}
+
+export function parserVersionForSource(source: ImportBatchSource): string {
+  return `${source}-v1`;
+}
+
+function isImportBatchCore(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<ImportBatch>;
   return (
@@ -97,7 +116,44 @@ export function isImportBatch(value: unknown): value is ImportBatch {
   );
 }
 
+export function isImportBatch(value: unknown): value is ImportBatch {
+  if (!isImportBatchCore(value)) return false;
+  const item = value as Partial<ImportBatch>;
+  return (
+    isImportVersion(item.parserVersion) &&
+    isImportVersion(item.mappingVersion)
+  );
+}
+
+/**
+ * Upgrade browser metadata written before versioned import lineage existed.
+ * Invalid explicit versions still fail closed instead of being rewritten.
+ */
+export function normalizeImportBatch(value: unknown): ImportBatch | null {
+  if (!isImportBatchCore(value)) return null;
+  const item = value as Partial<ImportBatch>;
+  const parserVersion =
+    item.parserVersion === undefined
+      ? LEGACY_IMPORT_VERSION
+      : item.parserVersion;
+  const mappingVersion =
+    item.mappingVersion === undefined
+      ? LEGACY_IMPORT_VERSION
+      : item.mappingVersion;
+  const normalized = { ...item, parserVersion, mappingVersion };
+  return isImportBatch(normalized) ? normalized : null;
+}
+
 export function createImportBatch(input: CreateImportBatchInput): ImportBatch {
+  const parserVersion =
+    input.parserVersion ?? parserVersionForSource(input.source);
+  const mappingVersion =
+    input.mappingVersion ?? CURRENT_MAPPING_VERSION;
+  if (!isImportVersion(parserVersion) || !isImportVersion(mappingVersion)) {
+    throw new Error(
+      `import versions must contain 1-${MAX_IMPORT_VERSION_LENGTH} characters`,
+    );
+  }
   return {
     id:
       input.id ??
@@ -111,6 +167,8 @@ export function createImportBatch(input: CreateImportBatchInput): ImportBatch {
     mapConfidence: input.mapConfidence,
     headers: [...input.headers],
     columnMap: { ...input.columnMap },
+    parserVersion,
+    mappingVersion,
     createdAt: input.createdAt ?? new Date().toISOString(),
     committedAt: input.committedAt,
   };
@@ -133,11 +191,20 @@ export function readStoredImportBatches(): ImportBatch[] {
     const saved = localStorage.getItem(IMPORT_BATCH_STORAGE_KEY);
     if (saved === null) return [];
     const parsed: unknown = JSON.parse(saved);
-    if (!Array.isArray(parsed) || !parsed.every(isImportBatch)) {
+    if (!Array.isArray(parsed)) {
       localStorage.removeItem(IMPORT_BATCH_STORAGE_KEY);
       return [];
     }
-    return parsed;
+    const normalized = parsed.map(normalizeImportBatch);
+    if (normalized.some((item) => item === null)) {
+      localStorage.removeItem(IMPORT_BATCH_STORAGE_KEY);
+      return [];
+    }
+    const batches = normalized as ImportBatch[];
+    if (!parsed.every(isImportBatch)) {
+      writeStoredImportBatches(batches);
+    }
+    return batches;
   } catch {
     try {
       localStorage.removeItem(IMPORT_BATCH_STORAGE_KEY);

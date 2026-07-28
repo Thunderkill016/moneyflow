@@ -24,6 +24,7 @@ const candidate: InboxCandidate = {
   confidence: "low",
   status: "pending",
   importBatchId: "imp-local-1",
+  sourceRowIndex: 7,
   createdAt: "2026-07-12T02:10:00.000Z",
 };
 
@@ -38,6 +39,8 @@ const batch: ImportBatch = {
   mapConfidence: 0.9,
   headers: ["Date", "Amount", "Desc"],
   columnMap: { date: 0, amount: 1, desc: 2, debit: null, credit: null },
+  parserVersion: "csv-v1",
+  mappingVersion: "column-map-v1",
   createdAt: "2026-07-12T01:00:00.000Z",
   committedAt: "2026-07-12T01:05:00.000Z",
 };
@@ -88,12 +91,14 @@ test("mapCandidateRow maps amount_minor integer money", () => {
     account_name: null,
     raw_snippet: null,
     import_batch_id: null,
+    source_row_index: 9,
     local_id: "cand-x",
     created_at: "2026-07-11T14:22:00.000Z",
   });
   assert.equal(mapped.amount, 89_000);
   assert.equal(mapped.category, "Di chuyển");
   assert.equal(mapped.possibleDuplicate, undefined);
+  assert.equal(mapped.sourceRowIndex, 9);
 });
 
 test("mapBatchRow preserves column map", () => {
@@ -108,6 +113,8 @@ test("mapBatchRow preserves column map", () => {
     map_confidence: 0.8,
     headers: ["a", "b"],
     column_map: { date: 0, amount: 1, desc: 2, debit: null, credit: null },
+    parser_version: "csv-v1",
+    mapping_version: "column-map-v1",
     local_id: null,
     created_at: "2026-07-12T00:00:00.000Z",
     committed_at: null,
@@ -115,6 +122,8 @@ test("mapBatchRow preserves column map", () => {
   assert.equal(mapped.rowCount, 10);
   assert.equal(mapped.columnMap.date, 0);
   assert.equal(mapped.columnMap.amount, 1);
+  assert.equal(mapped.parserVersion, "csv-v1");
+  assert.equal(mapped.mappingVersion, "column-map-v1");
 });
 
 test("buildMigratePayloads remaps non-uuid ids and batch refs", () => {
@@ -133,7 +142,10 @@ test("buildMigratePayloads remaps non-uuid ids and batch refs", () => {
   assert.equal(candidateRows[0]?.local_id, "cand-local-1");
   assert.equal(candidateRows[0]?.import_batch_id, serverBatchId);
   assert.equal(candidateRows[0]?.amount_minor, 45_000);
+  assert.equal(candidateRows[0]?.source_row_index, 7);
   assert.equal(candidateRows[0]?.user_id, "user-1");
+  assert.equal(batchRows[0]?.parser_version, "csv-v1");
+  assert.equal(batchRows[0]?.mapping_version, "column-map-v1");
 });
 
 test("prepareCandidateForServer assigns UUID id", () => {

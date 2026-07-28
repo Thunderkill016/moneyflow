@@ -696,6 +696,7 @@ export function toCsvCandidateInputs(
     status: "pending" as const,
     rawSnippet: item.rawSnippet,
     importBatchId,
+    sourceRowIndex: item.rowIndex,
   }));
 }
 

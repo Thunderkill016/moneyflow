@@ -97,6 +97,10 @@ test("toCsvCandidateInputs source xlsx", () => {
   assert.equal(inputs.length, result.rows.length);
   assert.ok(inputs.every((i) => i.source === "xlsx"));
   assert.ok(inputs.every((i) => i.importBatchId === "imp-xlsx-1"));
+  assert.deepEqual(
+    inputs.map((item) => item.sourceRowIndex),
+    result.rows.map((row) => row.rowIndex),
+  );
 });
 
 test("isExcelUpload", () => {

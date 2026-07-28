@@ -11,6 +11,7 @@ import {
   markImportBatchCancelled,
   markImportBatchCommitted,
   sortImportBatchesNewestFirst,
+  normalizeImportBatch,
   upsertImportBatch,
   writeStoredImportBatches,
   type ImportBatch,
@@ -33,6 +34,8 @@ const valid: ImportBatch = {
     debit: null,
     credit: null,
   },
+  parserVersion: "csv-v1",
+  mappingVersion: "column-map-v1",
   createdAt: "2026-07-15T10:00:00.000Z",
 };
 
@@ -52,6 +55,8 @@ test("isImportBatch rejects bad shapes", () => {
   assert.equal(isImportBatch({ ...valid, rowCount: -1 }), false);
   assert.equal(isImportBatch({ ...valid, source: "xml" }), false);
   assert.equal(isImportBatch({ ...valid, columnMap: { date: 0 } }), false);
+  assert.equal(isImportBatch({ ...valid, parserVersion: "" }), false);
+  assert.equal(isImportBatch({ ...valid, mappingVersion: "x".repeat(65) }), false);
 });
 
 test("createImportBatch defaults status parsed", () => {
@@ -73,6 +78,51 @@ test("createImportBatch defaults status parsed", () => {
   assert.equal(batch.status, "parsed");
   assert.ok(batch.id.startsWith("imp-"));
   assert.equal(batch.skippedRows, 0);
+  assert.equal(batch.parserVersion, "csv-v1");
+  assert.equal(batch.mappingVersion, "column-map-v1");
+});
+
+test("createImportBatch versions parsers by source", () => {
+  const base = {
+    rowCount: 1,
+    warningCount: 0,
+    mapConfidence: 1,
+    headers: ["Amount"],
+    columnMap: {
+      date: null,
+      amount: 0,
+      desc: null,
+      debit: null,
+      credit: null,
+    },
+  };
+  assert.equal(
+    createImportBatch({ ...base, fileName: "a.xlsx", source: "xlsx" })
+      .parserVersion,
+    "xlsx-v1",
+  );
+  assert.equal(
+    createImportBatch({ ...base, fileName: "a.pdf", source: "pdf" })
+      .parserVersion,
+    "pdf-v1",
+  );
+  assert.equal(
+    createImportBatch({ ...base, fileName: "paste.txt", source: "paste" })
+      .parserVersion,
+    "paste-v1",
+  );
+});
+
+test("normalizeImportBatch upgrades legacy browser metadata without loss", () => {
+  const legacy: Record<string, unknown> = { ...valid };
+  delete legacy.parserVersion;
+  delete legacy.mappingVersion;
+  const normalized = normalizeImportBatch(legacy);
+  assert.ok(normalized);
+  assert.equal(normalized.parserVersion, "legacy-v1");
+  assert.equal(normalized.mappingVersion, "legacy-v1");
+  assert.equal(normalized.id, valid.id);
+  assert.deepEqual(normalized.columnMap, valid.columnMap);
 });
 
 test("upsertImportBatch inserts and replaces", () => {

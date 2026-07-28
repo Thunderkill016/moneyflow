@@ -41,6 +41,9 @@ test("rejects unsafe or incomplete candidate data", () => {
   assert.equal(isCandidate({ ...valid, source: "bank" }), false);
   assert.equal(isCandidate({ ...valid, confidence: "sure" }), false);
   assert.equal(isCandidate({ ...valid, kind: "refund" }), false);
+  assert.equal(isCandidate({ ...valid, sourceRowIndex: 0 }), false);
+  assert.equal(isCandidate({ ...valid, sourceRowIndex: 1.5 }), false);
+  assert.equal(isCandidate({ ...valid, sourceRowIndex: 1_000_001 }), false);
 });
 
 test("createCandidate enforces positive integer amount", () => {
@@ -63,6 +66,30 @@ test("createCandidate enforces positive integer amount", () => {
       occurredOn: "2026-07-11",
       source: "paste",
       confidence: "low",
+    }),
+  );
+});
+
+test("createCandidate preserves a valid source row index", () => {
+  const created = createCandidate({
+    kind: "expense",
+    amount: 89_000,
+    merchant: "Grab",
+    occurredOn: "2026-07-11",
+    source: "csv",
+    confidence: "high",
+    sourceRowIndex: 17,
+  });
+  assert.equal(created.sourceRowIndex, 17);
+  assert.throws(() =>
+    createCandidate({
+      kind: "expense",
+      amount: 89_000,
+      merchant: "Grab",
+      occurredOn: "2026-07-11",
+      source: "csv",
+      confidence: "high",
+      sourceRowIndex: 0,
     }),
   );
 });

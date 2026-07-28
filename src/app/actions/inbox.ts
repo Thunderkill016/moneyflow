@@ -50,10 +50,10 @@ export type InboxActionResult =
   | { ok: false; message: string };
 
 const CANDIDATE_COLUMNS =
-  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at";
+  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,source_row_index,local_id,created_at";
 
 const BATCH_COLUMNS =
-  "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at";
+  "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,parser_version,mapping_version,local_id,created_at,committed_at";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const sourceSchema = z.enum([
@@ -86,6 +86,7 @@ const createCandidateSchema = z.object({
   account: z.string().max(80).optional(),
   rawSnippet: z.string().max(2000).optional(),
   importBatchId: z.string().uuid().optional(),
+  sourceRowIndex: z.number().int().min(1).max(1_000_000).optional(),
   createdAt: z.string().optional(),
 });
 
@@ -130,6 +131,8 @@ const createBatchSchema = z.object({
     debit: z.number().int().min(0).nullable(),
     credit: z.number().int().min(0).nullable(),
   }),
+  parserVersion: z.string().min(1).max(64).optional(),
+  mappingVersion: z.string().min(1).max(64).optional(),
   createdAt: z.string().optional(),
   committedAt: z.string().optional(),
 });

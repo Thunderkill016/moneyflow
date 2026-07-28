@@ -103,7 +103,7 @@ test("fixture sample-generic.csv quoted amounts", () => {
   assert.equal(result.rows[2]?.amount, 45_000);
 });
 
-test("toCsvCandidateInputs attaches batch id + source csv", () => {
+test("toCsvCandidateInputs preserves source row lineage", () => {
   const text = readFileSync(join(fixturesDir, "sample-bank.csv"), "utf8");
   const result = parseCsvStatement(text, { today: "2026-07-15" });
   const inputs = toCsvCandidateInputs(result.rows, "imp-test-1");
@@ -111,6 +111,10 @@ test("toCsvCandidateInputs attaches batch id + source csv", () => {
   assert.ok(inputs.every((i) => i.source === "csv"));
   assert.ok(inputs.every((i) => i.importBatchId === "imp-test-1"));
   assert.ok(inputs.every((i) => i.status === "pending"));
+  assert.deepEqual(
+    inputs.map((item) => item.sourceRowIndex),
+    result.rows.map((row) => row.rowIndex),
+  );
 });
 
 test("parseCsvStatement empty / no amount column → error", () => {

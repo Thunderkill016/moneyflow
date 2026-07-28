@@ -4,6 +4,7 @@
  */
 
 export const CANDIDATE_STORAGE_KEY = "moneyflow-inbox-candidates-v1";
+export const MAX_SOURCE_ROW_INDEX = 1_000_000;
 
 export type CandidateSource =
   | "paste"
@@ -46,6 +47,8 @@ export type InboxCandidate = {
   account?: string;
   rawSnippet?: string;
   importBatchId?: string;
+  /** One-based row number reported by the source parser. */
+  sourceRowIndex?: number;
   createdAt: string;
 };
 
@@ -65,12 +68,13 @@ export type CreateCandidateInput = {
   account?: string;
   rawSnippet?: string;
   importBatchId?: string;
+  sourceRowIndex?: number;
   id?: string;
   createdAt?: string;
 };
 
 export type UpdateCandidateInput = Partial<
-  Omit<InboxCandidate, "id" | "createdAt">
+  Omit<InboxCandidate, "id" | "createdAt" | "sourceRowIndex">
 > & { id: string };
 
 export const SOURCE_LABELS: Record<CandidateSource, string> = {
@@ -245,7 +249,11 @@ export function isCandidate(value: unknown): value is InboxCandidate {
     (item.accountId === undefined || typeof item.accountId === "string") &&
     (item.account === undefined || typeof item.account === "string") &&
     (item.rawSnippet === undefined || typeof item.rawSnippet === "string") &&
-    (item.importBatchId === undefined || typeof item.importBatchId === "string")
+    (item.importBatchId === undefined || typeof item.importBatchId === "string") &&
+    (item.sourceRowIndex === undefined ||
+      (Number.isSafeInteger(item.sourceRowIndex) &&
+        item.sourceRowIndex > 0 &&
+        item.sourceRowIndex <= MAX_SOURCE_ROW_INDEX))
   );
 }
 
@@ -289,6 +297,16 @@ export function createCandidate(input: CreateCandidateInput): InboxCandidate {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.occurredOn)) {
     throw new Error("occurredOn must be YYYY-MM-DD");
   }
+  if (
+    input.sourceRowIndex !== undefined &&
+    (!Number.isSafeInteger(input.sourceRowIndex) ||
+      input.sourceRowIndex <= 0 ||
+      input.sourceRowIndex > MAX_SOURCE_ROW_INDEX)
+  ) {
+    throw new Error(
+      `sourceRowIndex must be an integer between 1 and ${MAX_SOURCE_ROW_INDEX}`,
+    );
+  }
   return {
     id: input.id ?? `cand-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     kind: input.kind,
@@ -306,6 +324,7 @@ export function createCandidate(input: CreateCandidateInput): InboxCandidate {
     account: input.account,
     rawSnippet: input.rawSnippet,
     importBatchId: input.importBatchId,
+    sourceRowIndex: input.sourceRowIndex,
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
 }
