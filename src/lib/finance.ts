@@ -1,11 +1,5 @@
 import type { Transaction } from "@/lib/sample-data";
 
-/** Demo fixture only. Authenticated calculations must never be capped by it. */
-export const DAILY_ALLOWANCE = 392_000;
-export const OPENING_BALANCE = 1_126_000;
-export const MONTHLY_EXPENSE_BEFORE_SAMPLE = 4_209_000;
-export const FOOD_EXPENSE_BEFORE_SAMPLE = 2_697_000;
-
 export function sumTransactions(
   transactions: Transaction[],
   predicate: (transaction: Transaction) => boolean,
@@ -50,6 +44,27 @@ export function balanceAfterTransactions(
   return next;
 }
 
+/**
+ * Reconcile an observed balance when the active client ledger differs from the
+ * server snapshot that produced it. This covers hydration, optimistic writes,
+ * edits, soft-delete and restore without applying any transaction twice.
+ */
+export function balanceAfterLedgerReplacement(
+  observedBalance: number,
+  observedTransactions: Transaction[],
+  activeTransactions: Transaction[],
+): number {
+  if (!Number.isSafeInteger(observedBalance)) {
+    throw new Error("unsafe_balance_total");
+  }
+  const balanceBeforeObservedLedger =
+    observedBalance - netTransactionEffect(observedTransactions);
+  if (!Number.isSafeInteger(balanceBeforeObservedLedger)) {
+    throw new Error("unsafe_balance_total");
+  }
+  return balanceAfterTransactions(balanceBeforeObservedLedger, activeTransactions);
+}
+
 /** Month expense total; transfers never count as expense. */
 export function monthExpenseTotal(
   transactions: Transaction[],
@@ -62,98 +77,18 @@ export function monthExpenseTotal(
 }
 
 type DashboardSummaryOptions = {
-  isDemo?: boolean;
   /** Current VND account balance. It already includes every active ledger row. */
-  totalBalance?: number;
-  today?: string;
-  /**
-   * Remaining amount of a complete all-spending plan.
-   * Category budgets are usually partial and must not be treated as this value.
-   */
-  remainingBudget?: number;
-  /** Explicit trust gate for `remainingBudget`; false by default. */
-  budgetPlanIsComplete?: boolean;
-  reservedCommitments?: number;
-  reservedSavings?: number;
-  plannedDailySavings?: number;
+  totalBalance: number;
+  /** ISO date used to select the observed calendar month. */
+  today: string;
 };
 
-export type DailySpendingGuideInput = {
-  /** Current VND balance after today's posted/manual transactions. */
-  currentBalance: number;
-  /** Flexible expenses already recorded today; recurring commitments are excluded. */
-  flexibleSpentToday: number;
-  remainingDays: number;
-  reservedCommitments?: number;
-  reservedSavings?: number;
-  plannedDailySavings?: number;
-  /** Optional complete all-spending plan, never a sum of partial category budgets. */
-  completePlanRemaining?: number;
-};
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/u;
 
-export type DailySpendingGuide = {
-  safeToday: number;
-  dailyAllowance: number;
-  spendableBalance: number;
-};
-
-function requireSafeInteger(value: number, code: string) {
-  if (!Number.isSafeInteger(value)) throw new Error(code);
-  return value;
-}
-
-/**
- * Calculate a stable allowance for the current calendar day.
- *
- * `currentBalance` already reflects today's expenses. Adding back only today's
- * flexible expenses reconstructs the start-of-day base; subtracting those same
- * expenses after division then counts them exactly once. Recurring payments are
- * excluded because releasing their matching reservation already offsets their
- * balance effect.
- */
-export function calculateDailySpendingGuide({
-  currentBalance,
-  flexibleSpentToday,
-  remainingDays,
-  reservedCommitments = 0,
-  reservedSavings = 0,
-  plannedDailySavings = 0,
-  completePlanRemaining,
-}: DailySpendingGuideInput): DailySpendingGuide {
-  requireSafeInteger(currentBalance, "invalid_current_balance");
-  requireSafeInteger(flexibleSpentToday, "invalid_today_expense");
-  requireSafeInteger(remainingDays, "invalid_remaining_days");
-  requireSafeInteger(reservedCommitments, "invalid_reserved_commitments");
-  requireSafeInteger(reservedSavings, "invalid_reserved_savings");
-  requireSafeInteger(plannedDailySavings, "invalid_planned_daily_savings");
-  if (completePlanRemaining !== undefined) {
-    requireSafeInteger(completePlanRemaining, "invalid_complete_plan_remaining");
-  }
-  if (flexibleSpentToday < 0 || remainingDays <= 0) {
-    throw new Error("invalid_daily_spending_guide_input");
-  }
-
-  const rawSpendableNow =
-    currentBalance - Math.max(0, reservedCommitments) - Math.max(0, reservedSavings);
-  const spendableBalance = Math.max(0, rawSpendableNow);
-  const startOfDaySpendable = Math.max(0, rawSpendableNow + flexibleSpentToday);
-  requireSafeInteger(startOfDaySpendable, "unsafe_start_of_day_balance");
-
-  const balanceAllowance = Math.floor(startOfDaySpendable / remainingDays);
-  const allowanceBeforeSavings =
-    completePlanRemaining === undefined
-      ? balanceAllowance
-      : Math.min(
-          balanceAllowance,
-          Math.floor((Math.max(0, completePlanRemaining) + flexibleSpentToday) / remainingDays),
-        );
-  const dailyAllowance = Math.max(
-    0,
-    allowanceBeforeSavings - Math.max(0, plannedDailySavings),
-  );
-  const safeToday = Math.max(0, dailyAllowance - flexibleSpentToday);
-
-  return { safeToday, dailyAllowance, spendableBalance };
+function isValidIsoDate(value: string) {
+  if (!ISO_DATE_PATTERN.test(value)) return false;
+  const date = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === value;
 }
 
 export type CategoryShare = {
@@ -200,103 +135,28 @@ export function topExpenseCategories(
 
 export function calculateDashboardSummary(
   transactions: Transaction[],
-  options: DashboardSummaryOptions = {},
+  { totalBalance, today }: DashboardSummaryOptions,
 ) {
-  const {
-    isDemo = true,
-    totalBalance = 0,
-    today = "2026-07-14",
-    reservedCommitments = 0,
-    reservedSavings = 0,
-    plannedDailySavings = 0,
-    budgetPlanIsComplete = false,
-  } = options;
+  if (!Number.isSafeInteger(totalBalance)) {
+    throw new Error("invalid_dashboard_balance");
+  }
+  if (!isValidIsoDate(today)) {
+    throw new Error("invalid_dashboard_date");
+  }
   const monthPrefix = today.slice(0, 7);
   const periodTransactions = transactions.filter((item) => item.occurredOn.startsWith(monthPrefix));
   const income = sumTransactions(periodTransactions, (item) => item.kind === "income");
-  const recordedExpense = sumTransactions(periodTransactions, (item) => item.kind === "expense");
-  const todayFlexibleExpense = sumTransactions(
-    periodTransactions,
-    (item) =>
-      item.kind === "expense" &&
-      item.occurredOn === today &&
-      !item.isRecurringPayment,
-  );
-  const foodExpense = periodTransactions.reduce((sum, item) => {
-    if (item.kind !== "expense") return sum;
-    if (item.splits && item.splits.length >= 2) {
-      const part = item.splits
-        .filter((line) => line.category === "Ăn uống" && Number.isSafeInteger(line.amount))
-        .reduce((s, line) => s + line.amount, 0);
-      return sum + part;
-    }
-    return item.category === "Ăn uống" ? sum + item.amount : sum;
-  }, 0);
-  const todayDate = new Date(`${today}T00:00:00.000Z`);
-  const dayOfMonth = todayDate.getUTCDate();
-  const daysInMonth = new Date(
-    Date.UTC(todayDate.getUTCFullYear(), todayDate.getUTCMonth() + 1, 0),
-  ).getUTCDate();
-  const remainingDays = Math.max(1, daysInMonth - dayOfMonth + 1);
-
-  if (isDemo) {
-    const reservedTotal = Math.max(0, reservedCommitments) + Math.max(0, reservedSavings);
-    const demoBalance = OPENING_BALANCE + income - recordedExpense;
-    const demoStartOfDayBalance = Math.max(
-      0,
-      demoBalance - reservedTotal + todayFlexibleExpense,
-    );
-    const demoBalanceAllowance = Math.floor(demoStartOfDayBalance / remainingDays);
-    const demoDailyAllowance =
-      reservedTotal > 0 || plannedDailySavings > 0
-        ? Math.max(
-            0,
-            Math.min(DAILY_ALLOWANCE, demoBalanceAllowance) -
-              Math.max(0, plannedDailySavings),
-          )
-        : DAILY_ALLOWANCE;
-    const expense = MONTHLY_EXPENSE_BEFORE_SAMPLE + recordedExpense;
-    return {
-      income,
-      expense,
-      net: income - expense,
-      balance: demoBalance,
-      safeToday: Math.max(0, demoDailyAllowance - todayFlexibleExpense),
-      dailyAllowance: demoDailyAllowance,
-      forecast: Math.max(
-        0,
-        1_955_000 - Math.max(0, recordedExpense - 391_000) - reservedTotal,
-      ),
-      foodExpense: FOOD_EXPENSE_BEFORE_SAMPLE + foodExpense,
-    };
+  const expense = sumTransactions(periodTransactions, (item) => item.kind === "expense");
+  const net = income - expense;
+  if (!Number.isSafeInteger(net)) {
+    throw new Error("unsafe_dashboard_net");
   }
 
-  const guide = calculateDailySpendingGuide({
-    currentBalance: totalBalance,
-    flexibleSpentToday: todayFlexibleExpense,
-    remainingDays,
-    reservedCommitments,
-    reservedSavings,
-    plannedDailySavings,
-    completePlanRemaining:
-      budgetPlanIsComplete && options.remainingBudget !== undefined
-        ? options.remainingBudget
-        : undefined,
-  });
-  const averageDailyExpense = Math.round(recordedExpense / Math.max(1, dayOfMonth));
-
   return {
-    income,
-    expense: recordedExpense,
-    net: income - recordedExpense,
     balance: totalBalance,
-    safeToday: guide.safeToday,
-    dailyAllowance: guide.dailyAllowance,
-    forecast: Math.max(
-      0,
-      guide.spendableBalance - averageDailyExpense * Math.max(0, remainingDays - 1),
-    ),
-    foodExpense,
+    income,
+    expense,
+    net,
   };
 }
 

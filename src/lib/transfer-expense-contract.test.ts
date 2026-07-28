@@ -17,6 +17,7 @@ import { sampleTransactions, type Transaction } from "./sample-data.ts";
 
 const TODAY = "2026-07-14";
 const MONTH = "2026-07";
+const DEMO_TOTAL_BALANCE = 15_735_000;
 
 /** Large transfer so accidental inclusion would dominate totals. */
 const TRANSFER_AMOUNT = 2_000_000;
@@ -137,16 +138,18 @@ test("TASK-253: transfer amount not in budget category spend (demo ledger)", () 
 });
 
 test("TASK-253: demo dashboard month expense ignores transfer", () => {
-  // isDemo default true — recorded expense only; transfer must not change expense delta
-  const dashWithout = calculateDashboardSummary(sampleTransactions, { today: TODAY });
-  const dashWith = calculateDashboardSummary(demoLedger, { today: TODAY });
+  const summaryOptions = {
+    totalBalance: DEMO_TOTAL_BALANCE,
+    today: TODAY,
+  };
+  const dashWithout = calculateDashboardSummary(sampleTransactions, summaryOptions);
+  const dashWith = calculateDashboardSummary(demoLedger, summaryOptions);
 
   const recordedOnly = pureExpenseTotal(sampleTransactions, MONTH);
-  // Demo mode adds MONTHLY_EXPENSE_BEFORE_SAMPLE baseline; both should share same recordedExpense
   assert.equal(dashWith.expense, dashWithout.expense);
   assert.equal(dashWith.income, dashWithout.income);
-  assert.equal(dashWith.foodExpense, dashWithout.foodExpense);
-  // Absolute check: expense must equal baseline + pure expenses (not + transfer)
-  assert.equal(dashWith.expense - recordedOnly, dashWithout.expense - recordedOnly);
+  assert.equal(dashWith.net, dashWithout.net);
+  assert.equal(dashWith.balance, DEMO_TOTAL_BALANCE);
+  assert.equal(dashWith.expense, recordedOnly);
   assert.ok(Number.isSafeInteger(dashWith.expense));
 });

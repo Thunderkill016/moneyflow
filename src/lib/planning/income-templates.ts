@@ -1,7 +1,7 @@
 /**
  * Recurring income templates (lương định kỳ) — separate from bill commitments.
  *
- * Commitments = expense outflows that reserve safe-to-spend.
+ * Commitments = expected expense outflows tracked separately from posted transactions.
  * Income templates = expected inflows; they do NOT reduce reserved totals.
  * Recording posts a real income ledger row (integer minor units).
  */

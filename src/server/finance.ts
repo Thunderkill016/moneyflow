@@ -252,7 +252,7 @@ async function loadFinanceWorkspace(
         mapTransactionFeedRow,
       ),
     );
-    // Safe-to-spend / insights use VND only — FX accounts are display-only (TASK-129).
+    // The observed dashboard total is VND-only; FX accounts stay display-only (TASK-129).
     const totalBalance = (balancesResult.data ?? []).reduce((sum, item) => {
       const code = String(item.currency_code ?? "VND").toUpperCase();
       if (code !== "VND") return sum;

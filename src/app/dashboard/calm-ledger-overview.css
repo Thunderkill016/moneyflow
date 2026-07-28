@@ -15,10 +15,6 @@
   color: inherit;
 }
 
-.insights-dashboard .safe-card-hero {
-  display: none;
-}
-
 .insights-dashboard .data-alert {
   min-height: 48px;
   display: flex;

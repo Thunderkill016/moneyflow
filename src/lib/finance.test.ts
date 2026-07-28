@@ -2,16 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   balanceAfterTransactions,
+  balanceAfterLedgerReplacement,
   calculateBudgetProgress,
-  calculateDailySpendingGuide,
   calculateDashboardSummary,
-  DAILY_ALLOWANCE,
   monthExpenseTotal,
   netTransactionEffect,
-  OPENING_BALANCE,
   topExpenseCategories,
 } from "./finance.ts";
 import type { Transaction } from "./sample-data.ts";
+
+const OPENING_BALANCE = 1_126_000;
 
 const expense: Transaction = {
   id: "test-expense",
@@ -58,144 +58,39 @@ const transfer: Transaction = {
   destinationAccount: "MoMo",
 };
 
-test("demo expense reduces the fixed illustrative allowance and balance", () => {
-  const summary = calculateDashboardSummary([expense]);
-  assert.equal(summary.safeToday, DAILY_ALLOWANCE - 100_000);
-  assert.equal(summary.balance, 1_026_000);
-});
-
-test("demo income increases balance without increasing the fixed allowance", () => {
-  const summary = calculateDashboardSummary([
-    { ...expense, kind: "income", category: "Lương", amount: 2_000_000 },
-  ]);
-  assert.equal(summary.safeToday, DAILY_ALLOWANCE);
-  assert.equal(summary.balance, 3_126_000);
-});
-
-test("authenticated spending is counted once when current balance already includes it", () => {
-  const before = calculateDashboardSummary([], {
-    isDemo: false,
+test("dashboard summary exposes only observed month totals", () => {
+  const summary = calculateDashboardSummary([expense, incomeTxn], {
     totalBalance: 1_000_000,
     today: "2026-07-14",
   });
-  const after = calculateDashboardSummary([{ ...expense, amount: 10_000 }], {
-    isDemo: false,
-    totalBalance: 990_000,
-    today: "2026-07-14",
+  assert.deepEqual(summary, {
+    balance: 1_000_000,
+    income: 500_000,
+    expense: 100_000,
+    net: 400_000,
   });
-
-  assert.equal(before.dailyAllowance, Math.floor(1_000_000 / 18));
-  assert.equal(after.dailyAllowance, before.dailyAllowance);
-  assert.equal(after.safeToday, before.safeToday - 10_000);
 });
 
-test("multiple same-day expenses keep one stable start-of-day allowance", () => {
-  const transactions = [
-    { ...expense, id: "first", amount: 10_000 },
-    { ...expense, id: "second", amount: 15_000 },
-  ];
-  const summary = calculateDashboardSummary(transactions, {
-    isDemo: false,
-    totalBalance: 975_000,
-    today: "2026-07-14",
-  });
-
-  assert.equal(summary.dailyAllowance, Math.floor(1_000_000 / 18));
-  assert.equal(summary.safeToday, Math.floor(1_000_000 / 18) - 25_000);
-});
-
-test("a paid recurring commitment releases its reserve without consuming flexible room", () => {
-  const before = calculateDashboardSummary([], {
-    isDemo: false,
-    totalBalance: 1_000_000,
-    reservedCommitments: 100_000,
-    today: "2026-07-14",
-  });
-  const paid = calculateDashboardSummary(
-    [{ ...expense, amount: 100_000, isRecurringPayment: true }],
-    {
-      isDemo: false,
-      totalBalance: 900_000,
-      reservedCommitments: 0,
-      today: "2026-07-14",
-    },
-  );
-
-  assert.equal(paid.dailyAllowance, before.dailyAllowance);
-  assert.equal(paid.safeToday, before.safeToday);
-});
-
-test("partial category budgets do not masquerade as a complete spending plan", () => {
-  const withoutPartialBudget = calculateDashboardSummary([], {
-    isDemo: false,
-    totalBalance: 18_000_000,
-    today: "2026-07-14",
-  });
-  const withPartialBudget = calculateDashboardSummary([], {
-    isDemo: false,
-    totalBalance: 18_000_000,
-    remainingBudget: 1_800_000,
-    today: "2026-07-14",
-  });
-
-  assert.equal(withPartialBudget.safeToday, withoutPartialBudget.safeToday);
-});
-
-test("an explicitly complete all-spending plan can cap the daily guide", () => {
-  const summary = calculateDashboardSummary([], {
-    isDemo: false,
-    totalBalance: 18_000_000,
-    remainingBudget: 1_800_000,
-    budgetPlanIsComplete: true,
-    today: "2026-07-14",
-  });
-  assert.equal(summary.dailyAllowance, 100_000);
-  assert.equal(summary.safeToday, 100_000);
-});
-
-test("reserved commitments, allocated savings and daily savings reduce the guide", () => {
-  const summary = calculateDashboardSummary([], {
-    isDemo: false,
-    totalBalance: 18_000_000,
-    reservedCommitments: 1_800_000,
-    reservedSavings: 1_800_000,
-    plannedDailySavings: 100_000,
-    today: "2026-07-14",
-  });
-
-  assert.equal(summary.dailyAllowance, 700_000);
-  assert.equal(summary.safeToday, 700_000);
-  assert.equal(summary.balance, 18_000_000);
-});
-
-test("daily guide validates integer money and never returns a negative amount", () => {
-  const guide = calculateDailySpendingGuide({
-    currentBalance: 100_000,
-    flexibleSpentToday: 200_000,
-    remainingDays: 10,
-  });
-  assert.equal(guide.safeToday, 0);
-  assert.ok(Number.isSafeInteger(guide.safeToday));
+test("dashboard summary rejects an unsafe observed balance", () => {
   assert.throws(
     () =>
-      calculateDailySpendingGuide({
-        currentBalance: 100.5,
-        flexibleSpentToday: 0,
-        remainingDays: 10,
+      calculateDashboardSummary([], {
+        totalBalance: 100.5,
+        today: "2026-07-14",
       }),
-    /invalid_current_balance/,
+    /invalid_dashboard_balance/,
   );
 });
 
-test("dashboard summary exposes month net as income minus expense", () => {
-  const summary = calculateDashboardSummary([expense, incomeTxn], {
-    isDemo: false,
-    totalBalance: 1_000_000,
-    today: "2026-07-14",
-  });
-  assert.equal(summary.income, 500_000);
-  assert.equal(summary.expense, 100_000);
-  assert.equal(summary.net, 400_000);
+test("dashboard summary rejects an invalid reporting date", () => {
+  assert.throws(
+    () =>
+      calculateDashboardSummary([], {
+        totalBalance: 1_000_000,
+        today: "2026-02-30",
+      }),
+    /invalid_dashboard_date/,
+  );
 });
 
 test("balance and month totals preserve income, expense and transfer invariants", () => {
@@ -207,6 +102,28 @@ test("balance and month totals preserve income, expense and transfer invariants"
     1_400_000,
   );
   assert.equal(monthExpenseTotal([expense, transfer, incomeTxn], "2026-07"), 100_000);
+});
+
+test("replacing the hydrated ledger adjusts the observed balance for every mutation", () => {
+  const observedBalance = 900_000;
+  const editedExpense = { ...expense, amount: 40_000 };
+
+  assert.equal(
+    balanceAfterLedgerReplacement(observedBalance, [expense], [editedExpense]),
+    960_000,
+  );
+  assert.equal(
+    balanceAfterLedgerReplacement(observedBalance, [expense], []),
+    1_000_000,
+  );
+  assert.equal(
+    balanceAfterLedgerReplacement(observedBalance, [expense], [expense, transfer]),
+    observedBalance,
+  );
+  assert.equal(
+    balanceAfterLedgerReplacement(observedBalance, [expense], [expense, incomeTxn]),
+    1_400_000,
+  );
 });
 
 test("editing and soft-deleting an expense update assets exactly once", () => {

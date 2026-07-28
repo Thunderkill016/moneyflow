@@ -159,13 +159,7 @@
   --green: var(--color-accent-default);
   --green-deep: var(--color-accent-hover);
   --green-soft: var(--color-accent-subtle);
-  --lime: #D7EFC6;
   --danger: var(--color-danger-default);
-}
-
-/* --lime has no --mf-* counterpart (single consumer: .safe-meter span). */
-[data-theme="dark"] {
-  --lime: #1a3a1f;
 }
 
 /* ===================================================================
@@ -695,77 +689,9 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   padding: 12px 0 4px;
 }
 
-/* Safe-to-spend hero (PocketGuard) — primary decision on Insights */
-.safe-card.safe-card-hero {
-  margin-top: 16px;
-  margin-bottom: 4px;
-}
-.safe-card.safe-card-hero .hero-add {
-  display: inline-flex;
-  width: auto;
-  min-width: 160px;
-  margin-top: 0;
-}
-.safe-card-hero-actions {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-}
-.safe-export-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: rgb(255 255 255 / 88%);
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-}
-.safe-export-link:hover {
-  color: white;
-  text-decoration: underline;
-}
-.safe-export-link svg {
-  width: 16px;
-  height: 16px;
-}
-/* legacy secondary (if any remaining surfaces) */
-.safe-card.safe-card-secondary {
-  padding: 20px 22px 18px;
-}
-.safe-card.safe-card-secondary h2 {
-  font-size: clamp(26px, 3vw, 32px);
-}
-.safe-card.safe-card-secondary .safe-meter { margin-top: 16px; }
-.safe-explain {
-  position: relative;
-  z-index: 1;
-  margin: 14px 0 0;
-  color: rgb(255 255 255 / 78%);
-  font-size: 11px;
-  line-height: 1.5;
-}
-.safe-card.safe-card-secondary .hero-add {
-  display: inline-flex;
-  margin-top: 16px;
-}
-
-.safe-card, .month-card, .panel { border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); }
-.safe-card { position: relative; overflow: hidden; padding: 30px 32px 26px; background: linear-gradient(132deg, #155f3b 0%, #0f5030 58%, #0b4228 100%); color: white; }
-.safe-card::after { position: absolute; right: -90px; bottom: -150px; width: 330px; height: 330px; border: 55px solid rgb(214 239 199 / 7%); border-radius: 50%; content: ""; }
-.safe-card-top { position: relative; z-index: 1; display: flex; align-items: start; justify-content: space-between; gap: 18px; }
-.safe-card-top p { margin: 0 0 8px; color: rgb(255 255 255 / 67%); font-size: 12px; }
-.safe-card h2 { margin: 0; font-size: clamp(35px, 4.3vw, 49px); font-weight: 620; letter-spacing: -.055em; line-height: 1; }
+.month-card, .panel { border: 1px solid var(--line); border-radius: 20px; background: var(--surface); box-shadow: var(--shadow); }
 .status-badge { display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgb(255 255 255 / 13%); border-radius: 999px; background: rgb(255 255 255 / 9%); padding: 7px 10px; color: #e4f4dd; font-size: 10px; font-weight: 700; }
 .status-badge span { width: 6px; height: 6px; border-radius: 50%; background: #a8dd84; box-shadow: 0 0 0 4px rgb(168 221 132 / 13%); }
-.safe-meter { position: relative; z-index: 1; height: 5px; overflow: hidden; margin-top: 25px; border-radius: 99px; background: rgb(255 255 255 / 13%); }
-.safe-meter span { display: block; height: 100%; border-radius: inherit; background: var(--lime); transition: width .35s ease; }
-.safe-copy { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; margin-top: 18px; }
-.safe-copy p { margin: 0; color: rgb(255 255 255 / 73%); font-size: 12px; line-height: 1.5; }
-.safe-copy strong { color: white; font-weight: 650; }
 .trend-icon { display: grid; width: 27px; height: 27px; flex: 0 0 27px; place-items: center; border-radius: 50%; background: rgb(197 233 174 / 13%); color: #c9eba8; }
 .trend-icon svg { width: 14px; }
 .hero-add { position: relative; z-index: 1; display: none; width: 100%; min-height: 44px; cursor: pointer; align-items: center; justify-content: center; gap: 8px; margin-top: 22px; border: 1px solid rgb(255 255 255 / 16%); border-radius: 12px; background: rgb(255 255 255 / 10%); color: white; font-weight: 650; }
@@ -2019,8 +1945,6 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .primary-button:hover { background: linear-gradient(145deg, #12643b, #074426); box-shadow: 0 12px 28px rgb(15 91 53 / 25%); }
 .secondary-button { border-color: #bfd2c5; border-radius: 13px; }
 .date-pill { border-color: #d8e3dc; border-radius: 13px; box-shadow: 0 5px 18px rgb(13 55 32 / 4%); }
-.safe-card { border-color: rgb(255 255 255 / 8%); background: linear-gradient(135deg, #176b42 0%, #0a4d2b 62%, #073a20 100%); box-shadow: 0 24px 50px rgb(8 67 36 / 18%); }
-.safe-card::before { position: absolute; inset: 0; background: linear-gradient(120deg, rgb(255 255 255 / 8%), transparent 40%); content: ""; pointer-events: none; }
 .month-card, .panel, .report-panel, .report-metrics, .account-card, .budget-card, .goal-card, .commitment-card, .planning-card { border-color: #dce6df; box-shadow: var(--shadow); }
 .month-card:hover, .panel:hover, .account-card:hover, .budget-card:hover, .goal-card:hover, .commitment-card:hover, .planning-card:hover { border-color: #cbdcd1; }
 
@@ -2129,7 +2053,6 @@ a.desktop-search-link:hover { border-color: #9abda8; }
     justify-content: center;
   }
   .insights-ghi-chi { flex: 1; justify-content: center; }
-  .safe-card.safe-card-secondary .hero-add { display: inline-flex; width: 100%; }
   /* KPI money can be long (VND) — never force page-wide scroll */
   .insights-kpi { width: 100%; }
   .insights-kpi strong { font-size: 14px; }
@@ -2256,8 +2179,6 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   .date-pill { min-height: 36px; padding-inline: 10px; }
   .date-pill span { display: none; }
   .hero-grid { grid-template-columns: 1fr; }
-  .safe-card { border-radius: 18px; padding: 26px 22px 21px; }
-  .safe-card h2 { font-size: 39px; }
   .status-badge { padding: 6px 8px; }
   .hero-add { display: flex; }
   .month-card { min-height: 234px; border-radius: 18px; padding: 23px 21px 20px; }
@@ -3619,8 +3540,6 @@ a.desktop-search-link:hover { border-color: #9abda8; }
    =================================================================== */
 
 /* Cards & Panels */
-[data-theme="dark"] .safe-card { background: linear-gradient(135deg, #0d3821 0%, #092e1a 62%, #072418 100%); box-shadow: 0 24px 50px rgba(0, 0, 0, 0.4); }
-[data-theme="dark"] .safe-card::before { background: linear-gradient(120deg, rgb(255 255 255 / 4%), transparent 40%); }
 [data-theme="dark"] .month-card,
 [data-theme="dark"] .panel,
 [data-theme="dark"] .report-panel,
@@ -6644,32 +6563,6 @@ body {
 .insights-kpi small {
   font-size: 12px !important;
   color: var(--color-text-tertiary) !important;
-}
-
-.safe-card {
-  border-radius: 16px !important;
-  padding: 24px 26px 22px !important;
-  border: 1px solid transparent !important;
-  background: var(--color-accent-default) !important;
-  background-image: none !important;
-  box-shadow: 0 8px 28px rgb(15 107 60 / 22%) !important;
-}
-
-.safe-card::before,
-.safe-card::after {
-  display: none !important;
-}
-
-.safe-card-top p {
-  font-size: 13px !important;
-  color: rgb(255 255 255 / 80%) !important;
-  font-weight: 600 !important;
-}
-
-.safe-card h2 {
-  font-size: clamp(28px, 4vw, 40px) !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.04em !important;
 }
 
 .month-card,

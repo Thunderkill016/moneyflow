@@ -18,8 +18,8 @@ export const metadata: Metadata = {
  * Canonical signed-in home: balances, monthly income/expense/net, category
  * distribution, recent transactions and planning status.
  *
- * A numeric safe-to-spend guide stays withdrawn until MoneyFlow can prove a
- * complete income-based plan or a next-payday plan with protected cash.
+ * The dashboard exposes observed ledger totals and user-authored planning
+ * status without deriving a spending recommendation from account balances.
  */
 export default async function DashboardPage() {
   const viewer = await requireViewer();

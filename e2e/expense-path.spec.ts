@@ -63,17 +63,25 @@ test.describe("Expense path (thu chi)", () => {
     // Demo entry: no real credentials — go straight to product home.
     await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden({ timeout: 20_000 });
+    await expect(
+      page.getByLabel("Số dư tổng 1.126.000 ₫"),
+    ).toBeVisible({ timeout: 20_000 });
 
     // AppShell owns the only surfaced primary expense action. The older
     // in-page duplicate remains hidden until the full dashboard JSX cleanup.
     await expect(
       page.locator(".welcome-actions .insights-ghi-chi"),
     ).toBeHidden();
-    await expect(
-      page.getByRole("button", { name: "Ghi chi tiêu" }),
-    ).toBeVisible();
 
     const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
+    const primaryExpenseAction = isMobile
+      ? page
+          .getByRole("navigation", { name: "Điều hướng di động" })
+          .getByRole("button", { name: "Ghi chi tiêu", exact: true })
+      : page
+          .getByRole("banner")
+          .getByRole("button", { name: "Ghi chi tiêu", exact: true });
+    await expect(primaryExpenseAction).toBeVisible();
 
     // Mobile must expose the account sheet from the topbar avatar.
     if (isMobile) {
@@ -138,13 +146,13 @@ test.describe("Expense path (thu chi)", () => {
       )
       .toBe(true);
 
-    // 4) Dashboard shows the expense amount (recent list + category share).
-    // Demo Chi tháng KPI adds a baseline, so assert the ledger rows/amount not the raw KPI alone.
+    // 4) Dashboard shows the expense and updates the observed balance exactly once.
     await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden();
     await expect(page.locator("section.insights-kpi")).toBeVisible({
       timeout: 20_000,
     });
+    await expect(page.getByLabel("Số dư tổng 349.000 ₫")).toBeVisible();
 
     const recentRow = page
       .locator(".transaction-row")
@@ -157,7 +165,14 @@ test.describe("Expense path (thu chi)", () => {
       page.locator(".insights-category-row").filter({ hasText: "Ăn uống" }),
     ).toContainText(UNIQUE_AMOUNT_DISPLAY);
 
-    // 5) Export / download path (settings export — client-side file)
+    // 5) Accounts replays the same active ledger instead of showing stale server fixtures.
+    await page.goto("/accounts");
+    const accountSummary = page.getByRole("region", {
+      name: "Tổng quan tài khoản",
+    });
+    await expect(accountSummary).toContainText("349.000 ₫");
+
+    // 6) Export / download path (settings export — client-side file)
     await page.goto("/settings/export");
     await expect(
       page.getByRole("heading", { name: "Xuất dữ liệu" }),

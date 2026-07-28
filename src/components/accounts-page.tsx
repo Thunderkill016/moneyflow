@@ -6,7 +6,12 @@ import { saveAccountAction, setAccountArchivedAction } from "@/app/actions/accou
 import { createTransferAction } from "@/app/actions/transactions";
 import { Icon, type IconName } from "@/components/icons";
 import { type ViewerSummary } from "@/components/user-chip";
-import { accountKindLabels, type AccountSummary, type SaveAccountInput } from "@/lib/accounts";
+import {
+  accountBalancesAfterLedgerReplacement,
+  accountKindLabels,
+  type AccountSummary,
+  type SaveAccountInput,
+} from "@/lib/accounts";
 import {
   canTransferSameCurrency,
   normalizeCurrencyCode,
@@ -14,7 +19,11 @@ import {
   transferCurrencyMismatchMessage,
 } from "@/lib/currency";
 import { formatMoney } from "@/lib/money";
-import type { CreateTransferInput, Transaction } from "@/lib/sample-data";
+import {
+  sampleTransactions,
+  type CreateTransferInput,
+  type Transaction,
+} from "@/lib/sample-data";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 import { applyTransferBalances } from "@/lib/transfers";
 import { AppShell } from "@/components/layout/app-shell";
@@ -63,18 +72,11 @@ export function AccountsPage({
   useEffect(() => {
     if (!viewer.isDemo) return;
     const frame = window.requestAnimationFrame(() => {
-      const restored = readStoredTransactions()
-        .filter((transaction) => transaction.kind === "transfer" && transaction.destinationAccountId)
-        .reduce(
-          (current, transaction) =>
-            applyTransferBalances(
-              current,
-              transaction.accountId,
-              transaction.destinationAccountId!,
-              transaction.amount,
-            ),
-          initialAccounts,
-        );
+      const restored = accountBalancesAfterLedgerReplacement(
+        initialAccounts,
+        sampleTransactions,
+        readStoredTransactions(),
+      );
       setAccounts(restored);
     });
     return () => window.cancelAnimationFrame(frame);

@@ -90,7 +90,7 @@ export function totalsByCurrency(accounts: Pick<AccountSummary, "currencyCode" |
   });
 }
 
-/** Primary (VND) total for insights / safe-to-spend; FX accounts excluded. */
+/** Primary VND total for dashboard reporting; FX accounts are excluded. */
 export function vndTotalBalance(accounts: Pick<AccountSummary, "currencyCode" | "balance">[]): number {
   return totalsByCurrency(accounts)
     .filter((row) => row.currencyCode === "VND")

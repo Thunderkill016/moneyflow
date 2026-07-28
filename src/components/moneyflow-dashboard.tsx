@@ -14,16 +14,15 @@ import { buildAttentionItems } from "@/lib/attention";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
 import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
 import {
-  commitmentTotals,
   monthStartFromDate,
   type RecurringCommitment,
 } from "@/lib/planning/commitments";
 import {
+  balanceAfterLedgerReplacement,
   calculateDashboardSummary,
-  netTransactionEffect,
   topExpenseCategories,
 } from "@/lib/finance";
-import { goalTotals, type SavingsGoal } from "@/lib/planning/goals";
+import type { SavingsGoal } from "@/lib/planning/goals";
 import { hydrateIncomeTemplatesWithOccurrences } from "@/lib/planning/income-template-store";
 import type { RecurringIncomeTemplate } from "@/lib/planning/income-templates";
 import {
@@ -144,13 +143,12 @@ export function MoneyFlowDashboard({
       : incomeTemplates;
 
   const currentBalance = useMemo(() => {
-    if (viewer.isDemo) return workspace.totalBalance;
-    return (
-      workspace.totalBalance +
-      netTransactionEffect(transactions) -
-      netTransactionEffect(workspace.transactions)
+    return balanceAfterLedgerReplacement(
+      workspace.totalBalance,
+      workspace.transactions,
+      transactions,
     );
-  }, [transactions, viewer.isDemo, workspace.totalBalance, workspace.transactions]);
+  }, [transactions, workspace.totalBalance, workspace.transactions]);
 
   const liveBudgets = useMemo(
     () =>
@@ -171,36 +169,13 @@ export function MoneyFlowDashboard({
     [budgets, transactions, workspace.transactions],
   );
 
-  const remainingBudget = liveBudgets.length
-    ? liveBudgets.reduce(
-        (sum, item) => sum + Math.max(0, item.limit - item.spent),
-        0,
-      )
-    : undefined;
-  const reservedCommitments = commitmentTotals(liveCommitments).reserved;
-  const savings = goalTotals(goals, workspace.today);
-
   const totals = useMemo(
     () =>
       calculateDashboardSummary(transactions, {
-        isDemo: viewer.isDemo,
         totalBalance: currentBalance,
         today: workspace.today,
-        remainingBudget,
-        reservedCommitments,
-        reservedSavings: savings.allocated,
-        plannedDailySavings: savings.plannedDaily,
       }),
-    [
-      currentBalance,
-      remainingBudget,
-      reservedCommitments,
-      savings.allocated,
-      savings.plannedDaily,
-      transactions,
-      viewer.isDemo,
-      workspace.today,
-    ],
+    [currentBalance, transactions, workspace.today],
   );
 
   const topCategories = useMemo(

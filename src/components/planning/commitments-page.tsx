@@ -310,7 +310,7 @@ export function CommitmentsPage({
             </p>
             <h1>Khoản định kỳ</h1>
             <p>
-              Giữ trước tiền hóa đơn để con số “có thể chi” luôn thực tế.{" "}
+              Theo dõi riêng tiền hóa đơn sắp đến hạn để kế hoạch luôn rõ ràng.{" "}
               <Link href="/settings/notifications" className="planning-back-link">
                 Nhắc đến hạn (opt-in)
               </Link>

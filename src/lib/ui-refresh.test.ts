@@ -18,7 +18,7 @@ test("product UI refresh is isolated behind the legacy compatibility entry", () 
 test("UI refresh preserves the mobile-first finance interaction contract", () => {
   assert.match(refresh, /\.insights-kpi\s*\{/);
   assert.match(refresh, /grid-template-columns:\s*repeat\(4,/);
-  assert.match(refresh, /\.safe-card\s*\{/);
+  assert.doesNotMatch(refresh, /\.safe-card\b/);
   assert.match(refresh, /\.mobile-fab\s*\{/);
   assert.match(refresh, /\.mobile-nav\s*\{/);
   assert.match(refresh, /@media \(max-width: 760px\)/);

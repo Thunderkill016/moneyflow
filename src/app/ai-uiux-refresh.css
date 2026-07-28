@@ -2,8 +2,7 @@
  * MoneyFlow AI-assisted UI/UX refresh — Calm Ledger direction.
  *
  * Loaded after the existing product and responsive layers. This file changes
- * visual hierarchy only; finance calculations and the temporary withdrawal of
- * the unproven safe-to-spend card remain untouched.
+ * visual hierarchy only; financial behavior remains owned by domain modules.
  */
 
 :root {
