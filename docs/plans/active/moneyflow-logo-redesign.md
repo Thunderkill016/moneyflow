@@ -9,14 +9,13 @@
 
 MoneyFlow has a documented brand foundation and an owner-approved canonical logo v1.
 
-The approved runtime identity is the M-based mark implemented through:
+The approved runtime identity uses:
 
-- `src/app/brand-logo.css`;
-- `src/app/icon.svg`;
-- `src/app/layout.tsx`;
-- `src/app/manifest.ts`.
+- `src/app/icon.svg` as the canonical app/favicon vector;
+- `src/app/ai-uiux-guardrails.css` as the existing compatibility boundary for repeated in-product brand wrappers;
+- `src/app/manifest.ts` for PWA metadata.
 
-It is used across the public landing page, authentication surfaces, signed-in shell, browser icon and PWA metadata without changing financial behavior.
+It appears across the public landing page, authentication surfaces, signed-in shell, browser icon and PWA metadata without changing financial behavior.
 
 ## Repository reconnaissance
 
@@ -26,7 +25,8 @@ It is used across the public landing page, authentication surfaces, signed-in sh
 - The earlier open-ring glyph resembled loading or refresh.
 - This branch replaces it with one shared M mark.
 - `src/app/icon.svg` is the canonical scalable icon source.
-- `src/app/brand-logo.css` applies the same mark to existing brand wrappers without replacing their accessible text.
+- The repository CSS ownership contract allows exactly two root imports and freezes `legacy.css` as a compatibility boundary.
+- The M geometry therefore lives in the already-imported `src/app/ai-uiux-guardrails.css` until the repeated wrappers are migrated to a shared component.
 - `src/app/manifest.ts` points installed-app metadata at the SVG with PNG fallbacks retained.
 
 ### Sources of truth
@@ -45,6 +45,7 @@ It is used across the public landing page, authentication surfaces, signed-in sh
 - VND and transfer behavior remain unchanged.
 - Brand green remains distinct from semantic income/success color.
 - The mark must not imply bank connectivity, investment growth, guaranteed outcomes or financial advice.
+- Root CSS imports and the frozen legacy import list may not expand without a separate architecture change.
 
 ## Research
 
@@ -54,6 +55,7 @@ It is used across the public landing page, authentication surfaces, signed-in sh
 2. Which finance-logo conventions misrepresent MoneyFlow as investment, payments or advice software?
 3. Which Apple and general logo principles transfer safely without copying Apple styling?
 4. How should a young brand govern symbol, wordmark and app-icon sources?
+5. How can the identity be applied without violating CSS ownership guardrails?
 
 ### Evidence and decisions
 
@@ -61,6 +63,8 @@ It is used across the public landing page, authentication surfaces, signed-in sh
 - Apple HIG supports purposeful simplicity, recognizable geometry and consistent appearances; Apple visual styling is not copied.
 - Owner feedback rejected generic open rings, forced M/F/O combinations, ledger-line illustrations, golden-ratio justification and gradient ribbon marks.
 - The owner explicitly approved the current M-based logo on 2026-07-28.
+- CI run #439 showed that a new root-global `brand-logo.css` violates repository CSS ownership.
+- The implementation was moved into the existing `ai-uiux-guardrails.css` compatibility boundary and the extra root import/file were removed.
 
 ### Selected concept
 
@@ -99,10 +103,12 @@ A simple M-based combination mark:
 - [x] Brand guideline and logo contract are linked from repository entrypoints.
 - [x] Owner approved the M-based logo concept.
 - [x] Canonical logo contract is approved.
-- [x] Landing, auth and app shell share the same mark implementation.
+- [x] Landing, auth and app shell receive the same mark geometry.
 - [x] A scalable `src/app/icon.svg` exists.
 - [x] PWA metadata aligns with current product truth.
-- [ ] Knowledge, deployment, CSS ownership, lint, typecheck, tests and build pass.
+- [x] Project knowledge contract passes after restoring required headings.
+- [x] Extra root-global logo stylesheet is removed.
+- [ ] Deployment, CSS ownership, lint, typecheck, tests and build pass on the final head.
 - [ ] Browser screenshots are reviewed on phone/desktop and light/dark.
 - [ ] 16, 24, 32, 64 and 512px identity inspection passes.
 - [ ] Browser favicon and PWA manifest discovery are verified.
@@ -115,6 +121,7 @@ A simple M-based combination mark:
 - Bank sync, investment, advice or AI claims.
 - Formal trademark registration or legal opinion.
 - Animated logo choreography.
+- Refactoring the three existing brand wrappers into a new shared component in this identity slice.
 
 ## Implementation plan
 
@@ -126,17 +133,27 @@ A simple M-based combination mark:
 | `docs/design/MONEYFLOW_LOGO.md` | Canonical logo v1 construction and release rules. |
 | `README.md` | Links brand and canonical logo guidance. |
 | `AGENTS.md` | Requires brand/logo read order. |
-| `src/app/brand-logo.css` | Applies the M mark to repeated brand structures. |
+| `src/app/ai-uiux-guardrails.css` | Applies the M mark inside the existing frozen compatibility boundary. |
 | `src/app/icon.svg` | Supplies the canonical scalable icon. |
-| `src/app/layout.tsx` | Loads the shared identity layer. |
 | `src/app/manifest.ts` | Aligns installed-app identity and product description. |
+
+### CSS ownership decision
+
+The initial branch added `src/app/brand-logo.css` as a third root stylesheet. CI correctly rejected that architecture because `src/app/layout.tsx` must import exactly `legacy.css` and `document-theme.css`.
+
+The final implementation:
+
+1. removes the third root import;
+2. deletes `src/app/brand-logo.css`;
+3. places the shared compatibility selectors in the existing `ai-uiux-guardrails.css`, already reached through frozen `legacy.css`;
+4. documents a future shared-component migration instead of silently expanding global ownership.
 
 ### Verification plan
 
 1. Run `npm run check:knowledge`.
 2. Run deployment and CSS ownership contracts.
 3. Run lint, typecheck, unit/static-RLS checks and production build.
-4. Run database tests as required by the repository CI.
+4. Run database tests as required by repository CI.
 5. Capture landing, auth and signed-in identity evidence on supported phone/desktop and light/dark targets.
 6. Inspect the symbol at 16, 24, 32, 64 and 512px.
 7. Verify browser favicon and PWA manifest discovery.
@@ -147,8 +164,9 @@ A simple M-based combination mark:
 | Risk | Control |
 |---|---|
 | Weak rendering at small size | Inspect actual raster results and screenshots. |
-| Global selector affects unrelated elements | Keep selectors scoped to MoneyFlow brand wrappers. |
-| CSS/SVG geometry drift | Treat SVG, CSS and logo contract as one reviewed system. |
+| Compatibility selector affects unrelated elements | Scope selectors to accessible MoneyFlow brand wrappers and the landing preview. |
+| CSS/SVG geometry drift | Treat SVG, compatibility CSS and logo contract as one reviewed system. |
+| Compatibility debt becomes permanent | Record the shared-component migration as future cleanup; do not add another root owner. |
 | Brand green is confused with income | Preserve separate semantic tokens and labels. |
 | Identity ships without evidence | Keep merge gated by required CI/browser checks. |
 | Trademark similarity appears later | Conduct reasonable pre-launch screening before broad promotion. |
@@ -164,10 +182,11 @@ A simple M-based combination mark:
 | T5 | Collect owner review | done |
 | T6 | Record explicit owner approval | done |
 | T7 | Restore required work-packet headings | done |
-| T8 | Run static and database checks | pending |
-| T9 | Run browser/responsive identity review | pending |
-| T10 | Verify favicon/PWA and PNG fallbacks | pending |
-| T11 | Merge and verify production identity | pending |
+| T8 | Fix CSS ownership violation | done |
+| T9 | Run final static and database checks | pending |
+| T10 | Run browser/responsive identity review | pending |
+| T11 | Verify favicon/PWA and PNG fallbacks | pending |
+| T12 | Merge and verify production identity | pending |
 
 ## Evaluation
 
@@ -179,9 +198,10 @@ A simple M-based combination mark:
 | Messaging and voice | pass |
 | Visual-system rules | pass |
 | Logo concept | owner approved |
-| Canonical runtime identity | implemented on branch |
-| Project knowledge contract | rerun pending after heading fix |
-| Remaining static/database checks | pending |
+| Canonical vector identity | implemented |
+| Project knowledge contract | pass on run #439 |
+| CSS ownership | initial fail; corrective commit applied, rerun pending |
+| Remaining static/database checks | pending final CI |
 | Browser/PWA evidence | pending |
 | Production verification | pending merge |
 
@@ -190,6 +210,7 @@ A simple M-based combination mark:
 - The identity is presentation-only and preserves existing accessible naming.
 - The logo does not alter finance-domain behavior or user data.
 - Brand guidelines distinguish brand color from financial semantic colors.
+- The repository guardrail correctly prevented a new global CSS owner.
 - Owner approval does not replace engineering evidence; CI and browser/PWA inspection remain release gates.
 
 ### Delivery record
@@ -198,7 +219,7 @@ A simple M-based combination mark:
 - PR: #106
 - Owner approval: confirmed 2026-07-28
 - Approved logo: canonical M mark v1
-- CI: rerun triggered by work-packet fix
+- CI: final rerun pending after CSS ownership fix
 - Auto-merge: repository setting unavailable
 - Production deployment: pending merge
 - Completion: pending CI, merge and production verification
