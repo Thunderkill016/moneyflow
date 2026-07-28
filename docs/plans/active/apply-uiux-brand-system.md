@@ -1,187 +1,189 @@
 # Apply MoneyFlow UI/UX and brand system
 
-**Status:** implementing  
+**Status:** evaluating  
 **Owner:** MoneyFlow / OpenAI agent  
 **Issue/PR:** pending  
 **Last updated:** 2026-07-28
 
 ## Outcome
 
-Apply the approved MoneyFlow brand guideline and canonical M logo to real product UI through a coherent first vertical slice: public landing, authentication and the signed-in navigation shell. The result must use one reusable identity component, one primary action per viewport, Vietnamese-first product truth and Calm Ledger visual rules without changing financial behavior.
+Apply the approved MoneyFlow brand guideline and canonical M logo to real product UI through a coherent first vertical slice: public landing, authentication and signed-in identity. The result uses a reusable identity component on migrated surfaces, one primary action in the landing first viewport, Vietnamese-first product truth and Calm Ledger rules without changing financial behavior.
 
 ## Repository reconnaissance
 
 ### Current behavior
 
-- The canonical M logo exists in `src/app/icon.svg`, but repeated in-product marks are still replaced through broad compatibility selectors in `src/app/ai-uiux-guardrails.css`.
-- Landing, auth and app shell each own separate brand-link markup and separate placeholder glyph CSS.
-- The public landing currently shows a primary registration button in both the sticky header and hero, creating two competing primary actions in the first viewport.
-- Landing and auth are already responsive CSS-module surfaces using Calm Ledger semantic tokens, but prominent copy still mixes feature explanation with the newer brand promise and message hierarchy.
-- The signed-in shell already follows the Calm Ledger navigation model and must retain all search, capture, account, toast and mobile navigation behavior.
+- `src/app/icon.svg` is the approved M logo, but landing, auth and app shell previously rendered placeholder glyph markup that was broadly replaced by global CSS.
+- Landing showed a primary registration action in both the sticky header and hero.
+- Landing/auth already used responsive CSS modules and Calm Ledger tokens, but their primary copy did not fully follow the newer brand message hierarchy.
+- The signed-in shell already follows Calm Ledger navigation and must retain search, capture, account, toast and mobile navigation behavior.
 
 ### Relevant repository areas
 
 | Area | Why it matters | Reuse/change/avoid |
 |---|---|---|
-| `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md` | Brand foundation, promise, voice and claim limits | Reuse and update canonical implementation reference |
-| `docs/design/MONEYFLOW_LOGO.md` | Approved M geometry and misuse rules | Reuse and update in-product source |
-| `docs/design/CALM_LEDGER_V2.md` | Controlling visual and interaction contract | Reuse |
+| `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md` | Brand promise, voice and claim limits | Reuse |
+| `docs/design/MONEYFLOW_LOGO.md` | Approved M geometry and misuse rules | Reuse and update implementation record |
+| `docs/design/CALM_LEDGER_V2.md` | Controlling visual/interaction contract | Reuse |
 | `src/app/icon.svg` | Canonical vector geometry | Reuse exactly |
-| `src/app/ai-uiux-guardrails.css` | Temporary global logo compatibility hack | Remove only logo-specific block |
-| `src/components/landing-page.tsx` | Public product truth and first conversion flow | Change hierarchy, CTA and shared logo use |
-| `src/components/auth-form.tsx` | Registration/login trust and ownership messaging | Change copy and shared logo use; preserve auth actions |
-| `src/components/layout/app-shell.tsx` | Signed-in brand/navigation shell | Change only identity component and demo wording |
-| `src/components/brand/` | New reusable presentation owner | Add canonical in-product logo component |
+| `src/components/brand/` | Reusable presentation owner | Add canonical lockup component |
+| `src/components/landing-page.tsx` | First product decision and conversion flow | Change hierarchy, copy, CTA and logo |
+| `src/components/auth-form.tsx` | Trust, registration and recovery | Change copy and logo; preserve actions |
+| `src/app/ai-uiux-guardrails.css` | Legacy shell identity bridge | Narrow to one exact signed-in selector and canonical asset |
 
 ### Existing tests and constraints
 
-- Related unit tests inspect app-shell source and mobile navigation contracts.
-- Database/RLS tests are not expected to change, but the full CI database job remains required.
-- Browser tests cover landing/auth/dashboard, phone-to-desktop layouts, dark mode, WebKit, keyboard focus and 200% text.
-- Product and architecture rules: no guessed financial advice, no new global CSS owner, one primary action per viewport, component CSS modules for migrated presentation.
+- Unit tests inspect app-shell and mobile navigation source contracts.
+- Browser tests cover entry/auth/dashboard, phone-to-desktop, dark mode, WebKit, keyboard and 200% text.
+- No new global CSS owner is allowed.
+- One primary action per viewport; no guessed financial advice; brand green is not income/success.
 
 ### Similar implementation and recent history
 
-- Existing pattern to reuse: CSS-module ownership in `src/components/layout/app-shell.module.css`, `landing-page.module.css` and `auth-form.module.css`.
-- Relevant history: PR #92 shipped Calm Ledger shell/dashboard; PR #106 approved the brand guideline and M logo but intentionally left repeated wrappers for a later component migration.
+- Existing pattern: CSS-module ownership in landing, auth and app shell.
+- PR #92 shipped the Calm Ledger signed-in shell/dashboard.
+- PR #106 approved the brand guideline and M logo but left a broad compatibility implementation for later migration.
 
 ### Open questions
 
-- [x] Which logo is latest and approved? Canonical M logo v1 in `src/app/icon.svg` and `docs/design/MONEYFLOW_LOGO.md`.
-- [x] Should this redesign copy Apple visuals? No; apply purpose, simplicity, familiarity, agency and craft without copying Apple styling.
-- [x] Can the whole application be redesigned safely in one PR? No; use a coherent vertical slice and preserve runtime behavior.
+- [x] Latest logo: canonical M v1 in `src/app/icon.svg`.
+- [x] Visual direction: Calm Ledger Entry, not an Apple visual imitation.
+- [x] Safe scope: migrate entry surfaces now; do not combine every feature route into one risky redesign PR.
+- [x] Signed-in shell source migration: defer the large component rewrite; narrow its bridge to the exact canonical asset so behavior remains untouched.
 
 ## Research
 
 ### Questions researched
 
-1. Which internal workflow controls this change?
-2. Which identity and message claims are approved?
-3. Which UI direction best fits the product and current system?
+1. Which internal workflow controls the change?
+2. Which brand statements and identity geometry are approved?
+3. Which direction fits a manual-first ledger?
 
 ### Sources
 
 | Source | Date accessed | What it establishes | Limits/applicability |
 |---|---|---|---|
-| `docs/AI_UIUX_WORKFLOW.md` | 2026-07-28 | Brief → audit → three directions → selection → vertical slice → verification | Internal workflow authority |
-| `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md` | 2026-07-28 | Brand promise, voice, primary message and claim boundaries | Does not replace product law |
-| `docs/design/MONEYFLOW_LOGO.md` | 2026-07-28 | Approved M geometry, variants and accessibility rules | Geometry must remain unchanged |
-| `docs/design/CALM_LEDGER_V2.md` | 2026-07-28 | Neutral-first surfaces, one green accent, one primary CTA, landing/auth requirements | Current UI visual authority |
+| `docs/AI_UIUX_WORKFLOW.md` | 2026-07-28 | Brief → audit → three directions → selection → vertical slice → verification | Internal workflow |
+| `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md` | 2026-07-28 | Promise, message, voice and claim boundaries | Product law remains higher authority |
+| `docs/design/MONEYFLOW_LOGO.md` | 2026-07-28 | Approved M geometry and accessibility | Geometry cannot drift |
+| `docs/design/CALM_LEDGER_V2.md` | 2026-07-28 | Neutral-first UI, one green accent, landing/auth requirements | Current visual authority |
 
 ### Alternatives considered
 
 | Option | Advantages | Risks | Decision |
 |---|---|---|---|
-| A — Calm Ledger Entry | Strong hierarchy, neutral-first, one CTA, factual trust proof, shared identity | Less decorative marketing impact | Selected |
-| B — Analytics-first Entry | Shows more charts and metrics | Misrepresents a manual-first ledger and crowds phones | Rejected |
-| C — Coach-led Entry | More guidance and motivational copy | Risks judgment and unsupported financial advice | Rejected |
+| A — Calm Ledger Entry | Clear hierarchy, factual trust proof, one CTA | Less decorative | Selected |
+| B — Analytics-first | More metrics/charts | Crowds phones and misstates product identity | Rejected |
+| C — Daily Coach | Strong guidance | Risks judgment and unsupported advice | Rejected |
 
 ### Research decision
 
-Use Calm Ledger Entry. Consolidate the approved M geometry into one CSS-module component, use the brand promise and primary message as hierarchy, retain factual trust proof and preserve all auth, ledger and navigation behavior. This PR is the first real UI implementation slice, not a claim that every feature route has been redesigned.
+Use Calm Ledger Entry. Make the brand promise and primary message the hierarchy, use the exact approved M asset, retain factual trust proof and preserve all financial/auth/navigation behavior. This is a real production slice, not a claim that every feature route is redesigned.
 
 ## Specification
 
 ### Problem
 
-The owner requested that the researched UI/UX workflow, latest logo and brand guideline be applied to MoneyFlow. The repository currently has the approved documents and vector, but identity is still injected through a compatibility CSS hack and entry surfaces do not fully embody the selected message/CTA hierarchy.
+The project had approved design/process documents and a logo asset, but entry UI still used duplicated placeholder marks, broad CSS replacement and competing primary actions. The design system had not been applied as an implementation decision.
 
 ### User stories
 
-- As a new visitor, I can understand what MoneyFlow does and why it is trustworthy within the first viewport.
-- As a user signing in or registering, I see consistent brand identity and factual ownership/security messaging.
-- As a signed-in user, I see the same canonical logo without changing navigation or financial workflows.
-- As a maintainer, I can update the logo in one component rather than maintaining several CSS drawings.
+- As a visitor, I understand what MoneyFlow does and why it is trustworthy within the first viewport.
+- As a person signing in/registering, I see consistent identity and factual ownership/security messaging.
+- As a signed-in user, I see the same canonical logo without changed navigation behavior.
+- As a maintainer, migrated surfaces reuse one tested logo component rather than redrawing the mark.
 
 ### Acceptance criteria
 
-- [ ] Landing, auth and app shell render the exact canonical M path through one reusable component.
-- [ ] The temporary global logo replacement selectors are removed.
-- [ ] Landing first viewport has one primary registration action and one secondary explanatory action.
-- [ ] Landing and auth copy follow the approved brand promise, primary message, Vietnamese tone and claim boundaries.
-- [ ] Google/email auth actions, search, capture, navigation, account sheet, sign-out, demo state and toast behavior remain unchanged.
-- [ ] Brand green remains separate from income/success semantics.
-- [ ] Phone, tablet, desktop, dark, WebKit, keyboard and 200% text checks pass.
+- [x] Landing and auth render the exact canonical M path through one reusable component.
+- [x] Signed-in identity loads the exact canonical `/icon.svg` through one deliberately narrow temporary bridge.
+- [x] The old broad `aria-label^=` and CSS polygon logo replacement are removed.
+- [x] Landing first viewport has one primary registration action and one secondary explanation action.
+- [x] Landing/auth copy follows the approved primary message, promise, tone and claim boundaries.
+- [x] Google/email auth, recovery, search, capture, navigation, account, sign-out and toast logic are unchanged.
+- [ ] Static, unit, database and browser checks pass.
+- [ ] Screenshot evidence is reviewed.
 
 ### Required states
 
-- Loading: existing auth pending state remains unchanged.
-- Empty: not introduced by this slice.
-- Populated: landing preview and signed-in shell remain populated with existing representative/real data.
-- Validation/error: auth field errors and form message behavior remain unchanged.
-- Recovery/undo: auth recovery and app-shell toast action remain unchanged.
-- Long data / large VND: no financial value layout is changed.
-- Mobile/tablet/desktop: shared identity must preserve current breakpoints and minimum targets.
-- Accessibility: decorative mark is `aria-hidden`; links keep one explicit accessible name; forced-colors treatment remains visible.
+- Loading: existing auth pending state preserved.
+- Empty: no new empty state.
+- Populated: representative ledger preview and signed-in content preserved.
+- Validation/error: field-local auth errors and form messages preserved.
+- Recovery/undo: password recovery and shell toast action preserved.
+- Long data / large VND: no financial-value layout changed.
+- Mobile/tablet/desktop: existing breakpoints and 44px targets preserved.
+- Accessibility: decorative SVG is hidden; link has one accessible name; forced-colors treatment exists.
 
 ### Financial and security constraints
 
 - No guessed financial data or recommendation.
 - Integer VND and transfer invariants remain intact.
-- Ownership/RLS implications: none; no persistence, schema, server action or policy change.
+- No persistence, schema, server action, RLS or policy change.
 
 ### Out of scope
 
-- Redesigning transaction, account, planning, import, report or settings route bodies.
-- Changing financial formulas, data models, auth providers or navigation information architecture.
-- Introducing a second logo direction, gradients, glass, gamification or AI advice.
+- Feature-route body redesigns for transactions, accounts, planning, imports, reports and settings.
+- Auth provider, financial formula, information architecture or data-model changes.
+- A second logo direction, gradients, glass, gamification or AI financial advice.
+- Rewriting the large signed-in shell component solely to replace decorative markup.
 
 ## Implementation plan
 
 ### Architecture fit
 
-Reusable cross-surface brand presentation belongs in `src/components/brand/` with CSS-module ownership. Route/component files compose it. The root/global CSS compatibility layer must stop owning logo geometry once the last repeated wrapper migrates.
+Reusable cross-surface brand presentation belongs in `src/components/brand/` with CSS-module ownership. Landing and auth compose it directly. The existing signed-in wrapper remains behaviorally unchanged and its global bridge is reduced to one exact selector that displays the canonical SVG asset; a later shell slice can remove that final bridge.
 
 ### Planned changes
 
 | File/area | Change | Reason |
 |---|---|---|
-| `src/components/brand/brand-lockup.tsx` | Add canonical `BrandMark` and `BrandLockup` | One implementation source |
-| `src/components/brand/brand-lockup.module.css` | Add sizes, default/reversed tones and forced-colors support | Component ownership and accessibility |
-| `src/components/landing-page.tsx` | Use shared identity; improve first-viewport message and CTA hierarchy | Apply brand + workflow to public entry |
-| `src/components/auth-form.tsx` | Use shared identity; align story/copy with brand promise | Apply brand to auth without behavior change |
-| `src/components/layout/app-shell.tsx` | Use shared identity; keep shell behavior | Consistency across signed-in product |
-| `src/app/ai-uiux-guardrails.css` | Remove temporary logo selectors | End duplicate/global identity source |
-| Brand/logo docs | Point canonical in-product implementation to shared component | Keep authority accurate |
+| `src/components/brand/brand-lockup.tsx` | Add canonical `BrandMark` and `BrandLockup` | Shared implementation |
+| `src/components/brand/brand-lockup.module.css` | Sizes, reversed tone and forced-colors | Component ownership |
+| `src/components/landing-page.tsx` | Shared logo, brand message and single first-viewport CTA | Public UI/UX application |
+| `src/components/auth-form.tsx` | Shared logo and approved trust copy | Auth UI/UX application |
+| `src/app/ai-uiux-guardrails.css` | Remove broad polygon replacement; narrow shell bridge to `/icon.svg` | Preserve shell behavior without identity drift |
+| `src/lib/brand-ui-contract.test.ts` | Enforce path equality, component use and CTA/bridge contracts | Prevent regression |
+| `docs/design/MONEYFLOW_LOGO.md` | Record component and temporary bridge | Accurate authority |
 
 ### Data and migration impact
 
 - Schema/migration: none.
 - Backfill: none.
-- Compatibility: same routes and actions; CSS-module component replaces decorative markup.
-- Rollback: revert component adoption and restore compatibility selectors in one PR if browser evidence fails.
+- Compatibility: same routes/actions; presentation-only changes.
+- Rollback: revert component adoption and bridge narrowing if browser evidence fails.
 
 ### Risks and counterexamples
 
 | Risk/counterexample | Prevention or test |
 |---|---|
-| SVG size changes break header/auth layout | Preserve external class names and component size variants; responsive audit |
-| Accessible name is duplicated | Mark SVG decorative and keep one link `aria-label` |
-| Reversed mark loses contrast | Dedicated inverse tone and forced-colors rules |
-| Static tests expect app-shell behavior/source patterns | Preserve functional source sections and run full unit suite |
-| Landing still exposes two primary CTAs | Remove header registration button; keep hero primary + secondary explanation |
-| Copy overclaims product capability | Use only approved brand guideline claims |
+| Logo path drifts from app icon | Source-contract test extracts and compares both paths |
+| Duplicate accessible name | SVG decorative; link owns label |
+| Reversed logo loses contrast | Dedicated inverse class and forced-colors rules |
+| Header/hero compete | Header registration button removed |
+| Shell behavior changes during logo migration | Shell TSX untouched; exact selector bridge only |
+| Copy overclaims capability | Approved guideline claims only |
 
 ### Verification plan
 
 - Static: knowledge, deployment, architecture, CSS ownership, lint, typecheck.
-- Unit/domain: complete test suite.
-- Database: fresh reset + pgTAP through CI.
+- Unit/domain: complete test suite including brand contract.
+- Database: fresh reset + pgTAP in CI.
 - Browser flow: landing, login/register and dashboard smoke.
-- Responsive/visual: production cross-device audit and screenshot artifact review.
-- Production/manual: verify landing, auth, dashboard logo and favicon after merge.
+- Responsive/visual: cross-device audit and screenshot artifact review.
+- Production/manual: verify landing, auth, dashboard identity and favicon after merge.
 
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| T1 | Audit brand/UI implementation and recent history | none | reconnaissance above | done |
-| T2 | Define selected direction and acceptance criteria | T1 | specification above | done |
-| T3 | Add reusable canonical identity component | T2 | branch diff | in progress |
-| T4 | Apply component and brand hierarchy to landing/auth/shell | T3 | branch diff | todo |
-| T5 | Remove compatibility logo hack and update docs | T4 | branch diff | todo |
-| T6 | Run CI and review browser evidence | T5 | workflow/artifacts | todo |
-| T7 | Independent evaluation and owner review | T6 | evaluation record | todo |
+| T1 | Audit current UI, constraints and history | none | reconnaissance | done |
+| T2 | Compare three directions and select Calm Ledger Entry | T1 | research/spec | done |
+| T3 | Add canonical brand component | T2 | branch diff | done |
+| T4 | Apply brand hierarchy to landing and auth | T3 | branch diff | done |
+| T5 | Narrow shell bridge and add regression contract | T3 | branch diff | done |
+| T6 | Open PR and run CI | T4,T5 | PR/workflow | in progress |
+| T7 | Review browser evidence and evaluate diff | T6 | artifacts/evaluation | todo |
 | T8 | Merge and verify production | T7 | exact deployment | todo |
 
 ## Evaluation
@@ -190,24 +192,25 @@ Reusable cross-surface brand presentation belongs in `src/components/brand/` wit
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| One reusable canonical identity | pending | pending |
-| First-viewport CTA hierarchy | pending | pending |
-| Brand-aligned copy | pending | pending |
-| Behavior preserved | pending | pending |
-| Responsive/accessibility evidence | pending | pending |
+| Canonical path shared on migrated surfaces | `brand-ui-contract.test.ts` + diff | pending CI |
+| One first-viewport primary CTA | landing source contract | pending CI |
+| Brand-aligned copy | landing/auth diff against guideline | pass by inspection |
+| Runtime behavior preserved | no action/domain changes; full CI pending | pending |
+| Responsive/accessibility quality | Playwright artifacts pending | pending |
 
 ### Review findings
 
-- Correctness: pending implementation and CI.
-- Security/ownership: no data/security boundary change planned.
-- UI/UX/accessibility: pending browser evidence.
-- Maintainability/duplication: shared component removes duplicate mark geometry.
-- Scope compliance: focused entry-and-shell vertical slice only.
+- Correctness: implementation matches selected direction; automated evidence pending.
+- Security/ownership: no data/security boundary change.
+- UI/UX/accessibility: component has inverse/forced-colors support; browser review pending.
+- Maintainability/duplication: landing/auth no longer draw separate marks; broad global replacement removed.
+- Scope compliance: focused entry-and-identity vertical slice.
 
 ### Remaining limitations
 
-- Feature route bodies remain separate future vertical slices.
-- Physical-device acceptance and exact production verification remain required after merge.
+- Feature-route bodies remain future vertical slices.
+- Signed-in shell still needs a later component-source migration to remove its final narrow bridge.
+- Physical-device and exact production verification remain required after merge.
 
 ## Delivery record
 
