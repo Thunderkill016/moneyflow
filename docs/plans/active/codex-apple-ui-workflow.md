@@ -2,7 +2,7 @@
 
 **Status:** evaluating  
 **Owner:** OpenAI agent  
-**Issue/PR:** pending PR  
+**Issue/PR:** #105  
 **Last updated:** 2026-07-28
 
 ## Outcome
@@ -176,7 +176,7 @@ The current UI workflow contains good AI design practices but does not tell Code
 | T3 | Add research synthesis | T2 | `docs/research/06_CODEX_APPLE_UI_WORKFLOW.md` | done |
 | T4 | Expand active UI workflow | T2 | Updated `docs/AI_UIUX_WORKFLOW.md` | done |
 | T5 | Update research index | T3 | Updated `docs/research/README.md` | done |
-| T6 | Verify branch diff and open draft PR | T3–T5 | Branch fetch/compare and PR | in progress |
+| T6 | Verify branch diff and open draft PR | T3–T5 | Branch compare and PR #105 | done |
 
 ## Evaluation
 
@@ -208,7 +208,7 @@ The current UI workflow contains good AI design practices but does not tell Code
 ## Delivery record
 
 - Branch: `agent/codex-apple-ui-workflow`
-- PR: pending
+- PR: #105
 - Squash commit: pending
 - CI run: pending
 - Production deployment: not applicable before merge
