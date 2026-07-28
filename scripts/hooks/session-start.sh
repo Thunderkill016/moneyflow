@@ -1,24 +1,47 @@
 #!/usr/bin/env bash
-# SessionStart: print compact context for Grok logs (passive; exit 0).
+# Claude Code SessionStart: print compact MoneyFlow operating context.
 set -euo pipefail
+
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
-echo "[moneyflow] Grok VIP session — runtime locked (docs/AGENT_RUNTIME.md)"
-if [[ -f IDEA.md ]]; then
-  NEXT=$(python3 - <<'PY'
-from pathlib import Path
-import re
-text = Path("IDEA.md").read_text(encoding="utf-8")
-for line in text.splitlines():
-    m = re.match(r"^- \[ \] \*\*((?:R|Q)\d+)\*\* (.+)$", line)
-    if m:
-        print(f"{m.group(1)}: {m.group(2)[:80]}")
-        break
-else:
-    print("(no open R*/Q*)")
-PY
-)
-  echo "[moneyflow] next IDEA: $NEXT"
+
+BRANCH="$(git branch --show-current 2>/dev/null || true)"
+if [[ -z "$BRANCH" ]]; then
+  BRANCH="detached-head"
 fi
-echo "[moneyflow] gates: npm run lint && npm run typecheck && npm run test"
+
+DIRTY_COUNT="$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')"
+
+printf '[moneyflow] Claude Code session\n'
+printf '[moneyflow] branch: %s | dirty paths: %s\n' "$BRANCH" "$DIRTY_COUNT"
+
+if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
+  printf '[moneyflow] safety: plan/read only on %s; create a focused branch before edits\n' "$BRANCH"
+else
+  printf '[moneyflow] safety: keep changes scoped to the approved work packet\n'
+fi
+
+shopt -s nullglob
+PACKETS=(docs/plans/active/*.md)
+if (( ${#PACKETS[@]} == 0 )); then
+  printf '[moneyflow] active work packets: none\n'
+else
+  printf '[moneyflow] active work packets:'
+  LIMIT=${#PACKETS[@]}
+  if (( LIMIT > 6 )); then
+    LIMIT=6
+  fi
+  for ((i = 0; i < LIMIT; i++)); do
+    printf ' %s' "$(basename "${PACKETS[$i]}")"
+  done
+  if (( ${#PACKETS[@]} > LIMIT )); then
+    printf ' (+%s more)' "$(( ${#PACKETS[@]} - LIMIT ))"
+  fi
+  printf '\n'
+fi
+
+printf '[moneyflow] workflow: docs/engineering/CLAUDE_CODE_WORKFLOW.md\n'
+printf '[moneyflow] baseline gates: npm run check:knowledge && npm run check:deployment-env && npm run lint && npm run typecheck && npm run test && npm run build\n'
+printf '[moneyflow] completion: evaluator evidence + human merge; production verification when affected\n'
+
 exit 0
