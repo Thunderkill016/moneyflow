@@ -1,7 +1,7 @@
 # MoneyFlow Brand Guidelines
 
-**Version:** 0.1  
-**Status:** active brand foundation; logo system provisional  
+**Version:** 1.0  
+**Status:** active brand foundation; canonical logo v1 approved  
 **Owner:** MoneyFlow  
 **Last updated:** 2026-07-28
 
@@ -12,7 +12,7 @@ Nó không thay thế các nguồn chuyên biệt:
 - Product truth và luật tài chính: [`../product/PRINCIPLES.md`](../product/PRINCIPLES.md)
 - Visual/interaction contract hiện hành: [`../design/CALM_LEDGER_V2.md`](../design/CALM_LEDGER_V2.md)
 - Token và component specification: [`../design-system.md`](../design-system.md)
-- Logo contract đang phát triển: [`../design/MONEYFLOW_LOGO.md`](../design/MONEYFLOW_LOGO.md)
+- Canonical logo contract: [`../design/MONEYFLOW_LOGO.md`](../design/MONEYFLOW_LOGO.md)
 - UX law: [`../UX_PRINCIPLES.md`](../UX_PRINCIPLES.md)
 - Quy trình UI với AI/Codex: [`../AI_UIUX_WORKFLOW.md`](../AI_UIUX_WORKFLOW.md)
 
@@ -90,110 +90,154 @@ MoneyFlow đem lại ba giá trị chính:
 
 Tiền không tự biến mất. Người dùng chỉ thường không nhớ nó đã đi đâu.
 
-Mỗi ngày, tiền đi qua nhiều nơi: tiền mặt, tài khoản ngân hàng, ví điện tử, hóa đơn, thu nhập, khoản chuyển nội bộ và những kế hoạch do chính người dùng tạo. Từng khoản riêng lẻ có vẻ nhỏ, nhưng khi không được ghi lại rõ ràng, người dùng dần mất cảm giác kiểm soát và phải dựa vào trí nhớ.
+Mỗi ngày, tiền đi qua nhiều nơi: tiền mặt, tài khoản ngân hàng, ví điện tử, hóa đơn, thu nhập, khoản chuyển nội bộ và những kế hoạch do chính người dùng tạo. Khi các dòng tiền không được ghi nhận rõ ràng, người dùng mất cảm giác kiểm soát và phải đoán dựa trên ký ức.
 
-Nhiều công cụ tài chính khiến vấn đề trở nên phức tạp hơn bằng biểu đồ dày đặc, cảnh báo, lời khuyên hoặc phương pháp mà người dùng phải học trước khi bắt đầu.
+MoneyFlow bắt đầu từ sự thật đơn giản: trước khi lập kế hoạch hoặc tối ưu, người dùng cần một cuốn sổ đáng tin để ghi lại điều đã thực sự xảy ra.
 
-MoneyFlow chọn một vai trò khác.
+MoneyFlow không phán xét, không hứa hẹn làm giàu và không biến tổng tài sản thành số tiền nên tiêu. Sản phẩm ghi lại trung thực, sắp xếp rõ ràng và giúp người dùng tự đưa ra quyết định.
 
-MoneyFlow không đóng vai người thầy, cố vấn hay người phán xét. Nó là một cuốn sổ bình tĩnh đứng bên cạnh người dùng: ghi lại điều đã thực sự xảy ra, giữ đúng bản chất của từng dòng tiền và giúp người dùng tự nhìn thấy bức tranh của mình.
+### 2.1 Brand role
 
-Một khoản chuyển giữa hai tài khoản vẫn là tiền của người dùng; nó không tự biến thành chi tiêu. Một số dư lớn không tự trở thành số tiền nên tiêu hôm nay. Dữ liệu còn thiếu vẫn là điều chưa biết, không phải cơ hội để sản phẩm đưa ra một lời khuyên tự tin.
+MoneyFlow không phải người thầy hay cố vấn.
 
-MoneyFlow tồn tại để tạo ra sự rõ ràng trước khi tạo ra kết luận.
+MoneyFlow là một cuốn sổ bình tĩnh đứng bên cạnh người dùng:
 
----
+- ghi lại điều đã xảy ra;
+- giữ đúng bản chất của thu, chi và chuyển tiền;
+- chỉ ra điều chưa biết thay vì đoán;
+- giúp người dùng kiểm tra và sửa sai;
+- để quyết định cuối cùng thuộc về người dùng.
 
-## 3. Brand character
+### 2.2 Brand manifesto
 
-### 3.1 Personality traits
+Chúng tôi không tin rằng quản lý tiền phải bắt đầu bằng một hệ thống phức tạp.
 
-| Trait | Ý nghĩa trong thực tế |
-|---|---|
-| Bình tĩnh | Không dùng sợ hãi, tội lỗi hoặc áp lực để thúc đẩy hành vi. |
-| Rõ ràng | Thông tin quan trọng được ưu tiên và giải thích bằng từ quen thuộc. |
-| Chính xác | Số tiền, ngày và trạng thái được trình bày đúng bản chất. |
-| Trung thực | Không che số âm, không đoán dữ liệu, không hứa hẹn quá mức. |
-| Gần gũi | Tiếng Việt tự nhiên, không biến quản lý tiền thành bài học kế toán. |
-| Tôn trọng | Quyết định cuối cùng và dữ liệu luôn thuộc về người dùng. |
-| Có tổ chức | Giao diện và nội dung tạo cảm giác trật tự mà không cứng nhắc. |
+Chúng tôi tin rằng nó bắt đầu bằng việc ghi đúng một khoản tiền. Rồi khoản tiếp theo.
 
-### 3.2 MoneyFlow không được trở thành
+Khi từng dòng tiền được ghi lại trung thực, người dùng không cần đoán nữa. Họ có thể nhìn lại, hiểu điều đã xảy ra và tự đưa ra quyết định phù hợp với cuộc sống của mình.
 
-- ồn ào hoặc phấn khích quá mức;
-- trẻ con hoặc gamified;
-- sang trọng xa cách;
-- lạnh lẽo như phần mềm kế toán doanh nghiệp;
-- bí hiểm như sản phẩm crypto;
-- hứa hẹn tăng trưởng hoặc tự do tài chính;
-- đạo đức hóa hành vi chi tiêu.
+Không phán xét.  
+Không phóng đại.  
+Không hứa hẹn làm giàu.
+
+Chỉ là một cuốn sổ thu chi cá nhân bình tĩnh, chính xác và thực sự thuộc về người dùng.
 
 ---
 
-## 4. Messaging architecture
+## 3. Brand personality
 
-### 4.1 One-line description
+### Bình tĩnh
 
-> MoneyFlow là sổ thu chi cá nhân giúp bạn ghi giao dịch, kiểm tra số dư và biết chính xác tiền đã đi đâu.
+Không dùng nỗi sợ, tội lỗi hoặc áp lực để thúc đẩy tương tác.
 
-### 4.2 Primary message
+### Rõ ràng
+
+Thông tin quan trọng được nhìn thấy trước. Ngôn ngữ và bố cục giảm suy đoán.
+
+### Trung thực
+
+Hiển thị đúng số liệu, trạng thái và giới hạn. Không che số âm hoặc bịa dữ liệu còn thiếu.
+
+### Đáng tin
+
+Dữ liệu có thể kiểm tra, sửa, phục hồi và xuất ra.
+
+### Gần gũi
+
+Tiếng Việt trước, ngôn ngữ tự nhiên, tránh thuật ngữ kế toán không cần thiết.
+
+### Có tổ chức
+
+Dòng tiền, tài khoản, danh mục và trạng thái có quan hệ rõ ràng.
+
+### Không phải
+
+MoneyFlow không nên nghe hoặc trông như:
+
+- một ngân hàng quyền lực;
+- một startup crypto hiếu thắng;
+- một ứng dụng làm giàu nhanh;
+- một trò chơi tài chính;
+- một bảng tính kế toán lạnh lẽo;
+- một trợ lý AI biết mọi thứ.
+
+---
+
+## 4. Messaging system
+
+### 4.1 Primary message
 
 > Biết chính xác tiền đã đi đâu.
 
-### 4.3 Supporting messages
+### 4.2 Supporting message
 
-- Thu, chi và chuyển được ghi đúng bản chất.
-- Nhiều tài khoản, một sổ rõ ràng.
-- Không cần cung cấp mật khẩu ngân hàng.
-- Dữ liệu có thể sửa, phục hồi và xuất ra.
-- Không đưa ra lời khuyên khi chưa đủ dữ liệu.
+> Ghi thu, chi và chuyển tiền trong một sổ rõ ràng, thuộc về bạn.
 
-### 4.4 Proof points
+### 4.3 Primary tagline
 
-| Claim | Bằng chứng sản phẩm |
-|---|---|
-| Ghi đúng | Thu, chi và balanced transfer là ba loại giao dịch riêng. |
-| Nhìn rõ | Số dư, giao dịch và báo cáo kỳ được trình bày từ dữ liệu đã nhập. |
-| Dữ liệu thuộc về người dùng | Có luồng sửa, soft delete, phục hồi và CSV export. |
-| Không phán xét | Copy factual; không gamification hoặc cảnh báo tạo tội lỗi. |
-| Không đoán | Thiếu dữ liệu kế hoạch không được biến thành safe-to-spend advice. |
+> Ghi rõ. Hiểu tiền.
 
-### 4.5 Tagline status
+Tagline chỉ dùng trong marketing khi có đủ không gian. Không đặt trong app icon, favicon hoặc logo lockup nhỏ.
 
-Tagline chưa phải thành phần bắt buộc của logo.
+### 4.4 Approved alternatives
 
-Các câu được phép dùng trong marketing khi phù hợp ngữ cảnh:
+- Rõ từng dòng tiền.
+- Ghi đúng để nhìn rõ.
+- Mọi dòng tiền, một nơi rõ ràng.
+- Sổ thu chi bạn có thể tin.
+- Tiền của bạn. Dữ liệu của bạn.
 
-1. **Ghi rõ. Hiểu tiền.**
-2. **Rõ từng dòng tiền.**
-3. **Sổ thu chi bạn có thể tin.**
-4. **Mọi dòng tiền, một nơi rõ ràng.**
+### 4.5 Message pillars
 
-Không đặt tagline bên trong app icon, favicon hoặc lockup nhỏ.
+#### Ghi đúng
+
+- Thu, chi và chuyển được phân biệt.
+- Số tiền được giữ chính xác theo đơn vị đồng.
+- Sai sót có thể sửa và phục hồi.
+
+#### Nhìn rõ
+
+- Số dư và dòng tiền được tổ chức dễ kiểm tra.
+- Thông tin quan trọng không bị che bởi trang trí.
+- Dữ liệu thiếu được gọi đúng là chưa biết.
+
+#### Thuộc về bạn
+
+- Người dùng giữ quyền kiểm soát dữ liệu.
+- Có đường xuất dữ liệu.
+- Không khóa người dùng bằng thông tin mập mờ.
 
 ### 4.6 Claim boundaries
 
-Không được viết hoặc ngụ ý:
+Được nói:
 
-- “MoneyFlow giúp bạn giàu hơn.”
-- “Biết chính xác hôm nay bạn được phép tiêu bao nhiêu” khi chưa có planning contract.
-- “Tự động quản lý tiền cho bạn.”
-- “An toàn tuyệt đối.”
-- “Kết nối mọi ngân hàng.”
-- “AI hiểu tài chính của bạn.”
-- “Tối ưu đầu tư” hoặc “tăng trưởng tài sản”.
+- ghi và quản lý thu chi;
+- theo dõi số dư trên tài khoản do người dùng khai báo;
+- hiểu tiền đã đi đâu;
+- sửa và xuất dữ liệu;
+- chuyển tiền nội bộ không tính thành thu hoặc chi.
+
+Không được nói nếu chưa có bằng chứng/scope mới:
+
+- kết nối tự động mọi ngân hàng;
+- biết người dùng nên tiêu bao nhiêu hôm nay;
+- tối ưu tài chính bằng AI;
+- giúp người dùng giàu hơn;
+- bảo đảm tiết kiệm hoặc lợi nhuận;
+- thay thế chuyên gia tài chính hoặc kế toán.
 
 ---
 
 ## 5. Voice and tone
 
-### 5.1 Voice
+### 5.1 Brand voice
 
-Voice của MoneyFlow luôn:
+MoneyFlow luôn:
 
-- trực tiếp;
 - bình tĩnh;
-- cụ thể;
+- trực tiếp;
+- tự nhiên;
+- tôn trọng;
 - không phán xét;
 - minh bạch về trạng thái và giới hạn.
 
@@ -322,23 +366,19 @@ Logo, icon, typography và spacing phải được kiểm tra ở kích thước
 
 ---
 
-## 7. Logo system — provisional
+## 7. Logo system — canonical v1
 
 ### 7.1 Approval status
 
-Logo cuối của MoneyFlow **chưa được phê duyệt**.
+Logo M-based v1 đã được owner phê duyệt ngày 2026-07-28 và là logo canonical của MoneyFlow.
 
-M-based mark hiện có trên branch `agent/moneyflow-logo-redesign` là một implementation candidate, không phải tài sản thương hiệu chính thức. Không được merge hoặc phát hành chỉ vì đã có SVG/CSS.
+Nguồn chuẩn:
 
-Logo chỉ trở thành canonical khi:
+- `src/app/icon.svg`;
+- `src/app/brand-logo.css`;
+- [`../design/MONEYFLOW_LOGO.md`](../design/MONEYFLOW_LOGO.md).
 
-1. concept được owner chọn;
-2. silhouette một màu được duyệt;
-3. kiểm tra 16, 24, 32, 64 và 512px đạt;
-4. phiên bản light/dark/monochrome đạt;
-5. wordmark và symbol có quan hệ quang học ổn định;
-6. browser/PWA evidence được review;
-7. kiểm tra tương đồng và legal clearance tối thiểu được thực hiện trước sử dụng thương mại rộng.
+Mọi biến thể phải giữ nguyên silhouette và tuân theo logo contract. Các thử nghiệm M/F/O, flow ring, ledger-line và gradient trước đây không còn là phương án song song.
 
 ### 7.2 Role of the logo
 
@@ -353,61 +393,34 @@ Logo không cần giải thích toàn bộ tính năng quản lý tài chính.
 
 ### 7.3 Logo architecture
 
-Hệ thống tương lai cần có:
+Hệ thống gồm:
 
-1. **Symbol:** dùng khi nền tảng đã hiển thị tên sản phẩm hoặc không gian rất nhỏ.
-2. **Wordmark:** chữ `MoneyFlow` tùy chỉnh vừa đủ để tạo bản sắc nhưng vẫn dễ đọc.
+1. **Symbol:** M trắng trong container xanh bo góc.
+2. **Wordmark:** chữ `MoneyFlow` dễ đọc.
 3. **Primary lockup:** symbol + wordmark theo chiều ngang.
-4. **Stacked lockup:** chỉ dùng cho bối cảnh marketing có không gian dọc.
-5. **Monochrome variants:** dark-on-light và light-on-dark.
-6. **App icon:** cùng identity nhưng được optical-adjust cho khung vuông; không nhét wordmark.
+4. **Reversed lockup:** dùng trên bề mặt tối được phê duyệt.
+5. **Monochrome variants:** dùng khi hạn chế sản xuất yêu cầu.
 
-### 7.4 Concept requirements
+Không đặt slogan trong logo. Không đặt full wordmark vào app icon.
 
-Logo được duyệt phải:
+### 7.4 Minimum use
 
-- có một ý tưởng cốt lõi;
-- có silhouette riêng;
-- hoạt động bằng một màu;
-- không phụ thuộc gradient, glow, shadow hoặc 3D;
-- không giống loading indicator;
-- không giống biểu đồ đầu tư;
-- không cần lời giải thích dài để biện minh;
-- không ép ghép `M`, `F`, `O`, đồng tiền và biểu đồ vào cùng hình;
-- không biến thành icon mô tả giao diện.
+- 16px: favicon-only, phải kiểm tra raster.
+- 24px: compact symbol.
+- 32–36px: navigation mark.
+- 64px trở lên: marketing/PWA contexts.
+- Clear space tối thiểu: một phần tư chiều rộng symbol.
 
-### 7.5 Clear space
-
-Sau khi logo được chốt:
-
-- định nghĩa `x` bằng một đặc điểm cố định của symbol hoặc x-height wordmark;
-- primary lockup cần tối thiểu `1x` clear space bốn phía;
-- app icon không được xem là container để đặt thêm chữ hoặc tagline.
-
-Không dùng quy tắc “tỷ lệ vàng” làm lý do nếu không cải thiện optical balance thực tế.
-
-### 7.6 Minimum size
-
-Mức mục tiêu:
-
-- Favicon: 16px, cần phiên bản optical-adjust nếu cần.
-- Compact UI symbol: 24px.
-- Navigation mark: 32–36px.
-- Wordmark lockup: chiều cao tối thiểu do legibility test quyết định, không dựa trên một con số tùy ý.
-
-### 7.7 Misuse
+### 7.5 Logo misuse
 
 Không:
 
-- kéo giãn hoặc nén;
-- xoay;
-- đổi tỉ lệ symbol/wordmark theo từng màn hình;
-- đổi brand green thành income green;
-- thêm mũi tên, biểu đồ, ký hiệu tiền, đồng xu, ví hoặc thẻ;
-- thêm gradient, glass, bevel, glow hoặc 3D;
-- đặt trên nền làm mất tương phản;
-- dùng logo làm pattern lặp trong giao diện;
-- dùng nhiều concept logo đồng thời.
+- đổi hình học giữa các màn hình;
+- thêm chart, mũi tên, đồng tiền hoặc ký hiệu tiền tệ;
+- thêm gradient, glass, glow, bevel hay 3D;
+- đổi brand green thành màu semantic income;
+- dùng nhiều concept logo cùng lúc;
+- lặp logo như trang trí trong signed-in product.
 
 ---
 
@@ -415,114 +428,145 @@ Không:
 
 ### 8.1 Brand palette
 
-| Role | Light/default | Dark appearance | Usage |
-|---|---:|---:|---|
-| Brand/action | `#0B6B3A` | `#4AD58A` | Primary CTA, key brand accents, approved brand asset. |
-| Brand hover | `#075A30` | Derived dark-hover token | Hover/pressed; không dùng làm màu mới trong artwork. |
-| Brand subtle | `#E6F4EB` | `#123522` | Selected/subtle brand surfaces. |
-| Strong text | `#102019` | `#F0F7F3` | Wordmark và nội dung chính. |
-| Canvas | `#F4F7F5` | `#0D1511` | Main background. |
-| Surface | `#FFFFFF` | `#141F19` | Cards/panels khi thật sự cần nhóm. |
-| Border | `#D7E1DB` | `#2B3B32` | Structure và separation. |
+#### Light/default
 
-### 8.2 Semantic palette
+| Role | Value |
+|---|---|
+| Brand green | `#0B6B3A` |
+| Brand hover | `#075A30` |
+| Brand subtle | `#E6F4EB` |
+| Strong text | `#102019` |
+| Muted text | `#5B6B62` |
+| Canvas | `#F4F7F5` |
+| Surface | `#FFFFFF` |
+| Border | `#D7E1DB` |
+
+#### Dark
+
+| Role | Value |
+|---|---|
+| Brand green | `#4AD58A` |
+| Brand subtle | `#123522` |
+| Strong text | `#F0F7F3` |
+| Muted text | `#A8B7AE` |
+| Canvas | `#0D1511` |
+| Surface | `#141F19` |
+| Border | `#2B3B32` |
+
+### 8.2 Financial semantic colors
 
 | Meaning | Light | Dark |
-|---|---:|---:|
+|---|---|---|
 | Income/success | `#0F766E` | `#4FD1C5` |
 | Expense/danger | `#B83A35` | `#FF817A` |
 | Transfer/info | `#3459C7` | `#8EA6FF` |
 | Warning | `#9A5B00` | `#F6BC62` |
 
-Semantic colors không phải màu nhận diện. Luôn kèm dấu, nhãn hoặc icon; không dùng màu là tín hiệu duy nhất.
+Brand green không thay thế semantic colors. Semantic color không được dùng làm logo tùy ý.
 
-### 8.3 Color ratios
+### 8.3 Color rules
 
-- Neutral surfaces nên chiếm ít nhất 80% một màn hình sản phẩm.
-- Một vùng chức năng chỉ có một primary brand action.
-- Không dùng gradient trang trí.
-- Không dùng brand green để biểu diễn thu nhập nếu ngữ cảnh có thể gây nhầm.
+- Neutral surfaces chiếm ít nhất 80% màn hình sản phẩm.
+- Một vùng không nên có nhiều accent cạnh tranh.
+- Không phân biệt thu/chi/chuyển chỉ bằng màu.
+- Luôn kết hợp màu với dấu, nhãn, icon hoặc direction.
+- Màu disabled vẫn cần phân biệt trạng thái nhưng không được giống nội dung bị lỗi.
 
-### 8.4 Accessibility
+### 8.4 Gradients
 
-- Chữ và control phải đạt tương phản theo tiêu chuẩn sản phẩm.
-- Focus ring có ít nhất 3:1 so với màu lân cận.
-- Logo thương hiệu có thể có ngoại lệ về contrast trong một số tiêu chuẩn, nhưng không được dùng ngoại lệ đó cho icon chức năng hoặc nội dung.
+Gradient trang trí không thuộc visual language chính.
+
+Chỉ xem xét gradient trong campaign riêng khi:
+
+- không làm thay đổi logo;
+- không ám chỉ đầu tư/tăng trưởng;
+- vẫn có bản flat tương đương;
+- được review như một visual campaign, không trở thành token sản phẩm.
 
 ---
 
 ## 9. Typography
 
-### 9.1 Typeface
+### 9.1 Primary typeface
 
-- Product UI và brand communication: **Inter** với system fallbacks.
-- Money values trong sản phẩm: system monospace + tabular numerals.
+UI và brand communications: **Inter** với system fallbacks.
 
-Không dùng SF Pro như tài sản phân phối của MoneyFlow. Không sao chép typography Apple chỉ để tạo cảm giác “giống Apple”.
+Lý do:
 
-### 9.2 Typographic character
+- hỗ trợ tiếng Việt;
+- dễ đọc trên màn hình;
+- hoạt động tốt ở nhiều density;
+- phù hợp sản phẩm dữ liệu;
+- đã nằm trong hệ thống hiện tại.
 
-Typography phải:
+### 9.2 Money numerals
 
-- rõ;
-- hiện đại nhưng không lạnh;
-- hoạt động tốt với tiếng Việt;
-- có độ rộng phù hợp số tiền dài;
-- không quá futuristic hoặc banking-corporate.
+Số tiền dùng:
 
-### 9.3 Hierarchy
+- system monospace hoặc numeric style được duyệt;
+- `font-variant-numeric: tabular-nums`;
+- dấu phân cách và ký hiệu `₫` nhất quán;
+- không truncation trong detail, form, table hoặc dialog.
 
-- Hero: 42–72px responsive.
-- Page title: 28–44px tùy viewport.
-- Body: 14–16px; không dưới 14px.
-- Caption: 12px chỉ cho metadata.
-- Một vùng chức năng dùng tối đa ba kích thước hiển thị rõ rệt.
+### 9.3 Type hierarchy
 
-### 9.4 Wordmark typography
+| Role | Guidance |
+|---|---|
+| Hero | 42–72px responsive, chỉ trên marketing. |
+| Page title | 28–44px tùy viewport. |
+| Section title | 20–28px. |
+| Card/title | 16–20px. |
+| Body | 14–16px. |
+| Metadata | 12px, không dùng cho nội dung chính. |
+| Money | Dựa trên nhiệm vụ; là scan target mạnh. |
 
-Wordmark tương lai có thể tùy chỉnh spacing hoặc một chi tiết chữ, nhưng:
+Một functional region dùng tối đa ba cỡ chữ nhìn thấy rõ.
 
-- phải đọc ngay là `MoneyFlow`;
-- không dùng quá một cử chỉ đặc trưng;
-- không tạo ký tự trông như lỗi font;
-- không hy sinh dấu tiếng Việt trong các ứng dụng văn bản khác;
-- không dùng font weight quá mảnh ở kích thước nhỏ.
+### 9.4 Typography rules
+
+- Không dùng chữ mảnh cho số tiền hoặc hành động.
+- Không viết đoạn dài bằng uppercase.
+- Không căn giữa body copy dài.
+- Không thu nhỏ chữ để cứu bố cục; sửa layout.
+- Kiểm tra Vietnamese diacritics ở mọi weight.
+- Không dùng SF Pro làm font phát hành chỉ để trông giống Apple.
 
 ---
 
-## 10. Layout and composition
+## 10. Shape, spacing and composition
 
-### 10.1 Structure
+### 10.1 Base system
 
-- Dùng grid và alignment rõ.
-- Spacing theo nhịp 4px.
-- Nhóm bằng khoảng trống trước khi thêm border hoặc card.
-- Card chỉ nhóm một ý; không lồng card.
-- Money là scan target mạnh nhất sau page title.
-
-### 10.2 Shape language
-
-- Button/input radius: 10px.
+- Base rhythm: 4px.
+- Phone gutter: 16px.
+- Tablet gutter: 24px.
+- Desktop gutter: 32px.
+- Content max width: 1240px.
+- Control radius: 10px.
 - Container radius: 16px.
-- Large marketing panel: 24px.
-- Không biến mọi thành phần thành pill.
-- Không dùng nhiều radius tùy hứng trong cùng một bối cảnh.
+- Marketing panel radius: 24px.
+- Minimum interactive target: 44×44px.
 
-### 10.3 Depth
+### 10.2 Composition principles
 
-- Border tạo cấu trúc.
-- Shadow chỉ dành cho floating layers như dialog, menu hoặc toast cần elevation.
-- Không tạo chiều sâu bằng glassmorphism hoặc glow.
+- Một viewport có một primary action rõ.
+- Dùng border để tạo cấu trúc; shadow dành cho floating layers.
+- Card chỉ nhóm một ý.
+- Không đặt card trong card.
+- Không dùng card làm page padding.
+- Spacing phải thể hiện quan hệ thông tin.
+- Số tiền là scan target mạnh sau page title.
 
-### 10.4 Marketing composition
+### 10.3 Marketing composition
 
-Landing và campaign visuals cần:
+Landing và campaign ưu tiên:
 
-- một headline rõ;
+- một product truth rõ;
 - một CTA chính;
-- một bằng chứng sản phẩm thật;
-- khoảng trống đủ;
-- không dùng dashboard giả hoặc số liệu hứa hẹn kết quả tài chính.
+- một CTA phụ giảm trọng lượng;
+- product evidence thật;
+- trust facts;
+- không dùng dashboard giả chỉ để làm đẹp.
 
 ---
 
@@ -530,26 +574,29 @@ Landing và campaign visuals cần:
 
 ### 11.1 Functional icons
 
-Icon chức năng phải:
+Functional icon phải:
 
-- quen thuộc;
-- có stroke/weight nhất quán;
-- dùng cùng bounding-box logic;
-- nhận biết ở 16–24px;
-- đi kèm label khi nghĩa không phổ biến;
-- không được cách điệu như logo.
+- quen thuộc trước khi độc đáo;
+- dùng stroke/weight nhất quán;
+- có bounding box tương đương;
+- nhận ra ở kích thước thật;
+- đi kèm label khi ý nghĩa chưa phổ biến;
+- không phụ thuộc màu.
 
-### 11.2 Financial icons
+### 11.2 Brand symbol vs functional icon
 
-- Thu: dấu `+`, nhãn và semantic income color.
-- Chi: dấu `−`, nhãn và semantic expense color.
-- Chuyển: `↔`, tên cả hai tài khoản và transfer color.
+- Brand symbol ưu tiên khác biệt và nhận diện.
+- Functional icon ưu tiên quen thuộc và khả năng sử dụng.
+- Không biến logo thành icon cho mọi danh mục.
+- Không dùng logo thay cho nút Home nếu label/navigation chưa rõ.
 
-Không dùng một icon mũi tên đi lên cho mọi thứ tích cực vì có thể bị hiểu là tăng trưởng đầu tư.
+### 11.3 Financial icons
 
-### 11.3 Brand symbol vs icon
+Income, expense và transfer cần dùng ngôn ngữ nhất quán:
 
-Brand symbol dùng để nhận diện MoneyFlow. Functional icon dùng để mô tả hành động. Không dùng brand symbol thay icon `Ghi`, `Báo cáo` hoặc `Tài khoản`.
+- Income: dấu `+`, direction tăng khi phù hợp và label.
+- Expense: dấu `−`, direction giảm khi phù hợp và label.
+- Transfer: `↔` hoặc hai account names, không dùng màu xanh/đỏ để suy ra.
 
 ---
 
@@ -557,258 +604,360 @@ Brand symbol dùng để nhận diện MoneyFlow. Functional icon dùng để m�
 
 ### 12.1 Principle
 
-Biểu đồ chỉ xuất hiện khi giúp trả lời một câu hỏi rõ ràng. Không dùng chart như trang trí hoặc để làm sản phẩm trông “tài chính hơn”.
+Biểu đồ chỉ xuất hiện khi trả lời một câu hỏi mà số hoặc danh sách không trả lời tốt hơn.
 
 ### 12.2 Chart selection
 
-- Một giá trị: dùng số.
-- Xu hướng theo thời gian: line chart.
-- So sánh nhóm: bar chart.
-- Cơ cấu danh mục: horizontal bars hoặc stacked bars; pie/donut chỉ khi số nhóm nhỏ và đọc nhãn rõ.
-- Tiến độ mục tiêu: progress bar với số cụ thể.
+| Question | Recommended |
+|---|---|
+| Tổng giá trị hiện tại | Số lớn. |
+| Xu hướng theo thời gian | Line chart. |
+| So sánh danh mục | Horizontal bar. |
+| Cơ cấu | Bar/stacked bar; pie/donut chỉ khi rất ít phần và có label. |
+| Tiến độ mục tiêu | Progress bar. |
 
-### 12.3 Rules
+### 12.3 Chart rules
 
-- Trục và nhãn phải rõ.
-- Không truncate số tiền cần đối chiếu.
-- Không dùng màu là tín hiệu duy nhất.
-- Không tạo chart 3D.
-- Không dùng animation entrance trên dữ liệu tài chính.
-- Không suy diễn nguyên nhân từ tương quan hiển thị.
+- Zero baseline cho bar chart khi so sánh độ lớn.
+- Label và exact value có thể truy cập.
+- Không dùng 3D.
+- Không trang trí bằng gradient/glow.
+- Không sử dụng brand green cho mọi series.
+- Không phân biệt series chỉ bằng màu.
+- Không biến logo hoặc brand motif thành chart decoration.
 
 ---
 
-## 13. Illustration and photography
+## 13. Imagery and illustration
 
-### 13.1 Current posture
+### 13.1 Photography
 
-MoneyFlow ưu tiên product truth và UI evidence hơn lifestyle stock photography.
+Ảnh nên:
 
-### 13.2 Photography
+- phản ánh người dùng và ngữ cảnh Việt Nam một cách tự nhiên;
+- thể hiện đời sống hằng ngày, không phải sự giàu có phô trương;
+- tránh tiền mặt bay, xe sang, nhà lớn và hình ảnh “financial freedom” sáo mòn;
+- dùng ánh sáng thật, composition bình tĩnh;
+- không che sản phẩm bằng stock photo.
 
-Khi cần ảnh:
+### 13.2 Illustration
 
-- đời thường, Việt Nam, không dàn dựng quá mức;
-- tập trung vào bối cảnh quản lý tiền cá nhân, không phô trương giàu có;
-- ánh sáng tự nhiên, bình tĩnh;
-- không dùng tiền mặt tung bay, xe sang, biệt thự hoặc hình ảnh đầu tư.
+Illustration chỉ dùng khi:
 
-### 13.3 Illustration
-
-Illustration chỉ dùng để:
-
-- hướng dẫn;
-- giải thích flow;
-- hỗ trợ empty state;
-- truyền đạt ownership/privacy.
+- giải thích một khái niệm;
+- hỗ trợ onboarding;
+- làm empty state rõ hơn;
+- tạo warmth vừa đủ trong marketing.
 
 Phong cách:
 
-- hình khối đơn giản;
-- neutral-first;
-- một green accent;
-- không 3D glossy;
-- không mascot nếu chưa có chiến lược riêng.
+- flat hoặc hình học nhẹ;
+- ít màu;
+- không trẻ con;
+- không mascot phán xét;
+- không biến tài chính thành trò chơi.
+
+### 13.3 Product screenshots
+
+- Dùng dữ liệu demo rõ là demo.
+- Không dùng số liệu ngụ ý kết quả thật của người dùng.
+- Không che lỗi hoặc cắt số tiền.
+- Hiển thị giao diện hiện hành, không mockup sai tính năng.
+- Dùng viewport thật và nội dung tiếng Việt.
 
 ---
 
 ## 14. Motion
 
-- Interaction feedback: 100–150ms.
-- Structural change: 180–240ms.
-- Motion giải thích thay đổi, không trang trí.
-- Không choreography khi số tiền xuất hiện.
-- Không logo animation mặc định trong sản phẩm.
-- Tôn trọng `prefers-reduced-motion`.
+Motion phục vụ:
 
-Brand motion tương lai, nếu có, phải xuất phát từ cùng một cử chỉ của logo đã duyệt; không phát minh thêm một concept chuyển động khác.
+- xác nhận hành động;
+- chỉ ra quan hệ;
+- duy trì ngữ cảnh;
+- giải thích thay đổi trạng thái.
+
+Timing:
+
+- interaction: 100–150ms;
+- structural change: 180–240ms.
+
+Không:
+
+- entrance animation cho mọi card;
+- choreography trên số tiền;
+- animation làm đẹp logo trong luồng hằng ngày;
+- motion gây trì hoãn hành động;
+- bỏ qua `prefers-reduced-motion`.
+
+Logo animation chỉ được tạo cho campaign/launch riêng sau khi có static logo canonical và không được thay thế static identity.
 
 ---
 
-## 15. Application guidelines
+## 15. Product applications
 
-### 15.1 Product UI
+### 15.1 Signed-in product
 
-- Logo xuất hiện tại entry/navigation, không lặp làm decoration.
-- Primary action dùng brand green.
-- Financial semantics giữ màu riêng.
-- Số tiền có ưu tiên thị giác cao.
-- Copy ngắn, factual và tiếng Việt trước.
+- Logo compact trong navigation.
+- Không lặp logo trên mọi card.
+- Không để brand cạnh tranh với số tiền.
+- One primary action per viewport.
+- Brand color dùng cho identity/action, không dùng như financial meaning.
 
-### 15.2 Landing page
+### 15.2 Public landing
 
 First viewport cần:
 
 - product truth ngắn;
-- một primary registration CTA;
-- một secondary explanation action;
-- một product preview đại diện và nhìn thấy đầy đủ;
-- trust proof: không cần mật khẩu ngân hàng, dữ liệu xuất được, chuyển khoản xử lý đúng.
+- one primary registration action;
+- one secondary explanation action;
+- representative ledger preview;
+- trust proof: không cần mật khẩu ngân hàng, xuất được dữ liệu, transfer được xử lý đúng.
 
 ### 15.3 Authentication
 
-- Giữ brand presence vừa đủ.
-- Nói về quyền sở hữu, bảo mật và khả năng tiếp tục dữ liệu.
-- Không hứa hẹn kết quả tài chính.
-- Error gần field và có thể được công nghệ hỗ trợ đọc.
+- Logo + wordmark dùng ổn định.
+- Copy nói facts về bảo mật và ownership.
+- Không dùng lời hứa tài chính.
+- Error gần field, được announce.
+- Recovery và registration cùng visual shell.
 
-### 15.4 Social and marketing
+### 15.4 Email
 
-Template cần:
+- Header logo nhỏ, không chiếm nội dung.
+- Subject rõ hành động/trạng thái.
+- Không dùng urgency giả.
+- Security email phải nói rõ người dùng cần làm gì và link hết hạn khi nào nếu có.
 
-- logo/wordmark có clear space;
-- một message chính;
-- typography lớn, dễ đọc;
-- không nhồi nhiều screenshot;
-- không dùng performance chart không có nguồn;
-- không tạo cảm giác ads đầu tư.
+### 15.5 Social avatar
 
-### 15.5 Presentation and documents
+- Dùng symbol canonical.
+- Không đặt full wordmark vào avatar nhỏ.
+- Kiểm tra safe crop trên hình tròn và rounded square.
 
-- Cover đơn giản, title rõ.
-- Brand green dùng làm accent, không làm nền cho toàn bộ deck trừ trang mở/kết có chủ đích.
-- Bảng và số liệu ưu tiên legibility.
-- Không dùng logo ở mọi góc trang.
+### 15.6 Social/marketing posts
 
-### 15.6 App icon and favicon
+- Một thông điệp chính.
+- Typography là hệ nhận diện mạnh hơn trang trí.
+- Dùng product evidence hoặc insight thật.
+- Không dùng chart tăng trưởng giả hoặc claim chưa chứng minh.
 
-- Chỉ dùng symbol đã được duyệt.
-- Không đặt chữ `MoneyFlow` trong icon.
-- Cần optical adjustment cho 16–32px nếu geometry chính mất nhận diện.
-- Test trên nền sáng/tối và browser tab thật.
+### 15.7 Presentation and documents
 
----
+- Trang bìa: logo, title, date, owner.
+- Nội dung: neutral first, brand green cho hierarchy có chủ đích.
+- Bảng và con số dễ kiểm tra.
+- Không dùng logo watermark lặp lại.
 
-## 16. Accessibility and localization
+### 15.8 App icon and favicon
 
-### 16.1 Accessibility
-
-- Minimum target 44×44px.
-- Keyboard focus luôn thấy rõ.
-- Không phân biệt trạng thái chỉ bằng màu.
-- Hỗ trợ text scaling.
-- Motion có reduced-motion path.
-- Logo decorative phải `aria-hidden` khi adjacent text đã cung cấp accessible name.
-- Alt text mô tả mục đích, không viết “hình ảnh của”.
-
-### 16.2 Vietnamese-first
-
-- Tiếng Việt là ngôn ngữ mặc định của sản phẩm.
-- Dấu tiếng Việt phải hiển thị đúng ở mọi weight.
-- Tránh câu dịch từng chữ từ tiếng Anh.
-- “CSV” và tên sản phẩm có thể giữ nguyên; thuật ngữ kỹ thuật khác cần giải thích.
-- Số tiền dùng định dạng VND theo sản phẩm và không làm tròn trong chi tiết/đối chiếu.
+- Dùng symbol canonical trong container phù hợp.
+- Không chứa chữ MoneyFlow hoặc slogan.
+- Kiểm tra 16, 24, 32, 64, 192, 512px.
+- Cần optical adjustment theo kích thước, không chỉ scale máy móc.
+- App icon không được coi là logo mới độc lập.
 
 ---
 
-## 17. Brand governance
+## 16. Accessibility and inclusion
 
-### 17.1 Authority model
+### 16.1 Core requirements
 
-| Area | Source of truth |
+- Contrast phù hợp ngữ cảnh.
+- Focus rõ.
+- Keyboard đầy đủ.
+- Touch target tối thiểu 44×44px.
+- Text zoom 200%.
+- Screen-reader labels có nghĩa.
+- Không phụ thuộc màu.
+- Reduced motion.
+- Error nhận biết và sửa được.
+- Vietnamese copy tự nhiên.
+
+### 16.2 Logo accessibility
+
+- Logo decorative khi có adjacent accessible product name.
+- Không đọc lặp `MoneyFlow MoneyFlow`.
+- Nếu symbol đứng một mình làm link, accessible name phải là `MoneyFlow` hoặc mục tiêu cụ thể.
+- Không dùng logo color để truyền đạt trạng thái.
+
+### 16.3 Inclusive tone
+
+Không:
+
+- chế giễu thói quen chi tiêu;
+- gán đạo đức cho khoản chi;
+- giả định thu nhập, giới tính, gia đình hoặc khả năng tài chính;
+- dùng từ gây xấu hổ;
+- tạo dark pattern để giữ dữ liệu hoặc subscription.
+
+---
+
+## 17. Localization
+
+MoneyFlow là Vietnamese-first.
+
+### 17.1 Language
+
+- Viết tiếng Việt trước, không dịch word-by-word từ tiếng Anh.
+- Dùng thuật ngữ người dùng phổ thông hiểu.
+- Giữ product names và CSV khi cần.
+- Không trộn tiếng Anh để tạo cảm giác cao cấp.
+
+### 17.2 Numbers and money
+
+- VND lưu bằng integer đồng.
+- Hiển thị grouping theo locale Việt Nam.
+- Số âm không chỉ dựa vào màu.
+- Full values trong context cần kiểm tra.
+- Không viết `125.420.000 d`; dùng `125.420.000 ₫` theo formatter chính thức.
+
+### 17.3 Dates
+
+- Dùng format rõ cho người Việt.
+- Tránh format mơ hồ ngày/tháng.
+- Relative date phải có đường xem exact date khi cần kiểm tra.
+
+---
+
+## 18. Governance
+
+### 18.1 Authority
+
+| Area | Source |
 |---|---|
-| Product/financial truth | `docs/product/PRINCIPLES.md` |
-| Brand foundation | `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md` |
-| Logo geometry/usage | `docs/design/MONEYFLOW_LOGO.md` sau khi approved |
+| Product truth | `docs/product/PRINCIPLES.md` |
+| Brand foundation | Tài liệu này |
+| Logo | `docs/design/MONEYFLOW_LOGO.md` |
 | UI visual contract | `docs/design/CALM_LEDGER_V2.md` |
-| Tokens/components | `docs/design-system.md` |
-| UX patterns | `docs/UX_PRINCIPLES.md` |
+| Token/components | `docs/design-system.md` |
+| UX law | `docs/UX_PRINCIPLES.md` |
+| AI UI workflow | `docs/AI_UIUX_WORKFLOW.md` |
 
-### 17.2 Asset ownership
+### 18.2 Change classes
 
-Khi logo được duyệt, canonical assets nên được tổ chức theo cấu trúc:
+#### Minor
 
-```text
-public/brand/
-  logo/
-    moneyflow-symbol.svg
-    moneyflow-wordmark.svg
-    moneyflow-lockup-horizontal.svg
-    moneyflow-lockup-stacked.svg
-    moneyflow-symbol-mono-dark.svg
-    moneyflow-symbol-mono-light.svg
-  app-icons/
-    ...generated production assets
-```
+- sửa typo;
+- thêm example không đổi principle;
+- làm rõ một rule đã có.
 
-Không lưu nhiều file có tên `final`, `final-v2`, `new-final`.
+#### Significant
 
-### 17.3 Change process
+- đổi brand promise;
+- đổi positioning;
+- đổi canonical logo;
+- đổi primary brand color;
+- đổi typography chính;
+- thay claim boundaries;
+- tạo một visual campaign system mới.
 
-Một thay đổi brand không tầm thường cần:
+Significant changes cần:
 
-1. nêu vấn đề;
-2. chỉ ra source of truth bị ảnh hưởng;
-3. tạo ít nhất ba hướng thực sự khác nhau nếu là identity exploration;
-4. đánh giá bằng tiêu chí, không bằng mockup đẹp;
-5. test một màu và kích thước nhỏ;
-6. review accessibility và localization;
-7. cập nhật guideline và asset source trong cùng PR;
-8. không merge khi owner chưa phê duyệt concept.
+1. research/work packet;
+2. alternatives;
+3. human owner approval;
+4. cập nhật source of truth;
+5. implementation và evidence;
+6. PR review.
 
-### 17.4 Versioning
+### 18.3 Asset ownership
 
-- Patch: sửa typo, link, ví dụ mà không thay luật.
-- Minor: thêm application/pattern trong cùng chiến lược.
-- Major: đổi positioning, logo system, palette cốt lõi hoặc voice.
+Canonical asset phải:
+
+- có vector source;
+- có owner;
+- có version/date;
+- có approved variants;
+- có nơi duy nhất trong repo/library;
+- không phụ thuộc file font riêng được chia sẻ ngoài license.
+
+### 18.4 No parallel systems
+
+Không tạo:
+
+- logo mới trong một component;
+- palette campaign nhưng dùng trong product token;
+- typography marketing không được ghi lại;
+- icon style riêng cho một route;
+- tài liệu brand mới cạnh tranh tài liệu này.
+
+Cần sửa authority hiện tại hoặc tạo researched replacement.
 
 ---
 
-## 18. Review scorecards
+## 19. Brand review scorecard
 
-### 18.1 Logo scorecard
+Chấm 1–5:
 
-| Criterion | Weight |
-|---|---:|
-| Khác biệt và có thể sở hữu | 25 |
-| Dễ nhớ | 20 |
-| Phù hợp MoneyFlow | 20 |
-| Rõ ở 16–32px | 15 |
-| Hoạt động đơn sắc | 10 |
-| Cân bằng hình học | 10 |
-
-Điểm dưới 80/100 không được chuyển sang polish hoặc mockup production.
-
-### 18.2 Brand application scorecard
-
-| Question | Pass condition |
+| Tiêu chí | Câu hỏi |
 |---|---|
-| Có đúng product truth không? | Không ngụ ý đầu tư, bank sync hoặc lời khuyên thiếu dữ liệu. |
-| Có một message chính không? | Người xem biết điều cần hiểu/hành động đầu tiên. |
-| Có đúng voice không? | Bình tĩnh, rõ, không phán xét. |
-| Có dùng đúng màu không? | Brand và semantic roles không bị trộn. |
-| Có accessible không? | Contrast, focus, label và non-color cues đạt. |
-| Có tiếng Việt tự nhiên không? | Không dịch máy hoặc thuật ngữ kế toán không cần thiết. |
-| Có nhất quán không? | Dùng đúng token, typography, spacing và asset canonical. |
+| Product truth | Có đúng là manual-first personal ledger không? |
+| Clarity | Người dùng hiểu thông điệp/hành động ngay không? |
+| Honesty | Có claim hoặc dữ liệu bị phóng đại không? |
+| Distinctiveness | Có khác template fintech phổ biến không? |
+| Calmness | Có tạo áp lực, guilt hoặc visual noise không? |
+| Consistency | Có dùng đúng voice, color, type và components không? |
+| Accessibility | Có dùng được khi zoom, keyboard, screen reader, reduced motion không? |
+| Small-size craft | Logo/icon có hoạt động ở size thật không? |
+| Maintainability | Có tái sử dụng asset/token và authority hiện tại không? |
+| Evidence | Có browser/screenshot/user evidence phù hợp không? |
+
+Một tài sản không được duyệt chỉ vì tổng điểm cao nếu vi phạm product truth, financial honesty hoặc accessibility.
 
 ---
 
-## 19. Release checklist
+## 20. Release checklist
 
-Trước khi phát hành một tài sản thương hiệu:
+### Brand/content
 
-- [ ] Product claim đã được kiểm tra với product principles.
-- [ ] Chỉ dùng asset canonical.
-- [ ] Logo có clear space và không bị biến dạng.
-- [ ] Có bản light/dark phù hợp.
-- [ ] Kiểm tra một màu.
-- [ ] Kiểm tra 16, 24, 32, 64 và kích thước thực tế liên quan.
-- [ ] Màu brand và semantic không bị nhầm vai trò.
-- [ ] Typography hỗ trợ tiếng Việt đầy đủ.
-- [ ] Contrast, focus và non-color cues đạt.
-- [ ] Copy đúng voice và không overclaim.
-- [ ] Không dùng gradient/glow/3D trang trí.
-- [ ] Tài liệu và source asset được cập nhật cùng thay đổi.
-- [ ] Owner đã phê duyệt nếu thay đổi identity cốt lõi.
+- [ ] Message phù hợp positioning.
+- [ ] Không có claim vượt scope.
+- [ ] Voice bình tĩnh, rõ, không phán xét.
+- [ ] Vietnamese copy tự nhiên.
+- [ ] CTA nói rõ hành động.
+
+### Visual
+
+- [ ] Logo dùng asset canonical.
+- [ ] Color roles đúng.
+- [ ] Semantic finance không bị dùng như branding.
+- [ ] Typography và spacing theo system.
+- [ ] Không gradient/glow/glass trang trí.
+- [ ] Product screenshot phản ánh UI thật.
+
+### Accessibility
+
+- [ ] Contrast đạt.
+- [ ] Focus/keyboard đạt.
+- [ ] Text 200% đạt.
+- [ ] Không phụ thuộc màu.
+- [ ] Reduced motion đạt.
+- [ ] Logo/accessibility name không lặp.
+
+### Technical/evidence
+
+- [ ] Asset load đúng.
+- [ ] SVG/vector source được giữ.
+- [ ] Responsive screenshots được review.
+- [ ] Favicon/PWA được kiểm tra.
+- [ ] Không có duplicate asset hoặc parallel system.
+- [ ] Required CI/browser checks pass.
 
 ---
 
-## 20. Current open decisions
+## 21. Current approved decisions
 
-1. Logo concept cuối chưa được chọn.
-2. Wordmark customisation chưa được phê duyệt.
-3. App icon production chưa được chốt.
-4. Tagline chưa phải thành phần bắt buộc.
-5. Legal/trademark clearance chưa được thực hiện.
-
-Cho đến khi các quyết định này được đóng, không tuyên bố logo hiện tại là “final” hoặc “canonical”.
+| Area | Decision |
+|---|---|
+| Product category | Vietnamese manual-first personal ledger |
+| Brand promise | Tiền của bạn được ghi đúng, nhìn rõ và luôn thuộc về bạn. |
+| Brand essence | Rõ từng dòng tiền. |
+| Personality | Calm, clear, honest, trustworthy, approachable, organized |
+| Primary type | Inter |
+| Brand green light | `#0B6B3A` |
+| Brand green dark | `#4AD58A` |
+| UI contract | Calm Ledger v2 |
+| Canonical logo | M-based mark v1 in `src/app/icon.svg` and `src/app/brand-logo.css` |
+| Logo approval | Owner-approved 2026-07-28 |
+| Decorative gradients/glass | Excluded |
+| Financial advice claims | Excluded until explicitly researched and approved |
