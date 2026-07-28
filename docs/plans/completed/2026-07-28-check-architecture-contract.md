@@ -1,6 +1,6 @@
 # Enforce the lib/component/server ownership boundary in CI
 
-**Status:** implementing
+**Status:** completed
 **Owner:** agent
 **Issue/PR:** none yet — follow-up from `docs/plans/active/repository-consolidation.md` (Phase 1 inventory, section D/T5)
 **Last updated:** 2026-07-28
@@ -168,9 +168,9 @@ None.
 ## Delivery record
 
 - Branch: `claude/doc-du-an-qnj7ya`
-- PR: none opened yet
-- Squash commit: pending
-- CI run: pending (will run on next push/PR)
-- Production deployment: not applicable (tooling only)
-- Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: no, pending PR/merge
+- PR: #108 — merged 2026-07-28
+- Squash commit: `0c5d51b55c6d052b711df3a8dbf1f3647c6d3f56`
+- CI run: PR #108 head — `database`, `verify`, `e2e` all green (verify job includes the new `check:architecture` step)
+- Production deployment: merged to `main`; tooling-only, no runtime impact
+- Production flow verified: not applicable (CI/tooling contract)
+- Work packet moved to `docs/plans/completed/`: yes
