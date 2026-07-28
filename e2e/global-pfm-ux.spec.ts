@@ -24,18 +24,27 @@ test.describe("Global PFM UX benchmark", () => {
   test("withdraws untrusted spending advice and keeps a viewport primary action", async ({
     page,
   }) => {
-    await page.goto("/insights");
+    await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden();
 
     const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
-    const welcomeExpenseAction = page.locator(
-      ".welcome-actions .insights-ghi-chi",
-    );
     if (isMobile) {
-      await expect(welcomeExpenseAction).toBeHidden();
-      await expect(page.locator(".mobile-fab")).toBeVisible();
+      const mobileNavigation = page.getByRole("navigation", {
+        name: "Điều hướng di động",
+      });
+      await expect(
+        mobileNavigation.getByRole("button", {
+          name: "Ghi chi tiêu",
+          exact: true,
+        }),
+      ).toBeVisible();
     } else {
-      await expect(welcomeExpenseAction).toBeVisible();
+      await expect(
+        page.getByRole("banner").getByRole("button", {
+          name: "Ghi chi tiêu",
+          exact: true,
+        }),
+      ).toBeVisible();
     }
 
     await page.goto("/capture/quick");
