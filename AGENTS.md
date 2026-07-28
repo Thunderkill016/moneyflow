@@ -23,6 +23,7 @@ Task-specific references:
 
 | Task | Read |
 |---|---|
+| Brand/logo/marketing identity | `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md`, `docs/design/MONEYFLOW_LOGO.md`, `docs/design/CALM_LEDGER_V2.md` |
 | UI/UX | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` |
 | Auth/deployment | `docs/configuration.md`, `docs/supabase-setup.md` |
 | Database/RLS | `docs/security-rls-check.md`, relevant migrations and pgTAP tests |
