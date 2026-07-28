@@ -54,74 +54,40 @@
   }
 }
 
-/* Canonical MoneyFlow brand mark v1.
- *
- * Existing brand links keep their accessible text and component-owned sizing.
- * This compatibility rule replaces only the decorative glyph while the
- * repeated brand wrappers are migrated to a shared component.
+/* The public landing and auth surfaces now own the canonical logo through
+ * `src/components/brand/brand-lockup.tsx`. The signed-in shell still has a
+ * legacy wrapper, so this deliberately narrow bridge displays the canonical
+ * `src/app/icon.svg` asset until that wrapper is migrated in its own shell
+ * component slice. Do not broaden this selector to other MoneyFlow links.
  */
-a[aria-label^="MoneyFlow"] > span:first-child {
+a[aria-label="MoneyFlow, về Tổng quan"] > span:first-child {
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
-a[aria-label^="MoneyFlow"] > span:first-child > span {
-  width: 56% !important;
-  height: 56% !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: var(--mf-on-brand, currentColor);
-  clip-path: polygon(
-    0 0,
-    24% 0,
-    50% 52%,
-    76% 0,
-    100% 0,
-    100% 100%,
-    77% 100%,
-    77% 39%,
-    58% 78%,
-    42% 78%,
-    23% 39%,
-    23% 100%,
-    0 100%
-  );
-  transform: none !important;
-}
-
-main#noi-dung [role="img"] span[aria-hidden="true"]:empty {
-  position: relative;
-  overflow: hidden;
-  border: 0;
-  background: var(--mf-brand);
-}
-
-main#noi-dung [role="img"] span[aria-hidden="true"]:empty::after {
+a[aria-label="MoneyFlow, về Tổng quan"] > span:first-child::after {
   position: absolute;
-  inset: 24%;
-  background: var(--mf-on-brand);
-  clip-path: polygon(
-    0 0,
-    24% 0,
-    50% 52%,
-    76% 0,
-    100% 0,
-    100% 100%,
-    77% 100%,
-    77% 39%,
-    58% 78%,
-    42% 78%,
-    23% 39%,
-    23% 100%,
-    0 100%
-  );
+  inset: 0;
+  background: url("/icon.svg") center / contain no-repeat;
   content: "";
 }
 
+a[aria-label="MoneyFlow, về Tổng quan"] > span:first-child > span {
+  visibility: hidden;
+}
+
 @media (forced-colors: active) {
-  a[aria-label^="MoneyFlow"] > span:first-child > span,
-  main#noi-dung [role="img"] span[aria-hidden="true"]:empty::after {
-    background: CanvasText;
+  a[aria-label="MoneyFlow, về Tổng quan"] > span:first-child::after {
+    background: none;
+    border: 2px solid CanvasText;
+    border-radius: 9px;
+  }
+
+  a[aria-label="MoneyFlow, về Tổng quan"] > span:first-child > span {
+    visibility: visible;
+    border-color: CanvasText;
   }
 }
