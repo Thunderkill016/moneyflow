@@ -2,173 +2,178 @@
 
 **Status:** implementing  
 **Owner:** agent  
-**Issue/PR:** #72  
+**Issue/PR:** #72 / #104  
 **Last updated:** 2026-07-28
 
 ## Outcome
 
-MoneyFlow has repeatable browser evidence that realistic large VND values and long Vietnamese transaction notes remain readable and usable across the current responsive route matrix on the canonical Dashboard, Transactions, Reports and quick-capture flows.
+MoneyFlow has repeatable browser evidence that realistic large VND values and long Vietnamese transaction notes remain readable and usable across the current responsive matrix on Dashboard, Transactions and quick capture. Reports remains in the populated route audit, but its server-owned demo workspace is not falsely treated as if it consumed the browser-local transaction fixture.
 
 ## Repository reconnaissance
 
 ### Current behavior
 
-- The general responsive audit covers empty/default demo states and already checks document overflow, clipped dialogs, small controls and potentially clipped money.
-- PR #75 attempted rich-state coverage but was closed because it targeted the retired `/insights` layout and could not run while Actions were blocked.
-- PR #103 restored a fully green public CI baseline and reconciled the browser suite with `/dashboard` and the current authored navigation model.
+- The baseline responsive audit covers empty/default demo states and checks document overflow, clipped dialogs, small controls and clipped money.
+- Closed PR #75 preserved the rich-state requirement but targeted the retired `/insights` route.
+- PR #103 restored a fully green public CI baseline on canonical `/dashboard`.
+- Initial PR #104 run #388 exposed one production defect: phone transaction rows retained the desktop five-column minimum width and extended to 575px at 320/360/390px viewports.
+- The same run showed two test-fixture mismatches: Reports uses its server-owned demo workspace rather than the browser-local transaction seed, and quick capture already opens in expense mode with accessible name `Khoản chi (−)`.
 
 ### Relevant repository areas
 
 | Area | Why it matters | Reuse/change/avoid |
 |---|---|---|
-| `e2e/audit/responsive-audit.ts` | Shared route audit, screenshot and JSON evidence | Reuse without changing ownership |
-| `e2e/audit/*.responsive.audit.spec.ts` | Specs selected by every responsive Chromium project | Add one focused rich-state spec |
-| `playwright.audit.config.ts` | Defines phone, tablet and desktop responsive projects | Reuse existing `responsive.audit.spec.ts` matcher |
-| Demo local-storage transaction state | Supplies deterministic populated data without production credentials | Seed synthetic records only |
+| `e2e/audit/responsive-audit.ts` | Shared route audit and evidence | Reuse |
+| `e2e/audit/rich-state.responsive.audit.spec.ts` | Current rich-state matrix | Add and reconcile |
+| `src/components/transactions-page.tsx` | Transaction row structure | Reuse structure |
+| `src/components/transactions-page.module.css` | Route-owned responsive override | Fix phone row layout here |
+| `playwright.audit.config.ts` | Seven responsive Chromium projects | Reuse existing matcher |
 
 ### Existing tests and constraints
 
-- Related unit tests: existing domain/unit suite remains unchanged.
-- Database/RLS tests: fresh Supabase reset and pgTAP remain required but this slice has no database change.
-- Browser tests: `responsive.audit.spec.ts`, `critical-browser.audit.spec.ts` and the expense-path smoke are the baseline.
-- Product/architecture rules: VND stays integer đồng; transfers do not count as income or expense; `/dashboard` is the canonical authenticated home.
+- Unit/static-RLS, production build, fresh Supabase reset and pgTAP remain mandatory.
+- Expense browser smoke must remain green.
+- VND stays integer đồng and transfers remain excluded from income/expense totals.
+- No production credentials or user data are used; fixtures live in demo localStorage.
 
 ### Similar implementation and recent history
 
-- Existing pattern to reuse: `seedUiAuditState` plus `auditRoute` for route-level evidence.
-- Relevant issue/PR/decision: #72 comment preserving the rich-state requirement after stale PR #75 was closed; PR #103 proved the public CI matrix can execute.
+- Reuse `auditRoute` for PNG/JSON evidence and P1/P2 classification.
+- Reuse route-owned CSS Module bridges instead of adding another global override layer.
+- Issue #72 requires fixes by shared component/root cause and regression evidence at the failing viewport.
 
 ### Open questions
 
-- [x] Scope the first rich-state slice to the responsive phone/tablet/desktop projects selected by the existing responsive-spec matcher.
-- [x] Keep production runtime and financial calculations unchanged unless the new regression test exposes a real defect.
+- [x] Does rich data expose a phone overflow? Yes: Transactions rows at 320/360/390px.
+- [x] Can Reports consume the same browser fixture? No; current Reports data ownership is server-side demo workspace.
+- [x] Does quick capture require switching to expense mode? No; expense mode is already selected.
 
 ## Research
 
-Not required. This is an internal browser-regression slice that reuses the repository's existing Playwright harness and product contracts; no external technology or product decision is introduced.
+Not required. This is an internal regression and responsive-layout correction using existing repository contracts and test infrastructure.
 
 ### Questions researched
 
-1. Not applicable.
+1. Which current data owner supplies each audited route?
+2. Which layout boundary causes the phone overflow?
 
 ### Sources
 
 | Source | Date accessed | What it establishes | Limits/applicability |
 |---|---|---|---|
-| Repository issue #72 and closed PR #75 | 2026-07-28 | Exact preserved stress-state requirement and stale route to replace | Internal project evidence only |
-| Current audit helper and Playwright config | 2026-07-28 | Existing project matcher, responsive invariants and artifact format | Does not prove physical-device behavior |
+| Issue #72 and closed PR #75 | 2026-07-28 | Preserved rich-state requirement | Historical implementation was stale |
+| CI run #388 Playwright artifacts | 2026-07-28 | Exact failing routes, viewports and accessible names | Emulated browsers only |
+| Current Transactions component and CSS | 2026-07-28 | Desktop grid minimums caused the overflow | Applies to current shell |
 
 ### Alternatives considered
 
 | Option | Advantages | Risks | Decision |
 |---|---|---|---|
-| Restore PR #75 unchanged | Minimal editing | Targets `/insights` and old assumptions | Rejected |
-| Add route-specific CSS before evidence | Could pre-emptively handle overflow | Guesses at defects and creates unrelated scope | Rejected |
-| Add a new current-main rich-state regression spec | Produces evidence first and exposes actual defects | Increases CI browser workload | Selected |
+| Restore PR #75 unchanged | Small diff | Stale route and assumptions | Rejected |
+| Hide overflow on the panel | Fast | Clips content and masks defect | Rejected |
+| Phone-specific three-column row in route-owned CSS | Preserves content and actions | Must verify all phone widths | Selected |
+| Inject test-only data into Reports server workspace | Could force exact numbers | Adds a new test-only runtime boundary | Rejected for this slice |
 
 ### Research decision
 
-Rebuild the stress suite from current `main`, seed only synthetic demo data, reuse the shared audit helper, and allow CI evidence to determine whether a production UI fix is necessary.
+Use evidence-first coverage. Fix the real Transactions phone layout in its CSS Module, align quick-capture selectors with the current accessible state, and audit Reports as populated canonical data without claiming it consumed the localStorage fixture.
 
 ## Specification
 
 ### Problem
 
-The green baseline mostly proves empty/default states. Large integer VND amounts and long Vietnamese notes can still clip, force document overflow or move primary actions outside narrow viewports without being detected.
+Large values and long notes can force transaction content beyond narrow viewports. The old desktop row grid reserves fixed columns that cannot fit a 320–390px screen.
 
 ### User stories
 
-- As a user with large-value transactions, I can read full amounts without horizontal clipping.
-- As a user writing a long Vietnamese note, I can keep the form and save action usable on a narrow phone.
-- As a maintainer, I receive reproducible PNG and JSON evidence for failures across the supported responsive matrix.
+- As a user with a long Vietnamese note, I can read the transaction without horizontal scrolling.
+- As a user with a large VND amount, I can see the amount and row actions on a phone.
+- As a maintainer, I receive reproducible evidence across all supported responsive Chromium viewports.
 
 ### Acceptance criteria
 
-- [ ] `/dashboard`, `/transactions` and `/reports` load with synthetic large-VND data on every responsive audit project.
-- [ ] 987.654.321 ₫ expense and 12.345.678.900 ₫ income remain visible where relevant.
-- [ ] The Transactions route shows a 4.567.890.123 ₫ transfer without whole-document overflow.
-- [ ] Visible money elements are not clipped by hidden or clipped overflow.
-- [ ] A long Vietnamese quick-capture note keeps the input and Save action inside the viewport.
-- [ ] Each audited route/state emits PNG and JSON evidence.
-- [ ] Full configured CI remains green.
+- [ ] `/dashboard` renders the 987.654.321 ₫ seeded expense without clipped money.
+- [ ] `/transactions` renders 987.654.321 ₫, 12.345.678.900 ₫ and 4.567.890.123 ₫ records without document overflow.
+- [ ] Long transaction notes wrap and each phone row stays within 320/360/390px viewports.
+- [ ] Quick capture accepts 987.654.321 ₫ and a long Vietnamese note while the input and Save action remain inside the viewport.
+- [ ] `/reports` remains usable with its canonical populated demo workspace and has no clipped visible money.
+- [ ] PNG and JSON evidence is uploaded.
+- [ ] Full configured CI is green.
 
 ### Required states
 
-- Loading: shared audit waits for visible loading states to settle.
-- Empty: covered by the baseline responsive suite, not duplicated here.
-- Populated: expense, income and transfer records are seeded.
-- Validation/error: out of scope for this slice and remains open under #72.
+- Loading: wait for visible busy/loading state to settle.
+- Empty: covered by baseline suite.
+- Populated: rich browser-local transactions on Dashboard/Transactions; canonical populated Reports workspace.
+- Validation/error: remains open under #72.
 - Recovery/undo: out of scope.
-- Long data / large VND: primary focus of this slice.
-- Mobile/tablet/desktop: existing 320, 360, 390, 768, 1024, 1366 and 1440 Chromium projects.
-- Accessibility: assertions use labels, roles and current authored landmarks where interaction is required.
+- Long data / large VND: primary focus.
+- Mobile/tablet/desktop: 320, 360, 390, 768, 1024, 1366 and 1440 Chromium projects.
+- Accessibility: interact through current roles, labels and pressed state.
 
 ### Financial and security constraints
 
-- No guessed financial advice or recommendation.
-- Integer VND and transfer invariants remain intact.
-- Ownership/RLS implications: none; only browser-local synthetic demo state is used.
+- No financial advice or guessed data.
+- Integer VND and transfer invariants remain unchanged.
+- No Auth, RLS, schema or production-data impact.
 
 ### Out of scope
 
-- Production database changes, migrations, Auth or RLS changes.
-- New product features or visual redesign.
-- Validation, destructive confirmation, import review and physical-device acceptance.
-- Claiming Android or iOS physical readiness from emulation.
+- Changing Reports data ownership or introducing a test-only production route.
+- Validation/destructive confirmation/import-review states.
+- Physical Android/iOS acceptance.
+- Unrelated visual redesign.
 
 ## Implementation plan
 
 ### Architecture fit
 
-The test belongs in `e2e/audit/` because the behavior is a populated-state extension of the existing responsive audit. Naming the file `*.responsive.audit.spec.ts` lets the current Playwright matcher execute it on the established responsive projects without adding another configuration layer.
+The regression spec belongs in `e2e/audit/`. The production fix belongs in `transactions-page.module.css`, which already bridges the current Transactions route away from legacy global ownership. No new global stylesheet is added.
 
 ### Planned changes
 
 | File/area | Change | Reason |
 |---|---|---|
-| `e2e/audit/rich-state.responsive.audit.spec.ts` | Seed dynamic current-month synthetic transactions, audit three routes and a filled quick-capture form | Recreate the preserved #72 requirement against current routes |
-| `docs/plans/active/phase-b-rich-vnd-audit.md` | Record scope, acceptance and evidence | Keep non-trivial work reviewable and knowledge-contract compliant |
+| `e2e/audit/rich-state.responsive.audit.spec.ts` | Seed rich data, audit routes, align quick-capture and Reports assertions | Current evidence contract |
+| `src/components/transactions-page.module.css` | On phones use `icon | minmax(0,1fr) | actions`, wrap detail, move amount to row two | Remove 575px row overflow without clipping |
+| Work packet | Record findings, decisions and evidence | Keep scope reviewable |
 
 ### Data and migration impact
 
 - Schema/migration: none.
 - Backfill: none.
-- Compatibility: demo local-storage keys remain unchanged.
-- Rollback: delete the new spec and work packet if the approach is rejected.
+- Compatibility: existing demo localStorage keys unchanged.
+- Rollback: revert the CSS Module and regression spec.
 
 ### Risks and counterexamples
 
 | Risk/counterexample | Prevention or test |
 |---|---|
-| Fixed dates fall outside the current reporting period | Generate Vietnam-local current and previous dates at test runtime |
-| A formatted amount appears in one route but is clipped | Check visible money elements for hidden/clip overflow in addition to text presence |
-| Long single-line input text has internal scrolling | Assert the control rectangle and Save action remain inside the viewport; do not treat internal input scrolling as document overflow |
-| Test passes only one device width | Execute through the existing responsive project matcher |
-| Synthetic transfer accidentally affects income/expense expectations | Assert transfer display only on Transactions; preserve existing domain tests for totals |
+| Fix masks overflow by clipping | Do not set row overflow hidden; assert row bounds and visible money |
+| Large amount pushes actions away | Put amount in second content row; actions occupy fixed third column |
+| Long words preserve min-content width | `min-width: 0`, `overflow-wrap: anywhere`, `word-break: break-word` |
+| Reports assertion tests the wrong data owner | Assert route usability and unclipped canonical money, not local fixture values |
+| Quick capture selector misses `Khoản chi (−)` | Match accessible-name prefix and assert pressed state |
 
 ### Verification plan
 
-- Static: `npm run check:knowledge`, lint and typecheck.
+- Static: knowledge, deployment, CSS ownership, lint and typecheck.
 - Unit/domain: full unit/static-RLS suite.
-- Database: fresh local Supabase reset and pgTAP through CI.
-- Browser flow: expense-path browser smoke remains green.
-- Responsive/visual: new rich-state spec plus current production cross-device audit.
-- Production/manual: not required because this slice changes tests/docs only; physical-device checks remain open.
+- Database: fresh Supabase reset and pgTAP.
+- Browser flow: expense-path smoke.
+- Responsive/visual: rich-state suite on seven viewports plus baseline production audit.
+- Production/manual: not required for test/CSS slice; physical checks remain open.
 
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| T1 | Create current-main rich-state seed and route assertions | PR #103 merged | New Playwright spec | in progress |
-| T2 | Verify quick-capture filled form remains inside narrow viewports | T1 | PNG/JSON artifacts and assertions | todo |
-| T3 | Run complete configured CI and classify any failures | T1, T2 | GitHub Actions run | todo |
-| T4 | Update #72 with result and remaining limits | T3 | Issue comment | todo |
-
-Rules:
-
-- One task should produce a reviewable result.
-- Parallel tasks must not edit overlapping ownership areas.
-- New discoveries update the specification/plan before implementation scope changes.
+| T1 | Add current-main rich-state suite | PR #103 | Initial PR #104 diff | done |
+| T2 | Classify run #388 failures | T1 | Playwright artifact | done |
+| T3 | Fix phone transaction row root cause | T2 | CSS Module + 320/360/390 regression | in progress |
+| T4 | Align Reports and quick-capture assertions with current owners/state | T2 | Updated spec | in progress |
+| T5 | Run full CI and evaluate evidence | T3, T4 | New Actions run | todo |
+| T6 | Update #72 and deliver PR | T5 | Issue comment and merge | todo |
 
 ## Evaluation
 
@@ -176,30 +181,33 @@ Rules:
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Current routes use rich synthetic state | Pending CI | pending |
-| No document overflow or clipped money | Pending JSON evidence | pending |
-| Quick capture remains usable | Pending screenshots and browser result | pending |
-| Full CI remains green | Pending PR run | pending |
+| Baseline static/build/database gates | Run #388 | pass |
+| Expense browser smoke | Run #388 | pass |
+| Rich phone transaction rows | Run #388 showed 575px defect; fix pending rerun | pending |
+| Reports canonical populated state | Run #388 showed fixture-owner mismatch; assertion corrected | pending rerun |
+| Quick capture filled state | Run #388 exposed exact-name mismatch; selector corrected | pending rerun |
+| Full CI | Follow-up run | pending |
 
 ### Review findings
 
-- Correctness: pending CI.
-- Security/ownership: no production data or ownership boundary change.
-- UI/UX/accessibility: pending responsive artifacts.
-- Maintainability/duplication: shared helper reused; no new audit framework.
-- Scope compliance: tests and documentation only unless a real failure requires a separately documented fix.
+- Correctness: transfer remains display-only for this test and domain totals are unchanged.
+- Security/ownership: no production data or tenant boundary changes.
+- UI/UX/accessibility: real phone overflow found and fixed at route ownership boundary.
+- Maintainability/duplication: shared audit helper reused; no new framework or global CSS layer.
+- Scope compliance: one production CSS root-cause fix plus tests/docs.
 
 ### Remaining limitations
 
-- Emulated browsers cannot establish physical Android/iOS readiness.
-- Validation, destructive confirmation and import-review states remain open under #72.
+- Reports does not currently accept the browser-local transaction fixture, so exact rich report totals are not proven in this slice.
+- Emulation does not establish physical-device readiness.
+- Validation, destructive confirmation and import review remain open under #72.
 
 ## Delivery record
 
 - Branch: `agent/phase-b-rich-vnd-audit`
-- PR: pending
+- PR: #104
 - Squash commit: pending
-- CI run: pending
-- Production deployment: not applicable
-- Production flow verified: not applicable
+- CI run: #388 failed at rich-state audit; follow-up pending
+- Production deployment: pending after merge
+- Production flow verified: not applicable before merge
 - Work packet moved to `docs/plans/completed/`: pending
