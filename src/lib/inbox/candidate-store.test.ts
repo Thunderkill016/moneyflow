@@ -30,6 +30,14 @@ test("accepts a complete integer-money candidate", () => {
   assert.equal(isCandidate(valid), true);
   assert.equal(isCandidate({ ...valid, possibleDuplicate: true }), true);
   assert.equal(isCandidate({ ...valid, confidence: "high" }), true);
+  assert.equal(
+    isCandidate({
+      ...valid,
+      status: "approved",
+      financialTransactionId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    }),
+    true,
+  );
 });
 
 test("rejects unsafe or incomplete candidate data", () => {
@@ -44,6 +52,16 @@ test("rejects unsafe or incomplete candidate data", () => {
   assert.equal(isCandidate({ ...valid, sourceRowIndex: 0 }), false);
   assert.equal(isCandidate({ ...valid, sourceRowIndex: 1.5 }), false);
   assert.equal(isCandidate({ ...valid, sourceRowIndex: 1_000_001 }), false);
+  assert.equal(isCandidate({ ...valid, financialTransactionId: "" }), false);
+  assert.equal(isCandidate({ ...valid, financialTransactionId: "not-a-uuid" }), false);
+  assert.equal(
+    isCandidate({
+      ...valid,
+      status: "pending",
+      financialTransactionId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    }),
+    false,
+  );
 });
 
 test("createCandidate enforces positive integer amount", () => {
@@ -90,6 +108,33 @@ test("createCandidate preserves a valid source row index", () => {
       source: "csv",
       confidence: "high",
       sourceRowIndex: 0,
+    }),
+  );
+});
+
+test("createCandidate preserves an approved transaction link", () => {
+  const financialTransactionId = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
+  const created = createCandidate({
+    kind: "expense",
+    amount: 89_000,
+    merchant: "Grab",
+    occurredOn: "2026-07-11",
+    source: "manual",
+    confidence: "high",
+    status: "approved",
+    financialTransactionId,
+  });
+  assert.equal(created.financialTransactionId, financialTransactionId);
+  assert.throws(() =>
+    createCandidate({
+      kind: "expense",
+      amount: 89_000,
+      merchant: "Grab",
+      occurredOn: "2026-07-11",
+      source: "manual",
+      confidence: "high",
+      status: "pending",
+      financialTransactionId,
     }),
   );
 });

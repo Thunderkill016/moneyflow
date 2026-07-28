@@ -25,7 +25,7 @@ export type FinanceWorkspace = {
   dataError: string | null;
 };
 
-const TRANSACTION_FEED_COLUMNS =
+export const TRANSACTION_FEED_COLUMNS =
   "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
 
 type FinanceWorkspaceScope = "full" | "dashboard";

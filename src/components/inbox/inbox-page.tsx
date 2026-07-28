@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { approveInboxCandidateAction } from "@/app/actions/inbox";
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
 import { InboxBulkBar, type BulkApplyPayload } from "@/components/inbox/inbox-bulk-bar";
@@ -40,6 +41,7 @@ import {
 } from "@/lib/inbox/keyboard";
 import {
   applyBulkCategory,
+  buildAtomicApprovalInput,
   buildLedgerPost,
   draftFromCandidate,
   markCandidatesStatus,
@@ -100,7 +102,14 @@ export function InboxPage({
     accounts: workspace.accounts,
     categories: workspace.categories,
   });
-  const { addTransaction, addTransfer, isMutating } = useTransactions({
+  const {
+    transactions,
+    acceptCommittedTransaction,
+    addTransaction,
+    addTransfer,
+    deleteTransaction,
+    isMutating,
+  } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts,
     categories,
@@ -170,7 +179,7 @@ export function InboxPage({
     () =>
       annotateCandidates(
         candidates,
-        workspace.transactions.map((tx) => ({
+        transactions.map((tx) => ({
           id: tx.id,
           kind: tx.kind,
           amount: tx.amount,
@@ -180,7 +189,7 @@ export function InboxPage({
           accountId: tx.accountId,
         })),
       ),
-    [candidates, workspace.transactions],
+    [candidates, transactions],
   );
 
   const pendingCount = useMemo(() => countPending(detected), [detected]);
@@ -277,6 +286,56 @@ export function InboxPage({
   }
 
   async function postOne(payload: ReviewSubmitPayload): Promise<{ ok: boolean; message?: string }> {
+    if (!viewer.isDemo) {
+      let result: Awaited<ReturnType<typeof approveInboxCandidateAction>>;
+      try {
+        result = await approveInboxCandidateAction(
+          buildAtomicApprovalInput(
+            payload.candidateId,
+            payload.draft,
+            payload.post,
+          ),
+        );
+      } catch {
+        return {
+          ok: false,
+          message: "Mất kết nối khi duyệt giao dịch. Hãy thử lại.",
+        };
+      }
+
+      if (!result.ok) {
+        return {
+          ok: false,
+          message: result.message || "Không thể duyệt giao dịch.",
+        };
+      }
+      if (!result.candidate || !result.transaction) {
+        return {
+          ok: false,
+          message: "Đã duyệt nhưng chưa nhận được kết quả. Hãy thử lại.",
+        };
+      }
+
+      acceptCommittedTransaction(result.transaction);
+      const next = candidatesRef.current.map((item) =>
+        item.id === result.candidate?.id
+          ? (result.candidate as InboxCandidate)
+          : item,
+      );
+      candidatesRef.current = next;
+      setCandidates(next);
+      setSelectedIds((current) =>
+        current.filter((id) => id !== payload.candidateId),
+      );
+      setNotice(
+        safeUserNotice(
+          `Đã duyệt “${payload.draft.merchant.trim() || "giao dịch"}” vào sổ.`,
+          "Đã duyệt giao dịch vào sổ.",
+        ),
+      );
+      return { ok: true };
+    }
+
     const post = payload.post;
     const accountId =
       post.mode === "money" ? post.input.accountId : post.input.sourceAccountId;
@@ -286,7 +345,7 @@ export function InboxPage({
         ? categories.find((item) => item.id === post.input.categoryId)
         : undefined;
 
-    let result: { ok: boolean; message?: string };
+    let result: Awaited<ReturnType<typeof addTransaction>>;
     try {
       if (post.mode === "transfer") {
         result = await addTransfer(post.input);
@@ -299,6 +358,9 @@ export function InboxPage({
 
     if (!result.ok) {
       return { ok: false, message: result.message || "Không thể ghi sổ." };
+    }
+    if (!result.transaction) {
+      return { ok: false, message: "Đã ghi sổ nhưng chưa nhận được giao dịch." };
     }
 
     const next = markCandidatesStatus(
@@ -316,11 +378,23 @@ export function InboxPage({
         accountId: account?.id,
         account: account?.name,
         possibleDuplicate: payload.draft.possibleDuplicate,
+        financialTransactionId: result.transaction.id,
       },
     );
     const saved = await persist(next, [payload.candidateId]);
     if (!saved) {
-      return { ok: false, message: "Đã ghi sổ nhưng chưa cập nhật được trạng thái Inbox." };
+      const rollback = await deleteTransaction(result.transaction.id);
+      if (rollback.ok) {
+        return {
+          ok: false,
+          message: "Không lưu được trạng thái Inbox; giao dịch đã được hoàn tác.",
+        };
+      }
+      return {
+        ok: false,
+        message:
+          "Không lưu được trạng thái Inbox và chưa thể hoàn tác giao dịch trên thiết bị.",
+      };
     }
     candidatesRef.current = next;
     setSelectedIds((current) => current.filter((id) => id !== payload.candidateId));

@@ -5,6 +5,8 @@
 
 export const CANDIDATE_STORAGE_KEY = "moneyflow-inbox-candidates-v1";
 export const MAX_SOURCE_ROW_INDEX = 1_000_000;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type CandidateSource =
   | "paste"
@@ -49,6 +51,8 @@ export type InboxCandidate = {
   importBatchId?: string;
   /** One-based row number reported by the source parser. */
   sourceRowIndex?: number;
+  /** Ledger transaction created when this candidate was approved. */
+  financialTransactionId?: string;
   createdAt: string;
 };
 
@@ -69,13 +73,30 @@ export type CreateCandidateInput = {
   rawSnippet?: string;
   importBatchId?: string;
   sourceRowIndex?: number;
+  financialTransactionId?: string;
   id?: string;
   createdAt?: string;
 };
 
 export type UpdateCandidateInput = Partial<
-  Omit<InboxCandidate, "id" | "createdAt" | "sourceRowIndex">
+  Omit<
+    InboxCandidate,
+    "id" | "createdAt" | "sourceRowIndex" | "financialTransactionId"
+  >
 > & { id: string };
+
+export type ApproveCandidateInput = {
+  candidateId: string;
+  kind: CandidateKind;
+  amount: number;
+  merchant: string;
+  note: string;
+  occurredOn: string;
+  accountId: string;
+  categoryId: string | null;
+  destinationAccountId: string | null;
+  possibleDuplicate: boolean;
+};
 
 export const SOURCE_LABELS: Record<CandidateSource, string> = {
   paste: "paste",
@@ -253,7 +274,10 @@ export function isCandidate(value: unknown): value is InboxCandidate {
     (item.sourceRowIndex === undefined ||
       (Number.isSafeInteger(item.sourceRowIndex) &&
         item.sourceRowIndex > 0 &&
-        item.sourceRowIndex <= MAX_SOURCE_ROW_INDEX))
+        item.sourceRowIndex <= MAX_SOURCE_ROW_INDEX)) &&
+    (item.financialTransactionId === undefined ||
+      (item.status === "approved" &&
+        UUID_RE.test(item.financialTransactionId)))
   );
 }
 
@@ -307,6 +331,15 @@ export function createCandidate(input: CreateCandidateInput): InboxCandidate {
       `sourceRowIndex must be an integer between 1 and ${MAX_SOURCE_ROW_INDEX}`,
     );
   }
+  if (
+    input.financialTransactionId !== undefined &&
+    (input.status !== "approved" ||
+      !UUID_RE.test(input.financialTransactionId))
+  ) {
+    throw new Error(
+      "financialTransactionId must be a UUID on an approved candidate",
+    );
+  }
   return {
     id: input.id ?? `cand-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     kind: input.kind,
@@ -325,6 +358,7 @@ export function createCandidate(input: CreateCandidateInput): InboxCandidate {
     rawSnippet: input.rawSnippet,
     importBatchId: input.importBatchId,
     sourceRowIndex: input.sourceRowIndex,
+    financialTransactionId: input.financialTransactionId,
     createdAt: input.createdAt ?? new Date().toISOString(),
   };
 }

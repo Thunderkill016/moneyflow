@@ -1,5 +1,5 @@
 begin;
-select plan(86);
+select plan(88);
 
 select has_table('public', 'profiles', 'profiles exists');
 select has_table('public', 'accounts', 'accounts exists');
@@ -66,6 +66,7 @@ select col_has_check('public', 'import_batches', 'parser_version', 'import parse
 select col_type_is('public', 'import_batches', 'mapping_version', 'text', 'import mapping version uses text');
 select col_not_null('public', 'import_batches', 'mapping_version', 'import mapping version is required');
 select col_has_check('public', 'import_batches', 'mapping_version', 'import mapping version is constrained');
+select col_type_is('public', 'inbox_candidates', 'financial_transaction_id', 'uuid', 'candidate transaction link uses uuid');
 
 select has_function('public', 'create_money_transaction', array['uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text', 'uuid'], 'create RPC exists');
 select has_function('public', 'soft_delete_money_transaction', array['uuid'], 'soft delete RPC exists');
@@ -87,6 +88,7 @@ select has_function('public', 'upsert_savings_goal', array['uuid', 'text', 'bigi
 select has_function('public', 'adjust_savings_goal', array['uuid', 'bigint'], 'adjust savings goal RPC exists');
 select has_function('public', 'set_savings_goal_archived', array['uuid', 'boolean'], 'archive savings goal RPC exists');
 select has_function('public', 'create_account_transfer', array['uuid', 'uuid', 'bigint', 'date', 'text', 'uuid'], 'account transfer RPC exists');
+select has_function('public', 'approve_inbox_candidate', array['uuid', 'transaction_kind', 'bigint', 'text', 'text', 'date', 'uuid', 'uuid', 'uuid', 'boolean'], 'atomic Inbox approval RPC exists');
 select has_function('public', 'update_money_transaction', array['uuid', 'uuid', 'uuid', 'transaction_kind', 'bigint', 'date', 'text'], 'update transaction RPC exists');
 select has_function('public', 'update_account_transfer', array['uuid', 'uuid', 'uuid', 'bigint', 'date', 'text'], 'update transfer RPC exists');
 select col_type_is('public', 'transaction_entries', 'amount_minor', 'bigint', 'money uses bigint');

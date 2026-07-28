@@ -135,6 +135,13 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     }
   }
 
+  function acceptCommittedTransaction(transaction: Transaction) {
+    setTransactions((current) => [
+      transaction,
+      ...current.filter((item) => item.id !== transaction.id),
+    ]);
+  }
+
   /** Undo soft-delete: demo re-inserts snapshot; server clears deleted_at via RPC. */
   async function restoreTransaction(transaction: Transaction): Promise<TransactionActionResult> {
     if (isDemo) {
@@ -338,6 +345,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
 
   return {
     transactions: optimisticTransactions,
+    acceptCommittedTransaction,
     addTransaction,
     addTransfer,
     addSplitExpense,

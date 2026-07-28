@@ -77,6 +77,11 @@ select ok(
     'authenticated',
     'public.create_account_transfer(uuid,uuid,bigint,date,text,uuid)',
     'EXECUTE'
+  )
+  and has_function_privilege(
+    'authenticated',
+    'public.approve_inbox_candidate(uuid,public.transaction_kind,bigint,text,text,date,uuid,uuid,uuid,boolean)',
+    'EXECUTE'
   ),
   'authenticated retains intended financial RPC execution'
 );

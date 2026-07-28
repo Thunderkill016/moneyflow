@@ -96,6 +96,7 @@ export function CaptureQuickPage({
           accountId: input.accountId,
           account: account?.name,
           rawSnippet: merchant,
+          financialTransactionId: result.transaction?.id,
         },
       ]);
       setInboxCount(await getPendingCountForClient(viewer.isDemo));

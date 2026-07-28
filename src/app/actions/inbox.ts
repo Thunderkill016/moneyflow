@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type {
+  ApproveCandidateInput,
   CreateCandidateInput,
   InboxCandidate,
   UpdateCandidateInput,
@@ -32,12 +33,17 @@ import {
   rateLimitUserMessage,
 } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
+import type { Transaction } from "@/lib/sample-data";
 import {
   listInboxFromServer,
   migrateLocalInboxToServer,
   type InboxListResult,
 } from "@/server/inbox";
 import { requireViewer } from "@/server/auth";
+import {
+  mapTransactionFeedRow,
+  TRANSACTION_FEED_COLUMNS,
+} from "@/server/finance";
 
 export type InboxActionResult =
   | {
@@ -46,11 +52,12 @@ export type InboxActionResult =
       candidates?: InboxCandidate[];
       batch?: ImportBatch;
       batches?: ImportBatch[];
+      transaction?: Transaction;
     }
   | { ok: false; message: string };
 
 const CANDIDATE_COLUMNS =
-  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,source_row_index,local_id,created_at";
+  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,source_row_index,financial_transaction_id,local_id,created_at";
 
 const BATCH_COLUMNS =
   "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,parser_version,mapping_version,local_id,created_at,committed_at";
@@ -69,26 +76,40 @@ const confidenceSchema = z.enum(["high", "medium", "low"]);
 const statusSchema = z.enum(["pending", "approved", "rejected"]);
 const kindSchema = z.enum(["expense", "income", "transfer"]);
 
-const createCandidateSchema = z.object({
-  id: z.string().uuid().optional(),
-  kind: kindSchema,
-  amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-  merchant: z.string().trim().min(1).max(200),
-  note: z.string().trim().max(500).optional(),
-  occurredOn: dateSchema,
-  source: sourceSchema,
-  confidence: confidenceSchema,
-  status: statusSchema.optional(),
-  possibleDuplicate: z.boolean().optional(),
-  categoryId: z.string().uuid().optional(),
-  category: z.string().max(60).optional(),
-  accountId: z.string().uuid().optional(),
-  account: z.string().max(80).optional(),
-  rawSnippet: z.string().max(2000).optional(),
-  importBatchId: z.string().uuid().optional(),
-  sourceRowIndex: z.number().int().min(1).max(1_000_000).optional(),
-  createdAt: z.string().optional(),
-});
+const createCandidateSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    kind: kindSchema,
+    amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    merchant: z.string().trim().min(1).max(200),
+    note: z.string().trim().max(500).optional(),
+    occurredOn: dateSchema,
+    source: sourceSchema,
+    confidence: confidenceSchema,
+    status: statusSchema.optional(),
+    possibleDuplicate: z.boolean().optional(),
+    categoryId: z.string().uuid().optional(),
+    category: z.string().max(60).optional(),
+    accountId: z.string().uuid().optional(),
+    account: z.string().max(80).optional(),
+    rawSnippet: z.string().max(2000).optional(),
+    importBatchId: z.string().uuid().optional(),
+    sourceRowIndex: z.number().int().min(1).max(1_000_000).optional(),
+    financialTransactionId: z.string().uuid().optional(),
+    createdAt: z.string().optional(),
+  })
+  .superRefine((value, context) => {
+    if (
+      value.financialTransactionId !== undefined &&
+      value.status !== "approved"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["financialTransactionId"],
+        message: "transaction_link_requires_approved_status",
+      });
+    }
+  });
 
 const updateCandidateSchema = z
   .object({
@@ -137,10 +158,61 @@ const createBatchSchema = z.object({
   committedAt: z.string().optional(),
 });
 
+const approveCandidateSchema = z
+  .object({
+    candidateId: z.string().uuid(),
+    kind: kindSchema,
+    amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    merchant: z.string().trim().min(1).max(200),
+    note: z.string().trim().max(500),
+    occurredOn: dateSchema,
+    accountId: z.string().uuid(),
+    categoryId: z.string().uuid().nullable(),
+    destinationAccountId: z.string().uuid().nullable(),
+    possibleDuplicate: z.boolean(),
+  })
+  .superRefine((value, context) => {
+    if (value.kind === "transfer") {
+      if (value.categoryId !== null) {
+        context.addIssue({
+          code: "custom",
+          path: ["categoryId"],
+          message: "transfer_category_not_allowed",
+        });
+      }
+      if (
+        value.destinationAccountId === null ||
+        value.destinationAccountId === value.accountId
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["destinationAccountId"],
+          message: "different_accounts_required",
+        });
+      }
+      return;
+    }
+    if (value.categoryId === null || value.destinationAccountId !== null) {
+      context.addIssue({
+        code: "custom",
+        path: ["categoryId"],
+        message: "money_category_required",
+      });
+    }
+  });
+
 function refreshInboxPaths() {
   revalidatePath("/inbox");
   revalidatePath("/imports");
   revalidatePath("/capture");
+}
+
+function refreshFinancePaths() {
+  revalidatePath("/");
+  revalidatePath("/transactions");
+  revalidatePath("/timeline");
+  revalidatePath("/accounts");
+  revalidatePath("/budgets");
 }
 
 async function requireAuthedClient() {
@@ -213,6 +285,7 @@ export async function createInboxCandidatesAction(
     candidateToInsertRow(item, auth.viewer.id, {
       localId: null,
       importBatchId: optionalUuid(item.importBatchId),
+      financialTransactionId: optionalUuid(item.financialTransactionId),
     }),
   );
 
@@ -232,6 +305,99 @@ export async function createInboxCandidatesAction(
   } catch {
     refreshInboxPaths();
     return { ok: false, message: "Đã lưu nhưng dữ liệu trả về không hợp lệ." };
+  }
+}
+
+export async function approveInboxCandidateAction(
+  input: ApproveCandidateInput,
+): Promise<InboxActionResult> {
+  const parsed = approveCandidateSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, message: "Thông tin duyệt giao dịch chưa hợp lệ." };
+  }
+
+  const auth = await requireAuthedClient();
+  if (!auth.ok) return { ok: false, message: auth.message };
+
+  const value = parsed.data;
+  const { data: transactionId, error } = await auth.supabase.rpc(
+    "approve_inbox_candidate",
+    {
+      p_candidate_id: value.candidateId,
+      p_kind: value.kind,
+      p_amount_minor: value.amount,
+      p_merchant: value.merchant,
+      p_note: value.note,
+      p_occurred_on: value.occurredOn,
+      p_account_id: value.accountId,
+      p_category_id: value.categoryId,
+      p_destination_account_id: value.destinationAccountId,
+      p_possible_duplicate: value.possibleDuplicate,
+    },
+  );
+
+  if (error || typeof transactionId !== "string") {
+    const message = error?.message ?? "";
+    if (message.includes("candidate_not_found")) {
+      return { ok: false, message: "Mục Inbox không còn tồn tại." };
+    }
+    if (message.includes("candidate_already_reviewed")) {
+      return { ok: false, message: "Mục Inbox này đã được xử lý trước đó." };
+    }
+    if (message.includes("currency_mismatch")) {
+      return {
+        ok: false,
+        message: "Chỉ chuyển được giữa hai tài khoản cùng loại tiền.",
+      };
+    }
+    return {
+      ok: false,
+      message: "Không thể duyệt giao dịch. Hãy kiểm tra dữ liệu và thử lại.",
+    };
+  }
+
+  const [candidateResult, transactionResult] = await Promise.all([
+    auth.supabase
+      .from("inbox_candidates")
+      .select(CANDIDATE_COLUMNS)
+      .eq("id", value.candidateId)
+      .single(),
+    auth.supabase
+      .from("transaction_feed")
+      .select(TRANSACTION_FEED_COLUMNS)
+      .eq("id", transactionId)
+      .single(),
+  ]);
+
+  if (
+    candidateResult.error ||
+    !candidateResult.data ||
+    transactionResult.error ||
+    !transactionResult.data
+  ) {
+    refreshInboxPaths();
+    refreshFinancePaths();
+    return {
+      ok: false,
+      message: "Đã duyệt nhưng chưa tải lại được kết quả. Hãy thử lại.",
+    };
+  }
+
+  try {
+    const candidate = mapCandidateRow(
+      candidateResult.data as InboxCandidateRow,
+    );
+    const transaction = mapTransactionFeedRow(transactionResult.data);
+    refreshInboxPaths();
+    refreshFinancePaths();
+    return { ok: true, candidate, transaction };
+  } catch {
+    refreshInboxPaths();
+    refreshFinancePaths();
+    return {
+      ok: false,
+      message: "Đã duyệt nhưng dữ liệu trả về không hợp lệ.",
+    };
   }
 }
 

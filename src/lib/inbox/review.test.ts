@@ -5,6 +5,7 @@ import type { InboxCandidate } from "./candidate-store.ts";
 import {
   applyBulkCategory,
   buildExplainLines,
+  buildAtomicApprovalInput,
   buildLedgerPost,
   draftFromCandidate,
   markCandidatesStatus,
@@ -155,6 +156,59 @@ test("buildLedgerPost transfer needs two accounts", () => {
   assert.equal(bad.ok, false);
 });
 
+test("buildAtomicApprovalInput maps money and transfer posts explicitly", () => {
+  const moneyDraft = draftFromCandidate(expense, accounts, categories);
+  const moneyPost = buildLedgerPost(
+    moneyDraft,
+    accounts,
+    categories,
+    "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  );
+  assert.equal(moneyPost.ok, true);
+  if (!moneyPost.ok) assert.fail("expected money post");
+  const moneyApproval = buildAtomicApprovalInput(
+    expense.id,
+    moneyDraft,
+    moneyPost,
+  );
+  assert.deepEqual(moneyApproval, {
+    candidateId: "cand-1",
+    kind: "expense",
+    amount: 45_000,
+    merchant: "Highlands Coffee",
+    note: "Cafe",
+    occurredOn: "2026-07-12",
+    accountId: "acc-cash",
+    categoryId: "cat-food",
+    destinationAccountId: null,
+    possibleDuplicate: false,
+  });
+
+  const transferDraft = {
+    ...moneyDraft,
+    kind: "transfer" as const,
+    categoryId: "",
+    destinationAccountId: "acc-bank",
+  };
+  const transferPost = buildLedgerPost(
+    transferDraft,
+    accounts,
+    categories,
+    "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  );
+  assert.equal(transferPost.ok, true);
+  if (!transferPost.ok) assert.fail("expected transfer post");
+  const transferApproval = buildAtomicApprovalInput(
+    expense.id,
+    transferDraft,
+    transferPost,
+  );
+  assert.equal(transferApproval.kind, "transfer");
+  assert.equal(transferApproval.accountId, "acc-cash");
+  assert.equal(transferApproval.categoryId, null);
+  assert.equal(transferApproval.destinationAccountId, "acc-bank");
+});
+
 test("applyBulkCategory and markCandidatesStatus", () => {
   const withCat = applyBulkCategory([expense, high], ["cand-1"], {
     id: "cat-food",
@@ -168,4 +222,17 @@ test("applyBulkCategory and markCandidatesStatus", () => {
   const rejected = markCandidatesStatus([expense, high], ["cand-1"], "rejected");
   assert.equal(rejected[0]?.status, "rejected");
   assert.equal(rejected[1]?.status, "pending");
+
+  const approved = markCandidatesStatus(
+    [expense],
+    ["cand-1"],
+    "approved",
+    {
+      financialTransactionId: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+    },
+  );
+  assert.equal(
+    approved[0]?.financialTransactionId,
+    "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  );
 });

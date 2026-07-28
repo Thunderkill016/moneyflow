@@ -15,6 +15,7 @@ import type {
 import {
   CONFIDENCE_LABELS,
   SOURCE_LABELS,
+  type ApproveCandidateInput,
   type CandidateConfidence,
   type InboxCandidate,
 } from "./candidate-store.ts";
@@ -271,6 +272,40 @@ export type LedgerPostResult =
     }
   | { ok: false; message: string };
 
+export function buildAtomicApprovalInput(
+  candidateId: string,
+  draft: CandidateReviewDraft,
+  post: Extract<LedgerPostResult, { ok: true }>,
+): ApproveCandidateInput {
+  if (post.mode === "transfer") {
+    return {
+      candidateId,
+      kind: "transfer",
+      amount: post.input.amount,
+      merchant: draft.merchant.trim() || "Không rõ",
+      note: post.input.note,
+      occurredOn: post.input.occurredOn,
+      accountId: post.input.sourceAccountId,
+      categoryId: null,
+      destinationAccountId: post.input.destinationAccountId,
+      possibleDuplicate: draft.possibleDuplicate,
+    };
+  }
+
+  return {
+    candidateId,
+    kind: post.input.kind,
+    amount: post.input.amount,
+    merchant: draft.merchant.trim() || "Không rõ",
+    note: post.input.note,
+    occurredOn: post.input.occurredOn,
+    accountId: post.input.accountId,
+    categoryId: post.input.categoryId,
+    destinationAccountId: null,
+    possibleDuplicate: draft.possibleDuplicate,
+  };
+}
+
 /**
  * Build ledger create payload from candidate + editable draft.
  * Transfer needs two distinct accounts; money kinds need category + account.
@@ -360,7 +395,22 @@ export function markCandidatesStatus(
   list: InboxCandidate[],
   ids: string[],
   status: "approved" | "rejected",
-  patch?: Partial<Pick<InboxCandidate, "categoryId" | "category" | "accountId" | "account" | "note" | "merchant" | "amount" | "occurredOn" | "kind" | "possibleDuplicate">>,
+  patch?: Partial<
+    Pick<
+      InboxCandidate,
+      | "categoryId"
+      | "category"
+      | "accountId"
+      | "account"
+      | "note"
+      | "merchant"
+      | "amount"
+      | "occurredOn"
+      | "kind"
+      | "possibleDuplicate"
+      | "financialTransactionId"
+    >
+  >,
 ): InboxCandidate[] {
   const idSet = new Set(ids);
   return list.map((item) => {

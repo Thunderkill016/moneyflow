@@ -113,4 +113,56 @@ test.describe("Global PFM UX benchmark", () => {
     await expect(page).toHaveURL(/\/transactions\?category=/);
     await expect(page.getByLabel("Lọc theo danh mục")).not.toHaveValue("all");
   });
+
+  test("approves one Inbox candidate with a durable transaction link", async ({
+    page,
+  }) => {
+    await page.goto("/inbox");
+    await page.getByRole("button", { name: "Nạp dữ liệu mẫu" }).click();
+    await page.getByRole("button", { name: "Duyệt Highlands Coffee" }).click();
+    await page.getByRole("button", { name: "Duyệt vào sổ" }).click();
+
+    await expect(
+      page.getByText(/Đã duyệt .*Highlands Coffee.* vào sổ/),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Duyệt Highlands Coffee" }),
+    ).toHaveCount(0);
+
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const candidateRaw = window.localStorage.getItem(
+            "moneyflow-inbox-candidates-v1",
+          );
+          const transactionRaw = window.localStorage.getItem(
+            "moneyflow-demo-transactions-v1",
+          );
+          if (!candidateRaw || !transactionRaw) return false;
+          try {
+            const candidates = JSON.parse(candidateRaw) as Array<{
+              id?: string;
+              status?: string;
+              financialTransactionId?: string;
+            }>;
+            const transactions = JSON.parse(transactionRaw) as Array<{
+              id?: string;
+            }>;
+            const approved = candidates.find(
+              (item) => item.id === "cand-demo-1",
+            );
+            return (
+              approved?.status === "approved" &&
+              typeof approved.financialTransactionId === "string" &&
+              transactions.filter(
+                (item) => item.id === approved.financialTransactionId,
+              ).length === 1
+            );
+          } catch {
+            return false;
+          }
+        }),
+      )
+      .toBe(true);
+  });
 });

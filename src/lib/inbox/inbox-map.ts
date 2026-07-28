@@ -62,6 +62,7 @@ export type InboxCandidateRow = {
   raw_snippet: string | null;
   import_batch_id: string | null;
   source_row_index: number | null;
+  financial_transaction_id: string | null;
   local_id: string | null;
   created_at: string;
 };
@@ -138,6 +139,7 @@ export function mapCandidateRow(row: InboxCandidateRow): InboxCandidate {
     rawSnippet: row.raw_snippet ?? undefined,
     importBatchId: row.import_batch_id ?? undefined,
     sourceRowIndex: row.source_row_index ?? undefined,
+    financialTransactionId: row.financial_transaction_id ?? undefined,
     createdAt: row.created_at,
   };
   if (!isCandidate(candidate)) {
@@ -182,7 +184,11 @@ function localIdFromClientId(id: string): string | null {
 export function candidateToInsertRow(
   candidate: InboxCandidate,
   userId: string,
-  options?: { localId?: string | null; importBatchId?: string | null },
+  options?: {
+    localId?: string | null;
+    importBatchId?: string | null;
+    financialTransactionId?: string | null;
+  },
 ): Record<string, unknown> {
   const id = isUuid(candidate.id) ? candidate.id : undefined;
   return {
@@ -207,6 +213,10 @@ export function candidateToInsertRow(
         ? options.importBatchId
         : optionalUuid(candidate.importBatchId),
     source_row_index: candidate.sourceRowIndex ?? null,
+    financial_transaction_id:
+      options?.financialTransactionId !== undefined
+        ? options.financialTransactionId
+        : optionalUuid(candidate.financialTransactionId),
     local_id: options?.localId === undefined ? null : options.localId,
     created_at: candidate.createdAt,
   };
@@ -280,7 +290,7 @@ export function buildMigratePayloads(
       ...candidateToInsertRow(
         { ...candidate, id: serverId },
         userId,
-        { localId, importBatchId },
+        { localId, importBatchId, financialTransactionId: null },
       ),
       id: serverId,
     });
@@ -311,6 +321,8 @@ export function prepareCandidateForServer(
     ...input,
     id,
     importBatchId: optionalUuid(input.importBatchId) ?? undefined,
+    financialTransactionId:
+      optionalUuid(input.financialTransactionId) ?? undefined,
     accountId: optionalUuid(input.accountId) ?? undefined,
     categoryId: optionalUuid(input.categoryId) ?? undefined,
   });

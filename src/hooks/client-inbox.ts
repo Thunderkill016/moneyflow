@@ -166,6 +166,8 @@ export async function addCandidatesForClient(
       account: c.account,
       rawSnippet: c.rawSnippet,
       importBatchId: c.importBatchId,
+      sourceRowIndex: c.sourceRowIndex,
+      financialTransactionId: c.financialTransactionId,
       id: c.id,
       createdAt: c.createdAt,
     } satisfies CreateCandidateInput;

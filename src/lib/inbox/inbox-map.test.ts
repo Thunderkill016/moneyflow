@@ -83,7 +83,7 @@ test("mapCandidateRow maps amount_minor integer money", () => {
     occurred_on: "2026-07-11",
     source: "csv",
     confidence: "high",
-    status: "pending",
+    status: "approved",
     possible_duplicate: false,
     category_id: null,
     category_name: "Di chuyển",
@@ -92,6 +92,7 @@ test("mapCandidateRow maps amount_minor integer money", () => {
     raw_snippet: null,
     import_batch_id: null,
     source_row_index: 9,
+    financial_transaction_id: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
     local_id: "cand-x",
     created_at: "2026-07-11T14:22:00.000Z",
   });
@@ -99,6 +100,10 @@ test("mapCandidateRow maps amount_minor integer money", () => {
   assert.equal(mapped.category, "Di chuyển");
   assert.equal(mapped.possibleDuplicate, undefined);
   assert.equal(mapped.sourceRowIndex, 9);
+  assert.equal(
+    mapped.financialTransactionId,
+    "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+  );
 });
 
 test("mapBatchRow preserves column map", () => {
@@ -143,6 +148,7 @@ test("buildMigratePayloads remaps non-uuid ids and batch refs", () => {
   assert.equal(candidateRows[0]?.import_batch_id, serverBatchId);
   assert.equal(candidateRows[0]?.amount_minor, 45_000);
   assert.equal(candidateRows[0]?.source_row_index, 7);
+  assert.equal(candidateRows[0]?.financial_transaction_id, null);
   assert.equal(candidateRows[0]?.user_id, "user-1");
   assert.equal(batchRows[0]?.parser_version, "csv-v1");
   assert.equal(batchRows[0]?.mapping_version, "column-map-v1");
