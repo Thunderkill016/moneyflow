@@ -9,6 +9,14 @@
  * - document-level reduced motion
  *
  * Route and component styles must not target html or body.
+ *
+ * --mf-*-text values below are carried over verbatim from the legacy
+ * --color-success/danger/info/warning-text tokens they replace (see
+ * globals.css's alias block) rather than newly designed — they are already
+ * shipped and visually verified. Their hue doesn't perfectly match
+ * --mf-income/expense/transfer/warning's own (teal/red/blue/amber vs this
+ * system's slightly different families); reconciling that is a follow-up,
+ * not part of this pass.
  */
 :root {
   --mf-canvas: #f4f7f5;
@@ -28,12 +36,16 @@
   --mf-on-brand: #ffffff;
   --mf-income: #0f766e;
   --mf-income-subtle: #e1f5f2;
+  --mf-income-text: #15803d;
   --mf-expense: #b83a35;
   --mf-expense-subtle: #fbe9e7;
+  --mf-expense-text: #b91c1c;
   --mf-transfer: #3459c7;
   --mf-transfer-subtle: #e9edff;
+  --mf-transfer-text: #1e40af;
   --mf-warning: #9a5b00;
   --mf-warning-subtle: #fff3d7;
+  --mf-warning-text: #b45309;
   --mf-focus: #236bc4;
   --mf-overlay: rgb(5 18 11 / 55%);
   --mf-shadow-sm: 0 1px 2px rgb(16 32 25 / 6%);
@@ -73,12 +85,16 @@ html[data-theme="dark"] {
   --mf-on-brand: #07150e;
   --mf-income: #4fd1c5;
   --mf-income-subtle: #123b37;
+  --mf-income-text: #86efac;
   --mf-expense: #ff817a;
   --mf-expense-subtle: #451f1d;
+  --mf-expense-text: #fca5a5;
   --mf-transfer: #8ea6ff;
   --mf-transfer-subtle: #202b55;
+  --mf-transfer-text: #93c5fd;
   --mf-warning: #f6bc62;
   --mf-warning-subtle: #402f16;
+  --mf-warning-text: #fcd34d;
   --mf-focus: #78b8ff;
   --mf-overlay: rgb(0 0 0 / 72%);
   --mf-shadow-sm: 0 1px 2px rgb(0 0 0 / 22%);
