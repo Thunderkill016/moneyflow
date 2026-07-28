@@ -18,20 +18,80 @@ The approved runtime identity is the M-based mark implemented through:
 
 It is used across the public landing page, authentication surfaces, signed-in shell, browser icon and PWA metadata without changing financial behavior.
 
-## Decision record
+## Repository reconnaissance
 
-On 2026-07-28, the owner explicitly approved applying the current M-based logo to the project and using it as the MoneyFlow logo.
+### Current identity
 
-The selected identity:
+- Landing, auth and the signed-in shell share the same accessible MoneyFlow brand structure.
+- The earlier open-ring glyph resembled loading or refresh.
+- This branch replaces it with one shared M mark.
+- `src/app/icon.svg` is the canonical scalable icon source.
+- `src/app/brand-logo.css` applies the same mark to existing brand wrappers without replacing their accessible text.
+- `src/app/manifest.ts` points installed-app metadata at the SVG with PNG fallbacks retained.
 
-- is tied directly to the product name;
-- uses one continuous M construction;
-- sits in a stable rounded container for compact contexts;
-- avoids arrows, charts, coins, wallets, currency signs and decorative effects.
+### Sources of truth
 
-Rejected directions include the generic open ring, M/F combination, M plus ledger lines, stylized O/flow ring, golden-ratio ring and gradient ribbon monograms.
+| Area | Source |
+|---|---|
+| Product and financial truth | `docs/product/PRINCIPLES.md` |
+| Brand foundation | `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md` |
+| Canonical logo | `docs/design/MONEYFLOW_LOGO.md` |
+| UI visual contract | `docs/design/CALM_LEDGER_V2.md` |
+| Tokens/components | `docs/design-system.md` |
 
-## Acceptance criteria
+### Constraints
+
+- No financial calculations, storage, API, database, RLS or transaction semantics change.
+- VND and transfer behavior remain unchanged.
+- Brand green remains distinct from semantic income/success color.
+- The mark must not imply bank connectivity, investment growth, guaranteed outcomes or financial advice.
+
+## Research
+
+### Questions
+
+1. What identity can remain clear in landing, auth, navigation, favicon and PWA contexts?
+2. Which finance-logo conventions misrepresent MoneyFlow as investment, payments or advice software?
+3. Which Apple and general logo principles transfer safely without copying Apple styling?
+4. How should a young brand govern symbol, wordmark and app-icon sources?
+
+### Evidence and decisions
+
+- Adobe guidance supports strategy before decoration, one clear idea, monochrome testing, small-size testing and vector delivery.
+- Apple HIG supports purposeful simplicity, recognizable geometry and consistent appearances; Apple visual styling is not copied.
+- Owner feedback rejected generic open rings, forced M/F/O combinations, ledger-line illustrations, golden-ratio justification and gradient ribbon marks.
+- The owner explicitly approved the current M-based logo on 2026-07-28.
+
+### Selected concept
+
+A simple M-based combination mark:
+
+- tied directly to the product name;
+- built as one continuous form;
+- placed in a stable rounded container for compact contexts;
+- free of arrows, charts, coins, wallets, currency signs and decorative effects.
+
+### Rejected alternatives
+
+| Direction | Reason |
+|---|---|
+| Generic open ring | Loading/refresh association. |
+| M/F combination | Forced construction and poor legibility. |
+| M plus ledger lines/chart | Literal template-like illustration. |
+| Stylized O/flow ring | Generic fintech/circulation association. |
+| Golden-ratio flow ring | Geometry did not create a stronger brand idea. |
+| Ribbon/gradient monogram | Trend-dependent and investment-tech feeling. |
+
+## Specification
+
+### User stories
+
+- As a visitor, I can recognize MoneyFlow consistently on landing and auth surfaces.
+- As a signed-in user, I see a compact identity that does not compete with financial information.
+- As a bookmark or installed-app user, I can identify MoneyFlow from its icon.
+- As a maintainer, I have one documented canonical vector and usage contract.
+
+### Acceptance criteria
 
 - [x] Brand foundation, story, positioning, promise and personality are documented.
 - [x] Messaging, claim boundaries, voice and Vietnamese UI writing rules are documented.
@@ -42,20 +102,23 @@ Rejected directions include the generic open ring, M/F combination, M plus ledge
 - [x] Landing, auth and app shell share the same mark implementation.
 - [x] A scalable `src/app/icon.svg` exists.
 - [x] PWA metadata aligns with current product truth.
-- [ ] Knowledge, lint, typecheck and build checks pass.
+- [ ] Knowledge, deployment, CSS ownership, lint, typecheck, tests and build pass.
 - [ ] Browser screenshots are reviewed on phone/desktop and light/dark.
 - [ ] 16, 24, 32, 64 and 512px identity inspection passes.
 - [ ] Browser favicon and PWA manifest discovery are verified.
 - [ ] Existing PNG fallbacks are regenerated if browser/install evidence requires it.
 
-## Product constraints
+### Out of scope
 
-- No financial calculations, storage, API, database, RLS or transaction semantics change.
-- VND and transfer behavior remain unchanged.
-- The mark must not imply bank connectivity, investment growth, guaranteed outcomes or financial advice.
-- Brand green remains distinct from semantic income/success color.
+- Financial-domain changes.
+- Navigation or feature redesign.
+- Bank sync, investment, advice or AI claims.
+- Formal trademark registration or legal opinion.
+- Animated logo choreography.
 
-## Implementation
+## Implementation plan
+
+### Implemented files
 
 | File | Change |
 |---|---|
@@ -68,16 +131,27 @@ Rejected directions include the generic open ring, M/F combination, M plus ledge
 | `src/app/layout.tsx` | Loads the shared identity layer. |
 | `src/app/manifest.ts` | Aligns installed-app identity and product description. |
 
-## Risks and controls
+### Verification plan
+
+1. Run `npm run check:knowledge`.
+2. Run deployment and CSS ownership contracts.
+3. Run lint, typecheck, unit/static-RLS checks and production build.
+4. Run database tests as required by the repository CI.
+5. Capture landing, auth and signed-in identity evidence on supported phone/desktop and light/dark targets.
+6. Inspect the symbol at 16, 24, 32, 64 and 512px.
+7. Verify browser favicon and PWA manifest discovery.
+8. Regenerate PNG fallbacks only if install/browser evidence shows they are required.
+
+### Risks and controls
 
 | Risk | Control |
 |---|---|
-| Weak rendering at small size | Inspect actual 16–64px raster results and screenshots. |
+| Weak rendering at small size | Inspect actual raster results and screenshots. |
 | Global selector affects unrelated elements | Keep selectors scoped to MoneyFlow brand wrappers. |
 | CSS/SVG geometry drift | Treat SVG, CSS and logo contract as one reviewed system. |
-| Brand green confused with income | Preserve separate semantic tokens and labels. |
+| Brand green is confused with income | Preserve separate semantic tokens and labels. |
 | Identity ships without evidence | Keep merge gated by required CI/browser checks. |
-| Trademark similarity discovered later | Conduct reasonable pre-launch screening before broad promotion. |
+| Trademark similarity appears later | Conduct reasonable pre-launch screening before broad promotion. |
 
 ## Tasks
 
@@ -89,17 +163,42 @@ Rejected directions include the generic open ring, M/F combination, M plus ledge
 | T4 | Implement shared M identity | done |
 | T5 | Collect owner review | done |
 | T6 | Record explicit owner approval | done |
-| T7 | Run static checks | pending |
-| T8 | Run browser/responsive review | pending |
-| T9 | Verify favicon/PWA and PNG fallbacks | pending |
-| T10 | Merge and verify production identity | pending |
+| T7 | Restore required work-packet headings | done |
+| T8 | Run static and database checks | pending |
+| T9 | Run browser/responsive identity review | pending |
+| T10 | Verify favicon/PWA and PNG fallbacks | pending |
+| T11 | Merge and verify production identity | pending |
 
-## Delivery record
+## Evaluation
+
+### Current result
+
+| Area | Result |
+|---|---|
+| Brand strategy and story | pass |
+| Messaging and voice | pass |
+| Visual-system rules | pass |
+| Logo concept | owner approved |
+| Canonical runtime identity | implemented on branch |
+| Project knowledge contract | rerun pending after heading fix |
+| Remaining static/database checks | pending |
+| Browser/PWA evidence | pending |
+| Production verification | pending merge |
+
+### Review findings
+
+- The identity is presentation-only and preserves existing accessible naming.
+- The logo does not alter finance-domain behavior or user data.
+- Brand guidelines distinguish brand color from financial semantic colors.
+- Owner approval does not replace engineering evidence; CI and browser/PWA inspection remain release gates.
+
+### Delivery record
 
 - Branch: `agent/moneyflow-logo-redesign`
 - PR: #106
 - Owner approval: confirmed 2026-07-28
 - Approved logo: canonical M mark v1
-- CI: pending Ready for review transition
+- CI: rerun triggered by work-packet fix
+- Auto-merge: repository setting unavailable
 - Production deployment: pending merge
-- Work packet completion: pending CI, merge and production verification
+- Completion: pending CI, merge and production verification
