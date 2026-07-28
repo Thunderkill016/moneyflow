@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
 import "./legacy.css";
 import "./document-theme.css";
+import "./brand-logo.css";
 
 /**
  * UI text is LCP critical. Inter covers Vietnamese product copy while the
