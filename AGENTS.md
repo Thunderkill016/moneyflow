@@ -23,7 +23,8 @@ Task-specific references:
 
 | Task | Read |
 |---|---|
-| UI/UX | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` |
+| Design/brand/logo/UI/UX | `docs/DESIGN_HANDBOOK.md`, then the relevant specialized source below |
+| UI/UX implementation | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md`, `docs/design/CALM_LEDGER_V2.md` |
 | Auth/deployment | `docs/configuration.md`, `docs/supabase-setup.md` |
 | Database/RLS | `docs/security-rls-check.md`, relevant migrations and pgTAP tests |
 | Product behavior | `docs/MVP_DEFINITION.md`, relevant files in `docs/research/` and current GitHub issue/PR |
