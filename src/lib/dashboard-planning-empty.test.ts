@@ -1,5 +1,5 @@
 /**
- * R3 — Insights empty + planning cards: consistent one-CTA empty states.
+ * Dashboard empty + planning cards: consistent one-CTA empty states.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
