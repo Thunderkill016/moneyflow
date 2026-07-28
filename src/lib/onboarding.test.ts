@@ -26,11 +26,11 @@ import {
   normalizeCashWalletName,
 } from "./onboarding.ts";
 
-test("onboarding storage key and paths are stable (thu chi → insights)", () => {
+test("onboarding storage key and paths are stable (thu chi → dashboard)", () => {
   assert.equal(ONBOARDING_STORAGE_KEY, "moneyflow-onboarding-done");
   assert.equal(ONBOARDING_PATH, "/onboarding");
-  assert.equal(ONBOARDING_SKIP_HREF, "/insights");
-  assert.equal(ONBOARDING_DONE_HREF, "/insights");
+  assert.equal(ONBOARDING_SKIP_HREF, "/dashboard");
+  assert.equal(ONBOARDING_DONE_HREF, "/dashboard");
   assert.equal(ONBOARDING_QUICK_EXPENSE_HREF, "/capture/quick");
   assert.equal(DEFAULT_CASH_WALLET_NAME, "Tiền mặt");
   assert.equal(DEFAULT_CASH_WALLET_CURRENCY, "VND");

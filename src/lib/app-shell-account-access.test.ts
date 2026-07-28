@@ -22,11 +22,17 @@ test("desktop account menu submits the server sign-out action explicitly", () =>
 });
 
 test("mobile topbar opens an account sheet with a real sign-out form", () => {
-  assert.match(appShellSource, /className="mobile-account-button"/);
+  assert.match(appShellSource, /className=\{styles\.mobileAccountButton\}/);
   assert.match(appShellSource, /aria-label=\{`Mở tài khoản/);
   assert.match(appShellSource, /<MoreSheet[\s\S]*viewer=\{viewer\}/);
-  assert.match(appShellSource, /<form action=\{signOut\} className="more-sheet-signout-form">/);
-  assert.match(appShellSource, /className="more-sheet-account-action danger"/);
+  assert.match(
+    appShellSource,
+    /<form action=\{signOut\} className=\{styles\.signoutForm\}>/,
+  );
+  assert.match(
+    appShellSource,
+    /cx\(\s*styles\.accountAction,\s*styles\.accountActionDanger,?\s*\)/,
+  );
 });
 
 test("mobile account trigger is hidden on desktop and visible at the mobile breakpoint", () => {

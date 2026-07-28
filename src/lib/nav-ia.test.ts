@@ -30,12 +30,12 @@ test("primary nav is thu chi: Tổng quan · Giao dịch · Nhập nhanh · Tài
   ]);
 
   assert.deepEqual(PRIMARY_NAV_HREFS, [
-    "/insights",
+    "/dashboard",
     "/transactions",
     "/accounts",
   ]);
-  assert.equal(PRIMARY_NAV_HREFS[0], "/insights");
-  assert.equal(APP_HOME_HREF, "/insights");
+  assert.equal(PRIMARY_NAV_HREFS[0], "/dashboard");
+  assert.equal(APP_HOME_HREF, "/dashboard");
 
   const capture = PRIMARY_NAV.find((item) => item.kind === "action");
   assert.ok(capture);

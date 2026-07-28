@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { POST_AUTH_REDIRECT, safeNextPath } from "./auth-redirect.ts";
 
-test("POST_AUTH_REDIRECT is insights (Tổng quan thu chi)", () => {
-  assert.equal(POST_AUTH_REDIRECT, "/insights");
+test("POST_AUTH_REDIRECT is dashboard (Tổng quan thu chi)", () => {
+  assert.equal(POST_AUTH_REDIRECT, "/dashboard");
   assert.ok(!POST_AUTH_REDIRECT.startsWith("/inbox"));
 });
 
@@ -11,7 +11,7 @@ test("safeNextPath defaults to POST_AUTH_REDIRECT", () => {
   assert.equal(safeNextPath(null), POST_AUTH_REDIRECT);
   assert.equal(safeNextPath(undefined), POST_AUTH_REDIRECT);
   assert.equal(safeNextPath(""), POST_AUTH_REDIRECT);
-  assert.equal(safeNextPath(null), "/insights");
+  assert.equal(safeNextPath(null), "/dashboard");
 });
 
 test("safeNextPath allows same-origin relative paths", () => {

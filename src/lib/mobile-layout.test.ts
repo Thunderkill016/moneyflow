@@ -46,8 +46,10 @@ test("mobile tabs = 5 (4 primary + Thêm)", () => {
 
   const source = shell();
   assert.match(source, /label:\s*"Thêm"/);
-  assert.match(source, /className="mobile-nav"/);
-  assert.match(source, /className="mobile-fab"/);
+  assert.match(source, /className=\{styles\.mobileNav\}/);
+  // Capture is the center nav item (styles.mobileCapture), not a separate FAB —
+  // the Calm Ledger redesign removed the duplicate floating action button.
+  assert.match(source, /styles\.mobileNavItem,\s*\n\s*styles\.mobileCapture,/);
 
   // Exactly five children pattern: filter primary tabs + More entry.
   assert.match(

@@ -9,7 +9,7 @@ import {
 
 const root = process.cwd();
 const financeServer = readFileSync(join(root, "src/server/finance.ts"), "utf8");
-const insightsPage = readFileSync(join(root, "src/app/insights/page.tsx"), "utf8");
+const dashboardPage = readFileSync(join(root, "src/app/dashboard/page.tsx"), "utf8");
 const transactionsPage = readFileSync(
   join(root, "src/app/transactions/page.tsx"),
   "utf8",
@@ -33,9 +33,9 @@ test("dashboard keeps a small explicit recent-activity window", () => {
   assert.match(financeServer, /deduplicateTransactions/);
 });
 
-test("insights uses bounded loader while transaction management keeps full ledger", () => {
-  assert.match(insightsPage, /getDashboardFinanceWorkspace/);
-  assert.doesNotMatch(insightsPage, /getFinanceWorkspace/);
+test("dashboard uses bounded loader while transaction management keeps full ledger", () => {
+  assert.match(dashboardPage, /getDashboardFinanceWorkspace/);
+  assert.doesNotMatch(dashboardPage, /getFinanceWorkspace/);
   assert.match(transactionsPage, /getFinanceWorkspace/);
   assert.doesNotMatch(transactionsPage, /getDashboardFinanceWorkspace/);
 });
