@@ -23,8 +23,9 @@ Start here before non-trivial work:
 - [Feature work-packet template](docs/templates/FEATURE_WORK_PACKET.md)
 - [Active/completed plan lifecycle](docs/plans/README.md)
 
-UI and infrastructure references:
+UI, brand and infrastructure references:
 
+- [MoneyFlow brand guidelines](docs/brand/MONEYFLOW_BRAND_GUIDELINES.md)
 - [AI-assisted UI/UX workflow](docs/AI_UIUX_WORKFLOW.md)
 - [UX principles](docs/UX_PRINCIPLES.md)
 - [Design system](docs/design-system.md)
