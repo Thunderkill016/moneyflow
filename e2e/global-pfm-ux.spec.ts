@@ -86,11 +86,15 @@ test.describe("Global PFM UX benchmark", () => {
     await expect(
       page.getByRole("button", { name: "Khoản chi", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      page.locator(".transaction-summary").getByText("Ròng", { exact: true }),
-    ).toBeVisible();
+
+    const transactionSummary = page.getByRole("region", {
+      name: "Tóm tắt theo bộ lọc",
+    });
+    const netSummary = transactionSummary
+      .getByText("Ròng", { exact: true })
+      .locator("..");
+    await expect(netSummary).toContainText(/−\s*125\.000/);
     await expect(page.locator(".manager-row").filter({ hasText: NOTE })).toBeVisible();
-    await expect(page.locator(".transaction-summary")).toContainText("−125.000");
   });
 
   test("shows explicit budget decisions and a transaction drill-down", async ({
