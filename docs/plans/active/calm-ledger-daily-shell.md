@@ -2,9 +2,9 @@
 
 **Status:** evaluating  
 **Owner:** ChatGPT  
-**Issue/PR:** #81 / #92  
+**Issue/PR:** #81 / #92 / #93 / #94 / #98  
 **Supersedes:** #83  
-**Last updated:** 2026-07-27
+**Last updated:** 2026-07-28
 
 ## Outcome
 
@@ -12,140 +12,239 @@ The signed-in MoneyFlow home uses the Calm Ledger system established for the pub
 
 The canonical signed-in route is `/dashboard`. `/insights` remains a compatibility redirect only.
 
-## Product decisions
-
-- Tổng quan remains the signed-in home; Inbox stays secondary and only becomes prominent when items require review.
-- Phone navigation has exactly five destinations.
-- The center phone action performs `Ghi chi tiêu`; there is no duplicate floating action button.
-- Desktop exposes one primary action in the topbar.
-- The overview prioritizes total balance, month income/expense/net, category distribution and recent transactions.
-- Planning summaries remain secondary and compact; values and formulas do not change.
-- No `Có thể chi hôm nay`, safe-to-spend value or daily spending recommendation is shown.
-- VND remains integer; transfers remain excluded from income/expense.
-
-## Foundation alignment
-
-This slice is rebuilt from current `main` after:
-
-- #90 made `/dashboard` the canonical signed-in route;
-- #91 established two root CSS owners, one document/theme authority, frozen legacy compatibility imports and CSS ownership gates.
-
-New styling follows those boundaries:
-
-1. `src/components/layout/app-shell.module.css` owns reusable shell presentation.
-2. `src/app/dashboard/calm-ledger-overview.css` owns dashboard presentation.
-3. `src/app/dashboard/calm-ledger-overview-actions.css` owns the temporary hidden duplicate action until dashboard JSX cleanup.
-4. No new root stylesheet, `html`/`body` selector or override layer is added.
-
 ## Repository reconnaissance
 
-### Reused behavior
+### Current behavior
 
-- `src/components/layout/app-shell.tsx` keeps search shortcuts, capture/more dialogs, account access, sign-out, toast and undo behavior.
-- `src/components/moneyflow-dashboard.tsx` keeps finance calculations, mutation behavior and all live/empty/error states.
-- `src/lib/nav-ia.ts` remains the navigation source of truth.
-- Existing stores, auth, schema, Supabase policies and deployment configuration remain unchanged.
+- `/dashboard` is the canonical signed-in home.
+- `/insights` redirects for backward compatibility.
+- The shell uses component-scoped CSS Modules.
+- Phone navigation has five destinations and one center capture action; the duplicate floating action button is gone.
+- Dashboard data assembly and financial calculations remain owned by existing server/domain modules.
+- The latest production UI polish and dark-theme token repair are on `main`.
+- Assertions stale from the `/insights` to `/dashboard` migration were corrected in #98.
 
-### Current defects addressed
+### Relevant repository areas
 
-- The old shell depended on broad legacy global classes.
-- Mobile had both a bottom navigation capture action and a floating capture button.
-- Fixed navigation could compete with or cover content near the viewport edge.
-- Overview hierarchy gave secondary planning blocks too much visual weight.
-- PR #83 diverged from `main` after the canonical route and CSS foundation landed.
-
-## Implementation
-
-| File | Change | Ownership |
+| Area | Why it matters | Reuse/change/avoid |
 |---|---|---|
-| `src/components/layout/app-shell.tsx` | Attach scoped classes, remove duplicate FAB, normalize brand and dialogs, keep one mobile action model | Shared shell behavior |
-| `src/components/layout/app-shell.module.css` | Phone/tablet/desktop shell, dialogs, account surfaces and toast | Component owner |
-| `src/app/dashboard/page.tsx` | Load dashboard route styles while preserving server data assembly | Canonical route |
-| `src/app/dashboard/calm-ledger-overview.css` | Money hierarchy, responsive layout and compact planning presentation | Route owner |
-| `src/app/dashboard/calm-ledger-overview-actions.css` | Hide the obsolete in-page expense action | Temporary route interaction owner |
-| `e2e/expense-path.spec.ts` | Exercise the canonical `/dashboard` expense flow and shell-owned action | Core browser smoke |
-| `e2e/audit/critical-browser.audit.spec.ts` | Audit `/dashboard`, five phone items, no FAB, safe-area padding and overflow | Cross-device contract |
+| `src/components/layout/app-shell.tsx` | Shared authenticated navigation, account surfaces, dialogs and capture entry | Reuse behavior; keep presentation scoped |
+| `src/components/layout/app-shell.module.css` | Phone/tablet/desktop shell presentation | Current shell owner |
+| `src/app/dashboard/page.tsx` | Canonical signed-in route and server data assembly | Keep bounded dashboard loader |
+| `src/app/dashboard/calm-ledger-overview.css` | Dashboard hierarchy and responsive presentation | Current route owner |
+| `src/app/dashboard/calm-ledger-overview-actions.css` | Temporary suppression of the obsolete in-page action | Remove only in a focused JSX cleanup |
+| `src/components/moneyflow-dashboard.tsx` | Existing calculations, states and mutation behavior | Do not change financial semantics here |
+| `src/lib/nav-ia.ts` | Navigation source of truth | Keep `/dashboard` canonical |
+| `e2e/expense-path.spec.ts` | Core signed-in expense flow | Target `/dashboard` |
+| `e2e/audit/critical-browser.audit.spec.ts` | Cross-device shell and route contracts | Preserve viewport and accessibility coverage |
 
-## Acceptance criteria
+### Existing tests and constraints
 
-- [ ] App shell presentation is component-scoped and uses Calm Ledger tokens in light and dark mode.
-- [ ] Desktop has one stable sidebar and one topbar primary action.
-- [ ] Phone has exactly five navigation destinations and no separate FAB.
-- [ ] Bottom navigation reserves sufficient page padding for all content and focusable controls.
-- [ ] Dashboard prioritizes balance, monthly income/expense/net, category distribution and recent transactions.
-- [ ] Empty planning data is compact and populated planning values remain unchanged.
-- [ ] No horizontal overflow at 320, 360, 390, 768, 1024, 1366 and 1440 px.
-- [ ] Dark mode, keyboard, 200% text and WebKit critical paths pass.
-- [ ] Financial semantics, persistence, ownership and RLS remain unchanged.
+- Related unit tests cover auth redirect, navigation IA, manifest start URL, dashboard loader boundaries, shell account access, demo banner and mobile layout.
+- Database/RLS behavior is unchanged by this presentation slice.
+- Browser checks cover the expense path and critical responsive states.
+- VND remains integer đồng.
+- Transfers remain excluded from income and expense.
+- No guessed safe-to-spend or daily spending recommendation is allowed.
+- GitHub Actions in the private repository are currently blocked before checkout by issue #86, so the absence of a run is not evidence that checks passed.
 
-## Required states
+### Similar implementation and recent history
+
+- #90 made `/dashboard` canonical.
+- #91 established CSS ownership boundaries.
+- #92 migrated the authenticated shell and dashboard presentation.
+- #93 synchronized verified MoneyValue, Dashboard and Transactions work.
+- #94 restored the omitted dashboard planning dependency after the first production build failure.
+- Commit `86eb5c1d23296264d5d703c09f9e4cf8bee92767` synchronized the verified UI/UX polish and dark-theme token repair.
+- #98 updated stale route and CSS Module assertions; squash commit `73caa790d30bf8111bef432d3b6d830d71022721`.
+
+### Open questions
+
+- [ ] Do authenticated production flows pass for direct `/dashboard`, `/insights` redirect, expense capture, recent transaction display and export?
+- [ ] Does the final light/dark phone and desktop screenshot review reveal any remaining P0/P1 defect?
+- [ ] Does the flow pass on a physical phone, not only browser emulation?
+- [ ] When will private GitHub Actions runner/billing access in #86 be restored?
+
+## Research
+
+External research was not required for this reconciliation. The implementation decisions were internal repository decisions governed by issue #81, current architecture boundaries and verified product behavior.
+
+### Questions researched
+
+1. Which signed-in route is canonical after the migration?
+2. Which files own shell and dashboard presentation?
+3. Which verification claims are supported by repository evidence, and which remain manual?
+4. Which stale assertions and delivery records no longer matched `main`?
+
+### Sources
+
+| Source | Date accessed | What it establishes | Limits/applicability |
+|---|---|---|---|
+| Issue #81 | 2026-07-28 | Calm Ledger outcome, route, financial and UX constraints | Product decision record, not execution evidence |
+| PRs #90–#94 | 2026-07-28 | Canonical route, CSS ownership, shell migration, synchronization and dependency repair | Individual PR evidence |
+| Commit `86eb5c1` | 2026-07-28 | Latest UI polish and dark-token repair on private `main` | Does not prove authenticated manual flows |
+| PR #98 / commit `73caa79` | 2026-07-28 | Stale tests corrected for current route and CSS Modules | Test-only change |
+| Issue #86 | 2026-07-28 | Private Actions jobs fail before checkout with no executable steps | Account/runner problem, not application failure |
+
+### Alternatives considered
+
+| Option | Advantages | Risks | Decision |
+|---|---|---|---|
+| Mark the packet completed immediately | Reduces active-document noise | Would falsely claim manual production and device verification | Rejected |
+| Leave the stale packet unchanged | No documentation edit | `check:knowledge` fails and future agents receive false delivery status | Rejected |
+| Reconcile evidence and keep status `evaluating` | Accurate, passes required document structure and preserves open gates | Packet remains active until manual verification | Selected |
+
+### Research decision
+
+Keep this packet active in `evaluating`. Record proven implementation and automated evidence, explicitly separate blocked or missing checks, and move it to `completed` only after the remaining authenticated production, visual and physical-device gates are verified.
+
+## Specification
+
+### Problem
+
+The Calm Ledger shell and dashboard work shipped, but its work packet still described merge and deployment as pending and omitted sections required by the project-knowledge contract. This caused stale project context and made `npm run check:knowledge` fail even though the runtime work was already present.
+
+### User stories
+
+- As the owner, I can see which parts of the redesign are actually shipped and which checks remain.
+- As an implementing agent, I can identify the canonical route and current CSS ownership without relying on chat history.
+- As a reviewer, I can distinguish automated evidence from unverified production claims.
+
+### Acceptance criteria
+
+- [x] `/dashboard` is recorded as the canonical signed-in route.
+- [x] `/insights` is recorded as a compatibility redirect.
+- [x] Shell and dashboard ownership boundaries match current `main`.
+- [x] Merged PRs and relevant commits are recorded.
+- [x] Private GitHub Actions blockage is explicitly recorded without treating it as a code failure.
+- [x] All headings required by `scripts/check-project-knowledge.mjs` exist.
+- [ ] Authenticated production flows are manually verified.
+- [ ] Final light/dark phone and desktop screenshots are reviewed.
+- [ ] Physical-phone verification is completed.
+- [ ] The packet is moved to `docs/plans/completed/`.
+
+### Required states
 
 - Loading: existing server loading behavior remains unchanged.
 - Empty ledger: one useful first action; no blank placeholder wall.
 - Populated ledger: exact large VND values and long Vietnamese labels remain readable.
-- Error: data errors remain visible and unsafe mutations remain disabled.
-- Recovery: toast and undo behavior remain available.
+- Validation/error: data errors remain visible and unsafe mutations remain disabled.
+- Recovery/undo: toast and undo behavior remain available.
+- Long data / large VND: layouts wrap or truncate intentionally without changing exact detail values.
 - Mobile/tablet/desktop: authored layouts rather than accidental wrapping.
-- Accessibility: semantic landmarks/dialogs, visible focus, 44 px targets and reduced motion.
+- Accessibility: semantic landmarks/dialogs, visible focus, 44 px targets, reduced motion and safe-area spacing.
 
-## Risks and checks
+### Financial and security constraints
 
-| Risk | Prevention |
+- No guessed financial data or recommendation.
+- Integer VND and transfer invariants remain intact.
+- No schema, migration, ownership or RLS behavior changes are authorized by this packet.
+- Runtime mode and deployment configuration remain explicit.
+
+### Out of scope
+
+- Quick-capture field redesign.
+- Final migration of every secondary route.
+- Financial calculation changes.
+- Schema, auth, RLS or environment changes.
+- Fixing GitHub account billing or runner permissions from repository code.
+
+## Implementation plan
+
+### Architecture fit
+
+The shared shell remains owned by `src/components/layout/app-shell.tsx` and its CSS Module. Dashboard presentation remains route-owned. Existing finance loaders and domain calculations are reused. This reconciliation changes documentation only and does not introduce a new runtime owner.
+
+### Planned changes
+
+| File/area | Change | Reason |
+|---|---|---|
+| `docs/plans/active/calm-ledger-daily-shell.md` | Add required work-packet sections and reconcile current delivery evidence | Restore accurate project truth and `check:knowledge` compatibility |
+| GitHub PR state | Supersede stale documentation PRs after the reconciled change lands | Reduce conflicting project narratives |
+
+### Data and migration impact
+
+- Schema/migration: none.
+- Backfill: none.
+- Compatibility: no runtime impact.
+- Rollback: revert the documentation commit.
+
+### Risks and counterexamples
+
+| Risk/counterexample | Prevention or test |
 |---|---|
-| Legacy globals override the new shell | CSS Module-generated selectors own the shell boundary |
-| Route CSS leaks after navigation | Dashboard rules are scoped to `.insights-dashboard` |
-| Capture becomes harder to find | Center phone action and desktop topbar action remain visible |
-| Fixed navigation covers content | Shell padding is asserted against navigation height |
-| Large values overflow | `minmax(0, 1fr)`, tabular money and intentional wrapping/truncation |
-| Route migration regresses | Browser tests target `/dashboard`; `/insights` is not verification authority |
-| Planning values change | Presentation-only change; no calculation/store edits |
+| Documentation claims production behavior that was not manually tested | Mark those gates pending and keep status `evaluating` |
+| A build/deploy status is mistaken for database or browser proof | List each verification layer separately |
+| Future agents treat `/insights` as canonical | State `/dashboard` in current behavior, specification and evidence |
+| Packet is moved to completed too early | Require remaining manual gates and an explicit move step |
+| Private CI absence is interpreted as success | Link the blockage to #86 and state that no workflow ran |
 
-## Verification plan
+### Verification plan
 
-Before ready/merge:
+- Static: run `npm run check:knowledge`, `npm run lint` and `npm run typecheck` when an executable environment or restored CI is available.
+- Unit/domain: #98 reports the stale assertions updated and its branch passing all unit tests before merge.
+- Database: no database change; retain existing pgTAP/RLS gates for releases.
+- Browser flow: verify `/dashboard` expense capture and `/insights` redirect in authenticated production.
+- Responsive/visual: review light/dark screenshots on phone and desktop and retain the audit viewport matrix.
+- Production/manual: verify the exact deployed commit, recent transactions and export.
+- CI limitation: private Actions are blocked by #86 and currently produce no runnable workflow steps.
 
-- [ ] `npm run check:knowledge`
-- [ ] `npm run check:deployment-env`
-- [ ] `npm run check:css-ownership`
-- [ ] `npm run lint`
-- [ ] `npm run typecheck`
-- [ ] `npm test`
-- [ ] static RLS checks
-- [ ] production build
-- [ ] fresh Supabase reset + pgTAP
-- [ ] expense-path browser smoke
-- [ ] production cross-device Chromium/WebKit audit
-- [ ] screenshot review in light/dark phone and desktop
+## Tasks
 
-After merge:
+| ID | Task | Dependency | Evidence | Status |
+|---|---|---|---|---|
+| T1 | Make `/dashboard` canonical | #81 | #90 | done |
+| T2 | Establish CSS ownership | T1 | #91 | done |
+| T3 | Migrate shell and dashboard presentation | T2 | #92 | done |
+| T4 | Synchronize verified dashboard/transactions work | T3 | #93 | done |
+| T5 | Restore omitted dashboard dependency | T4 | #94 | done |
+| T6 | Apply UI polish and dark-token repair | T5 | commit `86eb5c1` | done |
+| T7 | Update stale route/CSS Module tests | T6 | #98 / `73caa79` | done |
+| T8 | Reconcile this work packet | T7 | documentation PR | implementing |
+| T9 | Verify authenticated production flows | T8, #86 or manual access | production checklist | todo |
+| T10 | Review final responsive screenshots and physical phone | T9 | audit evidence | todo |
+| T11 | Move packet to completed | T9, T10 | completed packet path | todo |
 
-- [ ] verify the exact Vercel production deployment commit;
-- [ ] open `/dashboard` directly and through the `/insights` compatibility redirect;
-- [ ] confirm expense capture, recent transaction display and export.
+## Evaluation
 
-## Scope boundary
+### Acceptance evidence
 
-Included:
+| Criterion | Evidence | Result |
+|---|---|---|
+| Canonical route and compatibility redirect | #90, current auth/navigation code, #98 test updates | pass |
+| Scoped shell and route CSS ownership | #91 and #92 | pass |
+| No duplicate mobile FAB | #92 and updated mobile-layout assertion in #98 | pass |
+| Dashboard dependency present in production build | #94 and subsequent Vercel success | pass |
+| Dark-theme token cascade repaired | commit `86eb5c1` | pass |
+| Static/unit checks match current implementation | #98 reports lint/typecheck clean and all unit tests passing before merge | pass with private-CI limitation |
+| Authenticated production core flow | No final manual evidence recorded | pending |
+| Final cross-device screenshot review | Partial audit evidence exists; final owner review not recorded | pending |
+| Physical phone readiness | Not verified | pending |
 
-- shared signed-in shell;
-- dashboard visual hierarchy;
-- shell/dashboard browser contracts.
+### Review findings
 
-Deferred to later focused slices of #81:
+- Correctness: route and test expectations now align; no financial calculation change was introduced.
+- Security/ownership: no schema, auth or RLS changes; private CI blockage remains external to runtime code.
+- UI/UX/accessibility: shell hierarchy, single capture action and dark token repair are implemented; final production visual review remains.
+- Maintainability/duplication: shell presentation is scoped, but the temporary dashboard action CSS owner should be removed in a focused cleanup after JSX deletion.
+- Scope compliance: this reconciliation is documentation-only.
 
-- quick-capture field redesign;
-- transactions and accounts pages;
-- Inbox/import review experience;
-- budgets, recurring commitments, salary, goals and reports;
-- categories, rules, settings and export presentation;
-- final legacy selector deletion after route migrations.
+### Remaining limitations
+
+- Private GitHub Actions do not currently execute because of #86.
+- Authenticated production flows have not been recorded as manually verified after the latest sequence.
+- Final light/dark phone and desktop screenshot approval is missing.
+- Physical-device verification is missing.
+- The temporary `calm-ledger-overview-actions.css` compatibility layer remains.
 
 ## Delivery record
 
-- Branch: `design/calm-ledger-dashboard-shell`
-- Draft PR: #92
-- Base: current `main` after #90 and #91
-- Replacement: #83 is superseded and must not merge
-- Verification: pending executable CI and artifact review
-- Merge commit: pending
-- Production deployment: pending
+- Original implementation branch: `design/calm-ledger-dashboard-shell`
+- Merged implementation PRs: #90, #91, #92, #93 and #94
+- Latest UI polish commit: `86eb5c1d23296264d5d703c09f9e4cf8bee92767`
+- Test reconciliation PR: #98
+- Test reconciliation squash commit: `73caa790d30bf8111bef432d3b6d830d71022721`
+- CI run: private GitHub Actions unavailable because of #86; no runnable workflow was produced for #98
+- Production deployment: Vercel succeeded for the pre-#98 production UI commit; the #98 change is test-only and its deployment status must be checked separately
+- Production flow verified: pending authenticated manual verification
+- Work packet moved to `docs/plans/completed/`: no; remains `evaluating`
