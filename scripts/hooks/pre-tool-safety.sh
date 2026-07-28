@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# PreToolUse safety for MoneyFlow Grok sessions.
-# stdin: JSON event. stdout: {"decision":"allow"|"deny",...}
+# Shared PreToolUse safety hook for MoneyFlow coding-agent sessions.
+# stdin: Claude Code/Grok JSON tool event. Empty stdout means allow.
 set -euo pipefail
 
 INPUT=$(cat || true)
@@ -25,7 +25,6 @@ if isinstance(inp, dict):
         or inp.get("filePath")
         or ""
     )
-# tab-separated safe for shell
 print(tool.replace("\t", " "))
 print(cmd.replace("\n", " ").replace("\t", " "))
 print(path.replace("\t", " "))
@@ -37,8 +36,17 @@ COMMAND=$(echo "$PARSED" | sed -n '2p')
 PATHF=$(echo "$PARSED" | sed -n '3p')
 
 deny() {
-  python3 -c 'import json,sys; print(json.dumps({"decision":"deny","reason":sys.argv[1]}))' "$1"
-  exit 2
+  python3 -c '
+import json, sys
+print(json.dumps({
+    "hookSpecificOutput": {
+        "hookEventName": "PreToolUse",
+        "permissionDecision": "deny",
+        "permissionDecisionReason": sys.argv[1],
+    }
+}))
+' "$1"
+  exit 0
 }
 
 if [[ "$TOOL" == "run_terminal_command" || "$TOOL" == "Bash" || "$TOOL" == "bash" ]]; then
@@ -62,5 +70,4 @@ if [[ "$PATHF" == *".env.local"* || "$PATHF" == *"/secrets/"* ]]; then
   deny "Editing secrets/env.local is forbidden"
 fi
 
-echo '{"decision":"allow"}'
 exit 0
