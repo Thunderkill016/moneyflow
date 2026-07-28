@@ -98,7 +98,7 @@ Do not push feature or fix commits directly to `main`. Do not create no-op commi
 ## Current product scope
 
 - Authentication: email/password, supported OAuth and recovery.
-- Demo mode with browser local storage.
+- Demo mode with browser-local data.
 - Multiple accounts: cash, bank, e-wallet, credit and savings representations.
 - Income, expense and balanced internal transfers.
 - Edit, soft delete and recovery paths.
