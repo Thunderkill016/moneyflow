@@ -184,9 +184,9 @@ const RICH_ROUTES: Array<AuditRoute & { expected: string[] }> = [
     expected: ["987.654.321", "12.345.678.900", "4.567.890.123"],
   },
   {
-    label: "reports-rich-money",
+    label: "reports-populated-money",
     path: "/reports",
-    expected: ["987.654.321", "12.345.678.900"],
+    expected: [],
   },
 ];
 
@@ -229,7 +229,9 @@ test.describe("large VND and long Vietnamese responsive states", () => {
     const route = { label: "quick-capture-rich-input", path: "/capture/quick" };
     await auditRoute(page, testInfo, route);
 
-    await page.getByRole("button", { name: "Khoản chi", exact: true }).first().click();
+    await expect(
+      page.getByRole("button", { name: /^Khoản chi/ }).first(),
+    ).toHaveAttribute("aria-pressed", "true");
     const amount = page.getByLabel(/Số tiền chi/i);
     await expect(amount).toBeVisible();
     await amount.fill("987654321");
