@@ -1,9 +1,9 @@
 # Fix landing dark-mode contrast
 
-**Status:** planned  
+**Status:** evaluating  
 **Owner:** ChatGPT  
-**Issue/PR:** pending  
-**Last updated:** 2026-07-26
+**Issue/PR:** #80 (merged); an earlier attempt, #79, was closed unmerged and superseded by #80  
+**Last updated:** 2026-07-28 — reconciled: this packet described the fix as `planned`/`todo` for every task after it had already shipped and merged as PR #80
 
 ## Outcome
 
@@ -74,13 +74,13 @@ Users whose system or saved theme resolves to dark can receive a landing page wi
 
 ### Acceptance criteria
 
-- [ ] The dark landing root, navigation and content surfaces use dark semantic backgrounds and borders.
-- [ ] Primary headings and body copy use readable dark-theme foreground tokens.
-- [ ] Trust chips, proof cards, benefits, steps, audience cards and FAQ items remain distinguishable.
-- [ ] The preview statistics, rows and footer do not retain light-only backgrounds or low-contrast text.
-- [ ] Primary and secondary CTA hierarchy remains unchanged.
-- [ ] Mobile and reduced-motion behavior remains unchanged.
-- [ ] Source tests lock the final dark-mode contract.
+- [x] The dark landing root, navigation and content surfaces use dark semantic backgrounds and borders — shipped as `landing-dark-mode-guardrails.css` (verified: 33 `[data-theme="dark"]` selectors scoped to `.landing-page.lp-root` in `src/app/landing-refresh.css`/the guardrail layer).
+- [x] Primary headings and body copy use readable dark-theme foreground tokens — PR #80 evidence: "final desktop dark screenshot confirms readable hero, navigation, content cards, FAQ and final CTA."
+- [x] Trust chips, proof cards, benefits, steps, audience cards and FAQ items remain distinguishable — same PR #80 screenshot evidence.
+- [x] The preview statistics, rows and footer do not retain light-only backgrounds or low-contrast text — PR #80 fixed an uncovered final-CTA surface regression found during its own screenshot review before merge.
+- [x] Primary and secondary CTA hierarchy remains unchanged — PR #80 scope boundary: "no component structure or marketing copy change."
+- [x] Mobile and reduced-motion behavior remains unchanged — PR #80 scope boundary; unrelated selectors untouched.
+- [x] Source tests lock the final dark-mode contract — `src/lib/landing-refresh.test.ts` asserts `documentTheme` matches `html[data-theme="dark"]` and asserts the guardrail import is present/ordered.
 
 ### Required states
 
@@ -147,10 +147,10 @@ The regression belongs to the public landing CSS layer because the root theme re
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| T1 | Add landing-scoped final dark-mode contract | none | CSS diff | todo |
-| T2 | Add dark-mode source regression assertions | T1 | passing unit test | todo |
-| T3 | Open PR and run CI/browser evidence | T1, T2 | PR checks and artifacts | todo |
-| T4 | Merge, deploy and verify production `/` | T3 | exact deployment verification | todo |
+| T1 | Add landing-scoped final dark-mode contract | none | PR #80 CSS diff (`landing-dark-mode-guardrails.css`, +487/−1 across 5 files) | done |
+| T2 | Add dark-mode source regression assertions | T1 | PR #80: 17 contrast-pair + dark-surface luminance Playwright assertions; `landing-refresh.test.ts` theme/import assertions | done |
+| T3 | Open PR and run CI/browser evidence | T1, T2 | PR #80 final CI run `30209154930` — full matrix pass including dark computed-style contract | done |
+| T4 | Merge, deploy and verify production `/` | T3 | Merged as `1ba77d05d9894ccd820f300d5bc743cd93d7d8b3`; Vercel reported success for that commit; a human re-opening `/` in dark mode on the exact production deployment is not yet recorded | merge/deploy done — manual production check still open |
 
 ## Evaluation
 
@@ -158,28 +158,29 @@ The regression belongs to the public landing CSS layer because the root theme re
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Dark landing contract exists and is scoped | pending | pending |
-| Source test prevents selector removal | pending | pending |
-| Browser evidence across viewports | pending | pending |
+| Dark landing contract exists and is scoped | PR #80 diff, `[data-theme="dark"] .landing-page.lp-root` scoping (verified in current `src/app/landing-refresh.css`) | pass |
+| Source test prevents selector removal | `src/lib/landing-refresh.test.ts` | pass |
+| Browser evidence across viewports | PR #80 final CI run `30209154930` cross-device UI audit + reviewed dark screenshots | pass (CI/emulated); physical device still open |
 
 ### Review findings
 
-- Correctness: pending.
-- Security/ownership: no impact expected.
-- UI/UX/accessibility: pending visual evidence.
-- Maintainability/duplication: final contract intentionally centralizes dark landing overrides.
-- Scope compliance: no structural or financial behavior changes planned.
+- Correctness: PR #80 shipped and merged; scoped strictly to `.landing-page.lp-root`, no reported regression to authenticated screens.
+- Security/ownership: no impact — confirmed by PR #80 scope boundaries (no auth/schema/RLS change).
+- UI/UX/accessibility: CI-reviewed screenshots and computed-contrast assertions pass; a physical-device pass has not been recorded.
+- Maintainability/duplication: final contract intentionally centralizes dark landing overrides in one guardrail layer.
+- Scope compliance: PR #80 stayed within the planned CSS-only scope; no structural or financial behavior changed.
 
 ### Remaining limitations
 
 - Physical-device verification remains required before claiming device readiness.
+- A human has not yet re-opened the exact production deployment's `/` route in dark mode to close the loop on "production flow verified" (AGENTS.md §8) — Vercel's build-success status is not the same claim.
 
 ## Delivery record
 
 - Branch: `fix/landing-dark-mode-contrast`
-- PR: pending
-- Squash commit: pending
-- CI run: pending
-- Production deployment: pending
-- Production flow verified: pending
-- Work packet moved to `docs/plans/completed/`: no
+- PR: #80 (an earlier attempt, #79, was closed unmerged and superseded by #80)
+- Squash commit: `1ba77d05d9894ccd820f300d5bc743cd93d7d8b3`
+- CI run: `30209154930` — full matrix pass
+- Production deployment: Vercel reported a successful deployment status for the squash commit (per PR #80 body)
+- Production flow verified: not yet — pending a human visiting the exact production deployment's `/` in dark mode
+- Work packet moved to `docs/plans/completed/`: no — implementation, tests and CI are done, but production/physical verification is still open

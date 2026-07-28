@@ -12,7 +12,7 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { sumBudgetSpent } from "./budgets.ts";
+import { sumBudgetSpent } from "./planning/budgets.ts";
 import {
   balanceAfterTransactions,
   calculateDashboardSummary,

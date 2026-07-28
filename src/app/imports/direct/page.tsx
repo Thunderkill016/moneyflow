@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DirectCsvImportPage } from "@/components/direct-csv-import-page";
+import { DirectCsvImportPage } from "@/components/inbox/direct-csv-import-page";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
 

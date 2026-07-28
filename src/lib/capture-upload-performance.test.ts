@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const uploadPage = readFileSync(
-  "src/components/capture-upload-page.tsx",
+  "src/components/inbox/capture-upload-page.tsx",
   "utf8",
 );
 

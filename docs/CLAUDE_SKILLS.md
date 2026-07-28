@@ -41,6 +41,5 @@
 
 - `.claude/skills/` — path Claude Code chuẩn  
 - `.agents/skills/` — mirror  
-- `.grok/skills/` — Grok headless  
 
 Plus project skills: ship-feature, TDD, verification, security-pass, frontend-qa, supabase-rls.

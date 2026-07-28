@@ -8,7 +8,7 @@ import { join } from "node:path";
 import test from "node:test";
 import { readDashboardSource } from "./test-support/dashboard-source.ts";
 
-const GOALS_LIB = join(process.cwd(), "src/lib/goals.ts");
+const GOALS_LIB = join(process.cwd(), "src/lib/planning/goals.ts");
 const PAGE = join(process.cwd(), "src/app/dashboard/page.tsx");
 
 function read(path: string) {

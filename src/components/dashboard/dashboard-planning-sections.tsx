@@ -9,12 +9,12 @@ import {
   budgetStatusLabel,
   budgetThreshold,
   type BudgetSummary,
-} from "@/lib/budgets";
+} from "@/lib/planning/budgets";
 import {
   commitmentTotals,
   unpaidActiveCount,
   type RecurringCommitment,
-} from "@/lib/commitments";
+} from "@/lib/planning/commitments";
 import {
   PLANNING_EMPTY_BUDGET,
   PLANNING_EMPTY_COMMITMENT,
@@ -29,12 +29,12 @@ import {
   goalRemaining,
   pickFeaturedGoal,
   type SavingsGoal,
-} from "@/lib/goals";
+} from "@/lib/planning/goals";
 import {
   incomeTemplateTotals,
   pendingActiveCount,
   type RecurringIncomeTemplate,
-} from "@/lib/income-templates";
+} from "@/lib/planning/income-templates";
 import type { Transaction } from "@/lib/sample-data";
 import {
   buildWeeklySummary,

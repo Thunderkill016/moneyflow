@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { GoalsPage } from "@/components/goals-page";
+import { GoalsPage } from "@/components/planning/goals-page";
 import { requireViewer } from "@/server/auth";
 import { getGoalsWorkspace } from "@/server/goals";
 

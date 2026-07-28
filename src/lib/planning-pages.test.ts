@@ -21,11 +21,11 @@ import {
 } from "./planning-pages.ts";
 
 const root = process.cwd();
-const BUDGETS = join(root, "src/components/budgets-page.tsx");
-const COMMITMENTS = join(root, "src/components/commitments-page.tsx");
-const GOALS = join(root, "src/components/goals-page.tsx");
+const BUDGETS = join(root, "src/components/planning/budgets-page.tsx");
+const COMMITMENTS = join(root, "src/components/planning/commitments-page.tsx");
+const GOALS = join(root, "src/components/planning/goals-page.tsx");
 const CATEGORIES = join(root, "src/components/categories-page.tsx");
-const SHELL = join(root, "src/components/planning-card.tsx");
+const SHELL = join(root, "src/components/planning/planning-card.tsx");
 const CSS = join(root, "src/app/globals.css");
 
 function read(path: string) {
@@ -131,7 +131,7 @@ test("budgets / commitments / goals pages use PlanningCard shell", () => {
   for (const path of [BUDGETS, COMMITMENTS, GOALS]) {
     const source = read(path);
     assert.match(source, /PlanningCard/, `${path} must use PlanningCard`);
-    assert.match(source, /from "@\/components\/planning-card"/, `${path} import`);
+    assert.match(source, /from "@\/components\/planning\/planning-card"/, `${path} import`);
   }
 });
 

@@ -9,7 +9,7 @@ import {
   dueDateForMonth,
   incomeTemplateTotals,
   type RecurringIncomeTemplate,
-} from "@/lib/income-templates";
+} from "@/lib/planning/income-templates";
 import { currentDateInVietnam } from "@/server/commitments";
 
 export type IncomeTemplatesWorkspace = {

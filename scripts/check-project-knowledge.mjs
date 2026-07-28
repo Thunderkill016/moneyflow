@@ -34,7 +34,6 @@ for (const path of requiredFiles) {
 const currentTruthFiles = [
   "AGENTS.md",
   "README.md",
-  "docs/PRODUCT.md",
   "docs/product/PRINCIPLES.md",
 ];
 

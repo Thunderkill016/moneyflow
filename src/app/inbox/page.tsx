@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { InboxPage } from "@/components/inbox-page";
+import { InboxPage } from "@/components/inbox/inbox-page";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
 

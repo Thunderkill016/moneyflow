@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { CaptureSharePage } from "@/components/capture-share-page";
+import { CaptureSharePage } from "@/components/inbox/capture-share-page";
 import { requireViewer } from "@/server/auth";
 
 export const metadata: Metadata = {

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CaptureUploadPage } from "@/components/capture-upload-page";
+import { CaptureUploadPage } from "@/components/inbox/capture-upload-page";
 import { requireViewer } from "@/server/auth";
 
 export const metadata: Metadata = {

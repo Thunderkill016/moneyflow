@@ -3,9 +3,9 @@
  * Calm Vietnamese copy; no guilt language.
  */
 
-import { budgetStatusLabel, budgetThreshold, type BudgetSummary } from "./budgets.ts";
+import { budgetStatusLabel, budgetThreshold, type BudgetSummary } from "./planning/budgets.ts";
 import { formatMoney } from "./money.ts";
-import type { RecurringCommitment } from "./commitments.ts";
+import type { RecurringCommitment } from "./planning/commitments.ts";
 
 export type AttentionItem = {
   id: string;

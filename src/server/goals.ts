@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { goalTotals, type SavingsGoal } from "@/lib/goals";
+import { goalTotals, type SavingsGoal } from "@/lib/planning/goals";
 import { requireViewer } from "@/server/auth";
 import { currentDateInVietnam } from "@/server/commitments";
 

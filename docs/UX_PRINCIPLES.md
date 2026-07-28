@@ -46,7 +46,7 @@ MoneyFlow is a **personal income & expense (thu chi)** web app for Vietnamese us
 
 **Inbox / paste / upload / rules** = **Lab (Nâng cao)** only — optional power tools, **not** product brand or primary nav.
 
-Authority: `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` · `docs/REBUILD_MASTER_PLAN.md` · `docs/BEST_OF_MATRIX.md`.  
+Authority: `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` · `docs/BEST_OF_MATRIX.md`.  
 Historical inbox wireframes remain reference only: [`UX_RESEARCH_AND_REDESIGN.md`](./UX_RESEARCH_AND_REDESIGN.md).
 
 ### Design Philosophy

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CapturePastePage } from "@/components/capture-paste-page";
+import { CapturePastePage } from "@/components/inbox/capture-paste-page";
 import { requireViewer } from "@/server/auth";
 
 export const metadata: Metadata = {

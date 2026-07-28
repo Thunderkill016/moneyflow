@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { SaveGoalInput, SavingsGoal } from "@/lib/goals";
+import type { SaveGoalInput, SavingsGoal } from "@/lib/planning/goals";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 import { mapGoalRow } from "@/server/goals";

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
-import type { BudgetSummary } from "@/lib/budgets";
+import type { BudgetSummary } from "@/lib/planning/budgets";
 import { demoCategories, type CategoryOption } from "@/lib/sample-data";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
