@@ -9,6 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import styles from "./transactions-page.module.css";
 import { type ViewerSummary } from "@/components/user-chip";
+import { useDemoMasterData } from "@/hooks/use-demo-master-data";
 import { useTransactions } from "@/hooks/use-transactions";
 import { formatMoney } from "@/lib/money";
 import {
@@ -89,6 +90,11 @@ export function TransactionsPage({
   initialKind = "all",
 }: TransactionsPageProps) {
   const isTimeline = variant === "timeline";
+  const { accounts, categories } = useDemoMasterData({
+    isDemo: viewer.isDemo,
+    accounts: workspace.accounts,
+    categories: workspace.categories,
+  });
   const {
     transactions,
     addTransaction,
@@ -100,8 +106,8 @@ export function TransactionsPage({
     isMutating,
   } = useTransactions({
     initialTransactions: workspace.transactions,
-    accounts: workspace.accounts,
-    categories: workspace.categories,
+    accounts,
+    categories,
     isDemo: viewer.isDemo,
   });
 
@@ -117,7 +123,7 @@ export function TransactionsPage({
   const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
   const pendingUndoRef = useRef<Transaction | null>(null);
-  const expenseCategoryCount = workspace.categories.filter(
+  const expenseCategoryCount = categories.filter(
     (item) => item.kind === "expense",
   ).length;
 
@@ -434,7 +440,7 @@ export function TransactionsPage({
                   onClick={() => setSplitOpen(true)}
                   disabled={
                     expenseCategoryCount < 2 ||
-                    workspace.accounts.length < 1 ||
+                    accounts.length < 1 ||
                     Boolean(workspace.dataError)
                   }
                 >
@@ -445,7 +451,7 @@ export function TransactionsPage({
                   className="secondary-button"
                   onClick={() => setTransferOpen(true)}
                   disabled={
-                    workspace.accounts.length < 2 || Boolean(workspace.dataError)
+                    accounts.length < 2 || Boolean(workspace.dataError)
                   }
                 >
                   <Icon name="arrows" /> Chuyển tiền ví
@@ -536,7 +542,7 @@ export function TransactionsPage({
                 aria-label="Lọc theo danh mục"
               >
                 <option value="all">Mọi danh mục</option>
-                {workspace.categories.map((item) => (
+                {categories.map((item) => (
                   <option value={item.name} key={item.id}>
                     {item.name}
                   </option>
@@ -552,7 +558,7 @@ export function TransactionsPage({
                 aria-label="Lọc theo tài khoản"
               >
                 <option value="all">Mọi tài khoản</option>
-                {workspace.accounts.map((item) => (
+                {accounts.map((item) => (
                   <option value={item.name} key={item.id}>
                     {item.name}
                   </option>
@@ -730,20 +736,20 @@ export function TransactionsPage({
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onAdd={handleAdd}
-        accounts={workspace.accounts}
-        categories={workspace.categories}
+        accounts={accounts}
+        categories={categories}
         disabled={isMutating || Boolean(workspace.dataError)}
       />
       <TransferDialog
         open={transferOpen}
-        accounts={workspace.accounts}
+        accounts={accounts}
         onClose={() => setTransferOpen(false)}
         onTransfer={handleTransfer}
       />
       <SplitExpenseDialog
         open={splitOpen}
-        accounts={workspace.accounts}
-        categories={workspace.categories}
+        accounts={accounts}
+        categories={categories}
         onClose={() => setSplitOpen(false)}
         onSplit={handleSplit}
         disabled={isMutating || Boolean(workspace.dataError)}
@@ -752,8 +758,8 @@ export function TransactionsPage({
         <EditTransactionDialog
           key={editing.id}
           transaction={editing}
-          accounts={workspace.accounts}
-          categories={workspace.categories}
+          accounts={accounts}
+          categories={categories}
           onClose={() => setEditing(null)}
           onSave={handleUpdate}
           disabled={isMutating || Boolean(workspace.dataError)}

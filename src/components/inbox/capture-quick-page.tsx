@@ -7,6 +7,7 @@ import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
+import { useDemoMasterData } from "@/hooks/use-demo-master-data";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
   addCandidatesForClient,
@@ -39,10 +40,15 @@ export function CaptureQuickPage({
   workspace: QuickWorkspace;
 }) {
   const router = useRouter();
-  const { addTransaction, isMutating } = useTransactions({
-    initialTransactions: workspace.transactions,
+  const { accounts, categories } = useDemoMasterData({
+    isDemo: viewer.isDemo,
     accounts: workspace.accounts,
     categories: workspace.categories,
+  });
+  const { addTransaction, isMutating } = useTransactions({
+    initialTransactions: workspace.transactions,
+    accounts,
+    categories,
     isDemo: viewer.isDemo,
   });
   const [notice, setNotice] = useState("");
@@ -69,8 +75,8 @@ export function CaptureQuickPage({
     const result = await addTransaction(input);
     if (!result.ok) return result;
 
-    const account = workspace.accounts.find((item) => item.id === input.accountId);
-    const category = workspace.categories.find((item) => item.id === input.categoryId);
+    const account = accounts.find((item) => item.id === input.accountId);
+    const category = categories.find((item) => item.id === input.categoryId);
     const merchant = input.note.trim() || category?.name || "Thêm nhanh";
 
     try {
@@ -106,7 +112,7 @@ export function CaptureQuickPage({
     router.push("/capture");
   }
 
-  const hasSetup = workspace.accounts.length > 0 && workspace.categories.length > 0;
+  const hasSetup = accounts.length > 0 && categories.length > 0;
 
   return (
     <AppShell
@@ -174,8 +180,8 @@ export function CaptureQuickPage({
             title="Thêm nhanh"
             onClose={handleClose}
             onAdd={handleAdd}
-            accounts={workspace.accounts}
-            categories={workspace.categories}
+            accounts={accounts}
+            categories={categories}
             disabled={isMutating}
           />
         )}

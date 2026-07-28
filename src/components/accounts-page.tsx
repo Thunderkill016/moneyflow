@@ -7,7 +7,6 @@ import { createTransferAction } from "@/app/actions/transactions";
 import { Icon, type IconName } from "@/components/icons";
 import { type ViewerSummary } from "@/components/user-chip";
 import {
-  accountBalancesAfterLedgerReplacement,
   accountKindLabels,
   type AccountSummary,
   type SaveAccountInput,
@@ -20,10 +19,15 @@ import {
 } from "@/lib/currency";
 import { formatMoney } from "@/lib/money";
 import {
-  sampleTransactions,
   type CreateTransferInput,
   type Transaction,
 } from "@/lib/sample-data";
+import {
+  accountSummariesFromDemoRecords,
+  readStoredDemoAccounts,
+  writeStoredDemoAccounts,
+  type DemoAccountRecord,
+} from "@/lib/demo-master-data-store";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 import { applyTransferBalances } from "@/lib/transfers";
 import { AppShell } from "@/components/layout/app-shell";
@@ -72,9 +76,8 @@ export function AccountsPage({
   useEffect(() => {
     if (!viewer.isDemo) return;
     const frame = window.requestAnimationFrame(() => {
-      const restored = accountBalancesAfterLedgerReplacement(
-        initialAccounts,
-        sampleTransactions,
+      const restored = accountSummariesFromDemoRecords(
+        readStoredDemoAccounts(),
         readStoredTransactions(),
       );
       setAccounts(restored);
@@ -97,28 +100,28 @@ export function AccountsPage({
   async function saveAccount(input: SaveAccountInput) {
     if (viewer.isDemo) {
       const currencyCode = normalizeCurrencyCode(input.currencyCode ?? "VND");
-      const next: AccountSummary = {
+      const current = readStoredDemoAccounts();
+      const existing = input.id
+        ? current.find((item) => item.id === input.id)
+        : undefined;
+      const next: DemoAccountRecord = {
         id: input.id ?? crypto.randomUUID(),
         name: input.name,
         kind: input.kind,
-        currencyCode,
+        currencyCode: existing?.currencyCode ?? currencyCode,
         initialBalance: input.initialBalance,
-        balance: input.initialBalance,
-        isArchived: false,
+        baseBalance: existing
+          ? existing.baseBalance +
+            (input.initialBalance - existing.initialBalance)
+          : input.initialBalance,
+        isArchived: existing?.isArchived ?? false,
       };
-      setAccounts((current) =>
-        input.id
-          ? current.map((item) =>
-              item.id === input.id
-                ? {
-                    ...next,
-                    currencyCode: item.currencyCode,
-                    balance: next.initialBalance + (item.balance - item.initialBalance),
-                    isArchived: item.isArchived,
-                  }
-                : item,
-            )
-          : [...current, next],
+      const records = input.id
+        ? current.map((item) => (item.id === input.id ? next : item))
+        : [...current, next];
+      writeStoredDemoAccounts(records);
+      setAccounts(
+        accountSummariesFromDemoRecords(records, readStoredTransactions()),
       );
       setDialogOpen(false);
       setNotice(input.id ? "Đã cập nhật tài khoản demo." : "Đã thêm tài khoản demo.");
@@ -159,9 +162,21 @@ export function AccountsPage({
       setNotice(result.message);
       return;
     }
-    setAccounts((current) =>
-      current.map((item) => (item.id === account.id ? { ...item, isArchived: archived } : item)),
-    );
+    if (viewer.isDemo) {
+      const records = readStoredDemoAccounts().map((item) =>
+        item.id === account.id ? { ...item, isArchived: archived } : item,
+      );
+      writeStoredDemoAccounts(records);
+      setAccounts(
+        accountSummariesFromDemoRecords(records, readStoredTransactions()),
+      );
+    } else {
+      setAccounts((current) =>
+        current.map((item) =>
+          item.id === account.id ? { ...item, isArchived: archived } : item,
+        ),
+      );
+    }
     setNotice(archived ? "Đã lưu trữ tài khoản." : "Đã khôi phục tài khoản.");
   }
 
@@ -190,9 +205,13 @@ export function AccountsPage({
         occurredAt: new Date().toISOString(),
         relativeDate: "Vừa xong",
       };
-      writeStoredTransactions([transaction, ...readStoredTransactions()]);
-      setAccounts((current) =>
-        applyTransferBalances(current, source.id, destination.id, input.amount),
+      const transactions = [transaction, ...readStoredTransactions()];
+      writeStoredTransactions(transactions);
+      setAccounts(
+        accountSummariesFromDemoRecords(
+          readStoredDemoAccounts(),
+          transactions,
+        ),
       );
       setTransferOpen(false);
       setNotice(

@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import type { AccountKind, AccountSummary } from "@/lib/accounts";
+import { demoAccountSummaries } from "@/lib/demo-master-data-store";
 import { requireViewer } from "@/server/auth";
 
 export type AccountsWorkspace = {
@@ -39,17 +40,11 @@ export function mapAccountRow(value: unknown, balanceValue?: unknown): AccountSu
   };
 }
 
-const demoAccountRows: AccountSummary[] = [
-  { id: "demo-account-mb", name: "MB Bank", kind: "bank", currencyCode: "VND", initialBalance: 1_126_000, balance: 15_454_000, isArchived: false },
-  { id: "demo-account-cash", name: "Tiền mặt", kind: "cash", currencyCode: "VND", initialBalance: 0, balance: 239_000, isArchived: false },
-  { id: "demo-account-momo", name: "MoMo", kind: "e_wallet", currencyCode: "VND", initialBalance: 0, balance: 42_000, isArchived: false },
-  /** 200.00 USD in minor units (cents) — display only; no cross-currency transfer. */
-  { id: "demo-account-usd", name: "USD du lịch", kind: "cash", currencyCode: "USD", initialBalance: 20_000, balance: 20_000, isArchived: false },
-];
-
 export async function getAccountsWorkspace(): Promise<AccountsWorkspace> {
   const viewer = await requireViewer();
-  if (viewer.isDemo) return { accounts: demoAccountRows, dataError: null };
+  if (viewer.isDemo) {
+    return { accounts: demoAccountSummaries, dataError: null };
+  }
 
   const supabase = await createClient();
   if (!supabase) return { accounts: [], dataError: "Không thể kết nối dữ liệu tài khoản." };

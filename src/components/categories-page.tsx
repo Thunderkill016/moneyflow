@@ -22,6 +22,10 @@ import {
   PAGE_EMPTY_CATEGORY_FILTER,
 } from "@/lib/planning-pages";
 import type { TransactionKind } from "@/lib/sample-data";
+import {
+  readStoredDemoCategories,
+  writeStoredDemoCategories,
+} from "@/lib/demo-master-data-store";
 
 function categoryIcon(name: string | null): IconName {
   const known: IconName[] = [
@@ -136,6 +140,14 @@ export function CategoriesPage({
   const [notice, setNotice] = useState("");
   const [kindFilter, setKindFilter] = useState<"all" | TransactionKind>("all");
 
+  useEffect(() => {
+    if (!viewer.isDemo) return;
+    const frame = window.requestAnimationFrame(() => {
+      setCategories(readStoredDemoCategories());
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [viewer.isDemo]);
+
   const visible = useMemo(() => {
     if (kindFilter === "all") return categories;
     return categories.filter((item) => item.kind === kindFilter);
@@ -179,11 +191,12 @@ export function CategoriesPage({
           ? Boolean(categories.find((item) => item.id === input.id)?.isArchived)
           : false,
       };
-      setCategories((current) =>
+      const nextCategories =
         input.id
-          ? current.map((item) => (item.id === input.id ? next : item))
-          : [...current, next],
-      );
+          ? categories.map((item) => (item.id === input.id ? next : item))
+          : [...categories, next];
+      writeStoredDemoCategories(nextCategories);
+      setCategories(nextCategories);
       setDialogOpen(false);
       setNotice(input.id ? "Đã đổi tên danh mục demo." : "Đã thêm danh mục demo.");
       return { ok: true };
@@ -220,13 +233,13 @@ export function CategoriesPage({
     }
     setBusyId(category.id);
     if (viewer.isDemo) {
-      setCategories((current) =>
-        current.map((item) =>
-          item.id === category.id
-            ? { ...item, isArchived: archivedNext }
-            : item,
-        ),
+      const nextCategories = categories.map((item) =>
+        item.id === category.id
+          ? { ...item, isArchived: archivedNext }
+          : item,
       );
+      writeStoredDemoCategories(nextCategories);
+      setCategories(nextCategories);
       setBusyId(null);
       setNotice(archivedNext ? "Đã ẩn danh mục." : "Đã hiện lại danh mục.");
       return;

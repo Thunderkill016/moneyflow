@@ -12,6 +12,7 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from "react";
+import { useDemoMasterData } from "@/hooks/use-demo-master-data";
 import { useTransactions } from "@/hooks/use-transactions";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -116,16 +117,19 @@ export function DirectCsvImportPage({
   const expenseCatField = useId();
   const incomeCatField = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const { accounts, categories } = useDemoMasterData({
+    isDemo: viewer.isDemo,
+    accounts: workspace.accounts,
+    categories: workspace.categories,
+  });
 
   const { transactions, addTransaction, isMutating } = useTransactions({
     initialTransactions: workspace.transactions,
-    accounts: workspace.accounts,
-    categories: workspace.categories,
+    accounts,
+    categories,
     isDemo: viewer.isDemo,
   });
 
-  const accounts = workspace.accounts;
-  const categories = workspace.categories;
   const expenseCategories = useMemo(
     () => categories.filter((c) => c.kind === "expense"),
     [categories],
@@ -153,6 +157,19 @@ export function DirectCsvImportPage({
     incomeCategories[0]?.id ?? "",
   );
   const [skipDuplicates, setSkipDuplicates] = useState(true);
+  const selectedAccountId = accounts.some((item) => item.id === accountId)
+    ? accountId
+    : accounts[0]?.id ?? "";
+  const selectedExpenseCategoryId = expenseCategories.some(
+    (item) => item.id === expenseCategoryId,
+  )
+    ? expenseCategoryId
+    : expenseCategories[0]?.id ?? "";
+  const selectedIncomeCategoryId = incomeCategories.some(
+    (item) => item.id === incomeCategoryId,
+  )
+    ? incomeCategoryId
+    : incomeCategories[0]?.id ?? "";
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
   const [resultSummary, setResultSummary] = useState<{
     created: number;
@@ -168,14 +185,20 @@ export function DirectCsvImportPage({
 
   const plan: DirectImportPlan | null = useMemo(() => {
     if (!parseResult?.ok || parseResult.rows.length === 0) return null;
-    if (!accountId || !expenseCategoryId || !incomeCategoryId) return null;
+    if (
+      !selectedAccountId ||
+      !selectedExpenseCategoryId ||
+      !selectedIncomeCategoryId
+    ) {
+      return null;
+    }
     return planDirectCsvImport(
       parseResult.rows,
       toLedgerLike(transactions),
       {
-        accountId,
-        expenseCategoryId,
-        incomeCategoryId,
+        accountId: selectedAccountId,
+        expenseCategoryId: selectedExpenseCategoryId,
+        incomeCategoryId: selectedIncomeCategoryId,
         skipDuplicates,
         skipTransfers: true,
       },
@@ -185,9 +208,9 @@ export function DirectCsvImportPage({
   }, [
     parseResult,
     transactions,
-    accountId,
-    expenseCategoryId,
-    incomeCategoryId,
+    selectedAccountId,
+    selectedExpenseCategoryId,
+    selectedIncomeCategoryId,
     skipDuplicates,
     accounts,
     categories,
@@ -310,7 +333,11 @@ export function DirectCsvImportPage({
       setError(workspace.dataError);
       return;
     }
-    if (!accountId || !expenseCategoryId || !incomeCategoryId) {
+    if (
+      !selectedAccountId ||
+      !selectedExpenseCategoryId ||
+      !selectedIncomeCategoryId
+    ) {
       setError("Chọn tài khoản và danh mục thu/chi trước khi ghi sổ.");
       return;
     }
@@ -560,7 +587,7 @@ export function DirectCsvImportPage({
                       <span>Tài khoản</span>
                       <select
                         id={accountIdField}
-                        value={accountId}
+                        value={selectedAccountId}
                         onChange={(e) => setAccountId(e.target.value)}
                         disabled={phase === "importing" || phase === "done"}
                       >
@@ -581,7 +608,7 @@ export function DirectCsvImportPage({
                       <span>Danh mục chi (−)</span>
                       <select
                         id={expenseCatField}
-                        value={expenseCategoryId}
+                        value={selectedExpenseCategoryId}
                         onChange={(e) => setExpenseCategoryId(e.target.value)}
                         disabled={phase === "importing" || phase === "done"}
                       >
@@ -599,7 +626,7 @@ export function DirectCsvImportPage({
                       <span>Danh mục thu (+)</span>
                       <select
                         id={incomeCatField}
-                        value={incomeCategoryId}
+                        value={selectedIncomeCategoryId}
                         onChange={(e) => setIncomeCategoryId(e.target.value)}
                         disabled={phase === "importing" || phase === "done"}
                       >

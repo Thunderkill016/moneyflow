@@ -9,6 +9,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { PlanningCard } from "@/components/planning/planning-card";
 import { type ViewerSummary } from "@/components/user-chip";
+import { useDemoMasterData } from "@/hooks/use-demo-master-data";
 import {
   budgetBarColor,
   budgetProgress,
@@ -42,6 +43,11 @@ export function BudgetsPage({
   monthStart,
   dataError,
 }: BudgetsPageProps) {
+  const { categories: liveCategories } = useDemoMasterData({
+    isDemo: viewer.isDemo,
+    accounts: [],
+    categories,
+  });
   const [budgets, setBudgets] = useState(initialBudgets);
   const [editing, setEditing] = useState<BudgetSummary | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -66,7 +72,7 @@ export function BudgetsPage({
       ),
     [budgets],
   );
-  const availableCategories = categories.filter(
+  const availableCategories = liveCategories.filter(
     (category) => !budgets.some((budget) => budget.categoryId === category.id),
   );
   const monthLabel = new Intl.DateTimeFormat("vi-VN", {
@@ -83,7 +89,9 @@ export function BudgetsPage({
 
   async function save(input: SaveBudgetInput) {
     if (viewer.isDemo) {
-      const category = categories.find((item) => item.id === input.categoryId);
+      const category = liveCategories.find(
+        (item) => item.id === input.categoryId,
+      );
       if (!category) return { ok: false, message: "Danh mục không hợp lệ." };
       const existing = budgets.find((item) => item.categoryId === input.categoryId);
       const next: BudgetSummary = {
@@ -320,7 +328,7 @@ export function BudgetsPage({
         budget={editing}
         categories={
           editing
-            ? categories.filter((item) => item.id === editing.categoryId)
+            ? liveCategories.filter((item) => item.id === editing.categoryId)
             : availableCategories
         }
         monthStart={monthStart}

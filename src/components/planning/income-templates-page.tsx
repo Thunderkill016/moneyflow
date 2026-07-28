@@ -13,6 +13,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { IncomeTemplateDialog } from "@/components/planning/income-template-dialog";
 import { AppShell } from "@/components/layout/app-shell";
 import { type ViewerSummary } from "@/components/user-chip";
+import { useDemoMasterData } from "@/hooks/use-demo-master-data";
 import {
   hydrateIncomeTemplatesWithOccurrences,
   persistIncomeReceiptOccurrence,
@@ -67,6 +68,12 @@ export function IncomeTemplatesPage({
   today: string;
   dataError: string | null;
 }) {
+  const { accounts: liveAccounts, categories: liveCategories } =
+    useDemoMasterData({
+      isDemo: viewer.isDemo,
+      accounts,
+      categories,
+    });
   const [items, setItems] = useState(initialTemplates);
   const [hydrated, setHydrated] = useState(!viewer.isDemo);
   const [editing, setEditing] = useState<RecurringIncomeTemplate | null>(null);
@@ -106,7 +113,8 @@ export function IncomeTemplatesPage({
   const visible = showArchived ? items.filter((item) => item.isArchived) : active;
   const totals = incomeTemplateTotals(items);
   const pendingCount = pendingActiveCount(items);
-  const canAdd = !dataError && accounts.length > 0 && categories.length > 0;
+  const canAdd =
+    !dataError && liveAccounts.length > 0 && liveCategories.length > 0;
 
   function open(item: RecurringIncomeTemplate | null) {
     setEditing(item);
@@ -116,8 +124,10 @@ export function IncomeTemplatesPage({
 
   async function save(input: SaveIncomeTemplateInput) {
     if (viewer.isDemo) {
-      const category = categories.find((item) => item.id === input.categoryId);
-      const account = accounts.find((item) => item.id === input.accountId);
+      const category = liveCategories.find(
+        (item) => item.id === input.categoryId,
+      );
+      const account = liveAccounts.find((item) => item.id === input.accountId);
       if (!category || !account) {
         return { ok: false, message: "Tài khoản hoặc danh mục không hợp lệ." };
       }
@@ -473,8 +483,8 @@ export function IncomeTemplatesPage({
         key={`${editing?.id ?? "new"}-${version}`}
         open={dialogOpen}
         template={editing}
-        accounts={accounts}
-        categories={categories}
+        accounts={liveAccounts}
+        categories={liveCategories}
         onClose={() => setDialogOpen(false)}
         onSave={save}
       />

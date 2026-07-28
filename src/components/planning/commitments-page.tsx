@@ -14,6 +14,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { PlanningCard } from "@/components/planning/planning-card";
 import { type ViewerSummary } from "@/components/user-chip";
+import { useDemoMasterData } from "@/hooks/use-demo-master-data";
 import {
   hydrateCommitmentsWithOccurrences,
   persistPayOccurrence,
@@ -65,6 +66,12 @@ export function CommitmentsPage({
   today: string;
   dataError: string | null;
 }) {
+  const { accounts: liveAccounts, categories: liveCategories } =
+    useDemoMasterData({
+      isDemo: viewer.isDemo,
+      accounts,
+      categories,
+    });
   const [items, setItems] = useState(initialCommitments);
   const [hydrated, setHydrated] = useState(!viewer.isDemo);
   const [editing, setEditing] = useState<RecurringCommitment | null>(null);
@@ -115,7 +122,8 @@ export function CommitmentsPage({
   const visible = showArchived ? items.filter((item) => item.isArchived) : active;
   const totals = commitmentTotals(items);
   const unpaidCount = unpaidActiveCount(items);
-  const canAdd = !dataError && accounts.length > 0 && categories.length > 0;
+  const canAdd =
+    !dataError && liveAccounts.length > 0 && liveCategories.length > 0;
 
   function open(item: RecurringCommitment | null) {
     setEditing(item);
@@ -125,8 +133,10 @@ export function CommitmentsPage({
 
   async function save(input: SaveCommitmentInput) {
     if (viewer.isDemo) {
-      const category = categories.find((item) => item.id === input.categoryId);
-      const account = accounts.find((item) => item.id === input.accountId);
+      const category = liveCategories.find(
+        (item) => item.id === input.categoryId,
+      );
+      const account = liveAccounts.find((item) => item.id === input.accountId);
       if (!category || !account) {
         return { ok: false, message: "Tài khoản hoặc danh mục không hợp lệ." };
       }
@@ -455,8 +465,8 @@ export function CommitmentsPage({
         key={`${editing?.id ?? "new"}-${version}`}
         open={dialogOpen}
         commitment={editing}
-        accounts={accounts}
-        categories={categories}
+        accounts={liveAccounts}
+        categories={liveCategories}
         onClose={() => setDialogOpen(false)}
         onSave={save}
       />

@@ -9,6 +9,7 @@ import {
 import { DashboardPlanningColumn } from "@/components/dashboard/dashboard-planning-sections";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import { useDemoMasterData } from "@/hooks/use-demo-master-data";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems } from "@/lib/attention";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
@@ -29,6 +30,7 @@ import {
   countPending,
   readStoredCandidates,
 } from "@/lib/inbox/candidate-store";
+import { demoBalanceForCurrency } from "@/lib/demo-master-data-store";
 import { formatMoney } from "@/lib/money";
 import { GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
 import {
@@ -71,14 +73,19 @@ export function MoneyFlowDashboard({
   incomeTemplates?: RecurringIncomeTemplate[];
   goals: SavingsGoal[];
 }) {
+  const { accounts, categories, accountRecords } = useDemoMasterData({
+    isDemo: viewer.isDemo,
+    accounts: workspace.accounts,
+    categories: workspace.categories,
+  });
   const {
     transactions,
     addTransaction: addTransactionToStore,
     isMutating,
   } = useTransactions({
     initialTransactions: workspace.transactions,
-    accounts: workspace.accounts,
-    categories: workspace.categories,
+    accounts,
+    categories,
     isDemo: viewer.isDemo,
   });
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -143,12 +150,21 @@ export function MoneyFlowDashboard({
       : incomeTemplates;
 
   const currentBalance = useMemo(() => {
+    if (viewer.isDemo) {
+      return demoBalanceForCurrency(accountRecords, transactions, "VND");
+    }
     return balanceAfterLedgerReplacement(
       workspace.totalBalance,
       workspace.transactions,
       transactions,
     );
-  }, [transactions, workspace.totalBalance, workspace.transactions]);
+  }, [
+    accountRecords,
+    transactions,
+    viewer.isDemo,
+    workspace.totalBalance,
+    workspace.transactions,
+  ]);
 
   const liveBudgets = useMemo(
     () =>
@@ -277,8 +293,8 @@ export function MoneyFlowDashboard({
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onAdd={addTransaction}
-        accounts={workspace.accounts}
-        categories={workspace.categories}
+        accounts={accounts}
+        categories={categories}
         disabled={isMutating || actionsDisabled}
       />
     </AppShell>

@@ -14,6 +14,10 @@ import { PUSH_PREFS_KEY } from "./push-prefs.ts";
 import { QUICK_ADD_PREFS_KEY } from "./quick-add-prefs.ts";
 import { THEME_STORAGE_KEY } from "./theme-prefs.ts";
 import { TRANSACTION_STORAGE_KEY } from "./transaction-store.ts";
+import {
+  DEMO_ACCOUNT_STORAGE_KEY,
+  DEMO_CATEGORY_STORAGE_KEY,
+} from "./demo-master-data-store.ts";
 import { COMMITMENT_OCCURRENCE_STORAGE_KEY } from "./planning/commitment-occurrence-store.ts";
 import {
   INCOME_TEMPLATE_OCCURRENCE_STORAGE_KEY,
@@ -33,6 +37,8 @@ export const LOCAL_DATA_STORAGE_KEYS: readonly string[] = [
   IMPORT_DRAFT_STORAGE_KEY,
   RULES_STORAGE_KEY,
   TRANSACTION_STORAGE_KEY,
+  DEMO_ACCOUNT_STORAGE_KEY,
+  DEMO_CATEGORY_STORAGE_KEY,
   COMMITMENT_OCCURRENCE_STORAGE_KEY,
   INCOME_TEMPLATE_STORAGE_KEY,
   INCOME_TEMPLATE_OCCURRENCE_STORAGE_KEY,

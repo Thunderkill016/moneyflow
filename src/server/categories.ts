@@ -2,10 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 import type { CategorySummary } from "@/lib/categories";
-import {
-  demoCategories,
-  type TransactionKind,
-} from "@/lib/sample-data";
+import { demoCategorySummaries } from "@/lib/demo-master-data-store";
+import { type TransactionKind } from "@/lib/sample-data";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 
@@ -37,15 +35,11 @@ export function mapCategoryRow(value: unknown): CategorySummary {
   };
 }
 
-const demoCategoryRows: CategorySummary[] = demoCategories.map((item) => ({
-  ...item,
-  isDefault: true,
-  isArchived: false,
-}));
-
 export async function getCategoriesWorkspace(): Promise<CategoriesWorkspace> {
   const viewer = await requireViewer();
-  if (viewer.isDemo) return { categories: demoCategoryRows, dataError: null };
+  if (viewer.isDemo) {
+    return { categories: demoCategorySummaries, dataError: null };
+  }
 
   const supabase = await createClient();
   if (!supabase) {

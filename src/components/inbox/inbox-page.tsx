@@ -12,6 +12,7 @@ import {
 } from "@/components/inbox/inbox-review-panel";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
+import { useDemoMasterData } from "@/hooks/use-demo-master-data";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
   CONFIDENCE_LABELS,
@@ -94,10 +95,15 @@ export function InboxPage({
   workspace: InboxWorkspace;
 }) {
   const router = useRouter();
-  const { addTransaction, addTransfer, isMutating } = useTransactions({
-    initialTransactions: workspace.transactions,
+  const { accounts, categories } = useDemoMasterData({
+    isDemo: viewer.isDemo,
     accounts: workspace.accounts,
     categories: workspace.categories,
+  });
+  const { addTransaction, addTransfer, isMutating } = useTransactions({
+    initialTransactions: workspace.transactions,
+    accounts,
+    categories,
     isDemo: viewer.isDemo,
   });
 
@@ -274,10 +280,10 @@ export function InboxPage({
     const post = payload.post;
     const accountId =
       post.mode === "money" ? post.input.accountId : post.input.sourceAccountId;
-    const account = workspace.accounts.find((item) => item.id === accountId);
+    const account = accounts.find((item) => item.id === accountId);
     const category =
       post.mode === "money"
-        ? workspace.categories.find((item) => item.id === post.input.categoryId)
+        ? categories.find((item) => item.id === post.input.categoryId)
         : undefined;
 
     let result: { ok: boolean; message?: string };
@@ -381,7 +387,7 @@ export function InboxPage({
       }
 
       if (payload.action === "category") {
-        const category = workspace.categories.find((item) => item.id === payload.categoryId);
+        const category = categories.find((item) => item.id === payload.categoryId);
         if (!category) {
           setNotice("Chưa chọn được danh mục.");
           return;
@@ -411,13 +417,13 @@ export function InboxPage({
       for (const candidate of eligible) {
         const draft = draftFromCandidate(
           candidate,
-          workspace.accounts,
-          workspace.categories,
+          accounts,
+          categories,
         );
         const post = buildLedgerPost(
           draft,
-          workspace.accounts,
-          workspace.categories,
+          accounts,
+          categories,
           crypto.randomUUID(),
         );
         if (!post.ok) {
@@ -758,7 +764,7 @@ export function InboxPage({
         <InboxBulkBar
           candidates={candidates}
           selectedIds={activeSelectedIds}
-          categories={workspace.categories}
+          categories={categories}
           busy={bulkBusy || isMutating}
           onClear={() => setSelectedIds([])}
           onApply={handleBulkApply}
@@ -768,8 +774,8 @@ export function InboxPage({
           key={reviewCandidate?.id ?? "inbox-review-closed"}
           open={reviewId != null && reviewCandidate != null}
           candidate={reviewCandidate}
-          accounts={workspace.accounts}
-          categories={workspace.categories}
+          accounts={accounts}
+          categories={categories}
           busy={isMutating}
           onClose={() => setReviewId(null)}
           onApprove={handleApproveReview}
