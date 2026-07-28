@@ -36,11 +36,11 @@ test("landing source exists and remains a Server Component", () => {
   assert.equal(/^\s*["']use client["']/.test(source), false);
 });
 
-test("landing positions MoneyFlow as a manual-first personal ledger", () => {
+test("landing positions MoneyFlow as a trustworthy manual-first ledger", () => {
   const source = readLandingSource();
-  assert.match(source, /Sổ thu chi cá nhân/);
-  assert.match(source, /Ghi thu chi trong vài giây/);
-  assert.match(source, /từ dữ liệu bạn tự ghi/);
+  assert.match(source, /Sổ thu chi bạn có thể tin/);
+  assert.match(source, /Biết chính xác tiền đã đi đâu/);
+  assert.match(source, /dữ liệu bạn chủ động nhập/);
   for (const phrase of FORBIDDEN_LANDING_PHRASES) {
     assert.equal(source.includes(phrase), false, `forbidden: ${phrase}`);
   }
@@ -54,15 +54,15 @@ test("hero has one conversion CTA and one in-page explainer CTA", () => {
   const block = source.slice(start, end);
   assert.match(block, /href="\/register"/);
   assert.match(block, /href="#cach-hoat-dong"/);
-  assert.equal(block.includes('href="/insights"'), false);
+  assert.equal(block.includes('href="/dashboard"'), false);
 });
 
 test("landing states the financial and ownership rules honestly", () => {
   const source = readLandingSource();
   assert.match(source, /Không cần mật khẩu ngân hàng/);
   assert.match(source, /Xuất CSV/);
-  assert.match(source, /Chuyển ví không tính là chi/);
-  assert.match(source, /không biến số dư thành lời khuyên chi tiêu/);
+  assert.match(source, /Thu · Chi · Chuyển tách bạch/);
+  assert.match(source, /không biến tổng tài sản thành lời khuyên chi tiêu/);
   assert.match(source, /Số nguyên đồng/);
 });
 
@@ -82,7 +82,7 @@ test("landing preview preserves Thu, Chi and Chuyển semantics", () => {
   const source = readLandingSource();
   assert.match(source, /Thu tháng này/);
   assert.match(source, /Chi tháng này/);
-  assert.match(source, /Chuyển ví · không tính thu chi/);
+  assert.match(source, /Chuyển nội bộ · không tính thu chi/);
   assert.match(source, /↔ 2\.000\.000 ₫/);
 });
 
