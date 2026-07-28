@@ -26,6 +26,7 @@ Start here before non-trivial work:
 UI, brand and infrastructure references:
 
 - [MoneyFlow brand guidelines](docs/brand/MONEYFLOW_BRAND_GUIDELINES.md)
+- [Canonical logo identity](docs/design/MONEYFLOW_LOGO.md)
 - [AI-assisted UI/UX workflow](docs/AI_UIUX_WORKFLOW.md)
 - [UX principles](docs/UX_PRINCIPLES.md)
 - [Design system](docs/design-system.md)
@@ -97,7 +98,7 @@ Do not push feature or fix commits directly to `main`. Do not create no-op commi
 ## Current product scope
 
 - Authentication: email/password, supported OAuth and recovery.
-- Demo mode with local browser storage.
+- Demo mode with browser local storage.
 - Multiple accounts: cash, bank, e-wallet, credit and savings representations.
 - Income, expense and balanced internal transfers.
 - Edit, soft delete and recovery paths.
