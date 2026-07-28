@@ -188,14 +188,13 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
-
+/*
+ * html/body margin, color, background, padding and font-family are owned
+ * exclusively by document-theme.css (imported after this file) — do not
+ * redeclare them here. What's left below (text rendering, font smoothing,
+ * theme-switch transition) has no document-theme.css equivalent and stays.
+ */
 body {
-  margin: 0;
-  /* Solid canvas first — radial wash is decorative and deferred (LCP paint). */
-  background-color: var(--canvas);
-  color: var(--ink);
-  font-family: var(--font-sans);
   /* auto: cheaper first paint than optimizeLegibility for LCP text. */
   text-rendering: auto;
   -webkit-font-smoothing: antialiased;
@@ -211,10 +210,6 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background: radial-gradient(circle at 72% -18%, rgb(200 231 210 / 42%), transparent 34rem);
-}
-
-[data-theme="dark"] body {
-  background-color: var(--canvas);
 }
 
 [data-theme="dark"] body::before {
@@ -6496,15 +6491,14 @@ input[aria-invalid="true"] {
   --radius-xl: 18px;
 }
 
+/*
+ * background/color removed: document-theme.css's html[data-theme=...] body
+ * selectors have higher specificity than the ones that used to be here, so
+ * they always won regardless — this was dead weight, not a live override.
+ */
 body {
-  background: var(--color-bg-secondary) !important;
-  color: var(--color-text-primary);
   font-size: 15px;
   line-height: 1.5;
-}
-
-[data-theme="dark"] body {
-  background: var(--color-bg-primary) !important;
 }
 
 /* --- App chrome --- */

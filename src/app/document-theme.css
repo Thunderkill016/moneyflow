@@ -107,6 +107,7 @@ body {
   min-height: 100%;
   margin: 0;
   color: var(--mf-text);
+  scroll-behavior: smooth;
 }
 
 html[data-theme="light"],
