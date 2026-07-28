@@ -1,0 +1,15 @@
+.metrics {
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .metrics :global(strong.font-mono) {
+    overflow: visible;
+    max-width: 100%;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.2;
+  }
+}
