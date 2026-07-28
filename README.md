@@ -20,6 +20,7 @@ Start here before non-trivial work:
 - [Product principles](docs/product/PRINCIPLES.md)
 - [MVP definition and readiness gates](docs/MVP_DEFINITION.md)
 - [AI delivery workflow](docs/engineering/AI_DELIVERY_WORKFLOW.md)
+- [Claude Code operating workflow](docs/engineering/CLAUDE_CODE_WORKFLOW.md)
 - [Feature work-packet template](docs/templates/FEATURE_WORK_PACKET.md)
 - [Active/completed plan lifecycle](docs/plans/README.md)
 
