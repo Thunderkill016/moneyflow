@@ -236,7 +236,22 @@ test.describe("large VND and long Vietnamese responsive states", () => {
     await expect(amount).toBeVisible();
     await amount.fill("987654321");
     await page.getByRole("button", { name: "Ăn uống", exact: true }).click();
-    await page.getByPlaceholder("Ví dụ: Cơm trưa").fill(LONG_CAPTURE_NOTE);
+
+    // Category selection intentionally returns focus to the amount field on the
+    // next frame. Let that authored focus transition finish before typing the
+    // long note so a late focus change cannot interrupt controlled input state.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() =>
+            window.requestAnimationFrame(() => resolve()),
+          );
+        }),
+    );
+
+    const note = page.getByPlaceholder("Ví dụ: Cơm trưa");
+    await note.fill(LONG_CAPTURE_NOTE);
+    await expect(note).toHaveValue(LONG_CAPTURE_NOTE);
 
     await attachFilledCaptureState(page, testInfo);
   });
