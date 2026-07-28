@@ -1,8 +1,7 @@
 # MoneyFlow — MVP “chuẩn” definition (agent exit)
 
 **Authority:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` (G5)  
-**Backlog wave:** `AGENT_BACKLOG.md` → **TASK-300…**  
-**Autopilot:** `moneyflow-autopilot` / `scripts/agent-daemon.sh`
+**Backlog:** tracked in GitHub Issues, not in a Markdown file.
 
 ## Positioning (lock)
 

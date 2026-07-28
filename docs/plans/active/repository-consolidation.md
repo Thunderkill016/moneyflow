@@ -3,7 +3,7 @@
 **Status:** discovery
 **Owner:** agent
 **Issue/PR:** none yet — inventory only, no branch/PR opened for this phase
-**Last updated:** 2026-07-28 (update 2: human owner decided the Grok question — see "Update 2" note in section B/C)
+**Last updated:** 2026-07-28 (update 3: human owner approved clearing the rest of the legacy autopilot cluster — see "Update 3" in section C)
 
 **Scope of this document (Phase 1 only):** classify every notable file/PR/branch into
 `KEEP / MOVE / MERGE / ARCHIVE / DELETE / UNKNOWN`. **No file was moved, merged, archived
@@ -12,12 +12,18 @@ merged. This packet is the audit; later phases (doc consolidation, GitHub cleanu
 domain-by-domain code moves) each get their own packet and human sign-off before any
 change lands.
 
-**Amendment (2026-07-28, same session):** the human owner reviewed the single highest-
-priority open question raised by this inventory — the competing Grok-branded agent
-runtime (`.grok/`, `IDEA.md` and its dependents) — and explicitly decided to remove it.
-That one, narrowly-scoped deletion was carried out and is recorded in sections B/C and
-task T2 below. It is the only file removal actioned by this packet; every other
-MOVE/MERGE/ARCHIVE/DELETE candidate below remains a proposal awaiting its own decision.
+**Amendment (2026-07-28, same session):** the human owner reviewed the open questions
+raised by this inventory and approved two rounds of action, each recorded below with
+its own evidence:
+
+- **Update 2:** remove the Grok-branded agent runtime (`.grok/`, `IDEA.md` and its
+  direct dependents). See "Update 2" in section B/C.
+- **Update 3:** clear the remaining non-Grok legacy autopilot/backlog-tracking cluster
+  once each file was read in full and confirmed superseded, with dangling references
+  in still-live docs (`docs/MVP_DEFINITION.md`, `docs/UX_PRINCIPLES.md`,
+  `docs/REAL_USE_READINESS_CONTRACT.md`, `scripts/check-project-knowledge.mjs`) fixed
+  first. See "Update 3" in section C. Everything else in this packet remains a proposal
+  awaiting its own decision — this was not a blanket delete-everything pass.
 
 ## Outcome
 
@@ -58,7 +64,7 @@ re-deriving the facts from scratch.
 |---|---|---|
 | `docs/plans/active/*.md` | 4/4 packets reference already-merged PRs; directory contract is violated | Move stale packets to `completed/` after human confirms production verification — do not move automatically |
 | `IDEA.md`, `.grok/` | Declares a different, non-Claude runtime as authoritative; still read by live SessionStart hook | Needs an explicit human decision: retire, or reconcile with `CLAUDE.md`/`AGENTS.md` |
-| `docs/PRODUCT.md` vs `docs/product/PRINCIPLES.md` | Both currently function as "current truth" (one by CI script, one by `CLAUDE.md`) | Merge/retire `docs/PRODUCT.md`, keep `PRINCIPLES.md` as sole authority, per source precedence already stated in `CLAUDE.md` |
+| `docs/PRODUCT.md` vs `docs/product/PRINCIPLES.md` | Both currently function as "current truth" (one by CI script, one by `CLAUDE.md`) | **DONE (Update 3):** `docs/PRODUCT.md` deleted (content was a strict subset of `PRINCIPLES.md` + README), `check-project-knowledge.mjs`'s `currentTruthFiles` updated |
 | `AGENT_BACKLOG.md` (935 lines), `AGENT_AUTOPILOT.md`, `AGENT_ROADMAP.md` (root) | Legacy backlog-in-Markdown; `AGENT_ROADMAP.md` has zero external references (only self-referenced from `AGENT_BACKLOG.md`) | Candidate to archive; conflicts with "backlog belongs in GitHub Issues" already recommended |
 | `scripts/agent-*.sh`, `scripts/agent-competitor-gap.py`, `scripts/mvp-verify.sh` | Not invoked anywhere in `.github/workflows/*.yml`; referenced only by legacy docs/`.grok` | Candidate to archive/delete once human confirms nothing local still runs them |
 | `src/lib/inbox/client-inbox.ts` | Imports server actions from `@/app/actions/inbox` — `lib` importing from `app` violates the proposed ownership rule | Needs a decision: is this file actually orchestration (belongs in `hooks/`), or is the ownership rule wrong for this case? |
@@ -193,7 +199,7 @@ Confirmed **not invoked by CI** (`grep` against `.github/workflows/*.yml` for ev
 script name below returned nothing):
 
 - Root: `IDEA.md`, `AGENT_BACKLOG.md` (935 ln), `AGENT_AUTOPILOT.md`, `AGENT_ROADMAP.md` (referenced only by `AGENT_BACKLOG.md` itself — zero external inbound references)
-- `docs/`: `AGENT_RUNTIME.md`, `VIP_AGENT_STACK.md`, `AUTOPILOT_PLAN.md`, `REBUILD_MASTER_PLAN.md` (400 ln), `MVP_SHIPPED.md`, `MVP_BEST_BAR.md`, `COMPETITOR_GAP_BAR.md`, `COMPETITOR_GAP_REPORT.md`, `REAL_USE_READINESS_CONTRACT.md` (316 ln)
+- `docs/`: `AGENT_RUNTIME.md`, `VIP_AGENT_STACK.md`, `AUTOPILOT_PLAN.md`, `REBUILD_MASTER_PLAN.md` (400 ln), `MVP_SHIPPED.md`, `MVP_BEST_BAR.md`, `COMPETITOR_GAP_BAR.md`, `COMPETITOR_GAP_REPORT.md` — ~~`REAL_USE_READINESS_CONTRACT.md` (316 ln)~~ **corrected in Update 3 below: this one does not belong in this list**
 - `scripts/`: `agent-daemon.sh`, `agent-daemon-start.sh`, `agent-daemon-stop.sh`, `agent-orchestrator.sh`, `agent-pick-task.sh`, `agent-refill-backlog.sh`, `agent-run-headless.sh`, `agent-competitor-gap.py`, `mvp-verify.sh` (this last one *is* wired as an `npm run mvp-verify` script in `package.json`, but nothing calls that npm script from CI)
 - `.grok/` (entire directory): hooks, skills, rules — a second, parallel agent-operating system to `.claude/`
 
@@ -206,13 +212,59 @@ human owner's explicit decision — `IDEA.md`, `AGENT_AUTOPILOT.md`, `docs/AGENT
 `scripts/agent-daemon*/orchestrator/pick-task/refill-backlog/run-headless.sh` chain.
 Root-level `AGENT_BACKLOG.md` (935 ln, backlog-in-Markdown) and `AGENT_ROADMAP.md`
 (zero inbound references even before this cleanup) were **not** part of this decision
-and remain open — they aren't Grok-branded by name, just adjacent legacy backlog
-tooling, so they still need their own human call (task T4 below). Two now-orphaned
-in-repo references surfaced by the deletion: `docs/MVP_SHIPPED.md` (still points at
-`IDEA.md`'s R\*/Q\* queue) and `docs/REBUILD_MASTER_PLAN.md` (still points at `IDEA.md`
-and `.grok/skills/frontend-design`) — both already flagged as part of this same legacy
-cluster in row B above, so no new classification needed, just noting the dangling
-reference for whoever resolves T4.
+and remain open at the time — they aren't Grok-branded by name, just adjacent legacy
+backlog tooling. Two now-orphaned in-repo references surfaced by the Grok deletion:
+`docs/MVP_SHIPPED.md` (still points at `IDEA.md`'s R\*/Q\* queue) and
+`docs/REBUILD_MASTER_PLAN.md` (still points at `IDEA.md` and `.grok/skills/frontend-design`).
+
+**Update 3 (2026-07-28, same session):** the human owner approved clearing the rest of
+this cluster ("xử lý hết đi nếu ko liên quan và hữu ích" — go ahead and clean up
+whatever isn't relevant/useful). Rather than delete the whole bulleted list above by
+category, every remaining file was read in full first, because two of them turned out
+not to belong in this cluster at all:
+
+- **Reclassified to KEEP** (read in full, found to be substantive and *not* superseded):
+  - `docs/REAL_USE_READINESS_CONTRACT.md` (316 ln) — a real, still-partly-open readiness
+    contract with R0–R7 gates, several still unchecked (R3 real email callback, R5
+    end-user spreadsheet open, R6 physical keyboard, R7 seven-day self-use not started),
+    plus dated production evidence blocks. This is *more* current and detailed than
+    anything in `PRINCIPLES.md`/`README.md` on the same topic — deleting it would have
+    destroyed live tracking, not cruft. Only its one dangling line (`docs/MVP_SHIPPED.md`
+    supports claim 1`) was fixed, pointing it at the actual gate commands instead.
+  - `docs/BEST_OF_MATRIX.md` (75 ln) — cited by name as "Authority" in the live
+    `docs/UX_PRINCIPLES.md` for the Inbox-is-Lab-only positioning rule, and its
+    competitor→pattern→tier table is real product-design rationale, not autopilot
+    bookkeeping (it just happens to end with a handful of already-checked historical
+    task checkboxes). Kept as-is; only the *other* citation next to it
+    (`docs/REBUILD_MASTER_PLAN.md`) was dropped since that one was deleted.
+- **Deleted** (read in full, confirmed each is autopilot/backlog-tracking mechanics with
+  no content not already covered by `docs/MVP_DEFINITION.md`, `docs/product/PRINCIPLES.md`
+  or `docs/performance-budgets.md`): `AGENT_BACKLOG.md`, `AGENT_ROADMAP.md`,
+  `docs/MVP_BEST_BAR.md`, `docs/MVP_SHIPPED.md`, `docs/REBUILD_MASTER_PLAN.md`,
+  `docs/COMPETITOR_GAP_BAR.md`, `docs/COMPETITOR_GAP_REPORT.md`, plus their companion
+  scripts `scripts/agent-ensure-work.sh` (already broken by Update 2 — it called the
+  now-deleted `agent-refill-backlog.sh` and read the now-deleted `IDEA.md`) and
+  `scripts/agent-competitor-gap.py` (read/wrote exactly the two `COMPETITOR_GAP_*.md`
+  files being deleted; confirmed not called from `package.json` or CI).
+  - Also folded in here: **`docs/PRODUCT.md`** (row B above) — its content was a strict
+    subset of `docs/product/PRINCIPLES.md` plus README's "Current project phase"
+    checklist, with nothing unique. Deleted, and `scripts/check-project-knowledge.mjs`'s
+    `currentTruthFiles` list was updated to drop it so CI stops treating a now-deleted
+    file as a truth source.
+  - Live docs with a dangling pointer to something deleted were fixed at the same time:
+    `docs/MVP_DEFINITION.md` (dropped its `AGENT_BACKLOG.md`/`scripts/agent-daemon.sh`
+    header lines, replaced with "backlog lives in GitHub Issues"), `docs/UX_PRINCIPLES.md`
+    (dropped `REBUILD_MASTER_PLAN.md` from its authority citation, kept `BEST_OF_MATRIX.md`).
+  - **Left alone on purpose:** `docs/BEST_OF_MATRIX.md` and `docs/REAL_USE_READINESS_CONTRACT.md`
+    (see KEEP above); `docs/cyclewarden/moneyflow-a2-readiness-2026-07-25.md`,
+    `docs/plans/completed/2026-07-26-ai-project-operating-system.md`,
+    `docs/research/01_RESEARCH_PLAN.md`, `docs/research/08_PFM_BEST_IN_CLASS.md`, and
+    `docs/UX_RESEARCH_AND_REDESIGN.md` still cite one or more deleted filenames, but
+    each is an explicitly dated/historical or research document — the same category the
+    repo already lets `docs/plans/completed/` preserve unedited as a point-in-time
+    record, so their citations were left as historical record rather than rewritten.
+  - `npm run check:knowledge`, `npm run lint`, `npm run typecheck` and `npm run test`
+    (566/566) all pass after this pass.
 
 ### D. Boundary check (`lib` must not import `app`/`components`/`server`)
 
@@ -268,9 +320,9 @@ No action taken on any of these three PRs in this phase.
 | T1 | Produce this Phase 1 inventory | none | this document | done |
 | T2 | Human owner decides `.grok`/`IDEA.md` vs `.claude`/`CLAUDE.md` question | T1 | Grok cluster deleted (commit on `claude/doc-du-an-qnj7ya`); see "Update 2" in section B/C | done |
 | T3 | Human owner confirms production verification for the 4 stale active packets, then agent moves each to `completed/` | T1 | updated packets + this table | todo (blocked on human) |
-| T4 | Human owner approves ARCHIVE of the remaining non-Grok legacy autopilot cluster (`AGENT_BACKLOG.md`, `AGENT_ROADMAP.md`, `docs/MVP_BEST_BAR.md`, `docs/MVP_SHIPPED.md`, `docs/REBUILD_MASTER_PLAN.md`, `docs/COMPETITOR_GAP_BAR.md`, `docs/COMPETITOR_GAP_REPORT.md`, `docs/REAL_USE_READINESS_CONTRACT.md`) | T2 (done) | follow-up packet | todo (blocked on human) |
+| T4 | Clear the remaining non-Grok legacy autopilot cluster | T2 | Update 3, section C; `check:knowledge`+lint+typecheck+test green | done |
 | T5 | Resolve `client-inbox.ts` boundary question (section D) | none | follow-up packet or inline decision | todo (blocked on human) |
-| T6 | Merge/retire `docs/PRODUCT.md` and update `check-project-knowledge.mjs`'s `currentTruthFiles` | none | follow-up packet | todo (blocked on human) |
+| T6 | Merge/retire `docs/PRODUCT.md` and update `check-project-knowledge.mjs`'s `currentTruthFiles` | none | Update 3, section B; done as part of T4 | done |
 
 Rules:
 

@@ -13,7 +13,7 @@ This contract separates three claims:
 2. **Authenticated product-ready:** the deployed app persists data correctly and protects each user's rows.
 3. **Useful in daily life:** the owner actually uses it instead of a spreadsheet or notes for seven consecutive days.
 
-`docs/MVP_SHIPPED.md` supports claim 1. This contract governs claims 2 and 3.
+`npm run lint && npm run typecheck && npm run test && npm run build` support claim 1. This contract governs claims 2 and 3.
 
 ## Non-goals
 
