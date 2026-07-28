@@ -59,6 +59,7 @@ Production values live in Vercel Project Settings, never in committed `.env` fil
 
 ```bash
 npm run check:knowledge
+npm run check:claude-workflow
 npm run check:deployment-env
 npm run lint
 npm run typecheck
