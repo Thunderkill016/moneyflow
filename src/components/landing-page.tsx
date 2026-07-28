@@ -1,28 +1,29 @@
 import Link from "next/link";
+import { BrandLockup, BrandMark } from "@/components/brand/brand-lockup";
 import { Icon } from "@/components/icons";
 import styles from "./landing-page.module.css";
 
 const trustItems = [
   { icon: "lock" as const, label: "Không cần mật khẩu ngân hàng" },
-  { icon: "arrowDown" as const, label: "Xuất dữ liệu bất cứ lúc nào" },
-  { icon: "arrows" as const, label: "Chuyển ví không tính là chi" },
+  { icon: "arrows" as const, label: "Thu · Chi · Chuyển tách bạch" },
+  { icon: "arrowDown" as const, label: "Xuất CSV bất cứ lúc nào" },
 ];
 
 const steps = [
   {
     number: "01",
-    title: "Thêm các ví đang dùng",
+    title: "Thêm các tài khoản đang dùng",
     body: "Tiền mặt, tài khoản ngân hàng hoặc ví điện tử — mỗi nơi một số dư rõ ràng.",
   },
   {
     number: "02",
-    title: "Ghi khoản thu, chi hoặc chuyển",
-    body: "Chọn đúng loại giao dịch, số tiền và danh mục. MoneyFlow giữ nguyên ý nghĩa của từng khoản.",
+    title: "Ghi thu, chi hoặc chuyển tiền",
+    body: "Chọn đúng loại giao dịch, số tiền và danh mục. MoneyFlow giữ nguyên bản chất của từng khoản.",
   },
   {
     number: "03",
-    title: "Xem lại tháng của bạn",
-    body: "Đối chiếu số dư, thu–chi, ngân sách và khoản định kỳ từ dữ liệu bạn đã nhập.",
+    title: "Kiểm tra lại tháng của bạn",
+    body: "Đối chiếu số dư, dòng tiền và các kế hoạch từ chính dữ liệu bạn đã nhập.",
   },
 ];
 
@@ -34,18 +35,41 @@ const features = [
   },
   {
     icon: "wallet" as const,
-    title: "Nhiều ví, một sổ",
+    title: "Nhiều tài khoản, một sổ",
     body: "Theo dõi tiền mặt, ngân hàng và ví điện tử mà không trộn chuyển khoản nội bộ vào chi tiêu.",
   },
   {
     icon: "target" as const,
-    title: "Kế hoạch tách bạch",
-    body: "Ngân sách, khoản định kỳ và mục tiêu hiển thị theo từng kế hoạch bạn chủ động tạo.",
+    title: "Kế hoạch do bạn tạo",
+    body: "Ngân sách, khoản định kỳ và mục tiêu luôn tách khỏi số dư thực tế và không bị biến thành lời khuyên tự động.",
   },
   {
     icon: "chart" as const,
     title: "Báo cáo dễ kiểm tra",
-    body: "Xem dòng tiền và danh mục theo tháng với số tiền chính xác, không đưa ra lời khuyên thiếu dữ liệu.",
+    body: "Xem dòng tiền và danh mục theo tháng với số tiền chính xác, nhãn rõ và dữ liệu có thể đối chiếu.",
+  },
+];
+
+const faqItems = [
+  {
+    question: "MoneyFlow có tự kết nối ngân hàng không?",
+    answer:
+      "Không trong phiên bản hiện tại. Bạn chủ động ghi hoặc nhập dữ liệu và không cần cung cấp mật khẩu ngân hàng.",
+  },
+  {
+    question: "Chuyển tiền giữa hai tài khoản có tính là chi không?",
+    answer:
+      "Không. MoneyFlow ghi nhận đây là chuyển nội bộ và loại khoản đó khỏi tổng thu, tổng chi.",
+  },
+  {
+    question: "MoneyFlow có nói tôi nên tiêu bao nhiêu không?",
+    answer:
+      "Không. Ứng dụng hiển thị số dư, dòng tiền và kế hoạch bạn đã nhập; không biến tổng tài sản thành lời khuyên chi tiêu.",
+  },
+  {
+    question: "Tôi có thể lấy dữ liệu ra không?",
+    answer:
+      "Có. Bạn có thể xuất CSV từ phần cài đặt để lưu trữ hoặc tiếp tục xử lý trong công cụ khác.",
   },
 ];
 
@@ -58,16 +82,12 @@ export function LandingPage() {
 
       <header className={styles.siteHeader}>
         <nav className={styles.nav} aria-label="Điều hướng trang chủ">
-          <Link
+          <BrandLockup
             className={styles.brand}
             href="/"
-            aria-label="MoneyFlow, trang chủ"
-          >
-            <span className={styles.brandMark} aria-hidden="true">
-              <span />
-            </span>
-            <span>MoneyFlow</span>
-          </Link>
+            ariaLabel="MoneyFlow, trang chủ"
+            size="standard"
+          />
           <div className={styles.navLinks}>
             <a href="#cach-hoat-dong">Cách hoạt động</a>
             <a href="#features-title">Tính năng</a>
@@ -76,9 +96,6 @@ export function LandingPage() {
           <div className={styles.navActions}>
             <Link href="/login" className={styles.loginLink}>
               Đăng nhập
-            </Link>
-            <Link href="/register" className={styles.primaryButton}>
-              Bắt đầu miễn phí
             </Link>
           </div>
         </nav>
@@ -89,19 +106,20 @@ export function LandingPage() {
           <div className={styles.heroCopy}>
             <p className={styles.eyebrow}>
               <span aria-hidden="true" />
-              Sổ thu chi cá nhân
+              Sổ thu chi bạn có thể tin
             </p>
             <h1 id="landing-title">
-              Ghi thu chi trong vài giây.
-              <span> Biết chính xác tiền đi đâu.</span>
+              Biết chính xác tiền đã đi đâu.
+              <span> Ghi rõ từng khoản, không cần đoán.</span>
             </h1>
             <p className={styles.heroLead}>
-              MoneyFlow gom số dư, giao dịch và kế hoạch của bạn vào một nơi rõ
-              ràng — từ dữ liệu bạn tự ghi, không đoán bạn nên tiêu bao nhiêu.
+              MoneyFlow giúp bạn ghi thu, chi và chuyển tiền trong một sổ rõ
+              ràng. Số dư, giao dịch và kế hoạch đều đến từ dữ liệu bạn chủ động
+              nhập — có thể sửa và xuất ra bất cứ lúc nào.
             </p>
             <div className={styles.heroActions}>
               <Link href="/register" className={styles.primaryButtonLarge}>
-                Tạo tài khoản miễn phí
+                Bắt đầu ghi miễn phí
                 <Icon name="arrowRight" size={18} />
               </Link>
               <a href="#cach-hoat-dong" className={styles.secondaryButtonLarge}>
@@ -121,21 +139,21 @@ export function LandingPage() {
           <div
             className={styles.previewWrap}
             role="img"
-            aria-label="Mô phỏng màn hình tổng quan với số dư, thu chi và ba giao dịch gần đây"
+            aria-label="Mô phỏng một tháng trong MoneyFlow với tổng số dư, thu chi và ba giao dịch gần đây"
           >
             <div className={styles.preview}>
               <div className={styles.previewTopbar}>
                 <div>
-                  <span className={styles.previewLogo} aria-hidden="true" />
-                  <strong>Tổng quan</strong>
+                  <BrandMark size="micro" />
+                  <strong>Một tháng trong MoneyFlow</strong>
                 </div>
                 <span>Tháng 7</span>
               </div>
 
               <div className={styles.balanceBlock}>
-                <span>Số dư trên các ví</span>
+                <span>Tổng số dư đã ghi</span>
                 <strong className={styles.money}>10.000.000 ₫</strong>
-                <small>Cập nhật từ 3 ví bạn đang theo dõi</small>
+                <small>Từ 3 tài khoản bạn đang theo dõi</small>
               </div>
 
               <div className={styles.summaryGrid}>
@@ -159,9 +177,7 @@ export function LandingPage() {
               </div>
               <ul className={styles.ledger}>
                 <li>
-                  <span
-                    className={`${styles.rowIcon} ${styles.rowIconExpense}`}
-                  >
+                  <span className={`${styles.rowIcon} ${styles.rowIconExpense}`}>
                     ĂU
                   </span>
                   <div>
@@ -185,14 +201,12 @@ export function LandingPage() {
                   </span>
                 </li>
                 <li>
-                  <span
-                    className={`${styles.rowIcon} ${styles.rowIconTransfer}`}
-                  >
+                  <span className={`${styles.rowIcon} ${styles.rowIconTransfer}`}>
                     CK
                   </span>
                   <div>
                     <strong>Chuyển sang quỹ dự phòng</strong>
-                    <small>Chuyển ví · không tính thu chi</small>
+                    <small>Chuyển nội bộ · không tính thu chi</small>
                   </div>
                   <span className={`${styles.money} ${styles.transfer}`}>
                     ↔ 2.000.000 ₫
@@ -205,16 +219,16 @@ export function LandingPage() {
 
         <section className={styles.proof} aria-label="Điểm nổi bật">
           <div>
-            <strong>3 loại giao dịch</strong>
-            <span>Thu · Chi · Chuyển</span>
+            <strong>Thu · Chi · Chuyển</strong>
+            <span>Giữ đúng bản chất giao dịch</span>
           </div>
           <div>
             <strong>Số nguyên đồng</strong>
-            <span>Không làm tròn ở trang chi tiết</span>
+            <span>Dễ đối chiếu, không làm tròn</span>
           </div>
           <div>
-            <strong>Dữ liệu của bạn</strong>
-            <span>Xuất CSV, không khóa dữ liệu</span>
+            <strong>Dữ liệu thuộc về bạn</strong>
+            <span>Sửa, phục hồi và xuất CSV</span>
           </div>
         </section>
 
@@ -225,10 +239,9 @@ export function LandingPage() {
         >
           <div className={styles.sectionHeading}>
             <p className={styles.kicker}>Cách hoạt động</p>
-            <h2 id="how-title">Bắt đầu từ những gì bạn đang có</h2>
+            <h2 id="how-title">Từ khoản đầu tiên đến một tháng rõ ràng</h2>
             <p>
-              Không cần học một phương pháp tài chính mới trước khi ghi khoản
-              đầu tiên.
+              Không cần học một phương pháp tài chính mới trước khi bắt đầu ghi.
             </p>
           </div>
           <ol className={styles.steps}>
@@ -248,10 +261,10 @@ export function LandingPage() {
         >
           <div className={styles.sectionHeading}>
             <p className={styles.kicker}>Một sổ dùng hằng ngày</p>
-            <h2 id="features-title">Ít thao tác hơn, dễ đối chiếu hơn</h2>
+            <h2 id="features-title">Ghi đúng trước, hiểu rõ sau</h2>
             <p>
-              Mỗi màn hình ưu tiên một việc chính và giữ số tiền dễ quét hơn
-              nhãn.
+              Mỗi màn hình ưu tiên một việc chính; số tiền, nhãn và trạng thái
+              luôn dễ quét và kiểm tra lại.
             </p>
           </div>
           <ul className={styles.features}>
@@ -274,12 +287,12 @@ export function LandingPage() {
             <Icon name="lock" size={30} />
           </div>
           <div>
-            <p className={styles.kicker}>Riêng tư và có thể mang đi</p>
-            <h2 id="ownership-title">Sổ của bạn. Dữ liệu của bạn.</h2>
+            <p className={styles.kicker}>Giữ quyền kiểm soát</p>
+            <h2 id="ownership-title">Tiền của bạn. Dữ liệu của bạn.</h2>
             <p>
-              MoneyFlow không hỏi mật khẩu ngân hàng. Bạn có thể xuất CSV hoặc
-              xóa tài khoản khi cần. Dữ liệu mỗi người được tách riêng bằng
-              chính sách truy cập ở tầng cơ sở dữ liệu.
+              MoneyFlow không hỏi mật khẩu ngân hàng. Bạn có thể sửa, phục hồi,
+              xuất CSV hoặc xóa tài khoản khi cần. Dữ liệu mỗi người được tách
+              riêng bằng chính sách truy cập ở tầng cơ sở dữ liệu.
             </p>
           </div>
           <ul>
@@ -307,45 +320,26 @@ export function LandingPage() {
             <h2 id="faq-title">Rõ từ trước khi bắt đầu</h2>
           </div>
           <div className={styles.faqList}>
-            <details open>
-              <summary>MoneyFlow có tự kết nối ngân hàng không?</summary>
-              <p>
-                Không trong phiên bản hiện tại. Bạn chủ động ghi hoặc nhập dữ
-                liệu và không cần cung cấp mật khẩu ngân hàng.
-              </p>
-            </details>
-            <details>
-              <summary>Chuyển tiền giữa hai ví có tính là chi không?</summary>
-              <p>
-                Không. MoneyFlow ghi hai phía của giao dịch chuyển và loại khoản
-                đó khỏi tổng thu, tổng chi.
-              </p>
-            </details>
-            <details>
-              <summary>MoneyFlow có nói tôi nên tiêu bao nhiêu không?</summary>
-              <p>
-                Không. Ứng dụng hiển thị số dư, dòng tiền và kế hoạch bạn đã
-                nhập; không biến số dư thành lời khuyên chi tiêu.
-              </p>
-            </details>
-            <details>
-              <summary>Tôi có thể lấy dữ liệu ra không?</summary>
-              <p>
-                Có. Bạn có thể xuất CSV từ phần cài đặt để lưu trữ hoặc tiếp tục
-                xử lý trong công cụ khác.
-              </p>
-            </details>
+            {faqItems.map((item, index) => (
+              <details key={item.question} open={index === 0}>
+                <summary>{item.question}</summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
           </div>
         </section>
 
         <section className={styles.finalCta} aria-labelledby="final-cta-title">
           <div>
-            <p className={styles.kicker}>Bắt đầu gọn</p>
-            <h2 id="final-cta-title">Ghi khoản đầu tiên của bạn hôm nay</h2>
-            <p>Miễn phí cho các tính năng thu chi cốt lõi.</p>
+            <p className={styles.kicker}>Ghi rõ từ khoản đầu tiên</p>
+            <h2 id="final-cta-title">Tạo sổ MoneyFlow của bạn</h2>
+            <p>
+              Bắt đầu với thu, chi và chuyển tiền cốt lõi. Không cần liên kết
+              ngân hàng.
+            </p>
           </div>
           <Link href="/register" className={styles.finalCtaButton}>
-            Tạo tài khoản miễn phí
+            Bắt đầu ghi miễn phí
             <Icon name="arrowRight" size={18} />
           </Link>
         </section>
@@ -353,13 +347,13 @@ export function LandingPage() {
 
       <footer className={styles.footer}>
         <div>
-          <Link className={styles.brand} href="/">
-            <span className={styles.brandMark} aria-hidden="true">
-              <span />
-            </span>
-            <span>MoneyFlow</span>
-          </Link>
-          <p>© 2026 MoneyFlow. Sổ thu chi rõ ràng, bình tĩnh, của bạn.</p>
+          <BrandLockup
+            className={styles.brand}
+            href="/"
+            ariaLabel="MoneyFlow, trang chủ"
+            size="compact"
+          />
+          <p>© 2026 MoneyFlow. Rõ từng dòng tiền.</p>
         </div>
         <nav aria-label="Liên kết cuối trang">
           <Link href="/login">Đăng nhập</Link>

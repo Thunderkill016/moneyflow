@@ -10,6 +10,7 @@ import {
   updatePassword,
   type AuthState,
 } from "@/app/(auth)/actions";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon } from "@/components/icons";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import styles from "./auth-form.module.css";
@@ -18,15 +19,15 @@ type Mode = "login" | "register" | "forgot" | "update";
 
 const copy = {
   login: {
-    eyebrow: "Chào mừng trở lại",
+    eyebrow: "Mở lại sổ của bạn",
     title: "Đăng nhập",
-    description: "Mở sổ thu chi và tiếp tục từ dữ liệu gần nhất của bạn.",
+    description: "Tiếp tục từ số dư và giao dịch gần nhất của bạn.",
     submit: "Đăng nhập",
   },
   register: {
-    eyebrow: "Bắt đầu rõ ràng",
+    eyebrow: "Bắt đầu từ khoản đầu tiên",
     title: "Tạo tài khoản",
-    description: "Tạo một sổ riêng để theo dõi thu, chi và các ví đang dùng.",
+    description: "Tạo một sổ riêng để ghi thu, chi và chuyển tiền rõ ràng.",
     submit: "Tạo tài khoản",
   },
   forgot: {
@@ -54,21 +55,6 @@ function FieldError({ id, messages }: { id: string; messages?: string[] }) {
     <small className={styles.fieldError} id={id} role="alert">
       {messages[0]}
     </small>
-  );
-}
-
-function Brand({ compact = false }: { compact?: boolean }) {
-  return (
-    <Link
-      className={`${styles.brand} ${compact ? styles.mobileBrand : ""}`}
-      href="/"
-      aria-label="MoneyFlow, trang chủ"
-    >
-      <span className={styles.brandMark} aria-hidden="true">
-        <span />
-      </span>
-      <span>MoneyFlow</span>
-    </Link>
   );
 }
 
@@ -100,26 +86,32 @@ export function AuthForm({
   return (
     <main className={styles.page}>
       <section className={styles.story} aria-label="Giới thiệu MoneyFlow">
-        <Brand />
+        <BrandLockup
+          className={styles.brand}
+          href="/"
+          ariaLabel="MoneyFlow, trang chủ"
+          size="standard"
+          tone="inverse"
+        />
         <div className={styles.storyBody}>
           <span className={styles.storyIcon} aria-hidden="true">
-            <Icon name="wallet" size={26} />
+            <Icon name="book" size={26} />
           </span>
-          <p className={styles.storyKicker}>Sổ thu chi cá nhân</p>
+          <p className={styles.storyKicker}>Rõ từng dòng tiền</p>
           <h1>
-            Tiền của bạn.
+            Ghi đúng từng khoản.
             <br />
-            Rõ ràng mỗi ngày.
+            Nhìn rõ tiền của bạn.
           </h1>
           <p>
-            Một nơi để ghi giao dịch, kiểm tra số dư và xem lại các kế hoạch từ
-            chính dữ liệu bạn đã nhập.
+            MoneyFlow là sổ thu chi manual-first: dữ liệu đến từ những gì bạn
+            chủ động ghi, có thể sửa, phục hồi và xuất ra bất cứ lúc nào.
           </p>
         </div>
         <ul className={styles.trustList}>
           <li>
             <Icon name="check" size={17} />
-            Chuyển ví không tính là chi
+            Thu, chi và chuyển tiền tách bạch
           </li>
           <li>
             <Icon name="check" size={17} />
@@ -134,7 +126,12 @@ export function AuthForm({
 
       <section className={styles.panel}>
         <div className={styles.card}>
-          <Brand compact />
+          <BrandLockup
+            className={`${styles.brand} ${styles.mobileBrand}`}
+            href="/"
+            ariaLabel="MoneyFlow, trang chủ"
+            size="compact"
+          />
           <p className={styles.eyebrow}>{content.eyebrow}</p>
           <h2>{content.title}</h2>
           <p className={styles.description}>{content.description}</p>
@@ -142,8 +139,8 @@ export function AuthForm({
           {demoMode && mode === "login" && (
             <div className={styles.demoNotice} role="status">
               <strong>Đang ở chế độ demo</strong>
-              <span>Dữ liệu chỉ được lưu trong trình duyệt này.</span>
-              <Link href="/insights">Tiếp tục bản demo</Link>
+              <span>Dữ liệu demo chỉ được lưu trong trình duyệt này.</span>
+              <Link href="/dashboard">Tiếp tục bản demo</Link>
             </div>
           )}
 
@@ -320,7 +317,7 @@ export function AuthForm({
           )}
         </div>
         <p className={styles.panelNote}>
-          MoneyFlow không yêu cầu thông tin đăng nhập ngân hàng.
+          MoneyFlow không yêu cầu mật khẩu hoặc thông tin đăng nhập ngân hàng.
         </p>
       </section>
     </main>

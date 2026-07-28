@@ -28,7 +28,7 @@ test("authentication preserves Google and password controls", () => {
 test("auth copy does not restore a spending recommendation", () => {
   assert.doesNotMatch(authForm, /hôm nay bạn có thể chi bao nhiêu/i);
   assert.doesNotMatch(authForm, /có thể chi hôm nay/i);
-  assert.match(authForm, /Chuyển ví không tính là chi/);
+  assert.match(authForm, /Thu, chi và chuyển tiền tách bạch/);
 });
 
 test("authentication is responsive, themed and motion accessible", () => {

@@ -35,19 +35,19 @@ test.describe("critical browser compatibility audit", () => {
     });
     const hero = page.getByRole("heading", {
       level: 1,
-      name: "Ghi thu chi trong vài giây. Biết chính xác tiền đi đâu.",
+      name: "Biết chính xác tiền đã đi đâu. Ghi rõ từng khoản, không cần đoán.",
     });
     const lead = page.locator("#landing-title + p");
     const proof = page.getByRole("region", { name: "Điểm nổi bật" });
     const preview = page.getByRole("img", {
-      name: /Mô phỏng màn hình tổng quan/i,
+      name: /Mô phỏng một tháng trong MoneyFlow/i,
     });
     const finalCta = page.getByRole("region", {
-      name: "Ghi khoản đầu tiên của bạn hôm nay",
+      name: "Tạo sổ MoneyFlow của bạn",
     });
     const finalCtaTitle = page.getByRole("heading", {
       level: 2,
-      name: "Ghi khoản đầu tiên của bạn hôm nay",
+      name: "Tạo sổ MoneyFlow của bạn",
     });
 
     await expect(hero).toBeVisible();
