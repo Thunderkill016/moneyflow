@@ -19,6 +19,8 @@ import {
   todayInVietnam,
   writeQuickAddPrefs,
 } from "@/lib/quick-add-prefs";
+import { findMatchingRule, resolveCategoryIdForRuleMatch } from "@/lib/inbox/apply-rules";
+import { readStoredRules, type InboxRule } from "@/lib/inbox/rules-store";
 
 const KEEP_OPEN_SUCCESS = "Đã lưu · nhập khoản tiếp";
 
@@ -63,6 +65,9 @@ export function AddTransactionDialog({
   const [savedFlash, setSavedFlash] = useState("");
 
   const [recentCategoryIds, setRecentCategoryIds] = useState<string[]>([]);
+  const [rules, setRules] = useState<InboxRule[]>([]);
+  const [autoRuleHint, setAutoRuleHint] = useState<string | null>(null);
+  const categoryTouchedRef = useRef(false);
 
   const availableCategories = useMemo(() => {
     const filtered = categories.filter((item) => item.kind === kind);
@@ -161,6 +166,30 @@ export function AddTransactionDialog({
     return () => clearSavedFlashTimer();
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const frame = window.requestAnimationFrame(() => setRules(readStoredRules()));
+    return () => window.cancelAnimationFrame(frame);
+  }, [open]);
+
+  /** Same "contains" rules the Inbox uses (docs/history/wireframes-inbox.md §14), reused here so a rule set up once also speeds up direct entry, not only paste/import. */
+  function applyNoteChange(value: string) {
+    setNote(value);
+    markInputChanged();
+    if (categoryTouchedRef.current || !value.trim()) {
+      if (!value.trim()) setAutoRuleHint(null);
+      return;
+    }
+    const match = findMatchingRule(rules, { merchant: "", note: value, rawSnippet: "" });
+    const targetId = resolveCategoryIdForRuleMatch(match, categories, kind);
+    if (!match || !targetId) {
+      setAutoRuleHint(null);
+      return;
+    }
+    setCategoryId(targetId);
+    setAutoRuleHint(`tự động theo quy tắc “${match.contains}” → ${match.category}`);
+  }
+
   function restoreFocus() {
     const prev = previouslyFocusedRef.current;
     previouslyFocusedRef.current = null;
@@ -187,6 +216,8 @@ export function AddTransactionDialog({
     const forKind = categories.filter((item) => item.kind === nextKind);
     const nextCategory = pickCategoryForKind(forKind, recentCategoryIds);
     setCategoryId(nextCategory);
+    categoryTouchedRef.current = false;
+    setAutoRuleHint(null);
     markInputChanged();
     window.requestAnimationFrame(() => focusAmount(false));
   }
@@ -258,6 +289,8 @@ export function AddTransactionDialog({
     setAmount("");
     setNote("");
     setError("");
+    categoryTouchedRef.current = false;
+    setAutoRuleHint(null);
 
     if (keepOpen) {
       showKeepOpenSuccess();
@@ -337,7 +370,9 @@ export function AddTransactionDialog({
       <fieldset className="category-fieldset">
         <legend>
           Danh mục
-          {hasRecentForKind ? (
+          {autoRuleHint ? (
+            <span className="category-legend-hint"> · {autoRuleHint}</span>
+          ) : hasRecentForKind ? (
             <span className="category-legend-hint"> · hay dùng trước lên trước</span>
           ) : null}
         </legend>
@@ -357,6 +392,8 @@ export function AddTransactionDialog({
                   .join(" ")}
                 onClick={() => {
                   setCategoryId(item.id);
+                  categoryTouchedRef.current = true;
+                  setAutoRuleHint(null);
                   markInputChanged();
                   window.requestAnimationFrame(() => focusAmount(false));
                 }}
@@ -418,10 +455,7 @@ export function AddTransactionDialog({
             id="add-tx-note"
             name="note"
             value={note}
-            onChange={(event) => {
-              setNote(event.target.value);
-              markInputChanged();
-            }}
+            onChange={(event) => applyNoteChange(event.target.value)}
             placeholder="Ví dụ: Cơm trưa"
             maxLength={500}
           />

@@ -109,3 +109,20 @@ export function applyRulesToParsed(
 ): ParsedCandidate[] {
   return applyRulesToTargets(candidates, rules, options);
 }
+
+/**
+ * Resolve a matched rule's category name to a concrete category id for the
+ * given kind, so callers outside the Inbox (e.g. the main add-transaction
+ * form) can reuse rule matching without duplicating the lookup.
+ */
+export function resolveCategoryIdForRuleMatch(
+  match: InboxRule | null,
+  categories: Array<{ id: string; name: string; kind: string }>,
+  kind: string,
+): string | null {
+  if (!match) return null;
+  const found = categories.find(
+    (item) => item.kind === kind && item.name === match.category,
+  );
+  return found ? found.id : null;
+}

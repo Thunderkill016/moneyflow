@@ -4,6 +4,7 @@ import {
   applyRuleToTarget,
   applyRulesToParsed,
   findMatchingRule,
+  resolveCategoryIdForRuleMatch,
   ruleMatches,
 } from "./apply-rules.ts";
 import type { ParsedCandidate } from "./parse-text.ts";
@@ -173,4 +174,28 @@ test("applyRulesToParsed enriches candidates", () => {
   assert.equal(next[0]?.category, "Ăn uống");
   assert.equal(next[0]?.merchant, "Highlands Coffee");
   assert.equal(next[1]?.category, "Lương");
+});
+
+const categories = [
+  { id: "cat-food", name: "Ăn uống", kind: "expense" },
+  { id: "cat-shopping", name: "Mua sắm", kind: "expense" },
+  { id: "cat-salary", name: "Lương", kind: "income" },
+];
+
+test("resolveCategoryIdForRuleMatch maps matched category name to id for the right kind", () => {
+  const match = findMatchingRule([highlands], {
+    merchant: "",
+    note: "Highlands cà phê",
+  });
+  assert.equal(resolveCategoryIdForRuleMatch(match, categories, "expense"), "cat-food");
+});
+
+test("resolveCategoryIdForRuleMatch returns null when there is no match", () => {
+  assert.equal(resolveCategoryIdForRuleMatch(null, categories, "expense"), null);
+});
+
+test("resolveCategoryIdForRuleMatch ignores a match from the wrong kind (income category, expense note)", () => {
+  const match = findMatchingRule([luong], { merchant: "", note: "", rawSnippet: "LUONG thang 7" });
+  // luong's category is "Lương", an income-kind category; caller is composing an expense.
+  assert.equal(resolveCategoryIdForRuleMatch(match, categories, "expense"), null);
 });
