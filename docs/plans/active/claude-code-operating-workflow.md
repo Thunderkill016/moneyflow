@@ -2,7 +2,7 @@
 
 **Status:** evaluating  
 **Owner:** human owner + implementing agent  
-**Issue/PR:** pending  
+**Issue/PR:** #107  
 **Last updated:** 2026-07-28
 
 ## Outcome
@@ -47,8 +47,8 @@ MoneyFlow has one explicit, repository-native Claude Code operating workflow tha
 
 ### Open questions
 
-- [ ] Confirm the installed Claude Code version accepts the shared permission schema.
-- [ ] Confirm fake `PreToolUse` payloads visibly deny dangerous calls and allow benign calls.
+- [ ] Confirm the installed Claude Code version accepts the shared permission schema and displays the hook deny reason.
+- [x] Confirm fake `PreToolUse` payloads deny dangerous calls and allow benign calls in an isolated shell harness.
 
 ## Research
 
@@ -97,15 +97,15 @@ Claude Code controls are fragmented across project memory, general AI workflow, 
 
 ### Acceptance criteria
 
-- [ ] `CLAUDE.md` preserves current project facts and points non-trivial work to the Claude workflow and active packet.
-- [ ] `docs/engineering/CLAUDE_CODE_WORKFLOW.md` defines context layers, roles, classification, task states, permissions, hooks, verification and done criteria.
-- [ ] `.claude/settings.json` is valid JSON with safe allows, destructive denies, `SessionStart` and `PreToolUse` for Bash/Edit/Write/Read.
-- [ ] SessionStart reports branch, dirty paths, active packets, workflow and baseline gates; it no longer reads `IDEA.md`.
-- [ ] PreToolUse blocks secret access, edits/history mutation on `main`, destructive Git commands, autonomous merge/default-branch push and production/remote Supabase changes.
-- [ ] PreToolUse allows benign reads and verification commands.
-- [ ] Evaluator has no edit/write tools, checks actual evidence, ranks P0–P3 and returns `Ready to merge` or `Not ready`.
-- [ ] README links the Claude workflow.
-- [ ] No product runtime behavior changes.
+- [x] `CLAUDE.md` preserves current project facts and points non-trivial work to the Claude workflow and active packet.
+- [x] `docs/engineering/CLAUDE_CODE_WORKFLOW.md` defines context layers, roles, classification, task states, permissions, hooks, verification and done criteria.
+- [x] `.claude/settings.json` is valid JSON with safe allows, destructive denies, `SessionStart` and `PreToolUse` for Bash/Edit/Write/Read.
+- [x] SessionStart reports branch, dirty paths, active packets, workflow and baseline gates; it no longer reads `IDEA.md`.
+- [x] PreToolUse blocks secret access, edits/history mutation on `main`, destructive Git commands, autonomous merge/default-branch push and production/remote Supabase changes.
+- [x] PreToolUse allows benign reads and verification commands.
+- [x] Evaluator has no edit/write tools, checks actual evidence, ranks P0–P3 and returns `Ready to merge` or `Not ready`.
+- [x] README links the Claude workflow.
+- [x] No product runtime behavior changes.
 
 ### Required states
 
@@ -179,11 +179,11 @@ Claude Code controls are fragmented across project memory, general AI workflow, 
 |---|---|---|---|---|
 | T1 | Add authoritative workflow | none | Engineering document | done |
 | T2 | Align `CLAUDE.md` and README | T1 | Source diff | done |
-| T3 | Add shared permission policy | T1 | JSON validation | implemented; verification pending |
-| T4 | Replace SessionStart state | T1 | Shell syntax/startup output | implemented; verification pending |
-| T5 | Harden PreToolUse | T3 | Deny/allow simulations | implemented; verification pending |
+| T3 | Add shared permission policy | T1 | JSON parser | done |
+| T4 | Replace SessionStart state | T1 | Shell syntax and isolated output | done; local Claude session pending |
+| T5 | Harden PreToolUse | T3 | Deny/allow shell simulations | done; local Claude UI pending |
 | T6 | Strengthen evaluator | T1 | Source diff | done |
-| T7 | Run checks and manual session test | T2–T6 | Command output | todo |
+| T7 | Run checks and manual session test | T2–T6 | Isolated checks complete; repository CI/manual session pending | in progress |
 | T8 | Independent evaluation and PR review | T7 | Evaluator verdict | todo |
 
 ## Evaluation
@@ -192,33 +192,34 @@ Claude Code controls are fragmented across project memory, general AI workflow, 
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Current orientation preserved | `CLAUDE.md` diff | pass by source inspection |
-| Workflow defined | `docs/engineering/CLAUDE_CODE_WORKFLOW.md` | pass by source inspection |
-| Settings valid | Pending local/CI command | no evidence |
-| SessionStart behavior | Source inspection; manual output pending | no evidence |
-| Dangerous actions denied | Source inspection; simulations pending | no evidence |
-| Benign calls allowed | Simulations pending | no evidence |
-| Evaluator independent | Read/search/bash tools only; output contract present | pass by source inspection |
-| README discovery | README diff | pass by source inspection |
-| No runtime behavior change | Diff scope | pass by source inspection |
+| Current orientation preserved | `CLAUDE.md` diff | pass |
+| Workflow defined | `docs/engineering/CLAUDE_CODE_WORKFLOW.md` | pass |
+| Settings valid | Isolated `json.loads` validation of exact source | pass |
+| Shell syntax valid | Isolated `bash -n` for both exact scripts | pass |
+| SessionStart behavior | Isolated main-branch repository with active packet | pass |
+| Dangerous actions denied | Secret Read, Edit on main, force-push and production deploy simulations | pass |
+| Benign calls allowed | README Read and `npm run test` simulations return no deny output | pass |
+| Evaluator independent | Read/search/bash tools only; evidence and severity contract present | pass |
+| README discovery | README diff | pass |
+| No runtime behavior change | Eight changed files are documentation/Claude tooling only | pass |
 
 ### Review findings
 
-- Correctness: JSON, shell and hook simulations remain required.
-- Security/ownership: source policy is stricter; runtime behavior must be verified.
+- Correctness: isolated JSON, shell and hook simulations pass; repository CI and local installed-Claude behavior remain open.
+- Security/ownership: deterministic dangerous calls are denied in the harness; no product data or RLS changes.
 - UI/UX/accessibility: not applicable.
 - Maintainability: workflow references existing authorities rather than copying them wholesale.
 - Scope compliance: documentation and Claude tooling only.
 
 ### Remaining limitations
 
-- Connector edits do not prove local Claude Code compatibility.
-- Manual startup and permission UI evidence must be supplied before merge.
+- The isolated harness does not prove compatibility with the owner's installed Claude Code version.
+- Fresh-session startup, `/permissions`, visible deny-reason behavior, `npm run check:knowledge`, CI and evaluator review remain required before ready/merge.
 
 ## Delivery record
 
 - Branch: `agent/claude-code-operating-workflow`
-- PR: pending
+- PR: #107
 - Squash commit: pending
 - CI run: pending
 - Production deployment: not applicable to product runtime
