@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Quyền riêng tư — MoneyFlow",
   description:
     "Chính sách quyền riêng tư MoneyFlow: dữ liệu thu thập, không mật khẩu ngân hàng, RLS, lưu trữ, xuất/xóa, liên hệ.",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {
