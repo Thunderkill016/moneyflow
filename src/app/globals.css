@@ -6,48 +6,59 @@
    =================================================================== */
 
 :root {
-  /* --- Neutral Palette --- */
-  --color-bg-primary: #FFFFFF;
-  --color-bg-secondary: #F8F9FA;
-  --color-bg-tertiary: #F1F3F5;
-  --color-bg-elevated: #FFFFFF;
-  --color-border-default: #DDE6E0;
-  --color-border-strong: #CED1D6;
-  --color-border-focus: #12633C;
-  --color-text-primary: #122019;
-  --color-text-secondary: #64726A;
-  --color-text-tertiary: #8B919E;
-  --color-text-disabled: #B0B5BD;
-  --color-text-inverse: #FFFFFF;
-  --color-overlay: rgba(9, 25, 16, 0.45);
+  /*
+   * --color-* is a compatibility alias layer, not a second source of
+   * truth. Every value below points at document-theme.css's --mf-*
+   * tokens, which already carry correct, designed-together light/dark
+   * pairs via html[data-theme="dark"]. Do not hardcode a hex value here —
+   * two separate :root blocks in this file used to each hardcode their
+   * own values for these same names, and because they had equal
+   * selector specificity, whichever came later in the file silently won
+   * for the entire document (see git history on this block, and the
+   * removed "UI REFRESH" duplicate token block that used to sit further
+   * down this file). Add a new --mf-* token in document-theme.css if a
+   * role is missing; do not reintroduce a literal color here.
+   */
+  --color-bg-primary: var(--mf-surface);
+  --color-bg-secondary: var(--mf-canvas);
+  --color-bg-tertiary: var(--mf-surface-muted);
+  --color-bg-elevated: var(--mf-surface-strong);
+  --color-border-default: var(--mf-border);
+  --color-border-strong: var(--mf-border-strong);
+  --color-border-focus: var(--mf-focus);
+  --color-text-primary: var(--mf-text);
+  --color-text-secondary: var(--mf-text-muted);
+  --color-text-tertiary: var(--mf-text-soft);
+  --color-text-disabled: var(--mf-text-soft);
+  --color-text-inverse: var(--mf-on-brand);
+  --color-overlay: var(--mf-overlay);
 
-  /* --- Brand / Accent (Green — trust, money, growth) --- */
-  --color-accent-default: #12633C;
-  --color-accent-hover: #084829;
-  --color-accent-pressed: #073A20;
-  --color-accent-subtle: #E5F3E9;
-  --color-accent-text: #12633C;
-  --color-accent-gradient: linear-gradient(145deg, #1A7549, #0B4C2C);
+  /* --- Brand / Accent --- */
+  --color-accent-default: var(--mf-brand);
+  --color-accent-hover: var(--mf-brand-hover);
+  --color-accent-pressed: var(--mf-brand-pressed);
+  --color-accent-subtle: var(--mf-brand-subtle);
+  --color-accent-text: var(--mf-brand-text);
 
-  /* --- Semantic: Success --- */
-  --color-success-default: #16A34A;
-  --color-success-subtle: #F0FDF4;
-  --color-success-text: #15803D;
+  /* --- Semantic: Success (income) --- */
+  --color-success-default: var(--mf-income);
+  --color-success-subtle: var(--mf-income-subtle);
+  --color-success-text: var(--mf-income-text);
 
-  /* --- Semantic: Danger --- */
-  --color-danger-default: #B5473D;
-  --color-danger-subtle: #FEF2F2;
-  --color-danger-text: #B91C1C;
+  /* --- Semantic: Danger (expense) --- */
+  --color-danger-default: var(--mf-expense);
+  --color-danger-subtle: var(--mf-expense-subtle);
+  --color-danger-text: var(--mf-expense-text);
 
   /* --- Semantic: Warning --- */
-  --color-warning-default: #D97706;
-  --color-warning-subtle: #FFFBEB;
-  --color-warning-text: #B45309;
+  --color-warning-default: var(--mf-warning);
+  --color-warning-subtle: var(--mf-warning-subtle);
+  --color-warning-text: var(--mf-warning-text);
 
-  /* --- Semantic: Info --- */
-  --color-info-default: #4B70A9;
-  --color-info-subtle: #E7EFFA;
-  --color-info-text: #1E40AF;
+  /* --- Semantic: Info (transfer) --- */
+  --color-info-default: var(--mf-transfer);
+  --color-info-subtle: var(--mf-transfer-subtle);
+  --color-info-text: var(--mf-transfer-text);
 
   /* --- Typography --- */
   --font-sans: var(--font-inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif);
@@ -83,13 +94,13 @@
   --radius-2xl: 24px;
   --radius-full: 9999px;
 
-  /* --- Elevation / Shadows --- */
-  --shadow-sm: 0 1px 2px rgb(10 48 28 / 4%);
-  --shadow-md: 0 4px 12px rgb(10 48 28 / 7%);
-  --shadow-lg: 0 8px 24px rgb(10 48 28 / 12%);
-  --shadow-xl: 0 16px 48px rgb(10 48 28 / 16%);
-  --shadow: 0 1px 2px rgb(10 48 28 / 4%), 0 16px 42px rgb(10 48 28 / 7%);
-  --shadow-float: 0 24px 64px rgb(8 43 25 / 16%);
+  /* --- Elevation / Shadows (aliased to --mf-* for the same reason as colors above) --- */
+  --shadow-sm: var(--mf-shadow-sm);
+  --shadow-md: var(--mf-shadow-md);
+  --shadow-lg: var(--mf-shadow-lg);
+  --shadow-xl: var(--mf-shadow-lg);
+  --shadow: var(--mf-shadow-md);
+  --shadow-float: var(--mf-shadow-lg);
 
   /* --- z-index Scale --- */
   --z-base: 0;
@@ -152,66 +163,24 @@
   --danger: var(--color-danger-default);
 }
 
+/* --lime has no --mf-* counterpart (single consumer: .safe-meter span). */
+[data-theme="dark"] {
+  --lime: #1a3a1f;
+}
+
 /* ===================================================================
    DARK MODE — design-system.md §17
    Elevation = lighter surface. No pure black.
    =================================================================== */
 
-[data-theme="dark"] {
-  /* --- Neutral Palette --- */
-  --color-bg-primary: #0A0A0B;
-  --color-bg-secondary: #141416;
-  --color-bg-tertiary: #1E1F23;
-  --color-bg-elevated: #1A1A1E;
-  --color-border-default: #2A2B30;
-  --color-border-strong: #3A3B42;
-  --color-border-focus: #4ADE80;
-  --color-text-primary: #EDEDED;
-  --color-text-secondary: #A0A0A8;
-  --color-text-tertiary: #6B6B76;
-  --color-text-disabled: #4A4A54;
-  --color-text-inverse: #111218;
-  --color-overlay: rgba(0, 0, 0, 0.7);
-
-  /* --- Brand / Accent (brighter green for dark bg) --- */
-  --color-accent-default: #4ADE80;
-  --color-accent-hover: #22C55E;
-  --color-accent-pressed: #16A34A;
-  --color-accent-subtle: #052E16;
-  --color-accent-text: #86EFAC;
-  --color-accent-gradient: linear-gradient(145deg, #22C55E, #16A34A);
-
-  /* --- Semantic: Success --- */
-  --color-success-default: #22C55E;
-  --color-success-subtle: #052E16;
-  --color-success-text: #86EFAC;
-
-  /* --- Semantic: Danger --- */
-  --color-danger-default: #EF4444;
-  --color-danger-subtle: #450A0A;
-  --color-danger-text: #FCA5A5;
-
-  /* --- Semantic: Warning --- */
-  --color-warning-default: #F59E0B;
-  --color-warning-subtle: #451A03;
-  --color-warning-text: #FCD34D;
-
-  /* --- Semantic: Info --- */
-  --color-info-default: #60A5FA;
-  --color-info-subtle: #1E3A5F;
-  --color-info-text: #93C5FD;
-
-  /* --- Shadows (stronger opacity for dark) --- */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 42px rgba(0, 0, 0, 0.35);
-  --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.55);
-
-  /* --- Aliases --- */
-  --lime: #1a3a1f;
-}
+/*
+ * No dark-mode --color- or --shadow- overrides here: every one of those
+ * names is now an alias to a --mf-* token (see the :root block above),
+ * and --mf-* already switches for dark mode via html[data-theme="dark"]
+ * in document-theme.css. A block re-declaring hardcoded dark hex values
+ * for these same names used to live here — that's the exact duplicate-
+ * ownership bug this change removes; do not add it back.
+ */
 
 /* ===================================================================
    GLOBAL RESETS & BASE STYLES
@@ -6509,25 +6478,20 @@ input[aria-invalid="true"] {
    Overrides legacy 9–10px captions and muddy gradients.
    =================================================================== */
 
+/*
+ * Color and shadow custom properties that used to be redeclared here
+ * (--color-bg-*, --color-accent-*, --shadow*) are removed: this :root
+ * had equal specificity to the primary token block and came later in
+ * the file, so it silently won for the whole document regardless of
+ * theme — the same duplicate-ownership bug described at the top of
+ * this file. --radius-lg/--radius-xl are kept exactly as they were
+ * (14px/18px): they're a real, currently-rendering override with no
+ * --mf-radius-lg/xl equivalent (document-theme.css's are 16px/24px,
+ * a different pair) and reconciling radius is out of scope for this
+ * color-token fix — changing it here would be a silent, unrelated
+ * visual change.
+ */
 :root {
-  --color-bg-primary: #fbfcfb;
-  --color-bg-secondary: #f3f6f4;
-  --color-bg-tertiary: #e8eee9;
-  --color-bg-elevated: #ffffff;
-  --color-border-default: #e2eae4;
-  --color-border-strong: #c5d4ca;
-  --color-text-primary: #0f1f16;
-  --color-text-secondary: #5a6b61;
-  --color-text-tertiary: #84948b;
-  --color-accent-default: #0f6b3c;
-  --color-accent-hover: #0a5430;
-  --color-accent-pressed: #084226;
-  --color-accent-subtle: #e8f5ee;
-  --color-accent-text: #0c5a34;
-  --shadow-sm: 0 1px 2px rgb(15 31 22 / 5%);
-  --shadow-md: 0 4px 16px rgb(15 31 22 / 6%);
-  --shadow-lg: 0 12px 32px rgb(15 31 22 / 8%);
-  --shadow: 0 1px 2px rgb(15 31 22 / 4%), 0 8px 28px rgb(15 31 22 / 5%);
   --radius-lg: 14px;
   --radius-xl: 18px;
 }
@@ -7732,55 +7696,10 @@ dialog.transaction-dialog {
   );
 }
 
-/* ===================================================================
-   DARK THEME TOKEN RESTORATION
-   The "UI REFRESH" :root block above (~line 6512) redefines these same
-   custom properties unconditionally, with equal selector specificity to
-   the original [data-theme="dark"] block near the top of this file — so
-   by source order it silently wins and overwrites the dark values for
-   every consumer that reads these tokens without its own dark-specific
-   override (e.g. .budget-overview text/bg went invisible: light text on
-   a light background computed from the wrong --color-bg-secondary).
-   Re-declared last so dark mode is correct regardless of what earlier
-   :root blocks in this file redefine.
-   =================================================================== */
-[data-theme="dark"] {
-  --color-bg-primary: #0A0A0B;
-  --color-bg-secondary: #141416;
-  --color-bg-tertiary: #1E1F23;
-  --color-bg-elevated: #1A1A1E;
-  --color-border-default: #2A2B30;
-  --color-border-strong: #3A3B42;
-  --color-border-focus: #4ADE80;
-  --color-text-primary: #EDEDED;
-  --color-text-secondary: #A0A0A8;
-  --color-text-tertiary: #6B6B76;
-  --color-text-disabled: #4A4A54;
-  --color-text-inverse: #111218;
-  --color-overlay: rgba(0, 0, 0, 0.7);
-  --color-accent-default: #4ADE80;
-  --color-accent-hover: #22C55E;
-  --color-accent-pressed: #16A34A;
-  --color-accent-subtle: #052E16;
-  --color-accent-text: #86EFAC;
-  --color-accent-gradient: linear-gradient(145deg, #22C55E, #16A34A);
-  --color-success-default: #22C55E;
-  --color-success-subtle: #052E16;
-  --color-success-text: #86EFAC;
-  --color-danger-default: #EF4444;
-  --color-danger-subtle: #450A0A;
-  --color-danger-text: #FCA5A5;
-  --color-warning-default: #F59E0B;
-  --color-warning-subtle: #451A03;
-  --color-warning-text: #FCD34D;
-  --color-info-default: #60A5FA;
-  --color-info-subtle: #1E3A5F;
-  --color-info-text: #93C5FD;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 42px rgba(0, 0, 0, 0.35);
-  --shadow-float: 0 24px 64px rgba(0, 0, 0, 0.55);
-  --lime: #1a3a1f;
-}
+/*
+ * The band-aid "DARK THEME TOKEN RESTORATION" block that used to sit
+ * here is no longer needed. It re-declared dark hex values last so they'd
+ * win over the (now-removed) "UI REFRESH" duplicate token block. With
+ * --color- and --shadow- names aliased to --mf-* at the top of this
+ * file, dark mode is correct by construction — nothing left to restore.
+ */
