@@ -40,7 +40,7 @@ test("landing positions MoneyFlow as a trustworthy manual-first ledger", () => {
   const source = readLandingSource();
   assert.match(source, /Sổ thu chi bạn có thể tin/);
   assert.match(source, /Biết chính xác tiền đã đi đâu/);
-  assert.match(source, /dữ liệu bạn chủ động nhập/);
+  assert.match(source, /dữ liệu bạn chủ động\s+nhập/);
   for (const phrase of FORBIDDEN_LANDING_PHRASES) {
     assert.equal(source.includes(phrase), false, `forbidden: ${phrase}`);
   }
