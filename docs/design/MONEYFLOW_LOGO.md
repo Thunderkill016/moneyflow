@@ -29,11 +29,12 @@ It deliberately excludes coins, wallets, cards, currency signs, arrows, rising c
 | Asset | Source |
 |---|---|
 | App/favicon vector | `src/app/icon.svg` |
-| Shared in-product mark geometry | `src/app/ai-uiux-guardrails.css` (compatibility boundary) |
-| Root CSS ownership | `src/app/legacy.css` → `src/app/ai-uiux-guardrails.css` |
+| Reusable in-product component | `src/components/brand/brand-lockup.tsx` |
+| Component presentation | `src/components/brand/brand-lockup.module.css` |
+| Temporary signed-in shell bridge | `src/app/ai-uiux-guardrails.css` → `/icon.svg` |
 | Installed-app metadata | `src/app/manifest.ts` |
 
-The current repeated brand wrappers have not yet been consolidated into one shared component. Until that migration, the approved geometry lives in the existing frozen compatibility boundary rather than adding another root-global stylesheet. Do not create a second logo source.
+Landing and authentication use the shared component directly. The signed-in shell still has a legacy wrapper and temporarily loads the exact canonical vector through a deliberately narrow compatibility selector. A later shell-component migration must remove that bridge rather than introduce another logo source.
 
 ## Canonical construction
 
@@ -68,7 +69,7 @@ Brand green is not the semantic income/success color.
 ## Approved variants
 
 1. Primary green container with white M.
-2. Reversed light/green mark on a dark MoneyFlow surface.
+2. Reversed light/green mark on a dark or brand MoneyFlow surface.
 3. Monochrome dark.
 4. Monochrome light.
 
@@ -86,6 +87,7 @@ Geometry remains unchanged across variants. Optical raster adjustments may chang
 ## Accessibility
 
 - Where adjacent text names MoneyFlow, the mark is decorative and must not create a duplicate accessible name.
+- Shared component SVGs use `aria-hidden="true"` and `focusable="false"`.
 - Forced-colors mode must retain a visible mark using system colors.
 - Do not encode financial status in logo color.
 
@@ -100,12 +102,13 @@ Do not:
 - put the full wordmark inside an app icon;
 - repeat the logo as decoration in the signed-in product;
 - recolor it with semantic income, expense, transfer or warning tokens;
-- combine it with rejected M/F/O or flow-ring experiments.
+- combine it with rejected M/F/O or flow-ring experiments;
+- recreate the M with a second CSS polygon or an unrelated SVG path.
 
 ## Release verification
 
 - [ ] Inspect at 16, 24, 32, 64 and 512px.
-- [ ] Check light, dark and monochrome appearances.
+- [ ] Check light, dark, reversed and monochrome appearances.
 - [ ] Verify browser favicon discovery.
 - [ ] Verify PWA manifest icon discovery.
 - [ ] Review landing, auth and signed-in shell screenshots.
