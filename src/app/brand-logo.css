@@ -1,0 +1,74 @@
+/*
+ * MoneyFlow brand mark
+ *
+ * The existing brand links intentionally keep their accessible text and
+ * component-owned sizing. This global identity layer replaces only the small
+ * decorative glyph so landing, auth and signed-in shell share one mark.
+ */
+
+a[aria-label^="MoneyFlow"] > span:first-child {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+a[aria-label^="MoneyFlow"] > span:first-child > span {
+  width: 56% !important;
+  height: 56% !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: var(--mf-on-brand, currentColor);
+  clip-path: polygon(
+    0 0,
+    24% 0,
+    50% 52%,
+    76% 0,
+    100% 0,
+    100% 100%,
+    77% 100%,
+    77% 39%,
+    58% 78%,
+    42% 78%,
+    23% 39%,
+    23% 100%,
+    0 100%
+  );
+  transform: none !important;
+}
+
+/* The representative dashboard inside the landing hero uses the same mark. */
+[role="img"] span[aria-hidden="true"]:empty {
+  position: relative;
+  overflow: hidden;
+  border: 0;
+  background: var(--mf-brand);
+}
+
+[role="img"] span[aria-hidden="true"]:empty::after {
+  position: absolute;
+  inset: 24%;
+  background: var(--mf-on-brand);
+  clip-path: polygon(
+    0 0,
+    24% 0,
+    50% 52%,
+    76% 0,
+    100% 0,
+    100% 100%,
+    77% 100%,
+    77% 39%,
+    58% 78%,
+    42% 78%,
+    23% 39%,
+    23% 100%,
+    0 100%
+  );
+  content: "";
+}
+
+@media (forced-colors: active) {
+  a[aria-label^="MoneyFlow"] > span:first-child > span,
+  [role="img"] span[aria-hidden="true"]:empty::after {
+    background: CanvasText;
+  }
+}
