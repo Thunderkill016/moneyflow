@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
+import { normalizeSiteOrigin } from "@/lib/site-url";
 import "./legacy.css";
 import "./document-theme.css";
 
@@ -16,10 +17,38 @@ const inter = Inter({
   preload: true,
 });
 
+const TITLE = "MoneyFlow — Sổ thu chi cá nhân";
+const DESCRIPTION =
+  "Ghi thu chi nhanh, theo dõi nhiều ví, ngân sách và báo cáo tháng. Xuất CSV bất cứ lúc nào.";
+
+// Non-throwing lookup: metadata is evaluated at module load, so a missing/invalid
+// env var here must degrade (Next.js infers metadataBase) rather than fail the build.
+const siteOrigin = normalizeSiteOrigin(process.env.NEXT_PUBLIC_SITE_URL);
+
 export const metadata: Metadata = {
-  title: "MoneyFlow — Sổ thu chi cá nhân",
-  description:
-    "Ghi thu chi nhanh, theo dõi nhiều ví, ngân sách và báo cáo tháng. Xuất CSV bất cứ lúc nào.",
+  ...(siteOrigin ? { metadataBase: new URL(siteOrigin) } : {}),
+  title: TITLE,
+  description: DESCRIPTION,
+  keywords: [
+    "sổ thu chi cá nhân",
+    "quản lý chi tiêu",
+    "ứng dụng quản lý tài chính cá nhân",
+    "ghi chép thu chi",
+    "quản lý ngân sách",
+    "theo dõi chi tiêu",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "vi_VN",
+    siteName: "MoneyFlow",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {
