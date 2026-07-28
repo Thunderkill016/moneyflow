@@ -174,6 +174,7 @@ The regression belongs to the public landing CSS layer because the root theme re
 
 - Physical-device verification remains required before claiming device readiness.
 - A human has not yet re-opened the exact production deployment's `/` route in dark mode to close the loop on "production flow verified" (AGENTS.md §8) — Vercel's build-success status is not the same claim.
+- 2026-07-28: a fresh local demo-build re-run of `critical-browser.audit.spec.ts`'s "landing dark mode keeps semantic text and surfaces readable" check passes on both `chromium-desktop-dark` and `chromium-phone-dark`. This is automated/emulated local evidence, not the production/physical-device check above — it does not close either open item, only reconfirms the fix hasn't regressed since PR #80 merged.
 
 ## Delivery record
 

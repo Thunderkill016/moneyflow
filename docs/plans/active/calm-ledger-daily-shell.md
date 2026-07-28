@@ -218,7 +218,7 @@ The shared shell remains owned by `src/components/layout/app-shell.tsx` and its 
 | Dark-theme token cascade repaired | commit `86eb5c1` | pass |
 | Static/unit checks match current implementation | #98 reports lint/typecheck clean and all unit tests passing before merge | pass with private-CI limitation |
 | Authenticated production core flow | No final manual evidence recorded | pending |
-| Final cross-device screenshot review | Partial audit evidence exists; final owner review not recorded | pending |
+| Cross-device light/dark automated audit | 2026-07-28 local re-run of `critical-browser.audit.spec.ts` against a fresh demo-env build on `chromium-desktop-1366`, `chromium-phone-320`, `chromium-desktop-dark`, `chromium-phone-dark`: dashboard, transactions, accounts, quick-capture and "signed-in shell exposes one authored navigation model" all pass (70/70 across the 4-project subset run). This is demo-mode/emulated-viewport evidence, not authenticated production and not a human screenshot review — those remain open. | partial — automated evidence added, owner screenshot review and physical phone still pending |
 | Physical phone readiness | Not verified | pending |
 
 ### Review findings
