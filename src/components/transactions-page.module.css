@@ -67,3 +67,66 @@
 .summary + :global(.transaction-manager .filter-empty-as-empty p) {
   color: var(--mf-text-muted);
 }
+
+@media (max-width: 760px) {
+  .summary + :global(.transaction-manager .manager-list),
+  .summary + :global(.transaction-manager .manager-list > div) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .summary + :global(.transaction-manager .manager-row) {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 8px 10px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    align-items: start;
+    padding: 14px;
+  }
+
+  .summary + :global(.transaction-manager .manager-row > .transaction-icon) {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  .summary + :global(.transaction-manager .transaction-detail) {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .summary + :global(.transaction-manager .transaction-detail strong),
+  .summary + :global(.transaction-manager .transaction-detail small) {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .summary + :global(.transaction-manager .manager-row time) {
+    display: none;
+  }
+
+  .summary + :global(.transaction-manager .manager-amount) {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 0;
+    max-width: 100%;
+    justify-self: start;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .summary + :global(.transaction-manager .manager-actions),
+  .summary + :global(.transaction-manager .recurring-lock) {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    align-self: center;
+    justify-self: end;
+  }
+}
