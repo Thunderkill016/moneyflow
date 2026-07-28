@@ -41,7 +41,7 @@ else
 fi
 
 printf '[moneyflow] workflow: docs/engineering/CLAUDE_CODE_WORKFLOW.md\n'
-printf '[moneyflow] baseline gates: npm run check:knowledge && npm run check:deployment-env && npm run lint && npm run typecheck && npm run test && npm run build\n'
+printf '[moneyflow] baseline gates: npm run check:knowledge && npm run check:claude-workflow && npm run check:deployment-env && npm run lint && npm run typecheck && npm run test && npm run build\n'
 printf '[moneyflow] completion: evaluator evidence + human merge; production verification when affected\n'
 
 exit 0
