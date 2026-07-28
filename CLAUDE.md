@@ -2,16 +2,24 @@
 
 # Claude Code orientation
 
-This file is a lightweight session entrypoint. It does not replace `AGENTS.md`, the active work packet, current code, tests or merged GitHub history.
+This file is a lightweight session entrypoint. It does not replace `AGENTS.md`, the Claude Code operating workflow, the active work packet, current code, tests or merged GitHub history.
 
 ## Before editing
 
 1. Run `git status -sb`, `git branch --show-current` and `git log -5 --oneline`.
-2. Follow the read order in `AGENTS.md`.
+2. For non-trivial work, read `docs/engineering/CLAUDE_CODE_WORKFLOW.md` and follow the source order in `AGENTS.md`.
 3. Find the controlling file under `docs/plans/active/` and the relevant issue or pull request.
 4. Check whether another open PR changes the same files or source of truth.
 5. Separate observed facts, inference, stale documentation and unresolved questions.
-6. For non-trivial work, finish reconnaissance, specification, plan, tasks and verification criteria before editing runtime code.
+6. Finish reconnaissance, specification, plan, tasks and verification criteria before editing non-trivial runtime code.
+
+## Claude Code roles
+
+- Start unfamiliar or non-trivial work in plan mode.
+- The builder implements one approved task at a time and updates the specification before changing scope.
+- After implementation, use the `evaluator` subagent in a clean context. The evaluator reports findings and never fixes them.
+- Do not force-push, merge, deploy production or access secrets autonomously.
+- Work is complete only after the required evidence, human approval and production verification where applicable.
 
 ## Current project facts
 
