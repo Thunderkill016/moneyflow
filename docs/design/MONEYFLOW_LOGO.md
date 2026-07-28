@@ -1,29 +1,40 @@
 # MoneyFlow logo identity
 
-**Status:** provisional — concept not approved  
+**Status:** approved — canonical logo v1  
+**Approved by:** MoneyFlow owner  
+**Approved on:** 2026-07-28  
 **Brand authority:** [`../brand/MONEYFLOW_BRAND_GUIDELINES.md`](../brand/MONEYFLOW_BRAND_GUIDELINES.md)  
 **Product authority:** [`../product/PRINCIPLES.md`](../product/PRINCIPLES.md)
 
-This file records the current logo exploration contract and implementation candidate. It does **not** declare the M-based mark final or canonical.
-
-## Current decision
-
-MoneyFlow needs a simple, scalable and distinctive identifier for landing, authentication, signed-in navigation, favicon and PWA contexts.
-
-The owner has not approved the current M-based candidate. Until approval:
-
-- `src/app/icon.svg` and `src/app/brand-logo.css` are implementation experiments;
-- they must not be treated as final brand assets;
-- the PR should remain unmerged;
-- no marketing or public brand guideline may describe the mark as canonical.
+This file defines the canonical MoneyFlow logo system used by the web product, browser favicon and PWA metadata.
 
 ## Brand idea
 
-MoneyFlow is a calm personal ledger. The identity should support the product promise:
+MoneyFlow is a calm personal ledger. The logo identifies the product; it does not attempt to illustrate every finance feature.
+
+The approved mark uses:
+
+- one recognizable **M** tied directly to the product name;
+- one continuous construction that suggests an understandable flow of records;
+- a stable rounded container for favicon, installed-app and compact navigation contexts;
+- enough optical weight to remain visible at small sizes.
+
+The identity supports the brand promise:
 
 > Tiền của bạn được ghi đúng, nhìn rõ và luôn thuộc về bạn.
 
-The logo identifies the product; it does not need to explain every finance feature.
+## Why this direction was selected
+
+The M mark is simpler and more durable than the explored alternatives. It avoids loading-ring ambiguity, forced `M/F/O` combinations and literal finance diagrams.
+
+It deliberately excludes:
+
+- coins, wallets, bank cards and currency signs;
+- arrows and rising charts;
+- ledger lines placed inside letters;
+- three bars representing income, expense and transfer;
+- ribbon-like gradients, glass, glow and 3D effects;
+- slogans or the full wordmark inside an app icon.
 
 ## Design principles used
 
@@ -31,128 +42,105 @@ Research accessed 2026-07-28:
 
 | Source | Applied lesson |
 |---|---|
-| Adobe, *How to design a logo* — https://www.adobe.com/express/learn/blog/how-to-design-a-logo | Start from strategy, explore before polishing, keep one distinctive idea, test at small size and in one color, retain vector source. |
-| Adobe, *What is a logo and how to create your own* — https://www.adobe.com/uk/express/discover/how-to/logo | Effective marks are simple, scalable, memorable, consistent and adaptable. A combination mark suits a young brand that still needs its name beside the symbol. |
+| Adobe, *How to design a logo* — https://www.adobe.com/express/learn/blog/how-to-design-a-logo | Start from strategy, keep one distinctive idea, test at small size and in one color, retain vector source. |
+| Adobe, *What is a logo and how to create your own* — https://www.adobe.com/uk/express/discover/how-to/logo | Effective marks are simple, scalable, memorable, consistent and adaptable. |
 | Apple HIG, *App icons* — https://developer.apple.com/design/human-interface-guidelines/app-icons/ | Keep the central idea simple, avoid nonessential text and thin details, preserve recognizable features across appearances. |
 | Apple HIG, *Design principles* — https://developer.apple.com/design/human-interface-guidelines/design-principles | Purpose, simplicity, familiarity, flexibility and craft guide the decision; Apple styling itself is not copied. |
 
-## Concept requirements
+## Canonical assets
 
-Any candidate must:
+| Asset | Source |
+|---|---|
+| App/favicon vector | `src/app/icon.svg` |
+| Shared in-product mark geometry | `src/app/brand-logo.css` |
+| Global identity import | `src/app/layout.tsx` |
+| Installed-app metadata | `src/app/manifest.ts` |
 
-- express one visual idea;
-- have a distinctive silhouette;
-- work in one color before color exploration;
-- remain recognizable at 16, 24, 32, 64 and 512px;
-- work without gradient, glow, shadow, glass or 3D;
-- avoid looking like loading, refresh, investment growth or payment processing;
-- avoid a forced combination of `M`, `F`, `O`, coins, charts, wallets or currency signs;
-- avoid becoming a diagram of the product interface;
-- work as a symbol, wordmark and combination mark system.
+Do not create a second logo source unless a reviewed change replaces these files in the same pull request.
 
-## Rejected shorthand
+## Canonical construction
 
-The following are not automatically forbidden forever, but past exploration showed they are high-risk and need unusually strong execution:
+### Symbol
 
-- arrows and rising charts;
-- coins, bank cards, wallets and currency signs;
-- generic open rings;
-- letters with ledger lines placed inside them;
-- three bars standing for income, expense and transfer;
-- ribbon-like gradient monograms;
-- a stylized letter that requires a long story to explain;
-- golden-ratio diagrams used as justification rather than optical evidence.
+- Canvas: `64 × 64` viewBox.
+- Container: rounded square from `(4, 4)` to `(60, 60)` with `16` radius.
+- Container color: MoneyFlow brand green.
+- Mark: a white continuous M path with rounded caps and joins.
+- The mark must preserve the same silhouette across landing, auth, app shell, favicon and PWA use.
 
-## Candidate exploration process
-
-1. Start with product truth and brand story.
-2. Define three genuinely different territories, not minor variations.
-3. Create black-and-white silhouettes first.
-4. Compare large, 32px and 16px versions.
-5. Remove candidates that depend on explanation, color or mockups.
-6. Score remaining candidates using the brand guideline rubric.
-7. Owner selects one concept.
-8. Refine geometry and wordmark.
-9. Produce light, dark and monochrome variants.
-10. Verify in browser/PWA contexts before approval.
-
-## Logo architecture after approval
-
-The final system must include:
-
-1. Symbol.
-2. Wordmark.
-3. Horizontal combination mark.
-4. Stacked lockup when needed.
-5. Monochrome dark and light variants.
-6. Optical-adjusted app icon/favicon assets.
-
-Do not put a slogan or the full word `MoneyFlow` inside the app icon.
-
-## Color
-
-The logo must work in one color.
-
-After geometry approval, approved brand roles are:
-
-| Role | Light/default | Dark appearance |
-|---|---|---|
-| Brand | `#0B6B3A` | `#4AD58A` |
-| Strong text | `#102019` | `#F0F7F3` |
-| Reversed mark | `#FFFFFF` | `#FFFFFF` or approved dark-canvas treatment |
-
-Do not use semantic income/success color as an arbitrary replacement for brand color.
-
-## Wordmark
+### Wordmark
 
 Use the text `MoneyFlow` exactly.
 
-A future custom wordmark may adjust spacing or one letter gesture, but it must:
+- Primary product typeface: Inter with system fallbacks.
+- Do not place a slogan inside the lockup.
+- The normal young-brand configuration is symbol plus wordmark.
+- The symbol may stand alone where the platform or surrounding interface already names MoneyFlow.
+- Do not modify one letter independently or introduce another competing logo gesture.
 
-- read immediately as `MoneyFlow`;
-- remain clear in small headers;
-- support Vietnamese brand communications;
-- not look like a broken font;
-- not imitate Apple typography;
-- not introduce a second competing concept.
+## Color
+
+The logo must remain valid in one color.
+
+| Role | Light/default | Dark appearance |
+|---|---|---|
+| Brand container | `#0B6B3A` | `#4AD58A` when a dedicated dark asset is produced |
+| Mark on brand | `#FFFFFF` | `#FFFFFF` or the approved dark-canvas treatment |
+| Wordmark | `#102019` | `#F0F7F3` |
+
+Brand green is not the semantic income/success color. Do not swap those roles.
+
+## Approved variants
+
+1. **Primary:** green rounded container with white M, paired with the MoneyFlow wordmark where space permits.
+2. **Reversed:** light or green mark on a dark MoneyFlow surface.
+3. **Monochrome dark:** one dark mark when production constraints require it.
+4. **Monochrome light:** one light mark on an approved dark surface.
+
+The geometry remains unchanged across variants. Optical adjustments for raster favicon sizes may alter pixel alignment, not the underlying concept.
 
 ## Clear space and minimum size
 
-Final dimensions will be established after concept approval.
+- Minimum clear space around the symbol: one quarter of the symbol width.
+- `16px`: favicon-only context; inspect the rasterized result.
+- `24px`: compact interface symbol.
+- `32–36px`: normal navigation mark.
+- `64px+`: marketing and installed-app contexts.
+- Never reduce the M weight independently at small sizes.
 
-Target contexts:
+## Accessibility
 
-- 16px: favicon with optical adjustment if needed;
-- 24px: compact UI symbol;
-- 32–36px: navigation mark;
-- larger marketing lockups determined by legibility and composition.
-
-Clear space must be based on a stable feature of the approved mark, not an arbitrary ratio.
+- Where adjacent text already names MoneyFlow, the mark is decorative and must not create a duplicate accessible name.
+- Browser/app icon metadata may name the product once.
+- Forced-colors mode must retain a visible mark using system colors.
+- Do not encode financial status in the logo color.
 
 ## Misuse
 
 Do not:
 
-- describe an unapproved candidate as final;
 - stretch, rotate or redraw the mark per screen;
+- change the M geometry between surfaces;
 - apply glow, bevel, 3D, glass or decorative gradients;
-- add arrows, charts, percentage signs or currency symbols;
-- put the full wordmark inside an app icon;
-- use the logo as repeated decoration in the signed-in product;
-- use multiple logo concepts at the same time;
-- substitute mockup attractiveness for small-size evidence.
+- add arrows, charts, percentages, coins or currency symbols;
+- put the full word `MoneyFlow` inside an app icon;
+- use the logo as repeated decoration inside the signed-in product;
+- recolor it with semantic income, expense, transfer or warning tokens;
+- combine this canonical mark with rejected M/F/O or flow-ring experiments.
 
-## Approval checklist
+## Release verification
 
-Before the logo becomes canonical:
+Before each identity-affecting release:
 
-- [ ] Owner selects the concept.
-- [ ] Black-and-white silhouette is approved.
-- [ ] 16, 24, 32, 64 and 512px versions are reviewed.
-- [ ] Light, dark and monochrome variants are reviewed.
-- [ ] Wordmark relationship and spacing are approved.
-- [ ] Browser favicon and manifest discovery are verified.
-- [ ] Landing, auth and signed-in shell screenshots are reviewed.
-- [ ] Similarity/trademark screening is completed to a reasonable pre-launch level.
-- [ ] Canonical SVG sources and generated assets are stored in one documented location.
-- [ ] Brand guideline and implementation are updated in the same PR.
+- [ ] Inspect at 16, 24, 32, 64 and 512px.
+- [ ] Check light, dark and monochrome appearances.
+- [ ] Verify browser favicon discovery.
+- [ ] Verify PWA manifest icon discovery.
+- [ ] Review landing, auth and signed-in shell screenshots.
+- [ ] Confirm decorative/accessibility behavior.
+- [ ] Confirm financial semantic colors remain separate from brand color.
+- [ ] Run the repository checks appropriate to the change.
+
+## Future changes
+
+A future redesign requires a new researched specification and explicit owner approval. It must replace the canonical implementation and this contract in the same reviewed pull request; parallel logo systems are not allowed.
