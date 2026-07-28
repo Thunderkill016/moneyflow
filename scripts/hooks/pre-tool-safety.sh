@@ -29,6 +29,7 @@ if isinstance(inputs, dict):
         or inputs.get("file_path")
         or inputs.get("target_file")
         or inputs.get("filePath")
+        or (inputs.get("pattern") if tool.lower() == "glob" else "")
         or ""
     )
 
@@ -66,7 +67,7 @@ is_secret_path() {
     .env.example|*/.env.example)
       return 1
       ;;
-    .env|*/.env|.env.*|*/.env.*|secrets|*/secrets|secrets/*|*/secrets/*|credentials|*/credentials|credentials/*|*/credentials/*)
+    .env|*/.env|.env.*|*/.env.*|*"/.env"*|secrets|*/secrets|secrets/*|*/secrets/*|credentials|*/credentials|credentials/*|*/credentials/*)
       return 0
       ;;
   esac
@@ -74,15 +75,27 @@ is_secret_path() {
   return 1
 }
 
+contains_secret_command_target() {
+  COMMAND_TEXT="$1" python3 - <<'PY'
+import os
+import re
+
+command = os.environ.get("COMMAND_TEXT", "").replace(".env.example", "")
+patterns = (
+    r"(?:^|[\s'\"=:])\.env(?:\.[^\s'\";|&]+)?(?:$|[\s'\";|&])",
+    r"(?:^|[\s'\"=:])(?:[^\s'\"]*/)?(?:secrets|credentials)(?:/[^\s'\"]*)?(?:$|[\s'\";|&])",
+)
+print("yes" if any(re.search(pattern, command, re.IGNORECASE) for pattern in patterns) else "no")
+PY
+}
+
 if is_secret_path "$PATHF"; then
   deny "Reading or editing local environment/secret files is forbidden; use .env.example and provider settings documentation"
 fi
 
-case "$LOWER_COMMAND" in
-  *".env.local"*|*".env.production"*|*"secrets/"*|*"credentials/"*)
-    deny "Agent shell access to local environment or secret material is forbidden"
-    ;;
-esac
+if [[ "$(contains_secret_command_target "$LOWER_COMMAND")" == "yes" ]]; then
+  deny "Agent shell access to local environment or secret material is forbidden"
+fi
 
 if [[ "$TOOL" == "Edit" || "$TOOL" == "Write" ]]; then
   if [[ "$BRANCH" == "main" || "$BRANCH" == "master" ]]; then
