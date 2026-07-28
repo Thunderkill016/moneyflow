@@ -9,7 +9,7 @@ import type { ViewerSummary } from "@/components/user-chip";
 import {
   addCandidatesForClient,
   getPendingCountForClient,
-} from "@/lib/inbox/client-inbox";
+} from "@/hooks/client-inbox";
 import { applyRulesToParsed } from "@/lib/inbox/apply-rules";
 import {
   SOURCE_HINT_LABELS,

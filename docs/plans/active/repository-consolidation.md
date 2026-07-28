@@ -168,22 +168,29 @@ None — no schema, migration, or backfill involved.
 
 ## Inventory findings
 
-### A. Active work packets — all 4 appear stale
+### A. Active work packets — corrected after reading each one in full (Update 4)
 
 `docs/plans/active/README.md`: *"Only deliberately started, non-trivial work belongs
-here."* Cross-checking each packet's declared PRs against `git log --oneline -20` on
-`main` and the full PR list (`state=all`):
+here."* The first pass through this inventory cross-checked declared PRs against
+`git log --oneline -20` and the PR list (`state=all`) only, and provisionally called
+all four "stale, MOVE to completed." Reading each packet's full text (not just its
+header) plus `pull_request_read` on the specific PRs, using the API's reliable
+per-PR `merged` field instead of the list endpoint's, corrected that:
 
-| Packet | Declared status | Declared PR/Issue | Actual PR state | Classification |
+| Packet | Declared status | What the header-only pass got wrong | What the full read found | Action taken |
 |---|---|---|---|---|
-| `calm-ledger-daily-shell.md` | evaluating | #81(issue)/#92/#93/#94/#98 | #92, #93, #94, #98 all **closed**, commits present on `main` | **MOVE** to `completed/` — pending human confirmation that production flow was verified (not just merged) |
-| `calm-ledger-system-redesign.md` | in progress | Issue #81, branch `design/calm-ledger-system` | PR #82 (same branch) **closed**, commit on `main` | **MOVE** to `completed/` — same caveat |
-| `phase-b-rich-vnd-audit.md` | evaluating | #72(issue)/#104 | #104 **closed**, is `HEAD` of `main` right now (`76c4629`) | **MOVE** to `completed/` — same caveat, most recently landed |
-| `landing-dark-mode-contrast.md` | planned | "pending" (no PR ever linked) | PRs #79 and #80 ("restore landing dark-mode readability/contrast") already **closed and merged** without ever being linked from this packet | **MOVE or reconcile** — the packet itself was never updated when the work shipped through a differently-named PR |
+| `calm-ledger-daily-shell.md` | evaluating | Nothing — the packet was already accurate | Its own acceptance criteria/delivery record already say production flow, screenshots and physical-phone checks are `pending`, and explicitly "remains `evaluating`" | **No change needed.** Already correctly not in `completed/`. |
+| `calm-ledger-system-redesign.md` | in progress | Assumed "PR #82 closed" meant the whole packet was done | This packet is the *parent* multi-slice redesign plan (landing, shell, planning/settings); PR #82's title is "**start** Calm Ledger redesign with public surfaces" — only part of Slice 1/2. Its own Tasks checklist (Slice 1/2/3) is still almost entirely unchecked, and `src/app/globals.css` (7,786 ln) plus every `*refresh*.css` file the plan says to remove are all still present on disk. | **No change needed.** Genuinely still in progress, correctly labeled — not stale. |
+| `phase-b-rich-vnd-audit.md` | evaluating | Delivery record said "Squash commit: pending merge" | `pull_request_read(104)` confirms `merged: true`, `merged_at: 2026-07-28T05:58:11Z`; squash commit `76c4629d636f1f50a9c6f96fab12c7dd4b46e6c6` is current `main` HEAD | **Delivery record corrected** to reflect the real merge. Still **not** moved to `completed/` — production manual/physical verification remains unclaimed, and the packet says so itself. |
+| `landing-dark-mode-contrast.md` | planned, PR "pending" | Assumed #79 *and* #80 both shipped it | `pull_request_read(79)`: `merged: false` (closed unmerged, an earlier abandoned attempt). `pull_request_read(80)`: `merged: true`, body explicitly names `docs/plans/active/landing-dark-mode-contrast.md` as its work packet, squash commit `1ba77d05d9894ccd820f300d5bc743cd93d7d8b3`. The packet had never been updated after #80 merged — every task still said `todo`. | **Fully reconciled**: status → `evaluating`, all 7 acceptance criteria checked with PR #80 evidence, all 4 tasks marked done, delivery record filled in with the real PR/commit/CI run. Still **not** moved to `completed/` — same physical/production-verification gap as the other three. |
 
-None of these were moved. This needs the human owner to confirm each one's production
-flow was actually verified (per `AGENTS.md` §8) before re-filing as `completed/`, since
-"merged" and "production-verified" are different facts.
+**Net result: zero packets moved to `completed/`.** All four remain in `docs/plans/active/`
+because none has a recorded human production-verification pass (AGENTS.md §8) — the one
+gate this inventory cannot satisfy on its own, since it requires an actual person visiting
+the live deployment. Two packets needed no change; two needed their text corrected to
+match reality (which is a materially different action from "move them," and the header-only
+first pass would have gotten both wrong in the other direction — moving the two that
+needed correcting instead of the two that were already fine).
 
 ### B. Duplicate/competing authority
 
@@ -273,7 +280,7 @@ not to belong in this cluster at all:
 | File | Import | Classification |
 |---|---|---|
 | `src/lib/nav-ia.ts` | `import type { IconName } from "@/components/icons"` | **KEEP** — type-only import of an icon-name union, not a runtime/behavioral dependency; low risk |
-| `src/lib/inbox/client-inbox.ts` | Imports server actions from `@/app/actions/inbox` (`createInboxCandidatesAction`, etc.) | **UNKNOWN** — this is a real `lib → app` dependency. Open question: is this file actually client-orchestration that belongs in `hooks/` (it's a demo/authed facade calling server actions, not a pure domain calculation), or should the ownership rule allow named exceptions for typed client facades? |
+| ~~`src/lib/inbox/client-inbox.ts`~~ `src/hooks/client-inbox.ts` | Imported server actions from `@/app/actions/inbox` (`createInboxCandidatesAction`, etc.) | **DONE (T5):** moved to `src/hooks/client-inbox.ts` — it has zero financial/domain calculation of its own, only branches on `isDemo` to call either local stores or server actions, which is exactly `ARCHITECTURE.md`'s definition of `src/hooks/` ("client orchestration around stores and mutations"). Its own imports of `candidate-store`/`import-batch-store`/`inbox-map` were switched from relative (`./x.ts`) to absolute (`@/lib/inbox/x`, no extension, matching this repo's existing `@/` import convention). The 7 importing components (`capture-{upload,quick,share,paste}-page.tsx`, `import-preview-page.tsx`, `imports-page.tsx`, `inbox-page.tsx`) were repointed from `@/lib/inbox/client-inbox` to `@/hooks/client-inbox`. No exported function signature changed. `npm run typecheck`, `lint` and `test` (566/566) all pass after the move, and `grep -rlE "from ['\"]@/(app|components|server)" src/lib` now returns only the harmless `nav-ia.ts` type import. |
 
 Everything else in `src/lib` (including the money/currency layer, `accounts.ts`,
 `reporting`-style modules) is clean of this violation.
@@ -319,9 +326,9 @@ No action taken on any of these three PRs in this phase.
 |---|---|---|---|---|
 | T1 | Produce this Phase 1 inventory | none | this document | done |
 | T2 | Human owner decides `.grok`/`IDEA.md` vs `.claude`/`CLAUDE.md` question | T1 | Grok cluster deleted (commit on `claude/doc-du-an-qnj7ya`); see "Update 2" in section B/C | done |
-| T3 | Human owner confirms production verification for the 4 stale active packets, then agent moves each to `completed/` | T1 | updated packets + this table | todo (blocked on human) |
+| T3 | Reconcile the 4 active packets against actual PR/CI state | T1 | see "Update 4" below | done — **none moved to `completed/`** |
 | T4 | Clear the remaining non-Grok legacy autopilot cluster | T2 | Update 3, section C; `check:knowledge`+lint+typecheck+test green | done |
-| T5 | Resolve `client-inbox.ts` boundary question (section D) | none | follow-up packet or inline decision | todo (blocked on human) |
+| T5 | Resolve `client-inbox.ts` boundary question (section D) | none | section D; moved to `src/hooks/client-inbox.ts`, typecheck/lint/test green | done |
 | T6 | Merge/retire `docs/PRODUCT.md` and update `check-project-knowledge.mjs`'s `currentTruthFiles` | none | Update 3, section B; done as part of T4 | done |
 
 Rules:

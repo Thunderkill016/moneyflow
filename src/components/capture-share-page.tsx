@@ -11,7 +11,7 @@ import {
   addImportBatchForClient,
   getPendingCountForClient,
   markBatchCommittedForClient,
-} from "@/lib/inbox/client-inbox";
+} from "@/hooks/client-inbox";
 import {
   consumeSharePayloadFromSession,
   csvPlanToCandidates,

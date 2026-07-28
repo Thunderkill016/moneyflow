@@ -12,7 +12,7 @@ import {
   loadImportBatchesForClient,
   markBatchCancelledForClient,
   markBatchCommittedForClient,
-} from "@/lib/inbox/client-inbox";
+} from "@/hooks/client-inbox";
 import {
   getStoredImportBatch,
   importBatchStatusLabel,

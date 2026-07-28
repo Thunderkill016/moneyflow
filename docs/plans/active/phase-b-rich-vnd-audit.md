@@ -180,7 +180,7 @@ The regression suite belongs under `e2e/audit/`. Production fixes remain in rout
 | T4 | Fix Reports money clipping | Narrow-screen report audit | done |
 | T5 | Stabilize quick-capture and keyboard evidence | Run #398 | done |
 | T6 | Run full CI and evaluate | Run #398 | done |
-| T7 | Update #72 and merge | Issue/PR record | in progress |
+| T7 | Update #72 and merge | Issue/PR record | done — PR #104 merged `76c4629d636f1f50a9c6f96fab12c7dd4b46e6c6` |
 
 ## Evaluation
 
@@ -212,9 +212,9 @@ The regression suite belongs under `e2e/audit/`. Production fixes remain in rout
 ## Delivery record
 
 - Branch: `agent/phase-b-rich-vnd-audit`
-- PR: #104
-- Squash commit: pending merge
+- PR: #104 (merged 2026-07-28)
+- Squash commit: `76c4629d636f1f50a9c6f96fab12c7dd4b46e6c6` (current `main` HEAD)
 - CI: run #398 (`30332248576`) — complete success
-- Production deployment: pending merge/Vercel
+- Production deployment: merge landed on `main`; exact Vercel production deployment for this commit not yet manually re-verified
 - Production manual/physical verification: not claimed
-- Work packet state: evaluating until owner merge and follow-up acceptance
+- Work packet state: remains in `docs/plans/active/` — merged and CI-green, but not moved to `completed/` because production manual verification (AGENTS.md §8) is still outstanding

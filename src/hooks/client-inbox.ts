@@ -22,7 +22,7 @@ import {
   type CreateCandidateInput,
   type InboxCandidate,
   type UpdateCandidateInput,
-} from "./candidate-store.ts";
+} from "@/lib/inbox/candidate-store";
 import {
   addStoredImportBatch,
   markImportBatchCancelled,
@@ -32,8 +32,8 @@ import {
   writeStoredImportBatches,
   type CreateImportBatchInput,
   type ImportBatch,
-} from "./import-batch-store.ts";
-import { prepareCandidateForServer, prepareBatchForServer } from "./inbox-map.ts";
+} from "@/lib/inbox/import-batch-store";
+import { prepareCandidateForServer, prepareBatchForServer } from "@/lib/inbox/inbox-map";
 
 export type ClientInboxResult<T = undefined> = T extends undefined
   ? { ok: true } | { ok: false; message: string }

@@ -11,7 +11,7 @@ import { useTransactions } from "@/hooks/use-transactions";
 import {
   addCandidatesForClient,
   getPendingCountForClient,
-} from "@/lib/inbox/client-inbox";
+} from "@/hooks/client-inbox";
 import type {
   AccountOption,
   CategoryOption,

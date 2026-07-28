@@ -9,7 +9,7 @@ import type { ViewerSummary } from "@/components/user-chip";
 import {
   deleteImportBatchForClient,
   loadImportBatchesForClient,
-} from "@/lib/inbox/client-inbox";
+} from "@/hooks/client-inbox";
 import {
   formatImportBatchDateShort,
   formatImportBatchStats,

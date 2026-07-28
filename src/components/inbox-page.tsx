@@ -29,7 +29,7 @@ import {
   loadInboxForClient,
   persistCandidateListForClient,
   updateCandidateForClient,
-} from "@/lib/inbox/client-inbox";
+} from "@/hooks/client-inbox";
 import { annotateCandidates, type DetectedCandidate } from "@/lib/inbox/detect";
 import {
   isEditableKeyboardTarget,

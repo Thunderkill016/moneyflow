@@ -17,7 +17,7 @@ import type { ViewerSummary } from "@/components/user-chip";
 import {
   addImportBatchForClient,
   getPendingCountForClient,
-} from "@/lib/inbox/client-inbox";
+} from "@/hooks/client-inbox";
 import { writeImportDraft } from "@/lib/inbox/import-draft-store";
 import {
   MAX_UPLOAD_BYTES,
