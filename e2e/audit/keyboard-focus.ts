@@ -43,20 +43,33 @@ function isInsideViewport(state: FocusState): boolean {
   );
 }
 
-export async function assertKeyboardFocusVisible(page: Page, testInfo: TestInfo): Promise<void> {
+export async function assertKeyboardFocusVisible(
+  page: Page,
+  testInfo: TestInfo,
+): Promise<void> {
   const findings: string[] = [];
 
   for (let index = 0; index < 12; index += 1) {
     await page.keyboard.press("Tab");
 
-    // The product enables smooth document scrolling. Native focus scrolling can
-    // therefore take several animation frames. Wait for the browser to finish
-    // bringing the focused control into view, but never scroll it ourselves.
+    // React focus handlers and native smooth focus scrolling can both complete
+    // after keyboard.press resolves. Let the new active element settle before
+    // evaluating whether the browser brought it into view. The audit still
+    // never scrolls the page itself.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          window.requestAnimationFrame(() =>
+            window.requestAnimationFrame(() => resolve()),
+          );
+        }),
+    );
+
     await page
       .waitForFunction(
         () => {
           const active = document.activeElement;
-          if (!(active instanceof HTMLElement) || active === document.body) return true;
+          if (!(active instanceof HTMLElement) || active === document.body) return false;
           const rect = active.getBoundingClientRect();
           const width = document.documentElement.clientWidth;
           const height = document.documentElement.clientHeight;
