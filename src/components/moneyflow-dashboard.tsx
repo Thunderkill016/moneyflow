@@ -11,21 +11,21 @@ import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems } from "@/lib/attention";
-import { sumBudgetSpent, type BudgetSummary } from "@/lib/budgets";
-import { hydrateCommitmentsWithOccurrences } from "@/lib/commitment-occurrence-store";
+import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
+import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
 import {
   commitmentTotals,
   monthStartFromDate,
   type RecurringCommitment,
-} from "@/lib/commitments";
+} from "@/lib/planning/commitments";
 import {
   calculateDashboardSummary,
   netTransactionEffect,
   topExpenseCategories,
 } from "@/lib/finance";
-import { goalTotals, type SavingsGoal } from "@/lib/goals";
-import { hydrateIncomeTemplatesWithOccurrences } from "@/lib/income-template-store";
-import type { RecurringIncomeTemplate } from "@/lib/income-templates";
+import { goalTotals, type SavingsGoal } from "@/lib/planning/goals";
+import { hydrateIncomeTemplatesWithOccurrences } from "@/lib/planning/income-template-store";
+import type { RecurringIncomeTemplate } from "@/lib/planning/income-templates";
 import {
   countPending,
   readStoredCandidates,

@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import type { RecurringIncomeTemplate, SaveIncomeTemplateInput } from "@/lib/income-templates";
+import type { RecurringIncomeTemplate, SaveIncomeTemplateInput } from "@/lib/planning/income-templates";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
 import type { AccountOption, CategoryOption } from "@/lib/sample-data";
 

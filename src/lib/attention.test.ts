@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildAttentionItems } from "./attention.ts";
-import type { BudgetSummary } from "./budgets.ts";
-import type { RecurringCommitment } from "./commitments.ts";
+import type { BudgetSummary } from "./planning/budgets.ts";
+import type { RecurringCommitment } from "./planning/commitments.ts";
 
 const baseBudget = (over: Partial<BudgetSummary>): BudgetSummary => ({
   id: "b1",

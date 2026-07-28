@@ -3,7 +3,7 @@
  * Money amounts and account identifiers never appear in the payload.
  */
 
-import type { PushDaysAhead } from "./push-prefs.ts";
+import type { PushDaysAhead } from "../push-prefs.ts";
 
 /** Minimal commitment shape for due selection (no money required). */
 export type DueNotifyCommitment = {

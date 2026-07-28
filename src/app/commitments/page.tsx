@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CommitmentsPage } from "@/components/commitments-page";
+import { CommitmentsPage } from "@/components/planning/commitments-page";
 import { requireViewer } from "@/server/auth";
 import { getCommitmentsWorkspace } from "@/server/commitments";
 

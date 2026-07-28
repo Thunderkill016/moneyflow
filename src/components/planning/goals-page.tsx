@@ -7,18 +7,18 @@ import { adjustGoalAction, archiveGoalAction, saveGoalAction } from "@/app/actio
 import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
-import { PlanningCard } from "@/components/planning-card";
+import { PlanningCard } from "@/components/planning/planning-card";
 import { type ViewerSummary } from "@/components/user-chip";
-import { dailyGoalSaving, goalProgress, goalTotals, type SaveGoalInput, type SavingsGoal } from "@/lib/goals";
+import { dailyGoalSaving, goalProgress, goalTotals, type SaveGoalInput, type SavingsGoal } from "@/lib/planning/goals";
 import { formatMoney } from "@/lib/money";
 import { PAGE_EMPTY_GOAL, PAGE_EMPTY_GOAL_ARCHIVED } from "@/lib/planning-pages";
 
 const GoalDialog = dynamic(
-  () => import("@/components/goal-dialogs").then((m) => m.GoalDialog),
+  () => import("@/components/planning/goal-dialogs").then((m) => m.GoalDialog),
   { ssr: false },
 );
 const GoalAllocationDialog = dynamic(
-  () => import("@/components/goal-dialogs").then((m) => m.GoalAllocationDialog),
+  () => import("@/components/planning/goal-dialogs").then((m) => m.GoalAllocationDialog),
   { ssr: false },
 );
 

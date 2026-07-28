@@ -1,4 +1,4 @@
-import type { Transaction } from "./sample-data.ts";
+import type { Transaction } from "../sample-data.ts";
 
 export type RecurringCommitment = {
   id: string;

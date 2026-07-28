@@ -7,7 +7,7 @@ import { deleteBudgetAction, saveBudgetAction } from "@/app/actions/budgets";
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
-import { PlanningCard } from "@/components/planning-card";
+import { PlanningCard } from "@/components/planning/planning-card";
 import { type ViewerSummary } from "@/components/user-chip";
 import {
   budgetBarColor,
@@ -17,13 +17,13 @@ import {
   budgetThreshold,
   type BudgetSummary,
   type SaveBudgetInput,
-} from "@/lib/budgets";
+} from "@/lib/planning/budgets";
 import { formatMoney } from "@/lib/money";
 import { budgetToneToCard, PAGE_EMPTY_BUDGET } from "@/lib/planning-pages";
 import { categoryMeta, type CategoryOption } from "@/lib/sample-data";
 
 const BudgetDialog = dynamic(
-  () => import("@/components/budget-dialog").then((module) => module.BudgetDialog),
+  () => import("@/components/planning/budget-dialog").then((module) => module.BudgetDialog),
   { ssr: false },
 );
 

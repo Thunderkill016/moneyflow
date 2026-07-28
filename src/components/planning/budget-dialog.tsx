@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import type { BudgetSummary, SaveBudgetInput } from "@/lib/budgets";
+import type { BudgetSummary, SaveBudgetInput } from "@/lib/planning/budgets";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
 import type { CategoryOption } from "@/lib/sample-data";
 

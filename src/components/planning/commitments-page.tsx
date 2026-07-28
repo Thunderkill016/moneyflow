@@ -1,58 +1,56 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  archiveIncomeTemplateAction,
-  recordIncomeTemplateAction,
-  saveIncomeTemplateAction,
-  undoIncomeTemplateReceiptAction,
-} from "@/app/actions/income-templates";
+  archiveCommitmentAction,
+  payCommitmentAction,
+  saveCommitmentAction,
+  undoCommitmentPaymentAction,
+} from "@/app/actions/commitments";
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
-import { IncomeTemplateDialog } from "@/components/income-template-dialog";
 import { AppShell } from "@/components/layout/app-shell";
+import { PlanningCard } from "@/components/planning/planning-card";
 import { type ViewerSummary } from "@/components/user-chip";
 import {
-  hydrateIncomeTemplatesWithOccurrences,
-  persistIncomeReceiptOccurrence,
-  persistUndoIncomeReceipt,
-  readStoredIncomeTemplates,
-  writeStoredIncomeTemplates,
-} from "@/lib/income-template-store";
+  hydrateCommitmentsWithOccurrences,
+  persistPayOccurrence,
+  persistUndoOccurrence,
+} from "@/lib/planning/commitment-occurrence-store";
 import {
-  appendIncomeReceipt,
-  buildIncomeTemplateReceipt,
+  appendPaymentExpense,
+  buildCommitmentPaymentExpense,
+  commitmentTotals,
   dueDateForMonth,
-  incomeTemplateTotals,
-  markIncomeReceived,
-  markIncomeUnreceived,
-  pendingActiveCount,
-  removeIncomeReceipt,
-  type RecurringIncomeTemplate,
-  type SaveIncomeTemplateInput,
-} from "@/lib/income-templates";
+  markCommitmentPaid,
+  markCommitmentUnpaid,
+  removePaymentExpense,
+  unpaidActiveCount,
+  type RecurringCommitment,
+  type SaveCommitmentInput,
+} from "@/lib/planning/commitments";
 import { formatMoney } from "@/lib/money";
+import {
+  commitmentDueLabel,
+  commitmentDueTone,
+  PAGE_EMPTY_COMMITMENT,
+  PAGE_EMPTY_COMMITMENT_ARCHIVED,
+} from "@/lib/planning-pages";
+import { maybeNotifyDueCommitments } from "@/lib/push-client";
 import { categoryMeta, type AccountOption, type CategoryOption } from "@/lib/sample-data";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 
-function daysBetween(from: string, to: string) {
-  return Math.round(
-    (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000,
-  );
-}
+const CommitmentDialog = dynamic(
+  () =>
+    import("@/components/planning/commitment-dialog").then((m) => m.CommitmentDialog),
+  { ssr: false },
+);
 
-function dueLabel(item: RecurringIncomeTemplate, today: string) {
-  if (item.isReceived) return "Đã nhận";
-  const days = daysBetween(today, item.dueDate);
-  if (days === 0) return "Dự kiến hôm nay";
-  if (days < 0) return `Quá ngày ${Math.abs(days)} ngày`;
-  return `Còn ${days} ngày`;
-}
-
-export function IncomeTemplatesPage({
+export function CommitmentsPage({
   viewer,
-  initialTemplates,
+  initialCommitments,
   accounts,
   categories,
   monthStart,
@@ -60,16 +58,16 @@ export function IncomeTemplatesPage({
   dataError,
 }: {
   viewer: ViewerSummary;
-  initialTemplates: RecurringIncomeTemplate[];
+  initialCommitments: RecurringCommitment[];
   accounts: AccountOption[];
   categories: CategoryOption[];
   monthStart: string;
   today: string;
   dataError: string | null;
 }) {
-  const [items, setItems] = useState(initialTemplates);
+  const [items, setItems] = useState(initialCommitments);
   const [hydrated, setHydrated] = useState(!viewer.isDemo);
-  const [editing, setEditing] = useState<RecurringIncomeTemplate | null>(null);
+  const [editing, setEditing] = useState<RecurringCommitment | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [version, setVersion] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -79,16 +77,11 @@ export function IncomeTemplatesPage({
   useEffect(() => {
     if (!viewer.isDemo) return;
     const frame = window.requestAnimationFrame(() => {
-      const stored = readStoredIncomeTemplates();
-      const base = (stored ?? initialTemplates).map((item) => ({
-        ...item,
-        dueDate: dueDateForMonth(monthStart, item.dueDay),
-      }));
-      setItems(hydrateIncomeTemplatesWithOccurrences(base, monthStart));
+      setItems(hydrateCommitmentsWithOccurrences(initialCommitments, monthStart));
       setHydrated(true);
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [viewer.isDemo, initialTemplates, monthStart]);
+  }, [viewer.isDemo, initialCommitments, monthStart]);
 
   useEffect(() => {
     if (!notice) return;
@@ -96,37 +89,50 @@ export function IncomeTemplatesPage({
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  /** TASK-130: once hydrated, maybe fire privacy-safe due reminder (opt-in, 1×/day). */
+  useEffect(() => {
+    if (!hydrated) return;
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void maybeNotifyDueCommitments(items, { today }).then((result) => {
+        if (cancelled || result !== "shown") return;
+        // Quiet success — OS notification is the primary signal; avoid noisy toast.
+      });
+    }, 800);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [hydrated, items, today]);
+
   const active = useMemo(
     () =>
       items
         .filter((item) => !item.isArchived)
-        .sort((a, b) => Number(a.isReceived) - Number(b.isReceived) || a.dueDay - b.dueDay),
+        .sort((a, b) => Number(a.isPaid) - Number(b.isPaid) || a.dueDay - b.dueDay),
     [items],
   );
   const visible = showArchived ? items.filter((item) => item.isArchived) : active;
-  const totals = incomeTemplateTotals(items);
-  const pendingCount = pendingActiveCount(items);
+  const totals = commitmentTotals(items);
+  const unpaidCount = unpaidActiveCount(items);
   const canAdd = !dataError && accounts.length > 0 && categories.length > 0;
 
-  function open(item: RecurringIncomeTemplate | null) {
+  function open(item: RecurringCommitment | null) {
     setEditing(item);
     setVersion((value) => value + 1);
     setDialogOpen(true);
   }
 
-  async function save(input: SaveIncomeTemplateInput) {
+  async function save(input: SaveCommitmentInput) {
     if (viewer.isDemo) {
       const category = categories.find((item) => item.id === input.categoryId);
       const account = accounts.find((item) => item.id === input.accountId);
       if (!category || !account) {
         return { ok: false, message: "Tài khoản hoặc danh mục không hợp lệ." };
       }
-      if (category.kind !== "income") {
-        return { ok: false, message: "Chỉ dùng danh mục thu cho lương định kỳ." };
-      }
       const existing = items.find((item) => item.id === input.id);
       const dueDate = dueDateForMonth(monthStart, input.dueDay);
-      const next: RecurringIncomeTemplate = {
+      const next: RecurringCommitment = {
         ...input,
         id: existing?.id ?? crypto.randomUUID(),
         dueDate,
@@ -135,36 +141,34 @@ export function IncomeTemplatesPage({
         categoryIcon: category.icon,
         categoryColor: category.color,
         isArchived: false,
-        isReceived: existing?.isReceived ?? false,
+        isPaid: existing?.isPaid ?? false,
         transactionId: existing?.transactionId ?? null,
       };
-      setItems((current) => {
-        const updated = existing
-          ? current.map((item) => (item.id === existing.id ? next : item))
-          : [...current, next];
-        writeStoredIncomeTemplates(updated);
-        return updated;
-      });
-      setDialogOpen(false);
-      setNotice(existing ? "Đã cập nhật lương định kỳ demo." : "Đã thêm lương định kỳ demo.");
-      return { ok: true };
-    }
-    const result = await saveIncomeTemplateAction(input, monthStart);
-    if (result.ok && result.template) {
       setItems((current) =>
-        current.some((item) => item.id === result.template!.id)
-          ? current.map((item) =>
-              item.id === result.template!.id ? result.template! : item,
-            )
-          : [...current, result.template!],
+        existing
+          ? current.map((item) => (item.id === existing.id ? next : item))
+          : [...current, next],
       );
       setDialogOpen(false);
-      setNotice("Đã lưu lương định kỳ.");
+      setNotice(existing ? "Đã cập nhật khoản định kỳ demo." : "Đã thêm khoản định kỳ demo.");
+      return { ok: true };
+    }
+    const result = await saveCommitmentAction(input, monthStart);
+    if (result.ok && result.commitment) {
+      setItems((current) =>
+        current.some((item) => item.id === result.commitment!.id)
+          ? current.map((item) =>
+              item.id === result.commitment!.id ? result.commitment! : item,
+            )
+          : [...current, result.commitment!],
+      );
+      setDialogOpen(false);
+      setNotice("Đã lưu khoản định kỳ.");
     }
     return result;
   }
 
-  async function archive(item: RecurringIncomeTemplate) {
+  async function archive(item: RecurringCommitment) {
     const verb = item.isArchived ? "khôi phục" : "lưu trữ";
     if (
       !window.confirm(
@@ -174,19 +178,9 @@ export function IncomeTemplatesPage({
       return;
     }
     setBusyId(item.id);
-    if (viewer.isDemo) {
-      setItems((current) => {
-        const updated = current.map((value) =>
-          value.id === item.id ? { ...value, isArchived: !value.isArchived } : value,
-        );
-        writeStoredIncomeTemplates(updated);
-        return updated;
-      });
-      setBusyId(null);
-      setNotice(`Đã ${verb} lương định kỳ.`);
-      return;
-    }
-    const result = await archiveIncomeTemplateAction(item.id, !item.isArchived);
+    const result = viewer.isDemo
+      ? { ok: true as const }
+      : await archiveCommitmentAction(item.id, !item.isArchived);
     setBusyId(null);
     if (!result.ok) {
       setNotice(result.message);
@@ -197,14 +191,14 @@ export function IncomeTemplatesPage({
         value.id === item.id ? { ...value, isArchived: !value.isArchived } : value,
       ),
     );
-    setNotice(`Đã ${verb} lương định kỳ.`);
+    setNotice(`Đã ${verb} khoản định kỳ.`);
   }
 
-  async function record(item: RecurringIncomeTemplate) {
-    if (item.isReceived) return;
+  async function pay(item: RecurringCommitment) {
+    if (item.isPaid) return;
     if (
       !window.confirm(
-        `Xác nhận đã nhận “${item.name}” ${formatMoney(item.amount)}? MoneyFlow sẽ tạo một giao dịch thu vào ${item.accountName}.`,
+        `Xác nhận đã thanh toán “${item.name}” ${formatMoney(item.amount)}? MoneyFlow sẽ tạo một giao dịch chi thật từ ${item.accountName}.`,
       )
     ) {
       return;
@@ -213,17 +207,17 @@ export function IncomeTemplatesPage({
     try {
       if (viewer.isDemo) {
         const transactionId = crypto.randomUUID();
-        const income = buildIncomeTemplateReceipt(item, today, transactionId);
-        const nextLedger = appendIncomeReceipt(readStoredTransactions(), income);
+        const expense = buildCommitmentPaymentExpense(item, today, transactionId);
+        const nextLedger = appendPaymentExpense(readStoredTransactions(), expense);
         writeStoredTransactions(nextLedger);
-        persistIncomeReceiptOccurrence(monthStart, item.id, transactionId);
-        setItems((current) => markIncomeReceived(current, item.id, transactionId));
+        persistPayOccurrence(monthStart, item.id, transactionId);
+        setItems((current) => markCommitmentPaid(current, item.id, transactionId));
         setNotice(
-          `Đã ghi khoản thu ${formatMoney(item.amount)} cho ${item.name} vào sổ giao dịch.`,
+          `Đã ghi khoản chi ${formatMoney(item.amount)} cho ${item.name} vào sổ giao dịch.`,
         );
         return;
       }
-      const result = await recordIncomeTemplateAction(
+      const result = await payCommitmentAction(
         item.id,
         monthStart,
         today,
@@ -234,23 +228,23 @@ export function IncomeTemplatesPage({
         return;
       }
       setItems((current) =>
-        markIncomeReceived(current, item.id, result.transactionId ?? "received"),
+        markCommitmentPaid(current, item.id, result.transactionId ?? "paid"),
       );
       setNotice(
-        `Đã ghi khoản thu ${formatMoney(item.amount)} cho ${item.name} vào sổ giao dịch.`,
+        `Đã ghi khoản chi ${formatMoney(item.amount)} cho ${item.name} vào sổ giao dịch.`,
       );
     } catch {
-      setNotice("Không thể ghi nhận thu. Hãy thử lại.");
+      setNotice("Không thể ghi thanh toán. Hãy thử lại.");
     } finally {
       setBusyId(null);
     }
   }
 
-  async function undo(item: RecurringIncomeTemplate) {
-    if (!item.isReceived) return;
+  async function undo(item: RecurringCommitment) {
+    if (!item.isPaid) return;
     if (
       !window.confirm(
-        `Hoàn tác ghi nhận “${item.name}”? Giao dịch thu vừa liên kết sẽ bị xóa khỏi số dư.`,
+        `Hoàn tác thanh toán “${item.name}”? Giao dịch chi vừa liên kết sẽ bị xóa khỏi số dư.`,
       )
     ) {
       return;
@@ -258,25 +252,25 @@ export function IncomeTemplatesPage({
     setBusyId(item.id);
     try {
       if (viewer.isDemo) {
-        const nextLedger = removeIncomeReceipt(
+        const nextLedger = removePaymentExpense(
           readStoredTransactions(),
           item.transactionId,
         );
         writeStoredTransactions(nextLedger);
-        persistUndoIncomeReceipt(monthStart, item.id);
-        setItems((current) => markIncomeUnreceived(current, item.id));
-        setNotice("Đã hoàn tác ghi nhận thu.");
+        persistUndoOccurrence(monthStart, item.id);
+        setItems((current) => markCommitmentUnpaid(current, item.id));
+        setNotice("Đã hoàn tác thanh toán.");
         return;
       }
-      const result = await undoIncomeTemplateReceiptAction(item.id, monthStart);
+      const result = await undoCommitmentPaymentAction(item.id, monthStart);
       if (!result.ok) {
         setNotice(result.message);
         return;
       }
-      setItems((current) => markIncomeUnreceived(current, item.id));
-      setNotice("Đã hoàn tác ghi nhận thu.");
+      setItems((current) => markCommitmentUnpaid(current, item.id));
+      setNotice("Đã hoàn tác thanh toán.");
     } catch {
-      setNotice("Không thể hoàn tác. Hãy thử lại.");
+      setNotice("Không thể hoàn tác thanh toán. Hãy thử lại.");
     } finally {
       setBusyId(null);
     }
@@ -286,12 +280,12 @@ export function IncomeTemplatesPage({
     <AppShell
       viewer={viewer}
       primaryAction={{
-        label: "Thêm lương định kỳ",
+        label: "Thêm khoản định kỳ",
         onClick: () => open(null),
         disabled: !canAdd,
       }}
       fabAction={{
-        label: "Thêm lương định kỳ",
+        label: "Thêm khoản định kỳ",
         onClick: () => open(null),
         disabled: !canAdd,
       }}
@@ -312,11 +306,14 @@ export function IncomeTemplatesPage({
                 Tổng quan
               </Link>
               {" · "}
-              Thu nhập
+              Tiền phải trả
             </p>
-            <h1>Lương định kỳ</h1>
+            <h1>Khoản định kỳ</h1>
             <p>
-              Theo dõi lương và khoản thu lặp lại — tách biệt hóa đơn (khoản chi giữ trước).
+              Giữ trước tiền hóa đơn để con số “có thể chi” luôn thực tế.{" "}
+              <Link href="/settings/notifications" className="planning-back-link">
+                Nhắc đến hạn (opt-in)
+              </Link>
             </p>
           </div>
         </section>
@@ -324,52 +321,41 @@ export function IncomeTemplatesPage({
         {dataError ? (
           <EmptyState
             icon="bell"
-            title="Không tải được lương định kỳ"
+            title="Không tải được khoản định kỳ"
             description="Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
-            secondaryLabel="Về Tổng quan"
-            secondaryHref="/insights"
+            actionLabel="Về Tổng quan"
+            actionHref="/insights"
+            actionIcon="home"
           />
         ) : !hydrated ? (
-          <section
-            className="commitment-card-grid"
-            aria-busy="true"
-            aria-label="Đang tải lương định kỳ"
-          >
-            {Array.from({ length: 2 }, (_, index) => (
-              <div
-                className="loading-card"
-                key={index}
-                style={{ height: "120px", borderRadius: "16px" }}
-              />
+          <section className="commitment-card-grid" aria-busy="true" aria-label="Đang tải khoản định kỳ">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div className="loading-card" key={index} style={{ height: "120px", borderRadius: "16px" }} />
             ))}
           </section>
         ) : (
           <>
-            <section
-              className="budget-overview commitment-overview"
-              aria-label="Tổng quan lương định kỳ"
-            >
+            <section className="budget-overview commitment-overview" aria-label="Tổng quan khoản định kỳ">
               <div>
-                <span>Chờ nhận tháng này</span>
-                <strong className="positive font-mono">{formatMoney(totals.expected)}</strong>
+                <span>Đang giữ trước</span>
+                <strong className="font-mono">{formatMoney(totals.reserved)}</strong>
               </div>
               <div>
-                <span>Đã ghi nhận</span>
-                <strong className="positive font-mono">{formatMoney(totals.received)}</strong>
+                <span>Đã thanh toán</span>
+                <strong className="positive font-mono">{formatMoney(totals.paid)}</strong>
               </div>
               <div>
-                <span>Chưa nhận</span>
-                <strong>{pendingCount} khoản</strong>
+                <span>Chưa thanh toán</span>
+                <strong>
+                  {unpaidCount} khoản
+                </strong>
               </div>
             </section>
 
             <div className="commitment-list-heading">
               <div>
-                <h2>{showArchived ? "Đã lưu trữ" : "Lịch thu tháng này"}</h2>
-                <p>
-                  Không giữ trước an toàn chi tiêu — chỉ nhắc và ghi thu khi tiền về. Hóa đơn xem tại{" "}
-                  <Link href="/commitments">Khoản định kỳ</Link>.
-                </p>
+                <h2>{showArchived ? "Đã lưu trữ" : "Lịch thanh toán tháng này"}</h2>
+                <p>Ngày 31 sẽ tự chuyển thành ngày cuối tháng nếu tháng ngắn hơn.</p>
               </div>
               <button type="button" onClick={() => setShowArchived((value) => !value)}>
                 {showArchived
@@ -382,14 +368,16 @@ export function IncomeTemplatesPage({
               <section className="commitment-card-grid">
                 {visible.map((item) => {
                   const meta = categoryMeta[item.categoryName] ?? {
-                    icon: "wallet",
-                    color: "green",
+                    icon: "receipt",
+                    color: "cyan",
                   };
-                  const overdue = !item.isReceived && item.dueDate < today;
+                  const tone = commitmentDueTone(item, today);
+                  const statusText = commitmentDueLabel(item, today);
                   return (
-                    <article
-                      className={`commitment-card${item.isReceived ? " paid" : overdue ? " overdue" : ""}`}
+                    <PlanningCard
                       key={item.id}
+                      tone={tone}
+                      className="commitment-card"
                     >
                       <div className="commitment-main">
                         <span className={`transaction-icon ${meta.color}`}>
@@ -398,19 +386,17 @@ export function IncomeTemplatesPage({
                         <div>
                           <div className="commitment-title">
                             <h3>{item.name}</h3>
-                            <span>{dueLabel(item, today)}</span>
+                            <span className="commitment-due-badge">{statusText}</span>
                           </div>
                           <p>
-                            {item.categoryName} · {item.accountName} · ngày {item.dueDay}
+                            {item.categoryName} · {item.accountName} · hạn ngày {item.dueDay}
                           </p>
                         </div>
-                        <strong className="positive font-mono" aria-label={`Khoản thu +${formatMoney(item.amount)}`}>
-                          +{formatMoney(item.amount)}
-                        </strong>
+                        <strong className="font-mono">{formatMoney(item.amount)}</strong>
                       </div>
                       <div className="commitment-actions">
                         {!item.isArchived &&
-                          (item.isReceived ? (
+                          (item.isPaid ? (
                             <button
                               type="button"
                               onClick={() => undo(item)}
@@ -423,11 +409,11 @@ export function IncomeTemplatesPage({
                             <button
                               type="button"
                               className="commitment-pay"
-                              onClick={() => record(item)}
+                              onClick={() => pay(item)}
                               disabled={busyId === item.id}
                             >
                               <Icon name="check" />
-                              Đã nhận
+                              Đã thanh toán
                             </button>
                           ))}
                         {!item.isArchived && (
@@ -449,30 +435,26 @@ export function IncomeTemplatesPage({
                           {item.isArchived ? "Khôi phục" : "Lưu trữ"}
                         </button>
                       </div>
-                    </article>
+                    </PlanningCard>
                   );
                 })}
               </section>
             ) : (
               <EmptyState
-                icon="wallet"
-                title={showArchived ? "Không có khoản đã lưu trữ" : "Chưa có lương định kỳ"}
-                description={
-                  showArchived
-                    ? "Các khoản bạn lưu trữ sẽ xuất hiện tại đây."
-                    : "Thêm lương hoặc khoản thu lặp để ghi nhận nhanh mỗi tháng. Hóa đơn vẫn ở trang Định kỳ."
+                {...(showArchived ? PAGE_EMPTY_COMMITMENT_ARCHIVED : PAGE_EMPTY_COMMITMENT)}
+                actionLabel={
+                  !showArchived && canAdd ? PAGE_EMPTY_COMMITMENT.actionLabel : undefined
                 }
-                actionLabel={!showArchived && canAdd ? "Thêm lương đầu tiên" : undefined}
                 onAction={!showArchived && canAdd ? () => open(null) : undefined}
               />
             )}
           </>
         )}
       </main>
-      <IncomeTemplateDialog
+      <CommitmentDialog
         key={`${editing?.id ?? "new"}-${version}`}
         open={dialogOpen}
-        template={editing}
+        commitment={editing}
         accounts={accounts}
         categories={categories}
         onClose={() => setDialogOpen(false)}

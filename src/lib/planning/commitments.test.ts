@@ -15,7 +15,7 @@ import {
   unpaidActiveCount,
   type RecurringCommitment,
 } from "./commitments.ts";
-import type { Transaction } from "./sample-data.ts";
+import type { Transaction } from "../sample-data.ts";
 
 const base = {
   id: "one",

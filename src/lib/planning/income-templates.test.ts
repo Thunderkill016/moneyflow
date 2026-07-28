@@ -15,7 +15,7 @@ import {
   removeIncomeReceipt,
   type RecurringIncomeTemplate,
 } from "./income-templates.ts";
-import type { Transaction } from "./sample-data.ts";
+import type { Transaction } from "../sample-data.ts";
 
 const base = {
   id: "salary",

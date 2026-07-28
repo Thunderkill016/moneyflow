@@ -14,11 +14,11 @@ import { PUSH_PREFS_KEY } from "./push-prefs.ts";
 import { QUICK_ADD_PREFS_KEY } from "./quick-add-prefs.ts";
 import { THEME_STORAGE_KEY } from "./theme-prefs.ts";
 import { TRANSACTION_STORAGE_KEY } from "./transaction-store.ts";
-import { COMMITMENT_OCCURRENCE_STORAGE_KEY } from "./commitment-occurrence-store.ts";
+import { COMMITMENT_OCCURRENCE_STORAGE_KEY } from "./planning/commitment-occurrence-store.ts";
 import {
   INCOME_TEMPLATE_OCCURRENCE_STORAGE_KEY,
   INCOME_TEMPLATE_STORAGE_KEY,
-} from "./income-template-store.ts";
+} from "./planning/income-template-store.ts";
 
 /** Exact typed confirmation required (Vietnamese uppercase per wireframe). */
 export const DELETE_CONFIRM_TEXT = "XÓA";

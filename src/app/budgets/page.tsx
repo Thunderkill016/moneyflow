@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { BudgetsPage } from "@/components/budgets-page";
+import { BudgetsPage } from "@/components/planning/budgets-page";
 import { requireViewer } from "@/server/auth";
 import { getBudgetsWorkspace } from "@/server/budgets";
 

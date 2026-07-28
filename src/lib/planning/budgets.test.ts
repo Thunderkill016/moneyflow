@@ -8,7 +8,7 @@ import {
   budgetThreshold,
   sumBudgetSpent,
 } from "./budgets.ts";
-import type { Transaction } from "./sample-data.ts";
+import type { Transaction } from "../sample-data.ts";
 
 const foodExpense: Transaction = {
   id: "food-1",

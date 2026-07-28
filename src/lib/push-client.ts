@@ -9,7 +9,7 @@ import {
   selectDueCommitments,
   shouldNotifyToday,
   type DueNotifyCommitment,
-} from "./commitment-due-notify.ts";
+} from "./planning/commitment-due-notify.ts";
 import {
   readPushPrefs,
   recordPushNotified,

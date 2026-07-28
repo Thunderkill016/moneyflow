@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { RecurringIncomeTemplate, SaveIncomeTemplateInput } from "@/lib/income-templates";
+import type { RecurringIncomeTemplate, SaveIncomeTemplateInput } from "@/lib/planning/income-templates";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 import { mapIncomeTemplateRow } from "@/server/income-templates";

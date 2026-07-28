@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { IncomeTemplatesPage } from "@/components/income-templates-page";
+import { IncomeTemplatesPage } from "@/components/planning/income-templates-page";
 import { requireViewer } from "@/server/auth";
 import { getIncomeTemplatesWorkspace } from "@/server/income-templates";
 

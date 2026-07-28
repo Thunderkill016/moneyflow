@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import type { SaveGoalInput, SavingsGoal } from "@/lib/goals";
+import type { SaveGoalInput, SavingsGoal } from "@/lib/planning/goals";
 import { formatMoney, formatMoneyInput, parseMoneyInput } from "@/lib/money";
 
 export function GoalDialog({ open, goal, today, onClose, onSave }: { open: boolean; goal: SavingsGoal | null; today: string; onClose: () => void; onSave: (input: SaveGoalInput) => Promise<{ ok: boolean; message?: string }> }) {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { BudgetSummary, SaveBudgetInput } from "@/lib/budgets";
+import type { BudgetSummary, SaveBudgetInput } from "@/lib/planning/budgets";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 import { mapBudgetRow } from "@/server/budgets";

@@ -1,5 +1,5 @@
-import type { Transaction } from "./sample-data.ts";
-import { formatMoney } from "./money.ts";
+import type { Transaction } from "../sample-data.ts";
+import { formatMoney } from "../money.ts";
 
 export type BudgetSummary = {
   id: string;

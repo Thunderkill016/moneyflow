@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import type { RecurringCommitment, SaveCommitmentInput } from "@/lib/commitments";
+import type { RecurringCommitment, SaveCommitmentInput } from "@/lib/planning/commitments";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 import { mapCommitmentRow } from "@/server/commitments";

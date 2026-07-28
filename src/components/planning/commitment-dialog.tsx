@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import type { RecurringCommitment, SaveCommitmentInput } from "@/lib/commitments";
+import type { RecurringCommitment, SaveCommitmentInput } from "@/lib/planning/commitments";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
 import type { AccountOption, CategoryOption } from "@/lib/sample-data";
 

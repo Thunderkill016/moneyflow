@@ -5,7 +5,7 @@ import { currentMonthStart } from "@/server/budgets";
 import { requireViewer } from "@/server/auth";
 import { createClient } from "@/lib/supabase/server";
 import { demoAccounts, demoCategories, type AccountOption, type CategoryOption } from "@/lib/sample-data";
-import { commitmentTotals, dueDateForMonth, type RecurringCommitment } from "@/lib/commitments";
+import { commitmentTotals, dueDateForMonth, type RecurringCommitment } from "@/lib/planning/commitments";
 
 export type CommitmentsWorkspace = {
   commitments: RecurringCommitment[];

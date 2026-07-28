@@ -6,7 +6,7 @@
  * Recording posts a real income ledger row (integer minor units).
  */
 
-import type { Transaction } from "./sample-data.ts";
+import type { Transaction } from "../sample-data.ts";
 
 export type RecurringIncomeTemplate = {
   id: string;
