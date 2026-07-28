@@ -1,4 +1,38 @@
 {
+  "permissions": {
+    "defaultMode": "default",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch --show-current)",
+      "Bash(npm run check:knowledge)",
+      "Bash(npm run check:deployment-env)",
+      "Bash(npm run check:css-ownership)",
+      "Bash(npm run lint)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run test)",
+      "Bash(npm run test:*)",
+      "Bash(npm run build)"
+    ],
+    "deny": [
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -fd:*)",
+      "Bash(git checkout -- .)",
+      "Bash(git restore .)",
+      "Bash(gh pr merge:*)",
+      "Bash(vercel --prod:*)",
+      "Bash(npx vercel --prod:*)",
+      "Bash(supabase db push:*)",
+      "Bash(npx supabase db push:*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -14,7 +48,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Edit|Write",
+        "matcher": "Bash|Edit|Write|Read",
         "hooks": [
           {
             "type": "command",
