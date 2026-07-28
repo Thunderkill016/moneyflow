@@ -15,8 +15,8 @@ This file is a lightweight session entrypoint. It does not replace `AGENTS.md`, 
 
 ## Current project facts
 
-- Production repository: `Thunderkill016/moneyflow`.
-- Public verification repository: `Thunderkill016/moneyflow-public`.
+- Production repository: `Thunderkill016/moneyflow`; it is public and is the source of truth.
+- Legacy verification mirror: `Thunderkill016/moneyflow-public`; do not treat it as authoritative over the production repository.
 - MoneyFlow is a Vietnamese, manual-first personal income-and-expense ledger.
 - `/dashboard` is the canonical authenticated home; `/insights` is a compatibility redirect.
 - Authenticated mode uses Supabase Auth and PostgreSQL with RLS.
@@ -27,7 +27,7 @@ This file is a lightweight session entrypoint. It does not replace `AGENTS.md`, 
 - Financial calculations belong in deterministic domain modules, not presentation components.
 - The shared shell is owned by `src/components/layout/app-shell.tsx` and its CSS Module.
 - Dashboard presentation is route-owned under `src/app/dashboard/`.
-- Private GitHub Actions are currently blocked before checkout by issue #86; a missing run is not evidence that checks passed.
+- GitHub Actions can execute on the public production repository; issue #86 is resolved. A missing or stale run is still not evidence that checks passed.
 
 ## Source precedence
 

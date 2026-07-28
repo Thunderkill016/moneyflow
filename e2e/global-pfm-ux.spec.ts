@@ -24,18 +24,27 @@ test.describe("Global PFM UX benchmark", () => {
   test("withdraws untrusted spending advice and keeps a viewport primary action", async ({
     page,
   }) => {
-    await page.goto("/insights");
+    await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden();
 
     const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
-    const welcomeExpenseAction = page.locator(
-      ".welcome-actions .insights-ghi-chi",
-    );
     if (isMobile) {
-      await expect(welcomeExpenseAction).toBeHidden();
-      await expect(page.locator(".mobile-fab")).toBeVisible();
+      const mobileNavigation = page.getByRole("navigation", {
+        name: "Điều hướng di động",
+      });
+      await expect(
+        mobileNavigation.getByRole("button", {
+          name: "Ghi chi tiêu",
+          exact: true,
+        }),
+      ).toBeVisible();
     } else {
-      await expect(welcomeExpenseAction).toBeVisible();
+      await expect(
+        page.getByRole("banner").getByRole("button", {
+          name: "Ghi chi tiêu",
+          exact: true,
+        }),
+      ).toBeVisible();
     }
 
     await page.goto("/capture/quick");
@@ -77,11 +86,15 @@ test.describe("Global PFM UX benchmark", () => {
     await expect(
       page.getByRole("button", { name: "Khoản chi", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(
-      page.locator(".transaction-summary").getByText("Ròng", { exact: true }),
-    ).toBeVisible();
+
+    const transactionSummary = page.getByRole("region", {
+      name: "Tóm tắt theo bộ lọc",
+    });
+    const netSummary = transactionSummary
+      .getByText("Ròng", { exact: true })
+      .locator("..");
+    await expect(netSummary).toContainText(/−\s*125\.000/);
     await expect(page.locator(".manager-row").filter({ hasText: NOTE })).toBeVisible();
-    await expect(page.locator(".transaction-summary")).toContainText("−125.000");
   });
 
   test("shows explicit budget decisions and a transaction drill-down", async ({

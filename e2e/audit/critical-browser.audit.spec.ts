@@ -141,7 +141,9 @@ test.describe("critical browser compatibility audit", () => {
         page.getByRole("link", { name: "MoneyFlow, về Tổng quan" }),
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: "Ghi chi tiêu" }),
+        page
+          .getByRole("banner")
+          .getByRole("button", { name: "Ghi chi tiêu", exact: true }),
       ).toBeVisible();
     }
   });
