@@ -2,12 +2,12 @@
 
 **Status:** evaluating  
 **Owner:** MoneyFlow / OpenAI agent  
-**Issue/PR:** pending  
+**Issue/PR:** #119  
 **Last updated:** 2026-07-29
 
 ## Outcome
 
-Replace the generated M logo candidate with a reviewable vector logo built from the web icon library already installed in MoneyFlow. The symbol must remain one rice stalk whose seven grains are coin forms, work at favicon size, and use the same geometry across React UI and `src/app/icon.svg`.
+Replace the generated M logo candidate with a reviewable vector logo built from the web icon library already installed in MoneyFlow. The symbol must match the owner-selected silhouette: one pointed rice grain at the top, three pairs of oval coin grains on a central stalk, and the same geometry across React UI and `src/app/icon.svg`.
 
 ## Repository reconnaissance
 
@@ -42,12 +42,13 @@ Replace the generated M logo candidate with a reviewable vector logo built from 
 - PR #110 centralized the current identity in one component and one app icon.
 - The current source-contract test protects exact geometry and shared use.
 - Recent generated logo experiments drifted into M marks, gold coins, gradients and presentation boards; those are rejected.
+- The owner retained the earlier rice silhouette with a pointed top grain and three pairs of tilted oval coins.
 
 ### Open questions
 
 - [x] Library: use existing `lucide-react`, no new dependency.
-- [x] Construction: Lucide `Circle` primitives plus native SVG stalk/branch paths.
-- [x] Coin count: one top coin plus three balanced pairs.
+- [x] Construction: Lucide `Leaf` + stretched/rotated Lucide `Circle` primitives with native SVG stalk/branch paths.
+- [x] Coin count: three balanced pairs; the top remains a rice grain.
 - [ ] Owner visual approval after browser screenshots.
 
 ## Research
@@ -57,6 +58,7 @@ Replace the generated M logo candidate with a reviewable vector logo built from 
 1. Does the current repository already include a suitable icon library?
 2. Does that library support composing icons with native SVG elements?
 3. Can the result remain tree-shakable and scalable?
+4. Which of the prior visual explorations did the owner actually retain?
 
 ### Sources
 
@@ -65,7 +67,8 @@ Replace the generated M logo candidate with a reviewable vector logo built from 
 | `package.json` | 2026-07-29 | `lucide-react` is already installed | Repository-specific |
 | Lucide React guide | 2026-07-29 | Icons render optimized inline SVG, are customizable and tree-shakable | Implementation guidance |
 | Lucide combining-icons guide | 2026-07-29 | Multiple icon components and native SVG elements can be combined | Keep coordinates within the outer viewBox |
-| Lucide `wheat` and `coins` references | 2026-07-29 | Confirms relevant nature/finance primitives and React imports | Stock icons are references, not the final brand logo |
+| Lucide `leaf`, `wheat` and `coins` references | 2026-07-29 | Confirms relevant nature/finance primitives and React imports | Stock icons are construction references, not the final logo |
+| Owner-selected rice/coin concept image | 2026-07-29 | Pointed top grain, three tilted oval coin pairs and a straight stalk | Recreate as production vector, not as a generated board |
 
 ### Alternatives considered
 
@@ -73,21 +76,22 @@ Replace the generated M logo candidate with a reviewable vector logo built from 
 |---|---|---|---|
 | A — Install another logo/icon library | More assets | Adds dependency and generic style | Rejected |
 | B — Continue generated image boards | Fast visual output | Geometry drift, unusable production assets | Rejected |
-| C — Existing Lucide primitives + custom SVG arrangement | Clean vector, editable, no new dependency | Requires careful small-size testing | Selected |
+| C — Seven circular Lucide coins | Simple implementation | Reads as network/berries and diverges from retained concept | Rejected after inspection |
+| D — Lucide top leaf + six oval coin grains | Matches retained silhouette, editable, no new dependency | Requires careful small-size testing | Selected |
 
 ### Research decision
 
-Use Lucide as the construction system, not as a stock logo. Repeat Lucide `Circle` components for coin grains and connect them with native rounded SVG paths. Mirror the same geometry in the static app icon.
+Use Lucide as the construction system, not as a stock logo. Use `Leaf` for the pointed top grain and six `Circle` components stretched into thick oval coin outlines, rotated outward and connected by native rounded paths. Mirror the same silhouette in the static app icon.
 
 ## Specification
 
 ### Problem
 
-Generated logo images repeatedly changed the approved concept and produced presentation artifacts rather than a reusable production logo. MoneyFlow needs a deterministic vector source that can be reviewed and edited in code.
+Generated logo images repeatedly changed the intended concept and produced presentation artifacts rather than a reusable production logo. An initial code prototype with seven circles also looked like a network instead of the retained rice/coin form. MoneyFlow needs a deterministic vector source that matches the selected silhouette.
 
 ### User stories
 
-- As the owner, I see exactly one rice-stalk concept rather than new unrelated symbols.
+- As the owner, I see the exact retained rice-stalk concept rather than a new interpretation.
 - As a user, I recognize a simple money-and-rice mark at favicon and navigation sizes.
 - As a maintainer, I can edit geometry in one typed React component and one matching SVG asset.
 - As a browser/PWA user, I see the same logo as the web UI.
@@ -95,12 +99,13 @@ Generated logo images repeatedly changed the approved concept and produced prese
 ### Acceptance criteria
 
 - [x] No new package is installed.
-- [x] React mark imports `Circle` from `lucide-react`.
-- [x] Mark contains one stalk, six branches and seven coin outlines.
+- [x] React mark imports `Circle` and `Leaf` from `lucide-react`.
+- [x] Mark contains one stalk, six branches, one top grain and six oval coin outlines.
+- [x] Left/right coins tilt outward and preserve three balanced rows.
 - [x] `src/app/icon.svg` mirrors the same layout.
 - [x] Generated-image effects, M/F/O letters, currency signs and outer badge rings are absent.
 - [x] Shared landing/auth/shell integration remains unchanged.
-- [ ] Static, unit, build and browser checks pass.
+- [ ] Static, unit, build and browser checks pass on the final commit.
 - [ ] Owner reviews phone, desktop, dark and favicon evidence.
 
 ### Required states
@@ -108,7 +113,7 @@ Generated logo images repeatedly changed the approved concept and produced prese
 - Default: green rounded container with white mark.
 - Inverse: monochrome mark on dark/brand surfaces.
 - Forced colors: system color remains visible.
-- Micro: center dots may be hidden while coin outlines and stalk remain legible.
+- Micro: the pointed top grain, stalk and three paired oval groups remain legible without extra detail.
 - Light/dark, phone/tablet/desktop: same geometry.
 
 ### Financial and security constraints
@@ -127,16 +132,16 @@ Generated logo images repeatedly changed the approved concept and produced prese
 
 ### Architecture fit
 
-The shared identity remains in `src/components/brand/`. Lucide is already a product dependency and its standalone import remains tree-shakable. The static app icon mirrors the component geometry because browser/PWA metadata cannot render React components.
+The shared identity remains in `src/components/brand/`. Lucide is already a product dependency and its standalone imports remain tree-shakable. The static app icon mirrors the component silhouette because browser/PWA metadata cannot render React components.
 
 ### Planned changes
 
 | File/area | Change | Reason |
 |---|---|---|
-| `src/components/brand/brand-lockup.tsx` | Compose seven Lucide circles with native stalk/branch paths | Deterministic vector mark |
-| `src/components/brand/brand-lockup.module.css` | Add stroke/fill and micro-size rules | Component-owned presentation |
-| `src/app/icon.svg` | Mirror candidate geometry | Favicon/PWA consistency |
-| `src/lib/brand-ui-contract.test.ts` | Enforce Lucide import, coin count and shared paths | Prevent drift |
+| `src/components/brand/brand-lockup.tsx` | Compose `Leaf` plus six stretched `Circle` components and native stalk/branch paths | Deterministic retained silhouette |
+| `src/components/brand/brand-lockup.module.css` | Own tilt, stroke/fill, sizes and forced colors | Component-owned presentation |
+| `src/app/icon.svg` | Mirror pointed grain and six tilted oval coins | Favicon/PWA consistency |
+| `src/lib/brand-ui-contract.test.ts` | Enforce imports, counts and shared branch paths | Prevent drift |
 | `docs/design/MONEYFLOW_LOGO.md` | Record candidate and owner approval gate | Accurate authority |
 
 ### Data and migration impact
@@ -144,17 +149,18 @@ The shared identity remains in `src/components/brand/`. Lucide is already a prod
 - Schema/migration: none.
 - Backfill: none.
 - Runtime behavior: presentation only.
-- Rollback: revert this branch before approval.
+- Rollback: revert PR #119 before approval.
 
 ### Risks and counterexamples
 
 | Risk/counterexample | Prevention or test |
 |---|---|
-| Seven coins become unreadable at 16px | Browser favicon and 16px screenshot review |
-| Mark looks like berries instead of coins | Outline plus center point; balanced branches |
-| React and static icon drift | Source-contract checks common paths and counts |
-| Nested SVG causes build/browser issue | Full Next build and Chromium/WebKit audit |
-| Owner did not approve final silhouette | Draft PR only; explicit approval required |
+| Oval coins become unreadable at 16px | Browser favicon and 16px screenshot review |
+| Mark looks like leaves instead of coins | Thick open oval construction and three ordered pairs |
+| Mark looks like a network | Preserve pointed top grain and angled rice-grain rhythm |
+| React and static icon drift | Source-contract checks shared stalk/branch paths and counts |
+| Nested SVG transforms differ by browser | Full Next build and Chromium/WebKit audit |
+| Owner did not approve final silhouette | PR remains unmerged; explicit approval required |
 
 ### Verification plan
 
@@ -169,10 +175,10 @@ The shared identity remains in `src/components/brand/`. Lucide is already a prod
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
 | T1 | Confirm installed library and composition support | none | package/docs | done |
-| T2 | Build shared coin-rice component | T1 | branch diff | done |
-| T3 | Mirror app icon and CSS states | T2 | branch diff | done |
-| T4 | Update contract test and logo spec | T2,T3 | branch diff | done |
-| T5 | Open draft PR and run CI | T4 | PR/workflow | todo |
+| T2 | Build initial code prototype | T1 | branch diff | done |
+| T3 | Compare prototype with retained concept and correct silhouette | T2 | visual inspection | done |
+| T4 | Mirror app icon, CSS states and source contract | T3 | branch diff | done |
+| T5 | Open PR and run CI | T4 | PR #119/workflow | in progress |
 | T6 | Review browser evidence with owner | T5 | screenshots | todo |
 | T7 | Merge only after approval | T6 | merge record | todo |
 
@@ -183,14 +189,15 @@ The shared identity remains in `src/components/brand/`. Lucide is already a prod
 | Criterion | Evidence | Result |
 |---|---|---|
 | Existing library only | `package.json` unchanged | pass by inspection |
-| Lucide construction | `Circle` import and seven-item geometry | pass by inspection |
-| Static/component consistency | shared stem/branch paths and count test | pending CI |
+| Lucide construction | `Circle` + `Leaf` imports and six-item coin geometry | pass by inspection |
+| Retained silhouette | pointed top grain + three tilted oval pairs | pass by source inspection |
+| Static/component consistency | shared stem/branch paths and count test | pending final CI |
 | Small-size clarity | browser evidence | pending |
 | Owner approval | explicit conversation decision | pending |
 
 ### Review findings
 
-- Correctness: intended rice-stalk/coin concept is encoded directly rather than inferred by an image generator.
+- Correctness: the revised component now follows the retained concept rather than the discarded seven-circle prototype.
 - Security/ownership: no data or permission boundary changes.
 - Accessibility: shared decorative behavior and forced-colors ownership are preserved.
 - Maintainability: no dependency or duplicated UI integration is added.
@@ -205,8 +212,8 @@ The shared identity remains in `src/components/brand/`. Lucide is already a prod
 ## Delivery record
 
 - Branch: `agent/lucide-coin-rice-logo`
-- PR: pending
-- CI run: pending
+- PR: #119
+- CI run: pending final commit
 - Owner approval: pending
 - Merge commit: pending
 - Production deployment: pending
