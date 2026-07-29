@@ -1,312 +1,132 @@
 # MF SAFE-UX — Security Hardening & Cross-Platform Repair
 
-**Status:** active — planning and evidence lock  
+**Status:** automated delivery complete — authenticated owner acceptance pending  
 **Owner:** MoneyFlow  
 **Master issue:** #134  
-**Branch/PR:** `agent/mf-safe-ux-plan` / #135  
-**Started:** 2026-07-29
+**Started:** 2026-07-29  
+**Production:** `https://mfvn.vercel.app`  
+**Current production commit:** `7abe3b0238768682ce47d1419d6919d9fb765c4e`
 
 ## Outcome
 
-MoneyFlow must eliminate security uncertainty, false UI signals and cross-platform inconsistencies without turning the work into an unrestricted redesign.
+MF SAFE-UX removes the confirmed security uncertainty, false UI signals and cross-platform defects reported during real use without turning the work into an unrestricted redesign.
 
-This plan covers:
-
-- Supabase security findings and privileged RPC classification;
-- missing mobile login access;
-- phantom/stale Inbox attention count;
-- inconsistent UI across mobile, tablet and desktop;
-- mobile defects in Monthly Budgets and Savings Goals;
-- incorrect or inconsistent background colors on amount surfaces.
+Automated implementation and production delivery are complete. The plan remains active only for one final gate: the owner must open the authenticated production app on a real phone and confirm the repaired routes match the acceptance checklist below.
 
 ## Repository reconnaissance
 
-### Owner-reported findings
+### Findings and disposition
 
-| ID | Finding | Initial severity | Evidence |
-|---|---|---:|---|
-| SAFE-01 | UI differs materially across mobile/tablet/desktop | P1 UX | owner report + screenshots |
-| SAFE-02 | Mobile landing has no visible Login action | P1 | owner report + code-confirmed root cause |
-| SAFE-03 | Dashboard shows 7 pending-review items but Inbox has nothing actionable | P1 correctness/UX | owner report + code-confirmed source mismatch candidate |
-| SAFE-04 | Monthly Budget UI is broken/inconsistent on mobile | P1 UX | owner screenshots |
-| SAFE-05 | Savings Goal UI is broken/inconsistent on mobile | P1 UX | owner screenshots |
-| SAFE-06 | Amount-card backgrounds use inconsistent/incorrect semantic colors | P2 visual semantics | owner screenshots |
-| SAFE-07 | Privileged Supabase RPC warnings require complete classification | P1 security | live Security Advisor |
-| SAFE-08 | Leaked-password protection is disabled | P2 security/config | live Security Advisor |
+| ID | Finding | Result | Evidence |
+|---|---|---|---|
+| SAFE-01 | UI materially inconsistent across devices | pass in automated matrix | PR #142, CI #538 |
+| SAFE-02 | Mobile landing hid Login | pass | PR #141; Login visible and at least 44px in browser tests; production landing contains `/login` CTA |
+| SAFE-03 | Dashboard displayed stale/phantom Inbox count | pass | PR #141; authenticated count is server/RLS-derived, demo remains local-only |
+| SAFE-04 | Monthly Budget mobile layout broken | pass in automated matrix | PR #142, Chromium/WebKit evidence |
+| SAFE-05 | Savings Goal mobile layout broken | pass in automated matrix | PR #142, Chromium/WebKit evidence |
+| SAFE-06 | Amount surfaces used misleading/inconsistent backgrounds | pass in automated matrix | PR #142; token-only neutral/semantic contract |
+| SAFE-07 | 23 privileged RPC warnings were unclassified | pass — classified and permanently tested | PR #140; 23-row audit + pgTAP |
+| SAFE-08 | Leaked-password protection disabled | plan-blocked | managed Supabase setting/plan constraint; not represented as fixed |
+| SAFE-09 | Mobile transaction day total covered the first row while scrolling | pass in automated matrix | PR #143, CI #542 |
 
-### Confirmed technical findings
+### Confirmed root causes
 
-1. `src/components/landing-page.module.css` hides `.loginLink` at `max-width: 560px`; this directly causes SAFE-02.
-2. `MoneyFlowDashboard` reads pending Inbox count from localStorage for all runtime modes, while `/inbox` loads/migrates authenticated server data. This can produce a stale or phantom count and is the leading root-cause candidate for SAFE-03.
-3. Supabase live Security Advisor on 2026-07-29 returned:
-   - 23 `authenticated_security_definer_function_executable` warnings;
-   - 1 `auth_leaked_password_protection` warning.
-4. `/budgets` responsive owners include `budget-overview`, `budget-card-grid`, `budget-category-metrics`, progress and action rows.
-5. `/goals` responsive owners include `goal-hero`, `goal-card-grid`, amount/progress sections and `goal-actions`.
-6. Amount colors are currently distributed across global/route styles; the fix must use shared MoneyFlow tokens rather than hardcoded route patches.
+1. Mobile landing CSS intentionally hid `.loginLink` at `max-width: 560px`.
+2. Authenticated Dashboard used browser-local Inbox candidates while `/inbox` used server data.
+3. Legacy route styles fragmented responsive and amount-surface behavior across Dashboard, Budgets and Goals.
+4. A legacy Dashboard balance treatment used strong route-local gradient declarations and needed a scoped final authority.
+5. `.date-group-header` remained `position: sticky` with `top: 66px` on phones, so it overlaid the first transaction row during document scrolling.
+6. The 23 `SECURITY DEFINER` RPCs are intentionally callable by `authenticated`, not by `anon` or `PUBLIC`; all audited functions derive identity from `auth.uid()`, reject unauthenticated execution and lock `search_path`.
 
 ## Research
 
-### Evidence interpretation
-
-- The historical Supabase screenshot is evidence that the Advisor surface previously reported a larger problem count, but the live Advisor result is the source of truth for implementation.
-- The 23 live RPC warnings are generic exposure warnings, not automatic proof that all 23 functions are vulnerable.
-- SAFE-02 has a confirmed CSS root cause and does not require speculative redesign.
-- SAFE-03 has a confirmed data-source mismatch in code; exact runtime behavior still needs an automated reproduction before implementation.
-- The owner screenshots establish visible Budget, Goal and amount-surface defects; Phase 0 must convert each visual complaint into a named route/state/viewport reproduction.
-
-### Related authorities
-
-- #40 remains the authority for the managed leaked-password setting constraint.
-- #72 contains a broader route/state UI audit; SAFE-UX is narrower and owner-defect-driven.
-- #53 remains a domain roadmap and must not be pulled into this repair plan unless a listed defect requires it.
-- `docs/REAL_USE_READINESS_CONTRACT.md` remains the readiness evidence authority; SAFE-UX does not rewrite historical TRUST-7 claims.
+- Generic Supabase Advisor warnings are not automatic proof of a vulnerability; catalog grants, function bodies, ownership checks and tests are authoritative.
+- No DDL was changed merely to suppress an Advisor count.
+- Authenticated and demo modes require separate Inbox sources of truth.
+- Shared MoneyFlow tokens are the visual authority; no new hardcoded colors were introduced for the repair.
+- The final `/transactions` screenshot was correctly reclassified as a day-group sticky-header defect rather than a Dashboard weekly-summary defect.
 
 ## Specification
 
-### Scope boundaries
-
-#### In scope
-
-- evidence-driven security hardening;
-- auth/RLS/RPC privilege verification;
-- navigation truth and Inbox count correctness;
-- responsive layout repair;
-- shared amount-surface semantic color contract;
-- regression tests and production verification.
-
-#### Out of scope
-
-- logo or brand redesign unrelated to a defect;
-- new product features;
-- import/reconciliation/rules roadmap unless required to fix a listed finding;
-- mass-changing all SECURITY DEFINER functions just to reduce Advisor count;
-- publishing real financial data, credentials, tokens or private email addresses.
-
 ### Security contract
 
-Every flagged RPC needs an audit row containing:
-
-- function name and call path;
-- whether browser execution is intentional;
-- `PUBLIC`, `anon`, `authenticated` EXECUTE grants;
-- unauthenticated rejection;
-- `auth.uid()` use;
-- ownership checks for every entity ID;
-- locked safe `search_path`;
-- cross-tenant/BOLA resistance;
-- financial invariant/idempotency behavior;
-- pgTAP/runtime evidence;
-- final decision: retain definer, convert invoker, move schema or revoke.
-
-Generic warnings are not proof of a vulnerability. An RPC is changed only if its actual contract is unsafe or unnecessarily privileged.
+- `PUBLIC` and `anon` cannot execute privileged mutation RPCs.
+- Intentional browser RPCs are limited to `authenticated`.
+- Every privileged mutation derives identity from `auth.uid()`, rejects unauthenticated calls, checks ownership and locks `search_path`.
+- Financial invariants and cross-tenant isolation remain covered by fresh reset + pgTAP.
+- Leaked-password protection remains explicitly plan-blocked until the managed Supabase setting is available and enabled.
 
 ### UI contract
 
-- Every supported route must preserve the same hierarchy and design-token meanings across mobile, tablet and desktop.
-- A visible count or CTA must lead to the exact action/data it claims.
-- Neutral financial amounts use neutral surfaces by default.
-- Semantic colors are reserved for real income, expense, warning, transfer or goal states.
-- Touch targets are at least 44px and content remains usable at 200% text.
-- No implementation may weaken Auth/RLS or expose sensitive data to solve a presentation problem.
+- Mobile landing keeps a visible Login action with a touch target of at least 44px.
+- Authenticated Inbox counts come from server state protected by RLS; demo counts remain device-local.
+- Budget, Goal and equivalent amount surfaces share responsive hierarchy and token semantics.
+- Neutral amounts use neutral surfaces; income, expense, warning, transfer and goal colors are semantic only.
+- Phone transaction day totals stay in normal document flow, precede their rows and never overlap the first transaction.
+- Supported layouts have no horizontal overflow or content hidden behind navigation/FAB.
 
 ## Implementation plan
 
-### Phase 0 — Evidence lock and reproducible baseline
+### Delivered PR sequence
 
-- [ ] Attach sanitized owner screenshots to #134 or linked implementation PRs.
-- [ ] Capture `/`, `/login`, `/dashboard`, `/inbox`, `/budgets`, `/goals`.
-- [ ] Viewports: 390×844, 430×932, 768×1024, 1440×900.
-- [ ] Browsers: Chromium and WebKit.
-- [ ] Themes: light and dark.
-- [ ] Text scale: 100% and 200%.
-- [ ] Record route, state, exact reproduction, expected result and actual result for every finding.
-- [ ] Reconcile the historical Advisor screenshot with the current live Advisor result.
-- [ ] Map each finding to component/CSS/server/database owner and planned test.
+1. **#136 — SAFE-T0:** evidence baseline and automated reproductions.
+2. **#140 — SAFE-T1:** 23-RPC security classification and permanent pgTAP contract.
+3. **#141 — SAFE-T2/T3:** mobile Login and truthful Inbox count.
+4. **#142 — SAFE-T4/T5/T6:** shared responsive, Budget, Goal and amount-surface repair.
+5. **#143 — SAFE-09:** mobile transaction day total remains above rows.
 
-**Gate:** no finding remains a vague visual complaint without a reproducible route/state.
+### Production delivery
 
-### Phase 1 — Security classification and hardening
-
-- [ ] Build the 23-function RPC audit matrix.
-- [ ] Verify `PUBLIC` and `anon` cannot execute privileged mutation RPCs.
-- [ ] Verify intentionally callable RPCs are limited to `authenticated`.
-- [ ] Verify `auth.uid()`, ownership predicates and unauthenticated rejection.
-- [ ] Verify safe `search_path` on every definer function.
-- [ ] Add or strengthen cross-tenant, ID-reuse and unauthenticated pgTAP tests.
-- [ ] Preserve VND integer, transfer net-zero, split-total and idempotency invariants.
-- [ ] Change only functions that fail the contract.
-- [ ] Re-run live Security Advisor after any DDL.
-- [ ] Record leaked-password protection as enabled if the plan supports it, otherwise plan-blocked with the managed-setting constraint.
-- [ ] Check exposed tables/views, client keys, service-role exposure and authorization metadata usage.
-
-**Gate:** 0 unclassified security warnings and 0 unintended `PUBLIC`/`anon` privileged execution paths.
-
-### Phase 2 — Navigation truth and Inbox correctness
-
-#### SAFE-02 — Mobile Login
-
-- [ ] Keep a visible Login action at 320–430px.
-- [ ] Login touch target is at least 44px.
-- [ ] Login and register/start CTA do not overlap or crowd the brand.
-- [ ] Keyboard/focus order remains correct.
-- [ ] Add landing mobile regression tests.
-
-#### SAFE-03 — Pending-review count
-
-- [ ] Define one source of truth per runtime mode.
-- [ ] Authenticated Dashboard count comes from authenticated Inbox/server state.
-- [ ] Demo Dashboard count comes from demo local state only.
-- [ ] Stale demo/local candidates cannot appear as authenticated pending count.
-- [ ] Clicking the chip opens the same pending records represented by the count.
-- [ ] Zero pending items removes the stale badge/chip.
-- [ ] Reload and local→server migration do not reintroduce phantom items.
-- [ ] Add unit and browser tests for 0, 1, 7 and post-approval states.
-
-**Gate:** every visible count drills down to exactly the represented actionable records.
-
-### Phase 3 — Cross-platform UI repair
-
-#### Shared responsive contract — SAFE-01
-
-- [ ] Use consistent content width, page gutters, heading hierarchy and vertical rhythm.
-- [ ] Use shared surface, border, radius and typography tokens.
-- [ ] No horizontal overflow at supported viewports.
-- [ ] No amount clipping or accidental font shrinking.
-- [ ] No overlapping actions.
-- [ ] Bottom navigation/FAB never covers the final actionable content.
-- [ ] Prefer shared root-cause fixes over route-local override sheets.
-
-#### Monthly Budgets — SAFE-04
-
-- [ ] `budget-overview` stacks or wraps cleanly on mobile.
-- [ ] Summary labels and amounts remain readable at 200% text.
-- [ ] Category card hierarchy remains clear.
-- [ ] `budget-category-metrics` stacks/wraps without compression.
-- [ ] Progress bars remain visible and accurately labeled.
-- [ ] “Xem giao dịch”, “Sửa”, and “Xóa hạn mức” have ≥44px targets and do not overflow.
-- [ ] Near/over-budget state uses a controlled semantic cue rather than an unnecessarily tinted full card.
-
-#### Savings Goals — SAFE-05
-
-- [ ] `goal-hero` does not force three amount panels into narrow columns on mobile.
-- [ ] Long VND values do not clip, overflow or become unreadably small.
-- [ ] Goal cards preserve name → deadline → progress → amounts → remaining → actions hierarchy.
-- [ ] “Dành thêm”, “Rút ra”, “Sửa”, and “Lưu trữ” wrap/stack with ≥44px targets.
-- [ ] Active/archived/achieved states remain distinguishable without breaking color semantics.
-
-#### Amount surfaces — SAFE-06
-
-- [ ] Neutral surface is the default amount-panel background.
-- [ ] Income/expense/warning/goal subtle colors are used only when they communicate a real status.
-- [ ] Decorative color must not imply that a neutral amount is positive, negative or dangerous.
-- [ ] Equivalent amount roles use equivalent background/border/text treatment across Dashboard, Budgets and Goals.
-- [ ] Light/dark contrast passes.
-- [ ] No new hardcoded color outside the token authority.
-
-**Gate:** screenshot matrix passes on 4 viewports × 2 browsers × 2 themes, including 200% text.
-
-### Phase 4 — Delivery and production verification
-
-- [ ] Use bounded PRs by root cause: security, navigation/Inbox, shared UI token contract, Budgets, Goals.
-- [ ] Every PR runs knowledge, deployment config, CSS ownership, architecture, lint, typecheck, unit/static-RLS and build gates.
-- [ ] DDL changes run fresh reset + pgTAP + live Advisor before/after.
-- [ ] UI changes run Chromium/WebKit route-state screenshots.
-- [ ] Production-smoke mobile Login.
-- [ ] Production-smoke Inbox count and drill-down.
-- [ ] Production-smoke Budgets and Goals on mobile/tablet/desktop.
-- [ ] Verify no console, hydration or horizontal-overflow errors.
-- [ ] Record commit, CI, deployment, acceptance evidence and residual risk in #134.
+- Latest deployment: `dpl_uA7ye8wFwX5SF8f7xdbGDG3fZm6Y`.
+- State: `READY`.
+- Alias: `mfvn.vercel.app`.
+- Commit: `7abe3b0238768682ce47d1419d6919d9fb765c4e`.
+- `/landing`: HTTP 200 and includes a Login link.
+- `/login`: HTTP 200.
+- unauthenticated `/transactions`: correctly resolves to Login with `next=/transactions`.
+- deployment runtime query found no `error` or `fatal` entries after smoke requests.
 
 ## Tasks
 
-| Task | Scope | Planned evidence | Status |
-|---|---|---|---|
-| SAFE-T0 | Phase 0 baseline and automated reproductions | screenshot matrix + test cases | ready |
-| SAFE-T1 | SAFE-07/08 security classification and required hardening | 23-row audit, pgTAP, Advisor before/after | blocked by SAFE-T0 evidence lock |
-| SAFE-T2 | SAFE-02 mobile Login repair | landing mobile regression + production smoke | blocked by SAFE-T0 evidence lock |
-| SAFE-T3 | SAFE-03 Inbox count truth | source-of-truth tests + drill-down evidence | blocked by SAFE-T0 evidence lock |
-| SAFE-T4 | SAFE-01 shared responsive and amount-surface contract | token audit + route screenshot matrix | blocked by SAFE-T0 evidence lock |
-| SAFE-T5 | SAFE-04 Monthly Budgets repair | Budget route mobile/tablet/desktop evidence | blocked by SAFE-T4 |
-| SAFE-T6 | SAFE-05 Savings Goals repair | Goals route mobile/tablet/desktop evidence | blocked by SAFE-T4 |
-| SAFE-T7 | Production verification and closure | deployment, smoke and residual-risk record | blocked by SAFE-T1–T6 |
-
-## Execution checklist
-
-### Before implementation
-
-- [ ] Finding ID assigned.
-- [ ] Severity assigned from user impact.
-- [ ] Route/state/reproduction documented.
-- [ ] Sanitized evidence attached.
-- [ ] Root cause confirmed or testable hypothesis stated.
-- [ ] Observable acceptance criteria written.
-- [ ] Regression test named.
-- [ ] Scope checked against #72, #53 and #40.
-
-### During implementation
-
-- [ ] One coherent root cause per PR.
-- [ ] No unrelated redesign.
-- [ ] No unnecessary dependency.
-- [ ] No hardcoded color outside token authority.
-- [ ] No weakened Auth/RLS workaround.
-- [ ] No sensitive data in logs or fixtures.
-- [ ] Regression test fails before or otherwise proves the old bug.
-- [ ] Test passes after the fix.
-
-### Before merge
-
-- [ ] Required CI jobs pass.
-- [ ] Diff has no scope creep.
-- [ ] UI screenshot matrix passes where relevant.
-- [ ] Cross-tenant and unauthenticated tests pass where relevant.
-- [ ] Security Advisor before/after recorded for DDL/Auth changes.
-- [ ] Owner-facing acceptance criterion manually checked.
-
-### After deployment
-
-- [ ] Deployment is READY for the expected commit.
-- [ ] `/login` is reachable from mobile landing.
-- [ ] Attention count equals actionable `/inbox` items.
-- [ ] `/budgets` passes mobile/tablet/desktop.
-- [ ] `/goals` passes mobile/tablet/desktop.
-- [ ] Amount surfaces use the approved semantics in light/dark.
-- [ ] No console/hydration/overflow regression.
-- [ ] #134 updated with evidence and remaining risks.
-
-## PR sequence
-
-1. **PR A — evidence and automated reproduction**
-2. **PR B — RPC security audit and required hardening**
-3. **PR C — mobile Login and Inbox count truth**
-4. **PR D — shared responsive/amount-surface contract**
-5. **PR E — Monthly Budgets repair**
-6. **PR F — Savings Goals repair**
-7. **PR G — production verification and closure record**
-
-A PR may be omitted only if evidence proves no implementation is required; the decision must be recorded in #134.
+| Task | Scope | Status |
+|---|---|---|
+| SAFE-T0 | Evidence and reproducible baseline | complete — #136 |
+| SAFE-T1 | RPC security classification | complete — #140 |
+| SAFE-T2 | Mobile Login | complete — #141 |
+| SAFE-T3 | Inbox source of truth | complete — #141 |
+| SAFE-T4 | Shared responsive and amount-surface contract | complete — #142 |
+| SAFE-T5 | Monthly Budgets | complete — #142 |
+| SAFE-T6 | Savings Goals | complete — #142 |
+| SAFE-T7A | Automated CI, deployment and public/redirect smoke | complete |
+| SAFE-T7B | Authenticated real-phone owner acceptance | pending |
+| SAFE-T8 | Leaked-password managed setting | plan-blocked; tracked by #40 |
+| SAFE-T9 | Transaction day-total overlap | complete — #143 |
 
 ## Evaluation
 
-| Criterion | Evidence required | Current result |
-|---|---|---|
-| Security warnings classified | 23-row RPC matrix + leaked-password decision | pending |
-| Mobile Login available | browser evidence at 320–430px | pending |
-| Inbox count truthful | unit/browser/server-state evidence | pending |
-| Cross-platform consistency | route-state screenshot matrix | pending |
-| Monthly Budgets repaired | mobile/tablet/desktop evidence | pending |
-| Savings Goals repaired | mobile/tablet/desktop evidence | pending |
-| Amount-surface semantics consistent | token audit + light/dark screenshots | pending |
-| Production verification | deployment and smoke record | pending |
+| Criterion | Current result |
+|---|---|
+| Security warnings classified | pass; 23 RPCs classified/tested, leaked-password plan-blocked |
+| Mobile Login available | pass automated + production HTML |
+| Inbox count truthful | pass automated; authenticated production owner check pending |
+| Cross-platform consistency | pass CI Chromium/WebKit matrix |
+| Monthly Budgets repaired | pass CI matrix; owner production check pending |
+| Savings Goals repaired | pass CI matrix; owner production check pending |
+| Amount-surface semantics consistent | pass static/token and browser evidence |
+| Transaction day total does not overlap rows | pass CI #542; owner production check pending |
+| Deployment/runtime | READY; no error/fatal logs found during automated smoke |
+
+### Final authenticated owner checklist
+
+On the current production build, using the owner account on a phone:
+
+- [ ] Landing shows **Đăng nhập** and it is easy to tap.
+- [ ] Dashboard attention count equals the actionable records in `/inbox`; zero records means no phantom badge.
+- [ ] Dashboard amount surfaces, Monthly Budget and Savings Goal cards have consistent neutral/semantic backgrounds.
+- [ ] `/budgets` and `/goals` do not clip amounts or actions.
+- [ ] On `/transactions`, scroll through multiple date groups: `HÔM NAY / HÔM QUA` and `Tổng` remain above their rows and never cover a transaction.
+- [ ] No visible horizontal overflow, hydration error or blocked action occurs.
 
 ### Exit criteria
 
-MF SAFE-UX closes only when:
-
-- SAFE-01 through SAFE-08 are `pass`, `accepted-risk`, or `plan-blocked` with explicit evidence;
-- no false count or dead CTA remains;
-- supported route/device matrix passes;
-- all live security warnings are classified;
-- unsafe findings are fixed with tests;
-- production verification and delivery records are complete.
+MF SAFE-UX may be archived and #134 closed only after the owner confirms the authenticated checklist, or explicitly waives that final manual evidence. SAFE-08 remains a documented plan-blocked residual risk and must not be described as fixed.
