@@ -2,7 +2,8 @@
 
 **Status:** Phase 3 active; candidate Day 1 pending completion  
 **Owner:** MoneyFlow  
-**Issue/PR:** #123 / pending  
+**Issue/PR:** #123 / #131  
+**Daily evidence log:** #127  
 **Last updated:** 2026-07-29
 
 ## Outcome
@@ -26,8 +27,9 @@ MoneyFlow remains frozen against redesign and feature expansion while the owner 
 | Area | Why it matters | Rule during Phase 3 |
 |---|---|---|
 | `docs/REAL_USE_READINESS_CONTRACT.md` | Authority for R0–R7 completion claims | Keep R7 incomplete until exit evidence exists |
-| `docs/plans/active/mf-trust-7.md` | Sole active execution packet | Record daily sanitized status only |
-| GitHub #123 | Durable master tracker | Record phase state and accepted daily evidence |
+| `docs/plans/active/mf-trust-7.md` | Sole active execution packet | Record protocol and current phase state |
+| GitHub #123 | Durable master tracker | Own Phase 3 scope and exit decision |
+| GitHub #127 | Subordinate daily evidence log | Store only sanitized daily records |
 | GitHub #40 | Managed Auth hardening constraint | Keep open and plan-blocked |
 | GitHub #72 and PR #119 | Deferred UI/brand work | Keep frozen |
 
@@ -77,6 +79,7 @@ R0–R6 are technically and manually accepted, but R7 still lacks seven consecut
 - [x] The 2026-07-29 owner statement is recorded as a real-use session with multiple defects observed.
 - [x] The same statement is not overstated as a completed Day 1.
 - [x] Defect remediation is deferred to a separate plan.
+- [x] A subordinate daily evidence log exists in #127 under parent #123.
 - [ ] Seven consecutive calendar days satisfy the complete daily checklist.
 - [ ] Final CSV is exported and opened in a normal spreadsheet application.
 - [ ] A sanitized sample is checked for missing or duplicate rows.
@@ -140,7 +143,7 @@ The table is a candidate window, not a guarantee. If Day 1 remains partial or an
 ### Verification plan
 
 - Repository: normal documentation PR CI must pass.
-- GitHub: #123 remains open and records Phase 3 activation.
+- GitHub: #123 remains open, #127 remains subordinate and records only daily evidence.
 - Production: no deployment behavior change is claimed.
 - Manual: each accepted day requires an explicit owner confirmation covering all daily fields.
 
@@ -151,7 +154,7 @@ The table is a candidate window, not a guarantee. If Day 1 remains partial or an
 | P0 | Freeze and repository reconciliation | none | PR #124 | done |
 | P1 | Core correctness fixes | P0 | PR #125 | done |
 | P2 | Security/manual readiness synchronization | P1 | PR #126 | done |
-| P3-0 | Activate seven-day protocol and candidate log | P2 | this PR / #123 | in progress |
+| P3-0 | Activate seven-day protocol and candidate log | P2 | PR #131 / #123 / #127 | in progress |
 | P3-1 | Accept first complete daily record | P3-0 | owner confirmation | pending |
 | P3-2 | Complete seven consecutive accepted days | P3-1 | daily sanitized records | pending |
 | P3-3 | Run final export, duplicate/missing review and timing summary | P3-2 | exit evidence | pending |
@@ -176,6 +179,7 @@ Rules:
 | Real-use session occurred on 2026-07-29 | owner statement | pass |
 | Full Day 1 checklist completed | incomplete fields | not yet accepted |
 | Defect work kept separate | explicit scope boundary | pass |
+| Daily evidence log created | #127 | pass |
 | Seven consecutive accepted days | daily log | pending |
 
 ### Remaining limitations
@@ -196,6 +200,7 @@ Rules:
 - Phase 2 branch/PR: `agent/mf-trust-7-phase-2` / #126
 - Phase 2 squash commit: `2f0150ff68078919a0e22d7d915f47b9a777c8e3`
 - Phase 2 CI: #504 — verify, database and e2e passed
-- Phase 3 activation branch: `agent/mf-trust-7-phase-3-start`
+- Phase 3 activation branch/PR: `agent/mf-trust-7-phase-3-start` / #131
+- Phase 3 daily evidence log: #127
 - Phase 3 production behavior change: none
 - Next gate: first fully accepted daily record, then seven consecutive accepted days
