@@ -71,16 +71,21 @@ test.describe("Expense path (thu chi)", () => {
       page.getByLabel(OPENING_BALANCE_LABEL, { exact: true }),
     ).toBeVisible({ timeout: 20_000 });
 
-    // AppShell owns the only surfaced primary expense action. The older
-    // in-page duplicate remains hidden until the full dashboard JSX cleanup.
+    const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
+
+    // AppShell owns the surfaced primary expense action. The in-page CTA can
+    // also exist in the empty state, so scope this assertion to the shell.
     await expect(
       page.locator(".welcome-actions .insights-ghi-chi"),
     ).toBeHidden();
-    await expect(
-      page.getByRole("button", { name: "Ghi chi tiêu" }),
-    ).toBeVisible();
-
-    const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
+    const surfacedPrimaryAction = isMobile
+      ? page
+          .getByRole("navigation", { name: "Điều hướng di động" })
+          .getByRole("button", { name: "Ghi chi tiêu" })
+      : page
+          .getByRole("banner")
+          .getByRole("button", { name: "Ghi chi tiêu" });
+    await expect(surfacedPrimaryAction).toBeVisible();
 
     // Mobile must expose the account sheet from the topbar avatar.
     if (isMobile) {
