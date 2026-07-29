@@ -1,6 +1,6 @@
 # MoneyFlow — Real-Use Readiness Contract
 
-**Status:** active; R0–R6 accepted, R7 seven-day use accepted, exit review pending  
+**Status:** complete with owner waiver; R0–R6 accepted, R7 seven-day use accepted, exit review not performed  
 **Product boundary:** Vietnamese personal income/expense web app for one person managing their own wallets  
 **Primary job:** record income/expense quickly, know the current balance and monthly spending, and retain ownership through export  
 **Readiness period:** seven days of owner self-use after all technical gates pass
@@ -70,6 +70,7 @@ Forbidden:
 - Supabase Site URL and callback allow-list must match production exactly.
 - R0–R6 were accepted on 2026-07-27.
 - On 2026-07-29 the owner explicitly confirmed that MoneyFlow had already been used for seven days. That owner confirmation is accepted as evidence of the seven-day use duration; exact private daily dates and transaction details are not reconstructed.
+- On 2026-07-29 the owner chose to skip the remaining exit-review checks. Those checks are recorded as waived and must not be represented as passed.
 
 ## Readiness gates
 
@@ -179,7 +180,7 @@ On a 390×844 Chromium viewport:
 - [x] Save succeeds and the transaction appears in the manager immediately.
 - [x] Exercise the real mobile keyboard and confirm it does not cover primary controls; owner-confirmed on 2026-07-27.
 
-### R7 — Seven-day self-use and exit review
+### R7 — Seven-day self-use and owner waiver
 
 Owner-use evidence:
 
@@ -188,16 +189,20 @@ Owner-use evidence:
 - [x] The owner is not required to repeat another seven-day window because the structured log was created after the use had already occurred.
 - [x] Exact private daily dates, descriptions and amounts are not invented or published.
 - [x] Defect details and remediation are deferred to a separate evidence-driven plan.
+- [x] The owner explicitly chose to skip the remaining exit-review phase and proceed to the next plan.
 
-The seven-day use-duration gate is accepted. The exit review remains incomplete:
+The seven-day use-duration gate is accepted. The following checks were waived and are **not verified**:
 
-- [ ] Export the final self-use CSV and open it in a normal spreadsheet application.
-- [ ] Compare a sanitized sample for missing or duplicate entries.
-- [ ] Record median entry time from at least five timed entries, if those measurements exist.
-- [ ] Record how many of the seven days MoneyFlow replaced the previous method.
-- [ ] Decide: continue, fix blocking defects, simplify or stop.
+- [~] Export the final self-use CSV and open it in a normal spreadsheet application — waived.
+- [~] Compare a sanitized sample for missing or duplicate entries — waived.
+- [~] Record median entry time from at least five timed entries — waived and not measured.
+- [~] Record how many of the seven days MoneyFlow replaced the previous method — waived and not measured.
 
-Broader redesign, feature expansion and roadmap work remain frozen until this exit decision is recorded. Separately scoped P0/P1 production blockers may be addressed through their own defect plan.
+Exit direction:
+
+- [x] Proceed to a separate evidence-driven blocker/defect plan.
+
+TRUST-7 is closed with an explicit owner waiver. The waiver unblocks defect planning but does not validate unrestricted redesign, feature expansion, #72, PR #119 or roadmap work under #53. Separately scoped P0/P1 production blockers remain the first priority.
 
 ## Accepted production smoke evidence
 

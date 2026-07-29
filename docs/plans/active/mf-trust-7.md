@@ -1,14 +1,16 @@
 # MF TRUST-7 — stabilization and real-use proof
 
-**Status:** Phase 3 seven-day use complete; exit review pending  
+**Status:** complete; seven-day use accepted, exit review waived by owner  
 **Owner:** MoneyFlow  
-**Issue/PR:** #123 / #131  
+**Issue/PR:** #123 / #132  
 **Owner-use evidence:** #127  
 **Last updated:** 2026-07-29
 
 ## Outcome
 
-MoneyFlow has completed the TRUST-7 technical stabilization work and the owner has explicitly confirmed seven days of real use. The project must now perform a bounded exit review before opening a separate defect-remediation plan or resuming broader roadmap work.
+MoneyFlow completed the TRUST-7 technical stabilization phases and the owner explicitly confirmed seven days of real use. On 2026-07-29 the owner chose to skip the remaining exit-review phase and proceed to a separate evidence-driven defect plan.
+
+The skipped checks are recorded as **waived**, not passed. No CSV result, missing/duplicate review, median entry time or replacement-method count is invented.
 
 ## Repository reconnaissance
 
@@ -17,14 +19,15 @@ MoneyFlow has completed the TRUST-7 technical stabilization work and the owner h
 - Phase 0 shipped through PR #124: repository and tracking reconciliation.
 - Phase 1 shipped through PR #125: Dashboard keep-open and deterministic balance fixes.
 - Phase 2 shipped through PR #126: R0–R6 readiness synchronization, Supabase #40 constraint and authenticated mutation-RPC audit.
-- Phase 3 owner-use duration was confirmed on 2026-07-29 in #127.
+- Phase 3 seven-day owner-use duration was accepted through PR #131 and #127.
+- The owner reported multiple defects from real use and reserved remediation for a separate plan.
 
 ### Repository authorities
 
 | Area | Authority |
 |---|---|
 | R0–R7 readiness claims | `docs/REAL_USE_READINESS_CONTRACT.md` |
-| Active TRUST-7 execution state | `docs/plans/active/mf-trust-7.md` |
+| TRUST-7 final execution state | `docs/plans/active/mf-trust-7.md` |
 | Master external tracker | GitHub #123 |
 | Seven-day owner-use evidence | GitHub #127 |
 | Supabase leaked-password constraint | GitHub #40 |
@@ -42,80 +45,58 @@ MoneyFlow has completed the TRUST-7 technical stabilization work and the owner h
 
 ## Research
 
-### Phase 3 evidence decision
+### Owner decision
 
-The owner explicitly stated that MoneyFlow has already been used for seven days. This direct owner confirmation is accepted as evidence that the seven-day real-use duration occurred.
+The owner explicitly chose to skip the remaining TRUST-7 exit-review work. This decision changes project sequencing but does not retroactively prove the skipped checks.
 
-The project will not force the owner to repeat another seven-day window merely because a structured GitHub log was created after the real use had already happened.
+Waived evidence:
 
-Evidence boundaries:
+- final self-use CSV export/open check;
+- sanitized missing/duplicate comparison;
+- median entry time from at least five measurements;
+- count of days MoneyFlow replaced the previous method.
 
-- do not invent exact start/end dates that the owner did not provide;
-- do not reconstruct private daily transaction activity;
-- do not publish real financial descriptions;
-- do not claim CSV, duplicate, timing or replacement-method evidence that has not been confirmed;
-- keep all discovered defect details and remediation in a separate plan.
-
-No new external research is required for this correction. The controlling evidence is the owner's direct statement about completed real use.
+The owner had already reported multiple real-use defects and stated that they would be handled under another plan. Therefore the recorded exit direction is **proceed to a separate blocker/defect plan**, not unrestricted feature expansion.
 
 ## Specification
 
-### Current product finding
+### Final TRUST-7 finding
 
 - [x] MoneyFlow was used in real life for seven days.
 - [x] Real use revealed multiple defects.
-- [x] Defect remediation is deliberately deferred to a separate plan.
-- [x] No runtime, UI, database, Auth, dependency or production-data change is included in Phase 3 documentation.
+- [x] Defect remediation is deferred to a separate plan.
+- [x] The remaining exit-review checks were explicitly waived by the owner.
+- [x] Waived checks are not represented as passed or verified.
+- [x] Phase 4 defect planning is unblocked.
 
-The existence of multiple defects means the exit decision will likely be **fix blockers** rather than unrestricted roadmap expansion, but that decision is not finalized until the exit review is recorded.
+### Waived items
 
-### Acceptance criteria
+- [~] Final CSV exported and opened in a normal spreadsheet application — waived, not verified.
+- [~] Sanitized sample checked for missing or duplicate rows — waived, not verified.
+- [~] Median entry time recorded from at least five measurements — waived, not measured.
+- [~] Number of days MoneyFlow replaced the previous method — waived, not measured.
 
-- [x] Seven days of real owner use are accepted from direct owner confirmation.
-- [x] The owner is not required to repeat another seven-day window.
-- [x] Exact private daily activity is not reconstructed or published.
-- [x] Newly observed defects remain outside this plan.
-- [ ] Final CSV is exported and opened in a normal spreadsheet application.
-- [ ] A sanitized sample is checked for missing or duplicate rows.
-- [ ] Median entry time is recorded from at least five measurements, if available.
-- [ ] The number of days MoneyFlow replaced the previous method is recorded.
-- [ ] An exit decision is recorded: continue / fix blockers / simplify / stop.
+### Scope boundary after TRUST-7
 
-### Scope boundary
-
-Until the exit review is recorded:
-
-- no redesign or visual-polish program;
-- no new product feature;
-- no dependency or workflow expansion;
-- no resumption of #72, #119 or roadmap work under #53;
-- only separately scoped P0/P1 production blockers may interrupt the freeze.
+- A separate defect plan may now be opened.
+- Real-use defects must be captured with synthetic or sanitized descriptions.
+- Severity must be based on user impact and reproducible behavior.
+- P0/P1 correctness and blocking friction come before redesign or feature breadth.
+- #40 remains plan-blocked until the managed Supabase setting is actually available and enabled.
+- #72 and PR #119 are not automatically authorized by closing TRUST-7.
 
 ## Implementation plan
 
-### Remaining exit review
+### Phase 4 entry rule
 
-- [ ] Export the final CSV and open it in a normal spreadsheet application.
-- [ ] Inspect a sanitized sample for missing or duplicate rows.
-- [ ] Record median entry time from at least five measurements, if those measurements exist.
-- [ ] Record how many of the seven days MoneyFlow replaced the previous method.
-- [ ] Record one exit decision: continue / fix blockers / simplify / stop.
+The next plan must begin with:
 
-### Decision rule
-
-- **Continue:** core use is trustworthy and defects are non-blocking.
-- **Fix blockers:** real use exposed correctness or severe friction defects that must be addressed first.
-- **Simplify:** the current product is too broad or cumbersome for routine use.
-- **Stop:** the product does not provide enough value to justify further investment.
-
-### Future defect-plan requirements
-
-1. sanitized defect inventory;
-2. severity classification based on actual user impact;
-3. reproduction evidence;
-4. acceptance criteria observable by the owner;
+1. sanitized defect inventory from the seven-day use period;
+2. severity classification based on actual impact;
+3. reproducible steps and affected routes/states;
+4. observable acceptance criteria;
 5. one bounded PR per coherent defect group;
-6. production verification after each P0/P1 fix.
+6. production verification for every P0/P1 fix.
 
 ### Tasks
 
@@ -124,11 +105,11 @@ Until the exit review is recorded:
 | P0 | Freeze and repository reconciliation | PR #124 | done |
 | P1 | Core correctness fixes | PR #125 | done |
 | P2 | Security/manual readiness synchronization | PR #126 | done |
-| P3-1 | Confirm seven days of real owner use | owner confirmation / #127 | done |
-| P3-2 | Final CSV and missing/duplicate review | sanitized exit evidence | pending |
-| P3-3 | Entry-time and replacement-method summary | owner evidence | pending |
-| P3-4 | Record exit decision | #123 / readiness contract | pending |
-| P4 | Open separate evidence-driven defect plan | after P3-4 | blocked |
+| P3-1 | Confirm seven days of real owner use | owner confirmation / #127 / PR #131 | done |
+| P3-2 | Final CSV and missing/duplicate review | owner decision | waived, not verified |
+| P3-3 | Entry-time and replacement-method summary | owner decision | waived, not measured |
+| P3-4 | Record exit direction | owner instruction on 2026-07-29 / PR #132 | done — proceed to defect plan |
+| P4 | Open separate evidence-driven defect plan | after TRUST-7 closure | ready |
 
 ## Evaluation
 
@@ -137,21 +118,21 @@ Until the exit review is recorded:
 | Phase 0 delivered | PR #124 | pass |
 | Phase 1 delivered | PR #125 | pass |
 | Phase 2 delivered | PR #126 | pass |
-| Seven days of real use occurred | explicit owner confirmation / #127 | pass |
+| Seven days of real use occurred | explicit owner confirmation / #127 / PR #131 | pass |
 | Multiple real-use defects observed | explicit owner confirmation | pass; details deferred |
-| Final CSV opened | not yet confirmed | pending |
-| Missing/duplicate review | not yet confirmed | pending |
-| Median entry time | not yet confirmed | pending |
-| Previous-method replacement count | not yet confirmed | pending |
-| Exit decision | not yet recorded | pending |
+| Final CSV opened | owner waived | not verified |
+| Missing/duplicate review | owner waived | not verified |
+| Median entry time | owner waived | not measured |
+| Previous-method replacement count | owner waived | not measured |
+| Exit direction | owner instruction / PR #132 | proceed to separate defect plan |
 
 ### Remaining limitations
 
 - Exact daily calendar dates were not supplied and are not invented.
 - The defect set has not yet been captured or classified.
-- No claim is made that every defect is minor; real use indicates further work is needed.
+- Skipped exit evidence cannot be cited later as if it passed.
 - #40 remains plan-blocked on the current Supabase Free plan.
-- UI, brand and roadmap work remain frozen until the exit decision.
+- Closing TRUST-7 does not itself validate redesign, logo or feature work.
 
 ## Delivery record
 
@@ -166,5 +147,7 @@ Until the exit review is recorded:
 - Phase 2 CI: #504 — verify, database and e2e passed
 - Phase 3 documentation branch/PR: `agent/mf-trust-7-phase-3-start` / #131
 - Phase 3 owner-use evidence: #127
-- Phase 3 production behavior change: none
-- Next gate: bounded exit review, then separate defect-remediation plan
+- Exit-review waiver branch/PR: `agent/mf-trust-7-waive-exit-review` / #132
+- Exit-review waiver: owner instruction on 2026-07-29
+- Production behavior change: none
+- Next authorized work: separate evidence-driven defect plan
