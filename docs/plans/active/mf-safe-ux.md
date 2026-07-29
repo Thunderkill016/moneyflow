@@ -3,7 +3,7 @@
 **Status:** active — planning and evidence lock  
 **Owner:** MoneyFlow  
 **Master issue:** #134  
-**Branch/PR:** `agent/mf-safe-ux-plan` / pending  
+**Branch/PR:** `agent/mf-safe-ux-plan` / #135  
 **Started:** 2026-07-29
 
 ## Outcome
