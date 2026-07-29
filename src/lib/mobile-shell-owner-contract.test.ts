@@ -23,6 +23,7 @@ test("quick-capture amount field owns dark readable foreground and background", 
   assert.match(css, /color:\s*var\(--mf-text\)/u);
   assert.match(css, /placeholder/u);
   assert.match(css, /color:\s*var\(--mf-text-soft\)/u);
+  assert.doesNotMatch(css, /background:\s*(?:white|#fff(?:fff)?)/u);
 });
 
 test("root layout mounts the mobile shell contract once", () => {
