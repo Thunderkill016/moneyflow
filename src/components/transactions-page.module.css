@@ -75,6 +75,34 @@
     max-width: 100%;
   }
 
+  /*
+   * SAFE-09 — a sticky day header covered the first transaction while the
+   * document scrolled. Phone layouts keep each day total in normal flow so
+   * the label/amount always precede, rather than overlap, that day's rows.
+   */
+  .summary + :global(.transaction-manager .date-group-header) {
+    position: static;
+    top: auto;
+    z-index: auto;
+    min-height: 44px;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 12px;
+    background: var(--mf-surface-muted);
+  }
+
+  .summary + :global(.transaction-manager .date-group-title),
+  .summary + :global(.transaction-manager .date-group-total) {
+    line-height: 1.35;
+  }
+
+  .summary + :global(.transaction-manager .date-group-total) {
+    display: inline-flex;
+    align-items: baseline;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
   .summary + :global(.transaction-manager .manager-row) {
     grid-template-columns: 34px minmax(0, 1fr) auto;
     gap: 8px 10px;
