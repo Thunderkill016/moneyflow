@@ -179,27 +179,34 @@ test.describe("cross-device responsive audit", () => {
     test.skip(width > 430, "SAFE-09 is specific to phone transaction groups");
 
     await page.goto("/transactions", { waitUntil: "domcontentloaded" });
-    await expect(page.locator(".date-group-header").first()).toBeVisible();
-    await expect(page.locator(".manager-row").first()).toBeVisible();
+    const metricsHandle = await page.waitForFunction(() => {
+      const headers = Array.from(
+        document.querySelectorAll<HTMLElement>(".date-group-header"),
+      );
+      for (const header of headers) {
+        const row = header.parentElement?.querySelector<HTMLElement>(".manager-row");
+        if (!row) continue;
 
-    const metrics = await page.evaluate(() => {
-      const header = document.querySelector<HTMLElement>(".date-group-header");
-      const row = header?.parentElement?.querySelector<HTMLElement>(".manager-row");
-      if (!header || !row) {
-        throw new Error("Missing transaction day header or first row");
+        row.scrollIntoView({ block: "center", inline: "nearest" });
+        const headerRect = header.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
+        return {
+          position: getComputedStyle(header).position,
+          headerHeight: headerRect.height,
+          headerBottom: headerRect.bottom,
+          rowTop: rowRect.top,
+          overlap: Math.max(0, headerRect.bottom - rowRect.top),
+        };
       }
-
-      row.scrollIntoView({ block: "center", inline: "nearest" });
-      const headerRect = header.getBoundingClientRect();
-      const rowRect = row.getBoundingClientRect();
-      return {
-        position: getComputedStyle(header).position,
-        headerHeight: headerRect.height,
-        headerBottom: headerRect.bottom,
-        rowTop: rowRect.top,
-        overlap: Math.max(0, headerRect.bottom - rowRect.top),
-      };
+      return null;
     });
+    const metrics = (await metricsHandle.jsonValue()) as {
+      position: string;
+      headerHeight: number;
+      headerBottom: number;
+      rowTop: number;
+      overlap: number;
+    };
 
     const evidence = await page.screenshot({ animations: "disabled" });
     await testInfo.attach(`safe-09-day-total-${testInfo.project.name}.png`, {
