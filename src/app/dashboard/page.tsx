@@ -9,6 +9,7 @@ import { getPendingInboxCountFromServer } from "@/server/inbox";
 import { getIncomeTemplatesWorkspace } from "@/server/income-templates";
 import "./calm-ledger-overview.css";
 import "./calm-ledger-overview-actions.css";
+import "../safe-ux-planning.css";
 
 export const metadata: Metadata = {
   title: "Tổng quan — MoneyFlow",
