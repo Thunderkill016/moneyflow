@@ -17,6 +17,12 @@ test("mobile routes keep content above fixed navigation and sheet endings reacha
   assert.match(css, /scroll-padding-bottom:\s*calc\(96px \+ env\(safe-area-inset-bottom/u);
 });
 
+test("accounts keeps a separate mobile add-account action", () => {
+  assert.match(css, /body:has\(main\.accounts-workspace\)/u);
+  assert.match(css, /button:first-child/u);
+  assert.match(css, /display:\s*inline-flex/u);
+});
+
 test("quick-capture amount field owns dark readable foreground and background", () => {
   assert.match(css, /transaction-dialog \.amount-field > div/u);
   assert.match(css, /background:\s*var\(--mf-canvas\)/u);
