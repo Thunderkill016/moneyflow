@@ -4,6 +4,9 @@ import { auditRoute, seedUiAuditState, type AuditRoute } from "./responsive-audi
 const CRITICAL_ROUTES: AuditRoute[] = [
   { label: "landing", path: "/landing" },
   { label: "dashboard", path: "/dashboard" },
+  { label: "inbox", path: "/inbox" },
+  { label: "budgets", path: "/budgets" },
+  { label: "goals", path: "/goals" },
   { label: "quick-capture", path: "/capture/quick" },
   { label: "transactions", path: "/transactions" },
 ];
