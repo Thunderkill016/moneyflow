@@ -1,4 +1,4 @@
-import { Circle } from "lucide-react";
+import { Circle, Leaf } from "lucide-react";
 import Link from "next/link";
 import styles from "./brand-lockup.module.css";
 
@@ -8,18 +8,16 @@ export type BrandTone = "default" | "inverse";
 type Coin = {
   x: number;
   y: number;
-  cx: number;
-  cy: number;
+  side: "left" | "right";
 };
 
 const COINS: Coin[] = [
-  { x: 27, y: 8, cx: 32, cy: 13 },
-  { x: 16, y: 17, cx: 21, cy: 22 },
-  { x: 38, y: 17, cx: 43, cy: 22 },
-  { x: 13, y: 28, cx: 18, cy: 33 },
-  { x: 41, y: 28, cx: 46, cy: 33 },
-  { x: 16, y: 39, cx: 21, cy: 44 },
-  { x: 38, y: 39, cx: 43, cy: 44 },
+  { x: 17, y: 18, side: "left" },
+  { x: 35, y: 18, side: "right" },
+  { x: 15, y: 28, side: "left" },
+  { x: 37, y: 28, side: "right" },
+  { x: 17, y: 38, side: "left" },
+  { x: 35, y: 38, side: "right" },
 ];
 
 function cx(...values: Array<string | false | null | undefined>) {
@@ -58,30 +56,33 @@ export function BrandMark({
       <rect className={styles.container} x="4" y="4" width="56" height="56" rx="16" />
       <g className={styles.glyph}>
         <path className={styles.stem} d="M32 50V17" />
-        <path className={styles.branch} d="M32 24C28 24 25 23 21 22" />
-        <path className={styles.branch} d="M32 24C36 24 39 23 43 22" />
-        <path className={styles.branch} d="M32 34C27 34 23 33 18 33" />
-        <path className={styles.branch} d="M32 34C37 34 41 33 46 33" />
-        <path className={styles.branch} d="M32 44C28 44 25 44 21 44" />
-        <path className={styles.branch} d="M32 44C36 44 39 44 43 44" />
+        <path className={styles.branch} d="M32 24C29 24 27 23 23 22" />
+        <path className={styles.branch} d="M32 24C35 24 37 23 41 22" />
+        <path className={styles.branch} d="M32 34C28 34 25 33 21 32" />
+        <path className={styles.branch} d="M32 34C36 34 39 33 43 32" />
+        <path className={styles.branch} d="M32 44C29 44 27 43 23 42" />
+        <path className={styles.branch} d="M32 44C35 44 37 43 41 42" />
+        <Leaf
+          className={styles.topGrain}
+          x={27.5}
+          y={7.5}
+          width={9}
+          height={13}
+          strokeWidth={2.2}
+          fill="currentColor"
+        />
         {COINS.map((coin) => (
           <Circle
-            key={`${coin.cx}-${coin.cy}`}
-            className={styles.coin}
+            key={`${coin.side}-${coin.x}-${coin.y}`}
+            className={cx(
+              styles.coin,
+              coin.side === "left" ? styles.coinLeft : styles.coinRight,
+            )}
             x={coin.x}
             y={coin.y}
-            size={10}
-            strokeWidth={2.6}
-            absoluteStrokeWidth
-          />
-        ))}
-        {COINS.map((coin) => (
-          <circle
-            key={`center-${coin.cx}-${coin.cy}`}
-            className={styles.coinCenter}
-            cx={coin.cx}
-            cy={coin.cy}
-            r="1.15"
+            width={12}
+            height={8}
+            strokeWidth={5.2}
           />
         ))}
       </g>
