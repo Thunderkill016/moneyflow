@@ -21,17 +21,18 @@ const guardrails = readFileSync(
 
 const STEM_PATH = "M32 50V17";
 const BRANCH_PATHS = [
-  "M32 24C28 24 25 23 21 22",
-  "M32 24C36 24 39 23 43 22",
-  "M32 34C27 34 23 33 18 33",
-  "M32 34C37 34 41 33 46 33",
-  "M32 44C28 44 25 44 21 44",
-  "M32 44C36 44 39 44 43 44",
+  "M32 24C29 24 27 23 23 22",
+  "M32 24C35 24 37 23 41 22",
+  "M32 34C28 34 25 33 21 32",
+  "M32 34C36 34 39 33 43 32",
+  "M32 44C29 44 27 43 23 42",
+  "M32 44C35 44 37 43 41 42",
 ];
 
 test("shared brand component uses the Lucide coin-rice construction", () => {
-  assert.match(component, /import \{ Circle \} from "lucide-react"/u);
+  assert.match(component, /import \{ Circle, Leaf \} from "lucide-react"/u);
   assert.match(component, /data-brand-shape="coin-rice"/u);
+  assert.match(component, /<Leaf/u);
   assert.match(component, new RegExp(STEM_PATH, "u"));
   assert.match(icon, new RegExp(STEM_PATH, "u"));
 
@@ -40,8 +41,9 @@ test("shared brand component uses the Lucide coin-rice construction", () => {
     assert.match(icon, new RegExp(branch, "u"));
   }
 
-  assert.equal((component.match(/\{ x: /gu) ?? []).length, 7);
-  assert.equal((icon.match(/<circle /gu) ?? []).length, 14);
+  assert.equal((component.match(/\{ x: /gu) ?? []).length, 6);
+  assert.equal((icon.match(/<ellipse /gu) ?? []).length, 6);
+  assert.match(icon, /M32 8\.5C28\.6 12 28\.7 17\.2 32 20\.5/u);
   assert.match(component, /aria-hidden="true"/u);
   assert.match(component, /focusable="false"/u);
 });
