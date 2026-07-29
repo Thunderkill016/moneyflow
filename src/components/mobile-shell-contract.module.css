@@ -1,0 +1,47 @@
+.contract {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  :global(main.dashboard),
+  :global(main.transactions-workspace),
+  :global(main.accounts-workspace),
+  :global(main.budgets-workspace),
+  :global(main.goals-workspace),
+  :global(main.reports-workspace) {
+    padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px));
+  }
+
+  :global(dialog[open]) {
+    overscroll-behavior-y: contain;
+    scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+:global(html[data-theme="dark"] .transaction-dialog .amount-field > div) {
+  border: 1px solid var(--mf-border-strong);
+  border-radius: 12px;
+  background: var(--mf-canvas);
+  padding: 8px 12px;
+}
+
+:global(html[data-theme="dark"] .transaction-dialog .amount-field input) {
+  background: transparent;
+  color: var(--mf-text);
+  caret-color: var(--mf-brand);
+}
+
+:global(html[data-theme="dark"] .transaction-dialog .amount-field input::placeholder) {
+  color: var(--mf-text-soft);
+  opacity: 1;
+}
+
+:global(html[data-theme="dark"] .transaction-dialog .amount-kind-sign),
+:global(html[data-theme="dark"] .transaction-dialog .amount-field strong) {
+  color: var(--mf-text-muted);
+}
+
+:global(html[data-theme="dark"] .transaction-dialog .amount-field:focus-within > div) {
+  border-color: var(--mf-focus);
+  box-shadow: 0 0 0 3px rgb(120 184 255 / 18%);
+}
