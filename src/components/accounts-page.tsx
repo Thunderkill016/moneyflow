@@ -4,7 +4,9 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { saveAccountAction, setAccountArchivedAction } from "@/app/actions/accounts";
 import { createTransferAction } from "@/app/actions/transactions";
+import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
+import { AppShell } from "@/components/layout/app-shell";
 import { type ViewerSummary } from "@/components/user-chip";
 import { accountKindLabels, type AccountSummary, type SaveAccountInput } from "@/lib/accounts";
 import {
@@ -17,8 +19,7 @@ import { formatMoney } from "@/lib/money";
 import type { CreateTransferInput, Transaction } from "@/lib/sample-data";
 import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
 import { applyTransferBalances } from "@/lib/transfers";
-import { AppShell } from "@/components/layout/app-shell";
-import { EmptyState } from "@/components/empty-state";
+import styles from "./accounts-page.module.css";
 
 const AccountDialog = dynamic(
   () => import("@/components/account-dialog").then((m) => m.AccountDialog),
@@ -219,14 +220,9 @@ export function AccountsPage({
         onClick: () => openAccount(null),
         disabled: Boolean(dataError),
       }}
-      fabAction={{
-        label: "Thêm tài khoản",
-        onClick: () => openAccount(null),
-        disabled: Boolean(dataError),
-      }}
       notice={notice}
     >
-      <main className="dashboard accounts-workspace">
+      <main className={`${styles.workspace} dashboard accounts-workspace`}>
         {dataError && (
           <div className="data-alert" role="alert">
             <Icon name="bell" />
@@ -244,6 +240,7 @@ export function AccountsPage({
           </div>
           <div className="page-heading-actions">
             <button
+              type="button"
               className="secondary-button"
               onClick={() => setTransferOpen(true)}
               disabled={Boolean(dataError) || !canOpenTransfer}
@@ -318,6 +315,8 @@ export function AccountsPage({
                     </span>
                     <div>
                       <button
+                        type="button"
+                        className={styles.actionButton}
                         onClick={() => openAccount(account)}
                         aria-label={`Sửa ${account.name}`}
                       >
@@ -325,6 +324,8 @@ export function AccountsPage({
                         Sửa
                       </button>
                       <button
+                        type="button"
+                        className={styles.actionButton}
                         onClick={() => toggleArchived(account)}
                         disabled={busyId === account.id}
                         aria-label={`Lưu trữ ${account.name}`}
@@ -373,6 +374,8 @@ export function AccountsPage({
                     {formatMoney(account.balance, false, account.currencyCode)}
                   </span>
                   <button
+                    type="button"
+                    className={styles.actionButton}
                     onClick={() => toggleArchived(account)}
                     disabled={busyId === account.id}
                   >
