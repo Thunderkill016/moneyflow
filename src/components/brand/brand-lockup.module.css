@@ -54,11 +54,11 @@
 }
 
 .stem {
-  stroke-width: 4.2;
+  stroke-width: 3.4;
 }
 
 .branch {
-  stroke-width: 2.5;
+  stroke-width: 1.8;
 }
 
 .topGrain,
@@ -80,11 +80,11 @@
 }
 
 .coinLeft {
-  transform: rotate(24deg);
+  transform: rotate(18deg);
 }
 
 .coinRight {
-  transform: rotate(-24deg);
+  transform: rotate(-18deg);
 }
 
 .inverseMark {
