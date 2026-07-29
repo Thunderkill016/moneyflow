@@ -218,6 +218,19 @@ Generic warnings are not proof of a vulnerability. An RPC is changed only if its
 - [ ] Verify no console, hydration or horizontal-overflow errors.
 - [ ] Record commit, CI, deployment, acceptance evidence and residual risk in #134.
 
+## Tasks
+
+| Task | Scope | Planned evidence | Status |
+|---|---|---|---|
+| SAFE-T0 | Phase 0 baseline and automated reproductions | screenshot matrix + test cases | ready |
+| SAFE-T1 | SAFE-07/08 security classification and required hardening | 23-row audit, pgTAP, Advisor before/after | blocked by SAFE-T0 evidence lock |
+| SAFE-T2 | SAFE-02 mobile Login repair | landing mobile regression + production smoke | blocked by SAFE-T0 evidence lock |
+| SAFE-T3 | SAFE-03 Inbox count truth | source-of-truth tests + drill-down evidence | blocked by SAFE-T0 evidence lock |
+| SAFE-T4 | SAFE-01 shared responsive and amount-surface contract | token audit + route screenshot matrix | blocked by SAFE-T0 evidence lock |
+| SAFE-T5 | SAFE-04 Monthly Budgets repair | Budget route mobile/tablet/desktop evidence | blocked by SAFE-T4 |
+| SAFE-T6 | SAFE-05 Savings Goals repair | Goals route mobile/tablet/desktop evidence | blocked by SAFE-T4 |
+| SAFE-T7 | Production verification and closure | deployment, smoke and residual-risk record | blocked by SAFE-T1–T6 |
+
 ## Execution checklist
 
 ### Before implementation
