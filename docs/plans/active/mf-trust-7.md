@@ -1,6 +1,6 @@
 # MF TRUST-7 — stabilization and real-use proof
 
-**Status:** implementing  
+**Status:** evaluating  
 **Owner:** MoneyFlow  
 **Issue/PR:** #123 / #124  
 **Last updated:** 2026-07-29
@@ -107,14 +107,14 @@ Future agents and the owner cannot reliably determine what MoneyFlow is currentl
 - [x] Delivery mapping is preserved under `docs/plans/completed/`.
 - [x] Owner-confirmed manual gate evidence is recorded without secrets or real financial descriptions.
 - [x] R7 remains explicitly incomplete.
-- [ ] PR #124 passes repository CI.
+- [x] PR #124 passes repository CI.
 
 ### Required states
 
 - Loading: not applicable; documentation/tracking change.
 - Empty: active folder still retains its lifecycle README and this packet.
 - Populated: completed records name delivered PRs and superseding trackers.
-- Validation/error: `check:knowledge` must reject a malformed active packet.
+- Validation/error: `check:knowledge` rejected the malformed first packet and passed after the packet was corrected.
 - Recovery/undo: closed issues/PRs and deleted packet paths are recoverable from Git history.
 - Long data / large VND: not applicable.
 - Mobile/tablet/desktop: no runtime UI change.
@@ -159,7 +159,7 @@ GitHub issues own backlog/status; `docs/plans/active/` owns deliberately started
 
 - Schema/migration: none.
 - Backfill: none.
-- Compatibility: documentation links to deleted active packet paths may require later cleanup if CI identifies them.
+- Compatibility: documentation links to deleted active packet paths may require later cleanup if a future check identifies them.
 - Rollback: reopen GitHub items and restore files from Git history.
 
 ### Risks and counterexamples
@@ -174,12 +174,12 @@ GitHub issues own backlog/status; `docs/plans/active/` owns deliberately started
 
 ### Verification plan
 
-- Static: `check:knowledge`, deployment env, CSS ownership, architecture, lint, typecheck.
-- Unit/domain: normal repository unit suite; no behavior expected to change.
-- Database: normal fresh reset + pgTAP; no schema change expected.
-- Browser flow: normal CI smoke/audit; no runtime change expected.
-- Responsive/visual: no new evidence required; regression suite should remain green.
-- Production/manual: not applicable until merge; no production behavior changed.
+- Static: `check:knowledge`, deployment env, CSS ownership, architecture, lint, typecheck — passed in CI #497.
+- Unit/domain: normal repository unit suite — passed in CI #497.
+- Database: fresh reset + pgTAP — passed in CI #497.
+- Browser flow: expense path — passed in CI #497.
+- Responsive/visual: production cross-device Chromium/WebKit audit — passed in CI #497.
+- Production/manual: not applicable; no production behavior changed.
 
 ## Tasks
 
@@ -192,11 +192,11 @@ GitHub issues own backlog/status; `docs/plans/active/` owns deliberately started
 | P0-5 | Add TRUST-7 packet | P0-1..4 | branch diff | done |
 | P0-6 | Archive stale active packet state | P0-5 | completed reconciliation record | done |
 | P0-7 | Record manual readiness gates | P0-5 | sanitized completed record | done |
-| P0-8 | Pass PR #124 CI | P0-5..7 | GitHub Actions | in progress |
+| P0-8 | Pass PR #124 CI | P0-5..7 | GitHub Actions #497 | done |
 
 Rules:
 
-- Phase 1 does not begin before this PR is reviewed and the Phase 0 gate is green.
+- Phase 1 does not begin before this PR is merged.
 - New discoveries update this packet before scope changes.
 - No feature or visual expansion is bundled into the cleanup.
 
@@ -208,11 +208,11 @@ Rules:
 |---|---|---|
 | Parallel PR state reconciled | #105/#107 closed; #119 Draft | pass |
 | UI umbrellas consolidated | #70/#81 closed; #72 frozen | pass |
-| One active execution packet | branch diff | pass pending CI |
-| Delivery history preserved | completed reconciliation record | pass pending review |
-| Manual evidence sanitized | completed manual-gates record | pass pending review |
+| One active execution packet | PR #124 diff | pass |
+| Delivery history preserved | completed reconciliation record | pass |
+| Manual evidence sanitized | completed manual-gates record | pass |
 | R7 not falsely completed | packet and evidence wording | pass |
-| Repository contracts | PR #124 CI | pending |
+| Repository contracts | GitHub Actions #497 | pass |
 
 ### Review findings
 
@@ -225,15 +225,15 @@ Rules:
 ### Remaining limitations
 
 - `docs/REAL_USE_READINESS_CONTRACT.md` still needs a focused Phase 2 reconciliation of its individual checkboxes/status wording.
-- CI must pass before merge.
 - Seven-day self-use has not been proven.
+- Phase 1 correctness issues #121 and #122 remain open.
 
 ## Delivery record
 
 - Branch: `agent/mf-trust-7-phase-0`
 - PR: #124
-- Squash commit: pending
-- CI run: #496 failed initial `check:knowledge`; follow-up run pending after packet contract fix
+- Squash commit: pending merge
+- CI run: #497 — verify, database and e2e jobs passed
 - Production deployment: not applicable for documentation-only cleanup
 - Production flow verified: not applicable
 - Work packet moved to `docs/plans/completed/`: after TRUST-7 completion, not Phase 0
