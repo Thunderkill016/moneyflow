@@ -2,6 +2,29 @@
   min-width: 0;
 }
 
+/* SAFE-14: account totals and cards are neutral financial surfaces. */
+.workspace :global(.accounts-summary) {
+  border: 1px solid var(--mf-border);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.workspace :global(.accounts-summary div > span),
+.workspace :global(.accounts-summary div > small),
+.workspace :global(.accounts-summary > p) {
+  color: var(--mf-text-muted);
+}
+
+.workspace :global(.accounts-summary > p) {
+  border-color: var(--mf-border);
+}
+
+/* The legacy elevated-card rule is !important; redirect its token locally. */
+.workspace :global(.account-card) {
+  --color-bg-elevated: var(--mf-surface);
+}
+
 .actionButton {
   min-height: 44px;
   border: 1px solid var(--mf-border);
@@ -17,6 +40,11 @@
 
 .actionButton:disabled {
   color: var(--mf-text-soft);
+}
+
+:global(html[data-theme="dark"]) .workspace :global(.accounts-summary),
+:global(html[data-theme="dark"]) .workspace :global(.account-card) {
+  background-image: none;
 }
 
 :global(html[data-theme="dark"]) .actionButton {
