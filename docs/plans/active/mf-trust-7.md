@@ -1,91 +1,239 @@
 # MF TRUST-7 — stabilization and real-use proof
 
-**Status:** in progress  
+**Status:** implementing  
 **Owner:** MoneyFlow  
-**Master tracker:** #123  
-**Branch:** `agent/mf-trust-7-phase-0`  
-**Draft PR:** #124  
-**Started:** 2026-07-29
+**Issue/PR:** #123 / #124  
+**Last updated:** 2026-07-29
 
 ## Outcome
 
 MoneyFlow stops parallel expansion, fixes known core correctness gaps, aligns repository tracking with delivered reality, and proves seven consecutive days of real owner use before reopening redesign or feature breadth.
 
-## Authority
+## Repository reconnaissance
 
-This packet is the only active multi-session plan for TRUST-7. GitHub issue #123 owns progress and decisions. Product and financial truth remain in:
+### Current behavior
 
-- `docs/product/PRINCIPLES.md`
-- `ARCHITECTURE.md`
-- `docs/REAL_USE_READINESS_CONTRACT.md`
-- `docs/MVP_DEFINITION.md`
+- Financial, database, RLS, build and browser gates are already substantial and passed on the PR #120 baseline.
+- The repository still had delivered work packets marked `evaluating` or `in progress` under `docs/plans/active/`.
+- Draft PRs #105 and #107 represented additional documentation/workflow systems that had drifted behind current `main`.
+- PR #119 was a ready-for-review logo candidate despite an explicit owner visual approval gate.
+- Issues #70, #72 and #81 overlapped as cross-device, route/state and Calm Ledger umbrella trackers.
+- Issue #27 recorded owner confirmation that the real auth email callback, normal spreadsheet application and physical-phone keyboard gates passed on 2026-07-27.
+- Seven-day self-use remains incomplete.
 
-## Scope
+### Relevant repository areas
 
-### Allowed before the day-7 exit review
+| Area | Why it matters | Reuse/change/avoid |
+|---|---|---|
+| `docs/plans/active/` | Must represent deliberately active work only | Keep README + this packet |
+| `docs/plans/completed/` | Preserves delivery decisions and evidence | Add reconciliation/evidence records |
+| `docs/REAL_USE_READINESS_CONTRACT.md` | Defines readiness and R7 evidence | Preserve as authority; do not mark R7 complete |
+| GitHub #123 | Durable master tracker | Use as progress source |
+| GitHub #72 | Remaining route/state UI tracker | Freeze until TRUST-7 exit review |
+| GitHub #121 / #122 | Known correctness gaps | Phase 1 only |
 
-- bounded P0/P1 correctness, auth, persistence, balance, export or mobile-entry fixes;
-- repository/source-of-truth cleanup;
-- evidence updates that do not expose secrets or real financial descriptions;
-- regression tests required by a reproduced defect.
+### Existing tests and constraints
 
-### Frozen
+- Related unit tests: financial/domain suite under `src/lib`.
+- Database/RLS tests: fresh Supabase reset + pgTAP in CI.
+- Browser tests: expense path and cross-device Chromium/WebKit audit.
+- Product/architecture rules: correctness and daily usefulness precede visual polish and feature breadth.
+- Repository knowledge contract: active packets must contain the standard work-packet headings.
 
-- new product features;
-- redesign, brand expansion or new UI programs;
-- new AI/Codex/Claude workflow layers;
-- dependency adoption not required by a blocking defect;
-- P2/P3 visual polish;
-- import/reconciliation/rules/audit roadmap work without self-use evidence.
+### Similar implementation and recent history
 
-## Phase 0 — Freeze and cleanup
+- PR #109 previously moved merged packets to `completed/` and removed stale active artifacts.
+- `docs/plans/README.md` defines active packets as execution state, not speculative backlog.
+- Issue #81 itself delegated remaining route/state remediation to #72.
 
-- [x] Close stale/superseded draft PR #105.
-- [x] Close stale/superseded draft PR #107.
-- [x] Convert logo candidate PR #119 back to draft and preserve owner approval gate.
-- [x] Close completed umbrella issue #70.
-- [x] Close completed Calm Ledger umbrella issue #81.
-- [x] Keep #72 as the only remaining UI route/state tracker and freeze it under #123.
-- [x] Move delivered packets from `docs/plans/active/` to `docs/plans/completed/`.
-- [x] Record the owner-confirmed manual readiness gates from #27 without marking seven-day use complete.
-- [x] Open draft PR #124 for the documentation cleanup.
-- [ ] Let repository CI verify PR #124 before merge.
+### Open questions
 
-## Phase 1 — Core correctness
+- [ ] Did the seven consecutive-day period actually begin, and on which calendar date?
+- [ ] Does issue #40 require a paid Supabase plan, or can leaked-password protection be enabled in the current project?
 
-- [ ] #121: keep-open transaction entry remains open from the Dashboard path.
-- [ ] #122: demo balance derives deterministically from the current demo ledger.
-- [ ] Add regression coverage for Dashboard/FAB, balances, reload and transfer invariants.
-- [ ] Run applicable static, unit, build, database and browser gates.
+Neither question blocks Phase 0 repository cleanup.
 
-## Phase 2 — Readiness alignment
+## Research
 
-- [ ] Resolve or document the service-plan constraint for #40.
-- [ ] Confirm R0–R6 reflect accepted evidence.
-- [ ] Confirm no P0/P1 blocks auth, capture, balance, persistence or export.
+Not required. Phase 0 is an internal repository-state reconciliation based on current files, merged PR history and owner-confirmed issue evidence. No external technology or product decision is introduced.
 
-## Phase 3 — Seven consecutive days
+### Questions researched
 
-For seven consecutive calendar days:
+1. Which open PRs and issues still represent active work versus delivered or superseded work?
+2. Which files in `docs/plans/active/` contradict current merged state?
+3. Which readiness claims are accepted without implying R7 completion?
 
-- open MoneyFlow at least once;
-- record the selected real daily expenses in MoneyFlow instead of the previous method;
-- check balance and monthly expense plausibility;
-- record only sanitized defect evidence;
-- do not add features.
+### Sources
 
-At exit:
+| Source | Date accessed | What it establishes | Limits/applicability |
+|---|---|---|---|
+| Repository `main` and PR history | 2026-07-29 | Delivered packets and current architecture | Does not prove real-world daily usefulness |
+| Issues #27, #70, #72, #81, #123 | 2026-07-29 | Owner evidence and tracker relationships | Issue text may be stale until reconciled |
+| PRs #105, #107, #119 | 2026-07-29 | Parallel initiatives and approval state | Closed/deferred branches remain historical references |
 
-- export and open the file in a normal spreadsheet application;
-- inspect a sanitized sample for missing or duplicate entries;
-- record median entry time from at least five timed entries;
-- record how many days MoneyFlow replaced the previous method;
-- decide: continue, fix blockers, simplify or stop.
+### Alternatives considered
 
-## Change control
+| Option | Advantages | Risks | Decision |
+|---|---|---|---|
+| Leave all trackers and packets open | No administrative changes | Continues false work-in-progress and duplicate authority | Rejected |
+| Delete history without records | Smallest active folder | Loses delivery rationale and handoff context | Rejected |
+| Rebase and merge all open PRs | Preserves proposed work | Expands scope before real-use proof and duplicates current systems | Rejected |
+| Freeze, archive delivered state, retain one tracker | Clear authority and reversible GitHub state | Requires documentation cleanup | Selected |
 
-Every implementation PR during TRUST-7 must identify one failed gate, touch the smallest necessary boundary, add evidence, state rollback/security implications, and list explicit out-of-scope work.
+### Research decision
 
-## Completion
+Use #123 and this packet as the only TRUST-7 execution authority. Preserve delivered/superseded packet history in one completed reconciliation record. Keep #72 open but frozen as the sole remaining route/state UI tracker. Defer PR #119 for owner review and close stale workflow/documentation PRs #105 and #107.
 
-After the day-7 decision and production verification, move this packet to `docs/plans/completed/` with the final decision and evidence summary.
+## Specification
+
+### Problem
+
+Future agents and the owner cannot reliably determine what MoneyFlow is currently doing because delivered packets remain active, multiple UI umbrellas overlap, and proposed workflow/brand work remains open after the project selected seven-day self-use as its next gate.
+
+### User stories
+
+- As the owner, I can see one active execution plan so that project state is understandable without chat history.
+- As an implementing agent, I can distinguish delivered work, frozen work and allowed correctness fixes so that I do not duplicate or expand scope.
+- As a reviewer, I can verify accepted manual readiness evidence without mistaking it for seven-day completion.
+
+### Acceptance criteria
+
+- [x] PR #105 is closed unmerged with a TRUST-7 rationale.
+- [x] PR #107 is closed unmerged with a TRUST-7 rationale.
+- [x] PR #119 is draft and retains explicit owner approval requirements.
+- [x] Issues #70 and #81 are closed with remaining work delegated to #72.
+- [x] Issue #72 is the only remaining route/state UI tracker and is frozen under #123.
+- [x] Eight delivered/superseded packets are removed from `docs/plans/active/`.
+- [x] Delivery mapping is preserved under `docs/plans/completed/`.
+- [x] Owner-confirmed manual gate evidence is recorded without secrets or real financial descriptions.
+- [x] R7 remains explicitly incomplete.
+- [ ] PR #124 passes repository CI.
+
+### Required states
+
+- Loading: not applicable; documentation/tracking change.
+- Empty: active folder still retains its lifecycle README and this packet.
+- Populated: completed records name delivered PRs and superseding trackers.
+- Validation/error: `check:knowledge` must reject a malformed active packet.
+- Recovery/undo: closed issues/PRs and deleted packet paths are recoverable from Git history.
+- Long data / large VND: not applicable.
+- Mobile/tablet/desktop: no runtime UI change.
+- Accessibility: no runtime UI change.
+
+### Financial and security constraints
+
+- No financial calculations or persisted data are changed.
+- Integer VND and transfer invariants remain untouched.
+- No RLS, auth, migration or privilege behavior changes.
+- Evidence must not contain credentials, tokens, email addresses or real transaction descriptions.
+
+### Out of scope
+
+- Fixing #121 or #122.
+- Resolving #40.
+- Beginning or claiming seven-day self-use.
+- Merging PR #119.
+- UI redesign, dependency adoption or domain roadmap implementation.
+
+## Implementation plan
+
+### Architecture fit
+
+GitHub issues own backlog/status; `docs/plans/active/` owns deliberately started multi-session execution; `docs/plans/completed/` preserves delivery history. Phase 0 changes only those governance boundaries.
+
+### Planned changes
+
+| File/area | Change | Reason |
+|---|---|---|
+| GitHub PR #105 | Close unmerged | Stale/duplicative documentation workflow |
+| GitHub PR #107 | Close unmerged | Stale/duplicative Claude workflow |
+| GitHub PR #119 | Convert to draft | Preserve owner approval gate |
+| GitHub issues #70/#81 | Close completed umbrellas | Remove duplicate UI authority |
+| GitHub issue #72 | Add freeze notice | Retain one remaining UI tracker |
+| `docs/plans/active/mf-trust-7.md` | Add controlling packet | One active execution source |
+| `docs/plans/completed/2026-07-29-active-packet-reconciliation.md` | Add delivery mapping | Preserve history while cleaning active state |
+| `docs/plans/completed/2026-07-29-manual-readiness-gates.md` | Add sanitized accepted evidence | Record R0–R6 manual gates without claiming R7 |
+| Eight stale active packets | Remove from active folder | Eliminate false work-in-progress |
+
+### Data and migration impact
+
+- Schema/migration: none.
+- Backfill: none.
+- Compatibility: documentation links to deleted active packet paths may require later cleanup if CI identifies them.
+- Rollback: reopen GitHub items and restore files from Git history.
+
+### Risks and counterexamples
+
+| Risk/counterexample | Prevention or test |
+|---|---|
+| Active packet violates repository template | `npm run check:knowledge` |
+| Deleted packet is still referenced as active | CI knowledge checks and reviewer diff inspection |
+| Manual gates are mistaken for R7 | Evidence record explicitly states R7 incomplete |
+| UI work resumes through another umbrella | #70/#81 closed; #72 freeze comment; #123 authority |
+| Owner logo decision is lost | PR #119 remains open as Draft with approval gate |
+
+### Verification plan
+
+- Static: `check:knowledge`, deployment env, CSS ownership, architecture, lint, typecheck.
+- Unit/domain: normal repository unit suite; no behavior expected to change.
+- Database: normal fresh reset + pgTAP; no schema change expected.
+- Browser flow: normal CI smoke/audit; no runtime change expected.
+- Responsive/visual: no new evidence required; regression suite should remain green.
+- Production/manual: not applicable until merge; no production behavior changed.
+
+## Tasks
+
+| ID | Task | Dependency | Evidence | Status |
+|---|---|---|---|---|
+| P0-1 | Close PR #105 | none | PR state/comment | done |
+| P0-2 | Close PR #107 | none | PR state/comment | done |
+| P0-3 | Defer PR #119 as Draft | none | PR state/comment | done |
+| P0-4 | Consolidate #70/#72/#81 | none | issue states/comments | done |
+| P0-5 | Add TRUST-7 packet | P0-1..4 | branch diff | done |
+| P0-6 | Archive stale active packet state | P0-5 | completed reconciliation record | done |
+| P0-7 | Record manual readiness gates | P0-5 | sanitized completed record | done |
+| P0-8 | Pass PR #124 CI | P0-5..7 | GitHub Actions | in progress |
+
+Rules:
+
+- Phase 1 does not begin before this PR is reviewed and the Phase 0 gate is green.
+- New discoveries update this packet before scope changes.
+- No feature or visual expansion is bundled into the cleanup.
+
+## Evaluation
+
+### Acceptance evidence
+
+| Criterion | Evidence | Result |
+|---|---|---|
+| Parallel PR state reconciled | #105/#107 closed; #119 Draft | pass |
+| UI umbrellas consolidated | #70/#81 closed; #72 frozen | pass |
+| One active execution packet | branch diff | pass pending CI |
+| Delivery history preserved | completed reconciliation record | pass pending review |
+| Manual evidence sanitized | completed manual-gates record | pass pending review |
+| R7 not falsely completed | packet and evidence wording | pass |
+| Repository contracts | PR #124 CI | pending |
+
+### Review findings
+
+- Correctness: no runtime behavior changed.
+- Security/ownership: no secrets or sensitive financial evidence added.
+- UI/UX/accessibility: no runtime UI change.
+- Maintainability/duplication: eight false active packets removed and two stale workflow PRs closed.
+- Scope compliance: Phase 0 governance cleanup only.
+
+### Remaining limitations
+
+- `docs/REAL_USE_READINESS_CONTRACT.md` still needs a focused Phase 2 reconciliation of its individual checkboxes/status wording.
+- CI must pass before merge.
+- Seven-day self-use has not been proven.
+
+## Delivery record
+
+- Branch: `agent/mf-trust-7-phase-0`
+- PR: #124
+- Squash commit: pending
+- CI run: #496 failed initial `check:knowledge`; follow-up run pending after packet contract fix
+- Production deployment: not applicable for documentation-only cleanup
+- Production flow verified: not applicable
+- Work packet moved to `docs/plans/completed/`: after TRUST-7 completion, not Phase 0
