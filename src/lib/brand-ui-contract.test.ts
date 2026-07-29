@@ -21,12 +21,12 @@ const guardrails = readFileSync(
 
 const STEM_PATH = "M32 50V17";
 const BRANCH_PATHS = [
-  "M32 24C29 24 27 23 23 22",
-  "M32 24C35 24 37 23 41 22",
-  "M32 34C28 34 25 33 21 32",
-  "M32 34C36 34 39 33 43 32",
-  "M32 44C29 44 27 43 23 42",
-  "M32 44C35 44 37 43 41 42",
+  "M32 24C29.8 24 28.2 23.2 26.4 22.6",
+  "M32 24C34.2 24 35.8 23.2 37.6 22.6",
+  "M32 34C29.2 34 27.2 33.2 25.2 32.6",
+  "M32 34C34.8 34 36.8 33.2 38.8 32.6",
+  "M32 44C29.8 44 28.2 43.2 26.4 42.6",
+  "M32 44C34.2 44 35.8 43.2 37.6 42.6",
 ];
 
 test("shared brand component uses the Lucide coin-rice construction", () => {
@@ -43,6 +43,8 @@ test("shared brand component uses the Lucide coin-rice construction", () => {
 
   assert.equal((component.match(/\{ x: /gu) ?? []).length, 6);
   assert.equal((icon.match(/<ellipse /gu) ?? []).length, 6);
+  assert.match(component, /strokeWidth=\{4\.6\}/u);
+  assert.match(icon, /stroke-width="2\.3"/u);
   assert.match(icon, /M32 8\.5C28\.6 12 28\.7 17\.2 32 20\.5/u);
   assert.match(component, /aria-hidden="true"/u);
   assert.match(component, /focusable="false"/u);
