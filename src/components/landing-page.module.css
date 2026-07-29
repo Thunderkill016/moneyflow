@@ -132,11 +132,19 @@
   color: var(--mf-text-muted);
   font-size: 14px;
   font-weight: 650;
+  transition:
+    background var(--mf-fast) var(--mf-ease),
+    color var(--mf-fast) var(--mf-ease),
+    scale var(--mf-fast) var(--mf-ease);
 }
 
 .loginLink:hover {
   background: var(--mf-surface-muted);
   color: var(--mf-text);
+}
+
+.loginLink:active {
+  scale: 0.97;
 }
 
 .primaryButton,
@@ -158,6 +166,7 @@
   transition:
     background var(--mf-fast) var(--mf-ease),
     translate var(--mf-fast) var(--mf-ease),
+    scale var(--mf-fast) var(--mf-ease),
     box-shadow var(--mf-fast) var(--mf-ease);
 }
 
@@ -174,6 +183,7 @@
 .finalCtaButton:active {
   background: var(--mf-brand-pressed);
   translate: 0;
+  scale: 0.97;
 }
 
 .hero {
@@ -266,12 +276,17 @@
   font-weight: 700;
   transition:
     border-color var(--mf-fast) var(--mf-ease),
-    background var(--mf-fast) var(--mf-ease);
+    background var(--mf-fast) var(--mf-ease),
+    scale var(--mf-fast) var(--mf-ease);
 }
 
 .secondaryButtonLarge:hover {
   border-color: var(--mf-brand);
   background: var(--mf-brand-subtle);
+}
+
+.secondaryButtonLarge:active {
+  scale: 0.97;
 }
 
 .trustList {
@@ -530,6 +545,23 @@
   color: var(--mf-text-muted);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.section,
+.ownership,
+.finalCta {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity var(--mf-normal) var(--mf-ease),
+    transform var(--mf-normal) var(--mf-ease);
+}
+
+.section[data-revealed="true"],
+.ownership[data-revealed="true"],
+.finalCta[data-revealed="true"] {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .section {
@@ -1042,7 +1074,16 @@
   .primaryButton,
   .primaryButtonLarge,
   .secondaryButtonLarge,
-  .finalCtaButton {
+  .finalCtaButton,
+  .loginLink {
+    transition: none;
+  }
+
+  .section,
+  .ownership,
+  .finalCta {
+    opacity: 1;
+    transform: none;
     transition: none;
   }
 }
