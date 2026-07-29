@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrandLockup, BrandMark } from "@/components/brand/brand-lockup";
 import { Icon } from "@/components/icons";
+import { RevealSection } from "@/components/reveal";
 import styles from "./landing-page.module.css";
 
 const trustItems = [
@@ -232,7 +233,7 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section
+        <RevealSection
           className={styles.section}
           id="cach-hoat-dong"
           aria-labelledby="how-title"
@@ -253,9 +254,9 @@ export function LandingPage() {
               </li>
             ))}
           </ol>
-        </section>
+        </RevealSection>
 
-        <section
+        <RevealSection
           className={`${styles.section} ${styles.featuresSection}`}
           aria-labelledby="features-title"
         >
@@ -280,9 +281,9 @@ export function LandingPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </RevealSection>
 
-        <section className={styles.ownership} aria-labelledby="ownership-title">
+        <RevealSection className={styles.ownership} aria-labelledby="ownership-title">
           <div className={styles.ownershipMark} aria-hidden="true">
             <Icon name="lock" size={30} />
           </div>
@@ -309,9 +310,9 @@ export function LandingPage() {
               Không quảng cáo trong luồng ghi chính
             </li>
           </ul>
-        </section>
+        </RevealSection>
 
-        <section
+        <RevealSection
           className={`${styles.section} ${styles.faq}`}
           aria-labelledby="faq-title"
         >
@@ -327,9 +328,9 @@ export function LandingPage() {
               </details>
             ))}
           </div>
-        </section>
+        </RevealSection>
 
-        <section className={styles.finalCta} aria-labelledby="final-cta-title">
+        <RevealSection className={styles.finalCta} aria-labelledby="final-cta-title">
           <div>
             <p className={styles.kicker}>Ghi rõ từ khoản đầu tiên</p>
             <h2 id="final-cta-title">Tạo sổ MoneyFlow của bạn</h2>
@@ -342,7 +343,7 @@ export function LandingPage() {
             Bắt đầu ghi miễn phí
             <Icon name="arrowRight" size={18} />
           </Link>
-        </section>
+        </RevealSection>
       </main>
 
       <footer className={styles.footer}>
