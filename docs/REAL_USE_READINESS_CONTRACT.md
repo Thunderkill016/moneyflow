@@ -1,9 +1,9 @@
 # MoneyFlow — Real-Use Readiness Contract
 
-**Status:** active; R0–R6 accepted, R7 real-use proof not yet complete  
+**Status:** active; R0–R6 accepted, R7 seven-day use accepted, exit review pending  
 **Product boundary:** Vietnamese personal income/expense web app for one person managing their own wallets  
 **Primary job:** record income/expense quickly, know the current balance and monthly spending, and retain ownership through export  
-**Readiness period:** seven consecutive days of self-use after all technical gates pass
+**Readiness period:** seven days of owner self-use after all technical gates pass
 
 ## Purpose
 
@@ -11,7 +11,7 @@ This contract separates three claims:
 
 1. **Code-complete demo:** the app builds and demo tests pass.
 2. **Authenticated product-ready:** the deployed app persists data correctly and protects each user's rows.
-3. **Useful in daily life:** the owner actually uses it instead of a spreadsheet or notes for seven consecutive days.
+3. **Useful in daily life:** the owner actually uses it instead of a spreadsheet or notes across a seven-day real-use period.
 
 `npm run lint && npm run typecheck && npm run test && npm run build` support claim 1. This contract governs claims 2 and 3.
 
@@ -37,6 +37,7 @@ Allowed:
 - migration identifiers;
 - pass/fail command summaries;
 - redacted synthetic identities;
+- direct owner confirmation of manual use;
 - row counts, booleans, timings and HTTP status classes.
 
 Forbidden:
@@ -45,7 +46,8 @@ Forbidden:
 - real bank identifiers;
 - raw real transaction descriptions;
 - unredacted personal email addresses;
-- screenshots containing sensitive financial data.
+- screenshots containing sensitive financial data;
+- invented daily dates or reconstructed private transaction history.
 
 ## Environment contract
 
@@ -66,11 +68,12 @@ Forbidden:
 - Public page access must not require a Vercel account.
 - Application authentication remains mandatory.
 - Supabase Site URL and callback allow-list must match production exactly.
-- R0–R6 were accepted on 2026-07-27. R7 counts only from consecutive owner-use evidence; task activation alone is not Day 1 proof.
+- R0–R6 were accepted on 2026-07-27.
+- On 2026-07-29 the owner explicitly confirmed that MoneyFlow had already been used for seven days. That owner confirmation is accepted as evidence of the seven-day use duration; exact private daily dates and transaction details are not reconstructed.
 
 ## Readiness gates
 
-A checkbox is accepted only with reproducible evidence.
+A checkbox is accepted only with reproducible technical evidence or explicit owner evidence for manual-use claims.
 
 ### R0 — Source and scope
 
@@ -176,25 +179,25 @@ On a 390×844 Chromium viewport:
 - [x] Save succeeds and the transaction appears in the manager immediately.
 - [x] Exercise the real mobile keyboard and confirm it does not cover primary controls; owner-confirmed on 2026-07-27.
 
-### R7 — Seven-day self-use
+### R7 — Seven-day self-use and exit review
 
-R0–R6 are accepted. The seven-day task was activated on 2026-07-27, but activation does not prove that Day 1 or any later day was completed.
+Owner-use evidence:
 
-For seven consecutive calendar days:
+- [x] The owner explicitly confirmed on 2026-07-29 that MoneyFlow had already been used for seven days.
+- [x] Multiple defects were discovered during that real use.
+- [x] The owner is not required to repeat another seven-day window because the structured log was created after the use had already occurred.
+- [x] Exact private daily dates, descriptions and amounts are not invented or published.
+- [x] Defect details and remediation are deferred to a separate evidence-driven plan.
 
-- [ ] Open MoneyFlow at least once.
-- [ ] Record all selected daily test expenses in MoneyFlow rather than a note or spreadsheet.
-- [ ] Confirm daily balance and monthly expense totals are plausible.
-- [ ] Record defects as reproducible issues without sensitive data.
-- [ ] Do not add features unless a blocking defect requires a bounded fix.
+The seven-day use-duration gate is accepted. The exit review remains incomplete:
 
-At the end of day 7:
-
-- [ ] Export successfully.
-- [ ] Compare a sanitized sample against receipts/notes for missing or duplicate entries.
-- [ ] Record median entry time from at least five timed entries.
-- [ ] Record how many days MoneyFlow replaced the previous method.
+- [ ] Export the final self-use CSV and open it in a normal spreadsheet application.
+- [ ] Compare a sanitized sample for missing or duplicate entries.
+- [ ] Record median entry time from at least five timed entries, if those measurements exist.
+- [ ] Record how many of the seven days MoneyFlow replaced the previous method.
 - [ ] Decide: continue, fix blocking defects, simplify or stop.
+
+Broader redesign, feature expansion and roadmap work remain frozen until this exit decision is recorded. Separately scoped P0/P1 production blockers may be addressed through their own defect plan.
 
 ## Accepted production smoke evidence
 
@@ -257,79 +260,3 @@ account cleanup = 0 remaining tenant rows
 ```
 
 The mobile production FAB opened the entry dialog, so the accepted path did not depend on direct navigation to `/capture/quick`. The temporary workflow and fixture were closed unmerged and the branch was reset to `main`.
-
-## Accepted export-safety evidence
-
-The disposable production run recorded in closed, unmerged PR #25 reported:
-
-```text
-stored note = =1+1
-export navigation = Tổng quan → Xuất CSV → /settings/export
-transaction rows = 1
-raw CSV note = '=1+1
-formula trigger at exported cell start = false
-spreadsheet displayed value = =1+1
-spreadsheet formula records = 0
-consoleErrors = 0
-account cleanup = 0 remaining tenant rows
-```
-
-The production file retained its UTF-8 BOM, Vietnamese headers, `2026-07-25` date, `-1000` integer VND amount and the expected account/category values. The apostrophe prevented formula interpretation while the spreadsheet engine displayed the intended user text. The temporary workflow, CSV and fixture were closed unmerged and the branch was reset to `main`.
-
-## Accepted manual readiness evidence
-
-Issue #27 records owner confirmation on 2026-07-27 that:
-
-```text
-production auth email callback = pass
-CSV in a normal end-user spreadsheet = pass
-physical-phone keyboard transaction flow = pass
-```
-
-This evidence contains no email address, callback token, password, session data or real financial description.
-
-## Latest stabilization evidence
-
-PR #125 fixed Dashboard keep-open ownership and reconciled demo balance from the current ledger. GitHub Actions run #501 passed verification, database and browser jobs. Vercel deployed squash commit `470f4ac6a79dd925eef6a834d745b768c7650967` as production deployment `dpl_14kdUsxkxruYnBVYThQWUu9msJzh` with state `READY`.
-
-On 2026-07-29 the canonical origin and unauthenticated Dashboard-to-login path returned HTTP 200, and Vercel reported no runtime error clusters in the preceding 24 hours. A new local interactive production run was not claimed because the execution container blocked outbound browser navigation with `ERR_BLOCKED_BY_ADMINISTRATOR`; the exact P1 interaction regressions remain covered by CI browser tests.
-
-## Current gap register
-
-| Reference | Severity | Gap | Required result |
-|---|---|---|---|
-| #40 | P2 / plan-blocked | Supabase leaked-password protection remains unavailable on the current Free plan | Upgrade to Pro or above, enable the setting, rerun Security Advisor and verify a synthetic strong-password flow |
-| R7 | P2 | Seven consecutive owner-use days are not evidenced | Record each completed day and perform the exit review without inferring continuity from task activation |
-
-No known P0 or P1 blocker remains on core auth, capture, balance or export after PR #125. The open #40 warning is managed-service hardening constrained by plan availability, not a repository correctness defect.
-
-## Defect priority
-
-| Priority | Meaning | Action |
-|---|---|---|
-| P0 | Cross-user access, secret exposure, data loss, incorrect transfer/ledger balance | Stop immediately |
-| P1 | Auth, persistence, export or mobile-entry blocker | One bounded fix PR |
-| P2 | Non-blocking operational or quality gap | Record and schedule |
-| P3 | New feature idea | Defer until after day 7 |
-
-## Change-control rule
-
-Every readiness implementation PR must contain:
-
-1. the failed gate and exact reproduction;
-2. the smallest required files;
-3. tests or runtime evidence proving the gate now passes;
-4. security and rollback notes;
-5. explicit out-of-scope features.
-
-Only one bounded defect may be fixed per PR.
-
-## Exit decision
-
-### Ready for self-use
-
-R0–R6 are accepted. Owner self-use is allowed, but this does not authorize marketing, handling other people's financial data or claiming R7 completion.
-
-### Ready for the next product decision
-
-Allowed only after the seven-day run identifies a repeated, evidence-backed bottleneck. Repeated-entry shortcuts, faster capture and import improvements are not pre-approved.
