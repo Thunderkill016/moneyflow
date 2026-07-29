@@ -1,0 +1,330 @@
+/*
+ * MF SAFE-UX — shared repair authority for Dashboard planning, Budgets and Goals.
+ *
+ * This file is loaded after the legacy route styles. Use MoneyFlow tokens only;
+ * neutral financial surfaces are the default and semantic color is reserved for
+ * actual income, expense, warning or progress meaning.
+ */
+
+/* --------------------------------------------------------------------------
+   Amount surfaces
+   -------------------------------------------------------------------------- */
+
+.insights-dashboard .insights-kpi > article {
+  border-color: var(--mf-border);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+}
+
+.insights-dashboard .insights-kpi > article:first-child {
+  border-color: var(--mf-border);
+  border-top: 4px solid var(--mf-brand);
+  background: var(--mf-surface);
+}
+
+.insights-dashboard .insights-kpi > article:nth-child(2) {
+  border-top: 4px solid var(--mf-income);
+}
+
+.insights-dashboard .insights-kpi > article:nth-child(3) {
+  border-top: 4px solid var(--mf-expense);
+}
+
+.insights-dashboard .insights-kpi > article:nth-child(4) {
+  border-top: 4px solid var(--mf-border-strong);
+}
+
+.insights-dashboard .insights-kpi > article:first-child strong {
+  color: var(--mf-text);
+}
+
+.insights-dashboard .insights-kpi > article:nth-child(4) strong {
+  color: var(--mf-text);
+}
+
+/* --------------------------------------------------------------------------
+   Dashboard planning cards
+   -------------------------------------------------------------------------- */
+
+.insights-dashboard .budget-panel,
+.insights-dashboard .goal-dashboard-panel,
+.insights-dashboard .weekly-summary-panel,
+.insights-dashboard .insight-panel {
+  border-color: var(--mf-border);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+}
+
+.insights-dashboard .goal-dashboard-panel.insight-panel {
+  display: block;
+  background: var(--mf-surface);
+}
+
+.insights-dashboard .budget-panel .planning-card-empty,
+.insights-dashboard .goal-dashboard-panel .planning-card-empty {
+  margin-top: 18px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-surface-muted);
+  padding: 16px;
+}
+
+.insights-dashboard .budget-panel .planning-card-empty p,
+.insights-dashboard .goal-dashboard-panel .planning-card-empty p {
+  color: var(--mf-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+.insights-dashboard .budget-panel .planning-card-empty-cta,
+.insights-dashboard .goal-dashboard-panel .planning-card-empty-cta {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  color: var(--mf-brand-text);
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.insights-dashboard .budget-number {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.insights-dashboard .budget-number strong,
+.insights-dashboard .budget-number span,
+.insights-dashboard .budget-foot strong,
+.insights-dashboard .weekly-summary-kpis strong {
+  overflow-wrap: anywhere;
+}
+
+.insights-dashboard .budget-track {
+  background: var(--mf-surface-strong);
+}
+
+.insights-dashboard .budget-foot {
+  gap: 12px;
+  color: var(--mf-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Detail route amount summaries
+   -------------------------------------------------------------------------- */
+
+.budgets-workspace .budget-overview,
+.goals-workspace .goal-hero {
+  overflow: hidden;
+  border-color: var(--mf-border);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.budgets-workspace .budget-overview > div,
+.goals-workspace .goal-hero > div {
+  min-width: 0;
+  border-color: var(--mf-border);
+  background: var(--mf-surface);
+}
+
+.budgets-workspace .budget-overview strong,
+.goals-workspace .goal-hero strong,
+.budgets-workspace .budget-category-metrics strong,
+.goals-workspace .goal-amount,
+.goals-workspace .goal-card-foot strong {
+  overflow-wrap: anywhere;
+  color: var(--mf-text);
+}
+
+.budgets-workspace .planning-card,
+.goals-workspace .planning-card {
+  border-color: var(--mf-border);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.budgets-workspace .budget-category-metrics {
+  border-color: var(--mf-border);
+  background: var(--mf-surface-muted);
+}
+
+.budgets-workspace .budget-category-metrics > div {
+  min-width: 0;
+  border-color: var(--mf-border);
+  background: transparent;
+}
+
+.budgets-workspace .budget-track,
+.goals-workspace .budget-track {
+  background: var(--mf-surface-strong);
+}
+
+.budgets-workspace .budget-category-actions,
+.goals-workspace .goal-actions {
+  gap: 8px;
+}
+
+.budgets-workspace .budget-category-actions a,
+.budgets-workspace .budget-category-actions button,
+.goals-workspace .goal-actions button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--mf-radius-md);
+  padding: 0 12px;
+  white-space: normal;
+  text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Mobile and enlarged text
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .insights-dashboard {
+    padding-inline: 16px;
+  }
+
+  .insights-dashboard .insights-kpi {
+    gap: 10px;
+  }
+
+  .insights-dashboard .insights-kpi > article {
+    min-height: 126px;
+    padding: 16px;
+  }
+
+  .insights-dashboard .budget-panel .section-heading p,
+  .insights-dashboard .goal-dashboard-panel .section-heading p {
+    display: block;
+    margin-top: 6px;
+    color: var(--mf-text-muted);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .insights-dashboard .budget-panel,
+  .insights-dashboard .goal-dashboard-panel {
+    padding: 20px;
+  }
+
+  .insights-dashboard .budget-number strong {
+    font-size: clamp(20px, 7vw, 28px);
+  }
+
+  .insights-dashboard .budget-number span,
+  .insights-dashboard .budget-foot {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .budgets-workspace .budget-overview,
+  .goals-workspace .goal-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .budgets-workspace .budget-overview > div,
+  .goals-workspace .goal-hero > div {
+    border-left: 0;
+    border-top: 1px solid var(--mf-border);
+    padding: 18px 20px;
+  }
+
+  .budgets-workspace .budget-overview > div:first-child,
+  .goals-workspace .goal-hero > div:first-child {
+    border-top: 0;
+  }
+
+  .budgets-workspace .budget-card-grid,
+  .goals-workspace .goal-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .budgets-workspace .budget-category-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .budgets-workspace .budget-category-metrics > div {
+    border-left: 0;
+    border-top: 1px solid var(--mf-border);
+    padding: 14px 16px;
+  }
+
+  .budgets-workspace .budget-category-metrics > div:first-child {
+    border-top: 0;
+  }
+
+  .budgets-workspace .budget-category-actions,
+  .goals-workspace .goal-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .budgets-workspace .budget-category-actions > :first-child,
+  .goals-workspace .goal-actions > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .goals-workspace .goal-card-top {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .goals-workspace .goal-amount,
+  .goals-workspace .goal-card-foot {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .budgets-workspace .budget-overview strong,
+  .goals-workspace .goal-hero strong {
+    font-size: clamp(20px, 7vw, 28px);
+  }
+}
+
+@media (max-width: 430px) {
+  .insights-dashboard .insights-kpi {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .insights-dashboard .insights-kpi > article:first-child,
+  .insights-dashboard .insights-kpi > article:nth-child(4) {
+    grid-column: 1 / -1;
+  }
+
+  .insights-dashboard .insights-kpi strong {
+    font-size: clamp(18px, 7vw, 25px);
+  }
+
+  .insights-dashboard .insights-kpi > article:first-child strong {
+    font-size: clamp(24px, 9vw, 34px);
+  }
+
+  .budgets-workspace .budget-category-actions,
+  .goals-workspace .goal-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .budgets-workspace .budget-category-actions > :first-child,
+  .goals-workspace .goal-actions > :first-child {
+    grid-column: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insights-dashboard .budget-track span,
+  .budgets-workspace .budget-track span,
+  .goals-workspace .budget-track span {
+    transition: none;
+  }
+}
