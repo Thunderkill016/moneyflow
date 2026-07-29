@@ -23,3 +23,11 @@ test("account actions own readable token-based dark surfaces", () => {
   assert.match(css, /html\[data-theme="dark"\]/u);
   assert.doesNotMatch(css, /#f5f7f5/u);
 });
+
+test("account totals and cards use neutral financial surfaces", () => {
+  assert.match(css, /accounts-summary/u);
+  assert.match(css, /background:\s*var\(--mf-surface\)/u);
+  assert.match(css, /--color-bg-elevated:\s*var\(--mf-surface\)/u);
+  assert.match(css, /background-image:\s*none/u);
+  assert.doesNotMatch(css, /linear-gradient/u);
+});
