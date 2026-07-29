@@ -10,7 +10,7 @@ This file defines the MoneyFlow logo candidate currently under review for the we
 
 ## Brand idea
 
-MoneyFlow is a personal ledger that helps people understand where money went. The candidate mark uses one Vietnamese rice-stalk image whose grains are replaced by coin forms.
+MoneyFlow is a personal ledger that helps people understand where money went. The candidate mark uses one Vietnamese rice-stalk image whose side grains are replaced by coin forms.
 
 The intended reading order is:
 
@@ -27,9 +27,10 @@ The owner requested that the implementation stop relying on generated logo board
 
 The candidate therefore uses `lucide-react` as a construction system:
 
-- Lucide `Circle` components provide consistent scalable coin outlines;
+- Lucide `Leaf` provides the top rice grain;
+- six Lucide `Circle` components are optically stretched and rotated into coin-shaped side grains;
 - native SVG paths provide the central stalk and connecting branches;
-- the same geometry is mirrored in `src/app/icon.svg` for favicon and installed-app use;
+- the same silhouette is mirrored in `src/app/icon.svg` for favicon and installed-app use;
 - no additional dependency, bitmap asset or generated illustration is introduced.
 
 Lucide is a construction aid, not the final brand idea. The arrangement, proportions and coin-rice silhouette are MoneyFlow-specific.
@@ -54,10 +55,10 @@ Landing and authentication use the shared component directly. The signed-in shel
 - Container: rounded square from `(4, 4)` to `(60, 60)` with `16` radius.
 - Container color: MoneyFlow brand green.
 - Central stalk: one vertical rounded stroke.
-- Coin grains: seven circular outlines — one top coin and three balanced pairs.
-- Each coin has a small center point to distinguish it from a berry or generic dot.
+- Top grain: one pointed rice grain from the Lucide `Leaf` primitive.
+- Coin grains: three balanced pairs of thick oval outlines, tilted outward like rice grains.
 - Six curved branches connect the side coins to the central stalk.
-- No enclosing coin ring, currency sign, chart, arrow, letter M, leaf badge or extra emblem.
+- No enclosing coin ring, currency sign, chart, arrow, letter M, separate badge or extra emblem.
 
 ### Wordmark
 
@@ -85,12 +86,12 @@ Brand green is not the semantic income/success color.
 3. Monochrome dark.
 4. Monochrome light.
 
-Geometry must remain unchanged across variants. At micro size, center points may be hidden while the seven coin outlines remain.
+Geometry must remain unchanged across variants. At micro size, the top grain, central stalk and three paired coin groups must remain distinct.
 
 ## Clear space and minimum size
 
 - Clear space: at least one quarter of the symbol width.
-- `16px`: favicon-only context; verify that the stalk and coin groups remain distinct.
+- `16px`: favicon-only context; verify that the stalk and three coin pairs remain distinct.
 - `24px`: compact interface symbol.
 - `32–36px`: normal navigation mark.
 - `64px+`: marketing and installed-app contexts.
@@ -110,7 +111,7 @@ Do not:
 - add a circular badge around the whole stalk;
 - reintroduce the M, F or O experiments;
 - add currency signs, charts, arrows, percentages, wallets or bank cards;
-- change the number or placement of coin grains per screen;
+- change the number or placement of the top grain or six side coins per screen;
 - redraw the mark with unrelated CSS polygons or bitmap assets;
 - describe the mark as a promise of profit, wealth or guaranteed growth.
 
