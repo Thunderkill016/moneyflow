@@ -1168,7 +1168,7 @@ FONT MIN:    14px body, 12px caption
 CONTRAST:    4.5:1 text, 3:1 large text / icons
 BREAKPOINTS: 0-639 mobile, 640-1023 tablet, 1024-1439 desktop, 1440+ wide
 NAV:         Inbox-first · Bottom ≤5 tabs mobile · Sidebar desktop
-HOME:        /insights (Tổng quan); /inbox là hàng đợi duyệt dữ liệu
+HOME:        /dashboard (Tổng quan); /insights là redirect cũ; /inbox là hàng đợi duyệt dữ liệu
 MONEY:       Always monospace. Right-aligned. Never truncated in detail views.
 NEGATIVE:    Sign + direction icon + color (triple redundancy)
 STATES:      Loading, Empty, Content, Error, Offline, Success, Uncertain
