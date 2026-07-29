@@ -22,13 +22,21 @@ test("dashboard page mounts MoneyFlowDashboard with the bounded finance loader",
   assert.match(source, /getDashboardFinanceWorkspace/);
 });
 
-test("dashboard KPI row: số dư, thu tháng, chi tháng, ròng", () => {
+/*
+ * The four month figures are now one statement rather than a four-card KPI row,
+ * and the labels were rewritten in plain Vietnamese ("Bạn đang có" / "Tiền vào"
+ * / "Tiền ra" / "Còn lại" instead of "Số dư tổng" / "Thu tháng" / "Chi tháng" /
+ * "Ròng"). The contract below still checks the same thing this test always
+ * checked — that all four figures are present and derived from the summary —
+ * only the wording and the container changed.
+ */
+test("dashboard statement: số dư, tiền vào, tiền ra, còn lại", () => {
   const source = readDashboardSource();
-  assert.match(source, /insights-kpi/);
-  assert.match(source, /Số dư tổng/);
-  assert.match(source, /Thu tháng/);
-  assert.match(source, /Chi tháng/);
-  assert.match(source, /Ròng/);
+  assert.match(source, /DashboardStatement/);
+  assert.match(source, /Bạn đang có/);
+  assert.match(source, /Tiền vào/);
+  assert.match(source, /Tiền ra/);
+  assert.match(source, /Còn lại/);
   assert.match(source, /calculateDashboardSummary/);
   assert.match(source, /totals\.balance/);
   assert.match(source, /totals\.income/);
@@ -50,10 +58,16 @@ test("dashboard recent transactions widget", () => {
   assert.match(source, /href="\/transactions"/);
 });
 
-test("dashboard Ghi chi CTA (welcome + primary action)", () => {
+/*
+ * The dashboard no longer repeats "Ghi chi tiêu" beside the balance: the app
+ * shell already presents it in the desktop top bar and the phone tab bar, so a
+ * second copy put two identical primary buttons in one viewport. The dashboard
+ * still owns the dialog and still offers the action from its empty state, which
+ * is what this contract exists to protect.
+ */
+test("dashboard Ghi chi CTA (empty state + dialog wiring)", () => {
   const source = readDashboardSource();
   assert.match(source, /GHI_CHI_TIEU_LABEL/);
-  assert.match(source, /insights-ghi-chi/);
   assert.match(source, /openGhiChi|setDialogOpen\(true\)/);
   assert.match(source, /AddTransactionDialog/);
 });
@@ -68,13 +82,13 @@ test("dashboard export CTA discoverable (Xuất CSV → settings export)", () =>
 test("KPI completeness checklist — no missing widget string", () => {
   const source = readDashboardSource();
   const required = [
-    "Số dư tổng",
-    "Thu tháng",
-    "Chi tháng",
-    "Ròng",
+    "Bạn đang có",
+    "Tiền vào",
+    "Tiền ra",
+    "Còn lại",
     "Chi theo danh mục",
     "Giao dịch gần đây",
-    "insights-ghi-chi",
+    "GHI_CHI_TIEU_LABEL",
     "insights-export-csv",
   ] as const;
   for (const token of required) {

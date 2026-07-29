@@ -11,13 +11,15 @@
   color: inherit;
   font-family: var(--mf-font-money);
   font-variant-numeric: tabular-nums;
+  /* `tnum` keeps digit columns aligned now that the face is proportional. */
   font-feature-settings: "tnum" 1;
+  letter-spacing: var(--mf-money-track-sm);
   line-height: 1.15;
 }
 
 .strong {
-  font-weight: 780;
-  letter-spacing: -0.025em;
+  font-weight: 660;
+  letter-spacing: var(--mf-money-track-md);
 }
 
 .alignStart {

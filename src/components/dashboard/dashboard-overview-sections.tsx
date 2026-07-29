@@ -14,6 +14,7 @@ import {
 } from "@/lib/reports";
 import { categoryMeta, type Transaction } from "@/lib/sample-data";
 import { transferRowSubtitle } from "@/lib/transfers";
+import { DashboardStatement } from "./statement";
 
 type AttentionItem = {
   id: string;
@@ -40,14 +41,13 @@ export function DashboardHeaderSections({
   attentionItems,
   totals,
   isEmptyLedger,
-  actionsDisabled,
   onAddTransaction,
 }: {
   displayName: string;
   attentionItems: AttentionItem[];
   totals: DashboardTotals;
   isEmptyLedger: boolean;
-  actionsDisabled: boolean;
+  /** Kept by the caller for the empty-ledger call to action below. */
   onAddTransaction: () => void;
 }) {
   return (
@@ -56,26 +56,14 @@ export function DashboardHeaderSections({
         <div>
           <p className="eyebrow">Tổng quan</p>
           <h1>Chào {displayName}.</h1>
-          <p>Còn bao nhiêu, tháng này thu–chi thế nào, tiền đi đâu — một màn hình.</p>
         </div>
         <div className="welcome-actions">
-          <span className="date-pill" aria-hidden="true">
-            <span>Tháng này</span>
-          </span>
           <Link
             className="secondary-button insights-export-csv"
             href={EXPORT_SETTINGS_HREF}
           >
             <Icon name="arrowDown" /> {EXPORT_CSV_LABEL}
           </Link>
-          <button
-            type="button"
-            className="primary-button insights-ghi-chi"
-            onClick={onAddTransaction}
-            disabled={actionsDisabled}
-          >
-            <Icon name="plus" /> {GHI_CHI_TIEU_LABEL}
-          </button>
         </div>
       </section>
 
@@ -99,48 +87,12 @@ export function DashboardHeaderSections({
         </section>
       ) : null}
 
-      <section className="insights-kpi" aria-label="Tóm tắt tháng này">
-        <article>
-          <span>Số dư tổng</span>
-          <MoneyValue amount={totals.balance} label="Số dư tổng" emphasis="strong" />
-          <small>Trên mọi ví đang dùng</small>
-        </article>
-        <article>
-          <span>Thu tháng</span>
-          <MoneyValue
-            amount={totals.income}
-            mode="kind"
-            kind="income"
-            label="Thu tháng"
-            emphasis="strong"
-            className="amount income"
-          />
-          <small>Không gồm chuyển ví</small>
-        </article>
-        <article>
-          <span>Chi tháng</span>
-          <MoneyValue
-            amount={totals.expense}
-            mode="kind"
-            kind="expense"
-            label="Chi tháng"
-            emphasis="strong"
-            className="amount"
-          />
-          <small>Không gồm chuyển ví</small>
-        </article>
-        <article>
-          <span>Ròng</span>
-          <MoneyValue
-            amount={totals.net}
-            mode="signed"
-            label="Ròng"
-            emphasis="strong"
-            className={totals.net >= 0 ? "amount income" : "amount"}
-          />
-          <small>Thu trừ chi tháng này</small>
-        </article>
-      </section>
+      {/*
+        No primary action here: the shell already presents "Ghi chi tiêu" in the
+        top bar on desktop and in the tab bar on phones. Repeating it beside the
+        figure would put two identical primary buttons in one viewport.
+      */}
+      <DashboardStatement totals={totals} isEmptyLedger={isEmptyLedger} />
 
       <nav className="insights-planning-nav" aria-label="Kế hoạch từ Tổng quan">
         <p className="insights-planning-label">Kế hoạch</p>

@@ -7,6 +7,7 @@ const dashboardCompositionFiles = [
   "src/components/moneyflow-dashboard.tsx",
   "src/components/dashboard/dashboard-overview-sections.tsx",
   "src/components/dashboard/dashboard-planning-sections.tsx",
+  "src/components/dashboard/statement.tsx",
 ] as const;
 
 export function readDashboardSource(): string {
