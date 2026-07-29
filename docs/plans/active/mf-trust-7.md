@@ -4,6 +4,7 @@
 **Owner:** MoneyFlow  
 **Master tracker:** #123  
 **Branch:** `agent/mf-trust-7-phase-0`  
+**Draft PR:** #124  
 **Started:** 2026-07-29
 
 ## Outcome
@@ -47,7 +48,8 @@ This packet is the only active multi-session plan for TRUST-7. GitHub issue #123
 - [x] Keep #72 as the only remaining UI route/state tracker and freeze it under #123.
 - [x] Move delivered packets from `docs/plans/active/` to `docs/plans/completed/`.
 - [x] Record the owner-confirmed manual readiness gates from #27 without marking seven-day use complete.
-- [ ] Open a draft PR and let repository CI verify the documentation cleanup.
+- [x] Open draft PR #124 for the documentation cleanup.
+- [ ] Let repository CI verify PR #124 before merge.
 
 ## Phase 1 — Core correctness
 
