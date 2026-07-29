@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { LandingPage } from "@/components/landing-page";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import "./landing/safe-ux-login.css";
 
 const TITLE = "MoneyFlow — Sổ thu chi cá nhân cho người Việt";
 const DESCRIPTION =
