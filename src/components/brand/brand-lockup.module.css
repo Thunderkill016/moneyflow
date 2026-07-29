@@ -61,18 +61,30 @@
   stroke-width: 2.5;
 }
 
+.topGrain,
 .coin {
   color: currentColor;
   overflow: visible;
 }
 
-.coinCenter {
-  fill: currentColor;
-  stroke: none;
+.topGrain {
+  transform: rotate(-45deg);
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
-.micro .coinCenter {
-  display: none;
+.coin {
+  fill: none;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.coinLeft {
+  transform: rotate(24deg);
+}
+
+.coinRight {
+  transform: rotate(-24deg);
 }
 
 .inverseMark {
