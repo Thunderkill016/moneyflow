@@ -72,7 +72,7 @@ test.describe("cross-device responsive audit", () => {
     });
   });
 
-  test("SAFE-04/05/06 baseline captures mobile Dashboard planning surfaces", async ({
+  test("SAFE-04/05/06 repairs mobile Dashboard planning surfaces", async ({
     page,
   }, testInfo) => {
     const width = page.viewportSize()?.width ?? 1_440;
@@ -81,9 +81,11 @@ test.describe("cross-device responsive audit", () => {
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
     const budget = page.locator(".budget-panel");
     const goal = page.locator(".goal-dashboard-panel");
+    const weekly = page.locator(".weekly-summary-panel");
 
     await expect(budget).toBeVisible();
     await expect(goal).toBeVisible();
+    await expect(weekly).toBeVisible();
 
     const metrics = await page.evaluate(() => {
       const read = (selector: string) => {
@@ -105,6 +107,21 @@ test.describe("cross-device responsive audit", () => {
       const firstKpi = document.querySelector<HTMLElement>(
         ".insights-kpi > article:first-child",
       );
+      const weeklyPanel = document.querySelector<HTMLElement>(
+        ".weekly-summary-panel",
+      );
+      const weeklyHeading = weeklyPanel?.querySelector<HTMLElement>(
+        ".section-heading",
+      );
+      const weeklyBody = weeklyPanel?.querySelector<HTMLElement>(
+        ".weekly-summary-kpis, .planning-card-empty",
+      );
+      if (!weeklyPanel || !weeklyHeading || !weeklyBody) {
+        throw new Error("Missing weekly summary alignment elements");
+      }
+      const weeklyPanelRect = weeklyPanel.getBoundingClientRect();
+      const weeklyHeadingRect = weeklyHeading.getBoundingClientRect();
+      const weeklyBodyRect = weeklyBody.getBoundingClientRect();
 
       return {
         viewport: {
@@ -118,11 +135,16 @@ test.describe("cross-device responsive audit", () => {
         firstKpiBackground: firstKpi
           ? getComputedStyle(firstKpi).backgroundImage
           : null,
+        weekly: {
+          bodyGap: weeklyBodyRect.top - weeklyHeadingRect.bottom,
+          bodyBottomInset: weeklyPanelRect.bottom - weeklyBodyRect.bottom,
+        },
       };
     });
 
     const budgetImage = await budget.screenshot({ animations: "disabled" });
     const goalImage = await goal.screenshot({ animations: "disabled" });
+    const weeklyImage = await weekly.screenshot({ animations: "disabled" });
     await testInfo.attach(`safe-04-budget-${testInfo.project.name}.png`, {
       body: budgetImage,
       contentType: "image/png",
@@ -131,11 +153,63 @@ test.describe("cross-device responsive audit", () => {
       body: goalImage,
       contentType: "image/png",
     });
+    await testInfo.attach(`safe-06b-weekly-${testInfo.project.name}.png`, {
+      body: weeklyImage,
+      contentType: "image/png",
+    });
     await testInfo.attach(`safe-04-05-06-${testInfo.project.name}.json`, {
       body: Buffer.from(JSON.stringify(metrics, null, 2)),
       contentType: "application/json",
     });
 
     expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
+    expect(metrics.budget.headingDetailDisplay).not.toBe("none");
+    expect(metrics.goal.headingDetailDisplay).not.toBe("none");
+    expect(metrics.budget.background).toBe(metrics.goal.background);
+    expect(metrics.firstKpiBackground).toBe("none");
+    expect(metrics.weekly.bodyGap).toBeGreaterThanOrEqual(0);
+    expect(metrics.weekly.bodyGap).toBeLessThanOrEqual(24);
+    expect(metrics.weekly.bodyBottomInset).toBeGreaterThanOrEqual(0);
+  });
+
+  test("SAFE-04/05 detail summaries stack and actions stay tappable on phones", async ({
+    page,
+  }) => {
+    const width = page.viewportSize()?.width ?? 1_440;
+    test.skip(width > 430, "detail repair is asserted on phone widths");
+
+    for (const route of [
+      {
+        path: "/budgets",
+        summary: ".budget-overview",
+        actions: ".budget-category-actions a, .budget-category-actions button",
+      },
+      {
+        path: "/goals",
+        summary: ".goal-hero",
+        actions: ".goal-actions button",
+      },
+    ]) {
+      await page.goto(route.path, { waitUntil: "domcontentloaded" });
+      const summary = page.locator(route.summary);
+      await expect(summary).toBeVisible();
+
+      const gridColumns = await summary.evaluate(
+        (element) => getComputedStyle(element).gridTemplateColumns,
+      );
+      expect(gridColumns.trim().split(/\s+/)).toHaveLength(1);
+
+      const actionHeights = await page.locator(route.actions).evaluateAll((elements) =>
+        elements.map((element) => element.getBoundingClientRect().height),
+      );
+      for (const height of actionHeights) {
+        expect(height).toBeGreaterThanOrEqual(44);
+      }
+
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(1);
+    }
   });
 });

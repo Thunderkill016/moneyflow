@@ -6,12 +6,7 @@ import test from "node:test";
 const readProjectFile = (path: string) =>
   readFileSync(join(process.cwd(), path), "utf8");
 
-/**
- * MF SAFE-UX regression contracts.
- *
- * SAFE-02 and SAFE-03 now assert repaired behavior. The remaining Phase 0
- * characterizations are replaced when SAFE-T4–T6 deliver their shared UI fixes.
- */
+/** MF SAFE-UX repaired regression contracts. */
 
 test("SAFE-02: public landing routes load a visible mobile Login override", () => {
   const override = readProjectFile("src/app/landing/safe-ux-login.css");
@@ -47,29 +42,63 @@ test("SAFE-03: authenticated Inbox count is server-derived and demo storage is i
   assert.match(server, /select\("id", \{ count: "exact", head: true \}\)/);
 });
 
-test("SAFE-04/05 baseline: Dashboard Budget and Goal cards share the generic amount structure", () => {
-  const planning = readProjectFile(
-    "src/components/dashboard/dashboard-planning-sections.tsx",
-  );
-  const css = readProjectFile("src/app/dashboard/calm-ledger-overview.css");
+test("SAFE-04/05: Dashboard, Budgets and Goals share the repaired responsive contract", () => {
+  const css = readProjectFile("src/app/safe-ux-planning.css");
+  const dashboardPage = readProjectFile("src/app/dashboard/page.tsx");
+  const budgetsPage = readProjectFile("src/app/budgets/page.tsx");
+  const goalsPage = readProjectFile("src/app/goals/page.tsx");
 
-  assert.match(planning, /<h2>Ngân sách tháng<\/h2>/);
-  assert.match(planning, /<h2>Mục tiêu tiết kiệm<\/h2>/);
-  assert.ok(
-    (planning.match(/className="budget-number"/g) ?? []).length >= 2,
-    "Budget and Goal currently reuse the same amount row",
+  assert.match(dashboardPage, /import "\.\.\/safe-ux-planning\.css"/);
+  assert.match(budgetsPage, /import "\.\.\/safe-ux-planning\.css"/);
+  assert.match(goalsPage, /import "\.\.\/safe-ux-planning\.css"/);
+  assert.match(
+    css,
+    /\.insights-dashboard \.budget-panel \.section-heading p,[\s\S]*?\.goal-dashboard-panel \.section-heading p[\s\S]*?display:\s*block/,
   );
   assert.match(
     css,
-    /@media\s*\(max-width:\s*760px\)[\s\S]*?\.insights-dashboard\s+\.section-heading\s+p\s*\{[\s\S]*?display:\s*none\s*;/,
+    /\.budgets-workspace \.budget-overview,[\s\S]*?\.goals-workspace \.goal-hero[\s\S]*?grid-template-columns:\s*1fr/,
+  );
+  assert.match(
+    css,
+    /\.budgets-workspace \.budget-category-actions a,[\s\S]*?\.goals-workspace \.goal-actions button[\s\S]*?min-height:\s*44px/,
+  );
+  assert.match(
+    css,
+    /\.budget-card-grid,[\s\S]*?\.goal-card-grid[\s\S]*?grid-template-columns:\s*1fr/,
   );
 });
 
-test("SAFE-06 baseline: the first Dashboard KPI currently owns a route-local gradient", () => {
-  const css = readProjectFile("src/app/dashboard/calm-ledger-overview.css");
+test("SAFE-06: amount surfaces are neutral by default and token-driven", () => {
+  const css = readProjectFile("src/app/safe-ux-planning.css");
 
   assert.match(
     css,
-    /\.insights-dashboard\s+\.insights-kpi\s*>\s*article:first-child\s*\{[\s\S]*?linear-gradient\(/,
+    /\.insights-dashboard \.insights-kpi > article:first-child[\s\S]*?background:\s*var\(--mf-surface\)/,
   );
+  assert.match(
+    css,
+    /article:nth-child\(2\)[\s\S]*?var\(--mf-income\)/,
+  );
+  assert.match(
+    css,
+    /article:nth-child\(3\)[\s\S]*?var\(--mf-expense\)/,
+  );
+  assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b/i);
+});
+
+test("SAFE-06B: weekly and today totals stay anchored below the card header", () => {
+  const css = readProjectFile("src/app/dashboard/safe-ux-weekly-summary.css");
+  const dashboardPage = readProjectFile("src/app/dashboard/page.tsx");
+
+  assert.match(dashboardPage, /import "\.\/safe-ux-weekly-summary\.css"/);
+  assert.match(
+    css,
+    /\.weekly-summary-panel \.section-heading[\s\S]*?margin-bottom:\s*14px/,
+  );
+  assert.match(
+    css,
+    /\.weekly-summary-panel \.weekly-summary-kpis > div[\s\S]*?justify-content:\s*center/,
+  );
+  assert.match(css, /@media \(max-width:\s*760px\)/);
 });

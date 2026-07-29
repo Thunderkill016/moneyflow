@@ -1,0 +1,69 @@
+/*
+ * SAFE-UX — final Dashboard-specific cascade authority.
+ *
+ * The legacy AIUX balance-card treatment uses scoped !important declarations.
+ * These overrides are limited to the canonical total-balance card so the
+ * repaired neutral amount-surface contract is deterministic without affecting
+ * the semantic Thu, Chi or Rong cards.
+ */
+main.dashboard.insights-dashboard .insights-kpi > article:first-child {
+  border-color: var(--mf-border) !important;
+  background-image: none !important;
+  background-color: var(--mf-surface) !important;
+  color: var(--mf-text) !important;
+  box-shadow: var(--mf-shadow-sm) !important;
+}
+
+main.dashboard.insights-dashboard .insights-kpi > article:first-child::before {
+  content: none !important;
+}
+
+main.dashboard.insights-dashboard .insights-kpi > article:first-child > span,
+main.dashboard.insights-dashboard .insights-kpi > article:first-child > small {
+  color: var(--mf-text-muted) !important;
+}
+
+main.dashboard.insights-dashboard .insights-kpi > article:first-child > strong {
+  color: var(--mf-text) !important;
+}
+
+/* Keep the weekly/today total content anchored directly below its header. */
+.insights-dashboard .weekly-summary-panel {
+  align-content: start;
+  justify-content: start;
+}
+
+.insights-dashboard .weekly-summary-panel .section-heading {
+  margin-bottom: 14px;
+}
+
+.insights-dashboard .weekly-summary-panel .weekly-summary-kpis {
+  align-items: stretch;
+  margin-top: 0;
+}
+
+.insights-dashboard .weekly-summary-panel .weekly-summary-kpis > div {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.insights-dashboard .weekly-summary-panel .weekly-summary-kpis strong {
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+@media (max-width: 760px) {
+  .insights-dashboard .weekly-summary-panel {
+    padding: 18px;
+  }
+
+  .insights-dashboard .weekly-summary-panel .section-heading {
+    margin-bottom: 12px;
+  }
+
+  .insights-dashboard .weekly-summary-panel .weekly-summary-kpis > div {
+    min-height: 68px;
+  }
+}
