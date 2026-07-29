@@ -9,6 +9,7 @@ import {
   monthExpenseTotal,
   netTransactionEffect,
   OPENING_BALANCE,
+  reconcileBalanceSnapshot,
   topExpenseCategories,
 } from "./finance.ts";
 import type { Transaction } from "./sample-data.ts";
@@ -162,7 +163,6 @@ test("reserved commitments, allocated savings and daily savings reduce the guide
     plannedDailySavings: 100_000,
     today: "2026-07-14",
   });
-
   assert.equal(summary.dailyAllowance, 700_000);
   assert.equal(summary.safeToday, 700_000);
   assert.equal(summary.balance, 18_000_000);
@@ -207,6 +207,42 @@ test("balance and month totals preserve income, expense and transfer invariants"
     1_400_000,
   );
   assert.equal(monthExpenseTotal([expense, transfer, incomeTxn], "2026-07"), 100_000);
+});
+
+test("snapshot reconciliation applies live expense, income and transfer deltas exactly once", () => {
+  const snapshotTransactions = [expense, incomeTxn, transfer];
+  const snapshotBalance = balanceAfterTransactions(
+    OPENING_BALANCE,
+    snapshotTransactions,
+  );
+  const liveTransactions = [
+    { ...expense, id: "live-expense", amount: 25_000 },
+    { ...incomeTxn, id: "live-income", amount: 75_000 },
+    { ...transfer, id: "live-transfer", amount: 900_000 },
+    ...snapshotTransactions,
+  ];
+
+  const reconciled = reconcileBalanceSnapshot(
+    snapshotBalance,
+    snapshotTransactions,
+    liveTransactions,
+  );
+  assert.equal(reconciled, snapshotBalance + 50_000);
+  assert.equal(
+    reconcileBalanceSnapshot(
+      snapshotBalance,
+      snapshotTransactions,
+      liveTransactions,
+    ),
+    reconciled,
+  );
+
+  const summary = calculateDashboardSummary(liveTransactions, {
+    isDemo: true,
+    totalBalance: reconciled,
+    today: "2026-07-14",
+  });
+  assert.equal(summary.balance, reconciled);
 });
 
 test("editing and soft-deleting an expense update assets exactly once", () => {
