@@ -35,7 +35,7 @@ test.describe("critical browser compatibility audit", () => {
     });
     const hero = page.getByRole("heading", {
       level: 1,
-      name: "Biết chính xác tiền đã đi đâu. Ghi rõ từng khoản, không cần đoán.",
+      name: "Sổ thu chi do chính tay bạn kiểm soát. Không đoán, không tự động, không giấu giếm.",
     });
     const lead = page.locator("#landing-title + p");
     const proof = page.getByRole("region", { name: "Điểm nổi bật" });
@@ -43,11 +43,11 @@ test.describe("critical browser compatibility audit", () => {
       name: /Mô phỏng một tháng trong MoneyFlow/i,
     });
     const finalCta = page.getByRole("region", {
-      name: "Tạo sổ MoneyFlow của bạn",
+      name: "Mở sổ MoneyFlow của riêng bạn",
     });
     const finalCtaTitle = page.getByRole("heading", {
       level: 2,
-      name: "Tạo sổ MoneyFlow của bạn",
+      name: "Mở sổ MoneyFlow của riêng bạn",
     });
 
     await expect(hero).toBeVisible();
