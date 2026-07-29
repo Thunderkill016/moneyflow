@@ -11,6 +11,10 @@ import { expect, test } from "@playwright/test";
 const UNIQUE_AMOUNT = "777000";
 const UNIQUE_AMOUNT_DISPLAY = "777.000";
 const UNIQUE_NOTE = "E2E cafe autopilot TASK-200";
+const OPENING_BALANCE_LABEL = "Số dư tổng 1.126.000 ₫";
+const AFTER_EXPENSE_BALANCE_LABEL = "Số dư tổng 349.000 ₫";
+const KEEP_OPEN_NOTE = "E2E keep-open first";
+const CLOSE_AFTER_SAVE_NOTE = "E2E close after save";
 
 test.describe("Expense path (thu chi)", () => {
   test.beforeEach(async ({ context }) => {
@@ -63,6 +67,9 @@ test.describe("Expense path (thu chi)", () => {
     // Demo entry: no real credentials — go straight to product home.
     await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden({ timeout: 20_000 });
+    await expect(
+      page.getByLabel(OPENING_BALANCE_LABEL, { exact: true }),
+    ).toBeVisible({ timeout: 20_000 });
 
     // AppShell owns the only surfaced primary expense action. The older
     // in-page duplicate remains hidden until the full dashboard JSX cleanup.
@@ -138,13 +145,17 @@ test.describe("Expense path (thu chi)", () => {
       )
       .toBe(true);
 
-    // 4) Dashboard shows the expense amount (recent list + category share).
+    // 4) Dashboard shows the expense amount (recent list + category share) and
+    // reconciles the snapshot balance with the persisted local ledger.
     // Demo Chi tháng KPI adds a baseline, so assert the ledger rows/amount not the raw KPI alone.
     await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden();
     await expect(page.locator("section.insights-kpi")).toBeVisible({
       timeout: 20_000,
     });
+    await expect(
+      page.getByLabel(AFTER_EXPENSE_BALANCE_LABEL, { exact: true }),
+    ).toBeVisible({ timeout: 20_000 });
 
     const recentRow = page
       .locator(".transaction-row")
@@ -156,6 +167,12 @@ test.describe("Expense path (thu chi)", () => {
     await expect(
       page.locator(".insights-category-row").filter({ hasText: "Ăn uống" }),
     ).toContainText(UNIQUE_AMOUNT_DISPLAY);
+
+    // Reload must hydrate the same ledger without applying its delta twice.
+    await page.reload();
+    await expect(
+      page.getByLabel(AFTER_EXPENSE_BALANCE_LABEL, { exact: true }),
+    ).toBeVisible({ timeout: 20_000 });
 
     // 5) Export / download path (settings export — client-side file)
     await page.goto("/settings/export");
@@ -185,5 +202,77 @@ test.describe("Expense path (thu chi)", () => {
     await expect(page.getByText(/Đã tải \d+ mục/i)).toBeVisible({
       timeout: 10_000,
     });
+  });
+
+  test("dashboard keeps the form open only when requested", async ({ page }) => {
+    await page.goto("/dashboard");
+    await expect(
+      page.getByLabel(OPENING_BALANCE_LABEL, { exact: true }),
+    ).toBeVisible({ timeout: 20_000 });
+
+    const isMobile = (page.viewportSize()?.width ?? 1_000) <= 760;
+    const openButton = isMobile
+      ? page
+          .getByRole("navigation", { name: "Điều hướng di động" })
+          .getByRole("button", { name: "Ghi chi tiêu" })
+      : page.locator("header").getByRole("button", { name: "Ghi chi tiêu" });
+    await expect(openButton).toBeVisible();
+    await openButton.click();
+
+    const dialog = page.getByRole("dialog", { name: "Ghi chi tiêu" });
+    await expect(dialog).toBeVisible();
+
+    const amount = dialog.getByLabel(/Số tiền chi/i);
+    const note = dialog.getByPlaceholder("Ví dụ: Cơm trưa");
+    const keepOpen = dialog.getByRole("checkbox", {
+      name: /Lưu xong thêm tiếp/i,
+    });
+
+    await keepOpen.check();
+    await amount.fill("120000");
+    await dialog.getByRole("button", { name: /Ăn uống/i }).click();
+    await note.fill(KEEP_OPEN_NOTE);
+    await dialog
+      .getByRole("button", { name: "Lưu & thêm tiếp", exact: true })
+      .click();
+
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("status")).toContainText("Đã lưu");
+    await expect(amount).toHaveValue("");
+    await expect(amount).toBeFocused();
+
+    await expect
+      .poll(
+        () =>
+          page.evaluate((targetNote) => {
+            const raw = window.localStorage.getItem(
+              "moneyflow-demo-transactions-v1",
+            );
+            const list = raw ? (JSON.parse(raw) as Array<{ note?: string }>) : [];
+            return list.filter((item) => item.note === targetNote).length;
+          }, KEEP_OPEN_NOTE),
+        { timeout: 15_000 },
+      )
+      .toBe(1);
+
+    await keepOpen.uncheck();
+    await amount.fill("80000");
+    await note.fill(CLOSE_AFTER_SAVE_NOTE);
+    await dialog.getByRole("button", { name: "Lưu", exact: true }).click();
+
+    await expect(dialog).toBeHidden();
+    await expect
+      .poll(
+        () =>
+          page.evaluate((targetNote) => {
+            const raw = window.localStorage.getItem(
+              "moneyflow-demo-transactions-v1",
+            );
+            const list = raw ? (JSON.parse(raw) as Array<{ note?: string }>) : [];
+            return list.filter((item) => item.note === targetNote).length;
+          }, CLOSE_AFTER_SAVE_NOTE),
+        { timeout: 15_000 },
+      )
+      .toBe(1);
   });
 });
