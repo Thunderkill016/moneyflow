@@ -1,0 +1,12 @@
+/* SAFE-02 — route-scoped repair for the Login action hidden by legacy mobile CSS. */
+@media (max-width: 560px) {
+  nav[aria-label="Điều hướng trang chủ"] a[href="/login"] {
+    min-width: 76px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 10px;
+    white-space: nowrap;
+  }
+}
