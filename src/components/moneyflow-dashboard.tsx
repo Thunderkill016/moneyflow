@@ -20,7 +20,7 @@ import {
 } from "@/lib/planning/commitments";
 import {
   calculateDashboardSummary,
-  netTransactionEffect,
+  reconcileBalanceSnapshot,
   topExpenseCategories,
 } from "@/lib/finance";
 import { goalTotals, type SavingsGoal } from "@/lib/planning/goals";
@@ -143,14 +143,15 @@ export function MoneyFlowDashboard({
       ? demoIncomeTemplates
       : incomeTemplates;
 
-  const currentBalance = useMemo(() => {
-    if (viewer.isDemo) return workspace.totalBalance;
-    return (
-      workspace.totalBalance +
-      netTransactionEffect(transactions) -
-      netTransactionEffect(workspace.transactions)
-    );
-  }, [transactions, viewer.isDemo, workspace.totalBalance, workspace.transactions]);
+  const currentBalance = useMemo(
+    () =>
+      reconcileBalanceSnapshot(
+        workspace.totalBalance,
+        workspace.transactions,
+        transactions,
+      ),
+    [transactions, workspace.totalBalance, workspace.transactions],
+  );
 
   const liveBudgets = useMemo(
     () =>
@@ -226,7 +227,6 @@ export function MoneyFlowDashboard({
   async function addTransaction(input: CreateTransactionInput) {
     const result = await addTransactionToStore(input);
     if (result.ok && result.transaction) {
-      setDialogOpen(false);
       setNotice(
         `${
           result.transaction.kind === "expense"
