@@ -147,8 +147,6 @@
   scale: 0.97;
 }
 
-.primaryButton,
-.primaryButtonLarge,
 .finalCtaButton {
   display: inline-flex;
   min-height: 44px;
@@ -170,16 +168,12 @@
     box-shadow var(--mf-fast) var(--mf-ease);
 }
 
-.primaryButton:hover,
-.primaryButtonLarge:hover,
 .finalCtaButton:hover {
   background: var(--mf-brand-hover);
   box-shadow: var(--mf-shadow-md);
   translate: 0 -1px;
 }
 
-.primaryButton:active,
-.primaryButtonLarge:active,
 .finalCtaButton:active {
   background: var(--mf-brand-pressed);
   translate: 0;
@@ -201,7 +195,6 @@
   min-width: 0;
 }
 
-.eyebrow,
 .kicker {
   color: var(--mf-brand-text);
   font-size: 12px;
@@ -209,26 +202,6 @@
   letter-spacing: 0.09em;
   line-height: 1.4;
   text-transform: uppercase;
-}
-
-.eyebrow {
-  width: fit-content;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--mf-border);
-  border-radius: 999px;
-  background: var(--mf-surface);
-  padding: 8px 12px;
-  box-shadow: var(--mf-shadow-sm);
-}
-
-.eyebrow > span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--mf-brand);
-  box-shadow: 0 0 0 5px var(--mf-brand-subtle);
 }
 
 .hero h1 {
@@ -256,37 +229,6 @@
 .heroActions {
   margin-top: 30px;
   align-items: stretch;
-}
-
-.primaryButtonLarge,
-.secondaryButtonLarge {
-  min-height: 52px;
-  padding-inline: 21px;
-  font-size: 15px;
-}
-
-.secondaryButtonLarge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--mf-border-strong);
-  border-radius: var(--mf-radius-md);
-  background: var(--mf-surface);
-  color: var(--mf-text);
-  font-weight: 700;
-  transition:
-    border-color var(--mf-fast) var(--mf-ease),
-    background var(--mf-fast) var(--mf-ease),
-    scale var(--mf-fast) var(--mf-ease);
-}
-
-.secondaryButtonLarge:hover {
-  border-color: var(--mf-brand);
-  background: var(--mf-brand-subtle);
-}
-
-.secondaryButtonLarge:active {
-  scale: 0.97;
 }
 
 .trustList {
@@ -594,40 +536,6 @@
   line-height: 1.65;
 }
 
-.steps {
-  margin-top: 42px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.steps li {
-  min-height: 264px;
-  border-top: 2px solid var(--mf-border-strong);
-  padding: 24px 8px 8px 0;
-}
-
-.stepNumber {
-  color: var(--mf-brand-text);
-  font-family: var(--mf-font-money);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.steps h3 {
-  margin-top: 32px;
-  font-size: 21px;
-  letter-spacing: -0.025em;
-}
-
-.steps p,
-.features p {
-  margin-top: 10px;
-  color: var(--mf-text-muted);
-  font-size: 14px;
-  line-height: 1.65;
-}
-
 .featuresSection {
   width: 100%;
   max-width: none;
@@ -636,38 +544,6 @@
   gap: clamp(48px, 8vw, 112px);
   background: var(--mf-surface);
   padding-inline: max(16px, calc((100vw - var(--mf-content)) / 2));
-}
-
-.features {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.features li {
-  min-height: 190px;
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-  border: 1px solid var(--mf-border);
-  border-radius: var(--mf-radius-lg);
-  background: var(--mf-canvas);
-  padding: 22px;
-}
-
-.featureIcon {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: 14px;
-  background: var(--mf-brand-subtle);
-  color: var(--mf-brand-text);
-}
-
-.features h3 {
-  font-size: 18px;
-  letter-spacing: -0.02em;
 }
 
 .ownership {
@@ -718,55 +594,6 @@
   grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
   align-items: start;
   gap: clamp(46px, 8vw, 108px);
-}
-
-.faqList {
-  border-top: 1px solid var(--mf-border-strong);
-}
-
-.faqList details {
-  border-bottom: 1px solid var(--mf-border-strong);
-}
-
-.faqList summary {
-  min-height: 68px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  cursor: pointer;
-  font-size: 16px;
-  font-weight: 700;
-  list-style: none;
-}
-
-.faqList summary::-webkit-details-marker {
-  display: none;
-}
-
-.faqList summary::after {
-  content: "+";
-  width: 28px;
-  height: 28px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--mf-surface-muted);
-  color: var(--mf-brand-text);
-  font-size: 19px;
-}
-
-.faqList details[open] summary::after {
-  content: "−";
-}
-
-.faqList details p {
-  max-width: 680px;
-  padding: 0 42px 22px 0;
-  color: var(--mf-text-muted);
-  font-size: 14px;
-  line-height: 1.65;
 }
 
 .finalCta {
@@ -868,10 +695,6 @@
     text-align: center;
   }
 
-  .eyebrow {
-    margin-inline: auto;
-  }
-
   .heroLead {
     margin-inline: auto;
   }
@@ -899,34 +722,9 @@
     border-left: 0;
   }
 
-  .steps {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  .steps li {
-    min-height: auto;
-    display: grid;
-    grid-template-columns: 46px minmax(0, 1fr);
-    column-gap: 12px;
-    padding: 22px 0;
-  }
-
-  .steps h3 {
-    margin-top: 0;
-  }
-
-  .steps p {
-    grid-column: 2;
-  }
-
   .featuresSection,
   .faq {
     grid-template-columns: 1fr;
-  }
-
-  .features {
-    margin-top: 8px;
   }
 
   .ownership {
@@ -963,10 +761,6 @@
     display: none;
   }
 
-  .primaryButton {
-    padding-inline: 13px;
-  }
-
   .hero {
     padding-top: 40px;
   }
@@ -984,11 +778,6 @@
   .heroActions {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .primaryButtonLarge,
-  .secondaryButtonLarge {
-    width: 100%;
   }
 
   .trustList {
@@ -1045,20 +834,6 @@
     padding-block: 72px;
   }
 
-  .features {
-    grid-template-columns: 1fr;
-  }
-
-  .features li {
-    min-height: auto;
-    flex-direction: row;
-    gap: 16px;
-  }
-
-  .featureIcon {
-    flex: 0 0 auto;
-  }
-
   .ownership,
   .finalCta {
     margin-block: 72px;
@@ -1071,9 +846,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .primaryButton,
-  .primaryButtonLarge,
-  .secondaryButtonLarge,
   .finalCtaButton,
   .loginLink {
     transition: none;

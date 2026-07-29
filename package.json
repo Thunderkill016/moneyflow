@@ -24,6 +24,7 @@
     "test:ui-audit:firefox": "playwright test -c playwright.audit.config.ts --project=firefox-desktop"
   },
   "dependencies": {
+    "@base-ui/react": "^1.6.0",
     "@radix-ui/react-dropdown-menu": "^2.1.20",
     "@radix-ui/react-slot": "^1.3.0",
     "@supabase/ssr": "^0.12.1",
@@ -35,7 +36,9 @@
     "next": "16.2.11",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "shadcn": "^4.16.0",
     "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.3"
   },
