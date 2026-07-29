@@ -42,7 +42,37 @@
 }
 
 .glyph {
-  stroke: var(--mf-on-brand);
+  color: var(--mf-on-brand);
+}
+
+.stem,
+.branch {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.stem {
+  stroke-width: 4.2;
+}
+
+.branch {
+  stroke-width: 2.5;
+}
+
+.coin {
+  color: currentColor;
+  overflow: visible;
+}
+
+.coinCenter {
+  fill: currentColor;
+  stroke: none;
+}
+
+.micro .coinCenter {
+  display: none;
 }
 
 .inverseMark {
@@ -56,7 +86,7 @@
 }
 
 .inverseMark .glyph {
-  stroke: currentColor;
+  color: currentColor;
 }
 
 .wordmark {
@@ -78,6 +108,6 @@
 
   .glyph,
   .inverseMark .glyph {
-    stroke: CanvasText;
+    color: CanvasText;
   }
 }
