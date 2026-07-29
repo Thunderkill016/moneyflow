@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { MobileShellContract } from "@/components/mobile-shell-contract";
 import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
 import { RouteScrollReset } from "@/components/route-scroll-reset";
 import { normalizeSiteOrigin } from "@/lib/site-url";
@@ -93,6 +94,7 @@ export default function RootLayout({
       </head>
       <body>
         <RouteScrollReset />
+        <MobileShellContract />
         {children}
         <PrivacySafeSpeedInsights />
       </body>
