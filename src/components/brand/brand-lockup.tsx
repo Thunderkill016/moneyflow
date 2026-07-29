@@ -12,12 +12,12 @@ type Coin = {
 };
 
 const COINS: Coin[] = [
-  { x: 17, y: 18, side: "left" },
-  { x: 35, y: 18, side: "right" },
-  { x: 15, y: 28, side: "left" },
-  { x: 37, y: 28, side: "right" },
-  { x: 17, y: 38, side: "left" },
-  { x: 35, y: 38, side: "right" },
+  { x: 15.5, y: 18, side: "left" },
+  { x: 36.5, y: 18, side: "right" },
+  { x: 14, y: 28, side: "left" },
+  { x: 38, y: 28, side: "right" },
+  { x: 15.5, y: 38, side: "left" },
+  { x: 36.5, y: 38, side: "right" },
 ];
 
 function cx(...values: Array<string | false | null | undefined>) {
@@ -56,19 +56,19 @@ export function BrandMark({
       <rect className={styles.container} x="4" y="4" width="56" height="56" rx="16" />
       <g className={styles.glyph}>
         <path className={styles.stem} d="M32 50V17" />
-        <path className={styles.branch} d="M32 24C29 24 27 23 23 22" />
-        <path className={styles.branch} d="M32 24C35 24 37 23 41 22" />
-        <path className={styles.branch} d="M32 34C28 34 25 33 21 32" />
-        <path className={styles.branch} d="M32 34C36 34 39 33 43 32" />
-        <path className={styles.branch} d="M32 44C29 44 27 43 23 42" />
-        <path className={styles.branch} d="M32 44C35 44 37 43 41 42" />
+        <path className={styles.branch} d="M32 24C29.8 24 28.2 23.2 26.4 22.6" />
+        <path className={styles.branch} d="M32 24C34.2 24 35.8 23.2 37.6 22.6" />
+        <path className={styles.branch} d="M32 34C29.2 34 27.2 33.2 25.2 32.6" />
+        <path className={styles.branch} d="M32 34C34.8 34 36.8 33.2 38.8 32.6" />
+        <path className={styles.branch} d="M32 44C29.8 44 28.2 43.2 26.4 42.6" />
+        <path className={styles.branch} d="M32 44C34.2 44 35.8 43.2 37.6 42.6" />
         <Leaf
           className={styles.topGrain}
           x={27.5}
           y={7.5}
           width={9}
           height={13}
-          strokeWidth={2.2}
+          strokeWidth={2.1}
           fill="currentColor"
         />
         {COINS.map((coin) => (
@@ -82,7 +82,7 @@ export function BrandMark({
             y={coin.y}
             width={12}
             height={8}
-            strokeWidth={5.2}
+            strokeWidth={4.6}
           />
         ))}
       </g>
