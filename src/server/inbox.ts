@@ -23,6 +23,26 @@ export type InboxListResult =
   | { ok: true; candidates: InboxCandidate[]; batches: ImportBatch[] }
   | { ok: false; message: string };
 
+/**
+ * Authenticated Dashboard attention count. Returning null means the count is
+ * unavailable, so callers must render no badge rather than a stale local value.
+ */
+export async function getPendingInboxCountFromServer(): Promise<number | null> {
+  const viewer = await requireViewer();
+  if (viewer.isDemo) return 0;
+
+  const supabase = await createClient();
+  if (!supabase) return null;
+
+  const { count, error } = await supabase
+    .from("inbox_candidates")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+
+  if (error) return null;
+  return count ?? 0;
+}
+
 export async function listInboxFromServer(): Promise<InboxListResult> {
   const viewer = await requireViewer();
   if (viewer.isDemo) {

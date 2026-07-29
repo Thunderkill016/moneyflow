@@ -60,6 +60,7 @@ type DashboardWorkspace = {
 export function MoneyFlowDashboard({
   viewer,
   workspace,
+  initialInboxCount,
   budgets,
   commitments,
   incomeTemplates = [],
@@ -67,6 +68,7 @@ export function MoneyFlowDashboard({
 }: {
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
+  initialInboxCount: number;
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
   incomeTemplates?: RecurringIncomeTemplate[];
@@ -84,7 +86,7 @@ export function MoneyFlowDashboard({
   });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [notice, setNotice] = useState("");
-  const [inboxCount, setInboxCount] = useState(0);
+  const [demoInboxCount, setDemoInboxCount] = useState(0);
   const [demoCommitments, setDemoCommitments] = useState<
     RecurringCommitment[] | null
   >(null);
@@ -107,13 +109,15 @@ export function MoneyFlowDashboard({
   }, [viewer.isDemo, commitments, incomeTemplates, workspace.today]);
 
   useEffect(() => {
+    if (!viewer.isDemo) return;
+
     let cancelled = false;
     const run = () => {
       if (cancelled) return;
       try {
-        setInboxCount(countPending(readStoredCandidates()));
+        setDemoInboxCount(countPending(readStoredCandidates()));
       } catch {
-        setInboxCount(0);
+        setDemoInboxCount(0);
       }
     };
     if (typeof window.requestIdleCallback === "function") {
@@ -128,7 +132,7 @@ export function MoneyFlowDashboard({
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [transactions.length]);
+  }, [transactions.length, viewer.isDemo]);
 
   useEffect(() => {
     if (!notice) return;
@@ -142,6 +146,7 @@ export function MoneyFlowDashboard({
     viewer.isDemo && demoIncomeTemplates
       ? demoIncomeTemplates
       : incomeTemplates;
+  const inboxCount = viewer.isDemo ? demoInboxCount : initialInboxCount;
 
   const currentBalance = useMemo(
     () =>

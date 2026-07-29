@@ -5,6 +5,7 @@ import { getDashboardFinanceWorkspace } from "@/server/finance";
 import { getBudgetsWorkspace } from "@/server/budgets";
 import { getCommitmentsWorkspace } from "@/server/commitments";
 import { getGoalsWorkspace } from "@/server/goals";
+import { getPendingInboxCountFromServer } from "@/server/inbox";
 import { getIncomeTemplatesWorkspace } from "@/server/income-templates";
 import "./calm-ledger-overview.css";
 import "./calm-ledger-overview-actions.css";
@@ -29,12 +30,14 @@ export default async function DashboardPage() {
     commitmentWorkspace,
     incomeWorkspace,
     goalWorkspace,
+    pendingInboxCount,
   ] = await Promise.all([
     getDashboardFinanceWorkspace(),
     getBudgetsWorkspace(),
     getCommitmentsWorkspace(),
     getIncomeTemplatesWorkspace(),
     getGoalsWorkspace(),
+    viewer.isDemo ? Promise.resolve(0) : getPendingInboxCountFromServer(),
   ]);
 
   return (
@@ -53,6 +56,7 @@ export default async function DashboardPage() {
           incomeWorkspace.dataError ??
           goalWorkspace.dataError,
       }}
+      initialInboxCount={pendingInboxCount ?? 0}
       budgets={budgetWorkspace.budgets}
       commitments={commitmentWorkspace.commitments}
       incomeTemplates={incomeWorkspace.templates}
