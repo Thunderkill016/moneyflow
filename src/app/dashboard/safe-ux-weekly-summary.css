@@ -1,0 +1,40 @@
+/* SAFE-UX — keep the weekly/today total content anchored below its header. */
+.insights-dashboard .weekly-summary-panel {
+  align-content: start;
+  justify-content: start;
+}
+
+.insights-dashboard .weekly-summary-panel .section-heading {
+  margin-bottom: 14px;
+}
+
+.insights-dashboard .weekly-summary-panel .weekly-summary-kpis {
+  align-items: stretch;
+  margin-top: 0;
+}
+
+.insights-dashboard .weekly-summary-panel .weekly-summary-kpis > div {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.insights-dashboard .weekly-summary-panel .weekly-summary-kpis strong {
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+@media (max-width: 760px) {
+  .insights-dashboard .weekly-summary-panel {
+    padding: 18px;
+  }
+
+  .insights-dashboard .weekly-summary-panel .section-heading {
+    margin-bottom: 12px;
+  }
+
+  .insights-dashboard .weekly-summary-panel .weekly-summary-kpis > div {
+    min-height: 68px;
+  }
+}
