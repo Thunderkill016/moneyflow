@@ -10,8 +10,10 @@ import {
 } from "../sample-data.ts";
 import {
   directImportFingerprint,
+  directImportRowIdentity,
   formatDirectImportSummary,
   planDirectCsvImport,
+  selectDirectImportAttemptRows,
   toDirectImportPosts,
   type DirectImportMapping,
 } from "./direct-csv-import.ts";
@@ -203,6 +205,121 @@ test("toDirectImportPosts builds integer CreateTransactionInput", () => {
     assert.match(p.input.occurredOn, /^\d{4}-\d{2}-\d{2}$/);
     assert.ok(p.input.kind === "expense" || p.input.kind === "income");
   }
+});
+
+test("toDirectImportPosts reuses the idempotency key for an unchanged retry", () => {
+  const text = readFileSync(join(fixturesDir, "sample-bank.csv"), "utf8");
+  const parsed = parseCsvStatement(text, { today: "2026-07-15" });
+  const plan = planDirectCsvImport(
+    parsed.rows,
+    [],
+    baseMapping,
+    demoAccounts,
+    demoCategories,
+  );
+  let generated = 0;
+  const first = toDirectImportPosts(plan.ready, () => {
+    generated += 1;
+    return `00000000-0000-4000-8000-${String(generated).padStart(12, "0")}`;
+  });
+  const firstGenerated = generated;
+  const retry = toDirectImportPosts(
+    plan.ready,
+    () => {
+      generated += 1;
+      return `10000000-0000-4000-8000-${String(generated).padStart(12, "0")}`;
+    },
+    first,
+  );
+
+  assert.equal(generated, firstGenerated);
+  assert.deepEqual(
+    retry.map((post) => post.input.idempotencyKey),
+    first.map((post) => post.input.idempotencyKey),
+  );
+  assert.deepEqual(
+    retry.map((post) => post.identity),
+    first.map((post) => post.identity),
+  );
+});
+
+test("direct import retry identity changes with financial row meaning", () => {
+  const text = readFileSync(join(fixturesDir, "sample-bank.csv"), "utf8");
+  const parsed = parseCsvStatement(text, { today: "2026-07-15" });
+  const plan = planDirectCsvImport(
+    parsed.rows,
+    [],
+    baseMapping,
+    demoAccounts,
+    demoCategories,
+  );
+  const row = plan.ready[0]!;
+  const first = toDirectImportPosts(
+    [row],
+    () => "00000000-0000-4000-8000-000000000001",
+  );
+  const changed = { ...row, note: `${row.note} corrected` };
+  const retry = toDirectImportPosts(
+    [changed],
+    () => "00000000-0000-4000-8000-000000000002",
+    first,
+  );
+
+  assert.notEqual(directImportRowIdentity(changed), first[0]?.identity);
+  assert.equal(
+    retry[0]?.input.idempotencyKey,
+    "00000000-0000-4000-8000-000000000002",
+  );
+});
+
+test("partial retry selects only unresolved row indexes when dedupe is disabled", () => {
+  const text = readFileSync(join(fixturesDir, "sample-bank.csv"), "utf8");
+  const parsed = parseCsvStatement(text, { today: "2026-07-15" });
+  const plan = planDirectCsvImport(
+    parsed.rows,
+    [],
+    { ...baseMapping, skipDuplicates: false },
+    demoAccounts,
+    demoCategories,
+  );
+  const first = toDirectImportPosts(
+    plan.ready,
+    () => "00000000-0000-4000-8000-000000000001",
+  );
+  const unresolved = first.slice(-1);
+
+  const retryRows = selectDirectImportAttemptRows(
+    plan.ready,
+    unresolved.map((post) => post.rowIndex),
+    true,
+  );
+
+  assert.equal(retryRows.length, 1);
+  assert.equal(retryRows[0]?.rowIndex, unresolved[0]?.rowIndex);
+});
+
+test("direct import page retains unresolved posts and keeps partial failures retryable", () => {
+  const page = readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../components/inbox/direct-csv-import-page.tsx",
+    ),
+    "utf8",
+  );
+
+  assert.match(page, /attemptPostsRef\s*=\s*useRef/);
+  assert.match(
+    page,
+    /toDirectImportPosts\([\s\S]*attemptPostsRef\.current[\s\S]*\)/,
+  );
+  assert.match(
+    page,
+    /attemptPostsRef\.current\s*=\s*attemptPostsRef\.current\.filter/,
+  );
+  assert.match(page, /selectDirectImportAttemptRows\(/);
+  assert.match(page, /current\s*===\s*"partial"/);
+  assert.match(page, /setPhase\("partial"\)/);
+  assert.match(page, /Thử lại.*dòng/);
 });
 
 test("formatDirectImportSummary VN", () => {

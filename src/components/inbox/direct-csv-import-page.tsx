@@ -21,8 +21,10 @@ import {
   directImportRowStatusLabel,
   formatDirectImportSummary,
   planDirectCsvImport,
+  selectDirectImportAttemptRows,
   toDirectImportPosts,
   type DirectImportPlan,
+  type DirectImportPostItem,
 } from "@/lib/inbox/direct-csv-import";
 import type { LedgerLike } from "@/lib/inbox/detect";
 import {
@@ -59,6 +61,7 @@ type Phase =
   | "reading"
   | "mapped"
   | "importing"
+  | "partial"
   | "done"
   | "error";
 
@@ -117,6 +120,7 @@ export function DirectCsvImportPage({
   const expenseCatField = useId();
   const incomeCatField = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const attemptPostsRef = useRef<DirectImportPostItem[]>([]);
   const { accounts, categories } = useDemoMasterData({
     isDemo: viewer.isDemo,
     accounts: workspace.accounts,
@@ -171,6 +175,9 @@ export function DirectCsvImportPage({
     ? incomeCategoryId
     : incomeCategories[0]?.id ?? "";
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
+  const [unresolvedRowIndexes, setUnresolvedRowIndexes] = useState<number[]>(
+    [],
+  );
   const [resultSummary, setResultSummary] = useState<{
     created: number;
     failed: number;
@@ -215,6 +222,13 @@ export function DirectCsvImportPage({
     accounts,
     categories,
   ]);
+  const actionableRows = plan
+    ? selectDirectImportAttemptRows(
+        plan.ready,
+        unresolvedRowIndexes,
+        phase === "partial",
+      )
+    : [];
 
   const reparseWithMap = useCallback(
     (text: string, name: string, map: CsvColumnMap) => {
@@ -230,7 +244,7 @@ export function DirectCsvImportPage({
       }
       setHeaders(result.headers);
       setColumnMap(result.columnMap);
-      setPhase("mapped");
+      setPhase((current) => (current === "partial" ? "partial" : "mapped"));
       setError("");
     },
     [],
@@ -240,6 +254,8 @@ export function DirectCsvImportPage({
     async (file: File) => {
       setError("");
       setResultSummary(null);
+      attemptPostsRef.current = [];
+      setUnresolvedRowIndexes([]);
       setFileName(file.name);
       setFileSize(file.size);
 
@@ -324,6 +340,8 @@ export function DirectCsvImportPage({
     setParseResult(null);
     setResultSummary(null);
     setImportProgress({ done: 0, total: 0 });
+    attemptPostsRef.current = [];
+    setUnresolvedRowIndexes([]);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -344,16 +362,42 @@ export function DirectCsvImportPage({
 
     setPhase("importing");
     setError("");
-    const posts = toDirectImportPosts(plan.ready, () => crypto.randomUUID());
+    const rows = selectDirectImportAttemptRows(
+      plan.ready,
+      attemptPostsRef.current.map((post) => post.rowIndex),
+      phase === "partial",
+    );
+    const posts = toDirectImportPosts(
+      rows,
+      () => crypto.randomUUID(),
+      attemptPostsRef.current,
+    );
+    attemptPostsRef.current = posts;
+    setUnresolvedRowIndexes(posts.map((post) => post.rowIndex));
     setImportProgress({ done: 0, total: posts.length });
 
     let created = 0;
     let failed = 0;
     for (let i = 0; i < posts.length; i += 1) {
       const post = posts[i]!;
-      const result = await addTransaction(post.input);
-      if (result.ok) created += 1;
-      else failed += 1;
+      let ok = false;
+      try {
+        const result = await addTransaction(post.input);
+        ok = result.ok;
+      } catch {
+        ok = false;
+      }
+      if (ok) {
+        created += 1;
+        attemptPostsRef.current = attemptPostsRef.current.filter(
+          (item) => item.identity !== post.identity,
+        );
+        setUnresolvedRowIndexes((current) =>
+          current.filter((rowIndex) => rowIndex !== post.rowIndex),
+        );
+      } else {
+        failed += 1;
+      }
       setImportProgress({ done: i + 1, total: posts.length });
     }
 
@@ -367,12 +411,19 @@ export function DirectCsvImportPage({
       source_type: "csv",
     });
 
-    if (created > 0 && failed === 0) {
+    if (failed === 0 && created > 0) {
+      attemptPostsRef.current = [];
+      setUnresolvedRowIndexes([]);
       setNotice(`Đã ghi ${created} giao dịch vào sổ.`);
       setPhase("done");
-    } else if (created > 0) {
-      setNotice(`Đã ghi ${created} giao dịch; ${failed} lỗi.`);
-      setPhase("done");
+    } else if (failed > 0) {
+      if (created > 0) {
+        setNotice(`Đã ghi ${created} giao dịch; ${failed} dòng cần thử lại.`);
+      }
+      setPhase("partial");
+      setError(
+        `${failed} dòng chưa được xác nhận. Có thể thử lại an toàn với cùng yêu cầu.`,
+      );
     } else {
       setPhase("error");
       setError(
@@ -531,6 +582,7 @@ export function DirectCsvImportPage({
 
             {(phase === "mapped" ||
               phase === "importing" ||
+              phase === "partial" ||
               phase === "done" ||
               (phase === "error" && parseResult?.ok)) &&
               parseResult?.ok && (
@@ -716,7 +768,8 @@ export function DirectCsvImportPage({
                     </p>
                   )}
 
-                  {resultSummary && phase === "done" && (
+                  {resultSummary &&
+                    (phase === "done" || phase === "partial") && (
                     <section className="panel direct-import-result" role="status">
                       <p>
                         Đã ghi <strong className="font-mono">{resultSummary.created}</strong>{" "}
@@ -745,15 +798,17 @@ export function DirectCsvImportPage({
                         className="primary-button"
                         disabled={
                           !plan ||
-                          plan.readyCount === 0 ||
+                          actionableRows.length === 0 ||
                           phase === "importing"
                         }
                         onClick={() => void runImport()}
                       >
                         {phase === "importing"
                           ? `Đang ghi ${importProgress.done}/${importProgress.total}…`
+                          : phase === "partial"
+                            ? `Thử lại ${actionableRows.length} dòng chưa xác nhận`
                           : plan
-                            ? `Ghi ${plan.readyCount} giao dịch vào sổ`
+                            ? `Ghi ${actionableRows.length} giao dịch vào sổ`
                             : "Ghi vào sổ"}
                       </button>
                     )}

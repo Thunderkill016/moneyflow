@@ -62,6 +62,7 @@ export type DirectImportPlan = {
 };
 
 export type DirectImportPostItem = {
+  identity: string;
   input: CreateTransactionInput;
   fingerprint: string;
   rowIndex: number;
@@ -304,27 +305,70 @@ export function planDirectCsvImport(
 }
 
 /**
- * Build create payloads for ready rows. Caller supplies idempotency keys.
+ * Identity for one financial request within a mounted import attempt.
+ * The raw material stays in memory only; this is not a persisted fingerprint.
+ */
+export function directImportRowIdentity(row: DirectImportRowPlan): string {
+  return JSON.stringify([
+    row.rowIndex,
+    row.kind,
+    row.accountId,
+    row.categoryId,
+    row.amount,
+    row.occurredOn,
+    row.note,
+    row.fingerprint,
+  ]);
+}
+
+/**
+ * A partial retry is scoped by source row, not by the current dedupe result.
+ * This prevents confirmed rows from being posted again when dedupe is disabled.
+ */
+export function selectDirectImportAttemptRows(
+  ready: DirectImportRowPlan[],
+  unresolvedRowIndexes: readonly number[],
+  retryOnly: boolean,
+): DirectImportRowPlan[] {
+  if (!retryOnly) return ready;
+  const unresolvedRows = new Set(unresolvedRowIndexes);
+  return ready.filter((row) => unresolvedRows.has(row.rowIndex));
+}
+
+/**
+ * Build create payloads for ready rows. Unchanged unresolved rows reuse their
+ * prior idempotency keys so an uncertain committed response can be retried.
  */
 export function toDirectImportPosts(
   ready: DirectImportRowPlan[],
   makeIdempotencyKey: () => string,
+  unresolved: DirectImportPostItem[] = [],
 ): DirectImportPostItem[] {
+  const unresolvedByIdentity = new Map(
+    unresolved.map((post) => [post.identity, post]),
+  );
+
   return ready
     .filter((r) => r.status === "ready")
-    .map((r) => ({
-      rowIndex: r.rowIndex,
-      fingerprint: r.fingerprint,
-      input: {
-        kind: r.kind,
-        categoryId: r.categoryId,
-        accountId: r.accountId,
-        amount: r.amount,
-        note: r.note,
-        occurredOn: r.occurredOn,
-        idempotencyKey: makeIdempotencyKey(),
-      },
-    }));
+    .map((r) => {
+      const identity = directImportRowIdentity(r);
+      const prior = unresolvedByIdentity.get(identity);
+      return {
+        identity,
+        rowIndex: r.rowIndex,
+        fingerprint: r.fingerprint,
+        input: {
+          kind: r.kind,
+          categoryId: r.categoryId,
+          accountId: r.accountId,
+          amount: r.amount,
+          note: r.note,
+          occurredOn: r.occurredOn,
+          idempotencyKey:
+            prior?.input.idempotencyKey ?? makeIdempotencyKey(),
+        },
+      };
+    });
 }
 
 /** Human summary for UI (Vietnamese, calm). */
