@@ -1,6 +1,6 @@
 # Reorganize Planning domain (budgets/commitments/goals/income-templates), no behavior change
 
-**Status:** evaluating
+**Status:** completed
 **Owner:** agent
 **Issue/PR:** none yet — Phase 3 slice from `docs/plans/active/repository-consolidation.md`
 **Last updated:** 2026-07-28
@@ -207,9 +207,9 @@ None.
 ## Delivery record
 
 - Branch: `claude/doc-du-an-qnj7ya`
-- PR: none opened yet
-- Squash commit: pending
-- CI run: pending
-- Production deployment: not applicable
-- Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: no, pending PR/merge
+- PR: #108 — merged 2026-07-28
+- Squash commit: `0c5d51b55c6d052b711df3a8dbf1f3647c6d3f56`
+- CI run: PR #108 head — `database`, `verify`, `e2e` all green
+- Production deployment: merged to `main`
+- Production flow verified: owner confirmed a manual browser/production check of the affected routes (`/budgets`, `/commitments`, `/goals`, `/income-templates`) after merge
+- Work packet moved to `docs/plans/completed/`: yes

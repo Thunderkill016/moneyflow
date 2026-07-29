@@ -206,7 +206,7 @@ The regression suite belongs under `e2e/audit/`. Production fixes remain in rout
 ### Remaining limitations
 
 - Reports exact totals are based on its canonical server-owned demo workspace, not the browser-local rich transaction fixture.
-- Emulation does not establish physical-device readiness.
+- Emulation does not establish physical-device readiness. (2026-07-28: a fresh local demo-build re-run of `rich-state.responsive.audit.spec.ts` on `chromium-desktop-1366`/`chromium-phone-320` still passes for dashboard/transactions/reports rich-money states — reconfirms the fix holds, does not add physical-device evidence.)
 - Validation, destructive confirmation and import review remain open under #72.
 
 ## Delivery record

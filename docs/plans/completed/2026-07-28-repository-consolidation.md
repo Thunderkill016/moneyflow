@@ -1,6 +1,6 @@
 # Repository consolidation — Phase 1 inventory
 
-**Status:** discovery
+**Status:** completed
 **Owner:** agent
 **Issue/PR:** none yet — inventory only, no branch/PR opened for this phase
 **Last updated:** 2026-07-28 (update 3: human owner approved clearing the rest of the legacy autopilot cluster — see "Update 3" in section C)
@@ -363,10 +363,10 @@ Rules:
 
 ## Delivery record
 
-- Branch: `claude/doc-du-an-qnj7ya` (this session's designated branch; no separate feature branch opened for an inventory-only doc)
-- PR: none opened yet — pending human decision on whether this warrants its own PR or should ride with a later phase
-- Squash commit: pending
-- CI run: not applicable (no code change)
-- Production deployment: not applicable
-- Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: not yet — stays in `active/` until Phase 2+ decisions (T2–T6) are resolved
+- Branch: `claude/doc-du-an-qnj7ya`
+- PR: #108 — merged 2026-07-28
+- Squash commit: `0c5d51b55c6d052b711df3a8dbf1f3647c6d3f56`
+- CI run: PR #108 head — `database`, `verify`, `e2e` all green
+- Production deployment: merged to `main`; no runtime/route behavior changed by this packet's own scope (Grok removal + legacy doc cleanup + stale-packet reconciliation)
+- Production flow verified: owner confirmed a manual browser/production check after merge
+- Work packet moved to `docs/plans/completed/`: yes
