@@ -81,9 +81,11 @@ test.describe("cross-device responsive audit", () => {
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
     const budget = page.locator(".budget-panel");
     const goal = page.locator(".goal-dashboard-panel");
+    const weekly = page.locator(".weekly-summary-panel");
 
     await expect(budget).toBeVisible();
     await expect(goal).toBeVisible();
+    await expect(weekly).toBeVisible();
 
     const metrics = await page.evaluate(() => {
       const read = (selector: string) => {
@@ -105,6 +107,21 @@ test.describe("cross-device responsive audit", () => {
       const firstKpi = document.querySelector<HTMLElement>(
         ".insights-kpi > article:first-child",
       );
+      const weeklyPanel = document.querySelector<HTMLElement>(
+        ".weekly-summary-panel",
+      );
+      const weeklyHeading = weeklyPanel?.querySelector<HTMLElement>(
+        ".section-heading",
+      );
+      const weeklyBody = weeklyPanel?.querySelector<HTMLElement>(
+        ".weekly-summary-kpis, .planning-card-empty",
+      );
+      if (!weeklyPanel || !weeklyHeading || !weeklyBody) {
+        throw new Error("Missing weekly summary alignment elements");
+      }
+      const weeklyPanelRect = weeklyPanel.getBoundingClientRect();
+      const weeklyHeadingRect = weeklyHeading.getBoundingClientRect();
+      const weeklyBodyRect = weeklyBody.getBoundingClientRect();
 
       return {
         viewport: {
@@ -118,17 +135,26 @@ test.describe("cross-device responsive audit", () => {
         firstKpiBackground: firstKpi
           ? getComputedStyle(firstKpi).backgroundImage
           : null,
+        weekly: {
+          bodyGap: weeklyBodyRect.top - weeklyHeadingRect.bottom,
+          bodyBottomInset: weeklyPanelRect.bottom - weeklyBodyRect.bottom,
+        },
       };
     });
 
     const budgetImage = await budget.screenshot({ animations: "disabled" });
     const goalImage = await goal.screenshot({ animations: "disabled" });
+    const weeklyImage = await weekly.screenshot({ animations: "disabled" });
     await testInfo.attach(`safe-04-budget-${testInfo.project.name}.png`, {
       body: budgetImage,
       contentType: "image/png",
     });
     await testInfo.attach(`safe-05-goal-${testInfo.project.name}.png`, {
       body: goalImage,
+      contentType: "image/png",
+    });
+    await testInfo.attach(`safe-06b-weekly-${testInfo.project.name}.png`, {
+      body: weeklyImage,
       contentType: "image/png",
     });
     await testInfo.attach(`safe-04-05-06-${testInfo.project.name}.json`, {
@@ -141,6 +167,9 @@ test.describe("cross-device responsive audit", () => {
     expect(metrics.goal.headingDetailDisplay).not.toBe("none");
     expect(metrics.budget.background).toBe(metrics.goal.background);
     expect(metrics.firstKpiBackground).toBe("none");
+    expect(metrics.weekly.bodyGap).toBeGreaterThanOrEqual(0);
+    expect(metrics.weekly.bodyGap).toBeLessThanOrEqual(24);
+    expect(metrics.weekly.bodyBottomInset).toBeGreaterThanOrEqual(0);
   });
 
   test("SAFE-04/05 detail summaries stack and actions stay tappable on phones", async ({
