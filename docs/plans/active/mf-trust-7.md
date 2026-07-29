@@ -2,7 +2,7 @@
 
 **Status:** complete; seven-day use accepted, exit review waived by owner  
 **Owner:** MoneyFlow  
-**Issue/PR:** #123 / pending  
+**Issue/PR:** #123 / #132  
 **Owner-use evidence:** #127  
 **Last updated:** 2026-07-29
 
@@ -108,7 +108,7 @@ The next plan must begin with:
 | P3-1 | Confirm seven days of real owner use | owner confirmation / #127 / PR #131 | done |
 | P3-2 | Final CSV and missing/duplicate review | owner decision | waived, not verified |
 | P3-3 | Entry-time and replacement-method summary | owner decision | waived, not measured |
-| P3-4 | Record exit direction | owner instruction on 2026-07-29 | done — proceed to defect plan |
+| P3-4 | Record exit direction | owner instruction on 2026-07-29 / PR #132 | done — proceed to defect plan |
 | P4 | Open separate evidence-driven defect plan | after TRUST-7 closure | ready |
 
 ## Evaluation
@@ -124,7 +124,7 @@ The next plan must begin with:
 | Missing/duplicate review | owner waived | not verified |
 | Median entry time | owner waived | not measured |
 | Previous-method replacement count | owner waived | not measured |
-| Exit direction | owner instruction | proceed to separate defect plan |
+| Exit direction | owner instruction / PR #132 | proceed to separate defect plan |
 
 ### Remaining limitations
 
@@ -147,6 +147,7 @@ The next plan must begin with:
 - Phase 2 CI: #504 — verify, database and e2e passed
 - Phase 3 documentation branch/PR: `agent/mf-trust-7-phase-3-start` / #131
 - Phase 3 owner-use evidence: #127
+- Exit-review waiver branch/PR: `agent/mf-trust-7-waive-exit-review` / #132
 - Exit-review waiver: owner instruction on 2026-07-29
 - Production behavior change: none
 - Next authorized work: separate evidence-driven defect plan
