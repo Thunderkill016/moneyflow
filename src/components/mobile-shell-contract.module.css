@@ -16,6 +16,11 @@
     overscroll-behavior-y: contain;
     scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
+
+  /* Keep account creation available without stealing the central Ghi action. */
+  :global(body:has(main.accounts-workspace) header > div > button:first-child) {
+    display: inline-flex;
+  }
 }
 
 :global(html[data-theme="dark"] .transaction-dialog .amount-field > div) {
