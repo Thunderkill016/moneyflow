@@ -72,7 +72,7 @@ test.describe("cross-device responsive audit", () => {
     });
   });
 
-  test("SAFE-04/05/06 baseline captures mobile Dashboard planning surfaces", async ({
+  test("SAFE-04/05/06 repairs mobile Dashboard planning surfaces", async ({
     page,
   }, testInfo) => {
     const width = page.viewportSize()?.width ?? 1_440;
@@ -137,5 +137,50 @@ test.describe("cross-device responsive audit", () => {
     });
 
     expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
+    expect(metrics.budget.headingDetailDisplay).not.toBe("none");
+    expect(metrics.goal.headingDetailDisplay).not.toBe("none");
+    expect(metrics.budget.background).toBe(metrics.goal.background);
+    expect(metrics.firstKpiBackground).toBe("none");
+  });
+
+  test("SAFE-04/05 detail summaries stack and actions stay tappable on phones", async ({
+    page,
+  }) => {
+    const width = page.viewportSize()?.width ?? 1_440;
+    test.skip(width > 430, "detail repair is asserted on phone widths");
+
+    for (const route of [
+      {
+        path: "/budgets",
+        summary: ".budget-overview",
+        actions: ".budget-category-actions a, .budget-category-actions button",
+      },
+      {
+        path: "/goals",
+        summary: ".goal-hero",
+        actions: ".goal-actions button",
+      },
+    ]) {
+      await page.goto(route.path, { waitUntil: "domcontentloaded" });
+      const summary = page.locator(route.summary);
+      await expect(summary).toBeVisible();
+
+      const gridColumns = await summary.evaluate(
+        (element) => getComputedStyle(element).gridTemplateColumns,
+      );
+      expect(gridColumns.trim().split(/\s+/)).toHaveLength(1);
+
+      const actionHeights = await page.locator(route.actions).evaluateAll((elements) =>
+        elements.map((element) => element.getBoundingClientRect().height),
+      );
+      for (const height of actionHeights) {
+        expect(height).toBeGreaterThanOrEqual(44);
+      }
+
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(1);
+    }
   });
 });
