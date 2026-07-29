@@ -37,15 +37,23 @@ test.describe("cross-device responsive audit", () => {
     });
   }
 
-  test("SAFE-02 baseline records the hidden mobile Login action", async ({ page }, testInfo) => {
+  test("SAFE-02 keeps Login visible and tappable on mobile", async ({ page }, testInfo) => {
     const width = page.viewportSize()?.width ?? 1_440;
     test.skip(width > 560, "SAFE-02 is specific to the mobile header breakpoint");
 
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
-    const login = page.locator('header a.loginLink[href="/login"]');
+    const navigation = page.getByRole("navigation", {
+      name: "Điều hướng trang chủ",
+    });
+    const login = navigation.getByRole("link", { name: "Đăng nhập" });
 
     await expect(login).toHaveCount(1);
-    await expect(login).toBeHidden();
+    await expect(login).toBeVisible();
+    const box = await login.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+
     await testInfo.attach(`safe-02-login-${testInfo.project.name}.json`, {
       body: Buffer.from(
         JSON.stringify(
@@ -53,7 +61,8 @@ test.describe("cross-device responsive audit", () => {
             finding: "SAFE-02",
             viewport: page.viewportSize(),
             display: await login.evaluate((element) => getComputedStyle(element).display),
-            expectedRepair: "visible Login action with a touch target of at least 44px",
+            width: box!.width,
+            height: box!.height,
           },
           null,
           2,
