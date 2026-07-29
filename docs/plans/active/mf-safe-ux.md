@@ -19,7 +19,7 @@ This plan covers:
 - mobile defects in Monthly Budgets and Savings Goals;
 - incorrect or inconsistent background colors on amount surfaces.
 
-## Evidence baseline
+## Repository reconnaissance
 
 ### Owner-reported findings
 
@@ -45,9 +45,28 @@ This plan covers:
 5. `/goals` responsive owners include `goal-hero`, `goal-card-grid`, amount/progress sections and `goal-actions`.
 6. Amount colors are currently distributed across global/route styles; the fix must use shared MoneyFlow tokens rather than hardcoded route patches.
 
-## Scope boundaries
+## Research
 
-### In scope
+### Evidence interpretation
+
+- The historical Supabase screenshot is evidence that the Advisor surface previously reported a larger problem count, but the live Advisor result is the source of truth for implementation.
+- The 23 live RPC warnings are generic exposure warnings, not automatic proof that all 23 functions are vulnerable.
+- SAFE-02 has a confirmed CSS root cause and does not require speculative redesign.
+- SAFE-03 has a confirmed data-source mismatch in code; exact runtime behavior still needs an automated reproduction before implementation.
+- The owner screenshots establish visible Budget, Goal and amount-surface defects; Phase 0 must convert each visual complaint into a named route/state/viewport reproduction.
+
+### Related authorities
+
+- #40 remains the authority for the managed leaked-password setting constraint.
+- #72 contains a broader route/state UI audit; SAFE-UX is narrower and owner-defect-driven.
+- #53 remains a domain roadmap and must not be pulled into this repair plan unless a listed defect requires it.
+- `docs/REAL_USE_READINESS_CONTRACT.md` remains the readiness evidence authority; SAFE-UX does not rewrite historical TRUST-7 claims.
+
+## Specification
+
+### Scope boundaries
+
+#### In scope
 
 - evidence-driven security hardening;
 - auth/RLS/RPC privilege verification;
@@ -56,7 +75,7 @@ This plan covers:
 - shared amount-surface semantic color contract;
 - regression tests and production verification.
 
-### Out of scope
+#### Out of scope
 
 - logo or brand redesign unrelated to a defect;
 - new product features;
@@ -64,7 +83,7 @@ This plan covers:
 - mass-changing all SECURITY DEFINER functions just to reduce Advisor count;
 - publishing real financial data, credentials, tokens or private email addresses.
 
-## Security contract
+### Security contract
 
 Every flagged RPC needs an audit row containing:
 
@@ -82,7 +101,16 @@ Every flagged RPC needs an audit row containing:
 
 Generic warnings are not proof of a vulnerability. An RPC is changed only if its actual contract is unsafe or unnecessarily privileged.
 
-## Implementation phases
+### UI contract
+
+- Every supported route must preserve the same hierarchy and design-token meanings across mobile, tablet and desktop.
+- A visible count or CTA must lead to the exact action/data it claims.
+- Neutral financial amounts use neutral surfaces by default.
+- Semantic colors are reserved for real income, expense, warning, transfer or goal states.
+- Touch targets are at least 44px and content remains usable at 200% text.
+- No implementation may weaken Auth/RLS or expose sensitive data to solve a presentation problem.
+
+## Implementation plan
 
 ### Phase 0 — Evidence lock and reproducible baseline
 
@@ -246,7 +274,20 @@ Generic warnings are not proof of a vulnerability. An RPC is changed only if its
 
 A PR may be omitted only if evidence proves no implementation is required; the decision must be recorded in #134.
 
-## Exit criteria
+## Evaluation
+
+| Criterion | Evidence required | Current result |
+|---|---|---|
+| Security warnings classified | 23-row RPC matrix + leaked-password decision | pending |
+| Mobile Login available | browser evidence at 320–430px | pending |
+| Inbox count truthful | unit/browser/server-state evidence | pending |
+| Cross-platform consistency | route-state screenshot matrix | pending |
+| Monthly Budgets repaired | mobile/tablet/desktop evidence | pending |
+| Savings Goals repaired | mobile/tablet/desktop evidence | pending |
+| Amount-surface semantics consistent | token audit + light/dark screenshots | pending |
+| Production verification | deployment and smoke record | pending |
+
+### Exit criteria
 
 MF SAFE-UX closes only when:
 
