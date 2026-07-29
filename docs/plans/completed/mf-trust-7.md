@@ -4,7 +4,7 @@
 **Owner:** MoneyFlow  
 **Master issue:** #123 — closed  
 **Owner-use evidence:** #127 — closed  
-**Closure PR:** pending  
+**Closure PR:** #133  
 **Closed:** 2026-07-29
 
 ## Final outcome
@@ -129,6 +129,6 @@ Closing this plan does not itself authorize redesign, feature breadth, #72, PR #
 - Exit-review waiver branch/PR: `agent/mf-trust-7-waive-exit-review` / #132
 - Exit-review waiver merge commit: `b05d9b2e077cd1bde31d0e6c74946d0493e79c66`
 - Archive branch: `agent/archive-mf-trust-7`
-- Archive PR: pending
+- Archive PR: #133
 - Production behavior change from archive: none
 - Next active plan: none
