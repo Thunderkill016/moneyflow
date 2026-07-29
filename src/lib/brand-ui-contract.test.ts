@@ -45,11 +45,13 @@ test("landing and auth use the shared brand component", () => {
 });
 
 test("landing first viewport has one primary registration action", () => {
-  assert.match(landing, /Biết chính xác tiền đã đi đâu\./u);
-  assert.match(landing, /Bắt đầu ghi miễn phí/u);
-  assert.doesNotMatch(landing, /className=\{styles\.primaryButton\}/u);
-  assert.match(landing, /className=\{styles\.primaryButtonLarge\}/u);
-  assert.match(landing, /className=\{styles\.secondaryButtonLarge\}/u);
+  assert.match(landing, /Sổ thu chi do chính tay bạn kiểm soát\./u);
+  assert.match(landing, /Tạo sổ miễn phí/u);
+  assert.match(
+    landing,
+    /import \{ Button \} from "@\/components\/ui\/button"/u,
+  );
+  assert.match(landing, /variant="outline"/u);
 });
 
 test("signed-in compatibility bridge is narrow and uses canonical icon asset", () => {

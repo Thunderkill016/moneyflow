@@ -1,76 +1,109 @@
 import Link from "next/link";
+import {
+  ArrowRight,
+  ArrowLeftRight,
+  Ban,
+  Download,
+  Lock,
+  PlusCircle,
+  ShieldCheck,
+  Wallet,
+  Target,
+  BarChart3,
+} from "lucide-react";
 import { BrandLockup, BrandMark } from "@/components/brand/brand-lockup";
-import { Icon } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 import { RevealSection } from "@/components/reveal";
 import styles from "./landing-page.module.css";
 
-const trustItems = [
-  { icon: "lock" as const, label: "Không cần mật khẩu ngân hàng" },
-  { icon: "arrows" as const, label: "Thu · Chi · Chuyển tách bạch" },
-  { icon: "arrowDown" as const, label: "Xuất CSV bất cứ lúc nào" },
+const trustBadges = ["An toàn", "Minh bạch", "Xuất được dữ liệu"];
+
+const proofPoints = [
+  { stat: "0", label: "Mật khẩu ngân hàng cần cung cấp" },
+  { stat: "100%", label: "Giao dịch do chính bạn xác nhận" },
+  { stat: "24/7", label: "Xuất dữ liệu bất cứ lúc nào" },
 ];
 
 const steps = [
   {
-    number: "01",
-    title: "Thêm các tài khoản đang dùng",
-    body: "Tiền mặt, tài khoản ngân hàng hoặc ví điện tử — mỗi nơi một số dư rõ ràng.",
+    icon: Wallet,
+    title: "Khai báo nơi giữ tiền",
+    body: "Tiền mặt, tài khoản ngân hàng, ví điện tử — mỗi nơi một số dư bạn tự nhập, không cần đăng nhập ngân hàng.",
   },
   {
-    number: "02",
-    title: "Ghi thu, chi hoặc chuyển tiền",
-    body: "Chọn đúng loại giao dịch, số tiền và danh mục. MoneyFlow giữ nguyên bản chất của từng khoản.",
+    icon: ArrowLeftRight,
+    title: "Ghi đúng bản chất khoản tiền",
+    body: "Thu, chi hay chuyển nội bộ — MoneyFlow phân biệt rõ để chuyển khoản không bao giờ lẫn vào chi tiêu.",
   },
   {
-    number: "03",
-    title: "Kiểm tra lại tháng của bạn",
-    body: "Đối chiếu số dư, dòng tiền và các kế hoạch từ chính dữ liệu bạn đã nhập.",
+    icon: BarChart3,
+    title: "Đối chiếu lại bất cứ lúc nào",
+    body: "Số dư và báo cáo tháng luôn suy ra được từ đúng những dòng bạn đã ghi — không có số nào tự sinh ra.",
   },
 ];
 
 const features = [
   {
-    icon: "plus" as const,
-    title: "Ghi nhanh hằng ngày",
-    body: "Luồng nhập gọn cho các khoản quen thuộc, tối ưu cho bàn phím số trên điện thoại.",
+    icon: PlusCircle,
+    title: "Ghi trong vài giây",
+    body: "Bàn phím số tối ưu cho điện thoại, gợi ý danh mục quen thuộc để không phải gõ lại từ đầu.",
   },
   {
-    icon: "wallet" as const,
-    title: "Nhiều tài khoản, một sổ",
-    body: "Theo dõi tiền mặt, ngân hàng và ví điện tử mà không trộn chuyển khoản nội bộ vào chi tiêu.",
+    icon: Wallet,
+    title: "Nhiều ví, một sổ duy nhất",
+    body: "Theo dõi song song tiền mặt, ngân hàng, ví điện tử mà không cần trộn dữ liệu thủ công.",
   },
   {
-    icon: "target" as const,
-    title: "Kế hoạch do bạn tạo",
-    body: "Ngân sách, khoản định kỳ và mục tiêu luôn tách khỏi số dư thực tế và không bị biến thành lời khuyên tự động.",
+    icon: Target,
+    title: "Kế hoạch tách bạch với số dư",
+    body: "Ngân sách, khoản định kỳ và mục tiêu tiết kiệm là thứ bạn chủ động đặt ra — không bị biến thành lời khuyên tự động.",
   },
   {
-    icon: "chart" as const,
-    title: "Báo cáo dễ kiểm tra",
-    body: "Xem dòng tiền và danh mục theo tháng với số tiền chính xác, nhãn rõ và dữ liệu có thể đối chiếu.",
+    icon: BarChart3,
+    title: "Báo cáo đối chiếu được",
+    body: "Xem dòng tiền theo tháng với số liệu chính xác đến từng đồng, sẵn sàng xuất ra khi cần kiểm tra lại.",
   },
+];
+
+const ownershipPoints = [
+  { icon: Ban, text: "Không yêu cầu liên kết hay đăng nhập ngân hàng" },
+  { icon: Download, text: "Xuất toàn bộ dữ liệu ra CSV bất cứ lúc nào" },
+  { icon: ShieldCheck, text: "Dữ liệu mỗi người tách riêng ở tầng cơ sở dữ liệu" },
 ];
 
 const faqItems = [
   {
-    question: "MoneyFlow có tự kết nối ngân hàng không?",
+    question: "Vì sao MoneyFlow không tự động đọc giao dịch ngân hàng?",
     answer:
-      "Không trong phiên bản hiện tại. Bạn chủ động ghi hoặc nhập dữ liệu và không cần cung cấp mật khẩu ngân hàng.",
+      "Vì làm vậy cần bạn cung cấp mật khẩu hoặc quyền truy cập tài khoản ngân hàng cho bên thứ ba. MoneyFlow chọn cách an toàn hơn: bạn chủ động ghi, đổi lại là không phải chia sẻ thông tin đăng nhập ngân hàng với bất kỳ ai.",
   },
   {
-    question: "Chuyển tiền giữa hai tài khoản có tính là chi không?",
+    question: "Chuyển tiền giữa ví của tôi có bị tính là chi tiêu không?",
     answer:
-      "Không. MoneyFlow ghi nhận đây là chuyển nội bộ và loại khoản đó khỏi tổng thu, tổng chi.",
+      "Không. MoneyFlow ghi nhận đây là chuyển nội bộ, tách hẳn khỏi tổng thu và tổng chi, để báo cáo chi tiêu tháng của bạn không bị thổi phồng.",
   },
   {
-    question: "MoneyFlow có nói tôi nên tiêu bao nhiêu không?",
+    question: "MoneyFlow có tự đề xuất tôi nên chi bao nhiêu mỗi ngày không?",
     answer:
-      "Không. Ứng dụng hiển thị số dư, dòng tiền và kế hoạch bạn đã nhập; không biến tổng tài sản thành lời khuyên chi tiêu.",
+      "Không. Ứng dụng chỉ hiển thị số dư, dòng tiền và kế hoạch bạn tự đặt ra. MoneyFlow không suy diễn một con số chi tiêu an toàn khi chưa có đủ dữ liệu thu nhập và nghĩa vụ tài chính thật của bạn.",
   },
   {
-    question: "Tôi có thể lấy dữ liệu ra không?",
+    question: "Nếu tôi ngừng dùng, dữ liệu của tôi ra sao?",
     answer:
-      "Có. Bạn có thể xuất CSV từ phần cài đặt để lưu trữ hoặc tiếp tục xử lý trong công cụ khác.",
+      "Bạn xuất toàn bộ lịch sử ra file CSV từ phần cài đặt bất cứ lúc nào, và có thể xoá tài khoản cùng dữ liệu khi không còn nhu cầu sử dụng.",
   },
 ];
 
@@ -105,33 +138,45 @@ export function LandingPage() {
       <main id="noi-dung">
         <section className={styles.hero} aria-labelledby="landing-title">
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>
-              <span aria-hidden="true" />
-              Sổ thu chi bạn có thể tin
-            </p>
+            <Badge
+              variant="secondary"
+              className="h-7 gap-1.5 rounded-full px-3 text-[13px] font-semibold text-foreground"
+            >
+              <Lock className="size-3.5" />
+              Không cần liên kết ngân hàng
+            </Badge>
             <h1 id="landing-title">
-              Biết chính xác tiền đã đi đâu.
-              <span> Ghi rõ từng khoản, không cần đoán.</span>
+              Sổ thu chi do chính tay bạn kiểm soát.
+              <span> Không đoán, không tự động, không giấu giếm.</span>
             </h1>
             <p className={styles.heroLead}>
-              MoneyFlow giúp bạn ghi thu, chi và chuyển tiền trong một sổ rõ
-              ràng. Số dư, giao dịch và kế hoạch đều đến từ dữ liệu bạn chủ động
-              nhập — có thể sửa và xuất ra bất cứ lúc nào.
+              MoneyFlow chỉ ghi lại đúng những gì bạn chủ động nhập. Không đọc
+              dữ liệu ngân hàng thay bạn, không suy diễn một lời khuyên chi
+              tiêu khi chưa đủ căn cứ — chỉ có con số bạn có thể đối chiếu lại
+              bất cứ lúc nào.
             </p>
             <div className={styles.heroActions}>
-              <Link href="/register" className={styles.primaryButtonLarge}>
-                Bắt đầu ghi miễn phí
-                <Icon name="arrowRight" size={18} />
-              </Link>
-              <a href="#cach-hoat-dong" className={styles.secondaryButtonLarge}>
-                Xem cách hoạt động
-              </a>
+              <Button
+                size="lg"
+                render={
+                  <Link href="/register">
+                    Tạo sổ miễn phí
+                    <ArrowRight className="size-4" />
+                  </Link>
+                }
+              />
+              <Button
+                size="lg"
+                variant="outline"
+                render={<a href="#cach-hoat-dong">Xem cách hoạt động</a>}
+              />
             </div>
             <ul className={styles.trustList} aria-label="Cam kết của MoneyFlow">
-              {trustItems.map((item) => (
-                <li key={item.label}>
-                  <Icon name={item.icon} size={16} />
-                  <span>{item.label}</span>
+              {trustBadges.map((label) => (
+                <li key={label}>
+                  <Badge variant="outline" className="rounded-full">
+                    {label}
+                  </Badge>
                 </li>
               ))}
             </ul>
@@ -218,20 +263,14 @@ export function LandingPage() {
           </div>
         </section>
 
-        <section className={styles.proof} aria-label="Điểm nổi bật">
-          <div>
-            <strong>Thu · Chi · Chuyển</strong>
-            <span>Giữ đúng bản chất giao dịch</span>
-          </div>
-          <div>
-            <strong>Số nguyên đồng</strong>
-            <span>Dễ đối chiếu, không làm tròn</span>
-          </div>
-          <div>
-            <strong>Dữ liệu thuộc về bạn</strong>
-            <span>Sửa, phục hồi và xuất CSV</span>
-          </div>
-        </section>
+        <RevealSection className={styles.proof} aria-label="Điểm nổi bật">
+          {proofPoints.map((point) => (
+            <div key={point.label}>
+              <strong>{point.stat}</strong>
+              <span>{point.label}</span>
+            </div>
+          ))}
+        </RevealSection>
 
         <RevealSection
           className={styles.section}
@@ -240,20 +279,24 @@ export function LandingPage() {
         >
           <div className={styles.sectionHeading}>
             <p className={styles.kicker}>Cách hoạt động</p>
-            <h2 id="how-title">Từ khoản đầu tiên đến một tháng rõ ràng</h2>
-            <p>
-              Không cần học một phương pháp tài chính mới trước khi bắt đầu ghi.
-            </p>
+            <h2 id="how-title">Ba bước, không cần học phương pháp mới</h2>
+            <p>Ghi trước, hiểu tiền đi đâu sau — theo đúng nhịp của bạn.</p>
           </div>
-          <ol className={styles.steps}>
-            {steps.map((step) => (
-              <li key={step.number}>
-                <span className={styles.stepNumber}>{step.number}</span>
-                <h3>{step.title}</h3>
-                <p>{step.body}</p>
-              </li>
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {steps.map((step, index) => (
+              <Card key={step.title} className="border-border/70">
+                <CardHeader>
+                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <step.icon className="size-5" />
+                  </div>
+                  <CardTitle className="text-base">
+                    {index + 1}. {step.title}
+                  </CardTitle>
+                  <CardDescription>{step.body}</CardDescription>
+                </CardHeader>
+              </Card>
             ))}
-          </ol>
+          </div>
         </RevealSection>
 
         <RevealSection
@@ -262,53 +305,47 @@ export function LandingPage() {
         >
           <div className={styles.sectionHeading}>
             <p className={styles.kicker}>Một sổ dùng hằng ngày</p>
-            <h2 id="features-title">Ghi đúng trước, hiểu rõ sau</h2>
+            <h2 id="features-title">Đủ dùng cho việc ghi sổ thật</h2>
             <p>
-              Mỗi màn hình ưu tiên một việc chính; số tiền, nhãn và trạng thái
-              luôn dễ quét và kiểm tra lại.
+              Không có tính năng nào yêu cầu bạn phải học tài chính trước khi
+              bắt đầu.
             </p>
           </div>
-          <ul className={styles.features}>
+          <div className="grid gap-4 sm:grid-cols-2">
             {features.map((feature) => (
-              <li key={feature.title}>
-                <span className={styles.featureIcon}>
-                  <Icon name={feature.icon} size={22} />
-                </span>
-                <div>
-                  <h3>{feature.title}</h3>
-                  <p>{feature.body}</p>
-                </div>
-              </li>
+              <Card key={feature.title} className="border-border/70">
+                <CardHeader>
+                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <feature.icon className="size-5" />
+                  </div>
+                  <CardTitle className="text-base">{feature.title}</CardTitle>
+                  <CardDescription>{feature.body}</CardDescription>
+                </CardHeader>
+              </Card>
             ))}
-          </ul>
+          </div>
         </RevealSection>
 
         <RevealSection className={styles.ownership} aria-labelledby="ownership-title">
           <div className={styles.ownershipMark} aria-hidden="true">
-            <Icon name="lock" size={30} />
+            <ShieldCheck className="size-8" />
           </div>
           <div>
             <p className={styles.kicker}>Giữ quyền kiểm soát</p>
             <h2 id="ownership-title">Tiền của bạn. Dữ liệu của bạn.</h2>
             <p>
-              MoneyFlow không hỏi mật khẩu ngân hàng. Bạn có thể sửa, phục hồi,
-              xuất CSV hoặc xóa tài khoản khi cần. Dữ liệu mỗi người được tách
-              riêng bằng chính sách truy cập ở tầng cơ sở dữ liệu.
+              MoneyFlow không hỏi mật khẩu ngân hàng, không bán dữ liệu, và
+              không giữ bạn lại nếu bạn muốn rời đi cùng toàn bộ lịch sử ghi
+              chép của mình.
             </p>
           </div>
           <ul>
-            <li>
-              <Icon name="check" size={18} />
-              Không cần liên kết ngân hàng
-            </li>
-            <li>
-              <Icon name="check" size={18} />
-              Xuất dữ liệu bất cứ lúc nào
-            </li>
-            <li>
-              <Icon name="check" size={18} />
-              Không quảng cáo trong luồng ghi chính
-            </li>
+            {ownershipPoints.map((point) => (
+              <li key={point.text}>
+                <point.icon className="size-[18px]" />
+                {point.text}
+              </li>
+            ))}
           </ul>
         </RevealSection>
 
@@ -320,29 +357,39 @@ export function LandingPage() {
             <p className={styles.kicker}>Câu hỏi thường gặp</p>
             <h2 id="faq-title">Rõ từ trước khi bắt đầu</h2>
           </div>
-          <div className={styles.faqList}>
-            {faqItems.map((item, index) => (
-              <details key={item.question} open={index === 0}>
-                <summary>{item.question}</summary>
-                <p>{item.answer}</p>
-              </details>
+          <Accordion defaultValue={[faqItems[0].question]}>
+            {faqItems.map((item) => (
+              <AccordionItem key={item.question} value={item.question}>
+                <AccordionTrigger className="text-base">
+                  {item.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  {item.answer}
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         </RevealSection>
 
         <RevealSection className={styles.finalCta} aria-labelledby="final-cta-title">
           <div>
-            <p className={styles.kicker}>Ghi rõ từ khoản đầu tiên</p>
-            <h2 id="final-cta-title">Tạo sổ MoneyFlow của bạn</h2>
+            <p className={styles.kicker}>Bắt đầu từ khoản đầu tiên</p>
+            <h2 id="final-cta-title">Mở sổ MoneyFlow của riêng bạn</h2>
             <p>
-              Bắt đầu với thu, chi và chuyển tiền cốt lõi. Không cần liên kết
-              ngân hàng.
+              Ghi thu, chi và chuyển tiền cốt lõi ngay hôm nay — không cần
+              liên kết ngân hàng, không mất phí.
             </p>
           </div>
-          <Link href="/register" className={styles.finalCtaButton}>
-            Bắt đầu ghi miễn phí
-            <Icon name="arrowRight" size={18} />
-          </Link>
+          <Button
+            size="lg"
+            className={styles.finalCtaButton}
+            render={
+              <Link href="/register">
+                Tạo sổ miễn phí
+                <ArrowRight className="size-4" />
+              </Link>
+            }
+          />
         </RevealSection>
       </main>
 

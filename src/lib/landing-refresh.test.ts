@@ -22,7 +22,7 @@ test("landing keeps one real conversion action and no fake production demo", () 
   assert.match(landingPage, /href="#cach-hoat-dong"/);
   assert.doesNotMatch(landingPage, /Thử demo không cần tài khoản/);
   assert.doesNotMatch(landingPage, /href="\/dashboard"/);
-  assert.match(landingPage, /Thu · Chi · Chuyển tách bạch/);
+  assert.match(landingPage, /chuyển nội bộ[\s\S]*tách hẳn khỏi tổng thu và tổng chi/);
 });
 
 test("landing is responsive, dark-mode aware and motion accessible", () => {

@@ -38,9 +38,9 @@ test("landing source exists and remains a Server Component", () => {
 
 test("landing positions MoneyFlow as a trustworthy manual-first ledger", () => {
   const source = readLandingSource();
-  assert.match(source, /Sổ thu chi bạn có thể tin/);
-  assert.match(source, /Biết chính xác tiền đã đi đâu/);
-  assert.match(source, /dữ liệu bạn chủ động\s+nhập/);
+  assert.match(source, /Không cần liên kết ngân hàng/);
+  assert.match(source, /Sổ thu chi do chính tay bạn kiểm soát/);
+  assert.match(source, /bạn chủ động\s+nhập/);
   for (const phrase of FORBIDDEN_LANDING_PHRASES) {
     assert.equal(source.includes(phrase), false, `forbidden: ${phrase}`);
   }
@@ -59,22 +59,20 @@ test("hero has one conversion CTA and one in-page explainer CTA", () => {
 
 test("landing states the financial and ownership rules honestly", () => {
   const source = readLandingSource();
-  assert.match(source, /Không cần mật khẩu ngân hàng/);
-  assert.match(source, /Xuất CSV/);
-  assert.match(source, /Thu · Chi · Chuyển tách bạch/);
-  assert.match(source, /không biến tổng tài sản thành lời khuyên chi tiêu/);
-  assert.match(source, /Số nguyên đồng/);
+  assert.match(source, /không.*(liên kết|đăng nhập).*ngân hàng/i);
+  assert.match(source, /ra CSV/);
+  assert.match(source, /chuyển nội bộ[\s\S]*tách hẳn khỏi tổng thu và tổng chi/);
+  assert.match(source, /không suy diễn một con số chi tiêu an toàn/);
+  assert.match(source, /chính xác đến từng đồng/);
 });
 
 test("landing includes full product preview, workflow, benefits and FAQ", () => {
   const source = readLandingSource();
   assert.match(source, /styles\.previewWrap/);
   assert.match(source, /styles\.proof/);
-  assert.match(source, /styles\.steps/);
-  assert.match(source, /styles\.features/);
-  assert.match(source, /styles\.ownership/);
+  assert.match(source, /from "@\/components\/ui\/card"/);
   assert.match(source, /id="faq-title"/);
-  assert.match(source, /<details/);
+  assert.match(source, /from "@\/components\/ui\/accordion"/);
   assert.equal(source.includes("Monarch"), false);
 });
 
