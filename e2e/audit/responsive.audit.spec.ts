@@ -172,6 +172,51 @@ test.describe("cross-device responsive audit", () => {
     expect(metrics.weekly.bodyBottomInset).toBeGreaterThanOrEqual(0);
   });
 
+  test("SAFE-09 keeps mobile transaction day totals outside transaction rows", async ({
+    page,
+  }, testInfo) => {
+    const width = page.viewportSize()?.width ?? 1_440;
+    test.skip(width > 430, "SAFE-09 is specific to phone transaction groups");
+
+    await page.goto("/transactions", { waitUntil: "domcontentloaded" });
+    const header = page.locator(".date-group-header").first();
+    const group = header.locator("xpath=..");
+    const firstRow = group.locator(".manager-row").first();
+
+    await expect(header).toBeVisible();
+    await expect(firstRow).toBeVisible();
+    await firstRow.scrollIntoViewIfNeeded();
+
+    const metrics = await header.evaluate((element) => {
+      const row = element.parentElement?.querySelector<HTMLElement>(".manager-row");
+      if (!row) throw new Error("Missing first transaction row for date group");
+      const headerRect = element.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      return {
+        position: getComputedStyle(element).position,
+        headerHeight: headerRect.height,
+        headerBottom: headerRect.bottom,
+        rowTop: rowRect.top,
+        overlap: Math.max(0, headerRect.bottom - rowRect.top),
+      };
+    });
+
+    const evidence = await group.screenshot({ animations: "disabled" });
+    await testInfo.attach(`safe-09-day-total-${testInfo.project.name}.png`, {
+      body: evidence,
+      contentType: "image/png",
+    });
+    await testInfo.attach(`safe-09-day-total-${testInfo.project.name}.json`, {
+      body: Buffer.from(JSON.stringify(metrics, null, 2)),
+      contentType: "application/json",
+    });
+
+    expect(metrics.position).toBe("static");
+    expect(metrics.headerHeight).toBeGreaterThanOrEqual(44);
+    expect(metrics.headerBottom).toBeLessThanOrEqual(metrics.rowTop + 1);
+    expect(metrics.overlap).toBeLessThanOrEqual(1);
+  });
+
   test("SAFE-04/05 detail summaries stack and actions stay tappable on phones", async ({
     page,
   }) => {
