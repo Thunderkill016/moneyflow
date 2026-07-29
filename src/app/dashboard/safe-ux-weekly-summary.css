@@ -1,4 +1,16 @@
-/* SAFE-UX — keep the weekly/today total content anchored below its header. */
+/*
+ * SAFE-UX — final Dashboard-specific cascade authority.
+ *
+ * Next.js may emit route styles after shared styles. Keep selectors scoped to
+ * the canonical Dashboard root so the repaired semantic surface contract wins
+ * without hardcoded colors or global !important rules.
+ */
+main.dashboard.insights-dashboard .insights-kpi > article:first-child {
+  background-image: none;
+  background-color: var(--mf-surface);
+}
+
+/* Keep the weekly/today total content anchored directly below its header. */
 .insights-dashboard .weekly-summary-panel {
   align-content: start;
   justify-content: start;
