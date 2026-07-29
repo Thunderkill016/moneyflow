@@ -45,8 +45,8 @@ This packet is the only active multi-session plan for TRUST-7. GitHub issue #123
 - [x] Close completed umbrella issue #70.
 - [x] Close completed Calm Ledger umbrella issue #81.
 - [x] Keep #72 as the only remaining UI route/state tracker and freeze it under #123.
-- [ ] Move delivered packets from `docs/plans/active/` to `docs/plans/completed/`.
-- [ ] Record the owner-confirmed manual readiness gates from #27 without marking seven-day use complete.
+- [x] Move delivered packets from `docs/plans/active/` to `docs/plans/completed/`.
+- [x] Record the owner-confirmed manual readiness gates from #27 without marking seven-day use complete.
 - [ ] Open a draft PR and let repository CI verify the documentation cleanup.
 
 ## Phase 1 — Core correctness
