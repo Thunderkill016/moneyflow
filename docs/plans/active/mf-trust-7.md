@@ -1,8 +1,8 @@
 # MF TRUST-7 — stabilization and real-use proof
 
-**Status:** implementing Phase 2; R7 evidence pending  
+**Status:** Phase 2 complete; R7 evidence pending  
 **Owner:** MoneyFlow  
-**Issue/PR:** #123 / pending  
+**Issue/PR:** #123 / #126  
 **Last updated:** 2026-07-29
 
 ## Outcome
@@ -114,8 +114,8 @@ Repository authority still contradicts delivered reality: the readiness contract
 - [x] R6 physical keyboard path is marked accepted from owner evidence.
 - [x] The readiness gap register contains only #40 and R7.
 - [x] No known P0/P1 core auth/capture/balance/export issue remains.
-- [ ] Phase 2 documentation PR passes required CI and merges.
-- [ ] R7 remains unclaimed until daily evidence exists.
+- [x] Phase 2 documentation PR passes required CI.
+- [x] R7 remains unclaimed until daily evidence exists.
 
 ### Required states
 
@@ -194,7 +194,7 @@ GitHub issues own backlog and external constraints; the readiness contract owns 
 | P2-2 | Audit lint 0029 mutation RPCs | P2-1 | live catalog aggregate/definitions | done |
 | P2-3 | Reconcile R3/R5/R6 owner evidence | P2-1 | issue #27 + readiness diff | done |
 | P2-4 | Update TRUST-7 delivery state | P2-1..3 | packet diff / #123 | done |
-| P2-5 | Pass CI and merge Phase 2 | P2-1..4 | PR checks | pending |
+| P2-5 | Pass Phase 2 CI | P2-1..4 | PR #126 / CI #503 | done |
 | P3 | Seven-day owner self-use | P2-5 | daily sanitized record + exit review | not started / unproven |
 
 Rules:
@@ -217,7 +217,7 @@ Rules:
 | Mutation RPC exposure bounded | 23 authenticated; 0 anon; 0 PUBLIC; 23 auth/ownership checks | pass |
 | Manual gates synchronized | issue #27 owner confirmation | pass |
 | R7 not falsely completed | all daily/exit checkboxes remain open | pass |
-| Repository contracts | Phase 2 PR CI | pending |
+| Repository contracts | PR #126 / CI #503 | pass |
 
 ### Review findings
 
@@ -242,7 +242,7 @@ Rules:
 - Phase 1 squash commit: `470f4ac6a79dd925eef6a834d745b768c7650967`
 - Phase 1 CI: #501 — verify, database and e2e passed
 - Phase 1 production deployment: `dpl_14kdUsxkxruYnBVYThQWUu9msJzh` — READY
-- Phase 2 branch: `agent/mf-trust-7-phase-2`
-- Phase 2 PR/commit/CI: pending
+- Phase 2 branch/PR: `agent/mf-trust-7-phase-2` / #126
+- Phase 2 CI: #503 — verify, database and e2e passed
 - Production behavior changed in Phase 2: no
 - Next gate after Phase 2: evidenced R7 daily use, not redesign
