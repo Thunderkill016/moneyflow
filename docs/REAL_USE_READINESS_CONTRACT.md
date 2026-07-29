@@ -1,6 +1,6 @@
 # MoneyFlow — Real-Use Readiness Contract
 
-**Status:** active; authenticated production core flow accepted, strict R0–R6 coverage not yet complete  
+**Status:** active; R0–R6 accepted, R7 real-use proof not yet complete  
 **Product boundary:** Vietnamese personal income/expense web app for one person managing their own wallets  
 **Primary job:** record income/expense quickly, know the current balance and monthly spending, and retain ownership through export  
 **Readiness period:** seven consecutive days of self-use after all technical gates pass
@@ -66,7 +66,7 @@ Forbidden:
 - Public page access must not require a Vercel account.
 - Application authentication remains mandatory.
 - Supabase Site URL and callback allow-list must match production exactly.
-- Begin seven-day self-use only after the remaining R0–R6 checkboxes pass.
+- R0–R6 were accepted on 2026-07-27. R7 counts only from consecutive owner-use evidence; task activation alone is not Day 1 proof.
 
 ## Readiness gates
 
@@ -113,6 +113,9 @@ Applied cloud versions:
 - [x] Deleting an Auth user with ledger data removes all tenant rows without weakening individual account/category restrictions.
 - [x] Production `transaction_feed` retains recurring metadata and split-expense lines after migration repair.
 - [x] Split-expense and multi-currency account RPCs derive tenant identity from `auth.uid()` and expose only authenticated execution.
+- [x] A 2026-07-29 live catalog audit verified all 23 authenticated `SECURITY DEFINER` mutation RPCs have an empty `search_path`, authentication and ownership predicates; none are executable by `anon` or `PUBLIC`.
+
+Security Advisor still reports leaked-password protection disabled. Issue #40 records that this managed Auth feature requires Supabase Pro or above; it cannot be repaired by repository code or a SQL migration. The warning remains open and plan-blocked without weakening application validation.
 
 **Stop condition:** any cross-user access, ledger corruption or incomplete cleanup blocks real-data use.
 
@@ -124,7 +127,7 @@ Applied cloud versions:
 - [x] Missing or placeholder configuration causes the deployment to fail.
 - [x] `NEXT_PUBLIC_SITE_URL` is the canonical HTTPS origin `https://mfvn.vercel.app`.
 - [x] The public Supabase OAuth request contains `https://mfvn.vercel.app/auth/callback` as `redirect_to` and contains neither localhost nor the retired origin.
-- [ ] A real delivered email-confirmation or password-reset link has completed the full callback flow on the canonical origin.
+- [x] A real delivered email-confirmation or password-reset link completed the full callback flow on the canonical origin; owner-confirmed on 2026-07-27.
 - [x] No privileged secret was committed.
 - [x] Production `/login` is reachable from an external runner without Vercel Authentication.
 
@@ -160,7 +163,7 @@ Production browser evidence on a 390×844 viewport:
 - [x] Exported note and amount match the ledger row.
 - [x] Tenant-isolation evidence and the single-tenant export show no other user's rows.
 - [x] Confirm export is discoverable through normal navigation without directly entering the settings URL.
-- [ ] Open the same production CSV in an end-user desktop or mobile spreadsheet application.
+- [x] Open the same production CSV in an end-user desktop or mobile spreadsheet application; owner-confirmed on 2026-07-27.
 
 ### R6 — Mobile daily path
 
@@ -171,11 +174,11 @@ On a 390×844 Chromium viewport:
 - [x] Amount input receives focus and uses decimal input mode.
 - [x] The quick-entry form requires no horizontal scrolling.
 - [x] Save succeeds and the transaction appears in the manager immediately.
-- [ ] Exercise the real mobile keyboard and confirm it does not cover primary controls.
+- [x] Exercise the real mobile keyboard and confirm it does not cover primary controls; owner-confirmed on 2026-07-27.
 
 ### R7 — Seven-day self-use
 
-Start only after the remaining R0–R6 checkboxes pass.
+R0–R6 are accepted. The seven-day task was activated on 2026-07-27, but activation does not prove that Day 1 or any later day was completed.
 
 For seven consecutive calendar days:
 
@@ -212,7 +215,7 @@ consoleErrors = 0
 finalUrl = https://mfvn.vercel.app/login?deleted=1
 ```
 
-The password-reset checkbox above means only that the production UI accepted the request and displayed its generic response. It does not claim that a real email was delivered or that a recovery link completed the callback.
+The password-reset checkbox above means only that the production UI accepted the request and displayed its generic response. The separate owner-confirmed R3 gate proves that a real delivered callback completed on the canonical origin.
 
 ## Accepted fresh-database evidence
 
@@ -273,16 +276,32 @@ account cleanup = 0 remaining tenant rows
 
 The production file retained its UTF-8 BOM, Vietnamese headers, `2026-07-25` date, `-1000` integer VND amount and the expected account/category values. The apostrophe prevented formula interpretation while the spreadsheet engine displayed the intended user text. The temporary workflow, CSV and fixture were closed unmerged and the branch was reset to `main`.
 
+## Accepted manual readiness evidence
+
+Issue #27 records owner confirmation on 2026-07-27 that:
+
+```text
+production auth email callback = pass
+CSV in a normal end-user spreadsheet = pass
+physical-phone keyboard transaction flow = pass
+```
+
+This evidence contains no email address, callback token, password, session data or real financial description.
+
+## Latest stabilization evidence
+
+PR #125 fixed Dashboard keep-open ownership and reconciled demo balance from the current ledger. GitHub Actions run #501 passed verification, database and browser jobs. Vercel deployed squash commit `470f4ac6a79dd925eef6a834d745b768c7650967` as production deployment `dpl_14kdUsxkxruYnBVYThQWUu9msJzh` with state `READY`.
+
+On 2026-07-29 the canonical origin and unauthenticated Dashboard-to-login path returned HTTP 200, and Vercel reported no runtime error clusters in the preceding 24 hours. A new local interactive production run was not claimed because the execution container blocked outbound browser navigation with `ERR_BLOCKED_BY_ADMINISTRATOR`; the exact P1 interaction regressions remain covered by CI browser tests.
+
 ## Current gap register
 
 | Reference | Severity | Gap | Required result |
 |---|---|---|---|
-| R3 auth email | P2 | Real delivered confirmation/reset callback not completed | Link returns to canonical `/auth/callback` without old origin or localhost |
-| R5 end-user spreadsheet | P2 | Production CSV was imported into the verification spreadsheet engine, not opened in a normal user-facing app | Open the same export in an end-user spreadsheet application |
-| R6 real keyboard | P2 | Headless mobile viewport cannot prove keyboard obstruction behavior | Repeat the primary path on a physical phone browser |
-| R7 | P2 | Seven-day owner self-use has not started | Complete the consecutive-day run and exit review |
+| #40 | P2 / plan-blocked | Supabase leaked-password protection remains unavailable on the current Free plan | Upgrade to Pro or above, enable the setting, rerun Security Advisor and verify a synthetic strong-password flow |
+| R7 | P2 | Seven consecutive owner-use days are not evidenced | Record each completed day and perform the exit review without inferring continuity from task activation |
 
-No known P0 or P1 readiness blocker remains after PRs #16, #18, #19 and #21 plus the accepted production smoke evidence in PRs #23 and #25.
+No known P0 or P1 blocker remains on core auth, capture, balance or export after PR #125. The open #40 warning is managed-service hardening constrained by plan availability, not a repository correctness defect.
 
 ## Defect priority
 
@@ -309,7 +328,7 @@ Only one bounded defect may be fixed per PR.
 
 ### Ready for self-use
 
-Allowed only when the remaining R0–R6 checks pass. It does not authorize marketing or handling other people's financial data.
+R0–R6 are accepted. Owner self-use is allowed, but this does not authorize marketing, handling other people's financial data or claiming R7 completion.
 
 ### Ready for the next product decision
 
