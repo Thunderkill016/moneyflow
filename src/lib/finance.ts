@@ -50,6 +50,29 @@ export function balanceAfterTransactions(
   return next;
 }
 
+/**
+ * Reconcile a server/demo balance snapshot with the current client ledger.
+ * The snapshot already includes `snapshotTransactions`, so only their net delta
+ * against `liveTransactions` is applied. Re-running with the same lists is stable.
+ */
+export function reconcileBalanceSnapshot(
+  snapshotBalance: number,
+  snapshotTransactions: Transaction[],
+  liveTransactions: Transaction[],
+): number {
+  if (!Number.isSafeInteger(snapshotBalance)) {
+    throw new Error("invalid_balance_snapshot");
+  }
+  const next =
+    snapshotBalance +
+    netTransactionEffect(liveTransactions) -
+    netTransactionEffect(snapshotTransactions);
+  if (!Number.isSafeInteger(next)) {
+    throw new Error("unsafe_balance_total");
+  }
+  return next;
+}
+
 /** Month expense total; transfers never count as expense. */
 export function monthExpenseTotal(
   transactions: Transaction[],
@@ -204,13 +227,17 @@ export function calculateDashboardSummary(
 ) {
   const {
     isDemo = true,
-    totalBalance = 0,
     today = "2026-07-14",
     reservedCommitments = 0,
     reservedSavings = 0,
     plannedDailySavings = 0,
     budgetPlanIsComplete = false,
   } = options;
+  const currentBalance =
+    options.totalBalance ??
+    (isDemo ? balanceAfterTransactions(OPENING_BALANCE, transactions) : 0);
+  requireSafeInteger(currentBalance, "invalid_current_balance");
+
   const monthPrefix = today.slice(0, 7);
   const periodTransactions = transactions.filter((item) => item.occurredOn.startsWith(monthPrefix));
   const income = sumTransactions(periodTransactions, (item) => item.kind === "income");
@@ -241,7 +268,7 @@ export function calculateDashboardSummary(
 
   if (isDemo) {
     const reservedTotal = Math.max(0, reservedCommitments) + Math.max(0, reservedSavings);
-    const demoBalance = OPENING_BALANCE + income - recordedExpense;
+    const demoBalance = currentBalance;
     const demoStartOfDayBalance = Math.max(
       0,
       demoBalance - reservedTotal + todayFlexibleExpense,
@@ -272,7 +299,7 @@ export function calculateDashboardSummary(
   }
 
   const guide = calculateDailySpendingGuide({
-    currentBalance: totalBalance,
+    currentBalance,
     flexibleSpentToday: todayFlexibleExpense,
     remainingDays,
     reservedCommitments,
@@ -289,7 +316,7 @@ export function calculateDashboardSummary(
     income,
     expense: recordedExpense,
     net: income - recordedExpense,
-    balance: totalBalance,
+    balance: currentBalance,
     safeToday: guide.safeToday,
     dailyAllowance: guide.dailyAllowance,
     forecast: Math.max(
