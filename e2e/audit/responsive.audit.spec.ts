@@ -42,7 +42,7 @@ test.describe("cross-device responsive audit", () => {
     test.skip(width > 560, "SAFE-02 is specific to the mobile header breakpoint");
 
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
-    const login = page.locator('a[href="/login"]');
+    const login = page.locator('header a.loginLink[href="/login"]');
 
     await expect(login).toHaveCount(1);
     await expect(login).toBeHidden();
