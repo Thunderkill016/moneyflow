@@ -1,4 +1,10 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* MoneyFlow toggles dark mode via html[data-theme="dark"] (document-theme.css),
+   not a .dark class — point shadcn's dark: variant at the real mechanism. */
+@custom-variant dark (&:is([data-theme="dark"] *));
 
 /* ===================================================================
    DESIGN TOKENS — Source of truth for the entire MoneyFlow UI.
@@ -161,6 +167,47 @@
   --green-soft: var(--color-accent-subtle);
   --lime: #D7EFC6;
   --danger: var(--color-danger-default);
+  /*
+   * shadcn/Tremor bridge — one-time mapping so every shadcn/Base UI or Tremor
+   * component renders in MoneyFlow's own Calm Ledger v2 palette instead of
+   * shadcn's generic default theme. All values point at --mf-* tokens
+   * (document-theme.css), so light/dark switching is inherited automatically
+   * via html[data-theme] — no separate .dark override block needed here.
+   * Do not hand these bare oklch/hex values again; add a new --mf-* token
+   * upstream instead (see docs/design/CALM_LEDGER_V2.md "Core tokens").
+   */
+  --background: var(--mf-canvas);
+  --foreground: var(--mf-text);
+  --card: var(--mf-surface);
+  --card-foreground: var(--mf-text);
+  --popover: var(--mf-surface);
+  --popover-foreground: var(--mf-text);
+  --primary: var(--mf-brand);
+  --primary-foreground: var(--mf-on-brand);
+  --secondary: var(--mf-surface-muted);
+  --secondary-foreground: var(--mf-text);
+  --muted-foreground: var(--mf-text-muted);
+  --accent: var(--mf-brand-subtle);
+  --accent-foreground: var(--mf-brand-text);
+  --destructive: var(--mf-expense);
+  --destructive-foreground: var(--mf-on-brand);
+  --border: var(--mf-border);
+  --input: var(--mf-border-strong);
+  --ring: var(--mf-focus);
+  --chart-1: var(--mf-brand);
+  --chart-2: var(--mf-transfer);
+  --chart-3: var(--mf-warning);
+  --chart-4: var(--mf-income);
+  --chart-5: var(--mf-expense);
+  --radius: var(--mf-radius-md);
+  --sidebar: var(--mf-surface);
+  --sidebar-foreground: var(--mf-text);
+  --sidebar-primary: var(--mf-brand);
+  --sidebar-primary-foreground: var(--mf-on-brand);
+  --sidebar-accent: var(--mf-brand-subtle);
+  --sidebar-accent-foreground: var(--mf-brand-text);
+  --sidebar-border: var(--mf-border);
+  --sidebar-ring: var(--mf-focus);
 }
 
 /* --lime has no --mf-* counterpart (single consumer: .safe-meter span). */
@@ -236,7 +283,6 @@ select:focus-visible {
 :focus:not(:focus-visible) {
   outline: none;
 }
-
 
 .app-shell { min-height: 100vh; }
 
@@ -2403,7 +2449,6 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   .auth-description { font-size: 12px; }
   .auth-form input, .google-button, .auth-submit { min-height: 50px; }
 }
-
 
 /* ===================================================================
    Landing — Personal expense / thu chi (G5 positioning)
@@ -5362,8 +5407,6 @@ input[aria-invalid="true"] {
   box-shadow: none;
 }
 
-
-
 /* Rules page (wireframes §14) + paste apply-rules toggle */
 .rules-workspace { padding-bottom: 88px; max-width: 720px; }
 .rules-loading,
@@ -6356,7 +6399,6 @@ input[aria-invalid="true"] {
   gap: 10px;
   margin-top: 16px;
 }
-
 
 /* TASK-107 — Category manager */
 .categories-workspace .categories-kind-filter {
@@ -7697,3 +7739,64 @@ dialog.transaction-dialog {
  * --color- and --shadow- names aliased to --mf-* at the top of this
  * file, dark mode is correct by construction — nothing left to restore.
  */
+
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  /* Exact Calm Ledger v2 radius tiers, not a scaled guess from one base. */
+  --radius-sm: var(--mf-radius-sm);
+  --radius-md: var(--mf-radius-md);
+  --radius-lg: var(--mf-radius-lg);
+  --radius-xl: var(--mf-radius-xl);
+  --radius-2xl: var(--mf-radius-xl);
+  --radius-3xl: var(--mf-radius-xl);
+  --radius-4xl: var(--mf-radius-xl);
+}
+
+/* No .dark override block: every bridge value above already points at
+ * --mf-*, which html[data-theme="dark"] (document-theme.css) already
+ * resolves correctly — a second dark-mode switch here would just be a
+ * second place to keep in sync. */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
