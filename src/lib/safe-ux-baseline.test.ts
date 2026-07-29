@@ -86,3 +86,19 @@ test("SAFE-06: amount surfaces are neutral by default and token-driven", () => {
   );
   assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b/i);
 });
+
+test("SAFE-06B: weekly and today totals stay anchored below the card header", () => {
+  const css = readProjectFile("src/app/dashboard/safe-ux-weekly-summary.css");
+  const dashboardPage = readProjectFile("src/app/dashboard/page.tsx");
+
+  assert.match(dashboardPage, /import "\.\/safe-ux-weekly-summary\.css"/);
+  assert.match(
+    css,
+    /\.weekly-summary-panel \.section-heading[\s\S]*?margin-bottom:\s*14px/,
+  );
+  assert.match(
+    css,
+    /\.weekly-summary-panel \.weekly-summary-kpis > div[\s\S]*?justify-content:\s*center/,
+  );
+  assert.match(css, /@media \(max-width:\s*760px\)/);
+});
