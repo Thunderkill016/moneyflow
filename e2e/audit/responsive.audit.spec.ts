@@ -179,21 +179,21 @@ test.describe("cross-device responsive audit", () => {
     test.skip(width > 430, "SAFE-09 is specific to phone transaction groups");
 
     await page.goto("/transactions", { waitUntil: "domcontentloaded" });
-    const header = page.locator(".date-group-header").first();
-    const group = header.locator("xpath=..");
-    const firstRow = group.locator(".manager-row").first();
+    await expect(page.locator(".date-group-header").first()).toBeVisible();
+    await expect(page.locator(".manager-row").first()).toBeVisible();
 
-    await expect(header).toBeVisible();
-    await expect(firstRow).toBeVisible();
-    await firstRow.scrollIntoViewIfNeeded();
+    const metrics = await page.evaluate(() => {
+      const header = document.querySelector<HTMLElement>(".date-group-header");
+      const row = header?.parentElement?.querySelector<HTMLElement>(".manager-row");
+      if (!header || !row) {
+        throw new Error("Missing transaction day header or first row");
+      }
 
-    const metrics = await header.evaluate((element) => {
-      const row = element.parentElement?.querySelector<HTMLElement>(".manager-row");
-      if (!row) throw new Error("Missing first transaction row for date group");
-      const headerRect = element.getBoundingClientRect();
+      row.scrollIntoView({ block: "center", inline: "nearest" });
+      const headerRect = header.getBoundingClientRect();
       const rowRect = row.getBoundingClientRect();
       return {
-        position: getComputedStyle(element).position,
+        position: getComputedStyle(header).position,
         headerHeight: headerRect.height,
         headerBottom: headerRect.bottom,
         rowTop: rowRect.top,
@@ -201,7 +201,7 @@ test.describe("cross-device responsive audit", () => {
       };
     });
 
-    const evidence = await group.screenshot({ animations: "disabled" });
+    const evidence = await page.screenshot({ animations: "disabled" });
     await testInfo.attach(`safe-09-day-total-${testInfo.project.name}.png`, {
       body: evidence,
       contentType: "image/png",
