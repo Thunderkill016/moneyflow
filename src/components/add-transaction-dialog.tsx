@@ -16,9 +16,9 @@ import {
   pickCategoryForKind,
   pushRecentCategoryId,
   readQuickAddPrefs,
-  todayInVietnam,
   writeQuickAddPrefs,
 } from "@/lib/quick-add-prefs";
+import { todayInVietnam } from "@/lib/vietnam-date";
 import { findMatchingRule, resolveCategoryIdForRuleMatch } from "@/lib/inbox/apply-rules";
 import { readStoredRules, type InboxRule } from "@/lib/inbox/rules-store";
 

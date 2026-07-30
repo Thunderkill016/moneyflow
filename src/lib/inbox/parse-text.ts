@@ -3,6 +3,7 @@
  * Money amounts are integer VND đồng (minor units). No float.
  */
 
+import { todayInVietnam } from "../vietnam-date.ts";
 import type {
   CandidateConfidence,
   CandidateKind,
@@ -69,14 +70,10 @@ const KNOWN_MERCHANTS: { pattern: RegExp; name: string }[] = [
 const AMOUNT_TOKEN =
   /([+-])?\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)(\s*)(k|K|nghìn|nghin|ngàn|ngan|triệu|trieu|tr|m|M)?(\s*)(đ|d|vnd|VND|₫)?/g;
 
-export function todayInHoChiMinh(date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
+// Aliased from the single owner so inbox parsers keep their local name while the
+// rule itself lives in one tested place. Re-exported as a binding rather than
+// `export … from`, because this module also calls it below.
+export const todayInHoChiMinh = todayInVietnam;
 
 /**
  * Parse a single amount token body into integer VND đồng.

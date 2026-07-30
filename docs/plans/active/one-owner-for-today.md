@@ -5,7 +5,7 @@
 The rule that decides which calendar day a transaction belongs to lives in one
 tested domain module, and no UI component computes it.
 
-Status: `specified`. Not implemented.
+Status: `implemented`. Awaiting owner review and merge.
 
 ## Repository reconnaissance
 
@@ -35,8 +35,28 @@ The same computation exists **six times under five names**:
 | `src/lib/inbox/parse-text.ts:72` | `todayInHoChiMinh` | yes | no |
 | `src/server/finance.ts:73` | `currentDateInVietnam` | no | no |
 | `src/server/reports.ts:11` | `todayInVietnam` | no | no |
-| `src/server/commitments.ts:30` | `todayInVietnam` | no | no |
+| `src/server/commitments.ts:30` | `currentDateInVietnam` | no | no |
 | `src/components/transfer-dialog.tsx:124` | *(inline)* | no | no |
+
+**Corrections found during implementation.** Two entries above were wrong in the
+first revision of this packet, and the reconnaissance was incomplete:
+
+- `src/server/commitments.ts:30` is `currentDateInVietnam`, not `todayInVietnam`,
+  and it is **exported** — `src/server/goals.ts:7` and
+  `src/server/income-templates.ts:13` import it, giving it three more call sites
+  than the table implied.
+- `todayInVietnam` had two component importers the packet never listed:
+  `src/components/split-expense-dialog.tsx:18` and
+  `src/components/add-transaction-dialog.tsx:19`.
+- There is a **seventh copy**: `localCalendarDate` at
+  `src/lib/planning/commitment-due-notify.ts:116`, used by `src/lib/push-client.ts:179`.
+  It computes the same value but through `formatToParts` with an ISO fallback and
+  takes a `timeZone` parameter that no caller ever passes.
+
+  It is **deliberately not folded in.** Collapsing it would either drop the
+  `timeZone` parameter or replace a different implementation and its fallback —
+  that is a redefinition, and this packet is a behaviour-preserving move. Folding
+  it is a separate decision, recorded here rather than left silent.
 
 All six are byte-equivalent in behaviour today, so **there is no live defect** —
 this is not a bug report. The risk is structural:
@@ -116,17 +136,31 @@ Risks:
 
 ## Evaluation
 
-Required evidence:
+- [x] `grep -rn 'en-CA' src/` — down from 8 occurrences to 4. Only
+      `src/lib/vietnam-date.ts` computes the current date. The others are
+      `src/server/budgets.ts:35` (`currentMonthStart`, a month and out of scope)
+      and `src/lib/planning/commitment-due-notify.ts:120` (`localCalendarDate`,
+      the seventh copy recorded above and deliberately left).
+- [x] Midnight-boundary tests present and passing, all with injected `Date`:
+      the ICT boundary itself (`17:00:00.000Z` → next day) and one millisecond
+      before it, a UTC-next-day instant that is the same Vietnam day, and month
+      and year rollovers.
+- [x] `npm run test` — **590 before, 594 after**: five boundary tests added, one
+      moved out of `quick-add-prefs.test.ts`.
+- [x] `check:knowledge`, `check:architecture`, `check:css-ownership`, `lint`
+      (zero warnings), `typecheck`, `build`.
+- [x] Behaviour verified directly rather than inferred: `/capture/quick` defaults
+      its date field to `2026-07-30`, matching the Vietnam calendar day computed
+      independently, and `/commitments` and `/goals` — both server routes that
+      consume the moved function — render.
+- [~] `test:e2e` — 7/8 pass locally. The one failure **moves between runs**:
+      `expense-path` on `mobile-chromium` in one run, `global-pfm-ux` on
+      `chromium` in the next, each passing in isolation. Both are the demo-store
+      `localStorage` poll, and `global-pfm-ux` was previously shown to fail on
+      `origin/main` with no changes applied. Sandbox artifact; CI starts a fresh
+      server per run and is the authority.
 
-- [ ] `grep -rn 'en-CA' src/` shows the current-date computation only in the owner
-      module; every other hit is a display formatter with a given date.
-- [ ] Midnight-boundary tests present and passing, with injected `Date` values.
-- [ ] `npm run test` — no reduction in count beyond tests intentionally moved;
-      state the before and after numbers.
-- [ ] `check:knowledge`, `check:architecture`, `check:css-ownership`, `lint`,
-      `typecheck`, `build`.
-- [ ] `test:e2e` — the transfer flow is exercised by the existing specs; a wrong
-      `occurredOn` would surface there.
-- [ ] Manually confirm one transfer still records today's date in demo mode.
-
-State which gates ran and which could not.
+A mistake worth recording: the first attempt removed the moved test with a regex
+that also deleted an unrelated `validates prefs shape` test. It was caught by the
+test count dropping to 593 instead of 594, restored from `origin/main`, and redone
+as an exact edit. A count that only *looks* plausible is not evidence.

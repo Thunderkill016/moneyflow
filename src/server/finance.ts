@@ -3,6 +3,7 @@ import "server-only";
 import { z } from "zod";
 import { requireViewer } from "@/server/auth";
 import { createClient } from "@/lib/supabase/server";
+import { todayInVietnam } from "@/lib/vietnam-date";
 import {
   DASHBOARD_RECENT_TRANSACTION_LIMIT,
   dashboardTransactionStart,
@@ -70,15 +71,6 @@ const feedSchema = z.object({
   split_lines: z.array(splitLineSchema).nullable().optional(),
 });
 
-function currentDateInVietnam() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
 function shiftDate(date: string, days: number) {
   const value = new Date(`${date}T00:00:00.000Z`);
   value.setUTCDate(value.getUTCDate() + days);
@@ -86,7 +78,7 @@ function shiftDate(date: string, days: number) {
 }
 
 export function formatRelativeDate(date: string) {
-  const today = currentDateInVietnam();
+  const today = todayInVietnam();
   if (date === today) return "Hôm nay";
   if (date === shiftDate(today, -1)) return "Hôm qua";
   return new Intl.DateTimeFormat("vi-VN", {
@@ -150,7 +142,7 @@ function demoWorkspace(): FinanceWorkspace {
     accounts: demoAccounts,
     categories: demoCategories,
     totalBalance: 15_735_000,
-    today: currentDateInVietnam(),
+    today: todayInVietnam(),
     dataError: null,
   };
 }
@@ -179,7 +171,7 @@ async function loadFinanceWorkspace(
   const supabase = await createClient();
   if (!supabase) return { ...demoWorkspace(), dataError: "Không thể kết nối dữ liệu." };
 
-  const today = currentDateInVietnam();
+  const today = todayInVietnam();
   const periodFeedPromise =
     scope === "dashboard"
       ? supabase
