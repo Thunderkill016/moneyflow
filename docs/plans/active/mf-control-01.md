@@ -1,9 +1,9 @@
 # MF CONTROL-01 — Project Truth Reconciliation
 
-**Status:** active  
+**Status:** evaluating  
 **Owner:** MoneyFlow  
-**Master issue:** #148  
-**Started:** 2026-07-30
+**Issue/PR:** #148 / #149  
+**Last updated:** 2026-07-30
 
 ## Outcome
 
@@ -11,57 +11,145 @@ Remove false work-in-progress and restore one reliable development queue before 
 
 GitHub issues and pull requests own dynamic work status. Repository documents own durable product truth, architecture boundaries, decision rationale and delivery evidence. This packet is a temporary handoff for #148, not a second backlog.
 
-## Confirmed finding
+## Repository reconnaissance
 
-`docs/plans/active/mf-safe-ux.md` was stale. It said authenticated owner acceptance was pending, while master issue #134 had already closed as completed after PR #146, CI #559, production deployment and real-phone owner acceptance.
+### Current behavior
 
-## Scope
+`docs/plans/active/mf-safe-ux.md` still described authenticated owner acceptance as pending even though #134 closed as completed after PR #146, CI #559, production deployment and real-phone owner acceptance.
 
-1. Move MF SAFE-UX from `active/` to `completed/` and record the final accepted delivery.
-2. Clarify the active-packet lifecycle so a closed master issue cannot remain represented as active work.
-3. Keep the development queue in issue #148 instead of copying changing issue state into another Markdown status file.
+### Relevant repository areas
 
-## Non-goals
+| Area | Why it matters | Decision |
+|---|---|---|
+| `docs/plans/active/` | Must represent deliberately active work only | remove the completed SAFE-UX packet |
+| `docs/plans/completed/` | Preserves final delivery evidence | add the accepted SAFE-UX record |
+| GitHub issue #148 | Owns the changing development queue | keep `NOW/NEXT/LATER/PARKED` here |
 
-- No runtime, financial-domain, database, Auth, RLS or production change.
-- No repo-wide documentation reorganization.
-- No new label or milestone taxonomy.
-- No ADR for status cleanup.
-- No implementation of #145, #72, #53 or #40.
-- No merge, close or redesign of draft logo PR #119.
+### Existing tests and constraints
 
-## Queue at start
+- `npm run check:knowledge` enforces the work-packet structure.
+- `docs/plans/README.md` defines active packets as handoff contracts, not speculative backlog.
+- This change is documentation-only and must not modify runtime, financial logic, database, Auth or RLS.
 
-- **NOW:** #148 — complete this reconciliation.
-- **NEXT:** #145 — diagnose and fix the shared desktop dialog regression.
-- **FOLLOW-UP:** rescope only the still-valid remainder of #72; then run the trusted daily-ledger verification loop.
-- **LATER:** split the uncompleted portions of #53 only when one becomes a deliberate initiative.
-- **BLOCKED/EXTERNAL:** #40 Supabase managed setting/plan constraint.
-- **PARKED:** PR #119 and unrelated feature/redesign work.
+### Similar implementation and recent history
+
+Completed packets already preserve why work was done and how it was verified. MF SAFE-UX should follow the same lifecycle rather than remain falsely active.
+
+### Open questions
+
+None. GitHub history and owner acceptance provide sufficient delivery evidence.
+
+## Research
+
+No new product or technology research is required. This is an internal state-reconciliation change using existing repository rules and observed GitHub history.
+
+The operating choice is intentionally conservative:
+
+- dynamic status stays in issues and pull requests;
+- durable completion evidence stays in the repository;
+- no project board, label taxonomy, ADR or repository-wide documentation reorganization is introduced without a demonstrated need.
+
+## Specification
+
+### Problem
+
+A completed initiative remains represented as active work. A future agent can therefore select the wrong packet, repeat finished work or misunderstand the real project priority.
+
+### Acceptance criteria
+
+- [x] `docs/plans/active/` no longer contains MF SAFE-UX.
+- [x] A completed SAFE-UX packet records PR #146, merge commit, CI, production deployment, owner acceptance and residual risk.
+- [x] The active-packet README says dynamic status belongs in GitHub issues/PRs.
+- [x] The change remains documentation-only and independently reviewable.
+- [ ] CI passes on the final PR head.
+- [ ] Owner approves merge.
+
+### Financial and security constraints
+
+No financial, database or authorization behavior changes. Leaked-password protection remains accurately recorded as the provider/plan blocker tracked by #40; no fake code workaround is introduced.
+
+### Out of scope
+
+- Implementing #145, #72, #53 or #40.
+- Merging, closing or redesigning PR #119.
+- Introducing a new project-management system.
+- Reclassifying all historical documentation in this PR.
+
+## Implementation plan
+
+### Architecture fit
+
+This change stays inside the existing documentation lifecycle. GitHub owns live work state; `docs/plans/active/` owns temporary handoff context; `docs/plans/completed/` owns durable delivery evidence.
+
+### Planned changes
+
+| File/area | Change | Reason |
+|---|---|---|
+| `docs/plans/active/mf-safe-ux.md` | remove | initiative is completed |
+| `docs/plans/completed/2026-07-30-mf-safe-ux.md` | add final record | preserve accepted delivery evidence |
+| `docs/plans/active/README.md` | clarify lifecycle | prevent closed work remaining active |
+| `docs/plans/active/mf-control-01.md` | track this bounded cleanup | allow reliable handoff and CI validation |
+
+### Data and migration impact
+
+None. No schema, runtime, deployment or production-data change.
+
+### Risks and counterexamples
+
+| Risk/counterexample | Prevention or test |
+|---|---|
+| GitHub state is copied into another permanent queue | keep changing queue only in #148 |
+| Historical evidence is lost | preserve a completed packet rather than deleting the record |
+| Process expands beyond the observed problem | restrict PR to four documentation paths |
+| Active packet fails repository contract | run `check:knowledge` through CI |
+
+### Verification plan
+
+- Static: `check:knowledge`, deployment, CSS ownership and architecture contracts through CI.
+- Unit/build: run through the standard `verify` job because the repository workflow does not define a docs-only shortcut.
+- Database/E2E: allowed to run unchanged by the standard CI workflow; no runtime behavior is claimed from this PR.
+- Manual: inspect the final diff and confirm `active/` contains only deliberate WIP.
 
 ## Tasks
 
-- [x] Compare current open issues, open PRs, active packets and completed delivery history.
-- [x] Confirm #134 owner acceptance and completed state.
-- [x] Create the completed MF SAFE-UX packet with final delivery evidence.
-- [x] Remove the stale active MF SAFE-UX packet.
-- [x] Clarify the lifecycle rule in `docs/plans/active/README.md`.
-- [x] Open focused PR #149 linked to #148.
-- [ ] Obtain passing CI evidence for the documentation contracts.
-- [ ] Merge only after owner review, then close #148.
+| ID | Task | Dependency | Evidence | Status |
+|---|---|---|---|---|
+| T1 | Reconcile issues, PRs and packets | none | issue #148 | done |
+| T2 | Archive MF SAFE-UX with final evidence | T1 | completed packet | done |
+| T3 | Clarify active-packet lifecycle | T1 | active README diff | done |
+| T4 | Open focused delivery PR | T2, T3 | PR #149 | done |
+| T5 | Obtain passing CI on final head | T4 | GitHub Actions run | in progress |
+| T6 | Merge after owner approval and close #148 | T5 | merge record | todo |
 
-## Acceptance criteria
+## Evaluation
 
-- `docs/plans/active/` contains only deliberately active work.
-- No current packet claims #134 still awaits owner acceptance.
-- The completed MF SAFE-UX record names PR #146, merge commit, CI, production deployment and accepted residual risk.
-- Dynamic queue status remains in GitHub rather than being duplicated across multiple Markdown files.
-- The diff is small, documentation-only and independently reviewable.
+### Acceptance evidence
 
-## References
+| Criterion | Evidence | Result |
+|---|---|---|
+| False active packet removed | PR #149 diff | pass |
+| Accepted SAFE-UX history preserved | completed packet | pass |
+| Dynamic status not duplicated | issue #148 + lifecycle rule | pass |
+| No runtime scope creep | four documentation paths only | pass |
+| Repository contracts | CI on final head | pending |
 
-- Master issue: #148
-- Delivery PR: #149
-- Completed initiative: #134
-- Final remediation: PR #146
-- Next implementation issue: #145
+### Review findings
+
+- Correctness: final SAFE-UX record matches issue #134 completion evidence.
+- Security/ownership: residual Supabase setting is not misrepresented as fixed.
+- Maintainability: the change removes duplicate status rather than adding a new system.
+- Scope compliance: no runtime, architecture or feature implementation is included.
+
+### Remaining limitations
+
+This PR does not resolve the larger historical-document drift or rescope #72/#53. Those remain separate deliberate decisions after CONTROL-01 closes.
+
+## Delivery record
+
+- Branch: `agent/mf-control-01`
+- PR: #149
+- Squash commit: pending
+- CI run: pending final green run
+- Production deployment: not required for documentation-only behavior
+- Production flow verified: not applicable
+- Work packet moved to `docs/plans/completed/`: pending merge
