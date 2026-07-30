@@ -6,15 +6,20 @@ const failures = [];
 
 const requiredFiles = [
   "AGENTS.md",
+  "CLAUDE.md",
   "ARCHITECTURE.md",
   "README.md",
   "docs/product/PRINCIPLES.md",
+  "docs/product/PRODUCT_DEVELOPMENT_PLAN.md",
+  "docs/research/06_GLOBAL_EXPENSE_WEB_UX_BENCHMARK.md",
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
+  "docs/engineering/DEVELOPMENT_SEQUENCE.md",
   "docs/templates/FEATURE_WORK_PACKET.md",
   "docs/plans/README.md",
   "docs/plans/active/README.md",
   "docs/plans/completed/README.md",
   ".github/pull_request_template.md",
+  ".claude/skills/next-initiative/SKILL.md",
 ];
 
 function read(path) {
@@ -74,7 +79,9 @@ try {
 const requiredReadmeLinks = [
   "ARCHITECTURE.md",
   "docs/product/PRINCIPLES.md",
+  "docs/product/PRODUCT_DEVELOPMENT_PLAN.md",
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
+  "docs/engineering/DEVELOPMENT_SEQUENCE.md",
 ];
 
 try {
@@ -84,6 +91,118 @@ try {
   }
 } catch {
   // Missing file already reported above.
+}
+
+for (const path of ["AGENTS.md", "CLAUDE.md"]) {
+  try {
+    const content = read(path);
+    if (!content.includes("docs/product/PRODUCT_DEVELOPMENT_PLAN.md")) {
+      failures.push(`${path} must link to docs/product/PRODUCT_DEVELOPMENT_PLAN.md`);
+    }
+    if (!content.includes("docs/engineering/DEVELOPMENT_SEQUENCE.md")) {
+      failures.push(`${path} must link to docs/engineering/DEVELOPMENT_SEQUENCE.md`);
+    }
+  } catch {
+    // Missing file already reported above.
+  }
+}
+
+for (const path of [
+  "docs/MVP_DEFINITION.md",
+  ".agents/skills/ship-feature/SKILL.md",
+]) {
+  try {
+    if (!read(path).includes("docs/product/PRODUCT_DEVELOPMENT_PLAN.md")) {
+      failures.push(`${path} must link to docs/product/PRODUCT_DEVELOPMENT_PLAN.md`);
+    }
+  } catch {
+    // Existing repository requirements report missing files elsewhere.
+  }
+}
+
+try {
+  const claude = read("CLAUDE.md");
+  if (!claude.includes("/next-initiative")) {
+    failures.push("CLAUDE.md must name /next-initiative for unnamed continuation work");
+  }
+} catch {
+  // Missing file already reported above.
+}
+
+const liveSelectionFiles = [
+  "AGENTS.md",
+  "CLAUDE.md",
+  ".claude/skills/next-initiative/SKILL.md",
+  ".agents/skills/ship-feature/SKILL.md",
+];
+
+try {
+  const skill = read(".claude/skills/next-initiative/SKILL.md");
+  if (!skill.includes("docs/product/PRODUCT_DEVELOPMENT_PLAN.md")) {
+    failures.push(".claude/skills/next-initiative/SKILL.md must use the product development plan");
+  }
+  if (!skill.includes("current product feature")) {
+    failures.push(".claude/skills/next-initiative/SKILL.md must select a product feature before a technical slice");
+  }
+  if (!skill.includes("docs/research/06_GLOBAL_EXPENSE_WEB_UX_BENCHMARK.md")) {
+    failures.push(".claude/skills/next-initiative/SKILL.md must read current web evidence for F01-F12");
+  }
+} catch {
+  // Missing file already reported above.
+}
+
+try {
+  const productPlan = read("docs/product/PRODUCT_DEVELOPMENT_PLAN.md");
+  for (const marker of [
+    "### 4.1 Feature-first development law",
+    "#### F01 - Quick Entry 2.0 and first value",
+    "#### F12 - Commercial Packaging",
+    "### 4.4 Immediate feature queue for Claude",
+    "### 4.5 Web evidence map",
+  ]) {
+    if (!productPlan.includes(marker)) {
+      failures.push(`product development plan is missing feature-roadmap marker: ${marker}`);
+    }
+  }
+} catch {
+  // Missing file already reported above.
+}
+
+try {
+  const benchmark = read("docs/research/06_GLOBAL_EXPENSE_WEB_UX_BENCHMARK.md");
+  for (const marker of [
+    "## 13. Evidence map cho feature roadmap F01-F12",
+    "### 13.1 F01-F03",
+    "### 13.4 F11-F12",
+    "import không undo",
+    "recurring duplicate",
+  ]) {
+    if (!benchmark.includes(marker)) {
+      failures.push(`web feature benchmark is missing evidence marker: ${marker}`);
+    }
+  }
+} catch {
+  // Missing file already reported above.
+}
+
+try {
+  if (!read("docs/engineering/DEVELOPMENT_SEQUENCE.md").includes("next user-facing feature outcome")) {
+    failures.push("development sequence must prioritize the next user-facing feature after release blockers");
+  }
+} catch {
+  // Missing file already reported above.
+}
+
+for (const path of liveSelectionFiles) {
+  let content;
+  try {
+    content = read(path);
+  } catch {
+    continue;
+  }
+  if (/IDEA\.md/u.test(content)) {
+    failures.push(`${path} must not reference retired IDEA.md`);
+  }
 }
 
 const requiredActiveHeadings = [

@@ -1,6 +1,8 @@
 # MoneyFlow — MVP “chuẩn” definition (agent exit)
 
-**Authority:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` (G5)  
+**Current product authority:** `docs/product/PRINCIPLES.md`
+**Product development sequence:** `docs/product/PRODUCT_DEVELOPMENT_PLAN.md`
+**Historical synthesis:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` (G5)
 **Backlog:** tracked in GitHub Issues, not in a Markdown file.
 
 ## Positioning (lock)
@@ -55,3 +57,7 @@ Inbox / paste / upload / rules / CSV direct import — **Nâng cao** only. Bugs 
 2. **CORE UX** daily loop + empty + export discoverability  
 3. **PERF** LCP/JS only if not blocking STAB  
 4. Never invent features outside this doc  
+
+Use `docs/product/PRODUCT_DEVELOPMENT_PLAN.md` to identify the product outcome,
+then `docs/engineering/DEVELOPMENT_SEQUENCE.md` to order implementation within
+and beyond these MVP gates.

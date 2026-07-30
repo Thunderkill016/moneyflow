@@ -15,9 +15,11 @@ For every non-trivial change:
 1. `README.md` — product and commands.
 2. `ARCHITECTURE.md` — system boundaries and change map.
 3. `docs/product/PRINCIPLES.md` — product truth and financial constraints.
-4. `docs/MVP_DEFINITION.md` — current ship/readiness contract.
-5. `docs/engineering/AI_DELIVERY_WORKFLOW.md` — research, planning, implementation and review process.
-6. The active work packet under `docs/plans/active/`, when one exists.
+4. `docs/product/PRODUCT_DEVELOPMENT_PLAN.md` — product outcomes, learning gates and brownfield stage order.
+5. `docs/MVP_DEFINITION.md` — current ship/readiness contract.
+6. `docs/engineering/AI_DELIVERY_WORKFLOW.md` — research, planning, implementation and review process.
+7. `docs/engineering/DEVELOPMENT_SEQUENCE.md` — engineering gates and how to select the next authorized initiative.
+8. The active work packet under `docs/plans/active/`, when one exists.
 
 Task-specific references:
 
@@ -62,8 +64,12 @@ For non-trivial work, copy `docs/templates/FEATURE_WORK_PACKET.md` into `docs/pl
 
 A tiny documentation or one-line mechanical fix may use an inline plan, but still requires reading the affected files and running proportionate checks.
 
+When no task is named, do not invent one from an old branch or historical roadmap. Reconcile live GitHub issues and pull requests with `docs/plans/active/`, then apply `docs/engineering/DEVELOPMENT_SEQUENCE.md`.
+
 ## Coding rules
 
+- Build the next approved user-facing feature slice after in-flight, P0/P1 and
+  financial/tenant blockers; technical cleanup must name the feature it enables.
 - Prefer the smallest coherent vertical slice; no drive-by refactors.
 - Search for existing components, domain helpers and tests before creating new abstractions.
 - Do not change requirements while implementing. Update the spec first when scope changes.

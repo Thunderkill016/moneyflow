@@ -1,8 +1,15 @@
 # Global expense-management web UX benchmark
 
 **Ngày nghiên cứu:** 2026-07-26  
+**Lần kiểm chứng web gần nhất:** 2026-07-30
 **Phạm vi:** web quản lý thu chi cá nhân, tập trung vào transaction capture, transaction register, dashboard, budget, recurring, reports và desktop/mobile UX.  
 **Mục tiêu:** học pattern đã được sản phẩm lớn chứng minh, sau đó điều chỉnh cho MoneyFlow — **không clone giao diện, không feature dump, không đổi định vị khỏi web thu chi cá nhân cho người Việt**.
+
+**Vai trò tài liệu:** bằng chứng tham khảo, không phải product authority. Khi có
+xung đột, `docs/product/PRINCIPLES.md`,
+`docs/product/PRODUCT_DEVELOPMENT_PLAN.md` và specification hiện hành thắng.
+Các đề xuất safe-to-spend cũ đã bị rút theo
+`docs/research/08_SAFE_TO_SPEND_WITHDRAWAL.md`.
 
 ## 1. Cách nghiên cứu
 
@@ -65,7 +72,8 @@ YNAB tổ chức budget theo ba cột dễ hiểu:
 - Budget row nên ưu tiên: **Hạn mức · Đã chi · Còn lại**.
 - Cảnh báo phải có chữ và số, không chỉ màu.
 - Overspend phải giải thích nguồn số liệu và cho phép mở danh sách giao dịch gây vượt.
-- Không copy full zero-based/envelope budgeting; MoneyFlow giữ category budget + safe-to-spend.
+- Không copy full zero-based/envelope budgeting; MoneyFlow giữ category budget
+  đơn giản và chỉ trình bày kế hoạch do người dùng đặt.
 
 **Không học**
 
@@ -158,7 +166,8 @@ Rocket Money làm tốt:
 - Upcoming, All và Calendar views;
 - category review theo từng card;
 - Watchlist cho vài khoản quan trọng mà không cần lập full budget;
-- safe-to-spend trước kỳ lương trong Payday View.
+- Payday View chỉ tính safe-to-spend khi có tài khoản nhận lương được kết nối,
+  các hóa đơn trả từ tài khoản đó và ít nhất ba kỳ lương có nhịp ổn định.
 
 **Áp dụng cho MoneyFlow**
 
@@ -167,7 +176,9 @@ Rocket Money làm tốt:
   - **Tất cả:** quản lý danh sách.
 - Dashboard chỉ hiện attention có hành động: “Internet đến hạn sau 2 ngày”, “Ăn uống còn 300.000 ₫”.
 - Có thể học Watchlist thành “Theo dõi” cho 1–3 category quan trọng, nhưng đây là **Candidate**, không tạo feature trước usage.
-- Safe-to-spend của MoneyFlow phải minh bạch công thức hơn Rocket Money vì không có bank sync.
+- Điều kiện và giới hạn của Payday View là bằng chứng để **không** đưa
+  safe-to-spend toàn cục vào MoneyFlow manual-first. Không suy ra con số này từ
+  số dư, budget và commitment chưa đầy đủ.
 
 ### 4.7 Wallet — customization chỉ có ích sau khi default tốt
 
@@ -240,8 +251,8 @@ Primary action “Thêm giao dịch” phải luôn thấy, nhưng không chiế
 
 ```text
 ┌─────────────────────────────────────────────┐
-│ Có thể chi hôm nay              420.000 ₫   │
-│ Dựa trên số dư, ngân sách và cam kết        │
+│ Số dư đã ghi nhận              8.420.000 ₫  │
+│ Cập nhật từ giao dịch gần nhất lúc 20:15    │
 ├─────────────────────────────────────────────┤
 │ Cần chú ý: Internet đến hạn sau 2 ngày      │
 ├──────────────┬──────────────┬───────────────┤
@@ -468,15 +479,72 @@ Nó nên kết hợp:
 - **Lunch Money:** rules/tags có kỷ luật;
 - **Rocket Money:** recurring và attention;
 - **Wallet:** customization tối giản sau cùng;
-- **MoneyFlow:** safe-to-spend minh bạch, VND-first, manual-first, calm finance.
+- **MoneyFlow:** ledger quan sát được, VND-first, manual-first, calm finance và
+  không tư vấn vượt quá dữ liệu người dùng đã ghi.
 
-## 13. Nguồn chính thức
+## 13. Evidence map cho feature roadmap F01-F12
+
+Phần này là lớp chuyển đổi từ quan sát trên web thành quyết định phát triển.
+“Có ở sản phẩm khác” không chứng minh MoneyFlow cần feature đó. Mỗi feature vẫn
+phải qua gate trong `docs/product/PRODUCT_DEVELOPMENT_PLAN.md`.
+
+### 13.1 F01-F03 — ghi và hiểu
+
+| Feature | Bằng chứng đã kiểm chứng | Quyết định cho MoneyFlow | Không suy ra |
+|---|---|---|---|
+| **F01 Quick Entry 2.0** | YNAB nhập amount trước, phân biệt spending/inflow/transfer và vẫn hoạt động đầy đủ không cần Direct Import; Money Lover đặt tốc độ ghi giao dịch làm lời hứa cốt lõi | amount-first, recent account/category là suggestion, giữ dữ liệu khi lỗi, đo open-to-success | chưa làm voice, OCR, bank sync hoặc AI category |
+| **F02 Transaction Workspace** | Copilot Web có nhiều filter, totals theo filter, keyboard navigation và bulk action; Lunch Money chỉ gắn unreviewed mặc định cho dữ liệu tự động nhập, còn manual transaction có thể reviewed ngay | search/filter/live totals trước; giữ context khi edit; chỉ thêm review/bulk khi import volume chứng minh nhu cầu | tags và advanced query không phải điều kiện để transaction list hữu ích |
+| **F03 Overview and Reports** | YNAB Reflect xếp hạng category, filter theo date/account/category và cho mở/sửa transaction; Lunch Money có table với total/average/count và CSV theo dataset | dashboard/report phải drill xuống đúng source rows, có exact value và export cùng scope | chưa cần report builder, net-worth hero hoặc investment analytics |
+
+### 13.2 F04-F06 — làm sạch và tin
+
+| Feature | Bằng chứng đã kiểm chứng | Quyết định cho MoneyFlow | Phản ví dụ cần tránh |
+|---|---|---|---|
+| **F04 Reconciliation** | Actual tách cleared/uncleared, hiển thị difference về 0, ghi thời điểm reconcile và cảnh báo khi sửa row đã khóa; YNAB khuyến nghị reconcile thường xuyên ngay cả với manual entry | một session gồm statement date/balance, cleared ledger balance, difference, complete và controlled reopen | sửa trực tiếp account balance hoặc khóa không thể phục hồi |
+| **F05 Trusted Import** | Actual dùng `imported_id`, duplicate matching, `dryRun` và tùy chọn không reimport row đã xóa; YNAB match file import với manual transaction | persist provenance, preview và commit dùng cùng validation/version, batch phải giải thích và phục hồi được | Monarch CSV import hiện không có undo và khuyên test bằng file nhỏ; đây không phải chuẩn chấp nhận được cho MoneyFlow |
+| **F06 Review and Rules** | Monarch và Lunch Money cùng dùng conditions -> actions, preview row bị ảnh hưởng và rule order; Lunch Money giữ change history và phân biệt review cho imported/manual data | bắt đầu bằng một rule deterministic, versioned và user-owned; preview trước apply; record rule version | tự động post low-confidence row, auto-create rule không báo hoặc rules engine đa tầng |
+
+### 13.3 F07-F10 — lập kế hoạch và duy trì
+
+| Feature | Bằng chứng đã kiểm chứng | Quyết định cho MoneyFlow | Không suy ra |
+|---|---|---|---|
+| **F07 Budget 2.0** | Monarch cho dùng cash-flow tracking mà không bắt lập budget; Lunch Money hỗ trợ nhiều kỳ và rollover; YNAB targets có nhiều cadence/behavior | mặc định category limit đơn giản: hạn mức, đã chi, còn lại; scope và drill-down rõ; rollover cần spec riêng | không ép zero-based/envelope và không dự đoán thu nhập chưa có |
+| **F08 Recurring Money** | Actual và Lunch Money liên kết occurrence với transaction thật, hỗ trợ manual approval/matching; Rocket tổ chức Upcoming/All/Calendar | expected state tách observed ledger; post/match đúng một lần; undo/reopen vẫn giữ liên kết | Wallet ghi nhận duplicate trên thiết bị offline và không match planned transfer với bank record; MoneyFlow phải giải quyết hai failure mode này trước ship |
+| **F09 Goals** | YNAB targets tách số muốn dành khỏi số hiện có; Monarch goal dùng balance và contribution; Rocket goal thực sự chuyển tiền sang custodial account | MoneyFlow chỉ làm organizational allocation, không giả vờ chuyển tiền; tổng asset không đổi và copy phải nói rõ semantics | không copy auto-transfer, smart savings, KYC/custodial model hoặc investment return |
+| **F10 Weekly Review** | YNAB khuyên reconcile đều đặn; Copilot/Rocket đưa unreviewed/upcoming thành attention có action thay vì dashboard alert chung chung | review ngắn, factual: freshness, unresolved items, link tới action; reminder opt-in và payload không có dữ liệu tài chính | streak, shame copy, social comparison hoặc daily advice |
+
+### 13.4 F11-F12 — học và vận hành sản phẩm
+
+| Feature | Bằng chứng đã kiểm chứng | Quyết định cho MoneyFlow | Gate |
+|---|---|---|---|
+| **F11 Product Learning and Support** | Actual công bố local-first, data ownership và export; các help center chính thức duy trì known behavior, limitations và feedback routes | analytics tối thiểu, versioned, không có amount/note/source text; support gửi safe error code và hướng dẫn redaction | sink/provider và retention policy cần owner duyệt; hành vi phải đi cùng interview |
+| **F12 Commercial Packaging** | Sản phẩm thị trường tách basic/premium theo độ sâu automation/customization; YNAB và Actual cung cấp export/portability, trong khi một số sản phẩm gắn export với premium | thử thông điệp và willingness-to-pay trước billing; correctness, export và deletion không bị paywall | legal, tax, invoice, refund, entitlement, webhook và provider review trước code thanh toán |
+
+### 13.5 Kết luận nghiên cứu
+
+1. Thứ tự `F01 -> F06` được giữ vì mọi automation, report và plan đều phụ
+   thuộc vào ledger sạch và có thể truy vết.
+2. `F07-F09` là explicit planning: chỉ biểu diễn điều người dùng đã đặt, không
+   biến estimate thành observed cash.
+3. `F10-F11` phải chứng minh nhịp sử dụng lặp lại trước khi `F12` thêm billing.
+4. Counterexample của đối thủ là test input: import không undo, recurring duplicate,
+   planned item không match và pending edit bị mất đều phải xuất hiện
+   trong specification/test khi feature tương ứng được chọn.
+5. Benchmark được kiểm chứng lại khi bắt đầu feature; behavior, pricing và
+   provider capability trên web có thể thay đổi.
+
+## 14. Nguồn chính thức
 
 ### YNAB
 
+- https://support.ynab.com/en_us/how-to-add-transactions-in-ynab-HyDwA_byi
+- https://support.ynab.com/en_us/adding-transactions-without-direct-import-B1kBALVaxx
 - https://support.ynab.com/en_us/spending-breakdown-H1H7YxmD0
-- https://www.ynab.com/whats-new/the-clearest-way-to-enter-transactions
-- https://support.ynab.com/en_us/the-ynab-app-SyP94gTjkx
+- https://support.ynab.com/en_us/reflect-in-ynab-B1GJsrWkj
+- https://support.ynab.com/en_us/getting-started-with-targets-ryAEP08xC
+- https://support.ynab.com/en_us/reconciling-accounts-a-guide-BJFE3fHys
+- https://support.ynab.com/en_us/file-based-import-a-guide-Bkj4Sszyo
+- https://support.ynab.com/en_us/tax-season-with-ynab-rkGAspIrT
 
 ### Monarch Money
 
@@ -484,37 +552,57 @@ Nó nên kết hợp:
 - https://help.monarchmoney.com/hc/en-us/articles/360048883631-Budgets
 - https://help.monarchmoney.com/hc/en-us/articles/360048393372-Transaction-rules
 - https://help.monarchmoney.com/hc/en-us/articles/4405041904916-Hide-Transactions
+- https://help.monarchmoney.com/hc/en-us/articles/4409682789908-Import-data-manually-from-banks-or-other-finance-apps
+- https://help.monarchmoney.com/hc/en-us/articles/360058441811-Manual-transactions
 
 ### Copilot Money
 
 - https://help.copilot.money/en/articles/11780342-copilot-money-for-web
-- https://help.copilot.money/en/articles/13157382-web-faq
+- https://help.copilot.money/en/articles/6045480-dashboard-tab-overview
+- https://help.copilot.money/en/articles/3760068-creating-recurrings
 
 ### Actual Budget
 
-- https://actualbudget.org/docs/tour/user-interface/
-- https://actualbudget.org/docs/tour/reports/
-- https://actualbudget.org/docs/reports/
-- https://actualbudget.org/docs/reports/custom-reports/
-- https://actualbudget.org/docs/releases/
+- https://actualbudget.org/docs/accounts/reconciliation/
+- https://actualbudget.org/docs/api/reference/
+- https://actualbudget.org/docs/schedules/
+- https://actualbudget.org/docs/tour/accounts/
+- https://actualbudget.org/docs/vision/
 
 ### Lunch Money
 
-- https://lunchmoney.app/features
+- https://lunchmoney.app/features/transactions
 - https://lunchmoney.app/features/rules
 - https://lunchmoney.app/features/categories-tags
+- https://lunchmoney.app/features/analytics
+- https://lunchmoney.app/features/recurring-expenses/
 - https://support.lunchmoney.app/setup/categories/faq
+- https://support.lunchmoney.app/finances/transactions/transaction-status
 
 ### Rocket Money
 
-- https://help.rocketmoney.com/en/articles/10328100-creating-transaction-rules
 - https://help.rocketmoney.com/en/articles/13778317-transaction-category-review
 - https://help.rocketmoney.com/en/articles/13704685-track-the-spending-that-matters-most-with-a-watchlist
 - https://help.rocketmoney.com/en/articles/3117398-where-can-i-view-my-subscriptions-and-bills
 - https://help.rocketmoney.com/en/articles/6235627-enabling-payday-view
+- https://help.rocketmoney.com/en/articles/2621011-creating-a-financial-goal
+- https://help.rocketmoney.com/en/articles/2677184-premium-membership-features
 
 ### Wallet by BudgetBakers
 
 - https://support.budgetbakers.com/hc/en-us/articles/7181432342034-Wallet-Web-App
 - https://support.budgetbakers.com/hc/en-us/articles/7150077480850-Add-or-Modify-Dashboard-Cards-Widgets
 - https://support.budgetbakers.com/hc/en-us/articles/7077275632274-Import-your-transactions-or-files
+- https://support.budgetbakers.com/hc/en-us/articles/7149523920786-Setup-Planned-Payments
+- https://support.budgetbakers.com/hc/en-us/articles/7184048333842-Planned-Transfers
+
+### Money Lover
+
+- https://moneylover.me/
+
+### Accessibility and platform safety
+
+- https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum
+- https://www.w3.org/WAI/WCAG22/Understanding/focus-appearance.html
+- https://supabase.com/docs/guides/database/postgres/row-level-security
+- https://supabase.com/docs/guides/auth/password-security

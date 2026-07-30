@@ -8,10 +8,25 @@ This file is a lightweight session entrypoint. It does not replace `AGENTS.md`, 
 
 1. Run `git status -sb`, `git branch --show-current` and `git log -5 --oneline`.
 2. Follow the read order in `AGENTS.md`.
-3. Find the controlling file under `docs/plans/active/` and the relevant issue or pull request.
-4. Check whether another open PR changes the same files or source of truth.
-5. Separate observed facts, inference, stale documentation and unresolved questions.
-6. For non-trivial work, finish reconnaissance, specification, plan, tasks and verification criteria before editing runtime code.
+3. Read `docs/product/PRODUCT_DEVELOPMENT_PLAN.md` and `docs/engineering/DEVELOPMENT_SEQUENCE.md` before selecting or continuing an initiative.
+4. Revalidate the current GitHub issues, pull requests and `docs/plans/active/`; their status can be newer than repository prose.
+5. Find the controlling work packet and check whether another branch or pull request changes the same ownership area.
+6. Separate observed facts, inference, stale documentation and unresolved questions.
+7. For non-trivial work, finish reconnaissance, specification, plan, tasks and verification criteria before editing runtime code.
+
+## Selecting work
+
+- When the owner names a task, follow that task within product law and record any conflict.
+- When asked to continue the project without a named task, use `/next-initiative`.
+- Name the user-facing feature, product stage and unmet outcome gate before selecting its implementation slice.
+- Close or reconcile implemented work before starting another initiative.
+- After P0/P1 and financial/tenant blockers, follow the feature queue; quality,
+  authenticated evidence and accessibility belong in each feature's Definition
+  of Done.
+- Do not let broad cleanup or internal refactors displace the next product
+  feature unless they directly block it.
+- Do not silently skip a blocked higher-priority item. Record the blocker and why the selected work is independent.
+- One active implementation scope owns one branch or isolated worktree. Do not let parallel agents edit the same ownership area.
 
 ## Current project facts
 
@@ -50,3 +65,4 @@ Record conflicts instead of silently choosing a convenient source.
 - Do not infer database, browser or production correctness from a build status.
 - Do not merge or deploy without explicit human-owner approval.
 - Report work as `implemented`, `verified`, `deployed`, `accepted` or `blocked` according to the evidence actually available.
+- When compacting context, preserve the controlling packet path, acceptance criteria, modified files, commands run, failures and remaining tasks.

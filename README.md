@@ -18,6 +18,7 @@ Start here before non-trivial work:
 - [Agent entrypoint](AGENTS.md)
 - [Architecture map](ARCHITECTURE.md)
 - [Product principles](docs/product/PRINCIPLES.md)
+- [Feature-first product development plan (F01-F12)](docs/product/PRODUCT_DEVELOPMENT_PLAN.md)
 - [MVP definition and readiness gates](docs/MVP_DEFINITION.md)
 - [AI delivery workflow](docs/engineering/AI_DELIVERY_WORKFLOW.md)
 - [Feature work-packet template](docs/templates/FEATURE_WORK_PACKET.md)
@@ -113,10 +114,16 @@ VND is represented as integer đồng. Internal transfers never count as income 
 
 ## Current project phase
 
-The near-term goal is to prove MoneyFlow can become the owner's trusted daily ledger:
+The owner has completed and accepted the seven-day TRUST-7 self-use period. That evidence does not authorize unrestricted feature expansion.
 
-- complete the readiness gates in [`docs/MVP_DEFINITION.md`](docs/MVP_DEFINITION.md);
-- verify core flows on a physical phone;
-- self-use for seven consecutive days;
-- fix P0/P1 defects before feature expansion;
-- improve reconciliation, provenance and auditability based on real use.
+The current sequence is:
+
+1. reconcile merged/in-flight work and remove P0/P1 defects from core flows;
+2. build the next F01-F12 user-facing feature slice from the product queue;
+3. include financial correctness, ownership, authenticated verification,
+   recovery, accessibility and measured performance in that feature's
+   Definition of Done;
+4. run standalone cleanup only when it directly unblocks the feature or has
+   independent release-blocking evidence.
+
+See [`docs/product/PRODUCT_DEVELOPMENT_PLAN.md`](docs/product/PRODUCT_DEVELOPMENT_PLAN.md) for product outcomes and learning gates, then [`docs/engineering/DEVELOPMENT_SEQUENCE.md`](docs/engineering/DEVELOPMENT_SEQUENCE.md) for safe implementation order. GitHub issues and pull requests remain the authority for live status.

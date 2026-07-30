@@ -8,7 +8,12 @@
 | Engineering: Agent Skills | https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills |
 | Public skills repo | https://github.com/anthropics/skills |
 | Open standard | https://agentskills.io/ |
-| Claude Code skills docs | https://code.claude.com/docs/en/skills |
+| Claude Code skills docs | https://code.claude.com/docs/en/slash-commands |
+| Claude Code project memory | https://code.claude.com/docs/en/memory |
+| Claude Code best practices | https://code.claude.com/docs/en/best-practices |
+| Claude Code subagents | https://code.claude.com/docs/en/sub-agents |
+| Claude Code worktrees | https://code.claude.com/docs/en/worktrees |
+| Claude Code hooks | https://code.claude.com/docs/en/hooks |
 | Help: What are Skills? | https://support.claude.com/en/articles/12512176-what-are-skills |
 
 ### Cài marketplace trong Claude Code
@@ -39,7 +44,8 @@
 
 ## Đã cài vào project này
 
-- `.claude/skills/` — path Claude Code chuẩn  
-- `.agents/skills/` — mirror  
+- `.claude/skills/` là đường dẫn project skill được Claude Code chính thức khám phá.
+- `.agents/skills/` là lớp tương thích cho các coding agent khác; Claude Code không được giả định sẽ nạp đường dẫn này.
+- `/next-initiative` chọn user-facing feature F01-F12 theo `docs/product/PRODUCT_DEVELOPMENT_PLAN.md`, rồi chọn và thực thi vertical slice an toàn theo `docs/engineering/DEVELOPMENT_SEQUENCE.md`.
 
-Plus project skills: ship-feature, TDD, verification, security-pass, frontend-qa, supabase-rls.
+Các playbook trong `.agents/skills/` vẫn là tài liệu tham khảo khi được chỉ định, nhưng quy tắc luôn-nạp phải nằm trong `CLAUDE.md`/`AGENTS.md`, còn workflow Claude lặp lại phải nằm trong `.claude/skills/`.
