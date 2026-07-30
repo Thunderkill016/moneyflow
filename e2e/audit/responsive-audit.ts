@@ -179,6 +179,21 @@ export async function auditRoute(
       return false;
     };
 
+    const renderedTextLineCount = (element: HTMLElement): number => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      const lineTops: number[] = [];
+
+      for (const rect of Array.from(range.getClientRects())) {
+        if (rect.width <= 0 || rect.height <= 0) continue;
+        if (!lineTops.some((top) => Math.abs(top - rect.top) < 1)) {
+          lineTops.push(rect.top);
+        }
+      }
+
+      return lineTops.length;
+    };
+
     if (documentWidth > viewport.width + 2) {
       findings.push({
         severity: "P1",
@@ -262,25 +277,12 @@ export async function auditRoute(
         });
       }
 
-      const parsedLineHeight = Number.parseFloat(style.lineHeight);
-      const parsedFontSize = Number.parseFloat(style.fontSize);
-      const lineHeight = Number.isFinite(parsedLineHeight)
-        ? parsedLineHeight
-        : (Number.isFinite(parsedFontSize) ? parsedFontSize : 16) * 1.2;
-      const verticalChrome =
-        Number.parseFloat(style.paddingTop) +
-        Number.parseFloat(style.paddingBottom) +
-        Number.parseFloat(style.borderTopWidth) +
-        Number.parseFloat(style.borderBottomWidth);
-      const renderedContentHeight = Math.max(
-        0,
-        element.getBoundingClientRect().height - verticalChrome,
-      );
-      if (renderedContentHeight > lineHeight + 1) {
+      const lineCount = renderedTextLineCount(element);
+      if (lineCount > 1) {
         findings.push({
           severity: "P1",
           code: "financial-value-wrapped",
-          detail: `${describe(element)} is ${renderedContentHeight.toFixed(2)}px high with ${lineHeight.toFixed(2)}px line-height`,
+          detail: `${describe(element)} renders across ${lineCount} text lines`,
         });
       }
     }
