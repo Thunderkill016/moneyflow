@@ -84,7 +84,9 @@ Two thresholds for one contract now exist. Reconciling them is task 4 below.
 5. No new horizontal overflow at 320px, and no truncation introduced while
    preventing the wrap.
 
-## Implemented direction
+## Implementation plan
+
+Implemented direction:
 
 - `MoneyValue` now owns `white-space: nowrap` while retaining
   `overflow: visible`, `text-overflow: clip`, `overflow-wrap: normal`,
