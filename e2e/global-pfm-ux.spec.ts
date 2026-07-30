@@ -91,7 +91,7 @@ test.describe("Global PFM UX benchmark", () => {
       name: "Tóm tắt theo bộ lọc",
     });
     const netSummary = transactionSummary
-      .getByText("Ròng", { exact: true })
+      .getByText("Còn lại", { exact: true })
       .locator("..");
     await expect(netSummary).toContainText(/−\s*125\.000/);
     await expect(page.locator(".manager-row").filter({ hasText: NOTE })).toBeVisible();

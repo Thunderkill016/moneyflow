@@ -836,18 +836,18 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .card-title-row h2 { margin: 0; font-size: 26px; font-weight: 660; letter-spacing: -.04em; }
 .round-icon { display: grid; width: 37px; height: 37px; place-items: center; border-radius: 12px; }
 .round-icon svg { width: 18px; }
-.round-icon.green { background: var(--green-soft); color: var(--green); }
-.round-icon.purple { background: #eee8fa; color: #7250a8; }
+.round-icon.green { background: var(--mf-brand-subtle); color: var(--mf-brand-text); }
+.round-icon.purple { background: var(--mf-brand-subtle); color: var(--mf-brand-text); }
 .month-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 23px; }
 .month-stats div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .month-stats span { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 10px; }
-.month-stats span svg { width: 12px; color: var(--green); }
-.month-stats div:nth-child(2) span svg { color: #bd554b; }
+.month-stats span svg { width: 12px; color: var(--mf-income); }
+.month-stats div:nth-child(2) span svg { color: var(--mf-expense); }
 .month-stats strong { font-size: 11px; }
 .mini-chart { display: flex; height: 54px; align-items: end; gap: clamp(4px, .65vw, 8px); margin-top: auto; padding-top: 10px; }
-.mini-chart span { flex: 1; min-width: 3px; border-radius: 5px 5px 2px 2px; background: #d8e7dd; }
-.mini-chart span.today { background: var(--green); }
-.chart-labels { display: flex; justify-content: space-between; margin-top: 7px; color: #99a39d; font-size: 9px; }
+.mini-chart span { flex: 1; min-width: 3px; border-radius: 5px 5px 2px 2px; background: var(--mf-surface-strong); }
+.mini-chart span.today { background: var(--mf-brand); }
+.chart-labels { display: flex; justify-content: space-between; margin-top: 7px; color: var(--mf-text-muted); font-size: 9px; }
 
 .content-grid { display: grid; grid-template-columns: minmax(0, 1.47fr) minmax(310px, .53fr); gap: 18px; margin-top: 18px; }
 .panel { padding: 26px 28px; }
@@ -861,14 +861,51 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .transaction-row:first-child { border-top: 0; }
 .transaction-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; }
 .transaction-icon svg { width: 18px; }
-.transaction-icon.coral { background: #faeae5; color: #b75d49; }
-.transaction-icon.blue { background: #e7effa; color: #4b70a9; }
-.transaction-icon.violet { background: #eee9fa; color: #7553aa; }
-.transaction-icon.amber { background: #fff0d5; color: #a76b19; }
-.transaction-icon.cyan { background: #e2f3f3; color: #3f8384; }
-.transaction-icon.pink { background: #fae9f1; color: #a85478; }
-.transaction-icon.green { background: var(--green-soft); color: var(--green); }
-.transaction-icon.red { background: #fbe9e7; color: #b34f45; }
+/*
+ * Category identity colours.
+ *
+ * These are identity, not meaning — a category is not income, expense or a
+ * warning — so they deliberately do not reuse the semantic tokens, which would
+ * imply a financial state the row does not have.
+ *
+ * They are mixed against the current surface and ink instead of being fixed
+ * pastels. The previous values (#faeae5, #e7effa, #eee9fa, #fff0d5, #e2f3f3,
+ * #fae9f1, #fbe9e7) were light-mode only with no dark override, so pale pastel
+ * squares rendered unchanged on a near-black surface. Mixing keeps each hue
+ * distinguishable for scanning while following the theme.
+ */
+.transaction-icon.coral {
+  background: color-mix(in srgb, #c05a42 14%, var(--mf-surface-muted));
+  color: color-mix(in srgb, #c05a42 72%, var(--mf-text));
+}
+.transaction-icon.blue {
+  background: color-mix(in srgb, #4b70a9 14%, var(--mf-surface-muted));
+  color: color-mix(in srgb, #4b70a9 72%, var(--mf-text));
+}
+.transaction-icon.violet {
+  background: color-mix(in srgb, #7553aa 14%, var(--mf-surface-muted));
+  color: color-mix(in srgb, #7553aa 72%, var(--mf-text));
+}
+.transaction-icon.amber {
+  background: color-mix(in srgb, #a76b19 14%, var(--mf-surface-muted));
+  color: color-mix(in srgb, #a76b19 72%, var(--mf-text));
+}
+.transaction-icon.cyan {
+  background: color-mix(in srgb, #3f8384 14%, var(--mf-surface-muted));
+  color: color-mix(in srgb, #3f8384 72%, var(--mf-text));
+}
+.transaction-icon.pink {
+  background: color-mix(in srgb, #a85478 14%, var(--mf-surface-muted));
+  color: color-mix(in srgb, #a85478 72%, var(--mf-text));
+}
+.transaction-icon.green {
+  background: color-mix(in srgb, var(--mf-brand) 14%, var(--mf-surface-muted));
+  color: color-mix(in srgb, var(--mf-brand) 72%, var(--mf-text));
+}
+.transaction-icon.red {
+  background: color-mix(in srgb, #b34f45 14%, var(--mf-surface-muted));
+  color: color-mix(in srgb, #b34f45 72%, var(--mf-text));
+}
 .transaction-detail strong, .transaction-detail small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .transaction-detail strong { font-size: 12px; font-weight: 630; }
 .transaction-detail small { margin-top: 4px; color: #8b9690; font-size: 9px; }
@@ -884,8 +921,8 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .budget-number { margin-top: 25px; }
 .budget-number strong { font-size: 19px; letter-spacing: -.03em; }
 .budget-number span { color: var(--muted); font-size: 10px; }
-.budget-track { height: 7px; overflow: hidden; margin-top: 14px; border-radius: 99px; background: #e9efeb; }
-.budget-track span { display: block; height: 100%; border-radius: inherit; background: var(--green); transition: width .35s ease; }
+.budget-track { height: 7px; overflow: hidden; margin-top: 14px; border-radius: 99px; background: var(--mf-surface-strong); }
+.budget-track span { display: block; height: 100%; border-radius: inherit; background: var(--mf-brand); transition: width .35s ease; }
 .budget-foot { display: flex; justify-content: space-between; margin-top: 10px; color: #87928c; font-size: 9px; }
 .budget-foot strong { color: var(--ink); font-weight: 630; }
 .budget-empty,
@@ -948,7 +985,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .panel-empty h3 { margin: 14px 0 0; font-size: 14px; }
 .panel-empty p { max-width: 300px; margin: 7px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
 .insight-panel { display: grid; grid-template-columns: 39px 1fr; gap: 13px; border: 1px solid #e4ddf0; border-radius: 19px; background: linear-gradient(135deg, #f8f5fc, #f2eef9); padding: 21px; }
-.insight-panel .eyebrow { margin-top: 2px; color: #7657a4; font-size: 8px; }
+.insight-panel .eyebrow { margin-top: 2px; color: var(--mf-brand-text); font-size: 8px; }
 .insight-panel h2 { margin: 0; font-size: 12px; line-height: 1.45; }
 .insight-panel div > p:last-child { margin: 7px 0 0; color: #776e81; font-size: 9px; line-height: 1.55; }
 
@@ -1380,7 +1417,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .budget-category-numbers { display: flex; align-items: baseline; gap: 4px; margin-top: 18px; }
 .budget-category-numbers span:first-child { font-size: 17px; font-weight: 680; }
 .budget-category-numbers span:last-child { color: var(--muted); font-size: 9px; }
-.planning-card--over .budget-track span { background: var(--danger); }
+.planning-card--over .budget-track span { background: var(--mf-expense); }
 .budget-panel-near .budget-status-text { color: #ea580c; font-weight: 650; }
 .budget-panel-over .budget-status-text { color: var(--danger); font-weight: 650; }
 .budget-category-actions { display: flex; justify-content: flex-end; gap: 5px; margin-top: 13px; border-top: 1px solid var(--line); padding-top: 11px; }
@@ -1391,11 +1428,11 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .budget-category-actions svg { width: 14px; }
 .budget-dialog select:disabled { cursor: not-allowed; background: #f4f6f4; color: var(--muted); }
 .commitments-workspace { max-width: 1100px; }
-.commitment-overview > div:first-child strong { color: #7657a4; }
+.commitment-overview > div:first-child strong { color: var(--mf-brand-text); }
 .commitment-list-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin-top: 30px; }
 .commitment-list-heading h2 { margin: 0; font-size: 16px; letter-spacing: -.025em; }
 .commitment-list-heading p { margin: 6px 0 0; color: var(--muted); font-size: 10px; }
-.commitment-list-heading button { min-height: 38px; cursor: pointer; border: 0; border-radius: 10px; background: #eef3ef; padding: 0 13px; color: var(--green); font-size: 10px; font-weight: 680; }
+.commitment-list-heading button { min-height: 38px; cursor: pointer; border: 0; border-radius: 10px; background: var(--mf-surface-muted); padding: 0 13px; color: var(--mf-brand-text); font-size: 10px; font-weight: 680; }
 .commitment-card-grid { display: grid; gap: 12px; margin-top: 16px; }
 .planning-card.commitment-card { padding: 18px 20px 13px; }
 /* Legacy shell for income-templates (same calm bands) */
@@ -1406,78 +1443,88 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   padding: 18px 20px 13px;
   box-shadow: var(--shadow);
 }
-.commitment-card.overdue { border-color: #efcfca; border-left-width: 4px; }
-.commitment-card.paid { background: #fbfcfb; }
+.commitment-card.overdue { border-color: color-mix(in srgb, var(--mf-expense) 55%, var(--mf-border)); border-left-width: 4px; }
+.commitment-card.paid { background: var(--mf-surface-muted); }
 .commitment-main { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 13px; }
 .commitment-main > div { min-width: 0; }
 .commitment-title { display: flex; align-items: center; gap: 9px; }
 .commitment-title h3 { overflow: hidden; margin: 0; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .commitment-due-badge,
-.commitment-title span { flex: none; border-radius: 99px; background: #edf6ef; padding: 4px 7px; color: var(--green); font-size: 8px; font-weight: 700; }
+.commitment-title span { flex: none; border-radius: 99px; background: var(--mf-brand-subtle); padding: 4px 7px; color: var(--mf-brand-text); font-size: 8px; font-weight: 700; }
 /* Calm due bands — soft tint + text (never flash-only) */
-.planning-card--soon .commitment-due-badge { background: #fff3e8; color: #c2410c; }
+.planning-card--soon .commitment-due-badge { background: var(--mf-warning-subtle); color: var(--mf-warning-text); }
 .planning-card--overdue .commitment-due-badge,
-.commitment-card.overdue .commitment-title span { background: #faece9; color: var(--danger); }
+.commitment-card.overdue .commitment-title span { background: var(--mf-expense-subtle); color: var(--mf-expense-text); }
 .planning-card--paid .commitment-due-badge,
-.commitment-card.paid .commitment-title span { background: #edf2ef; color: #78847d; }
+.commitment-card.paid .commitment-title span { background: var(--mf-surface-strong); color: var(--mf-text-muted); }
 .commitment-main p { margin: 5px 0 0; color: var(--muted); font-size: 9px; }
 .commitment-main > strong { font-size: 15px; letter-spacing: -.02em; }
 .planning-card--paid .commitment-main > strong,
 .commitment-card.paid .commitment-main > strong { color: var(--muted); text-decoration: line-through; }
 .commitment-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 13px; border-top: 1px solid var(--line); padding-top: 11px; }
 .commitment-actions button { display: inline-flex; min-height: 35px; cursor: pointer; align-items: center; gap: 6px; border: 0; border-radius: 9px; background: transparent; padding: 0 10px; color: var(--muted); font-size: 9px; font-weight: 670; }
-.commitment-actions button:hover { background: #f1f5f2; color: var(--green); }
+.commitment-actions button:hover { background: var(--mf-surface-muted); color: var(--mf-brand-text); }
 .commitment-actions button:disabled { cursor: wait; opacity: .5; }
 .commitment-actions button.commitment-pay { background: var(--green-soft); color: var(--green); }
 .commitment-actions svg { width: 14px; }
 .commitment-form-row { display: grid; grid-template-columns: .7fr 1.3fr; gap: 12px; }
-.insight-panel a { color: #7657a4; font-weight: 650; }
+.insight-panel a { color: var(--mf-brand-text); font-weight: 650; }
 .goals-workspace { max-width: 1100px; }
-.goal-hero { display: grid; grid-template-columns: 1.15fr 1fr 1fr; margin: 28px 0 34px; overflow: hidden; border: 1px solid #ded7eb; border-radius: 20px; background: linear-gradient(135deg, #faf8fd, #f4f0fa); box-shadow: var(--shadow); }
-.goal-hero > div { position: relative; border-left: 1px solid #e5dff0; padding: 23px 25px; }
+/*
+ * Goals used their own violet vocabulary (#7657a4, #ded7eb, #faf8fd, #f4f0fa,
+ * #e5dff0, #f4f1f8, #f0ebf8, #f6f3fa) plus a decorative gradient. Violet is not
+ * in the sanctioned palette, none of those values responded to the theme, and
+ * CALM_LEDGER_V2 excludes decorative gradients.
+ *
+ * A savings goal is the user's own plan, so it takes the brand accent — the
+ * token already reserved for user-directed action — rather than a hue of its
+ * own, and the surface stays neutral.
+ */
+.goal-hero { display: grid; grid-template-columns: 1.15fr 1fr 1fr; margin: 28px 0 34px; overflow: hidden; border: 1px solid var(--mf-border); border-radius: var(--mf-radius-lg); background: var(--mf-surface); box-shadow: var(--mf-shadow-sm); }
+.goal-hero > div { position: relative; border-left: 1px solid var(--mf-border); padding: 23px 25px; }
 .goal-hero > div:first-child { border-left: 0; padding-left: 78px; }
 .goal-hero .round-icon { position: absolute; top: 24px; left: 25px; }
 .goal-hero p, .goal-hero strong, .goal-hero small { display: block; }
-.goal-hero p { margin: 0; color: #756b80; font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.goal-hero p { margin: 0; color: var(--mf-text-muted); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .goal-hero strong { margin-top: 8px; font-size: 21px; letter-spacing: -.03em; }
-.goal-hero small { margin-top: 5px; color: #857c8e; font-size: 9px; }
+.goal-hero small { margin-top: 5px; color: var(--mf-text-muted); font-size: 9px; }
 .goal-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
 .goal-card-top { display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 11px; }
 .goal-card-top h3 { margin: 0; font-size: 13px; }
 .goal-card-top p { margin: 4px 0 0; color: var(--muted); font-size: 9px; }
-.goal-card-top > strong { color: #7657a4; font-size: 15px; }
-.planning-card--achieved .goal-card-top > strong { color: var(--green); }
+.goal-card-top > strong { color: var(--mf-brand-text); font-size: 15px; }
+.planning-card--achieved .goal-card-top > strong { color: var(--mf-income-text); }
 .goal-amount { display: flex; align-items: baseline; gap: 5px; margin-top: 21px; }
 .goal-amount strong { font-size: 18px; letter-spacing: -.025em; }
 .goal-amount span { color: var(--muted); font-size: 9px; }
-.planning-card.goal-card .budget-track span { background: #7657a4; }
-.planning-card--achieved .budget-track span { background: var(--green); }
+.planning-card.goal-card .budget-track span { background: var(--mf-brand); }
+.planning-card--achieved .budget-track span { background: var(--mf-income); }
 .goal-card-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 10px; color: var(--muted); font-size: 9px; }
 .goal-card-foot strong { color: var(--ink); }
 .goal-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; margin-top: 15px; border-top: 1px solid var(--line); padding-top: 12px; }
 .goal-actions button { display: inline-flex; min-height: 35px; cursor: pointer; align-items: center; gap: 5px; border: 0; border-radius: 9px; background: transparent; padding: 0 9px; color: var(--muted); font-size: 9px; font-weight: 670; }
-.goal-actions button:hover { background: #f4f1f8; color: #7657a4; }
-.goal-actions button.goal-allocate { background: #f0ebf8; color: #7657a4; }
+.goal-actions button:hover { background: var(--mf-surface-muted); color: var(--mf-brand-text); }
+.goal-actions button.goal-allocate { background: var(--mf-brand-subtle); color: var(--mf-brand-text); }
 .goal-actions button:disabled { cursor: not-allowed; opacity: .45; }
 .goal-actions svg { width: 14px; }
-.goal-allocation-context { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 12px; margin-top: 24px; border-radius: 14px; background: #f6f3fa; padding: 14px; }
+.goal-allocation-context { display: grid; grid-template-columns: 42px 1fr; align-items: center; gap: 12px; margin-top: 24px; border-radius: 14px; background: var(--mf-surface-muted); padding: 14px; }
 .goal-allocation-context strong { font-size: 12px; }
 .goal-allocation-context p { margin: 4px 0 0; color: var(--muted); font-size: 9px; }
 .goal-dialog label small { color: var(--muted); font-weight: 450; }
 .goal-dashboard-panel { padding-bottom: 22px; }
-.goal-dashboard-panel .budget-track span { background: #7657a4; }
-.goal-dashboard-panel.achieved .budget-track span { background: var(--green); }
-.goal-dashboard-panel.achieved .budget-foot span { color: var(--green); font-weight: 650; }
+.goal-dashboard-panel .budget-track span { background: var(--mf-brand); }
+.goal-dashboard-panel.achieved .budget-track span { background: var(--mf-income); }
+.goal-dashboard-panel.achieved .budget-foot span { color: var(--mf-income-text); font-weight: 650; }
 .goal-dashboard-more { margin: 12px 0 0; }
 .goal-dashboard-more a {
-  color: #7657a4;
+  color: var(--mf-brand-text);
   font-size: 10px;
   font-weight: 700;
   text-decoration: none;
 }
 .goal-dashboard-more a:hover { text-decoration: underline; }
 .goal-dashboard-more a:focus-visible {
-  outline: 2px solid #7657a4;
+  outline: 2px solid var(--mf-focus);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -2252,7 +2299,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   .goals-workspace { padding-top: 27px; }
   .goal-hero { grid-template-columns: 1fr 1fr; }
   .goal-hero > div { padding: 17px 16px; }
-  .goal-hero > div:first-child { grid-column: 1 / -1; border-bottom: 1px solid #e5dff0; padding: 19px 16px 19px 68px; }
+  .goal-hero > div:first-child { grid-column: 1 / -1; border-bottom: 1px solid var(--mf-border); padding: 19px 16px 19px 68px; }
   .goal-hero > div:nth-child(2) { border-left: 0; }
   .goal-hero .round-icon { top: 19px; left: 17px; }
   .goal-hero strong { font-size: 17px; }
