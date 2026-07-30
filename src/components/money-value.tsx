@@ -42,6 +42,7 @@ export function MoneyValue(props: MoneyValueProps) {
     <Element
       className={classes}
       aria-label={moneyDisplayAriaLabel(props)}
+      data-money="true"
       data-money-value="true"
       data-money-tone={tone}
     >
