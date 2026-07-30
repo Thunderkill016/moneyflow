@@ -44,8 +44,10 @@ test("the remaining measured legacy controls have explicit 44px owners", () => {
   assert.match(css, /\.attention-chip/u);
   assert.match(css, /\.insights-export-csv/u);
   assert.match(css, /\.privacy-trust-links a/u);
+  assert.match(css, /\.capture-paste-back/u);
+  assert.match(css, /a:only-child\[href="\/login"\]/u);
   assert.match(css, /\.inbox-list-header \.inbox-col-check input\[type="checkbox"\]/u);
-  assert.match(css, /height:\s*auto !important/u);
+  assert.match(css, /height:\s*44px !important/u);
   assert.match(css, /display:\s*inline-flex/u);
 });
 
