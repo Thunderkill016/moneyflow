@@ -44,6 +44,19 @@
   --mf-brand-subtle: #e6f4eb;
   --mf-brand-text: #075a30;
   --mf-on-brand: #ffffff;
+
+  /*
+   * Brand canvas — for large brand-owned surfaces such as the auth story panel.
+   *
+   * Deliberately the same value in both themes, and deliberately not --mf-brand.
+   * --mf-brand is an accent sized for buttons and text, and it lightens to mint
+   * in dark mode; using it as a full-height panel turned half the sign-in screen
+   * bright mint. A brand identity surface commits to one look instead.
+   *
+   * White on this value measures 6.61:1 — AA for normal text.
+   */
+  --mf-brand-canvas: #0b6b3a;
+  --mf-on-brand-canvas: #ffffff;
   --mf-income: #0f766e;
   --mf-income-subtle: #e1f5f2;
   --mf-income-text: #0b5c55;
