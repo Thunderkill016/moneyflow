@@ -50,27 +50,31 @@ export async function executeTransferMutation({
 
   const { source, destination } = prepared.value;
   if (isDemo) {
-    const readTransactions = dependencies.readTransactions ?? readStoredTransactions;
-    const writeTransactions = dependencies.writeTransactions ?? writeStoredTransactions;
-    const current = readTransactions();
-    const existing = current.find(
-      (transaction) => transaction.id === prepared.value.input.idempotencyKey,
-    );
-    const transaction =
-      existing ??
-      buildDemoTransferTransaction(prepared.value, {
-        id: prepared.value.input.idempotencyKey,
-        occurredAt: (dependencies.now ?? (() => new Date()))().toISOString(),
-      });
+    try {
+      const readTransactions = dependencies.readTransactions ?? readStoredTransactions;
+      const writeTransactions = dependencies.writeTransactions ?? writeStoredTransactions;
+      const current = readTransactions();
+      const existing = current.find(
+        (transaction) => transaction.id === prepared.value.input.idempotencyKey,
+      );
+      const transaction =
+        existing ??
+        buildDemoTransferTransaction(prepared.value, {
+          id: prepared.value.input.idempotencyKey,
+          occurredAt: (dependencies.now ?? (() => new Date()))().toISOString(),
+        });
 
-    if (!existing) writeTransactions([transaction, ...current]);
-    return {
-      ok: true,
-      transaction,
-      source,
-      destination,
-      isNew: !existing,
-    };
+      if (!existing) writeTransactions([transaction, ...current]);
+      return {
+        ok: true,
+        transaction,
+        source,
+        destination,
+        isNew: !existing,
+      };
+    } catch {
+      return { ok: false, message: "Không lưu được giao dịch demo. Hãy thử lại." };
+    }
   }
 
   try {
