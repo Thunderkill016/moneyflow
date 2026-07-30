@@ -4,13 +4,13 @@ import { startTransition, useEffect, useOptimistic, useState } from "react";
 import {
   createSplitExpenseAction,
   createTransactionAction,
-  createTransferAction,
   deleteTransactionAction,
   restoreTransactionAction,
   updateTransactionAction,
   updateTransferAction,
   type TransactionActionResult,
 } from "@/app/actions/transactions";
+import { executeTransferMutation } from "@/hooks/transfer-mutation";
 import type {
   AccountOption,
   CategoryOption,
@@ -166,50 +166,18 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
   }
 
   async function addTransfer(input: CreateTransferInput): Promise<TransactionActionResult> {
-    const source = accounts.find((item) => item.id === input.sourceAccountId);
-    const destination = accounts.find((item) => item.id === input.destinationAccountId);
-    if (!source || !destination || source.id === destination.id) {
-      return { ok: false, message: "Chọn hai tài khoản khác nhau." };
-    }
-    if (isDemo) {
-      const transaction: Transaction = {
-        id: crypto.randomUUID(),
-        kind: "transfer",
-        categoryId: "",
-        category: "Chuyển tiền",
-        note: input.note || "Chuyển tiền",
-        accountId: source.id,
-        account: source.name,
-        destinationAccountId: destination.id,
-        destinationAccount: destination.name,
-        amount: input.amount,
-        occurredOn: input.occurredOn,
-        occurredAt: new Date().toISOString(),
-        relativeDate: "Vừa xong",
-      };
-      setTransactions((current) => {
-        const next = [transaction, ...current];
-        writeStoredTransactions(next);
-        return next;
-      });
-      return { ok: true, transaction };
-    }
-    setIsMutating(true);
+    if (!isDemo) setIsMutating(true);
     try {
-      const result = await createTransferAction(input);
-      if (result.ok && result.transaction) {
+      const result = await executeTransferMutation({ input, accounts, isDemo });
+      if (result.ok) {
         setTransactions((current) => [
-          result.transaction as Transaction,
-          ...current.filter((item) => item.id !== result.transaction?.id),
+          result.transaction,
+          ...current.filter((item) => item.id !== result.transaction.id),
         ]);
       }
-      return result.ok
-        ? result
-        : { ok: false, message: result.message || "Không chuyển được. Thử lại." };
-    } catch {
-      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
+      return result;
     } finally {
-      setIsMutating(false);
+      if (!isDemo) setIsMutating(false);
     }
   }
 
