@@ -6,37 +6,41 @@
  * the unproven safe-to-spend card remain untouched.
  */
 
+/*
+ * The --aiux-* names are kept because many selectors in this file still use
+ * them, but they are now aliases onto the --mf-* authority in
+ * src/app/document-theme.css rather than a second set of hardcoded values.
+ *
+ * They previously held their own near-duplicates of the same colours, which is
+ * how the product ended up rendering two different brand greens (#12633c here
+ * vs #0b6b3a in the authority), two different inks (#102018 vs #102019) and
+ * two different muted greys (#53645a vs #5b6b62) depending on which layer a
+ * given element happened to be styled by. Aliasing removes that drift and
+ * means a token change in the authority now reaches this layer too.
+ *
+ * Dark values need no separate block: the aliases resolve through whatever
+ * html[data-theme="dark"] has already set.
+ */
 :root {
   --aiux-page-max: 1180px;
-  --aiux-surface: #ffffff;
-  --aiux-surface-soft: #f4f7f5;
-  --aiux-surface-quiet: #eef3f0;
-  --aiux-line: #d8e2dc;
-  --aiux-line-strong: #bdcbc2;
-  --aiux-ink: #102018;
-  --aiux-muted: #53645a;
-  --aiux-muted-quiet: #75837b;
-  --aiux-brand: #12633c;
-  --aiux-brand-strong: #0b4a2b;
-  --aiux-brand-soft: #e7f2eb;
+  --aiux-surface: var(--mf-surface);
+  --aiux-surface-soft: var(--mf-canvas);
+  --aiux-surface-quiet: var(--mf-surface-muted);
+  --aiux-line: var(--mf-border);
+  --aiux-line-strong: var(--mf-border-strong);
+  --aiux-ink: var(--mf-text);
+  --aiux-muted: var(--mf-text-muted);
+  --aiux-muted-quiet: var(--mf-text-soft);
+  --aiux-brand: var(--mf-brand);
+  --aiux-brand-strong: var(--mf-brand-hover);
+  --aiux-brand-soft: var(--mf-brand-subtle);
   --aiux-radius-card: 20px;
   --aiux-radius-control: 12px;
-  --aiux-shadow-card: 0 1px 2px rgb(15 31 22 / 4%), 0 10px 28px rgb(15 31 22 / 5%);
+  --aiux-shadow-card: var(--mf-shadow-sm), 0 10px 28px rgb(15 31 22 / 5%);
 }
 
 [data-theme="dark"] {
-  --aiux-surface: #181b19;
-  --aiux-surface-soft: #121513;
-  --aiux-surface-quiet: #202521;
-  --aiux-line: #303a33;
-  --aiux-line-strong: #445047;
-  --aiux-ink: #eef4f0;
-  --aiux-muted: #b5c0b9;
-  --aiux-muted-quiet: #8f9c94;
-  --aiux-brand: #4ade80;
-  --aiux-brand-strong: #22c55e;
-  --aiux-brand-soft: #12301f;
-  --aiux-shadow-card: 0 1px 2px rgb(0 0 0 / 24%), 0 14px 34px rgb(0 0 0 / 22%);
+  --aiux-shadow-card: var(--mf-shadow-sm), 0 14px 34px rgb(0 0 0 / 22%);
 }
 
 /* Product shell: quiet canvas, precise surfaces, fewer decorative shadows. */

@@ -10,13 +10,23 @@
  *
  * Route and component styles must not target html or body.
  *
- * --mf-*-text values below are carried over verbatim from the legacy
- * --color-success/danger/info/warning-text tokens they replace (see
- * globals.css's alias block) rather than newly designed — they are already
- * shipped and visually verified. Their hue doesn't perfectly match
- * --mf-income/expense/transfer/warning's own (teal/red/blue/amber vs this
- * system's slightly different families); reconciling that is a follow-up,
- * not part of this pass.
+ * Semantic hue consistency
+ * ------------------------
+ * Each semantic meaning owns exactly one hue family, and `-text` is a
+ * contrast step of that same hue — never a different one.
+ *
+ * This replaces the earlier `-text` values, which were carried over verbatim
+ * from the legacy --color-success/danger/info/warning-text tokens and sat in
+ * different hue families from the `-default` tokens they were paired with
+ * (green text on a teal surface, sky-blue on indigo, yellow on amber). That
+ * mismatch was not only inconsistent, it failed WCAG AA in light mode:
+ * #15803d green on #e1f5f2 teal-subtle measured 4.43:1.
+ *
+ * Measured with the standard WCAG relative-luminance formula. Light `-text`
+ * on its own `-subtle` background: income 6.93:1, expense 6.11:1,
+ * transfer 6.58:1, warning 6.12:1. Dark `-text` on `-subtle`: income 7.92:1,
+ * expense 7.75:1, transfer 7.55:1, warning 8.63:1. All `-default` tokens also
+ * pass AA as text on their own surface, so either token is safe for a figure.
  */
 :root {
   --mf-canvas: #f4f7f5;
@@ -36,16 +46,16 @@
   --mf-on-brand: #ffffff;
   --mf-income: #0f766e;
   --mf-income-subtle: #e1f5f2;
-  --mf-income-text: #15803d;
+  --mf-income-text: #0b5c55;
   --mf-expense: #b83a35;
   --mf-expense-subtle: #fbe9e7;
-  --mf-expense-text: #b91c1c;
+  --mf-expense-text: #a02f28;
   --mf-transfer: #3459c7;
   --mf-transfer-subtle: #e9edff;
-  --mf-transfer-text: #1e40af;
+  --mf-transfer-text: #2c4bb0;
   --mf-warning: #9a5b00;
   --mf-warning-subtle: #fff3d7;
-  --mf-warning-text: #b45309;
+  --mf-warning-text: #854f00;
   --mf-focus: #236bc4;
   --mf-overlay: rgb(5 18 11 / 55%);
   --mf-shadow-sm: 0 1px 2px rgb(16 32 25 / 6%);
@@ -104,16 +114,16 @@ html[data-theme="dark"] {
   --mf-on-brand: #07150e;
   --mf-income: #4fd1c5;
   --mf-income-subtle: #123b37;
-  --mf-income-text: #86efac;
+  --mf-income-text: #7ee0d6;
   --mf-expense: #ff817a;
   --mf-expense-subtle: #451f1d;
-  --mf-expense-text: #fca5a5;
+  --mf-expense-text: #ffa8a2;
   --mf-transfer: #8ea6ff;
   --mf-transfer-subtle: #202b55;
-  --mf-transfer-text: #93c5fd;
+  --mf-transfer-text: #aebeff;
   --mf-warning: #f6bc62;
   --mf-warning-subtle: #402f16;
-  --mf-warning-text: #fcd34d;
+  --mf-warning-text: #f9cd8a;
   --mf-focus: #78b8ff;
   --mf-overlay: rgb(0 0 0 / 72%);
   --mf-shadow-sm: 0 1px 2px rgb(0 0 0 / 22%);

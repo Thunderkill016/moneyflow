@@ -263,8 +263,21 @@ body::before {
   background: radial-gradient(circle at 72% -18%, rgb(20 60 35 / 25%), transparent 34rem);
 }
 
-/* Monospace utility for monetary values */
-.font-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+/*
+ * Money utility. The class name predates the token system; every caller in the
+ * product uses it for a monetary value, so it resolves to the money token
+ * rather than to a monospace stack. Keeping it on --font-mono meant Budgets,
+ * Goals, Commitments, Income templates and Accounts rendered money in a
+ * different typeface from Tổng quan and Giao dịch.
+ *
+ * The one non-money caller, .route-error-code, sets its own monospace below.
+ */
+.font-mono {
+  font-family: var(--mf-font-money);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: var(--mf-money-track-sm);
+}
 
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -1323,23 +1336,44 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   padding: 20px;
   box-shadow: var(--shadow);
 }
-.planning-card--watch { border-color: #f0e0b8; }
+/*
+ * Planning-card tones are mixed from the semantic tokens, not hardcoded hex.
+ *
+ * They previously used fixed light-mode values (#f0e0b8, #f5c9a0, #efcfca,
+ * #bfdbc8, #fbfcfb, #fbfefc) which do not respond to the theme — in dark mode a
+ * pale cream border sat on a near-black card. They also introduced a fourth
+ * colour vocabulary alongside --mf-*, --color-* and --aiux-*.
+ *
+ * Escalation is carried by border weight rather than by inventing extra hues,
+ * so watch → near → over stays legible without colour being the only signal.
+ */
+.planning-card--watch {
+  border-color: color-mix(in srgb, var(--mf-warning) 42%, var(--mf-border));
+}
 .planning-card--near,
-.planning-card--soon { border-color: #f5c9a0; }
+.planning-card--soon {
+  border-color: color-mix(in srgb, var(--mf-warning) 62%, var(--mf-border));
+  border-left-width: 4px;
+}
 .planning-card--over,
-.planning-card--overdue { border-color: #efcfca; border-left-width: 4px; }
-.planning-card--paid { background: #fbfcfb; }
-.planning-card--achieved { border-color: #bfdbc8; background: #fbfefc; }
+.planning-card--overdue {
+  border-color: color-mix(in srgb, var(--mf-expense) 55%, var(--mf-border));
+  border-left-width: 4px;
+}
+.planning-card--paid { background: var(--mf-surface-muted); }
+.planning-card--achieved {
+  border-color: color-mix(in srgb, var(--mf-income) 45%, var(--mf-border));
+}
 /* Domain layout hooks (shell comes from .planning-card) */
 .budget-category-top { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 11px; }
 .budget-category-top h3 { margin: 0; font-size: 13px; }
 .budget-category-top p { margin: 4px 0 0; color: var(--green); font-size: 9px; }
 .planning-card--watch .budget-category-top p,
-.planning-card--watch .budget-category-top > strong { color: var(--color-warning-default, #d97706); }
+.planning-card--watch .budget-category-top > strong { color: var(--mf-warning-text); }
 .planning-card--near .budget-category-top p,
-.planning-card--near .budget-category-top > strong { color: #ea580c; }
+.planning-card--near .budget-category-top > strong { color: var(--mf-warning-text); }
 .planning-card--over .budget-category-top p,
-.planning-card--over .budget-category-top > strong { color: var(--danger); }
+.planning-card--over .budget-category-top > strong { color: var(--mf-expense-text); }
 .budget-category-top > strong { color: var(--green); font-size: 14px; }
 .budget-status-text { font-weight: 650; }
 .budget-status-remaining { font-weight: 500; opacity: 0.9; }
@@ -1523,7 +1557,10 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .route-error-code {
   margin: 0 0 22px !important;
   color: var(--muted);
+  /* An error reference is not money; it keeps a real monospace stack. */
+  font-family: var(--font-mono);
   font-size: 12px !important;
+  letter-spacing: normal;
   line-height: 1.5;
 }
 .route-error-actions {
