@@ -90,16 +90,29 @@
 :global(.goal-actions button),
 :global(.manager-toolbar select),
 :global(.insights-dashboard .attention-chip),
-:global(.insights-dashboard .insights-export-csv) {
+:global(.capture-paste-back),
+:global(p > a:only-child[href="/login"]) {
   min-width: 44px !important;
   min-height: 44px !important;
 }
 
-/* A mobile refresh layer gives the CSV action a fixed 40px box. Clear the
- * fixed height so the product floor can take effect without changing its shape.
+/* Standalone navigation links are controls rather than links embedded in prose.
+ * Inline boxes ignore min-height, so give them an explicit flex target.
  */
-:global(.insights-dashboard .insights-export-csv) {
-  height: auto !important;
+:global(.capture-paste-back),
+:global(p > a:only-child[href="/login"]) {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* A mobile refresh layer fixes the CSV action at 40px with !important. This
+ * selector intentionally outranks that legacy rule and restores the contract.
+ */
+:global(body .insights-dashboard a.secondary-button.insights-export-csv[href]) {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  max-height: none !important;
 }
 
 /* These are action-list links, not prose links. Inline boxes ignore min-height,
