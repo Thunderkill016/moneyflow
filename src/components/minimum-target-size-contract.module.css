@@ -40,8 +40,26 @@
 :global(.commitment-actions button),
 :global(.budget-category-actions button),
 :global(.goal-actions button),
-:global(.manager-toolbar select) {
+:global(.manager-toolbar select),
+:global(.insights-dashboard .attention-chip),
+:global(.insights-dashboard .insights-export-csv) {
   min-width: 44px !important;
+  min-height: 44px !important;
+}
+
+/* A mobile refresh layer gives the CSV action a fixed 40px box. Clear the
+ * fixed height so the product floor can take effect without changing its shape.
+ */
+:global(.insights-dashboard .insights-export-csv) {
+  height: auto !important;
+}
+
+/* These are action-list links, not prose links. Inline boxes ignore min-height,
+ * so make their target geometry explicit while keeping their visual treatment.
+ */
+:global(.privacy-trust-links a) {
+  display: inline-flex;
+  align-items: center;
   min-height: 44px !important;
 }
 
