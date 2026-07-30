@@ -10,7 +10,7 @@ import {
   incomeTemplateTotals,
   type RecurringIncomeTemplate,
 } from "@/lib/planning/income-templates";
-import { currentDateInVietnam } from "@/server/commitments";
+import { todayInVietnam } from "@/lib/vietnam-date";
 
 export type IncomeTemplatesWorkspace = {
   templates: RecurringIncomeTemplate[];
@@ -116,7 +116,7 @@ function demoWorkspace(monthStart: string): IncomeTemplatesWorkspace {
     accounts: demoAccounts,
     categories: demoCategories.filter((item) => item.kind === "income"),
     monthStart,
-    today: currentDateInVietnam(),
+    today: todayInVietnam(),
     expectedTotal: incomeTemplateTotals(rows).expected,
     dataError: null,
   };
@@ -132,7 +132,7 @@ export async function getIncomeTemplatesWorkspace(): Promise<IncomeTemplatesWork
     accounts: [] as AccountOption[],
     categories: [] as CategoryOption[],
     monthStart,
-    today: currentDateInVietnam(),
+    today: todayInVietnam(),
     expectedTotal: 0,
   };
   if (!supabase) {
@@ -179,7 +179,7 @@ export async function getIncomeTemplatesWorkspace(): Promise<IncomeTemplatesWork
       accounts: z.array(accountSchema).parse(accounts.data),
       categories: z.array(categorySchema).parse(categories.data),
       monthStart,
-      today: currentDateInVietnam(),
+      today: todayInVietnam(),
       expectedTotal: incomeTemplateTotals(templates).expected,
       dataError: null,
     };

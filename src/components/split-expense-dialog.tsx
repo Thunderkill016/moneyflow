@@ -15,7 +15,7 @@ import {
   validateSplitLines,
   splitValidationMessage,
 } from "@/lib/splits";
-import { todayInVietnam } from "@/lib/quick-add-prefs";
+import { todayInVietnam } from "@/lib/vietnam-date";
 
 type LineDraft = {
   key: string;

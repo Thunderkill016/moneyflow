@@ -3,14 +3,11 @@ import "server-only";
 import { buildFinancialReport, reportRange, type FinancialReport, type ReportPeriod } from "@/lib/reports";
 import { sampleTransactions, type Transaction } from "@/lib/sample-data";
 import { createClient } from "@/lib/supabase/server";
+import { todayInVietnam } from "@/lib/vietnam-date";
 import { requireViewer } from "@/server/auth";
 import { mapTransactionFeedRow } from "@/server/finance";
 
 const feedColumns = "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
-
-function todayInVietnam() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
 
 export type ReportsWorkspace = {
   report: FinancialReport;

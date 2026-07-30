@@ -11,6 +11,7 @@ import {
 import { formatMoneyInput, parseMoneyInputToMinor } from "@/lib/money";
 import type { CreateTransferInput } from "@/lib/sample-data";
 import { TRANSFER_LIST_HINT } from "@/lib/transfers";
+import { todayInVietnam } from "@/lib/vietnam-date";
 
 export type TransferAccountOption = {
   id: string;
@@ -121,12 +122,7 @@ export function TransferDialog({
 
     const idempotencyKey = idempotencyRef.current ?? crypto.randomUUID();
     idempotencyRef.current = idempotencyKey;
-    const occurredOn = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Ho_Chi_Minh",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
+    const occurredOn = todayInVietnam();
 
     setSubmitting(true);
     let result: { ok: boolean; message?: string };

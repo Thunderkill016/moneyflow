@@ -129,12 +129,6 @@ export function pickCategoryForKind<T extends { id: string }>(
   return categories[0]!.id;
 }
 
-/** Today in Asia/Ho_Chi_Minh as YYYY-MM-DD. */
-export function todayInVietnam(now: Date = new Date()): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Ho_Chi_Minh",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
-}
+// `todayInVietnam` moved to ./vietnam-date.ts. It decides which calendar day a
+// transaction belongs to, which is a financial rule and not a quick-add
+// preference; it also had five other copies elsewhere in the codebase.

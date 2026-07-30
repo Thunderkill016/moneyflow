@@ -6,6 +6,7 @@ import { requireViewer } from "@/server/auth";
 import { createClient } from "@/lib/supabase/server";
 import { demoAccounts, demoCategories, type AccountOption, type CategoryOption } from "@/lib/sample-data";
 import { commitmentTotals, dueDateForMonth, type RecurringCommitment } from "@/lib/planning/commitments";
+import { todayInVietnam } from "@/lib/vietnam-date";
 
 export type CommitmentsWorkspace = {
   commitments: RecurringCommitment[];
@@ -27,10 +28,6 @@ const occurrenceSchema = z.object({ commitment_id: z.string().uuid(), transactio
 const accountSchema = z.object({ id: z.string().uuid(), name: z.string().min(1) });
 const categorySchema = z.object({ id: z.string().uuid(), name: z.string(), kind: z.literal("expense"), icon: z.string().nullable(), color: z.string().nullable() });
 
-export function currentDateInVietnam() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-}
-
 export function mapCommitmentRow(value: unknown, monthStart: string, transactionId: string | null = null): RecurringCommitment {
   const row = feedSchema.parse(value);
   const amount = Number(row.amount_minor);
@@ -49,7 +46,7 @@ function demoWorkspace(monthStart: string): CommitmentsWorkspace {
     { id: "demo-internet", name: "Internet gia đình", amount: 250_000, dueDay: 18, dueDate: dueDateForMonth(monthStart, 18), accountId: account.id, accountName: account.name, categoryId: category("Hóa đơn").id, categoryName: "Hóa đơn", categoryIcon: "receipt", categoryColor: "cyan", isArchived: false, isPaid: false, transactionId: null },
     { id: "demo-electricity", name: "Tiền điện", amount: 650_000, dueDay: 25, dueDate: dueDateForMonth(monthStart, 25), accountId: account.id, accountName: account.name, categoryId: category("Hóa đơn").id, categoryName: "Hóa đơn", categoryIcon: "receipt", categoryColor: "cyan", isArchived: false, isPaid: false, transactionId: null },
   ];
-  return { commitments: rows, accounts: demoAccounts, categories: demoCategories.filter((item) => item.kind === "expense"), monthStart, today: currentDateInVietnam(), reservedTotal: commitmentTotals(rows).reserved, dataError: null };
+  return { commitments: rows, accounts: demoAccounts, categories: demoCategories.filter((item) => item.kind === "expense"), monthStart, today: todayInVietnam(), reservedTotal: commitmentTotals(rows).reserved, dataError: null };
 }
 
 export async function getCommitmentsWorkspace(): Promise<CommitmentsWorkspace> {
@@ -57,7 +54,7 @@ export async function getCommitmentsWorkspace(): Promise<CommitmentsWorkspace> {
   const monthStart = currentMonthStart();
   if (viewer.isDemo) return demoWorkspace(monthStart);
   const supabase = await createClient();
-  const empty = { commitments: [], accounts: [], categories: [], monthStart, today: currentDateInVietnam(), reservedTotal: 0 };
+  const empty = { commitments: [], accounts: [], categories: [], monthStart, today: todayInVietnam(), reservedTotal: 0 };
   if (!supabase) return { ...empty, dataError: "Không thể kết nối dữ liệu khoản định kỳ." };
   const [feed, occurrences, accounts, categories] = await Promise.all([
     supabase.from("recurring_commitment_feed").select("id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived").order("due_day"),
@@ -77,6 +74,6 @@ export async function getCommitmentsWorkspace(): Promise<CommitmentsWorkspace> {
       const id = feedSchema.parse(row).id;
       return mapCommitmentRow(row, monthStart, paid.get(id) ?? null);
     });
-    return { commitments, accounts: z.array(accountSchema).parse(accounts.data), categories: z.array(categorySchema).parse(categories.data), monthStart, today: currentDateInVietnam(), reservedTotal: commitmentTotals(commitments).reserved, dataError: null };
+    return { commitments, accounts: z.array(accountSchema).parse(accounts.data), categories: z.array(categorySchema).parse(categories.data), monthStart, today: todayInVietnam(), reservedTotal: commitmentTotals(commitments).reserved, dataError: null };
   } catch { return { ...empty, dataError: "Dữ liệu khoản định kỳ không đúng định dạng." }; }
 }
