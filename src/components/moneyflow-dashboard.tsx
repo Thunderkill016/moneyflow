@@ -279,7 +279,6 @@ export function MoneyFlowDashboard({
           attentionItems={attentionItems}
           totals={totals}
           isEmptyLedger={isEmptyLedger && !workspace.dataError}
-          actionsDisabled={actionsDisabled}
           onAddTransaction={openGhiChi}
         />
 

@@ -158,3 +158,49 @@
     justify-self: end;
   }
 }
+
+/* --------------------------------------------------------------------------
+   Row rhythm
+   --------------------------------------------------------------------------
+   The relative-date column repeated what the day group heading above it
+   already states ("HÔM NAY, 14/07/2026" followed by a "Hôm nay" cell on every
+   row inside it). Dropping it on wide screens gives the amount — the actual
+   scan target — the room it needs and removes a column of noise.
+
+   The <time> element stays in the DOM for machine-readable dates and for
+   assistive technology; only its own column is reclaimed.
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 761px) {
+  .summary.summary + :global(.transaction-manager.panel .manager-header) {
+    grid-template-columns: minmax(230px, 1fr) 150px 76px;
+  }
+
+  .summary.summary + :global(.transaction-manager.panel .manager-header) span:nth-child(2) {
+    display: none;
+  }
+
+  .summary.summary + :global(.transaction-manager.panel .manager-row) {
+    grid-template-columns: 42px minmax(170px, 1fr) 150px 76px;
+  }
+
+  .summary.summary + :global(.transaction-manager.panel .manager-row) time {
+    display: none;
+  }
+}
+
+/* Label above value, matching the balance statement on Tổng quan. */
+.summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.summary > div > p {
+  order: -1;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 640;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

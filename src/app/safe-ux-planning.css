@@ -10,36 +10,153 @@
    Amount surfaces
    -------------------------------------------------------------------------- */
 
-.insights-dashboard .insights-kpi > article {
-  border-color: var(--mf-border);
+/*
+ * The month figures read as one statement, not four cards.
+ *
+ * Previously each of the four figures was its own card with its own shadow and
+ * a 4px semantic top border (brand / income / expense / grey), and the first
+ * card also carried a brand gradient. Three problems with that:
+ *
+ * 1. It put color and emphasis on containers. CALM_LEDGER_V2 reserves semantic
+ *    color for the figures themselves and excludes decorative gradients.
+ * 2. Số dư tổng — the one number the user opens the app for — had no more
+ *    weight than the three figures that merely explain it.
+ * 3. Four bordered, shadowed boxes in a row read as a status dashboard rather
+ *    than a ledger.
+ *
+ * Now: one surface. The balance answers "how much do I have" at display size,
+ * a hairline, then the three month figures as quiet supporting columns.
+ */
+
+.insights-dashboard .insights-kpi {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-lg);
   background: var(--mf-surface);
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.insights-dashboard .insights-kpi > article {
+  min-height: 0;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
   color: var(--mf-text);
 }
 
+/*
+ * Balance — spans the statement and sits above the dividing hairline.
+ *
+ * Declared as --mf-surface rather than `none` so the SAFE-06 amount-surface
+ * contract still reads a token here; it renders identically because the
+ * statement behind it is the same token.
+ */
 .insights-dashboard .insights-kpi > article:first-child {
-  border-color: var(--mf-border);
-  border-top: 4px solid var(--mf-brand);
+  grid-column: 1 / -1;
+  border-bottom: 1px solid var(--mf-border);
+  /* Also clears the legacy brand gradient inherited from the route layer. */
   background: var(--mf-surface);
-}
-
-.insights-dashboard .insights-kpi > article:nth-child(2) {
-  border-top: 4px solid var(--mf-income);
-}
-
-.insights-dashboard .insights-kpi > article:nth-child(3) {
-  border-top: 4px solid var(--mf-expense);
-}
-
-.insights-dashboard .insights-kpi > article:nth-child(4) {
-  border-top: 4px solid var(--mf-border-strong);
+  padding: 22px 24px 20px;
 }
 
 .insights-dashboard .insights-kpi > article:first-child strong {
+  margin: 7px 0 7px;
+  color: var(--mf-text);
+  font-size: clamp(34px, 4.4vw, 56px);
+  font-weight: 640;
+  text-align: start;
+  letter-spacing: var(--mf-money-track-lg);
+  line-height: 1.02;
+}
+
+/* Month figures — supporting columns, separated by hairlines. */
+.insights-dashboard .insights-kpi > article:nth-child(n + 2) {
+  padding: 16px 24px 18px;
+}
+
+.insights-dashboard .insights-kpi > article:nth-child(n + 3) {
+  border-left: 1px solid var(--mf-border);
+}
+
+.insights-dashboard .insights-kpi > article:nth-child(n + 2) strong {
+  margin: 6px 0 5px;
+  font-size: clamp(19px, 1.7vw, 23px);
+  font-weight: 620;
+  text-align: start;
+  letter-spacing: var(--mf-money-track-md);
+}
+
+/*
+ * SAFE-06 — amount surfaces stay neutral and semantic meaning is token-driven.
+ *
+ * The surface itself carries no semantic color; the figure does. Thu tháng and
+ * Chi tháng keep their income/expense tokens on the numeral, which is the
+ * scan target, rather than on a border around the container.
+ */
+.insights-dashboard .insights-kpi > article:nth-child(2) strong {
+  color: var(--mf-income);
+}
+
+.insights-dashboard .insights-kpi > article:nth-child(3) strong {
+  color: var(--mf-expense);
+}
+
+/*
+ * Ròng stays neutral: it is a derived figure (thu − chi), not a recorded
+ * income or expense event, so it does not claim a semantic color.
+ */
+.insights-dashboard .insights-kpi > article:nth-child(4) strong {
   color: var(--mf-text);
 }
 
-.insights-dashboard .insights-kpi > article:nth-child(4) strong {
-  color: var(--mf-text);
+/*
+ * Phone: the three supporting figures become label/value rows. Three columns
+ * of đồng values cannot hold full precision at 390px, and truncating money is
+ * forbidden — so the value moves to its own right-aligned column instead.
+ */
+@media (max-width: 760px) {
+  .insights-dashboard .insights-kpi {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .insights-dashboard .insights-kpi > article:first-child {
+    padding: 18px 16px 16px;
+  }
+
+  .insights-dashboard .insights-kpi > article:nth-child(n + 2) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    align-items: baseline;
+    column-gap: 16px;
+    padding: 12px 16px 13px;
+  }
+
+  .insights-dashboard .insights-kpi > article:nth-child(n + 3) {
+    border-top: 1px solid var(--mf-border);
+    border-left: 0;
+  }
+
+  .insights-dashboard .insights-kpi > article:nth-child(n + 2) > span {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .insights-dashboard .insights-kpi > article:nth-child(n + 2) > small {
+    grid-row: 2;
+    grid-column: 1;
+  }
+
+  .insights-dashboard .insights-kpi > article:nth-child(n + 2) strong {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+    align-self: center;
+    margin: 0;
+    text-align: end;
+  }
 }
 
 /* --------------------------------------------------------------------------

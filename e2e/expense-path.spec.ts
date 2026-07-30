@@ -11,8 +11,9 @@ import { expect, test } from "@playwright/test";
 const UNIQUE_AMOUNT = "777000";
 const UNIQUE_AMOUNT_DISPLAY = "777.000";
 const UNIQUE_NOTE = "E2E cafe autopilot TASK-200";
-const OPENING_BALANCE_LABEL = "Số dư tổng 1.126.000 ₫";
-const AFTER_EXPENSE_BALANCE_LABEL = "Số dư tổng 349.000 ₫";
+// The dashboard balance is labelled "Bạn đang có" since the statement rebuild.
+const OPENING_BALANCE_LABEL = "Bạn đang có 1.126.000 ₫";
+const AFTER_EXPENSE_BALANCE_LABEL = "Bạn đang có 349.000 ₫";
 const KEEP_OPEN_NOTE = "E2E keep-open first";
 const CLOSE_AFTER_SAVE_NOTE = "E2E close after save";
 
@@ -155,9 +156,9 @@ test.describe("Expense path (thu chi)", () => {
     // Demo Chi tháng KPI adds a baseline, so assert the ledger rows/amount not the raw KPI alone.
     await page.goto("/dashboard");
     await expect(page.locator(".safe-card-hero")).toBeHidden();
-    await expect(page.locator("section.insights-kpi")).toBeVisible({
-      timeout: 20_000,
-    });
+    await expect(
+      page.getByRole("region", { name: "Bạn đang có" }),
+    ).toBeVisible({ timeout: 20_000 });
     await expect(
       page.getByLabel(AFTER_EXPENSE_BALANCE_LABEL, { exact: true }),
     ).toBeVisible({ timeout: 20_000 });

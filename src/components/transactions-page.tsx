@@ -418,7 +418,7 @@ export function TransactionsPage({
             <p>
               {isTimeline
                 ? "Các giao dịch đã được duyệt — nguồn tin cậy cho số dư và insights."
-                : "Lọc giao dịch và xem Thu, Chi, Ròng cập nhật ngay theo kết quả."}
+                : "Lọc giao dịch và xem tiền vào, tiền ra, còn lại cập nhật ngay theo kết quả."}
             </p>
           </div>
           <div className="page-heading-actions">
@@ -460,35 +460,40 @@ export function TransactionsPage({
           aria-label="Tóm tắt theo bộ lọc"
           aria-live="polite"
         >
+          {/*
+            Label before value, matching the balance statement on Tổng quan, and
+            the same plain vocabulary as that screen — "Tiền vào" / "Tiền ra" /
+            "Còn lại" rather than "Tổng thu" / "Tổng chi" / "Ròng".
+          */}
           <div>
-            <span className="font-mono">{filtered.length}</span>
             <p>{isTimeline ? "Đã duyệt" : "Giao dịch"}</p>
+            <span className="font-mono">{filtered.length}</span>
           </div>
           <div>
+            <p>Tiền vào</p>
             <MoneyValue
               amount={filteredTotals.income}
               mode="kind"
               kind="income"
-              label="Tổng thu"
+              label="Tiền vào"
             />
-            <p>Tổng thu</p>
           </div>
           <div>
+            <p>Tiền ra</p>
             <MoneyValue
               amount={filteredTotals.expense}
               mode="kind"
               kind="expense"
-              label="Tổng chi"
+              label="Tiền ra"
             />
-            <p>Tổng chi</p>
           </div>
           <div>
+            <p>Còn lại</p>
             <MoneyValue
               amount={filteredTotals.net}
               mode="signed"
-              label="Ròng"
+              label="Còn lại"
             />
-            <p>Ròng</p>
           </div>
         </section>
 
@@ -629,11 +634,17 @@ export function TransactionsPage({
                         <time dateTime={transaction.occurredAt}>
                           {transaction.relativeDate}
                         </time>
+                        {/*
+                          No `direction` here. The sign glyph, the semantic
+                          colour and the category/account subtitle already state
+                          the kind; a third arrow made a dense row read as
+                          "− ↓ 63.000 đ". CALM_LEDGER_V2 asks for a direction
+                          arrow "where useful", and in this list it is not.
+                        */}
                         <MoneyValue
                           amount={transaction.amount}
                           mode="kind"
                           kind={transaction.kind}
-                          direction
                           emphasis="strong"
                           className="manager-amount"
                         />

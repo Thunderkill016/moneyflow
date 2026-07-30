@@ -104,8 +104,11 @@ test.describe("cross-device responsive audit", () => {
         };
       };
 
+      // The four-card KPI row is now one balance statement. The rule this
+      // measures is unchanged: the primary balance surface carries no
+      // background image (no gradient).
       const firstKpi = document.querySelector<HTMLElement>(
-        ".insights-kpi > article:first-child",
+        '[aria-labelledby="mf-standing-label"]',
       );
       const weeklyPanel = document.querySelector<HTMLElement>(
         ".weekly-summary-panel",
