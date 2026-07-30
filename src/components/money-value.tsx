@@ -11,6 +11,7 @@ export type MoneyValueProps = MoneyDisplayOptions & {
   className?: string;
   emphasis?: "regular" | "strong";
   align?: "start" | "end";
+  suffix?: string;
 };
 
 const toneClasses: Record<MoneyDisplayTone, string> = {
@@ -25,6 +26,7 @@ export function MoneyValue(props: MoneyValueProps) {
     className,
     emphasis = "regular",
     align = "end",
+    suffix = "",
   } = props;
   const tone = moneyDisplayTone(props);
   const Element = emphasis === "strong" ? "strong" : "span";
@@ -41,12 +43,13 @@ export function MoneyValue(props: MoneyValueProps) {
   return (
     <Element
       className={classes}
-      aria-label={moneyDisplayAriaLabel(props)}
+      aria-label={`${moneyDisplayAriaLabel(props)}${suffix}`}
       data-money="true"
       data-money-value="true"
       data-money-tone={tone}
     >
       {moneyDisplayText(props)}
+      {suffix}
     </Element>
   );
 }
