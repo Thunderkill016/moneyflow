@@ -5,7 +5,8 @@
 Global CSS no longer carries rules for markup that does not exist, and the
 detection is repeatable rather than a one-off list.
 
-Status: `specified`. Not implemented.
+Status: `in-progress`. Detector and the `auth-*` cluster are done; the
+`.app-shell` family and the remaining ~150 candidates are not.
 
 ## Repository reconnaissance
 
@@ -124,27 +125,59 @@ Risks:
 
 ## Tasks
 
-1. Add `scripts/check-dead-css.mjs` and the `check:dead-css` script, reporting
-   only.
-2. Remove the 16 `auth-*` classes from `globals.css`; verify `/login`,
+1. [x] Add `scripts/check-dead-css.mjs` and the `check:dead-css` script,
+   reporting only.
+2. [x] Remove the `auth-*` cluster from `globals.css`; verify `/login`,
    `/register`, `/forgot-password`, `/update-password` unchanged by screenshot.
-3. Remove the dead `.app-shell` / `.sidebar` / `.topbar` families; verify the
-   authenticated shell unchanged by screenshot. Closes task 7 of the
-   minimum-target-size packet.
-4. Report the remaining count and stop. Do not delete what has no evidence.
+3. [ ] Remove the dead `.app-shell` / `.sidebar` / `.topbar` families. Closes task 7
+   of the minimum-target-size packet.
+4. [ ] Report the remaining count and stop. Do not delete what has no evidence.
 
 ## Evaluation
 
-Required evidence:
+Task 1–2 evidence:
 
-- [ ] `check:dead-css` runs and reports; state the before and after counts.
-- [ ] Before/after screenshots for every route touched, at 320, 390 and 1366, in
-      both themes, **reviewed** and the comparison stated in the PR.
-- [ ] `check:knowledge`, `check:architecture`, `check:css-ownership`, `lint`,
-      `typecheck`, unit tests, `build`.
-- [ ] `test:e2e` and `test:ui-audit:pr`.
-- [ ] An explicit statement that no `:global(...)` rule in any `*.module.css`
-      referenced a deleted name.
+- [x] `npm run check:dead-css` runs and reports. Classes **943 → 926**;
+      unreferenced **203 → 187**. The two deltas differ by one on purpose:
+      17 class names were removed, but only 16 of them were on the unreferenced
+      list — `.auth-form` was never counted, for the reason below. `.auth-`
+      occurrences in `globals.css`: **58 → 0**.
 
-State which gates ran and which could not. Note plainly that the browser gates
-cannot prove this change is safe — only the screenshot comparison can.
+      An earlier revision of this section asserted the count would not move and
+      explained why. That explanation was written before re-running the script and
+      was simply wrong. Corrected against the actual output.
+- [x] Before/after screenshots at 320, 390 and 1366, in light and dark, across
+      all four auth routes — **20 pairs, every one byte-identical.** Compared with
+      `cmp`, not eyeballed.
+- [x] `check:knowledge`, `check:architecture`, `check:css-ownership` (1152
+      `!important`, unchanged), `lint`, `typecheck`, unit tests 594/594, `build`.
+- [x] Cross-device audit, 5 projects including both dark themes: 191 passed,
+      0 failed.
+- [x] No `:global(...)` rule in any `*.module.css` referenced a deleted name —
+      grepped before deleting; the modules contain no `auth-` selector at all.
+
+Two findings from doing the work:
+
+**The detector under-reports, and that is deliberate.** `.auth-form` is dead —
+no `className` anywhere uses it — but the script called it live, because the token
+`auth-form` appears in import paths and in test files that read
+`src/components/auth-form.tsx` as a string. Stripping import lines fixed the first
+case. The second was left: filtering string literals that look like paths means
+guessing, and a wrong guess reports a **live** class as dead, which is the failure
+that actually costs something. So the printed number is a floor. `.auth-form` was
+removed here on direct evidence rather than on the script's say-so.
+
+**Three rules shared selectors with live code and were edited, not deleted.**
+`.auth-form input` sat in comma lists alongside `.account-form`,
+`.transaction-dialog` and `.manager-toolbar`, and `.auth-submit` alongside
+`.google-button`. One of them, `[data-theme="dark"] .auth-form input:focus`, was
+the *last* selector in a multi-line list and carried the rule body — deleting that
+line whole would have left four live selectors with no declarations and broken the
+dark form styling silently. The body was moved up to the preceding selector.
+Verified afterwards by computed style: `.manager-toolbar input` and `select` still
+receive their border and background in both themes.
+
+Also observed, out of scope: `.google-button` is not in the DOM on `/login` —
+`auth-form.tsx` renders `styles.googleButton` from its CSS Module. The global class
+is dead too, and its rule now stands alone after `.auth-submit` was removed from
+it. Recorded rather than removed, because it belongs to no cluster yet examined.
