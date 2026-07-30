@@ -510,12 +510,12 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 .icon-button:active { transform: scale(.96); }
 .icon-button svg { width: 19px; height: 19px; }
 .notification-dot { position: absolute; top: 8px; right: 9px; width: 6px; height: 6px; border: 1.5px solid white; border-radius: 50%; background: #d95b4f; }
-.primary-button { display: inline-flex; min-height: 42px; cursor: pointer; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 12px; background: var(--green); padding: 0 17px; color: white; font-size: 13px; font-weight: 650; box-shadow: 0 6px 18px rgb(22 99 62 / 15%); transition: background .18s ease, transform .18s ease, box-shadow .18s ease; }
+.primary-button { display: inline-flex; min-height: 44px; cursor: pointer; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 12px; background: var(--green); padding: 0 17px; color: white; font-size: 13px; font-weight: 650; box-shadow: 0 6px 18px rgb(22 99 62 / 15%); transition: background .18s ease, transform .18s ease, box-shadow .18s ease; }
 .primary-button:hover { background: var(--green-deep); box-shadow: 0 8px 22px rgb(22 99 62 / 21%); }
 .primary-button:active { transform: translateY(1px); }
 .primary-button svg { width: 18px; height: 18px; }
 .primary-button:disabled, .mobile-fab:disabled, .filter-empty button:disabled { cursor: not-allowed; opacity: .5; box-shadow: none; }
-.secondary-button { display: inline-flex; min-height: 42px; cursor: pointer; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cad8cf; border-radius: 12px; background: white; padding: 0 15px; color: var(--green); font-size: 12px; font-weight: 680; }
+.secondary-button { display: inline-flex; min-height: 44px; cursor: pointer; align-items: center; justify-content: center; gap: 8px; border: 1px solid #cad8cf; border-radius: 12px; background: white; padding: 0 15px; color: var(--green); font-size: 12px; font-weight: 680; }
 .secondary-button:hover { background: #f1f7f3; border-color: #aac7b5; }
 .secondary-button:disabled { cursor: not-allowed; opacity: .5; }
 .secondary-button svg { width: 17px; }
