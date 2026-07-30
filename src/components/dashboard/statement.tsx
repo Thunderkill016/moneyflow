@@ -50,7 +50,9 @@ export function DashboardStatement({
             amount={totals.balance}
             label="Bạn đang có"
             align="start"
-            className={`${styles.figure} ${totals.balance < 0 ? styles.figureNegative : ""}`}
+            className={`${styles.figure} dashboard-standing-money ${
+              totals.balance < 0 ? styles.figureNegative : ""
+            }`}
           />
           <p className={styles.caption}>Cộng số dư mọi ví đang dùng</p>
         </div>

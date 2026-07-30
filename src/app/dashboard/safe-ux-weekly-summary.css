@@ -37,20 +37,24 @@ main.dashboard.insights-dashboard .insights-kpi > article:first-child > strong {
   margin-bottom: 14px;
 }
 
+/*
+ * The right planning column remains narrow even on desktop. Full-precision VND
+ * therefore uses one label/value row rather than three competing columns.
+ */
 .insights-dashboard .weekly-summary-panel .weekly-summary-kpis {
-  align-items: stretch;
-  margin-top: 0;
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .insights-dashboard .weekly-summary-panel .weekly-summary-kpis > div {
-  min-height: 72px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  min-height: 52px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .insights-dashboard .weekly-summary-panel .weekly-summary-kpis strong {
-  margin-top: 4px;
+  margin-top: 0;
   line-height: 1.2;
 }
 
@@ -64,6 +68,27 @@ main.dashboard.insights-dashboard .insights-kpi > article:first-child > strong {
   }
 
   .insights-dashboard .weekly-summary-panel .weekly-summary-kpis > div {
-    min-height: 68px;
+    min-height: 52px;
+  }
+
+  /*
+   * The full daily rate follows its label on a separate row at phone widths;
+   * it must not compete for the remaining inline space in the budget footer.
+   */
+  .insights-dashboard .goal-dashboard-panel .budget-foot {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .insights-dashboard .goal-dashboard-panel .budget-foot strong {
+    width: 100%;
+  }
+
+  /*
+   * Rich-state balances exceed the phone content box at the 40px legacy floor.
+   * Keep the complete figure and reduce only the phone display typography.
+   */
+  .insights-dashboard .dashboard-standing-money {
+    font-size: clamp(28px, 8.8vw, 36px);
   }
 }

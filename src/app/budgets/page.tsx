@@ -3,6 +3,7 @@ import { BudgetsPage } from "@/components/planning/budgets-page";
 import { requireViewer } from "@/server/auth";
 import { getBudgetsWorkspace } from "@/server/budgets";
 import "../safe-ux-planning.css";
+import "./money-layout.css";
 
 export const metadata: Metadata = {
   title: "Ngân sách — MoneyFlow",

@@ -366,18 +366,17 @@ export function DashboardPlanningColumn({
                   </>
                 ) : null}
               </span>
-              <strong className="font-mono">
-                {featuredGoalAchieved ? (
-                  "Hoàn thành"
-                ) : featuredGoalDaily > 0 ? (
-                  <>
-                    <MoneyValue amount={featuredGoalDaily} />
-                    /ngày
-                  </>
-                ) : (
-                  "Tự do tiến độ"
-                )}
-              </strong>
+              {featuredGoalAchieved ? (
+                <strong className="font-mono">Hoàn thành</strong>
+              ) : featuredGoalDaily > 0 ? (
+                <MoneyValue
+                  amount={featuredGoalDaily}
+                  suffix="/ngày"
+                  emphasis="strong"
+                />
+              ) : (
+                <strong className="font-mono">Tự do tiến độ</strong>
+              )}
             </div>
             <p className="goal-dashboard-more">
               <Link href="/goals">Xem tất cả mục tiêu →</Link>

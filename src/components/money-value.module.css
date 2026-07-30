@@ -4,7 +4,7 @@
   display: inline-block;
   overflow: visible;
   text-overflow: clip;
-  white-space: normal;
+  white-space: nowrap;
   overflow-wrap: normal;
   word-break: normal;
   hyphens: none;

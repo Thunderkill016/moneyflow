@@ -1,0 +1,22 @@
+/*
+ * Route-local amount layout for Budget cards.
+ *
+ * At tablet portrait widths a two-column card grid leaves each of the three
+ * metric cells too narrow for full-precision VND. Keep the card grid, but give
+ * each amount a full row. No clipping, ellipsis or shortened format is used.
+ */
+@media (max-width: 900px) {
+  .budgets-workspace .budget-category-metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .budgets-workspace .budget-category-metrics > div {
+    border-left: 0;
+    border-top: 1px solid var(--mf-border);
+    padding: 14px 16px;
+  }
+
+  .budgets-workspace .budget-category-metrics > div:first-child {
+    border-top: 0;
+  }
+}

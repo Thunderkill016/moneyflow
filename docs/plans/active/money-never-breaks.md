@@ -4,9 +4,11 @@
 
 A monetary value renders as one unbroken unit — figure and currency symbol on the
 same line — at every contract viewport, and the cross-device audit fails when one
-breaks.
+breaks or paints outside its own box.
 
-Status: `specified`. Not implemented.
+Status: `implemented` in PR #163. The review overflow blocker is addressed and
+awaits owner re-review, merge and deployed-route verification; keep this packet
+active until those steps are complete.
 
 ## Repository reconnaissance
 
@@ -66,10 +68,19 @@ Why no gate caught it — two independent gaps in `e2e/audit/responsive-audit.ts
 So the audit is blind to wrapped money on the component that renders almost all of
 it. That gap matters more than these two values.
 
-Related and deliberately separate: the same file's `small-interactive-target`
-check still reads `< 24` at severity `P2` (line ~214), while #159 added a separate
-blocking 44px gate in `e2e/audit/minimum-target-size.responsive.audit.spec.ts`.
-Two thresholds for one contract now exist. Reconciling them is task 4 below.
+The first implementation closed those gaps but exposed a third one during review:
+`nowrap` with `overflow: visible` can paint a complete one-line value outside its
+constrained element box without increasing document `scrollWidth`. The wrap,
+clip and document-overflow checks all stay green while adjacent ledger signs can
+visually merge. The final audit therefore measures both rendered line count and
+the horizontal union of the rendered text fragments.
+
+Related and deliberately separate: the old broad audit had a `< 24` target-size
+advisory while #159 added a dedicated blocking 44px gate. Task 4 removes the
+duplicate. The dedicated spec intentionally owns the contract at 320, 390 and
+1366px. Extending 44px coverage to 360, tablet and 1440 is a separate audit
+coverage decision; this money-presentation PR does not silently invent a wider
+target-size contract.
 
 ## Specification
 
@@ -82,73 +93,96 @@ Two thresholds for one contract now exist. Reconciling them is task 4 below.
 4. The audit fails on money that **wraps**, not only money that is clipped.
 5. No new horizontal overflow at 320px, and no truncation introduced while
    preventing the wrap.
+6. A complete one-line value must remain inside its own border box; painting into
+   a sibling cell is a blocking financial-legibility failure.
 
 ## Implementation plan
 
-Preferred direction, to be confirmed by measurement:
+Implemented direction:
 
-- Give the `MoneyValue` value span `white-space: nowrap` in
-  `money-value.module.css`. This is the owning rule — spec item 2.
-- `nowrap` moves the pressure elsewhere: the value can then overflow its
-  container instead of wrapping. So the container must be allowed to give it
-  room. Check `min-width: 0` on the flex/grid ancestors in the
-  `/transactions` summary tiles, and reduce the value's `font-size` at 320px if
-  and only if measurement shows it still does not fit. **Do not** reach for
-  `overflow: hidden` or `text-overflow: ellipsis` — that converts a wrap into a
-  truncation, which the design contract forbids outright.
-- Close the selector gap by widening the audit to `[data-money-value]`, which the
-  component already emits. Do **not** hardcode the hashed CSS Module class
-  (`money-value-module__smnRYa__value`) — that string changes between builds and
-  the check would silently stop matching. Adding a second `data-money` attribute
-  to the component is acceptable but redundant; prefer using the attribute that
-  exists.
-- Add a wrap condition alongside the clip condition: compare the element's
-  rendered height against its computed `line-height` and report a finding when it
-  exceeds one line. Severity `P1`, since money legibility is a product contract.
+- `MoneyValue` now owns `white-space: nowrap` while retaining
+  `overflow: visible`, `text-overflow: clip`, `overflow-wrap: normal`,
+  `word-break: normal` and `hyphens: none`. No hidden overflow, ellipsis,
+  `!important` or shortened format was introduced.
+- `MoneyValue` emits both `data-money` and `data-money-value` so the product-wide
+  money audit reaches the shared component through a stable semantic attribute.
+- The audit reports `financial-value-wrapped` at `P1`. It counts distinct rendered
+  text-line fragments from `Range.getClientRects()` rather than using the element
+  box height; this catches a real wrap without misclassifying a flex item that is
+  merely stretched taller than its text.
+- The audit also reports `financial-value-overflowed` at `P1` when the horizontal
+  union of rendered text fragments extends beyond the element's border box.
+- Transaction summary values use one full-width row through 360px and a 2×2
+  statement at tablet widths; desktop retains the wider four-column layout.
+- Dashboard standing money uses a measured phone-only type scale. Weekly money
+  uses one label/value row, and the daily goal rate receives a full row on phones.
+- Budget card metrics stack at tablet widths so each full-precision VND value owns
+  the complete card width.
+- The daily goal rate is one `MoneyValue` including `/ngày`, so the entire money
+  expression is unbroken. Legacy budget amounts were migrated from raw
+  `formatMoney`/`.font-mono` markup to `MoneyValue` without changing calculations
+  or shortening the display format.
+- The broad responsive audit no longer contains the obsolete 24px target-size
+  threshold. The dedicated blocking 44px spec is the single owner.
 
-Risks:
+## Risks and decisions
 
-- A hashed CSS Module class name is not stable across builds. An audit that
-  hardcodes `money-value-module__smnRYa__value` will silently stop matching. Use
-  `[data-money-value]`.
-- `nowrap` reverses a deliberate choice. `2a19e0b` chose wrapping *over*
-  truncation. If measurement shows a value cannot fit on one line at 320px even
-  after container and font-size adjustment, stop and report it — the correct
-  answer might be a shorter format at that width, and that is a product decision
-  for the owner, not something to resolve with `overflow: hidden`.
-- `line-height: normal` resolves to a number the audit must handle; fall back to
-  `fontSize × 1.2` when `parseFloat` yields `NaN`.
-- Raising this check to `P1` may reveal wrapped money on routes not yet measured.
-  Run the sweep across all 32 routes before flipping severity, and fix what it
-  finds or record an explicit exemption — do not lower the threshold to make CI
-  pass.
+- A hashed CSS Module class name is not stable across builds. The audit uses
+  semantic attributes and never hardcodes `money-value-module__…__value`.
+- `nowrap` reverses a deliberate choice, but the full values fit after owner-level
+  layout and typography changes. No shorter monetary format was needed or
+  introduced.
+- The first height-based implementation produced a false positive on the daily
+  goal rate because a flex item was stretched. The final wrap gate measures text
+  fragments directly and retains the demonstrated red proof from a real wrap.
+- The first `nowrap` implementation also produced a real painted-overflow defect.
+  That failure was not exempted or hidden; it received its own blocking gate and
+  a second deliberate red proof before the container fixes were applied.
 
 ## Tasks
 
-1. `white-space: nowrap` on the `MoneyValue` value span, plus whatever container
-   `min-width: 0` the measurement shows is needed. No `!important`, no route
-   override, no truncation.
-2. Add `data-money` to `MoneyValue` so the audit's existing selector reaches it.
-3. Add the wrap condition to the audit's money check and give it `P1`.
-4. Reconcile the two target-size thresholds: `responsive-audit.ts` still says
-   `< 24` at `P2` while the new gate enforces 44 as blocking. Decide which owns
-   the contract and remove the duplicate, so a future reader is not told two
-   different numbers.
+1. [x] `white-space: nowrap` on the `MoneyValue` value span. No `!important`, no
+   route override and no truncation.
+2. [x] Add `data-money` to `MoneyValue` so the audit's existing selector reaches it.
+3. [x] Add the wrap condition to the audit's money check and give it `P1`.
+4. [x] Remove the duplicate 24px target-size check; the dedicated 44px blocking
+   spec owns the contract.
 
 ## Evaluation
 
 Required evidence:
 
-- [ ] Zero wrapped money values across all 32 routes at 320, 390 and 1366,
-      measured by rendered height against `line-height` — not by eye.
-- [ ] Zero truncated or clipped money on the same sweep.
-- [ ] No new horizontal overflow at 320px.
-- [ ] The new audit condition fails when a wrap is deliberately reintroduced —
-      demonstrate the gate actually catches it, rather than trusting that it would.
-- [ ] `check:knowledge`, `check:architecture`, `check:css-ownership`, `lint`,
-      `typecheck`, unit tests, build.
-- [ ] `test:e2e` and `test:ui-audit:pr`.
-- [ ] 320px screenshot of `/transactions` reviewed.
+- [x] Zero wrapped money values across the production cross-device route sweep,
+      including 320, 360, 390, tablet, 1366 and 1440. Final CI run #633 passed;
+      the gate counts rendered text-line fragments rather than box height.
+- [x] Zero money values painting outside their own border boxes. The final run's
+      278 audit JSON records contain no `financial-value-overflowed` finding.
+- [x] Zero truncated or clipped money on the same sweep. The same records contain
+      no `financial-value-clipped` finding.
+- [x] No new horizontal overflow at 320px. Final rich-state artifacts report
+      `documentWidth: 320` for both `/transactions` and `/dashboard`, with empty
+      findings arrays.
+- [x] The wrap gate was proven red before the no-wrap fix. CI run #617 failed with
+      `financial-value-wrapped` on `/transactions` at 320px for
+      `+ 12.345.678.900 ₫` (three rendered lines), `− 987.654.321 ₫` (two lines)
+      and `+ 11.358.024.579 ₫` (three lines), while verify and database remained
+      green.
+- [x] The painted-overflow gate was also proven red before container fixes. CI run
+      #626 passed verify, database and expense smoke, then failed only the
+      production audit with `financial-value-overflowed` on the overlapping
+      `/transactions` values at 320/360 and the additional rich Dashboard,
+      Insights and Budget owners exposed by the product-wide gate.
+- [x] `check:knowledge`, `check:architecture`, `check:css-ownership`, `lint`,
+      `typecheck`, unit tests and production build passed in final CI run #633.
+- [x] Fresh database reset/pgTAP, expense-path E2E and the production cross-device
+      UI audit passed in final CI run #633; Playwright evidence was uploaded.
+- [x] The final Playwright report contains 453 tests: 331 expected, 122 skipped,
+      zero unexpected and zero flaky. Its 278 audit JSON attachments contain no
+      wrapped, painted-overflow, clipped or document-overflow finding.
+- [x] The 320px rich-state screenshots for `/transactions` and `/dashboard` were
+      reviewed directly. Full values and expense signs are visually separate,
+      untruncated and contained; the transaction statement uses full-width rows at
+      the narrow endpoint.
 
-State which of these ran and which could not. A green build is not evidence for
-any of the browser items.
+PR #163 remains open and unmerged as required. After owner re-review and merge,
+verify the deployed routes before moving this packet to `docs/plans/completed/`.

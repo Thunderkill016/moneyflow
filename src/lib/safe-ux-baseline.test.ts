@@ -98,7 +98,11 @@ test("SAFE-06B: weekly and today totals stay anchored below the card header", ()
   );
   assert.match(
     css,
-    /\.weekly-summary-panel \.weekly-summary-kpis > div[\s\S]*?justify-content:\s*center/,
+    /\.weekly-summary-panel \.weekly-summary-kpis\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+  );
+  assert.match(
+    css,
+    /\.weekly-summary-panel \.weekly-summary-kpis > div[\s\S]*?display:\s*grid[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/,
   );
   assert.match(css, /@media \(max-width:\s*760px\)/);
 });

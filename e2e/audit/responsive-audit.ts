@@ -179,6 +179,35 @@ export async function auditRoute(
       return false;
     };
 
+    const renderedTextRects = (element: HTMLElement): DOMRect[] => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return Array.from(range.getClientRects()).filter(
+        (rect) => rect.width > 0 && rect.height > 0,
+      );
+    };
+
+    const renderedTextLineCount = (element: HTMLElement): number => {
+      const lineTops: number[] = [];
+      for (const rect of renderedTextRects(element)) {
+        if (!lineTops.some((top) => Math.abs(top - rect.top) < 1)) {
+          lineTops.push(rect.top);
+        }
+      }
+      return lineTops.length;
+    };
+
+    const renderedTextHorizontalBounds = (
+      element: HTMLElement,
+    ): { left: number; right: number } | null => {
+      const rects = renderedTextRects(element);
+      if (rects.length === 0) return null;
+      return {
+        left: Math.min(...rects.map((rect) => rect.left)),
+        right: Math.max(...rects.map((rect) => rect.right)),
+      };
+    };
+
     if (documentWidth > viewport.width + 2) {
       findings.push({
         severity: "P1",
@@ -212,14 +241,7 @@ export async function auditRoute(
         });
       }
 
-      if (rect.width < 24 || rect.height < 24) {
-        findings.push({
-          severity: "P2",
-          code: "small-interactive-target",
-          detail: `${describe(element)} is ${Math.round(rect.width)}×${Math.round(rect.height)}px`,
-        });
-      }
-
+      // Minimum target size is owned by the dedicated blocking 44px audit spec.
       const text = (element.innerText || element.textContent || "").trim();
       const hasAccessibleHint = Boolean(
         element.getAttribute("aria-label") ||
@@ -266,6 +288,30 @@ export async function auditRoute(
           severity: "P2",
           code: "financial-value-clipped",
           detail: describe(element),
+        });
+      }
+
+      const lineCount = renderedTextLineCount(element);
+      if (lineCount > 1) {
+        findings.push({
+          severity: "P1",
+          code: "financial-value-wrapped",
+          detail: `${describe(element)} renders across ${lineCount} text lines`,
+        });
+      }
+
+      const elementBounds = element.getBoundingClientRect();
+      const textBounds = renderedTextHorizontalBounds(element);
+      const overflowTolerance = 1;
+      if (
+        textBounds &&
+        (textBounds.left < elementBounds.left - overflowTolerance ||
+          textBounds.right > elementBounds.right + overflowTolerance)
+      ) {
+        findings.push({
+          severity: "P1",
+          code: "financial-value-overflowed",
+          detail: `${describe(element)} paints at x=${textBounds.left.toFixed(2)}..${textBounds.right.toFixed(2)} outside its box x=${elementBounds.left.toFixed(2)}..${elementBounds.right.toFixed(2)}`,
         });
       }
     }
