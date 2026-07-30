@@ -90,9 +90,18 @@ test("CSS: FAB sits above nav and content end clears FAB", () => {
 test("CSS: dialogs full-width bottom sheets on mobile", () => {
   const block = mobileBlock(css());
   // Selector list (not the earlier comment that mentions the class name).
-  const dialogRule = /\.transaction-dialog\s*,\s*\n?\s*\.account-dialog\s*\{[\s\S]{0,400}?\}/;
+  //
+  // The `dialog` element prefix is required, not optional. `dialog:modal` carries
+  // (0,1,1) specificity and would otherwise beat a bare `.account-dialog` at
+  // (0,1,0) and flatten this sheet back into a centred card. Matching it here
+  // keeps the two rules from drifting apart.
+  const dialogRule =
+    /dialog\.transaction-dialog\s*,\s*\n?\s*dialog\.account-dialog\s*\{[\s\S]{0,400}?\}/;
   const match = block.match(dialogRule);
-  assert.ok(match, "expected .transaction-dialog, .account-dialog mobile rule");
+  assert.ok(
+    match,
+    "expected dialog.transaction-dialog, dialog.account-dialog mobile rule",
+  );
   const dialogSlice = match[0];
   // Full bleed sheet (not centered card with side margins).
   assert.match(dialogSlice, /width:\s*100%/);
