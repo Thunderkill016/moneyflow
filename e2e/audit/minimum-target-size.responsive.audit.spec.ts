@@ -3,6 +3,11 @@ import { seedUiAuditState } from "./responsive-audit";
 
 const MINIMUM_TARGET_SIZE = 44;
 const TARGET_VIEWPORTS = new Set([320, 390, 1_366]);
+const STORAGE_KEYS = {
+  transactions: "moneyflow-demo-transactions-v1",
+  inbox: "moneyflow-inbox-candidates-v1",
+  onboarding: "moneyflow-onboarding-done",
+} as const;
 
 const ROUTES = [
   { label: "landing", path: "/landing" },
@@ -54,9 +59,27 @@ test.describe("minimum interactive target size", () => {
       "The product contract is gated at 320px, 390px and 1366px.",
     );
 
+    // Establish the same-origin storage context, then let demo stores fall back
+    // to their populated sample data so row-level actions are actually measured.
+    await page.goto("/landing", { waitUntil: "domcontentloaded" });
+    await page.evaluate((keys) => {
+      window.localStorage.removeItem(keys.transactions);
+      window.localStorage.removeItem(keys.inbox);
+      window.localStorage.setItem(keys.onboarding, "1");
+    }, STORAGE_KEYS);
+
     const findings: TargetFinding[] = [];
 
     for (const route of ROUTES) {
+      if (route.path === "/onboarding") {
+        await page.evaluate((key) => window.localStorage.removeItem(key), STORAGE_KEYS.onboarding);
+      } else {
+        await page.evaluate(
+          (key) => window.localStorage.setItem(key, "1"),
+          STORAGE_KEYS.onboarding,
+        );
+      }
+
       const response = await page.goto(route.path, { waitUntil: "domcontentloaded" });
       expect(
         response?.status() ?? 200,
