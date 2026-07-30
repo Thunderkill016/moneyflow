@@ -1,0 +1,19 @@
+# Every change requires the owner's review.
+#
+# This exists because autonomous agents (Codex cloud, Copilot coding agent) can
+# push branches and open pull requests here on their own. CODEOWNERS is what
+# makes owner review a requirement rather than a convention — but only once
+# "Require review from Code Owners" is enabled in branch protection for `main`.
+# Without that setting this file is advisory.
+*                           @Thunderkill016
+
+# Contracts an agent must not quietly change while doing a feature or fix.
+# Listed separately so a diff touching them is obvious in the review UI.
+/.github/                   @Thunderkill016
+/AGENTS.md                  @Thunderkill016
+/CLAUDE.md                  @Thunderkill016
+/ARCHITECTURE.md            @Thunderkill016
+/docs/product/PRINCIPLES.md @Thunderkill016
+/docs/MVP_DEFINITION.md     @Thunderkill016
+/scripts/                   @Thunderkill016
+/supabase/migrations/       @Thunderkill016
