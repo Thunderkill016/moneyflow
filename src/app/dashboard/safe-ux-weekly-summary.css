@@ -89,6 +89,6 @@ main.dashboard.insights-dashboard .insights-kpi > article:first-child > strong {
    * Keep the complete figure and reduce only the phone display typography.
    */
   .insights-dashboard .dashboard-standing-money {
-    font-size: clamp(28px, 9vw, 36px);
+    font-size: clamp(28px, 8.8vw, 36px);
   }
 }
