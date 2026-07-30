@@ -7,6 +7,7 @@ import { deleteBudgetAction, saveBudgetAction } from "@/app/actions/budgets";
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import { MoneyValue } from "@/components/money-value";
 import { PlanningCard } from "@/components/planning/planning-card";
 import { type ViewerSummary } from "@/components/user-chip";
 import {
@@ -18,7 +19,6 @@ import {
   type BudgetSummary,
   type SaveBudgetInput,
 } from "@/lib/planning/budgets";
-import { formatMoney } from "@/lib/money";
 import { budgetToneToCard, PAGE_EMPTY_BUDGET } from "@/lib/planning-pages";
 import { categoryMeta, type CategoryOption } from "@/lib/sample-data";
 
@@ -179,19 +179,19 @@ export function BudgetsPage({
         <section className="budget-overview" aria-label="Tổng quan ngân sách">
           <div>
             <span>Tổng hạn mức</span>
-            <strong className="font-mono">{formatMoney(totals.limit)}</strong>
+            <MoneyValue amount={totals.limit} emphasis="strong" />
           </div>
           <div>
             <span>Đã chi</span>
-            <strong className="font-mono">{formatMoney(totals.spent)}</strong>
+            <MoneyValue amount={totals.spent} emphasis="strong" />
           </div>
           <div>
             <span>{totals.spent > totals.limit ? "Đã vượt" : "Còn lại"}</span>
-            <strong
-              className={`font-mono ${totals.spent > totals.limit ? "negative" : "positive"}`}
-            >
-              {formatMoney(Math.abs(totals.limit - totals.spent))}
-            </strong>
+            <MoneyValue
+              amount={Math.abs(totals.limit - totals.spent)}
+              emphasis="strong"
+              className={totals.spent > totals.limit ? "negative" : "positive"}
+            />
           </div>
         </section>
 
@@ -241,17 +241,19 @@ export function BudgetsPage({
                     <div className="budget-category-metrics">
                       <div>
                         <span>Hạn mức</span>
-                        <strong className="font-mono">{formatMoney(budget.limit)}</strong>
+                        <MoneyValue amount={budget.limit} emphasis="strong" />
                       </div>
                       <div>
                         <span>Đã chi</span>
-                        <strong className="font-mono">{formatMoney(budget.spent)}</strong>
+                        <MoneyValue amount={budget.spent} emphasis="strong" />
                       </div>
                       <div>
                         <span>{isOver ? "Vượt" : "Còn lại"}</span>
-                        <strong className={`font-mono ${isOver ? "negative" : "positive"}`}>
-                          {formatMoney(Math.abs(remaining))}
-                        </strong>
+                        <MoneyValue
+                          amount={Math.abs(remaining)}
+                          emphasis="strong"
+                          className={isOver ? "negative" : "positive"}
+                        />
                       </div>
                     </div>
 
