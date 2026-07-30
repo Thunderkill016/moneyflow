@@ -69,8 +69,13 @@ the dark-mode defect but kept a neutral-surface violation that predated it.
 
 ## Implementation plan
 
-- `.story`: `background: var(--mf-brand-canvas)` → `var(--mf-canvas)`,
+- `.story`: `background: var(--mf-brand-canvas)` → `var(--mf-surface-muted)`,
   `color` → `var(--mf-text)`, plus a `--mf-border` right edge for structure.
+  `--mf-surface-muted`'s documented role is "secondary panel", which is what this
+  column is next to the form; plain `--mf-canvas` left it reading as empty space.
+  `--mf-brand-subtle` was rejected for this: it is documented for
+  "Badge/highlight background", so stretching it across half a screen would
+  repeat the original mistake of using an accent token as a large surface.
 - Recolour the panel's children off the inverse-on-brand mixes:
   `.brandMark` → `--mf-brand` fill, `.storyIcon` → `--mf-brand-subtle` /
   `--mf-brand-text`, `.storyKicker` → `--mf-brand-text`, body copy and
@@ -128,9 +133,13 @@ Gates: `check:knowledge`, `check:architecture`, `check:css-ownership`, `lint`,
 projects. Screenshots reviewed at desktop 1366, mobile 390, mobile 320 and mobile
 dark.
 
-Local harness note: the first e2e run immediately after starting a shared server
-failed two mobile specs on a demo-store timing race; both passed in isolation and
-the whole suite passed 8/8 on re-run against the same build. CI starts a fresh
+Local harness note: `global-pfm-ux` "withdraws untrusted spending advice" fails
+in this sandbox on `mobile-chromium`, at the demo-store `localStorage` poll after
+saving from `/capture/quick`. This was checked against the baseline rather than
+assumed: `git checkout origin/main -- src/`, rebuild, same single test — it
+**fails on `origin/main` too**, with none of this packet's changes present. So it
+is pre-existing in this environment, not a regression here. The `expense-path`
+mobile spec shows the same intermittency and passes on re-run. CI starts a fresh
 server per run and is the authority.
 
 Not evidenced here: `check:deployment-env` (fails on unset local env vars by

@@ -46,11 +46,17 @@
    * half-green split screen.
    *
    * A decorative gradient is not the alternative; CALM_LEDGER_V2 excludes those.
-   * Flat canvas, one border for structure, green reserved for the mark, the
+   * Flat surface, one border for structure, green reserved for the mark, the
    * kicker and the check icons.
+   *
+   * The surface is --mf-surface-muted, whose documented role is "secondary
+   * panel" — which is exactly what this column is next to the form. Plain canvas
+   * left it reading as empty space, and --mf-brand-subtle is documented for
+   * badges and highlights, so stretching that across half a screen would repeat
+   * the original mistake of using an accent token as a large surface.
    */
   border-right: 1px solid var(--mf-border);
-  background: var(--mf-canvas);
+  background: var(--mf-surface-muted);
   color: var(--mf-text);
   padding: clamp(28px, 4vw, 54px);
 }
