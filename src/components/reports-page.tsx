@@ -112,14 +112,14 @@ export function ReportsPage({
           aria-label="Tổng quan kỳ báo cáo"
         >
           <article>
-            <span>Thu nhập</span>
+            <span>Tiền vào</span>
             <strong className="positive font-mono">
               +{formatMoney(report.totals.income)}
             </strong>
             <small>{report.totals.transactions} giao dịch trong kỳ</small>
           </article>
           <article>
-            <span>Chi tiêu</span>
+            <span>Tiền ra</span>
             <strong className="negative font-mono">
               −{formatMoney(report.totals.expense)}
             </strong>
@@ -134,14 +134,14 @@ export function ReportsPage({
             </small>
           </article>
           <article>
-            <span>Dòng tiền ròng</span>
+            <span>Còn lại</span>
             <strong
               className={`font-mono ${report.totals.net >= 0 ? "positive" : "negative"}`}
             >
               {report.totals.net >= 0 ? "+" : "−"}
               {formatMoney(Math.abs(report.totals.net))}
             </strong>
-            <small>Thu nhập trừ chi tiêu</small>
+            <small>Tiền vào trừ tiền ra</small>
           </article>
           <article>
             <span>Kỳ trước</span>
