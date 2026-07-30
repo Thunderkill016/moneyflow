@@ -2,7 +2,7 @@
 
 **Status:** implementing  
 **Owner:** MoneyFlow  
-**Issue/PR:** #154 / pending  
+**Issue/PR:** #154 / #155  
 **Last updated:** 2026-07-30
 
 ## Outcome
@@ -27,6 +27,14 @@ The project already separates ledger facts from planning inputs. Budgets, commit
 - Remove `DAILY_ALLOWANCE`, `calculateDailySpendingGuide` and advice-specific types/options.
 - Remove dashboard computations that only supplied advice inputs.
 - Preserve budget progress, category ranking, balance reconciliation and transfer neutrality.
+
+## Tasks
+
+- [x] Confirm the dashboard consumes only four factual totals.
+- [x] Remove advice-specific finance APIs and outputs.
+- [x] Remove dead planning-to-advice orchestration from the dashboard.
+- [x] Add exact summary-shape and retired-token regression tests.
+- [ ] Complete final-head CI and record delivery evidence.
 
 ## Implementation plan
 
