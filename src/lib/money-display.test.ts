@@ -68,7 +68,7 @@ test("accessible labels state financial direction without relying on arrows", ()
   );
 });
 
-test("MoneyValue CSS protects values from clipping and mixed legacy surfaces", () => {
+test("MoneyValue CSS keeps values unbroken without clipping or legacy surfaces", () => {
   const css = readFileSync(
     new URL("../components/money-value.module.css", import.meta.url),
     "utf8",
@@ -80,9 +80,11 @@ test("MoneyValue CSS protects values from clipping and mixed legacy surfaces", (
 
   assert.match(css, /font-variant-numeric:\s*tabular-nums/i);
   assert.match(css, /max-inline-size:\s*100%/i);
-  assert.match(css, /white-space:\s*normal/i);
+  assert.match(css, /white-space:\s*nowrap/i);
+  assert.doesNotMatch(css, /white-space:\s*normal/i);
   assert.match(css, /\.neutral\s*\{[^}]*color:\s*inherit/i);
   assert.doesNotMatch(css, /text-overflow:\s*ellipsis/i);
   assert.doesNotMatch(css, /(?:^|\n)\s*overflow:\s*(?:hidden|clip)/i);
+  assert.match(component, /data-money="true"/);
   assert.match(component, /data-money-value="true"/);
 });
