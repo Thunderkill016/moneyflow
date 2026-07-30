@@ -13,7 +13,7 @@ GitHub issues and pull requests own dynamic work status. Repository documents ow
 
 ## Confirmed finding
 
-`docs/plans/active/mf-safe-ux.md` is stale. It says authenticated owner acceptance is pending, while master issue #134 is closed as completed after PR #146, CI #559, production deployment and real-phone owner acceptance.
+`docs/plans/active/mf-safe-ux.md` was stale. It said authenticated owner acceptance was pending, while master issue #134 had already closed as completed after PR #146, CI #559, production deployment and real-phone owner acceptance.
 
 ## Scope
 
@@ -43,11 +43,11 @@ GitHub issues and pull requests own dynamic work status. Repository documents ow
 
 - [x] Compare current open issues, open PRs, active packets and completed delivery history.
 - [x] Confirm #134 owner acceptance and completed state.
-- [ ] Create the completed MF SAFE-UX packet with final delivery evidence.
-- [ ] Remove the stale active MF SAFE-UX packet.
-- [ ] Clarify the lifecycle rule in `docs/plans/active/README.md`.
-- [ ] Open a focused draft PR linked to #148.
-- [ ] Run or obtain CI evidence for the documentation contracts.
+- [x] Create the completed MF SAFE-UX packet with final delivery evidence.
+- [x] Remove the stale active MF SAFE-UX packet.
+- [x] Clarify the lifecycle rule in `docs/plans/active/README.md`.
+- [x] Open focused PR #149 linked to #148.
+- [ ] Obtain passing CI evidence for the documentation contracts.
 - [ ] Merge only after owner review, then close #148.
 
 ## Acceptance criteria
@@ -61,6 +61,7 @@ GitHub issues and pull requests own dynamic work status. Repository documents ow
 ## References
 
 - Master issue: #148
+- Delivery PR: #149
 - Completed initiative: #134
 - Final remediation: PR #146
 - Next implementation issue: #145
