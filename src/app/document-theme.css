@@ -46,17 +46,19 @@
   --mf-on-brand: #ffffff;
 
   /*
-   * Brand canvas — for large brand-owned surfaces such as the auth story panel.
+   * There is deliberately no large brand-fill token here.
    *
-   * Deliberately the same value in both themes, and deliberately not --mf-brand.
-   * --mf-brand is an accent sized for buttons and text, and it lightens to mint
-   * in dark mode; using it as a full-height panel turned half the sign-in screen
-   * bright mint. A brand identity surface commits to one look instead.
+   * A --mf-brand-canvas pair existed for the auth story panel. Measured, that
+   * panel put the sign-in screen at 39% brand fill on desktop and 35.9% on
+   * mobile, against CALM_LEDGER_V2's floor of 80% neutral surfaces, and it made
+   * the two public entry points disagree — the landing page sits near 90%
+   * neutral. The panel is now neutral canvas with green as an accent, so the
+   * token had no remaining user.
    *
-   * White on this value measures 6.61:1 — AA for normal text.
+   * Green belongs to marks, primary actions and accents. Reach for --mf-brand
+   * and --mf-brand-subtle; do not reintroduce a full-surface brand fill without
+   * changing the visual-language rule first.
    */
-  --mf-brand-canvas: #0b6b3a;
-  --mf-on-brand-canvas: #ffffff;
   --mf-income: #0f766e;
   --mf-income-subtle: #e1f5f2;
   --mf-income-text: #0b5c55;

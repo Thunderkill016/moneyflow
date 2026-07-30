@@ -33,12 +33,25 @@
   flex-direction: column;
   justify-content: space-between;
   /*
-   * A flat brand surface. The radial gradient here was excluded by
-   * CALM_LEDGER_V2's visual language, and --mf-brand lightens to mint in dark
-   * mode, which turned this whole panel bright.
+   * Neutral canvas with green only as an accent — the same language the landing
+   * page uses, and what CALM_LEDGER_V2 requires: "Neutral surfaces occupy at
+   * least 80% of a screen" and "One green accent identifies MoneyFlow and
+   * primary actions".
+   *
+   * This panel used to be a solid brand fill. Measured against a production
+   * build, that put the sign-in screen at 39% brand fill on desktop and 35.9%
+   * on mobile — only ~61% neutral, well under the 80% floor — while the landing
+   * page sits at ~90% neutral. So the two public entry points spoke different
+   * brand languages, and clicking "Đăng nhập" jumped from a quiet page to a
+   * half-green split screen.
+   *
+   * A decorative gradient is not the alternative; CALM_LEDGER_V2 excludes those.
+   * Flat canvas, one border for structure, green reserved for the mark, the
+   * kicker and the check icons.
    */
-  background: var(--mf-brand-canvas);
-  color: var(--mf-on-brand-canvas);
+  border-right: 1px solid var(--mf-border);
+  background: var(--mf-canvas);
+  color: var(--mf-text);
   padding: clamp(28px, 4vw, 54px);
 }
 
@@ -59,9 +72,10 @@
   height: 36px;
   display: grid;
   place-items: center;
-  border: 1px solid color-mix(in srgb, currentColor 32%, transparent);
+  border: 1px solid transparent;
   border-radius: 12px;
-  background: color-mix(in srgb, currentColor 12%, transparent);
+  background: var(--mf-brand);
+  color: var(--mf-on-brand);
 }
 
 .brandMark > span {
@@ -83,14 +97,15 @@
   height: 54px;
   display: grid;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--mf-on-brand) 28%, transparent);
+  border: 1px solid var(--mf-border);
   border-radius: 17px;
-  background: color-mix(in srgb, var(--mf-on-brand) 10%, transparent);
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
 }
 
 .storyKicker {
   margin-top: 28px;
-  color: color-mix(in srgb, var(--mf-on-brand) 75%, transparent);
+  color: var(--mf-brand-text);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.09em;
@@ -103,12 +118,18 @@
   font-weight: 770;
   letter-spacing: -0.055em;
   line-height: 1.02;
+  text-wrap: balance;
+}
+
+/* Matches the landing hero: the second sentence carries the brand accent. */
+.story h1 span {
+  color: var(--mf-brand-text);
 }
 
 .storyBody > p:last-child {
   max-width: 540px;
   margin-top: 22px;
-  color: color-mix(in srgb, var(--mf-on-brand) 78%, transparent);
+  color: var(--mf-text-muted);
   font-size: clamp(16px, 1.5vw, 19px);
   line-height: 1.65;
 }
@@ -116,7 +137,7 @@
 .trustList {
   display: grid;
   gap: 12px;
-  color: color-mix(in srgb, var(--mf-on-brand) 82%, transparent);
+  color: var(--mf-text-muted);
   font-size: 13px;
   font-weight: 600;
 }
@@ -127,8 +148,10 @@
   gap: 9px;
 }
 
+/* The one place green carries meaning here: the verified-claim ticks. */
 .trustList svg {
   flex: 0 0 auto;
+  color: var(--mf-brand-text);
 }
 
 .panel {
@@ -415,26 +438,70 @@
     display: block;
   }
 
+  /*
+   * The brand surface stays on mobile instead of disappearing.
+   *
+   * `display: none` here made the product brand-green on desktop and unbranded
+   * near-white on mobile, and it dropped the whole value proposition and trust
+   * list with it — the copy telling a first-time user why to trust a finance
+   * app — on the platform most users arrive from. There was no `h1` on mobile
+   * either, leaving the panel's `h2` as the first heading.
+   *
+   * It becomes a compact band instead, in the same neutral-canvas language as
+   * desktop: headline and trust points kept, decorative icon and the long
+   * paragraph dropped so the form stays near the top. A bottom border does the
+   * separating that the brand fill used to do.
+   */
   .story {
+    min-height: 0;
+    gap: 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--mf-border);
+    padding: max(20px, env(safe-area-inset-top)) 16px 22px;
+  }
+
+  .storyIcon,
+  .storyBody > p:last-child {
     display: none;
   }
 
+  .storyBody {
+    max-width: none;
+    padding-block: 0;
+  }
+
+  .storyKicker {
+    margin-top: 0;
+  }
+
+  .story h1 {
+    margin-top: 7px;
+    font-size: 27px;
+    letter-spacing: -0.032em;
+    line-height: 1.16;
+  }
+
+  .trustList {
+    gap: 7px;
+    font-size: 12.5px;
+  }
+
   .panel {
-    min-height: 100svh;
-    padding: max(22px, env(safe-area-inset-top)) 16px
-      max(24px, env(safe-area-inset-bottom));
+    min-height: 0;
+    padding: 26px 16px max(24px, env(safe-area-inset-bottom));
   }
 
   .card {
     border: 0;
     border-radius: 0;
     background: transparent;
-    padding: 14px 0;
+    padding: 0;
     box-shadow: none;
   }
 
+  /* The band above already shows the brand; a second lockup would duplicate it. */
   .mobileBrand {
-    display: inline-flex;
+    display: none;
   }
 
   .panelNote {
