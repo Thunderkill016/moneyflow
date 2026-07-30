@@ -1,55 +1,101 @@
 # MF ARCH-01 — Evidence-Based Modular Monolith Review
 
-**Status:** discovery  
+**Status:** evaluating  
 **Owner:** MoneyFlow  
 **Issue/PR:** #150  
 **Last updated:** 2026-07-30
 
 ## Outcome
 
-Produce a code-backed map of MoneyFlow's current modular monolith, identify no more than five material ownership/dependency findings, and record which existing boundaries should remain unchanged. This review does not authorize a folder rewrite or runtime refactor.
+Retain MoneyFlow as a single Next.js/Supabase modular monolith. Clarify the real read/write flows and identify four bounded follow-ups without performing a runtime refactor in this review.
 
 ## Repository reconnaissance
 
 ### Current behavior
 
-- App Router pages load authenticated/demo workspaces on the server and pass serializable view data into client surfaces.
-- Authenticated mutations flow through client hooks → Server Actions → viewer validation → Supabase RPC/view → PostgreSQL/RLS.
-- Demo mutations stay in browser-local stores.
-- `scripts/check-architecture.mjs` currently prevents `src/lib` from importing app/components/server code and prevents components from importing Supabase/server modules.
+#### Transaction read flow
+
+```text
+src/app/{dashboard,transactions}/page.tsx
+  → requireViewer()
+  → getDashboardFinanceWorkspace() or getFinanceWorkspace()
+  → src/server/finance.ts
+  → Supabase accounts/categories/transaction_feed/account_balances
+     OR explicit demo fixtures
+  → Zod row parsing + Transaction view mapping
+  → MoneyFlowDashboard or TransactionsPage
+```
+
+#### Authenticated transaction write flow
+
+```text
+TransactionsPage / MoneyFlowDashboard
+  → useTransactions()
+  → src/app/actions/transactions.ts
+  → Zod input validation
+  → requireViewer()
+  → Supabase RPC
+  → transaction_feed readback
+  → mapTransactionFeedRow()
+  → client reconciliation + revalidatePath()
+```
+
+#### Demo transaction write flow
+
+```text
+TransactionsPage / MoneyFlowDashboard
+  → useTransactions()
+  → local validation / transaction construction
+  → src/lib/transaction-store.ts
+  → localStorage
+```
+
+#### Account and account-transfer flow
+
+```text
+src/app/accounts/page.tsx
+  → getAccountsWorkspace()
+  → AccountsPage
+      ├─ save/archive: local state OR account Server Actions
+      └─ transfer: a second demo/authenticated transfer implementation
+         independent from useTransactions.addTransfer()
+```
 
 ### Relevant repository areas
 
-| Area | Why it matters | Reuse/change/avoid |
+| Area | Current responsibility | Review result |
 |---|---|---|
-| `src/app/**/page.tsx` | route composition and server reads | keep thin |
-| `src/server/*.ts` | authenticated/demo read workspaces | inspect ownership |
-| `src/app/actions/*.ts` | validated authenticated mutations | keep pattern; inspect duplication |
-| `src/hooks/use-transactions.ts` | client orchestration and dual runtime adapters | hotspot to assess |
-| `src/components/moneyflow-dashboard.tsx` | dashboard orchestration and derived state | hotspot to assess |
-| `src/components/transactions-page.tsx` | ledger state, filtering, mutations and rendering | hotspot to assess |
-| `src/lib/**` | deterministic domain helpers and browser stores | preserve server/UI independence |
-| `scripts/check-architecture.mjs` | executable dependency rules | extend only for proven risk |
+| `src/app/**/page.tsx` | route authorization, workspace loading and composition | keep |
+| `src/server/*.ts` | viewer-aware read models and persistence parsing | keep; clarify fixture/contract ownership |
+| `src/app/actions/*.ts` | validated authenticated mutations and RPC calls | keep |
+| `src/hooks/use-transactions.ts` | shared transaction state and demo/auth mutation branching | tighten around transfer ownership |
+| `src/components/moneyflow-dashboard.tsx` | dashboard client orchestration and composition | keep |
+| `src/components/transactions-page.tsx` | route-local filters, undo, dialogs and ledger rendering | split-later only with a trigger |
+| `src/lib/sample-data.ts` | transaction contracts, category presentation and demo fixtures | tighten |
+| `src/lib/finance.ts` | ledger calculations plus withdrawn spending-advice calculations | fix-next |
+| `scripts/check-architecture.mjs` | two proven import boundaries | keep; no speculative rules |
 
 ### Existing tests and constraints
 
 - CI runs knowledge, deployment, CSS ownership, architecture, lint, typecheck, unit/static RLS, build, fresh database/pgTAP and browser audit.
-- VND remains integer money; transfers never become income/expense.
-- Authenticated user data remains protected by Auth, RLS, RPC ownership checks and tenant-isolation tests.
-- Demo and authenticated runtime modes must remain explicit.
+- The architecture contract prevents `src/lib` from importing app/components/server code and prevents components from importing Supabase/server modules.
+- Database tests already establish balanced transfers, idempotency, split correctness, soft-delete recovery and tenant isolation.
+- Product principles prohibit inferring a spending plan from assets or unknown planning data.
 
 ### Similar implementation and recent history
 
-- PR #62 bounded the dashboard ledger query rather than introducing a new service.
-- PRs #140/#141/#146 strengthened existing Supabase, shell and runtime boundaries without a platform rewrite.
-- MF CONTROL-01 established GitHub issues/PRs as dynamic status authority; this packet is only the review handoff.
+- PR #62 bounded the dashboard query instead of introducing a new service layer.
+- PR #125 fixed balance correctness by extracting one pure reconciliation function, not splitting the dashboard into architecture layers.
+- PR #141 fixed a real demo/auth source-of-truth defect by giving authenticated Inbox count one server authority.
+- PR #143 fixed a route defect at its actual CSS owner instead of splitting the 777-line transaction component mechanically.
+- PRs #140/#146 strengthened database and shell contracts within the monolith.
 
-### Open questions
+### Open questions resolved
 
-- [ ] Is dual demo/authenticated mutation logic in `use-transactions.ts` still coherent or already causing drift?
-- [ ] Should persistence row mapping, demo fixtures and UI-facing labels remain combined in `src/server/finance.ts`?
-- [ ] Which large client components have a real change/verification cost rather than merely a high line count?
-- [ ] Is any missing architecture rule supported by an observed bad import or recurring defect?
+- [x] Dual transaction runtime logic remains coherent inside `useTransactions`, but transfer ownership is duplicated by `AccountsPage`.
+- [x] Persistence mapping may return UI-facing view data, but `sample-data.ts` should not remain the authority for production contracts, demo fixtures and category presentation simultaneously.
+- [x] Large dashboard/transaction components are not automatically defects; extraction requires independent change or reuse evidence.
+- [x] No new executable import rule is justified until a replacement demo/contract boundary exists.
 
 ## Research
 
@@ -63,48 +109,55 @@ Produce a code-backed map of MoneyFlow's current modular monolith, identify no m
 
 | Source | Date accessed | What it establishes | Limits/applicability |
 |---|---|---|---|
-| Actual Budget project structure and architecture docs | 2026-07-30 | shared core, web/desktop, API and sync packages exist because Actual supports multiple runtimes and multi-device sync | not evidence that MoneyFlow needs a monorepo |
-| Firefly III Data Importer docs | 2026-07-30 | importer is separately operated and version-coupled to Firefly III | MoneyFlow importer is not yet an independent deployment |
-| Next.js App Router Server/Client Components, data security and Server Actions docs | 2026-07-30 | reads can live in Server Components and mutations in secured Server Actions | does not require ceremonial layering |
-| Supabase Auth/RLS docs | 2026-07-30 | database authorization can be enforced with Auth claims, RLS and least privileges | app still needs validation and ownership-safe RPCs |
-| Maybe Finance repository/releases | 2026-07-30 | historical monolith case and product complexity lessons; repo archived 2025-07-27 | not a current architecture template |
+| Actual Budget project structure and architecture docs | 2026-07-30 | shared core, web/desktop, API and sync packages support multiple runtimes and multi-device sync | not evidence that MoneyFlow needs a monorepo |
+| Firefly III Data Importer docs | 2026-07-30 | importer is separately operated and version-coupled to Firefly III | MoneyFlow importer is not an independent deployment |
+| Next.js App Router Server/Client Components, data security and Server Actions docs | 2026-07-30 | server reads and secured mutation entrypoints fit App Router | does not require ceremonial layering |
+| Supabase Auth/RLS docs | 2026-07-30 | Auth claims, RLS and least privilege can enforce database ownership | app validation and ownership-safe RPCs remain required |
+| Maybe Finance repository/releases | 2026-07-30 | historical monolith and product-complexity case; repository archived 2025-07-27 | not a current template to copy |
 
 ### Alternatives considered
 
 | Option | Advantages | Risks | Decision |
 |---|---|---|---|
-| Rewrite into Clean Architecture folders | visually explicit layers | large churn, weak product benefit, path-only abstraction | reject |
-| Split packages/services now | independent boundaries | no independent runtime/team/deploy need | reject |
-| Keep current modular monolith unchanged | zero churn | leaves real hotspots undocumented | baseline, not final |
-| Review and tighten only proven boundaries | low risk and evidence-driven | requires deliberate reconnaissance | selected |
+| Rewrite into Clean Architecture folders | visually explicit layers | large churn, path-only abstraction, weak product benefit | reject |
+| Split packages/services now | independent deployments | no independent runtime/team/scaling need | reject |
+| Add repository classes for every table | uniform API | wraps Supabase without solving an observed problem | reject |
+| Split every large component | smaller files | scatters cohesive route state and increases prop plumbing | reject |
+| Keep modular monolith and tighten proven authorities | low risk, preserves working tests | requires bounded follow-up discipline | selected |
 
 ### Research decision
 
-Retain a single Next.js/Supabase modular monolith. Recommend extraction or new executable rules only when a concrete failure mode, duplicated authority, independent test boundary or repeated change cost is demonstrated.
+Actual Budget and Firefly III split code where they have genuinely separate runtimes or deployments. MoneyFlow has one web deployment and one PostgreSQL authority. Its current Next.js Server Component/Server Action + Supabase RLS/RPC pattern is appropriate. Follow-ups should remove duplicated authority, not imitate project structure.
 
 ## Specification
 
 ### Problem
 
-MoneyFlow has accumulated several large orchestration files and mixed demo/authenticated flows. Line count alone does not prove architectural failure, but unclear ownership can make finance changes harder to verify and can allow demo, presentation and persistence contracts to drift.
+The system boundary is broadly sound, but three active authorities can mislead future implementation:
+
+1. one module named `sample-data` owns production transaction types, presentation metadata and demo fixtures;
+2. transfer mutation construction exists in two client owners;
+3. withdrawn spending-advice calculations remain exported and heavily tested in the active finance core even though the current Dashboard consumes only balance/income/expense/net.
+
+A fourth concern, large route components, lacks evidence for immediate restructuring.
 
 ### User stories
 
-- As the owner, I can see where transaction/account/dashboard behavior is owned so future AI changes do not scatter logic.
-- As an implementing agent, I can identify which existing boundary to reuse before creating a new abstraction.
-- As a reviewer, I can reject architecture work that lacks a concrete failure mode.
+- As the owner, I can see which architectural parts are healthy and should not be rewritten.
+- As an implementing agent, I can find one owner for a transaction use case and avoid copying demo/auth branches.
+- As a reviewer, I can distinguish active product calculations from historical experiments.
 
 ### Acceptance criteria
 
-- [ ] The review maps the main read/write flows to exact files/functions.
-- [ ] Findings are classified as `keep`, `tighten`, `split-later` or `fix-now`.
-- [ ] Every proposed change includes evidence, counterexample and smallest next step.
-- [ ] Patterns deliberately not adopted are recorded with reasons.
-- [ ] No runtime refactor is included in the review PR.
+- [x] Main read/write flows map to exact files/functions.
+- [x] Findings use `keep`, `tighten`, `split-later` or `fix-next` dispositions.
+- [x] Every proposed follow-up has evidence, counterexample and smallest next step.
+- [x] Rejected external patterns and reasons are recorded.
+- [x] The review contains no runtime refactor.
 
 ### Required states
 
-Not applicable to product UI; this is a documentation/architecture review. Existing demo/authenticated, error and recovery behavior must be represented accurately.
+Not applicable to rendered UI. The review explicitly covers authenticated/demo reads, authenticated/demo mutations, connection/data errors and soft-delete recovery boundaries.
 
 ### Financial and security constraints
 
@@ -117,21 +170,125 @@ Not applicable to product UI; this is a documentation/architecture review. Exist
 - Issue #145.
 - Database migrations or provider configuration.
 - New services, packages, dependencies or product features.
-- Mechanical file splitting without an ownership benefit.
+- Mechanical splitting without an ownership benefit.
+
+## Findings and dispositions
+
+### F1 — Keep the modular monolith
+
+**Disposition:** `keep`
+
+**Evidence**
+
+- Route pages are thin and server-owned.
+- Reads are isolated in `src/server` workspaces.
+- Authenticated writes use validated Server Actions and ownership-safe RPCs.
+- `src/lib` contains testable deterministic calculations.
+- RLS/pgTAP and browser tests verify layers independently.
+
+**Counterexample considered**
+
+Actual Budget uses multiple packages because it supports shared core logic, web/desktop clients, API automation and a sync server. MoneyFlow has no equivalent runtime boundary.
+
+**Decision**
+
+Do not introduce microservices, a monorepo package split, event sourcing or generic repository classes.
+
+### F2 — Remove withdrawn advice logic from the active finance authority
+
+**Disposition:** `fix-next`
+
+**Evidence**
+
+- Product principles state that total assets must not be converted into a spending recommendation without sufficient user-approved planning data.
+- `src/lib/finance.ts` still exports `calculateDailySpendingGuide`, `DAILY_ALLOWANCE`, `safeToday`, `dailyAllowance` and `forecast` calculations.
+- `src/lib/finance.test.ts` devotes many tests to those outputs.
+- The current dashboard presentation contract accepts only `balance`, `income`, `expense` and `net`; the extra advice outputs are not consumed by `DashboardHeaderSections`.
+
+**Failure mode**
+
+A future agent can reasonably treat exported, tested core functions as approved product law and re-enable unsupported spending advice.
+
+**Counterexample considered**
+
+Keeping an experimental formula can be useful when a feature is actively specified. Here the feature was explicitly withdrawn and its rationale already belongs in history/research.
+
+**Smallest next step**
+
+Open a focused issue to inventory all references, remove advice-only outputs from the active dashboard summary, retain only balance/ledger calculations, and preserve historical rationale in completed research. No new spending-plan implementation.
+
+### F3 — Separate production transaction contracts from demo/presentation data
+
+**Disposition:** `tighten`
+
+**Evidence**
+
+- `src/lib/sample-data.ts` owns `Transaction` and mutation input types, category icon/color metadata, demo accounts/categories and sample transactions.
+- Server workspace loaders, Server Actions, hooks, stores and UI components all import from this module.
+- `src/lib/accounts.ts` already demonstrates a clearer contract module that is not named or owned as demo data.
+
+**Failure mode**
+
+The module name and mixed responsibilities make demo fixtures appear authoritative for production contracts and make a fixture/presentation edit touch server and domain consumers.
+
+**Counterexample considered**
+
+Splitting every type into its own file would be mechanical churn. The problem is authority, not file count.
+
+**Smallest next step**
+
+During the next transaction-domain change, move stable transaction/input contracts to a neutral module, move category icon/color metadata to presentation ownership, and move fixtures to an explicit demo module. Keep temporary re-exports if needed to avoid a large one-shot import rewrite.
+
+### F4 — Give transfer mutation one client owner
+
+**Disposition:** `tighten`
+
+**Evidence**
+
+- `useTransactions.addTransfer()` validates accounts, constructs a demo transfer, writes local storage or calls `createTransferAction`.
+- `AccountsPage.transfer()` independently performs the same runtime branching, constructs another demo transfer and calls the same Server Action.
+- Both surfaces then apply different UI reactions, which is valid; the mutation itself being duplicated is not.
+
+**Failure mode**
+
+Transfer validation, messages, demo construction or returned transaction behavior can drift between the ledger and account screens.
+
+**Counterexample considered**
+
+Forcing AccountsPage to adopt all of `useTransactions` would couple it to unrelated ledger state. A small transfer-specific client adapter is enough.
+
+**Smallest next step**
+
+Extract one bounded transfer executor/hook returning a normalized result. Keep account-balance updates and notices in AccountsPage and ledger-list updates in `useTransactions`.
+
+### F5 — Do not split large route components yet
+
+**Disposition:** `split-later`
+
+**Evidence**
+
+- `TransactionsPage` is large and owns filters, pagination, undo, dialogs and rendering.
+- It already delegates persistence to `useTransactions` and pure behavior to `transaction-list`, `splits`, `transfers`, money and store modules.
+- Recent defects were fixed at actual owners instead of requiring a component split.
+- `MoneyFlowDashboard` delegates visual sections and keeps derived finance formulas in `src/lib`.
+
+**Trigger for future extraction**
+
+Extract transaction query/grouping view models when server-side search/pagination begins or a second route needs the same behavior. Split UI sections when they receive independent change/test ownership. Do not split solely by line count.
 
 ## Implementation plan
 
 ### Architecture fit
 
-The durable current architecture remains in `ARCHITECTURE.md`. This review will update it only where the existing document is incomplete or inaccurate and will keep detailed investigation evidence in this packet/issue.
+The durable architecture map is updated in `ARCHITECTURE.md` with accurate read/write flows, one-mutation-owner guidance, demo/production authority separation and evidence-based extraction tests.
 
 ### Planned changes
 
 | File/area | Change | Reason |
 |---|---|---|
-| `docs/plans/active/mf-arch-01.md` | maintain evidence and decisions | handoff and review record |
-| `ARCHITECTURE.md` | add only verified dependency/ownership clarifications | durable project map |
-| issue #150 | maintain dynamic findings and queue | single status authority |
+| `ARCHITECTURE.md` | clarify modular monolith, runtime flows and extraction criteria | durable current map |
+| `docs/plans/active/mf-arch-01.md` | record evidence and findings | review record |
+| issue #150 | maintain dynamic disposition and later choices | status authority |
 
 ### Data and migration impact
 
@@ -141,10 +298,10 @@ None.
 
 | Risk/counterexample | Prevention or test |
 |---|---|
-| equating large files with bad architecture | require change-cost or authority evidence |
-| copying Actual/Firefly package structure | require equivalent runtime/deployment need |
-| introducing abstractions before use | record `keep` decisions and smallest next step |
-| weakening current tests during review | documentation-only diff and full CI |
+| treating recommendations as approved refactors | no runtime change; create follow-up only after owner prioritization |
+| architecture doc becoming a speculative framework | rules are tied to observed duplicate/mixed authorities |
+| losing current safety gates | full existing CI on documentation-only diff |
+| overclaiming unused advice code | reference inventory required before its implementation issue changes code |
 
 ### Verification plan
 
@@ -158,11 +315,11 @@ None.
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| A1 | Map transaction read/write flow | none | exact files/functions | doing |
-| A2 | Map account/dashboard reads and derived state | A1 | exact files/functions | todo |
-| A3 | Assess hotspots and counterexamples | A1, A2 | keep/tighten/split/fix table | todo |
-| A4 | Update durable architecture map only if needed | A3 | focused diff | todo |
-| A5 | Independent review and CI | A4 | final CI | todo |
+| A1 | Map transaction read/write flow | none | exact files/functions | done |
+| A2 | Map account/dashboard reads and derived state | A1 | exact files/functions | done |
+| A3 | Assess hotspots and counterexamples | A1, A2 | five dispositions | done |
+| A4 | Update durable architecture map | A3 | focused `ARCHITECTURE.md` diff | done |
+| A5 | Independent review and CI | A4 | PR + final CI | todo |
 
 ## Evaluation
 
@@ -170,22 +327,23 @@ None.
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Dependency map is code-backed | pending | pending |
-| Findings include keep decisions | pending | pending |
-| No runtime refactor | branch diff | pending |
-| External patterns applied selectively | source comparison | pending |
+| Dependency map is code-backed | routes, server loaders, actions, hooks, stores and components listed above | pass |
+| Findings include keep decisions | F1 and F5 explicitly prevent unnecessary rewrites | pass |
+| No runtime refactor | branch changes documentation only | pass |
+| External patterns applied selectively | Actual/Firefly boundaries rejected without matching constraints | pass |
 
 ### Review findings
 
-- Correctness: pending.
-- Security/ownership: pending.
-- UI/UX/accessibility: no product change expected.
-- Maintainability/duplication: pending.
-- Scope compliance: pending.
+- Correctness: dormant advice code is the highest-risk authority drift; no current displayed-value defect is claimed by this review.
+- Security/ownership: existing Server Action + RPC + RLS boundary should remain.
+- UI/UX/accessibility: no rendered behavior changed.
+- Maintainability/duplication: transfer mutation ownership and mixed sample-data authority are bounded follow-ups.
+- Scope compliance: documentation-only.
 
 ### Remaining limitations
 
-- GitHub code search indexing is not returning repository results, so reconnaissance is using exact known paths, current docs, issues and PR history.
+- GitHub code search indexing did not return repository results. Reconnaissance used exact known paths, current docs, issue/PR history and direct file inspection.
+- Before removing advice functions, the implementation issue must perform a complete reference inventory because this review does not claim exhaustive indexed search.
 
 ## Delivery record
 
