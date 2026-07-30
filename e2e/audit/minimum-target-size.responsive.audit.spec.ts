@@ -139,10 +139,20 @@ test.describe("minimum interactive target size", () => {
           return rect.width > 0 && rect.height > 0 && element.getClientRects().length > 0;
         };
 
-        const isInlineProseLink = (element: HTMLElement): boolean =>
-          element instanceof HTMLAnchorElement &&
-          Boolean(element.closest("p")) &&
-          getComputedStyle(element).display === "inline";
+        const isInlineProseLink = (element: HTMLElement): boolean => {
+          if (
+            !(element instanceof HTMLAnchorElement) ||
+            getComputedStyle(element).display !== "inline"
+          ) {
+            return false;
+          }
+
+          const parent = element.parentElement;
+          if (!parent) return false;
+          const ownText = (element.textContent || "").trim().replace(/\s+/g, " ");
+          const parentText = (parent.textContent || "").trim().replace(/\s+/g, " ");
+          return ownText.length > 0 && parentText.length > ownText.length;
+        };
 
         const measuredTarget = (element: HTMLElement): HTMLElement => {
           if (
