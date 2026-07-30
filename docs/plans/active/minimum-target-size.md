@@ -83,7 +83,7 @@ explicit audit exemption rather than being restyled as buttons.
    pressable control renders below 44×44 at 320, 390 or 1366.
 4. No new horizontal overflow at 320px.
 
-## Implementation
+## Implementation plan
 
 The shared base contract merged first:
 
