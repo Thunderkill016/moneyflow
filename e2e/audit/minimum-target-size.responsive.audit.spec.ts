@@ -52,33 +52,31 @@ test.describe("minimum interactive target size", () => {
     await seedUiAuditState(page);
   });
 
-  test("all pressable controls meet the 44×44px contract", async ({ page }, testInfo) => {
-    const viewportWidth = page.viewportSize()?.width ?? 0;
-    test.skip(
-      !TARGET_VIEWPORTS.has(viewportWidth),
-      "The product contract is gated at 320px, 390px and 1366px.",
-    );
+  for (const route of ROUTES) {
+    test(`${route.label} keeps every pressable control at least 44×44px`, async ({
+      page,
+    }, testInfo) => {
+      const viewportWidth = page.viewportSize()?.width ?? 0;
+      test.skip(
+        !TARGET_VIEWPORTS.has(viewportWidth),
+        "The product contract is gated at 320px, 390px and 1366px.",
+      );
 
-    // Establish the same-origin storage context, then let demo stores fall back
-    // to their populated sample data so row-level actions are actually measured.
-    await page.goto("/landing", { waitUntil: "domcontentloaded" });
-    await page.evaluate((keys) => {
-      window.localStorage.removeItem(keys.transactions);
-      window.localStorage.removeItem(keys.inbox);
-      window.localStorage.setItem(keys.onboarding, "1");
-    }, STORAGE_KEYS);
-
-    const findings: TargetFinding[] = [];
-
-    for (const route of ROUTES) {
-      if (route.path === "/onboarding") {
-        await page.evaluate((key) => window.localStorage.removeItem(key), STORAGE_KEYS.onboarding);
-      } else {
-        await page.evaluate(
-          (key) => window.localStorage.setItem(key, "1"),
-          STORAGE_KEYS.onboarding,
-        );
-      }
+      // Establish the same-origin storage context, then let demo stores fall
+      // back to populated sample data so row-level actions are measured.
+      await page.goto("/landing", { waitUntil: "domcontentloaded" });
+      await page.evaluate(
+        ({ keys, isOnboarding }) => {
+          window.localStorage.removeItem(keys.transactions);
+          window.localStorage.removeItem(keys.inbox);
+          if (isOnboarding) {
+            window.localStorage.removeItem(keys.onboarding);
+          } else {
+            window.localStorage.setItem(keys.onboarding, "1");
+          }
+        },
+        { keys: STORAGE_KEYS, isOnboarding: route.path === "/onboarding" },
+      );
 
       const response = await page.goto(route.path, { waitUntil: "domcontentloaded" });
       expect(
@@ -100,7 +98,7 @@ test.describe("minimum interactive target size", () => {
           }),
       );
 
-      const routeFindings = await page.evaluate<
+      const measuredFindings = await page.evaluate<
         Array<Omit<TargetFinding, "route" | "resolvedPath">>
       >((minimumSize) => {
         const selector = [
@@ -179,39 +177,38 @@ test.describe("minimum interactive target size", () => {
         return undersized;
       }, MINIMUM_TARGET_SIZE);
 
-      for (const finding of routeFindings) {
-        findings.push({
-          route: route.path,
-          resolvedPath: new URL(page.url()).pathname,
-          ...finding,
-        });
-      }
-    }
+      const findings: TargetFinding[] = measuredFindings.map((finding) => ({
+        route: route.path,
+        resolvedPath: new URL(page.url()).pathname,
+        ...finding,
+      }));
 
-    await testInfo.attach(`minimum-target-size-${testInfo.project.name}.json`, {
-      body: Buffer.from(
-        JSON.stringify(
-          {
-            minimum: MINIMUM_TARGET_SIZE,
-            viewport: page.viewportSize(),
-            routes: ROUTES.map((route) => route.path),
-            findings,
-          },
-          null,
-          2,
+      await testInfo.attach(`minimum-target-size-${route.label}.json`, {
+        body: Buffer.from(
+          JSON.stringify(
+            {
+              minimum: MINIMUM_TARGET_SIZE,
+              viewport: page.viewportSize(),
+              route: route.path,
+              resolvedPath: new URL(page.url()).pathname,
+              findings,
+            },
+            null,
+            2,
+          ),
         ),
-      ),
-      contentType: "application/json",
-    });
+        contentType: "application/json",
+      });
 
-    expect(
-      findings,
-      `Controls below ${MINIMUM_TARGET_SIZE}×${MINIMUM_TARGET_SIZE}px:\n${findings
-        .map(
-          (finding) =>
-            `- ${finding.route} (${finding.resolvedPath}): ${finding.element} measured as ${finding.width}×${finding.height}px via ${finding.measuredElement}`,
-        )
-        .join("\n")}`,
-    ).toEqual([]);
-  });
+      expect(
+        findings,
+        `Controls below ${MINIMUM_TARGET_SIZE}×${MINIMUM_TARGET_SIZE}px on ${route.path}:\n${findings
+          .map(
+            (finding) =>
+              `- ${finding.element} measured as ${finding.width}×${finding.height}px via ${finding.measuredElement}`,
+          )
+          .join("\n")}`,
+      ).toEqual([]);
+    });
+  }
 });
