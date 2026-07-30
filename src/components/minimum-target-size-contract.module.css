@@ -27,6 +27,54 @@
   min-height: 44px;
 }
 
+/* The Inbox select-all control has an aria-label but no wrapping label. Keep a
+ * compact drawn glyph while the real input owns the full 44px pointer box.
+ */
+:global(.inbox-list-header .inbox-col-check) {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+}
+
+:global(.inbox-list-header .inbox-col-check input[type="checkbox"]) {
+  position: absolute;
+  inset: 0;
+  width: 44px !important;
+  height: 44px !important;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+:global(.inbox-list-header .inbox-col-check::before) {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--mf-border-strong);
+  border-radius: 4px;
+  background: var(--mf-surface);
+  pointer-events: none;
+}
+
+:global(.inbox-list-header .inbox-col-check:has(input:checked)::after) {
+  content: "";
+  position: absolute;
+  width: 8px;
+  height: 4px;
+  border-bottom: 2px solid var(--mf-brand);
+  border-left: 2px solid var(--mf-brand);
+  transform: translateY(-1px) rotate(-45deg);
+  pointer-events: none;
+}
+
+:global(.inbox-list-header .inbox-col-check:has(input:focus-visible)) {
+  outline: 2px solid var(--mf-focus);
+  outline-offset: 2px;
+  border-radius: var(--mf-radius-sm);
+}
+
 /* Legacy declarations with !important need an equally explicit correction. */
 :global(.inbox-row-dismiss),
 :global(.inbox-row-main),
