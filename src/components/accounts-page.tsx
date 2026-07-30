@@ -3,21 +3,20 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { saveAccountAction, setAccountArchivedAction } from "@/app/actions/accounts";
-import { createTransferAction } from "@/app/actions/transactions";
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { type ViewerSummary } from "@/components/user-chip";
+import { executeTransferMutation } from "@/hooks/transfer-mutation";
 import { accountKindLabels, type AccountSummary, type SaveAccountInput } from "@/lib/accounts";
 import {
   canTransferSameCurrency,
   normalizeCurrencyCode,
   totalsByCurrency,
-  transferCurrencyMismatchMessage,
 } from "@/lib/currency";
 import { formatMoney } from "@/lib/money";
-import type { CreateTransferInput, Transaction } from "@/lib/sample-data";
-import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
+import type { CreateTransferInput } from "@/lib/sample-data";
+import { readStoredTransactions } from "@/lib/transaction-store";
 import { applyTransferBalances } from "@/lib/transfers";
 import styles from "./accounts-page.module.css";
 
@@ -165,48 +164,29 @@ export function AccountsPage({
   }
 
   async function transfer(input: CreateTransferInput) {
-    const source = activeAccounts.find((item) => item.id === input.sourceAccountId);
-    const destination = activeAccounts.find((item) => item.id === input.destinationAccountId);
-    if (!source || !destination || source.id === destination.id) {
-      return { ok: false, message: "Chọn hai tài khoản hoạt động khác nhau." };
-    }
-    if (!canTransferSameCurrency(source, destination)) {
-      return { ok: false, message: transferCurrencyMismatchMessage() };
-    }
-    if (viewer.isDemo) {
-      const transaction: Transaction = {
-        id: crypto.randomUUID(),
-        kind: "transfer",
-        categoryId: "",
-        category: "Chuyển tiền",
-        note: input.note || "Chuyển tiền",
-        accountId: source.id,
-        account: source.name,
-        destinationAccountId: destination.id,
-        destinationAccount: destination.name,
-        amount: input.amount,
-        occurredOn: input.occurredOn,
-        occurredAt: new Date().toISOString(),
-        relativeDate: "Vừa xong",
-      };
-      writeStoredTransactions([transaction, ...readStoredTransactions()]);
-      setAccounts((current) =>
-        applyTransferBalances(current, source.id, destination.id, input.amount),
-      );
-      setTransferOpen(false);
-      setNotice(
-        `Đã chuyển ${formatMoney(input.amount, false, source.currencyCode)} sang ${destination.name}.`,
-      );
-      return { ok: true };
-    }
-    const result = await createTransferAction(input);
+    const result = await executeTransferMutation({
+      input,
+      accounts: activeAccounts,
+      isDemo: viewer.isDemo,
+    });
     if (result.ok) {
-      setAccounts((current) =>
-        applyTransferBalances(current, source.id, destination.id, input.amount),
-      );
+      if (result.isNew) {
+        setAccounts((current) =>
+          applyTransferBalances(
+            current,
+            result.source.id,
+            result.destination.id,
+            result.transaction.amount,
+          ),
+        );
+      }
       setTransferOpen(false);
       setNotice(
-        `Đã chuyển ${formatMoney(input.amount, false, source.currencyCode)} sang ${destination.name}.`,
+        `Đã chuyển ${formatMoney(
+          result.transaction.amount,
+          false,
+          result.source.currencyCode,
+        )} sang ${result.destination.name}.`,
       );
     }
     return result;
