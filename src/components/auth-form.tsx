@@ -91,17 +91,20 @@ export function AuthForm({
           href="/"
           ariaLabel="MoneyFlow, trang chủ"
           size="standard"
-          tone="inverse"
         />
         <div className={styles.storyBody}>
           <span className={styles.storyIcon} aria-hidden="true">
             <Icon name="book" size={26} />
           </span>
           <p className={styles.storyKicker}>Rõ từng dòng tiền</p>
+          {/*
+            Two-tone headline, the same shape the landing hero uses: neutral
+            first sentence, brand-green second, separated by a real space so it
+            reads correctly at any width. Keep the leading space inside the span.
+          */}
           <h1>
             Ghi đúng từng khoản.
-            <br />
-            Nhìn rõ tiền của bạn.
+            <span> Nhìn rõ tiền của bạn.</span>
           </h1>
           <p>
             MoneyFlow là sổ thu chi manual-first: dữ liệu đến từ những gì bạn
