@@ -6,7 +6,6 @@
  * 2. Soft-delete drops spent (balance / budget / month expense)
  * 3. Money is integer minor units only (store + transfer + parse)
  * 4. Budget spent ignores transfer (even mis-tagged categoryId)
- * 5. Safe-to-spend is a non-negative safe integer (floor division)
  *
  * Domain math lives in src/lib/* — these tests are the ship-gate contract.
  */
@@ -16,7 +15,6 @@ import { sumBudgetSpent } from "./planning/budgets.ts";
 import {
   balanceAfterTransactions,
   calculateDashboardSummary,
-  DAILY_ALLOWANCE,
   monthExpenseTotal,
   netTransactionEffect,
   topExpenseCategories,
@@ -269,11 +267,10 @@ test("INVARIANT: all money totals from mixed ledger are safe integers", () => {
     ["net", net],
     ["bal", bal],
     ["spent", spent],
+    ["dash.balance", dash.balance],
     ["dash.expense", dash.expense],
     ["dash.income", dash.income],
     ["dash.net", dash.net],
-    ["dash.safeToday", dash.safeToday],
-    ["dash.dailyAllowance", dash.dailyAllowance],
   ] as const) {
     assertSafeInt(n, label);
   }
@@ -294,56 +291,4 @@ test("INVARIANT: budget spent ignores transfer even with matching categoryId", (
 
   const incomeOnly = sumBudgetSpent([income], "cat-salary", "2026-07-01");
   assert.equal(incomeOnly, 0);
-});
-
-// =============================================================================
-// 5. Safe-to-spend integer
-// =============================================================================
-
-test("INVARIANT: safe-to-spend is non-negative safe integer (floor)", () => {
-  const over = calculateDashboardSummary(
-    [{ ...expense, amount: DAILY_ALLOWANCE + 50_000 }],
-    { today: TODAY },
-  );
-  assert.equal(over.safeToday, 0);
-  assertSafeInt(over.safeToday, "over.safeToday");
-  assert.ok(over.safeToday >= 0);
-
-  const normal = calculateDashboardSummary([expense], { today: TODAY });
-  assert.equal(normal.safeToday, DAILY_ALLOWANCE - 100_000);
-  assertSafeInt(normal.safeToday, "normal.safeToday");
-  assert.ok(normal.safeToday >= 0);
-
-  // Uneven balance → floor division, never fractional đồng
-  const live = calculateDashboardSummary([], {
-    isDemo: false,
-    totalBalance: 1_000_001,
-    today: TODAY,
-  });
-  assertSafeInt(live.safeToday, "live.safeToday");
-  assertSafeInt(live.dailyAllowance, "live.dailyAllowance");
-  assert.ok(live.safeToday >= 0);
-  assert.equal(live.safeToday, live.dailyAllowance);
-  assert.equal(live.dailyAllowance, Math.floor(live.dailyAllowance));
-  // Must match floor of balance / remaining days (same formula as finance.ts)
-  const day = 14;
-  const daysInMonth = 31;
-  const remainingDays = daysInMonth - day + 1;
-  assert.equal(live.dailyAllowance, Math.floor(1_000_001 / remainingDays));
-});
-
-test("INVARIANT: transfer does not reduce safe-to-spend", () => {
-  const base = calculateDashboardSummary([expense], {
-    isDemo: false,
-    totalBalance: 5_000_000,
-    today: TODAY,
-  });
-  const withXfer = calculateDashboardSummary([expense, transfer], {
-    isDemo: false,
-    totalBalance: 5_000_000,
-    today: TODAY,
-  });
-  assert.equal(withXfer.safeToday, base.safeToday);
-  assert.equal(withXfer.expense, base.expense);
-  assertSafeInt(withXfer.safeToday, "withXfer.safeToday");
 });

@@ -145,7 +145,6 @@ test("TASK-253: demo dashboard month expense ignores transfer", () => {
   // Demo mode adds MONTHLY_EXPENSE_BEFORE_SAMPLE baseline; both should share same recordedExpense
   assert.equal(dashWith.expense, dashWithout.expense);
   assert.equal(dashWith.income, dashWithout.income);
-  assert.equal(dashWith.foodExpense, dashWithout.foodExpense);
   // Absolute check: expense must equal baseline + pure expenses (not + transfer)
   assert.equal(dashWith.expense - recordedOnly, dashWithout.expense - recordedOnly);
   assert.ok(Number.isSafeInteger(dashWith.expense));
