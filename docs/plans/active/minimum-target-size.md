@@ -5,8 +5,10 @@
 Every pressable control in MoneyFlow meets the 44×44px minimum that
 `docs/design/CALM_LEDGER_V2.md` already requires, and a gate keeps it there.
 
-Status: `in-progress`. The shared button contract is fixed and verified. The
-per-control rules are specified below but not yet implemented.
+Status: `implementation-complete; verification-pending`. The shared button fix
+has already merged. The remaining controls, touch affordance and permanent audit
+gate are implemented on `agent/minimum-target-size-complete`; CI and browser
+evidence still decide whether this packet can close.
 
 ## Repository reconnaissance
 
@@ -14,9 +16,10 @@ per-control rules are specified below but not yet implemented.
 
 > Minimum interactive target: 44×44px
 
-Nothing enforces it. `e2e/audit/responsive.audit.spec.ts` measures horizontal
-overflow, clipped money, sticky-header overlap and background ownership — it
-never measures control height. So the contract has been drifting unobserved.
+The existing `e2e/audit/responsive.audit.spec.ts` measured horizontal overflow,
+clipped money, sticky-header overlap and background ownership, but did not fail
+on controls below 44px. The contract could therefore drift without a blocking
+gate.
 
 Height for the two shared button classes was owned by four layers at once:
 
@@ -38,12 +41,12 @@ That is why the app shipped 42px controls while a rule claiming 44px existed.
 
 ## Research
 
-Measured, not inspected. Sweep of every pressable control (`button`,
-`a.primary-button`, `a.secondary-button`, `[role=button]`, `[role=tab]`,
-`summary`, `select`, checkbox/radio) across 32 routes × 3 viewports (desktop
-1366, phone 390, phone 320) against a production build. Elements with a zero box
-are skipped; a checkbox inside a taller `<label>` is measured as its label,
-because the label is what a pointer actually hits.
+Measured, not inspected. The original sweep covered every pressable control
+(`button`, links styled as controls, `[role=button]`, `[role=tab]`, `summary`,
+`select`, checkbox/radio) across 32 routes × 3 viewports (desktop 1366, phone
+390, phone 320) against a production build. Elements with a zero box were
+skipped; a checkbox inside a taller `<label>` was measured as its label, because
+the label is what a pointer actually hits.
 
 Result before this packet: **113 distinct undersized control shapes.**
 
@@ -63,13 +66,12 @@ Worst offenders, by how far below 44px and how much traffic the screen carries:
 | `.landing-nav-cta` | 117×40 | `/privacy` |
 | stretched checkboxes in flex labels | 41.5–42.4 tall | `/settings/export`, `/settings/notifications`, `/settings/privacy` |
 
-`.edit-button` / `.delete-button` deserve separate attention: besides being
-34×34, `globals.css:1340` renders them at `opacity: .25` until row hover, so the
-edit and delete affordances on every transaction are both small and nearly
-invisible — and hover does not exist on touch.
+`.edit-button` / `.delete-button` also rendered at `opacity: .25` until row
+hover, making them both small and nearly invisible on touch devices where hover
+does not exist.
 
-WCAG 2.5.8 exempts inline links in prose from the minimum, so those are not
-counted as violations here.
+WCAG 2.5.8 exempts inline links in prose from the minimum, so those remain an
+explicit audit exemption rather than being restyled as buttons.
 
 ## Specification
 
@@ -77,67 +79,92 @@ counted as violations here.
    scope. No layer may override height below the base.
 2. Each control in the Research table is at least 44×44, or carries a recorded
    exemption.
-3. `e2e/audit/responsive.audit.spec.ts` fails when a pressable control renders
-   below 44×44 at 320, 390 or 1366.
+3. `e2e/audit/minimum-target-size.responsive.audit.spec.ts` fails when a
+   pressable control renders below 44×44 at 320, 390 or 1366.
 4. No new horizontal overflow at 320px.
 
 ## Implementation plan
 
-Done in this change — only the shared base contract, because it is the one fix
-provable without per-screen visual review:
+The shared base contract merged first:
 
 - `globals.css:513` `.primary-button` `min-height` 42px → 44px.
 - `globals.css:518` `.secondary-button` `min-height` 42px → 44px.
-- `ai-uiux-refresh.css:140` dropped `min-height: 42px !important`, which was
-  overriding the base back down on the dashboard welcome actions.
+- `ai-uiux-refresh.css:140` dropped `min-height: 42px !important`.
 
-Deliberately excluded from this change, because each needs visual review at
-320px where a taller control can force reflow, and `AGENTS.md` forbids drive-by
-refactors: the per-control rules, the row-action affordance decision, the audit
-gate, and the dead-shell CSS removal. These are the Tasks below.
+The remaining slice uses the existing component-owned contract pattern instead
+of adding another stylesheet to `legacy.css`:
 
-Risks:
+- `MinimumTargetSizeContract` mounts once from the root layout.
+- Its CSS Module owns only the 44×44 pointer-target floor; route styles continue
+  to own layout, colour and shape.
+- Known legacy `!important` declarations receive explicit corrections rather
+  than another generic refresh layer.
+- Checkbox/radio glyphs remain compact while their associated labels receive the
+  minimum pointer target.
+- Transaction edit/delete actions are always visible on touch/coarse pointers.
+  Fine pointers retain the calm 25% progressive reveal, with hover and keyboard
+  focus restoring full opacity.
+- Dense action groups may wrap on phones, and filter selects remain constrained
+  to the viewport, preventing the taller controls from forcing horizontal
+  overflow.
 
-- Raising heights on dense list rows can force reflow or wrap at 320px. Each
-  screen needs a 320px screenshot, not just a passing overflow check.
-- The `.edit-button` opacity question is a design decision, not a CSS fix, and
-  should not be resolved silently while changing size.
-- Removing dead `.app-shell` rules is safe only after confirming
-  `app-shell.module.css` already owns the shell's background and min-height.
+The blocking Playwright gate:
+
+- runs only for the contract viewports 320, 390 and 1366;
+- visits public, auth, onboarding, ledger, planning, Inbox and settings routes;
+- loads populated demo transaction/Inbox state so row controls are measured;
+- opens onboarding in its real incomplete state;
+- measures the associated label for checkbox/radio controls;
+- records the WCAG inline-prose-link exemption;
+- attaches exact route, resolved path, selector and rendered dimensions when it
+  fails.
 
 ## Tasks
 
-1. Add the target-size assertion to `e2e/audit/responsive.audit.spec.ts`
-   (specification item 3). Land this first, so every later fix is verified by
-   the gate rather than a one-off script.
-2. Raise `.edit-button` / `.delete-button` to 44×44 and decide the touch
-   affordance for the `opacity: .25` default.
-3. Raise the list/row action controls: `.inbox-row-dismiss`,
-   `.accounts-page … actionButton`, categories `Đổi tên` / `Ẩn`,
-   `.inbox-row-main`.
-4. Raise the filter pills on `/transactions`, `/timeline`, `/inbox`.
-5. Raise the planning controls on `/commitments`, `/income-templates`.
-6. Raise `select` filters, `.landing-nav-cta`, onboarding `Tiếp`, and the
-   stretched settings checkboxes.
-7. Remove or re-home the dead `.app-shell` / `.sidebar` / `.topbar` rules.
-   Track separately from target size; the overlap here is only diagnostic.
+1. [x] Add the blocking target-size assertion first.
+2. [x] Raise `.edit-button` / `.delete-button` to 44×44 and decide touch
+   discoverability.
+3. [x] Raise Inbox, Accounts and Categories list/row actions.
+4. [x] Raise filter pills on `/transactions`, `/timeline` and `/inbox`.
+5. [x] Raise planning controls on `/commitments` and `/income-templates`.
+6. [x] Raise select filters, `.landing-nav-cta`, onboarding `Tiếp` and settings
+   checkbox labels.
+7. [ ] Remove or re-home dead `.app-shell` / `.sidebar` / `.topbar` rules in a
+   separate cleanup packet. This is diagnostic debt, not required to satisfy the
+   target-size contract.
+
+## Risks and review requirements
+
+- A 44px floor can expose dense layouts that previously fit only because their
+  controls were too small. The 320px audit and screenshots are therefore
+  required, not optional.
+- The product-wide contract uses `!important` only where needed to defeat known
+  legacy `!important` height owners. CSS ownership and budget checks must remain
+  green.
+- The new gate deliberately measures populated states. A passing empty screen is
+  not evidence for row actions.
+- Dead shell CSS removal stays out of this branch to avoid an unrelated visual
+  refactor.
 
 ## Evaluation
 
-Evidence for the base-contract fix in this change:
+Evidence already established by the merged shared-button change:
 
-- Re-running the sweep reports **no** remaining `.primary-button` or
-  `.secondary-button` below 44px at any of the three viewports.
-- `check:knowledge`, `check:architecture`, `check:css-ownership`, `lint`,
-  `typecheck` pass.
-- Unit tests 598/598.
-- `Expense path` e2e 4/4 (chromium + mobile-chromium).
-- Cross-device audit 116 passed / 4 skipped across 7 projects. One SAFE-09
-  failure appeared only when 7 projects shared a single server; the
-  `chromium-iphone-390` project passes 33/33 on its own, and SAFE-09 passes in
-  isolation. Demo `localStorage` is not reset between specs on a shared server —
-  harness artifact, not a regression.
-- `check:deployment-env` fails on unset local env vars by design; it is a Vercel
-  deployment contract and is unrelated to this diff.
+- no `.primary-button` or `.secondary-button` below 44px at the three contract
+  viewports;
+- `check:knowledge`, `check:architecture`, `check:css-ownership`, `lint` and
+  `typecheck` passed;
+- unit tests, expense-path E2E and the prior cross-device audit passed;
+- `check:deployment-env` failed only on intentionally unset local deployment
+  variables.
 
-Not yet evidenced: specification items 2–4, which remain open in Tasks.
+Evidence required for this completion branch before closure:
+
+- [ ] knowledge, architecture and CSS ownership checks;
+- [ ] lint, typecheck, unit tests and production build;
+- [ ] the new target-size gate has zero findings at 320, 390 and 1366;
+- [ ] existing responsive audit reports no new horizontal overflow;
+- [ ] screenshots for the high-risk dense screens at 320 and 390;
+- [ ] CI result and owner review recorded in the PR;
+- [ ] after merge, move this packet to `docs/plans/completed/` and verify the
+  deployed routes.
