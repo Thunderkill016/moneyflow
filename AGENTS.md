@@ -88,3 +88,43 @@ npm run test:ui-audit:pr
 ```
 
 A change is not done because code was generated or tests were claimed. It is done only when the diff matches the specification, required gates pass, visual/browser evidence is reviewed where relevant, the PR is merged, and the exact production deployment is verified.
+
+## Autonomous cloud agents
+
+Applies to any agent that runs in its own container and pushes to this repository — Codex cloud, Copilot coding agent, Jules, Devin. All of them read this file.
+
+### Boundaries
+
+1. **Never merge, never push to `main`, never force-push a shared branch.** Push a focused branch and open a pull request. A human owner merges.
+2. **Never change branch protection, CI workflow permissions, required checks, or `CODEOWNERS`** as part of a feature or fix task. If a task appears to require it, stop and say so in the PR.
+3. **One task, one scope.** Do only what the task specifies. If you find an unrelated defect, report it in the PR body; do not fix it in the same branch.
+4. **Never commit secrets or environment values.** Configuration lives in provider settings. `.env*` stays untracked.
+5. **Do not create a new management layer** — no new handbook, spec system, agent framework, or root-level override stylesheet. Extend the existing work packet under `docs/plans/active/`.
+6. **Do not rewrite published history.** Commits already on `main` — including squash-merge commits authored by the owner — are not yours to amend or reset.
+
+### Reporting
+
+State exactly which gates you ran and which you could not. Never describe a gate as passing unless you ran it and saw it pass.
+
+Note in the PR body when a gate could not run and why. "Not run" is an acceptable outcome; a claimed pass that did not happen is not.
+
+Agent-phase internet is off by default in Codex cloud. Anything needing network — `npm ci`, `npx playwright install`, Supabase CLI — must happen in the setup-script phase, which does have network. If the browser gates (`test:e2e`, `test:ui-audit:pr`) or `test:db` cannot run in your environment, say so; CI runs them on the pull request.
+
+### What one gate does not prove
+
+`npm run build` passing proves nothing about database isolation, browser behaviour, or production. Neither does `lint` or `typecheck`. These are separate layers — see the table in `ARCHITECTURE.md`.
+
+### Load-bearing traps
+
+These are not style preferences. Each one has already caused a real failure here, and none is discoverable by reading the file you are editing.
+
+- **Inside `src/lib/**`, a _runtime_ import must use a relative path with an explicit `.ts` extension.** `npm run test` is the plain Node runner (`node --experimental-strip-types --test src/lib/*.test.ts src/lib/*/*.test.ts`) and does not read tsconfig paths, so a value import written as `@/lib/...` passes `lint`, `typecheck` and `build` and then fails with `ERR_MODULE_NOT_FOUND`. `import type { … } from "@/lib/…"` is fine and is used deliberately in several modules — types are erased, so Node never resolves them. Do not "fix" those.
+- **`.app-shell`, `.sidebar` and `.topbar` global selectors are dead.** The shell moved to a CSS Module; `app-shell.tsx` renders `styles.shell`, so those classes are not in the DOM. Editing them changes nothing — a `44px` rule sitting there is why a `42px` control shipped while looking fixed.
+- **`!important` is budgeted.** `npm run check:css-ownership` fails above 1200 declarations. Prefer fixing the owning rule.
+- **Do not add an `@import` to `src/app/legacy.css`,** and do not create another root-level refresh or guardrail stylesheet. The file says so itself.
+- **A property can be set in several layers.** Before declaring a CSS fix done, grep every layer for the same selector, including inside media queries. Base plus a mobile override is the normal shape here.
+- **Measure; do not infer.** Contrast on a translucent background requires alpha compositing against what is behind it. A control's effective hit area includes a wrapping `label`. A module reached only through `await import(...)` is not dead code. Each of these has produced a confident, wrong finding.
+
+### Definition of done for an agent-authored PR
+
+The branch is pushed, the PR describes the change and its evidence honestly, CI is green, and the owner has reviewed it. Merging and deployment are the owner's decisions.
