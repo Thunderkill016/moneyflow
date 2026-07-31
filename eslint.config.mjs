@@ -13,6 +13,10 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "supabase/functions/**",
+    // Playwright artifacts. A failing audit leaves trace bundles and error
+    // contexts here, and linting those reports ~180 errors in generated code —
+    // which reads as "the branch is broken" until you look at the paths.
+    "output/**",
   ]),
 ]);
 
