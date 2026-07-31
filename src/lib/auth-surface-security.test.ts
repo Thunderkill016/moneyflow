@@ -45,5 +45,7 @@ test("auth form gates submission and resets a dependency-free Turnstile widget",
   assert.match(turnstile, /turnstile\.render/);
   assert.match(turnstile, /getTurnstile\(\)\?\.reset/);
   assert.match(turnstile, /CAPTCHA_TOKEN_FIELD/);
+  assert.match(turnstile, /auth-turnstile\.module\.css/);
+  assert.doesNotMatch(turnstile, /style=\{\{/);
   assert.doesNotMatch(turnstile, /@hcaptcha|react-turnstile|marsidev/);
 });
