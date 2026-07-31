@@ -1,10 +1,11 @@
 # Auth CAPTCHA provider readiness
 
-**Status:** evaluating  
+**Status:** evaluated  
 **Owner:** GPT-5.6 Thinking + human owner  
 **Issue:** #174  
 **PR:** #175  
 **Base:** PR #173 head `01a34f39c1a630e1bccb7dfa0981e4cf3c4d4400`  
+**Evaluated head:** `cbe9aff173fb085c44b68f430d320640296c8981`  
 **Last updated:** 2026-07-31
 
 ## Outcome
@@ -41,8 +42,8 @@ MoneyFlow can send a Cloudflare Turnstile token with Supabase email/password sig
 - [x] An explicit CAPTCHA-enabled deployment cannot pass validation without a site key.
 - [x] No CAPTCHA secret is added to source, Vercel public env or browser code.
 - [x] Unit/static tests cover configuration, token normalization, CSP and auth token forwarding.
-- [ ] Exact-head repository CI passes.
-- [ ] Browser smoke passes with a Cloudflare testing site key before provider enforcement.
+- [x] Exact-head repository CI passes.
+- [x] Browser smoke passes with Cloudflare's documented testing site key before provider enforcement.
 
 ### Out of scope
 
@@ -74,35 +75,41 @@ MoneyFlow can send a Cloudflare Turnstile token with Supabase email/password sig
 - [x] Add conditional CSP and deployment validation.
 - [x] Document safe activation and rollback order.
 - [x] Add unit/static regression tests.
-- [ ] Pass project knowledge, deployment, architecture, lint, typecheck, tests and production build.
-- [ ] Pass database and cross-device browser gates.
-- [ ] Verify the rendered widget with Cloudflare testing keys.
-- [ ] Keep Supabase CAPTCHA disabled until the deployed client proof exists.
+- [x] Pass project knowledge, deployment, architecture, CSS ownership, lint, typecheck, tests and production build.
+- [x] Pass database and cross-device browser gates.
+- [x] Verify the rendered widget with Cloudflare's testing site key on login, registration, forgot-password and a 320px viewport.
+- [x] Keep Supabase CAPTCHA disabled until the deployed client proof exists.
 
 ## Evaluation
 
 Evaluation is independent of implementation completion:
 
-1. Repository CI must run on the exact head SHA, not a previous stacked snapshot.
-2. Static tests must prove all three email-auth paths forward `captchaToken` and that missing tokens are rejected server-side when enabled.
-3. Production build headers must keep `frame-src 'none'` when CAPTCHA is off and allow only `https://challenges.cloudflare.com` when it is configured.
-4. Phone-width browser evidence must show no horizontal overflow; <=380px uses the compact widget.
-5. A failed or expired challenge must clear the hidden token and permit a fresh challenge.
-6. Provider enforcement is evaluated separately in issue #174 and cannot be claimed by repository CI.
-7. Any provider publication requires a rollback path and immediate production auth smoke.
+1. Repository CI ran on exact head `cbe9aff173fb085c44b68f430d320640296c8981`.
+2. Static tests prove all three email-auth paths forward `captchaToken` and that missing tokens are rejected server-side when enabled.
+3. Production build headers keep `frame-src 'none'` when CAPTCHA is off and allow only `https://challenges.cloudflare.com` when it is configured.
+4. Browser evidence shows the dummy Turnstile challenge produces a token for login, registration and forgot-password; the submit control becomes enabled only after a token exists.
+5. A dedicated 320px browser case proves no horizontal document/body overflow; the widget uses compact mode at <=380px.
+6. The widget clears and resets a used or expired token after a non-redirecting attempt.
+7. Provider enforcement is evaluated separately in issue #174 and cannot be claimed by repository CI.
+8. Any provider publication requires a rollback path and immediate production auth smoke.
 
 ## Verification
 
-- `npm run check:knowledge`
-- `npm run check:deployment-env`
-- `npm run check:css-ownership`
-- `npm run check:architecture`
-- `npm run lint`
-- `npm run typecheck`
-- `npm test`
-- `npm run build`
-- `npm run test:db`
-- Auth browser smoke with Cloudflare testing site key before provider enforcement.
+CI #681, run ID `30638965740`, completed successfully on the evaluated head:
+
+- project knowledge contract;
+- deployment configuration contract;
+- CSS ownership and debt budgets;
+- architecture boundary contract;
+- lint and typecheck;
+- unit/static RLS tests;
+- production build;
+- fresh local Supabase reset and all pgTAP;
+- expense-path and Auth CAPTCHA browser smoke;
+- production cross-device UI audit;
+- Playwright evidence upload.
+
+The Auth CAPTCHA smoke used Cloudflare's documented dummy site key `1x00000000000000000000AA`, which is CI-only and must not be copied to production.
 
 ## Rollback
 
@@ -110,7 +117,8 @@ Disable CAPTCHA enforcement in Supabase first, then set `NEXT_PUBLIC_AUTH_CAPTCH
 
 ## Delivery state
 
-- Stacked implementation packet on PR #173
-- PR #175 open and not merged
-- Not deployed
-- Provider enforcement remains disabled until browser verification passes
+- PR #175 is stacked on PR #173 and ready for review.
+- Not merged.
+- Not deployed.
+- Supabase CAPTCHA enforcement remains disabled.
+- Production provider publication and verification remain tracked in issue #174.
