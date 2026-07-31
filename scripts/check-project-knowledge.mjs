@@ -10,6 +10,9 @@ const requiredFiles = [
   "README.md",
   "docs/product/PRINCIPLES.md",
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
+  "docs/research/README.md",
+  "docs/research/REPOSITORY_REFERENCE_MAP.md",
+  "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
   "docs/templates/FEATURE_WORK_PACKET.md",
   "docs/plans/README.md",
   "docs/plans/active/README.md",
@@ -19,6 +22,21 @@ const requiredFiles = [
 
 function read(path) {
   return readFileSync(join(root, path), "utf8");
+}
+
+function requireMarkers(path, markers) {
+  let content;
+  try {
+    content = read(path);
+  } catch {
+    return;
+  }
+
+  for (const marker of markers) {
+    if (!content.includes(marker)) {
+      failures.push(`${path} must include research-contract marker: ${marker}`);
+    }
+  }
 }
 
 for (const path of requiredFiles) {
@@ -85,6 +103,39 @@ try {
 } catch {
   // Missing file already reported above.
 }
+
+requireMarkers("docs/research/README.md", [
+  "REPOSITORY_REFERENCE_MAP.md",
+  "ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
+]);
+
+requireMarkers("AGENTS.md", [
+  "docs/research/REPOSITORY_REFERENCE_MAP.md",
+  "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
+  "two to four focused sources",
+]);
+
+requireMarkers("docs/engineering/AI_DELIVERY_WORKFLOW.md", [
+  "docs/research/REPOSITORY_REFERENCE_MAP.md",
+  "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
+  "two to four focused sources",
+  "Tool, dependency and architecture adoption gate",
+]);
+
+requireMarkers("docs/templates/FEATURE_WORK_PACKET.md", [
+  "### Research scope and source selection",
+  "Authority/type",
+  "### Adoption review",
+  "docs/research/REPOSITORY_REFERENCE_MAP.md",
+  "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
+]);
+
+requireMarkers(".github/pull_request_template.md", [
+  "Selected sources (two to four by default):",
+  "Important source limits or patterns intentionally not copied:",
+  "### Tool, dependency or architecture adoption",
+  "license, security, ownership and rollback review",
+]);
 
 const requiredActiveHeadings = [
   "## Repository reconnaissance",
