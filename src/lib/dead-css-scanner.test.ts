@@ -28,6 +28,13 @@ function write(path: string, content: string) {
   writeFileSync(path, content);
 }
 
+function runScanner(cwd: string) {
+  return spawnSync(process.execPath, [scanner], {
+    cwd,
+    encoding: "utf8",
+  });
+}
+
 function runFixture(fixture: Fixture) {
   const root = mkdtempSync(join(tmpdir(), "moneyflow-dead-css-"));
   try {
@@ -45,10 +52,7 @@ function runFixture(fixture: Fixture) {
       write(join(root, "src/lib/fixture.test.ts"), fixture.testSource);
     }
 
-    return spawnSync(process.execPath, [scanner], {
-      cwd: root,
-      encoding: "utf8",
-    });
+    return runScanner(root);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -171,4 +175,9 @@ test("reads static HTML classes and ignores HTML comments", () => {
   assert.equal(result.status, 1);
   assert.doesNotMatch(output(result), /html-live/);
   assert.match(output(result), /html-comment/);
+});
+
+test("repository has zero unreachable legacy CSS selectors", () => {
+  const result = runScanner(process.cwd());
+  assert.equal(result.status, 0, output(result));
 });
