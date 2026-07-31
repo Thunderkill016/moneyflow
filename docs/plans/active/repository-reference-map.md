@@ -2,7 +2,7 @@
 
 **Status:** evaluating  
 **Owner:** ChatGPT  
-**Issue/PR:** pending  
+**Issue/PR:** #176  
 **Last updated:** 2026-08-01
 
 ## Outcome
@@ -168,7 +168,7 @@ External research belongs under `docs/research/`. The map is advisory evidence b
 | T1 | Audit current product, architecture and MVP boundaries | none | authoritative documents reviewed | done |
 | T2 | Group useful repositories by MoneyFlow system area | T1 | reference-map sections | done |
 | T3 | Add source-selection, license and scope guardrails | T2 | usage and evaluation rules | done |
-| T4 | Create branch, commit documents and open draft PR | T1–T3 | GitHub branch and PR | in progress |
+| T4 | Create branch, commit documents and open draft PR | T1–T3 | branch `agent/repository-reference-map`, PR #176 | done |
 
 ## Evaluation
 
@@ -197,9 +197,9 @@ External research belongs under `docs/research/`. The map is advisory evidence b
 ## Delivery record
 
 - Branch: `agent/repository-reference-map`
-- PR: pending
+- PR: #176
 - Squash commit: pending
-- CI run: pending/not required beyond repository documentation gates
+- CI run: pending
 - Production deployment: not applicable
 - Production flow verified: not applicable
 - Work packet moved to `docs/plans/completed/`: after merge according to repository process
