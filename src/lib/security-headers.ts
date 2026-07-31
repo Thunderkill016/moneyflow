@@ -3,13 +3,20 @@ type Header = Readonly<{ key: string; value: string }>;
 export function buildContentSecurityPolicy(
   isProduction: boolean = process.env.NODE_ENV === "production",
 ): string {
+  const scriptSources = [
+    "'self'",
+    "'unsafe-inline'",
+    "https://va.vercel-scripts.com",
+  ];
+  if (!isProduction) scriptSources.push("'unsafe-eval'");
+
   const directives = [
     "default-src 'self'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
     "form-action 'self'",
-    "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com",
+    `script-src ${scriptSources.join(" ")}`,
     "script-src-attr 'none'",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
