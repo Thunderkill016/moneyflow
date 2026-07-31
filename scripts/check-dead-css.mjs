@@ -1,33 +1,31 @@
 #!/usr/bin/env node
 /**
- * Reports class selectors in the legacy global stylesheets that no source file
- * references.
+ * Fails when a class selector in the legacy global stylesheets is rendered by
+ * nothing. This is a blocking gate, not a report — the ~170 classes that made a
+ * gate impossible were removed in one pass, so the budget is zero and stays zero.
  *
- * Report-only, deliberately. This is not wired as a failing gate because ~200
- * unreferenced classes exist today, so a blocking check would be red from its
- * first commit. Its job is to make the list reproducible, not to enforce.
+ * Three things this has to get right. Each one produced a wrong answer first:
  *
- * Two things this must get right, both learned the hard way:
+ * 1. **Only string literals count as a reference.** The previous version matched
+ *    bare tokens across all source text, so the word "sidebar" in a code comment
+ *    kept `.sidebar` alive — including comments written while deleting the very
+ *    rules that used it. A class name reaches the DOM through a literal or not at
+ *    all. Comments are stripped before matching, carefully: `//` inside a string
+ *    is not a comment, which is what protects `href="https://…"`.
  *
- * 1. Class names are assembled at runtime here. `category-kind-${item.kind}` and
- *    `attention-chip-${item.tone}` produce names that appear in no source file as
- *    a literal. A plain token search called five live classes dead. Every prefix
- *    matching `foo-bar-${` is therefore collected first and its whole family is
- *    treated as live.
- * 2. Nothing catches a wrong deletion. Removing a live rule fails no lint, test,
- *    build, database or browser check — the cross-device audit measures overflow,
- *    target size and clipped money, none of which a missing colour or border
- *    affects. The page renders, everything passes, the styling is gone. So treat
- *    this output as a list of *candidates* needing evidence, never as a work
- *    queue, and verify each removal with before/after screenshots.
+ * 2. **Test files are not references.** A test asserting `.demo-mode-banner` in a
+ *    stylesheet made that dead class look used, which is a loop: the test justified
+ *    the rule and the rule justified the test. Product code decides what is live.
  *
- * Also note: this does not read `*.module.css`. A `:global(...)` rule there does
- * not put a class in the DOM, so it cannot make a dead class live — but a module
- * may layer on top of a legacy rule it depends on, so grep the modules for a
- * selector before deleting it.
+ * 3. **Class names are assembled at runtime.** `attention-chip-${tone}` and 31
+ *    other prefixes produce names that appear in no literal. Every `foo-bar-${`
+ *    prefix is collected and its whole family treated as live.
+ *
+ * `*.module.css` is read for `:global(...)` only — a module rule does not put a
+ * class in the DOM, but it may layer on a legacy rule it depends on.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { extname, join, relative } from "node:path";
+import { extname, join } from "node:path";
 
 const root = process.cwd();
 
@@ -41,116 +39,114 @@ const STYLESHEETS = [
   "src/app/ai-uiux-guardrails.css",
 ];
 
-const SOURCE_DIRS = ["src", "e2e", "tests", "scripts"];
-const SOURCE_EXTENSIONS = new Set([".tsx", ".ts", ".js", ".mjs", ".html", ".md"]);
+const SOURCE_DIRS = ["src"];
+const SOURCE_EXTENSIONS = new Set([".tsx", ".ts", ".js", ".mjs", ".html"]);
+const isTest = (p) => /\.test\.[jt]sx?$/.test(p) || p.includes("/e2e/");
 
-function readSourceText() {
-  const chunks = [];
+function sourceFiles() {
+  const files = [];
   const walk = (dir) => {
     let entries;
-    try {
-      entries = readdirSync(dir);
-    } catch {
-      return;
-    }
+    try { entries = readdirSync(dir); } catch { return; }
     for (const entry of entries) {
       const path = join(dir, entry);
-      if (statSync(path).isDirectory()) {
-        walk(path);
-        continue;
-      }
-      if (SOURCE_EXTENSIONS.has(extname(path))) chunks.push(readFileSync(path, "utf8"));
+      if (statSync(path).isDirectory()) { walk(path); continue; }
+      if (!SOURCE_EXTENSIONS.has(extname(path))) continue;
+      if (isTest(path)) continue;
+      files.push(path);
     }
   };
   for (const dir of SOURCE_DIRS) walk(join(root, dir));
-  // Drop import/require lines before matching. A module path such as
-  // `./auth-form.module.css` contains the token `auth-form`, which made the dead
-  // global class `.auth-form` look referenced. A className is never assigned on
-  // an import line, so removing them costs nothing and closes that false
-  // negative.
-  //
-  // It does not close all of them. Test files reference source paths as string
-  // literals — `readFileSync(".../auth-form.tsx")` — which still makes the dead
-  // global class `.auth-form` look referenced. Filtering those would mean
-  // guessing which string literals are paths, and a wrong guess reports a *live*
-  // class as dead, which is the failure that actually costs something. So the
-  // number this prints is a floor, not a total, and it stays conservative on
-  // purpose.
-  return chunks
-    .join("\n")
+  return files;
+}
+
+/** Strip comments without eating URLs: `//` preceded by `:` or inside a string stays. */
+function stripComments(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
     .split("\n")
-    .filter((line) => !/^\s*(import\b|export\s+.*\bfrom\b|.*\brequire\()/.test(line))
+    .map((line) => {
+      const i = line.indexOf("//");
+      if (i < 0) return line;
+      if (i > 0 && line[i - 1] === ":") return line;
+      const quotes = (line.slice(0, i).match(/["'`]/g) || []).length;
+      return quotes % 2 === 0 ? line.slice(0, i) : line;
+    })
     .join("\n");
 }
 
-const sourceText = readSourceText();
+// Unrolled-loop patterns, one per quote type. A backreference version backtracks
+// catastrophically on the larger page components.
+const LITERALS = [
+  /"([^"\\]*(?:\\.[^"\\]*)*)"/g,
+  /'([^'\\]*(?:\\.[^'\\]*)*)'/g,
+  /`([^`\\]*(?:\\.[^`\\]*)*)`/g,
+];
 
-/** Prefixes completed at runtime, e.g. `attention-chip-${tone}`. */
+const referenced = new Set();
 const runtimePrefixes = new Set();
-for (const match of sourceText.matchAll(/([a-z][\w-]*-)\$\{/g)) {
-  runtimePrefixes.add(match[1]);
+for (const file of sourceFiles()) {
+  const source = stripComments(readFileSync(file, "utf8"));
+  for (const pattern of LITERALS) {
+    for (const match of source.matchAll(pattern)) {
+      for (const token of match[1].split(/[^\w-]+/)) {
+        if (/^-?[_a-zA-Z][\w-]*$/.test(token)) referenced.add(token);
+      }
+    }
+  }
+  for (const match of source.matchAll(/([a-z][\w-]*-)\$\{/g)) {
+    runtimePrefixes.add(match[1]);
+  }
 }
 
-function classSelectors(css) {
-  const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  const names = new Set();
-  for (const match of withoutComments.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) names.add(match[1]);
-  return names;
+const modules = [];
+const walkModules = (dir) => {
+  let entries;
+  try { entries = readdirSync(dir); } catch { return; }
+  for (const entry of entries) {
+    const path = join(dir, entry);
+    if (statSync(path).isDirectory()) { walkModules(path); continue; }
+    if (path.endsWith(".module.css")) modules.push(path);
+  }
+};
+walkModules(join(root, "src"));
+for (const file of modules) {
+  for (const match of readFileSync(file, "utf8").matchAll(/:global\(([^)]*)\)/g)) {
+    for (const name of match[1].matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) referenced.add(name[1]);
+  }
 }
 
+const prefixes = [...runtimePrefixes];
+let total = 0;
+let failed = 0;
 const report = [];
-let totalClasses = 0;
-let totalUnreferenced = 0;
-let totalRuntime = 0;
 
 for (const relativePath of STYLESHEETS) {
   let css;
-  try {
-    css = readFileSync(join(root, relativePath), "utf8");
-  } catch {
-    continue;
+  try { css = readFileSync(join(root, relativePath), "utf8"); } catch { continue; }
+  const names = new Set();
+  for (const match of css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) {
+    names.add(match[1]);
   }
-
-  const names = classSelectors(css);
-  const unreferenced = [];
-  const runtimeCompleted = [];
-
-  for (const name of names) {
-    const literal = new RegExp(`\\b${name.replace(/-/g, "\\-")}\\b`);
-    if (literal.test(sourceText)) continue;
-    if ([...runtimePrefixes].some((prefix) => name.startsWith(prefix))) {
-      runtimeCompleted.push(name);
-      continue;
-    }
-    unreferenced.push(name);
-  }
-
-  unreferenced.sort();
-  runtimeCompleted.sort();
-  totalClasses += names.size;
-  totalUnreferenced += unreferenced.length;
-  totalRuntime += runtimeCompleted.length;
-  report.push({ file: relativePath, classes: names.size, unreferenced, runtimeCompleted });
+  const dead = [...names]
+    .filter((n) => !referenced.has(n) && !prefixes.some((p) => n.startsWith(p)))
+    .sort();
+  total += names.size;
+  failed += dead.length;
+  if (dead.length) report.push({ file: relativePath, dead });
 }
 
-const wantsJson = process.argv.includes("--json");
-if (wantsJson) {
-  console.log(JSON.stringify({ totalClasses, totalUnreferenced, totalRuntime, report }, null, 2));
-} else {
-  for (const entry of report) {
-    console.log(
-      `${entry.file}\n  classes=${entry.classes}  unreferenced=${entry.unreferenced.length}  runtime-completed=${entry.runtimeCompleted.length}`,
-    );
-    if (entry.unreferenced.length) {
-      console.log(`  ${entry.unreferenced.join(", ")}`);
-    }
-  }
-  console.log(
-    `\nTOTAL classes=${totalClasses}  unreferenced=${totalUnreferenced}  runtime-completed=${totalRuntime}`,
-  );
-  console.log(
-    "\nCandidates only. Each removal needs its own evidence and a before/after screenshot;\nno gate in this repository catches a wrong CSS deletion.",
-  );
+if (failed === 0) {
+  console.log(`[check:dead-css] ${total} class selectors, all reachable from product code.`);
+  process.exit(0);
 }
 
-console.error(`[check:dead-css] scanned ${relative(root, join(root, "src"))} and ${SOURCE_DIRS.length - 1} more`);
+console.error(`[check:dead-css] ${failed} class selector(s) no product code can render:\n`);
+for (const entry of report) console.error(`  ${entry.file}\n    ${entry.dead.join(", ")}`);
+console.error(
+  "\nRemove the rule, or render the class. If a rule is genuinely needed for markup\n" +
+  "this scanner cannot see, add the class to a literal in the component that owns it.\n" +
+  "Do not widen the scanner to count comments or tests — that is how ~170 dead rules\n" +
+  "accumulated behind a green check.",
+);
+process.exit(1);

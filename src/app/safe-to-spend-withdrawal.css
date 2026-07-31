@@ -8,10 +8,3 @@
  * Keep the normal dashboard entry action available while the planning model is
  * redesigned and validated from real use.
  */
-.safe-card-hero {
-  display: none !important;
-}
-
-.insights-dashboard .welcome-actions .insights-ghi-chi {
-  display: inline-flex;
-}
