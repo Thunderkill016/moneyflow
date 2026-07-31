@@ -43,7 +43,7 @@ test("auth form gates submission and resets a dependency-free Turnstile widget",
   assert.match(form, /pending \|\| captchaBlocked/);
   assert.match(turnstile, /moneyflow-auth-turnstile/);
   assert.match(turnstile, /turnstile\.render/);
-  assert.match(turnstile, /turnstile\?\.reset/);
+  assert.match(turnstile, /getTurnstile\(\)\?\.reset/);
   assert.match(turnstile, /CAPTCHA_TOKEN_FIELD/);
   assert.doesNotMatch(turnstile, /@hcaptcha|react-turnstile|marsidev/);
 });
