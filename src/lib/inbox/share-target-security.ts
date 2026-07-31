@@ -9,7 +9,7 @@ const TEXT_MIME_TYPES = new Set([
   "application/csv",
 ]);
 
-const TEXT_FILE_EXTENSIONS = [".csv", ".txt", ".tsv"] as const;
+const TEXT_FILE_EXTENSIONS = [".csv", ".txt", ".text", ".tsv"] as const;
 
 type SharedFileDescriptor = {
   name: string;
