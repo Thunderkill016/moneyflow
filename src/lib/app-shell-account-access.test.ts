@@ -46,11 +46,29 @@ test("mobile account trigger is hidden on desktop and visible at the mobile brea
   );
 });
 
-test("shell consistency layer avoids unreadable 10px KPI labels and glass topbars", () => {
+/*
+ * The topbar assertion that used to live here has been removed, and it is worth
+ * saying why rather than quietly dropping it.
+ *
+ * It required `ui-refresh.css` to contain
+ * `.topbar { background: var(--color-bg-elevated); … backdrop-filter: none }`,
+ * and it passed for as long as it existed. But `.topbar` is not in the DOM —
+ * `app-shell.tsx` renders `styles.topbar` from its CSS Module, and a DOM probe
+ * across five routes at two widths finds zero `.topbar` nodes. The rule it
+ * guarded never applied to anything.
+ *
+ * The real topbar, `app-shell.module.css:189`, is
+ * `background: color-mix(in srgb, var(--mf-canvas) 91%, transparent)` with
+ * `backdrop-filter: blur(16px)` — translucent and blurred, which is exactly the
+ * "glass topbar" this test claimed to prevent. So the assertion was not merely
+ * inert: it reported the opposite of the truth for as long as it was green.
+ *
+ * Pointing it at the CSS Module instead would turn it red immediately. Whether
+ * the shipped glass topbar is correct is a design decision — the Calm Ledger
+ * direction may well have chosen it deliberately — and that decision is not this
+ * change's to make. Recorded in the work packet for the owner.
+ */
+test("shell consistency layer avoids unreadable 10px KPI labels", () => {
   assert.doesNotMatch(shellCss, /\.insights-kpi[\s\S]{0,300}font-size:\s*10px/);
-  assert.match(
-    shellCss,
-    /\.topbar\s*\{[\s\S]*?background:\s*var\(--color-bg-elevated\)[\s\S]*?backdrop-filter:\s*none/,
-  );
   assert.match(shellCss, /\.insights-kpi small\s*\{[\s\S]*?font-size:\s*12px/);
 });
