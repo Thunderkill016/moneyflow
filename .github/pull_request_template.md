@@ -10,8 +10,22 @@
 
 - Existing implementation reused:
 - Relevant tests/history reviewed:
-- External research and primary sources, if required:
+- Decision question researched:
+- Reference map consulted:
+- Selected sources (two to four by default):
+- What those sources establish:
+- Important source limits or patterns intentionally not copied:
 - Important unknowns or assumptions:
+
+### Tool, dependency or architecture adoption
+
+<!-- Write Not applicable when the PR adds no tool, dependency, provider, service, framework or architecture pattern. -->
+
+- Observed problem and simpler alternatives:
+- License/code-reuse compatibility:
+- Secrets, user-data and privacy exposure:
+- Runtime/deployment/operational ownership:
+- Migration, rollback and removal condition:
 
 ## Changes
 
@@ -40,6 +54,9 @@ Evidence/CI links:
 ## Product, financial and security review
 
 - [ ] Acceptance criteria are observable and satisfied.
+- [ ] Research scope was bounded and selected sources remain applicable to the final diff.
+- [ ] Studied repositories did not silently expand product or architecture scope.
+- [ ] Any new tool/dependency/pattern passed license, security, ownership and rollback review, or is not applicable.
 - [ ] No missing financial data was guessed.
 - [ ] Integer VND and transfer invariants remain intact.
 - [ ] Ownership/RLS implications were reviewed.
