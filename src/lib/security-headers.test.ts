@@ -31,7 +31,7 @@ test("CSP restricts every high-value browser capability", () => {
   assert.ok(policy.includes("https://va.vercel-scripts.com"));
   assert.ok(policy.includes("https://vitals.vercel-insights.com"));
   assert.doesNotMatch(policy, /'unsafe-eval'/);
-  assert.match(policy, /upgrade-insecure-requests/);
+  assert.doesNotMatch(policy, /upgrade-insecure-requests/);
 });
 
 test("development CSP permits React debugging eval without weakening production", () => {
@@ -39,8 +39,12 @@ test("development CSP permits React debugging eval without weakening production"
   const production = buildContentSecurityPolicy(true);
 
   assert.match(development, /'unsafe-eval'/);
-  assert.doesNotMatch(development, /upgrade-insecure-requests/);
   assert.doesNotMatch(production, /'unsafe-eval'/);
+});
+
+test("CSP remains transport-neutral for HTTP production-build audits", () => {
+  const policy = buildContentSecurityPolicy(true);
+  assert.doesNotMatch(policy, /upgrade-insecure-requests/);
 });
 
 test("security headers keep clickjacking, MIME and opener isolation controls", () => {
