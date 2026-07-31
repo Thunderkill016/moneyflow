@@ -21,7 +21,7 @@ const REQUIRED_DIRECTIVES = [
 ] as const;
 
 test("CSP restricts every high-value browser capability", () => {
-  const policy = buildContentSecurityPolicy(false);
+  const policy = buildContentSecurityPolicy(true);
   for (const directive of REQUIRED_DIRECTIVES) {
     assert.ok(policy.includes(directive), `missing CSP directive: ${directive}`);
   }
@@ -31,11 +31,16 @@ test("CSP restricts every high-value browser capability", () => {
   assert.ok(policy.includes("https://va.vercel-scripts.com"));
   assert.ok(policy.includes("https://vitals.vercel-insights.com"));
   assert.doesNotMatch(policy, /'unsafe-eval'/);
-  assert.doesNotMatch(policy, /upgrade-insecure-requests/);
+  assert.match(policy, /upgrade-insecure-requests/);
 });
 
-test("production CSP upgrades insecure subresources", () => {
-  assert.match(buildContentSecurityPolicy(true), /upgrade-insecure-requests/);
+test("development CSP permits React debugging eval without weakening production", () => {
+  const development = buildContentSecurityPolicy(false);
+  const production = buildContentSecurityPolicy(true);
+
+  assert.match(development, /'unsafe-eval'/);
+  assert.doesNotMatch(development, /upgrade-insecure-requests/);
+  assert.doesNotMatch(production, /'unsafe-eval'/);
 });
 
 test("security headers keep clickjacking, MIME and opener isolation controls", () => {
