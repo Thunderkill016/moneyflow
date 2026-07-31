@@ -191,6 +191,11 @@ begin
 end;
 $$;
 
+-- Give B two active accounts so the foreign-account archive call cannot stop
+-- at the unrelated last_active_account guard before checking row ownership.
+insert into security_ctx values
+  ('b_account_2', public.create_financial_account('B second', 'bank', 0, 'VND'));
+
 insert into security_results values
   ('rls_account_read', not exists (
     select 1 from public.accounts
