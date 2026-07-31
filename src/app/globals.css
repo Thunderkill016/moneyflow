@@ -1591,13 +1591,16 @@ a.desktop-search-link:hover { border-color: #9abda8; }
  * measured at 1366x900, `.account-dialog` rendered at [0,0,510,574] and
  * `.transaction-dialog` at [0,0,580,820].
  *
- * Specificity matters here. `dialog:modal` is (0,1,1); the phone bottom-sheet
- * override below is `.account-dialog`, which is only (0,1,0), so this rule would
- * have beaten it regardless of order and flattened the sheet. The phone rule is
- * therefore written as `dialog.account-dialog` to match this specificity and win
- * on source order instead. Keep both in step if either moves.
+ * Specificity is deliberately zero. `:where()` contributes nothing, so every
+ * bottom-sheet rule — the phone override below at (0,1,0), and the app-shell
+ * capture sheet's own CSS Module class, which is also (0,1,0) — still wins
+ * without needing to be rewritten. A bare `dialog:modal` would be (0,1,1) and
+ * would have beaten all of them, flattening those sheets into centred cards.
+ *
+ * It still beats Preflight, which is also (0,0,0) but appears earlier in this
+ * file via `@import "tailwindcss"`, so source order decides.
  */
-dialog:modal { margin: auto; }
+:where(dialog:modal) { margin: auto; }
 
 .account-dialog { width: min(510px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 22px; background: white; padding: 27px; color: var(--ink); box-shadow: 0 30px 90px rgb(5 29 15 / 24%); }
 .account-dialog::backdrop { background: rgb(9 25 16 / 45%); backdrop-filter: blur(6px); }
@@ -2462,11 +2465,8 @@ dialog:modal { margin: auto; }
   }
   a.mobile-fab { color: white; }
   .mobile-fab svg { width: 22px; }
-  /* `dialog.` prefix is load-bearing: it lifts these to the same (0,1,1)
-     specificity as the `dialog:modal { margin: auto }` rule above so this
-     bottom-sheet layout still wins, by source order. */
-  dialog.transaction-dialog,
-  dialog.account-dialog {
+  .transaction-dialog,
+  .account-dialog {
     width: 100%;
     max-width: none;
     max-height: min(92dvh, 100%);

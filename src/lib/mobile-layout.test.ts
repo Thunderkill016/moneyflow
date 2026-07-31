@@ -90,18 +90,9 @@ test("CSS: FAB sits above nav and content end clears FAB", () => {
 test("CSS: dialogs full-width bottom sheets on mobile", () => {
   const block = mobileBlock(css());
   // Selector list (not the earlier comment that mentions the class name).
-  //
-  // The `dialog` element prefix is required, not optional. `dialog:modal` carries
-  // (0,1,1) specificity and would otherwise beat a bare `.account-dialog` at
-  // (0,1,0) and flatten this sheet back into a centred card. Matching it here
-  // keeps the two rules from drifting apart.
-  const dialogRule =
-    /dialog\.transaction-dialog\s*,\s*\n?\s*dialog\.account-dialog\s*\{[\s\S]{0,400}?\}/;
+  const dialogRule = /\.transaction-dialog\s*,\s*\n?\s*\.account-dialog\s*\{[\s\S]{0,400}?\}/;
   const match = block.match(dialogRule);
-  assert.ok(
-    match,
-    "expected dialog.transaction-dialog, dialog.account-dialog mobile rule",
-  );
+  assert.ok(match, "expected .transaction-dialog, .account-dialog mobile rule");
   const dialogSlice = match[0];
   // Full bleed sheet (not centered card with side margins).
   assert.match(dialogSlice, /width:\s*100%/);
@@ -128,4 +119,20 @@ test("CSS: touch-visible row actions on mobile (no hover-only opacity)", () => {
   const block = mobileBlock(css());
   assert.match(block, /\.delete-button/);
   assert.match(block, /opacity:\s*1/);
+});
+
+test("CSS: modal centring cannot outrank bottom-sheet layouts", () => {
+  const source = css();
+
+  // Issue #145 fix. `:where()` contributes zero specificity, so every bottom-sheet
+  // rule still wins: the phone override in this file at (0,1,0), and the capture
+  // chooser's own CSS Module class, also (0,1,0). A bare `dialog:modal` would be
+  // (0,1,1) and would flatten all of them into floating cards — which is exactly
+  // what happened on the first attempt at this fix.
+  assert.match(source, /:where\(dialog:modal\)\s*\{[^}]*margin:\s*auto/);
+  assert.doesNotMatch(
+    source,
+    /(^|\n)\s*dialog:modal\s*\{/,
+    "dialog:modal must stay wrapped in :where() so sheet rules keep winning",
+  );
 });
