@@ -39,7 +39,7 @@ const copy = {
   update: {
     eyebrow: "Bảo vệ tài khoản",
     title: "Đặt mật khẩu mới",
-    description: "Chọn mật khẩu mới có ít nhất 8 ký tự.",
+    description: "Chọn mật khẩu mới có ít nhất 12 ký tự.",
     submit: "Cập nhật mật khẩu",
   },
 } satisfies Record<
@@ -239,7 +239,7 @@ export function AuthForm({
                   autoComplete={
                     mode === "login" ? "current-password" : "new-password"
                   }
-                  placeholder="Ít nhất 8 ký tự"
+                  placeholder="Ít nhất 12 ký tự"
                   aria-invalid={Boolean(state.errors?.password)}
                   aria-describedby={
                     state.errors?.password ? passwordErrorId : undefined
