@@ -1,3 +1,5 @@
+import type { TransactionSourceKind } from "./transaction-metadata";
+
 export type TransactionKind = "expense" | "income";
 
 /** Multi-entry expense lines (TASK-128). Present when one chi is split across categories. */
@@ -20,6 +22,12 @@ export type Transaction = {
   isRecurringPayment?: boolean;
   /** 2+ lines when expense is split across categories (ledger multi-entry). */
   splits?: TransactionSplitLine[];
+  /** Immutable origin assigned by trusted creation paths. */
+  sourceKind: TransactionSourceKind;
+  /** Stable external/import reference when one exists. */
+  sourceReference?: string;
+  /** Account sides that the user has matched against an external statement. */
+  clearedAccountIds: string[];
   amount: number;
   occurredOn: string;
   occurredAt: string;
@@ -125,6 +133,8 @@ export const sampleTransactions: Transaction[] = [
     note: "Cơm trưa",
     accountId: "demo-account-mb",
     account: "MB Bank",
+    sourceKind: "manual",
+    clearedAccountIds: [],
     amount: 63_000,
     occurredOn: "2026-07-14",
     occurredAt: "2026-07-14T05:10:00.000Z",
@@ -138,6 +148,8 @@ export const sampleTransactions: Transaction[] = [
     note: "Grab đi làm",
     accountId: "demo-account-momo",
     account: "MoMo",
+    sourceKind: "manual",
+    clearedAccountIds: [],
     amount: 42_000,
     occurredOn: "2026-07-14",
     occurredAt: "2026-07-14T01:15:00.000Z",
@@ -151,6 +163,8 @@ export const sampleTransactions: Transaction[] = [
     note: "Đồ dùng cá nhân",
     accountId: "demo-account-mb",
     account: "MB Bank",
+    sourceKind: "manual",
+    clearedAccountIds: [],
     amount: 286_000,
     occurredOn: "2026-07-13",
     occurredAt: "2026-07-13T11:30:00.000Z",
@@ -164,6 +178,8 @@ export const sampleTransactions: Transaction[] = [
     note: "Lương tháng 7",
     accountId: "demo-account-mb",
     account: "MB Bank",
+    sourceKind: "manual",
+    clearedAccountIds: [],
     amount: 15_000_000,
     occurredOn: "2026-07-10",
     occurredAt: "2026-07-10T02:00:00.000Z",
