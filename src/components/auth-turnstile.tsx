@@ -10,7 +10,7 @@ import {
 type TurnstileRenderOptions = {
   sitekey: string;
   theme: "auto";
-  size: "flexible";
+  size: "flexible" | "compact";
   appearance: "interaction-only";
   language: "vi";
   retry: "auto";
@@ -66,10 +66,14 @@ export function AuthTurnstile({
       return;
     }
 
+    const size = window.matchMedia("(max-width: 380px)").matches
+      ? "compact"
+      : "flexible";
+
     widgetIdRef.current = turnstile.render(container, {
       sitekey: siteKey,
       theme: "auto",
-      size: "flexible",
+      size,
       appearance: "interaction-only",
       language: "vi",
       retry: "auto",
@@ -98,11 +102,7 @@ export function AuthTurnstile({
   }, [onTokenChange, scriptReady, siteKey]);
 
   useEffect(() => {
-    if (
-      wasPendingRef.current &&
-      !pending &&
-      widgetIdRef.current
-    ) {
+    if (wasPendingRef.current && !pending && widgetIdRef.current) {
       getTurnstile()?.reset(widgetIdRef.current);
       onTokenChange("");
       setStatus("Đang xác minh lại cho lần thử tiếp theo…");
@@ -111,7 +111,10 @@ export function AuthTurnstile({
   }, [onTokenChange, pending]);
 
   return (
-    <div className={className}>
+    <div
+      className={className}
+      style={{ display: "grid", gap: 6, minWidth: 0 }}
+    >
       <Script
         id="moneyflow-auth-turnstile"
         src={TURNSTILE_SCRIPT_URL}
@@ -122,7 +125,7 @@ export function AuthTurnstile({
         }
       />
       <input type="hidden" name={CAPTCHA_TOKEN_FIELD} value={token} />
-      <div ref={containerRef} />
+      <div ref={containerRef} style={{ maxWidth: "100%", overflow: "hidden" }} />
       <small role="status" aria-live="polite">
         {status}
       </small>
