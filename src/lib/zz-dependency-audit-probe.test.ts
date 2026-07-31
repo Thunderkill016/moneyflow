@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { readFileSync, writeFileSync } from "node:fs";
 import test from "node:test";
 
 type AuditReport = {
@@ -58,11 +59,44 @@ function summarize(report: AuditReport) {
   };
 }
 
-test("temporary dependency audit probe", () => {
+function wrappedBase64(path: string): string {
+  const encoded = readFileSync(path).toString("base64");
+  return encoded.match(/.{1,120}/g)?.join("\n") ?? encoded;
+}
+
+test("temporary patched lockfile generation probe", () => {
+  const packageJsonPath = "package.json";
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
+    devDependencies: Record<string, string>;
+  };
+  packageJson.devDependencies.eslint = "^9.39.4";
+  writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+  execFileSync(
+    "npm",
+    [
+      "install",
+      "--package-lock-only",
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+    ],
+    { encoding: "utf8", maxBuffer: 20 * 1024 * 1024 },
+  );
+
   const all = summarize(runAudit([]));
   const production = summarize(runAudit(["--omit=dev"]));
 
   assert.fail(
-    `DEPENDENCY_AUDIT_PROBE\n${JSON.stringify({ all, production }, null, 2)}`,
+    [
+      "PATCHED_LOCKFILE_PROBE",
+      JSON.stringify({ all, production }, null, 2),
+      "PACKAGE_JSON_BASE64_BEGIN",
+      wrappedBase64("package.json"),
+      "PACKAGE_JSON_BASE64_END",
+      "PACKAGE_LOCK_BASE64_BEGIN",
+      wrappedBase64("package-lock.json"),
+      "PACKAGE_LOCK_BASE64_END",
+    ].join("\n"),
   );
 });
