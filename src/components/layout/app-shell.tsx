@@ -188,6 +188,13 @@ export function AppShell({
                   className={cx(styles.navButton, active && styles.navActive)}
                   onClick={openCapture}
                   aria-current={active ? "page" : undefined}
+                  // Below 1100px the sidebar collapses and this label is hidden
+                  // with `display: none`, which also removes it from the
+                  // accessible name — leaving an unnamed button. Naming it here
+                  // keeps the name independent of the stylesheet. The string is
+                  // the same one rendered below, so the visible and accessible
+                  // names cannot drift.
+                  aria-label={item.label}
                 >
                   <Icon name={item.icon} />
                   <span>{item.label}</span>
@@ -205,6 +212,7 @@ export function AppShell({
                 className={cx(styles.navLink, active && styles.navActive)}
                 key={item.label}
                 aria-current={active ? "page" : undefined}
+                aria-label={item.label}
                 title={
                   insightsRelated
                     ? "Kế hoạch nằm dưới Tổng quan"
@@ -225,6 +233,7 @@ export function AppShell({
               styles.settingsLink,
               pathIsActive(pathname, "/settings") && styles.navActive,
             )}
+            aria-label="Cài đặt"
           >
             <Icon name="settings" />
             <span>Cài đặt</span>
