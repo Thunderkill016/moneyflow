@@ -71,22 +71,33 @@ test("Q5: demo banner is top sticky, never fixed bottom over FAB", () => {
   assert.match(block, /z-index:\s*var\(--z-sticky\)/);
 });
 
-test("Q5: mobile FAB z-index is above demo banner sticky layer", () => {
+/*
+ * The `.mobile-fab` half of this test has been removed, and the rest of the Q5
+ * suite needs an owner's decision rather than a quiet rewrite.
+ *
+ * What it asserted: a fixed `.mobile-fab` rule carrying `var(--z-mobile-fab)`,
+ * and a `.mobile-nav` rule carrying `var(--z-mobile-nav)`, so the FAB would layer
+ * above a sticky demo banner. None of those three classes is in the DOM. The real
+ * bottom nav is `styles.mobileNav` and uses a literal `z-index: 50`; the tokens
+ * `--z-mobile-fab: 34` and `--z-mobile-nav: 35` are defined in globals.css and
+ * referenced by nothing.
+ *
+ * The banner is the larger problem. `.demo-mode-banner` is not in the DOM either —
+ * the shell renders `styles.demoBanner`, which is `margin: 18px auto 0` in normal
+ * flow with no z-index and nothing sticky about it. So this suite's entire premise,
+ * a sticky banner that a floating button must out-layer, describes a UI that was
+ * replaced. Rewriting it means deciding what the demo banner's contract now is,
+ * which is not a cleanup decision. Recorded in the work packet.
+ *
+ * What survives is the token ordering itself, which still documents intent.
+ */
+test("Q5: mobile chrome z-tokens stay ordered above the sticky layer", () => {
   const source = css();
   const sticky = cssVarInt(source, "--z-sticky");
   const fabZ = cssVarInt(source, "--z-mobile-fab");
   const navZ = cssVarInt(source, "--z-mobile-nav");
   assert.ok(fabZ > sticky, `FAB z (${fabZ}) must exceed sticky banner (${sticky})`);
   assert.ok(navZ > fabZ, `nav z (${navZ}) should sit above FAB (${fabZ})`);
-
-  // Fixed bottom FAB must use the mobile-fab token (not a bare z that can drift under banner)
-  const fixedFab = source.match(
-    /\.mobile-fab\s*\{[^}]*position:\s*fixed[^}]*\}/,
-  );
-  assert.ok(fixedFab, "expected fixed .mobile-fab rule");
-  assert.match(fixedFab[0], /z-index:\s*var\(--z-mobile-fab\)/);
-  assert.match(fixedFab[0], /bottom:\s*calc/);
-  assert.match(source, /\.mobile-nav\s*\{[^}]*z-index:\s*var\(--z-mobile-nav\)/);
 });
 
 test("Q5: mobile demo banner stays single-line so it cannot grow over FAB", () => {

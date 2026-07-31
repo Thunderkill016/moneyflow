@@ -14,6 +14,10 @@ const shellCss = readFileSync(
   new URL("../app/ui-refresh.css", import.meta.url),
   "utf8",
 );
+const shellModuleCss = readFileSync(
+  new URL("../components/layout/app-shell.module.css", import.meta.url),
+  "utf8",
+);
 
 test("desktop account menu submits the server sign-out action explicitly", () => {
   assert.match(userChipSource, /action=\{signOut\}/);
@@ -35,15 +39,20 @@ test("mobile topbar opens an account sheet with a real sign-out form", () => {
   );
 });
 
+/*
+ * This used to read `ui-refresh.css` for `.mobile-account-button`. That class is
+ * not in the DOM — `app-shell.tsx` renders `styles.mobileAccountButton` — so the
+ * rules it asserted never applied, and the test passed no matter what the real
+ * trigger did. Repointed at the module that owns it.
+ */
 test("mobile account trigger is hidden on desktop and visible at the mobile breakpoint", () => {
-  assert.match(
-    shellCss,
-    /\.mobile-account-button\s*\{[\s\S]*?display:\s*none;/,
+  assert.match(shellModuleCss, /\.mobileAccountButton\s*\{\s*display:\s*none;/);
+  const phone = shellModuleCss.slice(
+    shellModuleCss.indexOf("@media (max-width: 760px)"),
   );
-  assert.match(
-    shellCss,
-    /@media \(max-width: 760px\)[\s\S]*?\.mobile-account-button\s*\{[\s\S]*?display:\s*grid;/,
-  );
+  const idx = phone.indexOf(".mobileAccountButton {");
+  assert.ok(idx >= 0, "expected .mobileAccountButton in the module's phone block");
+  assert.match(phone.slice(idx, idx + 300), /display:\s*grid;/);
 });
 
 /*

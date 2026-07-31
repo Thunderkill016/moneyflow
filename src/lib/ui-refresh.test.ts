@@ -18,12 +18,16 @@ test("product UI refresh is isolated behind the legacy compatibility entry", () 
 test("UI refresh preserves the mobile-first finance interaction contract", () => {
   assert.match(refresh, /\.insights-kpi\s*\{/);
   assert.match(refresh, /grid-template-columns:\s*repeat\(4,/);
-  assert.match(refresh, /\.safe-card\s*\{/);
-  assert.match(refresh, /\.mobile-fab\s*\{/);
-  assert.match(refresh, /\.mobile-nav\s*\{/);
+  // `.safe-card`, `.mobile-fab` and `.mobile-nav` used to be asserted here. None
+  // of the three is in the DOM — the bottom nav is `styles.mobileNav` from
+  // app-shell.module.css, the FAB was removed by the Calm Ledger redesign, and
+  // `.safe-card` has no `className` anywhere. Their rules have been deleted, and
+  // the module-level contract is asserted in src/lib/mobile-layout.test.ts.
   assert.match(refresh, /@media \(max-width: 760px\)/);
   assert.match(refresh, /grid-template-columns:\s*repeat\(2,/);
-  assert.match(refresh, /env\(safe-area-inset-bottom, 0px\)/);
+  // The safe-area assertion went with them: every `env(safe-area-inset-bottom)`
+  // in this layer sat inside those same dead rules, and the file now has none.
+  // Notch handling belongs to app-shell.module.css, which is where it is asserted.
 });
 
 test("UI refresh keeps keyboard and reduced-motion accessibility visible", () => {
