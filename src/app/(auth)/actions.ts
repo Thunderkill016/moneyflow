@@ -4,6 +4,12 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import {
+  CAPTCHA_TOKEN_FIELD,
+  captchaTokenRequiredButMissing,
+  getPublicAuthCaptchaConfig,
+  normalizeCaptchaToken,
+} from "@/lib/auth-captcha";
 import { POST_AUTH_REDIRECT, safeNextPath } from "@/lib/auth-redirect";
 import {
   PASSWORD_MAX_LENGTH,
@@ -53,6 +59,28 @@ function configurationError(): AuthState {
   };
 }
 
+function captchaFailure(): AuthState {
+  return {
+    message:
+      "Không thể xác minh bảo mật. Hoàn thành bước xác minh rồi thử lại.",
+  };
+}
+
+function readCaptchaToken(formData: FormData):
+  | { ok: true; token: string | undefined }
+  | { ok: false; state: AuthState } {
+  const config = getPublicAuthCaptchaConfig();
+  const token = normalizeCaptchaToken(formData.get(CAPTCHA_TOKEN_FIELD));
+  if (captchaTokenRequiredButMissing(config, token)) {
+    return { ok: false, state: captchaFailure() };
+  }
+  return { ok: true, token };
+}
+
+function isCaptchaError(error: { code?: string } | null): boolean {
+  return error?.code === "captcha_failed";
+}
+
 export async function login(
   _: AuthState,
   formData: FormData,
@@ -63,9 +91,16 @@ export async function login(
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
 
+  const captcha = readCaptchaToken(formData);
+  if (!captcha.ok) return captcha.state;
+
   const supabase = await createClient();
   if (!supabase) return configurationError();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { error } = await supabase.auth.signInWithPassword({
+    ...parsed.data,
+    options: captcha.token ? { captchaToken: captcha.token } : undefined,
+  });
+  if (isCaptchaError(error)) return captchaFailure();
   if (error) return { message: "Email hoặc mật khẩu không đúng." };
 
   redirect(
@@ -85,6 +120,9 @@ export async function register(
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
 
+  const captcha = readCaptchaToken(formData);
+  if (!captcha.ok) return captcha.state;
+
   const nextPath = safeNextPath(
     String(formData.get("next") ?? ""),
     ONBOARDING_PATH,
@@ -97,8 +135,10 @@ export async function register(
     options: {
       data: { full_name: parsed.data.fullName },
       emailRedirectTo: `${getSiteOrigin()}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      captchaToken: captcha.token,
     },
   });
+  if (isCaptchaError(error)) return captchaFailure();
   if (error) {
     // Do not expose whether this address already exists. Provider logs retain
     // the exact error for operators; the public response stays neutral.
@@ -147,11 +187,16 @@ export async function requestPasswordReset(
     };
   }
 
+  const captcha = readCaptchaToken(formData);
+  if (!captcha.ok) return captcha.state;
+
   const supabase = await createClient();
   if (!supabase) return configurationError();
-  await supabase.auth.resetPasswordForEmail(parsed.data, {
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data, {
     redirectTo: `${getSiteOrigin()}/auth/callback?next=/update-password`,
+    captchaToken: captcha.token,
   });
+  if (isCaptchaError(error)) return captchaFailure();
 
   // Keep the response identical whether the email exists or not.
   return {
