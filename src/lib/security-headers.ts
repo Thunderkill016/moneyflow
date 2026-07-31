@@ -10,7 +10,7 @@ export function buildContentSecurityPolicy(
   ];
   if (!isProduction) scriptSources.push("'unsafe-eval'");
 
-  const directives = [
+  return [
     "default-src 'self'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
@@ -26,10 +26,7 @@ export function buildContentSecurityPolicy(
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     "frame-src 'none'",
-  ];
-
-  if (isProduction) directives.push("upgrade-insecure-requests");
-  return directives.join("; ");
+  ].join("; ");
 }
 
 export function buildSecurityHeaders(
