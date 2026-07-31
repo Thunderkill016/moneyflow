@@ -1,21 +1,9 @@
 /* Global PFM benchmark application — focused refinements only. */
 
 /* Insights: keep one clear primary action in the hero/FAB instead of repeating it in the heading. */
-.insights-dashboard .welcome-actions .insights-ghi-chi {
-  display: none;
-}
-
 /* Transactions: filter-aware four-part summary and calmer toolbar hierarchy. */
 .transaction-summary.transaction-summary-four {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.transaction-summary .summary-net-positive {
-  color: var(--color-success-text);
-}
-
-.transaction-summary .summary-net-negative {
-  color: var(--color-danger-text);
 }
 
 .manager-toolbar {

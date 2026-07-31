@@ -138,7 +138,10 @@ test("CSS: dialogs full-width bottom sheets on mobile", () => {
 
 test("CSS: tables / manager lists scroll horizontally instead of page overflow", () => {
   const source = css();
-  assert.match(source, /\.table-scroll\s*\{/);
+  // `.table-scroll` was asserted here and is gone: no product code renders it.
+  // The scroll container that exists is `.import-preview-table-scroll`, asserted
+  // below. An earlier check called `.table-scroll` live on a substring match
+  // against that longer name — the two are different classes.
   assert.match(source, /overflow-x:\s*auto/);
   assert.match(source, /\.manager-list\s*\{/);
   assert.match(source, /\.import-preview-table-scroll/);

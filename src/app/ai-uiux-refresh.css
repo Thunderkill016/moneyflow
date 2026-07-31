@@ -104,17 +104,6 @@
   justify-content: flex-end;
 }
 
-.insights-dashboard .date-pill {
-  min-height: 42px;
-  border: 1px solid var(--aiux-line) !important;
-  border-radius: var(--aiux-radius-control) !important;
-  background: var(--aiux-surface-soft) !important;
-  padding-inline: 13px !important;
-  color: var(--aiux-muted) !important;
-  font-size: 12px;
-  font-weight: 680;
-}
-
 /*
  * min-height is deliberately absent here. This block used to force 42px
  * !important, which overrode the 44px minimum target size that
@@ -433,14 +422,6 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
     gap: 8px !important;
-  }
-
-  .insights-dashboard .welcome-actions .insights-ghi-chi {
-    display: none !important;
-  }
-
-  .insights-dashboard .welcome-actions .date-pill {
-    display: none !important;
   }
 
   .insights-dashboard .welcome-actions .insights-export-csv {
