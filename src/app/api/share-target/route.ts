@@ -102,9 +102,14 @@ async function readBoundedFormData(
   }
 
   const limited = limitShareRequestBody(request.body);
+  const boundedHeaders = new Headers(request.headers);
+  boundedHeaders.delete("content-length");
+  boundedHeaders.delete("transfer-encoding");
+  boundedHeaders.delete("connection");
+
   const requestInit: RequestInit & { duplex: "half" } = {
     method: request.method,
-    headers: request.headers,
+    headers: boundedHeaders,
     body: limited.stream,
     duplex: "half",
   };
