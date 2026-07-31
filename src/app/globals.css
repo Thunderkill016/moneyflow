@@ -637,22 +637,18 @@ select:focus-visible {
 .budget-track span { display: block; height: 100%; border-radius: inherit; background: var(--mf-brand); transition: width .35s ease; }
 .budget-foot { display: flex; justify-content: space-between; margin-top: 10px; color: var(--mf-text-muted); font-size: 9px; }
 .budget-foot strong { color: var(--ink); font-weight: 630; }
-.budget-empty,
 .planning-card-empty {
   margin-top: 22px;
   border-radius: 13px;
   background: var(--mf-surface-muted);
   padding: 15px;
 }
-.budget-empty p,
 .planning-card-empty p {
   margin: 0;
   color: var(--muted);
   font-size: 10px;
   line-height: 1.5;
 }
-.budget-empty button,
-.budget-empty a,
 .planning-card-empty-cta,
 .panel-empty button {
   display: inline-block;
@@ -1009,9 +1005,6 @@ select:focus-visible {
 .budget-category-top > strong { color: var(--green); font-size: 14px; }
 .budget-status-text { font-weight: 650; }
 .budget-status-remaining { font-weight: 500; opacity: 0.9; }
-.budget-category-numbers { display: flex; align-items: baseline; gap: 4px; margin-top: 18px; }
-.budget-category-numbers span:first-child { font-size: 17px; font-weight: 680; }
-.budget-category-numbers span:last-child { color: var(--muted); font-size: 9px; }
 .planning-card--over .budget-track span { background: var(--mf-expense); }
 .budget-panel-near .budget-status-text { color: #ea580c; font-weight: 650; }
 .budget-panel-over .budget-status-text { color: var(--danger); font-weight: 650; }
@@ -1620,8 +1613,8 @@ select:focus-visible {
 .primary-button { border-radius: 13px; background: linear-gradient(145deg, #167044, #0c5632); box-shadow: 0 9px 24px rgb(15 91 53 / 19%); }
 .primary-button:hover { background: linear-gradient(145deg, #12643b, #074426); box-shadow: 0 12px 28px rgb(15 91 53 / 25%); }
 .secondary-button { border-color: #bfd2c5; border-radius: 13px; }
-.panel, .report-panel, .report-metrics, .account-card, .budget-card, .goal-card, .commitment-card, .planning-card { border-color: var(--mf-border); box-shadow: var(--shadow); }
-.panel:hover, .account-card:hover, .budget-card:hover, .goal-card:hover, .commitment-card:hover, .planning-card:hover { border-color: #cbdcd1; }
+.panel, .report-panel, .report-metrics, .account-card, .goal-card, .commitment-card, .planning-card { border-color: var(--mf-border); box-shadow: var(--shadow); }
+.panel:hover, .account-card:hover, .goal-card:hover, .commitment-card:hover, .planning-card:hover { border-color: #cbdcd1; }
 
 .account-form input, .account-form select, .transaction-dialog input, .transaction-dialog select, .manager-toolbar input, .manager-toolbar select { border-color: var(--mf-border); background-color: #fbfdfb; }
 .account-form input:focus, .account-form select:focus, .transaction-dialog input:focus, .transaction-dialog select:focus, .manager-toolbar input:focus, .manager-toolbar select:focus { border-color: #76a98a; background: white; box-shadow: 0 0 0 4px rgb(18 99 60 / 8%); }
@@ -4920,7 +4913,6 @@ body {
 .panel,
 .report-panel,
 .account-card,
-.budget-card,
 .goal-card,
 .commitment-card,
 .planning-card {
@@ -4932,7 +4924,6 @@ body {
 
 .panel:hover,
 .account-card:hover,
-.budget-card:hover,
 .goal-card:hover,
 .commitment-card:hover,
 .planning-card:hover {
@@ -4958,7 +4949,6 @@ body {
 }
 
 .panel-empty p,
-.budget-empty p,
 .planning-card-empty:not(.planning-card-empty-inline) p {
   font-size: 13px !important;
   line-height: 1.5 !important;
