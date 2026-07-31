@@ -13,15 +13,19 @@ create temporary table security_results (
   passed boolean not null,
   detail text not null
 ) on commit drop;
+create temporary table security_attack_cases (
+  test text primary key,
+  statement text not null,
+  expected text not null
+) on commit drop;
+
 grant select, insert, update, delete on security_ctx to authenticated;
 grant select, insert, update, delete on security_setup to authenticated;
 grant select, insert, update, delete on security_results to authenticated;
+grant select, insert, update, delete on security_attack_cases to authenticated;
 
-create or replace procedure pg_temp.record_security_call(
-  p_test text,
-  p_sql text,
-  p_expected text
-)
+create or replace function pg_temp.security_call_error(p_sql text)
+returns text
 language plpgsql
 as $$
 declare
@@ -29,15 +33,14 @@ declare
 begin
   begin
     execute p_sql;
-    insert into security_results values (p_test, false, 'unexpected_success');
+    return 'unexpected_success';
   exception when others then
     get stacked diagnostics v_detail = message_text;
-    insert into security_results values (p_test, v_detail = p_expected, v_detail);
+    return v_detail;
   end;
 end;
 $$;
-grant execute on procedure pg_temp.record_security_call(text, text, text)
-  to authenticated;
+grant execute on function pg_temp.security_call_error(text) to authenticated;
 
 -- These identities and every generated tenant row are transaction-scoped and
 -- rolled back. The normal Auth trigger creates profiles, accounts and categories.
@@ -243,7 +246,8 @@ insert into security_results values
     (select id from security_ctx where key = 'a_tx_deleted')
   ) = false, 'foreign transaction restore must return false');
 
-call pg_temp.record_security_call(
+insert into security_attack_cases
+select
   'create_tx_foreign_account',
   format(
     'select public.create_money_transaction(%L::uuid,%L::uuid,''expense'',1000,current_date,''attack'',%L::uuid)',
@@ -251,9 +255,9 @@ call pg_temp.record_security_call(
     (select id from security_ctx where key = 'a_expense_category'),
     '00000000-0000-4000-8000-00000000bb11'
   ),
-  'account_not_found'
-);
-call pg_temp.record_security_call(
+  'account_not_found';
+insert into security_attack_cases
+select
   'create_transfer_foreign_accounts',
   format(
     'select public.create_account_transfer(%L::uuid,%L::uuid,500,current_date,''attack'',%L::uuid)',
@@ -261,9 +265,9 @@ call pg_temp.record_security_call(
     (select id from security_ctx where key = 'a_account_2'),
     '00000000-0000-4000-8000-00000000bb12'
   ),
-  'account_not_found'
-);
-call pg_temp.record_security_call(
+  'account_not_found';
+insert into security_attack_cases
+select
   'create_split_foreign_account',
   format(
     'select public.create_split_expense(%L::uuid,%L::jsonb,current_date,''attack'',%L::uuid)',
@@ -282,9 +286,9 @@ call pg_temp.record_security_call(
     )::text,
     '00000000-0000-4000-8000-00000000bb13'
   ),
-  'account_not_found'
-);
-call pg_temp.record_security_call(
+  'account_not_found';
+insert into security_attack_cases
+select
   'update_foreign_tx',
   format(
     'select public.update_money_transaction(%L::uuid,%L::uuid,%L::uuid,''expense'',1000,current_date,''attack'')',
@@ -292,9 +296,9 @@ call pg_temp.record_security_call(
     (select id from security_ctx where key = 'b_account_1'),
     (select id from security_ctx where key = 'b_expense_category')
   ),
-  'transaction_not_found'
-);
-call pg_temp.record_security_call(
+  'transaction_not_found';
+insert into security_attack_cases
+select
   'update_foreign_transfer',
   format(
     'select public.update_account_transfer(%L::uuid,%L::uuid,%L::uuid,500,current_date,''attack'')',
@@ -302,17 +306,17 @@ call pg_temp.record_security_call(
     (select id from security_ctx where key = 'b_account_1'),
     (select id from security_ctx where key = 'a_account_2')
   ),
-  'transaction_not_found'
-);
-call pg_temp.record_security_call(
+  'transaction_not_found';
+insert into security_attack_cases
+select
   'upsert_budget_foreign_category',
   format(
     'select public.upsert_monthly_budget(%L::uuid,date_trunc(''month'',current_date)::date,1000)',
     (select id from security_ctx where key = 'a_expense_category')
   ),
-  'category_not_found'
-);
-call pg_temp.record_security_call(
+  'category_not_found';
+insert into security_attack_cases
+select
   'update_foreign_commitment',
   format(
     'select public.upsert_recurring_commitment(%L::uuid,''attack'',1000,5,%L::uuid,%L::uuid)',
@@ -320,18 +324,18 @@ call pg_temp.record_security_call(
     (select id from security_ctx where key = 'b_account_1'),
     (select id from security_ctx where key = 'b_expense_category')
   ),
-  'commitment_not_found'
-);
-call pg_temp.record_security_call(
+  'commitment_not_found';
+insert into security_attack_cases
+select
   'pay_foreign_commitment',
   format(
     'select public.pay_recurring_commitment(%L::uuid,date_trunc(''month'',current_date)::date,current_date,%L::uuid)',
     (select id from security_ctx where key = 'a_commitment'),
     '00000000-0000-4000-8000-00000000bb14'
   ),
-  'commitment_not_found'
-);
-call pg_temp.record_security_call(
+  'commitment_not_found';
+insert into security_attack_cases
+select
   'update_foreign_income_template',
   format(
     'select public.upsert_recurring_income_template(%L::uuid,''attack'',1000,5,%L::uuid,%L::uuid)',
@@ -339,33 +343,52 @@ call pg_temp.record_security_call(
     (select id from security_ctx where key = 'b_account_1'),
     (select id from security_ctx where key = 'b_income_category')
   ),
-  'income_template_not_found'
-);
-call pg_temp.record_security_call(
+  'income_template_not_found';
+insert into security_attack_cases
+select
   'record_foreign_income',
   format(
     'select public.record_recurring_income_template(%L::uuid,date_trunc(''month'',current_date)::date,current_date,%L::uuid)',
     (select id from security_ctx where key = 'a_income_template'),
     '00000000-0000-4000-8000-00000000bb15'
   ),
-  'income_template_not_found'
-);
-call pg_temp.record_security_call(
+  'income_template_not_found';
+insert into security_attack_cases
+select
   'update_foreign_goal',
   format(
     'select public.upsert_savings_goal(%L::uuid,''attack'',100000,null)',
     (select id from security_ctx where key = 'a_goal')
   ),
-  'goal_not_found_or_target_below_allocated'
-);
-call pg_temp.record_security_call(
+  'goal_not_found_or_target_below_allocated';
+insert into security_attack_cases
+select
   'adjust_foreign_goal',
   format(
     'select public.adjust_savings_goal(%L::uuid,100)',
     (select id from security_ctx where key = 'a_goal')
   ),
-  'goal_not_found'
-);
+  'goal_not_found';
+
+do $$
+declare
+  attack record;
+  actual text;
+begin
+  for attack in
+    select test, statement, expected
+    from security_attack_cases
+    order by test
+  loop
+    actual := pg_temp.security_call_error(attack.statement);
+    insert into security_results values (
+      attack.test,
+      actual = attack.expected,
+      actual
+    );
+  end loop;
+end;
+$$;
 
 reset role;
 select ok(passed, test || ': ' || detail)
