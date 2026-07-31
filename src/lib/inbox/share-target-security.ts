@@ -35,6 +35,17 @@ export function declaredShareRequestTooLarge(
   return length !== null && length > MAX_SHARE_REQUEST_BYTES;
 }
 
+export function isMultipartFormData(
+  value: string | null | undefined,
+): boolean {
+  if (!value) return false;
+  const normalized = value.toLowerCase();
+  return (
+    normalized.startsWith("multipart/form-data;") &&
+    normalized.includes("boundary=")
+  );
+}
+
 export function isSupportedSharedTextFile(
   file: SharedFileDescriptor,
 ): boolean {
@@ -73,4 +84,33 @@ export function nextSharePayloadSize(
     tooLarge:
       !Number.isSafeInteger(totalBytes) || totalBytes > MAX_SHARE_REQUEST_BYTES,
   };
+}
+
+export function limitShareRequestBody(
+  body: ReadableStream<Uint8Array>,
+  maxBytes: number = MAX_SHARE_REQUEST_BYTES,
+): {
+  stream: ReadableStream<Uint8Array>;
+  wasTooLarge: () => boolean;
+} {
+  let receivedBytes = 0;
+  let tooLarge = false;
+
+  const stream = body.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        const next = nextSharePayloadSize(receivedBytes, chunk.byteLength);
+        if (next.tooLarge || next.totalBytes > maxBytes) {
+          tooLarge = true;
+          controller.error(new Error("share_request_too_large"));
+          return;
+        }
+
+        receivedBytes = next.totalBytes;
+        controller.enqueue(chunk);
+      },
+    }),
+  );
+
+  return { stream, wasTooLarge: () => tooLarge };
 }
