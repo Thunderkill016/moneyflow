@@ -1,8 +1,9 @@
 # Auth CAPTCHA provider readiness
 
-**Status:** implementing  
+**Status:** evaluating  
 **Owner:** GPT-5.6 Thinking + human owner  
 **Issue:** #174  
+**PR:** #175  
 **Base:** PR #173 head `01a34f39c1a630e1bccb7dfa0981e4cf3c4d4400`  
 **Last updated:** 2026-07-31
 
@@ -30,16 +31,18 @@ MoneyFlow can send a Cloudflare Turnstile token with Supabase email/password sig
 
 ### Acceptance criteria
 
-- [ ] `NEXT_PUBLIC_TURNSTILE_SITE_KEY` enables the widget; absence preserves the current flow.
-- [ ] Login, registration and password-reset forms submit a `captchaToken` hidden field.
-- [ ] Supabase Auth calls pass the token through their documented options.
-- [ ] Failed/non-redirecting submissions reset the used or expired token.
-- [ ] Submit stays disabled while configured CAPTCHA has no valid token.
-- [ ] The widget reports loading, failure and expiry accessibly.
-- [ ] CSP permits only the required Turnstile script and frame origin.
-- [ ] An explicit CAPTCHA-enabled deployment cannot pass validation without a site key.
-- [ ] No CAPTCHA secret is added to source, Vercel public env or browser code.
-- [ ] Unit/static tests cover configuration, token normalization, CSP and auth token forwarding.
+- [x] `NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED=true` enables the widget; false or absent preserves the current flow.
+- [x] Login, registration and password-reset forms submit a `captchaToken` hidden field.
+- [x] Supabase Auth calls pass the token through their documented options.
+- [x] Failed/non-redirecting submissions reset the used or expired token.
+- [x] Submit stays disabled while configured CAPTCHA has no valid token.
+- [x] The widget reports loading, failure and expiry accessibly.
+- [x] CSP permits only the required Turnstile script and frame origin while configured.
+- [x] An explicit CAPTCHA-enabled deployment cannot pass validation without a site key.
+- [x] No CAPTCHA secret is added to source, Vercel public env or browser code.
+- [x] Unit/static tests cover configuration, token normalization, CSP and auth token forwarding.
+- [ ] Exact-head repository CI passes.
+- [ ] Browser smoke passes with a Cloudflare testing site key before provider enforcement.
 
 ### Out of scope
 
@@ -61,23 +64,53 @@ MoneyFlow can send a Cloudflare Turnstile token with Supabase email/password sig
 | `.env.example`, deployment guard, docs | Provider activation sequence and safe public env |
 | tests | Red/green coverage for config, CSP and auth surface |
 
+## Tasks
+
+- [x] Create a stacked branch from the exact PR #173 head.
+- [x] Add a pure CAPTCHA configuration/token contract.
+- [x] Implement dependency-free explicit Turnstile rendering.
+- [x] Gate email auth submit until a token exists.
+- [x] Enforce and forward tokens in Server Actions.
+- [x] Add conditional CSP and deployment validation.
+- [x] Document safe activation and rollback order.
+- [x] Add unit/static regression tests.
+- [ ] Pass project knowledge, deployment, architecture, lint, typecheck, tests and production build.
+- [ ] Pass database and cross-device browser gates.
+- [ ] Verify the rendered widget with Cloudflare testing keys.
+- [ ] Keep Supabase CAPTCHA disabled until the deployed client proof exists.
+
+## Evaluation
+
+Evaluation is independent of implementation completion:
+
+1. Repository CI must run on the exact head SHA, not a previous stacked snapshot.
+2. Static tests must prove all three email-auth paths forward `captchaToken` and that missing tokens are rejected server-side when enabled.
+3. Production build headers must keep `frame-src 'none'` when CAPTCHA is off and allow only `https://challenges.cloudflare.com` when it is configured.
+4. Phone-width browser evidence must show no horizontal overflow; <=380px uses the compact widget.
+5. A failed or expired challenge must clear the hidden token and permit a fresh challenge.
+6. Provider enforcement is evaluated separately in issue #174 and cannot be claimed by repository CI.
+7. Any provider publication requires a rollback path and immediate production auth smoke.
+
 ## Verification
 
 - `npm run check:knowledge`
 - `npm run check:deployment-env`
+- `npm run check:css-ownership`
+- `npm run check:architecture`
 - `npm run lint`
 - `npm run typecheck`
 - `npm test`
 - `npm run build`
+- `npm run test:db`
 - Auth browser smoke with Cloudflare testing site key before provider enforcement.
 
 ## Rollback
 
-Remove `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and keep Supabase CAPTCHA disabled. The form then follows the previous auth path without rendering a widget or requiring a token.
+Disable CAPTCHA enforcement in Supabase first, then set `NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED=false` and redeploy. The form follows the previous auth path without rendering a widget or requiring a token. Keep the Turnstile secret only in Supabase.
 
 ## Delivery state
 
 - Stacked implementation packet on PR #173
-- Not merged
+- PR #175 open and not merged
 - Not deployed
 - Provider enforcement remains disabled until browser verification passes
