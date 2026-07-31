@@ -27,9 +27,6 @@
 }
 
 @media (min-width: 761px) and (max-width: 900px) {
-  .topbar {
-    padding-inline: 24px;
-  }
 
   .dashboard {
     padding-inline: 24px;

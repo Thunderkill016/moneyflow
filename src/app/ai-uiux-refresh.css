@@ -56,28 +56,6 @@
     var(--color-bg-primary) !important;
 }
 
-.sidebar {
-  border-right-color: var(--aiux-line) !important;
-  box-shadow: 8px 0 28px rgb(15 31 22 / 3%) !important;
-}
-
-.sidebar nav a.active,
-.sidebar nav button.active,
-.sidebar-bottom > a.active {
-  box-shadow: inset 3px 0 0 var(--aiux-brand) !important;
-}
-
-.topbar {
-  border-bottom-color: var(--aiux-line) !important;
-  box-shadow: 0 1px 0 rgb(15 31 22 / 3%) !important;
-}
-
-/* On Insights the in-page action owns the hierarchy; avoid two desktop primary CTAs. */
-@supports selector(body:has(.insights-dashboard)) {
-  body:has(.insights-dashboard) .topbar .desktop-add {
-    display: none !important;
-  }
-}
 
 /* Dashboard rhythm */
 .insights-dashboard {
