@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
-import { MAX_UPLOAD_BYTES } from "@/lib/inbox/parse-csv";
+import {
+  MAX_SHARE_FILE_BYTES,
+  MAX_SHARE_TEXT_FIELD_CHARS,
+  declaredShareRequestTooLarge,
+  isSupportedSharedTextFile,
+  nextSharePayloadSize,
+} from "@/lib/inbox/share-target-security";
 import {
   MAX_SHARE_FILES,
   SHARE_PAYLOAD_STORAGE_KEY,
@@ -14,6 +20,10 @@ export const runtime = "nodejs";
  * Reads multipart form → HTML that stashes payload in sessionStorage → GET /capture/share.
  */
 export async function POST(request: Request) {
+  if (declaredShareRequestTooLarge(request.headers.get("content-length"))) {
+    return payloadTooLargeResponse();
+  }
+
   let payload: SharePayload = {
     title: "",
     text: "",
@@ -23,11 +33,14 @@ export async function POST(request: Request) {
 
   try {
     const form = await request.formData();
+    const sharedFiles = await readSharedFiles(form);
+    if (sharedFiles.tooLarge) return payloadTooLargeResponse();
+
     payload = {
       title: readStringField(form, "title"),
       text: readStringField(form, "text"),
       url: readStringField(form, "url"),
-      files: await readSharedFiles(form),
+      files: sharedFiles.files,
     };
   } catch {
     // Still bridge an empty payload so the UI can show a friendly error.
@@ -53,23 +66,44 @@ export async function GET(request: Request) {
   return NextResponse.redirect(dest, 303);
 }
 
+function payloadTooLargeResponse() {
+  return new NextResponse("Nội dung chia sẻ vượt quá giới hạn cho phép.", {
+    status: 413,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 function readStringField(form: FormData, name: string): string {
   const value = form.get(name);
-  if (typeof value === "string") return value.slice(0, 50_000);
+  if (typeof value === "string") {
+    return value.slice(0, MAX_SHARE_TEXT_FIELD_CHARS);
+  }
   return "";
 }
 
-async function readSharedFiles(form: FormData): Promise<SharedFilePayload[]> {
-  const out: SharedFilePayload[] = [];
+async function readSharedFiles(
+  form: FormData,
+): Promise<{ files: SharedFilePayload[]; tooLarge: boolean }> {
+  const files: SharedFilePayload[] = [];
   const entries = form.getAll("files");
+  let totalBytes = 0;
 
   for (const entry of entries) {
-    if (out.length >= MAX_SHARE_FILES) break;
+    if (files.length >= MAX_SHARE_FILES) break;
     if (!(entry instanceof File)) continue;
     if (entry.size <= 0) continue;
-    if (entry.size > MAX_UPLOAD_BYTES) {
-      // Include meta so client can show size error; empty text.
-      out.push({
+
+    const nextSize = nextSharePayloadSize(totalBytes, entry.size);
+    if (nextSize.tooLarge || entry.size > MAX_SHARE_FILE_BYTES) {
+      return { files: [], tooLarge: true };
+    }
+    totalBytes = nextSize.totalBytes;
+
+    if (!isSupportedSharedTextFile(entry)) {
+      files.push({
         name: entry.name || "file",
         type: entry.type || "",
         text: "",
@@ -77,16 +111,17 @@ async function readSharedFiles(form: FormData): Promise<SharedFilePayload[]> {
       });
       continue;
     }
+
     try {
       const text = await entry.text();
-      out.push({
+      files.push({
         name: entry.name || "shared.txt",
         type: entry.type || "",
-        text: text.slice(0, MAX_UPLOAD_BYTES),
+        text: text.slice(0, MAX_SHARE_FILE_BYTES),
         size: entry.size,
       });
     } catch {
-      out.push({
+      files.push({
         name: entry.name || "file",
         type: entry.type || "",
         text: "",
@@ -95,7 +130,7 @@ async function readSharedFiles(form: FormData): Promise<SharedFilePayload[]> {
     }
   }
 
-  return out;
+  return { files, tooLarge: false };
 }
 
 function buildBridgeHtml(payload: SharePayload): string {
