@@ -120,3 +120,19 @@ test("CSS: touch-visible row actions on mobile (no hover-only opacity)", () => {
   assert.match(block, /\.delete-button/);
   assert.match(block, /opacity:\s*1/);
 });
+
+test("CSS: modal centring cannot outrank bottom-sheet layouts", () => {
+  const source = css();
+
+  // Issue #145 fix. `:where()` contributes zero specificity, so every bottom-sheet
+  // rule still wins: the phone override in this file at (0,1,0), and the capture
+  // chooser's own CSS Module class, also (0,1,0). A bare `dialog:modal` would be
+  // (0,1,1) and would flatten all of them into floating cards — which is exactly
+  // what happened on the first attempt at this fix.
+  assert.match(source, /:where\(dialog:modal\)\s*\{[^}]*margin:\s*auto/);
+  assert.doesNotMatch(
+    source,
+    /(^|\n)\s*dialog:modal\s*\{/,
+    "dialog:modal must stay wrapped in :where() so sheet rules keep winning",
+  );
+});

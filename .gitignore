@@ -14,6 +14,9 @@
 /coverage
 /.playwright-cli/
 /output/playwright/
+# playwright.audit.config.ts writes here, and only /output/playwright/ was listed —
+# so traces and error contexts from the cross-device audit showed up as untracked.
+/output/playwright-audit/
 /test-results/
 /playwright-report/
 /blob-report/
