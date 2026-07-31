@@ -125,7 +125,7 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 - Full nonce CSP migration.
 - Merge or deployment.
 
-## Implementation
+## Implementation plan
 
 | File/area | Implemented change |
 |---|---|
@@ -176,6 +176,7 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 | Production catalog | tables, grants, policies, views, functions, Edge Function | pass |
 | Redirect/auth surface | protected route and external `next` probes | pass |
 | Partial CI #652 | knowledge, env, CSS ownership, architecture, lint, typecheck, unit/static tests | pass before concurrency cancellation |
+| CI #662 | knowledge contract failed because this packet used the wrong implementation heading; fixed in the next head | failed/fixed |
 | Exact-head build/database/E2E | final CI run | pending |
 
 ### Review findings
@@ -192,7 +193,7 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 - Branch: `agent/security-hardening-red-team`
 - PR: #173 (draft)
 - Head commit: final head to be recorded after CI
-- CI: #652 partial/cancelled by newer commits; exact-head run pending
+- CI: #652 partial/cancelled; #662 exposed and fixed the heading contract; exact-head run pending
 - Production deployment: not performed
 - Production flow verified after deployment: not performed
 - Work packet moved to `docs/plans/completed/`: no; merge and deployment verification are required first
