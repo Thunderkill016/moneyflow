@@ -3,7 +3,9 @@ import {
   MAX_SHARE_FILE_BYTES,
   MAX_SHARE_TEXT_FIELD_CHARS,
   declaredShareRequestTooLarge,
+  isMultipartFormData,
   isSupportedSharedTextFile,
+  limitShareRequestBody,
   nextSharePayloadSize,
 } from "@/lib/inbox/share-target-security";
 import {
@@ -23,6 +25,9 @@ export async function POST(request: Request) {
   if (declaredShareRequestTooLarge(request.headers.get("content-length"))) {
     return payloadTooLargeResponse();
   }
+  if (!isMultipartFormData(request.headers.get("content-type"))) {
+    return unsupportedMediaTypeResponse();
+  }
 
   let payload: SharePayload = {
     title: "",
@@ -32,14 +37,17 @@ export async function POST(request: Request) {
   };
 
   try {
-    const form = await request.formData();
-    const sharedFiles = await readSharedFiles(form);
+    const boundedForm = await readBoundedFormData(request);
+    if (boundedForm.tooLarge) return payloadTooLargeResponse();
+    if (!boundedForm.form) throw new Error("missing_share_form");
+
+    const sharedFiles = await readSharedFiles(boundedForm.form);
     if (sharedFiles.tooLarge) return payloadTooLargeResponse();
 
     payload = {
-      title: readStringField(form, "title"),
-      text: readStringField(form, "text"),
-      url: readStringField(form, "url"),
+      title: readStringField(boundedForm.form, "title"),
+      text: readStringField(boundedForm.form, "text"),
+      url: readStringField(boundedForm.form, "url"),
       files: sharedFiles.files,
     };
   } catch {
@@ -74,6 +82,40 @@ function payloadTooLargeResponse() {
       "Cache-Control": "no-store",
     },
   });
+}
+
+function unsupportedMediaTypeResponse() {
+  return new NextResponse("MoneyFlow chỉ nhận biểu mẫu chia sẻ multipart.", {
+    status: 415,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+async function readBoundedFormData(
+  request: Request,
+): Promise<{ form: FormData | null; tooLarge: boolean }> {
+  if (!request.body) {
+    return { form: await request.formData(), tooLarge: false };
+  }
+
+  const limited = limitShareRequestBody(request.body);
+  const requestInit: RequestInit & { duplex: "half" } = {
+    method: request.method,
+    headers: request.headers,
+    body: limited.stream,
+    duplex: "half",
+  };
+  const boundedRequest = new Request(request.url, requestInit);
+
+  try {
+    return { form: await boundedRequest.formData(), tooLarge: false };
+  } catch (error) {
+    if (limited.wasTooLarge()) return { form: null, tooLarge: true };
+    throw error;
+  }
 }
 
 function readStringField(form: FormData, name: string): string {
