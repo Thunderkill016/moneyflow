@@ -210,6 +210,7 @@
   --sidebar-ring: var(--mf-focus);
 }
 
+/* --lime has no --mf-* counterpart (single consumer: .safe-meter span). */
 [data-theme="dark"] {
   --lime: #1a3a1f;
 }
@@ -304,6 +305,8 @@ select:focus-visible {
 .brand-mark span { position: absolute; top: 7px; transform: rotate(180deg); }
 [data-theme="dark"] .icon-button { background: var(--color-bg-elevated); border-color: var(--color-border-default); }
 [data-theme="dark"] .icon-button:hover { background: var(--color-bg-tertiary); }
+
+/* Capture + More sheets (wireframes §0) */
 .profile-chip { display: grid; grid-template-columns: 38px 1fr 16px; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding: 20px 4px 0; }
 .profile-chip-button { width: 100%; cursor: pointer; border-right: 0; border-bottom: 0; border-left: 0; background: transparent; color: inherit; text-align: left; }
 .profile-chip > svg { width: 16px; color: var(--mf-text-soft); }
@@ -1638,7 +1641,7 @@ select:focus-visible {
 
 @media (max-width: 1050px) {
   .profile-chip > span:nth-child(2),
-  .profile-chip > svg { display: none; }
+.profile-chip > svg { display: none; }
   .profile-chip { display: block; padding-top: 20px; }
   .page-column { margin-left: 82px; }
   .content-grid { grid-template-columns: 1fr; }
@@ -1825,6 +1828,8 @@ select:focus-visible {
   .transaction-time { display: none; }
   .transaction-row .amount { grid-column: 3; }
   .transaction-detail small { max-width: 160px; }
+  /* Exactly 5 primary tabs: Tổng quan · Giao dịch · Capture · Tài khoản · Thêm */
+  /* Full-width bottom sheets (dialogs + capture/more) */
   .transaction-dialog,
   .account-dialog {
     width: 100%;
@@ -1912,6 +1917,7 @@ select:focus-visible {
 
 /* Dense trust bar — compact chips near CTAs (R1 / Monarch-ref) */
 /* YNAB-style proof — stronger contrast on green wash */
+/* Force 2×2 — must beat .feature-grid { 3 cols } */
 /* Legacy single-line trust (if any residual markup) */
 /* Dashboard product preview (landing thu chi) */
 /* Below-fold landing: skip paint work until near viewport (LCP/CLS) */
@@ -2263,6 +2269,12 @@ select:focus-visible {
 
 /* Landing page dark */
 [data-theme="dark"] .landing-footer { background: var(--color-bg-secondary); border-top-color: var(--color-border-default); }
+/* ===================================================================
+   NEW COMPONENTS — Phase 4
+   =================================================================== */
+
+/* Theme Toggle */
+
 /* Empty State */
 .empty-state {
   display: grid;
@@ -2298,6 +2310,8 @@ select:focus-visible {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* Mobile tab tap feedback */
 
 /* Button destructive ghost variant */
 /* Card variant: highlight (left accent border) */
@@ -5002,6 +5016,8 @@ body {
   padding: 36px 24px !important;
   font-size: 13px !important;
 }
+
+/* --- Mobile chrome --- */
 
 /* Dialogs */
 .transaction-dialog,

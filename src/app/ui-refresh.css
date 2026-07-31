@@ -319,6 +319,10 @@
   margin: 0;
 }
 
+/* Dialogs and quick capture */
+
+/* Mobile product chrome */
+
 /* Dark theme */
 [data-theme="dark"] .app-shell {
   --color-text-secondary: #b8c1bc;
@@ -445,8 +449,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .app-shell .primary-button,
-  .insights-kpi article,
-  .transaction-row {
+.insights-kpi article,
+.transaction-row {
     transition: none !important;
   }
 }
