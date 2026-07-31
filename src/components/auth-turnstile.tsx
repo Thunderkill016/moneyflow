@@ -6,6 +6,7 @@ import {
   CAPTCHA_TOKEN_FIELD,
   TURNSTILE_SCRIPT_URL,
 } from "@/lib/auth-captcha";
+import styles from "./auth-turnstile.module.css";
 
 type TurnstileRenderOptions = {
   sitekey: string;
@@ -44,13 +45,11 @@ export function AuthTurnstile({
   siteKey,
   token,
   pending,
-  className,
   onTokenChange,
 }: {
   siteKey: string;
   token: string;
   pending: boolean;
-  className?: string;
   onTokenChange: (token: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -111,10 +110,7 @@ export function AuthTurnstile({
   }, [onTokenChange, pending]);
 
   return (
-    <div
-      className={className}
-      style={{ display: "grid", gap: 6, minWidth: 0 }}
-    >
+    <div className={styles.root}>
       <Script
         id="moneyflow-auth-turnstile"
         src={TURNSTILE_SCRIPT_URL}
@@ -125,8 +121,8 @@ export function AuthTurnstile({
         }
       />
       <input type="hidden" name={CAPTCHA_TOKEN_FIELD} value={token} />
-      <div ref={containerRef} style={{ maxWidth: "100%", overflow: "hidden" }} />
-      <small role="status" aria-live="polite">
+      <div className={styles.widget} ref={containerRef} />
+      <small className={styles.status} role="status" aria-live="polite">
         {status}
       </small>
     </div>
