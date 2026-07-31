@@ -62,14 +62,16 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 1. Next.js `16.2.11` is the patched boundary for the July 2026 advisories reviewed for this packet.
 2. A full nonce CSP is not safe as a drive-by change: current framework/theme output uses inline scripts and a nonce changes rendering/cache behavior.
 3. A static CSP can still restrict origins, form posts, frames, workers and inline event-handler attributes while temporarily permitting framework inline script blocks.
-4. An in-memory serverless limiter is not a valid replacement for Vercel Firewall.
-5. Application password validation cannot enforce the provider's direct Auth API; Supabase minimum length and CAPTCHA must match in dashboard configuration.
+4. Official Next.js CSP guidance requires `'unsafe-eval'` for development tooling; the production policy must not contain it.
+5. An in-memory serverless limiter is not a valid replacement for Vercel Firewall.
+6. Application password validation cannot enforce the provider's direct Auth API; Supabase minimum length and CAPTCHA must match in dashboard configuration.
 
 ### Sources
 
 | Source | Date accessed | Establishes | Limitation |
 |---|---|---|---|
 | Next.js GitHub Security Advisories | 2026-07-31 | Patched version boundaries for current App Router/Server Action advisories | Does not prove app authorization |
+| Next.js Content Security Policy guide | 2026-07-31 | Development requires `'unsafe-eval'`; production does not | A static inline-script policy is still weaker than nonces |
 | Supabase advisor and live catalog | 2026-07-31 | Effective grants, RLS, functions, views and disabled leaked-password protection | Advisor warnings are not exploits by themselves |
 | Vercel Firewall guidance | 2026-07-31 | Route rate limits belong at the deployment edge | Rule publication is a provider action |
 
@@ -79,7 +81,7 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 |---|---|
 | Full nonce CSP in proxy | Deferred to a measured packet because it changes dynamic rendering/cache behavior |
 | CSP without `script-src` | Rejected because it leaves script origins unrestricted |
-| Current static CSP with bounded external origins and `script-src-attr 'none'` | Implemented with explicit `unsafe-inline` limitation |
+| Current static CSP with bounded external origins and `script-src-attr 'none'` | Implemented; production excludes `'unsafe-eval'`, development includes it for framework tooling, and `'unsafe-inline'` remains a disclosed limitation |
 | In-memory app rate limiter | Rejected as ephemeral and multi-region unsafe |
 | Header-only upload cap | Rejected; chunked bodies are byte-counted before multipart parsing |
 
@@ -96,9 +98,11 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 
 - [x] Declared share requests above 12 MiB receive HTTP 413 before rewrite or multipart parsing.
 - [x] Chunked requests are byte-counted and aborted when they cross the same total cap.
+- [x] Reconstructed parser requests discard stale `Content-Length`, `Transfer-Encoding` and `Connection` headers.
 - [x] Each shared file is capped at 2 MiB; text fields are capped; unsupported binary files never call `File.text()`.
 - [x] Only multipart requests with a boundary enter the Web Share parser.
-- [x] CSP owns default, script origin, script attributes, connections, forms, frames, objects, workers, media, images, fonts and production upgrades; `unsafe-eval` is absent.
+- [x] CSP owns default, script origin, script attributes, connections, forms, frames, objects, workers, media, images, fonts and production upgrades.
+- [x] Production CSP excludes `'unsafe-eval'`; development permits it only for React/Next tooling.
 - [x] Registration/update require 12–72 characters at the application boundary and UI copy matches.
 - [x] Registration, login and reset responses do not reveal whether an email exists.
 - [x] Database tests create two users and attack 25 foreign-object read/mutation paths.
@@ -127,8 +131,8 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 |---|---|
 | `src/lib/inbox/share-target-security.ts` | Total/per-file/text limits, multipart validation, text-file allow-list and byte-counting stream |
 | `src/proxy.ts` | Early 413 for declared oversized PWA share POST |
-| `src/app/api/share-target/route.ts` | Stream-bound multipart parsing, 413/415 responses, cumulative/type enforcement |
-| `src/lib/security-headers.ts`, `next.config.ts` | Centralized CSP and browser isolation headers |
+| `src/app/api/share-target/route.ts` | Stream-bound multipart parsing, transport-header cleanup, 413/415 responses, cumulative/type enforcement |
+| `src/lib/security-headers.ts`, `next.config.ts` | Centralized CSP and browser isolation headers with development/production separation |
 | Auth action/form/policy files | 12–72 character policy, neutral errors and synchronized guidance |
 | `security_catalog.test.sql` | Effective grant/function/view assertions |
 | `cross_tenant_rpc.test.sql` | 25 runtime attacks using two forged JWT subjects with rollback |
@@ -144,7 +148,8 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 
 ### Known limitations
 
-- CSP still permits framework inline script blocks; it blocks external unlisted script origins, inline event attributes and `unsafe-eval`, but it is not a nonce CSP.
+- Production CSP still permits framework inline script blocks. It blocks unlisted external script origins, inline event attributes and `'unsafe-eval'`, but it is not a nonce CSP.
+- Development CSP permits `'unsafe-eval'` for React/Next tooling and must never be used as evidence for the production policy.
 - Vercel Firewall must still reject abusive traffic before it reaches application compute.
 - Supabase Auth minimum length and CAPTCHA must be configured separately to prevent direct-API bypass.
 - Leaked-password protection remains unavailable until plan upgrade.
@@ -155,7 +160,7 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 |---|---|---|---|
 | T1 | Production-safe red-team | 25/25 foreign-object attacks blocked and rolled back | done |
 | T2 | Share hard limits | policy, stream, route and static tests | done |
-| T3 | CSP/security headers | shared owner and policy tests | done |
+| T3 | CSP/security headers | shared owner and environment-specific policy tests | done |
 | T4 | Auth hardening | policy, neutral response and source tests | done |
 | T5 | Catalog and two-user pgTAP | two new database suites | done |
 | T6 | Dependency monitoring | Dependabot npm/Actions config | done |
@@ -177,16 +182,16 @@ Live catalog review also confirmed no `anon` grants, security-invoker views, loc
 
 - Financial behavior: unchanged.
 - Ownership: live attacks passed and are now represented as repeatable pgTAP cases.
-- Upload abuse: both declared and chunked paths are bounded; binary text decoding is removed.
+- Upload abuse: declared and chunked paths are bounded; binary text decoding and stale transport metadata are removed.
 - Authentication: enumeration hints removed; provider parity remains an explicit operation.
-- Browser policy: materially stronger, with nonce limitation disclosed.
+- Browser policy: materially stronger, with inline-script and development-only eval limitations disclosed.
 - Scope: no provider mutation, production schema change, merge or deployment.
 
 ## Delivery record
 
 - Branch: `agent/security-hardening-red-team`
 - PR: #173 (draft)
-- Head commit: final head to be recorded in PR after CI
+- Head commit: final head to be recorded after CI
 - CI: #652 partial/cancelled by newer commits; exact-head run pending
 - Production deployment: not performed
 - Production flow verified after deployment: not performed
