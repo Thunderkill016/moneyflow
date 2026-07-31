@@ -171,8 +171,8 @@ Criteria, against evidence:
 
 Gates run here: `check:knowledge`, `check:css-ownership` (1152 `!important`,
 unchanged), `lint`, `typecheck`, unit tests **595/595**, `build`, and the
-cross-device audit — **336 passed across all 11 chromium projects, 0 chromium
-failures.** The 18 `webkit-*` failures in that run are `browserType.launch:
+cross-device audit — **340 passed across all 11 chromium projects, 0 chromium
+failures**, 123 skipped. The 18 `webkit-*` failures in that run are `browserType.launch:
 Executable doesn't exist`; WebKit is not installed in this container, so they are
 environment, not product. CI runs them. `test:db` and `test:e2e` were not run.
 
