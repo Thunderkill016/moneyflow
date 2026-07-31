@@ -2,10 +2,11 @@
 /**
  * Fails when a class selector in the legacy global stylesheets is rendered by
  * nothing. References come only from class-bearing product expressions, active
- * CSS Module `:global(...)` selectors, and runtime class prefixes.
+ * CSS Module `:global(...)` selectors, and finite runtime class values that can
+ * be traced through TypeScript symbols.
  *
- * This intentionally ignores imports, routes, prose, comments and tests. Those
- * strings cannot put a class in the DOM and previously kept dead CSS green.
+ * Imports, routes, prose, comments and tests intentionally do not count merely
+ * because they contain the same text as a CSS class.
  */
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
@@ -26,6 +27,7 @@ const STYLESHEETS = [
 const SOURCE_DIRS = ["src"];
 const SOURCE_EXTENSIONS = new Set([".tsx", ".ts", ".jsx", ".js", ".mjs", ".html"]);
 const CLASS_BUILDERS = new Set(["clsx", "cn", "classnames", "classNames", "cva", "twMerge"]);
+const CLASS_CHAIN_METHODS = new Set(["concat", "filter", "flat", "flatMap", "join"]);
 
 function normalized(path) {
   return path.replaceAll("\\", "/");
@@ -62,6 +64,29 @@ function sourceFiles() {
   return files;
 }
 
+const productFiles = sourceFiles();
+const configPath = ts.findConfigFile(root, ts.sys.fileExists, "tsconfig.json");
+let compilerOptions = {
+  allowJs: true,
+  jsx: ts.JsxEmit.Preserve,
+  module: ts.ModuleKind.ESNext,
+  moduleResolution: ts.ModuleResolutionKind.Bundler,
+  target: ts.ScriptTarget.ESNext,
+};
+let rootNames = productFiles;
+
+if (configPath) {
+  const loaded = ts.readConfigFile(configPath, ts.sys.readFile);
+  if (!loaded.error) {
+    const parsed = ts.parseJsonConfigFileContent(loaded.config, ts.sys, root);
+    compilerOptions = parsed.options;
+    rootNames = parsed.fileNames;
+  }
+}
+
+const program = ts.createProgram({ rootNames, options: compilerOptions });
+const checker = program.getTypeChecker();
+
 function addClassTokens(value, referenced) {
   for (const token of value.split(/[^\w-]+/)) {
     if (/^-?[_a-zA-Z][\w-]*$/.test(token)) referenced.add(token);
@@ -96,20 +121,6 @@ function isClassAttribute(name) {
   );
 }
 
-function collectBindings(sourceFile) {
-  const bindings = new Map();
-  const visit = (node) => {
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
-      const entries = bindings.get(node.name.text) ?? [];
-      entries.push(node.initializer);
-      bindings.set(node.name.text, entries);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return bindings;
-}
-
 function unwrap(node) {
   let current = node;
   while (
@@ -124,6 +135,73 @@ function unwrap(node) {
   return current;
 }
 
+function collectBindings(sourceFile) {
+  const bindings = new Map();
+  const visit = (node) => {
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+      const entries = bindings.get(node.name.text) ?? [];
+      entries.push(node.initializer);
+      bindings.set(node.name.text, entries);
+    }
+    if (ts.isFunctionDeclaration(node) && node.name) {
+      const entries = bindings.get(node.name.text) ?? [];
+      entries.push(node);
+      bindings.set(node.name.text, entries);
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return bindings;
+}
+
+function symbolFor(node) {
+  let symbol = checker.getSymbolAtLocation(node);
+  if (symbol && symbol.flags & ts.SymbolFlags.Alias) {
+    symbol = checker.getAliasedSymbol(symbol);
+  }
+  return symbol;
+}
+
+function declarationValues(symbol) {
+  const values = [];
+  for (const declaration of symbol?.declarations ?? []) {
+    if (ts.isVariableDeclaration(declaration) && declaration.initializer) {
+      values.push(declaration.initializer);
+    } else if (ts.isPropertyAssignment(declaration)) {
+      values.push(declaration.initializer);
+    } else if (ts.isShorthandPropertyAssignment(declaration)) {
+      values.push(declaration.name);
+    } else if (ts.isEnumMember(declaration) && declaration.initializer) {
+      values.push(declaration.initializer);
+    } else if (ts.isFunctionDeclaration(declaration)) {
+      values.push(declaration);
+    }
+  }
+  return values;
+}
+
+function addLiteralTypeValues(node, referenced) {
+  let type;
+  try {
+    type = checker.getTypeAtLocation(node);
+  } catch {
+    return;
+  }
+  const seen = new Set();
+  const visit = (current) => {
+    if (!current || seen.has(current.id)) return;
+    seen.add(current.id);
+    if (current.flags & ts.TypeFlags.StringLiteral) {
+      addClassTokens(current.value, referenced);
+      return;
+    }
+    if (current.isUnion?.()) {
+      for (const member of current.types) visit(member);
+    }
+  };
+  visit(type);
+}
+
 function objectPropertyInitializer(object, name) {
   for (const property of object.properties) {
     if (ts.isPropertyAssignment(property) && propertyName(property.name) === name) {
@@ -136,6 +214,89 @@ function objectPropertyInitializer(object, name) {
   return null;
 }
 
+function collectReturnedExpressions(node, context, options, seen) {
+  if (ts.isArrowFunction(node) && !ts.isBlock(node.body)) {
+    collectClassExpression(node.body, context, options, seen);
+    return;
+  }
+  const body = node.body;
+  if (!body || !ts.isBlock(body)) return;
+  const visit = (child) => {
+    if (ts.isReturnStatement(child) && child.expression) {
+      collectClassExpression(child.expression, context, options, seen);
+      return;
+    }
+    ts.forEachChild(child, visit);
+  };
+  visit(body);
+}
+
+function collectPropertyValues(rawNode, name, context, options, seen) {
+  if (!rawNode) return;
+  const node = unwrap(rawNode);
+  const key = `${context.file}:property:${name}:${node.pos}:${node.end}`;
+  if (seen.has(key)) return;
+  const nextSeen = new Set(seen);
+  nextSeen.add(key);
+
+  if (ts.isObjectLiteralExpression(node)) {
+    const direct = objectPropertyInitializer(node, name);
+    if (direct) {
+      collectClassExpression(direct, context, options, nextSeen);
+      return;
+    }
+    for (const property of node.properties) {
+      if (ts.isPropertyAssignment(property)) {
+        collectPropertyValues(property.initializer, name, context, options, nextSeen);
+      } else if (ts.isSpreadAssignment(property)) {
+        collectPropertyValues(property.expression, name, context, options, nextSeen);
+      }
+    }
+    return;
+  }
+
+  if (ts.isConditionalExpression(node)) {
+    collectPropertyValues(node.whenTrue, name, context, options, nextSeen);
+    collectPropertyValues(node.whenFalse, name, context, options, nextSeen);
+    return;
+  }
+
+  if (ts.isBinaryExpression(node)) {
+    const operator = node.operatorToken.kind;
+    if (
+      operator === ts.SyntaxKind.QuestionQuestionToken ||
+      operator === ts.SyntaxKind.BarBarToken ||
+      operator === ts.SyntaxKind.AmpersandAmpersandToken
+    ) {
+      collectPropertyValues(node.left, name, context, options, nextSeen);
+      collectPropertyValues(node.right, name, context, options, nextSeen);
+    }
+    return;
+  }
+
+  if (ts.isIdentifier(node)) {
+    for (const initializer of context.bindings.get(node.text) ?? []) {
+      collectPropertyValues(initializer, name, context, options, nextSeen);
+    }
+    for (const initializer of declarationValues(symbolFor(node))) {
+      collectPropertyValues(initializer, name, context, options, nextSeen);
+    }
+    return;
+  }
+
+  if (ts.isElementAccessExpression(node) || ts.isPropertyAccessExpression(node)) {
+    const target = node.expression;
+    for (const initializer of declarationValues(symbolFor(target))) {
+      collectPropertyValues(initializer, name, context, options, nextSeen);
+    }
+    if (ts.isIdentifier(target)) {
+      for (const initializer of context.bindings.get(target.text) ?? []) {
+        collectPropertyValues(initializer, name, context, options, nextSeen);
+      }
+    }
+  }
+}
+
 function collectClassExpression(
   rawNode,
   context,
@@ -144,6 +305,7 @@ function collectClassExpression(
 ) {
   if (!rawNode) return;
   const node = unwrap(rawNode);
+  addLiteralTypeValues(node, context.referenced);
 
   if (ts.isStringLiteralLike(node)) {
     addClassTokens(node.text, context.referenced);
@@ -164,32 +326,27 @@ function collectClassExpression(
   }
 
   if (ts.isIdentifier(node)) {
-    const key = `${context.file}:${node.text}`;
+    const key = `${context.file}:binding:${node.text}`;
     if (seen.has(key)) return;
-    const initializers = context.bindings.get(node.text) ?? [];
-    if (!initializers.length) return;
     const nextSeen = new Set(seen);
     nextSeen.add(key);
-    for (const initializer of initializers) {
+    for (const initializer of context.bindings.get(node.text) ?? []) {
+      collectClassExpression(initializer, context, options, nextSeen);
+    }
+    for (const initializer of declarationValues(symbolFor(node))) {
       collectClassExpression(initializer, context, options, nextSeen);
     }
     return;
   }
 
-  if (ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) {
-    const target = node.expression;
-    const name = ts.isPropertyAccessExpression(node)
-      ? node.name.text
-      : node.argumentExpression && ts.isStringLiteralLike(node.argumentExpression)
-        ? node.argumentExpression.text
-        : null;
-    if (name && ts.isIdentifier(target)) {
-      for (const initializer of context.bindings.get(target.text) ?? []) {
-        const value = unwrap(initializer);
-        if (ts.isObjectLiteralExpression(value)) {
-          collectClassExpression(objectPropertyInitializer(value, name), context, options, seen);
-        }
-      }
+  if (ts.isPropertyAccessExpression(node)) {
+    collectPropertyValues(node.expression, node.name.text, context, options, seen);
+    return;
+  }
+
+  if (ts.isElementAccessExpression(node)) {
+    if (node.argumentExpression && ts.isStringLiteralLike(node.argumentExpression)) {
+      collectPropertyValues(node.expression, node.argumentExpression.text, context, options, seen);
     }
     return;
   }
@@ -201,7 +358,13 @@ function collectClassExpression(
   }
 
   if (ts.isBinaryExpression(node)) {
-    if (node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    const operator = node.operatorToken.kind;
+    if (
+      operator === ts.SyntaxKind.PlusToken ||
+      operator === ts.SyntaxKind.QuestionQuestionToken ||
+      operator === ts.SyntaxKind.BarBarToken ||
+      operator === ts.SyntaxKind.AmpersandAmpersandToken
+    ) {
       collectClassExpression(node.left, context, options, seen);
       collectClassExpression(node.right, context, options, seen);
     }
@@ -240,17 +403,35 @@ function collectClassExpression(
     return;
   }
 
+  if (ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node)) {
+    collectReturnedExpressions(node, context, options, seen);
+    return;
+  }
+
   if (ts.isCallExpression(node)) {
     const name = calleeName(node.expression);
     if (name && CLASS_BUILDERS.has(name)) {
-      const objectKeysAreClasses = name === "clsx" || name === "cn" || name === "classnames" || name === "classNames";
+      const objectKeysAreClasses =
+        name === "clsx" || name === "cn" || name === "classnames" || name === "classNames";
       for (const argument of node.arguments) {
         collectClassExpression(argument, context, { objectKeysAreClasses }, seen);
       }
       return;
     }
+
+    if (ts.isPropertyAccessExpression(node.expression) && CLASS_CHAIN_METHODS.has(node.expression.name.text)) {
+      collectClassExpression(node.expression.expression, context, options, seen);
+      if (node.expression.name.text === "concat") {
+        for (const argument of node.arguments) collectClassExpression(argument, context, options, seen);
+      }
+      return;
+    }
+
     if (ts.isIdentifier(node.expression)) {
       for (const initializer of context.bindings.get(node.expression.text) ?? []) {
+        collectClassExpression(initializer, context, options, seen);
+      }
+      for (const initializer of declarationValues(symbolFor(node.expression))) {
         collectClassExpression(initializer, context, options, seen);
       }
     }
@@ -271,15 +452,8 @@ function collectSourceReferences(file, referenced, runtimePrefixes) {
     return;
   }
 
-  const extension = extname(file);
-  const kind = extension === ".tsx"
-    ? ts.ScriptKind.TSX
-    : extension === ".jsx"
-      ? ts.ScriptKind.JSX
-      : extension === ".js" || extension === ".mjs"
-        ? ts.ScriptKind.JS
-        : ts.ScriptKind.TS;
-  const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, kind);
+  const sourceFile = program.getSourceFile(file);
+  if (!sourceFile) return;
   const context = {
     file,
     bindings: collectBindings(sourceFile),
@@ -327,14 +501,21 @@ function collectSourceReferences(file, referenced, runtimePrefixes) {
         }
         if (method === "setAttribute" && node.arguments.length >= 2) {
           const attribute = node.arguments[0];
-          if (ts.isStringLiteralLike(attribute) && (attribute.text === "class" || attribute.text === "className")) {
+          if (
+            ts.isStringLiteralLike(attribute) &&
+            (attribute.text === "class" || attribute.text === "className")
+          ) {
             collectClassExpression(node.arguments[1], context);
           }
         }
       }
 
       const name = calleeName(node.expression);
-      if (name === "createElement" && node.arguments[1] && ts.isObjectLiteralExpression(unwrap(node.arguments[1]))) {
+      if (
+        name === "createElement" &&
+        node.arguments[1] &&
+        ts.isObjectLiteralExpression(unwrap(node.arguments[1]))
+      ) {
         const props = unwrap(node.arguments[1]);
         for (const property of props.properties) {
           if (!ts.isPropertyAssignment(property)) continue;
@@ -516,7 +697,7 @@ function globalClassSelectors(css) {
 
 const referenced = new Set();
 const runtimePrefixes = new Set();
-for (const file of sourceFiles()) collectSourceReferences(file, referenced, runtimePrefixes);
+for (const file of productFiles) collectSourceReferences(file, referenced, runtimePrefixes);
 
 const modules = [];
 const walkModules = (dir) => {
