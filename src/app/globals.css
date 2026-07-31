@@ -319,6 +319,8 @@ select:focus-visible {
 }
 [data-theme="dark"] .icon-button { background: var(--color-bg-elevated); border-color: var(--color-border-default); }
 [data-theme="dark"] .icon-button:hover { background: var(--color-bg-tertiary); }
+
+/* Capture + More sheets (wireframes §0) */
 .capture-sheet-lead {
   margin: 0 0 16px;
   color: var(--mf-text-muted);
@@ -2026,7 +2028,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 
 @media (max-width: 1050px) {
   .profile-chip > span:nth-child(2),
-  .profile-chip > svg { display: none; }
+.profile-chip > svg { display: none; }
   .profile-chip { display: block; padding-top: 20px; }
   .page-column { margin-left: 82px; }
   .hero-grid { grid-template-columns: 1fr 1fr; }
@@ -2227,6 +2229,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   .transaction-time { display: none; }
   .transaction-row .amount { grid-column: 3; }
   .transaction-detail small { max-width: 160px; }
+  /* Exactly 5 primary tabs: Tổng quan · Giao dịch · Capture · Tài khoản · Thêm */
   .mobile-nav-badge {
     position: absolute;
     top: 2px;
@@ -2236,6 +2239,7 @@ a.desktop-search-link:hover { border-color: #9abda8; }
     font-size: 9px;
     padding: 0 3px;
   }
+  /* Full-width bottom sheets (dialogs + capture/more) */
   .transaction-dialog,
   .account-dialog {
     width: 100%;
@@ -3615,6 +3619,12 @@ a.desktop-search-link:hover { border-color: #9abda8; }
 [data-theme="dark"] .preview-dashboard-card { background: var(--color-bg-secondary); border-color: var(--color-border-default); }
 [data-theme="dark"] .preview-item { background: var(--color-bg-primary); border-color: var(--color-border-default); }
 
+/* ===================================================================
+   NEW COMPONENTS — Phase 4
+   =================================================================== */
+
+/* Theme Toggle */
+
 /* Empty State */
 .empty-state {
   display: grid;
@@ -3745,6 +3755,8 @@ a.desktop-search-link:hover { border-color: #9abda8; }
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
 }
+
+/* Mobile tab tap feedback */
 
 /* Button destructive ghost variant */
 .button-destructive-ghost {
@@ -6737,6 +6749,8 @@ body {
   padding: 36px 24px !important;
   font-size: 13px !important;
 }
+
+/* --- Mobile chrome --- */
 
 /* Dialogs */
 .transaction-dialog,

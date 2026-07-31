@@ -381,6 +381,8 @@
   margin: 0;
 }
 
+/* Dialogs and quick capture */
+
 .capture-sheet-lead {
   color: var(--color-text-secondary) !important;
   font-size: 14px !important;
@@ -508,6 +510,8 @@
 .more-sheet-signout-form {
   margin: 0;
 }
+
+/* Mobile product chrome */
 
 /* Dark theme */
 [data-theme="dark"] .app-shell {
@@ -663,8 +667,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .app-shell .primary-button,
-  .insights-kpi article,
-  .transaction-row {
+.insights-kpi article,
+.transaction-row {
     transition: none !important;
   }
 }
