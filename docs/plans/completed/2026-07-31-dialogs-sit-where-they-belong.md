@@ -9,7 +9,21 @@ Every modal in the product is placed deliberately: centred on desktop and tablet
 a bottom sheet on phones. The placement is asserted by a browser test at both ends
 of the range, so the next global dialog rule cannot undo it quietly.
 
-Status: `implemented`. Not `verified` in production — that is the owner's step.
+Status: **`merged`, not `verified`.** PR #166 squash-merged as `12eb6b2`; issue #145
+closed. CI green on all three jobs — `verify`, `database` and `e2e`, the last
+including WebKit, which is the browser the agent container cannot run.
+
+**This packet is filed here one step early, and that is a deviation worth naming.**
+`docs/plans/completed/README.md` says a packet is complete only after the PR is
+merged, *the exact production deployment succeeds and the affected flow is
+verified*. `AGENTS.md` step 9 says to move the packet after merge. The two
+disagree; the owner asked for the move after merge, so that is what happened, and
+this line exists so nobody reads the folder as proof of production verification.
+
+Outstanding, and the owner's step: confirm on the deployed build that **Thêm tài
+khoản**, the record-transaction dialog and **Nhập nhanh** each sit centred on a
+desktop viewport in both themes, and that the first two still rise from the bottom
+edge as full-width sheets on a phone.
 
 ## Repository reconnaissance
 
