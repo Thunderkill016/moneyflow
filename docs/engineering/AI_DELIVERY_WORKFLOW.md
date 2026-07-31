@@ -74,15 +74,40 @@ Output: a short map of relevant files, reusable code, current behavior and unres
 
 Research is required when behavior depends on external products, current APIs, standards, finance practices, security guidance or unfamiliar technology.
 
+Start from one explicit decision question. Consult the smallest relevant section of:
+
+- `docs/research/REPOSITORY_REFERENCE_MAP.md` for finance-product and implementation behavior;
+- `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` for AI delivery, research, product direction, code quality, architecture, testing, security and operations.
+
+Select **two to four focused sources by default**. More sources require a reason in the work packet; fewer are acceptable when one authoritative primary source fully answers a narrow question.
+
 Rules:
 
-- Prefer official documentation and primary sources.
-- Record publication/access date for changeable information.
-- Separate observed facts from inference.
+- Prefer official documentation, standards, source code and primary evidence.
+- Record publication or access date for changeable information.
+- State what each source establishes, its authority type and where it does not apply.
+- Separate observed facts from inference and product judgment.
 - Compare alternatives and explain why rejected options do not fit MoneyFlow.
 - Never use competitor behavior as proof that a financial assumption is correct.
+- A repository appearing in a reference map is permission to study it, not approval to copy code, add a dependency or adopt its architecture.
+- Generated research summaries are leads; verify load-bearing claims against the underlying source.
 
 Output: decisions, sources, applicability, rejected alternatives and remaining uncertainty.
+
+#### Tool, dependency and architecture adoption gate
+
+Before adding a tool, dependency, provider, service, framework or architecture pattern, the work packet must record:
+
+1. the observed problem it solves;
+2. why existing code or a simpler alternative is insufficient;
+3. license and code-reuse compatibility;
+4. secrets, user-data and privacy exposure;
+5. runtime, bundle, deployment and operational cost;
+6. the owning boundary and maintenance responsibility;
+7. verification, migration and rollback strategy;
+8. the removal condition if the expected benefit does not appear.
+
+Popularity, benchmark rank, AI capability or use by a larger repository is not sufficient evidence.
 
 ### 3. Specification
 
@@ -142,6 +167,8 @@ Check:
 
 - every acceptance criterion has evidence;
 - no prohibited or out-of-scope behavior was introduced;
+- research claims remain supported and applicable to the final design;
+- adopted tools or patterns passed the stated license, security, ownership and rollback gate;
 - domain rules remain centralized and tested;
 - database ownership is enforced below the UI;
 - UI uses existing tokens/components and works across supported states;
@@ -154,6 +181,7 @@ Run the required static, domain, database, browser and responsive gates. Review 
 
 - problem and outcome;
 - research/plan link;
+- selected sources, applicability and rejected scope;
 - important decisions and risks;
 - test results;
 - screenshots or browser evidence;
@@ -184,7 +212,8 @@ Documentation is part of the system:
 - `ARCHITECTURE.md` changes only when boundaries change.
 - Product truth lives in `docs/product/PRINCIPLES.md`.
 - Research may be historical, but must be labeled when superseded.
+- The two repository reference maps are maintained indexes, not roadmaps or dependency manifests.
 - Active work packets describe current execution; completed packets preserve decisions.
 - Important rules should migrate from prose into tests, scripts, schema constraints or lint checks when feasible.
 
-Run `npm run check:knowledge` to catch missing operating documents and selected stale product claims.
+Run `npm run check:knowledge` to catch missing operating documents, weakened research-contract markers and selected stale product claims.
