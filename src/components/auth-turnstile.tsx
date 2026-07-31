@@ -45,11 +45,13 @@ export function AuthTurnstile({
   siteKey,
   token,
   pending,
+  className,
   onTokenChange,
 }: {
   siteKey: string;
   token: string;
   pending: boolean;
+  className?: string;
   onTokenChange: (token: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -110,7 +112,7 @@ export function AuthTurnstile({
   }, [onTokenChange, pending]);
 
   return (
-    <div className={styles.root}>
+    <div className={[styles.root, className].filter(Boolean).join(" ")}>
       <Script
         id="moneyflow-auth-turnstile"
         src={TURNSTILE_SCRIPT_URL}
