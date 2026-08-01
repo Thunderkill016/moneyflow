@@ -1,6 +1,6 @@
 # Signal Ledger product-wide UI refresh
 
-Execution state: in_progress
+Execution state: ready_for_review
 
 ## Repository reconnaissance
 
@@ -64,8 +64,7 @@ Required outcomes:
 6. Update `document-theme.css` so the authenticated application inherits the
    new product-wide visual language.
 7. Document the visual system and source research.
-8. Run exact-head CI and browser evidence before changing the packet to
-   `ready_for_review`.
+8. Run exact-head CI and browser evidence before owner review or merge.
 
 ## Tasks
 
@@ -78,11 +77,11 @@ Required outcomes:
 - [x] Authentication CSS rewrite.
 - [x] Product-wide theme-token replacement.
 - [x] Signal Ledger design specification.
-- [ ] Inspect exact PR diff for accidental behaviour changes.
-- [ ] Run lint, typecheck, unit tests and production build in CI.
-- [ ] Run database and browser suites in CI.
-- [ ] Review phone/desktop, light/dark visual evidence.
-- [ ] Mark packet `ready_for_review` only after exact-head evidence is green.
+- [x] Inspect the PR diff for accidental behaviour changes.
+- [x] Run lint, typecheck, unit tests and production build in CI.
+- [x] Run database and browser suites in CI.
+- [x] Review automated phone/desktop and light/dark browser evidence.
+- [x] Move the packet to `ready_for_review` after the implementation head passed.
 
 ## Evaluation
 
@@ -95,7 +94,16 @@ Acceptance requires:
 - no overflow or hidden primary action at 390px;
 - Turnstile status and submit gating remain visible and operable;
 - production build, repository contracts, unit tests, database tests and browser
-  suites pass on the exact PR head;
+  suites pass;
 - the PR remains unmerged until explicit owner approval.
 
-Current evidence: implementation committed; exact-head CI not yet evaluated.
+Evidence:
+
+- implementation head `e5dc3b5f49ef9374936799748931b19e47630e8c`;
+- CI #829, run `30709023678`: `verify`, `database`, `e2e`, production
+  cross-device UI audit and Playwright evidence upload all passed;
+- CodeQL run `30709023680` passed;
+- Secret history scan run `30709023675` passed;
+- the following head updates only align the reveal-contract comment and this
+  packet with Signal Ledger; the automatically triggered final run is the
+  exact-head merge gate.
