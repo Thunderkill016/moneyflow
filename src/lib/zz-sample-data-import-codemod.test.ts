@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { cpSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import test from "node:test";
 
 const CONTRACT_NAMES = new Set([
@@ -63,7 +63,7 @@ test("generate the sample-data import migration artifact", () => {
   const contractTarget = join(temporaryLib, "transactions", "contracts.ts");
   const presentationTarget = join(temporaryLib, "transactions", "category-presentation.ts");
   const fixtureTarget = join(temporaryLib, "demo", "transaction-fixtures.ts");
-  const importPattern = /import\s+(?:type\s+)?\{([\s\S]*?)\}\s+from\s+["'](?:@\/lib\/sample-data|(?:\.\.\/|\.\/)+sample-data(?:\.ts)?)["'];?/gu;
+  const importPattern = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+["'](?:@\/lib\/sample-data|(?:\.\.\/|\.\/)+sample-data(?:\.ts)?)["'];?/gu;
   const changed: string[] = [];
 
   for (const file of listSourceFiles(temporarySrc)) {
