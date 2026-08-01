@@ -1,17 +1,12 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 
 test("emit reviewed Inbox provenance mapping patches", () => {
   try {
     execFileSync(
       process.execPath,
-      ["--experimental-strip-types", "--input-type=module"],
-      {
-        input: readFileSync("scripts/emit-inbox-provenance-mapping-patches.cts", "utf8"),
-        encoding: "utf8",
-        stdio: ["pipe", "pipe", "pipe"],
-      },
+      ["scripts/emit-inbox-provenance-mapping-patches.mjs"],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
     );
   } catch (error) {
     const output = error as { stdout?: string; stderr?: string };
