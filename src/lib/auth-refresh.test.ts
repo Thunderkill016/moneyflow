@@ -30,7 +30,8 @@ test("auth copy stays factual and avoids a spending recommendation", () => {
   assert.doesNotMatch(authForm, /có thể chi hôm nay/i);
   assert.match(authForm, /Không yêu cầu mật khẩu ngân hàng/);
   assert.match(authForm, /Giao dịch có thể sửa và phục hồi/);
-  assert.match(authForm, /MoneyFlow không cố thay bạn ra quyết định|chủ động quyết định/);
+  assert.match(authForm, /bức tranh có thể kiểm tra lại/);
+  assert.match(authForm, /Không cần thiết lập hoàn hảo/);
 });
 
 test("authentication is responsive, themed and motion accessible", () => {
