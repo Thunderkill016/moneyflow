@@ -1,8 +1,8 @@
 # Security hardening after production red-team
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** evaluator  
+**Status:** ready_for_review  
+**Execution state:** ready_for_review  
+**Active role:** human owner  
 **Permission scope:** branch_write  
 **Owner:** GPT-5.6 Thinking; human owner controls merge, deployment, provider writes, and acceptance  
 **Issue/PR:** #173  
@@ -14,7 +14,7 @@ Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
 MoneyFlow rejects oversized and binary abuse at the public Web Share Target, applies a materially stricter browser policy, removes account-enumeration hints, enforces a 12–72 character application password boundary, and continuously proves that one authenticated user cannot read or mutate another user's financial objects through RLS, views, or exposed RPCs.
 
-The implementation is now synchronized with current `main`. Provider settings remain unchanged and are tracked separately in #174.
+The implementation is synchronized with current `main` and has passed the complete static, database, and browser matrix. Provider settings remain unchanged and are tracked separately in #174.
 
 ## Repository reconnaissance
 
@@ -46,13 +46,13 @@ The implementation is now synchronized with current `main`. Provider settings re
 The branch originally diverged from `main@f5f4376`. It was advanced without force-push through two GitHub-generated merge commits:
 
 1. `501f040f9d9255e055af59b3b3fafb72eae7b7d7`, bringing in the reference-map and operating-contract work;
-2. `173f399204e465f2cc154203f4e527faed2c7e68`, bringing in current `main@f4240f44c793c2c0ac9e387cc7bb241d1d24075b`, including transaction authorities and atomic Inbox provenance.
+2. `173f399204e465f2cc154203f4e527faed2c7e68`, bringing in `main@f4240f44c793c2c0ac9e387cc7bb241d1d24075b`, including transaction authorities and atomic Inbox provenance.
 
 A direct `main...agent/security-hardening-red-team` comparison after synchronization contains only the intended 18 security/documentation files. No current-main feature is reintroduced as a PR change.
 
 ### Post-sync review finding
 
-The security implementation and tests remained compatible with the new provenance model. The only stale artifact found was `docs/security-rls-check.md`, which omitted `transaction_import_provenance` and the provenance-specific ownership suites. That document was reconciled before final handoff.
+The security implementation and tests remained compatible with the provenance model. The only stale artifact found was `docs/security-rls-check.md`, which omitted `transaction_import_provenance` and the provenance-specific ownership suites. That document was reconciled before handoff.
 
 ### Constraints
 
@@ -115,7 +115,7 @@ No dependency, provider, service, framework, or architecture layer is added. The
 - [x] Catalog tests prove grants, definer execution, `auth.uid()`, pinned search path, and security-invoker views.
 - [x] Current import-provenance RLS/RPC suites still pass after branch synchronization.
 - [x] Dependabot monitors npm and GitHub Actions weekly.
-- [ ] Exact final documentation head passes the complete CI matrix.
+- [x] Synchronized implementation and documentation pass the complete CI matrix.
 - [ ] Human owner reviews and merges the final diff.
 - [ ] Exact production deployment receives the post-merge smoke.
 
@@ -185,8 +185,8 @@ No dependency, provider, service, framework, or architecture layer is added. The
 | T6 | Add dependency monitoring | none | Dependabot configuration | done |
 | T7 | Synchronize current `main` without history rewrite | T1–T6 | merge commits `501f...` and `173f...`; branch is behind by zero | done |
 | T8 | Evaluate synchronized diff | T7 | 18-file compare; code review; stale RLS doc corrected | done |
-| T9 | Run exact final-head CI | T8 | required verify, database, and browser jobs | in progress |
-| T10 | Human merge and production acceptance | T9 | owner review, exact deployment, affected-flow smoke | blocked on T9 and owner |
+| T9 | Run exact synchronized-head CI | T8 | CI #778 / run `30697958962` passed | done |
+| T10 | Human merge and production acceptance | T9 | owner review, exact deployment, affected-flow smoke | blocked on owner |
 
 ## Evaluation
 
@@ -194,7 +194,7 @@ No dependency, provider, service, framework, or architecture layer is added. The
 
 - **Scope:** direct compare with current `main` is limited to the intended 18 files.
 - **Financial correctness:** no calculation, schema, transfer, or ledger mutation implementation changed.
-- **Tenant safety:** original 25-case suite and current provenance suites coexist and pass on the synchronized merge head.
+- **Tenant safety:** original 25-case suite and current provenance suites coexist and pass on the synchronized branch.
 - **Share boundary:** declared and chunked bodies are bounded before unbounded parser work; unsupported binary files are never decoded as text.
 - **Authentication:** public errors are neutral; provider parity remains explicitly unverified.
 - **Browser policy:** external origins and capabilities are materially restricted; inline-script limitation is disclosed.
@@ -203,14 +203,18 @@ No dependency, provider, service, framework, or architecture layer is added. The
 
 ### Verification evidence
 
-CI #776 / run `30697753567` on synchronized merge head `173f399204e465f2cc154203f4e527faed2c7e68` established compatibility with current `main`:
+CI #778 / run `30697958962` on head `c45694c0b1e66120271aa8ddb686d8b072164aa9` passed:
 
-- project knowledge, deployment, CSS ownership, and architecture contracts passed;
-- lint, typecheck, unit/static RLS, and production build passed;
-- fresh Supabase reset and all pgTAP suites passed;
-- browser smoke and cross-device audit were started on that head.
+- project knowledge, deployment, CSS ownership, and architecture contracts;
+- lint and typecheck;
+- unit tests and static RLS checks;
+- production build;
+- fresh Supabase reset and every pgTAP suite;
+- expense-path browser smoke;
+- production cross-device UI audit;
+- Playwright evidence upload.
 
-The subsequent documentation commits do not change runtime behavior, but exact-head CI must still complete before `ready_for_review` is claimed.
+This handoff commit changes only this packet. Its exact-head CI must remain green before merge; the PR body records that final run without another source commit.
 
 ### Stop conditions
 
@@ -230,7 +234,8 @@ Stop and move backward if:
 | 2026-07-31 | implementer | evaluator/CI | evaluating | security code, tests, PR #173 | original exact-head CI required | run and review CI |
 | 2026-07-31 | evaluator | human owner | ready_for_review | CI #677 on old base | base later changed materially | do not merge until synchronized |
 | 2026-08-01 | human owner | evaluator | evaluating | instruction to continue next task | branch behind current main | synchronize without force-push |
-| 2026-08-01 | evaluator | CI | evaluating | current-main merge, 18-file diff, corrected RLS guide | final docs-head CI pending | run exact-head full matrix |
+| 2026-08-01 | evaluator | CI | evaluating | current-main merge, 18-file diff, corrected RLS guide | synchronized CI required | run exact-head matrix |
+| 2026-08-01 | evaluator | human owner | ready_for_review | CI #778 complete success and this evidence-only handoff | exact handoff-head CI and production smoke remain | verify final CI; review and decide merge |
 
 ### Current permission boundary
 
