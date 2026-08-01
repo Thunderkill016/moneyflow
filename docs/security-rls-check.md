@@ -1,207 +1,187 @@
 # Security — Row Level Security (RLS) verification
 
-MoneyFlow isolates every user-owned row with **PostgreSQL RLS** and `auth.uid()`. This doc explains how to verify that model **without requiring live production**.
+MoneyFlow isolates user-owned rows with PostgreSQL RLS and `auth.uid()`. Verification is layered: migration scans prove declarations, catalog tests prove effective grants and function configuration, and pgTAP attack suites execute real ownership boundaries.
 
-Related: [supabase-setup.md](./supabase-setup.md) · migrations under `supabase/migrations/` · pgTAP suite `supabase/tests/database/schema_and_rls.test.sql`.
+Related: [supabase-setup.md](./supabase-setup.md), migrations under `supabase/migrations/`, and tests under `supabase/tests/database/`.
 
----
+## Security model
 
-## Security model (expected)
-
-| Layer | Rule |
-|-------|------|
+| Layer | Required rule |
+|---|---|
 | Tables | Every user-owned table has `ENABLE ROW LEVEL SECURITY` |
-| Policies | Own-row only: `(select auth.uid()) = user_id` (profiles: `= id`) |
-| `anon` | No table grants on financial / inbox data |
-| Ledger writes | `financial_transactions` / `transaction_entries` are **SELECT-only** via Data API |
-| Mutations | `SECURITY DEFINER` RPCs; `user_id` from `auth.uid()` only; `SET search_path = ''` |
-| Money | `bigint` minor units (VND đồng); never float in schema |
-| Soft delete | `deleted_at` on transactions; restore via `restore_money_transaction` |
+| Policies | Own-row only: `(select auth.uid()) = user_id` (profiles use `id`) |
+| Anonymous access | `anon` has no grants on public financial tables or views |
+| Ledger writes | `financial_transactions` and `transaction_entries` are SELECT-only through the Data API |
+| Mutations | Exposed `SECURITY DEFINER` RPCs derive identity from `auth.uid()` and pin `search_path = ''` |
+| Views | Exposed finance views use `security_invoker=true` |
+| Money | Signed `bigint` minor units; never floating-point schema money |
+| Destructive actions | Transaction deletion is soft and owner-scoped; restore is owner-scoped |
 
-**Write path tables (RPC-only, select policies):** budgets, commitments, goals, ledger.  
-**CRUD path tables (full policies + grants):** accounts, categories, `import_batches`, `inbox_candidates`.
+**RPC-owned/select-policy tables:** ledger, budgets, commitments and occurrences, recurring-income templates and occurrences, savings goals and allocations, and `transaction_import_provenance`.
 
----
+**Direct CRUD tables:** accounts, categories, `import_batches`, and `inbox_candidates`, all subject to own-row RLS. Authenticated Inbox approval is not direct CRUD: `plan_inbox_candidate` and `approve_inbox_candidate` own classification, atomic ledger creation, candidate linkage, and provenance insertion.
 
-## 1. Static check (no Docker, no cloud) — default CI path
+## 1. Static migration checks
 
-Scans migration SQL for:
+The no-Docker path scans versioned SQL for:
 
-1. Every `create table public.*` has a matching `enable row level security`
-2. Every user table has at least one `create policy … on public.<table>`
-3. Every `security definer` function sets `search_path`
+1. every `create table public.*` receiving RLS;
+2. every public user table having at least one policy;
+3. every `SECURITY DEFINER` function setting `search_path`;
+4. ledger tables remaining free of direct insert policies.
 
 ```bash
-# Script (exit 0 = OK)
-bash scripts/check-rls-migrations.sh
-
-# Same assertions via unit test (runs with npm test)
-npm run test -- --test-name-pattern='rls migrations'
-# or simply:
 npm run check:rls
+npm run test
 ```
 
-This is the **primary** verification on machines without Docker. It does **not** prove policies are correct at runtime — only that migrations declare the expected surface.
+Static checks prove declarations only. They do not execute policies, grants, triggers, views, or RPC ownership behavior.
 
----
-
-## 2. Local Supabase pgTAP suite (Docker; optional)
-
-Existing automated SQL tests:
-
-| File | What it asserts |
-|------|-----------------|
-| `supabase/tests/database/schema_and_rls.test.sql` | Tables/views exist; **RLS enabled** on all user tables; key RPCs exist; money columns are `bigint`; named **policies** exist |
-
-### Prerequisites
-
-- Docker available and running
-- CLI: `npx supabase` (dev dependency not required; uses npx)
-
-### Commands
+## 2. Runtime pgTAP suite
 
 ```bash
-# Start local stack + apply migrations + seed
 SUPABASE_TELEMETRY_DISABLED=1 npx supabase start
 SUPABASE_TELEMETRY_DISABLED=1 npx supabase db reset
-
-# Run database tests (pgTAP)
-SUPABASE_TELEMETRY_DISABLED=1 npx supabase test db
-# or:
 npm run test:db
 ```
 
-**Does not touch production.** Only the local Docker project from `supabase/config.toml`.
+The local stack is disposable and does not touch production.
 
-If Docker is unavailable, skip this section; static check + manual checklist still apply.
+| Test file | What it proves |
+|---|---|
+| `schema_and_rls.test.sql` | Required tables, views, functions, RLS, policies, and `bigint` money columns |
+| `security_catalog.test.sql` | No `anon` relation grants; no `public`/`anon` definer execution; authenticated definer RPCs pin `search_path` and reference `auth.uid()`; finance views are security invokers |
+| `security_definer_contract.test.sql` | The maintained exposed RPC set has the expected least-privilege grants and configuration |
+| `cross_tenant_rpc.test.sql` | Two transaction-scoped users exercise 25 foreign-object reads and mutations across accounts, ledger, transfers, splits, budgets, commitments, recurring income, and goals |
+| `import_provenance_schema.test.sql` | Provenance table, RLS, ownership keys, indexes, functions, and grants |
+| `import_provenance_invariants.test.sql` | Atomic approval, idempotency, duplicate handling, tenant rejection, candidate linkage, and immutable provenance |
+| `import_provenance_review_resolution.test.sql` | Reviewed transfer resolution remains balanced and cannot bypass invalid-state guards |
+
+The forged-user and provenance suites run inside `begin`/`rollback`; deterministic identities and generated tenant rows disappear at the end.
 
 ### Interpreting failures
 
-| Failure pattern | Likely cause |
-|-----------------|--------------|
-| `… has RLS` failed | New table without `ENABLE ROW LEVEL SECURITY` |
-| `has_policy …` failed | Policy renamed/missing; update migration or test |
-| `has_function …` failed | RPC signature changed; update migration + test `array[…]` args |
-| Connection / container errors | Docker not running; re-run `supabase start` |
+| Failure | Likely cause |
+|---|---|
+| `… has RLS` | A user-owned table lacks `ENABLE ROW LEVEL SECURITY` |
+| named policy assertion | A policy is missing/renamed or the test is stale |
+| catalog grant assertion | `anon`/`public` gained unintended access |
+| `search_path` or `auth.uid()` assertion | A new definer RPC violates the ownership contract |
+| cross-tenant assertion | A policy, view, or RPC can observe or mutate another tenant |
+| provenance assertion | Inbox approval, dedupe, linkage, or transfer neutrality regressed |
+| connection/container error | Docker or local Supabase failed before assertions ran |
 
----
+## 3. Manual and production-safe verification
 
-## 3. Manual checklist (SQL editor or Studio)
+Automated local tests are the normal gate. Manual review remains useful after provider, migration, or Edge Function changes.
 
-Use **local** Studio (`http://127.0.0.1:54323`) or a **non-prod** project. Do **not** run destructive checks on production.
-
-### A. Catalog
+### Catalog checks
 
 ```sql
--- All public base tables should have RLS = true
 select c.relname as table_name, c.relrowsecurity as rls_enabled
 from pg_class c
 join pg_namespace n on n.oid = c.relnamespace
-where n.nspname = 'public'
-  and c.relkind = 'r'
+where n.nspname = 'public' and c.relkind in ('r', 'p')
 order by 1;
-```
 
-Expected user-owned tables (all `rls_enabled = true`):
-
-- `profiles`, `accounts`, `categories`
-- `financial_transactions`, `transaction_entries`
-- `monthly_budgets`
-- `recurring_commitments`, `commitment_occurrences`
-- `recurring_income_templates`, `income_template_occurrences`
-- `savings_goals`, `savings_goal_allocations`
-- `import_batches`, `inbox_candidates`
-
-### B. Policies present
-
-```sql
 select schemaname, tablename, policyname, cmd, roles
 from pg_policies
 where schemaname = 'public'
 order by tablename, policyname;
 ```
 
-Spot-check:
+Expected user-owned tables include:
 
-- [ ] Each user table has at least a `SELECT` own-row policy
-- [ ] Ledger tables have **no** insert/update/delete policies for `authenticated` (writes go through RPC)
-- [ ] Inbox tables have select/insert/update/delete own-row policies
+- `profiles`, `accounts`, `categories`;
+- `financial_transactions`, `transaction_entries`;
+- `monthly_budgets`;
+- `recurring_commitments`, `commitment_occurrences`;
+- `recurring_income_templates`, `income_template_occurrences`;
+- `savings_goals`, `savings_goal_allocations`;
+- `import_batches`, `inbox_candidates`;
+- `transaction_import_provenance`.
 
-### C. Two-user isolation (manual, optional)
+### Two-session confirmation
 
-Requires two auth users (A, B) in the same non-prod project.
+For staging or a controlled rollback-safe production check:
 
-1. As user A, create an account / expense via the app (or RPC).
-2. As user B (new JWT / second browser profile), query:
+1. User A creates an account and transaction.
+2. User B uses a separate browser profile/session.
+3. Query through the normal client and attempt owner-scoped mutations using A's UUIDs.
+4. Expect no visible rows, `false`, or a neutral not-found domain error.
+
+For imported candidates, also verify that B cannot plan or approve A's candidate and cannot reference A's account/category during approval.
+
+Never paste a service-role key into a browser. Never perform destructive, brute-force, or availability testing against production. SQL-level production verification must use deterministic synthetic data in one transaction and finish with `rollback`.
+
+### RPC review
 
 ```sql
--- As authenticated user B (via client or set request.jwt.claim.sub)
-select count(*) from public.accounts;
-select count(*) from public.financial_transactions;
-select count(*) from public.inbox_candidates;
-```
-
-Expect **0** rows belonging to A. Never paste service-role keys into the browser.
-
-### D. RPC ownership
-
-```sql
--- SECURITY DEFINER functions must not trust client-supplied user_id
-select p.proname, pg_get_function_identity_arguments(p.oid) as args
+select
+  p.proname,
+  pg_get_function_identity_arguments(p.oid) as args,
+  p.prosecdef,
+  p.proconfig
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public'
-  and p.prosecdef = true
-order by 1;
+order by 1, 2;
 ```
 
-Code review each: body uses `auth.uid()`, filters `user_id = v_user_id` / `auth.uid()`, and has `SET search_path = ''`.
+For each externally executable definer RPC, confirm:
 
-### E. Grants
+- `auth.uid()` is the identity source;
+- client input never supplies `user_id`;
+- every selected or mutated UUID is filtered by caller ownership;
+- `search_path` is pinned and referenced objects are schema-qualified;
+- `public` and `anon` cannot execute it;
+- failure does not reveal another tenant's data.
 
-- [ ] `anon` has no select on ledger / inbox tables
-- [ ] `authenticated` select on ledger; no direct insert/update/delete on `financial_transactions` / `transaction_entries`
-- [ ] Execute on money RPCs granted only to `authenticated`
+## 4. Application and provider boundaries
 
----
+RLS protects database rows; it does not replace surrounding controls.
 
-## 4. App-layer reminders (not RLS, but related)
+- Resolve sessions on the server and treat Server Actions as public entrypoints.
+- Keep service-role credentials server/Edge-Function only, never `NEXT_PUBLIC_*`.
+- Demo mode remains browser-local and never becomes a fallback for authenticated failure.
+- Match the application password policy in Supabase Auth settings; direct Auth API calls bypass app-only validation.
+- Enable CAPTCHA and review provider rate limits before broad public signup.
+- Use Vercel Firewall for network-edge rate limiting; an in-memory serverless counter is not shared reliably across instances or regions.
+- Review the `delete-account` Edge Function whenever a tenant table is added. `transaction_import_provenance` currently has an owner foreign key with `on delete cascade`, but cleanup still requires regression verification.
 
-- Resolve session on the **server** (`getClaims` / server Supabase client); never trust client-only `user_id`.
-- Demo mode uses browser storage only — no multi-tenant DB risk until Supabase env is configured.
-- Service role must stay **server-only** (never `NEXT_PUBLIC_*`).
-- Soft-delete restore needs migration applied; see [supabase-setup.md](./supabase-setup.md).
+## 5. Adding a user-owned table or RPC
 
----
+For a table:
 
-## 5. When adding a new user-owned table
+1. Add an explicit owner key and ownership-safe foreign keys.
+2. Enable RLS in the same migration.
+3. Add only the required own-row policies and least-privilege grants.
+4. Extend schema, catalog, deletion, and forged-tenant tests.
+5. Verify any view or RPC that exposes the table.
 
-1. `user_id uuid not null references auth.users(id) on delete cascade` (or profiles FK pattern).
-2. `alter table … enable row level security;`
-3. Policies for intended commands; prefer RPC for financial mutations.
-4. `revoke all … from anon`; grant least privilege to `authenticated`.
-5. Extend `supabase/tests/database/schema_and_rls.test.sql` (`has_table`, RLS `ok`, `has_policy`).
-6. Re-run `bash scripts/check-rls-migrations.sh` and (if Docker) `npm run test:db`.
+For an exposed RPC:
 
----
+1. Derive the caller from `auth.uid()`.
+2. Pin `search_path` and schema-qualify objects.
+3. Filter every input UUID by caller ownership before mutation.
+4. Revoke execution from `public` and `anon`; grant only the intended role.
+5. Add a user-B-against-user-A counterexample in the relevant pgTAP suite.
 
-## 6. Known gaps (honest)
+## 6. Remaining limitations
 
 | Gap | Severity | Mitigation |
-|-----|----------|------------|
-| No automated two-JWT cross-user integration test | Medium | Manual §3.C; static + pgTAP schema checks |
-| pgTAP does not execute RPC as forged `auth.uid()` | Medium | Code review RPC bodies; optional future test with `set local role` |
-| Cloud project may lag migrations | Medium | `supabase db push` only after reviewing diff |
-| Views (`account_balances`, `transaction_feed`, …) | Low | Underlying tables RLS + security invoker defaults; re-check if view security changes |
+|---|---|---|
+| Cloud database may lag repository migrations | Medium | Review and apply migrations deliberately, then inspect the live catalog |
+| Local forged-claim tests do not exercise the full external HTTP/JWT gateway | Medium | Retain controlled two-session or rollback-safe production verification |
+| Provider Auth controls are outside migrations | Medium | Track password minimum, CAPTCHA, redirect allow-list, and rate limits separately |
+| New views or Edge Functions can change ownership behavior | Medium | Require security-invoker/catalog tests and update deletion verification |
 
-These are **not** blockers for demo mode. Before handling real money, run Docker pgTAP + manual two-user isolation on a staging project.
-
----
+No single layer proves the full system. A green build does not prove RLS; static SQL does not prove runtime isolation; local pgTAP does not prove provider configuration.
 
 ## Quick reference
 
 ```bash
-npm run check:rls          # static migration scan (always)
-npm run test               # includes rls-migrations unit tests
-npm run test:db            # pgTAP via local Supabase (needs Docker)
+npm run check:rls
+npm run test
+npm run test:db
 ```

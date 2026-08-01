@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { declaredShareRequestTooLarge } from "@/lib/inbox/share-target-security";
 import { getLegacySiteHosts, getSiteOrigin, isLegacySiteHost } from "@/lib/site-url";
 import { updateSession } from "@/lib/supabase/proxy";
 
@@ -32,18 +33,33 @@ function redirectLegacyDomain(request: NextRequest): NextResponse | null {
   return response;
 }
 
+function sharePayloadTooLarge() {
+  return new NextResponse("Nội dung chia sẻ vượt quá giới hạn cho phép.", {
+    status: 413,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
 export async function proxy(request: NextRequest) {
   // Retired hostnames are deployment configuration, not application constants.
   // Clear their isolated auth cookies before moving the request to the configured site origin.
   const canonicalRedirect = redirectLegacyDomain(request);
   if (canonicalRedirect) return canonicalRedirect;
 
-  // PWA share_target POSTs multipart to /capture/share — rewrite before auth
-  // so the body is not lost on a login redirect (TASK-021).
+  // PWA share_target POSTs multipart to /capture/share — reject declared
+  // oversized bodies before invoking the Node multipart parser, then rewrite
+  // before auth so the body is not lost on a login redirect (TASK-021).
   if (
     request.method === "POST" &&
     request.nextUrl.pathname === "/capture/share"
   ) {
+    if (declaredShareRequestTooLarge(request.headers.get("content-length"))) {
+      return sharePayloadTooLarge();
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/api/share-target";
     return NextResponse.rewrite(url);
