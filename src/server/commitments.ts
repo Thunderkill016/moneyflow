@@ -4,7 +4,8 @@ import { z } from "zod";
 import { currentMonthStart } from "@/server/budgets";
 import { requireViewer } from "@/server/auth";
 import { createClient } from "@/lib/supabase/server";
-import { demoAccounts, demoCategories, type AccountOption, type CategoryOption } from "@/lib/sample-data";
+import type { AccountOption, CategoryOption } from "@/lib/transactions/contracts";
+import { demoAccounts, demoCategories } from "@/lib/demo/transaction-fixtures";
 import { commitmentTotals, dueDateForMonth, type RecurringCommitment } from "@/lib/planning/commitments";
 import { todayInVietnam } from "@/lib/vietnam-date";
 

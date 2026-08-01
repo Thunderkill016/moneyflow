@@ -1,4 +1,5 @@
-import { sampleTransactions, type Transaction } from "./sample-data.ts";
+import type { Transaction } from "./transactions/contracts.ts";
+import { sampleTransactions } from "./demo/transaction-fixtures.ts";
 import { isSplitLine, sumSplitAmounts } from "./splits.ts";
 
 export const TRANSACTION_STORAGE_KEY = "moneyflow-demo-transactions-v1";

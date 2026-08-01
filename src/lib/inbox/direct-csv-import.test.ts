@@ -3,11 +3,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import {
-  demoAccounts,
-  demoCategories,
-  type Transaction,
-} from "../sample-data.ts";
+import type { Transaction } from "../transactions/contracts.ts";
+import { demoAccounts, demoCategories } from "../demo/transaction-fixtures.ts";
 import {
   directImportFingerprint,
   formatDirectImportSummary,

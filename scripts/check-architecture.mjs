@@ -66,6 +66,62 @@ for (const rule of rules) {
   }
 }
 
+const transactionAuthorityFiles = [
+  "src/lib/transactions/contracts.ts",
+  "src/lib/transactions/category-presentation.ts",
+  "src/lib/demo/transaction-fixtures.ts",
+];
+for (const path of transactionAuthorityFiles) {
+  try {
+    if (!statSync(join(root, path)).isFile()) {
+      failures.push(`${path} must be a file`);
+    }
+  } catch {
+    failures.push(`missing transaction authority file: ${path}`);
+  }
+}
+
+const legacySamplePath = join(root, "src", "lib", "sample-data.ts");
+try {
+  const legacySample = readFileSync(legacySamplePath, "utf8");
+  if (/from\s+["'][^"']*demo\/transaction-fixtures(?:\.ts)?["']/u.test(legacySample)) {
+    failures.push(
+      "src/lib/sample-data.ts must not export demo fixtures; runtime demo values belong only to src/lib/demo/transaction-fixtures.ts.",
+    );
+  }
+  if (/export\s+const\s/u.test(legacySample)) {
+    failures.push(
+      "src/lib/sample-data.ts is a deprecated compatibility surface and must not own runtime constants.",
+    );
+  }
+} catch {
+  // The compatibility surface may be removed after all old imports migrate.
+}
+
+const allowedDemoFixtureImporters = new Set([
+  "src/lib/transaction-store.ts",
+  "src/server/budgets.ts",
+  "src/server/categories.ts",
+  "src/server/commitments.ts",
+  "src/server/finance.ts",
+  "src/server/income-templates.ts",
+  "src/server/reports.ts",
+]);
+const srcRoot = join(root, "src");
+for (const file of listFiles(srcRoot)) {
+  const path = relative(root, file).replaceAll("\\", "/");
+  const content = readFileSync(file, "utf8");
+  const importsDemoFixtures =
+    content.includes("@/lib/demo/transaction-fixtures") ||
+    /from\s+["'][^"']*demo\/transaction-fixtures\.ts["']/u.test(content);
+  if (!importsDemoFixtures) continue;
+  if (path.startsWith("src/lib/demo/") || /\.test\.(ts|tsx)$/u.test(path)) continue;
+  if (allowedDemoFixtureImporters.has(path)) continue;
+  failures.push(
+    `${path}: demo fixture import is not owned by an approved demo boundary.\n  Production/core modules must use transaction contracts or real loaders, not demo values.`,
+  );
+}
+
 if (failures.length > 0) {
   console.error("Architecture boundary contract failed:\n");
   for (const failure of failures) {

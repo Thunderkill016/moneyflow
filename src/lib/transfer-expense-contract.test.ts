@@ -13,7 +13,8 @@ import {
   topExpenseCategories,
 } from "./finance.ts";
 import { buildFinancialReport, reportRange } from "./reports.ts";
-import { sampleTransactions, type Transaction } from "./sample-data.ts";
+import type { Transaction } from "./transactions/contracts.ts";
+import { sampleTransactions } from "./demo/transaction-fixtures.ts";
 
 const TODAY = "2026-07-14";
 const MONTH = "2026-07";

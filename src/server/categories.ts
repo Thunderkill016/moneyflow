@@ -2,10 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 import type { CategorySummary } from "@/lib/categories";
-import {
-  demoCategories,
-  type TransactionKind,
-} from "@/lib/sample-data";
+import type { TransactionKind } from "@/lib/transactions/contracts";
+import { demoCategories } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 
