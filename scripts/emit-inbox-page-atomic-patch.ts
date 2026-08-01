@@ -32,6 +32,28 @@ export function emitAtomicInboxPagePatch(): never {
 
   source = replaceOnce(
     source,
+    `      if (!result.ok) {
+        setErrorMessage(result.message || "Không tải được inbox");
+        setLoadState("error");
+        return;
+      }
+      setCandidates(result.candidates);
+      setErrorMessage("");
+      setLoadState("ready");`,
+    `      if (!result.ok) {
+        setErrorMessage(result.message || "Không tải được inbox");
+        setLoadState("error");
+        return false;
+      }
+      setCandidates(result.candidates);
+      setErrorMessage("");
+      setLoadState("ready");
+      return true;`,
+    "load_result",
+  );
+
+  source = replaceOnce(
+    source,
     /  async function postOne\([\s\S]*?\n  async function handleReject\(candidateId: string\) \{/,
     `  async function postOne(
     payload: ReviewSubmitPayload,
