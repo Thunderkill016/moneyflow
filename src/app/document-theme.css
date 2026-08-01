@@ -1,149 +1,106 @@
 /*
- * MoneyFlow document and theme authority.
+ * MoneyFlow document and theme authority — Signal Ledger v3.
  *
- * This is the only non-legacy owner for:
- * - semantic Calm Ledger tokens
- * - resolved light/dark theme values
- * - html/body canvas, margin and padding
- * - global focus visibility
- * - document-level reduced motion
+ * This file owns the semantic palette, light/dark resolution, global canvas,
+ * focus visibility, type roles and motion values used by every product route.
+ * Components consume --mf-* roles; they must not create a second theme.
  *
- * Route and component styles must not target html or body.
- *
- * Semantic hue consistency
- * ------------------------
- * Each semantic meaning owns exactly one hue family, and `-text` is a
- * contrast step of that same hue — never a different one.
- *
- * This replaces the earlier `-text` values, which were carried over verbatim
- * from the legacy --color-success/danger/info/warning-text tokens and sat in
- * different hue families from the `-default` tokens they were paired with
- * (green text on a teal surface, sky-blue on indigo, yellow on amber). That
- * mismatch was not only inconsistent, it failed WCAG AA in light mode:
- * #15803d green on #e1f5f2 teal-subtle measured 4.43:1.
- *
- * Measured with the standard WCAG relative-luminance formula. Light `-text`
- * on its own `-subtle` background: income 6.93:1, expense 6.11:1,
- * transfer 6.58:1, warning 6.12:1. Dark `-text` on `-subtle`: income 7.92:1,
- * expense 7.75:1, transfer 7.55:1, warning 8.63:1. All `-default` tokens also
- * pass AA as text on their own surface, so either token is safe for a figure.
+ * Signal Ledger replaces the previous green-first visual language with a warm
+ * neutral canvas, graphite information surfaces and one cobalt action accent.
+ * Income, expense, transfer and warning keep independent semantic hues.
  */
 :root {
-  --mf-canvas: #f4f7f5;
+  --mf-canvas: #f7f5f0;
   --mf-surface: #ffffff;
-  --mf-surface-muted: #edf3ef;
-  --mf-surface-strong: #e3ece7;
-  --mf-text: #102019;
-  --mf-text-muted: #5b6b62;
-  --mf-text-soft: #76867d;
-  --mf-border: #d7e1db;
-  --mf-border-strong: #bdcbc3;
-  --mf-brand: #0b6b3a;
-  --mf-brand-hover: #075a30;
-  --mf-brand-pressed: #054625;
-  --mf-brand-subtle: #e6f4eb;
-  --mf-brand-text: #075a30;
+  --mf-surface-muted: #f0ede6;
+  --mf-surface-strong: #e5e0d6;
+  --mf-text: #171a1f;
+  --mf-text-muted: #5c616a;
+  --mf-text-soft: #7e838b;
+  --mf-border: #ded9cf;
+  --mf-border-strong: #c8c0b3;
+
+  --mf-brand: #3157d5;
+  --mf-brand-hover: #2548c2;
+  --mf-brand-pressed: #1e3793;
+  --mf-brand-subtle: #e9edff;
+  --mf-brand-text: #2444b5;
   --mf-on-brand: #ffffff;
 
-  /*
-   * There is deliberately no large brand-fill token here.
-   *
-   * A --mf-brand-canvas pair existed for the auth story panel. Measured, that
-   * panel put the sign-in screen at 39% brand fill on desktop and 35.9% on
-   * mobile, against CALM_LEDGER_V2's floor of 80% neutral surfaces, and it made
-   * the two public entry points disagree — the landing page sits near 90%
-   * neutral. The panel is now neutral canvas with green as an accent, so the
-   * token had no remaining user.
-   *
-   * Green belongs to marks, primary actions and accents. Reach for --mf-brand
-   * and --mf-brand-subtle; do not reintroduce a full-surface brand fill without
-   * changing the visual-language rule first.
-   */
-  --mf-income: #0f766e;
-  --mf-income-subtle: #e1f5f2;
-  --mf-income-text: #0b5c55;
-  --mf-expense: #b83a35;
-  --mf-expense-subtle: #fbe9e7;
-  --mf-expense-text: #a02f28;
-  --mf-transfer: #3459c7;
-  --mf-transfer-subtle: #e9edff;
-  --mf-transfer-text: #2c4bb0;
-  --mf-warning: #9a5b00;
-  --mf-warning-subtle: #fff3d7;
-  --mf-warning-text: #854f00;
-  --mf-focus: #236bc4;
-  --mf-overlay: rgb(5 18 11 / 55%);
-  --mf-shadow-sm: 0 1px 2px rgb(16 32 25 / 6%);
-  --mf-shadow-md: 0 12px 32px rgb(16 32 25 / 10%);
-  --mf-shadow-lg: 0 24px 64px rgb(16 32 25 / 16%);
+  --mf-income: #087b5a;
+  --mf-income-subtle: #e2f5ee;
+  --mf-income-text: #056146;
+  --mf-expense: #c13f45;
+  --mf-expense-subtle: #fde9ea;
+  --mf-expense-text: #9e2d35;
+  --mf-transfer: #6a4fd6;
+  --mf-transfer-subtle: #eeeaff;
+  --mf-transfer-text: #533bb4;
+  --mf-warning: #9b5f00;
+  --mf-warning-subtle: #fff1d6;
+  --mf-warning-text: #7b4a00;
+
+  --mf-focus: #3157d5;
+  --mf-overlay: rgb(16 19 28 / 58%);
+  --mf-shadow-sm: 0 1px 2px rgb(23 26 31 / 7%);
+  --mf-shadow-md: 0 14px 36px rgb(23 26 31 / 11%);
+  --mf-shadow-lg: 0 30px 72px rgb(23 26 31 / 17%);
+
   --mf-radius-sm: 8px;
-  --mf-radius-md: 10px;
-  --mf-radius-lg: 16px;
+  --mf-radius-md: 12px;
+  --mf-radius-lg: 18px;
   --mf-radius-xl: 24px;
   --mf-content: 1240px;
+
   --mf-font-sans:
     var(--font-inter), Inter, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  /*
-   * Money is set in Inter with tabular figures, not a monospace face.
-   *
-   * A monospace face reads as terminal/receipt output rather than a financial
-   * instrument, and sets roughly 18% wider at the same size. That extra width
-   * is what forced "+ 15.000.000…" to truncate inside the 390px dashboard
-   * card — the exact failure docs/design/CALM_LEDGER_V2.md forbids ("Never
-   * truncate money"). Inter's `tnum` figures keep columns aligned for scanning
-   * while staying narrow enough to show full đồng values.
-   *
-   * Alignment now comes from font-variant-numeric, not from the typeface, so
-   * every money surface must keep `font-variant-numeric: tabular-nums`.
-   */
   --mf-font-money: var(--mf-font-sans);
-
-  /*
-   * Optical tracking for figures. Large numerals need tighter tracking to read
-   * as one value instead of separated digits; small ones need close to none.
-   */
   --mf-money-track-sm: -0.006em;
   --mf-money-track-md: -0.022em;
-  --mf-money-track-lg: -0.036em;
+  --mf-money-track-lg: -0.038em;
+
   --mf-fast: 140ms;
-  --mf-normal: 220ms;
+  --mf-normal: 230ms;
   --mf-ease: cubic-bezier(0.2, 0.75, 0.2, 1);
 }
 
 html[data-theme="dark"] {
-  --mf-canvas: #0d1511;
-  --mf-surface: #141f19;
-  --mf-surface-muted: #1a2820;
-  --mf-surface-strong: #223229;
-  --mf-text: #f0f7f3;
-  --mf-text-muted: #a8b7ae;
-  --mf-text-soft: #87988e;
-  --mf-border: #2b3b32;
-  --mf-border-strong: #405247;
-  --mf-brand: #4ad58a;
-  --mf-brand-hover: #6de2a2;
-  --mf-brand-pressed: #33bd74;
-  --mf-brand-subtle: #123522;
-  --mf-brand-text: #75e4aa;
-  --mf-on-brand: #07150e;
-  --mf-income: #4fd1c5;
-  --mf-income-subtle: #123b37;
-  --mf-income-text: #7ee0d6;
-  --mf-expense: #ff817a;
-  --mf-expense-subtle: #451f1d;
-  --mf-expense-text: #ffa8a2;
-  --mf-transfer: #8ea6ff;
-  --mf-transfer-subtle: #202b55;
-  --mf-transfer-text: #aebeff;
-  --mf-warning: #f6bc62;
-  --mf-warning-subtle: #402f16;
-  --mf-warning-text: #f9cd8a;
-  --mf-focus: #78b8ff;
-  --mf-overlay: rgb(0 0 0 / 72%);
-  --mf-shadow-sm: 0 1px 2px rgb(0 0 0 / 22%);
-  --mf-shadow-md: 0 12px 32px rgb(0 0 0 / 28%);
-  --mf-shadow-lg: 0 24px 64px rgb(0 0 0 / 38%);
+  --mf-canvas: #111318;
+  --mf-surface: #181b22;
+  --mf-surface-muted: #20242d;
+  --mf-surface-strong: #2a2f39;
+  --mf-text: #f4f2ed;
+  --mf-text-muted: #b7bac2;
+  --mf-text-soft: #8f949f;
+  --mf-border: #323743;
+  --mf-border-strong: #474e5c;
+
+  --mf-brand: #85a3ff;
+  --mf-brand-hover: #a1b7ff;
+  --mf-brand-pressed: #6f8de8;
+  --mf-brand-subtle: #202b55;
+  --mf-brand-text: #a9bcff;
+  --mf-on-brand: #10152a;
+
+  --mf-income: #63d7ad;
+  --mf-income-subtle: #153c31;
+  --mf-income-text: #8ae7c4;
+  --mf-expense: #ff8f94;
+  --mf-expense-subtle: #472327;
+  --mf-expense-text: #ffb0b4;
+  --mf-transfer: #b09cff;
+  --mf-transfer-subtle: #302957;
+  --mf-transfer-text: #c8baff;
+  --mf-warning: #f2bd63;
+  --mf-warning-subtle: #433219;
+  --mf-warning-text: #f8d28e;
+
+  --mf-focus: #9bb4ff;
+  --mf-overlay: rgb(0 0 0 / 74%);
+  --mf-shadow-sm: 0 1px 2px rgb(0 0 0 / 24%);
+  --mf-shadow-md: 0 14px 36px rgb(0 0 0 / 31%);
+  --mf-shadow-lg: 0 30px 72px rgb(0 0 0 / 42%);
 }
 
 html,
@@ -156,17 +113,30 @@ body {
 
 html[data-theme="light"],
 html[data-theme="light"] body {
-  background: #f4f7f5 !important;
+  background: #f7f5f0 !important;
 }
 
 html[data-theme="dark"],
 html[data-theme="dark"] body {
-  background: #0d1511 !important;
+  background: #111318 !important;
 }
 
 body {
   padding: 0 !important;
   font-family: var(--mf-font-sans);
+}
+
+/* Loaded after globals.css, so this is the final ambient canvas treatment. */
+body::before {
+  background:
+    radial-gradient(circle at 78% -18%, rgb(49 87 213 / 13%), transparent 35rem),
+    radial-gradient(circle at -12% 30%, rgb(155 95 0 / 6%), transparent 28rem) !important;
+}
+
+html[data-theme="dark"] body::before {
+  background:
+    radial-gradient(circle at 78% -18%, rgb(133 163 255 / 12%), transparent 35rem),
+    radial-gradient(circle at -12% 30%, rgb(242 189 99 / 5%), transparent 28rem) !important;
 }
 
 :focus-visible {

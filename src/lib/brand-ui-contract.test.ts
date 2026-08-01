@@ -44,14 +44,12 @@ test("landing and auth use the shared brand component", () => {
   assert.doesNotMatch(auth, /className=\{styles\.brandMark\}/u);
 });
 
-test("landing first viewport has one primary registration action", () => {
-  assert.match(landing, /Sổ thu chi do chính tay bạn kiểm soát\./u);
-  assert.match(landing, /Tạo sổ miễn phí/u);
-  assert.match(
-    landing,
-    /import \{ Button \} from "@\/components\/ui\/button"/u,
-  );
-  assert.match(landing, /variant="outline"/u);
+test("landing first viewport has a primary registration action and explainer", () => {
+  assert.match(landing, /Đừng quản lý tiền bằng trí nhớ\./u);
+  assert.match(landing, /Tạo không gian tài chính/u);
+  assert.match(landing, /href="\/register" className=\{styles\.primaryCta\}/u);
+  assert.match(landing, /href="#san-pham" className=\{styles\.secondaryCta\}/u);
+  assert.doesNotMatch(landing, /import \{ Button \}/u);
 });
 
 test("signed-in compatibility bridge is narrow and uses canonical icon asset", () => {
