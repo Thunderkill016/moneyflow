@@ -94,6 +94,10 @@ export function InboxReviewPanel({
     () => categories.filter((item) => item.kind === moneyKind),
     [categories, moneyKind],
   );
+  const showDuplicateOverride =
+    candidate?.possibleDuplicate === true ||
+    error.includes("rất giống") ||
+    draft?.allowHeuristicDuplicate === true;
 
   if (!candidate) {
     return (
@@ -347,6 +351,23 @@ export function InboxReviewPanel({
               placeholder="Tuỳ chọn"
             />
           </label>
+
+          {showDuplicateOverride ? (
+            <label className="field">
+              <span>Kiểm tra trùng</span>
+              <span>
+                <input
+                  type="checkbox"
+                  checked={draft.allowHeuristicDuplicate}
+                  onChange={(event) =>
+                    patchDraft({ allowHeuristicDuplicate: event.target.checked })
+                  }
+                  disabled={isBusy}
+                />{" "}
+                Tôi đã kiểm tra giao dịch tương tự và vẫn muốn ghi sổ.
+              </span>
+            </label>
+          ) : null}
 
           <InboxExplainPanel candidate={candidate} />
 
