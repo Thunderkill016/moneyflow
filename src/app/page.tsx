@@ -5,16 +5,14 @@ import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import "./landing/safe-ux-login.css";
 
-const TITLE = "MoneyFlow — Sổ thu chi cá nhân cho người Việt";
+const TITLE = "MoneyFlow — Nhìn rõ tiền trước khi quyết định";
 const DESCRIPTION =
-  "Ghi thu, chi và chuyển tiền nhanh trong một sổ rõ ràng. Theo dõi nhiều ví, ngân sách và báo cáo tháng — không cần kết nối ngân hàng, xuất CSV bất cứ lúc nào.";
+  "Một không gian tài chính cá nhân để ghi giao dịch, theo dõi tài khoản, ngân sách, khoản định kỳ và mục tiêu — rõ ràng, chủ động và không cần chia sẻ mật khẩu ngân hàng.";
 
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: "/" },
-  // Next.js shallow-merges metadata: an openGraph/twitter object here fully
-  // replaces the layout's, so every field must be repeated, not just the diff.
   openGraph: {
     type: "website",
     locale: "vi_VN",
@@ -42,13 +40,14 @@ const STRUCTURED_DATA = {
 
 /**
  * Public home: static landing when Supabase is configured (logged-out).
- * Demo (no Supabase) → /insights. Authenticated users redirected in proxy
- * (skip RSC viewer fetch for better LCP — TASK-132).
+ * Demo (no Supabase) redirects into the product. Authenticated users are
+ * redirected in proxy so the public narrative stays focused on first visits.
  */
 export default function Home() {
   if (!isSupabaseConfigured()) {
     redirect(POST_AUTH_REDIRECT);
   }
+
   return (
     <>
       <script
