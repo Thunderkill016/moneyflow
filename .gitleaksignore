@@ -1,0 +1,22 @@
+# Reviewed false positives from the complete all-ref history scan.
+# Keep entries fingerprint-specific; never allowlist a broad path or rule.
+
+# Test-only idempotency UUIDs.
+b41b33d9a5d698b62fcbc0fa522647d058d75c14:supabase/tests/database/transaction_amount_safety.test.sql:generic-api-key:69
+3d96cd0b5a1d5f93326901c00e00d553bfbd11de:supabase/tests/database/transaction_amount_safety.test.sql:generic-api-key:69
+
+# Browser-safe Supabase publishable keys formerly stored in deployment config.
+cd17a4b18f0de972a46e1e16f4cec0ded63f7e6d:vercel.json:generic-api-key:7
+cd17a4b18f0de972a46e1e16f4cec0ded63f7e6d:vercel.json:generic-api-key:13
+0dc039b14cbd5d0008b8d0b6dbad9f7053f2bcc7:vercel.json:generic-api-key:7
+0dc039b14cbd5d0008b8d0b6dbad9f7053f2bcc7:vercel.json:generic-api-key:13
+d214d8a3a60e7d7905becdb502f39a8079246c73:vercel.json:generic-api-key:7
+d214d8a3a60e7d7905becdb502f39a8079246c73:vercel.json:generic-api-key:12
+8e0506f564407176da77a55ca1ccaab995483d4b:vercel.json:generic-api-key:7
+8e0506f564407176da77a55ca1ccaab995483d4b:vercel.json:generic-api-key:12
+
+# Browser-safe publishable key in a retired readiness workflow.
+59cfc661832b5b139968e53b81553621ff4da9df:.github/workflows/readiness-supabase-client.yml:generic-api-key:27
+
+# Deliberately invalid test key.
+c7ca29414ed7df7138674bbf9fef70828e30cc65:src/lib/supabase/config.test.ts:generic-api-key:63
