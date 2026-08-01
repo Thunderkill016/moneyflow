@@ -21,8 +21,12 @@ const REQUIRED_DIRECTIVES = [
   "manifest-src 'self'",
 ] as const;
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function directiveTokens(policy: string, directiveName: string): string[] {
+  const directive = policy
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${directiveName} `));
+  return directive?.split(/\s+/).slice(1) ?? [];
 }
 
 test("CSP restricts every high-value browser capability", () => {
@@ -36,7 +40,10 @@ test("CSP restricts every high-value browser capability", () => {
   assert.ok(policy.includes("https://va.vercel-scripts.com"));
   assert.ok(policy.includes("https://vitals.vercel-insights.com"));
   assert.ok(policy.includes("frame-src 'none'"));
-  assert.doesNotMatch(policy, new RegExp(escapeRegExp(TURNSTILE_ORIGIN)));
+  assert.equal(
+    directiveTokens(policy, "script-src").includes(TURNSTILE_ORIGIN),
+    false,
+  );
   assert.doesNotMatch(policy, /'unsafe-eval'/);
   assert.doesNotMatch(policy, /upgrade-insecure-requests/);
 });
@@ -45,10 +52,19 @@ test("Turnstile origin is allowed only when auth captcha is configured", () => {
   const disabled = buildContentSecurityPolicy(true, false);
   const enabled = buildContentSecurityPolicy(true, true);
 
-  assert.doesNotMatch(disabled, new RegExp(escapeRegExp(TURNSTILE_ORIGIN)));
-  assert.match(enabled, new RegExp(`script-src[^;]+${escapeRegExp(TURNSTILE_ORIGIN)}`));
-  assert.match(enabled, new RegExp(`connect-src[^;]+${escapeRegExp(TURNSTILE_ORIGIN)}`));
-  assert.ok(enabled.includes(`frame-src ${TURNSTILE_ORIGIN}`));
+  assert.equal(
+    directiveTokens(disabled, "script-src").includes(TURNSTILE_ORIGIN),
+    false,
+  );
+  assert.equal(
+    directiveTokens(enabled, "script-src").includes(TURNSTILE_ORIGIN),
+    true,
+  );
+  assert.equal(
+    directiveTokens(enabled, "connect-src").includes(TURNSTILE_ORIGIN),
+    true,
+  );
+  assert.deepEqual(directiveTokens(enabled, "frame-src"), [TURNSTILE_ORIGIN]);
   assert.doesNotMatch(enabled, /frame-src 'none'/);
 });
 
