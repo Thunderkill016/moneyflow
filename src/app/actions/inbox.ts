@@ -3,13 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import type {
-  CreateCandidateInput,
   InboxCandidate,
   UpdateCandidateInput,
 } from "@/lib/inbox/candidate-store";
 import { isCandidate } from "@/lib/inbox/candidate-store";
 import type {
-  CreateImportBatchInput,
   ImportBatch,
   ImportBatchStatus,
 } from "@/lib/inbox/import-batch-store";
@@ -26,6 +24,11 @@ import {
   type InboxCandidateRow,
   type ImportBatchRow,
 } from "@/lib/inbox/inbox-map";
+import type {
+  CreateCandidateWithProvenanceInput,
+  CreateImportBatchWithProvenanceInput,
+  PersistedInboxCandidate,
+} from "@/lib/inbox/provenance";
 import {
   importActionLimiter,
   importRateKey,
@@ -50,10 +53,10 @@ export type InboxActionResult =
   | { ok: false; message: string };
 
 const CANDIDATE_COLUMNS =
-  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at";
+  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at,source_row_index,source_external_id,fingerprint_version,fingerprint,parser_version,mapping_version,match_status,match_reason,match_confidence,possible_transfer,transfer_pair_id,approved_transaction_id,approved_at";
 
 const BATCH_COLUMNS =
-  "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at";
+  "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at,parser_version,mapping_version";
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const sourceSchema = z.enum([
@@ -86,6 +89,10 @@ const createCandidateSchema = z.object({
   account: z.string().max(80).optional(),
   rawSnippet: z.string().max(2000).optional(),
   importBatchId: z.string().uuid().optional(),
+  sourceRowIndex: z.number().int().min(0).optional(),
+  sourceExternalId: z.string().trim().min(1).max(200).optional(),
+  parserVersion: z.string().trim().min(1).max(80).optional(),
+  mappingVersion: z.number().int().min(1).optional(),
   createdAt: z.string().optional(),
 });
 
@@ -132,6 +139,8 @@ const createBatchSchema = z.object({
   }),
   createdAt: z.string().optional(),
   committedAt: z.string().optional(),
+  parserVersion: z.string().trim().min(1).max(80).optional(),
+  mappingVersion: z.number().int().min(1).optional(),
 });
 
 function refreshInboxPaths() {
@@ -173,7 +182,6 @@ export async function migrateLocalInboxAction(input: {
   if (!Array.isArray(input.candidates) || !Array.isArray(input.batches)) {
     return { ok: false, message: "Dữ liệu đồng bộ không hợp lệ." };
   }
-  // Trust only shape-checked domain objects from the client payload.
   const candidates = input.candidates.filter(isCandidate);
   const batches = input.batches.filter(isImportBatch);
   const result = await migrateLocalInboxToServer({ candidates, batches });
@@ -182,7 +190,7 @@ export async function migrateLocalInboxAction(input: {
 }
 
 export async function createInboxCandidatesAction(
-  inputs: CreateCandidateInput[],
+  inputs: CreateCandidateWithProvenanceInput[],
 ): Promise<InboxActionResult> {
   if (!Array.isArray(inputs) || inputs.length === 0) {
     return { ok: false, message: "Không có ứng viên để lưu." };
@@ -197,7 +205,7 @@ export async function createInboxCandidatesAction(
   const limited = checkImportRateLimit(auth.viewer.id);
   if (limited) return limited;
 
-  const prepared: InboxCandidate[] = [];
+  const prepared: PersistedInboxCandidate[] = [];
   for (const raw of inputs) {
     const parsed = createCandidateSchema.safeParse(raw);
     if (!parsed.success) {
@@ -318,7 +326,7 @@ export async function bulkUpdateInboxCandidatesAction(
 }
 
 export async function createImportBatchAction(
-  input: CreateImportBatchInput,
+  input: CreateImportBatchWithProvenanceInput,
 ): Promise<InboxActionResult> {
   const parsed = createBatchSchema.safeParse(input);
   if (!parsed.success) {
@@ -397,7 +405,6 @@ export async function deleteImportBatchAction(id: string): Promise<InboxActionRe
   const auth = await requireAuthedClient();
   if (!auth.ok) return { ok: false, message: auth.message };
 
-  // Candidates keep import_batch_id null via ON DELETE SET NULL.
   const { error, count } = await auth.supabase
     .from("import_batches")
     .delete({ count: "exact" })

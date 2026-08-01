@@ -2,7 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 import type { BudgetSummary } from "@/lib/planning/budgets";
-import { demoCategories, type CategoryOption } from "@/lib/sample-data";
+import type { CategoryOption } from "@/lib/transactions/contracts";
+import { demoCategories } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 

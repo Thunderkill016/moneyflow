@@ -17,7 +17,8 @@ For every non-trivial change:
 3. `docs/product/PRINCIPLES.md` — product truth and financial constraints.
 4. `docs/MVP_DEFINITION.md` — current ship/readiness contract.
 5. `docs/engineering/AI_DELIVERY_WORKFLOW.md` — research, planning, implementation and review process.
-6. The active work packet under `docs/plans/active/`, when one exists.
+6. `docs/engineering/AGENT_OPERATING_MODEL.md` — execution states, handoffs, permissions and runtime-tool adoption triggers.
+7. The active work packet under `docs/plans/active/`, when one exists.
 
 Task-specific references:
 
@@ -28,6 +29,7 @@ Task-specific references:
 | Auth/deployment | `docs/configuration.md`, `docs/supabase-setup.md` |
 | Database/RLS | `docs/security-rls-check.md`, relevant migrations and pgTAP tests |
 | Product behavior | `docs/MVP_DEFINITION.md`, relevant files in `docs/research/` and current GitHub issue/PR |
+| External research, tools or architecture | `docs/research/REPOSITORY_REFERENCE_MAP.md`, `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` |
 
 ## Product law
 
@@ -59,6 +61,10 @@ For non-trivial work, copy `docs/templates/FEATURE_WORK_PACKET.md` into `docs/pl
 7. Independent evaluation against the spec.
 8. CI, browser evidence and production verification.
 9. Move the packet to `docs/plans/completed/` after merge.
+
+Record the current execution state, active responsibility, granted permission scope and every state/responsibility handoff. A task may advance only with the evidence required by `docs/engineering/AGENT_OPERATING_MODEL.md`; hidden chat context is not a handoff artifact.
+
+When research is required, state one decision question and select two to four focused sources by default. Record what each source establishes, what does not apply, and whether adopting code or a tool creates license, security, privacy, operational or rollback obligations. A repository appearing in a reference map is not approval to add it.
 
 A tiny documentation or one-line mechanical fix may use an inline plan, but still requires reading the affected files and running proportionate checks.
 

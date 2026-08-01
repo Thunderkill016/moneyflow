@@ -1,9 +1,14 @@
 # <Feature or fix name>
 
-**Status:** discovery | specified | planned | implementing | evaluating | completed  
+**Status:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted  
+**Execution state:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted  
+**Active role:** human_owner | researcher | planner | implementer | evaluator | ci_or_production  
+**Permission scope:** read_only | branch_write | provider_read | provider_write_approved | production_data_write_approved  
 **Owner:** <human or agent>  
 **Issue/PR:** <links or numbers>  
 **Last updated:** YYYY-MM-DD
+
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
 
 ## Outcome
 
@@ -42,15 +47,22 @@ Describe the user-visible or system outcome in one paragraph. Do not describe im
 
 Complete this section when external behavior, current technology, standards, security or product practice affects the decision. Write `Not required` with a reason for purely internal/mechanical work.
 
+### Research scope and source selection
+
+- Decision question:
+- Reference map consulted: `docs/research/REPOSITORY_REFERENCE_MAP.md` | `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` | not required
+- Source budget: two to four focused sources by default; explain any exception.
+- Expected decision or uncertainty to resolve:
+
 ### Questions researched
 
 1. 
 
 ### Sources
 
-| Source | Date accessed | What it establishes | Limits/applicability |
-|---|---|---|---|
-| | | | |
+| Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
+|---|---|---|---|---|
+| | | | | |
 
 ### Alternatives considered
 
@@ -60,7 +72,21 @@ Complete this section when external behavior, current technology, standards, sec
 
 ### Research decision
 
-State the selected approach, rejected alternatives and remaining uncertainty. Separate facts from inference.
+State the selected approach, rejected alternatives and remaining uncertainty. Separate observed facts, inference and product judgment. State explicitly which parts of the studied repositories or products do not apply to MoneyFlow.
+
+### Adoption review
+
+Complete this subsection when adding or materially changing a dependency, provider, service, tool, framework or architecture pattern. Otherwise write `Not applicable`.
+
+- Observed problem:
+- Existing or simpler alternatives considered:
+- License/code-reuse compatibility:
+- Secrets, user-data and privacy exposure:
+- Runtime, bundle, deployment and operational cost:
+- Owning boundary and maintenance responsibility:
+- Migration and rollback:
+- Verification plan:
+- Removal condition if the expected benefit does not appear:
 
 ## Specification
 
@@ -102,7 +128,7 @@ Who is affected, what fails today and why it matters.
 
 ### Architecture fit
 
-Explain which existing boundary owns the behavior and why.
+Explain which existing boundary owns the behavior and why. A repository or framework appearing in a reference map is not an architecture decision.
 
 ### Planned changes
 
@@ -143,6 +169,24 @@ Rules:
 - One task should produce a reviewable result.
 - Parallel tasks must not edit overlapping ownership areas.
 - New discoveries update the specification/plan before implementation scope changes.
+- Research is complete when it supports a decision, not when every related repository has been read.
+- A task may advance only when the current execution state's evidence exists.
+
+## Handoff record
+
+Add one entry whenever responsibility changes or the task moves to another execution state. Do not rely on hidden chat context.
+
+| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
+|---|---|---|---|---|---|---|
+| YYYY-MM-DD | researcher | planner | specified | work packet + sources | | Create implementation plan |
+
+### Current permission boundary
+
+- Granted scope:
+- Exact repositories/providers/resources:
+- Forbidden writes:
+- Human approval required before:
+- Rollback or stop condition:
 
 ## Evaluation
 
@@ -151,6 +195,12 @@ Rules:
 | Criterion | Evidence | Result |
 |---|---|---|
 | | | pass/fail |
+
+### Research and adoption evidence
+
+- Selected sources still support the final implementation:
+- Important source limitations remain respected:
+- New tool/dependency/pattern passed the adoption review, or not applicable:
 
 ### Review findings
 

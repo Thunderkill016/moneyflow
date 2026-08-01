@@ -8,14 +8,16 @@ import {
   DASHBOARD_RECENT_TRANSACTION_LIMIT,
   dashboardTransactionStart,
 } from "@/lib/dashboard-transaction-window";
+import type {
+  AccountOption,
+  CategoryOption,
+  Transaction,
+} from "@/lib/transactions/contracts";
 import {
   demoAccounts,
   demoCategories,
   sampleTransactions,
-  type AccountOption,
-  type CategoryOption,
-  type Transaction,
-} from "@/lib/sample-data";
+} from "@/lib/demo/transaction-fixtures";
 
 export type FinanceWorkspace = {
   transactions: Transaction[];

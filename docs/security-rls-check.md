@@ -1,28 +1,25 @@
 # Security — Row Level Security (RLS) verification
 
-MoneyFlow isolates every user-owned row with **PostgreSQL RLS** and `auth.uid()`. Verification is layered: migration scans prove declared structure, catalog tests prove effective grants/configuration, and forged-user pgTAP tests execute real reads and financial RPCs.
+MoneyFlow isolates user-owned rows with PostgreSQL RLS and `auth.uid()`. Verification is layered: migration scans prove declarations, catalog tests prove effective grants and function configuration, and pgTAP attack suites execute real ownership boundaries.
 
-Related: [supabase-setup.md](./supabase-setup.md) · migrations under `supabase/migrations/` · tests under `supabase/tests/database/`.
-
----
+Related: [supabase-setup.md](./supabase-setup.md), migrations under `supabase/migrations/`, and tests under `supabase/tests/database/`.
 
 ## Security model
 
 | Layer | Required rule |
 |---|---|
 | Tables | Every user-owned table has `ENABLE ROW LEVEL SECURITY` |
-| Policies | Own-row only: `auth.uid() = user_id` (profiles: `= id`) |
-| `anon` | No grants on public financial tables or views |
+| Policies | Own-row only: `(select auth.uid()) = user_id` (profiles use `id`) |
+| Anonymous access | `anon` has no grants on public financial tables or views |
 | Ledger writes | `financial_transactions` and `transaction_entries` are SELECT-only through the Data API |
-| Mutations | `SECURITY DEFINER` RPCs derive identity from `auth.uid()` and set `search_path = ''` |
+| Mutations | Exposed `SECURITY DEFINER` RPCs derive identity from `auth.uid()` and pin `search_path = ''` |
 | Views | Exposed finance views use `security_invoker=true` |
 | Money | Signed `bigint` minor units; never floating-point schema money |
 | Destructive actions | Transaction deletion is soft and owner-scoped; restore is owner-scoped |
 
-**RPC-only/select-policy tables:** ledger, budgets, commitments, occurrences, income templates, goals and allocations.  
-**Direct CRUD tables:** accounts, categories, `import_batches`, `inbox_candidates`, subject to own-row RLS.
+**RPC-owned/select-policy tables:** ledger, budgets, commitments and occurrences, recurring-income templates and occurrences, savings goals and allocations, and `transaction_import_provenance`.
 
----
+**Direct CRUD tables:** accounts, categories, `import_batches`, and `inbox_candidates`, all subject to own-row RLS. Authenticated Inbox approval is not direct CRUD: `plan_inbox_candidate` and `approve_inbox_candidate` own classification, atomic ledger creation, candidate linkage, and provenance insertion.
 
 ## 1. Static migration checks
 
@@ -38,9 +35,7 @@ npm run check:rls
 npm run test
 ```
 
-Static checks prove declarations only. They do not execute policies or RPC ownership behavior.
-
----
+Static checks prove declarations only. They do not execute policies, grants, triggers, views, or RPC ownership behavior.
 
 ## 2. Runtime pgTAP suite
 
@@ -54,28 +49,31 @@ The local stack is disposable and does not touch production.
 
 | Test file | What it proves |
 |---|---|
-| `schema_and_rls.test.sql` | Required tables/views/functions exist, RLS is enabled, named policies exist and money columns use `bigint` |
-| `security_catalog.test.sql` | `anon` has no public relation grants; `public`/`anon` cannot execute definer RPCs; authenticated definer RPCs pin `search_path` and reference `auth.uid()`; finance views are security invokers |
-| `cross_tenant_rpc.test.sql` | Creates two transaction-scoped Auth identities, builds real tenant A objects, switches to tenant B and attacks 25 read/mutation paths across RLS, views, accounts, transactions, transfers, split expenses, budgets, commitments, recurring income and savings goals |
+| `schema_and_rls.test.sql` | Required tables, views, functions, RLS, policies, and `bigint` money columns |
+| `security_catalog.test.sql` | No `anon` relation grants; no `public`/`anon` definer execution; authenticated definer RPCs pin `search_path` and reference `auth.uid()`; finance views are security invokers |
+| `security_definer_contract.test.sql` | The maintained exposed RPC set has the expected least-privilege grants and configuration |
+| `cross_tenant_rpc.test.sql` | Two transaction-scoped users exercise 25 foreign-object reads and mutations across accounts, ledger, transfers, splits, budgets, commitments, recurring income, and goals |
+| `import_provenance_schema.test.sql` | Provenance table, RLS, ownership keys, indexes, functions, and grants |
+| `import_provenance_invariants.test.sql` | Atomic approval, idempotency, duplicate handling, tenant rejection, candidate linkage, and immutable provenance |
+| `import_provenance_review_resolution.test.sql` | Reviewed transfer resolution remains balanced and cannot bypass invalid-state guards |
 
-The cross-tenant suite runs inside `begin`/`rollback`. Its deterministic `.invalid` identities and all generated tenant rows disappear at the end of the test.
+The forged-user and provenance suites run inside `begin`/`rollback`; deterministic identities and generated tenant rows disappear at the end.
 
 ### Interpreting failures
 
 | Failure | Likely cause |
 |---|---|
-| `… has RLS` | New table lacks `ENABLE ROW LEVEL SECURITY` |
-| named policy assertion | Policy missing/renamed or test not updated |
-| catalog grant assertion | `anon`/`public` gained an unintended grant |
-| `search_path`/`auth.uid()` assertion | New exposed definer RPC is not following the ownership contract |
-| cross-tenant test | A policy/view/RPC can see or mutate an object owned by another JWT subject |
-| connection/container error | Docker/local Supabase is unavailable rather than a security assertion failure |
-
----
+| `… has RLS` | A user-owned table lacks `ENABLE ROW LEVEL SECURITY` |
+| named policy assertion | A policy is missing/renamed or the test is stale |
+| catalog grant assertion | `anon`/`public` gained unintended access |
+| `search_path` or `auth.uid()` assertion | A new definer RPC violates the ownership contract |
+| cross-tenant assertion | A policy, view, or RPC can observe or mutate another tenant |
+| provenance assertion | Inbox approval, dedupe, linkage, or transfer neutrality regressed |
+| connection/container error | Docker or local Supabase failed before assertions ran |
 
 ## 3. Manual and production-safe verification
 
-Automated local tests are the normal gate. Manual review remains useful after provider or migration changes.
+Automated local tests are the normal gate. Manual review remains useful after provider, migration, or Edge Function changes.
 
 ### Catalog checks
 
@@ -92,7 +90,7 @@ where schemaname = 'public'
 order by tablename, policyname;
 ```
 
-Expected tenant tables:
+Expected user-owned tables include:
 
 - `profiles`, `accounts`, `categories`;
 - `financial_transactions`, `transaction_entries`;
@@ -100,18 +98,21 @@ Expected tenant tables:
 - `recurring_commitments`, `commitment_occurrences`;
 - `recurring_income_templates`, `income_template_occurrences`;
 - `savings_goals`, `savings_goal_allocations`;
-- `import_batches`, `inbox_candidates`.
+- `import_batches`, `inbox_candidates`;
+- `transaction_import_provenance`.
 
-### Two-browser confirmation
+### Two-session confirmation
 
-For staging or a controlled production-safe check:
+For staging or a controlled rollback-safe production check:
 
 1. User A creates an account and transaction.
 2. User B uses a separate browser profile/session.
 3. Query through the normal client and attempt owner-scoped mutations using A's UUIDs.
 4. Expect no visible rows, `false`, or a neutral not-found domain error.
 
-Never paste a service-role key into a browser. Never perform destructive or availability testing against production. When SQL-level production verification is justified, wrap deterministic test identities and every mutation in one transaction and finish with `rollback`.
+For imported candidates, also verify that B cannot plan or approve A's candidate and cannot reference A's account/category during approval.
+
+Never paste a service-role key into a browser. Never perform destructive, brute-force, or availability testing against production. SQL-level production verification must use deterministic synthetic data in one transaction and finish with `rollback`.
 
 ### RPC review
 
@@ -127,68 +128,60 @@ where n.nspname = 'public'
 order by 1, 2;
 ```
 
-For each externally executable financial RPC, confirm:
+For each externally executable definer RPC, confirm:
 
 - `auth.uid()` is the identity source;
 - client input never supplies `user_id`;
-- selected/updated object queries include the current user's ownership filter;
-- `search_path` is pinned;
+- every selected or mutated UUID is filtered by caller ownership;
+- `search_path` is pinned and referenced objects are schema-qualified;
 - `public` and `anon` cannot execute it;
-- expected failure does not reveal another tenant's data.
+- failure does not reveal another tenant's data.
 
----
+## 4. Application and provider boundaries
 
-## 4. Application and provider reminders
-
-RLS protects database rows; it does not replace the surrounding controls.
+RLS protects database rows; it does not replace surrounding controls.
 
 - Resolve sessions on the server and treat Server Actions as public entrypoints.
 - Keep service-role credentials server/Edge-Function only, never `NEXT_PUBLIC_*`.
-- Demo mode remains browser-local and must never be a fallback for authenticated failure.
-- Match the application password policy in Supabase Auth settings; otherwise direct Auth API callers can bypass an app-only minimum.
-- Enable CAPTCHA and provider rate limits before broad public signup.
-- Leaked-password protection is a paid-provider hardening layer, not a substitute for RLS, generic auth errors or rate limiting.
-- Review the `delete-account` Edge Function whenever a new tenant table is added.
-
----
+- Demo mode remains browser-local and never becomes a fallback for authenticated failure.
+- Match the application password policy in Supabase Auth settings; direct Auth API calls bypass app-only validation.
+- Enable CAPTCHA and review provider rate limits before broad public signup.
+- Use Vercel Firewall for network-edge rate limiting; an in-memory serverless counter is not shared reliably across instances or regions.
+- Review the `delete-account` Edge Function whenever a tenant table is added. `transaction_import_provenance` currently has an owner foreign key with `on delete cascade`, but cleanup still requires regression verification.
 
 ## 5. Adding a user-owned table or RPC
 
 For a table:
 
-1. Add `user_id uuid not null` referencing the identity/owner boundary.
+1. Add an explicit owner key and ownership-safe foreign keys.
 2. Enable RLS in the same migration.
 3. Add only the required own-row policies and least-privilege grants.
-4. Extend `schema_and_rls.test.sql` and the catalog expectations.
-5. Add the table to account-deletion cleanup and verification.
+4. Extend schema, catalog, deletion, and forged-tenant tests.
+5. Verify any view or RPC that exposes the table.
 
 For an exposed RPC:
 
 1. Derive the caller from `auth.uid()`.
-2. Pin `search_path` and schema-qualify referenced objects.
+2. Pin `search_path` and schema-qualify objects.
 3. Filter every input UUID by caller ownership before mutation.
 4. Revoke execution from `public` and `anon`; grant only the intended role.
-5. Add a user-B-against-user-A counterexample to `cross_tenant_rpc.test.sql`.
-
----
+5. Add a user-B-against-user-A counterexample in the relevant pgTAP suite.
 
 ## 6. Remaining limitations
 
 | Gap | Severity | Mitigation |
 |---|---|---|
-| Cloud database may lag repository migrations | Medium | Review migration diff, deploy deliberately, then run catalog verification |
-| Local forged-claim tests do not exercise the full external HTTP/JWT gateway | Medium | Add staged two-session integration checks and retain controlled production-safe verification |
-| Provider Auth controls are outside migrations | Medium | Maintain a paid-beta checklist for password minimum, CAPTCHA, redirect allow-list and rate limits |
-| New views can change security behavior | Medium | Require `security_invoker=true` and extend `security_catalog.test.sql` |
+| Cloud database may lag repository migrations | Medium | Review and apply migrations deliberately, then inspect the live catalog |
+| Local forged-claim tests do not exercise the full external HTTP/JWT gateway | Medium | Retain controlled two-session or rollback-safe production verification |
+| Provider Auth controls are outside migrations | Medium | Track password minimum, CAPTCHA, redirect allow-list, and rate limits separately |
+| New views or Edge Functions can change ownership behavior | Medium | Require security-invoker/catalog tests and update deletion verification |
 
 No single layer proves the full system. A green build does not prove RLS; static SQL does not prove runtime isolation; local pgTAP does not prove provider configuration.
-
----
 
 ## Quick reference
 
 ```bash
-npm run check:rls          # static migration scan
-npm run test               # unit tests + static RLS contracts
-npm run test:db            # catalog + forged-user pgTAP attacks
+npm run check:rls
+npm run test
+npm run test:db
 ```

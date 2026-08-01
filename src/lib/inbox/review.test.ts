@@ -133,7 +133,27 @@ test("buildLedgerPost creates money input with integer amount", () => {
   assert.equal(result.input.kind, "expense");
   assert.equal(result.input.accountId, "acc-cash");
   assert.equal(result.input.categoryId, "cat-food");
+  assert.equal(result.input.inboxCandidateId, "cand-1");
+  assert.equal(result.input.allowHeuristicDuplicate, false);
   assert.equal(Number.isSafeInteger(result.input.amount), true);
+});
+
+test("heuristic duplicate override stays false until the reviewer explicitly accepts it", () => {
+  const draft = draftFromCandidate(
+    { ...expense, possibleDuplicate: true },
+    accounts,
+    categories,
+  );
+  assert.equal(draft.possibleDuplicate, true);
+  assert.equal(draft.allowHeuristicDuplicate, false);
+
+  draft.allowHeuristicDuplicate = true;
+  const result = buildLedgerPost(draft, accounts, categories, "idem-dup");
+  assert.equal(result.ok, true);
+  if (!result.ok || result.mode !== "money") {
+    assert.fail("expected money post");
+  }
+  assert.equal(result.input.allowHeuristicDuplicate, true);
 });
 
 test("buildLedgerPost transfer needs two accounts", () => {
@@ -149,6 +169,7 @@ test("buildLedgerPost transfer needs two accounts", () => {
   if (!ok.ok || ok.mode !== "transfer") assert.fail("expected transfer");
   assert.equal(ok.input.sourceAccountId, "acc-cash");
   assert.equal(ok.input.destinationAccountId, "acc-bank");
+  assert.equal(ok.input.allowHeuristicDuplicate, false);
 
   draft.destinationAccountId = "acc-cash";
   const bad = buildLedgerPost(draft, accounts, categories, "idem-t2");
