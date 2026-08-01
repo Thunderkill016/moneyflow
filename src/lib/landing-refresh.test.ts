@@ -10,25 +10,29 @@ const landingStyles = readFileSync(
 );
 const documentTheme = readFileSync("src/app/document-theme.css", "utf8");
 
-test("Calm Ledger public UI uses the document theme authority", () => {
+test("Signal Ledger public UI uses the document theme authority", () => {
   assert.match(rootLayout, /import "\.\/document-theme\.css"/);
   assert.doesNotMatch(rootLayout, /landing-refresh\.css/);
   assert.doesNotMatch(rootLayout, /landing-dark-mode-guardrails\.css/);
   assert.match(landingPage, /landing-page\.module\.css/);
+  assert.match(documentTheme, /Signal Ledger v3/);
 });
 
-test("landing keeps one real conversion action and no fake production demo", () => {
+test("landing keeps a real conversion path and no fake production demo", () => {
   assert.match(landingPage, /href="\/register"/);
-  assert.match(landingPage, /href="#cach-hoat-dong"/);
+  assert.match(landingPage, /href="#san-pham"/);
   assert.doesNotMatch(landingPage, /Thử demo không cần tài khoản/);
   assert.doesNotMatch(landingPage, /href="\/dashboard"/);
-  assert.match(landingPage, /chuyển nội bộ[\s\S]*tách hẳn khỏi tổng thu và tổng chi/);
+  assert.match(
+    landingPage,
+    /Chuyển nội bộ được ghi thành một luồng riêng[\s\S]*tổng thu và tổng chi không bị phóng đại/,
+  );
 });
 
-test("landing is responsive, dark-mode aware and motion accessible", () => {
+test("landing is responsive, theme-aware and motion accessible", () => {
   assert.match(landingStyles, /min-height:\s*calc\(100svh - 72px\)/);
-  assert.match(landingStyles, /@media \(max-width: 820px\)/);
-  assert.match(landingStyles, /@media \(max-width: 560px\)/);
+  assert.match(landingStyles, /@media \(max-width: 980px\)/);
+  assert.match(landingStyles, /@media \(max-width: 760px\)/);
   assert.match(landingStyles, /min-height:\s*44px/);
   assert.match(landingStyles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(documentTheme, /html\[data-theme="dark"\]/);

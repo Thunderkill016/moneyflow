@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 const CAPTCHA_TOKEN = 'input[name="captchaToken"]';
 
 const authCases = [
-  { path: "/login", submit: "Đăng nhập" },
-  { path: "/register", submit: "Tạo tài khoản" },
-  { path: "/forgot-password", submit: "Gửi liên kết" },
+  { path: "/login", submit: "Mở MoneyFlow" },
+  { path: "/register", submit: "Tạo không gian tài chính" },
+  { path: "/forgot-password", submit: "Gửi liên kết khôi phục" },
 ] as const;
 
 test.describe("Auth CAPTCHA provider readiness", () => {
