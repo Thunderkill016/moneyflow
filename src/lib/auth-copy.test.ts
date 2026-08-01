@@ -48,5 +48,6 @@ test("auth story states the owner-control and reversibility contract", () => {
   assert.match(s, /Không yêu cầu mật khẩu ngân hàng/);
   assert.match(s, /Giao dịch có thể sửa và phục hồi/);
   assert.match(s, /Dữ liệu có thể xuất ra CSV/);
-  assert.match(s, /MoneyFlow không cố thay bạn ra quyết định|chủ động quyết định/);
+  assert.match(s, /bức tranh có thể kiểm tra lại/);
+  assert.match(s, /Không cần thiết lập hoàn hảo/);
 });
