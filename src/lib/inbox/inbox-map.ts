@@ -8,7 +8,6 @@ import type {
   CandidateKind,
   CandidateSource,
   CandidateStatus,
-  CreateCandidateInput,
   InboxCandidate,
 } from "./candidate-store.ts";
 import {
@@ -16,13 +15,24 @@ import {
   isCandidate,
 } from "./candidate-store.ts";
 import type {
-  CreateImportBatchInput,
   ImportBatch,
   ImportBatchSource,
   ImportBatchStatus,
 } from "./import-batch-store.ts";
 import { createImportBatch, isImportBatch } from "./import-batch-store.ts";
 import type { CsvColumnMap } from "./parse-csv.ts";
+import {
+  batchProvenanceFromRow,
+  batchProvenanceInsertPatch,
+  candidateProvenanceFromRow,
+  candidateProvenanceInsertPatch,
+  type BatchProvenanceRow,
+  type CandidateProvenanceRow,
+  type CreateCandidateWithProvenanceInput,
+  type CreateImportBatchWithProvenanceInput,
+  type PersistedInboxCandidate,
+  type PersistedImportBatch,
+} from "./provenance.ts";
 
 export const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -63,7 +73,7 @@ export type InboxCandidateRow = {
   import_batch_id: string | null;
   local_id: string | null;
   created_at: string;
-};
+} & CandidateProvenanceRow;
 
 export type ImportBatchRow = {
   id: string;
@@ -79,7 +89,7 @@ export type ImportBatchRow = {
   local_id: string | null;
   created_at: string;
   committed_at: string | null;
-};
+} & BatchProvenanceRow;
 
 function safePositiveMoney(value: unknown): number {
   const amount = typeof value === "string" ? Number(value) : value;
@@ -113,8 +123,8 @@ function asStringArray(value: unknown): string[] {
   return value.filter((item): item is string => typeof item === "string");
 }
 
-export function mapCandidateRow(row: InboxCandidateRow): InboxCandidate {
-  const candidate: InboxCandidate = {
+export function mapCandidateRow(row: InboxCandidateRow): PersistedInboxCandidate {
+  const candidate: PersistedInboxCandidate = {
     id: row.id,
     kind: row.kind,
     amount: safePositiveMoney(row.amount_minor),
@@ -135,6 +145,7 @@ export function mapCandidateRow(row: InboxCandidateRow): InboxCandidate {
     rawSnippet: row.raw_snippet ?? undefined,
     importBatchId: row.import_batch_id ?? undefined,
     createdAt: row.created_at,
+    ...candidateProvenanceFromRow(row),
   };
   if (!isCandidate(candidate)) {
     throw new Error("invalid_candidate_row");
@@ -142,8 +153,8 @@ export function mapCandidateRow(row: InboxCandidateRow): InboxCandidate {
   return candidate;
 }
 
-export function mapBatchRow(row: ImportBatchRow): ImportBatch {
-  const batch: ImportBatch = {
+export function mapBatchRow(row: ImportBatchRow): PersistedImportBatch {
+  const batch: PersistedImportBatch = {
     id: row.id,
     fileName: row.file_name,
     source: row.source,
@@ -156,6 +167,7 @@ export function mapBatchRow(row: ImportBatchRow): ImportBatch {
     columnMap: asColumnMap(row.column_map),
     createdAt: row.created_at,
     committedAt: row.committed_at ?? undefined,
+    ...batchProvenanceFromRow(row),
   };
   if (!isImportBatch(batch)) {
     throw new Error("invalid_batch_row");
@@ -174,7 +186,7 @@ function localIdFromClientId(id: string): string | null {
 }
 
 export function candidateToInsertRow(
-  candidate: InboxCandidate,
+  candidate: PersistedInboxCandidate,
   userId: string,
   options?: { localId?: string | null; importBatchId?: string | null },
 ): Record<string, unknown> {
@@ -200,13 +212,14 @@ export function candidateToInsertRow(
       options?.importBatchId !== undefined
         ? options.importBatchId
         : optionalUuid(candidate.importBatchId),
+    ...candidateProvenanceInsertPatch(candidate),
     local_id: options?.localId === undefined ? null : options.localId,
     created_at: candidate.createdAt,
   };
 }
 
 export function batchToInsertRow(
-  batch: ImportBatch,
+  batch: PersistedImportBatch,
   userId: string,
   options?: { localId?: string | null },
 ): Record<string, unknown> {
@@ -223,6 +236,7 @@ export function batchToInsertRow(
     map_confidence: batch.mapConfidence,
     headers: batch.headers,
     column_map: batch.columnMap,
+    ...batchProvenanceInsertPatch(batch),
     local_id: options?.localId === undefined ? null : options.localId,
     created_at: batch.createdAt,
     committed_at: batch.committedAt ?? null,
@@ -295,21 +309,35 @@ export function cryptoRandomUuid(): string {
 }
 
 export function prepareCandidateForServer(
-  input: CreateCandidateInput,
-): InboxCandidate {
+  input: CreateCandidateWithProvenanceInput,
+): PersistedInboxCandidate {
   const id = input.id && isUuid(input.id) ? input.id : cryptoRandomUuid();
-  return createCandidate({
+  const candidate = createCandidate({
     ...input,
     id,
     importBatchId: optionalUuid(input.importBatchId) ?? undefined,
     accountId: optionalUuid(input.accountId) ?? undefined,
     categoryId: optionalUuid(input.categoryId) ?? undefined,
   });
+  return {
+    ...candidate,
+    sourceRowIndex: input.sourceRowIndex,
+    sourceExternalId: input.sourceExternalId,
+    parserVersion: input.parserVersion,
+    mappingVersion: input.mappingVersion,
+  };
 }
 
-export function prepareBatchForServer(input: CreateImportBatchInput): ImportBatch {
+export function prepareBatchForServer(
+  input: CreateImportBatchWithProvenanceInput,
+): PersistedImportBatch {
   const id = input.id && isUuid(input.id) ? input.id : cryptoRandomUuid();
-  return createImportBatch({ ...input, id });
+  const batch = createImportBatch({ ...input, id });
+  return {
+    ...batch,
+    parserVersion: input.parserVersion,
+    mappingVersion: input.mappingVersion,
+  };
 }
 
 /**
