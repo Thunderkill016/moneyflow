@@ -1,8 +1,8 @@
 # Dependabot noise control
 
 **Status:** active  
-**Execution state:** evaluating  
-**Active role:** evaluator  
+**Execution state:** ready_for_review  
+**Active role:** human owner  
 **Permission scope:** branch_write  
 **Owner:** GPT-5.6 Thinking; human owner controls merge and acceptance  
 **Branch:** `chore/dependabot-noise-control`  
@@ -70,23 +70,22 @@ Dependabot remains enabled but becomes low-noise, grouped, and manually reviewed
 - [x] Confirm there are no remaining open Dependabot PRs.
 - [x] Run CI #804 and diagnose the knowledge-contract failure.
 - [x] Add all required work-packet sections.
-- [ ] Pass full exact-head CI after this correction.
-- [ ] Move to `ready_for_review` after CI is green.
+- [x] Pass full CI #805 after the correction.
+- [x] Move to `ready_for_review` after CI is green.
 
 ## Evaluation
 
-### Current evidence
+### Evidence
 
 - branch diff is limited to `.github/dependabot.yml` and this work packet;
 - all nine old Dependabot PRs are closed and none was merged;
 - an open-PR search for `dependabot[bot]` returns no results;
-- CI #804 database checks passed;
-- CI #804 verify failed only because the first packet draft omitted required headings, so later verify/e2e stages were skipped;
-- this revision adds every required heading named by the knowledge-contract failure.
+- CI #805, run `30703411379`, passed knowledge, deployment, CSS and architecture contracts; lint; typecheck; unit/static RLS; production build; fresh Supabase reset and pgTAP; Auth/expense browser smoke; production cross-device audit; and evidence upload;
+- this final state-only packet update must receive its own exact-head CI before merge.
 
-### Remaining gate
+### Merge gate
 
-A new exact-head CI run must pass the knowledge, deployment, CSS, architecture, lint, typecheck, unit/static RLS, build, database, browser, and cross-device checks before owner review.
+The human owner must review PR #197 and explicitly authorize merge after exact-head CI on this revision is green.
 
 ## Rollback
 
