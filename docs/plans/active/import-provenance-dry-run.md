@@ -1,7 +1,7 @@
 # Atomic Inbox approval with import provenance and server dry-run
 
-**Status:** evaluating  
-**Execution state:** evaluating  
+**Status:** ready_for_review  
+**Execution state:** ready_for_review  
 **Active role:** evaluator  
 **Permission scope:** branch_write  
 **Owner:** AI agent; human owner controls merge, production migration and acceptance  
@@ -12,103 +12,103 @@ Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
 ## Outcome
 
-Authenticated Inbox approval is implemented as one atomic database operation. The server classifies a pending candidate, creates the ledger transaction and entries, stores an immutable provenance snapshot, links the candidate to the created transaction and marks it approved. A failure cannot leave the ledger written while Inbox still reports the candidate as pending. Demo mode remains local and unchanged.
+Authenticated Inbox approval is implemented as one atomic database operation. The server classifies a pending candidate, creates the ledger transaction and entries, stores an immutable provenance snapshot, links the candidate to the transaction and marks it approved. A failure cannot leave the ledger written while Inbox still reports the candidate as pending. Demo mode remains local.
+
+The branch is ready for human review. It has not been merged and no production migration or provider write has occurred.
 
 ## Repository reconnaissance
 
 ### Original defect
 
-Before this slice, authenticated approval in the Inbox used two separate writes:
+Authenticated Inbox approval previously used two separate writes:
 
 1. create a transaction or transfer;
 2. update the Inbox candidate to `approved`.
 
-The UI explicitly handled the inconsistent state `Đã ghi sổ nhưng chưa cập nhật được trạng thái Inbox.` The database also lacked a durable link from an approved candidate to its transaction and did not retain source row, external source ID, parser/mapping version or server match evidence.
+The UI explicitly handled the inconsistent outcome `Đã ghi sổ nhưng chưa cập nhật được trạng thái Inbox.` The database also lacked durable candidate-to-transaction linkage and did not retain source row, source external ID, parser/mapping versions or server match evidence.
 
 ### Existing capabilities retained
 
-MoneyFlow already had:
+MoneyFlow already had CSV/XLSX/PDF/paste parsing, preview, bounded raw snippets, client duplicate/transfer suggestions, persisted batches/candidates, manual review, integer VND and balanced-transfer invariants. This slice does not replace those systems or redesign the Inbox.
 
-- CSV/XLSX/PDF/paste parsing and preview;
-- `import_batches` and `inbox_candidates` with tenant RLS;
-- bounded raw snippets;
-- client-side duplicate and transfer suggestions;
-- manual review before posting low-confidence candidates;
-- integer VND and balanced-transfer invariants.
+### Authorities after this slice
 
-This slice does not redesign the import UI or replace those capabilities.
-
-### Relevant authorities
-
-| Area | Authority after this slice |
+| Area | Authority |
 |---|---|
-| Candidate and batch review state | `inbox_candidates`, `import_batches` |
+| Mutable review queue | `inbox_candidates`, `import_batches` |
 | Immutable approved-import lineage | `transaction_import_provenance` |
 | Ledger facts | `financial_transactions`, `transaction_entries` |
-| Dry-run and atomic commit | `plan_inbox_candidate`, `approve_inbox_candidate` |
+| Server classification | `plan_inbox_candidate` |
+| Atomic commit | `approve_inbox_candidate` |
 | TypeScript provenance contract | `src/lib/inbox/provenance.ts` |
-| Domain/Supabase mappings | `src/lib/inbox/inbox-map.ts` |
+| Domain/Supabase mapping | `src/lib/inbox/inbox-map.ts` |
 | Authenticated application boundary | `src/app/actions/inbox-approval.ts` |
-| Transaction hook integration | `src/hooks/use-transactions.ts` |
+| Transaction integration | `src/hooks/use-transactions.ts` |
 
 ## Research
 
-### Decision question
+### Research scope and source selection
 
-What is the smallest server-side import contract that preserves lineage and prevents partial Inbox approval without turning MoneyFlow into a generic importer platform?
+Decision question: what is the smallest server-side import contract that preserves lineage and prevents partial Inbox approval without turning MoneyFlow into a generic importer platform?
 
-### Sources selected
+Selected focused references:
 
-| Source | What it establishes | What does not apply |
-|---|---|---|
-| `actualbudget/actual` and official import/reconciliation material | retain import identity, review duplicates before commit and keep reconciliation separate | local-first sync and its monorepo architecture are not copied |
-| `firefly-iii/data-importer` and official importer material | parse/convert/validate/preview before commit and retain mapping context | standalone importer breadth and AGPL code are not copied |
-| Supabase/PostgreSQL guidance already recorded in #53 | tenant ownership below UI, narrow `SECURITY DEFINER` functions and database invariants | provider operations remain separately approved |
+| Source | Authority/type | Decision used | Limit |
+|---|---|---|---|
+| `actualbudget/actual` and official import/reconciliation material | Primary finance-product source | retain import identity, review duplicates before commit, keep reconciliation separate | local-first sync architecture was not copied |
+| `firefly-iii/data-importer` and official importer material | Primary importer source | parse/convert/validate/preview before commit and retain mapping context | standalone importer breadth and AGPL code were not copied |
+| Supabase/PostgreSQL guidance recorded in #53 | Primary platform guidance | tenant ownership below UI, narrow `SECURITY DEFINER`, database invariants | production operations remain separately approved |
 
 ### Decision
 
-- Use a separate one-to-one provenance table rather than adding import-only fields to every ledger transaction.
-- Make real external source IDs unique only within tenant and source when present.
-- Keep heuristic fingerprints versioned and indexed, but not unique.
+- Use a separate one-to-one provenance table rather than polluting all ledger transactions with import-only fields.
+- Make a real external source ID unique only within tenant and source when present.
+- Keep heuristic fingerprints versioned and indexed, but never unique.
 - Classify on the server before commit.
 - Commit candidate, transaction, entries and provenance in one database transaction.
-- Keep statement reconciliation, update/merge policy and persisted rules outside this PR.
+- Keep statement reconciliation, imported-update policy and persisted rules outside this PR.
 
-No dependency, service or runtime framework is added.
+### Adoption review
+
+No dependency, provider, service or runtime framework was added. The change uses existing PostgreSQL, Supabase RPC/RLS, Zod, Server Actions and current UI flow.
 
 ## Specification
 
 ### User stories
 
-- As a user, approving one Inbox item either completes fully or changes nothing.
-- As a user, retrying approval does not create a duplicate transaction.
-- As a maintainer, I can trace an imported transaction to its candidate, batch, source identity and parser/mapping versions.
-- As a reviewer, I can distinguish `would_create`, `duplicate`, `suspected_transfer` and `invalid` before commit.
+- Approving one Inbox item either completes fully or changes nothing.
+- Retrying an approval does not create a duplicate transaction.
+- An imported transaction can be traced to its candidate, batch, source identity and parser/mapping versions.
+- A reviewer can distinguish `would_create`, `duplicate`, `suspected_transfer` and `invalid` before commit.
+- A heuristic duplicate can be approved only after an explicit human confirmation; an exact external-ID duplicate cannot be overridden.
 
 ### Acceptance criteria
 
 - [x] Authenticated approval creates, links and approves atomically at the database boundary.
-- [x] Repeated approval returns the existing linked transaction without a second ledger write.
+- [x] Repeated approval returns the existing linked transaction without another ledger write.
 - [x] Cross-tenant candidate/account/category references are rejected below the UI.
 - [x] `transaction_import_provenance` is one-to-one with a tenant-owned transaction.
 - [x] Source row, raw description, parser/mapping version and fingerprint version survive approval when supplied.
-- [x] Real external-ID duplicates are explicit and cannot be overridden.
-- [x] Fingerprint matches are classified but fingerprints remain non-unique evidence.
+- [x] External-ID duplicates are explicit and cannot be overridden.
+- [x] Fingerprint matches are classified while fingerprints remain non-unique evidence.
+- [x] A heuristic duplicate requires an explicit review checkbox before override reaches the RPC.
 - [x] Suspected transfers cannot be silently posted as income or expense.
-- [x] Invalid candidates require review resolution before approval.
-- [x] Authenticated transaction creation routes candidates through atomic approval; demo remains local.
-- [ ] Final exact-head static, unit, build, database and browser gates pass after the packet/PR synchronization commit.
-- [ ] Human owner reviews the final diff and browser evidence.
-- [ ] Production migration and exact deployment are separately approved and verified.
+- [x] Missing mappings can be intentionally resolved during money or transfer review.
+- [x] Other invalid server classifications remain blocked.
+- [x] Authenticated candidate posting uses the atomic action; demo remains local.
+- [x] The authenticated path does not perform a second candidate-approval write after the atomic RPC.
+- [x] Knowledge, architecture, lint, typecheck, unit/static RLS, build, fresh migration replay, pgTAP and browser gates pass on the implementation head.
+- [ ] Human owner reviews the final diff and evidence.
+- [ ] Production migration and deployment are separately approved and verified.
 
 ### Required states
 
 - Existing loading, empty and populated Inbox states remain.
-- Server classification and approval failures leave candidate and ledger unchanged.
+- Server failures leave candidate and ledger unchanged.
 - Approval retry is idempotent.
 - Existing safe-integer and bounded-string limits remain.
-- No structural mobile/desktop redesign is introduced.
 - Existing notices surface server errors.
+- Bulk approval never silently opts into low-confidence or heuristic-duplicate overrides.
 
 ### Financial and security constraints
 
@@ -117,18 +117,18 @@ No dependency, service or runtime framework is added.
 - `auth.uid()` is the tenant authority inside RPCs.
 - The client never supplies `user_id` or an approved transaction ID.
 - Only a caller-owned pending candidate may be approved.
-- `SECURITY DEFINER` functions pin an empty search path and use narrow grants.
-- No production DDL/data or provider setting is changed by this branch.
+- `SECURITY DEFINER` functions pin an empty search path and have narrow grants.
+- No production DDL/data, provider configuration or secret was changed.
 
 ### Out of scope
 
 - Statement date/balance and pending/cleared/reconciled state.
 - Reconciliation sessions.
 - Imported update/merge policy (`would_update`).
-- Persisted user rules or AI categorization.
+- Persisted rules or AI categorization.
 - Bank sync, OCR expansion or background workers.
-- Rewriting direct CSV import UX.
-- Guessing links for historical approved candidates.
+- Direct CSV UX redesign.
+- Guessing historical candidate-to-transaction links.
 
 ## Implementation plan
 
@@ -136,117 +136,144 @@ No dependency, service or runtime framework is added.
 
 - Added versioned candidate and batch provenance columns.
 - Added one-to-one `transaction_import_provenance` with own-row RLS.
-- Added a server fingerprint trigger without a unique fingerprint constraint.
-- Added partial uniqueness for non-null external IDs within tenant/source.
+- Added partial tenant/source uniqueness for non-null external IDs.
+- Added a versioned, non-unique server fingerprint and protected trigger.
 - Added `plan_inbox_candidate` with four bounded outcomes.
 - Added row-locked, idempotent `approve_inbox_candidate`.
-- Added schema, invariant and security-definer pgTAP coverage.
+- Added a follow-up guard migration so reviewed missing mappings resolve consistently for money and transfer, while unknown invalid states are rejected.
+- Added schema, invariant, security-definer and review-resolution pgTAP coverage.
 
 ### Application
 
-- Added typed provenance and dry-run parsing in `src/lib/inbox/provenance.ts`.
-- Added `src/app/actions/inbox-approval.ts` for authenticated dry-run and atomic approval.
-- Routed authenticated candidate money/transfer posting through the atomic action in `use-transactions.ts`.
-- Preserved candidate IDs in transaction input contracts.
-- Extended Inbox mappings, server reads and create actions to round-trip source row, external ID and parser/mapping versions.
-- Added focused mapping/provenance unit coverage.
-- Removed temporary patch-emitter scripts and their temporary test after the real source files were updated.
+- Added typed provenance and dry-run parsing.
+- Added authenticated dry-run and atomic approval Server Actions.
+- Preserved candidate IDs in create-only transaction contracts.
+- Routed authenticated Inbox money/transfer posting through atomic approval.
+- Round-tripped source row, external ID and parser/mapping versions through client, actions, mappings and server reads.
+- Added an explicit heuristic-duplicate confirmation control; automatic duplicate detection never enables the override by itself.
+- Forwarded the reviewed override through transaction contracts and hooks to the RPC.
+- Prevented authenticated approval status from being written a second time after the atomic RPC; the client reloads/accepts server-owned status instead.
+- Kept demo approval local.
+
+### Tests
+
+- Provenance parsing/default tests.
+- Candidate/batch mapping and migration tests.
+- Review tests proving duplicate override defaults false and becomes true only after explicit review.
+- 39-assertion import provenance invariant suite.
+- Dedicated reviewed-invalid-transfer resolution suite with balanced-entry assertions.
+- Existing static RLS, browser smoke and cross-device UI audit.
 
 ### Data and migration impact
 
 - Existing rows receive nullable lineage fields; no provenance is invented.
 - Existing approved candidates remain unlinked.
-- Old candidates may have null fingerprint/version data.
-- New authenticated candidates receive explicit parser/mapping defaults when callers do not provide versions.
-- Before production adoption, rollback may remove the new functions/table/columns. After provenance is used in production, rollback must be a forward migration that preserves lineage.
+- Historical candidates may retain null version/fingerprint fields.
+- New authenticated candidates receive explicit parser/mapping defaults when omitted.
+- Before production adoption, rollback may remove the new functions/table/columns. After production provenance exists, rollback must be a forward migration that preserves lineage.
 
 ### Risks and counterexamples
 
 | Risk | Prevention/evidence |
 |---|---|
 | Candidate approved twice | row lock, approved link and idempotency pgTAP |
-| Ledger write succeeds but candidate update fails | one RPC transaction and atomicity assertions |
-| Fingerprint collision blocks a valid row | fingerprint is not unique; reviewed heuristic override is supported |
-| Same external ID in another source/user | partial tenant/source uniqueness |
-| Cross-tenant account/category reference | ownership checks and forged-user pgTAP |
-| Transfer pair counted as income/expense | suspected-transfer guard and balanced two-entry assertion |
-| Client provenance is dropped | mapping, action and client-facade round-trip plus unit tests |
-| Historical provenance is guessed | nullable backfill and explicit out-of-scope rule |
+| Ledger succeeds but Inbox remains pending | single RPC transaction |
+| Client performs another approval mutation | authenticated approved state is read back from server, not rewritten |
+| Fingerprint collision blocks valid data | fingerprint is non-unique; explicit reviewed override |
+| Automatic warning silently enables override | separate `allowHeuristicDuplicate`, default false |
+| Exact external ID is overridden | RPC always rejects `source_external_id_match` |
+| Missing mapping reviewed as transfer retains `invalid` provenance | follow-up RPC guard and dedicated pgTAP suite |
+| Unknown invalid plan reaches ledger | `candidate_invalid` guard |
+| Cross-tenant reference | ownership checks and forged-tenant pgTAP |
+| Transfer counted as income/expense | suspected-transfer guard and two balanced entries |
+| Historical provenance is guessed | nullable backfill and explicit scope boundary |
 
 ## Tasks
 
 | ID | Task | Status | Evidence |
 |---|---|---|---|
-| T1 | Add migration schema and RPC contracts | done | migration and fresh replay evidence |
-| T2 | Add schema/tenant/classification/atomicity pgTAP | done | database job; 39 planned assertions in invariant suite |
-| T3 | Extend provenance contracts and mappings | done | provenance/map unit tests and TypeScript gates |
-| T4 | Add server dry-run and atomic approval action | done | `inbox-approval.ts`, RPC mapping and build |
-| T5 | Route authenticated Inbox posting through atomic action | done | candidate ID transaction contracts and `use-transactions.ts` |
-| T6 | Remove temporary codemod artifacts | done | four temporary emitter/runner/test files removed |
-| T7 | Run final exact-head CI and evaluate the diff | in progress | final CI after this packet synchronization |
-| T8 | Human merge and production rollout decision | blocked on T7 | owner-only |
+| T1 | Add migration schema and RPC contracts | done | migrations and fresh replay |
+| T2 | Add schema, tenant, classification and atomicity pgTAP | done | database CI |
+| T3 | Extend provenance contracts and mappings | done | mapping/provenance unit tests |
+| T4 | Add server dry-run and atomic approval action | done | action, RPC mapping and build |
+| T5 | Route authenticated Inbox posting through atomic action | done | transaction contracts and hook |
+| T6 | Remove temporary codemod artifacts | done | temporary files removed |
+| T7 | Independently evaluate application and RPC edge cases | done | duplicate override, redundant mutation and invalid-transfer fixes |
+| T8 | Run implementation-head CI | done | CI #770 on `c70b2b2...` |
+| T9 | Run exact-head CI after this evidence-only packet update | in progress | current PR synchronization run |
+| T10 | Human merge and production rollout decision | blocked on T9 and owner review | owner-only |
 
 ## Verification evidence
 
 ### Diagnostic history
 
-- CI #750 exposed one stale temporary codemod test and a pgTAP plan mismatch.
-- The temporary patch emitters were removed after their intended source changes were implemented.
-- `import_provenance_invariants.test.sql` was corrected from `plan(38)` to `plan(39)`; the assertions themselves were already passing.
+- Earlier CI exposed temporary codemod residue and a pgTAP plan mismatch; both were corrected.
+- Evaluation then found three application-contract gaps not exposed by the original green run:
+  1. the heuristic duplicate override existed in SQL but was hardcoded false in the application;
+  2. the UI still attempted a second candidate-status persistence after atomic approval;
+  3. an invalid candidate resolved as transfer could retain `invalid` provenance.
+- All three were corrected with focused code and tests before handoff.
 
 ### Implementation-head evidence
 
-On implementation head `9058d09b16f3e3f0d55aaf4853dea08ce00fe483`, CI #760 established before this documentation synchronization:
+CI #770 on implementation head `c70b2b2c9bf67aa466845d60234f18e24718eff1` passed:
 
-- knowledge, deployment, CSS ownership and architecture checks passed;
-- lint and typecheck passed;
-- unit/static RLS tests passed;
-- production build passed;
-- fresh Supabase reset and pgTAP passed;
-- expense-path browser smoke passed;
-- cross-device UI audit was still running when this packet was updated.
+- project knowledge contract;
+- deployment, CSS ownership and architecture contracts;
+- lint and typecheck;
+- unit tests and static RLS checks;
+- production build;
+- fresh Supabase reset and all pgTAP suites;
+- expense-path browser smoke;
+- production cross-device UI audit;
+- Playwright evidence upload.
 
-Because this packet update changes the PR head, CI #760 is supporting evidence rather than final exact-head evidence. A new exact-head run is required.
+This packet update changes documentation only. Its exact-head CI must remain green before the owner merge decision.
 
 ### Evidence limits
 
-- The standard Playwright workflow runs in demo mode and proves regression safety, not the authenticated Supabase Inbox RPC end to end.
-- Authenticated atomicity, ownership, duplicate and transfer behavior are proven at the database/RPC layer.
-- After approved production migration, a synthetic authenticated candidate must be dry-run and approved in production before acceptance.
+- The standard browser workflow runs in demo mode and proves UI regression safety, not authenticated Supabase approval end to end.
+- Authenticated atomicity, ownership, duplicate behavior, review resolution and transfer neutrality are proven at the database/RPC layer.
+- Production acceptance still requires one synthetic authenticated dry-run/approval/idempotency smoke after an approved migration.
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-01 | researcher/planner | implementer | implementing | #53, #182, original packet and repository reconnaissance | SQL/application shape unverified | implement migration and tests on branch |
-| 2026-08-01 | implementer | CI/evaluator | evaluating | PR #183, migrations, RPCs, application integration | CI #750 failures | use artifacts to fix real blockers |
-| 2026-08-01 | evaluator | implementer | implementing | CI #750 artifacts | stale emitter test and pgTAP plan mismatch | remove temporary artifacts and correct plan |
-| 2026-08-01 | implementer | evaluator | evaluating | implementation head `9058d09...`, passing static/unit/build/database evidence | final exact-head CI and authenticated production smoke pending | synchronize packet/PR, run final CI, request owner review |
+| 2026-08-01 | researcher/planner | implementer | implementing | #53, #182 and repository reconnaissance | SQL/application shape unverified | implement on branch |
+| 2026-08-01 | implementer | CI/evaluator | evaluating | migrations, RPCs and application integration | temporary artifacts and test mismatch | use CI diagnostics |
+| 2026-08-01 | evaluator | implementer | implementing | CI artifacts | real blockers identified | correct branch only |
+| 2026-08-01 | implementer | evaluator | evaluating | passing initial implementation CI | application edge cases remained | independent review |
+| 2026-08-01 | evaluator | human owner | ready_for_review | CI #770, final changed-file review and this packet | production migration and authenticated smoke not run | review diff; decide merge |
 
 ### Current permission boundary
 
 - Granted: branch writes on `agent/import-provenance-dry-run` and read-only inspection of CI/provider state.
 - Forbidden: direct `main` writes, merge, production DDL/data, provider configuration and unrelated feature work.
-- Human approval required before merge, production migration, deployment acceptance or scope expansion.
-- Stop if the work requires guessing historical provenance, weakening ledger/RLS invariants or introducing another service/framework.
+- Human approval is required before merge, production migration, deployment acceptance or scope expansion.
+- Stop if work would require guessing historical provenance, weakening ledger/RLS invariants or introducing another service/framework.
 
 ## Evaluation
 
 ### Current assessment
 
-- Correctness: database atomicity, idempotency, duplicate classification and transfer neutrality are covered.
-- Security: tenant ownership is enforced below the UI; provenance has own-row RLS.
-- Maintainability: provenance has an explicit module and mappings; temporary codemod infrastructure has been removed.
-- Scope: no reconciliation system, rules engine, AI, dependency or provider write was added.
-- UX: existing review flow is retained; no visual redesign is claimed.
+- **Correctness:** atomicity, idempotency, duplicate classification, explicit heuristic override, invalid-state guarding and transfer neutrality are covered.
+- **Security:** tenant ownership is enforced below UI; provenance has own-row RLS; protected functions use narrow grants.
+- **Maintainability:** provenance has an explicit module and mapping owner; temporary patch infrastructure is gone; corrective migration is isolated.
+- **Scope:** no reconciliation system, rules engine, AI, new dependency or provider write was added.
+- **UX:** existing review flow remains; heuristic override now requires clear human confirmation.
+
+### Merge recommendation
+
+Ready for owner review after the documentation-only exact-head CI completes successfully. Do not merge if the final run differs from the recorded head, if any required check is not green, or if the owner has not reviewed the migration and rollback boundary.
 
 ### Remaining gates
 
-1. Final exact-head CI after packet and PR body synchronization.
-2. Review final changed-file list for accidental scope.
-3. Human owner review and merge decision.
+1. Exact-head CI for this packet synchronization.
+2. Human review of the 21-file final diff and migration ordering.
+3. Owner-controlled merge.
 4. Separately approved production migration with rollback preparation.
-5. Authenticated production smoke proving one candidate link, one transaction and one provenance row; retry must create no duplicate.
+5. Authenticated production smoke proving one candidate link, one transaction and one provenance row; retry creates no duplicate.
 
 ## Rollout
 
@@ -254,11 +281,12 @@ No production migration has been applied.
 
 After owner-approved merge:
 
-1. confirm backup/rollback readiness;
-2. apply the exact merged migration;
+1. confirm backup and rollback readiness;
+2. apply the exact merged migrations in order;
 3. create one synthetic authenticated candidate;
 4. run server dry-run;
-5. approve it once and verify candidate, transaction, entries and provenance;
-6. approve it again and verify idempotency;
+5. approve once and verify candidate, transaction, entries and provenance;
+6. approve again and verify idempotency;
 7. inspect runtime/database errors;
-8. record exact deployment evidence before moving this packet to `docs/plans/completed/`.
+8. record exact deployment evidence;
+9. only then move this packet to `docs/plans/completed/` and close #182.
