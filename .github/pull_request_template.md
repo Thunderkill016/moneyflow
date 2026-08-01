@@ -6,6 +6,17 @@
 
 <!-- Link docs/plans/active/<slug>.md, or explain why this is a tiny mechanical change. -->
 
+## Agent operating evidence
+
+<!-- Follow docs/engineering/AGENT_OPERATING_MODEL.md for non-trivial work. -->
+
+- Current execution state:
+- Active responsibility/role:
+- Permission scope used:
+- Last handoff artifacts:
+- Unverified claims or open risks:
+- Next allowed transition:
+
 ## Repository reconnaissance and research
 
 - Existing implementation reused:
@@ -57,6 +68,8 @@ Evidence/CI links:
 - [ ] Research scope was bounded and selected sources remain applicable to the final diff.
 - [ ] Studied repositories did not silently expand product or architecture scope.
 - [ ] Any new tool/dependency/pattern passed license, security, ownership and rollback review, or is not applicable.
+- [ ] State transitions and handoffs are supported by repository artifacts rather than hidden chat context.
+- [ ] Permission scope was no broader than the task required.
 - [ ] No missing financial data was guessed.
 - [ ] Integer VND and transfer invariants remain intact.
 - [ ] Ownership/RLS implications were reviewed.
