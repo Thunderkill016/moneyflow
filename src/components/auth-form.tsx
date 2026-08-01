@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useId, useState } from "react";
+import { useActionState, useId } from "react";
 import {
   login,
   register,
@@ -12,8 +12,6 @@ import {
 } from "@/app/(auth)/actions";
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon } from "@/components/icons";
-import { AuthTurnstile } from "@/components/auth-turnstile";
-import { getPublicAuthCaptchaConfig } from "@/lib/auth-captcha";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import styles from "./auth-form.module.css";
 
@@ -78,13 +76,6 @@ export function AuthForm({
           ? requestPasswordReset
           : updatePassword;
   const [state, formAction, pending] = useActionState(action, initialState);
-  const [captchaToken, setCaptchaToken] = useState("");
-  const captchaConfig = getPublicAuthCaptchaConfig();
-  const captchaApplies =
-    mode === "login" || mode === "register" || mode === "forgot";
-  const captchaEnabled = captchaApplies && captchaConfig.enabled;
-  const captchaBlocked =
-    captchaEnabled && (!captchaConfig.ready || !captchaToken);
   const content = copy[mode];
   const baseId = useId();
   const fullNameErrorId = `${baseId}-fullName-error`;
@@ -291,20 +282,6 @@ export function AuthForm({
                 Quên mật khẩu?
               </Link>
             )}
-            {captchaEnabled && captchaConfig.siteKey && (
-              <AuthTurnstile
-                className={styles.captcha}
-                siteKey={captchaConfig.siteKey}
-                token={captchaToken}
-                pending={pending}
-                onTokenChange={setCaptchaToken}
-              />
-            )}
-            {captchaEnabled && !captchaConfig.ready && (
-              <div className={styles.message} role="alert">
-                Xác minh bảo mật chưa được cấu hình. Hãy thử lại sau.
-              </div>
-            )}
             {state.message && (
               <div
                 className={`${styles.message} ${
@@ -317,7 +294,7 @@ export function AuthForm({
             )}
             <button
               className={styles.submit}
-              disabled={pending || captchaBlocked}
+              disabled={pending}
               type="submit"
               aria-busy={pending}
             >
