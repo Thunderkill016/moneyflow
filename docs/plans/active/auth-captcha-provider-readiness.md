@@ -1,124 +1,134 @@
 # Auth CAPTCHA provider readiness
 
-**Status:** evaluated  
-**Owner:** GPT-5.6 Thinking + human owner  
+**Status:** evaluating  
+**Execution state:** evaluating  
+**Active role:** GPT-5.6 Thinking  
+**Permission scope:** branch_write  
+**Owner:** GPT-5.6 Thinking; human owner controls merge, provider publication, deployment, and acceptance  
 **Issue:** #174  
 **PR:** #175  
-**Base:** PR #173 head `01a34f39c1a630e1bccb7dfa0981e4cf3c4d4400`  
-**Evaluated head:** `cbe9aff173fb085c44b68f430d320640296c8981`  
-**Last updated:** 2026-07-31
+**Base:** `main@43e4d845ea3464202d85a6ab8ce2bebfd44ca54b`  
+**Last updated:** 2026-08-01
+
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
 ## Outcome
 
-MoneyFlow can send a Cloudflare Turnstile token with Supabase email/password sign-up, sign-in and password-reset requests before CAPTCHA enforcement is enabled in the Supabase dashboard. Missing provider configuration keeps the existing auth flow unchanged.
+MoneyFlow can optionally render Cloudflare Turnstile for Supabase email/password sign-up, sign-in, and password-reset requests. When CAPTCHA is disabled or unconfigured, the existing Auth flow remains unchanged. Repository code prepares token transport and safe rollout; it does not enable Supabase enforcement or publish provider settings.
 
 ## Repository reconnaissance
 
-- Auth UI is owned by `src/components/auth-form.tsx` and `auth-form.module.css`.
+- Auth UI is owned by `src/components/auth-form.tsx` and component CSS modules.
 - Public Auth Server Actions are owned by `src/app/(auth)/actions.ts`.
-- PR #173 already centralizes CSP in `src/lib/security-headers.ts` and strengthens password/error behavior.
-- Supabase CAPTCHA enforcement is a provider setting and must not be enabled until the client sends a valid token.
-- The production site key is public configuration; the Turnstile secret remains only in Supabase.
+- Browser policy is owned by `src/lib/security-headers.ts` and applied through `next.config.ts`.
+- PR #173 is merged and deployed; its security boundaries are now part of `main`.
+- PR #175 was retargeted from the old #173 branch to `main`.
+- The branch was synchronized without force-push by first reconciling the final #173 branch state, then merging current `main`, then restoring only CAPTCHA-specific changes.
+- The resulting `main...agent/auth-captcha-provider-readiness` diff contains exactly 15 intended CAPTCHA/configuration/test files.
 
 ## Research
 
-- Supabase supports CAPTCHA tokens on sign-up, password sign-in and password-reset endpoints.
-- Supabase supports hCaptcha and Cloudflare Turnstile.
-- Cloudflare Turnstile supports explicit rendering, token reset and responsive `flexible` size.
-- Turnstile requires `https://challenges.cloudflare.com` in CSP `script-src` and `frame-src`.
-- A CAPTCHA token is single-use and short-lived; failed Server Action attempts must reset the widget before retry.
+- Supabase Auth accepts CAPTCHA tokens for sign-up, password sign-in, and password-reset requests.
+- Cloudflare Turnstile supports explicit rendering, token expiry/reset, and compact/flexible sizing.
+- Turnstile requires its exact challenge origin in CSP only when configured.
+- CAPTCHA tokens are short-lived and single-use; a non-redirecting attempt must clear/reset the token before retry.
+- The site key is browser-safe public configuration; the secret belongs only in Supabase Auth provider settings.
 
 ## Specification
 
 ### Acceptance criteria
 
-- [x] `NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED=true` enables the widget; false or absent preserves the current flow.
-- [x] Login, registration and password-reset forms submit a `captchaToken` hidden field.
-- [x] Supabase Auth calls pass the token through their documented options.
-- [x] Failed/non-redirecting submissions reset the used or expired token.
-- [x] Submit stays disabled while configured CAPTCHA has no valid token.
-- [x] The widget reports loading, failure and expiry accessibly.
-- [x] CSP permits only the required Turnstile script and frame origin while configured.
-- [x] An explicit CAPTCHA-enabled deployment cannot pass validation without a site key.
-- [x] No CAPTCHA secret is added to source, Vercel public env or browser code.
-- [x] Unit/static tests cover configuration, token normalization, CSP and auth token forwarding.
-- [x] Exact-head repository CI passes.
-- [x] Browser smoke passes with Cloudflare's documented testing site key before provider enforcement.
+- [x] `NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED=true` enables the widget; false or absent preserves the existing flow.
+- [x] Login, registration, and password-reset forms submit a shared CAPTCHA token field.
+- [x] Supabase Auth calls receive the token through documented options.
+- [x] Missing tokens are rejected server-side when CAPTCHA is enabled.
+- [x] Used, expired, or failed challenges reset after non-redirecting attempts.
+- [x] Submit remains disabled until configured CAPTCHA produces a token.
+- [x] The widget exposes accessible loading, failure, and expiry state.
+- [x] CSP allows only the exact Turnstile origin while CAPTCHA is configured.
+- [x] CAPTCHA-enabled deployment validation fails without a site key.
+- [x] No Turnstile secret enters source, Vercel public variables, or browser code.
+- [x] The synchronized PR diff contains only the intended 15 files.
+- [ ] Final exact-head repository CI passes against current `main`.
+- [ ] Human owner reviews and approves the provider dependency before merge.
 
 ### Out of scope
 
-- Enabling CAPTCHA in the Supabase dashboard.
-- Creating or storing a Cloudflare Turnstile secret.
-- Vercel Firewall publication.
+- Enabling CAPTCHA in Supabase.
+- Creating, storing, or exposing a Turnstile secret.
+- Changing Supabase Auth password/rate-limit settings.
+- Publishing Vercel Firewall rules.
 - Applying CAPTCHA to Google OAuth.
-- Merging or deploying PR #173 or this packet.
+- Merging or deploying PR #175 autonomously.
 
 ## Implementation plan
 
 | Area | Change |
 |---|---|
 | `src/lib/auth-captcha.ts` | Pure configuration and token normalization contract |
-| `src/components/auth-turnstile.tsx` | Dependency-free explicit Turnstile widget lifecycle |
-| `src/components/auth-form.tsx` | Hidden token, accessible state and submit gating |
-| `src/app/(auth)/actions.ts` | Forward token to Supabase auth methods |
-| `src/lib/security-headers.ts` | Allow the exact Turnstile script and frame origin |
-| `.env.example`, deployment guard, docs | Provider activation sequence and safe public env |
-| tests | Red/green coverage for config, CSP and auth surface |
+| `src/components/auth-turnstile.tsx` | Dependency-free explicit Turnstile lifecycle |
+| `src/components/auth-form.tsx` | Hidden token, accessible state, and submit gating |
+| `src/app/(auth)/actions.ts` | Server-side requirement and Supabase token forwarding |
+| `src/lib/security-headers.ts` | Conditional exact-origin CSP allowance |
+| `.env.example`, deployment guard, docs | Safe public configuration, activation, and rollback order |
+| tests | Configuration, token forwarding, CSP, browser, and narrow-viewport coverage |
 
 ## Tasks
 
-- [x] Create a stacked branch from the exact PR #173 head.
-- [x] Add a pure CAPTCHA configuration/token contract.
-- [x] Implement dependency-free explicit Turnstile rendering.
-- [x] Gate email auth submit until a token exists.
-- [x] Enforce and forward tokens in Server Actions.
-- [x] Add conditional CSP and deployment validation.
-- [x] Document safe activation and rollback order.
-- [x] Add unit/static regression tests.
-- [x] Pass project knowledge, deployment, architecture, CSS ownership, lint, typecheck, tests and production build.
-- [x] Pass database and cross-device browser gates.
-- [x] Verify the rendered widget with Cloudflare's testing site key on login, registration, forgot-password and a 320px viewport.
-- [x] Keep Supabase CAPTCHA disabled until the deployed client proof exists.
+- [x] Retarget PR #175 to `main`.
+- [x] Synchronize final #173 state and current `main` without force-push.
+- [x] Resolve squash-history conflicts without retaining duplicated #173 changes.
+- [x] Restore only the original CAPTCHA-specific changes after synchronization.
+- [x] Confirm exactly 15 intended changed files remain.
+- [x] Keep CAPTCHA disabled by default.
+- [x] Keep the implementation dependency-free at runtime.
+- [x] Preserve provider secrets outside repository and public environment variables.
+- [ ] Run final project knowledge, deployment, CSS, architecture, lint, typecheck, unit, build, database, E2E, and UI-audit gates.
+- [ ] Record exact-head evidence and hand off for human review.
 
 ## Evaluation
 
 Evaluation is independent of implementation completion:
 
-1. Repository CI ran on exact head `cbe9aff173fb085c44b68f430d320640296c8981`.
-2. Static tests prove all three email-auth paths forward `captchaToken` and that missing tokens are rejected server-side when enabled.
-3. Production build headers keep `frame-src 'none'` when CAPTCHA is off and allow only `https://challenges.cloudflare.com` when it is configured.
-4. Browser evidence shows the dummy Turnstile challenge produces a token for login, registration and forgot-password; the submit control becomes enabled only after a token exists.
-5. A dedicated 320px browser case proves no horizontal document/body overflow; the widget uses compact mode at <=380px.
-6. The widget clears and resets a used or expired token after a non-redirecting attempt.
-7. Provider enforcement is evaluated separately in issue #174 and cannot be claimed by repository CI.
-8. Any provider publication requires a rollback path and immediate production auth smoke.
+1. Compare the final branch directly with current `main` and reject duplicated #173 files.
+2. Verify login, registration, and forgot-password all require and forward the same token only when enabled.
+3. Verify the update-password and Google OAuth flows remain outside CAPTCHA scope.
+4. Verify production CSP remains `frame-src 'none'` while CAPTCHA is disabled and permits only `https://challenges.cloudflare.com` when ready.
+5. Verify the 320px case does not create horizontal document/body overflow.
+6. Verify failed or expired challenges clear/reset before retry.
+7. Run a fresh Supabase reset and all pgTAP suites to prove no database regression.
+8. Treat provider enforcement and production Auth smoke as separate owner-controlled work in #174.
 
 ## Verification
 
-CI #681, run ID `30638965740`, completed successfully on the evaluated head:
+Previous stacked-head CI proved the original implementation, but it is stale after `main` synchronization and is not final acceptance evidence.
 
-- project knowledge contract;
-- deployment configuration contract;
-- CSS ownership and debt budgets;
-- architecture boundary contract;
+Final exact-head CI is pending on the synchronized branch. Required gates:
+
+- project knowledge, deployment environment, CSS ownership, and architecture contracts;
 - lint and typecheck;
 - unit/static RLS tests;
 - production build;
-- fresh local Supabase reset and all pgTAP;
+- fresh Supabase reset and all pgTAP suites;
 - expense-path and Auth CAPTCHA browser smoke;
-- production cross-device UI audit;
-- Playwright evidence upload.
+- production cross-device UI audit and evidence upload.
 
-The Auth CAPTCHA smoke used Cloudflare's documented dummy site key `1x00000000000000000000AA`, which is CI-only and must not be copied to production.
+The browser smoke uses Cloudflare's documented CI-only dummy site key. It must never be copied to production.
 
 ## Rollback
 
-Disable CAPTCHA enforcement in Supabase first, then set `NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED=false` and redeploy. The form follows the previous auth path without rendering a widget or requiring a token. Keep the Turnstile secret only in Supabase.
+Provider rollback order after any future publication:
+
+1. Disable CAPTCHA enforcement in Supabase Auth.
+2. Set `NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED=false` and redeploy if the widget itself causes failures.
+3. Keep the production secret only in Supabase; never move it into Vercel public configuration.
+
+Repository rollback is a normal revert of PR #175. With the feature flag off, the existing Auth flow remains active.
 
 ## Delivery state
 
-- PR #175 is stacked on PR #173 and ready for review.
-- Not merged.
-- Not deployed.
-- Supabase CAPTCHA enforcement remains disabled.
-- Production provider publication and verification remain tracked in issue #174.
+- PR #175 targets current `main`.
+- Diff is reduced to 15 intended CAPTCHA/configuration/test files.
+- Not merged or deployed.
+- No Supabase, Cloudflare, Vercel environment, or Firewall setting changed.
+- Final exact-head CI and human acceptance remain pending.
