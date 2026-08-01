@@ -36,24 +36,20 @@ test.describe("critical browser compatibility audit", () => {
     const brand = navigation.getByRole("link", {
       name: "MoneyFlow, trang chủ",
     });
-    const hero = page.getByRole("heading", {
-      level: 1,
-      name: "Sổ thu chi do chính tay bạn kiểm soát. Không đoán, không tự động, không giấu giếm.",
-    });
+    const hero = page.locator("#landing-title");
     const lead = page.locator("#landing-title + p");
-    const proof = page.getByRole("region", { name: "Điểm nổi bật" });
-    const preview = page.getByRole("img", {
-      name: /Mô phỏng một tháng trong MoneyFlow/i,
-    });
+    const signals = page.getByRole("region", { name: "Các tín hiệu chính" });
+    const preview = page.getByLabel("Mô phỏng tổng quan MoneyFlow");
     const finalCta = page.getByRole("region", {
-      name: "Mở sổ MoneyFlow của riêng bạn",
+      name: "Bắt đầu bằng khoản tiền gần nhất.",
     });
     const finalCtaTitle = page.getByRole("heading", {
       level: 2,
-      name: "Mở sổ MoneyFlow của riêng bạn",
+      name: "Bắt đầu bằng khoản tiền gần nhất.",
     });
 
     await expect(hero).toBeVisible();
+    await expect(signals).toBeVisible();
     await expect(preview).toBeVisible();
     await expect(finalCta).toBeVisible();
 
@@ -67,9 +63,6 @@ test.describe("critical browser compatibility audit", () => {
       brand: await brand.evaluate((element) => getComputedStyle(element).color),
       hero: await hero.evaluate((element) => getComputedStyle(element).color),
       lead: await lead.evaluate((element) => getComputedStyle(element).color),
-      proofBackground: await proof.evaluate(
-        (element) => getComputedStyle(element).backgroundColor,
-      ),
       previewBackground: await preview.evaluate(
         (element) => getComputedStyle(element).backgroundColor,
       ),
@@ -81,14 +74,13 @@ test.describe("critical browser compatibility audit", () => {
       ),
     };
 
-    expect(semanticColors.pageBackground).toBe("rgb(13, 21, 17)");
-    expect(semanticColors.brand).toBe("rgb(240, 247, 243)");
-    expect(semanticColors.hero).toBe("rgb(240, 247, 243)");
-    expect(semanticColors.lead).toBe("rgb(168, 183, 174)");
-    expect(semanticColors.proofBackground).toBe("rgb(20, 31, 25)");
-    expect(semanticColors.previewBackground).toBe("rgb(26, 40, 32)");
-    expect(semanticColors.ctaBackground).toBe("rgb(74, 213, 138)");
-    expect(semanticColors.ctaTitle).toBe("rgb(7, 21, 14)");
+    expect(semanticColors.pageBackground).toBe("rgb(17, 19, 24)");
+    expect(semanticColors.brand).toBe("rgb(244, 242, 237)");
+    expect(semanticColors.hero).toBe("rgb(244, 242, 237)");
+    expect(semanticColors.lead).toBe("rgb(183, 186, 194)");
+    expect(semanticColors.previewBackground).toBe("rgb(21, 25, 34)");
+    expect(semanticColors.ctaBackground).toBe("rgb(32, 43, 85)");
+    expect(semanticColors.ctaTitle).toBe("rgb(244, 242, 237)");
   });
 
   test("signed-in shell exposes one authored navigation model", async ({ page }) => {

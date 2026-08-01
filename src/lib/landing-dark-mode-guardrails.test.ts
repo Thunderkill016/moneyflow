@@ -23,13 +23,14 @@ test("document theme authority loads after the frozen legacy entry", () => {
   assert.match(legacy, /@import "\.\/ai-uiux-guardrails\.css"/);
 });
 
-test("dark mode is one semantic token contract shared by public surfaces", () => {
+test("dark mode is one Signal Ledger token contract shared by public surfaces", () => {
   assert.match(documentTheme, /html\[data-theme="dark"\]/);
-  assert.match(documentTheme, /--mf-canvas:\s*#0d1511/);
-  assert.match(documentTheme, /--mf-surface:\s*#141f19/);
-  assert.match(documentTheme, /--mf-text:\s*#f0f7f3/);
-  assert.match(documentTheme, /--mf-text-muted:\s*#a8b7ae/);
-  assert.match(documentTheme, /--mf-brand:\s*#4ad58a/);
+  assert.match(documentTheme, /--mf-canvas:\s*#111318/);
+  assert.match(documentTheme, /--mf-surface:\s*#181b22/);
+  assert.match(documentTheme, /--mf-text:\s*#f4f2ed/);
+  assert.match(documentTheme, /--mf-text-muted:\s*#b7bac2/);
+  assert.match(documentTheme, /--mf-brand:\s*#85a3ff/);
+  assert.match(documentTheme, /--mf-brand-subtle:\s*#202b55/);
 
   assert.match(landingCss, /var\(--mf-canvas\)/);
   assert.match(landingCss, /var\(--mf-surface\)/);
