@@ -152,10 +152,14 @@ test("buildMigratePayloads remaps ids and adds explicit provenance defaults", ()
   assert.equal(isUuid(serverBatchId), true);
   assert.equal(batchRows[0]?.id, serverBatchId);
   assert.equal(batchRows[0]?.local_id, "imp-local-1");
+  assert.equal(batchRows[0]?.parser_version, null);
+  assert.equal(batchRows[0]?.mapping_version, null);
   assert.equal(candidateRows[0]?.local_id, "cand-local-1");
   assert.equal(candidateRows[0]?.import_batch_id, serverBatchId);
   assert.equal(candidateRows[0]?.amount_minor, 45_000);
   assert.equal(candidateRows[0]?.user_id, "user-1");
+  assert.equal(candidateRows[0]?.source_row_index, null);
+  assert.equal(candidateRows[0]?.source_external_id, null);
   assert.equal(candidateRows[0]?.parser_version, "paste_text@1.0");
   assert.equal(candidateRows[0]?.mapping_version, 1);
 });
