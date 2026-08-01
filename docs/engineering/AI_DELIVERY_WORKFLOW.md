@@ -2,6 +2,21 @@
 
 MoneyFlow uses AI as an engineering multiplier inside a controlled delivery system. AI may explore, research, plan, implement and review, but it does not independently redefine product requirements or declare its own work complete.
 
+## Operating contract
+
+`docs/engineering/AGENT_OPERATING_MODEL.md` is the execution contract for this workflow. It applies the useful patterns from Ruflo/Claude-Flow, CrewAI, OpenAI Swarm, OpenHands, LangGraph and AutoGen without adding those frameworks to the MoneyFlow runtime.
+
+Every non-trivial work packet records:
+
+- one current execution state;
+- the active responsibility/role;
+- the granted permission scope;
+- repository-backed artifacts and evidence;
+- an explicit handoff when responsibility or state changes;
+- unverified claims, stop conditions and the next allowed action.
+
+State transitions describe evidence, not percentage complete. Hidden chat context is not a valid project artifact.
+
 ## Roles
 
 ### Human owner
@@ -11,20 +26,28 @@ MoneyFlow uses AI as an engineering multiplier inside a controlled delivery syst
 - Reviews evidence, not only generated explanations.
 - Decides whether a change is worth merging.
 
+### Researcher and planner
+
+- Read current repository truth before external research.
+- State the exact unresolved decision.
+- Select focused sources and record their limits.
+- Produce the specification, architecture fit, tasks, risks and verification plan before implementation.
+
 ### Implementing agent
 
 - Reads the repository and relevant history.
-- Researches unresolved external questions.
-- Writes the work packet before non-trivial implementation.
-- Makes a focused change on a branch.
+- Researches unresolved external questions when acting as researcher.
+- Writes or updates the work packet before non-trivial implementation.
+- Makes a focused change on an isolated branch or worktree.
+- Stays inside the granted permission scope.
 - Runs tests and records evidence.
 
 ### Evaluating agent or reviewer
 
-- Checks the implementation against the specification.
+- Checks the implementation against the specification and actual diff.
 - Searches for omitted edge cases, duplicated logic and unsafe assumptions.
 - Reviews browser/screenshots for UI work.
-- Does not expand scope while reviewing.
+- Records findings and unverified claims rather than expanding scope while reviewing.
 
 ### CI and production systems
 
@@ -52,12 +75,23 @@ Examples: product behavior, financial calculation, schema, multi-file feature, U
 Requirements:
 
 - Create a work packet from `docs/templates/FEATURE_WORK_PACKET.md`.
+- Start in `discovery` with `read_only` unless a narrower or broader scope is explicitly justified.
 - Complete reconnaissance, research/specification, plan and tasks before implementation.
 - Keep the packet updated when verified facts change.
+- Advance states only with the evidence defined in `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
 ## Standard lifecycle
 
-### 1. Repository reconnaissance
+The lifecycle maps to the operating states:
+
+```text
+discovery → specified → planned → implementing → evaluating
+→ ready_for_review → merged → deployed → accepted
+```
+
+A task may move backward when new evidence invalidates an assumption. Record the reason and preserve the prior evidence; never silently relabel progress.
+
+### 1. Repository reconnaissance — `discovery`
 
 The agent must inspect the current system before proposing a solution:
 
@@ -70,7 +104,9 @@ The agent must inspect the current system before proposing a solution:
 
 Output: a short map of relevant files, reusable code, current behavior and unresolved questions.
 
-### 2. Research
+Handoff requirement: the planner receives repository paths, verified behavior, open questions and any forbidden boundaries.
+
+### 2. Research — `discovery` to `specified`
 
 Research is required when behavior depends on external products, current APIs, standards, finance practices, security guidance or unfamiliar technology.
 
@@ -109,7 +145,9 @@ Before adding a tool, dependency, provider, service, framework or architecture p
 
 Popularity, benchmark rank, AI capability or use by a larger repository is not sufficient evidence.
 
-### 3. Specification
+Sentry and Trigger.dev follow the explicit adoption triggers and privacy boundaries in `docs/engineering/AGENT_OPERATING_MODEL.md`; neither is a default dependency.
+
+### 3. Specification — `specified`
 
 Define the outcome without prescribing code prematurely:
 
@@ -124,7 +162,7 @@ Define the outcome without prescribing code prematurely:
 
 Unknown product decisions must be resolved or explicitly excluded before implementation.
 
-### 4. Implementation plan
+### 4. Implementation plan — `planned`
 
 The plan connects the specification to the existing architecture:
 
@@ -135,11 +173,14 @@ The plan connects the specification to the existing architecture:
 - rollout, rollback and compatibility;
 - tests to add at each layer;
 - risks and counterexamples;
-- browser and production verification.
+- browser and production verification;
+- required permission scope and approval points.
 
 A plan should make it obvious why each file must change. Avoid speculative abstractions.
 
-### 5. Tasks
+Handoff requirement: implementation begins only after the packet identifies the exact branch, files, permissions, acceptance criteria and stop conditions.
+
+### 5. Tasks — `planned`
 
 Split work into small checkpoints that can be implemented and verified independently. Each task includes:
 
@@ -149,19 +190,20 @@ Split work into small checkpoints that can be implemented and verified independe
 - dependencies;
 - status.
 
-Parallel agents may only take tasks that do not edit overlapping ownership areas and have clear contracts.
+Parallel agents may only take tasks that do not edit overlapping ownership areas and have clear contracts. Role names are responsibility boundaries, not fictional personas.
 
-### 6. Implementation
+### 6. Implementation — `implementing`
 
-- Work on a focused branch or isolated worktree.
+- Work on a focused branch, isolated worktree or approved sandbox.
 - Implement one task at a time.
 - Prefer tests or counterexamples before changing financial/domain behavior.
 - Keep diffs surgical; unrelated cleanup becomes separate work.
-- When implementation reveals a wrong requirement, stop and update the specification instead of silently changing behavior.
+- Stay inside the recorded permission scope; repository access does not imply provider or production-data write permission.
+- When implementation reveals a wrong requirement, stop and move back to `specified` instead of silently changing behavior.
 
-### 7. Evaluation
+### 7. Evaluation — `evaluating`
 
-Evaluate the result against the work packet, not against the implementing agent's summary.
+Evaluate the result against the work packet and actual diff, not against the implementing agent's summary.
 
 Check:
 
@@ -173,21 +215,26 @@ Check:
 - database ownership is enforced below the UI;
 - UI uses existing tokens/components and works across supported states;
 - error/recovery behavior is understandable;
-- docs and repository map remain accurate.
+- docs and repository map remain accurate;
+- permissions used were no broader than required;
+- the final handoff lists unverified claims and the next allowed transition.
 
-### 8. Verification and delivery
+A review that reads only the PR summary is incomplete.
+
+### 8. Verification and delivery — `ready_for_review` to `accepted`
 
 Run the required static, domain, database, browser and responsive gates. Review generated artifacts. Open or update the PR with:
 
 - problem and outcome;
 - research/plan link;
 - selected sources, applicability and rejected scope;
+- current execution state, permission scope and last handoff;
 - important decisions and risks;
 - test results;
 - screenshots or browser evidence;
 - production verification instructions.
 
-After squash merge and successful deployment, verify the exact affected production flow, then move the work packet from `docs/plans/active/` to `docs/plans/completed/`.
+Only exact-head evidence supports `ready_for_review`. Merge is a human-owner or approved repository-policy transition. After squash merge and successful deployment, verify the exact affected production flow, then move the work packet from `docs/plans/active/` to `docs/plans/completed/` after acceptance.
 
 ## UI/UX-specific loop
 
@@ -211,9 +258,10 @@ Documentation is part of the system:
 - `AGENTS.md` stays short and points to sources of truth.
 - `ARCHITECTURE.md` changes only when boundaries change.
 - Product truth lives in `docs/product/PRINCIPLES.md`.
+- `docs/engineering/AGENT_OPERATING_MODEL.md` owns execution states, handoffs, permissions and runtime-tool adoption triggers.
 - Research may be historical, but must be labeled when superseded.
 - The two repository reference maps are maintained indexes, not roadmaps or dependency manifests.
 - Active work packets describe current execution; completed packets preserve decisions.
 - Important rules should migrate from prose into tests, scripts, schema constraints or lint checks when feasible.
 
-Run `npm run check:knowledge` to catch missing operating documents, weakened research-contract markers and selected stale product claims.
+Run `npm run check:knowledge` to catch missing operating documents, weakened research/agent-contract markers and selected stale product claims.
