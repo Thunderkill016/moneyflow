@@ -1,5 +1,10 @@
-// Temporary compatibility shim for the import codemod on PR #180.
-// This file is removed before the PR can leave `implementing`.
+/**
+ * @deprecated Compatibility surface while type/presentation imports migrate.
+ *
+ * This module owns no contracts, presentation metadata or demo values. Runtime
+ * demo fixtures must be imported from `./demo/transaction-fixtures.ts` so
+ * production/core modules cannot acquire them through an ambiguous barrel.
+ */
 export type {
   AccountOption,
   CategoryOption,
@@ -12,5 +17,5 @@ export type {
   UpdateMoneyTransactionInput,
   UpdateTransferInput,
 } from "./transactions/contracts.ts";
+
 export { categories, categoryMeta } from "./transactions/category-presentation.ts";
-export { demoAccounts, demoCategories, sampleTransactions } from "./demo/transaction-fixtures.ts";
