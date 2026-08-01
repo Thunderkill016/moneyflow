@@ -1,9 +1,14 @@
 # <Feature or fix name>
 
-**Status:** discovery | specified | planned | implementing | evaluating | completed  
+**Status:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted  
+**Execution state:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted  
+**Active role:** human_owner | researcher | planner | implementer | evaluator | ci_or_production  
+**Permission scope:** read_only | branch_write | provider_read | provider_write_approved | production_data_write_approved  
 **Owner:** <human or agent>  
 **Issue/PR:** <links or numbers>  
 **Last updated:** YYYY-MM-DD
+
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
 
 ## Outcome
 
@@ -165,6 +170,23 @@ Rules:
 - Parallel tasks must not edit overlapping ownership areas.
 - New discoveries update the specification/plan before implementation scope changes.
 - Research is complete when it supports a decision, not when every related repository has been read.
+- A task may advance only when the current execution state's evidence exists.
+
+## Handoff record
+
+Add one entry whenever responsibility changes or the task moves to another execution state. Do not rely on hidden chat context.
+
+| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
+|---|---|---|---|---|---|---|
+| YYYY-MM-DD | researcher | planner | specified | work packet + sources | | Create implementation plan |
+
+### Current permission boundary
+
+- Granted scope:
+- Exact repositories/providers/resources:
+- Forbidden writes:
+- Human approval required before:
+- Rollback or stop condition:
 
 ## Evaluation
 
