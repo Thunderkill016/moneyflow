@@ -29,6 +29,7 @@ export type ExplainLine = {
 export type BulkReviewAction = "approve" | "reject" | "category";
 
 export type CandidateReviewDraft = {
+  candidateId: string;
   kind: InboxCandidate["kind"];
   amount: number;
   merchant: string;
@@ -204,6 +205,7 @@ export function draftFromCandidate(
     accounts.find((item) => item.id !== accountId)?.id ?? accounts[0]?.id ?? "";
 
   return {
+    candidateId: candidate.id,
     kind: candidate.kind,
     amount: candidate.amount,
     merchant: candidate.merchant,
@@ -303,6 +305,7 @@ export function buildLedgerPost(
       ok: true,
       mode: "transfer",
       input: {
+        inboxCandidateId: draft.candidateId,
         sourceAccountId: source.id,
         destinationAccountId: destination.id,
         amount: draft.amount,
@@ -327,6 +330,7 @@ export function buildLedgerPost(
     ok: true,
     mode: "money",
     input: {
+      inboxCandidateId: draft.candidateId,
       kind,
       categoryId: category.id,
       accountId: account.id,

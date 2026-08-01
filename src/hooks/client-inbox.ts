@@ -221,7 +221,26 @@ export async function persistCandidateListForClient(
   }
 
   const result = await applyCandidateListMutationAction(nextList, changedIds);
-  if (!result.ok) return { ok: false, message: result.message };
+  if (!result.ok) {
+    const listed = await listInboxAction();
+    if (listed.ok) {
+      const desiredStatus = new Map(
+        nextList
+          .filter((candidate) => changedIds.includes(candidate.id))
+          .map((candidate) => [candidate.id, candidate.status]),
+      );
+      const serverStatus = new Map(
+        listed.candidates.map((candidate) => [candidate.id, candidate.status]),
+      );
+      const alreadyApplied = [...desiredStatus].every(
+        ([id, status]) => serverStatus.get(id) === status,
+      );
+      if (alreadyApplied) {
+        return { ok: true, candidates: listed.candidates };
+      }
+    }
+    return { ok: false, message: result.message };
+  }
   return { ok: true, candidates: result.candidates ?? nextList };
 }
 
