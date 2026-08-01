@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { MinimumTargetSizeContract } from "@/components/minimum-target-size-contract";
 import { MobileShellContract } from "@/components/mobile-shell-contract";
 import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
@@ -98,6 +99,7 @@ export default function RootLayout({
         <MobileShellContract />
         <MinimumTargetSizeContract />
         {children}
+        <Analytics />
         <PrivacySafeSpeedInsights />
       </body>
     </html>
