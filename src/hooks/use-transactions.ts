@@ -96,7 +96,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           occurredOn: input.occurredOn,
           note: input.note,
           idempotencyKey: input.idempotencyKey,
-          allowHeuristicDuplicate: false,
+          allowHeuristicDuplicate: input.allowHeuristicDuplicate ?? false,
         });
         if (result.ok) {
           setTransactions((current) => [
@@ -209,7 +209,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           occurredOn: input.occurredOn,
           note: input.note,
           idempotencyKey: input.idempotencyKey,
-          allowHeuristicDuplicate: false,
+          allowHeuristicDuplicate: input.allowHeuristicDuplicate ?? false,
         });
         if (result.ok) {
           setTransactions((current) => [
