@@ -1,109 +1,115 @@
 import Link from "next/link";
 import {
-  ArrowRight,
   ArrowLeftRight,
-  Ban,
+  ArrowRight,
+  BarChart3,
+  Check,
   Download,
   Lock,
   PlusCircle,
   ShieldCheck,
-  Wallet,
   Target,
-  BarChart3,
+  Wallet,
 } from "lucide-react";
 import { BrandLockup, BrandMark } from "@/components/brand/brand-lockup";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "@/components/ui/accordion";
 import { RevealSection } from "@/components/reveal";
 import styles from "./landing-page.module.css";
 
-const trustBadges = ["An toàn", "Minh bạch", "Xuất được dữ liệu"];
-
-const proofPoints = [
-  { stat: "0", label: "Mật khẩu ngân hàng cần cung cấp" },
-  { stat: "100%", label: "Giao dịch do chính bạn xác nhận" },
-  { stat: "24/7", label: "Xuất dữ liệu bất cứ lúc nào" },
-];
-
-const steps = [
+const signals = [
   {
-    icon: Wallet,
-    title: "Khai báo nơi giữ tiền",
-    body: "Tiền mặt, tài khoản ngân hàng, ví điện tử — mỗi nơi một số dư bạn tự nhập, không cần đăng nhập ngân hàng.",
+    label: "Tiền đang có",
+    value: "10.000.000 ₫",
+    note: "trên 3 tài khoản",
   },
   {
-    icon: ArrowLeftRight,
-    title: "Ghi đúng bản chất khoản tiền",
-    body: "Thu, chi hay chuyển nội bộ — MoneyFlow phân biệt rõ để chuyển khoản không bao giờ lẫn vào chi tiêu.",
+    label: "Còn có thể phân bổ",
+    value: "4.280.000 ₫",
+    note: "sau các khoản đã lên kế hoạch",
+  },
+  {
+    label: "Khoản cần chú ý",
+    value: "2",
+    note: "trước ngày 05/08",
+  },
+];
+
+const clarityCards = [
+  {
+    icon: Wallet,
+    number: "01",
+    title: "Biết tiền đang nằm ở đâu",
+    body: "Tiền mặt, ngân hàng và ví điện tử nằm trong cùng một bức tranh nhưng vẫn giữ số dư riêng để bạn đối chiếu.",
   },
   {
     icon: BarChart3,
-    title: "Đối chiếu lại bất cứ lúc nào",
-    body: "Số dư và báo cáo tháng luôn suy ra được từ đúng những dòng bạn đã ghi — không có số nào tự sinh ra.",
-  },
-];
-
-const features = [
-  {
-    icon: PlusCircle,
-    title: "Ghi trong vài giây",
-    body: "Bàn phím số tối ưu cho điện thoại, gợi ý danh mục quen thuộc để không phải gõ lại từ đầu.",
-  },
-  {
-    icon: Wallet,
-    title: "Nhiều ví, một sổ duy nhất",
-    body: "Theo dõi song song tiền mặt, ngân hàng, ví điện tử mà không cần trộn dữ liệu thủ công.",
+    number: "02",
+    title: "Biết tháng này đang lệch ở đâu",
+    body: "Thu, chi, chuyển nội bộ và các khoản định kỳ được tách đúng bản chất thay vì gom thành một con số khó hiểu.",
   },
   {
     icon: Target,
-    title: "Kế hoạch tách bạch với số dư",
-    body: "Ngân sách, khoản định kỳ và mục tiêu tiết kiệm là thứ bạn chủ động đặt ra — không bị biến thành lời khuyên tự động.",
-  },
-  {
-    icon: BarChart3,
-    title: "Báo cáo đối chiếu được",
-    body: "Xem dòng tiền theo tháng với số liệu chính xác đến từng đồng, sẵn sàng xuất ra khi cần kiểm tra lại.",
+    number: "03",
+    title: "Biết quyết định tiếp theo là gì",
+    body: "Ngân sách và mục tiêu được đặt cạnh dòng tiền thật để bạn thấy phần nào còn linh hoạt, phần nào đã có nhiệm vụ.",
   },
 ];
 
-const ownershipPoints = [
-  { icon: Ban, text: "Không yêu cầu liên kết hay đăng nhập ngân hàng" },
-  { icon: Download, text: "Xuất toàn bộ dữ liệu ra CSV bất cứ lúc nào" },
-  { icon: ShieldCheck, text: "Dữ liệu mỗi người tách riêng ở tầng cơ sở dữ liệu" },
+const workflow = [
+  {
+    icon: PlusCircle,
+    title: "Ghi khi khoản tiền vừa phát sinh",
+    body: "Một giao dịch ngắn, đúng tài khoản, đúng loại. Không cần dựng lại cả ngày vào cuối tháng.",
+  },
+  {
+    icon: ArrowLeftRight,
+    title: "Sắp xếp mà không làm sai số",
+    body: "Sửa, phục hồi và chuyển tiền giữa tài khoản mà vẫn giữ được lịch sử để kiểm tra lại.",
+  },
+  {
+    icon: BarChart3,
+    title: "Đọc bức tranh trước khi hành động",
+    body: "Mở tổng quan để thấy số dư, nhịp thu chi và các nghĩa vụ gần nhất trong cùng một màn hình.",
+  },
+];
+
+const principles = [
+  {
+    icon: Lock,
+    title: "Không cần đưa mật khẩu ngân hàng",
+    body: "MoneyFlow là manual-first. Bạn chủ động quyết định dữ liệu nào được ghi vào sổ.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Mỗi thay đổi đều có đường quay lại",
+    body: "Xoá mềm, phục hồi và các luồng xác nhận giúp một thao tác vội không biến thành sai lệch lâu dài.",
+  },
+  {
+    icon: Download,
+    title: "Dữ liệu không bị giữ lại",
+    body: "Xuất lịch sử ra CSV bất cứ lúc nào để kiểm tra, lưu trữ hoặc tiếp tục làm việc ở nơi khác.",
+  },
 ];
 
 const faqItems = [
   {
-    question: "Vì sao MoneyFlow không tự động đọc giao dịch ngân hàng?",
+    question: "MoneyFlow có tự động đọc giao dịch ngân hàng không?",
     answer:
-      "Vì làm vậy cần bạn cung cấp mật khẩu hoặc quyền truy cập tài khoản ngân hàng cho bên thứ ba. MoneyFlow chọn cách an toàn hơn: bạn chủ động ghi, đổi lại là không phải chia sẻ thông tin đăng nhập ngân hàng với bất kỳ ai.",
+      "Không. MoneyFlow ưu tiên quyền kiểm soát của bạn: giao dịch chỉ xuất hiện khi bạn chủ động ghi hoặc xác nhận một nguồn nhập. Ứng dụng không yêu cầu mật khẩu ngân hàng.",
   },
   {
-    question: "Chuyển tiền giữa ví của tôi có bị tính là chi tiêu không?",
+    question: "Chuyển tiền giữa hai tài khoản có bị tính thành chi tiêu?",
     answer:
-      "Không. MoneyFlow ghi nhận đây là chuyển nội bộ, tách hẳn khỏi tổng thu và tổng chi, để báo cáo chi tiêu tháng của bạn không bị thổi phồng.",
+      "Không. Chuyển nội bộ được ghi thành một luồng riêng, vì vậy tổng thu và tổng chi không bị phóng đại.",
   },
   {
-    question: "MoneyFlow có tự đề xuất tôi nên chi bao nhiêu mỗi ngày không?",
+    question: "Tôi có cần biết phương pháp quản lý tài chính trước không?",
     answer:
-      "Không. Ứng dụng chỉ hiển thị số dư, dòng tiền và kế hoạch bạn tự đặt ra. MoneyFlow không suy diễn một con số chi tiêu an toàn khi chưa có đủ dữ liệu thu nhập và nghĩa vụ tài chính thật của bạn.",
+      "Không. Bắt đầu bằng việc ghi đúng khoản tiền và tài khoản. Ngân sách, khoản định kỳ và mục tiêu có thể thêm sau khi bạn đã nhìn thấy nhịp tiền thật của mình.",
   },
   {
-    question: "Nếu tôi ngừng dùng, dữ liệu của tôi ra sao?",
+    question: "Tôi có thể lấy dữ liệu ra khỏi MoneyFlow không?",
     answer:
-      "Bạn xuất toàn bộ lịch sử ra file CSV từ phần cài đặt bất cứ lúc nào, và có thể xoá tài khoản cùng dữ liệu khi không còn nhu cầu sử dụng.",
+      "Có. Bạn có thể xuất CSV từ phần cài đặt và xoá tài khoản khi không còn nhu cầu sử dụng.",
   },
 ];
 
@@ -122,14 +128,20 @@ export function LandingPage() {
             ariaLabel="MoneyFlow, trang chủ"
             size="standard"
           />
+
           <div className={styles.navLinks}>
-            <a href="#cach-hoat-dong">Cách hoạt động</a>
-            <a href="#features-title">Tính năng</a>
-            <a href="#faq-title">Câu hỏi</a>
+            <a href="#san-pham">Sản phẩm</a>
+            <a href="#quy-trinh">Cách dùng</a>
+            <a href="#nguyen-tac">Nguyên tắc</a>
           </div>
+
           <div className={styles.navActions}>
             <Link href="/login" className={styles.loginLink}>
               Đăng nhập
+            </Link>
+            <Link href="/register" className={styles.navCta}>
+              Bắt đầu
+              <ArrowRight size={16} />
             </Link>
           </div>
         </nav>
@@ -138,277 +150,241 @@ export function LandingPage() {
       <main id="noi-dung">
         <section className={styles.hero} aria-labelledby="landing-title">
           <div className={styles.heroCopy}>
-            <Badge
-              variant="secondary"
-              className="h-7 gap-1.5 rounded-full px-3 text-[13px] font-semibold text-foreground"
-            >
-              <Lock className="size-3.5" />
-              Không cần liên kết ngân hàng
-            </Badge>
+            <p className={styles.heroIndex}>01 / Bức tranh tài chính cá nhân</p>
             <h1 id="landing-title">
-              Sổ thu chi do chính tay bạn kiểm soát.
-              <span> Không đoán, không tự động, không giấu giếm.</span>
+              Đừng quản lý tiền bằng trí nhớ.
+              <span> Hãy nhìn nó thành một hệ thống.</span>
             </h1>
             <p className={styles.heroLead}>
-              MoneyFlow chỉ ghi lại đúng những gì bạn chủ động nhập. Không đọc
-              dữ liệu ngân hàng thay bạn, không suy diễn một lời khuyên chi
-              tiêu khi chưa đủ căn cứ — chỉ có con số bạn có thể đối chiếu lại
-              bất cứ lúc nào.
+              MoneyFlow gom tài khoản, giao dịch, ngân sách, khoản định kỳ và
+              mục tiêu vào một nơi — để mỗi lần mở ứng dụng, bạn biết điều gì
+              đang xảy ra và điều gì cần xử lý tiếp theo.
             </p>
+
             <div className={styles.heroActions}>
-              <Button
-                size="lg"
-                render={
-                  <Link href="/register">
-                    Tạo sổ miễn phí
-                    <ArrowRight className="size-4" />
-                  </Link>
-                }
-              />
-              <Button
-                size="lg"
-                variant="outline"
-                render={<a href="#cach-hoat-dong">Xem cách hoạt động</a>}
-              />
+              <Link href="/register" className={styles.primaryCta}>
+                Tạo không gian tài chính
+                <ArrowRight size={18} />
+              </Link>
+              <a href="#san-pham" className={styles.secondaryCta}>
+                Xem MoneyFlow hoạt động
+              </a>
             </div>
-            <ul className={styles.trustList} aria-label="Cam kết của MoneyFlow">
-              {trustBadges.map((label) => (
-                <li key={label}>
-                  <Badge variant="outline" className="rounded-full">
-                    {label}
-                  </Badge>
-                </li>
-              ))}
+
+            <ul className={styles.trustRow} aria-label="Cam kết chính">
+              <li>
+                <Check size={15} /> Không liên kết ngân hàng
+              </li>
+              <li>
+                <Check size={15} /> Có thể sửa và phục hồi
+              </li>
+              <li>
+                <Check size={15} /> Xuất CSV bất cứ lúc nào
+              </li>
             </ul>
           </div>
 
-          <div
-            className={styles.previewWrap}
-            role="img"
-            aria-label="Mô phỏng một tháng trong MoneyFlow với tổng số dư, thu chi và ba giao dịch gần đây"
-          >
-            <div className={styles.preview}>
-              <div className={styles.previewTopbar}>
-                <div>
-                  <BrandMark size="micro" />
-                  <strong>Một tháng trong MoneyFlow</strong>
-                </div>
-                <span>Tháng 7</span>
+          <div className={styles.productStage} aria-label="Mô phỏng tổng quan MoneyFlow">
+            <div className={styles.stageChrome}>
+              <div className={styles.stageBrand}>
+                <BrandMark size="micro" />
+                <span>MoneyFlow / Tổng quan</span>
+              </div>
+              <span className={styles.stagePeriod}>Tháng 8</span>
+            </div>
+
+            <div className={styles.stageMain}>
+              <div className={styles.stageHeadline}>
+                <span>Số tiền đang có nhiệm vụ</span>
+                <strong>5.720.000 ₫</strong>
+                <small>57% tổng số dư đã được phân bổ</small>
               </div>
 
-              <div className={styles.balanceBlock}>
-                <span>Tổng số dư đã ghi</span>
-                <strong className={styles.money}>10.000.000 ₫</strong>
-                <small>Từ 3 tài khoản bạn đang theo dõi</small>
+              <div className={styles.stageProgress} aria-hidden="true">
+                <span />
               </div>
 
-              <div className={styles.summaryGrid}>
+              <div className={styles.stageGrid}>
                 <div>
                   <span>Thu tháng này</span>
-                  <strong className={`${styles.money} ${styles.income}`}>
-                    +25.000.000 ₫
-                  </strong>
+                  <strong className={styles.income}>+25.000.000 ₫</strong>
                 </div>
                 <div>
                   <span>Chi tháng này</span>
-                  <strong className={`${styles.money} ${styles.expense}`}>
-                    −8.420.000 ₫
-                  </strong>
+                  <strong className={styles.expense}>−8.420.000 ₫</strong>
                 </div>
               </div>
 
-              <div className={styles.ledgerHeading}>
-                <strong>Giao dịch gần đây</strong>
-                <span>Xem sổ</span>
+              <div className={styles.stageListHeading}>
+                <span>Tiếp theo</span>
+                <small>3 việc cần nhìn</small>
               </div>
-              <ul className={styles.ledger}>
+
+              <ul className={styles.stageList}>
                 <li>
-                  <span className={`${styles.rowIcon} ${styles.rowIconExpense}`}>
-                    ĂU
-                  </span>
+                  <span className={styles.stageIcon}>01</span>
                   <div>
-                    <strong>Cà phê sáng</strong>
-                    <small>Ăn uống · Tiền mặt</small>
+                    <strong>Tiền nhà</strong>
+                    <small>Đến hạn trong 3 ngày</small>
                   </div>
-                  <span className={`${styles.money} ${styles.expense}`}>
-                    −45.000 ₫
-                  </span>
+                  <b>4.500.000 ₫</b>
                 </li>
                 <li>
-                  <span className={`${styles.rowIcon} ${styles.rowIconIncome}`}>
-                    L
-                  </span>
+                  <span className={styles.stageIcon}>02</span>
                   <div>
-                    <strong>Lương tháng 7</strong>
-                    <small>Thu nhập · Tài khoản chính</small>
+                    <strong>Ngân sách ăn uống</strong>
+                    <small>Còn 38% trong tháng</small>
                   </div>
-                  <span className={`${styles.money} ${styles.income}`}>
-                    +25.000.000 ₫
-                  </span>
+                  <b>1.140.000 ₫</b>
                 </li>
                 <li>
-                  <span className={`${styles.rowIcon} ${styles.rowIconTransfer}`}>
-                    CK
-                  </span>
+                  <span className={styles.stageIcon}>03</span>
                   <div>
-                    <strong>Chuyển sang quỹ dự phòng</strong>
-                    <small>Chuyển nội bộ · không tính thu chi</small>
+                    <strong>Quỹ dự phòng</strong>
+                    <small>Đang tiến tới mục tiêu</small>
                   </div>
-                  <span className={`${styles.money} ${styles.transfer}`}>
-                    ↔ 2.000.000 ₫
-                  </span>
+                  <b>68%</b>
                 </li>
               </ul>
             </div>
           </div>
         </section>
 
-        <RevealSection className={styles.proof} aria-label="Điểm nổi bật">
-          {proofPoints.map((point) => (
-            <div key={point.label}>
-              <strong>{point.stat}</strong>
-              <span>{point.label}</span>
+        <section className={styles.signalStrip} aria-label="Các tín hiệu chính">
+          {signals.map((signal) => (
+            <div key={signal.label}>
+              <span>{signal.label}</span>
+              <strong>{signal.value}</strong>
+              <small>{signal.note}</small>
             </div>
           ))}
-        </RevealSection>
+        </section>
 
         <RevealSection
-          className={styles.section}
-          id="cach-hoat-dong"
-          aria-labelledby="how-title"
+          className={styles.claritySection}
+          id="san-pham"
+          aria-labelledby="clarity-title"
         >
-          <div className={styles.sectionHeading}>
-            <p className={styles.kicker}>Cách hoạt động</p>
-            <h2 id="how-title">Ba bước, không cần học phương pháp mới</h2>
-            <p>Ghi trước, hiểu tiền đi đâu sau — theo đúng nhịp của bạn.</p>
+          <div className={styles.sectionIntro}>
+            <p>02 / Ít số hơn, đúng thứ tự hơn</p>
+            <h2 id="clarity-title">Một màn hình tốt phải giúp bạn quyết định.</h2>
+            <span>
+              Không dồn mọi biểu đồ lên cùng một chỗ. MoneyFlow ưu tiên câu hỏi
+              cần trả lời trước, rồi mới cho bạn đi sâu vào chi tiết.
+            </span>
           </div>
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {steps.map((step, index) => (
-              <Card key={step.title} className="border-border/70">
-                <CardHeader>
-                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <step.icon className="size-5" />
-                  </div>
-                  <CardTitle className="text-base">
-                    {index + 1}. {step.title}
-                  </CardTitle>
-                  <CardDescription>{step.body}</CardDescription>
-                </CardHeader>
-              </Card>
+
+          <div className={styles.clarityGrid}>
+            {clarityCards.map((card) => (
+              <article key={card.number} className={styles.clarityCard}>
+                <div className={styles.cardTopline}>
+                  <card.icon size={21} />
+                  <span>{card.number}</span>
+                </div>
+                <h3>{card.title}</h3>
+                <p>{card.body}</p>
+              </article>
             ))}
           </div>
         </RevealSection>
 
         <RevealSection
-          className={`${styles.section} ${styles.featuresSection}`}
-          aria-labelledby="features-title"
+          className={styles.workflowSection}
+          id="quy-trinh"
+          aria-labelledby="workflow-title"
         >
-          <div className={styles.sectionHeading}>
-            <p className={styles.kicker}>Một sổ dùng hằng ngày</p>
-            <h2 id="features-title">Đủ dùng cho việc ghi sổ thật</h2>
-            <p>
-              Không có tính năng nào yêu cầu bạn phải học tài chính trước khi
-              bắt đầu.
-            </p>
+          <div className={styles.workflowIntro}>
+            <p>03 / Một vòng lặp dùng được mỗi ngày</p>
+            <h2 id="workflow-title">Ghi nhanh. Sắp đúng. Xem lại có căn cứ.</h2>
+            <span>
+              MoneyFlow không cố thay bạn ra quyết định. Nó giữ dữ liệu đủ rõ
+              để quyết định của bạn không phải bắt đầu từ phỏng đoán.
+            </span>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {features.map((feature) => (
-              <Card key={feature.title} className="border-border/70">
-                <CardHeader>
-                  <div className="mb-2 flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <feature.icon className="size-5" />
-                  </div>
-                  <CardTitle className="text-base">{feature.title}</CardTitle>
-                  <CardDescription>{feature.body}</CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </RevealSection>
 
-        <RevealSection className={styles.ownership} aria-labelledby="ownership-title">
-          <div className={styles.ownershipMark} aria-hidden="true">
-            <ShieldCheck className="size-8" />
-          </div>
-          <div>
-            <p className={styles.kicker}>Giữ quyền kiểm soát</p>
-            <h2 id="ownership-title">Tiền của bạn. Dữ liệu của bạn.</h2>
-            <p>
-              MoneyFlow không hỏi mật khẩu ngân hàng, không bán dữ liệu, và
-              không giữ bạn lại nếu bạn muốn rời đi cùng toàn bộ lịch sử ghi
-              chép của mình.
-            </p>
-          </div>
-          <ul>
-            {ownershipPoints.map((point) => (
-              <li key={point.text}>
-                <point.icon className="size-[18px]" />
-                {point.text}
+          <ol className={styles.workflowList}>
+            {workflow.map((item, index) => (
+              <li key={item.title}>
+                <span className={styles.workflowNumber}>0{index + 1}</span>
+                <div className={styles.workflowIcon}>
+                  <item.icon size={22} />
+                </div>
+                <div>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
+                </div>
               </li>
             ))}
-          </ul>
+          </ol>
         </RevealSection>
 
         <RevealSection
-          className={`${styles.section} ${styles.faq}`}
-          aria-labelledby="faq-title"
+          className={styles.principlesSection}
+          id="nguyen-tac"
+          aria-labelledby="principles-title"
         >
-          <div className={styles.sectionHeading}>
-            <p className={styles.kicker}>Câu hỏi thường gặp</p>
-            <h2 id="faq-title">Rõ từ trước khi bắt đầu</h2>
+          <div className={styles.sectionIntro}>
+            <p>04 / Thiết kế cho quyền sở hữu</p>
+            <h2 id="principles-title">Một công cụ tài chính phải giải thích được chính nó.</h2>
+            <span>
+              Không có số dư bí ẩn, thay đổi không thể quay lại hay dữ liệu bị
+              khoá trong hệ thống.
+            </span>
           </div>
-          <Accordion defaultValue={[faqItems[0].question]}>
-            {faqItems.map((item) => (
-              <AccordionItem key={item.question} value={item.question}>
-                <AccordionTrigger className="text-base">
-                  {item.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
-                  {item.answer}
-                </AccordionContent>
-              </AccordionItem>
+
+          <div className={styles.principlesGrid}>
+            {principles.map((principle) => (
+              <article key={principle.title}>
+                <principle.icon size={23} />
+                <h3>{principle.title}</h3>
+                <p>{principle.body}</p>
+              </article>
             ))}
-          </Accordion>
+          </div>
+        </RevealSection>
+
+        <RevealSection className={styles.faqSection} aria-labelledby="faq-title">
+          <div className={styles.faqIntro}>
+            <p>05 / Trước khi bắt đầu</p>
+            <h2 id="faq-title">Những câu hỏi nên được trả lời rõ.</h2>
+          </div>
+          <div className={styles.faqList}>
+            {faqItems.map((item, index) => (
+              <details key={item.question}>
+                <summary>
+                  <span>0{index + 1}</span>
+                  {item.question}
+                </summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
+          </div>
         </RevealSection>
 
         <RevealSection className={styles.finalCta} aria-labelledby="final-cta-title">
           <div>
-            <p className={styles.kicker}>Bắt đầu từ khoản đầu tiên</p>
-            <h2 id="final-cta-title">Mở sổ MoneyFlow của riêng bạn</h2>
-            <p>
-              Ghi thu, chi và chuyển tiền cốt lõi ngay hôm nay — không cần
-              liên kết ngân hàng, không mất phí.
-            </p>
+            <p>Không cần hoàn hảo từ ngày đầu.</p>
+            <h2 id="final-cta-title">Bắt đầu bằng khoản tiền gần nhất.</h2>
           </div>
-          <Button
-            size="lg"
-            className={styles.finalCtaButton}
-            render={
-              <Link href="/register">
-                Tạo sổ miễn phí
-                <ArrowRight className="size-4" />
-              </Link>
-            }
-          />
+          <Link href="/register" className={styles.finalCtaButton}>
+            Tạo tài khoản miễn phí
+            <ArrowRight size={18} />
+          </Link>
         </RevealSection>
       </main>
 
       <footer className={styles.footer}>
+        <BrandLockup
+          className={styles.footerBrand}
+          href="/"
+          ariaLabel="MoneyFlow, trang chủ"
+          size="compact"
+        />
+        <p>Một hệ thống rõ ràng cho tiền của bạn.</p>
         <div>
-          <BrandLockup
-            className={styles.brand}
-            href="/"
-            ariaLabel="MoneyFlow, trang chủ"
-            size="compact"
-          />
-          <p>© 2026 MoneyFlow. Rõ từng dòng tiền.</p>
-        </div>
-        <nav aria-label="Liên kết cuối trang">
-          <Link href="/login">Đăng nhập</Link>
           <Link href="/privacy">Quyền riêng tư</Link>
-          <a href="#cach-hoat-dong">Cách hoạt động</a>
-          <a href="#faq-title">Câu hỏi thường gặp</a>
-        </nav>
+          <Link href="/login">Đăng nhập</Link>
+        </div>
       </footer>
     </div>
   );

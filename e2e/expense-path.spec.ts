@@ -42,27 +42,27 @@ test.describe("Expense path (thu chi)", () => {
     // 1) Public landing promises only proven thu-chi behavior.
     await page.goto("/landing");
     await expect(
-      page.getByRole("heading", { name: /Sổ thu chi do chính tay bạn kiểm soát/i }),
+      page.getByRole("heading", { name: /Đừng quản lý tiền bằng trí nhớ/i }),
     ).toBeVisible();
     await expect(
-      page.getByText("Không cần liên kết ngân hàng", { exact: true }),
+      page.getByText("Không liên kết ngân hàng", { exact: true }),
     ).toBeVisible();
     const trustList = page.getByRole("list", {
-      name: "Cam kết của MoneyFlow",
+      name: "Cam kết chính",
     });
     await expect(trustList).toBeVisible();
-    await expect(trustList).toContainText(/An toàn/i);
-    await expect(trustList).toContainText(/Minh bạch/i);
-    await expect(trustList).toContainText(/Xuất được dữ liệu/i);
+    await expect(trustList).toContainText("Không liên kết ngân hàng");
+    await expect(trustList).toContainText("Có thể sửa và phục hồi");
+    await expect(trustList).toContainText("Xuất CSV bất cứ lúc nào");
 
     // 2) Enter app via the approved primary register CTA; demo mode unlocks app without auth.
     await page
-      .getByRole("link", { name: "Tạo sổ miễn phí" })
+      .getByRole("link", { name: "Tạo không gian tài chính" })
       .first()
       .click();
     await expect(page).toHaveURL(/\/register/);
     await expect(
-      page.getByRole("heading", { name: "Tạo tài khoản" }),
+      page.getByRole("heading", { name: "Bắt đầu từ khoản tiền gần nhất" }),
     ).toBeVisible();
 
     // Demo entry: no real credentials — go straight to product home.
