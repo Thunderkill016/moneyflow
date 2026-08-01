@@ -54,7 +54,7 @@ function ruleBlock(source: string, selector: string): string {
 }
 
 function cssVarInt(source: string, name: string): number {
-  const re = new RegExp(`${name.replace(/-/g, "\\-")}:\\s*(\\d+)`);
+  const re = new RegExp(`${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*(\\d+)`);
   const m = source.match(re);
   assert.ok(m, `expected CSS custom property ${name}`);
   return Number(m[1]);

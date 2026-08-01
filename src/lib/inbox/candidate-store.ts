@@ -290,7 +290,7 @@ export function createCandidate(input: CreateCandidateInput): InboxCandidate {
     throw new Error("occurredOn must be YYYY-MM-DD");
   }
   return {
-    id: input.id ?? `cand-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    id: input.id ?? `cand-${crypto.randomUUID()}`,
     kind: input.kind,
     amount: input.amount,
     merchant: input.merchant.trim() || "Không rõ",

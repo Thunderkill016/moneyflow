@@ -116,7 +116,7 @@ for (const relativePath of STYLESHEETS) {
   const runtimeCompleted = [];
 
   for (const name of names) {
-    const literal = new RegExp(`\\b${name.replace(/-/g, "\\-")}\\b`);
+    const literal = new RegExp(`\\b${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
     if (literal.test(sourceText)) continue;
     if ([...runtimePrefixes].some((prefix) => name.startsWith(prefix))) {
       runtimeCompleted.push(name);
