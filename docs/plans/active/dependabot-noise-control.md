@@ -5,41 +5,89 @@
 **Active role:** evaluator  
 **Permission scope:** branch_write  
 **Owner:** GPT-5.6 Thinking; human owner controls merge and acceptance  
-**Branch:** `chore/dependabot-noise-control`
+**Branch:** `chore/dependabot-noise-control`  
+**PR:** #197
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
-## Problem
+## Repository reconnaissance
 
-The initial Dependabot configuration opened nine independent pull requests at once, referenced custom labels that did not exist, split `react` from `react-dom`, and proposed several unreviewed major GitHub Action upgrades.
+The initial `.github/dependabot.yml` ran npm and GitHub Actions checks weekly, allowed up to eight simultaneous version-update pull requests, and specified custom `dependencies` and `security` labels. The repository did not contain the requested `dependencies` label, so Dependabot reported a configuration warning on every generated pull request.
 
-## Scope
+The first run opened nine independent pull requests (#185–#193). They were based on an older `main`, split `react` from `react-dom`, and included several unreviewed major GitHub Actions upgrades.
 
-- change npm and GitHub Actions version checks from weekly to monthly;
-- cap npm version-update pull requests at two and GitHub Actions at one;
-- group `next`, `react`, and `react-dom` minor/patch updates as one web-runtime change;
-- group all other npm minor/patch updates as one change;
-- group all GitHub Actions updates as one change;
-- remove custom labels so GitHub can manage Dependabot's default dependency labels;
-- add npm cooldowns so newly released versions are not proposed immediately;
-- close the stale one-dependency pull requests created from the previous configuration;
-- preserve manual review and keep auto-merge disabled.
+## Research
 
-## Non-goals
+The current GitHub Dependabot reference confirms:
 
-- no dependency version is upgraded in this task;
-- no Dependabot pull request is merged;
-- no production deployment or provider setting changes;
-- no automatic major-version acceptance.
+- `schedule.interval: monthly` is supported;
+- `open-pull-requests-limit` bounds open version-update pull requests;
+- `groups` combines matching dependency updates into one pull request;
+- group `update-types` accepts `major`, `minor`, and `patch`;
+- `cooldown` delays version updates without delaying security updates;
+- omitting custom `labels` restores GitHub-managed default Dependabot labels.
 
-## Verification
+## Specification
 
-- validate the YAML structure against current GitHub Dependabot option names;
-- confirm the branch diff contains only this packet and `.github/dependabot.yml`;
-- run exact-head CI;
-- confirm stale Dependabot pull requests are closed with a supersession explanation;
-- stop at `ready_for_review` until the human owner explicitly authorizes merge.
+### Required outcome
+
+Dependabot remains enabled but becomes low-noise, grouped, and manually reviewed.
+
+### Acceptance criteria
+
+- npm and GitHub Actions checks run monthly in the Vietnam timezone;
+- at most two npm version-update PRs and one GitHub Actions version-update PR are open;
+- `next`, `react`, and `react-dom` minor/patch updates are proposed together;
+- all other npm minor/patch updates are grouped together;
+- all GitHub Actions updates are grouped together;
+- newly released npm versions observe a cooldown;
+- no custom missing labels are requested;
+- auto-merge remains disabled;
+- old one-dependency PRs are closed without merging any dependency update;
+- exact-head CI passes before merge.
+
+### Non-goals
+
+- no dependency version upgrade;
+- no automatic major-version acceptance;
+- no provider, deployment, schema, or production-data change.
+
+## Implementation plan
+
+1. Replace the weekly, high-limit configuration with monthly grouped updates.
+2. Remove custom labels and preserve the `deps` commit prefix.
+3. Add npm cooldowns for major, minor, and patch releases.
+4. Open a focused configuration PR from current `main`.
+5. Close #185–#193 as superseded, with explicit comments that no update was accepted.
+6. Run full exact-head CI and resolve any repository-contract failures.
+7. Stop at `ready_for_review` for owner-controlled merge.
+
+## Tasks
+
+- [x] Update `.github/dependabot.yml`.
+- [x] Open PR #197 from current `main`.
+- [x] Close #185–#193 as superseded and unmerged.
+- [x] Confirm there are no remaining open Dependabot PRs.
+- [x] Run CI #804 and diagnose the knowledge-contract failure.
+- [x] Add all required work-packet sections.
+- [ ] Pass full exact-head CI after this correction.
+- [ ] Move to `ready_for_review` after CI is green.
+
+## Evaluation
+
+### Current evidence
+
+- branch diff is limited to `.github/dependabot.yml` and this work packet;
+- all nine old Dependabot PRs are closed and none was merged;
+- an open-PR search for `dependabot[bot]` returns no results;
+- CI #804 database checks passed;
+- CI #804 verify failed only because the first packet draft omitted required headings, so later verify/e2e stages were skipped;
+- this revision adds every required heading named by the knowledge-contract failure.
+
+### Remaining gate
+
+A new exact-head CI run must pass the knowledge, deployment, CSS, architecture, lint, typecheck, unit/static RLS, build, database, browser, and cross-device checks before owner review.
 
 ## Rollback
 
-Revert the configuration commit or restore the previous weekly, ungrouped configuration. Closed Dependabot pull requests can be reopened, and the bot can recreate updates on the next configured run.
+Revert the configuration commit or restore the previous weekly, ungrouped configuration. Closed Dependabot pull requests can be reopened, and Dependabot can recreate updates on a later configured run.
