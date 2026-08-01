@@ -130,7 +130,7 @@ No dependency, service or runtime framework is added.
 - Rewriting direct CSV import UX.
 - Guessing links for historical approved candidates.
 
-## Implementation
+## Implementation plan
 
 ### Database
 
@@ -160,7 +160,7 @@ No dependency, service or runtime framework is added.
 - New authenticated candidates receive explicit parser/mapping defaults when callers do not provide versions.
 - Before production adoption, rollback may remove the new functions/table/columns. After provenance is used in production, rollback must be a forward migration that preserves lineage.
 
-## Risks and counterexamples
+### Risks and counterexamples
 
 | Risk | Prevention/evidence |
 |---|---|
