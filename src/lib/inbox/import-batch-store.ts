@@ -99,9 +99,7 @@ export function isImportBatch(value: unknown): value is ImportBatch {
 
 export function createImportBatch(input: CreateImportBatchInput): ImportBatch {
   return {
-    id:
-      input.id ??
-      `imp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    id: input.id ?? `imp-${crypto.randomUUID()}`,
     fileName: input.fileName.trim() || "statement.csv",
     source: input.source,
     status: input.status ?? "parsed",
