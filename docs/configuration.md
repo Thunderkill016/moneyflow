@@ -9,6 +9,8 @@ MoneyFlow follows a configuration-first deployment model:
 - missing or malformed production configuration fails validation;
 - application code must not invent a production hostname, project URL or runtime mode.
 
+Detailed owner-operated instructions for issue #174 are in the Vietnamese [provider security controls runbook](operations/provider-security-controls.vi.md).
+
 ## Required Vercel environment variables
 
 | Variable | Scope | Purpose |
