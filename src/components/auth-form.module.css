@@ -1,7 +1,7 @@
 .page {
   min-height: 100svh;
   display: grid;
-  grid-template-columns: minmax(360px, 0.82fr) minmax(520px, 1.18fr);
+  grid-template-columns: minmax(420px, 1fr) minmax(500px, 0.94fr);
   background: var(--mf-canvas);
   color: var(--mf-text);
   font-family: var(--mf-font-sans);
@@ -32,33 +32,10 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  /*
-   * Neutral canvas with green only as an accent — the same language the landing
-   * page uses, and what CALM_LEDGER_V2 requires: "Neutral surfaces occupy at
-   * least 80% of a screen" and "One green accent identifies MoneyFlow and
-   * primary actions".
-   *
-   * This panel used to be a solid brand fill. Measured against a production
-   * build, that put the sign-in screen at 39% brand fill on desktop and 35.9%
-   * on mobile — only ~61% neutral, well under the 80% floor — while the landing
-   * page sits at ~90% neutral. So the two public entry points spoke different
-   * brand languages, and clicking "Đăng nhập" jumped from a quiet page to a
-   * half-green split screen.
-   *
-   * A decorative gradient is not the alternative; CALM_LEDGER_V2 excludes those.
-   * Flat surface, one border for structure, green reserved for the mark, the
-   * kicker and the check icons.
-   *
-   * The surface is --mf-surface-muted, whose documented role is "secondary
-   * panel" — which is exactly what this column is next to the form. Plain canvas
-   * left it reading as empty space, and --mf-brand-subtle is documented for
-   * badges and highlights, so stretching that across half a screen would repeat
-   * the original mistake of using an accent token as a large surface.
-   */
-  border-right: 1px solid var(--mf-border);
-  background: var(--mf-surface-muted);
-  color: var(--mf-text);
-  padding: clamp(28px, 4vw, 54px);
+  overflow: hidden;
+  background: #151922;
+  color: #f7f7f4;
+  padding: clamp(30px, 4.8vw, 64px);
 }
 
 .brand {
@@ -69,95 +46,148 @@
   gap: 11px;
   color: inherit;
   font-size: 19px;
-  font-weight: 760;
-  letter-spacing: -0.02em;
-}
-
-.brandMark {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: var(--mf-brand);
-  color: var(--mf-on-brand);
-}
-
-.brandMark > span {
-  width: 14px;
-  height: 14px;
-  border: 2.5px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
-  transform: rotate(45deg);
+  font-weight: 780;
+  letter-spacing: -0.025em;
 }
 
 .storyBody {
-  max-width: 570px;
-  padding-block: 52px;
+  max-width: 690px;
+  padding-block: clamp(52px, 8vh, 96px);
 }
 
-.storyIcon {
-  width: 54px;
-  height: 54px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--mf-border);
-  border-radius: 17px;
-  background: var(--mf-brand-subtle);
-  color: var(--mf-brand-text);
-}
-
-.storyKicker {
-  margin-top: 28px;
-  color: var(--mf-brand-text);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.09em;
+.storyIndex,
+.eyebrow {
+  font-size: 11px;
+  font-weight: 820;
+  letter-spacing: 0.11em;
+  line-height: 1.4;
   text-transform: uppercase;
 }
 
+.storyIndex {
+  color: #a9bcff;
+}
+
 .story h1 {
-  margin-top: 13px;
-  font-size: clamp(42px, 5vw, 68px);
-  font-weight: 770;
-  letter-spacing: -0.055em;
-  line-height: 1.02;
+  margin-top: 18px;
+  font-size: clamp(48px, 5.8vw, 78px);
+  font-weight: 790;
+  letter-spacing: -0.062em;
+  line-height: 0.97;
   text-wrap: balance;
 }
 
-/* Matches the landing hero: the second sentence carries the brand accent. */
-.story h1 span {
-  color: var(--mf-brand-text);
+.storyDescription {
+  max-width: 610px;
+  margin-top: 24px;
+  color: rgb(255 255 255 / 62%);
+  font-size: clamp(16px, 1.45vw, 19px);
+  line-height: 1.68;
 }
 
-.storyBody > p:last-child {
-  max-width: 540px;
-  margin-top: 22px;
-  color: var(--mf-text-muted);
-  font-size: clamp(16px, 1.5vw, 19px);
-  line-height: 1.65;
+.signalCard {
+  max-width: 610px;
+  margin-top: 42px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 20px;
+  background: rgb(255 255 255 / 5%);
+}
+
+.signalHeader {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  padding: 0 18px;
+}
+
+.signalHeader span {
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.signalHeader small {
+  border-radius: 999px;
+  background: rgb(133 163 255 / 14%);
+  color: #a9bcff;
+  padding: 6px 9px;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.signalBalance {
+  display: grid;
+  gap: 8px;
+  padding: 22px 18px;
+}
+
+.signalBalance span {
+  color: rgb(255 255 255 / 50%);
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.signalBalance strong {
+  font-family: var(--mf-font-money);
+  font-size: clamp(30px, 3vw, 42px);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.045em;
+}
+
+.signalCard ul {
+  border-top: 1px solid rgb(255 255 255 / 10%);
+  padding: 0 18px 8px;
+}
+
+.signalCard li {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid rgb(255 255 255 / 8%);
+  font-size: 11px;
+}
+
+.signalCard li:last-child {
+  border-bottom: 0;
+}
+
+.signalCard li span {
+  color: rgb(255 255 255 / 48%);
+}
+
+.signalCard li b {
+  overflow: hidden;
+  color: #f7f7f4;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .trustList {
-  display: grid;
-  gap: 12px;
-  color: var(--mf-text-muted);
-  font-size: 13px;
-  font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  color: rgb(255 255 255 / 58%);
+  font-size: 12px;
+  font-weight: 620;
 }
 
 .trustList li {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: 7px;
 }
 
-/* The one place green carries meaning here: the verified-claim ticks. */
 .trustList svg {
   flex: 0 0 auto;
-  color: var(--mf-brand-text);
+  color: #a9bcff;
 }
 
 .panel {
@@ -167,51 +197,41 @@
   place-items: center;
   align-content: center;
   gap: 18px;
-  padding: 40px 24px;
+  padding: 44px 24px;
 }
 
 .card {
-  width: min(100%, 480px);
+  width: min(100%, 500px);
   border: 1px solid var(--mf-border);
-  border-radius: var(--mf-radius-xl);
+  border-radius: 22px;
   background: var(--mf-surface);
-  padding: clamp(26px, 4vw, 42px);
+  padding: clamp(28px, 4vw, 44px);
   box-shadow: var(--mf-shadow-md);
 }
 
 .mobileBrand {
   display: none;
-  margin-bottom: 34px;
-  color: var(--mf-text);
-}
-
-.mobileBrand .brandMark {
-  border-color: transparent;
-  background: var(--mf-brand);
-  color: var(--mf-on-brand);
+  margin-bottom: 32px;
 }
 
 .eyebrow {
   color: var(--mf-brand-text);
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .card h2 {
-  margin-top: 9px;
-  font-size: clamp(31px, 4vw, 42px);
-  font-weight: 760;
-  letter-spacing: -0.045em;
-  line-height: 1.1;
+  margin-top: 10px;
+  font-size: clamp(33px, 4.2vw, 47px);
+  font-weight: 780;
+  letter-spacing: -0.052em;
+  line-height: 1.04;
+  text-wrap: balance;
 }
 
 .description {
-  margin-top: 12px;
+  margin-top: 15px;
   color: var(--mf-text-muted);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.62;
 }
 
 .demoNotice {
@@ -219,9 +239,9 @@
   display: grid;
   gap: 5px;
   border: 1px solid var(--mf-border);
-  border-radius: var(--mf-radius-md);
+  border-radius: 12px;
   background: var(--mf-brand-subtle);
-  padding: 13px 14px;
+  padding: 14px;
   font-size: 13px;
 }
 
@@ -233,33 +253,35 @@
   width: fit-content;
   margin-top: 4px;
   color: var(--mf-brand-text);
-  font-weight: 700;
+  font-weight: 720;
 }
 
 .googleButton {
   width: 100%;
-  min-height: 48px;
-  margin-top: 24px;
+  min-height: 50px;
+  margin-top: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   border: 1px solid var(--mf-border-strong);
-  border-radius: var(--mf-radius-md);
+  border-radius: 12px;
   background: var(--mf-surface);
   color: var(--mf-text);
   font: inherit;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 720;
   cursor: pointer;
   transition:
     border-color var(--mf-fast) var(--mf-ease),
-    background var(--mf-fast) var(--mf-ease);
+    background var(--mf-fast) var(--mf-ease),
+    translate var(--mf-fast) var(--mf-ease);
 }
 
 .googleButton:hover:not(:disabled) {
   border-color: var(--mf-brand);
   background: var(--mf-brand-subtle);
+  translate: 0 -1px;
 }
 
 .googleButton:disabled,
@@ -269,12 +291,12 @@
 }
 
 .divider {
-  margin: 21px 0;
+  margin: 22px 0;
   display: flex;
   align-items: center;
   gap: 12px;
   color: var(--mf-text-soft);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .divider::before,
@@ -287,29 +309,30 @@
 
 .form {
   display: grid;
-  gap: 15px;
+  gap: 16px;
 }
 
 .form > label {
   display: grid;
   gap: 7px;
   color: var(--mf-text);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 720;
 }
 
 .form input:not([type="checkbox"]) {
   width: 100%;
-  min-height: 48px;
+  min-height: 50px;
   border: 1px solid var(--mf-border-strong);
-  border-radius: var(--mf-radius-md);
-  background: var(--mf-surface);
+  border-radius: 12px;
+  background: var(--mf-canvas);
   color: var(--mf-text);
   padding: 0 14px;
   font: inherit;
   font-size: 15px;
   transition:
     border-color var(--mf-fast) var(--mf-ease),
+    background var(--mf-fast) var(--mf-ease),
     box-shadow var(--mf-fast) var(--mf-ease);
 }
 
@@ -319,11 +342,13 @@
 
 .form input:not([type="checkbox"]):hover {
   border-color: var(--mf-text-soft);
+  background: var(--mf-surface);
 }
 
 .form input:not([type="checkbox"]):focus {
   border-color: var(--mf-focus);
   outline: 0;
+  background: var(--mf-surface);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--mf-focus) 17%, transparent);
 }
 
@@ -334,7 +359,7 @@
 .fieldError {
   color: var(--mf-expense);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 620;
   line-height: 1.45;
 }
 
@@ -365,58 +390,68 @@
 .forgotLink,
 .switchLink a {
   color: var(--mf-brand-text);
-  font-weight: 720;
+  font-weight: 730;
 }
 
 .forgotLink {
   width: fit-content;
-  justify-self: end;
   min-height: 36px;
   display: inline-flex;
   align-items: center;
-  font-size: 13px;
+  justify-self: end;
+  font-size: 12px;
+}
+
+.captcha {
+  margin-top: 2px;
 }
 
 .message {
   border: 1px solid color-mix(in srgb, var(--mf-expense) 38%, var(--mf-border));
-  border-radius: var(--mf-radius-md);
+  border-radius: 12px;
   background: var(--mf-expense-subtle);
-  color: var(--mf-expense);
-  padding: 11px 13px;
+  color: var(--mf-expense-text);
+  padding: 12px 13px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 620;
   line-height: 1.5;
 }
 
 .messageSuccess {
   border-color: color-mix(in srgb, var(--mf-income) 38%, var(--mf-border));
   background: var(--mf-income-subtle);
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .submit {
   width: 100%;
-  min-height: 50px;
+  min-height: 52px;
   margin-top: 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
   border: 1px solid transparent;
-  border-radius: var(--mf-radius-md);
+  border-radius: 12px;
   background: var(--mf-brand);
   color: var(--mf-on-brand);
-  font-size: 15px;
-  font-weight: 740;
+  font-size: 14px;
+  font-weight: 760;
   box-shadow: var(--mf-shadow-sm);
+  transition:
+    background var(--mf-fast) var(--mf-ease),
+    translate var(--mf-fast) var(--mf-ease),
+    box-shadow var(--mf-fast) var(--mf-ease);
 }
 
 .submit:hover:not(:disabled) {
   background: var(--mf-brand-hover);
+  box-shadow: var(--mf-shadow-md);
+  translate: 0 -1px;
 }
 
 .switchLink {
-  margin-top: 22px;
+  margin-top: 23px;
   color: var(--mf-text-muted);
   text-align: center;
   font-size: 13px;
@@ -424,80 +459,69 @@
 }
 
 .panelNote {
+  max-width: 430px;
   color: var(--mf-text-soft);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.5;
   text-align: center;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 980px) {
   .page {
-    grid-template-columns: minmax(310px, 0.75fr) minmax(440px, 1.25fr);
+    grid-template-columns: minmax(340px, 0.78fr) minmax(460px, 1.22fr);
   }
 
   .story {
-    padding: 28px;
+    padding: 30px;
+  }
+
+  .signalCard {
+    margin-top: 30px;
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 780px) {
   .page {
     display: block;
   }
 
-  /*
-   * The brand surface stays on mobile instead of disappearing.
-   *
-   * `display: none` here made the product brand-green on desktop and unbranded
-   * near-white on mobile, and it dropped the whole value proposition and trust
-   * list with it — the copy telling a first-time user why to trust a finance
-   * app — on the platform most users arrive from. There was no `h1` on mobile
-   * either, leaving the panel's `h2` as the first heading.
-   *
-   * It becomes a compact band instead, in the same neutral-canvas language as
-   * desktop: headline and trust points kept, decorative icon and the long
-   * paragraph dropped so the form stays near the top. A bottom border does the
-   * separating that the brand fill used to do.
-   */
   .story {
     min-height: 0;
-    gap: 16px;
-    border-right: 0;
-    border-bottom: 1px solid var(--mf-border);
-    padding: max(20px, env(safe-area-inset-top)) 16px 22px;
-  }
-
-  .storyIcon,
-  .storyBody > p:last-child {
-    display: none;
+    gap: 18px;
+    padding: max(22px, env(safe-area-inset-top)) 16px 26px;
   }
 
   .storyBody {
     max-width: none;
-    padding-block: 0;
-  }
-
-  .storyKicker {
-    margin-top: 0;
+    padding-block: 14px 0;
   }
 
   .story h1 {
-    margin-top: 7px;
-    font-size: 27px;
-    letter-spacing: -0.032em;
-    line-height: 1.16;
+    max-width: 620px;
+    margin-top: 10px;
+    font-size: clamp(34px, 10vw, 48px);
+    letter-spacing: -0.05em;
+    line-height: 1.02;
   }
 
+  .storyDescription {
+    max-width: 620px;
+    margin-top: 14px;
+    font-size: 14px;
+  }
+
+  .signalCard,
   .trustList {
-    gap: 7px;
-    font-size: 12.5px;
+    display: none;
   }
 
   .panel {
     min-height: 0;
-    padding: 26px 16px max(24px, env(safe-area-inset-bottom));
+    padding: 28px 16px max(28px, env(safe-area-inset-bottom));
   }
 
   .card {
+    width: min(100%, 540px);
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -505,29 +529,29 @@
     box-shadow: none;
   }
 
-  /* The band above already shows the brand; a second lockup would duplicate it. */
   .mobileBrand {
     display: none;
   }
-
-  .panelNote {
-    max-width: 340px;
-  }
 }
 
-@media (max-width: 380px) {
-  .panel {
-    align-content: start;
+@media (max-width: 390px) {
+  .story h1 {
+    font-size: 32px;
   }
 
   .card h2 {
-    font-size: 31px;
+    font-size: 32px;
+  }
+
+  .panel {
+    align-content: start;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .googleButton,
-  .form input {
+  .form input,
+  .submit {
     transition: none;
   }
 }
