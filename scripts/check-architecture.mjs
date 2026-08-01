@@ -84,7 +84,7 @@ for (const path of transactionAuthorityFiles) {
 const legacySamplePath = join(root, "src", "lib", "sample-data.ts");
 try {
   const legacySample = readFileSync(legacySamplePath, "utf8");
-  if (legacySample.includes("demo/transaction-fixtures")) {
+  if (/from\s+["'][^"']*demo\/transaction-fixtures(?:\.ts)?["']/u.test(legacySample)) {
     failures.push(
       "src/lib/sample-data.ts must not export demo fixtures; runtime demo values belong only to src/lib/demo/transaction-fixtures.ts.",
     );
