@@ -1,5 +1,5 @@
 begin;
-select plan(7);
+select plan(8);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -21,11 +21,16 @@ insert into auth.users (
 set local request.jwt.claims = '{"sub":"18300000-0000-4000-8000-000000000001","role":"authenticated"}';
 set local role authenticated;
 
-select public.create_financial_account(
-  'Review destination',
-  'savings'::public.account_kind,
-  0::bigint,
-  'VND'
+select lives_ok(
+  $$
+    select public.create_financial_account(
+      'Review destination',
+      'savings'::public.account_kind,
+      0::bigint,
+      'VND'
+    )
+  $$,
+  'review owner can create a second VND account'
 );
 
 insert into public.inbox_candidates (
