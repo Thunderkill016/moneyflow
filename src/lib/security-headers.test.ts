@@ -35,16 +35,18 @@ test("CSP restricts every high-value browser capability", () => {
     assert.ok(policy.includes(directive), `missing CSP directive: ${directive}`);
   }
 
-  assert.ok(policy.includes("https://*.supabase.co"));
-  assert.ok(policy.includes("wss://*.supabase.co"));
-  assert.ok(policy.includes("https://va.vercel-scripts.com"));
-  assert.ok(policy.includes("https://vitals.vercel-insights.com"));
-  assert.ok(policy.includes("frame-src 'none'"));
   assert.deepEqual(directiveTokens(policy, "script-src"), [
     "'self'",
     "'unsafe-inline'",
     "https://va.vercel-scripts.com",
   ]);
+  assert.deepEqual(directiveTokens(policy, "connect-src"), [
+    "'self'",
+    "https://*.supabase.co",
+    "wss://*.supabase.co",
+    "https://vitals.vercel-insights.com",
+  ]);
+  assert.deepEqual(directiveTokens(policy, "frame-src"), ["'none'"]);
   assert.doesNotMatch(policy, /'unsafe-eval'/);
   assert.doesNotMatch(policy, /upgrade-insecure-requests/);
 });
