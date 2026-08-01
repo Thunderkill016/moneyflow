@@ -42,7 +42,7 @@ jobs:
           } 2>&1 | tee database-test-output.log
       - name: Upload failing database output
         if: steps.database-tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: failing-database-test-output
           path: database-test-output.log
@@ -97,7 +97,7 @@ jobs:
         run: npm run test > test-output.log 2>&1
       - name: Upload failing test output
         if: steps.tests.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: failing-test-output
           path: test-output.log
@@ -135,7 +135,7 @@ jobs:
         run: npm run test:ui-audit:pr
       - name: Upload Playwright evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
