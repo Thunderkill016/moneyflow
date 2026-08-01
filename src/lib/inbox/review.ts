@@ -40,6 +40,8 @@ export type CandidateReviewDraft = {
   /** Transfer only: destination account. */
   destinationAccountId: string;
   possibleDuplicate: boolean;
+  /** Set only after the reviewer explicitly accepts a heuristic duplicate. */
+  allowHeuristicDuplicate: boolean;
 };
 
 const PARSER_BY_SOURCE: Record<InboxCandidate["source"], string> = {
@@ -215,6 +217,7 @@ export function draftFromCandidate(
     accountId,
     destinationAccountId: otherAccount,
     possibleDuplicate: candidate.possibleDuplicate === true,
+    allowHeuristicDuplicate: false,
   };
 }
 
@@ -306,6 +309,7 @@ export function buildLedgerPost(
       mode: "transfer",
       input: {
         inboxCandidateId: draft.candidateId,
+        allowHeuristicDuplicate: draft.allowHeuristicDuplicate,
         sourceAccountId: source.id,
         destinationAccountId: destination.id,
         amount: draft.amount,
@@ -331,6 +335,7 @@ export function buildLedgerPost(
     mode: "money",
     input: {
       inboxCandidateId: draft.candidateId,
+      allowHeuristicDuplicate: draft.allowHeuristicDuplicate,
       kind,
       categoryId: category.id,
       accountId: account.id,
