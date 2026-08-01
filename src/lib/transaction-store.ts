@@ -1,4 +1,5 @@
-import { sampleTransactions, type Transaction } from "./sample-data.ts";
+import type { Transaction } from "./transactions/contracts.ts";
+import { sampleTransactions } from "./demo/transaction-fixtures.ts";
 import { isSplitLine, sumSplitAmounts } from "./splits.ts";
 
 export const TRANSACTION_STORAGE_KEY = "moneyflow-demo-transactions-v1";
@@ -53,10 +54,6 @@ export function writeStoredTransactions(transactions: Transaction[]) {
   localStorage.setItem(TRANSACTION_STORAGE_KEY, JSON.stringify(transactions));
 }
 
-/**
- * Re-insert a soft-deleted transaction for undo.
- * No-op if the id is already present (idempotent restore).
- */
 export function restoreTransactionInList(
   current: Transaction[],
   restored: Transaction,

@@ -8,14 +8,8 @@ import {
   DASHBOARD_RECENT_TRANSACTION_LIMIT,
   dashboardTransactionStart,
 } from "@/lib/dashboard-transaction-window";
-import {
-  demoAccounts,
-  demoCategories,
-  sampleTransactions,
-  type AccountOption,
-  type CategoryOption,
-  type Transaction,
-} from "@/lib/sample-data";
+import type { AccountOption, CategoryOption, Transaction } from "@/lib/transactions/contracts";
+import { demoAccounts, demoCategories, sampleTransactions } from "@/lib/demo/transaction-fixtures";
 
 export type FinanceWorkspace = {
   transactions: Transaction[];
@@ -67,7 +61,6 @@ const feedSchema = z.object({
   destination_account_id: z.string().uuid().nullable().optional(),
   destination_account_name: z.string().nullable().optional(),
   is_recurring_payment: z.boolean().optional(),
-  /** Multi-entry expense lines when split across categories (TASK-128). */
   split_lines: z.array(splitLineSchema).nullable().optional(),
 });
 
@@ -91,9 +84,7 @@ export function formatRelativeDate(date: string) {
 export function mapTransactionFeedRow(value: unknown): Transaction {
   const row = feedSchema.parse(value);
   const amount = Math.abs(Number(row.amount_minor));
-  if (!Number.isSafeInteger(amount) || amount <= 0) {
-    throw new Error("invalid_transaction_amount");
-  }
+  if (!Number.isSafeInteger(amount) || amount <= 0) throw new Error("invalid_transaction_amount");
 
   const splits =
     row.kind === "expense" && row.split_lines && row.split_lines.length >= 2
@@ -112,9 +103,7 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
 
   if (splits) {
     const sum = splits.reduce((acc, line) => acc + line.amount, 0);
-    if (!Number.isSafeInteger(sum) || sum !== amount) {
-      throw new Error("invalid_split_total");
-    }
+    if (!Number.isSafeInteger(sum) || sum !== amount) throw new Error("invalid_split_total");
   }
 
   return {
@@ -148,10 +137,7 @@ function demoWorkspace(): FinanceWorkspace {
 }
 
 function newestFirst(left: Transaction, right: Transaction) {
-  return (
-    right.occurredOn.localeCompare(left.occurredOn) ||
-    right.occurredAt.localeCompare(left.occurredAt)
-  );
+  return right.occurredOn.localeCompare(left.occurredOn) || right.occurredAt.localeCompare(left.occurredAt);
 }
 
 function deduplicateTransactions(transactions: Transaction[]) {
@@ -162,9 +148,7 @@ function deduplicateTransactions(transactions: Transaction[]) {
   return [...unique.values()].sort(newestFirst);
 }
 
-async function loadFinanceWorkspace(
-  scope: FinanceWorkspaceScope,
-): Promise<FinanceWorkspace> {
+async function loadFinanceWorkspace(scope: FinanceWorkspaceScope): Promise<FinanceWorkspace> {
   const viewer = await requireViewer();
   if (viewer.isDemo) return demoWorkspace();
 
@@ -174,77 +158,37 @@ async function loadFinanceWorkspace(
   const today = todayInVietnam();
   const periodFeedPromise =
     scope === "dashboard"
-      ? supabase
-          .from("transaction_feed")
-          .select(TRANSACTION_FEED_COLUMNS)
+      ? supabase.from("transaction_feed").select(TRANSACTION_FEED_COLUMNS)
           .gte("occurred_on", dashboardTransactionStart(today))
-          .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false })
-      : supabase
-          .from("transaction_feed")
-          .select(TRANSACTION_FEED_COLUMNS)
-          .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false });
+          .order("occurred_on", { ascending: false }).order("created_at", { ascending: false })
+      : supabase.from("transaction_feed").select(TRANSACTION_FEED_COLUMNS)
+          .order("occurred_on", { ascending: false }).order("created_at", { ascending: false });
 
   const recentFeedPromise =
     scope === "dashboard"
-      ? supabase
-          .from("transaction_feed")
-          .select(TRANSACTION_FEED_COLUMNS)
-          .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false })
+      ? supabase.from("transaction_feed").select(TRANSACTION_FEED_COLUMNS)
+          .order("occurred_on", { ascending: false }).order("created_at", { ascending: false })
           .limit(DASHBOARD_RECENT_TRANSACTION_LIMIT)
       : Promise.resolve({ data: [] as unknown[], error: null });
 
-  const [
-    accountsResult,
-    categoriesResult,
-    periodFeedResult,
-    recentFeedResult,
-    balancesResult,
-  ] = await Promise.all([
-    supabase
-      .from("accounts")
-      .select("id,name,currency_code")
-      .eq("is_archived", false)
-      .order("created_at"),
-    supabase
-      .from("categories")
-      .select("id,name,kind,icon,color")
-      .eq("is_archived", false)
-      .order("created_at"),
+  const [accountsResult, categoriesResult, periodFeedResult, recentFeedResult, balancesResult] = await Promise.all([
+    supabase.from("accounts").select("id,name,currency_code").eq("is_archived", false).order("created_at"),
+    supabase.from("categories").select("id,name,kind,icon,color").eq("is_archived", false).order("created_at"),
     periodFeedPromise,
     recentFeedPromise,
-    // Join currency so insights totalBalance stays VND-only (no FX mix).
     supabase.from("account_balances").select("account_id,balance_minor,currency_code"),
   ]);
 
-  if (
-    accountsResult.error ||
-    categoriesResult.error ||
-    periodFeedResult.error ||
-    recentFeedResult.error ||
-    balancesResult.error
-  ) {
-    return {
-      transactions: [],
-      accounts: [],
-      categories: [],
-      totalBalance: 0,
-      today,
-      dataError: "Chưa tải được dữ liệu tài chính. Hãy thử tải lại trang.",
-    };
+  if (accountsResult.error || categoriesResult.error || periodFeedResult.error || recentFeedResult.error || balancesResult.error) {
+    return { transactions: [], accounts: [], categories: [], totalBalance: 0, today, dataError: "Chưa tải được dữ liệu tài chính. Hãy thử tải lại trang." };
   }
 
   try {
     const accounts = z.array(accountSchema).parse(accountsResult.data) satisfies AccountOption[];
     const categories = z.array(categorySchema).parse(categoriesResult.data) satisfies CategoryOption[];
     const transactions = deduplicateTransactions(
-      [...(periodFeedResult.data ?? []), ...(recentFeedResult.data ?? [])].map(
-        mapTransactionFeedRow,
-      ),
+      [...(periodFeedResult.data ?? []), ...(recentFeedResult.data ?? [])].map(mapTransactionFeedRow),
     );
-    // Safe-to-spend / insights use VND only — FX accounts are display-only (TASK-129).
     const totalBalance = (balancesResult.data ?? []).reduce((sum, item) => {
       const code = String(item.currency_code ?? "VND").toUpperCase();
       if (code !== "VND") return sum;
@@ -253,32 +197,16 @@ async function loadFinanceWorkspace(
       return sum + amount;
     }, 0);
 
-    return {
-      transactions,
-      accounts,
-      categories,
-      totalBalance,
-      today,
-      dataError: null,
-    };
+    return { transactions, accounts, categories, totalBalance, today, dataError: null };
   } catch {
-    return {
-      transactions: [],
-      accounts: [],
-      categories: [],
-      totalBalance: 0,
-      today,
-      dataError: "Dữ liệu tài chính không đúng định dạng. Hãy liên hệ hỗ trợ.",
-    };
+    return { transactions: [], accounts: [], categories: [], totalBalance: 0, today, dataError: "Dữ liệu tài chính không đúng định dạng. Hãy liên hệ hỗ trợ." };
   }
 }
 
-/** Full ledger loader for the transaction-management surface. */
 export async function getFinanceWorkspace(): Promise<FinanceWorkspace> {
   return loadFinanceWorkspace("full");
 }
 
-/** Bounded loader for dashboard calculations and recent activity. */
 export async function getDashboardFinanceWorkspace(): Promise<FinanceWorkspace> {
   return loadFinanceWorkspace("dashboard");
 }

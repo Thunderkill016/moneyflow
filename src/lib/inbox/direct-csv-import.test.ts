@@ -3,11 +3,8 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
-import {
-  demoAccounts,
-  demoCategories,
-  type Transaction,
-} from "../sample-data.ts";
+import type { Transaction } from "../transactions/contracts.ts";
+import { demoAccounts, demoCategories } from "../demo/transaction-fixtures.ts";
 import {
   directImportFingerprint,
   formatDirectImportSummary,
@@ -59,7 +56,6 @@ test("planDirectCsvImport: sample-bank → ready income/expense, skip transfer",
   );
 
   assert.equal(plan.totalParsed, 4);
-  // CK noi bo is transfer → skipped
   assert.equal(plan.transferSkipped, 1);
   assert.equal(plan.readyCount, 3);
   assert.ok(plan.ready.every((r) => r.kind === "expense" || r.kind === "income"));
@@ -113,7 +109,7 @@ test("planDirectCsvImport: dedupe against ledger fingerprint", () => {
   const dup = plan.rows.find((r) => r.status === "duplicate");
   assert.ok(dup);
   assert.equal(dup.duplicateOfLedgerId, "existing-1");
-  assert.equal(plan.readyCount, 2); // 3 money - 1 dup; transfer still skipped
+  assert.equal(plan.readyCount, 2);
 });
 
 test("planDirectCsvImport: within-batch duplicate", () => {
@@ -222,7 +218,6 @@ test("formatDirectImportSummary VN", () => {
 
 test("custom columnMap override on parse", () => {
   const text = "ColA,ColB,ColC\n12/07/2026,Shop,-50000\n";
-  // Headers won't auto-map well as ColA/B/C — override map
   const result = parseCsvStatement(text, {
     today: "2026-07-15",
     columnMap: { date: 0, desc: 1, amount: 2, debit: null, credit: null },

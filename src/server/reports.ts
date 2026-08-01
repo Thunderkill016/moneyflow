@@ -1,7 +1,8 @@
 import "server-only";
 
 import { buildFinancialReport, reportRange, type FinancialReport, type ReportPeriod } from "@/lib/reports";
-import { sampleTransactions, type Transaction } from "@/lib/sample-data";
+import type { Transaction } from "@/lib/transactions/contracts";
+import { sampleTransactions } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
 import { todayInVietnam } from "@/lib/vietnam-date";
 import { requireViewer } from "@/server/auth";
