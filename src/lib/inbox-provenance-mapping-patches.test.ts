@@ -5,7 +5,7 @@ test("emit reviewed Inbox provenance mapping patches", () => {
   try {
     execFileSync(
       process.execPath,
-      ["scripts/emit-inbox-provenance-mapping-patches.mjs"],
+      ["scripts/run-inbox-provenance-mapping-patches.mjs"],
       { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
     );
   } catch (error) {
