@@ -84,6 +84,10 @@ Demo storage is not a fallback for authenticated failures. Production contracts 
 | `src/hooks/` | Shared client orchestration around runtime adapters and mutations |
 | `src/server/` | Server-only viewer-aware workspace loaders and persistence mapping |
 | `src/lib/` | Financial domain rules, contracts, formatting, validation and pure calculations |
+| `src/lib/transactions/contracts.ts` | Stable transaction, account/category option and mutation-input contracts shared by authenticated and demo runtimes |
+| `src/lib/transactions/category-presentation.ts` | Category labels, icons and colors used by presentation surfaces |
+| `src/lib/demo/transaction-fixtures.ts` | Seeded demo accounts, categories and transactions; never a production contract owner |
+| `src/lib/sample-data.ts` | Deprecated compatibility re-export for contracts/presentation only; it must never export demo fixtures or own runtime constants |
 | `src/lib/*-store*` | Browser/demo persistence and hydration helpers |
 | `supabase/migrations/` | Versioned database schema, constraints, policies, RPCs and indexes |
 | `supabase/tests/` | pgTAP database invariants and tenant-isolation checks |
@@ -96,14 +100,24 @@ Demo storage is not a fallback for authenticated failures. Production contracts 
 1. `src/lib` does not depend on routes, components or server workspace code.
 2. Components do not import Supabase clients or server-only modules.
 3. Route pages compose; they do not own accounting rules or duplicate persistence adapters.
-4. Server workspace loaders may return UI-facing view data, but persistence schemas, demo fixtures and presentation metadata must remain distinguishable authorities.
-5. A financial use case has one mutation owner per runtime. Multiple screens may react differently to success, but they should not reconstruct the same transaction independently.
-6. Historical or withdrawn product behavior does not remain exported from an active core module solely for documentation. Preserve rationale in completed packets/research instead.
-7. A large file is not automatically an architecture defect. Split only when responsibilities change independently, pure logic needs isolated tests, another surface needs reuse or repeated fixes cross ownership boundaries.
+4. Transaction contracts, category presentation metadata and demo fixtures are distinct authorities. Runtime demo fixtures may be imported only by explicit demo adapters/workspace loaders and tests; they must never flow through the deprecated `sample-data.ts` barrel.
+5. Server workspace loaders may return UI-facing view data, but persistence schemas, demo fixtures and presentation metadata must remain distinguishable authorities.
+6. A financial use case has one mutation owner per runtime. Multiple screens may react differently to success, but they should not reconstruct the same transaction independently.
+7. Historical or withdrawn product behavior does not remain exported from an active core module solely for documentation. Preserve rationale in completed packets/research instead.
+8. A large file is not automatically an architecture defect. Split only when responsibilities change independently, pure logic needs isolated tests, another surface needs reuse or repeated fixes cross ownership boundaries.
 
 `scripts/check-architecture.mjs` enforces only proven import boundaries. Add a new rule after an actual risky dependency has been identified and the intended replacement boundary exists; do not grow the checker as a speculative style guide.
 
 ## Domain boundaries
+
+### Transaction authorities
+
+- `transactions/contracts.ts` is the neutral source for transaction types and mutation inputs.
+- `transactions/category-presentation.ts` owns display defaults only and contains no ledger or persistence behavior.
+- `demo/transaction-fixtures.ts` owns seeded values used by explicit demo adapters, demo-aware server workspaces and tests.
+- `sample-data.ts` is a temporary compatibility surface. It may re-export contracts/presentation while old imports migrate, but it cannot own constants or expose demo fixtures.
+
+This split follows reason-to-change and dependency direction inside the existing modular monolith. It does not introduce repositories, services, packages or a new domain framework.
 
 ### Ledger
 
@@ -152,6 +166,9 @@ If the evidence is only “the file is long” or “another project has this la
 
 | Desired change | Start here | Verify with |
 |---|---|---|
+| Transaction contract/input shape | `src/lib/transactions/contracts.ts` | typecheck + domain tests + affected adapter tests |
+| Category icon/color defaults | `src/lib/transactions/category-presentation.ts` | component/browser evidence |
+| Demo seed values | `src/lib/demo/transaction-fixtures.ts` + explicit demo adapter/workspace | unit + reload/recovery browser test |
 | Financial calculation | relevant `src/lib/*.ts` and tests | unit tests + counterexamples |
 | Ledger mutation | shared client owner + Server Action + RPC constraints | unit + pgTAP + browser smoke |
 | Server read model | route page + relevant `src/server/*.ts` workspace | schema parsing + route/browser evidence |
