@@ -207,6 +207,25 @@ export async function updateCandidateForClient(
   return { ok: true, candidates: next };
 }
 
+function changedStatusesAlreadyApplied(
+  serverCandidates: InboxCandidate[],
+  nextList: InboxCandidate[],
+  changedIds: string[],
+): boolean {
+  const changed = new Set(changedIds);
+  const desiredStatus = new Map(
+    nextList
+      .filter((candidate) => changed.has(candidate.id))
+      .map((candidate) => [candidate.id, candidate.status]),
+  );
+  const serverStatus = new Map(
+    serverCandidates.map((candidate) => [candidate.id, candidate.status]),
+  );
+  return [...desiredStatus].every(
+    ([id, status]) => serverStatus.get(id) === status,
+  );
+}
+
 /**
  * After approve/reject/bulk helpers mutate a full list, persist changed rows.
  */
@@ -224,24 +243,28 @@ export async function persistCandidateListForClient(
     }
   }
 
+  const changed = new Set(changedIds);
+  const includesApproved = nextList.some(
+    (candidate) => changed.has(candidate.id) && candidate.status === "approved",
+  );
+  if (includesApproved) {
+    const listed = await listInboxAction();
+    if (
+      listed.ok &&
+      changedStatusesAlreadyApplied(listed.candidates, nextList, changedIds)
+    ) {
+      return { ok: true, candidates: listed.candidates };
+    }
+  }
+
   const result = await applyCandidateListMutationAction(nextList, changedIds);
   if (!result.ok) {
     const listed = await listInboxAction();
-    if (listed.ok) {
-      const desiredStatus = new Map(
-        nextList
-          .filter((candidate) => changedIds.includes(candidate.id))
-          .map((candidate) => [candidate.id, candidate.status]),
-      );
-      const serverStatus = new Map(
-        listed.candidates.map((candidate) => [candidate.id, candidate.status]),
-      );
-      const alreadyApplied = [...desiredStatus].every(
-        ([id, status]) => serverStatus.get(id) === status,
-      );
-      if (alreadyApplied) {
-        return { ok: true, candidates: listed.candidates };
-      }
+    if (
+      listed.ok &&
+      changedStatusesAlreadyApplied(listed.candidates, nextList, changedIds)
+    ) {
+      return { ok: true, candidates: listed.candidates };
     }
     return { ok: false, message: result.message };
   }
