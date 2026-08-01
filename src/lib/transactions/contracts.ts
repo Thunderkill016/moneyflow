@@ -41,7 +41,14 @@ export type CategoryOption = {
   color: string | null;
 };
 
-export type CreateTransactionInput = {
+type InboxApprovalCommand = {
+  /** Present only when a reviewed Inbox candidate owns this create command. */
+  inboxCandidateId?: string;
+  /** Explicit human override for a server-classified heuristic duplicate. */
+  allowHeuristicDuplicate?: boolean;
+};
+
+export type CreateTransactionInput = InboxApprovalCommand & {
   kind: TransactionKind;
   categoryId: string;
   accountId: string;
@@ -51,7 +58,7 @@ export type CreateTransactionInput = {
   idempotencyKey: string;
 };
 
-export type CreateTransferInput = {
+export type CreateTransferInput = InboxApprovalCommand & {
   sourceAccountId: string;
   destinationAccountId: string;
   amount: number;
@@ -69,11 +76,17 @@ export type CreateSplitExpenseInput = {
   lines: { categoryId: string; amount: number }[];
 };
 
-export type UpdateMoneyTransactionInput = Omit<CreateTransactionInput, "idempotencyKey"> & {
+export type UpdateMoneyTransactionInput = Omit<
+  CreateTransactionInput,
+  "idempotencyKey" | "inboxCandidateId" | "allowHeuristicDuplicate"
+> & {
   id: string;
 };
 
-export type UpdateTransferInput = Omit<CreateTransferInput, "idempotencyKey"> & {
+export type UpdateTransferInput = Omit<
+  CreateTransferInput,
+  "idempotencyKey" | "inboxCandidateId" | "allowHeuristicDuplicate"
+> & {
   id: string;
   kind: "transfer";
 };

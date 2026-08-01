@@ -29,6 +29,7 @@ export type ExplainLine = {
 export type BulkReviewAction = "approve" | "reject" | "category";
 
 export type CandidateReviewDraft = {
+  candidateId: string;
   kind: InboxCandidate["kind"];
   amount: number;
   merchant: string;
@@ -39,6 +40,8 @@ export type CandidateReviewDraft = {
   /** Transfer only: destination account. */
   destinationAccountId: string;
   possibleDuplicate: boolean;
+  /** Set only after the reviewer explicitly accepts a heuristic duplicate. */
+  allowHeuristicDuplicate: boolean;
 };
 
 const PARSER_BY_SOURCE: Record<InboxCandidate["source"], string> = {
@@ -204,6 +207,7 @@ export function draftFromCandidate(
     accounts.find((item) => item.id !== accountId)?.id ?? accounts[0]?.id ?? "";
 
   return {
+    candidateId: candidate.id,
     kind: candidate.kind,
     amount: candidate.amount,
     merchant: candidate.merchant,
@@ -213,6 +217,7 @@ export function draftFromCandidate(
     accountId,
     destinationAccountId: otherAccount,
     possibleDuplicate: candidate.possibleDuplicate === true,
+    allowHeuristicDuplicate: false,
   };
 }
 
@@ -303,6 +308,8 @@ export function buildLedgerPost(
       ok: true,
       mode: "transfer",
       input: {
+        inboxCandidateId: draft.candidateId,
+        allowHeuristicDuplicate: draft.allowHeuristicDuplicate,
         sourceAccountId: source.id,
         destinationAccountId: destination.id,
         amount: draft.amount,
@@ -327,6 +334,8 @@ export function buildLedgerPost(
     ok: true,
     mode: "money",
     input: {
+      inboxCandidateId: draft.candidateId,
+      allowHeuristicDuplicate: draft.allowHeuristicDuplicate,
       kind,
       categoryId: category.id,
       accountId: account.id,

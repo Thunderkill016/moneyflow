@@ -19,7 +19,6 @@ import {
   createCandidate,
   readStoredCandidates,
   writeStoredCandidates,
-  type CreateCandidateInput,
   type InboxCandidate,
   type UpdateCandidateInput,
 } from "@/lib/inbox/candidate-store";
@@ -30,10 +29,13 @@ import {
   readStoredImportBatches,
   removeStoredImportBatch,
   writeStoredImportBatches,
-  type CreateImportBatchInput,
   type ImportBatch,
 } from "@/lib/inbox/import-batch-store";
 import { prepareCandidateForServer, prepareBatchForServer } from "@/lib/inbox/inbox-map";
+import type {
+  CreateCandidateWithProvenanceInput,
+  CreateImportBatchWithProvenanceInput,
+} from "@/lib/inbox/provenance";
 
 export type ClientInboxResult<T = undefined> = T extends undefined
   ? { ok: true } | { ok: false; message: string }
@@ -95,7 +97,6 @@ export async function loadInboxForClient(
     });
 
     if (!migrateResult.ok) {
-      // Fall back to list if migrate fails for non-empty-server cases handled server-side
       const listed = await listInboxAction();
       if (!listed.ok) return { ok: false, message: listed.message };
       return {
@@ -105,7 +106,6 @@ export async function loadInboxForClient(
       };
     }
 
-    // If we had local non-demo data and server now has rows, clear local to avoid re-upload.
     if (
       migrateResult.candidates.length > 0 ||
       migrateResult.batches.length > 0 ||
@@ -133,7 +133,7 @@ export async function loadInboxForClient(
 
 export async function addCandidatesForClient(
   isDemo: boolean,
-  inputs: CreateCandidateInput[],
+  inputs: CreateCandidateWithProvenanceInput[],
 ): Promise<ClientInboxResult<{ candidates: InboxCandidate[] }>> {
   if (inputs.length === 0) {
     return { ok: true, candidates: [] };
@@ -149,26 +149,30 @@ export async function addCandidatesForClient(
   }
 
   const prepared = inputs.map((input) => {
-    const c = prepareCandidateForServer(input);
+    const candidate = prepareCandidateForServer(input);
     return {
-      kind: c.kind,
-      amount: c.amount,
-      merchant: c.merchant,
-      note: c.note,
-      occurredOn: c.occurredOn,
-      source: c.source,
-      confidence: c.confidence,
-      status: c.status,
-      possibleDuplicate: c.possibleDuplicate,
-      categoryId: c.categoryId,
-      category: c.category,
-      accountId: c.accountId,
-      account: c.account,
-      rawSnippet: c.rawSnippet,
-      importBatchId: c.importBatchId,
-      id: c.id,
-      createdAt: c.createdAt,
-    } satisfies CreateCandidateInput;
+      kind: candidate.kind,
+      amount: candidate.amount,
+      merchant: candidate.merchant,
+      note: candidate.note,
+      occurredOn: candidate.occurredOn,
+      source: candidate.source,
+      confidence: candidate.confidence,
+      status: candidate.status,
+      possibleDuplicate: candidate.possibleDuplicate,
+      categoryId: candidate.categoryId,
+      category: candidate.category,
+      accountId: candidate.accountId,
+      account: candidate.account,
+      rawSnippet: candidate.rawSnippet,
+      importBatchId: candidate.importBatchId,
+      sourceRowIndex: candidate.sourceRowIndex,
+      sourceExternalId: candidate.sourceExternalId,
+      parserVersion: candidate.parserVersion,
+      mappingVersion: candidate.mappingVersion,
+      id: candidate.id,
+      createdAt: candidate.createdAt,
+    } satisfies CreateCandidateWithProvenanceInput;
   });
 
   const result = await createInboxCandidatesAction(prepared);
@@ -203,6 +207,25 @@ export async function updateCandidateForClient(
   return { ok: true, candidates: next };
 }
 
+function changedStatusesAlreadyApplied(
+  serverCandidates: InboxCandidate[],
+  nextList: InboxCandidate[],
+  changedIds: string[],
+): boolean {
+  const changed = new Set(changedIds);
+  const desiredStatus = new Map(
+    nextList
+      .filter((candidate) => changed.has(candidate.id))
+      .map((candidate) => [candidate.id, candidate.status]),
+  );
+  const serverStatus = new Map(
+    serverCandidates.map((candidate) => [candidate.id, candidate.status]),
+  );
+  return [...desiredStatus].every(
+    ([id, status]) => serverStatus.get(id) === status,
+  );
+}
+
 /**
  * After approve/reject/bulk helpers mutate a full list, persist changed rows.
  */
@@ -220,14 +243,37 @@ export async function persistCandidateListForClient(
     }
   }
 
+  const changed = new Set(changedIds);
+  const includesApproved = nextList.some(
+    (candidate) => changed.has(candidate.id) && candidate.status === "approved",
+  );
+  if (includesApproved) {
+    const listed = await listInboxAction();
+    if (
+      listed.ok &&
+      changedStatusesAlreadyApplied(listed.candidates, nextList, changedIds)
+    ) {
+      return { ok: true, candidates: listed.candidates };
+    }
+  }
+
   const result = await applyCandidateListMutationAction(nextList, changedIds);
-  if (!result.ok) return { ok: false, message: result.message };
+  if (!result.ok) {
+    const listed = await listInboxAction();
+    if (
+      listed.ok &&
+      changedStatusesAlreadyApplied(listed.candidates, nextList, changedIds)
+    ) {
+      return { ok: true, candidates: listed.candidates };
+    }
+    return { ok: false, message: result.message };
+  }
   return { ok: true, candidates: result.candidates ?? nextList };
 }
 
 export async function addImportBatchForClient(
   isDemo: boolean,
-  input: CreateImportBatchInput,
+  input: CreateImportBatchWithProvenanceInput,
 ): Promise<ClientInboxResult<{ batch: ImportBatch }>> {
   if (isDemo) {
     try {
@@ -243,6 +289,8 @@ export async function addImportBatchForClient(
     ...input,
     id: prepared.id,
     createdAt: prepared.createdAt,
+    parserVersion: prepared.parserVersion,
+    mappingVersion: prepared.mappingVersion,
   });
   if (!result.ok) return { ok: false, message: result.message };
   if (!result.batch) return { ok: false, message: "Không nhận được lượt import." };
@@ -340,5 +388,4 @@ export async function getPendingCountForClient(isDemo: boolean): Promise<number>
   return countPending(listed.candidates);
 }
 
-// re-export createCandidate for callers that need pure construction
 export { createCandidate };

@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useEffect, useOptimistic, useState } from "react";
+import { approveInboxCandidateAction } from "@/app/actions/inbox-approval";
 import {
   createSplitExpenseAction,
   createTransactionAction,
@@ -80,6 +81,35 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         return next;
       });
       return { ok: true, transaction };
+    }
+
+    if (input.inboxCandidateId) {
+      setIsMutating(true);
+      try {
+        const result = await approveInboxCandidateAction({
+          candidateId: input.inboxCandidateId,
+          kind: input.kind,
+          accountId: input.accountId,
+          categoryId: input.categoryId,
+          destinationAccountId: null,
+          amount: input.amount,
+          occurredOn: input.occurredOn,
+          note: input.note,
+          idempotencyKey: input.idempotencyKey,
+          allowHeuristicDuplicate: input.allowHeuristicDuplicate ?? false,
+        });
+        if (result.ok) {
+          setTransactions((current) => [
+            result.transaction,
+            ...current.filter((item) => item.id !== result.transaction.id),
+          ]);
+        }
+        return result;
+      } catch {
+        return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
+      } finally {
+        setIsMutating(false);
+      }
     }
 
     const optimistic = buildOptimisticTransaction(input, accounts, categories);
@@ -168,6 +198,28 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
   async function addTransfer(input: CreateTransferInput): Promise<TransactionActionResult> {
     if (!isDemo) setIsMutating(true);
     try {
+      if (!isDemo && input.inboxCandidateId) {
+        const result = await approveInboxCandidateAction({
+          candidateId: input.inboxCandidateId,
+          kind: "transfer",
+          accountId: input.sourceAccountId,
+          categoryId: null,
+          destinationAccountId: input.destinationAccountId,
+          amount: input.amount,
+          occurredOn: input.occurredOn,
+          note: input.note,
+          idempotencyKey: input.idempotencyKey,
+          allowHeuristicDuplicate: input.allowHeuristicDuplicate ?? false,
+        });
+        if (result.ok) {
+          setTransactions((current) => [
+            result.transaction,
+            ...current.filter((item) => item.id !== result.transaction.id),
+          ]);
+        }
+        return result;
+      }
+
       const result = await executeTransferMutation({ input, accounts, isDemo });
       if (result.ok) {
         setTransactions((current) => [

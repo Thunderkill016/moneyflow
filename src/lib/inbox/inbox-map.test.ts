@@ -70,7 +70,7 @@ test("shouldMigrateLocal only when server empty and local has data", () => {
   assert.equal(shouldMigrateLocal(0, 2, [candidate], [batch]), false);
 });
 
-test("mapCandidateRow maps amount_minor integer money", () => {
+test("mapCandidateRow maps integer money and durable provenance", () => {
   const mapped = mapCandidateRow({
     id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
     kind: "expense",
@@ -90,13 +90,31 @@ test("mapCandidateRow maps amount_minor integer money", () => {
     import_batch_id: null,
     local_id: "cand-x",
     created_at: "2026-07-11T14:22:00.000Z",
+    source_row_index: 4,
+    source_external_id: "bank-row-4",
+    fingerprint_version: 1,
+    fingerprint: "fingerprint-4",
+    parser_version: "csv_import@2.0",
+    mapping_version: 2,
+    match_status: "duplicate",
+    match_reason: "fingerprint_transaction_match",
+    match_confidence: 0.85,
+    possible_transfer: false,
+    transfer_pair_id: null,
+    approved_transaction_id: null,
+    approved_at: null,
   });
   assert.equal(mapped.amount, 89_000);
   assert.equal(mapped.category, "Di chuyển");
   assert.equal(mapped.possibleDuplicate, undefined);
+  assert.equal(mapped.sourceRowIndex, 4);
+  assert.equal(mapped.sourceExternalId, "bank-row-4");
+  assert.equal(mapped.parserVersion, "csv_import@2.0");
+  assert.equal(mapped.mappingVersion, 2);
+  assert.equal(mapped.matchStatus, "duplicate");
 });
 
-test("mapBatchRow preserves column map", () => {
+test("mapBatchRow preserves column map and parser versions", () => {
   const mapped = mapBatchRow({
     id: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
     file_name: "x.csv",
@@ -111,13 +129,17 @@ test("mapBatchRow preserves column map", () => {
     local_id: null,
     created_at: "2026-07-12T00:00:00.000Z",
     committed_at: null,
+    parser_version: "csv_import@2.0",
+    mapping_version: 2,
   });
   assert.equal(mapped.rowCount, 10);
   assert.equal(mapped.columnMap.date, 0);
   assert.equal(mapped.columnMap.amount, 1);
+  assert.equal(mapped.parserVersion, "csv_import@2.0");
+  assert.equal(mapped.mappingVersion, 2);
 });
 
-test("buildMigratePayloads remaps non-uuid ids and batch refs", () => {
+test("buildMigratePayloads remaps ids and adds explicit provenance defaults", () => {
   const { batchRows, candidateRows, batchIdMap } = buildMigratePayloads(
     [batch],
     [candidate],
@@ -130,22 +152,36 @@ test("buildMigratePayloads remaps non-uuid ids and batch refs", () => {
   assert.equal(isUuid(serverBatchId), true);
   assert.equal(batchRows[0]?.id, serverBatchId);
   assert.equal(batchRows[0]?.local_id, "imp-local-1");
+  assert.equal(batchRows[0]?.parser_version, null);
+  assert.equal(batchRows[0]?.mapping_version, null);
   assert.equal(candidateRows[0]?.local_id, "cand-local-1");
   assert.equal(candidateRows[0]?.import_batch_id, serverBatchId);
   assert.equal(candidateRows[0]?.amount_minor, 45_000);
   assert.equal(candidateRows[0]?.user_id, "user-1");
+  assert.equal(candidateRows[0]?.source_row_index, null);
+  assert.equal(candidateRows[0]?.source_external_id, null);
+  assert.equal(candidateRows[0]?.parser_version, "paste_text@1.0");
+  assert.equal(candidateRows[0]?.mapping_version, 1);
 });
 
-test("prepareCandidateForServer assigns UUID id", () => {
+test("prepareCandidateForServer preserves bounded source provenance", () => {
   const prepared = prepareCandidateForServer({
     kind: "expense",
     amount: 12_000,
     merchant: "X",
     occurredOn: "2026-07-10",
-    source: "manual",
+    source: "csv",
     confidence: "high",
     importBatchId: "not-a-uuid",
+    sourceRowIndex: 6,
+    sourceExternalId: "statement-row-6",
+    parserVersion: "csv_import@2.0",
+    mappingVersion: 2,
   });
   assert.equal(isUuid(prepared.id), true);
   assert.equal(prepared.importBatchId, undefined);
+  assert.equal(prepared.sourceRowIndex, 6);
+  assert.equal(prepared.sourceExternalId, "statement-row-6");
+  assert.equal(prepared.parserVersion, "csv_import@2.0");
+  assert.equal(prepared.mappingVersion, 2);
 });
