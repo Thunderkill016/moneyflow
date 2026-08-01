@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { TURNSTILE_ORIGIN } from "./auth-captcha.ts";
 import {
   buildContentSecurityPolicy,
   buildSecurityHeaders,
@@ -22,7 +21,7 @@ const REQUIRED_DIRECTIVES = [
 ] as const;
 
 test("CSP restricts every high-value browser capability", () => {
-  const policy = buildContentSecurityPolicy(true, false);
+  const policy = buildContentSecurityPolicy(true);
   for (const directive of REQUIRED_DIRECTIVES) {
     assert.ok(policy.includes(directive), `missing CSP directive: ${directive}`);
   }
@@ -31,39 +30,26 @@ test("CSP restricts every high-value browser capability", () => {
   assert.ok(policy.includes("wss://*.supabase.co"));
   assert.ok(policy.includes("https://va.vercel-scripts.com"));
   assert.ok(policy.includes("https://vitals.vercel-insights.com"));
-  assert.ok(policy.includes("frame-src 'none'"));
-  assert.doesNotMatch(policy, new RegExp(TURNSTILE_ORIGIN));
   assert.doesNotMatch(policy, /'unsafe-eval'/);
   assert.doesNotMatch(policy, /upgrade-insecure-requests/);
 });
 
-test("Turnstile origin is allowed only when auth captcha is configured", () => {
-  const disabled = buildContentSecurityPolicy(true, false);
-  const enabled = buildContentSecurityPolicy(true, true);
-
-  assert.doesNotMatch(disabled, new RegExp(TURNSTILE_ORIGIN));
-  assert.match(enabled, new RegExp(`script-src[^;]+${TURNSTILE_ORIGIN}`));
-  assert.match(enabled, new RegExp(`connect-src[^;]+${TURNSTILE_ORIGIN}`));
-  assert.ok(enabled.includes(`frame-src ${TURNSTILE_ORIGIN}`));
-  assert.doesNotMatch(enabled, /frame-src 'none'/);
-});
-
 test("development CSP permits React debugging eval without weakening production", () => {
-  const development = buildContentSecurityPolicy(false, false);
-  const production = buildContentSecurityPolicy(true, false);
+  const development = buildContentSecurityPolicy(false);
+  const production = buildContentSecurityPolicy(true);
 
   assert.match(development, /'unsafe-eval'/);
   assert.doesNotMatch(production, /'unsafe-eval'/);
 });
 
 test("CSP remains transport-neutral for HTTP production-build audits", () => {
-  const policy = buildContentSecurityPolicy(true, false);
+  const policy = buildContentSecurityPolicy(true);
   assert.doesNotMatch(policy, /upgrade-insecure-requests/);
 });
 
 test("security headers keep clickjacking, MIME and opener isolation controls", () => {
   const headers = new Map(
-    buildSecurityHeaders(true, false).map(({ key, value }) => [key, value]),
+    buildSecurityHeaders(true).map(({ key, value }) => [key, value]),
   );
 
   assert.equal(headers.get("X-Frame-Options"), "DENY");
