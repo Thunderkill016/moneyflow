@@ -10,6 +10,7 @@ const requiredFiles = [
   "README.md",
   "docs/product/PRINCIPLES.md",
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
+  "docs/engineering/AGENT_OPERATING_MODEL.md",
   "docs/research/README.md",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
   "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
@@ -122,12 +123,33 @@ requireMarkers("docs/engineering/AI_DELIVERY_WORKFLOW.md", [
   "Tool, dependency and architecture adoption gate",
 ]);
 
+requireMarkers("docs/engineering/AGENT_OPERATING_MODEL.md", [
+  "ruvnet/ruflo",
+  "crewAIInc/crewAI",
+  "openai/swarm",
+  "OpenHands/OpenHands",
+  "langchain-ai/langgraph",
+  "microsoft/autogen",
+  "getsentry/sentry",
+  "triggerdotdev/trigger.dev",
+  "ready_for_review",
+  "## Handoff contract",
+  "provider_write_approved",
+  "## Runtime operations adoption decisions",
+]);
+
 requireMarkers("docs/templates/FEATURE_WORK_PACKET.md", [
+  "**Execution state:**",
+  "**Active role:**",
+  "**Permission scope:**",
+  "docs/engineering/AGENT_OPERATING_MODEL.md",
   "### Research scope and source selection",
   "Authority/type",
   "### Adoption review",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
   "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
+  "## Handoff record",
+  "### Current permission boundary",
 ]);
 
 requireMarkers(".github/pull_request_template.md", [
