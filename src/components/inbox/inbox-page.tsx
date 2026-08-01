@@ -12,6 +12,7 @@ import {
 } from "@/components/inbox/inbox-review-panel";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
+import { approveInboxCandidateAction } from "@/app/actions/inbox-approval";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
   CONFIDENCE_LABELS,
@@ -109,6 +110,7 @@ export function InboxPage({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [approvalBusy, setApprovalBusy] = useState(false);
   /** Keyboard focus row in the visible list (âˆ’1 = none until j/k). */
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const candidatesRef = useRef<InboxCandidate[]>(candidates);
@@ -127,11 +129,12 @@ export function InboxPage({
       if (!result.ok) {
         setErrorMessage(result.message || "KhÃ´ng táº£i Ä‘Æ°á»£c inbox");
         setLoadState("error");
-        return;
+        return false;
       }
       setCandidates(result.candidates);
       setErrorMessage("");
       setLoadState("ready");
+      return true;
     },
     [viewer.isDemo],
   );
@@ -193,9 +196,7 @@ export function InboxPage({
   }, [detected, reviewId]);
 
   const activeSelectedIds = useMemo(() => {
-    const pendingIds = new Set(
-      candidates.filter((item) => item.status === "pending").map((item) => item.id),
-    );
+    const pendingIds = new Set(candidates.filter((item) => item.status === "pending").map((item) => item.id));
     return selectedIds.filter((id) => pendingIds.has(id));
   }, [candidates, selectedIds]);
 
@@ -246,19 +247,16 @@ export function InboxPage({
     writeStoredCandidates(next);
     setCandidates(next);
     setSelectedIds([]);
-    setNotice("ÄÃ£ náº¡p dá»¯ liá»‡u máº«u vÃ o Inbox.");
+    setNotice("ÄÃ£ náº¡p dá»¯ liá»‡u máº«au vÃ o Inbox.");
   }
 
   function toggleSelect(id: string) {
-    setSelectedIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-    );
+    setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
 
   function toggleSelectAllVisible() {
     const visibleIds = visible.map((item) => item.id);
-    const allSelected =
-      visibleIds.length > 0 && visibleIds.every((id) => activeSelectedIds.includes(id));
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => activeSelectedIds.includes(id));
     if (allSelected) {
       setSelectedIds((current) => current.filter((id) => !visibleIds.includes(id)));
       return;
@@ -270,8 +268,53 @@ export function InboxPage({
     });
   }
 
-  async function postOne(payload: ReviewSubmitPayload): Promise<{ ok: boolean; message?: string }> {
+  async function postOne(
+    payload: ReviewSubmitPayload,
+    options?: { allowHeuristicDuplicate?: boolean },
+  ): Promise<{ ok: boolean; message?: string }> {
     const post = payload.post;
+
+    if (!viewer.isDemo) {
+      setApprovalBusy(true);
+      try {
+        const result = await approveInboxCandidateAction({
+          candidateId: payload.candidateId,
+          kind: payload.draft.kind,
+          accountId: post.mode === "money" ? post.input.accountId : post.input.sourceAccountId,
+          categoryId: post.mode === "money" ? post.input.categoryId : null,
+          destinationAccountId: post.mode === "transfer" ? post.input.destinationAccountId : null,
+          amount: post.input.amount,
+          occurredOn: post.input.occurredOn,
+          note: post.input.note,
+          idempotencyKey: post.input.idempotencyKey,
+          allowHeuristicDuplicate: options?.allowHeuristicDuplicate === true,
+        });
+        if (!result.ok) return result;
+
+        const loaded = await load({ showLoading: false });
+        if (!loaded) {
+          router.refresh();
+          return {
+            ok: false,
+            message: "ÄÃ£ duyá»‡t nhÆ°ng chÆ°a táº£i láº¡i Ä‘Æ°á»£c Inbox. HÃ£y lÃ m má»›i trang.",
+          };
+        }
+        setSelectedIds((current) => current.filter((id) => id !== payload.candidateId));
+        setNotice(
+          safeUserNotice(
+            `ÄÃ£ duyá»‡t â€œ${payload.draft.merchant.trim() || "giao dá»‹ch"}â€ vÃ o sá»•.`,
+            "ÄÃ£ duyá»‡t giao dá»‹ch vÃ o sá»•.",
+          ),
+        );
+        router.refresh();
+        return { ok: true };
+      } catch {
+        return { ok: false, message: "Máº¥t káº¿t ná»‘i khi duyá»‡t Inbox. HÃ£y thá»­ láº¡i." };
+      } finally {
+        setApprovalBusy(false);
+      }
+    }
+
     const accountId =
       post.mode === "money" ? post.input.accountId : post.input.sourceAccountId;
     const account = workspace.accounts.find((item) => item.id === accountId);
@@ -330,7 +373,9 @@ export function InboxPage({
   async function handleApproveReview(
     payload: ReviewSubmitPayload,
   ): Promise<{ ok: boolean; message?: string }> {
-    return postOne(payload);
+    return postOne(payload, {
+      allowHeuristicDuplicate: payload.draft.possibleDuplicate === true,
+    });
   }
 
   async function handleReject(candidateId: string) {
@@ -424,11 +469,14 @@ export function InboxPage({
           failed += 1;
           continue;
         }
-        const result = await postOne({
-          candidateId: candidate.id,
-          draft,
-          post,
-        });
+        const result = await postOne(
+          {
+            candidateId: candidate.id,
+            draft,
+            post,
+          },
+          { allowHeuristicDuplicate: false },
+        );
         if (result.ok) approved += 1;
         else failed += 1;
       }
@@ -448,12 +496,14 @@ export function InboxPage({
   const handleBulkApplyRef = useRef(handleBulkApply);
   const bulkBusyRef = useRef(bulkBusy);
   const isMutatingRef = useRef(isMutating);
+  const approvalBusyRef = useRef(approvalBusy);
   const reviewOpen = reviewId != null && reviewCandidate != null;
   const reviewOpenRef = useRef(reviewOpen);
   useEffect(() => {
     handleBulkApplyRef.current = handleBulkApply;
     bulkBusyRef.current = bulkBusy;
     isMutatingRef.current = isMutating;
+    approvalBusyRef.current = approvalBusy;
     reviewOpenRef.current = reviewOpen;
   });
 
@@ -503,21 +553,19 @@ export function InboxPage({
         }
         event.preventDefault();
         const id = list[idx]!.id;
-        setSelectedIds((current) =>
-          current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-        );
+        setSelectedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
         return;
       }
 
       if (action === "approve") {
-        if (bulkBusyRef.current || isMutatingRef.current) return;
+        if (bulkBusyRef.current || isMutatingRef.current || approvalBusyRef.current) return;
         const focused =
           focusedIndexRef.current >= 0 && focusedIndexRef.current < list.length
             ? list[focusedIndexRef.current]!.id
             : null;
         const ids = resolveApproveTargetIds(activeSelectedIdsRef.current, focused);
         if (ids.length === 0) {
-          setNotice("Chá»n má»¥c báº±ng X (hoáº·c J/K rá»“i A) Ä‘á»ƒ duyá»‡t.");
+          setNotice("Chá»n má»¥c báº±ng X (háº·c J/K rá»“i A) Ä‘á»ƒ duyá»‡t.");
           return;
         }
         event.preventDefault();
@@ -680,7 +728,7 @@ export function InboxPage({
                       aria-current={focused ? "true" : undefined}
                     >
                       <label className="inbox-col-check">
-                        <span className="sr-only">Chá»n {candidate.merchant}</span>
+                        <span className="sr-only">Chá»­n {candidate.merchant}</span>
                         <input
                           type="checkbox"
                           checked={selected}
@@ -758,25 +806,9 @@ export function InboxPage({
         <InboxBulkBar
           candidates={candidates}
           selectedIds={activeSelectedIds}
-          categories={workspace.categories}
-          busy={bulkBusy || isMutating}
-          onClear={() => setSelectedIds([])}
-          onApply={handleBulkApply}
-        />
-
-        <InboxReviewPanel
-          key={reviewCandidate?.id ?? "inbox-review-closed"}
-          open={reviewId != null && reviewCandidate != null}
-          candidate={reviewCandidate}
-          accounts={workspace.accounts}
-          categories={workspace.categories}
-          busy={isMutating}
-          onClose={() => setReviewId(null)}
-          onApprove={handleApproveReview}
-          onReject={handleReject}
-          onMarkDuplicate={handleMarkDuplicate}
-        />
-      </main>
-    </AppShell>
-  );
-}
+         Ø]YÛÜšY\Ï^İÛÜšÜÜXÙK˜Ø]YÛÜšY\ßBˆ\ŞO^Ø[Ğ\ŞH\Ó]]][™È\›İ˜[\Ş_BˆÛÛX\^Ê
+HOˆÙ]Ù[XİYYÊ×J_BˆÛ\O^Ú[™P[Ğ\_BˆÏ‚‚ˆ[˜›Ş™]šY]Ô[™[ˆÙ^O^Ü™]šY]ĞØ[™Y]OËšYÏÈš[˜›Ş\™]šY]ËXÛÜÙYŸBˆÜ[^Ü™]šY]ÒYOH[	‰ˆ™]šY]ĞØ[™Y]HOH[BˆØ[™Y]O^Ü™]šY]ĞØ[™Y]_BˆXØÛİ[Ï^İÛÜšÜÜXÙK˜XØÛİ[ßBˆØ]YÛÜšY\Ï^İÛÜšÜÜXÙK˜Ø]YÛÜšY\ßBˆ\ŞO^Ú\Ó]]][™È\›İ˜[\Ş_BˆÛÛÜÙO^Ê
+HOˆÙ]™]šY]ÒY
+[
+_BˆÛ\›İ™O^Ú[™P\›İ™T™]šY]ßBˆÛ”™Z™Xİ^Ú[™T™Z™XİBˆÛ“X\šÑ\XØ]O^Ú[™SX\šÑ\XØ]_BˆÏ‚ˆÛXZ[‚ˆĞ\Ú[‚ˆ
+NÂŸB
