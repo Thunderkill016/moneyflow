@@ -40,10 +40,11 @@ test("CSP restricts every high-value browser capability", () => {
   assert.ok(policy.includes("https://va.vercel-scripts.com"));
   assert.ok(policy.includes("https://vitals.vercel-insights.com"));
   assert.ok(policy.includes("frame-src 'none'"));
-  assert.equal(
-    directiveTokens(policy, "script-src").includes(TURNSTILE_ORIGIN),
-    false,
-  );
+  assert.deepEqual(directiveTokens(policy, "script-src"), [
+    "'self'",
+    "'unsafe-inline'",
+    "https://va.vercel-scripts.com",
+  ]);
   assert.doesNotMatch(policy, /'unsafe-eval'/);
   assert.doesNotMatch(policy, /upgrade-insecure-requests/);
 });
@@ -52,18 +53,24 @@ test("Turnstile origin is allowed only when auth captcha is configured", () => {
   const disabled = buildContentSecurityPolicy(true, false);
   const enabled = buildContentSecurityPolicy(true, true);
 
-  assert.equal(
-    directiveTokens(disabled, "script-src").includes(TURNSTILE_ORIGIN),
-    false,
-  );
-  assert.equal(
-    directiveTokens(enabled, "script-src").includes(TURNSTILE_ORIGIN),
-    true,
-  );
-  assert.equal(
-    directiveTokens(enabled, "connect-src").includes(TURNSTILE_ORIGIN),
-    true,
-  );
+  assert.deepEqual(directiveTokens(disabled, "script-src"), [
+    "'self'",
+    "'unsafe-inline'",
+    "https://va.vercel-scripts.com",
+  ]);
+  assert.deepEqual(directiveTokens(enabled, "script-src"), [
+    "'self'",
+    "'unsafe-inline'",
+    "https://va.vercel-scripts.com",
+    TURNSTILE_ORIGIN,
+  ]);
+  assert.deepEqual(directiveTokens(enabled, "connect-src"), [
+    "'self'",
+    "https://*.supabase.co",
+    "wss://*.supabase.co",
+    "https://vitals.vercel-insights.com",
+    TURNSTILE_ORIGIN,
+  ]);
   assert.deepEqual(directiveTokens(enabled, "frame-src"), [TURNSTILE_ORIGIN]);
   assert.doesNotMatch(enabled, /frame-src 'none'/);
 });
