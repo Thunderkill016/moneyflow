@@ -1,5 +1,5 @@
 /**
- * Calm Ledger — public landing positioning and structure contracts.
+ * Signal Ledger — public landing positioning, ownership and structure contracts.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -18,7 +18,9 @@ const LANDING_CSS_PATH = join(
 const FORBIDDEN_LANDING_PHRASES = [
   "Hộp thư cho mọi giao dịch",
   "Universal Financial Inbox",
-  "có thể chi",
+  "có thể chi hôm nay",
+  "người dùng tin tưởng",
+  "tiết kiệm trung bình",
 ] as const;
 
 function readLandingSource(): string {
@@ -36,11 +38,12 @@ test("landing source exists and remains a Server Component", () => {
   assert.equal(/^\s*["']use client["']/.test(source), false);
 });
 
-test("landing positions MoneyFlow as a trustworthy manual-first ledger", () => {
+test("landing positions MoneyFlow as an owner-controlled financial system", () => {
   const source = readLandingSource();
-  assert.match(source, /Không cần liên kết ngân hàng/);
-  assert.match(source, /Sổ thu chi do chính tay bạn kiểm soát/);
-  assert.match(source, /bạn chủ động\s+nhập/);
+  assert.match(source, /Đừng quản lý tiền bằng trí nhớ/);
+  assert.match(source, /Hãy nhìn nó thành một hệ thống/);
+  assert.match(source, /Không liên kết ngân hàng/);
+  assert.match(source, /bạn chủ động ghi hoặc xác nhận/);
   for (const phrase of FORBIDDEN_LANDING_PHRASES) {
     assert.equal(source.includes(phrase), false, `forbidden: ${phrase}`);
   }
@@ -49,47 +52,51 @@ test("landing positions MoneyFlow as a trustworthy manual-first ledger", () => {
 test("hero has one conversion CTA and one in-page explainer CTA", () => {
   const source = readLandingSource();
   const start = source.indexOf("styles.heroActions");
-  const end = source.indexOf("styles.trustList", start);
-  assert.ok(start >= 0 && end > start, "hero actions precede trust list");
+  const end = source.indexOf("styles.trustRow", start);
+  assert.ok(start >= 0 && end > start, "hero actions precede trust row");
   const block = source.slice(start, end);
   assert.match(block, /href="\/register"/);
-  assert.match(block, /href="#cach-hoat-dong"/);
+  assert.match(block, /href="#san-pham"/);
   assert.equal(block.includes('href="/dashboard"'), false);
+  assert.equal((block.match(/href="\/register"/g) ?? []).length, 1);
 });
 
 test("landing states the financial and ownership rules honestly", () => {
   const source = readLandingSource();
-  assert.match(source, /không.*(liên kết|đăng nhập).*ngân hàng/i);
-  assert.match(source, /ra CSV/);
-  assert.match(source, /chuyển nội bộ[\s\S]*tách hẳn khỏi tổng thu và tổng chi/);
-  assert.match(source, /không suy diễn một con số chi tiêu an toàn/);
-  assert.match(source, /chính xác đến từng đồng/);
+  assert.match(source, /không yêu cầu mật khẩu ngân hàng/i);
+  assert.match(source, /xuất CSV/i);
+  assert.match(source, /Chuyển nội bộ[\s\S]*tổng thu và tổng chi không bị phóng đại/i);
+  assert.match(source, /không cố thay bạn ra quyết định/i);
+  assert.match(source, /sửa và phục hồi/i);
 });
 
-test("landing includes full product preview, workflow, benefits and FAQ", () => {
+test("landing includes product stage, decision hierarchy, workflow and FAQ", () => {
   const source = readLandingSource();
-  assert.match(source, /styles\.previewWrap/);
-  assert.match(source, /styles\.proof/);
-  assert.match(source, /from "@\/components\/ui\/card"/);
+  assert.match(source, /styles\.productStage/);
+  assert.match(source, /styles\.signalStrip/);
+  assert.match(source, /styles\.clarityGrid/);
+  assert.match(source, /styles\.workflowList/);
+  assert.match(source, /styles\.principlesGrid/);
   assert.match(source, /id="faq-title"/);
-  assert.match(source, /from "@\/components\/ui\/accordion"/);
+  assert.match(source, /<details key=\{item\.question\}>/);
   assert.equal(source.includes("Monarch"), false);
 });
 
-test("landing preview preserves Thu, Chi and Chuyển semantics", () => {
+test("landing preserves Thu, Chi and Chuyển semantics", () => {
   const source = readLandingSource();
   assert.match(source, /Thu tháng này/);
   assert.match(source, /Chi tháng này/);
-  assert.match(source, /Chuyển nội bộ · không tính thu chi/);
-  assert.match(source, /↔ 2\.000\.000 ₫/);
+  assert.match(source, /Chuyển nội bộ được ghi thành một luồng riêng/);
+  assert.match(source, /tổng thu và tổng chi không bị phóng đại/);
 });
 
 test("landing module defines responsive, readable and reduced-motion layout", () => {
   const css = readLandingCss();
   assert.match(css, /\.hero\b/);
-  assert.match(css, /\.previewWrap\b/);
-  assert.match(css, /\.proof\b/);
-  assert.match(css, /@media \(max-width: 820px\)/);
+  assert.match(css, /\.productStage\b/);
+  assert.match(css, /\.signalStrip\b/);
+  assert.match(css, /@media \(max-width: 980px\)/);
+  assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.equal(css.includes("!important"), false);
 });
