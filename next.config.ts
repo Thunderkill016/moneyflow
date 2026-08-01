@@ -1,18 +1,5 @@
 import type { NextConfig } from "next";
-
-const securityHeaders = [
-  {
-    key: "Content-Security-Policy",
-    value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
-  },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  {
-    key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=()",
-  },
-] as const;
+import { buildSecurityHeaders } from "./src/lib/security-headers.ts";
 
 const nextConfig: NextConfig = {
   // Tree-shake lucide icons (icons.tsx imports many named exports).
@@ -26,7 +13,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/:path*",
-        headers: [...securityHeaders],
+        headers: [...buildSecurityHeaders()],
       },
     ];
   },

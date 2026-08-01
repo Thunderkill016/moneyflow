@@ -5,6 +5,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { POST_AUTH_REDIRECT, safeNextPath } from "@/lib/auth-redirect";
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+} from "@/lib/auth-password-policy";
 import { DELETE_CONFIRM_TEXT, isDeleteConfirmValid } from "@/lib/delete-account";
 import { ONBOARDING_PATH } from "@/lib/onboarding";
 import { getSiteOrigin } from "@/lib/site-url";
@@ -19,8 +23,14 @@ export type AuthState = {
 const emailSchema = z.email("Email chưa đúng định dạng.").trim().toLowerCase();
 const passwordSchema = z
   .string()
-  .min(8, "Mật khẩu cần ít nhất 8 ký tự.")
-  .max(72, "Mật khẩu không được dài quá 72 ký tự.");
+  .min(
+    PASSWORD_MIN_LENGTH,
+    `Mật khẩu cần ít nhất ${PASSWORD_MIN_LENGTH} ký tự.`,
+  )
+  .max(
+    PASSWORD_MAX_LENGTH,
+    `Mật khẩu không được dài quá ${PASSWORD_MAX_LENGTH} ký tự.`,
+  );
 const registerSchema = z.object({
   fullName: z.string().trim().min(2, "Tên cần ít nhất 2 ký tự.").max(80),
   email: emailSchema,
@@ -31,15 +41,22 @@ const registerSchema = z.object({
       message: "Bạn cần đồng ý với chính sách quyền riêng tư.",
     }),
 });
-const loginSchema = z.object({ email: emailSchema, password: z.string().min(1, "Nhập mật khẩu.") });
+const loginSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(1, "Nhập mật khẩu."),
+});
 
 function configurationError(): AuthState {
   return {
-    message: "Supabase chưa được cấu hình. Sao chép .env.example thành .env.local và thêm project URL cùng publishable key.",
+    message:
+      "Supabase chưa được cấu hình. Sao chép .env.example thành .env.local và thêm project URL cùng publishable key.",
   };
 }
 
-export async function login(_: AuthState, formData: FormData): Promise<AuthState> {
+export async function login(
+  _: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -51,10 +68,15 @@ export async function login(_: AuthState, formData: FormData): Promise<AuthState
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { message: "Email hoặc mật khẩu không đúng." };
 
-  redirect(safeNextPath(String(formData.get("next") ?? ""), POST_AUTH_REDIRECT));
+  redirect(
+    safeNextPath(String(formData.get("next") ?? ""), POST_AUTH_REDIRECT),
+  );
 }
 
-export async function register(_: AuthState, formData: FormData): Promise<AuthState> {
+export async function register(
+  _: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
   const parsed = registerSchema.safeParse({
     fullName: formData.get("fullName"),
     email: formData.get("email"),
@@ -63,7 +85,10 @@ export async function register(_: AuthState, formData: FormData): Promise<AuthSt
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
 
-  const nextPath = safeNextPath(String(formData.get("next") ?? ""), ONBOARDING_PATH);
+  const nextPath = safeNextPath(
+    String(formData.get("next") ?? ""),
+    ONBOARDING_PATH,
+  );
   const supabase = await createClient();
   if (!supabase) return configurationError();
   const { data, error } = await supabase.auth.signUp({
@@ -74,12 +99,22 @@ export async function register(_: AuthState, formData: FormData): Promise<AuthSt
       emailRedirectTo: `${getSiteOrigin()}/auth/callback?next=${encodeURIComponent(nextPath)}`,
     },
   });
-  if (error) return { message: "Không thể tạo tài khoản. Email có thể đã được sử dụng." };
+  if (error) {
+    // Do not expose whether this address already exists. Provider logs retain
+    // the exact error for operators; the public response stays neutral.
+    return {
+      message:
+        "Không thể tạo tài khoản lúc này. Kiểm tra thông tin hoặc thử lại sau.",
+    };
+  }
 
   // Immediate session (email confirm off) → onboarding for first capture.
   if (data.session) redirect(nextPath);
 
-  return { success: true, message: "Kiểm tra email để xác nhận tài khoản MoneyFlow." };
+  return {
+    success: true,
+    message: "Kiểm tra email để xác nhận tài khoản MoneyFlow.",
+  };
 }
 
 export async function signInWithGoogle(formData?: FormData) {
@@ -99,9 +134,18 @@ export async function signInWithGoogle(formData?: FormData) {
   redirect(data.url);
 }
 
-export async function requestPasswordReset(_: AuthState, formData: FormData): Promise<AuthState> {
+export async function requestPasswordReset(
+  _: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
   const parsed = emailSchema.safeParse(formData.get("email"));
-  if (!parsed.success) return { errors: { email: parsed.error.issues.map((issue) => issue.message) } };
+  if (!parsed.success) {
+    return {
+      errors: {
+        email: parsed.error.issues.map((issue) => issue.message),
+      },
+    };
+  }
 
   const supabase = await createClient();
   if (!supabase) return configurationError();
@@ -110,17 +154,34 @@ export async function requestPasswordReset(_: AuthState, formData: FormData): Pr
   });
 
   // Keep the response identical whether the email exists or not.
-  return { success: true, message: "Nếu email tồn tại, MoneyFlow đã gửi liên kết đặt lại mật khẩu." };
+  return {
+    success: true,
+    message:
+      "Nếu email tồn tại, MoneyFlow đã gửi liên kết đặt lại mật khẩu.",
+  };
 }
 
-export async function updatePassword(_: AuthState, formData: FormData): Promise<AuthState> {
+export async function updatePassword(
+  _: AuthState,
+  formData: FormData,
+): Promise<AuthState> {
   const parsed = passwordSchema.safeParse(formData.get("password"));
-  if (!parsed.success) return { errors: { password: parsed.error.issues.map((issue) => issue.message) } };
+  if (!parsed.success) {
+    return {
+      errors: {
+        password: parsed.error.issues.map((issue) => issue.message),
+      },
+    };
+  }
 
   const supabase = await createClient();
   if (!supabase) return configurationError();
   const { error } = await supabase.auth.updateUser({ password: parsed.data });
-  if (error) return { message: "Liên kết đã hết hạn. Hãy yêu cầu một liên kết mới." };
+  if (error) {
+    return {
+      message: "Liên kết đã hết hạn. Hãy yêu cầu một liên kết mới.",
+    };
+  }
   redirect(POST_AUTH_REDIRECT);
 }
 
@@ -134,7 +195,10 @@ export async function signOut() {
   } finally {
     const cookieStore = await cookies();
     for (const cookie of cookieStore.getAll()) {
-      if (cookie.name.startsWith("sb-") && cookie.name.includes("auth-token")) {
+      if (
+        cookie.name.startsWith("sb-") &&
+        cookie.name.includes("auth-token")
+      ) {
         cookieStore.delete(cookie.name);
       }
     }
@@ -159,12 +223,19 @@ export async function finalizeAccountDeletion(
   confirmText: string,
 ): Promise<AccountDeletionResult> {
   if (!isDeleteConfirmValid(confirmText)) {
-    return { ok: false, message: `Gõ chính xác ${DELETE_CONFIRM_TEXT} để xác nhận.` };
+    return {
+      ok: false,
+      message: `Gõ chính xác ${DELETE_CONFIRM_TEXT} để xác nhận.`,
+    };
   }
 
   const supabase = await createClient();
   if (!supabase) {
-    return { ok: false, message: configurationError().message ?? "Supabase chưa được cấu hình." };
+    return {
+      ok: false,
+      message:
+        configurationError().message ?? "Supabase chưa được cấu hình.",
+    };
   }
 
   const {
@@ -174,14 +245,16 @@ export async function finalizeAccountDeletion(
   if (userError || !user) {
     return {
       ok: false,
-      message: "Phiên đăng nhập đã hết hạn. Đăng nhập lại trước khi xóa tài khoản.",
+      message:
+        "Phiên đăng nhập đã hết hạn. Đăng nhập lại trước khi xóa tài khoản.",
     };
   }
 
-  const { data, error: deleteError } = await supabase.functions.invoke<DeleteAccountFunctionResponse>(
-    "delete-account",
-    { body: { confirm: DELETE_CONFIRM_TEXT } },
-  );
+  const { data, error: deleteError } =
+    await supabase.functions.invoke<DeleteAccountFunctionResponse>(
+      "delete-account",
+      { body: { confirm: DELETE_CONFIRM_TEXT } },
+    );
   if (deleteError || !data || data.ok !== true) {
     return {
       ok: false,
