@@ -1,0 +1,16 @@
+.root {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.widget {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.status {
+  color: var(--mf-text-soft);
+  font-size: 12px;
+  line-height: 1.45;
+}

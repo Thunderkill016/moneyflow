@@ -51,6 +51,28 @@ if (process.env.VERCEL_ENV === "production" && appMode !== "authenticated") {
   errors.push('Vercel production must use NEXT_PUBLIC_APP_MODE="authenticated"');
 }
 
+const captchaFlag = process.env.NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED
+  ?.trim()
+  .toLowerCase();
+if (captchaFlag && captchaFlag !== "true" && captchaFlag !== "false") {
+  errors.push('NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED must be "true" or "false"');
+}
+const captchaEnabled = captchaFlag === "true";
+if (
+  captchaEnabled &&
+  isMissingOrTemplate(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
+) {
+  errors.push(
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY is required when auth CAPTCHA is enabled",
+  );
+}
+if (
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim() &&
+  process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY.trim().length > 256
+) {
+  errors.push("NEXT_PUBLIC_TURNSTILE_SITE_KEY is unexpectedly long");
+}
+
 if (isMissingOrTemplate(process.env.NEXT_PUBLIC_SITE_URL)) {
   errors.push("NEXT_PUBLIC_SITE_URL is missing or still a template value");
 }
