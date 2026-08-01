@@ -1,8 +1,8 @@
 # Auth CAPTCHA provider readiness
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** GPT-5.6 Thinking  
+**Status:** ready_for_review  
+**Execution state:** ready_for_review  
+**Active role:** human owner  
 **Permission scope:** branch_write  
 **Owner:** GPT-5.6 Thinking; human owner controls merge, provider publication, deployment, and acceptance  
 **Issue:** #174  
@@ -23,7 +23,7 @@ MoneyFlow can optionally render Cloudflare Turnstile for Supabase email/password
 - Browser policy is owned by `src/lib/security-headers.ts` and applied through `next.config.ts`.
 - PR #173 is merged and deployed; its security boundaries are now part of `main`.
 - PR #175 was retargeted from the old #173 branch to `main`.
-- The branch was synchronized without force-push by first reconciling the final #173 branch state, then merging current `main`, then restoring only CAPTCHA-specific changes.
+- The branch was synchronized without force-push by reconciling the final #173 branch state, merging current `main`, and restoring only CAPTCHA-specific changes.
 - The resulting `main...agent/auth-captcha-provider-readiness` diff contains exactly 15 intended CAPTCHA/configuration/test files.
 
 ## Research
@@ -49,8 +49,8 @@ MoneyFlow can optionally render Cloudflare Turnstile for Supabase email/password
 - [x] CAPTCHA-enabled deployment validation fails without a site key.
 - [x] No Turnstile secret enters source, Vercel public variables, or browser code.
 - [x] The synchronized PR diff contains only the intended 15 files.
-- [ ] Final exact-head repository CI passes against current `main`.
-- [ ] Human owner reviews and approves the provider dependency before merge.
+- [x] Synchronized implementation passed the complete repository CI matrix.
+- [ ] Human owner reviews and approves the Cloudflare provider dependency before merge.
 
 ### Out of scope
 
@@ -83,27 +83,25 @@ MoneyFlow can optionally render Cloudflare Turnstile for Supabase email/password
 - [x] Keep CAPTCHA disabled by default.
 - [x] Keep the implementation dependency-free at runtime.
 - [x] Preserve provider secrets outside repository and public environment variables.
-- [ ] Run final project knowledge, deployment, CSS, architecture, lint, typecheck, unit, build, database, E2E, and UI-audit gates.
-- [ ] Record exact-head evidence and hand off for human review.
+- [x] Run project knowledge, deployment, CSS, architecture, lint, typecheck, unit, build, database, E2E, and UI-audit gates.
+- [x] Record synchronized evidence and hand off for human review.
 
 ## Evaluation
 
 Evaluation is independent of implementation completion:
 
-1. Compare the final branch directly with current `main` and reject duplicated #173 files.
-2. Verify login, registration, and forgot-password all require and forward the same token only when enabled.
-3. Verify the update-password and Google OAuth flows remain outside CAPTCHA scope.
-4. Verify production CSP remains `frame-src 'none'` while CAPTCHA is disabled and permits only `https://challenges.cloudflare.com` when ready.
-5. Verify the 320px case does not create horizontal document/body overflow.
-6. Verify failed or expired challenges clear/reset before retry.
-7. Run a fresh Supabase reset and all pgTAP suites to prove no database regression.
-8. Treat provider enforcement and production Auth smoke as separate owner-controlled work in #174.
+1. The final branch was compared directly with current `main`; duplicated #173 changes were removed from the PR diff.
+2. Login, registration, and forgot-password require and forward the same token only when enabled.
+3. Update-password and Google OAuth remain outside CAPTCHA scope.
+4. Production CSP remains `frame-src 'none'` while CAPTCHA is disabled and permits only `https://challenges.cloudflare.com` when ready.
+5. The dedicated 320px case verifies no horizontal document/body overflow.
+6. Failed or expired challenges clear/reset before retry.
+7. A fresh Supabase reset and all pgTAP suites pass, proving no database regression in this slice.
+8. Provider enforcement and production Auth smoke remain separate owner-controlled work in #174.
 
 ## Verification
 
-Previous stacked-head CI proved the original implementation, but it is stale after `main` synchronization and is not final acceptance evidence.
-
-Final exact-head CI is pending on the synchronized branch. Required gates:
+Synchronized implementation head `0d2346277a00635e236a4c68fa1b2b3373acfa1e` passed CI #798, run `30700613461`:
 
 - project knowledge, deployment environment, CSS ownership, and architecture contracts;
 - lint and typecheck;
@@ -111,9 +109,12 @@ Final exact-head CI is pending on the synchronized branch. Required gates:
 - production build;
 - fresh Supabase reset and all pgTAP suites;
 - expense-path and Auth CAPTCHA browser smoke;
-- production cross-device UI audit and evidence upload.
+- production cross-device UI audit;
+- Playwright evidence upload.
 
 The browser smoke uses Cloudflare's documented CI-only dummy site key. It must never be copied to production.
+
+This documentation handoff commit must pass the same exact-head CI before merge review is final.
 
 ## Rollback
 
@@ -127,8 +128,9 @@ Repository rollback is a normal revert of PR #175. With the feature flag off, th
 
 ## Delivery state
 
-- PR #175 targets current `main`.
+- PR #175 targets current `main` and is ready for human review.
 - Diff is reduced to 15 intended CAPTCHA/configuration/test files.
+- No npm or runtime package was added; Cloudflare Turnstile is an optional external Auth service behind a disabled-by-default feature flag.
 - Not merged or deployed.
 - No Supabase, Cloudflare, Vercel environment, or Firewall setting changed.
-- Final exact-head CI and human acceptance remain pending.
+- Human approval of the provider dependency is required before merge.
