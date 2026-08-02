@@ -53,8 +53,12 @@ test.describe("Account register detail", () => {
   });
 
   test("does not reveal an unknown account", async ({ page }) => {
-    const response = await page.goto("/accounts/not-a-viewer-account");
-    expect(response?.status()).toBe(404);
-    await expect(page.getByText(/not found|không tìm thấy/i).first()).toBeVisible();
+    await page.goto("/accounts/not-a-viewer-account");
+
+    await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "This page could not be found." }),
+    ).toBeVisible();
+    await expect(page.getByText("MB Bank", { exact: true })).toHaveCount(0);
   });
 });
