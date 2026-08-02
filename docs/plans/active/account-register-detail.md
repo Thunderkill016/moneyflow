@@ -68,7 +68,7 @@ See `specs/001-account-register-detail/spec.md`.
 
 Reconciliation, statement matching, transaction mutation, trends/charts/filters/export, new data contracts and FX conversion.
 
-## Implementation record
+## Implementation plan
 
 | Path | Change |
 |---|---|
@@ -87,7 +87,9 @@ Reconciliation, statement matching, transaction mutation, trends/charts/filters/
 - Compatibility: additive.
 - Rollback: revert PR #228.
 
-## Risks and evaluation
+## Evaluation
+
+### Risks and counterexamples
 
 | Risk | Evidence/result |
 |---|---|
@@ -100,7 +102,7 @@ Reconciliation, statement matching, transaction mutation, trends/charts/filters/
 | PR #223 conflict | Final diff contains no transaction filter/page files |
 | Reconciliation scope creep | No statement/matching/cleared/balance-adjustment code or schema |
 
-## Verification evidence
+### Verification evidence
 
 Exact implementation head: `1775c3b763e5863d8c3f3955961583e152f0a762`.
 
