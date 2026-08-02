@@ -3,7 +3,7 @@
 - **Spec:** `specs/002-transaction-range-filters/spec.md`
 - **Plan:** `specs/002-transaction-range-filters/plan.md`
 - **Work packet:** not required
-- **Current phase:** verifying PR #232
+- **Current phase:** re-verifying PR #232
 - **Last updated:** 2026-08-03
 
 ## Reconnaissance and specification
@@ -58,11 +58,16 @@
   - Depends on: T020–T023
   - Permission: branch_write
   - Evidence: desktop/mobile Playwright projects
+- [x] T031 Stabilize existing SAFE-09 audit fixture without weakening geometry assertions.
+  - Depends on: first exact-head browser run
+  - Permission: branch_write
+  - Evidence: direct contract-valid demo transaction seed, connected-node polling, unchanged static/44px/no-overlap thresholds
+  - Finding: initial run passed all feature browser flows but exposed a 320px pre-hydration locator/quick-capture fixture flake; 360px and 390px SAFE-09 cases passed
 
 ## Delivery
 
 - [x] T090 Open draft replacement PR #232 and add its bounded PR memory.
 - [x] T091 Close PR #223 as superseded by the current-main implementation.
-- [ ] T092 Pass exact-head CI, CodeQL and secret-history scanning.
+- [ ] T092 Pass exact-head CI, CodeQL and secret-history scanning after audit stabilization.
 - [ ] T093 Evaluate acceptance criteria and responsive/browser artifacts.
-- [ ] T094 Mark ready-for-review with remaining limitations and owner-only merge action.
+- [ ] T094 Prepare ready-for-review handoff with remaining limitations and owner-only merge action.
