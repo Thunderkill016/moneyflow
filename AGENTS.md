@@ -12,7 +12,7 @@ This version has breaking changes. Before using unfamiliar App Router APIs, read
 
 For every bounded or high-risk change:
 
-1. `README.md` — product and commands.
+1. `README.md` — product, current-memory link and commands.
 2. `ARCHITECTURE.md` — system boundaries and change map.
 3. `docs/product/PRINCIPLES.md` — product truth and financial constraints.
 4. `docs/MVP_DEFINITION.md` — current ship/readiness contract.
@@ -29,13 +29,15 @@ Task-specific references:
 | UI/UX | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` |
 | Auth/deployment | `docs/configuration.md`, `docs/supabase-setup.md` |
 | Database/RLS | `docs/security-rls-check.md`, relevant migrations and pgTAP tests |
-| Product behavior | `docs/MVP_DEFINITION.md`, `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`, relevant current GitHub issue/PR |
-| External research, tools or architecture | `docs/research/REPOSITORY_REFERENCE_MAP.md`, `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` |
+| Product behavior/status | `docs/research/CURRENT_PROJECT_MEMORY.md`, `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`, `docs/MVP_DEFINITION.md`, relevant current issue/PR |
+| Competitive research | `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`, `docs/research/UI_UX_RESEARCH_LEDGER.md` |
+| External tools or architecture | `docs/research/REPOSITORY_REFERENCE_MAP.md`, `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` |
 
 ## Product law
 
 - MoneyFlow is a manual-first personal income and expense ledger for Vietnamese users.
 - Core jobs: record a transaction quickly; know balances; understand where money went this month; retain and export trustworthy data.
+- Read current code and `CURRENT_PROJECT_MEMORY.md` before treating an old issue checklist as unfinished work.
 - Do not present a daily spending recommendation until the product has an explicit, researched planning contract with reliable income-cycle, commitment and reserve data.
 - Inbox, paste, import and rules are optional advanced capture tools, not the product identity.
 - Do not add bank sync, AI financial advice, OCR, family finance or a full envelope-budgeting system without explicit human approval and a new product specification.
@@ -70,7 +72,8 @@ When a packet is required, complete it in order:
 6. Implementation on a focused branch.
 7. Independent evaluation against the spec.
 8. Risk-proportional CI, browser evidence and affected production verification.
-9. Move the packet to `docs/plans/completed/` after merge and acceptance.
+9. Update `docs/research/CURRENT_PROJECT_MEMORY.md` when implementation status changes.
+10. Move the packet to `docs/plans/completed/` after merge and acceptance.
 
 Record the current execution state, active responsibility, granted permission scope and every state/responsibility handoff for packeted work. Hidden chat context is not a handoff artifact.
 
@@ -129,8 +132,8 @@ Applies to any agent that runs in its own container and pushes to this repositor
 2. **Never change branch protection, required-check settings, workflow permissions, or `CODEOWNERS`** as part of a feature or fix task. A dedicated governance task may propose workflow logic on a branch, but provider-side settings remain human-owned.
 3. **One task, one scope.** Do only what the task specifies. If you find an unrelated defect, report it in the PR body; do not fix it in the same branch.
 4. **Never commit secrets or environment values.** Configuration lives in provider settings. `.env*` stays untracked.
-5. **Do not create a new management layer** — no new handbook, spec system, agent framework, or root-level override stylesheet. Extend existing engineering policy or the required work packet.
-6. **Do not rewrite published history.** Commits already on `main` — including squash-merge commits authored by the owner — are not yours to amend or reset.
+5. **Do not create a new management layer.** Extend existing policy, current memory or the required work packet.
+6. **Do not rewrite published history.** Commits already on `main` are not yours to amend or reset.
 
 ### Reporting
 
@@ -142,19 +145,17 @@ Agent-phase internet is off by default in Codex cloud. Anything needing network 
 
 ### What one gate does not prove
 
-`npm run build` passing proves nothing about database isolation, browser behaviour, or production. Neither does `lint` or `typecheck`. These are separate layers — see the table in `ARCHITECTURE.md`.
+`npm run build` passing proves nothing about database isolation, browser behaviour, provider configuration or production. These are separate layers — see `ARCHITECTURE.md`.
 
 ### Load-bearing traps
 
-These are not style preferences. Each one has already caused a real failure here, and none is discoverable by reading the file you are editing.
-
-- **Inside `src/lib/**`, a _runtime_ import must use a relative path with an explicit `.ts` extension.** `npm run test` is the plain Node runner (`node --experimental-strip-types --test src/lib/*.test.ts src/lib/*/*.test.ts`) and does not read tsconfig paths, so a value import written as `@/lib/...` passes `lint`, `typecheck` and `build` and then fails with `ERR_MODULE_NOT_FOUND`. `import type { … } from "@/lib/…"` is fine and is used deliberately in several modules — types are erased, so Node never resolves them. Do not "fix" those.
-- **The shell's layout lives in `src/components/layout/app-shell.module.css`, not in the global layers.** `app-shell.tsx` renders `styles.shell`, `styles.topbar` and the rest, so a global rule for the same concept applies to nothing — editing it changes nothing, which is why a `44px` rule sitting there let a `42px` control ship while looking fixed. The `.sidebar` and `.topbar` families have now been removed rather than left as bait. **`.app-shell` and `.page-column` are the exception and are still live:** `src/app/goals/loading.tsx` renders them, alone among fifteen route skeletons. An earlier version of this line called all three dead; it was wrong about `.app-shell`. Measure the DOM before trusting any entry on this list, including this one.
-- **`!important` is budgeted.** `npm run check:css-ownership` fails above 1200 declarations. Prefer fixing the owning rule.
-- **Do not add an `@import` to `src/app/legacy.css`,** and do not create another root-level refresh or guardrail stylesheet. The file says so itself.
-- **A property can be set in several layers.** Before declaring a CSS fix done, grep every layer for the same selector, including inside media queries. Base plus a mobile override is the normal shape here.
-- **Measure; do not infer.** Contrast on a translucent background requires alpha compositing against what is behind it. A control's effective hit area includes a wrapping `label`. A module reached only through `await import(...)` is not dead code. Each of these has produced a confident, wrong finding.
+- **Inside `src/lib/**`, a runtime import uses a relative path with an explicit `.ts` extension.** Plain Node tests do not read tsconfig paths. Type-only aliases are erased and may remain.
+- **The shell layout lives in `src/components/layout/app-shell.module.css`, not global layers.** `.app-shell` and `.page-column` remain live in `src/app/goals/loading.tsx`; measure the DOM before declaring CSS dead.
+- **`!important` is budgeted.** `npm run check:css-ownership` fails above the repository limit.
+- **Do not add an `@import` to `src/app/legacy.css`** or create another root-level override stylesheet.
+- **Search all style layers before fixing a property.** Base plus mobile overrides are normal.
+- **Measure; do not infer.** Alpha contrast, effective label hit areas and dynamically imported modules have all produced confident false findings.
 
 ### Definition of done for an agent-authored PR
 
-The branch is pushed, the PR describes scope and evidence honestly, the risk-selected exact-head checks are green, and the owner has reviewed changes that require human judgment. Merging and deployment are the owner's decisions.
+The branch is pushed, the PR describes scope and evidence honestly, the risk-selected exact-head checks are green, current memory is updated when status changed, and the owner has reviewed changes requiring human judgment. Merging and deployment are the owner's decisions.
