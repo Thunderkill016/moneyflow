@@ -13,12 +13,13 @@ MoneyFlow is not currently a bank aggregator, AI financial adviser, business-acc
 
 ## Sources of truth
 
-Start here before non-trivial work:
+Start here before bounded or high-risk work:
 
 - [Agent entrypoint](AGENTS.md)
 - [Architecture map](ARCHITECTURE.md)
 - [Product principles](docs/product/PRINCIPLES.md)
 - [MVP definition and readiness gates](docs/MVP_DEFINITION.md)
+- [Risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md)
 - [AI delivery workflow](docs/engineering/AI_DELIVERY_WORKFLOW.md)
 - [Feature work-packet template](docs/templates/FEATURE_WORK_PACKET.md)
 - [Active/completed plan lifecycle](docs/plans/README.md)
@@ -58,8 +59,14 @@ Production values live in Vercel Project Settings, never in committed `.env` fil
 
 ## Quality checks
 
+GitHub CI keeps stable required check names but selects heavy work from the changed paths. Pushes to `main` and manual runs execute the complete suite. See [risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md).
+
 ```bash
+# Fast repository-policy checks
 npm run check:knowledge
+npm run test:ci-policy
+
+# Static, domain and build verification
 npm run check:deployment-env
 npm run check:architecture
 npm run lint
@@ -67,32 +74,31 @@ npm run typecheck
 npm run test
 npm run build
 
-# Database/RLS, requires Docker
+# Database/RLS, requires Docker and only applies to the database boundary
 npm run test:db
 
-# Browser and responsive evidence
+# Browser and responsive evidence, selected by affected runtime/UI paths
 npm run test:e2e:install
 npm run test:e2e
 npm run test:ui-audit:pr
 ```
 
-Each layer proves something different: build success does not prove RLS, browser usability or production behavior.
+Each layer proves something different: build success does not prove RLS, browser usability or production behavior. Conversely, a database reset or visual audit adds no useful evidence to an unrelated documentation change.
 
 ## Change workflow
 
-Every non-trivial change follows this path:
-
 1. Create a focused branch.
-2. Copy `docs/templates/FEATURE_WORK_PACKET.md` to `docs/plans/active/<slug>.md`.
-3. Audit the repository and relevant history.
-4. Research unresolved external/product questions.
-5. Define acceptance criteria, plan and small tasks.
-6. Implement the smallest coherent vertical slice.
-7. Open a pull request and evaluate the diff against the work packet.
-8. Require static, unit, database and browser gates as applicable.
-9. Review screenshot/artifact evidence for UI changes.
-10. Squash merge and verify the exact production deployment.
-11. Move the packet to `docs/plans/completed/`.
+2. Classify the change using `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
+3. Use an inline/PR plan for bounded low-risk work; create a full work packet for financial, data, security, operational, multi-stage or cross-cutting work.
+4. Audit the repository and relevant history.
+5. Research unresolved external/product questions.
+6. Define acceptance criteria, plan and small tasks proportional to the change.
+7. Implement the smallest coherent vertical slice.
+8. Open a pull request and evaluate the actual diff against the stated scope.
+9. Require exact-head static, unit, database and browser gates only where the affected layer makes them relevant.
+10. Review screenshot/artifact evidence for UI changes.
+11. Squash merge and verify the exact affected production behavior when production behavior changed.
+12. Move a full work packet to `docs/plans/completed/` after acceptance.
 
 Do not push feature or fix commits directly to `main`. Do not create no-op commits to retrigger deployment.
 

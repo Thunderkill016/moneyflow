@@ -10,15 +10,16 @@ This version has breaking changes. Before using unfamiliar App Router APIs, read
 
 ## Required read order
 
-For every non-trivial change:
+For every bounded or high-risk change:
 
 1. `README.md` — product and commands.
 2. `ARCHITECTURE.md` — system boundaries and change map.
 3. `docs/product/PRINCIPLES.md` — product truth and financial constraints.
 4. `docs/MVP_DEFINITION.md` — current ship/readiness contract.
-5. `docs/engineering/AI_DELIVERY_WORKFLOW.md` — research, planning, implementation and review process.
-6. `docs/engineering/AGENT_OPERATING_MODEL.md` — execution states, handoffs, permissions and runtime-tool adoption triggers.
-7. The active work packet under `docs/plans/active/`, when one exists.
+5. `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` — change class, planning artifact and required gates.
+6. `docs/engineering/AI_DELIVERY_WORKFLOW.md` — research, planning, implementation and review process.
+7. `docs/engineering/AGENT_OPERATING_MODEL.md` — execution states, handoffs, permissions and runtime-tool adoption triggers.
+8. The active work packet under `docs/plans/active/`, when the risk policy requires one.
 
 Task-specific references:
 
@@ -50,7 +51,16 @@ Task-specific references:
 
 ## Required delivery workflow
 
-For non-trivial work, copy `docs/templates/FEATURE_WORK_PACKET.md` into `docs/plans/active/<slug>.md` and complete it in order:
+Classify the change first with `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
+
+- **Class 0 documentation/mechanical:** use an inline plan or clear PR description and proportionate documentation checks.
+- **Class 1 bounded code:** use a concise PR plan when one subsystem changes, rollback is straightforward and no high-risk boundary is crossed.
+- **Class 2 UI/flow:** use a concise PR plan for a bounded screen-level change; use a full packet for multi-flow redesign or unresolved product research.
+- **Class 3 financial/data/security/operations:** copy `docs/templates/FEATURE_WORK_PACKET.md` into `docs/plans/active/<slug>.md` and complete the full lifecycle.
+
+A full packet is also required for multi-day or multi-agent work, provider/production writes, cross-cutting architecture, non-obvious rollback or unresolved external research. Do not create process artifacts merely because a change touches several files.
+
+When a packet is required, complete it in order:
 
 1. Repository reconnaissance.
 2. External/product research when facts or behavior are not already established.
@@ -59,14 +69,12 @@ For non-trivial work, copy `docs/templates/FEATURE_WORK_PACKET.md` into `docs/pl
 5. Small, verifiable tasks.
 6. Implementation on a focused branch.
 7. Independent evaluation against the spec.
-8. CI, browser evidence and production verification.
-9. Move the packet to `docs/plans/completed/` after merge.
+8. Risk-proportional CI, browser evidence and affected production verification.
+9. Move the packet to `docs/plans/completed/` after merge and acceptance.
 
-Record the current execution state, active responsibility, granted permission scope and every state/responsibility handoff. A task may advance only with the evidence required by `docs/engineering/AGENT_OPERATING_MODEL.md`; hidden chat context is not a handoff artifact.
+Record the current execution state, active responsibility, granted permission scope and every state/responsibility handoff for packeted work. Hidden chat context is not a handoff artifact.
 
 When research is required, state one decision question and select two to four focused sources by default. Record what each source establishes, what does not apply, and whether adopting code or a tool creates license, security, privacy, operational or rollback obligations. A repository appearing in a reference map is not approval to add it.
-
-A tiny documentation or one-line mechanical fix may use an inline plan, but still requires reading the affected files and running proportionate checks.
 
 ## Coding rules
 
@@ -79,21 +87,37 @@ A tiny documentation or one-line mechanical fix may use an inline plan, but stil
 
 ## Verification
 
-Run the gates appropriate to the change; non-trivial product work requires all of them:
+Run the gates selected by `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`; do not apply every expensive gate to every PR.
 
 ```bash
+# Always available repository contracts
 npm run check:knowledge
+npm run test:ci-policy
+
+# Full static/domain verification for executable changes
 npm run check:deployment-env
+npm run check:css-ownership
+npm run check:architecture
 npm run lint
 npm run typecheck
 npm run test
 npm run build
+
+# Only when the affected boundary requires them
 npm run test:db
 npm run test:e2e
 npm run test:ui-audit:pr
 ```
 
-A change is not done because code was generated or tests were claimed. It is done only when the diff matches the specification, required gates pass, visual/browser evidence is reviewed where relevant, the PR is merged, and the exact production deployment is verified.
+Examples:
+
+- documentation-only: knowledge + CI policy + diff hygiene;
+- pure database-only: knowledge + CI policy + database, no unrelated app verify or browser work;
+- domain/runtime: full verify + browser smoke, no responsive audit unless UI changes;
+- UI/layout: full verify + browser smoke + responsive audit;
+- CI policy, main push or manual verification: every gate.
+
+A change is not done because code was generated or tests were claimed. It is done when the diff matches the scope, the risk-selected exact-head checks pass, required human review occurs, and affected production behavior is verified where applicable.
 
 ## Autonomous cloud agents
 
@@ -102,19 +126,19 @@ Applies to any agent that runs in its own container and pushes to this repositor
 ### Boundaries
 
 1. **Never merge, never push to `main`, never force-push a shared branch.** Push a focused branch and open a pull request. A human owner merges.
-2. **Never change branch protection, CI workflow permissions, required checks, or `CODEOWNERS`** as part of a feature or fix task. If a task appears to require it, stop and say so in the PR.
+2. **Never change branch protection, required-check settings, workflow permissions, or `CODEOWNERS`** as part of a feature or fix task. A dedicated governance task may propose workflow logic on a branch, but provider-side settings remain human-owned.
 3. **One task, one scope.** Do only what the task specifies. If you find an unrelated defect, report it in the PR body; do not fix it in the same branch.
 4. **Never commit secrets or environment values.** Configuration lives in provider settings. `.env*` stays untracked.
-5. **Do not create a new management layer** — no new handbook, spec system, agent framework, or root-level override stylesheet. Extend the existing work packet under `docs/plans/active/`.
+5. **Do not create a new management layer** — no new handbook, spec system, agent framework, or root-level override stylesheet. Extend existing engineering policy or the required work packet.
 6. **Do not rewrite published history.** Commits already on `main` — including squash-merge commits authored by the owner — are not yours to amend or reset.
 
 ### Reporting
 
-State exactly which gates you ran and which you could not. Never describe a gate as passing unless you ran it and saw it pass.
+State exactly which gates were selected, which ran and which were not applicable. Never describe a gate as passing unless it ran and succeeded.
 
-Note in the PR body when a gate could not run and why. "Not run" is an acceptable outcome; a claimed pass that did not happen is not.
+Note in the PR body when a selected gate could not run and why. “Not applicable” is acceptable only when the repository classifier or risk policy supports it; a claimed pass that did not happen is not.
 
-Agent-phase internet is off by default in Codex cloud. Anything needing network — `npm ci`, `npx playwright install`, Supabase CLI — must happen in the setup-script phase, which does have network. If the browser gates (`test:e2e`, `test:ui-audit:pr`) or `test:db` cannot run in your environment, say so; CI runs them on the pull request.
+Agent-phase internet is off by default in Codex cloud. Anything needing network — `npm ci`, `npx playwright install`, Supabase CLI — must happen in the setup-script phase, which does have network. If selected browser or database gates cannot run locally, say so; CI runs them on the pull request.
 
 ### What one gate does not prove
 
@@ -133,4 +157,4 @@ These are not style preferences. Each one has already caused a real failure here
 
 ### Definition of done for an agent-authored PR
 
-The branch is pushed, the PR describes the change and its evidence honestly, CI is green, and the owner has reviewed it. Merging and deployment are the owner's decisions.
+The branch is pushed, the PR describes scope and evidence honestly, the risk-selected exact-head checks are green, and the owner has reviewed changes that require human judgment. Merging and deployment are the owner's decisions.

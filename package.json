@@ -17,6 +17,7 @@
     "check:deployment-env": "node scripts/check-deployment-env.mjs --force",
     "check:css-ownership": "node scripts/check-css-ownership.mjs",
     "check:architecture": "node scripts/check-architecture.mjs",
+    "test:ci-policy": "node --test scripts/classify-ci-changes.test.mjs",
     "mvp-verify": "bash scripts/mvp-verify.sh",
     "check:rls": "bash scripts/check-rls-migrations.sh",
     "test:db": "SUPABASE_TELEMETRY_DISABLED=1 npx supabase test db",
