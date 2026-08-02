@@ -24,6 +24,8 @@ Authority order for implementation status:
 
 When a feature is merged after this snapshot, update this file in the same PR. Do not leave a completed item marked missing merely because an old issue remains open.
 
+Every pull request also updates `docs/research/PR_MEMORY_LOG.md`. This snapshot changes only when implementation, architecture, security, operational or verification status changes; the per-PR log records bounded work even when `Status impact: none`.
+
 ## 2. Status vocabulary
 
 | Status | Meaning |
@@ -441,7 +443,7 @@ Open PRs are not current product behavior.
 |---|---|
 | #211 foreign-key covering indexes | focused database performance candidate; not deployed; rebase/reverify against current `main` before merge |
 | #213 landing/auth product-evidence redesign | large visual candidate requiring owner review; no database/RLS/Auth behavior change claimed |
-| #215 project memory and capability maturation | this documentation/current-state correction branch; must be exact-head verified before owner merge |
+| #215 project memory and capability maturation | this documentation/current-state correction branch; now also establishes mandatory per-PR memory; must be exact-head verified before owner merge |
 | #216 public experience, brand color and wireframe research | research/spec candidate; does not change current UI until implemented and merged |
 | #198 provider security runbook | documentation candidate supporting issue #174 |
 | #197 Dependabot noise control | workflow/maintenance candidate |
@@ -538,16 +540,17 @@ The following claims must not be repeated as current facts:
 
 ## 13. Update protocol
 
-Every feature PR that changes implementation status must update at least one row or section here.
+Every pull request targeting `main` must update project memory.
 
-Required update data:
+Required for every PR:
 
-- exact PR/merge commit;
-- affected capability;
-- new status;
-- what was verified;
-- what remains;
-- whether an issue or old roadmap claim became stale;
-- whether production/provider evidence exists.
+- append one entry to `docs/research/PR_MEMORY_LOG.md`;
+- identify the affected capability or project boundary;
+- state the status impact, using `none` when implementation truth did not change;
+- record what changed, what was verified and what remains;
+- state whether production/provider evidence exists;
+- state whether an issue, roadmap or old claim became stale.
+
+Additionally, a PR that changes implementation, architecture, security, operational or verification status must update at least one affected row or section in this snapshot.
 
 Do not mark a feature complete from a screenshot, route existence, passing build or unmerged branch alone.
