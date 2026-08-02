@@ -38,19 +38,23 @@ test.describe("critical browser compatibility audit", () => {
     });
     const hero = page.locator("#landing-title");
     const lead = page.locator("#landing-title + p");
-    const signals = page.getByRole("region", { name: "Các tín hiệu chính" });
-    const preview = page.getByLabel("Mô phỏng tổng quan MoneyFlow");
+    const preview = page.getByRole("figure", {
+      name: "Ảnh giao diện MoneyFlow: tài khoản",
+    });
+    const ownership = page.getByRole("region", {
+      name: "Dữ liệu của bạn vẫn thuộc về bạn.",
+    });
     const finalCta = page.getByRole("region", {
-      name: "Bắt đầu bằng khoản tiền gần nhất.",
+      name: "Sẵn sàng bắt đầu?",
     });
     const finalCtaTitle = page.getByRole("heading", {
       level: 2,
-      name: "Bắt đầu bằng khoản tiền gần nhất.",
+      name: "Sẵn sàng bắt đầu?",
     });
 
     await expect(hero).toBeVisible();
-    await expect(signals).toBeVisible();
     await expect(preview).toBeVisible();
+    await expect(ownership).toBeVisible();
     await expect(finalCta).toBeVisible();
 
     const semanticColors = {
@@ -78,7 +82,7 @@ test.describe("critical browser compatibility audit", () => {
     expect(semanticColors.brand).toBe("rgb(244, 242, 237)");
     expect(semanticColors.hero).toBe("rgb(244, 242, 237)");
     expect(semanticColors.lead).toBe("rgb(183, 186, 194)");
-    expect(semanticColors.previewBackground).toBe("rgb(21, 25, 34)");
+    expect(semanticColors.previewBackground).toBe("rgb(24, 27, 34)");
     expect(semanticColors.ctaBackground).toBe("rgb(32, 43, 85)");
     expect(semanticColors.ctaTitle).toBe("rgb(244, 242, 237)");
   });
