@@ -28,6 +28,7 @@ const FORBIDDEN_LANDING_PHRASES = [
   "Đừng quản lý tiền bằng trí nhớ",
   "Hãy nhìn nó thành một hệ thống",
   "Nắm rõ tiền của bạn, mỗi ngày",
+  "Biết tiền đang ở đâu. Biết vì sao nó thay đổi.",
 ] as const;
 
 function readLandingSource(): string {
@@ -45,66 +46,65 @@ test("landing source exists and remains a Server Component", () => {
   assert.equal(/^\s*["']use client["']/.test(source), false);
 });
 
-test("landing states a specific traceable product promise", () => {
+test("landing uses natural Vietnamese and a specific product promise", () => {
   const source = readLandingSource();
-  assert.match(source, /Biết tiền đang ở đâu/);
-  assert.match(source, /Biết vì sao nó thay đổi/);
-  assert.match(source, /Ghi thu, chi và chuyển tiền đúng bản chất/);
-  assert.match(source, /mở lại mọi con số để kiểm tra/);
-  assert.match(source, /Không liên kết ngân hàng/);
+  assert.match(source, /Ghi một lần\./);
+  assert.match(source, /Cuối tháng khỏi đoán\./);
+  assert.match(source, /Mỗi khoản thu, chi hay chuyển tiền đều nằm đúng tài khoản/);
+  assert.match(source, /Cần kiểm tra khoản nào thì mở lại khoản đó/);
+  assert.match(source, /MoneyFlow không cần mật khẩu ngân hàng/);
   for (const phrase of FORBIDDEN_LANDING_PHRASES) {
     assert.equal(source.includes(phrase), false, `forbidden: ${phrase}`);
   }
 });
 
-test("hero has one conversion CTA and one workflow CTA", () => {
+test("hero has one primary registration action and a returning-user route", () => {
   const source = readLandingSource();
   const start = source.indexOf("styles.heroActions");
-  const end = source.indexOf("styles.trustRow", start);
-  assert.ok(start >= 0 && end > start, "hero actions precede trust row");
+  const end = source.indexOf("styles.heroNote", start);
+  assert.ok(start >= 0 && end > start, "hero actions precede the factual note");
   const block = source.slice(start, end);
   assert.match(block, /href="\/register"/);
-  assert.match(block, /href="#cach-hoat-dong"/);
+  assert.match(block, /href="\/login"/);
   assert.equal(block.includes('href="/dashboard"'), false);
   assert.equal((block.match(/href="\/register"/g) ?? []).length, 1);
+  assert.equal((block.match(/href="\/login"/g) ?? []).length, 1);
 });
 
 test("landing states ownership and accounting boundaries honestly", () => {
   const source = readLandingSource();
-  assert.match(source, /Không cần mật khẩu ngân hàng/i);
-  assert.match(source, /Xuất lịch sử giao dịch ra CSV/i);
-  assert.match(source, /Chuyển nội bộ không bị tính thành chi tiêu/i);
-  assert.match(source, /sửa và phục hồi/i);
-  assert.match(source, /Bạn quyết định dữ liệu nào được ghi/i);
+  assert.match(source, /Chuyển nội bộ không tính vào chi tiêu/i);
+  assert.match(source, /Có thể sửa, phục hồi/i);
+  assert.match(source, /xuất lịch sử giao dịch ra CSV/i);
+  assert.match(source, /Bạn quyết định khoản nào được ghi/i);
+  assert.doesNotMatch(source, /liên kết tài khoản ngân hàng/i);
 });
 
-test("landing uses real product evidence as one connected workflow", () => {
+test("landing renders a MoneyFlow-specific ledger instead of generic icon cards", () => {
   const source = readLandingSource();
-  assert.match(source, /import Image from "next\/image"/);
-  assert.match(source, /moneyflow-accounts\.svg/);
-  assert.match(source, /moneyflow-quick-capture\.svg/);
-  assert.match(source, /moneyflow-transactions\.svg/);
-  assert.match(source, /Giao diện thật từ môi trường kiểm thử/);
-  assert.match(source, /styles\.proofStage/);
-  assert.match(source, /styles\.traceGrid/);
-  assert.match(source, /styles\.flowProof/);
-  assert.match(source, /styles\.controlGrid/);
-  assert.equal(source.includes("₫"), false);
-  assert.equal(source.includes("US$"), false);
+  assert.doesNotMatch(source, /next\/image/);
+  assert.doesNotMatch(source, /lucide-react/);
+  assert.match(source, /styles\.ledgerDemo/);
+  assert.match(source, /styles\.entryList/);
+  assert.match(source, /styles\.questionList/);
+  assert.match(source, /Dữ liệu minh hoạ/);
+  assert.match(source, /\+15\.000\.000 ₫/);
+  assert.match(source, /Chuyển sang ví chi tiêu/);
 });
 
 test("landing module defines responsive, readable and reduced-motion layout", () => {
   const css = readLandingCss();
   assert.match(css, /\.hero\b/);
-  assert.match(css, /\.proofStage\b/);
-  assert.match(css, /\.traceGrid\b/);
+  assert.match(css, /\.ledgerDemo\b/);
+  assert.match(css, /\.questionList\b/);
+  assert.match(css, /\.flowTrack\b/);
   assert.match(css, /@media \(max-width: 920px\)/);
   assert.match(css, /@media \(max-width: 680px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.equal(css.includes("!important"), false);
 });
 
-test("public redesign is grounded in an explicit competitor research brief", () => {
+test("public redesign remains grounded in the explicit competitor research brief", () => {
   const research = readFileSync(RESEARCH_PATH, "utf8");
   assert.match(research, /Money Lover/);
   assert.match(research, /MISA MoneyKeeper/);
@@ -112,5 +112,4 @@ test("public redesign is grounded in an explicit competitor research brief", () 
   assert.match(research, /Monarch Money/);
   assert.match(research, /YNAB/);
   assert.match(research, /Actual Budget/);
-  assert.match(research, /Biết tiền đang ở đâu\. Biết vì sao nó thay đổi\./);
 });
