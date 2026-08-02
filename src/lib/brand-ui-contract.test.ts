@@ -34,7 +34,7 @@ test("shared brand component uses the exact canonical app-icon path", () => {
 test("landing and auth use the shared brand component", () => {
   assert.match(
     landing,
-    /import \{ BrandLockup, BrandMark \} from "@\/components\/brand\/brand-lockup"/u,
+    /import \{ BrandLockup \} from "@\/components\/brand\/brand-lockup"/u,
   );
   assert.match(
     auth,
@@ -44,11 +44,11 @@ test("landing and auth use the shared brand component", () => {
   assert.doesNotMatch(auth, /className=\{styles\.brandMark\}/u);
 });
 
-test("landing first viewport has a primary registration action and explainer", () => {
-  assert.match(landing, /Đừng quản lý tiền bằng trí nhớ\./u);
-  assert.match(landing, /Tạo không gian tài chính/u);
+test("landing first viewport has a primary registration action and product view", () => {
+  assert.match(landing, /Nắm rõ tiền của bạn, mỗi ngày\./u);
+  assert.match(landing, /Bắt đầu miễn phí/u);
   assert.match(landing, /href="\/register" className=\{styles\.primaryCta\}/u);
-  assert.match(landing, /href="#san-pham" className=\{styles\.secondaryCta\}/u);
+  assert.match(landing, /href="#giao-dien" className=\{styles\.secondaryCta\}/u);
   assert.doesNotMatch(landing, /import \{ Button \}/u);
 });
 
