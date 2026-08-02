@@ -24,7 +24,7 @@ test.describe("critical browser compatibility audit", () => {
     });
   }
 
-  test("landing dark mode keeps public text and proof surfaces readable", async ({ page }, testInfo) => {
+  test("landing dark mode keeps public text and ledger surfaces readable", async ({ page }, testInfo) => {
     test.skip(testInfo.project.use.colorScheme !== "dark", "dark-theme regression contract");
 
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
@@ -38,27 +38,25 @@ test.describe("critical browser compatibility audit", () => {
     });
     const hero = page.locator("#landing-title");
     const lead = page.locator("#landing-title + p");
-    const proofStage = page.getByRole("group", {
-      name: "Chuỗi giao diện thật của MoneyFlow",
+    const ledger = page.getByRole("group", {
+      name: "Sổ giao dịch minh hoạ của MoneyFlow",
     });
-    const accountProof = page.getByRole("figure", {
-      name: "Ảnh giao diện MoneyFlow: tài khoản",
-    });
-    const control = page.getByRole("region", {
-      name: "Sổ của bạn. Quyết định của bạn.",
+    const balanceLabel = ledger.getByText("Tổng số dư", { exact: true });
+    const ownership = page.getByRole("region", {
+      name: "Dữ liệu của bạn vẫn là dữ liệu của bạn.",
     });
     const finalCta = page.getByRole("region", {
-      name: "Tạo một sổ mà mỗi con số đều có chỗ để kiểm tra.",
+      name: "Tạo sổ rồi ghi khoản đầu tiên.",
     });
     const finalCtaTitle = page.getByRole("heading", {
       level: 2,
-      name: "Tạo một sổ mà mỗi con số đều có chỗ để kiểm tra.",
+      name: "Tạo sổ rồi ghi khoản đầu tiên.",
     });
 
     await expect(hero).toBeVisible();
-    await expect(proofStage).toBeVisible();
-    await expect(accountProof).toBeVisible();
-    await expect(control).toBeVisible();
+    await expect(ledger).toBeVisible();
+    await expect(balanceLabel).toBeVisible();
+    await expect(ownership).toBeVisible();
     await expect(finalCta).toBeVisible();
 
     const semanticColors = {
@@ -71,15 +69,15 @@ test.describe("critical browser compatibility audit", () => {
       brand: await brand.evaluate((element) => getComputedStyle(element).color),
       hero: await hero.evaluate((element) => getComputedStyle(element).color),
       lead: await lead.evaluate((element) => getComputedStyle(element).color),
-      proofBackground: await proofStage.evaluate(
+      ledgerBackground: await ledger.evaluate(
         (element) => getComputedStyle(element).backgroundColor,
       ),
-      accountBackground: await accountProof.evaluate(
-        (element) => getComputedStyle(element).backgroundColor,
-      ),
-      controlBackground: await control.evaluate(
-        (element) => getComputedStyle(element).backgroundColor,
-      ),
+      balanceBackground: await balanceLabel.evaluate((element) => {
+        if (!(element.parentElement instanceof HTMLElement)) {
+          throw new Error("Balance row is missing");
+        }
+        return getComputedStyle(element.parentElement).backgroundColor;
+      }),
       ctaTitle: await finalCtaTitle.evaluate(
         (element) => getComputedStyle(element).color,
       ),
@@ -89,9 +87,8 @@ test.describe("critical browser compatibility audit", () => {
     expect(semanticColors.brand).toBe("rgb(247, 248, 250)");
     expect(semanticColors.hero).toBe("rgb(247, 248, 250)");
     expect(semanticColors.lead).toBe("rgb(185, 193, 204)");
-    expect(semanticColors.proofBackground).toBe("rgb(21, 26, 36)");
-    expect(semanticColors.accountBackground).toBe("rgb(21, 26, 36)");
-    expect(semanticColors.controlBackground).toBe("rgb(21, 26, 36)");
+    expect(semanticColors.ledgerBackground).toBe("rgb(21, 26, 36)");
+    expect(semanticColors.balanceBackground).toBe("rgb(29, 36, 48)");
     expect(semanticColors.ctaTitle).toBe("rgb(247, 248, 250)");
   });
 
