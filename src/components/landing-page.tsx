@@ -1,117 +1,66 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowLeftRight,
   ArrowRight,
-  BarChart3,
+  ArrowRightLeft,
   Check,
-  Download,
-  Lock,
-  PlusCircle,
+  FileDown,
+  ReceiptText,
+  Search,
   ShieldCheck,
-  Target,
-  Wallet,
+  Undo2,
+  WalletCards,
 } from "lucide-react";
-import { BrandLockup, BrandMark } from "@/components/brand/brand-lockup";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 import { RevealSection } from "@/components/reveal";
 import styles from "./landing-page.module.css";
 
-const signals = [
+const traceSteps = [
   {
-    label: "Tiền đang có",
-    value: "10.000.000 ₫",
-    note: "trên 3 tài khoản",
-  },
-  {
-    label: "Còn có thể phân bổ",
-    value: "4.280.000 ₫",
-    note: "sau các khoản đã lên kế hoạch",
-  },
-  {
-    label: "Khoản cần chú ý",
-    value: "2",
-    note: "trước ngày 05/08",
-  },
-];
-
-const clarityCards = [
-  {
-    icon: Wallet,
+    icon: ReceiptText,
     number: "01",
-    title: "Biết tiền đang nằm ở đâu",
-    body: "Tiền mặt, ngân hàng và ví điện tử nằm trong cùng một bức tranh nhưng vẫn giữ số dư riêng để bạn đối chiếu.",
+    title: "Ghi đúng bản chất",
+    body: "Thu, chi và chuyển nội bộ là ba loại giao dịch khác nhau. MoneyFlow giữ chúng tách biệt ngay từ lúc nhập.",
+    note: "Chuyển nội bộ không bị tính thành chi tiêu.",
   },
   {
-    icon: BarChart3,
+    icon: WalletCards,
     number: "02",
-    title: "Biết tháng này đang lệch ở đâu",
-    body: "Thu, chi, chuyển nội bộ và các khoản định kỳ được tách đúng bản chất thay vì gom thành một con số khó hiểu.",
+    title: "Thấy số dư thay đổi",
+    body: "Mỗi giao dịch cập nhật đúng tài khoản liên quan, để tổng quan luôn bắt đầu từ sổ giao dịch thay vì một con số nhập tay.",
+    note: "Tiền mặt, ngân hàng và ví điện tử không bị trộn lẫn.",
   },
   {
-    icon: Target,
+    icon: Search,
     number: "03",
-    title: "Biết quyết định tiếp theo là gì",
-    body: "Ngân sách và mục tiêu được đặt cạnh dòng tiền thật để bạn thấy phần nào còn linh hoạt, phần nào đã có nhiệm vụ.",
+    title: "Mở lại để kiểm tra",
+    body: "Từ số tổng, bạn có thể quay về danh sách giao dịch, lọc đúng khoản và sửa khi phát hiện sai sót.",
+    note: "Con số có nguồn gốc, không phải hộp đen.",
   },
-];
+] as const;
 
-const workflow = [
-  {
-    icon: PlusCircle,
-    title: "Ghi khi khoản tiền vừa phát sinh",
-    body: "Một giao dịch ngắn, đúng tài khoản, đúng loại. Không cần dựng lại cả ngày vào cuối tháng.",
-  },
-  {
-    icon: ArrowLeftRight,
-    title: "Sắp xếp mà không làm sai số",
-    body: "Sửa, phục hồi và chuyển tiền giữa tài khoản mà vẫn giữ được lịch sử để kiểm tra lại.",
-  },
-  {
-    icon: BarChart3,
-    title: "Đọc bức tranh trước khi hành động",
-    body: "Mở tổng quan để thấy số dư, nhịp thu chi và các nghĩa vụ gần nhất trong cùng một màn hình.",
-  },
-];
-
-const principles = [
-  {
-    icon: Lock,
-    title: "Không cần đưa mật khẩu ngân hàng",
-    body: "MoneyFlow là manual-first. Bạn chủ động quyết định dữ liệu nào được ghi vào sổ.",
-  },
+const controlPoints = [
   {
     icon: ShieldCheck,
-    title: "Mỗi thay đổi đều có đường quay lại",
-    body: "Xoá mềm, phục hồi và các luồng xác nhận giúp một thao tác vội không biến thành sai lệch lâu dài.",
+    title: "Không cần mật khẩu ngân hàng",
+    body: "MoneyFlow là manual-first. Bạn quyết định dữ liệu nào được ghi vào sổ.",
   },
   {
-    icon: Download,
-    title: "Dữ liệu không bị giữ lại",
-    body: "Xuất lịch sử ra CSV bất cứ lúc nào để kiểm tra, lưu trữ hoặc tiếp tục làm việc ở nơi khác.",
-  },
-];
-
-const faqItems = [
-  {
-    question: "MoneyFlow có tự động đọc giao dịch ngân hàng không?",
-    answer:
-      "Không. MoneyFlow ưu tiên quyền kiểm soát của bạn: giao dịch chỉ xuất hiện khi bạn chủ động ghi hoặc xác nhận một nguồn nhập. Ứng dụng không yêu cầu mật khẩu ngân hàng.",
+    icon: ArrowRightLeft,
+    title: "Chuyển tiền được tính đúng",
+    body: "Di chuyển tiền giữa hai tài khoản không làm chi tiêu bị phóng đại.",
   },
   {
-    question: "Chuyển tiền giữa hai tài khoản có bị tính thành chi tiêu?",
-    answer:
-      "Không. Chuyển nội bộ được ghi thành một luồng riêng, vì vậy tổng thu và tổng chi không bị phóng đại.",
+    icon: Undo2,
+    title: "Có đường sửa và phục hồi",
+    body: "Một lần nhập vội không cần trở thành sai lệch kéo dài trong lịch sử.",
   },
   {
-    question: "Tôi có cần biết phương pháp quản lý tài chính trước không?",
-    answer:
-      "Không. Bắt đầu bằng việc ghi đúng khoản tiền và tài khoản. Ngân sách, khoản định kỳ và mục tiêu có thể thêm sau khi bạn đã nhìn thấy nhịp tiền thật của mình.",
+    icon: FileDown,
+    title: "Lấy dữ liệu ra khi cần",
+    body: "Xuất lịch sử giao dịch ra CSV để tự kiểm tra hoặc tiếp tục xử lý.",
   },
-  {
-    question: "Tôi có thể lấy dữ liệu ra khỏi MoneyFlow không?",
-    answer:
-      "Có. Bạn có thể xuất CSV từ phần cài đặt và xoá tài khoản khi không còn nhu cầu sử dụng.",
-  },
-];
+] as const;
 
 export function LandingPage() {
   return (
@@ -130,9 +79,8 @@ export function LandingPage() {
           />
 
           <div className={styles.navLinks}>
-            <a href="#san-pham">Sản phẩm</a>
-            <a href="#quy-trinh">Cách dùng</a>
-            <a href="#nguyen-tac">Nguyên tắc</a>
+            <a href="#cach-hoat-dong">Cách hoạt động</a>
+            <a href="#quyen-kiem-soat">Quyền kiểm soát</a>
           </div>
 
           <div className={styles.navActions}>
@@ -140,8 +88,7 @@ export function LandingPage() {
               Đăng nhập
             </Link>
             <Link href="/register" className={styles.navCta}>
-              Bắt đầu
-              <ArrowRight size={16} />
+              Tạo sổ
             </Link>
           </div>
         </nav>
@@ -150,225 +97,226 @@ export function LandingPage() {
       <main id="noi-dung">
         <section className={styles.hero} aria-labelledby="landing-title">
           <div className={styles.heroCopy}>
-            <p className={styles.heroIndex}>01 / Bức tranh tài chính cá nhân</p>
+            <p className={styles.kicker}>Sổ thu chi cá nhân · bạn chủ động ghi</p>
             <h1 id="landing-title">
-              Đừng quản lý tiền bằng trí nhớ.
-              <span> Hãy nhìn nó thành một hệ thống.</span>
+              <span>Biết tiền đang ở đâu.</span>
+              <span>Biết vì sao nó thay đổi.</span>
             </h1>
             <p className={styles.heroLead}>
-              MoneyFlow gom tài khoản, giao dịch, ngân sách, khoản định kỳ và
-              mục tiêu vào một nơi — để mỗi lần mở ứng dụng, bạn biết điều gì
-              đang xảy ra và điều gì cần xử lý tiếp theo.
+              Ghi thu, chi và chuyển tiền đúng bản chất. Theo dõi từng tài khoản
+              và mở lại mọi con số để kiểm tra — không cần liên kết ngân hàng.
             </p>
 
             <div className={styles.heroActions}>
               <Link href="/register" className={styles.primaryCta}>
-                Tạo không gian tài chính
-                <ArrowRight size={18} />
+                Tạo sổ của bạn
+                <ArrowRight size={18} aria-hidden="true" />
               </Link>
-              <a href="#san-pham" className={styles.secondaryCta}>
-                Xem MoneyFlow hoạt động
+              <a href="#cach-hoat-dong" className={styles.secondaryCta}>
+                Xem cách hoạt động
               </a>
             </div>
 
             <ul className={styles.trustRow} aria-label="Cam kết chính">
               <li>
-                <Check size={15} /> Không liên kết ngân hàng
+                <Check size={15} aria-hidden="true" /> Không liên kết ngân hàng
               </li>
               <li>
-                <Check size={15} /> Có thể sửa và phục hồi
+                <Check size={15} aria-hidden="true" /> Có thể sửa và phục hồi
               </li>
               <li>
-                <Check size={15} /> Xuất CSV bất cứ lúc nào
+                <Check size={15} aria-hidden="true" /> Xuất CSV khi cần
               </li>
             </ul>
           </div>
 
-          <div className={styles.productStage} aria-label="Mô phỏng tổng quan MoneyFlow">
-            <div className={styles.stageChrome}>
-              <div className={styles.stageBrand}>
-                <BrandMark size="micro" />
-                <span>MoneyFlow / Tổng quan</span>
-              </div>
-              <span className={styles.stagePeriod}>Tháng 8</span>
-            </div>
-
-            <div className={styles.stageMain}>
-              <div className={styles.stageHeadline}>
-                <span>Số tiền đang có nhiệm vụ</span>
-                <strong>5.720.000 ₫</strong>
-                <small>57% tổng số dư đã được phân bổ</small>
-              </div>
-
-              <div className={styles.stageProgress} aria-hidden="true">
+          <div
+            className={styles.proofStage}
+            role="group"
+            aria-label="Chuỗi giao diện thật của MoneyFlow"
+          >
+            <figure
+              className={styles.accountShot}
+              aria-label="Ảnh giao diện MoneyFlow: tài khoản"
+            >
+              <div className={styles.windowBar} aria-hidden="true">
                 <span />
+                <span />
+                <span />
+                <b>Tài khoản</b>
               </div>
+              <Image
+                src="/landing/moneyflow-accounts.svg"
+                width={800}
+                height={938}
+                priority
+                sizes="(max-width: 980px) 92vw, 52vw"
+                alt="Màn hình Tài khoản của MoneyFlow trong môi trường kiểm thử"
+              />
+              <figcaption>
+                Số dư theo từng tài khoản, tạo từ sổ giao dịch.
+              </figcaption>
+            </figure>
 
-              <div className={styles.stageGrid}>
-                <div>
-                  <span>Thu tháng này</span>
-                  <strong className={styles.income}>+25.000.000 ₫</strong>
-                </div>
-                <div>
-                  <span>Chi tháng này</span>
-                  <strong className={styles.expense}>−8.420.000 ₫</strong>
-                </div>
-              </div>
+            <figure
+              className={styles.captureShot}
+              aria-label="Ảnh giao diện MoneyFlow: ghi giao dịch"
+            >
+              <Image
+                src="/landing/moneyflow-quick-capture.svg"
+                width={800}
+                height={850}
+                priority
+                sizes="(max-width: 680px) 58vw, 250px"
+                alt="Màn hình Thêm nhanh của MoneyFlow trong môi trường kiểm thử"
+              />
+              <figcaption>Ghi đúng loại giao dịch.</figcaption>
+            </figure>
 
-              <div className={styles.stageListHeading}>
-                <span>Tiếp theo</span>
-                <small>3 việc cần nhìn</small>
-              </div>
+            <figure
+              className={styles.ledgerShot}
+              aria-label="Ảnh giao diện MoneyFlow: sổ giao dịch"
+            >
+              <Image
+                src="/landing/moneyflow-transactions.svg"
+                width={800}
+                height={668}
+                sizes="(max-width: 680px) 64vw, 310px"
+                alt="Màn hình Sổ giao dịch của MoneyFlow trong môi trường kiểm thử"
+              />
+              <figcaption>Mở sổ để đối chiếu.</figcaption>
+            </figure>
 
-              <ul className={styles.stageList}>
-                <li>
-                  <span className={styles.stageIcon}>01</span>
-                  <div>
-                    <strong>Tiền nhà</strong>
-                    <small>Đến hạn trong 3 ngày</small>
-                  </div>
-                  <b>4.500.000 ₫</b>
-                </li>
-                <li>
-                  <span className={styles.stageIcon}>02</span>
-                  <div>
-                    <strong>Ngân sách ăn uống</strong>
-                    <small>Còn 38% trong tháng</small>
-                  </div>
-                  <b>1.140.000 ₫</b>
-                </li>
-                <li>
-                  <span className={styles.stageIcon}>03</span>
-                  <div>
-                    <strong>Quỹ dự phòng</strong>
-                    <small>Đang tiến tới mục tiêu</small>
-                  </div>
-                  <b>68%</b>
-                </li>
-              </ul>
-            </div>
+            <p className={styles.testDataNote}>
+              Giao diện thật từ môi trường kiểm thử; dữ liệu trong ảnh chỉ dùng
+              để minh hoạ cách hiển thị.
+            </p>
           </div>
         </section>
 
-        <section className={styles.signalStrip} aria-label="Các tín hiệu chính">
-          {signals.map((signal) => (
-            <div key={signal.label}>
-              <span>{signal.label}</span>
-              <strong>{signal.value}</strong>
-              <small>{signal.note}</small>
-            </div>
-          ))}
-        </section>
-
-        <RevealSection
-          className={styles.claritySection}
-          id="san-pham"
-          aria-labelledby="clarity-title"
-        >
-          <div className={styles.sectionIntro}>
-            <p>02 / Ít số hơn, đúng thứ tự hơn</p>
-            <h2 id="clarity-title">Một màn hình tốt phải giúp bạn quyết định.</h2>
-            <span>
-              Không dồn mọi biểu đồ lên cùng một chỗ. MoneyFlow ưu tiên câu hỏi
-              cần trả lời trước, rồi mới cho bạn đi sâu vào chi tiết.
-            </span>
-          </div>
-
-          <div className={styles.clarityGrid}>
-            {clarityCards.map((card) => (
-              <article key={card.number} className={styles.clarityCard}>
-                <div className={styles.cardTopline}>
-                  <card.icon size={21} />
-                  <span>{card.number}</span>
-                </div>
-                <h3>{card.title}</h3>
-                <p>{card.body}</p>
-              </article>
-            ))}
-          </div>
-        </RevealSection>
-
-        <RevealSection
-          className={styles.workflowSection}
-          id="quy-trinh"
-          aria-labelledby="workflow-title"
-        >
-          <div className={styles.workflowIntro}>
-            <p>03 / Một vòng lặp dùng được mỗi ngày</p>
-            <h2 id="workflow-title">Ghi nhanh. Sắp đúng. Xem lại có căn cứ.</h2>
-            <span>
-              MoneyFlow không cố thay bạn ra quyết định. Nó giữ dữ liệu đủ rõ
-              để quyết định của bạn không phải bắt đầu từ phỏng đoán.
-            </span>
-          </div>
-
-          <ol className={styles.workflowList}>
-            {workflow.map((item, index) => (
-              <li key={item.title}>
-                <span className={styles.workflowNumber}>0{index + 1}</span>
-                <div className={styles.workflowIcon}>
-                  <item.icon size={22} />
-                </div>
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{item.body}</p>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </RevealSection>
-
-        <RevealSection
-          className={styles.principlesSection}
-          id="nguyen-tac"
-          aria-labelledby="principles-title"
-        >
-          <div className={styles.sectionIntro}>
-            <p>04 / Thiết kế cho quyền sở hữu</p>
-            <h2 id="principles-title">Một công cụ tài chính phải giải thích được chính nó.</h2>
-            <span>
-              Không có số dư bí ẩn, thay đổi không thể quay lại hay dữ liệu bị
-              khoá trong hệ thống.
-            </span>
-          </div>
-
-          <div className={styles.principlesGrid}>
-            {principles.map((principle) => (
-              <article key={principle.title}>
-                <principle.icon size={23} />
-                <h3>{principle.title}</h3>
-                <p>{principle.body}</p>
-              </article>
-            ))}
-          </div>
-        </RevealSection>
-
-        <RevealSection className={styles.faqSection} aria-labelledby="faq-title">
-          <div className={styles.faqIntro}>
-            <p>05 / Trước khi bắt đầu</p>
-            <h2 id="faq-title">Những câu hỏi nên được trả lời rõ.</h2>
-          </div>
-          <div className={styles.faqList}>
-            {faqItems.map((item, index) => (
-              <details key={item.question}>
-                <summary>
-                  <span>0{index + 1}</span>
-                  {item.question}
-                </summary>
-                <p>{item.answer}</p>
-              </details>
-            ))}
-          </div>
-        </RevealSection>
-
-        <RevealSection className={styles.finalCta} aria-labelledby="final-cta-title">
+        <section className={styles.boundaryStrip} aria-label="MoneyFlow làm gì">
+          <p>Một giao dịch đi xuyên suốt từ lúc ghi đến lúc kiểm tra.</p>
           <div>
-            <p>Không cần hoàn hảo từ ngày đầu.</p>
-            <h2 id="final-cta-title">Bắt đầu bằng khoản tiền gần nhất.</h2>
+            <span>Ghi giao dịch</span>
+            <ArrowRight size={16} aria-hidden="true" />
+            <span>Cập nhật tài khoản</span>
+            <ArrowRight size={16} aria-hidden="true" />
+            <span>Mở sổ đối chiếu</span>
+          </div>
+        </section>
+
+        <RevealSection
+          className={styles.traceSection}
+          id="cach-hoat-dong"
+          aria-labelledby="trace-title"
+        >
+          <div className={styles.sectionHeading}>
+            <p>Cách MoneyFlow giữ một con số có thể giải thích</p>
+            <h2 id="trace-title">Một dòng tiền, ba bước kiểm tra được.</h2>
+            <span>
+              Không bắt đầu bằng biểu đồ. MoneyFlow bắt đầu bằng giao dịch đúng,
+              rồi mới tạo số dư và tổng quan từ dữ liệu đó.
+            </span>
+          </div>
+
+          <div className={styles.traceGrid}>
+            {traceSteps.map((step) => (
+              <article key={step.number}>
+                <div className={styles.stepTopline}>
+                  <step.icon size={22} aria-hidden="true" />
+                  <span>{step.number}</span>
+                </div>
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+                <small>{step.note}</small>
+              </article>
+            ))}
+          </div>
+
+          <div className={styles.flowProof}>
+            <figure className={styles.flowCapture}>
+              <div>
+                <span>Đầu vào</span>
+                <strong>Ghi một khoản trong vài bước rõ ràng</strong>
+                <p>
+                  Loại giao dịch, số tiền, danh mục và tài khoản nằm trong cùng
+                  một luồng ngắn.
+                </p>
+              </div>
+              <Image
+                src="/landing/moneyflow-quick-capture.svg"
+                width={800}
+                height={850}
+                sizes="(max-width: 860px) 92vw, 48vw"
+                alt="Chi tiết màn hình Thêm nhanh của MoneyFlow"
+              />
+            </figure>
+
+            <div className={styles.flowLink} aria-hidden="true">
+              <ArrowRight size={18} />
+              <span>Cùng một dữ liệu</span>
+            </div>
+
+            <figure className={styles.flowLedger}>
+              <div>
+                <span>Đối chiếu</span>
+                <strong>Mở lại đúng khoản tạo ra con số</strong>
+                <p>
+                  Lọc sổ theo loại, danh mục và tài khoản để kiểm tra thay vì
+                  đoán từ một biểu đồ tổng hợp.
+                </p>
+              </div>
+              <Image
+                src="/landing/moneyflow-transactions.svg"
+                width={800}
+                height={668}
+                sizes="(max-width: 860px) 92vw, 48vw"
+                alt="Chi tiết màn hình Sổ giao dịch của MoneyFlow"
+              />
+            </figure>
+          </div>
+        </RevealSection>
+
+        <RevealSection
+          className={styles.controlSection}
+          id="quyen-kiem-soat"
+          aria-labelledby="control-title"
+        >
+          <div className={styles.controlIntro}>
+            <p>Quyền kiểm soát không nằm trong chữ nhỏ cuối trang</p>
+            <h2 id="control-title">Sổ của bạn. Quyết định của bạn.</h2>
+            <span>
+              MoneyFlow sắp xếp dữ liệu bạn chủ động nhập. Ứng dụng không cần
+              trở thành một ngân hàng khác để giúp bạn hiểu dòng tiền.
+            </span>
+          </div>
+
+          <div className={styles.controlGrid}>
+            {controlPoints.map((point) => (
+              <article key={point.title}>
+                <point.icon size={21} aria-hidden="true" />
+                <div>
+                  <h3>{point.title}</h3>
+                  <p>{point.body}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </RevealSection>
+
+        <RevealSection
+          className={styles.finalCta}
+          aria-labelledby="final-cta-title"
+        >
+          <div>
+            <p>Bắt đầu bằng giao dịch gần nhất</p>
+            <h2 id="final-cta-title">
+              Tạo một sổ mà mỗi con số đều có chỗ để kiểm tra.
+            </h2>
           </div>
           <Link href="/register" className={styles.finalCtaButton}>
-            Tạo tài khoản miễn phí
-            <ArrowRight size={18} />
+            Tạo tài khoản
+            <ArrowRight size={18} aria-hidden="true" />
           </Link>
         </RevealSection>
       </main>
@@ -380,7 +328,7 @@ export function LandingPage() {
           ariaLabel="MoneyFlow, trang chủ"
           size="compact"
         />
-        <p>Một hệ thống rõ ràng cho tiền của bạn.</p>
+        <p>Ghi đúng dòng tiền. Mở lại để kiểm tra.</p>
         <div>
           <Link href="/privacy">Quyền riêng tư</Link>
           <Link href="/login">Đăng nhập</Link>
