@@ -3,7 +3,7 @@
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-02
 - **Code baseline audited:** `main@923fc7b80ada67e548628ef2e85b0837780f9ed3`
-- **Owner direction:** deepen capabilities users already have before opening new subsystems; reconciliation is deferred until statement import, matching or validated demand makes it useful
+- **Owner direction:** deepen capabilities users already have before opening new subsystems; reconciliation is deferred until statement import, matching or validated demand makes it useful; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; PR provenance under `docs/research/pr-memory/YYYY/QN/`
 
 ## 1. Purpose and authority
@@ -58,7 +58,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Authentication/demo | **Implemented; external pending** | email/password, OAuth surfaces, recovery/reset, explicit demo, neutral responses, CAPTCHA token plumbing | provider policy/callback/confirmation, enforcement, rates, breached-password and edge rules |
 | Accounts | **Implemented, partial** | common account kinds, initial/derived balances, per-currency totals, CRUD/archive/restore, same-currency transfer | account register/detail, running balance, account export/trends, hide/archive/report semantics |
 | Categories | **Implemented** | income/expense categories, archive and cross-feature use | clearer archive impact; hierarchy only if evidence requires it |
-| Transactions | **Implemented, deepening** | create/search; kind/account/category and inclusive date/amount filters; edit; soft delete/undo; grouped pagination and filtered totals | review state, bounded bulk correction, split-line editing and non-sensitive audit |
+| Transactions | **Implemented; candidate deepening** | create/search, kind/account/category filters, edit, soft delete/undo, grouped pagination and filtered totals | PR #223 candidate adds date/amount filters and correction context; review state, bounded bulk correction, split-line editing and audit remain |
 | Transfers | **Implemented** | balanced semantics, currency guard, report neutrality, shared mutation owner and idempotency | account-register integration and richer correction context |
 | Split expenses | **Implemented** | validated multi-line expense and reporting allocation | in-place line editing and richer correction |
 | Dashboard | **Implemented + production hardened** | bounded one-RPC bundle for balances/activity/planning/Inbox plus schema-skew fallback | direct drill-down and measured large-ledger acceptance |
@@ -126,7 +126,7 @@ Open PRs are not product truth.
 | #170/#171 | stale CSS cleanup stack; compare against later remediation |
 | #119 | draft logo candidate |
 
-## 10. True gaps and current order
+## 10. True gaps after this audit
 
 ### P0 — current-user trust
 
@@ -137,7 +137,7 @@ Open PRs are not product truth.
 
 ### P1 — complete existing loops
 
-1. transaction review state, safe bulk correction, split-line editing and audit;
+1. transaction date/amount filters until PR #223 merges, then review state, safe bulk correction, split-line editing and audit;
 2. budget history/copy/rollover/drill-down;
 3. report arbitrary range/account/type/drill-down;
 4. recurring history/states/calendar/reminders/matching;
@@ -157,7 +157,7 @@ Open PRs are not product truth.
 
 Primary sequence:
 
-1. transaction filters and correction context;
+1. finish and verify PR #223 transaction-filter candidate;
 2. account register/detail with running balance;
 3. budget history and transaction drill-down;
 4. report custom ranges and transaction drill-down;
@@ -172,6 +172,7 @@ Do not repeat these as current facts:
 
 - “CSV import is absent.”
 - “Rules are entirely absent.”
+- “Import provenance/dry-run/atomic approval are future work.”
 - “Reports lack previous-period comparison or trends.”
 - “Recurring items have no occurrence linkage.”
 - “Goals lack a deadline or pace calculation.”
