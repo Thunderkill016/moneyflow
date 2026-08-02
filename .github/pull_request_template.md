@@ -18,13 +18,11 @@
 
 ## Project memory update
 
-Every PR must update `docs/research/PR_MEMORY_LOG.md`.
-
-- PR memory entry added:
-- Affected capability or project boundary:
+- Mandatory PR memory record: `docs/research/pr-memory/YYYY/QN/PR-<number>.md`
 - Status impact: none | candidate | partial → implemented | implemented → production evidenced | other
-- `docs/research/CURRENT_PROJECT_MEMORY.md`: updated section/row | not applicable because status did not change
-- Superseded issue, roadmap or claim: none | exact reference
+- `docs/research/CURRENT_PROJECT_MEMORY.md` updated: yes | not applicable
+- Snapshot section/row changed, or reason not applicable:
+- Superseded issue, roadmap or claim:
 
 ## Research or adoption evidence
 
@@ -40,7 +38,7 @@ Every PR must update `docs/research/PR_MEMORY_LOG.md`.
 | Gate | Required? | Evidence or reason not applicable |
 |---|---|---|
 | Diff hygiene + project knowledge | yes | |
-| Mandatory PR memory update | yes | |
+| Mandatory PR memory record | yes | |
 | Full static/domain verify | | |
 | Supabase reset + pgTAP | | |
 | Browser smoke | | |
