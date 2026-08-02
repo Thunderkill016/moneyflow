@@ -78,18 +78,18 @@ test("public routes consume the project color authority", () => {
   assert.doesNotMatch(documentTheme, /Signal Ledger/u);
 });
 
-test("landing first viewport has a primary action and workflow proof", () => {
-  assert.match(landing, /Biết tiền đang ở đâu\./u);
-  assert.match(landing, /Biết vì sao nó thay đổi\./u);
-  assert.match(landing, /Tạo sổ của bạn/u);
-  assert.doesNotMatch(landing, /Bắt đầu miễn phí/u);
+test("landing first viewport has one primary action and ledger proof", () => {
+  assert.match(landing, /Ghi một lần\./u);
+  assert.match(landing, /Cuối tháng khỏi đoán\./u);
+  assert.match(landing, /Bắt đầu ghi thu chi/u);
   assert.match(landing, /href="\/register" className=\{styles\.primaryCta\}/u);
   assert.match(
     landing,
-    /href="#cach-hoat-dong" className=\{styles\.secondaryCta\}/u,
+    /href="\/login" className=\{styles\.secondaryCta\}/u,
   );
-  assert.match(landing, /aria-label="Chuỗi giao diện thật của MoneyFlow"/u);
+  assert.match(landing, /aria-label="Sổ giao dịch minh hoạ của MoneyFlow"/u);
   assert.doesNotMatch(landing, /import \{ Button \}/u);
+  assert.doesNotMatch(landing, /lucide-react/u);
 });
 
 test("signed-in compatibility bridge is narrow and uses canonical icon asset", () => {
