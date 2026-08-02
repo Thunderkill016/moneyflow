@@ -47,7 +47,8 @@ test("landing and auth use the shared brand component", () => {
 test("landing first viewport has a primary action and workflow proof", () => {
   assert.match(landing, /Biết tiền đang ở đâu\./u);
   assert.match(landing, /Biết vì sao nó thay đổi\./u);
-  assert.match(landing, /Bắt đầu miễn phí/u);
+  assert.match(landing, /Tạo sổ của bạn/u);
+  assert.doesNotMatch(landing, /Bắt đầu miễn phí/u);
   assert.match(landing, /href="\/register" className=\{styles\.primaryCta\}/u);
   assert.match(
     landing,
