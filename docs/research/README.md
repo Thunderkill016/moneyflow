@@ -10,40 +10,35 @@ Khung nghiên cứu **ứng dụng web quản lý thu chi cá nhân**.
 | 4. Open source | [04_OPEN_SOURCE_ANALYSIS.md](./04_OPEN_SOURCE_ANALYSIS.md) | **Done** 2026-07-15 |
 | 5. Product + architecture synthesis | [05_PRODUCT_AND_ARCHITECTURE.md](./05_PRODUCT_AND_ARCHITECTURE.md) | **Done** 2026-07-15 |
 
-## Active product memory, gap map and cumulative ledgers
+## Active memory and research
 
-| Reference | File | Purpose | Status |
-|---|---|---|---|
-| Current project memory | [CURRENT_PROJECT_MEMORY.md](./CURRENT_PROJECT_MEMORY.md) | Snapshot gọn về phần đã merge, production-evidenced, partial, absent, external pending, candidate-only và claim bị supersede | **Primary implementation status** 2026-08-02 |
-| Pull-request memory index | [PR_MEMORY_LOG.md](./PR_MEMORY_LOG.md) | Policy, kích thước tối đa và chỉ mục cho record riêng của từng PR | **Mandatory policy** 2026-08-02 |
-| Per-PR records | `pr-memory/YYYY/QN/PR-<number>.md` | Một record nhỏ cho mỗi PR để giữ provenance mà không làm một file phình to hoặc gây conflict giữa các branch | **Mandatory per PR** |
-| Product competitive memory | [PRODUCT_COMPETITIVE_MEMORY.md](./PRODUCT_COMPETITIVE_MEMORY.md) | Tổng hợp nguồn và so sánh sản phẩm Việt Nam/quốc tế/open-source; giữ các pattern nên học và không nên sao chép | **Active competitive evidence** 2026-08-02 |
-| Competitive capability gap matrix | [PRODUCT_CAPABILITY_GAP_MATRIX.md](./PRODUCT_CAPABILITY_GAP_MATRIX.md) | Gap đã được audit lại theo code hiện tại và roadmap nâng chiều sâu các module đang có | **Active roadmap direction** 2026-08-02 |
-| Cumulative UI/UX research | [UI_UX_RESEARCH_LEDGER.md](./UI_UX_RESEARCH_LEDGER.md) | Nguồn UI/UX tích lũy, bằng chứng MoneyFlow, đối thủ, accessibility, AI design tools, mâu thuẫn, quyết định bị thay thế và khoảng trống chưa phục hồi | **Active** 2026-08-02 |
-| Finance product repositories | [REPOSITORY_REFERENCE_MAP.md](./REPOSITORY_REFERENCE_MAP.md) | Repo tham khảo theo từng phần của sản phẩm MoneyFlow: ledger, capture, import/export, budget, recurring, reports, UI, security và verification | **Active** 2026-08-01 |
-| Engineering foundations | [ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md](./ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md) | AI coding, research, product direction, project organization, clean code, architecture, testing, security, CI/CD, documentation và nền tảng học tập | **Active** 2026-08-01 |
+| Reference | File | Purpose |
+|---|---|---|
+| Warm-context router | [`docs/context/README.md`](../context/README.md) | Chọn đúng tài liệu theo boundary; không preload toàn bộ repo history |
+| Current project memory | [CURRENT_PROJECT_MEMORY.md](./CURRENT_PROJECT_MEMORY.md) | Snapshot gọn về current truth và true gaps |
+| Pull-request memory index | [PR_MEMORY_LOG.md](./PR_MEMORY_LOG.md) | Policy, trust boundary và size budget |
+| Per-PR records | `pr-memory/YYYY/QN/PR-<number>.md` | Cold provenance riêng cho từng PR |
+| Capability gap matrix | [PRODUCT_CAPABILITY_GAP_MATRIX.md](./PRODUCT_CAPABILITY_GAP_MATRIX.md) | Roadmap nâng chiều sâu các module đang có |
+| Competitive memory | [PRODUCT_COMPETITIVE_MEMORY.md](./PRODUCT_COMPETITIVE_MEMORY.md) | Pattern đối thủ, nguồn và giới hạn không sao chép |
+| UI/UX ledger | [UI_UX_RESEARCH_LEDGER.md](./UI_UX_RESEARCH_LEDGER.md) | Bằng chứng UI/UX tích lũy và concept bị supersede |
+| Finance repositories | [REPOSITORY_REFERENCE_MAP.md](./REPOSITORY_REFERENCE_MAP.md) | Nguồn tham khảo theo capability |
+| Engineering foundations | [ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md](./ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md) | Nguồn kỹ thuật, testing, security và CI/CD |
 
-## Required interpretation order
+## Interpretation order
 
-1. Dùng `CURRENT_PROJECT_MEMORY.md` để biết hiện tại đã làm gì và còn gì thật.
-2. Dùng `PR_MEMORY_LOG.md` để hiểu policy; chỉ mở record trong `pr-memory/YYYY/QN/` khi cần provenance của một PR cụ thể.
-3. Dùng merged code/migrations/tests để xác nhận khi một workstream bắt đầu.
-4. Dùng `PRODUCT_CAPABILITY_GAP_MATRIX.md` cho thứ tự phát triển hiện hành.
-5. Dùng `PRODUCT_COMPETITIVE_MEMORY.md` để hiểu pattern đối thủ và giới hạn không nên sao chép.
-6. Dùng issue body/tài liệu cũ như lịch sử; đọc comment mới và current memory trước khi coi checklist là chưa làm.
+1. Đọc code/tests/migrations của boundary đang sửa.
+2. Đọc `CURRENT_PROJECT_MEMORY.md` để biết current truth.
+3. Dùng `docs/context/README.md` để chọn 2–4 tài liệu warm context.
+4. Dùng `PRODUCT_CAPABILITY_GAP_MATRIX.md` cho thứ tự phát triển.
+5. Dùng `PRODUCT_COMPETITIVE_MEMORY.md` khi cần pattern đối thủ.
+6. Chỉ mở `pr-memory/YYYY/QN/PR-<number>.md` khi cần provenance.
 
-Mọi PR targeting `main` phải tạo record riêng tại `docs/research/pr-memory/YYYY/QN/PR-<number>.md`. PR làm đổi trạng thái capability, kiến trúc, bảo mật, vận hành hoặc verification phải đồng thời sửa đúng row/section trong `CURRENT_PROJECT_MEMORY.md`. PR không đổi trạng thái vẫn ghi `Status impact: none` trong record riêng thay vì tạo claim giả.
+Mọi PR targeting `main` phải có record riêng. PR đổi capability, architecture, security, operations hoặc verification phải cập nhật snapshot; PR không đổi current truth ghi `Status impact: none`.
 
-Snapshot và record có size budget được CI kiểm tra. Khi snapshot gần ngưỡng, một compaction PR chỉ giữ current truth, gap thật và incident lesson; lịch sử chi tiết vẫn nằm trong các record riêng và Git history.
+Snapshot target 150–250 dòng, warning sau 300 dòng/32 KiB và fail sau 500 dòng/64 KiB. Lịch sử chi tiết không được copy vào snapshot.
 
-Quyết định owner ngày 2026-08-02 thay thế cách triển khai “đóng băng phát triển cho đến khi hoàn thành bảy ngày validation”. Validation vẫn bắt buộc trong từng workstream nhưng không chặn toàn bộ feature-depth work.
+Quyết định owner ngày 2026-08-02 thay thế feature freeze toàn cục. Validation vẫn bắt buộc trong từng workstream.
 
-`UI_UX_RESEARCH_LEDGER.md` là điểm bắt đầu bắt buộc cho mọi vòng UI/UX. Nghiên cứu tích lũy nhưng concept thiết kế chỉ là giả thuyết; tài liệu concept bị bác bỏ hoặc superseded không được dùng làm baseline.
-
-Hai repository reference map là chỉ mục nghiên cứu, không phải roadmap hay dependency manifest. Mỗi feature work packet chỉ nên chọn 2–4 nguồn liên quan trực tiếp và phải ghi rõ giới hạn áp dụng.
-
-Tài liệu cũ như `docs/COMPETITOR_AND_OSS_RESEARCH.md`, `02_USER_AND_COMPETITORS.md`, `docs/UX_RESEARCH_AND_REDESIGN.md` và `docs/BEST_OF_MATRIX.md` vẫn được giữ làm lịch sử. Không dùng status cũ để ghi lại một feature đã merge thành “chưa làm”.
-
-**Lưu ý:** Bộ docs này là luật định vị **thu chi cá nhân**. Không dùng competitor parity để tự mở rộng sang bank sync, AI advice, OCR, household finance, investment, full FX accounting hoặc native app.
+Tài liệu cũ vẫn là lịch sử, không được dùng để biến một feature đã merge thành “chưa làm”. Không dùng competitor parity để tự mở rộng sang bank sync, AI advice, OCR, household finance, investments, full FX accounting hoặc native app.
 
 Stack hiện tại: Next.js · TypeScript · Tailwind · shadcn/Base UI · Supabase · Node tests · Playwright · k6 · Vercel.
