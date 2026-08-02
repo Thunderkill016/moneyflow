@@ -1,4 +1,9 @@
-/* SAFE-02 — route-scoped repair for the Login action hidden by legacy mobile CSS. */
+/*
+ * SAFE-02 — route-scoped mobile header repair.
+ * Keep Login visible and tappable while preserving room for the primary
+ * register action. At the narrowest supported width the accessible brand link
+ * becomes mark-only; its aria-label still exposes the full MoneyFlow name.
+ */
 @media (max-width: 560px) {
   nav[aria-label="Điều hướng trang chủ"] a[href="/login"] {
     min-width: 76px;
@@ -8,5 +13,22 @@
     justify-content: center;
     padding-inline: 10px;
     white-space: nowrap;
+  }
+}
+
+@media (max-width: 360px) {
+  nav[aria-label="Điều hướng trang chủ"]
+    a[aria-label="MoneyFlow, trang chủ"] {
+    width: 44px;
+    min-width: 44px;
+    flex: 0 0 44px;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  nav[aria-label="Điều hướng trang chủ"]
+    a[aria-label="MoneyFlow, trang chủ"]
+    > span:last-child {
+    display: none;
   }
 }
