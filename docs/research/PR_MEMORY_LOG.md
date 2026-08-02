@@ -43,8 +43,8 @@ CI checks that this file is present in every pull-request diff through the exist
 - Affected capability or project boundary: project memory, roadmap authority and delivery governance
 - Status impact: project-status authority and mandatory per-PR memory enforcement created; no runtime capability change
 - Changed: audited merged MoneyFlow behavior, corrected stale feature-gap claims, added the current capability matrix, created the append-only PR memory log, updated the snapshot and active-plan protocol, and made omission fail the existing required project-knowledge check
-- Verified: pending final exact-head rerun after the per-PR memory enforcement change
-- Remaining: final exact-head verification, owner review and merge; future PRs must append their own entry
+- Verified: final head `5a8646141816bf483a108c726769ebdf635175d2`; CI #996, CodeQL #160 and Secret history scan #160 succeeded; project-knowledge enforcement, classifier, lint, typecheck, unit/static RLS and production build all passed
+- Remaining: owner review and merge; future PRs must append their own entry
 - Production/provider evidence: not applicable because runtime and provider behavior did not change
 - Snapshot update: `CURRENT_PROJECT_MEMORY.md` purpose, PR #215 candidate row and update protocol
 - Superseded issue, roadmap or claim: old reports/export/recurring/goals/dashboard/import/security gap claims recorded in the snapshot
