@@ -1,11 +1,11 @@
 # Implementation Plan: Account register and detail
 
-**Spec:** `specs/001-account-register-detail/spec.md`  
-**Branch:** `feat/account-register-detail-main`  
-**Change class:** Class 2 bounded UI/read-flow  
-**Work packet:** `docs/plans/active/account-register-detail.md`  
-**Status:** implementing  
-**Last updated:** 2026-08-02
+- **Spec:** `specs/001-account-register-detail/spec.md`
+- **Branch:** `feat/account-register-detail-main`
+- **Change class:** Class 2 bounded UI/read-flow
+- **Work packet:** `docs/plans/active/account-register-detail.md`
+- **Status:** implementing
+- **Last updated:** 2026-08-02
 
 ## Technical context
 
