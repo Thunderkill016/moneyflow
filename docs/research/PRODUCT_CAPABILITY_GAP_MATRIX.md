@@ -3,7 +3,7 @@
 - **Status:** active capability roadmap
 - **Audit date:** 2026-08-02
 - **Owner direction:** mature existing MoneyFlow capabilities to competitive depth; validation belongs inside each workstream and does not freeze development
-- **Code baseline:** `main@f57b92ec471e816f96fa13dd464a7a98297bb2d4`
+- **Code baseline:** `main@8afad4ecb6e29eeafdac0e6d025612e94043657a`
 - **Implementation authority:** `docs/research/CURRENT_PROJECT_MEMORY.md`
 - **Competitive evidence:** `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`
 
@@ -39,6 +39,7 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 - current-month recurring occurrences linked to transactions;
 - goals with target, allocated amount, deadline and planned-daily pace;
 - responsive, long-Vietnamese and rich-VND automated evidence;
+- project-wide white-first/trust-blue brand system and production-evidenced landing/auth redesign;
 - risk-proportional CI, CodeQL, secret scanning and pgTAP.
 
 ### Present but incomplete
@@ -73,6 +74,7 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 | Savings goals | **Implemented, partial depth** |
 | Export | **Implemented, stronger than old docs claim** |
 | Import provenance | **Implemented + production evidenced** |
+| Public brand/landing/auth | **Implemented + production evidenced** |
 
 ## 3. Capability matrix
 
@@ -91,6 +93,7 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 | Rules | local deterministic parse rules | authenticated storage, RLS, order/stage, preview, enable/disable, version/audit and management UI | Actual, Firefly III, Monarch | P2 |
 | Dashboard | one bundled authenticated RPC, fallback, balances/activity/planning/Inbox count | direct drill-down, evidence-based attention states, measured large-ledger acceptance | Copilot, Monarch, Rocket Money | P2 |
 | Auth/security | app auth/recovery, neutral responses, CAPTCHA token plumbing, CSP/headers, hardened public ingestion, scanning | hosted provider settings, CAPTCHA enforcement, rate limits, breached-password control and edge rules | issue #174 | P0 for public beta |
+| Public experience | project-wide semantic color authority, product-proof landing, task-first auth, light/dark and production route evidence | physical-device review, conversion/retention evidence and provider-flow completion | current design docs and PR #213 | P1 |
 | Mobile/accessibility | responsive dark/light, broad matrix, 44px targets, modal and money-value fixes, rich-VND/long-label coverage | physical devices and remaining validation/destructive/Inbox/planning states | issue #72 | P1 |
 | Performance/audit | dashboard bundle/fallback, bounded window, k6 profiles, pgTAP | staging load acceptance, large-ledger benchmarks, FK-index candidate, mutation audit | PostgreSQL/Supabase evidence | P2 |
 
@@ -229,12 +232,14 @@ Build next:
 - export-before-delete;
 - documented restoration/import path.
 
-### 4.8 Dashboard, onboarding and mobile
+### 4.8 Dashboard, onboarding, public entry and mobile
 
 Already implemented:
 
 - one authenticated dashboard bundle RPC;
 - schema-skew fallback;
+- project-wide white-first/trust-blue public experience;
+- product-proof landing and task-first auth on production;
 - responsive route matrix;
 - rich-VND/long-label regression;
 - 44px target, modal, icon-name and money-wrap remediations.
@@ -253,7 +258,7 @@ Build next:
 | Issue | Completed evidence | Remaining |
 |---|---|---|
 | #53 domain benchmark | import provenance/dry-run/atomic approval complete; many DB invariants and performance foundations complete | reconciliation, authenticated rules, mutation audit and final performance/index acceptance |
-| #72 UI audit | 20 routes/dialogs, rich VND/long Vietnamese, phone rows, report clipping, 44px/modal/accessibility batches | validation/destructive/Inbox/planning states and physical devices |
+| #72 UI audit | 20 routes/dialogs, rich VND/long Vietnamese, phone rows, report clipping, 44px/modal/accessibility batches; landing/auth brand rollout complete | validation/destructive/Inbox/planning states and physical devices |
 | #172 product assessment | useful market-validation warnings | old scoring and feature-freeze direction are historical/superseded |
 | #174 provider controls | source/app readiness and read-only baseline complete | hosted provider writes and production verification |
 
@@ -320,4 +325,5 @@ Do not repeat these as current gaps:
 - dashboard still uses the original authenticated fan-out;
 - rich VND, long Vietnamese, 44px targets and modal placement are wholly untested;
 - CAPTCHA application plumbing is absent;
+- landing/auth still use the rejected green-first or Signal Ledger direction;
 - all feature work must wait for a seven-day validation phase.
