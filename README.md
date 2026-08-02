@@ -27,6 +27,8 @@ Start here before bounded or high-risk work:
 - [AI delivery workflow](docs/engineering/AI_DELIVERY_WORKFLOW.md)
 - [Feature work-packet template](docs/templates/FEATURE_WORK_PACKET.md)
 - [Active/completed plan lifecycle](docs/plans/README.md)
+- [Spec Kit adapter and authority rules](.specify/README.md)
+- [Spec Kit constitution](.specify/memory/constitution.md)
 
 UI, brand and infrastructure references:
 
@@ -40,6 +42,8 @@ UI, brand and infrastructure references:
 - [RLS verification](docs/security-rls-check.md)
 
 Historical research remains useful as evidence but does not override current code, the current-project memory or accepted owner decisions. Every pull request targeting `main` must append one truthful entry to the pull-request memory log. A PR that changes implementation status must also update the affected row or section in the current-project memory.
+
+Spec Kit feature artifacts under `specs/` are accepted as structured requirements, planning and task inputs. They do not replace the risk classifier, a required MoneyFlow work packet, permission/handoff records, PR memory or human owner decisions.
 
 ## Runtime modes
 
@@ -94,16 +98,19 @@ Each layer proves something different: build success does not prove RLS, browser
 1. Create a focused branch.
 2. Classify the change using `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
 3. Use an inline/PR plan for bounded low-risk work; create a full work packet for financial, data, security, operational, multi-stage or cross-cutting work.
-4. Audit the repository and relevant history.
-5. Research unresolved external/product questions.
-6. Define acceptance criteria, plan and small tasks proportional to the change.
-7. Implement the smallest coherent vertical slice.
-8. Update `docs/research/PR_MEMORY_LOG.md`; update `CURRENT_PROJECT_MEMORY.md` too when implementation status changed.
-9. Open a pull request and evaluate the actual diff against the stated scope.
-10. Require exact-head static, unit, database and browser gates only where the affected layer makes them relevant.
-11. Review screenshot/artifact evidence for UI changes.
-12. Squash merge and verify the exact affected production behavior when production behavior changed.
-13. Move a full work packet to `docs/plans/completed/` after acceptance.
+4. For feature work that benefits from structured SDD, use the MoneyFlow-adapted Spec Kit constitution and templates to create `spec.md`, clarify material ambiguity, produce `plan.md`, generate reviewable `tasks.md` and analyze consistency.
+5. Audit the repository and relevant history.
+6. Research unresolved external/product questions.
+7. Define acceptance criteria, plan and small tasks proportional to the change.
+8. Implement the smallest coherent vertical slice.
+9. Update `docs/research/PR_MEMORY_LOG.md`; update `CURRENT_PROJECT_MEMORY.md` too when implementation status changed.
+10. Open a pull request and evaluate the actual diff against the stated scope.
+11. Require exact-head static, unit, database and browser gates only where the affected layer makes them relevant.
+12. Review screenshot/artifact evidence for UI changes.
+13. Squash merge and verify the exact affected production behavior when production behavior changed.
+14. Move a full work packet to `docs/plans/completed/` after acceptance.
+
+When both Spec Kit artifacts and a full work packet exist, the packet owns execution state, permissions, handoffs and delivery evidence. Spec Kit owns feature-specific requirements, technical planning and task decomposition.
 
 Do not push feature or fix commits directly to `main`. Do not create no-op commits to retrigger deployment.
 
