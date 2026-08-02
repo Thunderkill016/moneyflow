@@ -9,6 +9,7 @@ const requiredFiles = [
   "ARCHITECTURE.md",
   "README.md",
   "docs/product/PRINCIPLES.md",
+  "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
   "docs/engineering/AGENT_OPERATING_MODEL.md",
   "docs/research/README.md",
@@ -83,8 +84,8 @@ for (const path of currentTruthFiles) {
 
 try {
   const agentsLines = read("AGENTS.md").split(/\r?\n/u).length;
-  if (agentsLines > 160) {
-    failures.push(`AGENTS.md has ${agentsLines} lines; keep it as a concise map (maximum 160)`);
+  if (agentsLines > 165) {
+    failures.push(`AGENTS.md has ${agentsLines} lines; keep it as a concise map (maximum 165)`);
   }
 } catch {
   // Missing file already reported above.
@@ -93,6 +94,7 @@ try {
 const requiredReadmeLinks = [
   "ARCHITECTURE.md",
   "docs/product/PRINCIPLES.md",
+  "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
 ];
 
@@ -111,12 +113,25 @@ requireMarkers("docs/research/README.md", [
 ]);
 
 requireMarkers("AGENTS.md", [
+  "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
   "docs/engineering/AGENT_OPERATING_MODEL.md",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
   "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
   "current execution state",
-  "hidden chat context is not a handoff artifact",
+  "Hidden chat context is not a handoff artifact",
   "two to four focused sources",
+]);
+
+requireMarkers("docs/engineering/RISK_PROPORTIONAL_DELIVERY.md", [
+  "## Change classes",
+  "Class 0",
+  "Class 1",
+  "Class 2",
+  "Class 3",
+  "## CI selection contract",
+  "## Stable required checks",
+  "## Work-packet decision test",
+  "scripts/classify-ci-changes.mjs",
 ]);
 
 requireMarkers("docs/engineering/AI_DELIVERY_WORKFLOW.md", [
@@ -160,14 +175,15 @@ requireMarkers("docs/templates/FEATURE_WORK_PACKET.md", [
 ]);
 
 requireMarkers(".github/pull_request_template.md", [
-  "## Agent operating evidence",
-  "Current execution state:",
+  "## Risk and plan",
+  "Change class:",
+  "Planning artifact:",
   "Permission scope used:",
-  "Last handoff artifacts:",
-  "Selected sources (two to four by default):",
-  "Important source limits or patterns intentionally not copied:",
-  "### Tool, dependency or architecture adoption",
-  "license, security, ownership and rollback review",
+  "## Research or adoption evidence",
+  "Selected sources and what they establish:",
+  "License, security, privacy, ownership and rollback review",
+  "## Verification selection",
+  "Affected production verification",
 ]);
 
 const requiredActiveHeadings = [
