@@ -1,7 +1,7 @@
 # Risk-proportional delivery
 
-**Status:** active engineering policy  
-**Owner:** `docs/engineering/AI_DELIVERY_WORKFLOW.md`  
+**Status:** active engineering policy
+**Owner:** `docs/engineering/AI_DELIVERY_WORKFLOW.md`
 **Last reviewed:** 2026-08-02
 
 MoneyFlow protects money correctness, tenant ownership and production data without applying the most expensive verification path to every change. The goal is fast, trustworthy feedback: each change receives the smallest set of controls that can detect its realistic failure modes.
