@@ -1,500 +1,231 @@
 # Competitive capability maturation
 
-- **Execution state:** planned
-- **Active role:** product planner / implementation coordinator
+- **Execution state:** evaluating
+- **Active role:** project auditor / product planner
 - **Permission scope:** branch_write + repository_read
 - **Owner:** Thunderkill016
+- **PR:** #215
 - **Branch:** `plan/product-validation-rollout`
 - **Base:** `main@f57b92ec471e816f96fa13dd464a7a98297bb2d4`
 - **Decision date:** 2026-08-02
+- **Current memory:** `docs/research/CURRENT_PROJECT_MEMORY.md`
 - **Gap matrix:** `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`
 
 ## Repository reconnaissance
 
-MoneyFlow already has:
+The first version of this packet over-reported several gaps because it relied too heavily on earlier summaries. A second audit read current code, merge history and issue follow-up evidence.
 
-- authentication and demo runtime;
-- multiple accounts;
-- income, expense and balanced transfer entries;
-- transaction search/filter, edit, soft delete and restore;
-- dashboard and period summaries;
-- category budgets;
-- recurring commitments and recurring income templates;
-- savings goals;
-- weekly, monthly and yearly reports;
-- controlled import, provenance, duplicate planning and atomic approval;
-- CSV export;
-- responsive light/dark UI;
-- RLS, pgTAP, browser tests and risk-proportional CI.
+Corrected findings:
 
-The problem is feature depth. Several screens exist as isolated or basic workflows while comparable products connect them through review, history, drill-down, reconciliation, rules, reminders and export.
+- reports already include previous-period comparison, expense-change percentage and trends;
+- export already supports date ranges, CSV/JSON and transaction/candidate/all bundles;
+- recurring commitments and income already use current-month occurrence-to-transaction links;
+- goals already have deadlines and planned-daily pace;
+- account create/edit/archive/restore and per-currency totals already exist;
+- dashboard one-RPC loading, bounded windows and schema-skew fallback are merged;
+- import provenance, server dry-run and atomic approval are completed and production-smoked;
+- broad rich-VND, long-Vietnamese, 44px, modal and accessibility remediation is merged;
+- app-side CAPTCHA plumbing and repository security are merged; provider enforcement remains external.
 
-The owner direction supersedes the validation-first sequence previously proposed in PR #215:
-
-- development continues immediately;
-- existing capabilities are matured toward competitive depth;
-- validation is embedded in every implementation PR;
-- real-use evidence may reorder or correct work but does not freeze all development;
-- unrelated competitor categories remain out of scope.
+The project needs a current implementation memory so future work does not repeatedly rediscover completed behavior or execute stale issue sequences.
 
 ## Research
 
 ### Decision question
 
-What implementation sequence can bring MoneyFlow's existing accounts, transactions, planning, reporting, import/export and mobile/Auth capabilities to competitive depth without creating a feature-parity sprawl or weakening financial correctness?
+What is the accurate current MoneyFlow state, and what is the smallest set of remaining depth improvements that makes existing capabilities competitive without duplicating completed work or expanding into unrelated product categories?
 
-### Source selection
+### Sources audited
 
-Primary internal sources:
+Primary repository evidence:
 
-- `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`;
-- `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`;
-- `docs/product/PRINCIPLES.md`;
-- `docs/MVP_DEFINITION.md`;
-- `ARCHITECTURE.md`;
-- issues #53, #72 and #174;
-- current merged code and tests.
+- merged code at `main@f57b92ec471e816f96fa13dd464a7a98297bb2d4`;
+- `README.md`, `ARCHITECTURE.md`, `docs/MVP_DEFINITION.md` and product principles;
+- server workspaces for accounts, finance, dashboard, budgets, commitments, recurring income, goals and reports;
+- transaction, reports and export domain/UI code;
+- recent merged PR/commit history;
+- issues #53, #72, #172 and #174 including follow-up comments;
+- open PR inventory.
 
-External patterns already consolidated in the product memory:
-
-- YNAB and Actual Budget for reconciliation and explicit transaction states;
-- Copilot and Monarch for review, correction, rules, report hierarchy and recurring awareness;
-- Money Lover and MISA for Vietnamese daily-use expectations;
-- Wallet for account lifecycle, export and broad workflow depth;
-- Rocket Money for recurring attention patterns;
-- Firefly III for deterministic rules and auditability;
-- spreadsheets for portability expectations.
+Competitive patterns remain sourced from `PRODUCT_COMPETITIVE_MEMORY.md`; they do not override merged product truth.
 
 ### Adoption review
 
-No new dependency, service, provider or architecture is approved by this plan.
+No dependency, external service, provider setting, schema, runtime architecture or production behavior is adopted or changed by this documentation PR.
 
-Any external tool adoption requires a separate review of:
-
-- license;
-- security and privacy;
-- data ownership;
-- operational burden;
-- rollback;
-- whether the existing stack can implement the requirement directly.
+- license impact: none;
+- security/privacy impact: none;
+- production impact: none;
+- rollback: remove the new memory and restore the prior links/roadmap files;
+- provider writes remain separately authorized.
 
 ## Specification
 
-### Product objective
+### Deliverables
 
-Turn the existing MoneyFlow modules into complete connected loops:
+1. Add `docs/research/CURRENT_PROJECT_MEMORY.md` as the canonical implementation-status snapshot.
+2. Correct `PRODUCT_CAPABILITY_GAP_MATRIX.md` against merged code.
+3. Update repository entrypoints so agents read current state before historical research.
+4. Add a knowledge-contract requirement so current memory cannot silently disappear.
+5. Reconcile the status of issues #53, #72, #172 and #174 without pretending the unresolved slices are complete.
+6. Preserve the owner decision: capability maturation proceeds now; validation is embedded per workstream rather than used as a global freeze.
 
-```text
-record → review → correct → reconcile → plan → understand → export
-```
+### Status contract
 
-A feature is not considered complete because a route or CRUD form exists. It must have coherent states, calculations, correction, history, drill-down, mobile behavior and ownership boundaries.
+Every capability must be classified as one of:
 
-### Allowed scope
+- implemented;
+- implemented + production evidenced;
+- partial;
+- absent;
+- external pending;
+- candidate only;
+- historical/superseded.
 
-- deepen existing accounts, transactions, budgets, recurring, goals, reports, import/Inbox, rules, export, dashboard, onboarding, mobile and Auth/security;
-- add reconciliation as an extension of the current account and ledger domain;
-- add bounded data structures required to complete those workflows;
-- add reminders/attention states tied to current recurring and planning data;
-- add audit and performance protections required by those capabilities;
-- update navigation and UI only where required to support the completed workflow.
+A route name, screenshot, open PR or old issue body is not sufficient proof of implementation.
 
-### Prohibited scope without a new owner decision
+### Product boundary
+
+Allowed roadmap scope:
+
+- accounts, transactions and reconciliation;
+- budgets, recurring commitments/income and goals;
+- reports, export and performance;
+- import/Inbox and deterministic rules;
+- dashboard, onboarding, mobile/accessibility and public-beta security.
+
+Not current gaps:
 
 - bank sync;
-- AI financial advice or automatic financial decisions;
-- OCR/receipt capture;
+- AI advice or automatic financial decisions;
+- OCR product identity;
 - household/shared finance;
-- investment, crypto, credit-score or marketplace products;
-- multi-currency accounting;
+- investment/crypto/credit-score products;
+- full FX accounting;
 - native mobile rewrite;
 - full envelope budgeting;
-- local-first/CRDT architecture rewrite;
-- broad redesign disconnected from an implementation workstream.
-
-### Cross-cutting laws
-
-- VND remains integer đồng.
-- Transfers remain structural and neutral to income/expense.
-- Financial state transitions require domain and database tests.
-- User-owned data remains tenant-isolated through RLS.
-- Corrections remain recoverable.
-- Imported and automated facts remain reviewable and traceable.
-- No balance is directly overwritten to hide a discrepancy.
-- No expected recurring item is presented as an already-posted transaction.
-- No dashboard recommendation may invent missing income or reserve assumptions.
+- local-first/CRDT rewrite.
 
 ## Implementation plan
 
-## Track A — accounts, transactions and reconciliation
-
-This track owns the shared financial state model. Its PRs are sequential unless the domain contract proves independent boundaries.
-
-### A1 — reconciliation specification and invariant tests
-
-Deliver:
-
-- exact pending, cleared and reconciled semantics;
-- account reconciliation session contract;
-- statement date/balance and difference calculation;
-- adjustment transaction contract;
-- transfer, split, delete and restore behavior;
-- lock/reopen behavior;
-- acceptance tests written before schema changes;
-- migration and rollback plan.
-
-Acceptance:
-
-- no unresolved state transition is left for UI code to invent;
-- direct balance overwrite is prohibited;
-- tenant isolation and audit expectations are explicit.
-
-### A2 — reconciliation domain and database implementation
-
-Deliver:
-
-- required schema and constraints;
-- RLS and least-privilege grants;
-- atomic complete/reopen boundaries;
-- pgTAP for calculations, tenant isolation and idempotency;
-- migration replay and rollback evidence.
-
-### A3 — reconciliation product workflow
-
-Deliver:
-
-- account selection and statement date/balance;
-- pending/cleared transaction list;
-- cleared, uncleared and difference totals;
-- adjustment flow;
-- complete, lock and reopen;
-- mobile-safe empty/loading/error/retry states;
-- warnings for reconciled-history edits.
-
-### A4 — ledger-wide review and filtering
-
-Deliver:
-
-- general review state outside Inbox;
-- account/category/type/date/amount filters;
-- predictable filter reset and URL/state behavior;
-- list-context edit and review completion;
-- links to import provenance, recurring occurrence and reconciliation state;
-- saved/recent filter behavior only if the current state model supports it cleanly.
-
-### A5 — bounded bulk correction
-
-Deliver:
-
-- multi-select;
-- safe bulk category, review-state and eligible type changes;
-- preview and explicit confirmation;
-- permission and reconciled-history guards;
-- partial-failure prevention;
-- audit metadata without sensitive notes.
-
-### A6 — account lifecycle and register depth
-
-Deliver:
-
-- complete account register/history;
-- explicit archive, hidden and report-inclusion semantics;
-- account-level drill-down and export;
-- controlled adjustments through financial transactions;
-- behavior for current cash/bank/e-wallet/credit/savings representations.
-
-## Track B — budgets, recurring and goals
-
-These modules can advance in parallel after shared transaction-state dependencies are identified.
-
-### B1 — budget periods and drill-down
-
-Deliver:
-
-- budget-period history;
-- previous-period comparison;
-- copy previous month;
-- explicit rollover/no-rollover policy;
-- remaining/overspent/no-data states;
-- category-to-transaction drill-down;
-- edit/delete/archive regressions.
-
-### B2 — recurring occurrence model
-
-Deliver:
-
-- occurrence states: upcoming, due, overdue, paid, skipped and cancelled;
-- edit one occurrence versus future schedule;
-- occurrence history;
-- duplicate prevention;
-- recurring income and commitment consistency;
-- no conversion of expected items into posted facts without user action.
-
-### B3 — recurring transaction matching and attention
-
-Deliver:
-
-- match an observed transaction to an occurrence;
-- confidence/review when matching is uncertain;
-- calendar/timeline;
-- reminders and dashboard attention states;
-- monthly expected commitments/income view clearly separated from posted totals.
-
-### B4 — goals contribution and lifecycle
-
-Deliver:
-
-- contribution history;
-- target date and required pace;
-- explicit funding/source semantics;
-- pause, complete, reopen and archive;
-- drill-down to contributions;
-- dashboard/report integration;
-- correction behavior when contributing records change.
-
-## Track C — reports, export and performance
-
-### C1 — custom periods and comparison
-
-Deliver:
-
-- custom date range;
-- previous comparable period;
-- income, expense, net and balance trends;
-- consistent period labels and transfer exclusions;
-- safe handling of empty/partial periods.
-
-### C2 — report drill-down
-
-Deliver:
-
-- click from summary/chart into exact transactions;
-- account, category and transaction-type dimensions;
-- filters shared with the transaction register;
-- back-navigation that preserves report context;
-- large-VND and long-label resilience.
-
-### C3 — export and portability depth
-
-Deliver:
-
-- export current filters/date/account;
-- stable documented column/schema version;
-- complete export coverage for user-owned core and planning data where appropriate;
-- export-before-delete flow;
-- documented restore/import path;
-- spreadsheet-open and Vietnamese-text verification.
-
-### C4 — realistic performance acceptance
-
-Deliver:
-
-- benchmark transaction register, dashboard, budgets and reports at realistic row counts;
-- query plans for affected hot paths;
-- cache only after measurement;
-- invalidation tests for historical edits/deletes/restores;
-- responsive loading/error states.
-
-## Track D — import, Inbox and rules
-
-### D1 — import mapping and batch history
-
-Deliver:
-
-- reusable mapping presets;
-- batch history and status;
-- retry/resume without duplicate commit;
-- source/parser/mapping visibility;
-- clear failure and recovery states.
-
-### D2 — bulk Inbox review and duplicate resolution
-
-Deliver:
-
-- multi-select candidate correction;
-- explain duplicate/match reason and confidence;
-- explicit create/update/skip/transfer actions;
-- atomic approval boundaries;
-- shared review vocabulary with the transaction register.
-
-### D3 — authenticated persistent rules
-
-Deliver:
-
-- per-user storage with RLS;
-- priority, stage and enabled state;
-- deterministic conditions/actions;
-- preview before approval;
-- version and audit metadata;
-- original imported fields preserved;
-- no low-confidence auto-posting.
-
-### D4 — rule management experience
-
-Deliver:
-
-- create/edit/disable/reorder;
-- conflict explanation;
-- test a rule against sample candidates;
-- impact preview;
-- rollback or disable path;
-- rule-use history without sensitive content leakage.
-
-## Track E — onboarding, mobile, dashboard and public readiness
-
-### E1 — onboarding and quick-capture completion
-
-Deliver:
-
-- account → first transaction → first insight continuity;
-- remembered safe defaults;
-- keyboard-safe mobile entry;
-- clear validation/network retry;
-- routine capture path measured against the current under-ten-second goal;
-- no hidden assumptions or guessed values.
-
-### E2 — physical mobile and accessibility remediation
-
-Deliver:
-
-- physical Android acceptance;
-- touch targets;
-- icon names and keyboard access;
-- sheets/dialogs with virtual keyboard;
-- large VND and long Vietnamese labels;
-- dark mode and narrow viewport states;
-- PWA/navigation stability where already supported.
-
-### E3 — exception-oriented dashboard
-
-Deliver:
-
-- direct drill-down from balance, budget, recurring and goal states;
-- actionable exceptions based on recorded facts;
-- no duplicate summaries that belong in reports;
-- no safe-to-spend/free-to-spend claim without a separate approved planning contract.
-
-### E4 — provider and production Auth controls
-
-Deliver under explicit owner permission:
-
-- provider password-policy parity;
-- trusted origins/callbacks;
-- email confirmation and recovery acceptance;
-- deployed CAPTCHA token verification before enforcement;
-- Auth rate-limit and enumeration review;
-- breached-password control when supported;
-- conservative route/method edge controls;
-- before/after, smoke and rollback evidence stored privately where sensitive.
-
-## Delivery waves
-
-### Wave 1 — close the largest visible gaps
-
-Start these focused packets/PRs:
-
-1. A1 reconciliation specification and tests;
-2. A4 ledger-wide review and filters;
-3. B1 budget periods and drill-down;
-4. C1 custom report periods and comparison;
-5. E1 onboarding/quick-capture completion;
-6. E4 provider controls only after explicit permission.
-
-These may proceed in parallel except where they touch the same transaction-state contract.
-
-### Wave 2 — connect planning to actual transactions
-
-1. A2/A3 reconciliation implementation;
-2. B2/B3 recurring occurrences and matching;
-3. B4 goal contribution history;
-4. C2 report drill-down;
-5. E2 physical mobile remediation.
-
-### Wave 3 — efficiency and ownership
-
-1. A5 bulk correction and A6 account lifecycle;
-2. C3 export/portability;
-3. D1/D2 import workflow completion;
-4. E3 dashboard attention states;
-5. C4 performance acceptance.
-
-### Wave 4 — deterministic automation
-
-1. D3 persistent authenticated rules;
-2. D4 rule management;
-3. integration across recurring, review, reports and export;
-4. supervised beta acceptance and roadmap recalibration.
-
-## Planning and branch rules
-
-Each numbered item becomes its own issue or feature packet before code changes.
-
-- Class 3 financial/data/security items use a full packet.
-- Bounded UI/domain items use a concise PR plan when the risk policy allows.
-- Do not combine multiple tracks into a single giant PR.
-- Do not merge a downstream PR before its shared domain contract is accepted.
-- Every PR states which competitor pattern it learns from and what it deliberately does not copy.
-- Every PR updates the capability matrix when its status changes.
+### Track A — current-state authority
+
+- audit current code and merge history;
+- record merged capability inventory;
+- record operational/security/performance state;
+- record open PRs as candidates only;
+- record stale/superseded claims;
+- define an update protocol for future merges.
+
+### Track B — corrected capability roadmap
+
+- distinguish existing foundations from real gaps;
+- remove false gaps in reports, export, recurring, goals, dashboard, import and UI quality;
+- prioritize reconciliation, transaction operations, planning history, report drill-down, provider controls, rules and measured performance;
+- allow independent workstreams to run in parallel.
+
+### Track C — repository integration
+
+- link current memory from `README.md`;
+- route agent product-status work through current memory in `AGENTS.md`;
+- index current memory in `docs/research/README.md`;
+- enforce file and marker presence in `scripts/check-project-knowledge.mjs`;
+- update PR title/body and exact-head evidence.
+
+### Delivery waves after this plan
+
+#### Wave 1
+
+- reconciliation specification/invariant tests;
+- transaction date/amount filters and review-state contract;
+- budget history/drill-down;
+- report arbitrary range/drill-down contract;
+- onboarding/mobile remaining states;
+- PR #211 current-main database canary;
+- provider work only under explicit permission.
+
+#### Wave 2
+
+- reconciliation domain/UI;
+- recurring history/lifecycle/matching;
+- goal contribution/lifecycle;
+- account register/detail;
+- shared report/register filters.
+
+#### Wave 3
+
+- bounded bulk correction;
+- import mapping/batch UX;
+- export schema/restore path;
+- dashboard attention/drill-down;
+- staging/large-ledger performance;
+- financial mutation audit.
+
+#### Wave 4
+
+- authenticated persisted rules;
+- rule preview/order/version/audit;
+- rule-management UI and integration.
 
 ## Tasks
 
-### Roadmap setup
-
-- [x] Record the owner decision replacing validation-first sequencing.
-- [x] Create the competitive capability gap matrix.
-- [x] Define tracks, waves, dependencies and non-goals.
-- [ ] Reconcile PR #215 title/body with the new direction.
-- [ ] Pass exact-head documentation checks.
-- [ ] Merge the roadmap after owner review.
-
-### Wave 1 execution backlog
-
-- [ ] Create A1 reconciliation specification issue/packet.
-- [ ] Create A4 transaction review/filter issue.
-- [ ] Create B1 budget periods/drill-down issue.
-- [ ] Create C1 report custom-period/compare issue.
-- [ ] Create E1 onboarding/quick-capture issue.
-- [ ] Link issue #174 as E4 and preserve provider-write permission boundary.
-
-### Acceptance management
-
-- [ ] Define a shared capability status vocabulary: basic, functional, competitive, accepted.
-- [ ] Update the gap matrix after every merged feature PR.
-- [ ] Run physical mobile and production evidence inside affected workstreams.
-- [ ] Reassess priority after each wave without adding unrelated categories.
+- [x] Audit current `main` product and architecture entrypoints.
+- [x] Inspect accounts, transactions, dashboard, planning, reports and export code.
+- [x] Reconcile recent merged PR/commit history.
+- [x] Reconcile issues #53, #72, #172 and #174.
+- [x] Identify false gap claims in the first PR #215 draft.
+- [x] Add `CURRENT_PROJECT_MEMORY.md`.
+- [x] Correct the capability gap matrix.
+- [ ] Update README, AGENTS, research index and knowledge contract.
+- [ ] Update PR metadata for the expanded current-memory scope.
+- [ ] Run exact-head risk-selected CI, CodeQL and secret scan.
+- [ ] Hand off for owner review without merging.
 
 ## Evaluation
 
-The roadmap is acceptable when:
+Evaluation must verify:
 
-- it upgrades current modules rather than building unrelated products;
-- reconciliation remains the highest financial-trust gap but does not block unrelated feature-depth work;
-- planning/report/import/mobile work can proceed in parallel through focused PRs;
-- validation exists inside each workstream rather than as a global freeze;
-- no bank sync, AI, OCR, household, investment, multi-currency or native-app scope is implied;
-- every high-risk change has tests, rollback and production evidence;
-- the gap matrix is maintained as merged capability status changes.
+- no merged feature is described as absent;
+- current-month occurrence linkage is distinguished from full recurring history;
+- report comparison/trends and export date range/JSON are recorded as existing;
+- provider-side security remains distinct from repository readiness;
+- open PRs are not described as current product behavior;
+- issue #53 PR B is marked completed;
+- issue #72 completed UI slices are not re-planned;
+- issue #172 feature freeze is marked superseded by the owner;
+- the roadmap deepens existing modules instead of introducing parity sprawl;
+- no production, schema, dependency or provider write occurs.
+
+Selected verification:
+
+- diff hygiene;
+- project knowledge contract;
+- CI classifier contract;
+- JavaScript syntax and full verify if selected because the knowledge script changes;
+- database/browser gates only if the fail-safe classifier selects them;
+- CodeQL and secret-history scan;
+- production verification not applicable because runtime behavior is unchanged.
 
 ## Handoff record
 
 ### Current permission boundary
 
-Allowed now:
+Allowed:
 
-- planning and issue creation;
-- documentation changes on the focused branch;
-- CI inspection;
-- implementation research.
+- repository/history/issue audit;
+- documentation and knowledge-contract changes on the focused branch;
+- PR metadata and CI inspection.
 
-Not allowed by this plan alone:
+Not allowed:
 
 - direct `main` writes;
-- provider or production writes;
-- merging implementation PRs without explicit instruction;
-- adopting dependencies/services;
-- expanding into prohibited product categories.
+- PR merge without explicit owner instruction;
+- runtime/schema/provider/production changes;
+- production data mutation;
+- dependency adoption.
 
 | Time | From | To | State | Evidence |
 |---|---|---|---|---|
-| 2026-08-02 | validation-first planner | owner | superseded | Owner rejected a development freeze and requested competitive maturation |
-| 2026-08-02 | owner | capability planner | planned | Gap matrix and parallel maturation tracks defined |
+| 2026-08-02 | owner | planner | planned | Requested development of existing capabilities rather than validation-first freeze |
+| 2026-08-02 | owner | project auditor | evaluating | Requested full project-information refresh because many previously listed gaps were already implemented |
+| 2026-08-02 | project auditor | owner review | evaluating | Current-state memory and corrected capability matrix prepared; entrypoint/CI integration pending |
