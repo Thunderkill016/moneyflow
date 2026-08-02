@@ -1,84 +1,47 @@
 ## Problem and outcome
 
-<!-- What user/system problem is solved? Describe the outcome, not only files changed. -->
+<!-- What user/system problem is solved, and what observable outcome should improve? -->
 
-## Work packet / source of truth
+## Risk and plan
 
-<!-- Link docs/plans/active/<slug>.md, or explain why this is a tiny mechanical change. -->
-
-## Agent operating evidence
-
-<!-- Follow docs/engineering/AGENT_OPERATING_MODEL.md for non-trivial work. -->
-
-- Current execution state:
-- Active responsibility/role:
+- Change class: Class 0 | Class 1 | Class 2 | Class 3
+- Why this class fits:
+- Planning artifact: inline/PR plan | `docs/plans/active/<slug>.md`
 - Permission scope used:
-- Last handoff artifacts:
-- Unverified claims or open risks:
-- Next allowed transition:
+- Main rollback:
 
-## Repository reconnaissance and research
+## Changes and boundaries
 
-- Existing implementation reused:
-- Relevant tests/history reviewed:
-- Decision question researched:
-- Reference map consulted:
-- Selected sources (two to four by default):
-- What those sources establish:
-- Important source limits or patterns intentionally not copied:
-- Important unknowns or assumptions:
-
-### Tool, dependency or architecture adoption
-
-<!-- Write Not applicable when the PR adds no tool, dependency, provider, service, framework or architecture pattern. -->
-
-- Observed problem and simpler alternatives:
-- License/code-reuse compatibility:
-- Secrets, user-data and privacy exposure:
-- Runtime/deployment/operational ownership:
-- Migration, rollback and removal condition:
-
-## Changes
-
-- 
-
-## Scope boundaries
-
+- Changed:
 - Intentionally not changed:
 - Follow-up work, if any:
 
-## Verification evidence
+## Research or adoption evidence
 
-- [ ] `npm run check:knowledge`
-- [ ] `npm run check:deployment-env`
-- [ ] `npm run lint`
-- [ ] `npm run typecheck`
-- [ ] `npm run test`
-- [ ] `npm run build`
-- [ ] Supabase reset + pgTAP, when database behavior can be affected
-- [ ] Browser smoke, when user flows can be affected
-- [ ] Cross-device/visual audit, when UI can be affected
-- [ ] Screenshot or artifact reviewed, when UI can be affected
+<!-- Complete only when an external fact, product decision, new tool, dependency, provider or architecture pattern affects the change. Otherwise write Not applicable. -->
 
-Evidence/CI links:
+- Decision question:
+- Selected sources and what they establish:
+- Important source limits or patterns intentionally not copied:
+- License, security, privacy, ownership and rollback review:
 
-## Product, financial and security review
+## Verification selection
 
-- [ ] Acceptance criteria are observable and satisfied.
-- [ ] Research scope was bounded and selected sources remain applicable to the final diff.
-- [ ] Studied repositories did not silently expand product or architecture scope.
-- [ ] Any new tool/dependency/pattern passed license, security, ownership and rollback review, or is not applicable.
-- [ ] State transitions and handoffs are supported by repository artifacts rather than hidden chat context.
-- [ ] Permission scope was no broader than the task required.
-- [ ] No missing financial data was guessed.
-- [ ] Integer VND and transfer invariants remain intact.
-- [ ] Ownership/RLS implications were reviewed.
-- [ ] Loading, empty, populated, error and recovery states were considered.
-- [ ] Mobile, long-data and accessibility behavior were considered.
-- [ ] No unrelated refactor or feature expansion is included.
+| Gate | Required? | Evidence or reason not applicable |
+|---|---|---|
+| Diff hygiene + project knowledge | yes | |
+| Full static/domain verify | | |
+| Supabase reset + pgTAP | | |
+| Browser smoke | | |
+| Cross-device/visual audit | | |
+| CodeQL / secret controls | | |
+| Affected production verification | | |
 
-## Deployment
+CI/evidence links:
 
-- Production verification steps:
-- Exact affected route/flow:
-- Work packet destination after merge: `docs/plans/completed/...`
+## Review focus
+
+- Acceptance criteria or observable outcome:
+- Financial, ownership, auth or destructive-data implications:
+- Human judgment still required:
+- Remaining risks or unverified claims:
