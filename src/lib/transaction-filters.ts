@@ -1,4 +1,3 @@
-import { parseMoneyInput } from "./money.ts";
 import type { Transaction } from "./transactions/contracts.ts";
 
 export type TransactionFilterKind = "all" | Transaction["kind"];
@@ -34,8 +33,9 @@ export function normalizeTransactionAmountInput(value?: string) {
 }
 
 export function parseTransactionAmountFilter(value: string) {
-  if (!value.trim()) return null;
-  const amount = parseMoneyInput(value);
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return null;
+  const amount = Number(digits);
   return Number.isSafeInteger(amount) && amount >= 0 ? amount : null;
 }
 
