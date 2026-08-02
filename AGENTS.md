@@ -16,7 +16,7 @@ For every change:
 2. affected code, tests and migrations;
 3. `docs/research/CURRENT_PROJECT_MEMORY.md`;
 4. `docs/context/README.md` to select warm context;
-5. `ARCHITECTURE.md` and `docs/product/PRINCIPLES.md`;
+5. `ARCHITECTURE.md`, `docs/product/PRINCIPLES.md` and `docs/MVP_DEFINITION.md`;
 6. `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
 
 For Class 3, multi-day, multi-agent, provider/production or cross-cutting work also read:
