@@ -86,6 +86,7 @@ export function AccountDetailPage({
   dataError: string | null;
 }) {
   const groups = groupEntries(entries);
+  const registerAvailable = !dataError;
 
   return (
     <AppShell
@@ -131,7 +132,7 @@ export function AccountDetailPage({
           <>
             <section className={styles.heading}>
               <div className={styles.identity}>
-                <span className={`${styles.accountIcon} ${styles[account.kind]}`}>
+                <span className={styles.accountIcon}>
                   <Icon name={accountIcon(account.kind)} />
                 </span>
                 <div>
@@ -156,7 +157,12 @@ export function AccountDetailPage({
               </div>
             </section>
 
-            <section className={styles.summaryGrid} aria-label="Tóm tắt tài khoản">
+            <section
+              className={`${styles.summaryGrid} ${
+                registerAvailable ? "" : styles.summaryGridSingle
+              }`}
+              aria-label="Tóm tắt tài khoản"
+            >
               <article className={styles.summaryPrimary}>
                 <span>Số dư hiện tại</span>
                 <MoneyValue
@@ -178,125 +184,140 @@ export function AccountDetailPage({
                   </span>
                 </small>
               </article>
-              <article>
-                <span>Thu nhập</span>
-                <MoneyValue
-                  amount={summary.income}
-                  mode="kind"
-                  kind="income"
-                  currencyCode={account.currencyCode}
-                  emphasis="strong"
-                  align="start"
-                  label="Thu nhập của tài khoản"
-                />
-                <small>Không gồm chuyển tiền nội bộ</small>
-              </article>
-              <article>
-                <span>Chi tiêu</span>
-                <MoneyValue
-                  amount={summary.expense}
-                  mode="kind"
-                  kind="expense"
-                  currencyCode={account.currencyCode}
-                  emphasis="strong"
-                  align="start"
-                  label="Chi tiêu của tài khoản"
-                />
-                <small>Không gồm chuyển tiền nội bộ</small>
-              </article>
-              <article>
-                <span>Chuyển ròng</span>
-                <MoneyValue
-                  amount={summary.transferIn - summary.transferOut}
-                  mode="signed"
-                  currencyCode={account.currencyCode}
-                  emphasis="strong"
-                  align="start"
-                  label="Chuyển ròng của tài khoản"
-                />
-                <small>
-                  Vào {formatMoney(summary.transferIn, false, account.currencyCode)} · Ra{" "}
-                  {formatMoney(summary.transferOut, false, account.currencyCode)}
-                </small>
-              </article>
-            </section>
-
-            <section className={styles.registerPanel} aria-labelledby="account-register-title">
-              <div className={styles.registerHeading}>
-                <div>
-                  <p className="eyebrow">Lịch sử số dư</p>
-                  <h2 id="account-register-title">Biến động tài khoản</h2>
-                  <p>
-                    {summary.transactionCount} giao dịch · Biến động ghi nhận{" "}
+              {registerAvailable ? (
+                <>
+                  <article>
+                    <span>Thu nhập</span>
                     <MoneyValue
-                      amount={summary.netMovement}
+                      amount={summary.income}
+                      mode="kind"
+                      kind="income"
+                      currencyCode={account.currencyCode}
+                      emphasis="strong"
+                      align="start"
+                      label="Thu nhập của tài khoản"
+                    />
+                    <small>Không gồm chuyển tiền nội bộ</small>
+                  </article>
+                  <article>
+                    <span>Chi tiêu</span>
+                    <MoneyValue
+                      amount={summary.expense}
+                      mode="kind"
+                      kind="expense"
+                      currencyCode={account.currencyCode}
+                      emphasis="strong"
+                      align="start"
+                      label="Chi tiêu của tài khoản"
+                    />
+                    <small>Không gồm chuyển tiền nội bộ</small>
+                  </article>
+                  <article>
+                    <span>Chuyển ròng</span>
+                    <MoneyValue
+                      amount={summary.transferIn - summary.transferOut}
                       mode="signed"
                       currencyCode={account.currencyCode}
-                      label="Biến động ghi nhận"
+                      emphasis="strong"
+                      align="start"
+                      label="Chuyển ròng của tài khoản"
                     />
-                  </p>
-                </div>
-              </div>
-
-              {groups.length ? (
-                <div className={styles.registerList}>
-                  {groups.map((group) => (
-                    <section key={group.date} className={styles.dateGroup}>
-                      <header className={styles.dateHeader}>
-                        <span>
-                          {group.relativeDate}, {displayDate(group.date)}
-                        </span>
-                        <MoneyValue
-                          amount={group.dailyImpact}
-                          mode="signed"
-                          currencyCode={account.currencyCode}
-                          label={`Biến động ngày ${displayDate(group.date)}`}
-                        />
-                      </header>
-                      <div className={styles.rows}>
-                        {group.entries.map((entry) => (
-                          <article className={styles.row} key={entry.transaction.id}>
-                            <span className={styles.rowIcon}>
-                              <Icon
-                                name={
-                                  entry.transaction.kind === "transfer"
-                                    ? "arrows"
-                                    : "receipt"
-                                }
-                              />
-                            </span>
-                            <div className={styles.rowDetail}>
-                              <strong>{entry.transaction.note}</strong>
-                              <small>{entrySubtitle(entry)}</small>
-                            </div>
-                            <time dateTime={entry.transaction.occurredAt}>
-                              {entry.transaction.relativeDate}
-                            </time>
-                            <MoneyValue
-                              amount={entry.impact}
-                              mode="signed"
-                              currencyCode={account.currencyCode}
-                              emphasis="strong"
-                              className={styles.rowAmount}
-                              label={`${entry.transaction.note}, tác động tài khoản`}
-                            />
-                          </article>
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  icon="receipt"
-                  title="Chưa có biến động trong tài khoản này"
-                  description="Số dư hiện tại vẫn được giữ nguyên. Ghi giao dịch mới để bắt đầu lịch sử."
-                  actionLabel={GHI_CHI_TIEU_LABEL}
-                  actionHref={GHI_CHI_TIEU_HREF}
-                  className={styles.emptyState}
-                />
-              )}
+                    <small>
+                      Vào {formatMoney(summary.transferIn, false, account.currencyCode)} · Ra{" "}
+                      {formatMoney(summary.transferOut, false, account.currencyCode)}
+                    </small>
+                  </article>
+                </>
+              ) : null}
             </section>
+
+            {registerAvailable ? (
+              <section className={styles.registerPanel} aria-labelledby="account-register-title">
+                <div className={styles.registerHeading}>
+                  <div>
+                    <p className="eyebrow">Lịch sử số dư</p>
+                    <h2 id="account-register-title">Biến động tài khoản</h2>
+                    <p>
+                      {summary.transactionCount} giao dịch · Biến động ghi nhận{" "}
+                      <MoneyValue
+                        amount={summary.netMovement}
+                        mode="signed"
+                        currencyCode={account.currencyCode}
+                        label="Biến động ghi nhận"
+                      />
+                    </p>
+                  </div>
+                </div>
+
+                {groups.length ? (
+                  <div className={styles.registerList}>
+                    {groups.map((group) => (
+                      <section key={group.date} className={styles.dateGroup}>
+                        <header className={styles.dateHeader}>
+                          <span>
+                            {group.relativeDate}, {displayDate(group.date)}
+                          </span>
+                          <MoneyValue
+                            amount={group.dailyImpact}
+                            mode="signed"
+                            currencyCode={account.currencyCode}
+                            label={`Biến động ngày ${displayDate(group.date)}`}
+                          />
+                        </header>
+                        <div className={styles.rows}>
+                          {group.entries.map((entry) => (
+                            <article className={styles.row} key={entry.transaction.id}>
+                              <span className={styles.rowIcon}>
+                                <Icon
+                                  name={
+                                    entry.transaction.kind === "transfer"
+                                      ? "arrows"
+                                      : "receipt"
+                                  }
+                                />
+                              </span>
+                              <div className={styles.rowDetail}>
+                                <strong>{entry.transaction.note}</strong>
+                                <small>{entrySubtitle(entry)}</small>
+                              </div>
+                              <time dateTime={entry.transaction.occurredAt}>
+                                {entry.transaction.relativeDate}
+                              </time>
+                              <MoneyValue
+                                amount={entry.impact}
+                                mode="signed"
+                                currencyCode={account.currencyCode}
+                                emphasis="strong"
+                                className={styles.rowAmount}
+                                label={`${entry.transaction.note}, tác động tài khoản`}
+                              />
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon="receipt"
+                    title="Chưa có biến động trong tài khoản này"
+                    description="Số dư hiện tại vẫn được giữ nguyên. Ghi giao dịch mới để bắt đầu lịch sử."
+                    actionLabel={GHI_CHI_TIEU_LABEL}
+                    actionHref={GHI_CHI_TIEU_HREF}
+                    className={styles.emptyState}
+                  />
+                )}
+              </section>
+            ) : (
+              <section className={styles.errorPanel} aria-labelledby="register-unavailable-title">
+                <p className="eyebrow">Lịch sử số dư</p>
+                <h2 id="register-unavailable-title">Chưa tải được biến động tài khoản</h2>
+                <p>MoneyFlow không hiển thị tổng thu, chi hoặc chuyển tiền khi dữ liệu lịch sử chưa xác thực.</p>
+                <Link className="secondary-button" href={`/accounts/${account.id}`}>
+                  Thử tải lại
+                </Link>
+              </section>
+            )}
           </>
         )}
       </main>
