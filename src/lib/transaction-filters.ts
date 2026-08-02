@@ -46,6 +46,12 @@ export function transactionFilterError(values: TransactionFilterValues) {
 
   const minAmount = parseTransactionAmountFilter(values.minAmountInput);
   const maxAmount = parseTransactionAmountFilter(values.maxAmountInput);
+  if (
+    (values.minAmountInput.trim() && minAmount == null) ||
+    (values.maxAmountInput.trim() && maxAmount == null)
+  ) {
+    return "Số tiền lọc vượt quá giới hạn được hỗ trợ.";
+  }
   if (minAmount != null && maxAmount != null && minAmount > maxAmount) {
     return "Số tiền tối thiểu phải nhỏ hơn hoặc bằng số tiền tối đa.";
   }
