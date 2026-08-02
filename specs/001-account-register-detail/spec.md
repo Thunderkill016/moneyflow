@@ -1,9 +1,9 @@
 # Feature Specification: Account register and detail
 
-**Status:** accepted  
-**Owner:** Thunderkill016  
-**Created:** 2026-08-02  
-**Last updated:** 2026-08-02
+- **Status:** accepted
+- **Owner:** Thunderkill016
+- **Created:** 2026-08-02
+- **Last updated:** 2026-08-02
 
 ## Problem and outcome
 
