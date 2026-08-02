@@ -144,7 +144,7 @@
 
 .hero {
   width: min(calc(100% - 32px), var(--mf-content));
-  min-height: calc(100svh - 68px);
+  min-height: calc(100svh - 72px);
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 0.82fr) minmax(520px, 1.18fr);
