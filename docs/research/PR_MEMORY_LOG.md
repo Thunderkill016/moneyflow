@@ -41,10 +41,10 @@ CI checks that this file is present in every pull-request diff through the exist
 - Date: 2026-08-02
 - Change class: Class 1 repository-knowledge and CI policy
 - Affected capability or project boundary: project memory, roadmap authority and delivery governance
-- Status impact: project-status authority created; no runtime capability change
-- Changed: audited merged MoneyFlow behavior, corrected stale feature-gap claims, added the current capability matrix, and made per-PR memory updates mandatory through the existing required project-knowledge check
-- Verified: exact-head knowledge contract, CI classification contract, lint, typecheck, unit/static RLS, production build, CodeQL and secret-history scan; final-head rerun required after this policy update
-- Remaining: owner review and merge; future PRs must append their own entry
+- Status impact: project-status authority and mandatory per-PR memory enforcement created; no runtime capability change
+- Changed: audited merged MoneyFlow behavior, corrected stale feature-gap claims, added the current capability matrix, created the append-only PR memory log, updated the snapshot protocol, and made omission fail the existing required project-knowledge check
+- Verified: earlier exact-head knowledge contract, classifier, lint, typecheck, unit/static RLS, production build, CodeQL and secret-history scan passed; final-head rerun is required after this policy update
+- Remaining: final exact-head verification, owner review and merge; future PRs must append their own entry
 - Production/provider evidence: not applicable because runtime and provider behavior did not change
-- Snapshot update: `CURRENT_PROJECT_MEMORY.md` was created and reconciled in this PR
+- Snapshot update: `CURRENT_PROJECT_MEMORY.md` purpose, PR #215 candidate row and update protocol
 - Superseded issue, roadmap or claim: old reports/export/recurring/goals/dashboard/import/security gap claims recorded in the snapshot
