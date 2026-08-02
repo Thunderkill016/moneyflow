@@ -4,7 +4,7 @@
 - **Branch:** `feat/transaction-range-filters-current-main`
 - **Change class:** Class 2 bounded UI/read-flow
 - **Work packet:** not required; one existing route/client surface, no persistence, provider work, unresolved research or non-obvious rollback
-- **Status:** implementing
+- **Status:** verifying
 - **Last updated:** 2026-08-03
 
 ## Technical context
@@ -39,6 +39,7 @@
 | `src/components/transactions-page.tsx` | Render controls and apply filters | Update |
 | `src/components/transactions-page.module.css` | Responsive range-control layout | Update |
 | `e2e/transaction-range-filters.spec.ts` | Desktop/mobile user-flow evidence | Add |
+| `e2e/audit/responsive.audit.spec.ts` | Keep SAFE-09 transaction-group geometry evidence stable across demo-store hydration | Update test fixture/waiting only; assertions unchanged |
 | `specs/002-transaction-range-filters/**` | Feature requirements, plan and task traceability | Add |
 
 The implementation blobs are re-evaluated from PR #223 only because the three existing UI source files on current `main` have the exact same pre-feature SHAs as PR #223's base. Old PR memory and capability-roadmap rewrites are intentionally excluded.
@@ -50,6 +51,7 @@ The implementation blobs are re-evaluated from PR #223 only because the three ex
 - Database schema, migrations, RPCs, RLS, grants and policies.
 - Reports, export and reconciliation semantics.
 - Dependencies, workflows, provider settings and production data.
+- SAFE-09 geometry requirements: static day header, minimum 44px height and no overlap with the first transaction row.
 
 ## Data, compatibility and rollback
 
@@ -71,6 +73,7 @@ The implementation blobs are re-evaluated from PR #223 only because the three ex
 | Pagination totals only reflect visible rows | Filter before `windowTransactions` |
 | Phone controls clip | 4/2/1 grid and selected responsive/browser evidence |
 | Stale PR docs overwrite current truth | Exclude PR #223 memory/gap rewrites; create new bounded record |
+| SAFE-09 reads a detached pre-hydration node or depends on unrelated quick capture | Seed one contract-valid transaction directly and poll current connected geometry; retain all layout thresholds |
 
 ## Permission boundary
 
@@ -86,7 +89,7 @@ The implementation blobs are re-evaluated from PR #223 only because the three ex
 | Static/build | deployment config, CSS ownership, architecture, lint, typecheck, unit tests, production build |
 | Database/RLS | stable job success with checks correctly not required |
 | Browser | focused transaction range flow on desktop/mobile plus selected smoke |
-| Responsive/UI | selected cross-device UI audit and artifact review |
+| Responsive/UI | selected cross-device UI audit and artifact review, including SAFE-09 at 320/360/390px |
 | Security | protected CodeQL with real initialize/analyze upload; secret-history scan |
 | Production | owner-controlled `/transactions` smoke only after merge/deployment |
 
