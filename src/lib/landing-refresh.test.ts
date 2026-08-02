@@ -9,7 +9,7 @@ const landingStyles = readFileSync(
   "utf8",
 );
 const documentTheme = readFileSync("src/app/document-theme.css", "utf8");
-const retiredDirection = readFileSync(
+const rejectedDirection = readFileSync(
   "docs/design/SIGNAL_LEDGER_V3.md",
   "utf8",
 );
@@ -21,8 +21,8 @@ test("public UI uses semantic theme infrastructure without a named doctrine", ()
   assert.match(landingPage, /landing-page\.module\.css/);
   assert.match(documentTheme, /--mf-canvas/);
   assert.doesNotMatch(documentTheme, /authority — Signal Ledger/);
-  assert.match(retiredDirection, /Status: retired/);
-  assert.match(retiredDirection, /no longer an active product or brand direction/);
+  assert.match(rejectedDirection, /Status: rejected \/ superseded/);
+  assert.match(rejectedDirection, /historical material only/);
 });
 
 test("landing keeps a real conversion path and connected product evidence", () => {
