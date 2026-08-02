@@ -144,6 +144,6 @@ This is a read-only first slice. It does not add trends, filters, export, transa
 - Branch: `feat/account-register-detail-main`
 - PR: #228
 - Exact implementation checks: green at `1775c3b763e5863d8c3f3955961583e152f0a762`
-- Final evidence-only head: repository checks pending
+- Current PR head must retain all required checks as green before merge.
 - Production deployment: not authorized
 - Packet archive: after owner merge and acceptance only
