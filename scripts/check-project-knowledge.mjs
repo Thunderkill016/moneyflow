@@ -13,6 +13,8 @@ const requiredFiles = [
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
   "docs/engineering/AGENT_OPERATING_MODEL.md",
   "docs/research/README.md",
+  "docs/research/CURRENT_PROJECT_MEMORY.md",
+  "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
   "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
@@ -96,6 +98,8 @@ try {
 const requiredReadmeLinks = [
   "ARCHITECTURE.md",
   "docs/product/PRINCIPLES.md",
+  "docs/research/CURRENT_PROJECT_MEMORY.md",
+  "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
@@ -111,9 +115,33 @@ try {
 }
 
 requireMarkers("docs/research/README.md", [
+  "CURRENT_PROJECT_MEMORY.md",
+  "PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "PRODUCT_COMPETITIVE_MEMORY.md",
   "REPOSITORY_REFERENCE_MAP.md",
   "ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
+]);
+
+requireMarkers("docs/research/CURRENT_PROJECT_MEMORY.md", [
+  "# MoneyFlow — current project memory",
+  "## 5. Current capability inventory",
+  "## 8. Reconciled issue status",
+  "## 9. Open pull-request memory",
+  "## 10. True gaps after this audit",
+  "## 12. Superseded-status register",
+  "validation is required inside each workstream but is not a global feature freeze",
+  "reports have no previous-period comparison or trends",
+  "Import provenance/dry-run/atomic approval are future work",
+]);
+
+requireMarkers("docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md", [
+  "# MoneyFlow — competitive capability gap matrix",
+  "## 2. Corrected current position",
+  "## 3. Capability matrix",
+  "## 6. Delivery waves",
+  "## 8. Superseded claims",
+  "Reports | **Implemented, moderate depth**",
+  "Recurring commitments | **Implemented, partial occurrence model**",
 ]);
 
 requireMarkers("docs/research/PRODUCT_COMPETITIVE_MEMORY.md", [
