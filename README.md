@@ -19,6 +19,9 @@ Start here before bounded or high-risk work:
 - [Architecture map](ARCHITECTURE.md)
 - [Product principles](docs/product/PRINCIPLES.md)
 - [MVP definition and readiness gates](docs/MVP_DEFINITION.md)
+- [Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md)
+- [Pull-request memory log](docs/research/PR_MEMORY_LOG.md)
+- [Current capability gap matrix](docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md)
 - [Product competitive memory](docs/research/PRODUCT_COMPETITIVE_MEMORY.md)
 - [Risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md)
 - [AI delivery workflow](docs/engineering/AI_DELIVERY_WORKFLOW.md)
@@ -36,7 +39,7 @@ UI, brand and infrastructure references:
 - [Supabase setup](docs/supabase-setup.md)
 - [RLS verification](docs/security-rls-check.md)
 
-Historical research remains useful as evidence but does not override the current product and architecture sources of truth. Use the product competitive memory for current competitor status, supersession notes and roadmap decisions.
+Historical research remains useful as evidence but does not override current code, the current-project memory or accepted owner decisions. Every pull request targeting `main` must append one truthful entry to the pull-request memory log. A PR that changes implementation status must also update the affected row or section in the current-project memory.
 
 ## Runtime modes
 
@@ -95,11 +98,12 @@ Each layer proves something different: build success does not prove RLS, browser
 5. Research unresolved external/product questions.
 6. Define acceptance criteria, plan and small tasks proportional to the change.
 7. Implement the smallest coherent vertical slice.
-8. Open a pull request and evaluate the actual diff against the stated scope.
-9. Require exact-head static, unit, database and browser gates only where the affected layer makes them relevant.
-10. Review screenshot/artifact evidence for UI changes.
-11. Squash merge and verify the exact affected production behavior when production behavior changed.
-12. Move a full work packet to `docs/plans/completed/` after acceptance.
+8. Update `docs/research/PR_MEMORY_LOG.md`; update `CURRENT_PROJECT_MEMORY.md` too when implementation status changed.
+9. Open a pull request and evaluate the actual diff against the stated scope.
+10. Require exact-head static, unit, database and browser gates only where the affected layer makes them relevant.
+11. Review screenshot/artifact evidence for UI changes.
+12. Squash merge and verify the exact affected production behavior when production behavior changed.
+13. Move a full work packet to `docs/plans/completed/` after acceptance.
 
 Do not push feature or fix commits directly to `main`. Do not create no-op commits to retrigger deployment.
 
@@ -120,10 +124,12 @@ VND is represented as integer đồng. Internal transfers never count as income 
 
 ## Current project phase
 
-The near-term goal is to prove MoneyFlow can become the owner's trusted daily ledger:
+The owner direction is to continue maturing existing MoneyFlow capabilities toward competitive depth. Validation remains embedded in each workstream rather than acting as a global feature freeze.
 
-- complete the readiness gates in [`docs/MVP_DEFINITION.md`](docs/MVP_DEFINITION.md);
-- verify core flows on a physical phone;
-- self-use for seven consecutive days;
-- fix P0/P1 defects before feature expansion;
-- improve reconciliation, provenance and auditability based on real use.
+Current priorities and exact completed/partial/absent status live in:
+
+- [`docs/research/CURRENT_PROJECT_MEMORY.md`](docs/research/CURRENT_PROJECT_MEMORY.md);
+- [`docs/research/PR_MEMORY_LOG.md`](docs/research/PR_MEMORY_LOG.md);
+- [`docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`](docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md).
+
+Do not recreate a completed feature from an old issue body without checking current code and these sources first.
