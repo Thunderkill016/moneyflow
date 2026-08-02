@@ -1,0 +1,1 @@
+These assets are cropped, redacted screenshots from MoneyFlow's Playwright UI audit. They contain illustrative test data only and are embedded as compressed WebP inside SVG wrappers for deterministic static delivery.
