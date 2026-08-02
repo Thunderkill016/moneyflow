@@ -1,9 +1,10 @@
 .page {
   min-height: 100svh;
   display: grid;
-  grid-template-columns: minmax(420px, 1fr) minmax(500px, 0.94fr);
+  place-items: center;
   background: var(--mf-canvas);
   color: var(--mf-text);
+  padding: 40px 20px;
   font-family: var(--mf-font-sans);
 }
 
@@ -17,225 +18,67 @@
   text-decoration: none;
 }
 
-.page :where(p, h1, h2, ul) {
+.page :where(p, h1) {
   margin: 0;
 }
 
-.page :where(ul) {
-  padding: 0;
-  list-style: none;
-}
-
-.story {
-  min-width: 0;
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-  background: #151922;
-  color: #f7f7f4;
-  padding: clamp(30px, 4.8vw, 64px);
+.shell {
+  width: min(100%, 440px);
+  display: grid;
+  justify-items: center;
 }
 
 .brand {
-  width: fit-content;
   min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 11px;
-  color: inherit;
+  color: var(--mf-text);
   font-size: 19px;
   font-weight: 780;
   letter-spacing: -0.025em;
 }
 
-.storyBody {
-  max-width: 690px;
-  padding-block: clamp(52px, 8vh, 96px);
-}
-
-.storyIndex,
-.eyebrow {
-  font-size: 11px;
-  font-weight: 820;
-  letter-spacing: 0.11em;
-  line-height: 1.4;
-  text-transform: uppercase;
-}
-
-.storyIndex {
-  color: #a9bcff;
-}
-
-.story h1 {
-  margin-top: 18px;
-  font-size: clamp(48px, 5.8vw, 78px);
-  font-weight: 790;
-  letter-spacing: -0.062em;
-  line-height: 0.97;
-  text-wrap: balance;
-}
-
-.storyDescription {
-  max-width: 610px;
-  margin-top: 24px;
-  color: rgb(255 255 255 / 62%);
-  font-size: clamp(16px, 1.45vw, 19px);
-  line-height: 1.68;
-}
-
-.signalCard {
-  max-width: 610px;
-  margin-top: 42px;
-  overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 12%);
-  border-radius: 20px;
-  background: rgb(255 255 255 / 5%);
-}
-
-.signalHeader {
-  min-height: 54px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid rgb(255 255 255 / 10%);
-  padding: 0 18px;
-}
-
-.signalHeader span {
-  font-size: 12px;
-  font-weight: 760;
-}
-
-.signalHeader small {
-  border-radius: 999px;
-  background: rgb(133 163 255 / 14%);
-  color: #a9bcff;
-  padding: 6px 9px;
-  font-size: 10px;
-  font-weight: 750;
-}
-
-.signalBalance {
-  display: grid;
-  gap: 8px;
-  padding: 22px 18px;
-}
-
-.signalBalance span {
-  color: rgb(255 255 255 / 50%);
-  font-size: 10px;
-  font-weight: 780;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.signalBalance strong {
-  font-family: var(--mf-font-money);
-  font-size: clamp(30px, 3vw, 42px);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.045em;
-}
-
-.signalCard ul {
-  border-top: 1px solid rgb(255 255 255 / 10%);
-  padding: 0 18px 8px;
-}
-
-.signalCard li {
-  min-height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  border-bottom: 1px solid rgb(255 255 255 / 8%);
-  font-size: 11px;
-}
-
-.signalCard li:last-child {
-  border-bottom: 0;
-}
-
-.signalCard li span {
-  color: rgb(255 255 255 / 48%);
-}
-
-.signalCard li b {
-  overflow: hidden;
-  color: #f7f7f4;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.trustList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-  color: rgb(255 255 255 / 58%);
-  font-size: 12px;
-  font-weight: 620;
-}
-
-.trustList li {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.trustList svg {
-  flex: 0 0 auto;
-  color: #a9bcff;
-}
-
-.panel {
-  min-width: 0;
-  min-height: 100svh;
-  display: grid;
-  place-items: center;
-  align-content: center;
-  gap: 18px;
-  padding: 44px 24px;
-}
-
 .card {
-  width: min(100%, 500px);
+  width: 100%;
+  margin-top: 28px;
   border: 1px solid var(--mf-border);
-  border-radius: 22px;
+  border-radius: 20px;
   background: var(--mf-surface);
-  padding: clamp(28px, 4vw, 44px);
+  padding: 34px;
   box-shadow: var(--mf-shadow-md);
 }
 
-.mobileBrand {
-  display: none;
-  margin-bottom: 32px;
+.cardHeader {
+  text-align: center;
 }
 
 .eyebrow {
   color: var(--mf-brand-text);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  line-height: 1.4;
+  text-transform: uppercase;
 }
 
-.card h2 {
-  margin-top: 10px;
-  font-size: clamp(33px, 4.2vw, 47px);
-  font-weight: 780;
-  letter-spacing: -0.052em;
-  line-height: 1.04;
-  text-wrap: balance;
+.card h1 {
+  margin-top: 9px;
+  font-size: 34px;
+  font-weight: 770;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
 }
 
 .description {
-  margin-top: 15px;
+  margin-top: 11px;
   color: var(--mf-text-muted);
   font-size: 14px;
-  line-height: 1.62;
+  line-height: 1.6;
 }
 
 .demoNotice {
-  margin-top: 20px;
+  margin-top: 22px;
   display: grid;
   gap: 5px;
   border: 1px solid var(--mf-border);
@@ -320,6 +163,22 @@
   font-weight: 720;
 }
 
+.fieldLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.fieldLabelRow a {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--mf-brand-text);
+  font-size: 12px;
+  font-weight: 720;
+}
+
 .form input:not([type="checkbox"]) {
   width: 100%;
   min-height: 50px;
@@ -387,23 +246,24 @@
 }
 
 .privacyLabel a,
-.forgotLink,
 .switchLink a {
   color: var(--mf-brand-text);
   font-weight: 730;
 }
 
-.forgotLink {
-  width: fit-content;
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  justify-self: end;
-  font-size: 12px;
+.captchaBlock {
+  display: grid;
+  gap: 8px;
 }
 
 .captcha {
   margin-top: 2px;
+}
+
+.captchaBlock small {
+  color: var(--mf-text-soft);
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .message {
@@ -426,7 +286,6 @@
 .submit {
   width: 100%;
   min-height: 52px;
-  margin-top: 2px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -435,13 +294,15 @@
   border-radius: 12px;
   background: var(--mf-brand);
   color: var(--mf-on-brand);
+  font: inherit;
   font-size: 14px;
   font-weight: 760;
+  cursor: pointer;
   box-shadow: var(--mf-shadow-sm);
   transition:
     background var(--mf-fast) var(--mf-ease),
-    translate var(--mf-fast) var(--mf-ease),
-    box-shadow var(--mf-fast) var(--mf-ease);
+    box-shadow var(--mf-fast) var(--mf-ease),
+    translate var(--mf-fast) var(--mf-ease);
 }
 
 .submit:hover:not(:disabled) {
@@ -450,101 +311,64 @@
   translate: 0 -1px;
 }
 
+.submit svg {
+  width: 16px;
+  height: 16px;
+}
+
 .switchLink {
-  margin-top: 23px;
+  margin-top: 22px;
   color: var(--mf-text-muted);
   text-align: center;
   font-size: 13px;
   line-height: 1.5;
 }
 
-.panelNote {
-  max-width: 430px;
-  color: var(--mf-text-soft);
-  font-size: 11px;
-  line-height: 1.5;
+.securityNote {
+  min-height: 44px;
+  margin-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--mf-text-muted);
+  font-size: 12px;
   text-align: center;
 }
 
-@media (max-width: 980px) {
-  .page {
-    grid-template-columns: minmax(340px, 0.78fr) minmax(460px, 1.22fr);
-  }
-
-  .story {
-    padding: 30px;
-  }
-
-  .signalCard {
-    margin-top: 30px;
-  }
+.securityNote svg {
+  flex: 0 0 auto;
+  color: var(--mf-income);
 }
 
-@media (max-width: 780px) {
+@media (max-width: 520px) {
   .page {
-    display: block;
+    place-items: start center;
+    padding: 22px 14px 32px;
   }
 
-  .story {
-    min-height: 0;
-    gap: 18px;
-    padding: max(22px, env(safe-area-inset-top)) 16px 26px;
-  }
-
-  .storyBody {
-    max-width: none;
-    padding-block: 14px 0;
-  }
-
-  .story h1 {
-    max-width: 620px;
-    margin-top: 10px;
-    font-size: clamp(34px, 10vw, 48px);
-    letter-spacing: -0.05em;
-    line-height: 1.02;
-  }
-
-  .storyDescription {
-    max-width: 620px;
-    margin-top: 14px;
-    font-size: 14px;
-  }
-
-  .signalCard,
-  .trustList {
-    display: none;
-  }
-
-  .panel {
-    min-height: 0;
-    padding: 28px 16px max(28px, env(safe-area-inset-bottom));
+  .brand {
+    font-size: 18px;
   }
 
   .card {
-    width: min(100%, 540px);
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    padding: 0;
-    box-shadow: none;
+    margin-top: 18px;
+    border-radius: 17px;
+    padding: 28px 20px;
+    box-shadow: var(--mf-shadow-sm);
   }
 
-  .mobileBrand {
-    display: none;
-  }
-}
-
-@media (max-width: 390px) {
-  .story h1 {
+  .card h1 {
     font-size: 32px;
   }
 
-  .card h2 {
-    font-size: 32px;
+  .googleButton,
+  .form input:not([type="checkbox"]) {
+    min-height: 50px;
   }
 
-  .panel {
-    align-content: start;
+  .submit {
+    min-height: 52px;
   }
 }
 
