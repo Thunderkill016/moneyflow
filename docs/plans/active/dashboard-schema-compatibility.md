@@ -84,6 +84,17 @@ The compatibility path may use more API calls during failure, but financial corr
 - Stable error logging must not include user identifiers, transaction content or financial values.
 - Rollback is reverting the hotfix branch; the additive production function can remain safely deployed.
 
+## Implementation plan
+
+1. Confirm whether the incident represents destructive database activity or a presentation/read-path failure.
+2. Correlate the first failure with the exact Vercel deployment and Supabase API/database evidence.
+3. Repair the missing additive production migration without touching ledger rows.
+4. Verify the RPC as an authenticated user under existing RLS and least-privilege grants.
+5. Preserve the optimized single-RPC path while adding the previous focused loaders as a compatibility fallback.
+6. Emit stable, non-sensitive diagnostics for RPC absence, database error and invalid payload.
+7. Align repository migration versioning with production history and lock the behavior with regression tests.
+8. Run exact-head CI, obtain owner review, merge and verify the exact production deployment.
+
 ## Tasks
 
 - [x] Confirm whether rows, users or schema were actually deleted.
@@ -115,6 +126,6 @@ The compatibility path may use more API calls during failure, but financial corr
 
 ### Repository verification
 
-The first ready-for-review CI run correctly rejected this packet because the required lifecycle headings were absent. This revision adds the required repository reconnaissance, research, specification, tasks and evaluation sections. A new exact-head CI run must complete before review.
+CI runs #854 and #855 rejected incomplete work-packet structure before executing code gates. This revision now includes every heading required by `scripts/check-project-knowledge.mjs`: repository reconnaissance, research, specification, implementation plan, tasks and evaluation. A new exact-head CI run must complete before review.
 
 No local gate is claimed: the current execution environment did not provide a local repository checkout with network access. GitHub CI owns the required code, database, build and browser evidence for this branch.
