@@ -1,8 +1,8 @@
 # MoneyFlow — current project memory
 
 - **Status:** active implementation-status authority
-- **Audit date:** 2026-08-02
-- **Code baseline audited:** `main@52c1eac9197e16f5f7398bb25c20af4833de1993`
+- **Audit date:** 2026-08-03
+- **Code baseline audited:** `main@25c9e988500dc60d2a22b654714ff22dafeecde3`
 - **Owner direction:** continue developing existing capabilities toward competitive depth; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; PR provenance under `docs/research/pr-memory/YYYY/QN/`
 
@@ -48,7 +48,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - Validated Server Actions and ownership-safe RPCs own financial writes; server workspaces own viewer-aware reads.
 - VND is integer đồng. Transfers are structural, balanced and excluded from income/expense. Split totals must remain exact.
 - Destructive ledger actions use soft delete and recoverable paths.
-- Playwright, pgTAP, k6, CodeQL, secret-history scanning and risk-proportional CI cover their selected boundaries.
+- Playwright, pgTAP, k6, secret-history scanning and risk-proportional CI cover selected product boundaries; protected CodeQL performs and uploads a real analysis for every pull request.
 - Build/lint/typecheck do not prove database isolation, provider configuration, browser behavior or production correctness.
 
 ## 5. Current capability inventory
@@ -76,7 +76,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Share Target | **Implemented and hardened** | bounded validation and ingestion | provider/edge controls and continued smoke |
 | Responsive UI | **Implemented with broad automation** | light/dark responsive app, expanded route/dialog and WebKit coverage | physical-device and deep error/destructive/Inbox states |
 | Accessibility/mobile | **Substantially implemented** | 44px targets, accessible names, modal placement, money wrapping, Vietnamese/VND regressions | physical keyboard/device proof and remaining confirmations |
-| CI/security scanning | **Implemented** | stable risk checks, CodeQL, secret scan, pinned Actions and knowledge/classifier contracts | keep classification aligned |
+| CI/security scanning | **Implemented** | stable risk checks, real CodeQL analysis on every PR, secret scan, pinned Actions and knowledge/classifier contracts | keep ruleset, workflow and classifier guidance aligned |
 | Database verification | **Implemented** | fresh reset, pgTAP domain/RLS/tenant/attack suites | reconciliation tests; FK-index candidate remains unmerged |
 | Performance tooling | **Implemented; acceptance partial** | dashboard one-RPC/bounds, k6 public/auth profiles and budgets | staging concurrency and realistic large-ledger benchmarks |
 | Analytics | **Implemented baseline** | Vercel Analytics and Speed Insights | no retention/conversion claim without defined events/cohorts |
@@ -85,6 +85,8 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 
 - Reconciliation is absent: calculated balance and account history are not statement reconciliation.
 - Account register/detail is merged through PR #228: active and archived accounts link to a viewer-scoped read-only register; source/destination transfer legs remain distinct and transfers never become income or expense.
+- PR #229 archived the account-register work packet and synchronized its merged/production-deployed status into canonical memory.
+- PR #230 removed the CodeQL skip path: every pull request now performs real initialization, analysis and upload because the provider ruleset does not accept a successful job shell without analysis data.
 - The authenticated dashboard uses bounded `get_dashboard_bundle`; schema-skew fallback was added after a production incident that could show false zero/empty data. Do not remove it without equivalent evidence.
 - Recurring commitments/income already link current-month occurrences to transactions; full history/lifecycle remain.
 - Goals already have deadline and planned-daily pace.
@@ -92,13 +94,13 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - Export supports date ranges, CSV/JSON and transaction/candidate/all datasets.
 - Import provenance, server dry-run, duplicate/transfer planning and atomic approval are production-smoked.
 - Local parse rules exist; authenticated persisted rules do not.
-- Repository security includes neutral auth responses, optional CAPTCHA plumbing, CSP, hardened public ingestion, CodeQL, secret scan and RLS/attack suites. Provider enforcement remains external.
+- Repository security includes neutral auth responses, optional CAPTCHA plumbing, CSP, hardened public ingestion, real CodeQL analysis, secret scan and RLS/attack suites. Provider enforcement remains external.
 - Completed UI slices include the 20-route/dialog audit, rich VND/long Vietnamese, phone/report clipping fixes, 44px targets, modal/accessibility and money paint bounds.
 - Safe-to-spend/daily-allowance behavior remains withdrawn.
 
 ## 7. Engineering and evidence boundary
 
-Implemented: modular monolith boundaries, neutral transaction contracts, shared mutation owners, viewer-scoped account register projection, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names and load-profile contracts.
+Implemented: modular monolith boundaries, neutral transaction contracts, shared mutation owners, viewer-scoped account register projection, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names, real CodeQL analysis for every PR and load-profile contracts.
 
 Still needed: physical Android/iOS evidence, deep validation/destructive/Inbox states, approved staging load, realistic large-ledger benchmarks and non-sensitive mutation audit.
 
@@ -123,9 +125,9 @@ Open PRs are not product truth. Rebase and reverify against current `main` befor
 
 | PR | Interpretation |
 |---|---|
-| #226 | Spec Kit governance/templates candidate; requested direction but not merged into current authority |
+| #231 | current-main Spec Kit adapter/constitution/templates candidate; not repository authority until merged |
 | #223 | transaction date/amount filters candidate; no merged transaction behavior change yet |
-| #221 | provider CodeQL/ruleset alignment candidate; workflow-policy review required |
+| #221 | superseded by merged PR #230; close without merge rather than reusing the stale branch |
 | #220 | broad project-memory reconciliation candidate from an older baseline; compare against current truth before reuse |
 | #218 | public-experience packet archive candidate from an older baseline |
 | #217 | paused browser theme-color candidate pending owner palette selection |
@@ -169,7 +171,7 @@ Parallel tracks: ledger trust; planning depth; reports/export/performance; advan
 
 The next ledger work must not silently conflate account history with reconciliation. Existing open transaction-filter work may be completed as a separate P1 slice after rebasing and exact-head verification; reconciliation requires its own owner-approved financial/data specification.
 
-Validation is embedded in each PR: financial/data uses unit + migration replay + pgTAP + affected browser evidence; UI uses responsive/browser and physical-device proof where claimed; provider changes require before/after, rollback and production smoke.
+Validation is embedded in each PR: financial/data uses unit + migration replay + pgTAP + affected browser evidence; UI uses responsive/browser and physical-device proof where claimed; provider changes require before/after, rollback and production smoke. Protected CodeQL analysis is required for every PR independently of those product-layer selections.
 
 ## 12. Superseded-status register
 
@@ -186,6 +188,7 @@ Do not repeat these as current facts:
 - “CAPTCHA application plumbing is missing.”
 - “Account register/detail is absent.”
 - “Account history proves reconciliation.”
+- “A successful CodeQL job shell proves a code-scanning result when initialization or analysis was skipped.”
 - “All security work is incomplete.”
 - “Feature development must freeze until a seven-day trial.”
 
