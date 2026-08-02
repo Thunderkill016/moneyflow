@@ -30,6 +30,7 @@ import {
   mapTransactionFeedRow,
 } from "@/server/finance";
 import { getGoalsWorkspace, mapGoalRow } from "@/server/goals";
+import { getPendingInboxCountFromServer } from "@/server/inbox";
 import {
   getIncomeTemplatesWorkspace,
   mapIncomeTemplateRow,
@@ -152,6 +153,48 @@ async function getDemoDashboardWorkspace(): Promise<DashboardPageWorkspace> {
   };
 }
 
+/**
+ * Backward-compatible authenticated read path used only when the bundled RPC
+ * is unavailable or returns an invalid payload. This preserves real ledger
+ * data during migration/deployment skew instead of rendering a false empty
+ * dashboard. The normal healthy path remains one bounded RPC.
+ */
+async function getAuthenticatedDashboardFallback(): Promise<DashboardPageWorkspace> {
+  const [
+    workspace,
+    budgetWorkspace,
+    commitmentWorkspace,
+    incomeWorkspace,
+    goalWorkspace,
+    pendingInboxCount,
+  ] = await Promise.all([
+    getDashboardFinanceWorkspace(),
+    getBudgetsWorkspace(),
+    getCommitmentsWorkspace(),
+    getIncomeTemplatesWorkspace(),
+    getGoalsWorkspace(),
+    getPendingInboxCountFromServer(),
+  ]);
+
+  return {
+    workspace: {
+      ...workspace,
+      dataError: mergeDataErrors([
+        workspace.dataError,
+        budgetWorkspace.dataError,
+        commitmentWorkspace.dataError,
+        incomeWorkspace.dataError,
+        goalWorkspace.dataError,
+      ]),
+    },
+    budgets: budgetWorkspace.budgets,
+    commitments: commitmentWorkspace.commitments,
+    incomeTemplates: incomeWorkspace.templates,
+    goals: goalWorkspace.goals,
+    pendingInboxCount: pendingInboxCount ?? 0,
+  };
+}
+
 function safeInteger(value: number | string, errorCode: string) {
   const amount = Number(value);
   if (!Number.isSafeInteger(amount)) throw new Error(errorCode);
@@ -250,18 +293,18 @@ export async function getDashboardPageWorkspace(
   });
 
   if (error || data == null) {
-    return emptyDashboard(
-      today,
-      "Chưa tải được dữ liệu tổng quan. Hãy thử tải lại trang.",
-    );
+    console.error("dashboard_bundle_unavailable", {
+      code: error?.code ?? "missing_data",
+    });
+    return getAuthenticatedDashboardFallback();
   }
 
   try {
     return mapAuthenticatedBundle(data, today);
-  } catch {
-    return emptyDashboard(
-      today,
-      "Dữ liệu tổng quan không đúng định dạng. Hãy liên hệ hỗ trợ.",
-    );
+  } catch (error) {
+    console.error("dashboard_bundle_invalid_response", {
+      name: error instanceof Error ? error.name : "unknown_error",
+    });
+    return getAuthenticatedDashboardFallback();
   }
 }

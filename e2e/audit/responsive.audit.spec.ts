@@ -181,35 +181,56 @@ test.describe("cross-device responsive audit", () => {
     const width = page.viewportSize()?.width ?? 1_440;
     test.skip(width > 430, "SAFE-09 is specific to phone transaction groups");
 
-    await page.goto("/transactions", { waitUntil: "domcontentloaded" });
-    const metricsHandle = await page.waitForFunction(() => {
-      const headers = Array.from(
-        document.querySelectorAll<HTMLElement>(".date-group-header"),
-      );
-      for (const header of headers) {
-        const row = header.parentElement?.querySelector<HTMLElement>(".manager-row");
-        if (!row) continue;
+    // The shared audit seed intentionally starts with an empty ledger. Create
+    // one real demo transaction so this layout test measures a rendered group
+    // instead of an inert zero-height node left behind during hydration.
+    await page.goto("/capture/quick", { waitUntil: "domcontentloaded" });
+    const expenseKind = page.getByRole("button", { name: /Khoản chi/i });
+    await expect(expenseKind).toBeVisible();
+    await expenseKind.click();
+    await page.getByLabel(/Số tiền chi/i).fill("125000");
+    await page.getByRole("button", { name: "Ăn uống", exact: true }).click();
+    await page.getByPlaceholder("Ví dụ: Cơm trưa").fill("SAFE-09 layout fixture");
+    await page.getByRole("button", { name: /Lưu/i }).click();
 
-        row.scrollIntoView({ block: "center", inline: "nearest" });
-        const headerRect = header.getBoundingClientRect();
-        const rowRect = row.getBoundingClientRect();
-        return {
-          position: getComputedStyle(header).position,
-          headerHeight: headerRect.height,
-          headerBottom: headerRect.bottom,
-          rowTop: rowRect.top,
-          overlap: Math.max(0, headerRect.bottom - rowRect.top),
-        };
-      }
-      return null;
+    await expect
+      .poll(
+        async () =>
+          page.evaluate(() => {
+            const raw = window.localStorage.getItem("moneyflow-demo-transactions-v1");
+            if (!raw) return false;
+            try {
+              const transactions = JSON.parse(raw) as Array<{ note?: string }>;
+              return transactions.some((transaction) =>
+                String(transaction.note ?? "").includes("SAFE-09 layout fixture"),
+              );
+            } catch {
+              return false;
+            }
+          }),
+        { timeout: 15_000 },
+      )
+      .toBe(true);
+
+    await page.goto("/transactions", { waitUntil: "domcontentloaded" });
+    const header = page.locator(".date-group-header:visible").first();
+    await expect(header).toBeVisible();
+
+    const metrics = await header.evaluate((element) => {
+      const row = element.parentElement?.querySelector<HTMLElement>(".manager-row");
+      if (!row) throw new Error("Missing visible transaction row for SAFE-09");
+
+      row.scrollIntoView({ block: "center", inline: "nearest" });
+      const headerRect = element.getBoundingClientRect();
+      const rowRect = row.getBoundingClientRect();
+      return {
+        position: getComputedStyle(element).position,
+        headerHeight: headerRect.height,
+        headerBottom: headerRect.bottom,
+        rowTop: rowRect.top,
+        overlap: Math.max(0, headerRect.bottom - rowRect.top),
+      };
     });
-    const metrics = (await metricsHandle.jsonValue()) as {
-      position: string;
-      headerHeight: number;
-      headerBottom: number;
-      rowTop: number;
-      overlap: number;
-    };
 
     const evidence = await page.screenshot({ animations: "disabled" });
     await testInfo.attach(`safe-09-day-total-${testInfo.project.name}.png`, {
