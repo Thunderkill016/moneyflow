@@ -1,250 +1,223 @@
 # Landing and authentication product-evidence redesign
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** human owner  
-**Issue/PR:** pending  
+**Status:** ready for owner review
+**Execution state:** ready_for_review
+**Active role:** evaluator / handoff
+**Permission scope:** branch_write
+**Owner:** human owner
+**Issue/PR:** PR #213
 **Last updated:** 2026-08-02
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet records the design decision, implementation scope and evidence required before owner review.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet records the design decision, implementation scope, exact evidence and remaining owner decision.
 
 ## Outcome
 
-A first-time Vietnamese user should understand within seconds that MoneyFlow is a manual-first personal income-and-expense ledger, see real product evidence instead of fabricated financial claims, and reach registration or login through a focused, trustworthy and mobile-ready public experience. Authentication must preserve every existing Supabase, OAuth, recovery, privacy and CAPTCHA behavior while making the task itself visually primary.
+A first-time Vietnamese user can understand that MoneyFlow is a manual-first personal income-and-expense ledger, see sanitized product evidence instead of fabricated financial claims, and reach registration or login through a focused public experience. Authentication preserves the existing Supabase, OAuth, recovery, privacy and CAPTCHA behavior while making the form the primary task.
 
 ## Repository reconnaissance
 
-### Current behavior
+### Starting state
 
-- `main` still renders the rejected Signal Ledger landing narrative with numbered editorial sections, fabricated demonstration balances and a planning-oriented product stage.
-- The current authentication surface mixes the form with a large concept-led presentation panel.
-- PR #208 contains a later candidate that replaces fabricated dashboard content with real MoneyFlow screenshots and simplifies authentication, but it was built before the cumulative research ledger and before Signal Ledger was formally rejected on `main`.
-- Playwright evidence from PR #208 was reviewed across phone, tablet, desktop, light and dark themes. It proves the product-evidence composition is implementable without overflow, but it remains a candidate requiring a fresh branch, current-main validation and owner visual approval.
+- `main` rendered a landing narrative derived from the rejected Signal Ledger concept.
+- The old public product stage used fabricated demonstration balances and planning-oriented language.
+- Authentication mixed the form with a concept-led presentation panel.
+- PR #208 contained useful product screenshots and a simplified auth experiment, but predated the cumulative research ledger and formal rejection of Signal Ledger.
 
-### Relevant repository areas
+### Relevant boundaries
 
-| Area | Why it matters | Reuse/change/avoid |
-|---|---|---|
-| `src/components/landing-page.tsx` | Public narrative, CTA hierarchy and product proof | Replace concept-led copy and fabricated financial stage |
-| `src/components/landing-page.module.css` | Public responsive visual system | Rebuild within component ownership; avoid root override layers |
-| `src/components/auth-form.tsx` | Login, registration, recovery and password update behavior | Preserve actions and states; simplify information hierarchy |
-| `src/components/auth-form.module.css` | Auth layout, validation, responsive and dark mode | Preserve form usability; remove decorative dominance |
-| `src/app/page.tsx` | Metadata and public entry behavior | Align claims with product truth |
-| `public/landing/*` | Durable product evidence | Use sanitized MoneyFlow test-environment screenshots only |
-| `src/lib/*landing*`, `src/lib/*auth*` tests | Copy, structure and regression contracts | Update to current approved claims and task labels |
-| `e2e/*` | Login/CAPTCHA and responsive evidence | Preserve behavior selectors and add current visible-text expectations |
+| Area | Ownership and decision |
+|---|---|
+| `src/components/landing-page.tsx` | Public narrative, CTA hierarchy and product proof rebuilt around current MoneyFlow behavior |
+| `src/components/landing-page.module.css` | Responsive public composition owned locally; no new global design framework |
+| `src/components/auth-form.tsx` | Existing server actions and mode behavior preserved; copy and hierarchy simplified |
+| `src/components/auth-form.module.css` | Form-first auth layout, responsive proof rail, validation and dark mode |
+| `src/app/page.tsx` | Public metadata restricted to verified product claims |
+| `public/landing/*` | Sanitized test-environment product evidence |
+| landing/auth unit and Playwright tests | Copy, behavior, responsive and accessibility contracts |
 
-### Existing tests and constraints
+### Constraints confirmed
 
-- Related unit tests: landing copy/refresh/dark-mode/brand contracts and auth copy/refresh contracts.
-- Database/RLS tests: unchanged; no schema or ownership behavior is in scope.
-- Browser tests: expense path, authentication CAPTCHA smoke and cross-device UI audit.
-- Product/architecture rules: manual-first, no bank-sync implication, no AI advice, no fake recommendations, one primary action per viewport, 44px primary targets, light/dark support and physical-phone review before mobile-ready claims.
-
-### Similar implementation and recent history
-
-- Existing pattern to reuse: PR #208 real MoneyFlow screenshot assets, task-first auth copy and validated responsive structure.
-- Relevant decisions: `docs/design/DESIGN_DIRECTION_STATUS.md` rejects Signal Ledger; `docs/research/UI_UX_RESEARCH_LEDGER.md` makes research cumulative while design concepts remain provisional.
-
-### Open questions
-
-- [x] Can real product evidence replace fabricated dashboard values without exposing user information? Yes: use sanitized test-environment captures already reviewed in PR #208.
-- [x] Does login need a second marketing surface? Only a restrained factual proof rail on wide screens; the form remains the dominant task and the rail collapses below it on smaller screens.
-- [x] Is a new dependency or design framework needed? No.
+- Manual-first; no bank-sync implication.
+- No AI advice, OCR, automatic categorization certainty or unsupported financial recommendation.
+- No fake balance, testimonial, user count, savings result or pricing claim.
+- One dominant registration action per viewport; Login remains available.
+- Primary touch controls target at least 44 px.
+- Light/dark, keyboard, reduced motion, 200% text and phone widths remain release evidence.
+- No database, RLS, auth-provider, OAuth, Turnstile, callback or financial-rule change.
 
 ## Research
 
-### Research scope and source selection
+### Decision question
 
-- Decision question: Which public composition best communicates MoneyFlow truth and trust without inheriting a rejected visual concept or turning login into a marketing page?
-- Reference map consulted: `docs/research/UI_UX_RESEARCH_LEDGER.md` and task-relevant entries from `docs/research/REPOSITORY_REFERENCE_MAP.md`.
-- Source budget: four focused sources already preserved in the ledger.
-- Expected decision: select an information and interaction model, not a permanent named aesthetic.
+Which public composition communicates MoneyFlow truth and trust without inheriting a rejected visual concept or turning authentication into a marketing page?
 
-### Sources
+### Sources used
 
-| Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
-|---|---|---|---|---|
-| Current MoneyFlow product behavior and browser evidence | Primary product evidence | 2026-08-02 | Real tasks, screenshots, mobile constraints and what users can actually do | Does not prove broad market preference |
-| `docs/research/UI_UX_RESEARCH_LEDGER.md` | Cumulative internal synthesis | 2026-08-02 | Trust before novelty, real evidence over fabricated claims, fast capture, explicit transaction types, recovery and accessibility | Does not prescribe a palette or layout |
-| Actual Budget / Firefly III patterns preserved in ledger | Product references | previously accessed | Register-first provenance, ownership, transfer correctness and export trust | Do not copy envelope methodology, accounting density or code |
-| GOV.UK / WCAG patterns preserved in ledger | Primary standards and service-design reference | previously accessed | Task-first content, visible focus, accurate labels, target size and clear validation | Do not copy public-service visual identity |
+| Source | What it establishes | Boundary |
+|---|---|---|
+| Current MoneyFlow product and browser evidence | Real tasks, current capabilities and mobile constraints | One owner/product is not broad market validation |
+| `docs/research/UI_UX_RESEARCH_LEDGER.md` | Trust before novelty, real evidence, fast capture, explicit transaction types, recovery and accessibility | Does not prescribe palette or layout |
+| Actual Budget and Firefly III evidence retained in the ledger | Register-first provenance, ownership, transfer correctness and export trust | Do not copy envelope methodology, accounting density or code |
+| GOV.UK and WCAG sources retained in the ledger | Task-first content, accurate labels, focus, validation and target size | Do not copy public-service visual identity |
+| Money Lover, MISA, Copilot, Monarch, YNAB and related public references | Concrete language, product imagery and outcome-oriented structure | Do not copy brands, automation claims or social proof |
 
 ### Alternatives considered
 
-| Option | Advantages | Risks | Decision |
+| Option | Advantage | Risk | Decision |
 |---|---|---|---|
-| A. Product evidence: direct value statement, real MoneyFlow screens, transaction-to-balance-to-ledger explanation | Strongest product truth, no fake social proof, clear manual-first differentiation, reusable in landing and auth | Requires careful screenshot sanitization and can become visually busy | **Implement as candidate** |
-| B. Human lifestyle story with illustration or stock photography | Emotionally warm and visually distinctive | Weak evidence, generic fintech marketing, asset/licensing burden and risk of implying outcomes | Reject |
-| C. Dense analytics showcase with multiple charts and KPIs | Demonstrates breadth quickly | Chart-first, fabricated values, poor mobile hierarchy and conflicts with daily-ledger identity | Reject |
+| Product evidence: direct value statement, real MoneyFlow screens and traceable workflow | Strongest product truth and manual-first differentiation | Screens can become visually busy | **Implemented as candidate** |
+| Lifestyle story with stock photography or illustration | Emotional and visually distinctive | Generic fintech marketing and weak evidence | Rejected |
+| Dense analytics showcase with charts and KPIs | Demonstrates breadth quickly | Fabricated values, chart-first hierarchy and poor mobile fit | Rejected |
 
-### Research decision
+### Decision
 
-Implement Option A as a candidate for owner review. The composition will use MoneyFlow’s current brand mark and factual manual-first message, but it will not establish green, card geometry, typography or any named concept as permanent product law. The selected slice uses real test-environment product captures, a single dominant registration CTA, a secondary in-page explanation link and a focused authentication form. Lifestyle marketing, invented balances, testimonials, user counts, savings claims, bank-sync language and advice are excluded.
-
-### Adoption review
-
-Not applicable. No dependency, provider, service, framework or architecture change.
+Use a concept-neutral product-evidence composition. The landing explains `ghi giao dịch → cập nhật tài khoản → mở sổ đối chiếu`; the auth surface remains form-first with a compact factual proof rail. No named aesthetic becomes product law.
 
 ## Specification
 
-### Problem
-
-The public landing and authentication surfaces on `main` are anchored to a rejected design concept and contain fabricated demonstration values that can be mistaken for product evidence. First-time users need a direct explanation of what MoneyFlow does, why manual-first matters and how a recorded transaction becomes a trustworthy balance. Returning users need an authentication surface that prioritizes completing the task, not reading a design narrative.
-
 ### User stories
 
-- As a first-time visitor, I can understand that MoneyFlow records income, expense and transfers manually, so I know what the product is before registering.
-- As a cautious user, I can see real MoneyFlow interface evidence and clear data-ownership limits, so I do not have to trust invented claims.
-- As a returning user, I can log in, recover access or update my password without a decorative panel competing with the form.
-- As a phone user, I can reach every action, validation message and CAPTCHA state without overflow or a hidden submit button.
+- As a first-time visitor, I can tell that MoneyFlow records income, expense and transfers manually before I register.
+- As a cautious user, I can see real product evidence and explicit data boundaries instead of invented authority.
+- As a returning user, I can log in, recover access or update my password without a marketing panel competing with the form.
+- As a phone user, I can reach every action, validation message and CAPTCHA state without overflow or hidden controls.
 
 ### Acceptance criteria
 
-- [ ] Landing hero states the manual-first ledger value without bank-sync, AI-advice or financial-outcome claims.
-- [ ] Landing uses sanitized MoneyFlow test-environment screenshots and labels them as illustrative test data.
-- [ ] No fabricated balances, user counts, testimonials, savings claims or unsupported recommendations remain in landing source.
-- [ ] Landing explains the trace: record transaction → update account → open ledger to verify.
-- [ ] One primary registration action dominates each viewport; login remains available.
-- [ ] Login, registration, forgot-password and password-update modes preserve existing server actions, OAuth, privacy and CAPTCHA behavior.
-- [ ] Auth headings and button labels describe the exact task.
-- [ ] Light/dark, 200% text, keyboard focus and 320/360/390px layouts pass the repository UI audit.
-- [ ] Existing expense and Auth CAPTCHA browser smokes pass.
-- [ ] Owner reviews browser screenshots before merge.
+- [x] Hero states the manual-first ledger value without bank-sync, AI-advice or outcome claims.
+- [x] Landing uses sanitized MoneyFlow test-environment screenshots and identifies them as illustrative test data.
+- [x] No fabricated balances, testimonials, user counts, savings claims or unsupported pricing claims remain in public source.
+- [x] Landing explains the trace from transaction entry to account update and ledger verification.
+- [x] Registration is the dominant action while Login remains visible and tappable.
+- [x] At 320 px the brand becomes mark-only so Login and registration do not collide.
+- [x] Login, registration, recovery and password-update modes preserve existing actions, OAuth, privacy and CAPTCHA behavior.
+- [x] Auth headings and buttons describe the exact task.
+- [x] Light/dark, target phone widths, tablet/desktop, keyboard and 200% text pass the UI audit.
+- [x] Expense and Auth CAPTCHA browser smokes pass.
+- [x] Agent visual review covered representative mobile, tablet, desktop, light, dark and WebKit screenshots.
+- [ ] Human owner accepts the visual direction.
+- [ ] Human owner merges the PR.
 
 ### Required states
 
-- Loading: pending buttons keep explicit `Đang xử lý…` state and `aria-busy`.
-- Empty: not applicable to public landing; auth fields begin empty with useful examples.
-- Populated: browser autofill and existing values remain legible.
-- Validation/error: inline field messages, form-level alerts and CAPTCHA configuration failure remain visible.
-- Recovery/undo: forgot-password and update-password routes remain reachable; no new destructive action.
-- Long data / large VND: public screenshots must crop safely and never require reading a fabricated amount.
-- Mobile/tablet/desktop: 320, 360, 390, 768, 1024, 1366 and 1440px.
-- Accessibility: skip link, semantic headings, visible focus, label-in-name, non-color cues, reduced motion and at least 44px primary controls.
-
-### Financial and security constraints
-
-- No guessed financial data or recommendation.
-- Integer VND and transfer invariants remain intact because no domain calculation changes.
-- Ownership/RLS implications: none; authentication actions and database behavior remain unchanged.
-- Sanitized screenshots must contain no production account identity or user-owned data.
+- Loading: pending buttons retain explicit processing state and `aria-busy`.
+- Validation/error: inline field messages, form alert and CAPTCHA configuration failure remain visible.
+- Recovery: forgot-password and update-password routes remain reachable.
+- Mobile: 320, 360 and 390 px preserve actions and product evidence without horizontal overflow.
+- Accessibility: skip link, semantic headings, focus, label-in-name, non-color cues, reduced motion and 44 px primary controls.
 
 ### Out of scope
 
-- Auth provider configuration, Supabase settings, Turnstile settings or OAuth callback changes.
-- Product dashboard, transaction workflow or design-system-wide redesign.
-- New analytics, tracking, dependency, illustration system or marketing claim.
-- Merge or production deployment by the agent.
+- Auth provider, Supabase, Turnstile, OAuth callback or deployment configuration.
+- Dashboard, ledger workflow or global signed-in design-system redesign.
+- New dependency, tracking, illustration system or marketing claim.
+- Agent merge or production deployment.
 
 ## Implementation plan
 
-### Architecture fit
+1. Read current product principles, design-direction status and cumulative research ledger.
+2. Audit `main`, PR #208 and its Playwright evidence.
+3. Select a product-evidence information model after comparing three alternatives.
+4. Create a focused branch and work packet.
+5. Rebuild landing narrative, product proof, auth hierarchy and public metadata.
+6. Preserve auth behavior and update unit/browser contracts.
+7. Run exact-head static, build, database, browser, cross-device, CodeQL and secret-history gates.
+8. Review generated screenshots and repair visual defects found outside automated assertions.
+9. Hand off PR #213 for owner visual approval; do not merge.
 
-The public presentation remains owned by the existing landing and auth components. Metadata stays in the root public route. No financial rule moves into UI and no new global stylesheet is introduced. Component CSS modules own responsive layout and theme variables for these surfaces.
+## Implemented changes
 
-### Planned changes
-
-| File/area | Change | Reason |
-|---|---|---|
-| `src/components/landing-page.tsx` | Replace Signal Ledger narrative with product-evidence hierarchy and real product captures | Communicate current product truth |
-| `src/components/landing-page.module.css` | Implement responsive proof stage, trace flow, control section and dark mode | Create distinct but bounded public composition |
-| `public/landing/*.svg` | Add sanitized test-environment product captures | Durable evidence without production data |
-| `src/app/page.tsx` | Update metadata and structured-data description | Prevent unsupported public claims |
-| `src/components/auth-form.tsx` | Keep all actions/states while using direct task copy and restrained proof rail | Make authentication primary |
-| `src/components/auth-form.module.css` | Focused form card, responsive rail, validation and dark mode | Improve task completion and trust |
-| landing/auth unit contracts | Replace old concept/copy expectations | Prevent regression to fabricated or rejected narrative |
-| relevant Playwright audits | Preserve critical behavior and current visible labels | Browser-level evidence |
-| this work packet | Record selection, constraints, evidence and handoff | Durable cross-session context |
-
-### Data and migration impact
-
-- Schema/migration: none.
-- Backfill: none.
-- Compatibility: existing auth actions and routes remain unchanged.
-- Rollback: revert this branch/PR; no provider or data rollback required.
-
-### Risks and counterexamples
-
-| Risk/counterexample | Prevention or test |
+| File/area | Result |
 |---|---|
-| Real screenshots contain identifying data | Use sanitized test-environment SVG captures and explicit test-data note |
-| Proof stage becomes unreadable on 320px | Recompose as stacked cards; audit all target widths |
-| Login proof rail competes with form | Form receives larger column and rail collapses below/away on narrow screens |
-| Copy implies automation or advice | Unit tests reject bank-sync, AI advice, daily spending and fabricated outcome language |
-| New CSS leaks into product routes | CSS Modules only; no root override stylesheet |
-| CAPTCHA or recovery behavior regresses | Auth CAPTCHA E2E and existing server-action contracts |
+| `src/components/landing-page.tsx` | Direct Vietnamese positioning, one primary CTA, real product evidence, traceable workflow and ownership section |
+| `src/components/landing-page.module.css` | Responsive light/dark composition with bounded motion and 44 px primary targets |
+| `src/components/auth-form.tsx` | Task-specific login/register/recovery copy while preserving all actions and modes |
+| `src/components/auth-form.module.css` | Form-first card and compact proof rail across phone/tablet/desktop |
+| `src/app/page.tsx` | Verified metadata; removed unsupported structured-data price claim |
+| `public/landing/*.svg` | Sanitized test-environment accounts, quick-capture and transaction screenshots |
+| `src/app/landing/safe-ux-login.css` | Keeps Login tappable and collapses the brand to mark-only at 320–360 px to prevent collision |
+| unit/E2E contracts | Updated public copy, rejected-direction, performance, CAPTCHA and landing-to-product flow assertions |
+| `docs/design/PUBLIC_EXPERIENCE_RESEARCH_2026.md` | Research provenance, source limits, positioning and acceptance contract |
 
-### Verification plan
+## Verification evidence
 
-- Static: knowledge, deployment environment, architecture, CSS ownership, lint and typecheck in CI.
-- Unit/domain: full node test suite, with updated landing/auth source contracts.
-- Database: full fresh reset and pgTAP in CI; expected unchanged.
-- Browser flow: expense path and Auth CAPTCHA smoke.
-- Responsive/visual: cross-device Playwright audit with screenshot artifacts in light/dark and WebKit critical paths.
-- Production/manual: owner visual review of preview; exact production verification only after owner merge.
+### Full implementation run
+
+Exact implementation head `984bfaa3dd3038b9fae84927be85ac042c184ce2` passed CI run `30736800417`:
+
+- project knowledge, deployment, CSS ownership and architecture contracts;
+- lint, typecheck, unit tests/static RLS and production build;
+- fresh local Supabase reset and pgTAP;
+- Expense and Auth CAPTCHA browser smoke;
+- production cross-device UI audit;
+- CodeQL and secret-history scan.
+
+Playwright artifact:
+
+- artifact ID: `8829998922`;
+- digest: `sha256:7ffeef005eaf640b690177dd0c8525934ec1d287972c1cdb7bb7708a777db339`;
+- report: 509 total tests, 384 expected, 125 skipped, 0 unexpected, 0 flaky.
+
+### Visual artifact review
+
+Representative screenshots reviewed:
+
+- landing: Chromium 320, 390, tablet 768, desktop 1366, desktop dark and WebKit iPhone 390;
+- auth: login 320/390/768/1366 and registration 320/1366.
+
+Findings:
+
+- Landing hierarchy, product proof and CTA remain readable across reviewed widths.
+- Auth form remains dominant; the proof rail does not compete with the form.
+- No screenshot showed horizontal overflow, hidden submit action or proof-card overlap.
+- The 320 px landing header initially clipped the MoneyFlow wordmark because a legacy SAFE-02 repair forced Login visible. The final repair keeps Login and registration visible while using the canonical mark only at the narrowest breakpoint.
+- The header repair and documentation cleanup must receive exact-head CI before owner handoff is considered final.
 
 ## Tasks
 
-| ID | Task | Dependency | Evidence | Status |
-|---|---|---|---|---|
-| T1 | Record reconnaissance, alternatives and specification | none | this packet | done |
-| T2 | Create focused current-main branch | T1 | branch `design/landing-auth-product-evidence` | done |
-| T3 | Implement landing product-evidence composition and assets | T2 | source diff | doing |
-| T4 | Implement focused auth presentation without changing actions | T2 | source diff | todo |
-| T5 | Update unit and browser contracts | T3, T4 | test diff | todo |
-| T6 | Open PR and run exact-head CI | T5 | PR + workflow runs | todo |
-| T7 | Review screenshot artifacts against acceptance criteria | T6 | audit artifact notes | todo |
-| T8 | Hand off for owner visual review | T7 | ready-for-review PR | todo |
+| ID | Task | Status |
+|---|---|---|
+| T1 | Reconnaissance, alternatives and specification | done |
+| T2 | Create focused current-main branch and work packet | done |
+| T3 | Implement landing product-evidence composition and assets | done |
+| T4 | Implement focused auth presentation without changing actions | done |
+| T5 | Update unit and browser contracts | done |
+| T6 | Open PR and run full exact-head CI | done |
+| T7 | Review screenshot artifacts and repair mobile header | done |
+| T8 | Obtain final exact-head CI after visual repair and documentation hygiene | doing |
+| T9 | Human owner visual review and merge decision | todo |
+
+## Risks and rollback
+
+| Risk | Mitigation |
+|---|---|
+| Product screenshots expose user information | Only sanitized test-environment SVG captures are committed |
+| Claims drift into automation or advice | Source contracts reject bank-sync, AI-advice, fake outcome and pricing language |
+| Mobile header actions collide | Login contract plus mark-only 320–360 px repair; cross-device screenshot review |
+| Auth behavior regresses | Existing server actions untouched; CAPTCHA and expense path browser smoke |
+| Public CSS leaks into product routes | CSS Modules plus route-scoped compatibility repair only |
+
+Rollback is a normal PR revert. No provider, schema, data or migration rollback is required.
 
 ## Handoff record
 
-| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
-|---|---|---|---|---|---|---|
-| 2026-08-02 | researcher/planner | implementer | implementing | research ledger, current code, PR #208 evidence, this packet | owner has not yet visually approved the candidate | Implement focused branch and obtain CI evidence |
+| Date | From | To | State | Evidence | Remaining decision |
+|---|---|---|---|---|---|
+| 2026-08-02 | researcher / implementer / evaluator | human owner | ready_for_review after final exact-head gates | PR #213, this packet, CI run 30736800417, artifact 8829998922 | Accept, request visual changes or reject the candidate |
 
-### Current permission boundary
+### Permission boundary
 
-- Granted scope: create and update a focused branch and pull request for landing/auth presentation.
-- Exact repository: `Thunderkill016/moneyflow`.
-- Forbidden writes: `main`, branch protection, providers, production data, Supabase/Vercel/Turnstile configuration.
-- Human approval required before: merge and production deployment.
-- Rollback or stop condition: any auth behavior, financial rule, user-data boundary or required check changes unexpectedly.
-
-## Evaluation
-
-### Acceptance evidence
-
-| Criterion | Evidence | Result |
-|---|---|---|
-| Pending | Exact-head CI and screenshot review | pending |
-
-### Research and adoption evidence
-
-- Selected sources still support the final implementation: pending final evaluation.
-- Important source limitations remain respected: no market-generalization or copied competitor assets.
-- New tool/dependency/pattern passed adoption review, or not applicable: not applicable.
-
-### Review findings
-
-- Correctness: pending.
-- Security/ownership: no intended change; pending CI.
-- UI/UX/accessibility: pending artifact review.
-- Maintainability/duplication: pending diff review.
-- Scope compliance: pending.
-
-### Remaining limitations
-
-- This candidate still requires owner visual judgment; automated checks cannot approve aesthetic quality.
+- Granted: branch and PR writes for the focused landing/auth slice.
+- Not granted: merge, `main`, branch protection, production, provider or user-data writes.
+- Human approval required before merge and deployment.
 
 ## Delivery record
 
 - Branch: `design/landing-auth-product-evidence`
-- PR: pending
-- Squash commit: pending
-- CI run: pending
-- Production deployment: pending
-- Production flow verified: pending
-- Work packet moved to `docs/plans/completed/`: pending
+- PR: #213
+- Full implementation evidence head: `984bfaa3dd3038b9fae84927be85ac042c184ce2`
+- Full CI: `30736800417`
+- Playwright artifact: `8829998922`
+- Final exact-head check after visual repair: pending
+- Merge: pending owner decision
+- Production deployment: pending owner decision
