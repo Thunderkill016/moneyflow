@@ -13,7 +13,7 @@ function read(rel: string): string {
   return readFileSync(join(root, rel), "utf8");
 }
 
-test("docs/performance-budgets.md documents LCP and CLS budgets", () => {
+test("docs/performance-budgets.md documents web and load budgets", () => {
   const path = join(root, "docs/performance-budgets.md");
   assert.equal(existsSync(path), true, "performance-budgets.md must exist");
   const doc = read("docs/performance-budgets.md");
@@ -25,16 +25,55 @@ test("docs/performance-budgets.md documents LCP and CLS budgets", () => {
   assert.match(doc, /\/dashboard/);
   assert.match(doc, /landing/i);
   assert.match(doc, /ALLOW_REMOTE_LOAD_TEST=yes/);
+  assert.match(doc, /APPROVED_TARGET_HOST/);
+  assert.match(doc, /DEPLOYMENT_SHA/);
+  assert.match(doc, /LOAD_TEST_USER_CONFIRMED_SYNTHETIC=yes/);
   assert.match(doc, /Data API calls after viewer resolution \| 1/);
+  assert.match(doc, /10.*25.*50/s);
 });
 
-test("public k6 smoke is bounded and blocks accidental remote load", () => {
+test("public k6 profiles are bounded and block accidental remote load", () => {
   const source = read("tests/load/public-smoke.js");
-  assert.match(source, /vus > 50/);
+  assert.match(source, /executor:\s*"ramping-vus"/);
+  assert.match(source, /target:\s*50/);
   assert.match(source, /ALLOW_REMOTE_LOAD_TEST/);
+  assert.match(source, /APPROVED_TARGET_HOST/);
+  assert.match(source, /Remote public load tests are limited to preview or staging/);
   assert.match(source, /rate<0\.01/);
   assert.match(source, /p\(95\)<800/);
+  assert.match(source, /p\(99\)<1500/);
   assert.doesNotMatch(source, /\/dashboard/);
+});
+
+test("authenticated k6 profile uses only a confirmed synthetic user and bounded RPC", () => {
+  const source = read("tests/load/authenticated-dashboard.js");
+  assert.match(source, /LOAD_TEST_USER_CONFIRMED_SYNTHETIC/);
+  assert.match(source, /APPROVED_TARGET_HOST/);
+  assert.match(source, /DEPLOYMENT_SHA/);
+  assert.match(source, /Remote authenticated load tests are limited to preview or staging/);
+  assert.match(source, /\/auth\/v1\/token\?grant_type=password/);
+  assert.match(source, /\/rest\/v1\/rpc\/get_dashboard_bundle/);
+  assert.match(source, /p_recent_limit:\s*5/);
+  assert.match(source, /target:\s*50/);
+  assert.match(source, /rate<0\.01/);
+  assert.match(source, /p\(95\)<800/);
+  assert.match(source, /p\(99\)<1500/);
+  assert.doesNotMatch(source, /service[_-]?role/i);
+});
+
+test("package exposes explicit public and authenticated load commands", () => {
+  const packageJson = JSON.parse(read("package.json")) as {
+    scripts?: Record<string, string>;
+  };
+  assert.equal(packageJson.scripts?.["test:load:public"], "k6 run tests/load/public-smoke.js");
+  assert.equal(
+    packageJson.scripts?.["test:load:dashboard"],
+    "k6 run tests/load/authenticated-dashboard.js",
+  );
+  assert.equal(
+    packageJson.scripts?.["test:load:contracts"],
+    "node --experimental-strip-types --test src/lib/performance-budgets.test.ts",
+  );
 });
 
 test("landing is a Server Component (no use client) for LCP", () => {
