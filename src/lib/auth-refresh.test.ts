@@ -13,7 +13,7 @@ test("authentication uses the product-owned module and document theme", () => {
   assert.match(rootLayout, /document-theme\.css/);
 });
 
-test("authentication preserves Google and password controls", () => {
+test("authentication preserves Google, password and recovery controls", () => {
   assert.match(authForm, /form action=\{signInWithGoogle\}/);
   assert.match(authForm, /styles\.googleButton/);
   assert.match(authForm, /name="email"/);
@@ -25,21 +25,22 @@ test("authentication preserves Google and password controls", () => {
   assert.match(authForm, /href="\/forgot-password"/);
 });
 
-test("auth copy stays factual and avoids a spending recommendation", () => {
+test("auth copy stays factual and task-focused", () => {
   assert.doesNotMatch(authForm, /hôm nay bạn có thể chi bao nhiêu/i);
   assert.doesNotMatch(authForm, /có thể chi hôm nay/i);
-  assert.match(authForm, /Không yêu cầu mật khẩu ngân hàng/);
-  assert.match(authForm, /Giao dịch có thể sửa và phục hồi/);
-  assert.match(authForm, /bức tranh có thể kiểm tra lại/);
-  assert.match(authForm, /Không cần thiết lập hoàn hảo/);
+  assert.doesNotMatch(authForm, /Bức tranh hôm nay/i);
+  assert.match(authForm, /MoneyFlow không yêu cầu mật khẩu ngân hàng/);
+  assert.match(authForm, /title: "Đăng nhập"/);
+  assert.match(authForm, /submit: "Đăng nhập"/);
 });
 
-test("authentication is responsive, themed and motion accessible", () => {
+test("authentication is centered, responsive, themed and motion accessible", () => {
   assert.match(authStyles, /min-height:\s*100svh/);
-  assert.match(authStyles, /@media \(max-width: 780px\)/);
+  assert.match(authStyles, /place-items:\s*center/);
+  assert.match(authStyles, /@media \(max-width: 520px\)/);
   assert.match(authStyles, /min-height:\s*5[02]px/);
   assert.match(authStyles, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(authStyles, /\.story\b[\s\S]*background:\s*#151922/);
+  assert.doesNotMatch(authStyles, /\.story\b/);
   assert.match(documentTheme, /html\[data-theme="dark"\]/);
   assert.doesNotMatch(authStyles, /!important/);
 });
