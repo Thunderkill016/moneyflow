@@ -1,7 +1,7 @@
 # MoneyFlow public experience research
 
-Date: 2026-08-02  
-Status: implementation brief for PR #208  
+Date: 2026-08-02
+Status: active implementation evidence for PR #213
 Scope: public landing page and authentication surfaces
 
 ## Why this document exists
@@ -102,7 +102,7 @@ Observed public pattern:
 - the narrative is organised around automatically tracked accounts, spending
   and investments.
 
-Retain: product-led presentation and strong visual hierarchy.  
+Retain: product-led presentation and strong visual hierarchy.
 Reject: automatic account aggregation and investment claims.
 
 Source: https://www.copilot.money/
@@ -115,7 +115,7 @@ Observed public pattern:
 - groups the product by user outcomes: track, budget, collaborate and plan;
 - combines product captures with feature deep-dives.
 
-Retain: outcome-based information architecture.  
+Retain: outcome-based information architecture.
 Reject: household collaboration and bank-sync promises not yet proven in
 MoneyFlow.
 
@@ -129,7 +129,7 @@ Observed public pattern:
 - uses emotional outcomes and a strong verbal identity;
 - keeps authentication direct and conventional.
 
-Retain: one memorable product idea and a focused auth surface.  
+Retain: one memorable product idea and a focused auth surface.
 Reject: borrowing “give every dollar a job” or implying MoneyFlow has an
 established behavioural method.
 
@@ -145,7 +145,7 @@ Cross-product observations:
 - PocketGuard foregrounds safe-to-spend outcomes and extensive social proof.
 
 Retain: a simple operating sequence, explicit product boundaries and clear
-ownership.  
+ownership.
 Reject: bank-sync dependency, safe-to-spend advice and unverified authority
 claims.
 
@@ -267,6 +267,10 @@ it are secondary.
 - `Đăng nhập`;
 - one primary registration action.
 
+At 320–360 px the full MoneyFlow wordmark may collapse to the canonical mark so
+that Login and the primary registration action remain visible, tappable and
+non-overlapping.
+
 ### Hero
 
 - specific two-part headline from the positioning decision;
@@ -346,7 +350,7 @@ The redesign is not ready for merge until all of the following are true:
 5. Light and dark themes work at 320, 360, 390, tablet and desktop widths.
 6. Keyboard focus, form errors, loading, CAPTCHA and reduced motion are tested.
 7. Production build, unit contracts, database checks and browser tests pass.
-8. Browser screenshots are reviewed by the owner before the PR leaves draft.
+8. Browser screenshots are reviewed before owner approval and merge.
 
 ## Non-goals
 
