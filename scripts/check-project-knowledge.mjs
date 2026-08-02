@@ -21,6 +21,7 @@ const requiredFiles = [
   "docs/plans/active/README.md",
   "docs/plans/completed/README.md",
   ".github/pull_request_template.md",
+  ".github/workflows/ci.yml",
 ];
 
 function read(path) {
@@ -135,6 +136,11 @@ requireMarkers("AGENTS.md", [
   "current execution state",
   "Hidden chat context is not a handoff artifact",
   "two to four focused sources",
+]);
+
+requireMarkers(".github/workflows/ci.yml", [
+  "types: [opened, synchronize, reopened, ready_for_review]",
+  "github.event.action == 'ready_for_review'",
 ]);
 
 requireMarkers("docs/engineering/RISK_PROPORTIONAL_DELIVERY.md", [
