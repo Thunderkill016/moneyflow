@@ -14,8 +14,9 @@ Khung nghiên cứu **ứng dụng web quản lý thu chi cá nhân**.
 
 | Reference | File | Purpose | Status |
 |---|---|---|---|
-| Current project memory | [CURRENT_PROJECT_MEMORY.md](./CURRENT_PROJECT_MEMORY.md) | Nguồn chuẩn về phần đã merge, đã production-evidence, đang partial, còn absent, external pending, candidate-only và các claim bị supersede | **Primary implementation status** 2026-08-02 |
-| Pull-request memory log | [PR_MEMORY_LOG.md](./PR_MEMORY_LOG.md) | Nhật ký bắt buộc cho mọi PR; ghi thay đổi, bằng chứng, phần còn lại và việc có làm đổi snapshot hiện tại hay không | **Mandatory per PR** 2026-08-02 |
+| Current project memory | [CURRENT_PROJECT_MEMORY.md](./CURRENT_PROJECT_MEMORY.md) | Snapshot gọn về phần đã merge, production-evidenced, partial, absent, external pending, candidate-only và claim bị supersede | **Primary implementation status** 2026-08-02 |
+| Pull-request memory index | [PR_MEMORY_LOG.md](./PR_MEMORY_LOG.md) | Policy, kích thước tối đa và chỉ mục cho record riêng của từng PR | **Mandatory policy** 2026-08-02 |
+| Per-PR records | `pr-memory/YYYY/QN/PR-<number>.md` | Một record nhỏ cho mỗi PR để giữ provenance mà không làm một file phình to hoặc gây conflict giữa các branch | **Mandatory per PR** |
 | Product competitive memory | [PRODUCT_COMPETITIVE_MEMORY.md](./PRODUCT_COMPETITIVE_MEMORY.md) | Tổng hợp nguồn và so sánh sản phẩm Việt Nam/quốc tế/open-source; giữ các pattern nên học và không nên sao chép | **Active competitive evidence** 2026-08-02 |
 | Competitive capability gap matrix | [PRODUCT_CAPABILITY_GAP_MATRIX.md](./PRODUCT_CAPABILITY_GAP_MATRIX.md) | Gap đã được audit lại theo code hiện tại và roadmap nâng chiều sâu các module đang có | **Active roadmap direction** 2026-08-02 |
 | Cumulative UI/UX research | [UI_UX_RESEARCH_LEDGER.md](./UI_UX_RESEARCH_LEDGER.md) | Nguồn UI/UX tích lũy, bằng chứng MoneyFlow, đối thủ, accessibility, AI design tools, mâu thuẫn, quyết định bị thay thế và khoảng trống chưa phục hồi | **Active** 2026-08-02 |
@@ -25,13 +26,15 @@ Khung nghiên cứu **ứng dụng web quản lý thu chi cá nhân**.
 ## Required interpretation order
 
 1. Dùng `CURRENT_PROJECT_MEMORY.md` để biết hiện tại đã làm gì và còn gì thật.
-2. Đọc `PR_MEMORY_LOG.md` để biết mỗi PR đã thay đổi gì, bằng chứng nào đã chạy và snapshot có bị tác động hay không.
+2. Dùng `PR_MEMORY_LOG.md` để hiểu policy; chỉ mở record trong `pr-memory/YYYY/QN/` khi cần provenance của một PR cụ thể.
 3. Dùng merged code/migrations/tests để xác nhận khi một workstream bắt đầu.
 4. Dùng `PRODUCT_CAPABILITY_GAP_MATRIX.md` cho thứ tự phát triển hiện hành.
 5. Dùng `PRODUCT_COMPETITIVE_MEMORY.md` để hiểu pattern đối thủ và giới hạn không nên sao chép.
 6. Dùng issue body/tài liệu cũ như lịch sử; đọc comment mới và current memory trước khi coi checklist là chưa làm.
 
-Mọi PR targeting `main` phải cập nhật `PR_MEMORY_LOG.md`. PR làm đổi trạng thái capability, kiến trúc, bảo mật, vận hành hoặc verification phải đồng thời sửa đúng row/section trong `CURRENT_PROJECT_MEMORY.md`. PR không đổi trạng thái vẫn ghi `Status impact: none` thay vì tạo claim giả.
+Mọi PR targeting `main` phải tạo record riêng tại `docs/research/pr-memory/YYYY/QN/PR-<number>.md`. PR làm đổi trạng thái capability, kiến trúc, bảo mật, vận hành hoặc verification phải đồng thời sửa đúng row/section trong `CURRENT_PROJECT_MEMORY.md`. PR không đổi trạng thái vẫn ghi `Status impact: none` trong record riêng thay vì tạo claim giả.
+
+Snapshot và record có size budget được CI kiểm tra. Khi snapshot gần ngưỡng, một compaction PR chỉ giữ current truth, gap thật và incident lesson; lịch sử chi tiết vẫn nằm trong các record riêng và Git history.
 
 Quyết định owner ngày 2026-08-02 thay thế cách triển khai “đóng băng phát triển cho đến khi hoàn thành bảy ngày validation”. Validation vẫn bắt buộc trong từng workstream nhưng không chặn toàn bộ feature-depth work.
 
