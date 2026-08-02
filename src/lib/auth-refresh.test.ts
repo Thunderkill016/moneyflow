@@ -25,27 +25,25 @@ test("authentication preserves Google, password and recovery controls", () => {
   assert.match(authForm, /href="\/forgot-password"/);
 });
 
-test("auth copy stays factual and task-focused", () => {
+test("authentication copy stays factual and task-focused", () => {
   assert.doesNotMatch(authForm, /hôm nay bạn có thể chi bao nhiêu/i);
   assert.doesNotMatch(authForm, /có thể chi hôm nay/i);
-  assert.doesNotMatch(authForm, /Bức tranh hôm nay/i);
+  assert.doesNotMatch(authForm, /Một sổ có thể đối chiếu/i);
   assert.match(authForm, /MoneyFlow không yêu cầu mật khẩu ngân hàng/);
-  assert.match(authForm, /title: "Đăng nhập vào MoneyFlow"/);
+  assert.match(authForm, /title: "Đăng nhập"/);
   assert.match(authForm, /submit: "Đăng nhập"/);
-  assert.match(authForm, /aria-label="Điều MoneyFlow cam kết"/);
 });
 
-test("authentication is form-first, responsive, themed and motion accessible", () => {
+test("authentication is form-first, responsive and motion accessible", () => {
   assert.match(authStyles, /min-height:\s*100svh/);
-  assert.match(authStyles, /place-items:\s*center/);
-  assert.match(authStyles, /\.authStage\b/);
-  assert.match(authStyles, /\.proofRail\b/);
-  assert.match(authStyles, /@media \(max-width: 820px\)/);
+  assert.match(authStyles, /place-items:\s*start center/);
+  assert.match(authStyles, /\.card\b/);
+  assert.match(authStyles, /\.passwordField\b/);
+  assert.match(authStyles, /\.passwordToggle\b/);
   assert.match(authStyles, /@media \(max-width: 520px\)/);
   assert.match(authStyles, /min-height:\s*5[02]px/);
   assert.match(authStyles, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.doesNotMatch(authStyles, /\.story\b/);
-  assert.match(authStyles, /html\[data-theme="dark"\]/);
-  assert.match(documentTheme, /html\[data-theme="dark"\]/);
+  assert.doesNotMatch(authStyles, /\.proofRail\b/);
   assert.doesNotMatch(authStyles, /!important/);
+  assert.match(documentTheme, /html\[data-theme="dark"\]/);
 });
