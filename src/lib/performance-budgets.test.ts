@@ -117,11 +117,19 @@ test("landing product evidence and money KPIs reserve stable space", () => {
   const globals = read("src/app/globals.css");
   assert.match(landingCss, /\.hero\b/);
   assert.match(landingCss, /min-height:\s*calc\(100svh - 72px\)/);
-  assert.match(landingCss, /\.productPreview\b/);
-  assert.match(landingCss, /\.previewCanvas\s*\{[\s\S]*max-height:/);
+  assert.match(landingCss, /\.proofStage\s*\{[\s\S]*min-height:\s*670px/);
+  assert.match(landingCss, /\.accountShot\b/);
   assert.match(
     landingSource,
     /moneyflow-accounts\.svg[\s\S]*width=\{800\}[\s\S]*height=\{938\}/,
+  );
+  assert.match(
+    landingSource,
+    /moneyflow-quick-capture\.svg[\s\S]*width=\{800\}[\s\S]*height=\{850\}/,
+  );
+  assert.match(
+    landingSource,
+    /moneyflow-transactions\.svg[\s\S]*width=\{800\}[\s\S]*height=\{668\}/,
   );
   assert.match(globals, /\.insights-kpi strong/);
   assert.match(globals, /font-variant-numeric:\s*tabular-nums/);
