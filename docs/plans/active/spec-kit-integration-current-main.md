@@ -96,7 +96,7 @@ Rebuild the adapter directly from current `main`:
 - [x] Add bounded PR records for PR #231 and superseded PR #226.
 - [x] Update the open-PR memory table and audited baseline.
 - [x] Close PR #226 as superseded.
-- [ ] Pass exact-head CI, CodeQL and secret scan.
+- [ ] Pass final exact-head CI, CodeQL and secret scan after evidence-record updates.
 - [ ] Prepare owner review handoff.
 - [ ] Archive after merge and acceptance.
 
@@ -124,6 +124,8 @@ Required:
 
 Application install/lint/typecheck/test/build, database reset/pgTAP and browser/UI evidence are not applicable unless selected because no executable product boundary changes.
 
+Head `2d3bf4538c5a4bc2dad3bfad0cf0053b666bacec` passed CI #1117, including diff hygiene, project knowledge, CI classification and documentation-only stable jobs. CodeQL #274 completed `Initialize CodeQL` and `Analyze`; Secret history scan #274 passed. Because this packet and PR memory now record that evidence, one final exact-head rerun is required.
+
 ## Handoff record
 
 - 2026-08-03: owner instructed continuation after PR #229 merged.
@@ -131,6 +133,7 @@ Application install/lint/typecheck/test/build, database reset/pgTAP and browser/
 - 2026-08-03: clean current-main adapter implementation prepared on `chore/adopt-spec-kit-current-main`.
 - 2026-08-03: replacement PR #231 opened; bounded records for #226 and #231 added.
 - 2026-08-03: current project memory updated and PR #226 closed unmerged as superseded.
+- 2026-08-03: first complete exact-head evidence passed; evidence records updated before final verification.
 
 ### Current permission boundary
 
