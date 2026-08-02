@@ -2,25 +2,23 @@
 
 - **Status:** active capability roadmap
 - **Audit date:** 2026-08-02
-- **Owner direction:** mature existing MoneyFlow capabilities to competitive depth; validation belongs inside each workstream and does not freeze development
-- **Code baseline:** `main@f57b92ec471e816f96fa13dd464a7a98297bb2d4`
+- **Owner direction:** mature capabilities already used in MoneyFlow; do not prioritize reconciliation or other new subsystems without validated need
+- **Code baseline:** `main@923fc7b80ada67e548628ef2e85b0837780f9ed3`
 - **Implementation authority:** `docs/research/CURRENT_PROJECT_MEMORY.md`
 - **Competitive evidence:** `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`
 
 ## 1. Decision boundary
 
-MoneyFlow already has most MVP modules and several areas are deeper than earlier status documents claimed. The objective is not to add every category advertised by competitors. It is to complete the workflows already present.
+MoneyFlow already has most MVP modules. The objective is to complete the workflows already present:
 
-“Competitive depth” means:
-
-- entry, review, correction, history, reporting and export connect coherently;
-- financial states and calculations are explicit;
+- entry, search, review, correction, history, reporting and export connect coherently;
+- financial states and calculations stay explicit;
 - mistakes remain recoverable;
-- related modules share ledger facts instead of duplicating them;
-- mobile, authenticated production and tenant isolation are part of acceptance;
+- related modules share ledger facts;
+- mobile, authenticated production and tenant isolation belong to acceptance;
 - automation remains deterministic, reviewable and reversible.
 
-It does not mean bank sync, AI advice, OCR, household finance, investments, full FX accounting, native mobile, envelope-budget cloning or an architecture rewrite.
+This does not authorize bank sync, AI advice, OCR product identity, household finance, investments, full FX accounting, native mobile, envelope-budget cloning, reconciliation-first sequencing or an architecture rewrite.
 
 ## 2. Corrected current position
 
@@ -30,9 +28,9 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 - structural income, expense, split expense and balanced transfers;
 - transfer neutrality in reports;
 - RLS, tenant isolation, narrow financial RPCs and idempotency;
-- transaction create/edit/soft-delete/restore and existing search/filtering;
+- transaction create/edit/soft-delete/restore, search and kind/account/category filters;
 - account create/edit/archive/restore and per-currency totals;
-- dashboard one-RPC healthy path plus schema-skew fallback;
+- dashboard one-RPC path plus schema-skew fallback;
 - import parsing, provenance, dry-run, duplicate planning and atomic approval;
 - week/month/year reports with previous-period comparison and trends;
 - period CSV plus date-range CSV/JSON export;
@@ -43,9 +41,10 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 
 ### Present but incomplete
 
-- account-level history and understanding;
-- ledger-wide review and batch correction;
-- budget history and drill-down;
+- account-level history and running-balance understanding;
+- ledger review state and batch correction;
+- split-line correction;
+- budget history and transaction drill-down;
 - recurring occurrence history/lifecycle/matching;
 - goal contribution history and lifecycle;
 - report custom ranges and drill-down;
@@ -55,68 +54,37 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 - provider-side public-beta controls;
 - performance acceptance at realistic scale.
 
-### Actually absent
+### Absent or deferred
 
-- account reconciliation;
-- authenticated persisted user rules;
-- general ledger review state;
-- financial mutation audit trail;
-- documented full restore path.
-
-### Status anchors
-
-| Capability | Audited status |
-|---|---|
-| Reports | **Implemented, moderate depth** |
-| Recurring commitments | **Implemented, partial occurrence model** |
-| Recurring income | **Implemented, partial occurrence model** |
-| Savings goals | **Implemented, partial depth** |
-| Export | **Implemented, stronger than old docs claim** |
-| Import provenance | **Implemented + production evidenced** |
+- account reconciliation: absent and deferred until statement import/matching or validated demand;
+- authenticated persisted user rules: absent;
+- general ledger review state: absent;
+- financial mutation audit trail: absent;
+- documented full restore path: absent.
 
 ## 3. Capability matrix
 
-| Capability | Merged behavior now | Real remaining gap | Reference patterns | Priority |
-|---|---|---|---|---:|
-| Accounts | account kinds, initial/derived balance, create/edit/archive/restore, per-currency totals, same-currency transfers | account register/detail, reconciliation history, account-level trends/export, explicit hidden/report semantics | YNAB, Actual, Wallet | P0/P1 |
-| Transactions | income/expense/transfer/split, text + kind/account/category filters, edit, soft delete/undo, grouped list and filtered totals | date/amount filters, review state, multi-select, bounded bulk correction, split-line editing, audit history | Copilot, Monarch, Actual | P1 |
-| Reconciliation | absent | statement date/balance, pending/cleared/reconciled, exact difference, adjustment transaction, lock/reopen, history, RLS | YNAB, Actual | P0 |
-| Budgets | current-month category limit and calculated spent, CRUD | period history, previous-period view, copy month, rollover policy, transaction drill-down | YNAB, Monarch, Wallet | P1 |
-| Recurring commitments | template, due date, current-month occurrence, payment transaction link, pay/undo and reserved total | surfaced history, upcoming/due/overdue/skipped/cancelled states, edit-one/future, calendar/reminders, matching recorded transaction | Copilot, Rocket Money, Money Lover | P1 |
-| Recurring income | template, due date, current-month receipt occurrence and expected total | history, richer lifecycle, calendar/reminders and matching | Copilot, Money Lover | P1 |
-| Savings goals | target, allocated, deadline, planned-daily pace, basic allocation/archive | contribution ledger, funding source, pause/complete/reopen, drill-down and correction linkage | Monarch, Money Lover, Wallet | P1 |
-| Reports | week/month/year, current + previous comparable period, change %, category shares, trend, transfer exclusion | arbitrary report range, account/type dimensions, clickable transaction drill-down and shared filters | Monarch, Copilot, Wallet | P1 |
-| Export | period CSV; date-range transaction/candidate/all CSV or JSON; formula-safe UTF-8 | account/kind filter parity, schema version, broader planning export, export-before-delete and documented restore | Actual, Firefly III, Sheets | P2 |
-| Import/Inbox | CSV/XLSX/PDF, direct CSV, candidates, raw source, provenance, external IDs/fingerprint, dry-run, duplicate/transfer planning, atomic approval | mapping presets, richer batch history, bulk correction, duplicate-resolution and resume/retry UX | Actual, Firefly III, Copilot | P1 |
-| Rules | local deterministic parse rules | authenticated storage, RLS, order/stage, preview, enable/disable, version/audit and management UI | Actual, Firefly III, Monarch | P2 |
-| Dashboard | one bundled authenticated RPC, fallback, balances/activity/planning/Inbox count | direct drill-down, evidence-based attention states, measured large-ledger acceptance | Copilot, Monarch, Rocket Money | P2 |
-| Auth/security | app auth/recovery, neutral responses, CAPTCHA token plumbing, CSP/headers, hardened public ingestion, scanning | hosted provider settings, CAPTCHA enforcement, rate limits, breached-password control and edge rules | issue #174 | P0 for public beta |
-| Mobile/accessibility | responsive dark/light, broad matrix, 44px targets, modal and money-value fixes, rich-VND/long-label coverage | physical devices and remaining validation/destructive/Inbox/planning states | issue #72 | P1 |
-| Performance/audit | dashboard bundle/fallback, bounded window, k6 profiles, pgTAP | staging load acceptance, large-ledger benchmarks, FK-index candidate, mutation audit | PostgreSQL/Supabase evidence | P2 |
+| Capability | Merged behavior now | Real remaining gap | Priority |
+|---|---|---|---:|
+| Accounts | account kinds, initial/derived balance, create/edit/archive/restore, per-currency totals, same-currency transfers | account register/detail, running balance, account trends/export, explicit hidden/report semantics | P0 |
+| Transactions | income/expense/transfer/split, search, kind/account/category filters, edit, soft delete/undo, grouped list and totals; PR #223 adds date/amount filters | review state, multi-select, bounded bulk correction, split-line editing and audit history | P0/P1 |
+| Budgets | current-month category limit, calculated spent and CRUD | period history, prior comparison, copy month, rollover policy and transaction drill-down | P1 |
+| Recurring commitments | template, due date, current-month occurrence, transaction link, pay/undo and reserved total | visible history, upcoming/due/overdue/skipped/cancelled, edit-one/future, matching and reminders | P1 |
+| Recurring income | template, current-month occurrence/link and expected total | history, lifecycle, matching and reminders | P1 |
+| Savings goals | target, allocation, deadline, planned-daily pace and archive | contribution ledger, funding source, pause/complete/reopen and drill-down | P1 |
+| Reports | week/month/year, previous period, category shares, trends and transfer exclusion | arbitrary range, account/type dimensions, exact transaction drill-down and shared filters | P1 |
+| Export | period CSV plus date-range transaction/candidate/all CSV/JSON | filter parity, schema version, planning-data coverage and restore docs | P2 |
+| Import/Inbox | CSV/XLSX/PDF, candidates, provenance, dry-run, duplicate/transfer planning and atomic approval | mapping presets, batch history, bulk correction, duplicate resolution and retry/resume UX | P1 |
+| Rules | local deterministic parse rules | authenticated storage, RLS, ordering, preview, version/audit and UI | P2 |
+| Dashboard | bundled authenticated RPC, fallback, balances/activity/planning/Inbox count | direct drill-down, evidence-based attention and measured large-ledger acceptance | P2 |
+| Auth/security | auth/recovery, neutral responses, CAPTCHA plumbing, CSP/headers, hardened ingestion and scanning | hosted provider enforcement, rate limits, breached-password controls and edge rules | P0 before wider beta |
+| Mobile/accessibility | responsive dark/light, broad matrix, 44px targets, modal and money fixes | physical-device and remaining validation/destructive/Inbox/planning states | P0/P1 |
+| Performance/audit | dashboard bundle/bounds, k6 profiles and pgTAP | staging load, large-ledger benchmarks, FK-index decision and mutation audit | P2 |
+| Reconciliation | no merged workflow | deferred; revisit only after an evidence-backed statement workflow exists | deferred |
 
-## 4. Module gap details
+## 4. Current workstreams
 
-### 4.1 Accounts and reconciliation
-
-Already implemented:
-
-- cash, bank, e-wallet, credit-card and savings representations;
-- initial and ledger-derived balances;
-- add, edit, archive and restore;
-- per-currency totals without unsafe FX aggregation;
-- same-currency transfers.
-
-Build next:
-
-1. reconciliation specification and invariant tests;
-2. reconciliation session/domain implementation;
-3. mobile account reconciliation workflow;
-4. account register/detail and reconciliation history;
-5. account-level export/trends.
-
-Do not implement direct balance overwrite. Differences are resolved through explicit financial adjustment transactions.
-
-### 4.2 Transaction operations
+### 4.1 Transaction operations
 
 Already implemented:
 
@@ -127,162 +95,117 @@ Already implemented:
 - split expense creation;
 - grouped/paginated register and filtered totals.
 
+PR #223 adds:
+
+- inclusive date range;
+- inclusive amount range;
+- canonical shareable filter URLs;
+- explicit invalid-range errors;
+- filter-preserving list-context correction.
+
 Build next:
 
-- date and amount range filters;
-- ledger review state distinct from Inbox candidate status;
-- list-context correction;
-- multi-select and safe bulk category/review changes;
-- eligible type changes with preview/guards;
+- review state distinct from Inbox candidate status;
+- multi-select and safe bulk category/review changes with preview;
 - split-line correction workflow;
 - non-sensitive mutation audit.
 
+### 4.2 Account understanding
+
+Build next:
+
+1. account detail route;
+2. full account transaction register;
+3. running balance after each ledger movement;
+4. transaction drill-down and account-scoped export;
+5. explicit archive/hide/report semantics.
+
+This work does not require bank integration or reconciliation.
+
 ### 4.3 Budgets
-
-Already implemented:
-
-- current-month category limits;
-- current-month spent from ledger facts;
-- CRUD and safe VND handling.
 
 Build next:
 
 - month navigation/history;
-- comparison with prior month;
+- prior-month comparison;
 - copy previous month;
 - explicit rollover/no-rollover decision;
 - contributing-transaction drill-down;
-- stable recalculation after transaction/category edits, deletes and restores.
+- stable recalculation after edits, deletes and restores.
 
-### 4.4 Recurring commitments and income
-
-Already implemented:
-
-- templates, due dates, account/category assignment;
-- current-month occurrence records;
-- transaction linkage and paid/received state;
-- undo and reserved/expected totals.
+### 4.4 Reports
 
 Build next:
 
-- user-visible occurrence history;
-- upcoming, due, overdue, paid/received, skipped and cancelled states;
-- edit one occurrence versus future schedule;
-- match independently recorded transactions;
-- duplicate prevention and confidence/review behavior;
-- calendar/timeline, reminders and dashboard attention.
-
-### 4.5 Goals
-
-Already implemented:
-
-- target, allocation, deadline, planned-daily pace and archive.
-
-Build next:
-
-- contribution ledger/history;
-- explicit source/funding semantics;
-- pause, complete, reopen and archive lifecycle;
-- drill-down and correction behavior;
-- dashboard/report integration from real contribution facts.
-
-### 4.6 Reports
-
-Already implemented:
-
-- week/month/year;
-- current and previous comparable periods;
-- income, expense, net, category shares and trends;
-- transfer exclusion;
-- period CSV export.
-
-Build next:
-
-- arbitrary date range in the report surface;
+- arbitrary date range;
 - account and transaction-type dimensions;
 - chart/category drill-down to exact transactions;
 - shared filter state and context-preserving back navigation;
-- recurring/goal context where facts support it.
+- export following the active report filters.
 
-Do not list previous-period comparison or trends as missing again.
+### 4.5 Recurring and goals
 
-### 4.7 Import, Inbox, rules and export
+Recurring next:
 
-Import/provenance is already strong and production evidenced.
+- occurrence history and lifecycle states;
+- edit one versus future schedule;
+- match independently recorded transactions;
+- duplicate prevention and review behavior;
+- reminders and dashboard attention.
 
-Build next:
+Goals next:
+
+- contribution ledger/history;
+- explicit funding source;
+- pause, complete and reopen;
+- drill-down and correction linkage.
+
+### 4.6 Import, Inbox and export
+
+Import backend depth is already strong. Improve:
 
 - mapping presets;
 - visible batch history/status;
 - bulk candidate correction and duplicate resolution;
-- clearer retry/resume states;
-- consistent review language between Inbox and ledger;
-- authenticated persisted rules only after the rule contract is specified.
+- clear retry/resume states;
+- consistent language between Inbox and ledger review.
 
-Export already supports date ranges, CSV/JSON and candidate/all bundles.
-
-Build next:
+Export next:
 
 - account/kind filter parity;
-- stable documented schema versions;
-- broader user-owned planning-data coverage;
-- export-before-delete;
-- documented restoration/import path.
+- stable schema version;
+- broader planning-data coverage;
+- export-before-delete and documented restoration.
 
-### 4.8 Dashboard, onboarding and mobile
+### 4.7 Mobile and provider completion
 
-Already implemented:
-
-- one authenticated dashboard bundle RPC;
-- schema-skew fallback;
-- responsive route matrix;
-- rich-VND/long-label regression;
-- 44px target, modal, icon-name and money-wrap remediations.
-
-Build next:
-
-- direct drill-down from dashboard facts;
-- attention states based on recorded budgets/occurrences/review/reconciliation;
 - first-account-to-first-transaction continuity;
 - keyboard/error/retry completion;
-- remaining validation/destructive/Inbox/planning state coverage;
-- physical-device acceptance.
+- validation/destructive/Inbox/planning state evidence;
+- physical Android/iOS acceptance;
+- provider Auth/CAPTCHA/edge enforcement before wider public exposure.
 
-## 5. Corrected issue map
+## 5. Delivery waves
 
-| Issue | Completed evidence | Remaining |
-|---|---|---|
-| #53 domain benchmark | import provenance/dry-run/atomic approval complete; many DB invariants and performance foundations complete | reconciliation, authenticated rules, mutation audit and final performance/index acceptance |
-| #72 UI audit | 20 routes/dialogs, rich VND/long Vietnamese, phone rows, report clipping, 44px/modal/accessibility batches | validation/destructive/Inbox/planning states and physical devices |
-| #172 product assessment | useful market-validation warnings | old scoring and feature-freeze direction are historical/superseded |
-| #174 provider controls | source/app readiness and read-only baseline complete | hosted provider writes and production verification |
+### Wave 1 — active user loops
 
-## 6. Delivery waves
+1. transaction date/amount filters and correction context;
+2. account register/detail and running balance;
+3. budget history and transaction drill-down;
+4. report custom range and transaction drill-down;
+5. observed validation, destructive and physical-device defects.
 
-Tracks may run in parallel when their domain boundaries do not conflict.
+### Wave 2 — review and planning depth
 
-### Wave 1 — highest leverage
-
-- reconciliation specification and invariant tests;
-- transaction date/amount filters plus review-state contract;
-- budget period history and transaction drill-down;
-- arbitrary report range and transaction drill-down contract;
-- remaining onboarding/mobile error-state completion;
-- PR #211 database-index canary after current-main revalidation;
-- provider controls only under explicit write permission.
-
-### Wave 2 — connected planning
-
-- reconciliation database and product workflow;
+- transaction review state;
+- bounded bulk correction;
 - recurring occurrence history/lifecycle;
 - recurring transaction matching;
 - goal contribution history/lifecycle;
-- account register/detail;
 - report shared filter state.
 
 ### Wave 3 — efficiency and ownership
 
-- bounded bulk transaction correction;
 - mapping presets and Inbox batch UX;
 - export schema/coverage/restore path;
 - dashboard attention/drill-down;
@@ -292,23 +215,23 @@ Tracks may run in parallel when their domain boundaries do not conflict.
 ### Wave 4 — deterministic automation
 
 - authenticated persisted rules;
-- rule ordering/preview/version/audit;
+- ordering/preview/version/audit;
 - rule management UI;
 - integration with import review, recurring matching and ledger review.
 
-## 7. Validation contract
+Reconciliation is not assigned to a wave. Reopen it only after statement import/matching or direct user evidence creates a real workflow.
 
-Validation is not a separate phase that freezes development.
+## 6. Validation contract
 
 Each implementation PR carries its own proof:
 
 - financial/data: tests first, migration replay, pgTAP, browser and affected production verification;
-- UI: responsive artifacts and physical-device proof for claims about real-device usability;
-- provider: configuration export, one reversible change, rollback and production smoke;
-- performance: measured baseline and acceptance, never intuition;
+- UI: responsive artifacts and physical-device proof for real-device claims;
+- provider: configuration export, reversible change, rollback and production smoke;
+- performance: measured baseline and acceptance;
 - documentation/status: update `CURRENT_PROJECT_MEMORY.md` in the same PR.
 
-## 8. Superseded claims
+## 7. Superseded claims
 
 Do not repeat these as current gaps:
 
@@ -320,4 +243,5 @@ Do not repeat these as current gaps:
 - dashboard still uses the original authenticated fan-out;
 - rich VND, long Vietnamese, 44px targets and modal placement are wholly untested;
 - CAPTCHA application plumbing is absent;
-- all feature work must wait for a seven-day validation phase.
+- all feature work must wait for a validation freeze;
+- reconciliation must be implemented before improving existing transaction and account workflows.
