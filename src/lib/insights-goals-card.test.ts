@@ -10,15 +10,19 @@ import { readDashboardSource } from "./test-support/dashboard-source.ts";
 
 const GOALS_LIB = join(process.cwd(), "src/lib/planning/goals.ts");
 const PAGE = join(process.cwd(), "src/app/dashboard/page.tsx");
+const DASHBOARD_SERVER = join(process.cwd(), "src/server/dashboard.ts");
 
 function read(path: string) {
   return readFileSync(path, "utf8");
 }
 
 test("insights page loads goals workspace into dashboard", () => {
-  const source = read(PAGE);
-  assert.match(source, /getGoalsWorkspace/);
-  assert.match(source, /goals=\{goalWorkspace\.goals\}/);
+  const page = read(PAGE);
+  const server = read(DASHBOARD_SERVER);
+  assert.match(page, /getDashboardPageWorkspace/);
+  assert.match(page, /goals=\{goals\}/);
+  assert.match(server, /goals:\s*z\.array\(z\.unknown\(\)\)/);
+  assert.match(server, /goals: bundle\.goals\.map\(mapGoalRow\)/);
 });
 
 test("dashboard uses pickFeaturedGoal and progress bar", () => {

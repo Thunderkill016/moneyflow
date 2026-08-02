@@ -19,7 +19,7 @@ function read(path: string): string {
 test("dashboard page mounts MoneyFlowDashboard with the bounded finance loader", () => {
   const source = read(PAGE);
   assert.match(source, /MoneyFlowDashboard/);
-  assert.match(source, /getDashboardFinanceWorkspace/);
+  assert.match(source, /getDashboardPageWorkspace/);
 });
 
 /*
