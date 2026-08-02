@@ -92,7 +92,7 @@ test.describe("Transaction range filters", () => {
 
     await page.getByRole("button", { name: "Sửa giao dịch Đi siêu thị" }).click();
     const dialog = page.getByRole("dialog", { name: "Sửa giao dịch" });
-    await dialog.getByLabel("Số tiền", { exact: true }).fill("600000");
+    await dialog.getByLabel(/^Số tiền/).fill("600000");
     await dialog.getByRole("button", { name: "Lưu thay đổi" }).click();
 
     await expect(page.getByText("Đi siêu thị", { exact: true })).toBeHidden();
@@ -110,9 +110,12 @@ test.describe("Transaction range filters", () => {
     await page.getByLabel("Số tiền tối đa").fill("100000");
 
     await expect(
-      page.getByRole("alert", {
-        name: "Số tiền tối thiểu phải nhỏ hơn hoặc bằng số tiền tối đa.",
-      }),
+      page
+        .getByRole("alert")
+        .filter({
+          hasText:
+            "Số tiền tối thiểu phải nhỏ hơn hoặc bằng số tiền tối đa.",
+        }),
     ).toBeVisible();
     await expect(page.getByText("Không tìm thấy giao dịch")).toBeVisible();
   });
