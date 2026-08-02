@@ -21,7 +21,7 @@ const traceSteps = [
     number: "01",
     title: "Ghi đúng bản chất",
     body: "Thu, chi và chuyển nội bộ là ba loại giao dịch khác nhau. MoneyFlow giữ chúng tách biệt ngay từ lúc nhập.",
-    note: "Chuyển tiền không bị tính thành chi tiêu.",
+    note: "Chuyển nội bộ không bị tính thành chi tiêu.",
   },
   {
     icon: WalletCards,
