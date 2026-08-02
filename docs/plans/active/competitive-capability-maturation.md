@@ -127,7 +127,7 @@ Not current gaps:
 ### Track C — repository integration
 
 - link current memory from `README.md`;
-- route agent product-status work through current memory in `AGENTS.md`;
+- make the README-first agent path point to current implementation status;
 - index current memory in `docs/research/README.md`;
 - enforce file and marker presence in `scripts/check-project-knowledge.mjs`;
 - update PR title/body and exact-head evidence.
@@ -176,7 +176,7 @@ Not current gaps:
 - [x] Identify false gap claims in the first PR #215 draft.
 - [x] Add `CURRENT_PROJECT_MEMORY.md`.
 - [x] Correct the capability gap matrix.
-- [ ] Update README, AGENTS, research index and knowledge contract.
+- [x] Update README, research index and knowledge contract.
 - [ ] Update PR metadata for the expanded current-memory scope.
 - [ ] Run exact-head risk-selected CI, CodeQL and secret scan.
 - [ ] Hand off for owner review without merging.
@@ -201,7 +201,7 @@ Selected verification:
 - diff hygiene;
 - project knowledge contract;
 - CI classifier contract;
-- JavaScript syntax and full verify if selected because the knowledge script changes;
+- JavaScript syntax and full verify because the knowledge script changes;
 - database/browser gates only if the fail-safe classifier selects them;
 - CodeQL and secret-history scan;
 - production verification not applicable because runtime behavior is unchanged.
@@ -228,4 +228,4 @@ Not allowed:
 |---|---|---|---|---|
 | 2026-08-02 | owner | planner | planned | Requested development of existing capabilities rather than validation-first freeze |
 | 2026-08-02 | owner | project auditor | evaluating | Requested full project-information refresh because many previously listed gaps were already implemented |
-| 2026-08-02 | project auditor | owner review | evaluating | Current-state memory and corrected capability matrix prepared; entrypoint/CI integration pending |
+| 2026-08-02 | project auditor | owner review | evaluating | Current-state memory, corrected gap matrix, README/research entrypoints and knowledge contract prepared; exact-head CI pending |
