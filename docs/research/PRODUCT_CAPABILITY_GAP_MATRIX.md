@@ -63,6 +63,17 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 - financial mutation audit trail;
 - documented full restore path.
 
+### Status anchors
+
+| Capability | Audited status |
+|---|---|
+| Reports | **Implemented, moderate depth** |
+| Recurring commitments | **Implemented, partial occurrence model** |
+| Recurring income | **Implemented, partial occurrence model** |
+| Savings goals | **Implemented, partial depth** |
+| Export | **Implemented, stronger than old docs claim** |
+| Import provenance | **Implemented + production evidenced** |
+
 ## 3. Capability matrix
 
 | Capability | Merged behavior now | Real remaining gap | Reference patterns | Priority |
