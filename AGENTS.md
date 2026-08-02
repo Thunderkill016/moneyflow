@@ -29,7 +29,7 @@ Task-specific references:
 | UI/UX | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` |
 | Auth/deployment | `docs/configuration.md`, `docs/supabase-setup.md` |
 | Database/RLS | `docs/security-rls-check.md`, relevant migrations and pgTAP tests |
-| Product behavior | `docs/MVP_DEFINITION.md`, relevant files in `docs/research/` and current GitHub issue/PR |
+| Product behavior | `docs/MVP_DEFINITION.md`, `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`, relevant current GitHub issue/PR |
 | External research, tools or architecture | `docs/research/REPOSITORY_REFERENCE_MAP.md`, `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` |
 
 ## Product law
