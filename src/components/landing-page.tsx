@@ -1,65 +1,73 @@
-import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  ArrowRightLeft,
-  Check,
-  FileDown,
-  ReceiptText,
-  Search,
-  ShieldCheck,
-  Undo2,
-  WalletCards,
-} from "lucide-react";
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { RevealSection } from "@/components/reveal";
 import styles from "./landing-page.module.css";
 import themeStyles from "./public-brand-theme.module.css";
 
-const traceSteps = [
+const recentEntries = [
   {
-    icon: ReceiptText,
-    number: "01",
-    title: "Ghi đúng bản chất",
-    body: "Thu, chi và chuyển nội bộ là ba loại giao dịch khác nhau. MoneyFlow giữ chúng tách biệt ngay từ lúc nhập.",
-    note: "Chuyển nội bộ không bị tính thành chi tiêu.",
+    kind: "THU",
+    title: "Lương tháng 8",
+    account: "Tài khoản chính",
+    amount: "+15.000.000 ₫",
+    tone: "income",
   },
   {
-    icon: WalletCards,
-    number: "02",
-    title: "Thấy số dư thay đổi",
-    body: "Mỗi giao dịch cập nhật đúng tài khoản liên quan, để tổng quan luôn bắt đầu từ sổ giao dịch thay vì một con số nhập tay.",
-    note: "Tiền mặt, ngân hàng và ví điện tử không bị trộn lẫn.",
+    kind: "CHI",
+    title: "Tiền nhà",
+    account: "Tài khoản chính",
+    amount: "-4.500.000 ₫",
+    tone: "expense",
   },
   {
-    icon: Search,
-    number: "03",
-    title: "Mở lại để kiểm tra",
-    body: "Từ số tổng, bạn có thể quay về danh sách giao dịch, lọc đúng khoản và sửa khi phát hiện sai sót.",
-    note: "Con số có nguồn gốc, không phải hộp đen.",
+    kind: "CHUYỂN",
+    title: "Chuyển sang ví chi tiêu",
+    account: "Nội bộ",
+    amount: "1.500.000 ₫",
+    tone: "transfer",
+  },
+  {
+    kind: "CHI",
+    title: "Cà phê sáng",
+    account: "Ví tiền mặt",
+    amount: "-35.000 ₫",
+    tone: "expense",
   },
 ] as const;
 
-const controlPoints = [
+const questions = [
   {
-    icon: ShieldCheck,
-    title: "Không cần mật khẩu ngân hàng",
-    body: "MoneyFlow là manual-first. Bạn quyết định dữ liệu nào được ghi vào sổ.",
+    number: "01",
+    title: "Hôm nay đã chi gì?",
+    body: "Ghi khoản vừa phát sinh trước khi bạn quên mất.",
   },
   {
-    icon: ArrowRightLeft,
-    title: "Chuyển tiền được tính đúng",
-    body: "Di chuyển tiền giữa hai tài khoản không làm chi tiêu bị phóng đại.",
+    number: "02",
+    title: "Tiền còn ở tài khoản nào?",
+    body: "Xem riêng tiền mặt, ngân hàng và ví điện tử.",
   },
   {
-    icon: Undo2,
-    title: "Có đường sửa và phục hồi",
-    body: "Một lần nhập vội không cần trở thành sai lệch kéo dài trong lịch sử.",
+    number: "03",
+    title: "Khoản nào làm số dư thay đổi?",
+    body: "Mở lại đúng giao dịch thay vì đoán từ một con số tổng.",
+  },
+] as const;
+
+const flowSteps = [
+  {
+    number: "01",
+    title: "Ghi khoản vừa phát sinh",
+    body: "Chọn thu, chi hoặc chuyển tiền; nhập số tiền và tài khoản.",
   },
   {
-    icon: FileDown,
-    title: "Lấy dữ liệu ra khi cần",
-    body: "Xuất lịch sử giao dịch ra CSV để tự kiểm tra hoặc tiếp tục xử lý.",
+    number: "02",
+    title: "Số dư tự cập nhật",
+    body: "MoneyFlow tính từ sổ giao dịch, không bắt bạn sửa số dư bằng tay.",
+  },
+  {
+    number: "03",
+    title: "Cần thì mở lại",
+    body: "Tìm, sửa hoặc phục hồi đúng giao dịch khiến con số thay đổi.",
   },
 ] as const;
 
@@ -81,7 +89,7 @@ export function LandingPage() {
 
           <div className={styles.navLinks}>
             <a href="#cach-hoat-dong">Cách hoạt động</a>
-            <a href="#quyen-kiem-soat">Quyền kiểm soát</a>
+            <a href="#du-lieu-cua-ban">Dữ liệu của bạn</a>
           </div>
 
           <div className={styles.navActions}>
@@ -89,7 +97,7 @@ export function LandingPage() {
               Đăng nhập
             </Link>
             <Link href="/register" className={styles.navCta}>
-              Tạo sổ
+              Dùng thử
             </Link>
           </div>
         </nav>
@@ -98,210 +106,142 @@ export function LandingPage() {
       <main id="noi-dung">
         <section className={styles.hero} aria-labelledby="landing-title">
           <div className={styles.heroCopy}>
-            <p className={styles.kicker}>Sổ thu chi cá nhân · bạn chủ động ghi</p>
+            <p className={styles.kicker}>Sổ thu chi cá nhân</p>
             <h1 id="landing-title">
-              <span>Biết tiền đang ở đâu.</span>
-              <span>Biết vì sao nó thay đổi.</span>
+              Ghi một lần.
+              <span>Cuối tháng khỏi đoán.</span>
             </h1>
             <p className={styles.heroLead}>
-              Ghi thu, chi và chuyển tiền đúng bản chất. Theo dõi từng tài khoản
-              và mở lại mọi con số để kiểm tra — không cần liên kết ngân hàng.
+              Mỗi khoản thu, chi hay chuyển tiền đều nằm đúng tài khoản.
+              Cần kiểm tra khoản nào thì mở lại khoản đó.
             </p>
 
             <div className={styles.heroActions}>
               <Link href="/register" className={styles.primaryCta}>
-                Tạo sổ của bạn
-                <ArrowRight size={18} aria-hidden="true" />
+                Bắt đầu ghi thu chi
               </Link>
-              <a href="#cach-hoat-dong" className={styles.secondaryCta}>
-                Xem cách hoạt động
-              </a>
+              <Link href="/login" className={styles.secondaryCta}>
+                Tôi đã có tài khoản
+              </Link>
             </div>
 
-            <ul className={styles.trustRow} aria-label="Cam kết chính">
-              <li>
-                <Check size={15} aria-hidden="true" /> Không liên kết ngân hàng
-              </li>
-              <li>
-                <Check size={15} aria-hidden="true" /> Có thể sửa và phục hồi
-              </li>
-              <li>
-                <Check size={15} aria-hidden="true" /> Xuất CSV khi cần
-              </li>
-            </ul>
+            <p className={styles.heroNote}>
+              Bạn tự ghi dữ liệu cần thiết. MoneyFlow không cần mật khẩu ngân hàng.
+            </p>
           </div>
 
           <div
-            className={styles.proofStage}
+            className={styles.ledgerDemo}
             role="group"
-            aria-label="Chuỗi giao diện thật của MoneyFlow"
+            aria-label="Sổ giao dịch minh hoạ của MoneyFlow"
           >
-            <figure
-              className={styles.accountShot}
-              aria-label="Ảnh giao diện MoneyFlow: tài khoản"
-            >
-              <div className={styles.windowBar} aria-hidden="true">
-                <span />
-                <span />
-                <span />
-                <b>Tài khoản</b>
+            <div className={styles.ledgerHeading}>
+              <div>
+                <span>Tháng 8</span>
+                <strong>Sổ giao dịch</strong>
               </div>
-              <Image
-                src="/landing/moneyflow-accounts.svg"
-                width={800}
-                height={938}
-                priority
-                sizes="(max-width: 980px) 92vw, 52vw"
-                alt="Màn hình Tài khoản của MoneyFlow trong môi trường kiểm thử"
-              />
-              <figcaption>
-                Số dư theo từng tài khoản, tạo từ sổ giao dịch.
-              </figcaption>
-            </figure>
+              <small>Dữ liệu minh hoạ</small>
+            </div>
 
-            <figure
-              className={styles.captureShot}
-              aria-label="Ảnh giao diện MoneyFlow: ghi giao dịch"
-            >
-              <Image
-                src="/landing/moneyflow-quick-capture.svg"
-                width={800}
-                height={850}
-                priority
-                sizes="(max-width: 680px) 58vw, 250px"
-                alt="Màn hình Thêm nhanh của MoneyFlow trong môi trường kiểm thử"
-              />
-              <figcaption>Ghi đúng loại giao dịch.</figcaption>
-            </figure>
+            <div className={styles.balanceRow}>
+              <span>Tổng số dư</span>
+              <strong>18.715.000 ₫</strong>
+              <small>3 tài khoản đang hoạt động</small>
+            </div>
 
-            <figure
-              className={styles.ledgerShot}
-              aria-label="Ảnh giao diện MoneyFlow: sổ giao dịch"
-            >
-              <Image
-                src="/landing/moneyflow-transactions.svg"
-                width={800}
-                height={668}
-                sizes="(max-width: 680px) 64vw, 310px"
-                alt="Màn hình Sổ giao dịch của MoneyFlow trong môi trường kiểm thử"
-              />
-              <figcaption>Mở sổ để đối chiếu.</figcaption>
-            </figure>
+            <div className={styles.entryList}>
+              {recentEntries.map((entry) => (
+                <article className={styles.entry} key={`${entry.kind}-${entry.title}`}>
+                  <span className={styles.entryKind}>{entry.kind}</span>
+                  <div>
+                    <h2>{entry.title}</h2>
+                    <p>{entry.account}</p>
+                  </div>
+                  <strong className={styles[entry.tone]}>{entry.amount}</strong>
+                </article>
+              ))}
+            </div>
 
-            <p className={styles.testDataNote}>
-              Giao diện thật từ môi trường kiểm thử; dữ liệu trong ảnh chỉ dùng
-              để minh hoạ cách hiển thị.
-            </p>
+            <div className={styles.ledgerFooter}>
+              <span>4 giao dịch gần nhất</span>
+              <span>Chuyển nội bộ không tính vào chi tiêu</span>
+            </div>
           </div>
         </section>
 
-        <section className={styles.boundaryStrip} aria-label="MoneyFlow làm gì">
-          <p>Một giao dịch đi xuyên suốt từ lúc ghi đến lúc kiểm tra.</p>
-          <div>
-            <span>Ghi giao dịch</span>
-            <ArrowRight size={16} aria-hidden="true" />
-            <span>Cập nhật tài khoản</span>
-            <ArrowRight size={16} aria-hidden="true" />
-            <span>Mở sổ đối chiếu</span>
+        <section className={styles.questionSection} aria-labelledby="question-title">
+          <div className={styles.questionIntro}>
+            <p>Không cần thuộc lòng mọi khoản đã tiêu.</p>
+            <h2 id="question-title">Chỉ cần mở sổ và nhìn lại.</h2>
+          </div>
+
+          <div className={styles.questionList}>
+            {questions.map((question) => (
+              <article key={question.number}>
+                <span>{question.number}</span>
+                <h3>{question.title}</h3>
+                <p>{question.body}</p>
+              </article>
+            ))}
           </div>
         </section>
 
         <RevealSection
-          className={styles.traceSection}
+          className={styles.flowSection}
           id="cach-hoat-dong"
-          aria-labelledby="trace-title"
+          aria-labelledby="flow-title"
         >
+          <div className={styles.sectionIndex}>01 / Cách hoạt động</div>
           <div className={styles.sectionHeading}>
-            <p>Cách MoneyFlow giữ một con số có thể giải thích</p>
-            <h2 id="trace-title">Một dòng tiền, ba bước kiểm tra được.</h2>
-            <span>
-              Không bắt đầu bằng biểu đồ. MoneyFlow bắt đầu bằng giao dịch đúng,
-              rồi mới tạo số dư và tổng quan từ dữ liệu đó.
-            </span>
+            <h2 id="flow-title">Một khoản tiền đi qua ba bước.</h2>
+            <p>
+              Không có dashboard giả, không có con số tự đoán. Mọi thứ bắt đầu
+              từ giao dịch bạn chủ động ghi.
+            </p>
           </div>
 
-          <div className={styles.traceGrid}>
-            {traceSteps.map((step) => (
+          <div className={styles.flowTrack}>
+            {flowSteps.map((step) => (
               <article key={step.number}>
-                <div className={styles.stepTopline}>
-                  <step.icon size={22} aria-hidden="true" />
-                  <span>{step.number}</span>
-                </div>
+                <span>{step.number}</span>
                 <h3>{step.title}</h3>
                 <p>{step.body}</p>
-                <small>{step.note}</small>
               </article>
             ))}
-          </div>
-
-          <div className={styles.flowProof}>
-            <figure className={styles.flowCapture}>
-              <div>
-                <span>Đầu vào</span>
-                <strong>Ghi một khoản trong vài bước rõ ràng</strong>
-                <p>
-                  Loại giao dịch, số tiền, danh mục và tài khoản nằm trong cùng
-                  một luồng ngắn.
-                </p>
-              </div>
-              <Image
-                src="/landing/moneyflow-quick-capture.svg"
-                width={800}
-                height={850}
-                sizes="(max-width: 860px) 92vw, 48vw"
-                alt="Chi tiết màn hình Thêm nhanh của MoneyFlow"
-              />
-            </figure>
-
-            <div className={styles.flowLink} aria-hidden="true">
-              <ArrowRight size={18} />
-              <span>Cùng một dữ liệu</span>
-            </div>
-
-            <figure className={styles.flowLedger}>
-              <div>
-                <span>Đối chiếu</span>
-                <strong>Mở lại đúng khoản tạo ra con số</strong>
-                <p>
-                  Lọc sổ theo loại, danh mục và tài khoản để kiểm tra thay vì
-                  đoán từ một biểu đồ tổng hợp.
-                </p>
-              </div>
-              <Image
-                src="/landing/moneyflow-transactions.svg"
-                width={800}
-                height={668}
-                sizes="(max-width: 860px) 92vw, 48vw"
-                alt="Chi tiết màn hình Sổ giao dịch của MoneyFlow"
-              />
-            </figure>
           </div>
         </RevealSection>
 
         <RevealSection
-          className={styles.controlSection}
-          id="quyen-kiem-soat"
-          aria-labelledby="control-title"
+          className={styles.ownershipSection}
+          id="du-lieu-cua-ban"
+          aria-labelledby="ownership-title"
         >
-          <div className={styles.controlIntro}>
-            <p>Quyền kiểm soát không nằm trong chữ nhỏ cuối trang</p>
-            <h2 id="control-title">Sổ của bạn. Quyết định của bạn.</h2>
-            <span>
-              MoneyFlow sắp xếp dữ liệu bạn chủ động nhập. Ứng dụng không cần
-              trở thành một ngân hàng khác để giúp bạn hiểu dòng tiền.
-            </span>
-          </div>
+          <div className={styles.sectionIndex}>02 / Dữ liệu của bạn</div>
+          <div className={styles.ownershipGrid}>
+            <div className={styles.ownershipCopy}>
+              <h2 id="ownership-title">
+                Dữ liệu của bạn vẫn là dữ liệu của bạn.
+              </h2>
+              <p>
+                Không liên kết tài khoản ngân hàng. Có thể sửa, phục hồi và xuất
+                lịch sử giao dịch ra CSV khi cần.
+              </p>
+            </div>
 
-          <div className={styles.controlGrid}>
-            {controlPoints.map((point) => (
-              <article key={point.title}>
-                <point.icon size={21} aria-hidden="true" />
-                <div>
-                  <h3>{point.title}</h3>
-                  <p>{point.body}</p>
-                </div>
-              </article>
-            ))}
+            <dl className={styles.ownershipList}>
+              <div>
+                <dt>Nhập dữ liệu</dt>
+                <dd>Bạn quyết định khoản nào được ghi vào MoneyFlow.</dd>
+              </div>
+              <div>
+                <dt>Kiểm tra lại</dt>
+                <dd>Mỗi số tổng đều quay về được đúng giao dịch tạo ra nó.</dd>
+              </div>
+              <div>
+                <dt>Đem dữ liệu đi</dt>
+                <dd>Xuất CSV để tự lưu, kiểm tra hoặc tiếp tục xử lý.</dd>
+              </div>
+            </dl>
           </div>
         </RevealSection>
 
@@ -309,16 +249,13 @@ export function LandingPage() {
           className={styles.finalCta}
           aria-labelledby="final-cta-title"
         >
+          <p>Khoản gần nhất bạn còn nhớ là đủ để bắt đầu.</p>
           <div>
-            <p>Bắt đầu bằng giao dịch gần nhất</p>
-            <h2 id="final-cta-title">
-              Tạo một sổ mà mỗi con số đều có chỗ để kiểm tra.
-            </h2>
+            <h2 id="final-cta-title">Tạo sổ rồi ghi khoản đầu tiên.</h2>
+            <Link href="/register" className={styles.finalCtaButton}>
+              Dùng thử MoneyFlow
+            </Link>
           </div>
-          <Link href="/register" className={styles.finalCtaButton}>
-            Tạo tài khoản
-            <ArrowRight size={18} aria-hidden="true" />
-          </Link>
         </RevealSection>
       </main>
 
@@ -329,7 +266,7 @@ export function LandingPage() {
           ariaLabel="MoneyFlow, trang chủ"
           size="compact"
         />
-        <p>Ghi đúng dòng tiền. Mở lại để kiểm tra.</p>
+        <p>Ghi lại để khỏi phải đoán.</p>
         <div>
           <Link href="/privacy">Quyền riêng tư</Link>
           <Link href="/login">Đăng nhập</Link>
