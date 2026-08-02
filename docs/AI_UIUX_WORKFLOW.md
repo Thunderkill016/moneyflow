@@ -1,16 +1,27 @@
 # MoneyFlow — AI-assisted UI/UX workflow
 
+## Trạng thái định hướng bắt buộc
+
+Trước mọi công việc UI/UX, đọc `docs/design/DESIGN_DIRECTION_STATUS.md`.
+
+- Nghiên cứu UI/UX của MoneyFlow là tích lũy.
+- Các concept thiết kế chỉ là giả thuyết tạm thời.
+- `Signal Ledger v3` đã bị owner loại bỏ và không được dùng làm baseline, visual system hoặc giới hạn sáng tạo.
+- Không concept có tên nào trở thành mặc định chỉ vì đã từng được viết tài liệu hoặc triển khai.
+- Chỉ owner mới có quyền kích hoạt lại hoặc chọn một định hướng thiết kế làm hướng hiện hành.
+
 ## Mục tiêu
 
-Dùng AI để tăng tốc khám phá và lặp thiết kế, không dùng AI như một máy tạo giao diện ngẫu nhiên.
+Dùng AI để tăng tốc khám phá và lặp thiết kế, không dùng AI như máy tạo giao diện ngẫu nhiên hoặc máy lặp lại concept cũ.
 
 MoneyFlow chỉ nhận một thay đổi UI khi thay đổi đó:
 
 1. giải quyết một câu hỏi thật của người dùng;
-2. tái sử dụng design system;
+2. dựa trên hành vi sản phẩm và dữ liệu thật;
 3. hoạt động trên điện thoại trước;
 4. không đưa ra lời khuyên tài chính thiếu cơ sở;
-5. có ảnh và kiểm tra responsive làm bằng chứng.
+5. có ảnh và kiểm tra responsive làm bằng chứng;
+6. không bị khóa bởi một thẩm mỹ đã bị bác bỏ.
 
 ## Những workflow đã tham khảo
 
@@ -24,7 +35,7 @@ Nguồn:
 - https://help.figma.com/hc/en-us/articles/23955143044247-Use-First-Draft-with-Figma-AI
 - https://help.figma.com/hc/en-us/articles/40219873508247-Release-notes-roundup-May-2026
 
-Bài học áp dụng: luôn đưa code, token và constraint hiện tại cho AI; không prompt từ trang trắng rồi chép kết quả vào sản phẩm.
+Bài học áp dụng: đưa code, dữ liệu, constraint và hành vi hiện tại cho AI; không coi style hoặc concept hiện tại là bất biến.
 
 ### Google Stitch
 
@@ -35,7 +46,7 @@ Nguồn:
 - https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-ai-ui-design/
 - https://blog.google/innovation-and-ai/models-and-research/google-labs/stitch-updates/
 
-Bài học áp dụng: divergence trước, convergence sau. AI phải tạo nhiều hướng có chủ đích, không chỉ một mockup nhìn bắt mắt.
+Bài học áp dụng: divergence trước, convergence sau. AI phải tạo nhiều hướng thực sự khác nhau, không chỉ đổi màu cùng một layout.
 
 ### Relume
 
@@ -47,7 +58,7 @@ Nguồn:
 - https://resources.relume.io/resources/docs/how-to-create-and-edit-wireframes-in-the-relume-site-builder
 - https://www.relume.io/resources/docs/concept-creation-using-the-relume-style-guide-builder
 
-Bài học áp dụng: chốt cấu trúc và nội dung trước màu sắc; style guide được áp dụng sau khi flow đã hợp lý.
+Bài học áp dụng: chốt cấu trúc và nội dung trước màu sắc; style guide chỉ xuất hiện sau khi flow đã hợp lý.
 
 ### v0
 
@@ -59,11 +70,11 @@ Nguồn:
 - https://v0.dev/docs/design-systems
 - https://v0.dev/docs/faqs
 
-Bài học áp dụng: AI chỉ được sinh trong giới hạn component và token thật của MoneyFlow.
+Bài học áp dụng: dùng component và token thật để kiểm chứng khả năng triển khai, nhưng không để token hiện tại ngăn việc đề xuất một hệ thống mới khi brief yêu cầu.
 
 ## Workflow chuẩn của MoneyFlow
 
-### 1. Brief sản phẩm
+### 1. Xác định câu hỏi thiết kế
 
 Mỗi batch phải viết rõ:
 
@@ -74,7 +85,20 @@ Mỗi batch phải viết rõ:
 - dữ liệu hoặc lời khuyên nào chưa được phép hiển thị;
 - trạng thái mobile, loading, empty, error và dữ liệu dài.
 
-### 2. Audit màn hình hiện tại
+### 2. Đọc nghiên cứu tích lũy
+
+Đọc research ledger trung lập và phân loại:
+
+- điểm chung đáng học;
+- điểm phù hợp riêng với MoneyFlow;
+- điểm không nên sao chép;
+- mâu thuẫn giữa các nguồn;
+- quyết định cũ đã bị thay thế;
+- khoảng trống cần nghiên cứu thêm.
+
+Không được chỉ đọc tài liệu của concept gần nhất rồi xem nó là toàn bộ nghiên cứu.
+
+### 3. Audit sản phẩm hiện tại
 
 Thu thập:
 
@@ -83,102 +107,71 @@ Thu thập:
 - CTA bị lặp;
 - nội dung không giúp quyết định;
 - component và token đang dùng;
-- lỗi responsive/a11y từ Playwright.
+- lỗi responsive/a11y từ Playwright;
+- hành vi thật đang hoạt động và các constraint kỹ thuật.
 
-### 3. Tạo ba hướng
+### 4. Tạo nhiều hướng độc lập
 
-AI phải tạo tối thiểu ba hướng có tên và trade-off.
+AI phải tạo tối thiểu ba hướng có rationale và trade-off thực sự khác nhau.
 
-#### Hướng A — Calm Ledger
+Mỗi hướng phải mô tả:
 
-- số liệu chính rõ ràng;
-- neutral surface chiếm đa số;
-- green chỉ dành cho brand, hành động và trạng thái tích cực;
-- mật độ vừa phải;
-- không gamification.
+- mô hình thông tin;
+- interaction chính;
+- cảm giác và ngôn ngữ hình ảnh;
+- điểm mạnh;
+- rủi ro;
+- điều kiện khiến hướng đó không phù hợp.
 
-#### Hướng B — Analytics Desk
+Không dùng `Signal Ledger`, `Calm Ledger` hoặc một concept cũ làm hướng mặc định. Có thể nghiên cứu lại một ý tưởng cũ chỉ khi nó được trình bày như một phương án ngang hàng và không mang quyền ưu tiên.
 
-- nhiều chart và KPI hơn;
-- phù hợp power user;
-- mật độ cao, khó dùng hơn trên điện thoại.
+### 5. Chọn bằng tiêu chí, không chọn bằng thói quen
 
-#### Hướng C — Daily Coach
-
-- copy hướng dẫn và nhắc nhở mạnh;
-- dễ tạo cảm giác bị phán xét hoặc lo lắng;
-- có nguy cơ đưa lời khuyên vượt quá dữ liệu.
-
-### 4. Chọn bằng tiêu chí
-
-| Tiêu chí | Trọng số |
+| Tiêu chí | Trọng số gợi ý |
 |---|---:|
 | Trả lời quyết định chính trong 3 giây | 30% |
 | Mobile và dữ liệu dài | 25% |
 | Trung thực tài chính | 20% |
-| Nhất quán design system | 15% |
-| Dễ bảo trì | 10% |
+| Khả năng triển khai và bảo trì | 15% |
+| Accessibility | 10% |
 
-Hướng A — Calm Ledger được chọn cho MoneyFlow.
+Owner chọn hướng hoặc yêu cầu lặp thêm. Các hướng không được chọn phải được ghi là rejected/historical, không trở thành constraint ngầm cho vòng sau.
 
-### 5. Khóa hệ thống trước khi polish
+### 6. Chốt hệ thống sau khi chọn hướng
 
-- semantic tokens thay vì màu hard-code rải rác;
-- một primary action trên mỗi viewport;
-- card dùng chung radius, border và elevation;
-- tiền dùng tabular numerals;
-- trạng thái không phân biệt chỉ bằng màu;
-- spacing theo nhịp 4px;
-- dark mode là một hệ thống, không đảo màu tự động.
+Chỉ sau khi owner chọn hướng mới chốt:
 
-### 6. Triển khai theo vertical slice
+- semantic tokens;
+- typography;
+- spacing;
+- radius, border và elevation;
+- component composition;
+- light/dark behavior;
+- motion rules.
 
-Thứ tự:
+Một primary action trên mỗi viewport; tiền dùng tabular numerals; trạng thái không phân biệt chỉ bằng màu.
 
-1. Tổng quan;
-2. Ghi giao dịch;
-3. Giao dịch;
-4. Ngân sách và khoản định kỳ;
-5. Báo cáo;
-6. trang nâng cao.
+### 7. Triển khai theo vertical slice
 
-Mỗi slice phải chạy được trong production code; không tạo prototype rời rồi bỏ đó.
+Mỗi slice phải chạy trong production code; không tạo prototype rời rồi bỏ đó. Scope và thứ tự được xác định trong active work packet, không bị khóa bởi một concept cũ.
 
-### 7. Verification loop
+### 8. Verification loop
 
-Mỗi PR cần:
+Mỗi PR UI/UX cần:
 
 - lint, typecheck, unit và build;
 - Playwright trên 320, 360, 390, 768, 1024, 1366 và 1440px;
 - WebKit critical paths;
-- dark mode;
+- light và dark mode khi sản phẩm hỗ trợ;
 - 200% text;
 - keyboard focus;
 - screenshot và JSON evidence;
-- kiểm tra thiết bị thật trước khi tuyên bố mobile-ready.
+- kiểm tra thiết bị thật trước khi tuyên bố mobile-ready;
+- owner visual review trước merge.
 
-## Batch hiện tại — Tổng quan Calm Ledger
+## Quy tắc lưu trữ
 
-### Quyết định chính
-
-Người dùng cần hiểu nhanh:
-
-1. tổng số dư hiện tại;
-2. tháng này thu, chi và ròng ra sao;
-3. có việc gì cần chú ý;
-4. ghi khoản mới ở đâu;
-5. đi tới kế hoạch hoặc chi tiết nào tiếp theo.
-
-### Constraint an toàn
-
-Không phục hồi card “Có thể chi hôm nay”. MoneyFlow hiện chưa có mô hình kế hoạch thu nhập hoặc next-payday đủ tin cậy để biến số dư thành lời khuyên chi tiêu hằng ngày.
-
-### Thay đổi hình ảnh
-
-- biến bốn KPI thành một cụm hierarchy: số dư là primary, thu/chi/ròng là context;
-- giảm shadow và decoration;
-- làm attention strip dễ quét nhưng không gây hoảng;
-- gom planning links thành một action rail nhất quán;
-- chỉ giữ một CTA chính trên từng viewport;
-- tối ưu first viewport cho điện thoại;
-- giữ nguyên business logic và dữ liệu tài chính.
+- Research evidence đi vào research ledger trung lập.
+- Quyết định đang hiệu lực đi vào design decision/status document.
+- Concept bị loại phải được đánh dấu rõ là rejected hoặc superseded.
+- Không để quyết định quan trọng chỉ tồn tại trong chat.

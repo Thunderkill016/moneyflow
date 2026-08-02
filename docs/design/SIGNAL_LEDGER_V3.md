@@ -1,11 +1,19 @@
 # Signal Ledger v3
 
-Status: candidate visual system for the full MoneyFlow product.
+> **Status: rejected / superseded by owner decision on 2026-08-02.**
+>
+> This document is historical material only. Signal Ledger must not be used as
+> the active MoneyFlow design direction, default baseline, visual system,
+> acceptance source, or constraint on future creative exploration. Preserve any
+> useful research evidence only after separating it from this rejected concept.
+> See `docs/design/DESIGN_DIRECTION_STATUS.md`.
 
-Signal Ledger replaces the previous green-first public identity with a warmer,
-more editorial financial interface. The product keeps its manual-first and
-explainable-data principles, but presents them as a decision system instead of
-as a traditional expense notebook.
+## Historical proposal
+
+Signal Ledger proposed replacing the previous green-first public identity with a
+warmer, more editorial financial interface. The product kept its manual-first
+and explainable-data principles, but presented them as a decision system instead
+of as a traditional expense notebook.
 
 ## Product idea
 
@@ -32,8 +40,9 @@ analytics.
 
 ## Product-wide tokens
 
-`src/app/document-theme.css` is the only theme authority. Changing these roles
-updates all existing product routes without adding a second styling system.
+`src/app/document-theme.css` was the proposed theme authority. Changing these
+roles would update all existing product routes without adding a second styling
+system.
 
 ### Light
 
@@ -51,44 +60,44 @@ updates all existing product routes without adding a second styling system.
 - brand: `#85a3ff`
 - brand subtle: `#202b55`
 
-The brand/on-brand pairs and semantic text/subtle pairs meet WCAG AA for normal
-text. Focus remains visible in both themes.
+The brand/on-brand pairs and semantic text/subtle pairs were checked against
+WCAG AA for normal text. Focus remained visible in both themes.
 
 ## Landing page
 
-The landing page is no longer a feature catalogue. It is an ordered narrative:
+The proposed landing page was an ordered narrative:
 
-1. The hero reframes MoneyFlow as a financial operating view.
-2. The product stage shows money with assigned purpose, not a generic chart.
-3. The signal strip demonstrates the three numbers that matter first.
-4. The clarity section explains the decision order.
-5. The dark workflow section explains the daily loop.
-6. The principles section explains ownership and reversibility.
-7. FAQ and final CTA remove practical uncertainty without invented social proof.
+1. The hero reframed MoneyFlow as a financial operating view.
+2. The product stage showed money with assigned purpose, not a generic chart.
+3. The signal strip demonstrated the three numbers that mattered first.
+4. The clarity section explained the decision order.
+5. The dark workflow section explained the daily loop.
+6. The principles section explained ownership and reversibility.
+7. FAQ and final CTA removed practical uncertainty without invented social proof.
 
-No user count, testimonial, savings claim or fabricated performance metric is
+No user count, testimonial, savings claim or fabricated performance metric was
 used.
 
 ## Authentication
 
-Authentication uses a dark information panel beside a quiet form surface.
-Content changes by login, registration, recovery and password-update mode.
+The proposal used a dark information panel beside a quiet form surface. Content
+changed by login, registration, recovery and password-update mode.
 
-The form behaviour remains unchanged:
+The form behaviour remained unchanged:
 
-- Google OAuth stays separate from email authentication.
-- minimum password guidance stays at 12 characters;
-- privacy acceptance remains required for registration;
-- Turnstile still gates email login, registration and password reset when the
-  production feature flag is enabled;
-- generic account-existence-safe responses remain server-owned.
+- Google OAuth stayed separate from email authentication.
+- minimum password guidance stayed at 12 characters;
+- privacy acceptance remained required for registration;
+- Turnstile still gated email login, registration and password reset when the
+  production feature flag was enabled;
+- generic account-existence-safe responses remained server-owned.
 
-The explanatory note clarifies that Turnstile may verify automatically and does
+The explanatory note clarified that Turnstile may verify automatically and does
 not always show a checkbox.
 
 ## Open-source research
 
-This is a representative audit of mature and relevant GitHub projects, not a
+This was a representative audit of mature and relevant GitHub projects, not a
 literal claim that every UI repository on GitHub was inspected.
 
 | Repository | Pattern retained | Pattern deliberately not copied |
@@ -102,25 +111,25 @@ literal claim that every UI repository on GitHub was inspected.
 | `calcom/cal.com` | focused authentication and responsive SaaS entry patterns | scheduling-specific layout and copy |
 | `dubinc/dub` | editorial landing rhythm, strong contrast and direct calls to action | marketing claims and brand styling |
 
-No external source code, image, logo, copy or proprietary asset is copied into
-MoneyFlow. The redesign uses MoneyFlow's existing React, CSS Modules, Lucide,
+No external source code, image, logo, copy or proprietary asset was copied into
+MoneyFlow. The redesign used MoneyFlow's existing React, CSS Modules, Lucide,
 Next.js and accessibility contracts.
 
 ## Accessibility and responsive rules
 
-- Every primary action is at least 44px high.
-- A skip link remains available on the public page.
-- Heading order remains one `h1` followed by route/section `h2` headings.
-- Native `details` elements keep FAQ content keyboard accessible.
-- Reduced-motion preferences disable reveal and button transitions.
-- Mobile layouts reflow financial rows instead of shrinking values below a
+- Every primary action was at least 44px high.
+- A skip link remained available on the public page.
+- Heading order remained one `h1` followed by route/section `h2` headings.
+- Native `details` elements kept FAQ content keyboard accessible.
+- Reduced-motion preferences disabled reveal and button transitions.
+- Mobile layouts reflowed financial rows instead of shrinking values below a
   readable size.
-- CAPTCHA status remains live-region text supplied by `AuthTurnstile`.
+- CAPTCHA status remained live-region text supplied by `AuthTurnstile`.
 
-## Non-goals
+## Non-goals of the historical proposal
 
 - No database, authentication provider, CAPTCHA provider or deployment setting
   changes.
 - No new runtime dependency.
 - No feature behaviour, business rule, financial calculation or RLS change.
-- No auto-merge or production deployment from this design branch.
+- No auto-merge or production deployment from the design branch.
