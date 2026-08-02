@@ -39,10 +39,12 @@ test.describe("Expense path (thu chi)", () => {
   test("landing → register → quick add expense → dashboard → export download", async ({
     page,
   }) => {
-    // 1) Public landing promises only proven thu-chi behavior.
+    // 1) Public landing promises only proven ledger behavior.
     await page.goto("/landing");
     await expect(
-      page.getByRole("heading", { name: /Nắm rõ tiền của bạn, mỗi ngày/i }),
+      page.getByRole("heading", {
+        name: /Biết tiền đang ở đâu.*Biết vì sao nó thay đổi/i,
+      }),
     ).toBeVisible();
     await expect(
       page.getByText("Không liên kết ngân hàng", { exact: true }),
@@ -62,7 +64,7 @@ test.describe("Expense path (thu chi)", () => {
       .click();
     await expect(page).toHaveURL(/\/register/);
     await expect(
-      page.getByRole("heading", { name: "Tạo tài khoản" }),
+      page.getByRole("heading", { name: "Tạo tài khoản MoneyFlow" }),
     ).toBeVisible();
 
     // Demo entry: no real credentials — go straight to product home.
