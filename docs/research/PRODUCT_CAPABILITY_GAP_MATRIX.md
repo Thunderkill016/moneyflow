@@ -42,6 +42,7 @@ This does not authorize bank sync, AI advice, OCR product identity, household fi
 ### Present but incomplete
 
 - account-level history and running-balance understanding;
+- ledger date/amount filtering until candidate PR #223 merges;
 - ledger review state and batch correction;
 - split-line correction;
 - budget history and transaction drill-down;
@@ -62,12 +63,23 @@ This does not authorize bank sync, AI advice, OCR product identity, household fi
 - financial mutation audit trail: absent;
 - documented full restore path: absent.
 
+### Status anchors
+
+| Capability | Audited status |
+|---|---|
+| Reports | **Implemented, moderate depth** |
+| Recurring commitments | **Implemented, partial occurrence model** |
+| Recurring income | **Implemented, partial occurrence model** |
+| Savings goals | **Implemented, partial depth** |
+| Export | **Implemented, stronger than old docs claim** |
+| Import provenance | **Implemented + production evidenced** |
+
 ## 3. Capability matrix
 
 | Capability | Merged behavior now | Real remaining gap | Priority |
 |---|---|---|---:|
-| Accounts | account kinds, initial/derived balance, create/edit/archive/restore, per-currency totals, same-currency transfers | account register/detail, running balance, account trends/export, explicit hidden/report semantics | P0 |
-| Transactions | income/expense/transfer/split, search, kind/account/category filters, edit, soft delete/undo, grouped list and totals; PR #223 adds date/amount filters | review state, multi-select, bounded bulk correction, split-line editing and audit history | P0/P1 |
+| Accounts | account kinds, initial/derived balance, create/edit/archive/restore, per-currency totals and same-currency transfers | account register/detail, running balance, account trends/export and explicit hidden/report semantics | P0 |
+| Transactions | income/expense/transfer/split, search, kind/account/category filters, edit, soft delete/undo, grouped list and totals | candidate PR #223 adds date/amount filters; review state, multi-select, bounded bulk correction, split-line editing and audit remain | P0/P1 |
 | Budgets | current-month category limit, calculated spent and CRUD | period history, prior comparison, copy month, rollover policy and transaction drill-down | P1 |
 | Recurring commitments | template, due date, current-month occurrence, transaction link, pay/undo and reserved total | visible history, upcoming/due/overdue/skipped/cancelled, edit-one/future, matching and reminders | P1 |
 | Recurring income | template, current-month occurrence/link and expected total | history, lifecycle, matching and reminders | P1 |
@@ -76,7 +88,7 @@ This does not authorize bank sync, AI advice, OCR product identity, household fi
 | Export | period CSV plus date-range transaction/candidate/all CSV/JSON | filter parity, schema version, planning-data coverage and restore docs | P2 |
 | Import/Inbox | CSV/XLSX/PDF, candidates, provenance, dry-run, duplicate/transfer planning and atomic approval | mapping presets, batch history, bulk correction, duplicate resolution and retry/resume UX | P1 |
 | Rules | local deterministic parse rules | authenticated storage, RLS, ordering, preview, version/audit and UI | P2 |
-| Dashboard | bundled authenticated RPC, fallback, balances/activity/planning/Inbox count | direct drill-down, evidence-based attention and measured large-ledger acceptance | P2 |
+| Dashboard | bundled authenticated RPC, fallback and balances/activity/planning/Inbox count | direct drill-down, evidence-based attention and measured large-ledger acceptance | P2 |
 | Auth/security | auth/recovery, neutral responses, CAPTCHA plumbing, CSP/headers, hardened ingestion and scanning | hosted provider enforcement, rate limits, breached-password controls and edge rules | P0 before wider beta |
 | Mobile/accessibility | responsive dark/light, broad matrix, 44px targets, modal and money fixes | physical-device and remaining validation/destructive/Inbox/planning states | P0/P1 |
 | Performance/audit | dashboard bundle/bounds, k6 profiles and pgTAP | staging load, large-ledger benchmarks, FK-index decision and mutation audit | P2 |
@@ -95,7 +107,7 @@ Already implemented:
 - split expense creation;
 - grouped/paginated register and filtered totals.
 
-PR #223 adds:
+Candidate PR #223 proposes:
 
 - inclusive date range;
 - inclusive amount range;
@@ -103,7 +115,7 @@ PR #223 adds:
 - explicit invalid-range errors;
 - filter-preserving list-context correction.
 
-Build next:
+Build after that candidate:
 
 - review state distinct from Inbox candidate status;
 - multi-select and safe bulk category/review changes with preview;
@@ -141,7 +153,7 @@ Build next:
 - account and transaction-type dimensions;
 - chart/category drill-down to exact transactions;
 - shared filter state and context-preserving back navigation;
-- export following the active report filters.
+- export following active report filters.
 
 ### 4.5 Recurring and goals
 
@@ -185,11 +197,20 @@ Export next:
 - physical Android/iOS acceptance;
 - provider Auth/CAPTCHA/edge enforcement before wider public exposure.
 
-## 5. Delivery waves
+## 5. Corrected issue map
+
+| Issue | Completed evidence | Remaining |
+|---|---|---|
+| #53 domain benchmark | import provenance/dry-run/atomic approval complete; many DB invariants and performance foundations complete | authenticated rules, mutation audit and final performance/index acceptance; reconciliation deferred |
+| #72 UI audit | 20 routes/dialogs, rich VND/long Vietnamese, phone rows, report clipping, 44px/modal/accessibility batches | validation/destructive/Inbox/planning states and physical devices |
+| #172 product assessment | useful market-validation warnings | old scoring and feature-freeze direction are historical/superseded |
+| #174 provider controls | source/app readiness and read-only baseline complete | hosted provider writes and production verification |
+
+## 6. Delivery waves
 
 ### Wave 1 — active user loops
 
-1. transaction date/amount filters and correction context;
+1. finish and verify candidate PR #223 transaction filters and correction context;
 2. account register/detail and running balance;
 3. budget history and transaction drill-down;
 4. report custom range and transaction drill-down;
@@ -221,7 +242,7 @@ Export next:
 
 Reconciliation is not assigned to a wave. Reopen it only after statement import/matching or direct user evidence creates a real workflow.
 
-## 6. Validation contract
+## 7. Validation contract
 
 Each implementation PR carries its own proof:
 
@@ -231,7 +252,7 @@ Each implementation PR carries its own proof:
 - performance: measured baseline and acceptance;
 - documentation/status: update `CURRENT_PROJECT_MEMORY.md` in the same PR.
 
-## 7. Superseded claims
+## 8. Superseded claims
 
 Do not repeat these as current gaps:
 
