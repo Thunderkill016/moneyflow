@@ -15,7 +15,7 @@ The entry must state what changed, what was verified and whether the current imp
 - An open PR is candidate evidence only. Do not write candidate behavior as merged truth.
 - After merge or production verification, update the applicable snapshot status in the same PR whenever that evidence already exists before merge. Provider or post-merge evidence that cannot exist yet belongs in a follow-up PR with its own memory entry.
 
-CI checks that this file is present in every pull-request diff. The PR template and reviewer must still verify the entry is truthful and complete.
+CI checks that this file is present in every pull-request diff through the existing project-knowledge check. The PR template and reviewer must still verify the entry is truthful and complete.
 
 ## Entry template
 
@@ -36,14 +36,14 @@ CI checks that this file is present in every pull-request diff. The PR template 
 
 ## Entries
 
-### PR #215 — refresh current project memory and capability roadmap
+### PR #215 — refresh current project memory and require per-PR memory updates
 
 - Date: 2026-08-02
 - Change class: Class 1 repository-knowledge and CI policy
 - Affected capability or project boundary: project memory, roadmap authority and delivery governance
 - Status impact: project-status authority created; no runtime capability change
-- Changed: audited merged MoneyFlow behavior, corrected stale feature-gap claims, added the current capability matrix, and made per-PR memory updates mandatory
-- Verified: exact-head knowledge contract, CI classification contract, lint, typecheck, unit/static RLS, production build, CodeQL and secret-history scan
+- Changed: audited merged MoneyFlow behavior, corrected stale feature-gap claims, added the current capability matrix, and made per-PR memory updates mandatory through the existing required project-knowledge check
+- Verified: exact-head knowledge contract, CI classification contract, lint, typecheck, unit/static RLS, production build, CodeQL and secret-history scan; final-head rerun required after this policy update
 - Remaining: owner review and merge; future PRs must append their own entry
 - Production/provider evidence: not applicable because runtime and provider behavior did not change
 - Snapshot update: `CURRENT_PROJECT_MEMORY.md` was created and reconciled in this PR
