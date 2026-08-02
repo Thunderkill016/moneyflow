@@ -130,7 +130,7 @@ requireMarkers("docs/research/CURRENT_PROJECT_MEMORY.md", [
   "## 10. True gaps after this audit",
   "## 12. Superseded-status register",
   "validation is required inside each workstream but is not a global feature freeze",
-  "reports have no previous-period comparison or trends",
+  "Reports lack previous-period comparison or trends",
   "Import provenance/dry-run/atomic approval are future work",
 ]);
 
