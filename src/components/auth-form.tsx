@@ -17,6 +17,7 @@ import { Icon } from "@/components/icons";
 import { getPublicAuthCaptchaConfig } from "@/lib/auth-captcha";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import styles from "./auth-form.module.css";
+import themeStyles from "./public-brand-theme.module.css";
 
 type Mode = "login" | "register" | "forgot" | "update";
 
@@ -117,7 +118,7 @@ export function AuthForm({
   const privacyErrorId = `${baseId}-privacy-error`;
 
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} ${themeStyles.authTheme}`}>
       <div className={styles.pageShell}>
         <header className={styles.topbar}>
           <BrandLockup
