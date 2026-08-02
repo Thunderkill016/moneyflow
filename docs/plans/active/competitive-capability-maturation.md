@@ -177,7 +177,7 @@ Not current gaps:
 - [x] Add `CURRENT_PROJECT_MEMORY.md`.
 - [x] Correct the capability gap matrix.
 - [x] Update README, AGENTS, research index and knowledge contract.
-- [x] Update PR metadata for the expanded current-memory scope.
+- [ ] Update PR metadata for the expanded current-memory scope.
 - [ ] Run exact-head risk-selected CI, CodeQL and secret scan.
 - [ ] Hand off for owner review without merging.
 
