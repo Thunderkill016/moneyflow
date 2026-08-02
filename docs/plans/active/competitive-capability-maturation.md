@@ -1,231 +1,158 @@
 # Competitive capability maturation
 
 - **Execution state:** evaluating
-- **Active role:** project auditor / product planner
+- **Active role:** product planner / implementation coordinator
 - **Permission scope:** branch_write + repository_read
 - **Owner:** Thunderkill016
-- **PR:** #215
 - **Branch:** `plan/product-validation-rollout`
 - **Base:** `main@f57b92ec471e816f96fa13dd464a7a98297bb2d4`
 - **Decision date:** 2026-08-02
-- **Current memory:** `docs/research/CURRENT_PROJECT_MEMORY.md`
+- **Current project memory:** `docs/research/CURRENT_PROJECT_MEMORY.md`
+- **Mandatory PR memory:** `docs/research/PR_MEMORY_LOG.md`
 - **Gap matrix:** `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`
 
 ## Repository reconnaissance
 
-The first version of this packet over-reported several gaps because it relied too heavily on earlier summaries. A second audit read current code, merge history and issue follow-up evidence.
+MoneyFlow already has:
 
-Corrected findings:
+- authentication and demo runtime;
+- multiple accounts with add/edit/archive/restore, per-currency display and same-currency transfers;
+- income, expense, split expense and balanced transfer entries;
+- transaction search/filter, edit, soft delete and restore;
+- dashboard one-RPC loading, bounded windows and schema-skew fallback;
+- current-period budgets;
+- recurring commitments and income with current-month occurrence-to-transaction linkage;
+- savings goals with deadlines and planned-daily pace;
+- week/month/year reports with previous comparable periods and trends;
+- period CSV plus date-range CSV/JSON export;
+- Inbox/import provenance, server dry-run and atomic approval;
+- local deterministic parse rules;
+- responsive light/dark UI with broad browser audit evidence;
+- RLS, pgTAP, CodeQL, secret-history scan and risk-proportional CI.
 
-- reports already include previous-period comparison, expense-change percentage and trends;
-- export already supports date ranges, CSV/JSON and transaction/candidate/all bundles;
-- recurring commitments and income already use current-month occurrence-to-transaction links;
-- goals already have deadlines and planned-daily pace;
-- account create/edit/archive/restore and per-currency totals already exist;
-- dashboard one-RPC loading, bounded windows and schema-skew fallback are merged;
-- import provenance, server dry-run and atomic approval are completed and production-smoked;
-- broad rich-VND, long-Vietnamese, 44px, modal and accessibility remediation is merged;
-- app-side CAPTCHA plumbing and repository security are merged; provider enforcement remains external.
-
-The project needs a current implementation memory so future work does not repeatedly rediscover completed behavior or execute stale issue sequences.
+Old issue bodies and status tables often describe these completed capabilities as absent or future work. `CURRENT_PROJECT_MEMORY.md` now reconciles those claims against merged code and evidence.
 
 ## Research
 
 ### Decision question
 
-What is the accurate current MoneyFlow state, and what is the smallest set of remaining depth improvements that makes existing capabilities competitive without duplicating completed work or expanding into unrelated product categories?
+Which existing MoneyFlow capabilities remain incomplete at competitive depth after removing items that current code already implements?
 
-### Sources audited
+### Sources and limits
 
-Primary repository evidence:
+- Current merged code, migrations and tests establish implementation truth.
+- Recent merge history and exact-head/production evidence establish verification depth.
+- Issues #53, #72, #172 and #174 retain useful open requirements, but their old bodies do not override later comments or code.
+- External competitors remain pattern references, not acceptance authorities.
 
-- merged code at `main@f57b92ec471e816f96fa13dd464a7a98297bb2d4`;
-- `README.md`, `ARCHITECTURE.md`, `docs/MVP_DEFINITION.md` and product principles;
-- server workspaces for accounts, finance, dashboard, budgets, commitments, recurring income, goals and reports;
-- transaction, reports and export domain/UI code;
-- recent merged PR/commit history;
-- issues #53, #72, #172 and #174 including follow-up comments;
-- open PR inventory.
+### Result
 
-Competitive patterns remain sourced from `PRODUCT_COMPETITIVE_MEMORY.md`; they do not override merged product truth.
-
-### Adoption review
-
-No dependency, external service, provider setting, schema, runtime architecture or production behavior is adopted or changed by this documentation PR.
-
-- license impact: none;
-- security/privacy impact: none;
-- production impact: none;
-- rollback: remove the new memory and restore the prior links/roadmap files;
-- provider writes remain separately authorized.
+The highest remaining trust gap is account reconciliation. Other valid depth work can proceed in parallel when database contracts do not conflict. Provider security operations remain external and require explicit owner permission.
 
 ## Specification
 
-### Deliverables
+### Product direction
 
-1. Add `docs/research/CURRENT_PROJECT_MEMORY.md` as the canonical implementation-status snapshot.
-2. Correct `PRODUCT_CAPABILITY_GAP_MATRIX.md` against merged code.
-3. Update repository entrypoints so agents read current state before historical research.
-4. Add a knowledge-contract requirement so current memory cannot silently disappear.
-5. Reconcile the status of issues #53, #72, #172 and #174 without pretending the unresolved slices are complete.
-6. Preserve the owner decision: capability maturation proceeds now; validation is embedded per workstream rather than used as a global freeze.
+Continue developing existing MoneyFlow capabilities toward competitive depth. Do not globally freeze feature work for validation. Embed validation and acceptance inside each workstream.
 
-### Status contract
+### Memory contract
 
-Every capability must be classified as one of:
+Every pull request targeting `main` must:
 
-- implemented;
-- implemented + production evidenced;
-- partial;
-- absent;
-- external pending;
-- candidate only;
-- historical/superseded.
+1. append one truthful entry to `docs/research/PR_MEMORY_LOG.md`;
+2. state `Status impact: none` when the bounded change does not alter implementation status;
+3. update the affected row or section in `CURRENT_PROJECT_MEMORY.md` when capability, architecture, security, operational or verification status changes;
+4. keep open-PR behavior classified as candidate evidence until merge;
+5. record exact verification and remaining work without turning a build or screenshot into a completion claim.
 
-A route name, screenshot, open PR or old issue body is not sufficient proof of implementation.
+The existing required project-knowledge check fails a pull request that omits the per-PR memory log.
 
-### Product boundary
+### Acceptance criteria
 
-Allowed roadmap scope:
-
-- accounts, transactions and reconciliation;
-- budgets, recurring commitments/income and goals;
-- reports, export and performance;
-- import/Inbox and deterministic rules;
-- dashboard, onboarding, mobile/accessibility and public-beta security.
-
-Not current gaps:
-
-- bank sync;
-- AI advice or automatic financial decisions;
-- OCR product identity;
-- household/shared finance;
-- investment/crypto/credit-score products;
-- full FX accounting;
-- native mobile rewrite;
-- full envelope budgeting;
-- local-first/CRDT rewrite.
+- current implementation status is grounded in merged code and evidence;
+- completed behavior is not planned again as missing;
+- partial behavior is distinguished from absent behavior;
+- provider readiness is separated from provider enforcement;
+- every future PR leaves a durable memory entry;
+- status-changing PRs update the canonical snapshot;
+- CI enforces the per-PR memory file without adding a bypassable standalone workflow.
 
 ## Implementation plan
 
-### Track A — current-state authority
+### Wave 1 — financial trust and visible depth
 
-- audit current code and merge history;
-- record merged capability inventory;
-- record operational/security/performance state;
-- record open PRs as candidates only;
-- record stale/superseded claims;
-- define an update protocol for future merges.
-
-### Track B — corrected capability roadmap
-
-- distinguish existing foundations from real gaps;
-- remove false gaps in reports, export, recurring, goals, dashboard, import and UI quality;
-- prioritize reconciliation, transaction operations, planning history, report drill-down, provider controls, rules and measured performance;
-- allow independent workstreams to run in parallel.
-
-### Track C — repository integration
-
-- link current memory from `README.md`;
-- route product-status work through current memory from `AGENTS.md`;
-- index current memory in `docs/research/README.md`;
-- enforce file and marker presence in `scripts/check-project-knowledge.mjs`;
-- update PR title/body and exact-head evidence.
-
-### Delivery waves after this plan
-
-#### Wave 1
-
-- reconciliation specification/invariant tests;
-- transaction date/amount filters and review-state contract;
-- budget history/drill-down;
-- report arbitrary range/drill-down contract;
-- onboarding/mobile remaining states;
-- PR #211 current-main database canary;
-- provider work only under explicit permission.
-
-#### Wave 2
-
-- reconciliation domain/UI;
-- recurring history/lifecycle/matching;
-- goal contribution/lifecycle;
+- reconciliation specification and permanent database tests;
+- transaction review state, date/amount filters and bounded bulk correction;
 - account register/detail;
-- shared report/register filters.
+- budget history/drill-down;
+- report arbitrary periods and drill-down;
+- remaining onboarding/quick-capture and physical-device findings.
 
-#### Wave 3
+### Wave 2 — connect planning to actual transactions
 
-- bounded bulk correction;
-- import mapping/batch UX;
-- export schema/restore path;
-- dashboard attention/drill-down;
-- staging/large-ledger performance;
-- financial mutation audit.
+- reconciliation workflow;
+- recurring history, lifecycle, calendar/reminders and matching;
+- goal contribution history and funding semantics;
+- deeper report dimensions;
+- remaining destructive/error-state remediation.
 
-#### Wave 4
+### Wave 3 — efficiency and ownership
 
-- authenticated persisted rules;
-- rule preview/order/version/audit;
-- rule-management UI and integration.
+- export schema/version, broader planning-data coverage and restore path;
+- import mapping presets, batch management and bulk review;
+- non-sensitive mutation audit;
+- staging and large-ledger performance acceptance;
+- evidence-based dashboard attention/drill-down.
+
+### Wave 4 — deterministic automation
+
+- authenticated persisted rules with RLS;
+- ordering, preview, versioning and audit;
+- rule management and cross-module acceptance.
 
 ## Tasks
 
-- [x] Audit current `main` product and architecture entrypoints.
-- [x] Inspect accounts, transactions, dashboard, planning, reports and export code.
-- [x] Reconcile recent merged PR/commit history.
-- [x] Reconcile issues #53, #72, #172 and #174.
-- [x] Identify false gap claims in the first PR #215 draft.
-- [x] Add `CURRENT_PROJECT_MEMORY.md`.
+- [x] Audit merged behavior against old status claims.
+- [x] Create `CURRENT_PROJECT_MEMORY.md`.
 - [x] Correct the capability gap matrix.
-- [x] Update README, AGENTS, research index and knowledge contract.
-- [ ] Update PR title/body for the expanded current-memory scope.
-- [ ] Run exact-head risk-selected CI, CodeQL and secret scan.
-- [ ] Hand off for owner review without merging.
+- [x] Index current memory from README, AGENTS and research README.
+- [x] Create mandatory `PR_MEMORY_LOG.md`.
+- [x] Add per-PR memory fields to the pull-request template.
+- [x] Enforce per-PR memory updates through `npm run check:knowledge` in existing CI.
+- [x] Record PR #215 in the memory log and current snapshot.
+- [ ] Verify the final exact head after memory enforcement changes.
+- [ ] Owner review and merge.
 
 ## Evaluation
 
-Evaluation must verify:
+### Scope review
 
-- no merged feature is described as absent;
-- current-month occurrence linkage is distinguished from full recurring history;
-- report comparison/trends and export date range/JSON are recorded as existing;
-- provider-side security remains distinct from repository readiness;
-- open PRs are not described as current product behavior;
-- issue #53 PR B is marked completed;
-- issue #72 completed UI slices are not re-planned;
-- issue #172 feature freeze is marked superseded by the owner;
-- the roadmap deepens existing modules instead of introducing parity sprawl;
-- no production, schema, dependency or provider write occurs.
+This PR changes documentation and repository verification policy only. It does not change runtime behavior, database schema, dependencies, provider configuration or production data.
 
-Selected verification:
+### Required exact-head evidence
 
 - diff hygiene;
+- mandatory PR memory diff check;
 - project knowledge contract;
 - CI classifier contract;
-- JavaScript syntax and full verify because the knowledge script changes;
-- database/browser gates only if the fail-safe classifier selects them;
-- CodeQL and secret-history scan;
-- production verification not applicable because runtime behavior is unchanged.
+- full static/domain/build verification because AGENTS and the knowledge script changed;
+- CodeQL;
+- secret-history scan;
+- database/browser checks only if selected by the classifier.
+
+### Current decision boundary
+
+- PR #215 remains unmerged candidate evidence until owner approval.
+- Provider writes remain outside this branch permission.
+- Future agents must not claim completion without the memory entry and affected verification.
 
 ## Handoff record
 
+- 2026-08-02: owner replaced validation-first freeze with capability maturation.
+- 2026-08-02: repository audit corrected stale feature-gap claims.
+- 2026-08-02: owner required every PR to update project memory.
+- 2026-08-02: two-layer memory contract established: mandatory per-PR log plus status snapshot updates when facts change.
+
 ### Current permission boundary
 
-Allowed:
-
-- repository/history/issue audit;
-- documentation and knowledge-contract changes on the focused branch;
-- PR metadata and CI inspection.
-
-Not allowed:
-
-- direct `main` writes;
-- PR merge without explicit owner instruction;
-- runtime/schema/provider/production changes;
-- production data mutation;
-- dependency adoption.
-
-| Time | From | To | State | Evidence |
-|---|---|---|---|---|
-| 2026-08-02 | owner | planner | planned | Requested development of existing capabilities rather than validation-first freeze |
-| 2026-08-02 | owner | project auditor | evaluating | Requested full project-information refresh because many previously listed gaps were already implemented |
-| 2026-08-02 | project auditor | owner review | evaluating | Current-state memory, corrected gap matrix, README/AGENTS/research entrypoints and knowledge contract prepared; exact-head CI pending |
+Branch/documentation/CI-policy writes only. No merge, provider write, schema change, dependency change or production mutation is authorized by this packet.
