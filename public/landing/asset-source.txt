@@ -1,1 +1,0 @@
-MoneyFlow Playwright UI audit; illustrative test data; cropped to remove account identity.
