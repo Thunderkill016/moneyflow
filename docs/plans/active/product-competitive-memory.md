@@ -1,7 +1,7 @@
 # Product competitive memory consolidation
 
-**Execution state:** implementing  
-**Active role:** researcher / implementer  
+**Execution state:** evaluating  
+**Active role:** evaluator  
 **Permission scope:** branch_write + external_read  
 **Owner:** Thunderkill016  
 **Branch:** `docs/product-competitive-memory`  
@@ -91,23 +91,38 @@ Wire the memory into:
 
 - [x] Read current product, architecture, MVP, research ledger and issue evidence.
 - [x] Recheck representative products from official current sources.
-- [ ] Add the consolidated competitive memory.
-- [ ] Update research and repository entrypoints.
-- [ ] Extend the knowledge contract.
-- [ ] Evaluate the final diff and run exact-head CI.
+- [x] Add the consolidated competitive memory.
+- [x] Update research and repository entrypoints.
+- [x] Extend the knowledge contract.
+- [ ] Evaluate the exact PR head through selected CI.
 - [ ] Hand off the PR for owner review.
 
 ## Evaluation
 
-The final review must confirm:
+The current branch is six commits ahead of and zero commits behind `main`. The diff contains exactly six files:
 
-- current MoneyFlow capabilities are not understated or invented;
+- `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`: new 858-line synthesis;
+- `docs/plans/active/product-competitive-memory.md`: this lifecycle packet;
+- `docs/research/README.md`: product-memory index and historical-source boundary;
+- `README.md`: one source-of-truth link and interpretation note;
+- `AGENTS.md`: one task-specific reference replacement, with no line-count growth;
+- `scripts/check-project-knowledge.mjs`: requires the memory, entrypoint links and durable markers.
+
+Evaluation findings:
+
+- current MoneyFlow capabilities are separated from unproven daily-use and market claims;
 - old claims such as CSV/rules being absent and safe-to-spend being an active USP are identified as superseded;
 - external products remain examples, not a feature checklist;
 - reconciliation is justified as the next major capability by trust and ledger evidence, not competitor imitation;
 - daily-use and market evidence remain prerequisites for broad feature expansion;
-- no production, provider, schema, dependency or UI behavior changes are included;
-- all selected verification gates are reported honestly.
+- no production, provider, schema, dependency, UI or financial behavior changes are included;
+- the script change means exact-head repository verification is required even though product runtime is unchanged.
+
+Selected gates:
+
+- required: diff hygiene, project knowledge contract, CI classifier contract and JavaScript syntax;
+- expected from classifier because the knowledge script changed: static/domain verification and CodeQL as selected by the repository policy;
+- not applicable by scope unless the repository classifier selects otherwise: database reset, browser smoke, responsive UI audit and production verification.
 
 ## Handoff record
 
@@ -119,3 +134,4 @@ Not allowed: direct `main` write, merge, provider setting changes, production wr
 | Time | From | To | State | Evidence |
 |---|---|---|---|---|
 | 2026-08-02 | owner request | researcher / implementer | implementing | Requested competitive comparison, consolidated documentation and durable Git memory |
+| 2026-08-02 | researcher / implementer | evaluator | evaluating | Six-file branch diff completed and compared against `main`; exact-head CI remains |
