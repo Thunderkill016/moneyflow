@@ -112,6 +112,10 @@
   gap: 12px;
 }
 
+.summaryGrid.summaryGridSingle {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .summaryGrid article {
   min-width: 0;
   display: grid;
@@ -262,6 +266,7 @@
 }
 
 .errorPanel h1,
+.errorPanel h2,
 .errorPanel p {
   margin: 0;
 }
@@ -273,6 +278,10 @@
 @media (max-width: 980px) {
   .summaryGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summaryGrid.summaryGridSingle {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
