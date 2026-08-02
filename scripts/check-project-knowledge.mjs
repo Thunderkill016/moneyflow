@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
@@ -14,6 +15,7 @@ const requiredFiles = [
   "docs/engineering/AGENT_OPERATING_MODEL.md",
   "docs/research/README.md",
   "docs/research/CURRENT_PROJECT_MEMORY.md",
+  "docs/research/PR_MEMORY_LOG.md",
   "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
@@ -54,6 +56,46 @@ for (const path of requiredFiles) {
     failures.push(`missing required project-knowledge file: ${path}`);
   }
 }
+
+function enforcePullRequestMemoryUpdate() {
+  if (process.env.GITHUB_EVENT_NAME !== "pull_request") return;
+
+  const eventPath = process.env.GITHUB_EVENT_PATH;
+  if (!eventPath) {
+    failures.push("pull-request memory check requires GITHUB_EVENT_PATH");
+    return;
+  }
+
+  try {
+    const event = JSON.parse(readFileSync(eventPath, "utf8"));
+    const baseSha = event.pull_request?.base?.sha;
+    const headSha = event.pull_request?.head?.sha;
+    if (!baseSha || !headSha) {
+      failures.push("pull-request memory check could not resolve base/head SHA");
+      return;
+    }
+
+    const changedFiles = execFileSync(
+      "git",
+      ["diff", "--name-only", "--diff-filter=ACMRD", `${baseSha}...${headSha}`],
+      { cwd: root, encoding: "utf8" },
+    )
+      .split(/\r?\n/u)
+      .filter(Boolean);
+
+    if (!changedFiles.includes("docs/research/PR_MEMORY_LOG.md")) {
+      failures.push(
+        "every pull request must update docs/research/PR_MEMORY_LOG.md; use Status impact: none when implementation status did not change",
+      );
+    }
+  } catch (error) {
+    failures.push(
+      `pull-request memory check failed: ${error instanceof Error ? error.message : "unknown error"}`,
+    );
+  }
+}
+
+enforcePullRequestMemoryUpdate();
 
 const currentTruthFiles = [
   "AGENTS.md",
@@ -116,6 +158,7 @@ try {
 
 requireMarkers("docs/research/README.md", [
   "CURRENT_PROJECT_MEMORY.md",
+  "PR_MEMORY_LOG.md",
   "PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "PRODUCT_COMPETITIVE_MEMORY.md",
   "REPOSITORY_REFERENCE_MAP.md",
@@ -132,6 +175,14 @@ requireMarkers("docs/research/CURRENT_PROJECT_MEMORY.md", [
   "validation is required inside each workstream but is not a global feature freeze",
   "Reports lack previous-period comparison or trends",
   "Import provenance/dry-run/atomic approval are future work",
+]);
+
+requireMarkers("docs/research/PR_MEMORY_LOG.md", [
+  "# MoneyFlow — pull request memory log",
+  "Every pull request must add one entry",
+  "Status impact: none",
+  "CURRENT_PROJECT_MEMORY.md",
+  "### PR #215",
 ]);
 
 requireMarkers("docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md", [
@@ -159,10 +210,12 @@ requireMarkers("AGENTS.md", [
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
   "docs/engineering/AGENT_OPERATING_MODEL.md",
   "docs/research/CURRENT_PROJECT_MEMORY.md",
+  "docs/research/PR_MEMORY_LOG.md",
   "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
   "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
+  "Every PR must append one truthful entry",
   "current execution state",
   "Hidden chat context is not a handoff artifact",
   "two to four focused sources",
@@ -230,10 +283,15 @@ requireMarkers(".github/pull_request_template.md", [
   "Change class:",
   "Planning artifact:",
   "Permission scope used:",
+  "## Project memory update",
+  "docs/research/PR_MEMORY_LOG.md",
+  "Status impact:",
+  "docs/research/CURRENT_PROJECT_MEMORY.md",
   "## Research or adoption evidence",
   "Selected sources and what they establish:",
   "License, security, privacy, ownership and rollback review",
   "## Verification selection",
+  "Mandatory PR memory update",
   "Affected production verification",
 ]);
 
