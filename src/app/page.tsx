@@ -5,9 +5,9 @@ import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import "./landing/safe-ux-login.css";
 
-const TITLE = "MoneyFlow — Nhìn rõ tiền trước khi quyết định";
+const TITLE = "MoneyFlow — Biết tiền ở đâu, vì sao thay đổi";
 const DESCRIPTION =
-  "Một không gian tài chính cá nhân để ghi giao dịch, theo dõi tài khoản, ngân sách, khoản định kỳ và mục tiêu — rõ ràng, chủ động và không cần chia sẻ mật khẩu ngân hàng.";
+  "Ghi thu, chi và chuyển tiền đúng bản chất; theo dõi từng tài khoản và mở lại giao dịch để kiểm tra — không cần liên kết ngân hàng.";
 
 export const metadata: Metadata = {
   title: TITLE,

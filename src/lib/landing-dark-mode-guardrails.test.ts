@@ -9,6 +9,10 @@ const landingCss = readFileSync(
   "src/components/landing-page.module.css",
   "utf8",
 );
+const retiredDirection = readFileSync(
+  "docs/design/SIGNAL_LEDGER_V3.md",
+  "utf8",
+);
 
 test("document theme authority loads after the frozen legacy entry", () => {
   const legacyImport = 'import "./legacy.css"';
@@ -23,17 +27,19 @@ test("document theme authority loads after the frozen legacy entry", () => {
   assert.match(legacy, /@import "\.\/ai-uiux-guardrails\.css"/);
 });
 
-test("dark mode is one Signal Ledger token contract shared by public surfaces", () => {
+test("dark mode keeps semantic product tokens and explicit public-page roles", () => {
+  assert.match(documentTheme, /MoneyFlow semantic document and theme authority/);
+  assert.doesNotMatch(documentTheme, /authority — Signal Ledger/);
   assert.match(documentTheme, /html\[data-theme="dark"\]/);
   assert.match(documentTheme, /--mf-canvas:\s*#111318/);
   assert.match(documentTheme, /--mf-surface:\s*#181b22/);
   assert.match(documentTheme, /--mf-text:\s*#f4f2ed/);
   assert.match(documentTheme, /--mf-text-muted:\s*#b7bac2/);
-  assert.match(documentTheme, /--mf-brand:\s*#85a3ff/);
-  assert.match(documentTheme, /--mf-brand-subtle:\s*#202b55/);
 
-  assert.match(landingCss, /var\(--mf-canvas\)/);
-  assert.match(landingCss, /var\(--mf-surface\)/);
-  assert.match(landingCss, /var\(--mf-text\)/);
-  assert.equal(landingCss.includes('[data-theme="dark"]'), false);
+  assert.match(landingCss, /--public-canvas:\s*#f2f6f4/);
+  assert.match(landingCss, /--public-accent:\s*#176f55/);
+  assert.match(landingCss, /html\[data-theme="dark"\]\.page|html\[data-theme="dark"\]\) \.page/);
+  assert.match(landingCss, /--public-canvas:\s*#101512/);
+  assert.match(landingCss, /--public-accent:\s*#6fd0aa/);
+  assert.match(retiredDirection, /Status: retired/);
 });
