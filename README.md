@@ -19,6 +19,7 @@ Start here before bounded or high-risk work:
 - [Architecture map](ARCHITECTURE.md)
 - [Product principles](docs/product/PRINCIPLES.md)
 - [MVP definition and readiness gates](docs/MVP_DEFINITION.md)
+- [Product competitive memory](docs/research/PRODUCT_COMPETITIVE_MEMORY.md)
 - [Risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md)
 - [AI delivery workflow](docs/engineering/AI_DELIVERY_WORKFLOW.md)
 - [Feature work-packet template](docs/templates/FEATURE_WORK_PACKET.md)
@@ -35,7 +36,7 @@ UI, brand and infrastructure references:
 - [Supabase setup](docs/supabase-setup.md)
 - [RLS verification](docs/security-rls-check.md)
 
-Historical research remains useful as evidence but does not override the current product and architecture sources of truth.
+Historical research remains useful as evidence but does not override the current product and architecture sources of truth. Use the product competitive memory for current competitor status, supersession notes and roadmap decisions.
 
 ## Runtime modes
 

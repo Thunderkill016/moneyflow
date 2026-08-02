@@ -73,7 +73,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   verify:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false
     needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -156,7 +156,7 @@ jobs:
         run: npm run build
 
   database:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false
     needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -203,7 +203,7 @@ jobs:
         run: tail -n 80 database-test-output.log
 
   e2e:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    if: github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false
     needs: [classify, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 45

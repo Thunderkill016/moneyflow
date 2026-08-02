@@ -13,6 +13,7 @@ const requiredFiles = [
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
   "docs/engineering/AGENT_OPERATING_MODEL.md",
   "docs/research/README.md",
+  "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
   "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
   "docs/templates/FEATURE_WORK_PACKET.md",
@@ -20,6 +21,7 @@ const requiredFiles = [
   "docs/plans/active/README.md",
   "docs/plans/completed/README.md",
   ".github/pull_request_template.md",
+  ".github/workflows/ci.yml",
 ];
 
 function read(path) {
@@ -94,6 +96,7 @@ try {
 const requiredReadmeLinks = [
   "ARCHITECTURE.md",
   "docs/product/PRINCIPLES.md",
+  "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
   "docs/engineering/AI_DELIVERY_WORKFLOW.md",
 ];
@@ -108,18 +111,36 @@ try {
 }
 
 requireMarkers("docs/research/README.md", [
+  "PRODUCT_COMPETITIVE_MEMORY.md",
   "REPOSITORY_REFERENCE_MAP.md",
   "ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
+]);
+
+requireMarkers("docs/research/PRODUCT_COMPETITIVE_MEMORY.md", [
+  "# MoneyFlow — product competitive memory",
+  "# 4. MoneyFlow current capability snapshot",
+  "# 6. Capability comparison",
+  "# 8. Cumulative synthesis",
+  "# 10. Prioritized roadmap",
+  "# 11. Durable decision register",
+  "Account reconciliation is the next major product capability",
+  "External products are pattern references, not acceptance authorities",
 ]);
 
 requireMarkers("AGENTS.md", [
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
   "docs/engineering/AGENT_OPERATING_MODEL.md",
+  "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
   "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
   "current execution state",
   "Hidden chat context is not a handoff artifact",
   "two to four focused sources",
+]);
+
+requireMarkers(".github/workflows/ci.yml", [
+  "types: [opened, synchronize, reopened, ready_for_review]",
+  "github.event.action == 'ready_for_review'",
 ]);
 
 requireMarkers("docs/engineering/RISK_PROPORTIONAL_DELIVERY.md", [
