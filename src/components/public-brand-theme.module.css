@@ -41,7 +41,43 @@
 }
 
 .landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] {
+  border-color: var(--mf-border);
   box-shadow: var(--mf-shadow-lg);
+}
+
+.landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] figure {
+  border-color: var(--mf-border);
+  background: var(--mf-surface);
+  box-shadow: var(--mf-shadow-md);
+}
+
+.landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] figure > div:first-child {
+  border-color: var(--mf-border);
+  background: var(--mf-surface-muted);
+}
+
+.landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] figure > div:first-child span {
+  background: var(--mf-border-strong);
+}
+
+.landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] figcaption {
+  border-color: var(--mf-border);
+  background: var(--mf-surface);
+  color: var(--mf-text-muted);
+}
+
+.landingTheme [aria-labelledby="control-title"] {
+  border: 1px solid var(--mf-border);
+  box-shadow: var(--mf-shadow-md);
+}
+
+.landingTheme [aria-labelledby="control-title"] > div:first-child > p,
+.landingTheme [aria-labelledby="control-title"] svg {
+  color: var(--mf-brand);
+}
+
+.landingTheme [aria-labelledby="control-title"] article {
+  background: var(--mf-surface-muted);
 }
 
 .landingTheme a[href="/register"]:hover {
