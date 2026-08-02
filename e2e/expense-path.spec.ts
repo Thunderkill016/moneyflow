@@ -59,8 +59,7 @@ test.describe("Expense path (thu chi)", () => {
 
     // 2) Enter app via the approved primary register CTA; demo mode unlocks app without auth.
     await page
-      .getByRole("link", { name: "Bắt đầu miễn phí" })
-      .first()
+      .getByRole("link", { name: "Tạo sổ của bạn", exact: true })
       .click();
     await expect(page).toHaveURL(/\/register/);
     await expect(
