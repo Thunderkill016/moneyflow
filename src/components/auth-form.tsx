@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useActionState, useId, useState } from "react";
-import { ArrowRightLeft, Search, ShieldCheck } from "lucide-react";
 import {
   login,
   register,
@@ -13,7 +12,6 @@ import {
 } from "@/app/(auth)/actions";
 import { AuthTurnstile } from "@/components/auth-turnstile";
 import { BrandLockup } from "@/components/brand/brand-lockup";
-import { Icon } from "@/components/icons";
 import { getPublicAuthCaptchaConfig } from "@/lib/auth-captcha";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import styles from "./auth-form.module.css";
@@ -23,31 +21,30 @@ type Mode = "login" | "register" | "forgot" | "update";
 
 const copy = {
   login: {
-    eyebrow: "Quay lại sổ của bạn",
-    title: "Đăng nhập vào MoneyFlow",
-    description:
-      "Tiếp tục từ giao dịch gần nhất và kiểm tra dòng tiền của bạn.",
+    eyebrow: "Đăng nhập",
+    title: "Mở lại sổ của bạn",
+    description: "Dùng Google hoặc email đã đăng ký.",
     submit: "Đăng nhập",
   },
   register: {
-    eyebrow: "Bắt đầu một sổ có thể đối chiếu",
-    title: "Tạo tài khoản MoneyFlow",
+    eyebrow: "Tạo tài khoản",
+    title: "Bắt đầu một sổ mới",
     description:
-      "Ghi thu, chi và chuyển tiền đúng bản chất ngay từ đầu.",
+      "Tạo tài khoản rồi ghi khoản đầu tiên. Không cần liên kết ngân hàng.",
     submit: "Tạo tài khoản",
   },
   forgot: {
-    eyebrow: "Khôi phục quyền truy cập",
-    title: "Đặt lại mật khẩu",
+    eyebrow: "Khôi phục tài khoản",
+    title: "Quên mật khẩu?",
     description:
-      "Nhập email đã đăng ký. Chúng tôi sẽ gửi liên kết để bạn tạo mật khẩu mới.",
+      "Nhập email đã đăng ký. MoneyFlow sẽ gửi link để bạn đặt lại.",
     submit: "Gửi liên kết",
   },
   update: {
-    eyebrow: "Bảo mật tài khoản",
-    title: "Tạo mật khẩu mới",
+    eyebrow: "Mật khẩu mới",
+    title: "Đặt lại mật khẩu",
     description:
-      "Mật khẩu mới cần ít nhất 12 ký tự và chỉ nên được dùng cho MoneyFlow.",
+      "Mật khẩu mới cần ít nhất 12 ký tự và chỉ nên dùng cho MoneyFlow.",
     submit: "Lưu mật khẩu mới",
   },
 } satisfies Record<
@@ -55,22 +52,33 @@ const copy = {
   { eyebrow: string; title: string; description: string; submit: string }
 >;
 
-const proofPoints = [
-  {
-    icon: ArrowRightLeft,
-    title: "Thu, chi và chuyển tiền tách biệt",
-    body: "Chuyển nội bộ không bị tính nhầm thành chi tiêu.",
+const contextCopy = {
+  login: {
+    label: "Sổ của bạn vẫn ở đây",
+    title: "Đăng nhập rồi xem tiếp từ khoản gần nhất.",
+    body: "Giao dịch, tài khoản và báo cáo được giữ nguyên theo dữ liệu bạn đã ghi.",
   },
-  {
-    icon: Search,
-    title: "Mỗi số tổng đều có chỗ kiểm tra",
-    body: "Mở sổ để xem đúng giao dịch đứng sau thay đổi số dư.",
+  register: {
+    label: "Bắt đầu từ một khoản",
+    title: "Không cần nhập cả cuộc đời tài chính trong ngày đầu.",
+    body: "Tạo tài khoản, thêm một tài khoản tiền và ghi khoản gần nhất bạn còn nhớ.",
   },
-  {
-    icon: ShieldCheck,
-    title: "Không cần mật khẩu ngân hàng",
-    body: "Bạn chủ động quyết định dữ liệu nào được ghi vào MoneyFlow.",
+  forgot: {
+    label: "Khôi phục quyền truy cập",
+    title: "Chỉ cần email đã đăng ký.",
+    body: "MoneyFlow sẽ gửi link đặt lại mật khẩu. Thông báo không tiết lộ tài khoản có tồn tại hay không.",
   },
+  update: {
+    label: "Tạo mật khẩu mới",
+    title: "Đổi mật khẩu, dữ liệu trong sổ vẫn giữ nguyên.",
+    body: "Sau khi cập nhật, bạn quay lại đăng nhập và tiếp tục như bình thường.",
+  },
+} satisfies Record<Mode, { label: string; title: string; body: string }>;
+
+const sampleEntries = [
+  { title: "Lương tháng 8", amount: "+15.000.000 ₫", tone: "income" },
+  { title: "Tiền nhà", amount: "-4.500.000 ₫", tone: "expense" },
+  { title: "Chuyển sang ví chi tiêu", amount: "1.500.000 ₫", tone: "transfer" },
 ] as const;
 
 const initialState: AuthState = {};
@@ -103,6 +111,7 @@ export function AuthForm({
           : updatePassword;
   const [state, formAction, pending] = useActionState(action, initialState);
   const [captchaToken, setCaptchaToken] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const captchaConfig = getPublicAuthCaptchaConfig();
   const captchaApplies =
     mode === "login" || mode === "register" || mode === "forgot";
@@ -110,29 +119,66 @@ export function AuthForm({
   const captchaBlocked =
     captchaEnabled && (!captchaConfig.ready || !captchaToken);
   const content = copy[mode];
+  const context = contextCopy[mode];
   const baseId = useId();
   const titleId = `${baseId}-title`;
   const fullNameErrorId = `${baseId}-fullName-error`;
   const emailErrorId = `${baseId}-email-error`;
   const passwordErrorId = `${baseId}-password-error`;
   const privacyErrorId = `${baseId}-privacy-error`;
+  const hasPassword =
+    mode === "login" || mode === "register" || mode === "update";
 
   return (
     <main className={`${styles.page} ${themeStyles.authTheme}`}>
-      <div className={styles.pageShell}>
-        <header className={styles.topbar}>
+      <div className={styles.shell}>
+        <section className={styles.contextPanel} aria-label="Giới thiệu MoneyFlow">
           <BrandLockup
             className={styles.brand}
             href="/"
             ariaLabel="MoneyFlow, trang chủ"
             size="standard"
           />
-          <Link href="/" className={styles.homeLink}>
-            ← Trang chủ
-          </Link>
-        </header>
 
-        <div className={styles.authStage}>
+          <div className={styles.contextBody}>
+            <p className={styles.contextLabel}>{context.label}</p>
+            <h2>{context.title}</h2>
+            <p>{context.body}</p>
+          </div>
+
+          {(mode === "login" || mode === "register") && (
+            <div className={styles.miniLedger} aria-label="Sổ giao dịch minh hoạ">
+              <div className={styles.miniLedgerHeading}>
+                <span>Tháng 8</span>
+                <small>Dữ liệu minh hoạ</small>
+              </div>
+              {sampleEntries.map((entry) => (
+                <div className={styles.miniEntry} key={entry.title}>
+                  <span>{entry.title}</span>
+                  <strong className={styles[entry.tone]}>{entry.amount}</strong>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className={styles.contextFoot}>
+            MoneyFlow không yêu cầu mật khẩu ngân hàng.
+          </p>
+        </section>
+
+        <section className={styles.formPanel}>
+          <div className={styles.mobileTopbar}>
+            <BrandLockup
+              className={styles.mobileBrand}
+              href="/"
+              ariaLabel="MoneyFlow, trang chủ"
+              size="compact"
+            />
+            <Link href="/" className={styles.homeLink}>
+              ← Trang chủ
+            </Link>
+          </div>
+
           <section className={styles.card} aria-labelledby={titleId}>
             <header className={styles.cardHeader}>
               <p className={styles.eyebrow}>{content.eyebrow}</p>
@@ -186,7 +232,7 @@ export function AuthForm({
 
             {(mode === "login" || mode === "register") && (
               <div className={styles.divider}>
-                <span>hoặc tiếp tục bằng email</span>
+                <span>hoặc dùng email</span>
               </div>
             )}
 
@@ -233,7 +279,7 @@ export function AuthForm({
                 </label>
               )}
 
-              {(mode === "login" || mode === "register" || mode === "update") && (
+              {hasPassword && (
                 <label>
                   <span className={styles.fieldLabelRow}>
                     <span>Mật khẩu</span>
@@ -241,20 +287,35 @@ export function AuthForm({
                       <Link href="/forgot-password">Quên mật khẩu?</Link>
                     )}
                   </span>
-                  <input
-                    id={`${baseId}-password`}
-                    name="password"
-                    type="password"
-                    autoComplete={
-                      mode === "login" ? "current-password" : "new-password"
-                    }
-                    placeholder="Ít nhất 12 ký tự"
-                    aria-invalid={Boolean(state.errors?.password)}
-                    aria-describedby={
-                      state.errors?.password ? passwordErrorId : undefined
-                    }
-                    disabled={pending}
-                  />
+                  <span className={styles.passwordField}>
+                    <input
+                      id={`${baseId}-password`}
+                      name="password"
+                      type={passwordVisible ? "text" : "password"}
+                      autoComplete={
+                        mode === "login" ? "current-password" : "new-password"
+                      }
+                      placeholder={
+                        mode === "login" ? "Nhập mật khẩu" : "Ít nhất 12 ký tự"
+                      }
+                      aria-invalid={Boolean(state.errors?.password)}
+                      aria-describedby={
+                        state.errors?.password ? passwordErrorId : undefined
+                      }
+                      disabled={pending}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPasswordVisible((visible) => !visible)}
+                      aria-pressed={passwordVisible}
+                      aria-label={
+                        passwordVisible ? "Ẩn mật khẩu" : "Hiện mật khẩu"
+                      }
+                      disabled={pending}
+                    >
+                      {passwordVisible ? "Ẩn" : "Hiện"}
+                    </button>
+                  </span>
                   <FieldError
                     id={passwordErrorId}
                     messages={state.errors?.password}
@@ -327,13 +388,12 @@ export function AuthForm({
                 aria-busy={pending}
               >
                 {pending ? "Đang xử lý…" : content.submit}
-                {!pending && <Icon name="arrowRight" />}
               </button>
             </form>
 
             {mode === "login" && (
               <p className={styles.switchLink}>
-                Chưa có tài khoản? <Link href="/register">Đăng ký</Link>
+                Chưa có tài khoản? <Link href="/register">Tạo tài khoản</Link>
               </p>
             )}
             {mode === "register" && (
@@ -346,29 +406,12 @@ export function AuthForm({
                 <Link href="/login">← Quay lại đăng nhập</Link>
               </p>
             )}
+
+            <p className={styles.securityNote}>
+              Không cần liên kết hay nhập mật khẩu ngân hàng.
+            </p>
           </section>
-
-          <aside className={styles.proofRail} aria-label="Điều MoneyFlow cam kết">
-            <p className={styles.proofEyebrow}>Một sổ có thể đối chiếu</p>
-            <h2>Đăng nhập để tiếp tục từ dữ liệu của chính bạn.</h2>
-            <div className={styles.proofList}>
-              {proofPoints.map((point) => (
-                <article key={point.title}>
-                  <point.icon size={20} aria-hidden="true" />
-                  <div>
-                    <h3>{point.title}</h3>
-                    <p>{point.body}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </aside>
-        </div>
-
-        <p className={styles.securityNote}>
-          <ShieldCheck size={15} aria-hidden="true" />
-          MoneyFlow không yêu cầu mật khẩu ngân hàng.
-        </p>
+        </section>
       </div>
     </main>
   );
