@@ -1,10 +1,10 @@
 # Tasks: Account register and detail
 
-**Spec:** `specs/001-account-register-detail/spec.md`  
-**Plan:** `specs/001-account-register-detail/plan.md`  
-**Packet:** `docs/plans/active/account-register-detail.md`  
-**Current authorized phase:** exact-head verification and evaluation  
-**Last updated:** 2026-08-02
+- **Spec:** `specs/001-account-register-detail/spec.md`
+- **Plan:** `specs/001-account-register-detail/plan.md`
+- **Packet:** `docs/plans/active/account-register-detail.md`
+- **Current authorized phase:** exact-head verification and evaluation
+- **Last updated:** 2026-08-02
 
 ## Reconnaissance and specification
 
@@ -27,10 +27,10 @@
 
 ## Delivery and evidence
 
-- [ ] T030 Open a draft PR to `main` and add its bounded PR-memory record.
+- [x] T030 Open PR #228 to `main` and add its bounded PR-memory record.
 - [ ] T040 Run risk-selected exact-head CI, unit, build, browser, UI, CodeQL and secret checks.
 - [ ] T050 Evaluate the actual diff against every acceptance criterion and constitutional boundary.
-- [ ] T060 Update packet/PR evidence and mark ready-for-review.
+- [ ] T060 Update packet/PR evidence and keep the PR ready for owner review.
 - [ ] T070 Owner decides merge/deployment; agent MUST NOT perform either.
 
 ## Progress
@@ -39,6 +39,7 @@
 |---|---|---|
 | T001–T003 | done | current code, owner decision, spec/plan/checklist |
 | T010–T024 | done | source, tests and browser spec committed to focused branch |
-| T030 | active | open clean PR to `main` |
-| T040–T060 | todo | exact-head workflows and independent evaluation |
+| T030 | done | PR #228 and PR-memory record |
+| T040 | active | resolve exact-head CI findings |
+| T050–T060 | todo | independent evaluation and evidence handoff |
 | T070 | owner_only | merge/deployment remain forbidden to agent |
