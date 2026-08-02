@@ -1,10 +1,10 @@
 # Feature Specification: <feature name>
 
-**Feature directory:** `specs/<feature-slug>/`  
-**Status:** draft | clarified | accepted | superseded  
-**Owner:** <human owner>  
-**Issue/PR:** <references>  
-**Created:** YYYY-MM-DD  
+**Feature directory:** `specs/<feature-slug>/`
+**Status:** draft | clarified | accepted | superseded
+**Owner:** <human owner>
+**Issue/PR:** <references>
+**Created:** YYYY-MM-DD
 **Last updated:** YYYY-MM-DD
 
 > This artifact defines feature-specific requirements. It does not grant implementation, provider or production permission. Read `AGENTS.md`, `.specify/memory/constitution.md` and any required active MoneyFlow work packet.
