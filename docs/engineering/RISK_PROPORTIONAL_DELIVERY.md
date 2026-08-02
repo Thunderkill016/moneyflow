@@ -1,7 +1,7 @@
 # Risk-proportional delivery
 
-**Status:** active engineering policy  
-**Owner:** `docs/engineering/AI_DELIVERY_WORKFLOW.md`  
+**Status:** active engineering policy
+**Owner:** `docs/engineering/AI_DELIVERY_WORKFLOW.md`
 **Last reviewed:** 2026-08-02
 
 MoneyFlow protects financial correctness, tenant ownership and production data without applying every expensive application gate to every change. Each diff receives the smallest useful verification set, except where a provider-side repository rule requires a real analysis for every pull request.
