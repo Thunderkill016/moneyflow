@@ -14,6 +14,14 @@ const landing = readFileSync(
   "utf8",
 );
 const auth = readFileSync(join(root, "src/components/auth-form.tsx"), "utf8");
+const publicTheme = readFileSync(
+  join(root, "src/components/public-brand-theme.module.css"),
+  "utf8",
+);
+const documentTheme = readFileSync(
+  join(root, "src/app/document-theme.css"),
+  "utf8",
+);
 const guardrails = readFileSync(
   join(root, "src/app/ai-uiux-guardrails.css"),
   "utf8",
@@ -42,6 +50,32 @@ test("landing and auth use the shared brand component", () => {
   );
   assert.doesNotMatch(landing, /className=\{styles\.brandMark\}/u);
   assert.doesNotMatch(auth, /className=\{styles\.brandMark\}/u);
+});
+
+test("public routes consume the project color authority", () => {
+  assert.match(
+    landing,
+    /import themeStyles from "\.\/public-brand-theme\.module\.css"/u,
+  );
+  assert.match(
+    auth,
+    /import themeStyles from "\.\/public-brand-theme\.module\.css"/u,
+  );
+  assert.match(landing, /themeStyles\.landingTheme/u);
+  assert.match(auth, /themeStyles\.authTheme/u);
+
+  assert.match(publicTheme, /--public-accent:\s*var\(--mf-brand\)/u);
+  assert.match(publicTheme, /--auth-accent:\s*var\(--mf-brand\)/u);
+  assert.match(publicTheme, /--public-stage:\s*var\(--mf-stage\)/u);
+  assert.match(publicTheme, /--auth-stage:\s*var\(--mf-stage\)/u);
+
+  assert.match(documentTheme, /--mf-canvas:\s*#f6f8fc/u);
+  assert.match(documentTheme, /--mf-surface:\s*#ffffff/u);
+  assert.match(documentTheme, /--mf-brand-600:\s*#2f55d4/u);
+  assert.match(documentTheme, /--mf-income:\s*#0c7a55/u);
+  assert.match(documentTheme, /--mf-expense:\s*#c83e46/u);
+  assert.match(documentTheme, /--mf-transfer:\s*#7054cc/u);
+  assert.doesNotMatch(documentTheme, /Signal Ledger/u);
 });
 
 test("landing first viewport has a primary action and workflow proof", () => {
