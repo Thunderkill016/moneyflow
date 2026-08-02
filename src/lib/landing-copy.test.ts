@@ -77,7 +77,7 @@ test("landing states ownership and accounting boundaries honestly", () => {
   assert.match(source, /Có thể sửa, phục hồi/i);
   assert.match(source, /xuất lịch sử giao dịch ra CSV/i);
   assert.match(source, /Bạn quyết định khoản nào được ghi/i);
-  assert.doesNotMatch(source, /liên kết tài khoản ngân hàng/i);
+  assert.match(source, /Không liên kết tài khoản ngân hàng/i);
 });
 
 test("landing renders a MoneyFlow-specific ledger instead of generic icon cards", () => {
