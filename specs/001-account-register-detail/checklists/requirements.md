@@ -1,7 +1,7 @@
 # Requirements Quality Checklist: Account register and detail
 
-**Feature:** `specs/001-account-register-detail/spec.md`  
-**Created:** 2026-08-02
+- **Feature:** `specs/001-account-register-detail/spec.md`
+- **Created:** 2026-08-02
 
 ## Scope and evidence
 
