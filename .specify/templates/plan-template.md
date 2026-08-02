@@ -1,10 +1,10 @@
 # Implementation Plan: <feature name>
 
-**Feature spec:** `specs/<feature-slug>/spec.md`  
-**Branch:** `<focused-branch>`  
-**Change class:** Class 0 | Class 1 | Class 2 | Class 3  
-**Work packet:** `docs/plans/active/<slug>.md` | not required because ...  
-**Status:** draft | planned | implementing | evaluated  
+**Feature spec:** `specs/<feature-slug>/spec.md`
+**Branch:** `<focused-branch>`
+**Change class:** Class 0 | Class 1 | Class 2 | Class 3
+**Work packet:** `docs/plans/active/<slug>.md` | not required because ...
+**Status:** draft | planned | implementing | evaluated
 **Last updated:** YYYY-MM-DD
 
 > The plan maps an accepted specification to the current MoneyFlow repository. It MUST NOT silently change requirements or grant permissions.
