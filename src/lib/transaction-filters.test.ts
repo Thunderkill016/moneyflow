@@ -92,6 +92,7 @@ test("normalizes only valid date and safe amount parameters", () => {
   assert.equal(normalizeTransactionAmountInput("125000"), "125.000");
   assert.equal(normalizeTransactionAmountInput("125.000 ₫"), "125.000");
   assert.equal(normalizeTransactionAmountInput(""), "");
+  assert.equal(normalizeTransactionAmountInput("99999999999999999999"), "");
 });
 
 test("date range is inclusive", () => {
@@ -158,6 +159,15 @@ test("invalid date or amount ranges return an explicit error and no rows", () =>
     "Số tiền tối thiểu phải nhỏ hơn hoặc bằng số tiền tối đa.",
   );
   assert.deepEqual(filterTransactions(transactions, badAmount), []);
+
+  const unsafeAmount = filters({
+    minAmountInput: "99999999999999999999",
+  });
+  assert.equal(
+    transactionFilterError(unsafeAmount),
+    "Số tiền lọc vượt quá giới hạn được hỗ trợ.",
+  );
+  assert.deepEqual(filterTransactions(transactions, unsafeAmount), []);
 });
 
 test("serializes only active filters with canonical amount values", () => {
