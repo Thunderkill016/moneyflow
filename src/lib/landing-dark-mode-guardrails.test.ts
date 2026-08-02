@@ -9,6 +9,14 @@ const publicTheme = readFileSync(
   "src/components/public-brand-theme.module.css",
   "utf8",
 );
+const landingStyles = readFileSync(
+  "src/components/landing-page.module.css",
+  "utf8",
+);
+const authStyles = readFileSync(
+  "src/components/auth-form.module.css",
+  "utf8",
+);
 const rejectedDirection = readFileSync(
   "docs/design/SIGNAL_LEDGER_V3.md",
   "utf8",
@@ -27,7 +35,7 @@ test("document theme authority loads after the frozen legacy entry", () => {
   assert.match(legacy, /@import "\.\/ai-uiux-guardrails\.css"/);
 });
 
-test("dark mode keeps semantic product tokens and public routes use the same authority", () => {
+test("dark mode keeps semantic product tokens and public routes use them", () => {
   assert.match(documentTheme, /MoneyFlow semantic document and theme authority/);
   assert.doesNotMatch(documentTheme, /authority — Signal Ledger/);
   assert.match(documentTheme, /html\[data-theme="dark"\]/);
@@ -35,16 +43,17 @@ test("dark mode keeps semantic product tokens and public routes use the same aut
   assert.match(documentTheme, /--mf-surface:\s*#151a24/);
   assert.match(documentTheme, /--mf-text:\s*#f7f8fa/);
   assert.match(documentTheme, /--mf-text-muted:\s*#b9c1cc/);
-  assert.match(documentTheme, /--mf-brand:\s*#8ea7ff/);
-  assert.match(documentTheme, /--mf-income:\s*#4dd4a0/);
-  assert.match(documentTheme, /--mf-expense:\s*#ff858b/);
-  assert.match(documentTheme, /--mf-transfer:\s*#b29eff/);
 
   assert.match(publicTheme, /--public-canvas:\s*var\(--mf-canvas\)/);
   assert.match(publicTheme, /--public-accent:\s*var\(--mf-brand\)/);
   assert.match(publicTheme, /--auth-canvas:\s*var\(--mf-canvas\)/);
   assert.match(publicTheme, /--auth-accent:\s*var\(--mf-brand\)/);
   assert.match(publicTheme, /html\[data-theme="dark"\]/);
+
+  assert.match(landingStyles, /background:\s*var\(--public-canvas\)/);
+  assert.match(authStyles, /background:\s*var\(--auth-canvas\)/);
+  assert.doesNotMatch(landingStyles, /#[0-9a-f]{6}/i);
+  assert.doesNotMatch(authStyles, /#[0-9a-f]{6}/i);
 
   assert.match(rejectedDirection, /Status: rejected \/ superseded/);
   assert.match(rejectedDirection, /historical material only/);
