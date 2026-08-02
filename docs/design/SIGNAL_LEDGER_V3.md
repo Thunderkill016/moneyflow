@@ -1,126 +1,56 @@
-# Signal Ledger v3
+# Signal Ledger v3 — archived
 
-Status: candidate visual system for the full MoneyFlow product.
+Status: retired on 2026-08-02.
 
-Signal Ledger replaces the previous green-first public identity with a warmer,
-more editorial financial interface. The product keeps its manual-first and
-explainable-data principles, but presents them as a decision system instead of
-as a traditional expense notebook.
+Signal Ledger was an exploratory visual direction introduced during the first
+full-product refresh. It helped establish useful implementation foundations:
 
-## Product idea
+- one semantic token authority;
+- independent colours for income, expense, transfer and warning;
+- visible keyboard focus;
+- readable monetary values;
+- reduced-motion support;
+- product-owned components without copied external assets.
 
-MoneyFlow should answer three questions in order:
+It is no longer an active product or brand direction.
 
-1. What money exists right now?
-2. What part of it already has a job?
-3. What needs attention next?
+## Why it was retired
 
-Every screen should reveal the next useful decision before exposing secondary
-analytics.
+The concept selected a visual language before the public product proposition was
+properly researched. Warm paper, graphite, cobalt, editorial headings, numbered
+sections and a “financial decision system” narrative became constraints that
+landing and authentication content had to serve.
 
-## Visual language
+This produced two problems:
 
-- Warm paper canvas instead of clinical white or green-tinted backgrounds.
-- Graphite text and dark information stages for high-density financial views.
-- Cobalt is the single product/action accent.
-- Income, expense, transfer and warning retain independent semantic colors.
-- Large editorial headings are reserved for orientation and route purpose.
-- Monetary figures remain tabular, never truncated when the product can reflow.
-- Cards are grouped by meaning, not used as decoration around every element.
-- Borders carry structure; shadows are reserved for floating or primary layers.
-- Motion explains entry and hierarchy, never hides required information.
+1. The public page explained the design concept more strongly than it explained
+   MoneyFlow's proven behaviour.
+2. Authentication inherited marketing and storytelling that competed with the
+   user's immediate task.
 
-## Product-wide tokens
+Removing the visible Signal Ledger sections alone was not sufficient. The first
+revision of PR #208 then became too generic because it removed the concept
+without replacing it with a product-specific evidence model.
 
-`src/app/document-theme.css` is the only theme authority. Changing these roles
-updates all existing product routes without adding a second styling system.
+## What replaces it
 
-### Light
+The active public-experience brief is:
 
-- canvas: `#f7f5f0`
-- surface: `#ffffff`
-- text: `#171a1f`
-- brand: `#3157d5`
-- brand subtle: `#e9edff`
+`docs/design/PUBLIC_EXPERIENCE_RESEARCH_2026.md`
 
-### Dark
+That document starts from MoneyFlow's actual differentiator: balances are built
+from distinct income, expense and transfer records, and users can open the
+ledger to inspect and correct the data behind a number.
 
-- canvas: `#111318`
-- surface: `#181b22`
-- text: `#f4f2ed`
-- brand: `#85a3ff`
-- brand subtle: `#202b55`
+## Token status
 
-The brand/on-brand pairs and semantic text/subtle pairs meet WCAG AA for normal
-text. Focus remains visible in both themes.
+`src/app/document-theme.css` remains the semantic theme authority because the
+role-based token architecture is useful and stable. Existing colour values are
+implementation details, not a named brand doctrine. They may evolve through
+future product-wide work, but PR #208 does not redesign authenticated routes.
 
-## Landing page
+## Historical note
 
-The landing page is no longer a feature catalogue. It is an ordered narrative:
-
-1. The hero reframes MoneyFlow as a financial operating view.
-2. The product stage shows money with assigned purpose, not a generic chart.
-3. The signal strip demonstrates the three numbers that matter first.
-4. The clarity section explains the decision order.
-5. The dark workflow section explains the daily loop.
-6. The principles section explains ownership and reversibility.
-7. FAQ and final CTA remove practical uncertainty without invented social proof.
-
-No user count, testimonial, savings claim or fabricated performance metric is
-used.
-
-## Authentication
-
-Authentication uses a dark information panel beside a quiet form surface.
-Content changes by login, registration, recovery and password-update mode.
-
-The form behaviour remains unchanged:
-
-- Google OAuth stays separate from email authentication.
-- minimum password guidance stays at 12 characters;
-- privacy acceptance remains required for registration;
-- Turnstile still gates email login, registration and password reset when the
-  production feature flag is enabled;
-- generic account-existence-safe responses remain server-owned.
-
-The explanatory note clarifies that Turnstile may verify automatically and does
-not always show a checkbox.
-
-## Open-source research
-
-This is a representative audit of mature and relevant GitHub projects, not a
-literal claim that every UI repository on GitHub was inspected.
-
-| Repository | Pattern retained | Pattern deliberately not copied |
-| --- | --- | --- |
-| `actualbudget/actual` | local-first ownership and a clear path from setup to budgeting | its envelope-specific product model |
-| `chancenhq/sure` / `maybe-finance/maybe` | data-heavy personal-finance hierarchy and self-owned data positioning | branded assets, copy and implementation |
-| `midday-ai/midday` | task-oriented financial workflow, inbox/export framing and cohesive product narrative | bank integrations and AI assistant claims not present in MoneyFlow |
-| `firefly-iii/firefly-iii` | comprehensive finance information architecture | its feature density and backend model |
-| `shadcn-ui/ui` | open, composable primitives that remain product-owned | generic default theme values |
-| `tremorlabs/tremor` | accessible dashboard hierarchy and restrained analytics components | chart-first screens without a user decision hierarchy |
-| `calcom/cal.com` | focused authentication and responsive SaaS entry patterns | scheduling-specific layout and copy |
-| `dubinc/dub` | editorial landing rhythm, strong contrast and direct calls to action | marketing claims and brand styling |
-
-No external source code, image, logo, copy or proprietary asset is copied into
-MoneyFlow. The redesign uses MoneyFlow's existing React, CSS Modules, Lucide,
-Next.js and accessibility contracts.
-
-## Accessibility and responsive rules
-
-- Every primary action is at least 44px high.
-- A skip link remains available on the public page.
-- Heading order remains one `h1` followed by route/section `h2` headings.
-- Native `details` elements keep FAQ content keyboard accessible.
-- Reduced-motion preferences disable reveal and button transitions.
-- Mobile layouts reflow financial rows instead of shrinking values below a
-  readable size.
-- CAPTCHA status remains live-region text supplied by `AuthTurnstile`.
-
-## Non-goals
-
-- No database, authentication provider, CAPTCHA provider or deployment setting
-  changes.
-- No new runtime dependency.
-- No feature behaviour, business rule, financial calculation or RLS change.
-- No auto-merge or production deployment from this design branch.
+This file remains in the repository to explain earlier commits and prevent the
+same style-first process from being repeated. It must not be cited as the basis
+for new public or product-interface work.
