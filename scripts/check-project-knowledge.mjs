@@ -158,6 +158,8 @@ requireMarkers("docs/research/PRODUCT_COMPETITIVE_MEMORY.md", [
 requireMarkers("AGENTS.md", [
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
   "docs/engineering/AGENT_OPERATING_MODEL.md",
+  "docs/research/CURRENT_PROJECT_MEMORY.md",
+  "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
   "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
