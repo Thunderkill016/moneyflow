@@ -1,13 +1,13 @@
 # Product competitive memory consolidation
 
-**Execution state:** evaluating  
-**Active role:** evaluator  
-**Permission scope:** branch_write + external_read  
-**Owner:** Thunderkill016  
-**PR:** #214  
-**Branch:** `docs/product-competitive-memory`  
-**Base:** `main@05e923a17e579470ddcdb16108f0834ce17dc456`  
-**Started:** 2026-08-02
+- **Execution state:** evaluating
+- **Active role:** evaluator
+- **Permission scope:** branch_write + external_read
+- **Owner:** Thunderkill016
+- **PR:** #214
+- **Branch:** `docs/product-competitive-memory`
+- **Base:** `main@05e923a17e579470ddcdb16108f0834ce17dc456`
+- **Started:** 2026-08-02
 
 ## Repository reconnaissance
 
@@ -108,7 +108,7 @@ Evaluation acceptance also requires that transitioning PR #214 from draft to rea
 
 The net diff contains seven files:
 
-- `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`: new 858-line synthesis;
+- `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`: active product and competitive synthesis;
 - `docs/plans/active/product-competitive-memory.md`: this lifecycle packet;
 - `docs/research/README.md`: product-memory index and historical-source boundary;
 - `README.md`: source-of-truth link and interpretation note;
@@ -151,7 +151,8 @@ Selected final gates:
 
 ### Current permission boundary
 
-Allowed: repository and web research, documentation and focused CI correction on the branch, pull-request creation and CI inspection.  
+Allowed: repository and web research, documentation and focused CI correction on the branch, pull-request creation and CI inspection.
+
 Not allowed: direct `main` write, merge, provider setting changes, production writes, dependency adoption or product behavior changes.
 
 | Time | From | To | State | Evidence |
