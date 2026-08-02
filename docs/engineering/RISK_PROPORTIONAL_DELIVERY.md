@@ -4,18 +4,17 @@
 **Owner:** `docs/engineering/AI_DELIVERY_WORKFLOW.md`
 **Last reviewed:** 2026-08-02
 
-MoneyFlow protects money correctness, tenant ownership and production data without applying the most expensive verification path to every change. The goal is fast, trustworthy feedback: each change receives the smallest set of controls that can detect its realistic failure modes.
-
-This policy narrows the task-classification and verification requirements in `AGENTS.md`, `README.md`, `docs/engineering/AI_DELIVERY_WORKFLOW.md` and `docs/engineering/AGENT_OPERATING_MODEL.md`. When older wording appears to require every gate or a full work packet for all non-trivial work, use this risk classification.
+MoneyFlow protects financial correctness, tenant ownership and production data without applying every expensive application gate to every change. Each diff receives the smallest useful verification set, except where a provider-side repository rule requires a real analysis for every pull request.
 
 ## Principles
 
-1. **Risk, not file count, selects controls.** A one-line RLS change can be high risk; a large research document can be low runtime risk.
-2. **Required check identities stay stable.** Required GitHub checks must start and finish even when their heavy work is not applicable. Do not skip the entire workflow with top-level path filters.
-3. **Main and manual runs fail safe.** Pushes to `main` and manually dispatched verification run the complete regression suite.
-4. **High-risk boundaries remain strict.** Database migrations, RLS, authentication, financial semantics, destructive data paths, secrets and deployment configuration receive the relevant deep gates and human review.
-5. **Evidence must match the affected layer.** A build cannot prove RLS; a database reset cannot prove responsive UI; a visual audit adds no evidence to a documentation-only PR.
-6. **Small changes should remain small.** Do not expand a bounded change merely to satisfy a process artifact.
+1. **Risk selects application gates.** File count does not determine risk.
+2. **Required check identities stay stable.** Workflows start and finish even when their application/database/browser work is not applicable.
+3. **Provider rules are real constraints.** A green workflow shell is insufficient when GitHub requires an uploaded code-scanning analysis.
+4. **Main and manual runs fail safe.** They run the complete regression suite.
+5. **High-risk boundaries remain strict.** Financial semantics, RLS, auth, destructive paths, secrets, deployment and CI/security policy receive deep checks and owner review.
+6. **Evidence matches the layer.** Build does not prove RLS; database tests do not prove responsive UI.
+7. **Small changes stay small.** Do not add unrelated runtime work merely to satisfy process.
 
 ## Change classes
 
@@ -27,144 +26,158 @@ Examples:
 - wording or links that do not ship in the application;
 - issue and pull-request templates.
 
-Required:
+Required application gates:
 
 - diff hygiene;
 - project-knowledge contract;
 - CI classification contract.
 
-Not required by default:
+Not required by application risk:
 
 - dependency installation;
 - lint, typecheck, unit tests or production build;
 - Supabase reset and pgTAP;
-- browser smoke or responsive audit;
-- CodeQL when no executable or dependency surface changed.
+- browser smoke or responsive audit.
 
-Planning artifact: an inline plan or clear PR description. A full work packet is optional unless the documentation changes product scope, architecture or a high-risk operating policy.
+Repository-rule exception:
+
+- the CodeQL workflow still performs and uploads a real JavaScript/TypeScript analysis for every pull request because the repository code-scanning rule requires analysis results for the exact head or merge candidate;
+- this exception does not make unrelated application, database or browser gates applicable.
+
+Planning artifact: inline plan or clear PR description unless the documentation changes architecture, product scope or high-risk operating policy.
 
 ### Class 1 — bounded code change
 
 Examples:
 
-- pure domain helper implementation that does not change financial meaning;
-- localized component behavior;
-- isolated refactor with no schema, auth, provider or deployment impact;
+- localized domain or component behavior;
+- isolated refactor with straightforward rollback;
 - test-only executable changes.
 
 Required:
 
-- project/deployment/architecture contracts as applicable;
+- applicable project/deployment/architecture contracts;
 - lint and typecheck;
 - affected unit tests;
 - production build;
 - browser smoke when runtime application code changes;
-- CodeQL when JavaScript, TypeScript, dependencies or CI security surfaces change.
+- real CodeQL analysis through the protected workflow.
 
 Not required by default:
 
-- database reset when no database contract changed;
-- full responsive audit when no visual/layout surface changed;
-- production verification for changes that do not alter production behavior.
+- database reset without a database-contract change;
+- responsive audit without a visual/layout change;
+- production verification when production behavior is unchanged.
 
-Planning artifact: a concise PR plan is sufficient when the scope is one subsystem, rollback is straightforward and no high-risk boundary is crossed.
+Planning artifact: concise PR plan when one subsystem changes and rollback is straightforward.
 
 ### Class 2 — user-interface or user-flow change
 
 Examples:
 
 - route, component, layout or stylesheet changes;
-- form behavior and navigation;
+- forms and navigation;
 - responsive, accessibility or visual-system changes.
 
 Required:
 
-- all applicable Class 1 checks;
+- applicable Class 1 checks;
 - browser smoke for affected flows;
-- responsive/cross-browser audit when layout, styling, shared components or audit contracts change;
+- responsive/cross-browser audit for layout, styling, shared components or audit-contract changes;
 - human review of relevant browser evidence.
 
-A visual audit is not required for a server-only or domain-only change merely because the product has a UI.
-
-Planning artifact: concise PR plan for a bounded screen-level change; full work packet for multi-flow redesigns, product-direction decisions or changes with unresolved research.
+Planning artifact: concise plan for a bounded screen; full packet for multi-flow redesign or unresolved product research.
 
 ### Class 3 — financial, data, security or operational boundary
 
 Examples:
 
 - migrations, constraints, indexes, RLS, grants and RPCs;
-- authentication, authorization and account recovery;
-- financial calculation semantics, transfers, balances, import/export integrity;
+- authentication, authorization and recovery;
+- financial semantics, transfers, balances and import/export integrity;
 - destructive data paths, provider writes and deployment configuration;
-- CI policy, required-check behavior or security scanning configuration.
+- CI policy, required-check behavior or security-scanning configuration.
 
 Required:
 
 - project-knowledge and CI-classification contracts;
-- static, domain and build verification when application or shared executable code changes;
+- static/domain/build verification when application or shared executable code changes;
 - Supabase reset and pgTAP when database truth changes;
-- a pure migration/index/pgTAP change may omit application install, lint, unit and build work when no application contract changed;
 - browser smoke when an application flow changes;
-- responsive audit only when a visual surface also changes;
-- CodeQL and secret controls for relevant executable/security surfaces;
-- rollback plan and human owner review;
-- exact production verification only for the affected production behavior after merge.
+- responsive audit only when a visual surface changes;
+- real CodeQL analysis and secret controls;
+- rollback plan and owner review;
+- exact affected production verification after merge when production behavior changes.
+
+A pure migration/index/pgTAP change may omit unrelated application installation and build work when no application contract changes.
 
 Planning artifact: full work packet with state, permissions, risks, verification and rollback.
 
 ## CI selection contract
 
-`scripts/classify-ci-changes.mjs` is the repository-owned classifier. It emits:
+`scripts/classify-ci-changes.mjs` selects application gates:
 
-- `full_verify` — install dependencies, run application contracts, lint, typecheck, unit tests and build;
-- `database` — start/reset Supabase and run pgTAP;
-- `browser_smoke` — install Chromium and run the baseline Playwright suite;
-- `ui_audit` — install Chromium/WebKit and run the cross-device audit;
-- `codeql` — run JavaScript/TypeScript CodeQL analysis.
+- `full_verify` — dependencies, contracts, lint, typecheck, tests and build;
+- `database` — Supabase reset and pgTAP;
+- `browser_smoke` — baseline Playwright flows;
+- `ui_audit` — cross-device/cross-browser audit;
+- `codeql` — advisory classification for executable or CI-security surface changes.
 
-The classifier is deliberately conservative:
+The `codeql` classifier output no longer suppresses the protected CodeQL analysis. GitHub's repository rule requires an uploaded analysis even for a documentation-only PR. Keeping the output is useful for policy tests, diagnostics and any future intentional repository-rule change.
 
-- changes to the CI classifier or CI workflow exercise every gate;
-- an empty or unavailable diff becomes a full run;
-- pushes to `main`, scheduled scans and manual runs force full verification;
-- unknown executable changes receive full static verification rather than being treated as documentation.
+Classifier safety rules:
 
-The classifier has repository tests in `scripts/classify-ci-changes.test.mjs`. Path rules must be updated together with their tests.
+- CI classifier or workflow changes exercise every applicable gate;
+- empty or unavailable diffs fail safe;
+- pushes to `main`, scheduled scans and manual runs force full application verification;
+- unknown executable changes receive full static verification.
+
+Classifier behavior is tested in `scripts/classify-ci-changes.test.mjs`. Path rules and tests change together.
 
 ## Stable required checks
 
-GitHub documents that a workflow skipped by path filtering can leave a required check pending and block merge. MoneyFlow therefore keeps `verify`, `database`, `e2e` and `Analyze JavaScript and TypeScript` present. A check with no relevant heavy work completes successfully with an explicit “not required” explanation.
+MoneyFlow keeps these stable check identities:
 
-This PR does not change branch protection, required-check settings, workflow permissions or `CODEOWNERS`. Those remain human-owner repository settings.
+- `verify`;
+- `database`;
+- `e2e`;
+- `Analyze JavaScript and TypeScript`.
+
+For `verify`, `database` and `e2e`, irrelevant heavy work may finish with an explicit not-applicable result while the job succeeds.
+
+`Analyze JavaScript and TypeScript` is different: the repository code-scanning rule requires actual analysis data, not merely a successful job name. Therefore `.github/workflows/codeql.yml` always initializes and analyzes on pull requests. A no-op “CodeQL not required” step creates a false-green check and leaves the pull request permanently unmergeable.
+
+Changing provider-side branch protection, rulesets, workflow permissions or `CODEOWNERS` remains an explicit owner operation. If the owner later removes the provider code-scanning requirement after reviewing equivalent protections, risk-proportional CodeQL skipping may be reconsidered in a dedicated governance PR.
 
 ## Work-packet decision test
 
 Create a full work packet when any answer is yes:
 
 - Does the change alter financial meaning, ownership, RLS, auth, schema or production data?
+- Does it alter CI policy, required-check behavior or security scanning?
 - Does it require provider or production write permission?
 - Does it cross multiple architectural ownership areas?
-- Does it depend on unresolved external/product research?
+- Does it depend on unresolved research?
 - Is rollback non-obvious or compatibility staged?
-- Will implementation/evaluation span multiple agents, days or handoffs?
+- Will work span multiple agents, days or handoffs?
 
-Otherwise use an inline or PR-level plan containing scope, affected files, tests and rollback.
+Otherwise use an inline/PR plan with scope, affected files, verification and rollback.
 
 ## Review and merge policy
 
 - Keep branches focused and short-lived.
-- Review against realistic failure modes and the actual diff, not a universal checklist.
-- Approve an improvement when it is safe and clearly better; do not block on unrelated perfection.
-- Owner review remains mandatory for Class 3 and product-direction changes.
-- Auto-merge may be enabled later for Class 0/1 only after branch-protection rules are intentionally reviewed by the owner; this policy does not enable it.
+- Review actual failure modes and the actual diff.
+- Do not block on unrelated perfection.
+- Owner review is mandatory for Class 3 and product-direction changes.
+- Never treat a skipped heavy step as if it ran.
 
 ## Measurement and rollback
 
-Review this policy after enough PRs exist to compare:
+Track:
 
 - median time from push to mergeable CI;
-- number of CI reruns caused by unrelated/flaky gates;
+- reruns caused by unrelated or flaky gates;
 - escaped defects by class;
 - time spent repairing CI rather than product behavior.
 
-Rollback is one commit: restore unconditional steps in `.github/workflows/ci.yml` and `.github/workflows/codeql.yml`. Keep the classifier tests even after rollback until the failure mode is understood.
+Rollback for this CodeQL alignment is one focused commit restoring conditional analysis, but only after the provider code-scanning rule is intentionally changed. Restoring conditional analysis while the rule remains active recreates the merge deadlock.
