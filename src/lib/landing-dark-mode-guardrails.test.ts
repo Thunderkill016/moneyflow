@@ -9,7 +9,7 @@ const landingCss = readFileSync(
   "src/components/landing-page.module.css",
   "utf8",
 );
-const retiredDirection = readFileSync(
+const rejectedDirection = readFileSync(
   "docs/design/SIGNAL_LEDGER_V3.md",
   "utf8",
 );
@@ -41,5 +41,6 @@ test("dark mode keeps semantic product tokens and explicit public-page roles", (
   assert.match(landingCss, /html\[data-theme="dark"\]\.page|html\[data-theme="dark"\]\) \.page/);
   assert.match(landingCss, /--public-canvas:\s*#101512/);
   assert.match(landingCss, /--public-accent:\s*#6fd0aa/);
-  assert.match(retiredDirection, /Status: retired/);
+  assert.match(rejectedDirection, /Status: rejected \/ superseded/);
+  assert.match(rejectedDirection, /historical material only/);
 });
