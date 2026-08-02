@@ -3,7 +3,7 @@
 - **Spec:** `specs/001-account-register-detail/spec.md`
 - **Plan:** `specs/001-account-register-detail/plan.md`
 - **Packet:** `docs/plans/active/account-register-detail.md`
-- **Current authorized phase:** exact-head verification and evaluation
+- **Current authorized phase:** owner review
 - **Last updated:** 2026-08-02
 
 ## Reconnaissance and specification
@@ -28,9 +28,9 @@
 ## Delivery and evidence
 
 - [x] T030 Open PR #228 to `main` and add its bounded PR-memory record.
-- [ ] T040 Run risk-selected exact-head CI, unit, build, browser, UI, CodeQL and secret checks.
-- [ ] T050 Evaluate the actual diff against every acceptance criterion and constitutional boundary.
-- [ ] T060 Update packet/PR evidence and keep the PR ready for owner review.
+- [x] T040 Run risk-selected exact-head CI, unit, build, browser, UI, CodeQL and secret checks.
+- [x] T050 Evaluate the actual diff against every acceptance criterion and constitutional boundary.
+- [x] T060 Update packet/PR evidence and keep the PR ready for owner review.
 - [ ] T070 Owner decides merge/deployment; agent MUST NOT perform either.
 
 ## Progress
@@ -40,6 +40,6 @@
 | T001–T003 | done | current code, owner decision, spec/plan/checklist |
 | T010–T024 | done | source, tests and browser spec committed to focused branch |
 | T030 | done | PR #228 and PR-memory record |
-| T040 | active | resolve exact-head CI findings |
-| T050–T060 | todo | independent evaluation and evidence handoff |
-| T070 | owner_only | merge/deployment remain forbidden to agent |
+| T040 | done | exact head `1775c3b763e5863d8c3f3955961583e152f0a762`; CI #1090, CodeQL #247 and secret scan #247 succeeded; e2e/UI passed on the exact-head rerun |
+| T050–T060 | done | packet and PR evidence updated; no high-risk or out-of-scope diff found |
+| T070 | owner_only | review, merge and deployment remain owner decisions |
