@@ -10,7 +10,7 @@ import { MoneyValue } from "@/components/money-value";
 import styles from "./transactions-page.module.css";
 import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, formatMoneyInput } from "@/lib/money";
 import {
   categoryMeta,
   type AccountOption,
@@ -25,6 +25,12 @@ import {
 import { GHI_CHI_TIEU_HREF, GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
 import { safeUserNotice } from "@/lib/safe-log";
 import { isSplitExpense } from "@/lib/splits";
+import {
+  filterTransactions,
+  transactionFilterError,
+  transactionFilterSearch,
+  type TransactionFilterKind,
+} from "@/lib/transaction-filters";
 import {
   TRANSACTION_PAGE_SIZE,
   nextVisibleCount,
@@ -61,7 +67,7 @@ const EditTransactionDialog = dynamic(
 const DELETE_UNDO_MS = 8000;
 const NOTICE_MS = 3500;
 
-type KindFilter = "all" | Transaction["kind"];
+type KindFilter = TransactionFilterKind;
 export type TransactionsPageVariant = "ledger" | "timeline";
 
 type TransactionsWorkspace = {
@@ -77,16 +83,28 @@ type TransactionsPageProps = {
   viewer: ViewerSummary;
   workspace: TransactionsWorkspace;
   variant?: TransactionsPageVariant;
+  initialQuery?: string;
   initialCategory?: string;
+  initialAccount?: string;
   initialKind?: KindFilter;
+  initialFromDate?: string;
+  initialToDate?: string;
+  initialMinAmount?: string;
+  initialMaxAmount?: string;
 };
 
 export function TransactionsPage({
   viewer,
   workspace,
   variant = "ledger",
+  initialQuery = "",
   initialCategory = "all",
+  initialAccount = "all",
   initialKind = "all",
+  initialFromDate = "",
+  initialToDate = "",
+  initialMinAmount = "",
+  initialMaxAmount = "",
 }: TransactionsPageProps) {
   const isTimeline = variant === "timeline";
   const {
@@ -109,10 +127,14 @@ export function TransactionsPage({
   const [transferOpen, setTransferOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery);
   const [kind, setKind] = useState<KindFilter>(initialKind);
-  const [account, setAccount] = useState("all");
+  const [account, setAccount] = useState(initialAccount);
   const [category, setCategory] = useState(initialCategory);
+  const [fromDate, setFromDate] = useState(initialFromDate);
+  const [toDate, setToDate] = useState(initialToDate);
+  const [minAmountInput, setMinAmountInput] = useState(initialMinAmount);
+  const [maxAmountInput, setMaxAmountInput] = useState(initialMaxAmount);
   const [notice, setNotice] = useState("");
   const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
@@ -141,7 +163,37 @@ export function TransactionsPage({
 
   useEffect(() => () => clearNoticeTimer(), []);
 
-  const filterKey = `${kind}\0${account}\0${category}\0${query}`;
+  useEffect(() => {
+    const params = transactionFilterSearch({
+      query,
+      kind,
+      account,
+      category,
+      fromDate,
+      toDate,
+      minAmountInput,
+      maxAmountInput,
+    });
+    const serialized = params.toString();
+    const nextLocation = serialized
+      ? `${window.location.pathname}?${serialized}`
+      : window.location.pathname;
+    const currentLocation = `${window.location.pathname}${window.location.search}`;
+    if (nextLocation !== currentLocation) {
+      window.history.replaceState(null, "", nextLocation);
+    }
+  }, [
+    account,
+    category,
+    fromDate,
+    kind,
+    maxAmountInput,
+    minAmountInput,
+    query,
+    toDate,
+  ]);
+
+  const filterKey = `${kind}\0${account}\0${category}\0${query}\0${fromDate}\0${toDate}\0${minAmountInput}\0${maxAmountInput}`;
   const [pageState, setPageState] = useState({
     filterKey,
     visibleCount: TRANSACTION_PAGE_SIZE,
@@ -151,26 +203,41 @@ export function TransactionsPage({
       ? pageState.visibleCount
       : TRANSACTION_PAGE_SIZE;
 
-  const filtered = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("vi");
-    return transactions.filter((transaction) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        `${transaction.note} ${transaction.category} ${transaction.account} ${transaction.destinationAccount ?? ""}`
-          .toLocaleLowerCase("vi")
-          .includes(normalizedQuery);
-      const matchesKind = kind === "all" || transaction.kind === kind;
-      const matchesAccount =
-        account === "all" ||
-        transaction.account === account ||
-        transaction.destinationAccount === account;
-      const matchesCategory =
-        category === "all" ||
-        transaction.category === category ||
-        transaction.splits?.some((line) => line.category === category);
-      return matchesQuery && matchesKind && matchesAccount && matchesCategory;
-    });
-  }, [account, category, kind, query, transactions]);
+  const filterError = transactionFilterError({
+    query,
+    kind,
+    account,
+    category,
+    fromDate,
+    toDate,
+    minAmountInput,
+    maxAmountInput,
+  });
+
+  const filtered = useMemo(
+    () =>
+      filterTransactions(transactions, {
+        query,
+        kind,
+        account,
+        category,
+        fromDate,
+        toDate,
+        minAmountInput,
+        maxAmountInput,
+      }),
+    [
+      account,
+      category,
+      fromDate,
+      kind,
+      maxAmountInput,
+      minAmountInput,
+      query,
+      toDate,
+      transactions,
+    ],
+  );
 
   const listWindow = useMemo(
     () => windowTransactions(filtered, visibleCount),
@@ -222,7 +289,14 @@ export function TransactionsPage({
   }, [listWindow.visible]);
 
   const hasActiveFilters =
-    query.trim().length > 0 || kind !== "all" || account !== "all" || category !== "all";
+    query.trim().length > 0 ||
+    kind !== "all" ||
+    account !== "all" ||
+    category !== "all" ||
+    Boolean(fromDate) ||
+    Boolean(toDate) ||
+    Boolean(minAmountInput) ||
+    Boolean(maxAmountInput);
 
   function loadMore() {
     setPageState({
@@ -236,6 +310,10 @@ export function TransactionsPage({
     setKind("all");
     setAccount("all");
     setCategory("all");
+    setFromDate("");
+    setToDate("");
+    setMinAmountInput("");
+    setMaxAmountInput("");
     window.history.replaceState(null, "", window.location.pathname);
   }
 
@@ -310,7 +388,9 @@ export function TransactionsPage({
     const result = await updateTransaction(input);
     if (result.ok) {
       setEditing(null);
-      showNotice("Đã cập nhật giao dịch.");
+      showNotice(
+        "Đã cập nhật giao dịch. Bộ lọc hiện tại vẫn được giữ; giao dịch sẽ ẩn nếu không còn khớp.",
+      );
     }
     return result;
   }
@@ -460,11 +540,6 @@ export function TransactionsPage({
           aria-label="Tóm tắt theo bộ lọc"
           aria-live="polite"
         >
-          {/*
-            Label before value, matching the balance statement on Tổng quan, and
-            the same plain vocabulary as that screen — "Tiền vào" / "Tiền ra" /
-            "Còn lại" rather than "Tổng thu" / "Tổng chi" / "Ròng".
-          */}
           <div>
             <p>{isTimeline ? "Đã duyệt" : "Giao dịch"}</p>
             <span className="font-mono">{filtered.length}</span>
@@ -565,6 +640,63 @@ export function TransactionsPage({
               </select>
             </label>
 
+            <div
+              className={styles.rangeFilters}
+              aria-label="Lọc theo thời gian và số tiền"
+            >
+              <label className={styles.rangeField}>
+                <span>Từ ngày</span>
+                <input
+                  type="date"
+                  value={fromDate}
+                  max={toDate || undefined}
+                  onChange={(event) => setFromDate(event.target.value)}
+                  aria-label="Từ ngày"
+                />
+              </label>
+              <label className={styles.rangeField}>
+                <span>Đến ngày</span>
+                <input
+                  type="date"
+                  value={toDate}
+                  min={fromDate || undefined}
+                  onChange={(event) => setToDate(event.target.value)}
+                  aria-label="Đến ngày"
+                />
+              </label>
+              <label className={styles.rangeField}>
+                <span>Từ số tiền</span>
+                <input
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={minAmountInput}
+                  onChange={(event) =>
+                    setMinAmountInput(formatMoneyInput(event.target.value))
+                  }
+                  placeholder="Ví dụ: 100.000"
+                  aria-label="Số tiền tối thiểu"
+                />
+              </label>
+              <label className={styles.rangeField}>
+                <span>Đến số tiền</span>
+                <input
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={maxAmountInput}
+                  onChange={(event) =>
+                    setMaxAmountInput(formatMoneyInput(event.target.value))
+                  }
+                  placeholder="Ví dụ: 500.000"
+                  aria-label="Số tiền tối đa"
+                />
+              </label>
+              {filterError ? (
+                <p className={styles.filterError} role="alert">
+                  {filterError}
+                </p>
+              ) : null}
+            </div>
+
             {hasActiveFilters ? (
               <button
                 type="button"
@@ -634,13 +766,6 @@ export function TransactionsPage({
                         <time dateTime={transaction.occurredAt}>
                           {transaction.relativeDate}
                         </time>
-                        {/*
-                          No `direction` here. The sign glyph, the semantic
-                          colour and the category/account subtitle already state
-                          the kind; a third arrow made a dense row read as
-                          "− ↓ 63.000 đ". CALM_LEDGER_V2 asks for a direction
-                          arrow "where useful", and in this list it is not.
-                        */}
                         <MoneyValue
                           amount={transaction.amount}
                           mode="kind"
@@ -715,7 +840,7 @@ export function TransactionsPage({
                 <Icon name="search" />
               </span>
               <h2>Không tìm thấy giao dịch</h2>
-              <p>Thử đổi từ khóa hoặc bỏ bớt bộ lọc.</p>
+              <p>{filterError ?? "Thử đổi từ khóa hoặc bỏ bớt bộ lọc."}</p>
               <button type="button" onClick={clearFilters}>
                 Xóa bộ lọc
               </button>
