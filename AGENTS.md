@@ -19,13 +19,7 @@ For every change:
 5. `ARCHITECTURE.md`, `docs/product/PRINCIPLES.md` and `docs/MVP_DEFINITION.md`;
 6. `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
 
-When a feature uses Spec Kit, also read:
-
-- `.specify/memory/constitution.md`;
-- the active feature artifacts under `specs/<feature>/`;
-- `.specify/README.md` for authority, coexistence and upgrade rules.
-
-Spec Kit artifacts are candidate feature guidance. They do not override current code/tests, current project memory, MoneyFlow policy, an active work packet or owner decisions.
+For Spec Kit features, also read `.specify/README.md`, `.specify/memory/constitution.md` and the active `specs/<feature>/` artifacts. They remain candidate guidance and never override current code/tests, project memory, MoneyFlow policy, an active packet or owner decisions.
 
 For Class 3, multi-day, multi-agent, provider/production or cross-cutting work also read:
 
