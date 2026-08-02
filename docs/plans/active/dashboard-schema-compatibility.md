@@ -1,8 +1,8 @@
 # Dashboard schema compatibility incident
 
-**Status:** in progress
-**Execution state:** ready for CI
-**Active role:** implementer/evaluator
+**Status:** ready for owner review
+**Execution state:** ready_for_review
+**Active role:** evaluator/handoff
 **Permission scope:** branch_write + provider_read + owner-requested production migration repair
 **Owner:** human owner
 **Branch:** `hotfix/dashboard-schema-compatibility`
@@ -66,7 +66,7 @@ The compatibility path may use more API calls during failure, but financial corr
 - [x] RPC absence or invalid payload uses focused authenticated loaders rather than an empty dashboard.
 - [x] Failure paths emit non-sensitive searchable server log codes.
 - [x] Source-contract tests lock the compatibility fallback.
-- [ ] Required CI gates pass on the exact branch head.
+- [x] Required CI gates pass on the exact branch head before this handoff.
 - [ ] Human owner reviews and merges the PR.
 - [ ] Exact production deployment is verified after merge.
 
@@ -107,7 +107,7 @@ The compatibility path may use more API calls during failure, but financial corr
 - [x] Add regression assertions for both RPC failure paths.
 - [x] Align the repository migration version with production history.
 - [x] Open PR #207 and trigger full CI.
-- [ ] Resolve all exact-head CI findings.
+- [x] Resolve all exact-head CI findings through CI #856.
 - [ ] Obtain human-owner review and merge.
 - [ ] Verify the merged commit on the canonical production deployment.
 
@@ -126,6 +126,27 @@ The compatibility path may use more API calls during failure, but financial corr
 
 ### Repository verification
 
-CI runs #854 and #855 rejected incomplete work-packet structure before executing code gates. This revision now includes every heading required by `scripts/check-project-knowledge.mjs`: repository reconnaissance, research, specification, implementation plan, tasks and evaluation. A new exact-head CI run must complete before review.
+Exact-head CI #856 passed on commit `7caa1b756fb4aa5ece75e6cf6cac9f695fdb755f` before this documentation handoff update:
 
-No local gate is claimed: the current execution environment did not provide a local repository checkout with network access. GitHub CI owns the required code, database, build and browser evidence for this branch.
+- project knowledge, deployment environment, CSS ownership and architecture contracts;
+- lint, typecheck, unit tests/static RLS and production build;
+- fresh local Supabase reset and pgTAP database tests;
+- browser smoke and production cross-device UI audit;
+- CodeQL and full secret-history scan.
+
+This final packet-state update is documentation-only and must receive its own exact-head CI before merge. No local gate is claimed: the current execution environment did not provide a local repository checkout with network access.
+
+## Handoff record
+
+### Current permission boundary
+
+- The agent repaired the owner-approved missing additive production migration and wrote only to the focused hotfix branch.
+- The agent did not push to `main`, merge PR #207, alter branch protection or weaken provider security.
+- Merge and post-merge production deployment remain owner decisions.
+
+### Handoff
+
+- From: evaluator/incident responder.
+- To: human owner reviewer.
+- Artifacts: PR #207, this incident packet, Supabase migration version `20260802022923`, CI evidence and provider smoke results.
+- Required next evidence: green exact-head CI for this packet-state commit, owner review/merge, then exact canonical production verification.
