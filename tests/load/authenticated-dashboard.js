@@ -58,7 +58,7 @@ if (isLocal) {
   if (__ENV.ALLOW_REMOTE_LOAD_TEST !== "yes") {
     throw new Error("Remote load test blocked; set ALLOW_REMOTE_LOAD_TEST=yes after approval");
   }
-  if (!['preview', 'staging'].includes(targetKind)) {
+  if (!["preview", "staging"].includes(targetKind)) {
     throw new Error("Remote authenticated load tests are limited to preview or staging");
   }
   if (!approvedTargetHost || approvedTargetHost !== target.hostname) {
