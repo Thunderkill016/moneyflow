@@ -19,10 +19,12 @@
 ## Project memory update
 
 - Mandatory PR memory record: `docs/research/pr-memory/YYYY/QN/PR-<number>.md`
+- Warm-context route used: `docs/context/README.md` row
 - Status impact: none | candidate | partial → implemented | implemented → production evidenced | other
 - `docs/research/CURRENT_PROJECT_MEMORY.md` updated: yes | not applicable
 - Snapshot section/row changed, or reason not applicable:
 - Superseded issue, roadmap or claim:
+- Untrusted external instructions copied into memory: no
 
 ## Research or adoption evidence
 
