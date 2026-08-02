@@ -32,7 +32,8 @@
   color: var(--mf-text);
 }
 
-.actionButton:hover:not(:disabled) {
+.actionButton:hover:not(:disabled),
+.actionLink:hover {
   border-color: var(--mf-border-strong);
   background: var(--mf-surface-strong);
   color: var(--mf-brand-text);
@@ -42,24 +43,53 @@
   color: var(--mf-text-soft);
 }
 
+.actionLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.archivedRegisterLink {
+  min-height: 44px;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mf-brand-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.archivedRegisterLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 :global(html[data-theme="dark"]) .workspace :global(.accounts-summary),
 :global(html[data-theme="dark"]) .workspace :global(.account-card) {
   background-image: none;
 }
 
-:global(html[data-theme="dark"]) .actionButton {
+:global(html[data-theme="dark"]) .actionButton,
+:global(html[data-theme="dark"]) .actionLink {
   border-color: var(--mf-border-strong);
   background: var(--mf-surface-muted);
   color: var(--mf-text);
 }
 
-:global(html[data-theme="dark"]) .actionButton:hover:not(:disabled) {
+:global(html[data-theme="dark"]) .actionButton:hover:not(:disabled),
+:global(html[data-theme="dark"]) .actionLink:hover {
   background: var(--mf-surface-strong);
   color: var(--mf-brand-text);
 }
 
 @media (max-width: 760px) {
-  .actionButton {
+  .actionButton,
+  .actionLink,
+  .archivedRegisterLink {
     min-height: 44px;
   }
 }
