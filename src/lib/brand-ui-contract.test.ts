@@ -5,6 +5,7 @@ import test from "node:test";
 
 const root = process.cwd();
 const icon = readFileSync(join(root, "src/app/icon.svg"), "utf8");
+const rootLayout = readFileSync(join(root, "src/app/layout.tsx"), "utf8");
 const component = readFileSync(
   join(root, "src/components/brand/brand-lockup.tsx"),
   "utf8",
@@ -52,7 +53,7 @@ test("landing and auth use the shared brand component", () => {
   assert.doesNotMatch(auth, /className=\{styles\.brandMark\}/u);
 });
 
-test("public routes consume the project color authority", () => {
+test("public routes and browser chrome consume the project color authority", () => {
   assert.match(
     landing,
     /import themeStyles from "\.\/public-brand-theme\.module\.css"/u,
@@ -76,6 +77,17 @@ test("public routes consume the project color authority", () => {
   assert.match(documentTheme, /--mf-expense:\s*#c83e46/u);
   assert.match(documentTheme, /--mf-transfer:\s*#7054cc/u);
   assert.doesNotMatch(documentTheme, /Signal Ledger/u);
+
+  assert.match(
+    rootLayout,
+    /media:\s*"\(prefers-color-scheme: light\)",\s*color:\s*"#F6F8FC"/u,
+  );
+  assert.match(
+    rootLayout,
+    /media:\s*"\(prefers-color-scheme: dark\)",\s*color:\s*"#0D111B"/u,
+  );
+  assert.doesNotMatch(rootLayout, /#F4F7F5/u);
+  assert.doesNotMatch(rootLayout, /#0D1511/u);
 });
 
 test("landing first viewport has a primary action and workflow proof", () => {
