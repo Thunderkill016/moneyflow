@@ -16,18 +16,163 @@ permissions:
   contents: read
 
 jobs:
+  classify:
+    runs-on: ubuntu-latest
+    outputs:
+      docs_only: ${{ steps.classify.outputs.docs_only }}
+      full_verify: ${{ steps.classify.outputs.full_verify }}
+      database: ${{ steps.classify.outputs.database }}
+      browser_smoke: ${{ steps.classify.outputs.browser_smoke }}
+      ui_audit: ${{ steps.classify.outputs.ui_audit }}
+      codeql: ${{ steps.classify.outputs.codeql }}
+      reason: ${{ steps.classify.outputs.reason }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - name: Collect changed files
+        id: changed-files
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            git diff --name-only --diff-filter=ACMRD "$BASE_SHA" "$HEAD_SHA" > changed-files.txt
+          else
+            : > changed-files.txt
+          fi
+          cat changed-files.txt
+      - name: Select risk-proportional gates
+        id: classify
+        env:
+          FORCE_FULL: ${{ github.event_name != 'pull_request' }}
+        run: node scripts/classify-ci-changes.mjs < changed-files.txt
+      - name: Selection summary
+        env:
+          REASON: ${{ steps.classify.outputs.reason }}
+          DOCS_ONLY: ${{ steps.classify.outputs.docs_only }}
+          FULL_VERIFY: ${{ steps.classify.outputs.full_verify }}
+          DATABASE: ${{ steps.classify.outputs.database }}
+          BROWSER_SMOKE: ${{ steps.classify.outputs.browser_smoke }}
+          UI_AUDIT: ${{ steps.classify.outputs.ui_audit }}
+          CODEQL: ${{ steps.classify.outputs.codeql }}
+        run: |
+          {
+            echo "## CI selection"
+            echo
+            echo "- Reason: $REASON"
+            echo "- Documentation only: $DOCS_ONLY"
+            echo "- Full verify: $FULL_VERIFY"
+            echo "- Database: $DATABASE"
+            echo "- Browser smoke: $BROWSER_SMOKE"
+            echo "- UI audit: $UI_AUDIT"
+            echo "- CodeQL: $CODEQL"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  verify:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_APP_MODE: authenticated
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key # gitleaks:allow test value
+      NEXT_PUBLIC_SITE_URL: https://ci.example.test
+      LEGACY_SITE_HOSTS: old-ci.example.test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - name: Diff hygiene
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            git diff --check "$BASE_SHA" "$HEAD_SHA"
+          else
+            git show --check --oneline --no-renames HEAD >/dev/null
+          fi
+      - name: Project knowledge contract
+        run: npm run check:knowledge
+      - name: CI classification contract
+        run: npm run test:ci-policy
+      - name: Documentation-only or database-only summary
+        if: needs.classify.outputs.full_verify != 'true'
+        run: echo "Application dependency installation and static/build verification are not applicable."
+      - name: Setup Node
+        if: needs.classify.outputs.full_verify == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        if: needs.classify.outputs.full_verify == 'true'
+        run: npm ci
+      - name: Deployment configuration contract
+        if: needs.classify.outputs.full_verify == 'true'
+        run: npm run check:deployment-env
+      - name: CSS ownership and debt budgets
+        if: needs.classify.outputs.full_verify == 'true'
+        run: npm run check:css-ownership
+      - name: Architecture boundary contract
+        if: needs.classify.outputs.full_verify == 'true'
+        run: npm run check:architecture
+      - name: Lint
+        if: needs.classify.outputs.full_verify == 'true'
+        run: npm run lint
+      - name: Typecheck
+        if: needs.classify.outputs.full_verify == 'true'
+        run: npm run typecheck
+      - name: Unit tests and static RLS
+        if: needs.classify.outputs.full_verify == 'true'
+        id: tests
+        continue-on-error: true
+        shell: bash
+        run: npm run test > test-output.log 2>&1
+      - name: Upload failing test output
+        if: steps.tests.outcome == 'failure'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: failing-test-output
+          path: test-output.log
+          if-no-files-found: error
+          retention-days: 1
+      - name: Fail after preserving diagnostics
+        if: steps.tests.outcome == 'failure'
+        run: exit 1
+      - name: Test summary
+        if: steps.tests.outcome == 'success'
+        run: tail -n 40 test-output.log
+      - name: Production build
+        if: needs.classify.outputs.full_verify == 'true'
+        run: npm run build
+
   database:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Database checks not required
+        if: needs.classify.outputs.database != 'true'
+        run: echo "No database, migration, RLS, or database-CI contract changed."
       - name: Setup Supabase CLI
+        if: needs.classify.outputs.database == 'true'
         uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
         with:
           version: 2.111.0
       - name: Fresh local reset and pgTAP
+        if: needs.classify.outputs.database == 'true'
         id: database-tests
         continue-on-error: true
         shell: bash
@@ -48,7 +193,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Stop local Supabase
-        if: always()
+        if: always() && needs.classify.outputs.database == 'true'
         run: supabase stop --no-backup || true
       - name: Fail after preserving database diagnostics
         if: steps.database-tests.outcome == 'failure'
@@ -57,63 +202,9 @@ jobs:
         if: steps.database-tests.outcome == 'success'
         run: tail -n 80 database-test-output.log
 
-  verify:
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      NEXT_PUBLIC_APP_MODE: authenticated
-      NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key # gitleaks:allow test value
-      NEXT_PUBLIC_SITE_URL: https://ci.example.test
-      LEGACY_SITE_HOSTS: old-ci.example.test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install
-        run: npm ci
-      - name: Project knowledge contract
-        run: npm run check:knowledge
-      - name: Deployment configuration contract
-        run: npm run check:deployment-env
-      - name: CSS ownership and debt budgets
-        run: npm run check:css-ownership
-      - name: Architecture boundary contract
-        run: npm run check:architecture
-      - name: Lint
-        run: npm run lint
-      - name: Typecheck
-        run: npm run typecheck
-      - name: Unit tests and static RLS
-        id: tests
-        continue-on-error: true
-        shell: bash
-        run: npm run test > test-output.log 2>&1
-      - name: Upload failing test output
-        if: steps.tests.outcome == 'failure'
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: failing-test-output
-          path: test-output.log
-          if-no-files-found: error
-          retention-days: 1
-      - name: Fail after preserving diagnostics
-        if: steps.tests.outcome == 'failure'
-        run: exit 1
-      - name: Test summary
-        if: steps.tests.outcome == 'success'
-        run: tail -n 40 test-output.log
-      - name: Production build
-        run: npm run build
-
   e2e:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    needs: verify
+    needs: [classify, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -123,22 +214,34 @@ jobs:
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
     steps:
       - name: Checkout
+        if: needs.classify.outputs.browser_smoke == 'true' || needs.classify.outputs.ui_audit == 'true'
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Browser checks not required
+        if: needs.classify.outputs.browser_smoke != 'true' && needs.classify.outputs.ui_audit != 'true'
+        run: echo "No runtime or visual surface changed."
       - name: Setup Node
+        if: needs.classify.outputs.browser_smoke == 'true' || needs.classify.outputs.ui_audit == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
       - name: Install
+        if: needs.classify.outputs.browser_smoke == 'true' || needs.classify.outputs.ui_audit == 'true'
         run: npm ci
+      - name: Install Chromium
+        if: needs.classify.outputs.browser_smoke == 'true' && needs.classify.outputs.ui_audit != 'true'
+        run: npx playwright install --with-deps chromium
       - name: Install Chromium and WebKit
+        if: needs.classify.outputs.ui_audit == 'true'
         run: npx playwright install --with-deps chromium webkit
       - name: Expense and Auth CAPTCHA browser smoke
+        if: needs.classify.outputs.browser_smoke == 'true'
         run: npm run test:e2e
       - name: Production cross-device UI audit
+        if: needs.classify.outputs.ui_audit == 'true'
         run: npm run test:ui-audit:pr
       - name: Upload Playwright evidence
-        if: always()
+        if: always() && (needs.classify.outputs.browser_smoke == 'true' || needs.classify.outputs.ui_audit == 'true')
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: playwright-evidence-${{ github.run_id }}-${{ github.run_attempt }}
