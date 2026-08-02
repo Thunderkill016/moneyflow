@@ -2,8 +2,8 @@
 
 - **Spec:** `specs/001-account-register-detail/spec.md`
 - **Plan:** `specs/001-account-register-detail/plan.md`
-- **Packet:** `docs/plans/active/account-register-detail.md`
-- **Current authorized phase:** owner review
+- **Packet:** `docs/plans/completed/2026-08-02-account-register-detail.md`
+- **Current phase:** completed and archived
 - **Last updated:** 2026-08-02
 
 ## Reconnaissance and specification
@@ -31,15 +31,15 @@
 - [x] T040 Run risk-selected exact-head CI, unit, build, browser, UI, CodeQL and secret checks.
 - [x] T050 Evaluate the actual diff against every acceptance criterion and constitutional boundary.
 - [x] T060 Update packet/PR evidence and keep the PR ready for owner review.
-- [ ] T070 Owner decides merge/deployment; agent MUST NOT perform either.
+- [x] T070 Owner approved squash merge; production deployment reached `READY`; packet archived.
 
-## Progress
+## Completion evidence
 
-| Task range | Status | Evidence/next step |
+| Task range | Status | Evidence |
 |---|---|---|
-| T001–T003 | done | current code, owner decision, spec/plan/checklist |
-| T010–T024 | done | source, tests and browser spec committed to focused branch |
+| T001–T003 | done | current code, owner direction, spec/plan/checklist |
+| T010–T024 | done | merged source, unit tests and Playwright coverage |
 | T030 | done | PR #228 and PR-memory record |
-| T040 | done | exact head `1775c3b763e5863d8c3f3955961583e152f0a762`; CI #1090, CodeQL #247 and secret scan #247 succeeded; e2e/UI passed on the exact-head rerun |
-| T050–T060 | done | packet and PR evidence updated; no high-risk or out-of-scope diff found |
-| T070 | owner_only | review, merge and deployment remain owner decisions |
+| T040 | done | final head `642315e9c1ac96a0fa983426fc40f1bec56fc707`; CI #1095, CodeQL #252 and secret scan #252 succeeded |
+| T050–T060 | done | bounded evaluation found no financial, ownership or scope blocker |
+| T070 | done | squash merge `52c1eac9197e16f5f7398bb25c20af4833de1993`; Vercel deployment `dpl_84aJGAS3jkFRApiy66DBFXHkQgiu` READY; auth-boundary route smoke passed |

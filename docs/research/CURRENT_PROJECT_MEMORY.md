@@ -2,7 +2,7 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-02
-- **Code baseline audited:** `main@f57b92ec471e816f96fa13dd464a7a98297bb2d4`
+- **Code baseline audited:** `main@52c1eac9197e16f5f7398bb25c20af4833de1993`
 - **Owner direction:** continue developing existing capabilities toward competitive depth; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; PR provenance under `docs/research/pr-memory/YYYY/QN/`
 
@@ -37,7 +37,7 @@ Open PRs are candidate evidence only. Load a PR memory record only when a task n
 
 MoneyFlow is a Vietnamese manual-first personal income-and-expense ledger.
 
-Core jobs: record income/expense/split/transfer; know account balances; understand period income, expense, net and categories; correct and recover records; plan with budgets/recurring/goals; import controlled data and export user-owned data.
+Core jobs: record income/expense/split/transfer; know account balances; inspect the ledger movements behind those balances; understand period income, expense, net and categories; correct and recover records; plan with budgets/recurring/goals; import controlled data and export user-owned data.
 
 Non-goals without a new owner-approved specification: bank sync, AI financial advice, OCR product identity, household finance, investments/crypto/credit score, full FX accounting, native rewrite, full envelope budgeting, local-first/CRDT and ERP scope.
 
@@ -56,10 +56,10 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Capability | Status | Implemented now | True remaining depth |
 |---|---|---|---|
 | Authentication/demo | **Implemented; external pending** | email/password, OAuth surfaces, recovery/reset, explicit demo, neutral responses, CAPTCHA token plumbing | provider policy/callback/confirmation, enforcement, rates, breached-password and edge rules |
-| Accounts | **Implemented, partial** | common account kinds, initial/derived balances, per-currency totals, CRUD/archive/restore, same-currency transfer | register/detail, reconciliation, trends/export, hide/archive/report semantics |
+| Accounts | **Implemented, partial** | common account kinds, initial/derived balances, per-currency totals, CRUD/archive/restore, same-currency transfer, viewer-scoped register/detail with signed ledger impacts | reconciliation, trends/export, hide/archive/report semantics and richer register controls |
 | Categories | **Implemented** | income/expense categories, archive and cross-feature use | clearer archive impact; hierarchy only if evidence requires it |
 | Transactions | **Implemented** | create/search, kind/account/category filters, edit, soft delete/undo, grouping/pagination/totals | date/amount filters, review state, bounded bulk correction and audit |
-| Transfers | **Implemented** | balanced semantics, currency guard, report neutrality, shared mutation owner, idempotency | reconciliation and account-register integration |
+| Transfers | **Implemented** | balanced semantics, currency guard, report neutrality, shared mutation owner, idempotency and account-register source/destination presentation | reconciliation |
 | Split expenses | **Implemented** | validated multi-line expense and reporting allocation | in-place line editing and richer correction |
 | Dashboard | **Implemented + production hardened** | bounded one-RPC bundle for balances/activity/planning/Inbox | attention drill-down and measured acceptance |
 | Dashboard fallback | **Implemented + production evidenced** | schema-skew fallback preserves real data instead of false zeros | compatibility with future bundle changes |
@@ -83,7 +83,8 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 
 ## 6. Load-bearing merged truth
 
-- Reconciliation is absent: calculated balance is not statement reconciliation.
+- Reconciliation is absent: calculated balance and account history are not statement reconciliation.
+- Account register/detail is merged through PR #228: active and archived accounts link to a viewer-scoped read-only register; source/destination transfer legs remain distinct and transfers never become income or expense.
 - The authenticated dashboard uses bounded `get_dashboard_bundle`; schema-skew fallback was added after a production incident that could show false zero/empty data. Do not remove it without equivalent evidence.
 - Recurring commitments/income already link current-month occurrences to transactions; full history/lifecycle remain.
 - Goals already have deadline and planned-daily pace.
@@ -97,7 +98,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 
 ## 7. Engineering and evidence boundary
 
-Implemented: modular monolith boundaries, neutral transaction contracts, shared mutation owners, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names and load-profile contracts.
+Implemented: modular monolith boundaries, neutral transaction contracts, shared mutation owners, viewer-scoped account register projection, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names and load-profile contracts.
 
 Still needed: physical Android/iOS evidence, deep validation/destructive/Inbox states, approved staging load, realistic large-ledger benchmarks and non-sensitive mutation audit.
 
@@ -118,37 +119,40 @@ Use `docs/context/README.md` to load only task-relevant warm context. Never copy
 
 ## 9. Open pull-request memory
 
-Open PRs are not product truth.
+Open PRs are not product truth. Rebase and reverify against current `main` before any merge decision.
 
 | PR | Interpretation |
 |---|---|
+| #226 | Spec Kit governance/templates candidate; requested direction but not merged into current authority |
+| #223 | transaction date/amount filters candidate; no merged transaction behavior change yet |
+| #221 | provider CodeQL/ruleset alignment candidate; workflow-policy review required |
+| #220 | broad project-memory reconciliation candidate from an older baseline; compare against current truth before reuse |
+| #218 | public-experience packet archive candidate from an older baseline |
+| #217 | paused browser theme-color candidate pending owner palette selection |
 | #211 | FK-index candidate; not merged/deployed; rebase/reverify first |
-| #213 | landing/auth visual candidate requiring owner review |
-| #215 | project-memory, gap-map and AI-context policy candidate |
-| #216 | public experience/brand/wireframe research candidate |
+| #208 | older landing/auth design likely superseded by the merged public-experience direction |
 | #198 | provider-security runbook candidate |
 | #197 | maintenance candidate |
-| #208 | older landing/auth design likely superseded |
-| #170/#171 | stale CSS cleanup stack; compare later remediation |
-| #119 | draft logo candidate |
+| #170/#171 | stale CSS cleanup stack; compare against current CSS ownership/remediation |
+| #119 | draft logo candidate requiring visual owner approval |
 
 ## 10. True gaps after this audit
 
 ### P0 — financial/public trust
 
-1. account reconciliation and history;
+1. account reconciliation;
 2. provider-side Auth/CAPTCHA/edge enforcement and acceptance;
 3. observed P0/P1 physical-device or destructive-flow defects.
 
 ### P1 — deepen existing loops
 
 1. transaction review/date/amount/bulk correction;
-2. account register/detail;
-3. budget history/copy/rollover/drill-down;
-4. recurring history/states/calendar/reminders/matching;
-5. goal contribution/funding/lifecycle;
-6. report arbitrary range/account/type/drill-down;
-7. import mapping/batch/bulk-review;
+2. budget history/copy/rollover/drill-down;
+3. recurring history/states/calendar/reminders/matching;
+4. goal contribution/funding/lifecycle;
+5. report arbitrary range/account/type/drill-down;
+6. import mapping/batch/bulk-review;
+7. account trends/export and richer register controls;
 8. physical-device and remaining route states.
 
 ### P2 — ownership and scale
@@ -162,6 +166,8 @@ Open PRs are not product truth.
 ## 11. Current implementation direction
 
 Parallel tracks: ledger trust; planning depth; reports/export/performance; advanced import/rules; onboarding/mobile/provider completion.
+
+The next ledger work must not silently conflate account history with reconciliation. Existing open transaction-filter work may be completed as a separate P1 slice after rebasing and exact-head verification; reconciliation requires its own owner-approved financial/data specification.
 
 Validation is embedded in each PR: financial/data uses unit + migration replay + pgTAP + affected browser evidence; UI uses responsive/browser and physical-device proof where claimed; provider changes require before/after, rollback and production smoke.
 
@@ -178,12 +184,14 @@ Do not repeat these as current facts:
 - “Export only supports a current-month CSV.”
 - “Dashboard still performs the original fan-out.”
 - “CAPTCHA application plumbing is missing.”
+- “Account register/detail is absent.”
+- “Account history proves reconciliation.”
 - “All security work is incomplete.”
 - “Feature development must freeze until a seven-day trial.”
 
 ## 13. Update and compaction protocol
 
-Every PR creates exactly one bounded record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md`. A status-changing PR also updates the affected row/section here.
+Every PR creates exactly one bounded record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md`. A status-changing PR also updates the affected row or section here.
 
 Budgets:
 
