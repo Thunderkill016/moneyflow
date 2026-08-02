@@ -1,11 +1,11 @@
 # Risk-proportional CI and delivery policy
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** OpenAI agent for Thunderkill016  
-**Issue/PR:** branch `agent/risk-proportional-ci`  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** OpenAI agent for Thunderkill016
+**Issue/PR:** #212 (`agent/risk-proportional-ci`)
 **Last updated:** 2026-08-02
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
@@ -202,9 +202,9 @@ CI selection belongs to repository automation under `scripts/` and `.github/work
 |---|---|---|---|---|
 | T1 | Record research and risk policy | reconnaissance | policy + source table | done |
 | T2 | Implement and test path classifier | T1 | Node test suite | done |
-| T3 | Refactor CI and CodeQL with stable job names | T2 | YAML parse + exact-head Actions | in_progress |
-| T4 | Update entry-point delivery rules | T1 | knowledge contract | in_progress |
-| T5 | Evaluate representative path classes and final diff | T2-T4 | acceptance matrix | todo |
+| T3 | Refactor CI and CodeQL with stable job names | T2 | YAML parse + exact-head Actions | done |
+| T4 | Update entry-point delivery rules | T1 | knowledge contract | done |
+| T5 | Evaluate representative path classes and final diff | T2-T4 | acceptance matrix | in_progress |
 
 ## Handoff record
 
@@ -212,6 +212,7 @@ CI selection belongs to repository automation under `scripts/` and `.github/work
 |---|---|---|---|---|---|---|
 | 2026-08-02 | researcher | planner | specified | current workflows, PR #211 evidence, five primary sources | exact required-check settings are provider-side and not modified | Plan stable-job implementation |
 | 2026-08-02 | planner | implementer | planned | this packet, classifier taxonomy, rollback | exact-head Actions not run yet | Implement branch and open PR |
+| 2026-08-02 | implementer | evaluator | evaluating | PR #212, 11-file diff, 7 classifier tests, YAML/JS parse | exact-head CI rerun pending after diff-hygiene fix | Review Actions and final diff |
 
 ### Current permission boundary
 
@@ -253,7 +254,7 @@ CI selection belongs to repository automation under `scripts/` and `.github/work
 ## Delivery record
 
 - Branch: `agent/risk-proportional-ci`
-- PR: pending
+- PR: #212
 - Squash commit: pending
 - CI run: pending
 - Production deployment: not applicable to product behavior; verify main-branch full CI after merge
