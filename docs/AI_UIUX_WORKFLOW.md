@@ -10,6 +10,8 @@ Trước mọi công việc UI/UX, đọc `docs/design/DESIGN_DIRECTION_STATUS.m
 - Không concept có tên nào trở thành mặc định chỉ vì đã từng được viết tài liệu hoặc triển khai.
 - Chỉ owner mới có quyền kích hoạt lại hoặc chọn một định hướng thiết kế làm hướng hiện hành.
 
+Đối với brand color, landing hoặc authentication, phải đọc thêm `docs/research/PUBLIC_EXPERIENCE_FOUNDATION.md` trước khi tạo wireframe, palette hoặc code. Tài liệu này quy định quy trình và bằng chứng; nó không tự chọn một palette hay layout cuối cùng.
+
 ## Mục tiêu
 
 Dùng AI để tăng tốc khám phá và lặp thiết kế, không dùng AI như máy tạo giao diện ngẫu nhiên hoặc máy lặp lại concept cũ.
@@ -98,6 +100,8 @@ Mỗi batch phải viết rõ:
 
 Không được chỉ đọc tài liệu của concept gần nhất rồi xem nó là toàn bộ nghiên cứu.
 
+Đối với brand color, landing và authentication, phải đối chiếu thêm `docs/research/PUBLIC_EXPERIENCE_FOUNDATION.md` và ghi rõ phần nào được dùng, phần nào không áp dụng.
+
 ### 3. Audit sản phẩm hiện tại
 
 Thu thập:
@@ -110,7 +114,27 @@ Thu thập:
 - lỗi responsive/a11y từ Playwright;
 - hành vi thật đang hoạt động và các constraint kỹ thuật.
 
-### 4. Tạo nhiều hướng độc lập
+### 4. Wireframe trước visual polish đối với public experience
+
+Landing, login, registration và recovery không được bắt đầu bằng màu, shadow, gradient hoặc high-fidelity code.
+
+Bắt buộc thực hiện theo thứ tự:
+
+1. product truth và claim boundary;
+2. mục tiêu trang và success event;
+3. content inventory với copy tiếng Việt thật;
+4. user flow gồm cả đường lỗi và recovery;
+5. tối thiểu ba low-fidelity wireframe khác nhau về hierarchy hoặc flow;
+6. mobile 320/390px và desktop cho mỗi hướng;
+7. annotated mid-fidelity wireframe;
+8. state matrix;
+9. accessibility và auth-security review;
+10. owner chọn cấu trúc;
+11. sau đó mới áp dụng palette, typography, imagery và motion.
+
+Auth phải được wireframe như một family gồm login, registration, forgot/reset password, email confirmation, OAuth callback, CAPTCHA, generic failure, rate limit/session expiry và intended-route recovery. Không được chỉ thiết kế một màn hình login mặc định.
+
+### 5. Tạo nhiều hướng độc lập
 
 AI phải tạo tối thiểu ba hướng có rationale và trade-off thực sự khác nhau.
 
@@ -125,7 +149,9 @@ Mỗi hướng phải mô tả:
 
 Không dùng `Signal Ledger`, `Calm Ledger` hoặc một concept cũ làm hướng mặc định. Có thể nghiên cứu lại một ý tưởng cũ chỉ khi nó được trình bày như một phương án ngang hàng và không mang quyền ưu tiên.
 
-### 5. Chọn bằng tiêu chí, không chọn bằng thói quen
+Đối với palette, các hướng phải được áp dụng vào cùng một tập màn hình đại diện. Không được gọi ba sắc độ hoặc ba biến thể của cùng một màu là ba hướng độc lập.
+
+### 6. Chọn bằng tiêu chí, không chọn bằng thói quen
 
 | Tiêu chí | Trọng số gợi ý |
 |---|---:|
@@ -137,7 +163,7 @@ Không dùng `Signal Ledger`, `Calm Ledger` hoặc một concept cũ làm hướ
 
 Owner chọn hướng hoặc yêu cầu lặp thêm. Các hướng không được chọn phải được ghi là rejected/historical, không trở thành constraint ngầm cho vòng sau.
 
-### 6. Chốt hệ thống sau khi chọn hướng
+### 7. Chốt hệ thống sau khi chọn hướng
 
 Chỉ sau khi owner chọn hướng mới chốt:
 
@@ -151,11 +177,15 @@ Chỉ sau khi owner chọn hướng mới chốt:
 
 Một primary action trên mỗi viewport; tiền dùng tabular numerals; trạng thái không phân biệt chỉ bằng màu.
 
-### 7. Triển khai theo vertical slice
+Brand color là quyết định cấp dự án, không phải quyết định riêng của landing hoặc auth. Một màn hình không được tạo palette brand cục bộ. Green, red, amber và transfer/info phải giữ khoảng trống cho ý nghĩa tài chính; raw color chỉ được đưa vào theme authority sau khi owner chọn palette.
+
+### 8. Triển khai theo vertical slice
 
 Mỗi slice phải chạy trong production code; không tạo prototype rời rồi bỏ đó. Scope và thứ tự được xác định trong active work packet, không bị khóa bởi một concept cũ.
 
-### 8. Verification loop
+Đối với thay đổi palette toàn dự án, packet phải có token migration map, danh sách local hex cần loại bỏ, light/dark pairs, semantic/chart roles và rollback plan.
+
+### 9. Verification loop
 
 Mỗi PR UI/UX cần:
 
@@ -169,9 +199,17 @@ Mỗi PR UI/UX cần:
 - kiểm tra thiết bị thật trước khi tuyên bố mobile-ready;
 - owner visual review trước merge.
 
+Palette hoặc semantic-color changes cần thêm:
+
+- đo contrast trên effective composited background;
+- mô phỏng deuteranopia, protanopia và tritanopia;
+- kiểm tra rằng income, expense, transfer và warning vẫn hiểu được khi bỏ màu;
+- kiểm tra chart legends/direct labels và adjacent-series distinction.
+
 ## Quy tắc lưu trữ
 
-- Research evidence đi vào research ledger trung lập.
+- Research evidence đi vào research ledger trung lập hoặc task-specific research document được ledger/workflow tham chiếu.
 - Quyết định đang hiệu lực đi vào design decision/status document.
 - Concept bị loại phải được đánh dấu rõ là rejected hoặc superseded.
 - Không để quyết định quan trọng chỉ tồn tại trong chat.
+- Wireframe, palette study và owner decision phải được lưu trong work packet hoặc PR; screenshot không có rationale không phải durable design memory.
