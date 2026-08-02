@@ -2,7 +2,7 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-02
-- **Code baseline audited:** `main@f57b92ec471e816f96fa13dd464a7a98297bb2d4`
+- **Code baseline audited:** `main@923fc7b80ada67e548628ef2e85b0837780f9ed3`
 - **Owner direction:** continue developing existing capabilities toward competitive depth; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; PR provenance under `docs/research/pr-memory/YYYY/QN/`
 
@@ -49,6 +49,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - VND is integer đồng. Transfers are structural, balanced and excluded from income/expense. Split totals must remain exact.
 - Destructive ledger actions use soft delete and recoverable paths.
 - Playwright, pgTAP, k6, CodeQL, secret-history scanning and risk-proportional CI cover their selected boundaries.
+- Layered repository memory now separates procedural hot memory, semantic current truth, warm task context, working packets/PRs and cold per-PR provenance.
 - Build/lint/typecheck do not prove database isolation, provider configuration, browser behavior or production correctness.
 
 ## 5. Current capability inventory
@@ -56,6 +57,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Capability | Status | Implemented now | True remaining depth |
 |---|---|---|---|
 | Authentication/demo | **Implemented; external pending** | email/password, OAuth surfaces, recovery/reset, explicit demo, neutral responses, CAPTCHA token plumbing | provider policy/callback/confirmation, enforcement, rates, breached-password and edge rules |
+| Public brand/landing/auth | **Implemented + production evidenced** | project-wide white-first neutral foundation, trust-blue brand/action roles, separated financial semantic colors, product-proof landing, task-first auth and light/dark evidence | physical-device review, conversion/retention evidence and full hosted provider-flow acceptance |
 | Accounts | **Implemented, partial** | common account kinds, initial/derived balances, per-currency totals, CRUD/archive/restore, same-currency transfer | register/detail, reconciliation, trends/export, hide/archive/report semantics |
 | Categories | **Implemented** | income/expense categories, archive and cross-feature use | clearer archive impact; hierarchy only if evidence requires it |
 | Transactions | **Implemented** | create/search, kind/account/category filters, edit, soft delete/undo, grouping/pagination/totals | date/amount filters, review state, bounded bulk correction and audit |
@@ -76,6 +78,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Share Target | **Implemented and hardened** | bounded validation and ingestion | provider/edge controls and continued smoke |
 | Responsive UI | **Implemented with broad automation** | light/dark responsive app, expanded route/dialog and WebKit coverage | physical-device and deep error/destructive/Inbox states |
 | Accessibility/mobile | **Substantially implemented** | 44px targets, accessible names, modal placement, money wrapping, Vietnamese/VND regressions | physical keyboard/device proof and remaining confirmations |
+| Project memory | **Implemented** | bounded hot/warm/working/cold layers, per-PR records, size/trust contracts and CI enforcement | keep snapshot compact and update status-changing PRs truthfully |
 | CI/security scanning | **Implemented** | stable risk checks, CodeQL, secret scan, pinned Actions and knowledge/classifier contracts | keep classification aligned |
 | Database verification | **Implemented** | fresh reset, pgTAP domain/RLS/tenant/attack suites | reconciliation tests; FK-index candidate remains unmerged |
 | Performance tooling | **Implemented; acceptance partial** | dashboard one-RPC/bounds, k6 public/auth profiles and budgets | staging concurrency and realistic large-ledger benchmarks |
@@ -92,12 +95,16 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - Import provenance, server dry-run, duplicate/transfer planning and atomic approval are production-smoked.
 - Local parse rules exist; authenticated persisted rules do not.
 - Repository security includes neutral auth responses, optional CAPTCHA plumbing, CSP, hardened public ingestion, CodeQL, secret scan and RLS/attack suites. Provider enforcement remains external.
-- Completed UI slices include the 20-route/dialog audit, rich VND/long Vietnamese, phone/report clipping fixes, 44px targets, modal/accessibility and money paint bounds.
+- PR #213 merged the white-first/trust-blue brand system, product-proof landing and task-first auth. Merge commit `8afad4ecb6e29eeafdac0e6d025612e94043657a` deployed READY; `/`, `/login` and `/register` returned HTTP 200 in post-merge smoke.
+- PR #216 did not merge independently; its public-experience research and workflow were folded into PR #213 before merge.
+- PR #215 merged layered AI project memory as commit `923fc7b80ada67e548628ef2e85b0837780f9ed3` after CI #1020, CodeQL #183 and secret-history scan #183 succeeded.
+- Signal Ledger remains rejected and is not the active design baseline.
+- Completed UI slices include the 20-route/dialog audit, rich VND/long Vietnamese, phone/report clipping fixes, 44px targets, modal/accessibility, money paint bounds and the public-entry redesign.
 - Safe-to-spend/daily-allowance behavior remains withdrawn.
 
 ## 7. Engineering and evidence boundary
 
-Implemented: modular monolith boundaries, neutral transaction contracts, shared mutation owners, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names and load-profile contracts.
+Implemented: modular monolith boundaries, neutral transaction contracts, shared mutation owners, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names, load-profile contracts and bounded repository memory.
 
 Still needed: physical Android/iOS evidence, deep validation/destructive/Inbox states, approved staging load, realistic large-ledger benchmarks and non-sensitive mutation audit.
 
@@ -112,7 +119,7 @@ Use `docs/context/README.md` to load only task-relevant warm context. Never copy
 | #53 reconciliation | **Absent; valid financial-trust workstream** |
 | #53 authenticated rules | **Absent; local rules only** |
 | #53 audit/performance | **Partial** |
-| #72 UI audit | Core route/VND/targets/modal/accessibility slices complete; deep states/devices remain |
+| #72 UI audit | Core route/VND/targets/modal/accessibility and public-entry redesign complete; deep states/devices remain |
 | #172 product assessment | Retention/WTP/demand warnings valid; old score/state/freeze superseded |
 | #174 provider controls | Repository readiness implemented; provider configuration/production verification remain |
 
@@ -122,15 +129,20 @@ Open PRs are not product truth.
 
 | PR | Interpretation |
 |---|---|
+| #218 | documentation lifecycle archive candidate for the already merged and production-evidenced public-experience rollout |
 | #211 | FK-index candidate; not merged/deployed; rebase/reverify first |
-| #213 | landing/auth visual candidate requiring owner review |
-| #215 | project-memory, gap-map and AI-context policy candidate |
-| #216 | public experience/brand/wireframe research candidate |
 | #198 | provider-security runbook candidate |
 | #197 | maintenance candidate |
-| #208 | older landing/auth design likely superseded |
+| #208 | older landing/auth design superseded by merged #213 |
 | #170/#171 | stale CSS cleanup stack; compare later remediation |
 | #119 | draft logo candidate |
+
+Merged/closed interpretation:
+
+- #213: merged and production evidenced.
+- #215: merged layered project-memory implementation.
+- #216: closed without standalone merge; content folded into #213.
+- #219: closed unmerged because it duplicated a concurrently merged #215.
 
 ## 10. True gaps after this audit
 
@@ -178,6 +190,9 @@ Do not repeat these as current facts:
 - “Export only supports a current-month CSV.”
 - “Dashboard still performs the original fan-out.”
 - “CAPTCHA application plumbing is missing.”
+- “Landing/auth are still an unmerged visual candidate.”
+- “MoneyFlow uses Signal Ledger or a green-first public theme as the current direction.”
+- “Project memory is still an unmerged proposal.”
 - “All security work is incomplete.”
 - “Feature development must freeze until a seven-day trial.”
 
