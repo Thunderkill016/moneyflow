@@ -46,7 +46,7 @@ Close PR #215 without merge and replace it with a focused competitive-capability
 
 - [x] Record the owner direction change.
 - [x] Mark the validation-first rollout as superseded.
-- [x] Close PR #215 without merge.
+- [ ] Close PR #215 without merge.
 - [ ] Create the replacement capability-maturation roadmap.
 
 ## Evaluation
