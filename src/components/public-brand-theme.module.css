@@ -1,0 +1,77 @@
+.landingTheme.landingTheme {
+  --public-canvas: var(--mf-canvas);
+  --public-surface: var(--mf-surface);
+  --public-surface-soft: var(--mf-surface-muted);
+  --public-ink: var(--mf-text);
+  --public-muted: var(--mf-text-muted);
+  --public-soft: var(--mf-text-soft);
+  --public-line: var(--mf-border);
+  --public-line-strong: var(--mf-border-strong);
+  --public-accent: var(--mf-brand);
+  --public-accent-hover: var(--mf-brand-hover);
+  --public-accent-soft: var(--mf-brand-subtle);
+  --public-on-accent: var(--mf-on-brand);
+  --public-stage: var(--mf-stage);
+  --public-stage-soft: var(--mf-stage-soft);
+  --public-stage-text: var(--mf-stage-text);
+  --public-stage-muted: var(--mf-stage-muted);
+  --public-warm: var(--mf-brand-100);
+}
+
+:global(html[data-theme="dark"]) .landingTheme.landingTheme {
+  --public-canvas: var(--mf-canvas);
+  --public-surface: var(--mf-surface);
+  --public-surface-soft: var(--mf-surface-muted);
+  --public-ink: var(--mf-text);
+  --public-muted: var(--mf-text-muted);
+  --public-soft: var(--mf-text-soft);
+  --public-line: var(--mf-border);
+  --public-line-strong: var(--mf-border-strong);
+  --public-accent: var(--mf-brand);
+  --public-accent-hover: var(--mf-brand-hover);
+  --public-accent-soft: var(--mf-brand-subtle);
+  --public-on-accent: var(--mf-on-brand);
+  --public-stage: var(--mf-stage);
+  --public-stage-soft: var(--mf-stage-soft);
+  --public-stage-text: var(--mf-stage-text);
+  --public-stage-muted: var(--mf-stage-muted);
+  --public-warm: var(--mf-brand-subtle);
+}
+
+.authTheme.authTheme {
+  --auth-canvas: var(--mf-canvas);
+  --auth-surface: var(--mf-surface);
+  --auth-surface-soft: var(--mf-surface-muted);
+  --auth-ink: var(--mf-text);
+  --auth-muted: var(--mf-text-muted);
+  --auth-soft: var(--mf-text-soft);
+  --auth-line: var(--mf-border);
+  --auth-line-strong: var(--mf-border-strong);
+  --auth-accent: var(--mf-brand);
+  --auth-accent-hover: var(--mf-brand-hover);
+  --auth-accent-soft: var(--mf-brand-subtle);
+  --auth-on-accent: var(--mf-on-brand);
+  --auth-stage: var(--mf-stage);
+  --auth-stage-soft: var(--mf-stage-soft);
+  --auth-stage-text: var(--mf-stage-text);
+  --auth-stage-muted: var(--mf-stage-muted);
+}
+
+:global(html[data-theme="dark"]) .authTheme.authTheme {
+  --auth-canvas: var(--mf-canvas);
+  --auth-surface: var(--mf-surface);
+  --auth-surface-soft: var(--mf-surface-muted);
+  --auth-ink: var(--mf-text);
+  --auth-muted: var(--mf-text-muted);
+  --auth-soft: var(--mf-text-soft);
+  --auth-line: var(--mf-border);
+  --auth-line-strong: var(--mf-border-strong);
+  --auth-accent: var(--mf-brand);
+  --auth-accent-hover: var(--mf-brand-hover);
+  --auth-accent-soft: var(--mf-brand-subtle);
+  --auth-on-accent: var(--mf-on-brand);
+  --auth-stage: var(--mf-stage);
+  --auth-stage-soft: var(--mf-stage-soft);
+  --auth-stage-text: var(--mf-stage-text);
+  --auth-stage-muted: var(--mf-stage-muted);
+}
