@@ -111,13 +111,18 @@ test("transactions page code-splits dialogs for smaller first paint", () => {
   assert.match(source, /ssr:\s*false/);
 });
 
-test("CSS reserves stable space for the landing stage and money KPIs", () => {
+test("landing product evidence and money KPIs reserve stable space", () => {
+  const landingSource = read("src/components/landing-page.tsx");
   const landingCss = read("src/components/landing-page.module.css");
   const globals = read("src/app/globals.css");
   assert.match(landingCss, /\.hero\b/);
   assert.match(landingCss, /min-height:\s*calc\(100svh - 72px\)/);
-  assert.match(landingCss, /\.productStage\b/);
-  assert.match(landingCss, /\.stageHeadline strong[\s\S]*font-variant-numeric:\s*tabular-nums/);
+  assert.match(landingCss, /\.productPreview\b/);
+  assert.match(landingCss, /\.previewCanvas\s*\{[\s\S]*max-height:/);
+  assert.match(
+    landingSource,
+    /moneyflow-accounts\.svg[\s\S]*width=\{800\}[\s\S]*height=\{938\}/,
+  );
   assert.match(globals, /\.insights-kpi strong/);
   assert.match(globals, /font-variant-numeric:\s*tabular-nums/);
 });
