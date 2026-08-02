@@ -94,8 +94,8 @@ Rebuild the adapter directly from current `main`:
 - [x] Create this full work packet because governance spans multiple repository policy surfaces.
 - [x] Open replacement PR #231.
 - [x] Add bounded PR records for PR #231 and superseded PR #226.
-- [ ] Update the open-PR memory table and audited baseline.
-- [ ] Close PR #226 as superseded.
+- [x] Update the open-PR memory table and audited baseline.
+- [x] Close PR #226 as superseded.
 - [ ] Pass exact-head CI, CodeQL and secret scan.
 - [ ] Prepare owner review handoff.
 - [ ] Archive after merge and acceptance.
@@ -130,6 +130,7 @@ Application install/lint/typecheck/test/build, database reset/pgTAP and browser/
 - 2026-08-03: PR #226 was confirmed open, stale and non-mergeable.
 - 2026-08-03: clean current-main adapter implementation prepared on `chore/adopt-spec-kit-current-main`.
 - 2026-08-03: replacement PR #231 opened; bounded records for #226 and #231 added.
+- 2026-08-03: current project memory updated and PR #226 closed unmerged as superseded.
 
 ### Current permission boundary
 
