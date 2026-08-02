@@ -1,9 +1,9 @@
 # Account register and detail
 
-- **Status:** implementing
-- **Execution state:** implementing
-- **Active role:** evaluator
-- **Permission scope:** branch_write
+- **Status:** ready_for_review
+- **Execution state:** ready_for_review
+- **Active role:** human_owner
+- **Permission scope:** read_only
 - **Owner:** Thunderkill016
 - **Issue/PR:** #228
 - **Last updated:** 2026-08-02
@@ -14,57 +14,46 @@ Users can open a visible account and inspect the ledger movements related to it:
 
 ## Repository reconnaissance
 
-### Current behavior
+### Current behavior before this candidate
 
-- `/accounts` shows balances with edit/archive actions but no detail route.
-- `getAccountsWorkspace` provides validated viewer-scoped accounts and derived balances.
-- `getFinanceWorkspace` provides the validated full transaction feed in authenticated/demo modes.
-- Transactions identify a source account and optional transfer destination.
+- `/accounts` showed balances with edit/archive actions but no detail route.
+- `getAccountsWorkspace` provided validated viewer-scoped accounts and derived balances.
+- `getFinanceWorkspace` provided the validated full transaction feed in authenticated/demo modes.
+- Transactions already identified a source account and optional transfer destination.
 - PR #222 reconciliation was closed unmerged because the owner prioritized account detail and transaction correction instead.
 
 ### Relevant areas
 
 | Area | Decision |
 |---|---|
-| `src/server/accounts.ts` | Reuse unchanged |
-| `src/server/finance.ts` | Reuse unchanged |
-| `src/lib/account-register.ts` | New pure account-leg projection |
-| `src/app/accounts/[accountId]/page.tsx` | New viewer-scoped route |
-| `src/components/account-detail-page.*` | New read-only responsive register |
-| `src/components/accounts-page.*` | Add direct links only |
-| PR #223 transaction filter files | Avoid entirely |
-
-### Existing tests and constraints
-
-- Node tests own financial projection counterexamples.
-- Playwright demo data provides stable populated MB Bank and empty USD travel states.
-- Database/RLS tests are not selected because those contracts do not change.
-- Transfers must never become income/expense; inaccessible IDs must not reveal ownership.
-
-### Open questions
-
-None blocking.
+| `src/server/accounts.ts` | Reused unchanged |
+| `src/server/finance.ts` | Reused unchanged |
+| `src/lib/account-register.ts` | Added pure account-leg projection |
+| `src/app/accounts/[accountId]/page.tsx` | Added viewer-scoped route |
+| `src/components/account-detail-page.*` | Added read-only responsive register |
+| `src/components/accounts-page.*` | Added direct links only |
+| PR #223 transaction filter files | Avoided entirely |
 
 ## Research
 
-Not required. Current code and recorded owner decisions establish the approach. No dependency/provider/service is adopted.
+Not required. Current code and recorded owner decisions established the approach. No dependency, provider or service was adopted.
 
-## Specification
+## Specification and acceptance
 
 See `specs/001-account-register-detail/spec.md`.
 
-### Acceptance criteria
-
 - [x] Active and archived accounts expose `Xem sổ`.
-- [x] Route composes existing viewer-scoped account and finance workspaces.
-- [x] Pure helper maps income/expense and both transfer legs to signed account impact.
+- [x] The route composes existing viewer-scoped account and finance workspaces.
+- [x] A pure helper maps income/expense and both transfer legs to signed account impact.
 - [x] Transfers remain separate from income and expense totals.
 - [x] Account identity, currency, current/initial balance and archived state are represented.
-- [x] Populated rows group newest-first; empty state is honest.
+- [x] Populated rows group newest-first; the empty state is honest.
 - [x] History failure hides unverified totals/register rather than displaying zeros.
+- [x] Inaccessible IDs use a generic not-found UI without account identity leakage.
+- [x] Phone layout has no horizontal overflow in focused browser evidence.
 - [x] No database, RLS, RPC, provider, reconciliation or mutation-owner change exists.
-- [ ] Exact-head selected checks pass.
-- [ ] Independent review confirms UI, security and financial semantics.
+- [x] Risk-selected exact-head checks passed.
+- [x] Independent review found no financial, ownership, UI or scope blocker.
 
 ### Required states
 
@@ -79,13 +68,7 @@ See `specs/001-account-register-detail/spec.md`.
 
 Reconciliation, statement matching, transaction mutation, trends/charts/filters/export, new data contracts and FX conversion.
 
-## Implementation plan
-
-### Architecture fit
-
-The App Router route authorizes and composes current server loaders. A pure domain helper owns financial projection. The UI remains read-only and links to current transaction/account mutation owners.
-
-### Changed areas
+## Implementation record
 
 | Path | Change |
 |---|---|
@@ -102,32 +85,37 @@ The App Router route authorizes and composes current server loaders. A pure doma
 
 - Schema/migration/backfill: none.
 - Compatibility: additive.
-- Rollback: revert the focused PR.
+- Rollback: revert PR #228.
 
-### Risks and counterexamples
+## Risks and evaluation
 
-| Risk | Prevention/evidence |
+| Risk | Evidence/result |
 |---|---|
-| Transfer pollutes income/expense | Separate totals and unit tests |
-| Destination leg missing | Match/test `destinationAccountId` |
-| Ownership leak | Existing scoped loaders and generic not-found |
-| False zero history | Error state hides movement data |
-| Mutation duplication | Read-only route; link to `/transactions` |
-| Phone overflow | Minmax/wrapping CSS and browser assertion |
-| PR #223 conflict | No overlapping files |
+| Transfer pollutes income/expense | Separate totals and passing unit counterexamples |
+| Destination leg missing | `destinationAccountId` projection and passing tests |
+| Ownership leak | Existing scoped loaders plus generic 404 UI browser assertion |
+| False zero history | Error state hides movement totals/register |
+| Mutation duplication | Register stays read-only and links to `/transactions` |
+| Phone overflow | Scoped minmax/wrapping CSS and passing 360px browser assertion |
+| PR #223 conflict | Final diff contains no transaction filter/page files |
+| Reconciliation scope creep | No statement/matching/cleared/balance-adjustment code or schema |
 
-### Verification plan
+## Verification evidence
 
-- Knowledge/CI policy and diff hygiene.
-- Deployment, CSS ownership and architecture contracts.
-- Lint, typecheck, unit tests and build.
-- Focused Playwright/browser smoke and responsive UI audit.
-- CodeQL and secret-history scan.
-- Database/production/provider evidence: not applicable before owner merge.
+Exact implementation head: `1775c3b763e5863d8c3f3955961583e152f0a762`.
+
+- CI #1090: success after exact-head e2e job rerun.
+- Verify: diff hygiene, project knowledge, CI policy, deployment configuration, CSS ownership, architecture, lint, typecheck, unit/static-RLS tests and production build all passed.
+- Browser smoke: passed on desktop/mobile.
+- Cross-device UI audit: passed on the exact-head rerun. The first attempt hit inconsistent unrelated SAFE-09 transaction-audit failures; rerunning the same job without code changes passed, so no out-of-scope transaction/audit code was modified.
+- CodeQL #247: success.
+- Secret history scan #247: success.
+- Database job: success with database checks explicitly not required because no database contract changed.
+- Production/provider verification: not applicable before owner merge/deployment.
 
 ## Tasks
 
-See `specs/001-account-register-detail/tasks.md`. Implementation tasks are complete; PR #228 exact-head evaluation is active.
+See `specs/001-account-register-detail/tasks.md`. All implementation, verification and evaluation tasks are complete. Only the owner merge/deployment decision remains.
 
 ## Handoff record
 
@@ -135,37 +123,25 @@ See `specs/001-account-register-detail/tasks.md`. Implementation tasks are compl
 |---|---|---|---|---|---|---|
 | 2026-08-02 | owner | planner | specified | user instruction, code audit, PR #222 decision | no active spec existed | define bounded feature |
 | 2026-08-02 | planner | implementer | planned | spec/plan/tasks/checklist | runtime unverified | implement focused slice |
-| 2026-08-02 | implementer | evaluator | implementing | source, unit tests, browser test, PR #228 | exact-head gates pending | resolve CI findings and evaluate |
+| 2026-08-02 | implementer | evaluator | evaluating | source, tests, PR #228 | exact-head gates | verify and review |
+| 2026-08-02 | evaluator | human owner | ready_for_review | CI #1090, CodeQL #247, secret #247, browser/UI evidence and bounded diff review | production remains unverified before merge | review, merge/request changes/reject |
 
 ### Current permission boundary
 
-- Allowed: branch `feat/account-register-detail-main`, specified source/tests/docs and PR metadata.
-- Forbidden: direct `main`, database/RLS/RPCs, providers, production data, reconciliation and deployment.
-- Human approval required before merge/deploy.
-- Stop if new persistence, direct balance editing or transaction mutation becomes necessary.
+- Granted scope: read-only owner review of PR #228.
+- Forbidden actions for the agent: merge, direct `main`, provider/deployment writes and production-data changes.
+- Human approval required before merge and deployment.
+- Production route verification occurs only after owner-controlled merge/deployment.
 
-## Evaluation
+## Remaining limitations
 
-### Acceptance evidence
-
-| Criterion | Evidence | Result |
-|---|---|---|
-| Direct account navigation | accounts page diff | pass by review |
-| Signed account impacts | helper/tests | pending execution |
-| Transfer-neutral totals | helper/tests | pending execution |
-| Honest UI states | component/browser spec | pending execution |
-| Responsive behavior | CSS/browser/UI audit | pending execution |
-| No high-risk scope | final compare | pending |
-| Exact-head gates | GitHub Actions | pending |
-
-### Remaining limitations
-
-Read-only first slice; no trends, filters, export or reconciliation. Production route remains unverified until owner merge/deployment.
+This is a read-only first slice. It does not add trends, filters, export, transaction correction inside the account register or reconciliation.
 
 ## Delivery record
 
 - Branch: `feat/account-register-detail-main`
 - PR: #228
-- CI: rerun pending after diff-hygiene repair
+- Exact implementation checks: green at `1775c3b763e5863d8c3f3955961583e152f0a762`
+- Final evidence-only head: repository checks pending
 - Production deployment: not authorized
 - Packet archive: after owner merge and acceptance only
