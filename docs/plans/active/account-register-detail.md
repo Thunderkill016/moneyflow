@@ -1,12 +1,12 @@
 # Account register and detail
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** evaluator  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Issue/PR:** clean PR pending  
-**Last updated:** 2026-08-02
+- **Status:** implementing
+- **Execution state:** implementing
+- **Active role:** evaluator
+- **Permission scope:** branch_write
+- **Owner:** Thunderkill016
+- **Issue/PR:** #228
+- **Last updated:** 2026-08-02
 
 ## Outcome
 
@@ -127,7 +127,7 @@ The App Router route authorizes and composes current server loaders. A pure doma
 
 ## Tasks
 
-See `specs/001-account-register-detail/tasks.md`. Implementation tasks are complete; clean PR creation and exact-head evaluation are active.
+See `specs/001-account-register-detail/tasks.md`. Implementation tasks are complete; PR #228 exact-head evaluation is active.
 
 ## Handoff record
 
@@ -135,7 +135,7 @@ See `specs/001-account-register-detail/tasks.md`. Implementation tasks are compl
 |---|---|---|---|---|---|---|
 | 2026-08-02 | owner | planner | specified | user instruction, code audit, PR #222 decision | no active spec existed | define bounded feature |
 | 2026-08-02 | planner | implementer | planned | spec/plan/tasks/checklist | runtime unverified | implement focused slice |
-| 2026-08-02 | implementer | evaluator | implementing | source, unit tests, browser test | CI/UI evidence pending | open clean PR to `main` |
+| 2026-08-02 | implementer | evaluator | implementing | source, unit tests, browser test, PR #228 | exact-head gates pending | resolve CI findings and evaluate |
 
 ### Current permission boundary
 
@@ -165,7 +165,7 @@ Read-only first slice; no trends, filters, export or reconciliation. Production 
 ## Delivery record
 
 - Branch: `feat/account-register-detail-main`
-- PR: pending
-- CI: pending
+- PR: #228
+- CI: rerun pending after diff-hygiene repair
 - Production deployment: not authorized
 - Packet archive: after owner merge and acceptance only
