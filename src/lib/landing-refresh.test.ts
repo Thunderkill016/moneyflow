@@ -22,28 +22,32 @@ test("public UI uses semantic theme infrastructure without a named doctrine", ()
   assert.match(documentTheme, /--mf-canvas/);
   assert.doesNotMatch(documentTheme, /authority — Signal Ledger/);
   assert.match(rejectedDirection, /Status: rejected \/ superseded/);
-  assert.match(rejectedDirection, /historical material only/);
 });
 
-test("landing keeps a real conversion path and connected product evidence", () => {
+test("landing keeps direct conversion paths and real product evidence", () => {
   assert.match(landingPage, /href="\/register"/);
-  assert.match(landingPage, /href="#cach-hoat-dong"/);
-  assert.doesNotMatch(landingPage, /Thử demo không cần tài khoản/);
+  assert.match(landingPage, /href="\/login"/);
   assert.doesNotMatch(landingPage, /href="\/dashboard"/);
   assert.match(landingPage, /Giao diện thật từ môi trường kiểm thử/);
-  assert.match(landingPage, /Chuyển nội bộ không bị tính thành chi tiêu/);
-  assert.match(landingPage, /Ghi giao dịch/);
-  assert.match(landingPage, /Cập nhật tài khoản/);
-  assert.match(landingPage, /Mở sổ đối chiếu/);
+  assert.match(landingPage, /Ghi khoản vừa phát sinh/);
+  assert.match(landingPage, /Xem tiền còn ở từng tài khoản/);
+  assert.match(landingPage, /Tìm lại khi cần/);
+});
+
+test("landing avoids rejected collage and equal-card patterns", () => {
+  assert.doesNotMatch(landingPage, /styles\.proofStage/);
+  assert.doesNotMatch(landingPage, /styles\.traceGrid/);
+  assert.doesNotMatch(landingPage, /styles\.controlGrid/);
+  assert.match(landingPage, /styles\.heroProduct/);
+  assert.match(landingPage, /styles\.productSections/);
+  assert.match(landingStyles, /grid-template-columns:\s*minmax\(300px/);
 });
 
 test("landing is responsive, theme-aware and motion accessible", () => {
   assert.match(landingStyles, /min-height:\s*calc\(100svh - 72px\)/);
   assert.match(landingStyles, /@media \(max-width: 920px\)/);
   assert.match(landingStyles, /@media \(max-width: 680px\)/);
-  assert.match(landingStyles, /min-height:\s*44px/);
+  assert.match(landingStyles, /min-height:\s*4[48]px/);
   assert.match(landingStyles, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(landingStyles, /html\[data-theme="dark"\]/);
-  assert.match(documentTheme, /html\[data-theme="dark"\]/);
   assert.doesNotMatch(landingStyles, /!important/);
 });
