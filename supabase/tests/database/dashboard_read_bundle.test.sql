@@ -24,7 +24,7 @@ select ok(
 
 select ok(
   (
-    select function_record.proconfig @> array['search_path=']::text[]
+    select function_record.proconfig @> array['search_path=""']::text[]
     from pg_proc as function_record
     join pg_namespace as namespace
       on namespace.oid = function_record.pronamespace
