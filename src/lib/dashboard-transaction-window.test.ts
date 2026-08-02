@@ -53,8 +53,24 @@ test("dashboard uses one bundled loader while transaction management keeps its o
   assert.equal(
     (dashboardServer.match(/\.rpc\(/g) ?? []).length,
     1,
-    "authenticated dashboard has one Data API RPC",
+    "authenticated dashboard has one Data API RPC on the healthy path",
   );
   assert.match(transactionsPage, /getFinanceWorkspace/);
   assert.doesNotMatch(transactionsPage, /getDashboardFinanceWorkspace/);
+});
+
+test("dashboard preserves real data when the bundled RPC is unavailable or invalid", () => {
+  assert.match(
+    dashboardServer,
+    /async function getAuthenticatedDashboardFallback\(\)/,
+  );
+  assert.match(dashboardServer, /getPendingInboxCountFromServer\(\)/);
+  assert.match(dashboardServer, /dashboard_bundle_unavailable/);
+  assert.match(dashboardServer, /dashboard_bundle_invalid_response/);
+  assert.equal(
+    (dashboardServer.match(/return getAuthenticatedDashboardFallback\(\);/g) ?? [])
+      .length,
+    2,
+    "both RPC failure and invalid payload use the focused authenticated loaders",
+  );
 });
