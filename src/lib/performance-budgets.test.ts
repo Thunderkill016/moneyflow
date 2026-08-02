@@ -25,11 +25,20 @@ test("docs/performance-budgets.md documents web and load budgets", () => {
   assert.match(doc, /\/dashboard/);
   assert.match(doc, /landing/i);
   assert.match(doc, /ALLOW_REMOTE_LOAD_TEST=yes/);
+  assert.match(doc, /Data API calls after viewer resolution \| 1/);
+});
+
+test("load acceptance protocol binds target, identity and evidence", () => {
+  const path = join(root, "docs/performance-load-acceptance.md");
+  assert.equal(existsSync(path), true, "performance-load-acceptance.md must exist");
+  const doc = read("docs/performance-load-acceptance.md");
   assert.match(doc, /APPROVED_TARGET_HOST/);
   assert.match(doc, /DEPLOYMENT_SHA/);
   assert.match(doc, /LOAD_TEST_USER_CONFIRMED_SYNTHETIC=yes/);
-  assert.match(doc, /Data API calls after viewer resolution \| 1/);
-  assert.match(doc, /10.*25.*50/s);
+  assert.match(doc, /10, 25 and 50 virtual users/);
+  assert.match(doc, /production stress testing/i);
+  assert.match(doc, /Vercel and Supabase metrics/i);
+  assert.match(doc, /provider_write_approved/);
 });
 
 test("public k6 profiles are bounded and block accidental remote load", () => {
