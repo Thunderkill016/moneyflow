@@ -1,6 +1,5 @@
 /**
- * Signal Ledger — auth surfaces stay grounded in factual, owner-controlled
- * personal finance instead of promising automated advice.
+ * Authentication stays direct, factual and task-focused.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -15,6 +14,10 @@ const FORBIDDEN = [
   "duyệt trước khi vào sổ",
   "có thể chi hôm nay",
   "nên tiêu",
+  "Mở MoneyFlow",
+  "Bức tranh hôm nay",
+  "Tiền chưa có nhiệm vụ",
+  "financial operating view",
 ] as const;
 
 function source(): string {
@@ -25,29 +28,31 @@ test("auth form exists", () => {
   assert.ok(source().includes("export function AuthForm"));
 });
 
-test("login copy returns the user to their current financial picture", () => {
+test("login copy is direct and uses the expected action", () => {
   const s = source();
-  assert.match(s, /Quay lại MoneyFlow/);
-  assert.match(s, /Đăng nhập để xem số dư, giao dịch/);
-  assert.match(s, /Mở MoneyFlow/);
+  assert.match(s, /title: "Đăng nhập vào MoneyFlow"/);
+  assert.match(s, /Tiếp tục từ giao dịch gần nhất/);
+  assert.match(s, /submit: "Đăng nhập"/);
   for (const phrase of FORBIDDEN) {
     assert.equal(s.includes(phrase), false, `forbidden: ${phrase}`);
   }
 });
 
-test("register copy starts with one factual transaction, not inferred advice", () => {
+test("register copy starts a traceable ledger without invented advice", () => {
   const s = source();
-  assert.match(s, /Tạo không gian riêng/);
-  assert.match(s, /ghi giao dịch đầu tiên của bạn/);
-  assert.match(s, /Tạo không gian tài chính/);
+  assert.match(s, /title: "Tạo tài khoản MoneyFlow"/);
+  assert.match(s, /Ghi thu, chi và chuyển tiền đúng bản chất/);
+  assert.match(s, /submit: "Tạo tài khoản"/);
   assert.equal(s.includes("nên tiêu"), false);
 });
 
-test("auth story states the owner-control and reversibility contract", () => {
+test("auth keeps the form primary and proof rail factual", () => {
   const s = source();
-  assert.match(s, /Không yêu cầu mật khẩu ngân hàng/);
-  assert.match(s, /Giao dịch có thể sửa và phục hồi/);
-  assert.match(s, /Dữ liệu có thể xuất ra CSV/);
-  assert.match(s, /bức tranh có thể kiểm tra lại/);
-  assert.match(s, /Không cần thiết lập hoàn hảo/);
+  assert.doesNotMatch(s, /styles\.story/);
+  assert.doesNotMatch(s, /styles\.signalCard/);
+  assert.match(s, /styles\.proofRail/);
+  assert.match(s, /Thu, chi và chuyển tiền tách biệt/);
+  assert.match(s, /Mỗi số tổng đều có chỗ kiểm tra/);
+  assert.match(s, /MoneyFlow không yêu cầu mật khẩu ngân hàng/);
+  assert.match(s, /Xác minh bảo mật có thể hoàn tất tự động/);
 });
