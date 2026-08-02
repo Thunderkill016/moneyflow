@@ -21,29 +21,27 @@ type Mode = "login" | "register" | "forgot" | "update";
 
 const copy = {
   login: {
-    eyebrow: "Quay lại MoneyFlow",
-    title: "Tiếp tục từ bức tranh gần nhất",
-    description:
-      "Đăng nhập để xem số dư, giao dịch và những khoản đang cần bạn chú ý.",
-    submit: "Mở MoneyFlow",
+    eyebrow: "Tài khoản MoneyFlow",
+    title: "Đăng nhập",
+    description: "Tiếp tục quản lý tài khoản và giao dịch của bạn.",
+    submit: "Đăng nhập",
   },
   register: {
-    eyebrow: "Tạo không gian riêng",
-    title: "Bắt đầu từ khoản tiền gần nhất",
-    description:
-      "Không cần thiết lập hoàn hảo. Tạo tài khoản rồi ghi giao dịch đầu tiên của bạn.",
-    submit: "Tạo không gian tài chính",
+    eyebrow: "Bắt đầu với MoneyFlow",
+    title: "Tạo tài khoản",
+    description: "Ghi thu chi và theo dõi số dư trong một nơi rõ ràng.",
+    submit: "Tạo tài khoản",
   },
   forgot: {
-    eyebrow: "Khôi phục quyền truy cập",
-    title: "Nhận một đường dẫn an toàn",
+    eyebrow: "Khôi phục tài khoản",
+    title: "Quên mật khẩu?",
     description:
       "Nhập email đã đăng ký. Chúng tôi sẽ gửi liên kết để bạn đặt lại mật khẩu.",
-    submit: "Gửi liên kết khôi phục",
+    submit: "Gửi liên kết",
   },
   update: {
-    eyebrow: "Thiết lập bảo mật mới",
-    title: "Đặt mật khẩu mới cho tài khoản",
+    eyebrow: "Hoàn tất khôi phục",
+    title: "Đặt mật khẩu mới",
     description:
       "Mật khẩu mới cần ít nhất 12 ký tự và chỉ nên được dùng cho MoneyFlow.",
     submit: "Lưu mật khẩu mới",
@@ -52,29 +50,6 @@ const copy = {
   Mode,
   { eyebrow: string; title: string; description: string; submit: string }
 >;
-
-const storyCopy = {
-  login: {
-    index: "01 / Quay lại hệ thống",
-    title: "Nhìn dòng tiền trước khi nó trôi qua.",
-    body: "MoneyFlow giữ các khoản thu, chi, chuyển tiền và kế hoạch của bạn trong cùng một bức tranh có thể kiểm tra lại.",
-  },
-  register: {
-    index: "01 / Bắt đầu có cấu trúc",
-    title: "Một khoản tiền rõ ràng tốt hơn một kế hoạch hoàn hảo.",
-    body: "Tạo tài khoản, thêm nơi giữ tiền và ghi khoản gần nhất. Phần còn lại có thể được xây dần theo nhịp của bạn.",
-  },
-  forgot: {
-    index: "01 / Lấy lại quyền truy cập",
-    title: "Dữ liệu của bạn vẫn ở đúng chỗ.",
-    body: "Khôi phục tài khoản bằng email đã đăng ký. MoneyFlow không yêu cầu thông tin đăng nhập ngân hàng để xác minh bạn.",
-  },
-  update: {
-    index: "01 / Hoàn tất khôi phục",
-    title: "Một lớp bảo vệ mới cho bức tranh cũ.",
-    body: "Đặt mật khẩu mới rồi quay lại số dư, lịch sử giao dịch và kế hoạch đang có của bạn.",
-  },
-} satisfies Record<Mode, { index: string; title: string; body: string }>;
 
 const initialState: AuthState = {};
 
@@ -113,8 +88,8 @@ export function AuthForm({
   const captchaBlocked =
     captchaEnabled && (!captchaConfig.ready || !captchaToken);
   const content = copy[mode];
-  const story = storyCopy[mode];
   const baseId = useId();
+  const titleId = `${baseId}-title`;
   const fullNameErrorId = `${baseId}-fullName-error`;
   const emailErrorId = `${baseId}-email-error`;
   const passwordErrorId = `${baseId}-password-error`;
@@ -122,74 +97,20 @@ export function AuthForm({
 
   return (
     <main className={styles.page}>
-      <section className={styles.story} aria-label="Giới thiệu MoneyFlow">
+      <div className={styles.shell}>
         <BrandLockup
           className={styles.brand}
           href="/"
           ariaLabel="MoneyFlow, trang chủ"
           size="standard"
-          tone="inverse"
         />
 
-        <div className={styles.storyBody}>
-          <p className={styles.storyIndex}>{story.index}</p>
-          <h1>{story.title}</h1>
-          <p className={styles.storyDescription}>{story.body}</p>
-
-          <div className={styles.signalCard} aria-label="Ví dụ tín hiệu MoneyFlow">
-            <div className={styles.signalHeader}>
-              <span>Bức tranh hôm nay</span>
-              <small>Đã cập nhật</small>
-            </div>
-            <div className={styles.signalBalance}>
-              <span>Tiền chưa có nhiệm vụ</span>
-              <strong>4.280.000 ₫</strong>
-            </div>
-            <ul>
-              <li>
-                <span>Khoản đến hạn gần nhất</span>
-                <b>Tiền nhà · 3 ngày</b>
-              </li>
-              <li>
-                <span>Ngân sách cần xem lại</span>
-                <b>Ăn uống · còn 38%</b>
-              </li>
-              <li>
-                <span>Thay đổi gần nhất</span>
-                <b>+25.000.000 ₫</b>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <ul className={styles.trustList}>
-          <li>
-            <Icon name="check" size={16} />
-            Không yêu cầu mật khẩu ngân hàng
-          </li>
-          <li>
-            <Icon name="check" size={16} />
-            Giao dịch có thể sửa và phục hồi
-          </li>
-          <li>
-            <Icon name="check" size={16} />
-            Dữ liệu có thể xuất ra CSV
-          </li>
-        </ul>
-      </section>
-
-      <section className={styles.panel}>
-        <div className={styles.card}>
-          <BrandLockup
-            className={`${styles.brand} ${styles.mobileBrand}`}
-            href="/"
-            ariaLabel="MoneyFlow, trang chủ"
-            size="compact"
-          />
-
-          <p className={styles.eyebrow}>{content.eyebrow}</p>
-          <h2>{content.title}</h2>
-          <p className={styles.description}>{content.description}</p>
+        <section className={styles.card} aria-labelledby={titleId}>
+          <header className={styles.cardHeader}>
+            <p className={styles.eyebrow}>{content.eyebrow}</p>
+            <h1 id={titleId}>{content.title}</h1>
+            <p className={styles.description}>{content.description}</p>
+          </header>
 
           {demoMode && mode === "login" && (
             <div className={styles.demoNotice} role="status">
@@ -286,7 +207,12 @@ export function AuthForm({
 
             {(mode === "login" || mode === "register" || mode === "update") && (
               <label>
-                <span>Mật khẩu</span>
+                <span className={styles.fieldLabelRow}>
+                  <span>Mật khẩu</span>
+                  {mode === "login" && (
+                    <Link href="/forgot-password">Quên mật khẩu?</Link>
+                  )}
+                </span>
                 <input
                   id={`${baseId}-password`}
                   name="password"
@@ -334,20 +260,19 @@ export function AuthForm({
               </div>
             )}
 
-            {mode === "login" && (
-              <Link className={styles.forgotLink} href="/forgot-password">
-                Quên mật khẩu?
-              </Link>
-            )}
-
             {captchaEnabled && captchaConfig.siteKey && (
-              <AuthTurnstile
-                className={styles.captcha}
-                siteKey={captchaConfig.siteKey}
-                token={captchaToken}
-                pending={pending}
-                onTokenChange={setCaptchaToken}
-              />
+              <div className={styles.captchaBlock}>
+                <AuthTurnstile
+                  className={styles.captcha}
+                  siteKey={captchaConfig.siteKey}
+                  token={captchaToken}
+                  pending={pending}
+                  onTokenChange={setCaptchaToken}
+                />
+                <small>
+                  Xác minh bảo mật có thể hoàn tất tự động mà không hiện ô tích.
+                </small>
+              </div>
             )}
 
             {captchaEnabled && !captchaConfig.ready && (
@@ -380,7 +305,7 @@ export function AuthForm({
 
           {mode === "login" && (
             <p className={styles.switchLink}>
-              Chưa có tài khoản? <Link href="/register">Bắt đầu miễn phí</Link>
+              Chưa có tài khoản? <Link href="/register">Đăng ký</Link>
             </p>
           )}
           {mode === "register" && (
@@ -393,13 +318,13 @@ export function AuthForm({
               <Link href="/login">← Quay lại đăng nhập</Link>
             </p>
           )}
-        </div>
+        </section>
 
-        <p className={styles.panelNote}>
-          Xác minh bảo mật có thể hoàn tất tự động nên không phải lúc nào cũng
-          xuất hiện ô tích.
+        <p className={styles.securityNote}>
+          <Icon name="check" size={15} />
+          MoneyFlow không yêu cầu mật khẩu ngân hàng.
         </p>
-      </section>
+      </div>
     </main>
   );
 }
