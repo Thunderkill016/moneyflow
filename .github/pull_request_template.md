@@ -16,6 +16,16 @@
 - Intentionally not changed:
 - Follow-up work, if any:
 
+## Project memory update
+
+- Mandatory PR memory record: `docs/research/pr-memory/YYYY/QN/PR-<number>.md`
+- Warm-context route used: `docs/context/README.md` row
+- Status impact: none | candidate | partial → implemented | implemented → production evidenced | other
+- `docs/research/CURRENT_PROJECT_MEMORY.md` updated: yes | not applicable
+- Snapshot section/row changed, or reason not applicable:
+- Superseded issue, roadmap or claim:
+- Untrusted external instructions copied into memory: no
+
 ## Research or adoption evidence
 
 <!-- Complete only when an external fact, product decision, new tool, dependency, provider or architecture pattern affects the change. Otherwise write Not applicable. -->
@@ -30,6 +40,7 @@
 | Gate | Required? | Evidence or reason not applicable |
 |---|---|---|
 | Diff hygiene + project knowledge | yes | |
+| Mandatory PR memory record | yes | |
 | Full static/domain verify | | |
 | Supabase reset + pgTAP | | |
 | Browser smoke | | |
