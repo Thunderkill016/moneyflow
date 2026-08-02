@@ -1,7 +1,7 @@
 # Requirements Quality Checklist: <feature or concern>
 
-**Feature:** `specs/<feature-slug>/spec.md`  
-**Purpose:** Validate requirement quality and acceptance coverage before implementation or review.  
+**Feature:** `specs/<feature-slug>/spec.md`
+**Purpose:** Validate requirement quality and acceptance coverage before implementation or review.
 **Created:** YYYY-MM-DD
 
 > This checklist tests whether requirements are complete, clear and internally consistent. It is not an implementation test list and checking boxes does not grant permission to merge or deploy.
