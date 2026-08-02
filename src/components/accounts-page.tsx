@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { saveAccountAction, setAccountArchivedAction } from "@/app/actions/accounts";
 import { EmptyState } from "@/components/empty-state";
@@ -294,6 +295,14 @@ export function AccountsPage({
                       Số dư ban đầu: {formatMoney(account.initialBalance, false, account.currencyCode)}
                     </span>
                     <div>
+                      <Link
+                        href={`/accounts/${account.id}`}
+                        className={`${styles.actionButton} ${styles.actionLink}`}
+                        aria-label={`Xem sổ ${account.name}`}
+                      >
+                        <Icon name="timeline" />
+                        Xem sổ
+                      </Link>
                       <button
                         type="button"
                         className={styles.actionButton}
@@ -349,6 +358,14 @@ export function AccountsPage({
                     <small>
                       {accountKindLabels[account.kind]} · {account.currencyCode}
                     </small>
+                    <Link
+                      href={`/accounts/${account.id}`}
+                      className={styles.archivedRegisterLink}
+                      aria-label={`Xem sổ ${account.name}`}
+                    >
+                      <Icon name="timeline" />
+                      Xem sổ
+                    </Link>
                   </div>
                   <span className="font-mono">
                     {formatMoney(account.balance, false, account.currencyCode)}
