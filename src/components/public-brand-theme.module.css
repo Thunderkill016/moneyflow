@@ -127,3 +127,12 @@
 .authTheme section[aria-labelledby] {
   box-shadow: var(--mf-shadow-lg);
 }
+
+.authTheme aside[aria-label="Điều MoneyFlow cam kết"]::before {
+  background: var(--mf-brand);
+}
+
+.authTheme aside[aria-label="Điều MoneyFlow cam kết"] > p:first-child,
+.authTheme aside[aria-label="Điều MoneyFlow cam kết"] svg {
+  color: var(--mf-brand);
+}
