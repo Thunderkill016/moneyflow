@@ -1,11 +1,17 @@
 # Public experience foundation research
 
-**Status:** ready_for_review  
-**Execution state:** ready_for_review  
-**Active role:** evaluator  
-**Permission scope:** branch_write  
-**Owner:** ChatGPT agent, human owner approves  
-**Issue/PR:** #216  
+**Status:** ready_for_review
+
+**Execution state:** ready_for_review
+
+**Active role:** evaluator
+
+**Permission scope:** branch_write
+
+**Owner:** ChatGPT agent, human owner approves
+
+**Issue/PR:** #216
+
 **Last updated:** 2026-08-02
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
