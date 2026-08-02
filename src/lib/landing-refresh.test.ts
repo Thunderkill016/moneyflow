@@ -28,7 +28,7 @@ test("landing keeps a real conversion path and labeled product evidence", () => 
 });
 
 test("landing is responsive, theme-aware and motion accessible", () => {
-  assert.match(landingStyles, /min-height:\s*calc\(100svh - 68px\)/);
+  assert.match(landingStyles, /min-height:\s*calc\(100svh - 72px\)/);
   assert.match(landingStyles, /@media \(max-width: 980px\)/);
   assert.match(landingStyles, /@media \(max-width: 760px\)/);
   assert.match(landingStyles, /min-height:\s*44px/);
