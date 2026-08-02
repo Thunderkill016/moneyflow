@@ -85,14 +85,14 @@ test.describe("critical browser compatibility audit", () => {
       ),
     };
 
-    expect(semanticColors.pageBackground).toBe("rgb(16, 21, 18)");
-    expect(semanticColors.brand).toBe("rgb(238, 245, 241)");
-    expect(semanticColors.hero).toBe("rgb(238, 245, 241)");
-    expect(semanticColors.lead).toBe("rgb(181, 194, 188)");
-    expect(semanticColors.proofBackground).toBe("rgb(7, 27, 21)");
-    expect(semanticColors.accountBackground).toBe("rgb(247, 245, 240)");
-    expect(semanticColors.controlBackground).toBe("rgb(7, 27, 21)");
-    expect(semanticColors.ctaTitle).toBe("rgb(238, 245, 241)");
+    expect(semanticColors.pageBackground).toBe("rgb(13, 17, 27)");
+    expect(semanticColors.brand).toBe("rgb(247, 248, 250)");
+    expect(semanticColors.hero).toBe("rgb(247, 248, 250)");
+    expect(semanticColors.lead).toBe("rgb(185, 193, 204)");
+    expect(semanticColors.proofBackground).toBe("rgb(21, 26, 36)");
+    expect(semanticColors.accountBackground).toBe("rgb(21, 26, 36)");
+    expect(semanticColors.controlBackground).toBe("rgb(21, 26, 36)");
+    expect(semanticColors.ctaTitle).toBe("rgb(247, 248, 250)");
   });
 
   test("signed-in shell exposes one authored navigation model", async ({ page }) => {
