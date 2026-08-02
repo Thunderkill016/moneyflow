@@ -1,13 +1,13 @@
 /*
- * MoneyFlow document and theme authority — Signal Ledger v3.
+ * MoneyFlow semantic document and theme authority.
  *
- * This file owns the semantic palette, light/dark resolution, global canvas,
- * focus visibility, type roles and motion values used by every product route.
- * Components consume --mf-* roles; they must not create a second theme.
+ * This file owns the role-based palette, light/dark resolution, global canvas,
+ * focus visibility, type roles and motion values used by product routes.
+ * Components consume --mf-* roles; they must not create an incompatible second
+ * token system.
  *
- * Signal Ledger replaces the previous green-first visual language with a warm
- * neutral canvas, graphite information surfaces and one cobalt action accent.
- * Income, expense, transfer and warning keep independent semantic hues.
+ * The values below are implementation tokens, not a named visual doctrine.
+ * Income, expense, transfer and warning retain independent semantic hues.
  */
 :root {
   --mf-canvas: #f7f5f0;
@@ -126,7 +126,7 @@ body {
   font-family: var(--mf-font-sans);
 }
 
-/* Loaded after globals.css, so this is the final ambient canvas treatment. */
+/* Loaded after globals.css, so this remains the final ambient product canvas. */
 body::before {
   background:
     radial-gradient(circle at 78% -18%, rgb(49 87 213 / 13%), transparent 35rem),
