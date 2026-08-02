@@ -3,7 +3,7 @@
 - **Spec:** `specs/002-transaction-range-filters/spec.md`
 - **Plan:** `specs/002-transaction-range-filters/plan.md`
 - **Work packet:** not required
-- **Current phase:** implementation
+- **Current phase:** verifying PR #232
 - **Last updated:** 2026-08-03
 
 ## Reconnaissance and specification
@@ -61,8 +61,8 @@
 
 ## Delivery
 
-- [ ] T090 Open a draft current-main replacement PR and add its bounded PR memory.
-- [ ] T091 Replace PR #223 in current open-PR memory and close #223 as superseded.
+- [x] T090 Open draft replacement PR #232 and add its bounded PR memory.
+- [x] T091 Close PR #223 as superseded by the current-main implementation.
 - [ ] T092 Pass exact-head CI, CodeQL and secret-history scanning.
 - [ ] T093 Evaluate acceptance criteria and responsive/browser artifacts.
 - [ ] T094 Mark ready-for-review with remaining limitations and owner-only merge action.
