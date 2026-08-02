@@ -57,6 +57,21 @@ for (const path of requiredFiles) {
   }
 }
 
+function enforceMemoryBudgets() {
+  try {
+    const snapshot = read("docs/research/CURRENT_PROJECT_MEMORY.md");
+    const lines = snapshot.split(/\r?\n/u).length;
+    const bytes = Buffer.byteLength(snapshot, "utf8");
+    if (lines > 900 || bytes > 120 * 1024) {
+      failures.push(
+        `CURRENT_PROJECT_MEMORY.md exceeds its compact-snapshot budget (${lines} lines, ${bytes} bytes; maximum 900 lines and 120 KiB)`,
+      );
+    }
+  } catch {
+    // Missing file already reported above.
+  }
+}
+
 function enforcePullRequestMemoryUpdate() {
   if (process.env.GITHUB_EVENT_NAME !== "pull_request") return;
 
@@ -70,8 +85,9 @@ function enforcePullRequestMemoryUpdate() {
     const event = JSON.parse(readFileSync(eventPath, "utf8"));
     const baseSha = event.pull_request?.base?.sha;
     const headSha = event.pull_request?.head?.sha;
-    if (!baseSha || !headSha) {
-      failures.push("pull-request memory check could not resolve base/head SHA");
+    const prNumber = event.pull_request?.number ?? event.number;
+    if (!baseSha || !headSha || !Number.isInteger(prNumber)) {
+      failures.push("pull-request memory check could not resolve base/head SHA and PR number");
       return;
     }
 
@@ -83,9 +99,46 @@ function enforcePullRequestMemoryUpdate() {
       .split(/\r?\n/u)
       .filter(Boolean);
 
-    if (!changedFiles.includes("docs/research/PR_MEMORY_LOG.md")) {
+    const recordPattern = new RegExp(
+      `^docs/research/pr-memory/\\d{4}/Q[1-4]/PR-${prNumber}\\.md$`,
+      "u",
+    );
+    const records = changedFiles.filter((path) => recordPattern.test(path));
+
+    if (records.length !== 1) {
       failures.push(
-        "every pull request must update docs/research/PR_MEMORY_LOG.md; use Status impact: none when implementation status did not change",
+        `every pull request must change exactly one own memory record at docs/research/pr-memory/YYYY/QN/PR-${prNumber}.md`,
+      );
+      return;
+    }
+
+    const recordPath = records[0];
+    const record = read(recordPath);
+    const requiredRecordMarkers = [
+      `# PR #${prNumber}`,
+      "- Date:",
+      "- Change class:",
+      "- Affected capability or project boundary:",
+      "- Status impact:",
+      "- Changed:",
+      "- Verified:",
+      "- Remaining:",
+      "- Production/provider evidence:",
+      "- Snapshot update:",
+      "- Superseded issue, roadmap or claim:",
+    ];
+
+    for (const marker of requiredRecordMarkers) {
+      if (!record.includes(marker)) {
+        failures.push(`${recordPath} is missing required memory field: ${marker}`);
+      }
+    }
+
+    const lines = record.split(/\r?\n/u).length;
+    const bytes = Buffer.byteLength(record, "utf8");
+    if (lines > 140 || bytes > 12 * 1024) {
+      failures.push(
+        `${recordPath} exceeds the per-PR memory budget (${lines} lines, ${bytes} bytes; maximum 140 lines and 12 KiB)`,
       );
     }
   } catch (error) {
@@ -95,6 +148,7 @@ function enforcePullRequestMemoryUpdate() {
   }
 }
 
+enforceMemoryBudgets();
 enforcePullRequestMemoryUpdate();
 
 const currentTruthFiles = [
@@ -160,6 +214,7 @@ try {
 requireMarkers("docs/research/README.md", [
   "CURRENT_PROJECT_MEMORY.md",
   "PR_MEMORY_LOG.md",
+  "pr-memory/YYYY/QN/PR-<number>.md",
   "PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "PRODUCT_COMPETITIVE_MEMORY.md",
   "REPOSITORY_REFERENCE_MAP.md",
@@ -179,11 +234,12 @@ requireMarkers("docs/research/CURRENT_PROJECT_MEMORY.md", [
 ]);
 
 requireMarkers("docs/research/PR_MEMORY_LOG.md", [
-  "# MoneyFlow — pull request memory log",
-  "Every pull request must add one entry",
+  "# MoneyFlow — pull request memory index",
+  "one small immutable record per pull request",
   "Status impact: none",
   "CURRENT_PROJECT_MEMORY.md",
-  "### PR #215",
+  "140 lines",
+  "120 KiB",
 ]);
 
 requireMarkers("docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md", [
@@ -212,11 +268,11 @@ requireMarkers("AGENTS.md", [
   "docs/engineering/AGENT_OPERATING_MODEL.md",
   "docs/research/CURRENT_PROJECT_MEMORY.md",
   "docs/research/PR_MEMORY_LOG.md",
+  "docs/research/pr-memory/YYYY/QN/PR-<number>.md",
   "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/research/REPOSITORY_REFERENCE_MAP.md",
   "docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
-  "Every PR must append one truthful entry",
   "current execution state",
   "Hidden chat context is not a handoff artifact",
   "two to four focused sources",
@@ -285,14 +341,14 @@ requireMarkers(".github/pull_request_template.md", [
   "Planning artifact:",
   "Permission scope used:",
   "## Project memory update",
-  "docs/research/PR_MEMORY_LOG.md",
+  "docs/research/pr-memory/YYYY/QN/PR-<number>.md",
   "Status impact:",
   "docs/research/CURRENT_PROJECT_MEMORY.md",
   "## Research or adoption evidence",
   "Selected sources and what they establish:",
   "License, security, privacy, ownership and rollback review",
   "## Verification selection",
-  "Mandatory PR memory update",
+  "Mandatory PR memory record",
   "Affected production verification",
 ]);
 
