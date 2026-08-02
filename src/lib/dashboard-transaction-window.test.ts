@@ -9,6 +9,10 @@ import {
 
 const root = process.cwd();
 const financeServer = readFileSync(join(root, "src/server/finance.ts"), "utf8");
+const dashboardServer = readFileSync(
+  join(root, "src/server/dashboard.ts"),
+  "utf8",
+);
 const dashboardPage = readFileSync(join(root, "src/app/dashboard/page.tsx"), "utf8");
 const transactionsPage = readFileSync(
   join(root, "src/app/transactions/page.tsx"),
@@ -31,11 +35,26 @@ test("dashboard keeps a small explicit recent-activity window", () => {
     /\.limit\(DASHBOARD_RECENT_TRANSACTION_LIMIT\)/,
   );
   assert.match(financeServer, /deduplicateTransactions/);
+  assert.match(
+    dashboardServer,
+    /p_recent_limit:\s*DASHBOARD_RECENT_TRANSACTION_LIMIT/,
+  );
+  assert.match(
+    dashboardServer,
+    /p_transaction_start:\s*dashboardTransactionStart\(today\)/,
+  );
 });
 
-test("dashboard uses bounded loader while transaction management keeps full ledger", () => {
-  assert.match(dashboardPage, /getDashboardFinanceWorkspace/);
+test("dashboard uses one bundled loader while transaction management keeps its own ledger", () => {
+  assert.match(dashboardPage, /getDashboardPageWorkspace/);
   assert.doesNotMatch(dashboardPage, /getFinanceWorkspace/);
+  assert.doesNotMatch(dashboardPage, /Promise\.all/);
+  assert.match(dashboardServer, /\.rpc\("get_dashboard_bundle"/);
+  assert.equal(
+    (dashboardServer.match(/\.rpc\(/g) ?? []).length,
+    1,
+    "authenticated dashboard has one Data API RPC",
+  );
   assert.match(transactionsPage, /getFinanceWorkspace/);
   assert.doesNotMatch(transactionsPage, /getDashboardFinanceWorkspace/);
 });

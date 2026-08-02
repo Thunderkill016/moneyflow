@@ -25,7 +25,8 @@ test("SAFE-02: public landing routes load a visible mobile Login override", () =
 test("SAFE-03: authenticated Inbox count is server-derived and demo storage is isolated", () => {
   const dashboard = readProjectFile("src/components/moneyflow-dashboard.tsx");
   const page = readProjectFile("src/app/dashboard/page.tsx");
-  const server = readProjectFile("src/server/inbox.ts");
+  const dashboardServer = readProjectFile("src/server/dashboard.ts");
+  const inboxServer = readProjectFile("src/server/inbox.ts");
 
   assert.match(
     dashboard,
@@ -36,10 +37,15 @@ test("SAFE-03: authenticated Inbox count is server-derived and demo storage is i
     /useEffect\(\(\) => \{\s*if \(!viewer\.isDemo\) return;[\s\S]*?readStoredCandidates\(\)/,
   );
   assert.doesNotMatch(dashboard, /const \[inboxCount, setInboxCount\]/);
-  assert.match(page, /getPendingInboxCountFromServer/);
-  assert.match(page, /initialInboxCount=\{pendingInboxCount \?\? 0\}/);
-  assert.match(server, /\.eq\("status", "pending"\)/);
-  assert.match(server, /select\("id", \{ count: "exact", head: true \}\)/);
+  assert.match(page, /getDashboardPageWorkspace/);
+  assert.match(page, /initialInboxCount=\{pendingInboxCount\}/);
+  assert.match(dashboardServer, /pending_inbox_count/);
+  assert.match(
+    dashboardServer,
+    /pendingInboxCount: safeInteger|const pendingInboxCount = safeInteger/,
+  );
+  assert.match(inboxServer, /\.eq\("status", "pending"\)/);
+  assert.match(inboxServer, /select\("id", \{ count: "exact", head: true \}\)/);
 });
 
 test("SAFE-04/05: Dashboard, Budgets and Goals share the repaired responsive contract", () => {

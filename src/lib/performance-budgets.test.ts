@@ -22,7 +22,19 @@ test("docs/performance-budgets.md documents LCP and CLS budgets", () => {
   assert.match(doc, /2\.5/);
   assert.match(doc, /0\.10|0\.1/);
   assert.match(doc, /\/insights/);
+  assert.match(doc, /\/dashboard/);
   assert.match(doc, /landing/i);
+  assert.match(doc, /ALLOW_REMOTE_LOAD_TEST=yes/);
+  assert.match(doc, /Data API calls after viewer resolution \| 1/);
+});
+
+test("public k6 smoke is bounded and blocks accidental remote load", () => {
+  const source = read("tests/load/public-smoke.js");
+  assert.match(source, /vus > 50/);
+  assert.match(source, /ALLOW_REMOTE_LOAD_TEST/);
+  assert.match(source, /rate<0\.01/);
+  assert.match(source, /p\(95\)<800/);
+  assert.doesNotMatch(source, /\/dashboard/);
 });
 
 test("landing is a Server Component (no use client) for LCP", () => {

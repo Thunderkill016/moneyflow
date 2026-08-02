@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import { MoneyFlowDashboard } from "@/components/moneyflow-dashboard";
 import { requireViewer } from "@/server/auth";
-import { getDashboardFinanceWorkspace } from "@/server/finance";
-import { getBudgetsWorkspace } from "@/server/budgets";
-import { getCommitmentsWorkspace } from "@/server/commitments";
-import { getGoalsWorkspace } from "@/server/goals";
-import { getPendingInboxCountFromServer } from "@/server/inbox";
-import { getIncomeTemplatesWorkspace } from "@/server/income-templates";
+import { getDashboardPageWorkspace } from "@/server/dashboard";
 import "./calm-ledger-overview.css";
 import "./calm-ledger-overview-actions.css";
 import "../safe-ux-planning.css";
@@ -26,21 +21,14 @@ export const metadata: Metadata = {
  */
 export default async function DashboardPage() {
   const viewer = await requireViewer();
-  const [
+  const {
     workspace,
-    budgetWorkspace,
-    commitmentWorkspace,
-    incomeWorkspace,
-    goalWorkspace,
+    budgets,
+    commitments,
+    incomeTemplates,
+    goals,
     pendingInboxCount,
-  ] = await Promise.all([
-    getDashboardFinanceWorkspace(),
-    getBudgetsWorkspace(),
-    getCommitmentsWorkspace(),
-    getIncomeTemplatesWorkspace(),
-    getGoalsWorkspace(),
-    viewer.isDemo ? Promise.resolve(0) : getPendingInboxCountFromServer(),
-  ]);
+  } = await getDashboardPageWorkspace(viewer);
 
   return (
     <MoneyFlowDashboard
@@ -49,20 +37,12 @@ export default async function DashboardPage() {
         displayName: viewer.displayName,
         isDemo: viewer.isDemo,
       }}
-      workspace={{
-        ...workspace,
-        dataError:
-          workspace.dataError ??
-          budgetWorkspace.dataError ??
-          commitmentWorkspace.dataError ??
-          incomeWorkspace.dataError ??
-          goalWorkspace.dataError,
-      }}
-      initialInboxCount={pendingInboxCount ?? 0}
-      budgets={budgetWorkspace.budgets}
-      commitments={commitmentWorkspace.commitments}
-      incomeTemplates={incomeWorkspace.templates}
-      goals={goalWorkspace.goals}
+      workspace={workspace}
+      initialInboxCount={pendingInboxCount}
+      budgets={budgets}
+      commitments={commitments}
+      incomeTemplates={incomeTemplates}
+      goals={goals}
     />
   );
 }
