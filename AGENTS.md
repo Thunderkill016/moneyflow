@@ -29,7 +29,7 @@ Task-specific references:
 | UI/UX | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` |
 | Auth/deployment | `docs/configuration.md`, `docs/supabase-setup.md` |
 | Database/RLS | `docs/security-rls-check.md`, relevant migrations and pgTAP tests |
-| Product behavior/status | `docs/research/CURRENT_PROJECT_MEMORY.md`, `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`, `docs/MVP_DEFINITION.md`, relevant current issue/PR |
+| Product behavior/status | `docs/research/CURRENT_PROJECT_MEMORY.md`, `docs/research/PR_MEMORY_LOG.md`, `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`, `docs/MVP_DEFINITION.md`, relevant current issue/PR |
 | Competitive research | `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`, `docs/research/UI_UX_RESEARCH_LEDGER.md` |
 | External tools or architecture | `docs/research/REPOSITORY_REFERENCE_MAP.md`, `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` |
 
@@ -72,7 +72,7 @@ When a packet is required, complete it in order:
 6. Implementation on a focused branch.
 7. Independent evaluation against the spec.
 8. Risk-proportional CI, browser evidence and affected production verification.
-9. Update `docs/research/CURRENT_PROJECT_MEMORY.md` when implementation status changes.
+9. Update `docs/research/PR_MEMORY_LOG.md` in every PR; also update `CURRENT_PROJECT_MEMORY.md` when implementation status changes.
 10. Move the packet to `docs/plans/completed/` after merge and acceptance.
 
 Record the current execution state, active responsibility, granted permission scope and every state/responsibility handoff for packeted work. Hidden chat context is not a handoff artifact.
@@ -85,6 +85,7 @@ When research is required, state one decision question and select two to four fo
 - Search for existing components, domain helpers and tests before creating new abstractions.
 - Do not change requirements while implementing. Update the spec first when scope changes.
 - Do not write directly to `main`; use a focused branch and pull request.
+- Every PR must append one truthful entry to `docs/research/PR_MEMORY_LOG.md`; `Status impact: none` is valid when no snapshot status changed.
 - Keep configuration in environment/provider settings, never guessed constants or committed secrets.
 - One primary action per viewport; money must not be distinguished by color alone.
 
@@ -158,4 +159,4 @@ Agent-phase internet is off by default in Codex cloud. Anything needing network 
 
 ### Definition of done for an agent-authored PR
 
-The branch is pushed, the PR describes scope and evidence honestly, the risk-selected exact-head checks are green, current memory is updated when status changed, and the owner has reviewed changes requiring human judgment. Merging and deployment are the owner's decisions.
+The branch is pushed, the PR describes scope and evidence honestly, the risk-selected exact-head checks are green, `PR_MEMORY_LOG.md` is updated, `CURRENT_PROJECT_MEMORY.md` is updated when status changed, and the owner has reviewed changes requiring human judgment. Merging and deployment are the owner's decisions.
