@@ -1,9 +1,9 @@
 # Tasks: <feature name>
 
-**Specification:** `specs/<feature-slug>/spec.md`  
-**Plan:** `specs/<feature-slug>/plan.md`  
-**Active work packet:** `docs/plans/active/<slug>.md` | not required  
-**Current authorized task:** <task ID or none>  
+**Specification:** `specs/<feature-slug>/spec.md`
+**Plan:** `specs/<feature-slug>/plan.md`
+**Active work packet:** `docs/plans/active/<slug>.md` | not required
+**Current authorized task:** <task ID or none>
 **Last updated:** YYYY-MM-DD
 
 > Tasks are execution units, not permission grants. The active MoneyFlow packet or owner instruction selects the current task and permission scope.
