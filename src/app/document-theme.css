@@ -1,50 +1,73 @@
 /*
  * MoneyFlow semantic document and theme authority.
  *
- * This file owns the role-based palette, light/dark resolution, global canvas,
- * focus visibility, type roles and motion values used by product routes.
- * Components consume --mf-* roles; they must not create an incompatible second
- * token system.
+ * This file owns the project-wide color roles, light/dark resolution, global
+ * canvas, focus visibility, type roles and motion values. Components consume
+ * --mf-* roles; route-level styling must not create an independent brand
+ * palette.
  *
- * The values below are implementation tokens, not a named visual doctrine.
- * Income, expense, transfer and warning retain independent semantic hues.
+ * The current owner-selected direction is white-first with a trust-blue action
+ * family. Green, red, amber and violet remain reserved for financial semantic
+ * meaning rather than decoration.
  */
 :root {
-  --mf-canvas: #f7f5f0;
-  --mf-surface: #ffffff;
-  --mf-surface-muted: #f0ede6;
-  --mf-surface-strong: #e5e0d6;
-  --mf-text: #171a1f;
-  --mf-text-muted: #5c616a;
-  --mf-text-soft: #7e838b;
-  --mf-border: #ded9cf;
-  --mf-border-strong: #c8c0b3;
+  /* Brand ramp */
+  --mf-brand-50: #eff4ff;
+  --mf-brand-100: #dfe8ff;
+  --mf-brand-200: #c5d3ff;
+  --mf-brand-300: #9fb5ff;
+  --mf-brand-400: #7592f5;
+  --mf-brand-500: #5273e8;
+  --mf-brand-600: #2f55d4;
+  --mf-brand-700: #2445b7;
+  --mf-brand-800: #1d378e;
+  --mf-brand-900: #192e6e;
+  --mf-brand-950: #111b3e;
 
-  --mf-brand: #3157d5;
-  --mf-brand-hover: #2548c2;
-  --mf-brand-pressed: #1e3793;
-  --mf-brand-subtle: #e9edff;
-  --mf-brand-text: #2444b5;
+  /* White-first neutral foundation */
+  --mf-canvas: #f6f8fc;
+  --mf-surface: #ffffff;
+  --mf-surface-muted: #f0f3f8;
+  --mf-surface-strong: #e7ecf3;
+  --mf-text: #111827;
+  --mf-text-muted: #4b5563;
+  --mf-text-soft: #6b7280;
+  --mf-border: #d7dee8;
+  --mf-border-strong: #b7c1d0;
+
+  /* Brand and interaction roles */
+  --mf-brand: var(--mf-brand-600);
+  --mf-brand-hover: var(--mf-brand-700);
+  --mf-brand-pressed: var(--mf-brand-800);
+  --mf-brand-subtle: #eaf0ff;
+  --mf-brand-text: #2443a8;
   --mf-on-brand: #ffffff;
 
-  --mf-income: #087b5a;
-  --mf-income-subtle: #e2f5ee;
-  --mf-income-text: #056146;
-  --mf-expense: #c13f45;
-  --mf-expense-subtle: #fde9ea;
-  --mf-expense-text: #9e2d35;
-  --mf-transfer: #6a4fd6;
-  --mf-transfer-subtle: #eeeaff;
-  --mf-transfer-text: #533bb4;
-  --mf-warning: #9b5f00;
-  --mf-warning-subtle: #fff1d6;
-  --mf-warning-text: #7b4a00;
+  /* Financial semantic roles */
+  --mf-income: #0c7a55;
+  --mf-income-subtle: #e6f6ef;
+  --mf-income-text: #086044;
+  --mf-expense: #c83e46;
+  --mf-expense-subtle: #fdebec;
+  --mf-expense-text: #9f2d35;
+  --mf-transfer: #7054cc;
+  --mf-transfer-subtle: #f0ecff;
+  --mf-transfer-text: #523cad;
+  --mf-warning: #9a6100;
+  --mf-warning-subtle: #fff2d8;
+  --mf-warning-text: #764900;
 
-  --mf-focus: #3157d5;
-  --mf-overlay: rgb(16 19 28 / 58%);
-  --mf-shadow-sm: 0 1px 2px rgb(23 26 31 / 7%);
-  --mf-shadow-md: 0 14px 36px rgb(23 26 31 / 11%);
-  --mf-shadow-lg: 0 30px 72px rgb(23 26 31 / 17%);
+  /* Public proof surfaces use the same system, not a second theme. */
+  --mf-stage: var(--mf-surface);
+  --mf-stage-soft: var(--mf-surface-muted);
+  --mf-stage-text: var(--mf-text);
+  --mf-stage-muted: var(--mf-text-muted);
+
+  --mf-focus: var(--mf-brand-600);
+  --mf-overlay: rgb(13 17 27 / 58%);
+  --mf-shadow-sm: 0 1px 2px rgb(17 24 39 / 6%);
+  --mf-shadow-md: 0 14px 36px rgb(17 24 39 / 10%);
+  --mf-shadow-lg: 0 30px 72px rgb(17 24 39 / 15%);
 
   --mf-radius-sm: 8px;
   --mf-radius-md: 12px;
@@ -66,37 +89,54 @@
 }
 
 html[data-theme="dark"] {
-  --mf-canvas: #111318;
-  --mf-surface: #181b22;
-  --mf-surface-muted: #20242d;
-  --mf-surface-strong: #2a2f39;
-  --mf-text: #f4f2ed;
-  --mf-text-muted: #b7bac2;
-  --mf-text-soft: #8f949f;
-  --mf-border: #323743;
-  --mf-border-strong: #474e5c;
+  --mf-brand-50: #111b3e;
+  --mf-brand-100: #192e6e;
+  --mf-brand-200: #1d378e;
+  --mf-brand-300: #2445b7;
+  --mf-brand-400: #5273e8;
+  --mf-brand-500: #7592f5;
+  --mf-brand-600: #8ea7ff;
+  --mf-brand-700: #a7b9ff;
+  --mf-brand-800: #b8c7ff;
+  --mf-brand-900: #dfe8ff;
+  --mf-brand-950: #eff4ff;
 
-  --mf-brand: #85a3ff;
-  --mf-brand-hover: #a1b7ff;
-  --mf-brand-pressed: #6f8de8;
-  --mf-brand-subtle: #202b55;
-  --mf-brand-text: #a9bcff;
-  --mf-on-brand: #10152a;
+  --mf-canvas: #0d111b;
+  --mf-surface: #151a24;
+  --mf-surface-muted: #1d2430;
+  --mf-surface-strong: #283140;
+  --mf-text: #f7f8fa;
+  --mf-text-muted: #b9c1cc;
+  --mf-text-soft: #8e98a6;
+  --mf-border: #303a49;
+  --mf-border-strong: #475365;
 
-  --mf-income: #63d7ad;
-  --mf-income-subtle: #153c31;
-  --mf-income-text: #8ae7c4;
-  --mf-expense: #ff8f94;
-  --mf-expense-subtle: #472327;
-  --mf-expense-text: #ffb0b4;
-  --mf-transfer: #b09cff;
-  --mf-transfer-subtle: #302957;
-  --mf-transfer-text: #c8baff;
-  --mf-warning: #f2bd63;
-  --mf-warning-subtle: #433219;
-  --mf-warning-text: #f8d28e;
+  --mf-brand: #8ea7ff;
+  --mf-brand-hover: #a7b9ff;
+  --mf-brand-pressed: #7693f3;
+  --mf-brand-subtle: #1c2854;
+  --mf-brand-text: #b8c7ff;
+  --mf-on-brand: #0e1638;
 
-  --mf-focus: #9bb4ff;
+  --mf-income: #4dd4a0;
+  --mf-income-subtle: #12392d;
+  --mf-income-text: #8ae7c2;
+  --mf-expense: #ff858b;
+  --mf-expense-subtle: #462126;
+  --mf-expense-text: #ffb5b9;
+  --mf-transfer: #b29eff;
+  --mf-transfer-subtle: #302858;
+  --mf-transfer-text: #cebfff;
+  --mf-warning: #f4be65;
+  --mf-warning-subtle: #433119;
+  --mf-warning-text: #f8d391;
+
+  --mf-stage: var(--mf-surface);
+  --mf-stage-soft: var(--mf-surface-muted);
+  --mf-stage-text: var(--mf-text);
+  --mf-stage-muted: var(--mf-text-muted);
+
+  --mf-focus: #9fb5ff;
   --mf-overlay: rgb(0 0 0 / 74%);
   --mf-shadow-sm: 0 1px 2px rgb(0 0 0 / 24%);
   --mf-shadow-md: 0 14px 36px rgb(0 0 0 / 31%);
@@ -113,12 +153,12 @@ body {
 
 html[data-theme="light"],
 html[data-theme="light"] body {
-  background: #f7f5f0 !important;
+  background: var(--mf-canvas) !important;
 }
 
 html[data-theme="dark"],
 html[data-theme="dark"] body {
-  background: #111318 !important;
+  background: var(--mf-canvas) !important;
 }
 
 body {
@@ -126,17 +166,17 @@ body {
   font-family: var(--mf-font-sans);
 }
 
-/* Loaded after globals.css, so this remains the final ambient product canvas. */
+/* Loaded after globals.css, so this is the final ambient product canvas. */
 body::before {
   background:
-    radial-gradient(circle at 78% -18%, rgb(49 87 213 / 13%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(155 95 0 / 6%), transparent 28rem) !important;
+    radial-gradient(circle at 78% -18%, rgb(47 85 212 / 10%), transparent 35rem),
+    radial-gradient(circle at -12% 30%, rgb(117 146 245 / 4%), transparent 28rem) !important;
 }
 
 html[data-theme="dark"] body::before {
   background:
-    radial-gradient(circle at 78% -18%, rgb(133 163 255 / 12%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(242 189 99 / 5%), transparent 28rem) !important;
+    radial-gradient(circle at 78% -18%, rgb(142 167 255 / 11%), transparent 35rem),
+    radial-gradient(circle at -12% 30%, rgb(82 115 232 / 5%), transparent 28rem) !important;
 }
 
 :focus-visible {
