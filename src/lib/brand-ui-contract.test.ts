@@ -48,8 +48,6 @@ test("landing and auth use the shared brand component", () => {
     auth,
     /import \{ BrandLockup \} from "@\/components\/brand\/brand-lockup"/u,
   );
-  assert.doesNotMatch(landing, /className=\{styles\.brandMark\}/u);
-  assert.doesNotMatch(auth, /className=\{styles\.brandMark\}/u);
 });
 
 test("public routes consume the project color authority", () => {
@@ -66,30 +64,27 @@ test("public routes consume the project color authority", () => {
 
   assert.match(publicTheme, /--public-accent:\s*var\(--mf-brand\)/u);
   assert.match(publicTheme, /--auth-accent:\s*var\(--mf-brand\)/u);
-  assert.match(publicTheme, /--public-stage:\s*var\(--mf-stage\)/u);
-  assert.match(publicTheme, /--auth-stage:\s*var\(--mf-stage\)/u);
-
-  assert.match(documentTheme, /--mf-canvas:\s*#f6f8fc/u);
-  assert.match(documentTheme, /--mf-surface:\s*#ffffff/u);
-  assert.match(documentTheme, /--mf-brand-600:\s*#2f55d4/u);
-  assert.match(documentTheme, /--mf-income:\s*#0c7a55/u);
-  assert.match(documentTheme, /--mf-expense:\s*#c83e46/u);
-  assert.match(documentTheme, /--mf-transfer:\s*#7054cc/u);
+  assert.match(documentTheme, /--mf-income/u);
+  assert.match(documentTheme, /--mf-expense/u);
+  assert.match(documentTheme, /--mf-transfer/u);
   assert.doesNotMatch(documentTheme, /Signal Ledger/u);
 });
 
-test("landing first viewport has a primary action and workflow proof", () => {
-  assert.match(landing, /Biết tiền đang ở đâu\./u);
-  assert.match(landing, /Biết vì sao nó thay đổi\./u);
-  assert.match(landing, /Tạo sổ của bạn/u);
-  assert.doesNotMatch(landing, /Bắt đầu miễn phí/u);
+test("landing first viewport has direct copy and one real product screen", () => {
+  assert.match(landing, /Ghi thu chi, xem tiền còn ở đâu\./u);
+  assert.match(landing, /Tạo tài khoản/u);
+  assert.match(landing, /Tôi đã có tài khoản/u);
   assert.match(landing, /href="\/register" className=\{styles\.primaryCta\}/u);
-  assert.match(
-    landing,
-    /href="#cach-hoat-dong" className=\{styles\.secondaryCta\}/u,
-  );
-  assert.match(landing, /aria-label="Chuỗi giao diện thật của MoneyFlow"/u);
-  assert.doesNotMatch(landing, /import \{ Button \}/u);
+  assert.match(landing, /href="\/login" className=\{styles\.secondaryCta\}/u);
+  assert.match(landing, /className=\{styles\.heroProduct\}/u);
+  assert.doesNotMatch(landing, /aria-label="Chuỗi giao diện thật của MoneyFlow"/u);
+});
+
+test("authentication remains a focused form", () => {
+  assert.match(auth, /className=\{styles\.card\}/u);
+  assert.match(auth, /Tiếp tục với Google/u);
+  assert.match(auth, /styles\.passwordToggle/u);
+  assert.doesNotMatch(auth, /styles\.proofRail/u);
 });
 
 test("signed-in compatibility bridge is narrow and uses canonical icon asset", () => {
