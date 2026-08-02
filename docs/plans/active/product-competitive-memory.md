@@ -4,6 +4,7 @@
 **Active role:** evaluator  
 **Permission scope:** branch_write + external_read  
 **Owner:** Thunderkill016  
+**PR:** #214  
 **Branch:** `docs/product-competitive-memory`  
 **Base:** `main@05e923a17e579470ddcdb16108f0834ce17dc456`  
 **Started:** 2026-08-02
@@ -51,12 +52,12 @@ Internal sources are treated cumulatively rather than replaced. External facts a
 
 ### Adoption review
 
-No dependency, provider, service, runtime framework, external code or asset is adopted. The output is repository documentation and a knowledge contract only.
+No dependency, provider, service, runtime framework, external code or asset is adopted. The output is repository documentation, one knowledge contract and one CI lifecycle correction discovered during exact-head evaluation.
 
 - License impact: none; sources are summarized and linked, not copied into runtime code.
 - Security/privacy impact: none; no provider or production data is accessed or changed.
 - Ownership impact: the new memory remains subordinate to binding product principles and explicit owner decisions.
-- Rollback: remove the new synthesis, index links and knowledge-check markers.
+- Rollback: remove the new synthesis, index links, knowledge-check markers and ready-for-review condition correction.
 
 ## Specification
 
@@ -78,6 +79,8 @@ Wire the memory into:
 - `AGENTS.md` for product behavior and external product comparison tasks;
 - `scripts/check-project-knowledge.mjs` so the memory and links cannot silently disappear.
 
+Evaluation acceptance also requires that transitioning PR #214 from draft to ready-for-review actually runs the classifier-selected required jobs rather than reporting skipped jobs as a successful CI workflow.
+
 ## Implementation plan
 
 1. Recheck current product claims from official sources.
@@ -85,7 +88,9 @@ Wire the memory into:
 3. Write one concept-neutral synthesis rather than another feature wishlist.
 4. Update entrypoints and the project-knowledge contract.
 5. Review the final branch diff for duplicated authority or stale claims.
-6. Open a pull request; do not merge or modify production.
+6. Open a pull request and inspect exact-head risk-proportional CI.
+7. Correct any verification-path defect directly exposed by this PR.
+8. Hand off without merging or modifying production.
 
 ## Tasks
 
@@ -94,19 +99,22 @@ Wire the memory into:
 - [x] Add the consolidated competitive memory.
 - [x] Update research and repository entrypoints.
 - [x] Extend the knowledge contract.
-- [ ] Evaluate the exact PR head through selected CI.
+- [x] Open PR #214 and evaluate the first exact-head run.
+- [x] Correct ready-for-review CI jobs being skipped.
+- [ ] Complete exact-head full CI, CodeQL and secret scan on the corrected workflow head.
 - [ ] Hand off the PR for owner review.
 
 ## Evaluation
 
-The current branch is six commits ahead of and zero commits behind `main`. The diff contains exactly six files:
+The net diff contains seven files:
 
 - `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`: new 858-line synthesis;
 - `docs/plans/active/product-competitive-memory.md`: this lifecycle packet;
 - `docs/research/README.md`: product-memory index and historical-source boundary;
-- `README.md`: one source-of-truth link and interpretation note;
-- `AGENTS.md`: one task-specific reference replacement, with no line-count growth;
-- `scripts/check-project-knowledge.mjs`: requires the memory, entrypoint links and durable markers.
+- `README.md`: source-of-truth link and interpretation note;
+- `AGENTS.md`: task-specific product-memory reference, with no line-count growth;
+- `scripts/check-project-knowledge.mjs`: requires the memory, entrypoint links, durable markers and ready-for-review CI contract;
+- `.github/workflows/ci.yml`: ensures `verify`, `database` and `e2e` run when a draft PR transitions through the `ready_for_review` event.
 
 Evaluation findings:
 
@@ -115,23 +123,39 @@ Evaluation findings:
 - external products remain examples, not a feature checklist;
 - reconciliation is justified as the next major capability by trust and ledger evidence, not competitor imitation;
 - daily-use and market evidence remain prerequisites for broad feature expansion;
-- no production, provider, schema, dependency, UI or financial behavior changes are included;
-- the script change means exact-head repository verification is required even though product runtime is unchanged.
+- no production, provider, schema, dependency, UI or financial behavior changes are included.
 
-Selected gates:
+### Verification defect discovered
 
-- required: diff hygiene, project knowledge contract, CI classifier contract and JavaScript syntax;
-- expected from classifier because the knowledge script changed: static/domain verification and CodeQL as selected by the repository policy;
-- not applicable by scope unless the repository classifier selects otherwise: database reset, browser smoke, responsive UI audit and production verification.
+The first ready-for-review run was CI #916 on head `883f7878a12322238d216f22ca4333f8858a48a2`.
+
+- the classifier correctly selected `full_verify=true`, `database=false`, `browser_smoke=false`, `ui_audit=false`, `codeql=true`;
+- GitHub nevertheless marked `verify`, `database` and `e2e` as skipped;
+- the job-level condition depended only on `github.event.pull_request.draft == false`;
+- the `ready_for_review` event payload was evaluated from the draft transition and did not satisfy that condition;
+- this allowed a successful workflow conclusion without running the required project-knowledge check.
+
+The fix explicitly accepts `github.event.action == 'ready_for_review'` for all three jobs and adds a permanent knowledge-contract marker. Because `.github/workflows/ci.yml` changed, the repository classifier now fails safe to every gate on the corrected exact head.
+
+Selected final gates:
+
+- diff hygiene;
+- project knowledge and CI classification contracts;
+- dependency install, deployment contract, CSS ownership, architecture, lint, typecheck, unit/static RLS and production build;
+- fresh Supabase reset + pgTAP;
+- browser smoke and cross-device UI audit;
+- CodeQL and secret-history scan;
+- no affected production verification because product behavior is unchanged.
 
 ## Handoff record
 
 ### Current permission boundary
 
-Allowed: repository and web research, documentation changes on the focused branch, pull-request creation and CI inspection.  
+Allowed: repository and web research, documentation and focused CI correction on the branch, pull-request creation and CI inspection.  
 Not allowed: direct `main` write, merge, provider setting changes, production writes, dependency adoption or product behavior changes.
 
 | Time | From | To | State | Evidence |
 |---|---|---|---|---|
 | 2026-08-02 | owner request | researcher / implementer | implementing | Requested competitive comparison, consolidated documentation and durable Git memory |
-| 2026-08-02 | researcher / implementer | evaluator | evaluating | Six-file branch diff completed and compared against `main`; exact-head CI remains |
+| 2026-08-02 | researcher / implementer | evaluator | evaluating | Competitive memory and entrypoints completed; PR #214 opened |
+| 2026-08-02 | evaluator | implementer / evaluator | evaluating | CI #916 exposed skipped required jobs on `ready_for_review`; workflow condition corrected and regression marker added |
