@@ -180,7 +180,7 @@ select is(
 );
 
 select is(
-  (select cleared_entry_count
+  (select cleared_account_leg_count
    from public.account_reconciliation_summaries
    where id = current_setting(
      'moneyflow_test.split_reconciliation_session'
