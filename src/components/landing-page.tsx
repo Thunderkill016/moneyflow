@@ -14,6 +14,7 @@ import {
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { RevealSection } from "@/components/reveal";
 import styles from "./landing-page.module.css";
+import themeStyles from "./public-brand-theme.module.css";
 
 const traceSteps = [
   {
@@ -64,7 +65,7 @@ const controlPoints = [
 
 export function LandingPage() {
   return (
-    <div className={styles.page}>
+    <div className={`${styles.page} ${themeStyles.landingTheme}`}>
       <a className={styles.skipLink} href="#noi-dung">
         Bỏ qua điều hướng
       </a>
