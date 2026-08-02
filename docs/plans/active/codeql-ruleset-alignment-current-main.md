@@ -20,6 +20,23 @@ This failure was reproduced twice:
 
 PR #221 implemented the correct workflow change and proved that `Initialize CodeQL` and `Analyze` both succeed. Its branch was based on an older `main`, and the ruleset required fresh merge-candidate checks after `main` advanced. This packet recreates the same bounded fix directly from current `main` rather than bypassing protection.
 
+## Research
+
+### Decision question
+
+How should MoneyFlow satisfy the active GitHub code-scanning rule without turning unrelated application, database and browser verification into unconditional work?
+
+### Evidence
+
+- GitHub's merge API rejected PR #229 because code scanning was waiting for analysis on the merge candidate.
+- PR #229's successful CodeQL job had skipped initialization and analysis because the diff was documentation-only.
+- PR #221's replacement workflow ran both `Initialize CodeQL` and `Analyze` successfully.
+- The repository connector exposes no safe ruleset-bypass or provider-setting mutation for this task.
+
+### Conclusion and limits
+
+Always upload a real JavaScript/TypeScript CodeQL analysis for pull requests while leaving application, database and browser gates risk-proportional. This is a provider-compatibility requirement, not a claim that Markdown itself introduces JavaScript risk. No branch-protection setting is changed.
+
 ## Specification
 
 - Every pull request targeting `main` uploads a real JavaScript/TypeScript CodeQL analysis.
