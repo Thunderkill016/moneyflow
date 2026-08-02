@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useId, useState } from "react";
+import { ArrowRightLeft, Search, ShieldCheck } from "lucide-react";
 import {
   login,
   register,
@@ -10,9 +11,9 @@ import {
   updatePassword,
   type AuthState,
 } from "@/app/(auth)/actions";
+import { AuthTurnstile } from "@/components/auth-turnstile";
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon } from "@/components/icons";
-import { AuthTurnstile } from "@/components/auth-turnstile";
 import { getPublicAuthCaptchaConfig } from "@/lib/auth-captcha";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import styles from "./auth-form.module.css";
@@ -21,27 +22,29 @@ type Mode = "login" | "register" | "forgot" | "update";
 
 const copy = {
   login: {
-    eyebrow: "Tài khoản MoneyFlow",
-    title: "Đăng nhập",
-    description: "Tiếp tục quản lý tài khoản và giao dịch của bạn.",
+    eyebrow: "Quay lại sổ của bạn",
+    title: "Đăng nhập vào MoneyFlow",
+    description:
+      "Tiếp tục từ giao dịch gần nhất và kiểm tra dòng tiền của bạn.",
     submit: "Đăng nhập",
   },
   register: {
-    eyebrow: "Bắt đầu với MoneyFlow",
-    title: "Tạo tài khoản",
-    description: "Ghi thu chi và theo dõi số dư trong một nơi rõ ràng.",
+    eyebrow: "Bắt đầu một sổ có thể đối chiếu",
+    title: "Tạo tài khoản MoneyFlow",
+    description:
+      "Ghi thu, chi và chuyển tiền đúng bản chất ngay từ đầu.",
     submit: "Tạo tài khoản",
   },
   forgot: {
-    eyebrow: "Khôi phục tài khoản",
-    title: "Quên mật khẩu?",
+    eyebrow: "Khôi phục quyền truy cập",
+    title: "Đặt lại mật khẩu",
     description:
-      "Nhập email đã đăng ký. Chúng tôi sẽ gửi liên kết để bạn đặt lại mật khẩu.",
+      "Nhập email đã đăng ký. Chúng tôi sẽ gửi liên kết để bạn tạo mật khẩu mới.",
     submit: "Gửi liên kết",
   },
   update: {
-    eyebrow: "Hoàn tất khôi phục",
-    title: "Đặt mật khẩu mới",
+    eyebrow: "Bảo mật tài khoản",
+    title: "Tạo mật khẩu mới",
     description:
       "Mật khẩu mới cần ít nhất 12 ký tự và chỉ nên được dùng cho MoneyFlow.",
     submit: "Lưu mật khẩu mới",
@@ -50,6 +53,24 @@ const copy = {
   Mode,
   { eyebrow: string; title: string; description: string; submit: string }
 >;
+
+const proofPoints = [
+  {
+    icon: ArrowRightLeft,
+    title: "Thu, chi và chuyển tiền tách biệt",
+    body: "Chuyển nội bộ không bị tính nhầm thành chi tiêu.",
+  },
+  {
+    icon: Search,
+    title: "Mỗi số tổng đều có chỗ kiểm tra",
+    body: "Mở sổ để xem đúng giao dịch đứng sau thay đổi số dư.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Không cần mật khẩu ngân hàng",
+    body: "Bạn chủ động quyết định dữ liệu nào được ghi vào MoneyFlow.",
+  },
+] as const;
 
 const initialState: AuthState = {};
 
@@ -97,231 +118,254 @@ export function AuthForm({
 
   return (
     <main className={styles.page}>
-      <div className={styles.shell}>
-        <BrandLockup
-          className={styles.brand}
-          href="/"
-          ariaLabel="MoneyFlow, trang chủ"
-          size="standard"
-        />
+      <div className={styles.pageShell}>
+        <header className={styles.topbar}>
+          <BrandLockup
+            className={styles.brand}
+            href="/"
+            ariaLabel="MoneyFlow, trang chủ"
+            size="standard"
+          />
+          <Link href="/" className={styles.homeLink}>
+            ← Trang chủ
+          </Link>
+        </header>
 
-        <section className={styles.card} aria-labelledby={titleId}>
-          <header className={styles.cardHeader}>
-            <p className={styles.eyebrow}>{content.eyebrow}</p>
-            <h1 id={titleId}>{content.title}</h1>
-            <p className={styles.description}>{content.description}</p>
-          </header>
+        <div className={styles.authStage}>
+          <section className={styles.card} aria-labelledby={titleId}>
+            <header className={styles.cardHeader}>
+              <p className={styles.eyebrow}>{content.eyebrow}</p>
+              <h1 id={titleId}>{content.title}</h1>
+              <p className={styles.description}>{content.description}</p>
+            </header>
 
-          {demoMode && mode === "login" && (
-            <div className={styles.demoNotice} role="status">
-              <strong>Đang ở chế độ demo</strong>
-              <span>Dữ liệu demo chỉ được lưu trong trình duyệt này.</span>
-              <Link href="/dashboard">Tiếp tục bản demo</Link>
-            </div>
-          )}
+            {demoMode && mode === "login" && (
+              <div className={styles.demoNotice} role="status">
+                <strong>Đang ở chế độ demo</strong>
+                <span>Dữ liệu demo chỉ được lưu trong trình duyệt này.</span>
+                <Link href="/dashboard">Tiếp tục bản demo</Link>
+              </div>
+            )}
 
-          {(mode === "login" || mode === "register") && (
-            <form action={signInWithGoogle}>
-              <input type="hidden" name="next" value={next} />
-              <button
-                className={styles.googleButton}
-                type="submit"
-                disabled={pending}
-              >
-                <svg
-                  aria-hidden="true"
-                  width="18"
-                  height="18"
-                  viewBox="0 0 18 18"
+            {(mode === "login" || mode === "register") && (
+              <form action={signInWithGoogle}>
+                <input type="hidden" name="next" value={next} />
+                <button
+                  className={styles.googleButton}
+                  type="submit"
+                  disabled={pending}
                 >
-                  <path
-                    fill="#4285F4"
-                    d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.91c1.7-1.56 2.69-3.86 2.69-6.6z"
-                  />
-                  <path
-                    fill="#34A853"
-                    d="M9 18c2.43 0 4.47-.8 5.96-2.2l-2.91-2.26c-.8.54-1.85.86-3.05.86-2.34 0-4.32-1.58-5.03-3.7H.95v2.32A9 9 0 0 0 9 18z"
-                  />
-                  <path
-                    fill="#FBBC05"
-                    d="M3.97 10.7a5.4 5.4 0 0 1 0-3.4V4.98H.95a9 9 0 0 0 0 8.04l3.02-2.32z"
-                  />
-                  <path
-                    fill="#EA4335"
-                    d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.3A9 9 0 0 0 .95 4.98l3.02 2.32C4.68 5.16 6.66 3.58 9 3.58z"
-                  />
-                </svg>
-                Tiếp tục với Google
-              </button>
-            </form>
-          )}
-
-          {(mode === "login" || mode === "register") && (
-            <div className={styles.divider}>
-              <span>hoặc tiếp tục bằng email</span>
-            </div>
-          )}
-
-          <form className={styles.form} action={formAction} noValidate>
-            <input type="hidden" name="next" value={next} />
-
-            {mode === "register" && (
-              <label>
-                <span>Họ và tên</span>
-                <input
-                  id={`${baseId}-fullName`}
-                  name="fullName"
-                  autoComplete="name"
-                  placeholder="Nguyễn Minh Anh"
-                  aria-invalid={Boolean(state.errors?.fullName)}
-                  aria-describedby={
-                    state.errors?.fullName ? fullNameErrorId : undefined
-                  }
-                  disabled={pending}
-                />
-                <FieldError
-                  id={fullNameErrorId}
-                  messages={state.errors?.fullName}
-                />
-              </label>
+                  <svg
+                    aria-hidden="true"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 18 18"
+                  >
+                    <path
+                      fill="#4285F4"
+                      d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.91c1.7-1.56 2.69-3.86 2.69-6.6z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M9 18c2.43 0 4.47-.8 5.96-2.2l-2.91-2.26c-.8.54-1.85.86-3.05.86-2.34 0-4.32-1.58-5.03-3.7H.95v2.32A9 9 0 0 0 9 18z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M3.97 10.7a5.4 5.4 0 0 1 0-3.4V4.98H.95a9 9 0 0 0 0 8.04l3.02-2.32z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.3A9 9 0 0 0 .95 4.98l3.02 2.32C4.68 5.16 6.66 3.58 9 3.58z"
+                    />
+                  </svg>
+                  Tiếp tục với Google
+                </button>
+              </form>
             )}
 
-            {mode !== "update" && (
-              <label>
-                <span>Email</span>
-                <input
-                  id={`${baseId}-email`}
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="ban@example.com"
-                  aria-invalid={Boolean(state.errors?.email)}
-                  aria-describedby={
-                    state.errors?.email ? emailErrorId : undefined
-                  }
-                  disabled={pending}
-                />
-                <FieldError id={emailErrorId} messages={state.errors?.email} />
-              </label>
+            {(mode === "login" || mode === "register") && (
+              <div className={styles.divider}>
+                <span>hoặc tiếp tục bằng email</span>
+              </div>
             )}
 
-            {(mode === "login" || mode === "register" || mode === "update") && (
-              <label>
-                <span className={styles.fieldLabelRow}>
-                  <span>Mật khẩu</span>
-                  {mode === "login" && (
-                    <Link href="/forgot-password">Quên mật khẩu?</Link>
-                  )}
-                </span>
-                <input
-                  id={`${baseId}-password`}
-                  name="password"
-                  type="password"
-                  autoComplete={
-                    mode === "login" ? "current-password" : "new-password"
-                  }
-                  placeholder="Ít nhất 12 ký tự"
-                  aria-invalid={Boolean(state.errors?.password)}
-                  aria-describedby={
-                    state.errors?.password ? passwordErrorId : undefined
-                  }
-                  disabled={pending}
-                />
-                <FieldError
-                  id={passwordErrorId}
-                  messages={state.errors?.password}
-                />
-              </label>
-            )}
+            <form className={styles.form} action={formAction} noValidate>
+              <input type="hidden" name="next" value={next} />
 
-            {mode === "register" && (
-              <div className={styles.privacy}>
-                <label className={styles.privacyLabel}>
+              {mode === "register" && (
+                <label>
+                  <span>Họ và tên</span>
                   <input
-                    id={`${baseId}-privacy`}
-                    name="privacyAccepted"
-                    type="checkbox"
-                    value="1"
-                    aria-invalid={Boolean(state.errors?.privacyAccepted)}
+                    id={`${baseId}-fullName`}
+                    name="fullName"
+                    autoComplete="name"
+                    placeholder="Nguyễn Minh Anh"
+                    aria-invalid={Boolean(state.errors?.fullName)}
                     aria-describedby={
-                      state.errors?.privacyAccepted ? privacyErrorId : undefined
+                      state.errors?.fullName ? fullNameErrorId : undefined
                     }
                     disabled={pending}
                   />
-                  <span>
-                    Tôi đồng ý với{" "}
-                    <Link href="/privacy">chính sách quyền riêng tư</Link>
-                  </span>
+                  <FieldError
+                    id={fullNameErrorId}
+                    messages={state.errors?.fullName}
+                  />
                 </label>
-                <FieldError
-                  id={privacyErrorId}
-                  messages={state.errors?.privacyAccepted}
-                />
-              </div>
-            )}
+              )}
 
-            {captchaEnabled && captchaConfig.siteKey && (
-              <div className={styles.captchaBlock}>
-                <AuthTurnstile
-                  className={styles.captcha}
-                  siteKey={captchaConfig.siteKey}
-                  token={captchaToken}
-                  pending={pending}
-                  onTokenChange={setCaptchaToken}
-                />
-                <small>
-                  Xác minh bảo mật có thể hoàn tất tự động mà không hiện ô tích.
-                </small>
-              </div>
-            )}
+              {mode !== "update" && (
+                <label>
+                  <span>Email</span>
+                  <input
+                    id={`${baseId}-email`}
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="ban@example.com"
+                    aria-invalid={Boolean(state.errors?.email)}
+                    aria-describedby={
+                      state.errors?.email ? emailErrorId : undefined
+                    }
+                    disabled={pending}
+                  />
+                  <FieldError id={emailErrorId} messages={state.errors?.email} />
+                </label>
+              )}
 
-            {captchaEnabled && !captchaConfig.ready && (
-              <div className={styles.message} role="alert">
-                Xác minh bảo mật chưa được cấu hình. Hãy thử lại sau.
-              </div>
-            )}
+              {(mode === "login" || mode === "register" || mode === "update") && (
+                <label>
+                  <span className={styles.fieldLabelRow}>
+                    <span>Mật khẩu</span>
+                    {mode === "login" && (
+                      <Link href="/forgot-password">Quên mật khẩu?</Link>
+                    )}
+                  </span>
+                  <input
+                    id={`${baseId}-password`}
+                    name="password"
+                    type="password"
+                    autoComplete={
+                      mode === "login" ? "current-password" : "new-password"
+                    }
+                    placeholder="Ít nhất 12 ký tự"
+                    aria-invalid={Boolean(state.errors?.password)}
+                    aria-describedby={
+                      state.errors?.password ? passwordErrorId : undefined
+                    }
+                    disabled={pending}
+                  />
+                  <FieldError
+                    id={passwordErrorId}
+                    messages={state.errors?.password}
+                  />
+                </label>
+              )}
 
-            {state.message && (
-              <div
-                className={`${styles.message} ${
-                  state.success ? styles.messageSuccess : ""
-                }`}
-                role={state.success ? "status" : "alert"}
+              {mode === "register" && (
+                <div className={styles.privacy}>
+                  <label className={styles.privacyLabel}>
+                    <input
+                      id={`${baseId}-privacy`}
+                      name="privacyAccepted"
+                      type="checkbox"
+                      value="1"
+                      aria-invalid={Boolean(state.errors?.privacyAccepted)}
+                      aria-describedby={
+                        state.errors?.privacyAccepted ? privacyErrorId : undefined
+                      }
+                      disabled={pending}
+                    />
+                    <span>
+                      Tôi đồng ý với{" "}
+                      <Link href="/privacy">chính sách quyền riêng tư</Link>
+                    </span>
+                  </label>
+                  <FieldError
+                    id={privacyErrorId}
+                    messages={state.errors?.privacyAccepted}
+                  />
+                </div>
+              )}
+
+              {captchaEnabled && captchaConfig.siteKey && (
+                <div className={styles.captchaBlock}>
+                  <AuthTurnstile
+                    className={styles.captcha}
+                    siteKey={captchaConfig.siteKey}
+                    token={captchaToken}
+                    pending={pending}
+                    onTokenChange={setCaptchaToken}
+                  />
+                  <small>
+                    Xác minh bảo mật có thể hoàn tất tự động mà không hiện ô tích.
+                  </small>
+                </div>
+              )}
+
+              {captchaEnabled && !captchaConfig.ready && (
+                <div className={styles.message} role="alert">
+                  Xác minh bảo mật chưa được cấu hình. Hãy thử lại sau.
+                </div>
+              )}
+
+              {state.message && (
+                <div
+                  className={`${styles.message} ${
+                    state.success ? styles.messageSuccess : ""
+                  }`}
+                  role={state.success ? "status" : "alert"}
+                >
+                  {state.message}
+                </div>
+              )}
+
+              <button
+                className={styles.submit}
+                disabled={pending || captchaBlocked}
+                type="submit"
+                aria-busy={pending}
               >
-                {state.message}
-              </div>
+                {pending ? "Đang xử lý…" : content.submit}
+                {!pending && <Icon name="arrowRight" />}
+              </button>
+            </form>
+
+            {mode === "login" && (
+              <p className={styles.switchLink}>
+                Chưa có tài khoản? <Link href="/register">Đăng ký</Link>
+              </p>
             )}
+            {mode === "register" && (
+              <p className={styles.switchLink}>
+                Đã có tài khoản? <Link href="/login">Đăng nhập</Link>
+              </p>
+            )}
+            {(mode === "forgot" || mode === "update") && (
+              <p className={styles.switchLink}>
+                <Link href="/login">← Quay lại đăng nhập</Link>
+              </p>
+            )}
+          </section>
 
-            <button
-              className={styles.submit}
-              disabled={pending || captchaBlocked}
-              type="submit"
-              aria-busy={pending}
-            >
-              {pending ? "Đang xử lý…" : content.submit}
-              {!pending && <Icon name="arrowRight" />}
-            </button>
-          </form>
-
-          {mode === "login" && (
-            <p className={styles.switchLink}>
-              Chưa có tài khoản? <Link href="/register">Đăng ký</Link>
-            </p>
-          )}
-          {mode === "register" && (
-            <p className={styles.switchLink}>
-              Đã có tài khoản? <Link href="/login">Đăng nhập</Link>
-            </p>
-          )}
-          {(mode === "forgot" || mode === "update") && (
-            <p className={styles.switchLink}>
-              <Link href="/login">← Quay lại đăng nhập</Link>
-            </p>
-          )}
-        </section>
+          <aside className={styles.proofRail} aria-label="Điều MoneyFlow cam kết">
+            <p className={styles.proofEyebrow}>Một sổ có thể đối chiếu</p>
+            <h2>Đăng nhập để tiếp tục từ dữ liệu của chính bạn.</h2>
+            <div className={styles.proofList}>
+              {proofPoints.map((point) => (
+                <article key={point.title}>
+                  <point.icon size={20} aria-hidden="true" />
+                  <div>
+                    <h3>{point.title}</h3>
+                    <p>{point.body}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </aside>
+        </div>
 
         <p className={styles.securityNote}>
-          <Icon name="check" size={15} />
+          <ShieldCheck size={15} aria-hidden="true" />
           MoneyFlow không yêu cầu mật khẩu ngân hàng.
         </p>
       </div>
