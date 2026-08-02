@@ -16,6 +16,7 @@
   --public-stage-text: var(--mf-stage-text);
   --public-stage-muted: var(--mf-stage-muted);
   --public-warm: var(--mf-brand-100);
+  color-scheme: light;
 }
 
 :global(html[data-theme="dark"]) .landingTheme.landingTheme {
@@ -36,6 +37,15 @@
   --public-stage-text: var(--mf-stage-text);
   --public-stage-muted: var(--mf-stage-muted);
   --public-warm: var(--mf-brand-subtle);
+  color-scheme: dark;
+}
+
+.landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] {
+  box-shadow: var(--mf-shadow-lg);
+}
+
+.landingTheme a[href="/register"]:hover {
+  box-shadow: 0 10px 25px rgb(17 24 39 / 14%);
 }
 
 .authTheme.authTheme {
@@ -55,6 +65,7 @@
   --auth-stage-soft: var(--mf-stage-soft);
   --auth-stage-text: var(--mf-stage-text);
   --auth-stage-muted: var(--mf-stage-muted);
+  color-scheme: light;
 }
 
 :global(html[data-theme="dark"]) .authTheme.authTheme {
@@ -74,4 +85,9 @@
   --auth-stage-soft: var(--mf-stage-soft);
   --auth-stage-text: var(--mf-stage-text);
   --auth-stage-muted: var(--mf-stage-muted);
+  color-scheme: dark;
+}
+
+.authTheme section[aria-labelledby] {
+  box-shadow: var(--mf-shadow-lg);
 }
