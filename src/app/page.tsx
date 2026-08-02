@@ -35,7 +35,6 @@ const STRUCTURED_DATA = {
   applicationCategory: "FinanceApplication",
   operatingSystem: "Web",
   description: DESCRIPTION,
-  offers: { "@type": "Offer", price: "0", priceCurrency: "VND" },
 };
 
 /**
