@@ -4,7 +4,7 @@
 - **Branch:** `feat/transaction-range-filters-current-main`
 - **Change class:** Class 2 bounded UI/read-flow
 - **Work packet:** not required; one existing route/client surface, no persistence, provider work, unresolved research or non-obvious rollback
-- **Status:** verifying
+- **Status:** evaluated; final evidence-only exact-head verification pending
 - **Last updated:** 2026-08-03
 
 ## Technical context
@@ -27,7 +27,7 @@
 | Product scope | Deepens an existing ledger review loop | pass |
 | Current evidence | Current files equal the PR #223 pre-feature baseline; stale memory is not reused | pass |
 | Bounded slice | One route, one client surface, pure helper, scoped CSS and tests | pass |
-| Risk-proportional verification | Full static/build, browser/mobile/UI, CodeQL and secret scan | pass |
+| Risk-proportional verification | Full static/build, browser/mobile/UI, CodeQL and secret scan | pass on implementation head; final evidence-only head pending |
 
 ## Repository changes
 
@@ -75,6 +75,20 @@ The implementation blobs are re-evaluated from PR #223 only because the three ex
 | Stale PR docs overwrite current truth | Exclude PR #223 memory/gap rewrites; create new bounded record |
 | SAFE-09 reads a detached pre-hydration node or depends on unrelated quick capture | Seed one contract-valid transaction directly and poll current connected geometry; retain all layout thresholds |
 
+## Acceptance evaluation
+
+| Acceptance area | Result | Evidence |
+|---|---|---|
+| Inclusive date/amount filtering and composition | pass | unit contracts and transaction Playwright flow |
+| Canonical URL restoration and clear behavior | pass | route normalization, serialization tests and browser flow |
+| Correction retains context | pass | desktop/mobile edit flow and explanatory notice |
+| Totals/pagination remain truthful | pass | filter-before-window implementation and regression tests |
+| Responsive/accessibility behavior | pass | 44px controls, named inputs, 4/2/1 layout and cross-device audit |
+| Financial/data/security boundary | pass | exact diff contains no schema/RLS/provider/mutation-owner change |
+| SAFE-09 stabilization | pass | implementation head audit passed at 320/360/390px with unchanged thresholds |
+
+Implementation head `d294e50872d5a78c332d1dce288678fa505f7819` passed CI #1127, CodeQL #283, Secret #283, 24/24 Playwright smoke and 384 passed/125 skipped cross-device audit cases. Artifact: `8837389357`, digest `sha256:26aa3d06b4f835b3617f8508da790d80c5b38cc1609f5c84f0441004ad8b69ec`.
+
 ## Permission boundary
 
 - Allowed: focused branch and listed source/test/spec/memory paths.
@@ -95,8 +109,8 @@ The implementation blobs are re-evaluated from PR #223 only because the three ex
 
 ## Delivery
 
-1. Create a draft replacement PR from current `main`.
-2. Add the PR-numbered memory record and update only current open-PR truth.
-3. Close PR #223 as superseded after the replacement exists.
-4. Mark ready only after exact-head selected checks and independent acceptance review.
+1. Replacement PR #232 exists on current `main`; PR #223 is closed unmerged as superseded.
+2. Requirements, implementation and implementation-head evidence are evaluated.
+3. Run the same selected gates on the final evidence-only head.
+4. Update the PR body without changing the branch and prepare owner review handoff.
 5. Owner decides merge and deployment.
