@@ -141,6 +141,7 @@ const requiredReadmeLinks = [
   "ARCHITECTURE.md",
   "docs/product/PRINCIPLES.md",
   "docs/research/CURRENT_PROJECT_MEMORY.md",
+  "docs/research/PR_MEMORY_LOG.md",
   "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
