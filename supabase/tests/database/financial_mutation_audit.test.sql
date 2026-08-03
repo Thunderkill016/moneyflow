@@ -380,6 +380,8 @@ select is(
   0,
   'tenant purge removes audit events before Auth identity deletion'
 );
+
+reset role;
 select is(
   (select count(*)::integer
    from auth.users
