@@ -24,9 +24,20 @@ export type RuleApplyTarget = {
   matchedRuleSummary?: string;
 };
 
+type RuleResultFields = Pick<
+  RuleApplyTarget,
+  | "categoryId"
+  | "category"
+  | "matchedRuleId"
+  | "matchedRuleVersion"
+  | "matchedRuleSummary"
+>;
+
+export type RuleAppliedTarget<T extends RuleApplyTarget> = T & RuleResultFields;
+
 export type RuleApplicationPreview<T extends RuleApplyTarget> = {
   original: T;
-  result: T;
+  result: RuleAppliedTarget<T>;
   match: InboxRule | null;
   changed: boolean;
 };
@@ -78,7 +89,16 @@ export function findMatchingRule(
   return null;
 }
 
-function applyKnownMatch<T extends RuleApplyTarget>(target: T, match: InboxRule): T {
+function unchangedResult<T extends RuleApplyTarget>(
+  target: T,
+): RuleAppliedTarget<T> {
+  return target as RuleAppliedTarget<T>;
+}
+
+function applyKnownMatch<T extends RuleApplyTarget>(
+  target: T,
+  match: InboxRule,
+): RuleAppliedTarget<T> {
   return {
     ...target,
     categoryId: match.categoryId ?? target.categoryId,
@@ -103,11 +123,21 @@ export function previewRuleApplication<T extends RuleApplyTarget>(
   options: { force?: boolean } = {},
 ): RuleApplicationPreview<T> {
   if ((target.category || target.categoryId) && !options.force) {
-    return { original: target, result: target, match: null, changed: false };
+    return {
+      original: target,
+      result: unchangedResult(target),
+      match: null,
+      changed: false,
+    };
   }
   const match = findMatchingRule(rules, target);
   if (!match) {
-    return { original: target, result: target, match: null, changed: false };
+    return {
+      original: target,
+      result: unchangedResult(target),
+      match: null,
+      changed: false,
+    };
   }
   const result = applyKnownMatch(target, match);
   return {
@@ -126,7 +156,7 @@ export function applyRuleToTarget<T extends RuleApplyTarget>(
   target: T,
   rules: InboxRule[],
   options: { force?: boolean } = {},
-): T {
+): RuleAppliedTarget<T> {
   return previewRuleApplication(target, rules, options).result;
 }
 
@@ -134,8 +164,8 @@ export function applyRulesToTargets<T extends RuleApplyTarget>(
   targets: T[],
   rules: InboxRule[],
   options: { force?: boolean } = {},
-): T[] {
-  if (rules.length === 0) return targets;
+): RuleAppliedTarget<T>[] {
+  if (rules.length === 0) return targets.map(unchangedResult);
   return targets.map((item) => applyRuleToTarget(item, rules, options));
 }
 
@@ -144,7 +174,7 @@ export function applyRulesToParsed(
   candidates: ParsedCandidate[],
   rules: InboxRule[],
   options: { force?: boolean } = {},
-): ParsedCandidate[] {
+): RuleAppliedTarget<ParsedCandidate>[] {
   return applyRulesToTargets(candidates, rules, options);
 }
 
