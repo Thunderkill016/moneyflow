@@ -1,4 +1,6 @@
 .boundary :global(.manager-toolbar label:has(select[aria-label="Lọc theo trạng thái kiểm tra"])),
+.boundary :global(.filter-reset-button),
+.boundary :global(.filter-empty button),
 .boundary :global([aria-label="Chọn giao dịch"]),
 .boundary :global([aria-label="Thao tác hàng loạt"]),
 .boundary :global(.transaction-detail > span:has(input[aria-label^="Chọn giao dịch "])) {
