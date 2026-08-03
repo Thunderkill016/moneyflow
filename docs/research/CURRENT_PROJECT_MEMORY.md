@@ -81,7 +81,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Accessibility/mobile | **Substantially implemented** | 44px targets, accessible names, modal placement, money wrapping and Vietnamese/VND regressions | physical keyboard/device proof and remaining confirmations |
 | CI/security scanning | **Implemented** | stable risk checks, real CodeQL analysis on every PR, secret scan, pinned Actions and knowledge/classifier contracts | keep ruleset, workflow and classifier guidance aligned |
 | Specification workflow | **Implemented** | pinned Spec Kit adapter, constitution and templates integrated with MoneyFlow governance | run/review official initializer only in a dedicated pinned upgrade |
-| Database verification | **Implemented** | fresh reset, pgTAP domain/RLS/tenant/attack suites | reconciliation tests; PR #236 is candidate-only for foreign-key coverage indexes |
+| Database verification | **Implemented** | fresh reset, pgTAP domain/RLS/tenant/attack suites | reconciliation tests; PR #236 is candidate-only for complete foreign-key index coverage |
 | Performance tooling | **Implemented; acceptance partial** | dashboard one-RPC/bounds, k6 public/auth profiles and budgets | staging concurrency and realistic large-ledger benchmarks |
 | Analytics | **Implemented baseline** | Vercel Analytics and Speed Insights | no retention/conversion claim without defined events/cohorts |
 
@@ -134,7 +134,7 @@ Open PRs are not product truth. Refresh and reverify against current `main` befo
 
 | PR | Interpretation |
 |---|---|
-| #236 | current-main candidate adding 13 foreign-key coverage indexes plus a generic non-partial left-prefix pgTAP invariant; no production migration applied |
+| #236 | current-main candidate adding 14 foreign-key coverage indexes plus a diagnostic complete left-prefix pgTAP invariant; two separately proven nullable-FK partial indexes remain valid; no production migration applied |
 | #198 | provider-security runbook candidate; repository documentation only, no provider operation performed |
 | #197 | Dependabot-noise maintenance candidate from an older baseline; refresh before reuse |
 | #170/#171 | diverged stacked CSS cleanup candidates; compare current CSS ownership and tests before reuse |
@@ -175,7 +175,7 @@ Parallel tracks: ledger trust; planning depth; reports/export/performance; advan
 
 Transaction range filters are merged and should be treated as an existing ledger capability. The next ledger slice must specify review state or bounded correction separately. Reconciliation requires its own owner-approved financial/data specification and must never be inferred from account history or filtering.
 
-PR #236 is the current-main technical candidate for the measured foreign-key index findings. It must pass fresh migration replay and full pgTAP on its exact head; historical PR #211 checks are provenance only and cannot authorize merge or production deployment.
+PR #236 is the current-main technical candidate for complete public foreign-key index coverage: 13 original advisor-derived indexes plus one provenance-owner index discovered by strict current-main pgTAP. It must pass final exact-head migration replay and full pgTAP; historical PR #211 checks are provenance only and cannot authorize merge or production deployment.
 
 Validation is embedded in each PR: financial/data uses unit + migration replay + pgTAP + affected browser evidence; UI uses responsive/browser and physical-device proof where claimed; provider changes require before/after evidence, rollback and production smoke. Protected CodeQL analysis is required for every PR independently of product-layer gate selection.
 
@@ -196,6 +196,7 @@ Do not repeat these as current facts:
 - Transaction date/amount filters are missing or candidate-only.
 - Account history or transaction filtering proves reconciliation.
 - PR #211 is the current FK-index delivery candidate.
+- Thirteen advisor findings alone prove complete public FK coverage.
 - A successful CodeQL job shell proves scanning when initialization or analysis was skipped.
 - Spec Kit replaces MoneyFlow governance.
 - The merged public-experience candidate is the owner-approved final design.
