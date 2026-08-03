@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
 import { TransactionsPage } from "@/components/transactions-page";
+import {
+  normalizeTransactionAmountInput,
+  normalizeTransactionDateParam,
+} from "@/lib/transaction-filters";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
 
@@ -19,7 +23,16 @@ function normalizeKind(value: string | undefined): TransactionKind {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string; kind?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    category?: string;
+    kind?: string;
+    account?: string;
+    from?: string;
+    to?: string;
+    min?: string;
+    max?: string;
+  }>;
 }) {
   const params = await searchParams;
   const viewer = await requireViewer();
@@ -28,6 +41,11 @@ export default async function Page({
     (item) => item.name === params.category,
   )
     ? params.category
+    : "all";
+  const initialAccount = workspace.accounts.some(
+    (item) => item.name === params.account,
+  )
+    ? params.account
     : "all";
 
   return (
@@ -38,8 +56,14 @@ export default async function Page({
         isDemo: viewer.isDemo,
       }}
       workspace={workspace}
+      initialQuery={params.q?.slice(0, 200) ?? ""}
       initialCategory={initialCategory}
+      initialAccount={initialAccount}
       initialKind={normalizeKind(params.kind)}
+      initialFromDate={normalizeTransactionDateParam(params.from)}
+      initialToDate={normalizeTransactionDateParam(params.to)}
+      initialMinAmount={normalizeTransactionAmountInput(params.min)}
+      initialMaxAmount={normalizeTransactionAmountInput(params.max)}
     />
   );
 }
