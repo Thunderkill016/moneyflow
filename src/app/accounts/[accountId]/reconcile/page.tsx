@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AccountReconciliationPage } from "@/components/account-reconciliation-page";
+import { AccountReconciliationPageGate } from "@/components/account-reconciliation-page-gate";
 import { buildAccountRegister } from "@/lib/account-register";
 import { getAccountsWorkspace } from "@/server/accounts";
 import { requireViewer } from "@/server/auth";
@@ -42,7 +42,7 @@ export default async function Page({
       };
 
   return (
-    <AccountReconciliationPage
+    <AccountReconciliationPageGate
       viewer={{
         email: viewer.email,
         displayName: viewer.displayName,
