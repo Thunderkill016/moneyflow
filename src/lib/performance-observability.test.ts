@@ -19,6 +19,9 @@ test("root layout collects production web vitals through the privacy wrapper", (
 test("real transaction creation uses React optimistic state", () => {
   assert.match(hook, /useOptimistic/);
   assert.match(hook, /startTransition\(async \(\) =>/);
-  assert.match(hook, /addOptimisticTransaction\(optimistic\.transaction\)/);
+  assert.match(
+    hook,
+    /addOptimisticTransaction\((?:withReviewStatus\()?optimistic\.transaction\)?\)/,
+  );
   assert.match(hook, /transactions: optimisticTransactions/);
 });
