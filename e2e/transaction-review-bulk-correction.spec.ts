@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+const FIXTURE_MARKER = "__moneyflow-review-bulk-fixture-v1";
 const SEEDED_TRANSACTIONS = [
   {
     id: "review-expense-one",
@@ -63,15 +64,20 @@ const SEEDED_TRANSACTIONS = [
 
 test.describe("Transaction review and bounded bulk correction", () => {
   test.beforeEach(async ({ context }) => {
-    await context.addInitScript((transactions) => {
-      window.localStorage.clear();
-      window.localStorage.setItem(
-        "moneyflow-demo-transactions-v1",
-        JSON.stringify(transactions),
-      );
-      window.localStorage.setItem("moneyflow-inbox-candidates-v1", "[]");
-      window.localStorage.setItem("moneyflow-onboarding-done", "1");
-    }, SEEDED_TRANSACTIONS);
+    await context.addInitScript(
+      ({ marker, transactions }) => {
+        if (window.localStorage.getItem(marker) === "1") return;
+        window.localStorage.clear();
+        window.localStorage.setItem(
+          "moneyflow-demo-transactions-v1",
+          JSON.stringify(transactions),
+        );
+        window.localStorage.setItem("moneyflow-inbox-candidates-v1", "[]");
+        window.localStorage.setItem("moneyflow-onboarding-done", "1");
+        window.localStorage.setItem(marker, "1");
+      },
+      { marker: FIXTURE_MARKER, transactions: SEEDED_TRANSACTIONS },
+    );
   });
 
   test("reviews and corrects selected expenses while blocking mixed selections", async ({
