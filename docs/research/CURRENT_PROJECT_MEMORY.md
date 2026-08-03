@@ -2,7 +2,7 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-03
-- **Code baseline audited:** `main@29b24617d80b1329072ad681086ce3656a5ab790`
+- **Code baseline audited:** `main@5971ba0cfc587e2482be81f955f4fdf3cb14b45c`
 - **Owner direction:** continue developing existing capabilities toward competitive depth; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 
@@ -81,8 +81,8 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Accessibility/mobile | **Substantially implemented** | 44px targets, accessible names, modal placement, money wrapping and Vietnamese/VND regressions | physical keyboard/device proof and remaining confirmations |
 | CI/security scanning | **Implemented** | stable risk checks, real CodeQL analysis on every PR, secret scan, pinned Actions and knowledge/classifier contracts | keep ruleset, workflow and classifier guidance aligned |
 | Specification workflow | **Implemented** | pinned Spec Kit adapter, constitution and templates integrated with MoneyFlow governance | run/review official initializer only in a dedicated pinned upgrade |
-| Database verification | **Implemented** | fresh reset, pgTAP domain/RLS/tenant/attack suites | reconciliation tests; PR #236 is candidate-only for complete foreign-key index coverage |
-| Performance tooling | **Implemented; acceptance partial** | dashboard one-RPC/bounds, k6 public/auth profiles and budgets | staging concurrency and realistic large-ledger benchmarks |
+| Database verification | **Implemented** | fresh reset, pgTAP domain/RLS/tenant/attack suites, complete tested public-FK left-prefix index coverage and diagnostic recurrence gate | reconciliation tests; production migration deployment and advisor rerun remain external evidence |
+| Performance tooling | **Implemented; acceptance partial** | dashboard one-RPC/bounds, complete public-FK coverage migration, k6 public/auth profiles and budgets | production advisor rerun, staging concurrency and realistic large-ledger benchmarks |
 | Analytics | **Implemented baseline** | Vercel Analytics and Speed Insights | no retention/conversion claim without defined events/cohorts |
 
 ## 6. Load-bearing merged truth
@@ -95,6 +95,8 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - PR #234 merged inclusive transaction date and integer-amount filters, canonical URL state, explicit invalid-range feedback, filter-preserving correction context and responsive controls at `45b6f22de80aa7c1fd67f2f402f4ffd6bd147cc8`.
 - PR #234 exact head passed CI #1145, CodeQL #298 and Secret history scan #298, including browser smoke and cross-device UI audit; that is repository/browser evidence, not a production-deployment claim.
 - PR #235 reconciled canonical memory and completed the transaction-range Spec Kit lifecycle at `29b24617d80b1329072ad681086ce3656a5ab790`; it made no runtime or database change.
+- PR #236 merged fourteen additive foreign-key coverage indexes and a diagnostic complete-coverage pgTAP gate at `5971ba0cfc587e2482be81f955f4fdf3cb14b45c`.
+- PR #236 final head `443d30d7537af3c758659658a530be35677c6cf5` passed CI #1175 with a fresh reset and all 281 pgTAP tests, CodeQL #326 with real Initialize/Analyze and Secret history scan #326. This is repository migration-replay evidence, not proof of production deployment or a clean production advisor.
 - PR #215 established layered project memory: concise hot rules, current snapshot, task routing and bounded cold PR records.
 - PR #213 merged and deployed one landing/auth/color candidate. That proves implementation, not final owner design approval.
 - The authenticated dashboard uses bounded `get_dashboard_bundle`; schema-skew fallback prevents false zero/empty data and must not be removed without equivalent evidence.
@@ -109,9 +111,9 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 
 ## 7. Engineering and evidence boundary
 
-Implemented engineering evidence includes modular boundaries, neutral transaction contracts, shared mutation owners, viewer-scoped account register projection, composable transaction filters, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names, real CodeQL analysis and load-profile contracts.
+Implemented engineering evidence includes modular boundaries, neutral transaction contracts, shared mutation owners, viewer-scoped account register projection, composable transaction filters, complete tested public-FK index coverage, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names, real CodeQL analysis and load-profile contracts.
 
-Still needed: physical Android/iOS evidence, deep validation/destructive/Inbox states, approved staging load, realistic large-ledger benchmarks and non-sensitive mutation audit.
+Still needed: physical Android/iOS evidence, deep validation/destructive/Inbox states, approved staging load, realistic large-ledger benchmarks, production advisor rerun after the FK-index migration is deployed and non-sensitive mutation audit.
 
 A screenshot, route existence, passing build or unmerged branch alone never proves completion. Provider and production claims require provider/production evidence.
 
@@ -119,11 +121,11 @@ A screenshot, route existence, passing build or unmerged branch alone never prov
 
 | Issue/slice | Current status |
 |---|---|
-| #53 DB invariants | **Substantially implemented**; verify exact residual checklist |
+| #53 DB invariants | **Substantially implemented**; complete public-FK coverage is merged; verify exact residual checklist |
 | #53 import provenance/dry-run | **Completed + production evidenced** through PRs #183/#184 |
 | #53 reconciliation | **Absent; valid financial-trust workstream** |
 | #53 authenticated rules | **Absent; local rules only** |
-| #53 audit/performance | **Partial**; PR #236 is an unmerged current-main FK-index candidate |
+| #53 audit/performance | **Partial**; FK coverage merged through #236, while production advisor rerun and scale acceptance remain |
 | #72 UI audit | Core route/VND/targets/modal/accessibility slices complete; deep states/devices remain |
 | #172 product assessment | Retention/WTP/demand warnings remain useful; old score/state/freeze is superseded |
 | #174 provider controls | Repository readiness implemented; provider configuration/production verification remain |
@@ -134,13 +136,12 @@ Open PRs are not product truth. Refresh and reverify against current `main` befo
 
 | PR | Interpretation |
 |---|---|
-| #236 | current-main candidate adding 14 foreign-key coverage indexes plus a diagnostic complete left-prefix pgTAP invariant; two separately proven nullable-FK partial indexes remain valid; no production migration applied |
 | #198 | provider-security runbook candidate; repository documentation only, no provider operation performed |
 | #197 | Dependabot-noise maintenance candidate from an older baseline; refresh before reuse |
 | #170/#171 | diverged stacked CSS cleanup candidates; compare current CSS ownership and tests before reuse |
 | #119 | logo candidate requiring current browser evidence and explicit owner visual approval |
 
-Recently closed unmerged as stale, redundant or superseded: #236 replaces #211; #232 replaced #223 and was itself replaced by merged #234 because of ancestry protection; #230 replaced #221; merged #213 superseded #208; current runtime superseded #217; #199 was a no-op analytics lockfile PR.
+Recently closed unmerged as stale, redundant or superseded: merged #236 replaced closed unmerged #211; #232 replaced #223 and was itself replaced by merged #234 because of ancestry protection; #230 replaced #221; merged #213 superseded #208; current runtime superseded #217; #199 was a no-op analytics lockfile PR.
 
 ## 10. True gaps after this audit
 
@@ -175,7 +176,7 @@ Parallel tracks: ledger trust; planning depth; reports/export/performance; advan
 
 Transaction range filters are merged and should be treated as an existing ledger capability. The next ledger slice must specify review state or bounded correction separately. Reconciliation requires its own owner-approved financial/data specification and must never be inferred from account history or filtering.
 
-PR #236 is the current-main technical candidate for complete public foreign-key index coverage: 13 original advisor-derived indexes plus one provenance-owner index discovered by strict current-main pgTAP. It must pass final exact-head migration replay and full pgTAP; historical PR #211 checks are provenance only and cannot authorize merge or production deployment.
+Complete public foreign-key index coverage is merged through PR #236. The migration must still be deployed through the approved production process and the production performance advisor rerun before claiming production `unindexed_foreign_keys` closure.
 
 Validation is embedded in each PR: financial/data uses unit + migration replay + pgTAP + affected browser evidence; UI uses responsive/browser and physical-device proof where claimed; provider changes require before/after evidence, rollback and production smoke. Protected CodeQL analysis is required for every PR independently of product-layer gate selection.
 
@@ -196,7 +197,9 @@ Do not repeat these as current facts:
 - Transaction date/amount filters are missing or candidate-only.
 - Account history or transaction filtering proves reconciliation.
 - PR #211 is the current FK-index delivery candidate.
+- PR #236 remains an unmerged candidate.
 - Thirteen advisor findings alone prove complete public FK coverage.
+- Merged repository migration tests prove production deployment or a clean production advisor.
 - A successful CodeQL job shell proves scanning when initialization or analysis was skipped.
 - Spec Kit replaces MoneyFlow governance.
 - The merged public-experience candidate is the owner-approved final design.
