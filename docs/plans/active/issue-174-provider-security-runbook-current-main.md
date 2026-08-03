@@ -1,9 +1,9 @@
 # Issue 174 provider security runbook on current main
 
-**Status:** evaluating
-**Execution state:** current-main replacement in progress
-**Active role:** evaluator
-**Permission scope:** branch_write
+**Status:** ready_for_review
+**Execution state:** replacement PR verified
+**Active role:** human owner
+**Permission scope:** read_only
 **Owner:** Thunderkill016 controls merge, provider writes, production verification and issue acceptance
 **Issue:** #174
 **PR:** #249
@@ -63,7 +63,8 @@ Publish a Vietnamese, owner-operated, public-safe runbook for issue #174 that pr
 - [x] `docs/configuration.md` links to the runbook and states the private-record boundary.
 - [x] PR #198 is closed unmerged after replacement provenance is recorded.
 - [x] Canonical memory records the current replacement candidate and the just-merged Dependabot truth.
-- [ ] Exact-head CI, CodeQL and secret-history scan pass.
+- [x] Implementation head passed CI, CodeQL and secret-history scanning.
+- [ ] Final evidence-only exact-head rerun passes.
 - [ ] Human owner explicitly authorizes merge.
 
 ### Non-goals
@@ -97,14 +98,15 @@ Revert the documentation PR. No provider rollback is required because this task 
 | T4 | Add current-main runbook and configuration link | done | documentation branch |
 | T5 | Open replacement PR, add memory and close #198 unmerged | done | PR #249 open; PR #198 closed unmerged |
 | T6 | Reconcile merged #245 lifecycle and canonical candidate state | done | completed packet, PR memory and canonical snapshot |
-| T7 | Run exact-head CI, CodeQL and secret scan | pending | final head required |
-| T8 | Owner merge decision | blocked | explicit owner instruction required |
+| T7 | Run implementation-head CI, CodeQL and secret scan | done | head `5053864db7ef9039b381d26aaab7e4eadd2aa6ba`; CI #1208, CodeQL #356, Secret #356 |
+| T8 | Run final evidence-only exact-head gates | in progress | final head required |
+| T9 | Owner merge decision | blocked | explicit owner instruction required |
 
 ## Evaluation
 
 ### Safety review
 
-The evaluator must confirm:
+The evaluator confirmed:
 
 1. No production hostname, provider project reference, widget ID, site key, rule ID, exact edge threshold, request ID or private screenshot is added.
 2. No secret is requested or placed in a public environment variable.
@@ -114,15 +116,16 @@ The evaluator must confirm:
 6. Probes are bounded and use synthetic data.
 7. Documentation does not claim provider state, production deployment or issue completion.
 
-### Verification target
+### Verification evidence
 
-- diff hygiene;
-- project knowledge and CI-classification contracts;
-- deployment configuration contract;
-- lint, typecheck, unit/static-RLS tests and production build when selected by classifier;
-- CodeQL with real Initialize/Analyze;
-- secret-history scan;
-- database and browser gates only if classifier identifies an affected boundary.
+Implementation head `5053864db7ef9039b381d26aaab7e4eadd2aa6ba` passed:
+
+- CI #1208, including diff hygiene, project knowledge and CI-classification contracts;
+- documentation-only classification, with database and browser gates correctly not required;
+- CodeQL #356 with real Initialize/Analyze;
+- Secret history scan #356.
+
+This packet update is evidence-only and requires one final exact-head rerun.
 
 ### Evidence boundary
 
@@ -130,5 +133,5 @@ Repository checks can prove document consistency and that no secret-shaped conte
 
 ### Permission boundary
 
-- Allowed: branch files, replacement PR, stale PR closure and canonical documentation reconciliation.
+- Allowed now: owner review of PR #249.
 - Forbidden: direct main writes, provider changes, deployment, production probes using real data, issue closure and merge without explicit owner instruction.
