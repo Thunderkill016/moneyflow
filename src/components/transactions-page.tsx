@@ -151,7 +151,10 @@ export function TransactionsPage({
   const [toDate, setToDate] = useState(initialToDate);
   const [minAmountInput, setMinAmountInput] = useState(initialMinAmount);
   const [maxAmountInput, setMaxAmountInput] = useState(initialMaxAmount);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectionState, setSelectionState] = useState<{
+    filterKey: string;
+    ids: string[];
+  }>({ filterKey: "", ids: [] });
   const [bulkCategoryId, setBulkCategoryId] = useState("");
   const [notice, setNotice] = useState("");
   const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
@@ -214,6 +217,22 @@ export function TransactionsPage({
   ]);
 
   const filterKey = `${kind}\0${account}\0${category}\0${review}\0${query}\0${fromDate}\0${toDate}\0${minAmountInput}\0${maxAmountInput}`;
+  const selectedIds =
+    selectionState.filterKey === filterKey ? selectionState.ids : [];
+
+  function setSelectedIds(
+    next: string[] | ((current: string[]) => string[]),
+  ) {
+    setSelectionState((current) => {
+      const currentIds =
+        current.filterKey === filterKey ? current.ids : [];
+      return {
+        filterKey,
+        ids: typeof next === "function" ? next(currentIds) : next,
+      };
+    });
+  }
+
   const [pageState, setPageState] = useState({
     filterKey,
     visibleCount: TRANSACTION_PAGE_SIZE,
@@ -267,14 +286,6 @@ export function TransactionsPage({
     [filtered, visibleCount],
   );
 
-  useEffect(() => {
-    const filteredIds = new Set(filtered.map((item) => item.id));
-    setSelectedIds((current) => {
-      const next = current.filter((id) => filteredIds.has(id));
-      return next.length === current.length ? current : next;
-    });
-  }, [filtered]);
-
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const visibleIds = useMemo(
     () => listWindow.visible.map((transaction) => transaction.id),
@@ -295,14 +306,11 @@ export function TransactionsPage({
         : [],
     [bulkCategorySelection, workspace.categories],
   );
-
-  useEffect(() => {
-    if (
-      !bulkCategoryOptions.some((item) => item.id === bulkCategoryId)
-    ) {
-      setBulkCategoryId("");
-    }
-  }, [bulkCategoryId, bulkCategoryOptions]);
+  const effectiveBulkCategoryId = bulkCategoryOptions.some(
+    (item) => item.id === bulkCategoryId,
+  )
+    ? bulkCategoryId
+    : "";
 
   const filteredTotals = useMemo(() => {
     const income = filtered
@@ -414,7 +422,7 @@ export function TransactionsPage({
 
   async function handleBulkCategory() {
     const target = workspace.categories.find(
-      (item) => item.id === bulkCategoryId,
+      (item) => item.id === effectiveBulkCategoryId,
     );
     if (!target || !bulkCategorySelection.ok) {
       showNotice(
@@ -902,7 +910,7 @@ export function TransactionsPage({
                 <label>
                   <span>Danh mục mới</span>
                   <select
-                    value={bulkCategoryId}
+                    value={effectiveBulkCategoryId}
                     onChange={(event) => setBulkCategoryId(event.target.value)}
                     disabled={isMutating || !bulkCategorySelection.ok}
                     aria-label="Danh mục mới cho giao dịch đã chọn"
@@ -922,7 +930,7 @@ export function TransactionsPage({
                   disabled={
                     isMutating ||
                     !bulkCategorySelection.ok ||
-                    !bulkCategoryId
+                    !effectiveBulkCategoryId
                   }
                 >
                   Đổi danh mục
