@@ -4,7 +4,7 @@
 - **Candidate SHA:** `main@8e08a8a748a632b07bb42c27bf14539758b28824`
 - **Acceptance ledger:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
 - **Definition authority:** `docs/MVP_DEFINITION.md`
-- **Decision status:** **PENDING — awaiting the owner**
+- **Decision status:** **DECIDED — release as MVP at `8e08a8a`, 2026-08-03**
 
 This record exists so the release decision is a deliberate human act with the
 evidence gathered beside it. It does not make the decision, and a merged, green or
@@ -123,24 +123,34 @@ is an MVP exit criterion, and none of them blocks this decision:
 
 ## 5. Decision
 
-Only the owner completes this section. Leaving it unsigned is itself a valid
-outcome, and so is choosing a different SHA.
-
 ```
-Release candidate SHA : ____________________________________________
+Release candidate SHA : 8e08a8a748a632b07bb42c27bf14539758b28824
 
-Decision             : [ ] Release as MVP      [ ] Not yet
+Decision              : [x] Release as MVP      [ ] Not yet
 
-Owner                : ____________________________________________
+Owner                 : Thunderkill016 (repository owner)
 
-Date (UTC)           : ____________________________________________
+Date (UTC)            : 2026-08-03
 
-Conditions or notes  : ____________________________________________
+Conditions or notes   : Owner selected the recommended candidate and directed
+                        release after reviewing the candidate comparison, the
+                        decision-time gate results and the criterion-8 boundary.
 ```
 
-If the decision is **Release as MVP**, the follow-up is to record the released SHA
-in `docs/research/CURRENT_PROJECT_MEMORY.md` and to state plainly which public-beta
-gates remain open, so "MVP released" is never read as "public-beta ready".
+**How this was recorded.** The decision was given by the owner in a working session
+on 2026-08-03, directly in response to the candidate comparison and the `8e08a8a`
+recommendation in section 1. It is transcribed here rather than inferred. If any
+part of it misstates the owner's intent — the SHA, the decision itself, or its
+conditions — correct this block; it is the record, not the act.
 
-If the decision is **Not yet**, record the specific blocker here. "Not yet" without
-a named blocker turns a decision into an indefinite hold.
+**What was accepted knowingly.** Criterion 8 is conditional. No P0 money blocker is
+known or recorded, and that is not the same as none existing. This decision accepts
+that residual risk deliberately.
+
+### Follow-up now owed
+
+1. record the released SHA in `docs/research/CURRENT_PROJECT_MEMORY.md`, together
+   with the public-beta gates that remain open — done in this change;
+2. keep "MVP released" and "public-beta ready" separate in every later statement;
+3. if a P0 money bug is found after this date, it does not retroactively invalidate
+   the decision — it opens a fix, and the conditional wording above is why.
