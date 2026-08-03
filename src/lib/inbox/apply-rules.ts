@@ -3,6 +3,7 @@
  * Priority: lower number wins; first enabled candidate-stage match only.
  */
 
+import type { CandidateKind } from "./candidate-store.ts";
 import type { ParsedCandidate } from "./parse-text.ts";
 import {
   formatRuleSummary,
@@ -12,6 +13,7 @@ import {
 } from "./rules-store.ts";
 
 export type RuleApplyTarget = {
+  kind?: CandidateKind;
   merchant: string;
   note: string;
   rawSnippet?: string;
@@ -52,9 +54,13 @@ export function ruleHaystack(
 
 export function ruleMatches(
   rule: InboxRule,
-  target: Pick<RuleApplyTarget, "merchant" | "note" | "rawSnippet">,
+  target: Pick<RuleApplyTarget, "kind" | "merchant" | "note" | "rawSnippet">,
 ): boolean {
   if (!rule.enabled || rule.stage !== "candidate") return false;
+  if (target.kind === "transfer") return false;
+  if (rule.categoryKind && target.kind && rule.categoryKind !== target.kind) {
+    return false;
+  }
   const needle = rule.contains.trim().toLocaleLowerCase("vi");
   if (!needle) return false;
   const haystack = ruleHaystack(target, rule.field).toLocaleLowerCase("vi");
@@ -64,7 +70,7 @@ export function ruleMatches(
 /** Find the first enabled matching rule by stable priority order. */
 export function findMatchingRule(
   rules: InboxRule[],
-  target: Pick<RuleApplyTarget, "merchant" | "note" | "rawSnippet">,
+  target: Pick<RuleApplyTarget, "kind" | "merchant" | "note" | "rawSnippet">,
 ): InboxRule | null {
   for (const rule of sortRulesByPriority(rules)) {
     if (ruleMatches(rule, target)) return rule;
