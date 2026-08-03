@@ -11,6 +11,8 @@ Core jobs:
 
 MoneyFlow is not currently a bank aggregator, AI financial adviser, business-accounting product or native mobile application. Paste, import, inbox and rules are optional advanced capture tools, not the product identity.
 
+The released MVP is the first product baseline, not the final ceiling. The owner-approved long-term direction is a comprehensive personal-finance platform delivered as optional, dependency-ordered modules while the simple daily ledger remains the default.
+
 ## Sources of truth
 
 Start here before bounded or high-risk work:
@@ -18,6 +20,9 @@ Start here before bounded or high-risk work:
 - [Agent entrypoint](AGENTS.md)
 - [Architecture map](ARCHITECTURE.md)
 - [Product principles](docs/product/PRINCIPLES.md)
+- [Long-term product vision](docs/product/MONEYFLOW_PRODUCT_VISION.md)
+- [Global personal-finance capability atlas](docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md)
+- [Target architecture roadmap](docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md)
 - [MVP definition and readiness gates](docs/MVP_DEFINITION.md)
 - [Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md)
 - [Pull-request memory log](docs/research/PR_MEMORY_LOG.md)
@@ -114,6 +119,8 @@ When both Spec Kit artifacts and a full work packet exist, the packet owns execu
 
 Do not push feature or fix commits directly to `main`. Do not create no-op commits to retrigger deployment.
 
+A capability appearing in the global atlas or long-term vision is not permission to implement it immediately. Select a bounded slice only after its user problem, prerequisites, financial/ownership semantics, rollout and rollback are accepted.
+
 ## Current product scope
 
 - Authentication: email/password, supported OAuth and recovery.
@@ -131,12 +138,29 @@ VND is represented as integer đồng. Internal transfers never count as income 
 
 ## Current project phase
 
-The owner direction is to continue maturing existing MoneyFlow capabilities toward competitive depth. Validation remains embedded in each workstream rather than acting as a global feature freeze.
+MoneyFlow has released its functional MVP. The owner direction is now to mature it toward a comprehensive personal-finance platform while preserving a trustworthy, simple daily ledger.
 
-Current priorities and exact completed/partial/absent status live in:
+Near-term delivery remains evidence-driven and dependency-ordered:
+
+1. ledger trust and correction;
+2. connected planning;
+3. deeper reporting and drill-down;
+4. forecast and scenarios;
+5. automation, API and ownership;
+6. wealth, multi-currency and collaboration only after their prerequisites.
+
+Long-term breadth does not replace current self-use, physical-device validation, retention evidence or market validation.
+
+Current implementation status, open candidates and exact completed/partial/absent truth live in:
 
 - [`docs/research/CURRENT_PROJECT_MEMORY.md`](docs/research/CURRENT_PROJECT_MEMORY.md);
 - [`docs/research/PR_MEMORY_LOG.md`](docs/research/PR_MEMORY_LOG.md);
 - [`docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`](docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md).
+
+Long-term selection and architecture live in:
+
+- [`docs/product/MONEYFLOW_PRODUCT_VISION.md`](docs/product/MONEYFLOW_PRODUCT_VISION.md);
+- [`docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md`](docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md);
+- [`docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md`](docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md).
 
 Do not recreate a completed feature from an old issue body without checking current code and these sources first.
