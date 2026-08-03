@@ -204,7 +204,10 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     try {
       const result = await restoreTransactionAction(transaction.id);
       if (result.ok) {
-        const restored = withReviewStatus(result.transaction ?? transaction);
+        const restored: Transaction = {
+          ...(result.transaction ?? transaction),
+          reviewStatus: getTransactionReviewStatus(transaction),
+        };
         setTransactions((current) => restoreTransactionInList(current, restored));
         return { ok: true, transaction: restored };
       }
