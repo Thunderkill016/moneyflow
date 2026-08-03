@@ -1,18 +1,18 @@
 # Account reconciliation workspace
 
-**Status:** verified
-**Execution state:** ready_for_owner_merge
+**Status:** candidate
+**Execution state:** evaluating
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** #262 / #263
-**Last updated:** 2026-08-03
+**Last updated:** 2026-08-04
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet owns the user-facing reconciliation slice built on the domain contract merged through PR #261. It does not authorize production DDL or production-data writes.
 
 ## Outcome
 
-A MoneyFlow user can open one owned VND account, start a statement session, clear eligible account legs, see the exact live difference, complete only at zero, inspect stable completed history and reopen only the latest completed session.
+A MoneyFlow user can open one owned VND account, start a statement session, clear eligible account legs, see the exact live difference, complete only at zero, inspect stable completed history and reopen only the latest completed session. The screen now also consumes the owner-approved MoneyFlow brand v2 and UI Foundations color roles instead of route-local visual choices.
 
 ## Repository reconnaissance
 
@@ -20,23 +20,28 @@ A MoneyFlow user can open one owned VND account, start a statement session, clea
 - Account register/detail exists at `/accounts/[accountId]` and derives signed account impact through `src/lib/account-register.ts`.
 - Viewer-aware reads live in `src/server/**`; authenticated financial writes live in validated Server Actions and ownership-safe RPCs.
 - PR #261 merged `pending` / `cleared` / `reconciled`, one open session per account, exact-zero completion, session-stable completed snapshots, latest-only reopen and review/reconciliation separation.
-- The stable transaction feed intentionally does not expose entry IDs or reconciliation state. The UI uses a narrow companion read model instead of widening that contract.
+- `src/app/document-theme.css` is the project-wide color authority. Route CSS must consume `--mf-*` roles and must not create a second brand palette.
 - Demo mode is browser-local and never calls authenticated Server Actions.
 
-## Research
+## Research and adoption review
 
-External research is not required for this implementation slice. The governing evidence is the merged PR #261 schema/RPC contract, the current account register implementation, MoneyFlow's integer-money and transfer-neutrality invariants, and the repository's existing Server Action/demo/runtime patterns.
+No external dependency, provider, framework, service or architecture layer is introduced. The visual refresh is based on the owner-approved MoneyFlow brand guide and UI Foundations work from this project session:
 
-### Adoption review
+- identity blue: `#3B82F6`;
+- action blue: `#2563EB`;
+- true functional colors: green, red, yellow and blue;
+- transfer: indigo;
+- light/dark roles use different readable steps of the same hue;
+- dark logo surfaces invert approved dark artwork to white while retaining blue identity.
 
-Not applicable. No dependency, provider, framework, service or architecture layer is introduced.
+The HTML prototype is design evidence only. Repository code and existing executable contracts remain authoritative.
 
 ## Specification
 
 ### Core flow
 
 1. Open an account register.
-2. Enter statement date and statement balance without changing account balance.
+2. Enter statement date and integer statement balance without changing account balance.
 3. Start one open session for the account.
 4. Mark eligible logical account legs pending or cleared.
 5. Display statement balance, cleared balance and exact integer difference.
@@ -44,123 +49,114 @@ Not applicable. No dependency, provider, framework, service or architecture laye
 7. Display completed history from stored session snapshots.
 8. Reopen only the latest completed session; only its owned legs return to cleared.
 
-### UI and interaction
+### UI and visual semantics
 
 - Route: `/accounts/[accountId]/reconcile`.
-- Account detail exposes a contextual `Đối soát` link.
-- Archived and non-VND tracking accounts may show history but cannot start a new session.
 - Reconciled rows are visibly locked; state is never conveyed by color alone.
-- Transfer source and destination legs remain separate because the workspace is account-scoped.
-- Split entries for one transaction/account render as one logical row and mutate atomically through one representative entry ID.
-- Transactions after the statement date are excluded from the active clearing list.
-- Missing server reconciliation schema disables the feature calmly instead of breaking account detail after an application-first deploy.
+- Positive signed money uses true green; negative signed money uses true red; transfer uses indigo.
+- A positive difference is visually green and a negative difference red, but either nonzero value still blocks completion.
+- Zero difference uses the success surface and explicitly states that completion is allowed.
+- Pending remains neutral; cleared uses information blue; reconciled uses success green.
+- Warning yellow is reserved for attention and boundary notes, not signed money.
+- Buttons, focus rings, panels, badges and dark mode consume shared `--mf-*` semantic tokens.
+- Phone widths down to 320–390px must not overflow horizontally.
 
-### Data contract
+### Data and security contract
 
 - Preserve `transaction_feed` unchanged.
-- Add `account_reconciliation_entry_feed`, a security-invoker companion view grouped by `(user_id, transaction_id, account_id)` with one representative `entry_id`, state, timestamps, reconciliation ID and physical entry count.
+- Use `account_reconciliation_entry_feed`, grouped by logical account leg.
 - Load sessions from `account_reconciliation_summaries`.
 - Validate all database payloads with Zod and reject unsafe integer money.
 - Authenticated writes call only the four RPCs merged in PR #261.
+- Missing server reconciliation schema disables the feature calmly instead of fabricating data.
 
 ### Demo contract
 
-- Use synthetic stable entry IDs derived from account and transaction IDs.
-- Persist session/state data in versioned browser local storage.
-- Apply the same exact-zero, statement-date, latest-reopen and reconciled-lock rules as authenticated mode.
+- Use stable synthetic entry IDs.
+- Persist state in versioned browser local storage.
+- Mirror exact-zero, statement-date, latest-reopen and reconciled-lock rules.
 - Never invent a discrepancy transaction or mutate account balance.
 
-### Acceptance criteria
+## Acceptance criteria
 
-- [x] Start validates account, date and integer statement balance in the client/domain layer; RPC remains authoritative for authenticated users.
-- [x] One open session per account is enforced in demo and by RPC.
-- [x] Pending/cleared changes update a whole logical account leg.
-- [x] Live summary includes opening balance plus reconciled and eligible cleared legs exactly once.
-- [x] Complete is blocked until difference is zero.
+- [x] Core start, clear, complete and reopen behavior is implemented.
+- [x] Completion remains blocked until exact zero.
 - [x] Completed history uses stored session values.
-- [x] Latest-only reopen restores only session-owned legs.
-- [x] Review status remains independent and financial rewrites remain protected by the merged database contract.
 - [x] Companion read model is security-invoker and account scoped.
-- [x] Demo and authenticated code paths expose equivalent visible operations.
-- [x] Desktop, phone, keyboard and screen-reader-oriented checks pass on exact head.
 - [x] Missing production schema degrades safely.
+- [x] Brand v2 and fresh functional roles are defined in the shared semantic theme authority.
+- [x] Reconciliation CSS consumes shared semantic roles only.
+- [x] Positive/negative/transfer/state colors retain text or icon labels.
+- [ ] Exact-head lint, typecheck, unit/static RLS and production build pass after the visual refresh.
+- [ ] Exact-head database replay and pgTAP pass after the visual refresh.
+- [ ] Exact-head desktop/mobile browser and UI audit pass after the visual refresh.
+- [ ] Exact-head CodeQL and secret-history scan pass after the visual refresh.
 - [x] No production migration or production-data write occurred.
 
 ## Implementation plan
 
-1. Add pure reconciliation types, calculation helpers and demo reducer tests.
-2. Add companion entry-state view and pgTAP ownership/grouping coverage.
-3. Add viewer-aware server loader with schema-skew fallback.
-4. Add validated Server Actions and canonical post-mutation reload.
-5. Add account reconciliation route and responsive client workspace.
-6. Link account detail to the new workspace.
-7. Add focused desktop/mobile Playwright coverage.
-8. Run independent evaluation and exact-head Class 3 gates.
-9. Update bounded PR memory and current project memory truth only when required by status impact.
+1. Preserve the verified reconciliation domain, read model, server actions and demo reducer.
+2. Replace the old shared brand/semantic color values in `document-theme.css` with the approved brand v2 roles.
+3. Add harmonized supporting-color tokens without creating route-local palette ownership.
+4. Refactor the reconciliation module CSS to use fresh semantic surfaces, signed-value colors, state badges, focus rings and responsive layout.
+5. Keep JSX behavior and accessible labels unchanged unless a visual requirement cannot be expressed in CSS.
+6. Re-run Class 3 exact-head verification.
+7. Update this packet and PR memory with final evidence before merge.
 
 ## Evaluation
 
-### Final findings
+### Previous verified baseline
 
-1. The companion view groups split rows by logical account leg and retains account-scoped transfer independence.
-2. The authenticated mutation path uses only the four existing ownership-safe reconciliation RPCs and requires a canonical reload after success.
-3. The application-first deployment boundary is explicit: missing read model/RPCs disable the workspace rather than showing fabricated data.
-4. Demo behavior is isolated to versioned local storage and does not call authenticated Server Actions.
-5. A browser hydration race in the statement form regression was corrected by synchronizing the Playwright interaction with the controlled client input before submitting the chosen statement date.
-6. No blocking financial, tenant-isolation, architecture or accessibility finding remains on the verified head.
+Head `30d99769735249fe9264f3b5b38d8587813a9f99` passed CI #1329, CodeQL #469 and secret-history scan #469 before the visual refresh.
 
-### Exact-head evidence
+### Current visual refresh
 
-Verified head before this documentation-only evidence commit: `30d99769735249fe9264f3b5b38d8587813a9f99`.
+- `63a369bb868693d2358565d1cf38a1ef21906879`: shared MoneyFlow brand v2 and fresh functional semantic tokens.
+- `d0247e2a3d7a1423d928aa5b59df27a4347b2744`: reconciliation workspace consumes those roles and adds sign-aware difference surfaces through existing `data-money-tone` output.
+- `d7c5f3985733cfac063dfce97b73d7d0f7fc94bd`: bounded PR memory corrected so prior verification is not overstated.
 
-- CI #1329 classify: passed.
-- CI #1329 verify: diff hygiene, knowledge contract, CI policy, deployment configuration, CSS ownership, architecture, lint, typecheck, unit/static RLS and production build passed.
-- CI #1329 database: fresh local reset and full pgTAP passed.
-- CI #1329 e2e: browser smoke and production cross-device UI audit passed on Chromium and WebKit evidence setup.
-- CodeQL #469 passed.
-- Secret-history scan #469 passed.
-
-This final commit changes only the packet evidence. The prior exact-head runtime, database and browser results remain applicable to the implementation diff; repository policy will rerun the applicable gates for the new PR head.
+No exact-head verification is claimed yet for the refreshed candidate.
 
 ## Risks and defenses
 
 | Risk | Defense |
 |---|---|
-| Application deploys before reconciliation DDL | detect missing view/RPC and render feature unavailable without false data |
-| split expense produces several entry rows | companion view groups one logical account leg and exposes one representative entry ID |
-| transfer legs are accidentally coupled | account-scoped feed and RPC preserve independent account IDs |
-| local demo diverges from database rules | pure reducer mirrors exact-zero, eligibility and reopen constraints with unit tests |
-| historical summary recalculates | completed UI reads stored summary columns only |
-| stale mutation response misleads user | authenticated actions require a canonical post-RPC reload |
-| non-VND input rounds incorrectly | first UI slice starts sessions only for VND accounts |
-| reconciled row appears editable | locked control plus server RPC rejection |
+| Shared token update causes unrelated visual regressions | run CSS ownership, production build and cross-device UI audit on exact head |
+| Bright colors reduce text contrast | use darker 700/600 steps for light-mode text and lighter 300 steps for dark mode |
+| Positive difference appears “safe” | copy and disabled completion remain driven solely by exact-zero domain state |
+| Color becomes the only state signal | retain labels, dots, icons, locked controls and explanatory copy |
+| Application deploys before reconciliation DDL | missing view/RPC renders feature unavailable without false data |
+| Local demo diverges from database rules | existing pure reducer and permanent tests remain unchanged |
+| Historical summary recalculates | completed UI reads stored summary columns only |
 
 ## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
-| T1 | close superseded PR #222 and completed issue #260 | lifecycle metadata | done |
-| T2 | issue #262, branch, packet and PR #263 | `d43d33b` | done |
-| T3 | domain helpers and demo reducer | `src/lib/reconciliation*` | verified |
-| T4 | companion read model and pgTAP | migration + database test | verified |
-| T5 | server loader and actions | server/action files | verified |
-| T6 | route, component, responsive CSS and account-detail link | application files | verified |
-| T7 | unit/browser evidence | CI #1329 | verified |
-| T8 | independent review and exact-head gates | CI #1329, CodeQL #469, secret scan #469 | verified |
-| T9 | owner merge decision | explicit owner instruction | authorized |
-| T10 | production migration and smoke | separate command | blocked on owner |
+| T1 | domain helpers and demo reducer | `src/lib/reconciliation*` | verified baseline |
+| T2 | companion read model and pgTAP | migration + database test | verified baseline |
+| T3 | server loader and actions | server/action files | verified baseline |
+| T4 | route, component and account-detail link | application files | verified baseline |
+| T5 | adopt brand v2 semantic theme roles | `src/app/document-theme.css` | implemented |
+| T6 | apply UI Foundations to reconciliation CSS | `account-reconciliation-page.module.css` | implemented |
+| T7 | exact-head static/build verification | CI | pending |
+| T8 | exact-head database verification | CI / pgTAP | pending |
+| T9 | exact-head browser and responsive verification | CI / Playwright | pending |
+| T10 | CodeQL and secret-history scan | workflows | pending |
+| T11 | owner merge decision | explicit owner instruction | already authorized, blocked until exact-head green |
+| T12 | production migration and smoke | separate command | blocked on owner |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-03 | owner | implementer | implementing | explicit `làm đi`, issue #262, branch from `2d8550f` | no UI/read model yet | implement focused branch and PR |
-| 2026-08-03 | implementer | evaluator | candidate | domain, read model, loader/actions, route/UI and tests authored | exact-head application verification incomplete | fix findings and rerun Class 3 gates |
-| 2026-08-03 | evaluator | owner | verified | CI #1329, CodeQL #469, secret scan #469 | production DDL intentionally absent | merge PR only; production migration remains separate |
+| 2026-08-03 | evaluator | owner | verified | CI #1329 and security workflows | production DDL absent | owner authorized merge |
+| 2026-08-04 | owner | implementer | implementing | explicit approval to apply UI Foundations | visual system not in repository | update shared tokens and reconciliation CSS |
+| 2026-08-04 | implementer | evaluator | candidate | commits `63a369b`, `d0247e2`, `d7c5f39` | prior exact-head evidence stale | run full exact-head gates |
 
 ## Permission boundary
 
-Granted: focused branch writes, issue/PR metadata, repository tests, CI and owner-authorized merge.
+Granted: focused branch writes, issue/PR metadata, repository tests, CI and owner-authorized merge after current exact-head verification.
 
 Forbidden without a separate owner command: production migration, production data mutation, provider/config changes and production release claims.
 
@@ -170,6 +166,7 @@ Forbidden without a separate owner command: production migration, production dat
 - Issue: #262
 - PR: #263
 - Baseline: `2d8550f739f179fcd42a8fb029c1091467b97847`
-- Verified implementation head: `30d99769735249fe9264f3b5b38d8587813a9f99`
+- Previous verified implementation head: `30d99769735249fe9264f3b5b38d8587813a9f99`
+- Current refreshed candidate: exact-head verification pending
 - Production DDL: not authorized
 - Production data: not accessed or changed
