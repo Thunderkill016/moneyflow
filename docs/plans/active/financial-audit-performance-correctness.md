@@ -104,6 +104,18 @@ The atomic purge and Edge Function independently cover and verify the complete 1
 - [x] No cache, provider, dependency or new runtime is introduced.
 - [x] Exact-head Class 3 CI, fresh database replay, pgTAP, browser smoke, CodeQL, secret scan and independent review pass.
 
+## Implementation plan
+
+1. Define typed privacy-safe audit events and internal trigger writers.
+2. Attach transaction, entry and reconciliation mutation coverage.
+3. Harden request correlation and audit privileges.
+4. Replace tenant purge and update Edge Function verification inventory.
+5. Add explicit tenant predicates to high-volume loaders.
+6. Add the measured monthly-budget index and realistic plan regressions.
+7. Prove privacy, idempotency, tenant isolation, atomic rollback, deletion and planner behavior with permanent tests.
+8. Run independent review and exact-head Class 3 gates.
+9. Hand off for a separate owner merge decision; keep production actions separately blocked.
+
 ## Evaluation
 
 ### Final findings
@@ -130,7 +142,7 @@ Verified implementation head: `06b6760714ef40525364cb05a307532e32704fff`.
 - Pull request review threads: none.
 - Independent review: no remaining blocker.
 
-This evidence commit changes documentation only. Repository policy must rerun applicable gates on the resulting final PR head before owner handoff.
+The final branch commits change documentation only. Repository policy must rerun applicable gates on the resulting exact PR head before owner handoff.
 
 ## Risks and defenses
 
