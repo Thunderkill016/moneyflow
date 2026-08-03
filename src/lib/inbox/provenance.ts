@@ -151,10 +151,12 @@ export function candidateProvenanceInsertPatch(
       parserVersionForSource(candidate.source),
     mapping_version:
       candidate.mappingVersion ?? CURRENT_IMPORT_MAPPING_VERSION,
-    applied_rule_id: hasRuleEvidence ? candidate.appliedRuleId : null,
-    applied_rule_version: hasRuleEvidence
-      ? candidate.appliedRuleVersion
-      : null,
+    ...(hasRuleEvidence
+      ? {
+          applied_rule_id: candidate.appliedRuleId,
+          applied_rule_version: candidate.appliedRuleVersion,
+        }
+      : {}),
   };
 }
 
