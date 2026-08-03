@@ -25,7 +25,9 @@ export type InboxListResult =
   | { ok: true; candidates: InboxCandidate[]; batches: ImportBatch[] }
   | { ok: false; message: string };
 
-function isMissingRuleProvenanceColumn(error: { code?: string; message?: string } | null) {
+type InboxQueryError = { code?: string; message?: string } | null;
+
+function isMissingRuleProvenanceColumn(error: InboxQueryError) {
   if (!error) return false;
   const message = error.message ?? "";
   return (
@@ -65,19 +67,24 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
 
-  let candResult = await supabase
+  const ruleColumnResult = await supabase
     .from("inbox_candidates")
     .select(CANDIDATE_RULE_COLUMNS)
     .order("occurred_on", { ascending: false })
     .order("created_at", { ascending: false });
 
+  let candidateRows: unknown[] = ruleColumnResult.data ?? [];
+  let candidateError: InboxQueryError = ruleColumnResult.error;
+
   // Application-first rollout: old production schemas still serve the Inbox.
-  if (isMissingRuleProvenanceColumn(candResult.error)) {
-    candResult = await supabase
+  if (isMissingRuleProvenanceColumn(candidateError)) {
+    const legacyResult = await supabase
       .from("inbox_candidates")
       .select(CANDIDATE_BASE_COLUMNS)
       .order("occurred_on", { ascending: false })
       .order("created_at", { ascending: false });
+    candidateRows = legacyResult.data ?? [];
+    candidateError = legacyResult.error;
   }
 
   const batchResult = await supabase
@@ -85,12 +92,12 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
     .select(BATCH_COLUMNS)
     .order("created_at", { ascending: false });
 
-  if (candResult.error || batchResult.error) {
+  if (candidateError || batchResult.error) {
     return { ok: false, message: "Không tải được Inbox từ máy chủ." };
   }
 
   try {
-    const candidates = (candResult.data ?? []).map((row) =>
+    const candidates = candidateRows.map((row) =>
       mapCandidateRow(row as InboxCandidateRow),
     );
     const batches = (batchResult.data ?? []).map((row) =>
@@ -128,7 +135,7 @@ export async function migrateLocalInboxToServer(input: {
     return listed;
   }
 
-  const { batchRows, candidateRows } = buildMigratePayloads(
+  const { batchRows, candidateRows: migrationRows } = buildMigratePayloads(
     input.batches,
     input.candidates,
     viewer.id,
@@ -144,8 +151,8 @@ export async function migrateLocalInboxToServer(input: {
     }
   }
 
-  if (candidateRows.length > 0) {
-    const { error } = await supabase.from("inbox_candidates").insert(candidateRows);
+  if (migrationRows.length > 0) {
+    const { error } = await supabase.from("inbox_candidates").insert(migrationRows);
     if (error) {
       return {
         ok: false,
