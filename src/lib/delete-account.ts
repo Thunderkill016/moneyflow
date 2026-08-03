@@ -7,7 +7,10 @@
 import { CANDIDATE_STORAGE_KEY } from "./inbox/candidate-store.ts";
 import { IMPORT_BATCH_STORAGE_KEY } from "./inbox/import-batch-store.ts";
 import { IMPORT_DRAFT_STORAGE_KEY } from "./inbox/import-draft-store.ts";
-import { RULES_STORAGE_KEY } from "./inbox/rules-store.ts";
+import {
+  LEGACY_RULES_STORAGE_KEY,
+  RULES_STORAGE_KEY,
+} from "./inbox/rules-store.ts";
 import { ONBOARDING_STORAGE_KEY } from "./onboarding.ts";
 import { PRIVACY_PREFS_KEY } from "./privacy-prefs.ts";
 import { PUSH_PREFS_KEY } from "./push-prefs.ts";
@@ -32,6 +35,7 @@ export const LOCAL_DATA_STORAGE_KEYS: readonly string[] = [
   IMPORT_BATCH_STORAGE_KEY,
   IMPORT_DRAFT_STORAGE_KEY,
   RULES_STORAGE_KEY,
+  LEGACY_RULES_STORAGE_KEY,
   TRANSACTION_STORAGE_KEY,
   COMMITMENT_OCCURRENCE_STORAGE_KEY,
   INCOME_TEMPLATE_STORAGE_KEY,
