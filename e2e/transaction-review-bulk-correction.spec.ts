@@ -124,4 +124,28 @@ test.describe("Transaction review and bounded bulk correction", () => {
     ).toBeDisabled();
     await expect(page.getByRole("button", { name: "Đổi danh mục" })).toBeDisabled();
   });
+
+  test("timeline shows reviewed rows only and exposes no review mutation controls", async ({
+    page,
+  }) => {
+    await page.goto("/transactions");
+    await page.evaluate(() => {
+      const key = "moneyflow-demo-transactions-v1";
+      const rows = JSON.parse(window.localStorage.getItem(key) ?? "[]") as Array<{
+        note: string;
+        reviewStatus?: string;
+      }>;
+      const pending = rows.find((row) => row.note === "Cà phê cần sửa");
+      if (pending) pending.reviewStatus = "needs_review";
+      window.localStorage.setItem(key, JSON.stringify(rows));
+    });
+
+    await page.goto("/timeline");
+    await expect(page.getByRole("heading", { name: "Dòng thời gian (đã duyệt)" })).toBeVisible();
+    await expect(page.getByText("Lương tháng 8", { exact: true })).toBeVisible();
+    await expect(page.getByText("Cà phê cần sửa", { exact: true })).toBeHidden();
+    await expect(page.getByLabel("Lọc theo trạng thái kiểm tra")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Chọn đang hiện" })).toBeHidden();
+    await expect(page.getByLabel("Chọn giao dịch Lương tháng 8")).toBeHidden();
+  });
 });
