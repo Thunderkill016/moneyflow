@@ -12,6 +12,20 @@ test.describe("Account reconciliation workspace", () => {
     }, DEMO_KEY);
   });
 
+  test("is discoverable from the account register and requires an explicit balance", async ({ page }) => {
+    await page.goto("/accounts/demo-account-mb");
+    await page.getByRole("link", { name: "Đối soát" }).click();
+
+    await expect(page).toHaveURL(/\/accounts\/demo-account-mb\/reconcile$/);
+    await expect(
+      page.getByRole("heading", { name: "Đối soát MB Bank" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mở kỳ đối soát" })).toBeDisabled();
+
+    await page.getByLabel("Số dư cuối kỳ").fill("-100.000");
+    await expect(page.getByRole("button", { name: "Mở kỳ đối soát" })).toBeEnabled();
+  });
+
   test("starts, clears, completes and reopens an exact-zero demo statement", async ({ page }) => {
     await page.goto("/accounts/demo-account-mb/reconcile");
 
