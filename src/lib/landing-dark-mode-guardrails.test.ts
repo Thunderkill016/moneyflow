@@ -31,20 +31,36 @@ test("dark mode keeps semantic product tokens and public routes use the same aut
   assert.match(documentTheme, /MoneyFlow semantic document and theme authority/);
   assert.doesNotMatch(documentTheme, /authority — Signal Ledger/);
   assert.match(documentTheme, /html\[data-theme="dark"\]/);
-  assert.match(documentTheme, /--mf-canvas:\s*#0d111b/);
-  assert.match(documentTheme, /--mf-surface:\s*#151a24/);
-  assert.match(documentTheme, /--mf-text:\s*#f7f8fa/);
-  assert.match(documentTheme, /--mf-text-muted:\s*#b9c1cc/);
-  assert.match(documentTheme, /--mf-brand:\s*#8ea7ff/);
-  assert.match(documentTheme, /--mf-income:\s*#4dd4a0/);
-  assert.match(documentTheme, /--mf-expense:\s*#ff858b/);
-  assert.match(documentTheme, /--mf-transfer:\s*#b29eff/);
+  assert.match(documentTheme, /--mf-canvas:\s*#0c111d/);
+  assert.match(documentTheme, /--mf-surface:\s*#101828/);
+  assert.match(documentTheme, /--mf-text:\s*#f8fafc/);
+  assert.match(documentTheme, /--mf-text-muted:\s*#d0d5dd/);
+  assert.match(documentTheme, /--mf-brand:\s*#60a5fa/);
+  assert.match(documentTheme, /--mf-brand-text:\s*#93c5fd/);
+  assert.match(documentTheme, /--mf-income:\s*#4ade80/);
+  assert.match(documentTheme, /--mf-income-text:\s*#86efac/);
+  assert.match(documentTheme, /--mf-expense:\s*#f87171/);
+  assert.match(documentTheme, /--mf-expense-text:\s*#fca5a5/);
+  assert.match(documentTheme, /--mf-warning:\s*#facc15/);
+  assert.match(documentTheme, /--mf-warning-text:\s*#fde047/);
+  assert.match(documentTheme, /--mf-transfer:\s*#818cf8/);
+  assert.match(documentTheme, /--mf-transfer-text:\s*#a5b4fc/);
+  assert.match(documentTheme, /--mf-focus-ring:\s*rgb\(96 165 250 \/ 24%\)/);
 
   assert.match(publicTheme, /--public-canvas:\s*var\(--mf-canvas\)/);
   assert.match(publicTheme, /--public-accent:\s*var\(--mf-brand\)/);
   assert.match(publicTheme, /--auth-canvas:\s*var\(--mf-canvas\)/);
   assert.match(publicTheme, /--auth-accent:\s*var\(--mf-brand\)/);
   assert.match(publicTheme, /html\[data-theme="dark"\]/);
+  assert.match(
+    publicTheme,
+    /html\[data-theme="dark"\][\s\S]*--auth-muted:\s*var\(--mf-text\)/,
+    "dark auth muted copy must use the primary text role over luminous decoration",
+  );
+  assert.match(
+    publicTheme,
+    /html\[data-theme="dark"\][\s\S]*--auth-soft:\s*var\(--mf-text-muted\)/,
+  );
 
   assert.match(rejectedDirection, /Status: rejected \/ superseded/);
   assert.match(rejectedDirection, /historical material only/);
