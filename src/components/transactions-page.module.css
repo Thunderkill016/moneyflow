@@ -68,6 +68,57 @@
   color: var(--mf-text-muted);
 }
 
+.rangeFilters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.rangeField {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rangeField > span {
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.rangeField input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--mf-border);
+  border-radius: 10px;
+  padding: 0 12px;
+  font: inherit;
+}
+
+.filterError {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--mf-danger-text, var(--mf-danger));
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .rangeFilters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .rangeFilters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (max-width: 760px) {
   .summary + :global(.transaction-manager .manager-list),
   .summary + :global(.transaction-manager .manager-list > div) {

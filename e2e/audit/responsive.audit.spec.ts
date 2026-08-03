@@ -181,56 +181,66 @@ test.describe("cross-device responsive audit", () => {
     const width = page.viewportSize()?.width ?? 1_440;
     test.skip(width > 430, "SAFE-09 is specific to phone transaction groups");
 
-    // The shared audit seed intentionally starts with an empty ledger. Create
-    // one real demo transaction so this layout test measures a rendered group
-    // instead of an inert zero-height node left behind during hydration.
-    await page.goto("/capture/quick", { waitUntil: "domcontentloaded" });
-    const expenseKind = page.getByRole("button", { name: /Khoản chi/i });
-    await expect(expenseKind).toBeVisible();
-    await expenseKind.click();
-    await page.getByLabel(/Số tiền chi/i).fill("125000");
-    await page.getByRole("button", { name: "Ăn uống", exact: true }).click();
-    await page.getByPlaceholder("Ví dụ: Cơm trưa").fill("SAFE-09 layout fixture");
-    await page.getByRole("button", { name: /Lưu/i }).click();
+    // This audit owns transaction-group geometry, not the quick-capture flow.
+    // Seed one contract-valid demo transaction directly, then reload so the
+    // locator is resolved after the demo store hydration has completed.
+    await page.goto("/transactions", { waitUntil: "domcontentloaded" });
+    await page.evaluate(() => {
+      window.localStorage.setItem(
+        "moneyflow-demo-transactions-v1",
+        JSON.stringify([
+          {
+            id: "safe-09-layout-fixture",
+            kind: "expense",
+            categoryId: "safe-09-food",
+            category: "Ăn uống",
+            note: "SAFE-09 layout fixture",
+            accountId: "safe-09-account",
+            account: "MB Bank",
+            amount: 125_000,
+            occurredOn: "2026-08-03",
+            occurredAt: "2026-08-03T00:00:00.000Z",
+            relativeDate: "Vừa xong",
+          },
+        ]),
+      );
+    });
+    await page.reload({ waitUntil: "domcontentloaded" });
+
+    const header = page.locator(".date-group-header:visible").first();
+    await expect(header).toBeVisible();
+
+    const readMetrics = async () =>
+      header.evaluate((element) => {
+        if (!element.isConnected) return null;
+        const row = element.parentElement?.querySelector<HTMLElement>(".manager-row");
+        if (!row?.isConnected) return null;
+
+        const position = getComputedStyle(element).position;
+        if (!position) return null;
+        const headerRect = element.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
+        return {
+          position,
+          headerHeight: headerRect.height,
+          headerBottom: headerRect.bottom,
+          rowTop: rowRect.top,
+          overlap: Math.max(0, headerRect.bottom - rowRect.top),
+        };
+      });
 
     await expect
       .poll(
-        async () =>
-          page.evaluate(() => {
-            const raw = window.localStorage.getItem("moneyflow-demo-transactions-v1");
-            if (!raw) return false;
-            try {
-              const transactions = JSON.parse(raw) as Array<{ note?: string }>;
-              return transactions.some((transaction) =>
-                String(transaction.note ?? "").includes("SAFE-09 layout fixture"),
-              );
-            } catch {
-              return false;
-            }
-          }),
+        async () => {
+          const current = await readMetrics();
+          return current?.position === "static" && current.headerHeight > 0;
+        },
         { timeout: 15_000 },
       )
       .toBe(true);
 
-    await page.goto("/transactions", { waitUntil: "domcontentloaded" });
-    const header = page.locator(".date-group-header:visible").first();
-    await expect(header).toBeVisible();
-
-    const metrics = await header.evaluate((element) => {
-      const row = element.parentElement?.querySelector<HTMLElement>(".manager-row");
-      if (!row) throw new Error("Missing visible transaction row for SAFE-09");
-
-      row.scrollIntoView({ block: "center", inline: "nearest" });
-      const headerRect = element.getBoundingClientRect();
-      const rowRect = row.getBoundingClientRect();
-      return {
-        position: getComputedStyle(element).position,
-        headerHeight: headerRect.height,
-        headerBottom: headerRect.bottom,
-        rowTop: rowRect.top,
-        overlap: Math.max(0, headerRect.bottom - rowRect.top),
-      };
-    });
+    const metrics = await readMetrics();
+    if (!metrics) throw new Error("Missing stable transaction group metrics for SAFE-09");
 
     const evidence = await page.screenshot({ animations: "disabled" });
     await testInfo.attach(`safe-09-day-total-${testInfo.project.name}.png`, {
