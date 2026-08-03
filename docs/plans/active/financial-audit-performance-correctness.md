@@ -1,202 +1,179 @@
 # Financial mutation audit and performance correctness
 
-**Status:** implementing
-**Execution state:** candidate
-**Active role:** implementer
+**Status:** verified
+**Execution state:** ready_for_owner_merge
+**Active role:** evaluator
 **Permission scope:** branch_write + external_read
 **Owner:** Thunderkill016
 **Issue/PR:** #268 / #270
 **Parent roadmap:** #53 PR E
 **Baseline:** `main@cdbc0579c551366c33519b13bc2c9c22548c0af7`
+**Verified implementation head:** `06b6760714ef40525364cb05a307532e32704fff`
 **Last updated:** 2026-08-04
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet owns roadmap #53 PR E. It does not authorize merge, production DDL, production-data mutation, provider changes or production smoke.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet owns roadmap #53 PR E. It does not authorize merge, production DDL, production-data mutation, provider changes, production load or production smoke.
 
 ## Outcome
 
-MoneyFlow records privacy-safe, append-only metadata for every financial mutation inside the same PostgreSQL transaction as the mutation, explicitly scopes high-volume authenticated reads by tenant in addition to RLS, and gains reproducible database plan-regression gates for the transaction feed, budgets, reports and dashboard bundle without introducing speculative caches or another runtime.
+MoneyFlow records privacy-safe, append-only metadata for financial mutations inside the same PostgreSQL transaction as the mutation, explicitly scopes high-volume authenticated reads by tenant in addition to RLS, and has reproducible plan-regression gates for transaction, budget, report and dashboard reads without speculative caching or another runtime.
 
 ## Repository reconnaissance
 
-### Existing foundations to reuse
-
-- `financial_transactions` and `transaction_entries` remain the ledger authority; integer VND, transfer neutrality, split exactness, soft delete/restore and idempotency are already permanent database contracts.
-- Financial browser writes use narrow `SECURITY DEFINER` RPCs with `auth.uid()`, pinned empty `search_path`, explicit grants and pgTAP attack tests.
-- PR #206 collapsed the authenticated dashboard from about 17 Data API reads to the bounded `get_dashboard_bundle` RPC.
-- PR #209 added owner-controlled staged k6 profiles; capacity is not inferred from repository tests.
-- PR #236 added catalog-wide left-prefix foreign-key index coverage.
-- `account_reconciliation_events` already provides reconciliation-domain history, but it does not replace generic actor/request metadata for all financial mutations.
-- Account deletion uses service-role-only `purge_user_tenant_data(uuid)` and an Edge Function inventory; any audit table must participate in both.
-
-### Missing correctness
-
-- There is no append-only generic mutation audit for transaction creation, edits, soft delete/restore, review changes, entry category corrections or reconciliation state changes.
-- Auditing only `financial_transactions` would miss `transaction_entries` mutations such as bulk category correction and account-leg reconciliation.
-- `src/server/finance.ts`, `src/server/budgets.ts` and `src/server/reports.ts` rely on RLS/view ownership without repeating the tenant predicate in the Data API query.
-- There is no realistic-row-count EXPLAIN regression suite for the transaction feed, monthly budget progress and report windows.
-- No current evidence justifies a private financial-data cache; adding one would create invalidation and cross-user leakage risk.
+- `financial_transactions` and `transaction_entries` remain the ledger authority; audit metadata never changes ledger facts.
+- Existing financial browser writes already use narrow ownership-safe `SECURITY DEFINER` RPCs.
+- PR #206 owns the bounded dashboard bundle, PR #209 owns staged k6 profiles, and PR #236 owns catalog-wide foreign-key index coverage.
+- `account_reconciliation_events` is reconciliation-domain history, not a generic actor/request audit for every financial mutation.
+- The prior tenant purge predated provenance, reconciliation, rules and audit tables and required a complete-current-schema replacement.
+- `finance`, `budgets` and `reports` depended on RLS/view ownership without repeating the tenant predicate in their Data API queries.
+- No measured evidence justified a private financial-data cache.
 
 ## Research
 
-### Sources and decisions
-
-- Supabase RLS guidance recommends repeating ownership predicates in queries even when RLS remains authoritative, allowing PostgreSQL to build a better plan from the explicit tenant filter.
-- Supabase Auth audit logs cover authentication events, not application-ledger mutations; MoneyFlow therefore needs its own database audit metadata.
-- PostgreSQL `EXPLAIN` costs and timings vary by hardware and statistics. Repository gates must assert bounded predicates and stable plan shape rather than exact milliseconds.
-- Supabase security guidance requires RLS for exposed public tables, narrow grants, and explicit review of every `SECURITY DEFINER` function.
+- Supabase RLS guidance supports repeating ownership predicates in queries while retaining RLS as the authorization authority.
+- Supabase Auth audit logs cover authentication events, not MoneyFlow ledger mutations.
+- PostgreSQL plan evidence is stable when assertions focus on predicates/index shape rather than exact machine timings.
+- Public-schema tables require RLS, narrow grants and explicit `SECURITY DEFINER` review.
 
 ### Adoption review
 
-No dependency, service, queue, cache, telemetry provider or new runtime is adopted. PostgreSQL triggers and existing Supabase/PostgREST boundaries solve the observed problem with the smallest transactional surface.
+No dependency, service, queue, cache, telemetry provider or runtime was adopted. PostgreSQL triggers and the existing Supabase/PostgREST boundary provide the smallest transaction-atomic solution.
 
 ## Specification
 
 ### Audit event contract
 
-Create `public.financial_mutation_audit_events` with only bounded structural metadata:
+`public.financial_mutation_audit_events` stores only bounded structural metadata:
 
-- immutable event ID;
-- tenant `user_id`;
-- actor user ID and actor kind (`user` or `system`);
+- immutable event ID and tenant ID;
+- actor ID/kind derived from `auth.uid()`;
 - constrained action and entity type;
 - entity ID and optional related transaction ID;
 - server timestamp;
-- optional bounded request ID;
+- optional opaque request token;
 - optional transaction idempotency key.
 
-The table must never contain raw notes, merchant names, import snippets, category/account names, request bodies or arbitrary JSON/free text.
+It contains no note, merchant, raw import snippet, account/category label, amount, request body or arbitrary JSON payload. Request correlation accepts only `[A-Za-z0-9._:-]{1,128}`; other text is discarded.
 
-### Audit ownership and immutability
+### Ownership, immutability and atomicity
 
-- RLS is enabled; authenticated users may select only their own rows.
-- Browser roles receive no insert, update or delete privilege.
-- Trigger functions are not browser-callable.
-- Audit rows are append-only during normal product operation.
-- Tenant deletion may remove audit rows through the service-role purge before deleting the Auth identity.
+- RLS allows authenticated users to select only their rows.
+- Authenticated and anonymous roles cannot insert, update or delete audit rows.
+- Service role receives SELECT only for post-purge verification; audit writes remain trigger-owned.
+- Internal helpers are not browser executable.
+- Trigger failure aborts the financial mutation in the same PostgreSQL transaction.
+- Normal product operation is append-only; account deletion removes rows through the service-role-only atomic purge.
 
 ### Mutation coverage
 
-Audit within the same transaction:
+The database audits:
 
-1. `financial_transactions` insert;
-2. meaningful transaction updates: fact edit, review change, soft delete and restore;
-3. `transaction_entries` insert;
-4. meaningful entry updates: amount/account/category and reconciliation-state changes;
-5. account reconciliation start, complete and reopen.
+1. transaction creation, fact edit, review change, soft delete and restore;
+2. entry creation, amount/account change, category correction and reconciliation-state change;
+3. reconciliation start, completion and reopen.
 
-No-op/timestamp-only writes must not emit events. Trigger failure must roll back the financial mutation rather than create unaudited divergence.
+Idempotent retries and no-op/timestamp-only writes do not create duplicate evidence.
 
-### Explicit tenant filters
+### Read and performance correctness
 
-Authenticated high-volume reads repeat `user_id = viewer.id` in:
-
-- full and fallback transaction feeds and review feed;
-- accounts, categories and balances used by finance workspaces;
-- monthly budget progress and budget-category reads;
-- report transaction windows.
-
-RLS and security-invoker views remain authoritative; explicit filters are a performance and defense-in-depth contract, not a replacement for RLS.
-
-### Performance gates
-
-- seed realistic but bounded synthetic tenants in a rollback-only pgTAP transaction;
-- run `ANALYZE` on affected tables;
-- inspect `EXPLAIN (FORMAT JSON)` for tenant/date/month-scoped transaction feed, reports and budget progress queries;
-- assert bounded tenant predicates and index-aware plan shape without exact runtime thresholds;
-- preserve existing dashboard input bounds and explicit tenant predicates;
-- add no cache unless a measured plan/load result proves one is necessary; this slice expects no cache.
+- Finance, budget and report loaders repeat `user_id = viewer.id`; RLS/security-invoker views remain authoritative.
+- A catalog guard adds `(user_id, month_start, category_id)` only when no equivalent monthly-budget index prefix exists.
+- Rollback-only fixtures cover 4,000 transactions/entries and 600 budget months.
+- `EXPLAIN (FORMAT JSON)` checks tenant/date/month predicates, index-aware plan shape and dashboard bounds without timing thresholds.
+- No cache was added.
 
 ### Account deletion
 
-- add the audit table to the Edge Function tenant inventory;
-- update `purge_user_tenant_data` to delete and verify audit rows atomically;
-- extend source and pgTAP deletion contracts.
+The atomic purge and Edge Function independently cover and verify the complete 19-table tenant inventory, including audit, provenance, rules and reconciliation tables, before Auth identity deletion.
 
 ## Acceptance criteria
 
-- [x] Audit table is tenant-owned, RLS-protected and browser append/update/delete is impossible.
-- [x] Audit rows contain no sensitive/free-text payload field.
-- [x] Transaction creation records exactly one transaction-created event per created transaction.
-- [x] Idempotent retry does not create another transaction or audit event.
-- [x] Edit, soft delete, restore and review changes record bounded actions.
+- [x] Audit table is tenant-owned, RLS-protected and browser mutation is impossible.
+- [x] Audit rows contain no sensitive/free-text payload field or amount.
+- [x] Request IDs are opaque tokens; free text is discarded.
+- [x] Transaction creation records one header event and entry events.
+- [x] Idempotent retry creates no duplicate audit evidence.
+- [x] Edit, review, soft delete and restore actions are audited.
 - [x] Entry category and reconciliation-state mutations are audited.
-- [x] Reconciliation start/complete/reopen are audited without duplicating sensitive statement metadata.
-- [x] Cross-tenant reads and forged audit writes fail through RLS/grants.
-- [x] Trigger failure is transaction-atomic by PostgreSQL trigger ownership.
-- [x] Account deletion purges and verifies audit rows before Auth deletion.
+- [x] Reconciliation start/complete/reopen are audited structurally.
+- [x] Cross-tenant reads and forged audit writes fail.
+- [x] Audit failure rolls back the financial mutation.
+- [x] Service role is read-only on audit rows and can verify cleanup.
+- [x] Account deletion purges/verifies current tenant tables before Auth deletion.
 - [x] Finance, budgets and reports repeat explicit viewer filters.
-- [x] Plan-regression tests cover transaction feed, reports and budget history with realistic row counts.
-- [x] No cache or new dependency is introduced.
-- [ ] Exact-head Class 3 CI, database replay, pgTAP, CodeQL, secret scan and independent review pass.
-
-## Implementation plan
-
-1. Add audit enums/table, RLS/grants, request-ID helper and internal trigger functions.
-2. Attach triggers to transactions, entries and reconciliations.
-3. Update atomic tenant purge and Edge Function inventory.
-4. Add privacy, immutability, idempotency, tenant-isolation, reconciliation and deletion pgTAP.
-5. Add explicit tenant predicates to finance, budget and report loaders.
-6. Add source contracts and realistic EXPLAIN regression tests.
-7. Open a PR, run exact-head Class 3 gates and fix findings.
-8. Complete independent evaluation and hand off for owner merge decision.
+- [x] Realistic plan regressions cover transaction, report, budget and dashboard reads.
+- [x] No cache, provider, dependency or new runtime is introduced.
+- [x] Exact-head Class 3 CI, fresh database replay, pgTAP, browser smoke, CodeQL, secret scan and independent review pass.
 
 ## Evaluation
 
-### Current findings
+### Final findings
 
-1. Generic audit rows are structural only and deliberately omit finance text, amount and arbitrary payload fields.
-2. Transaction header, entry-only and reconciliation mutations are covered separately so bulk category correction and account-leg clearing are not invisible.
-3. Audit writes are trigger-owned and share the mutation transaction; authenticated clients receive own-row SELECT only.
-4. Account deletion inventory had drifted behind newer provenance, reconciliation and rules tables; this candidate replaces the service-role purge with the complete current table set and independently verifies it in the Edge Function.
-5. Explicit tenant predicates are repeated on finance, budget and report reads while RLS/security-invoker views remain authoritative.
-6. The only new read index is catalog-guarded and follows the observed budget loader predicate `(user_id, month_start)`.
-7. Plan evidence uses realistic rollback-only fixtures and `EXPLAIN (FORMAT JSON)` without `ANALYZE` timing thresholds.
-8. No cache, telemetry provider, dependency or runtime layer was introduced.
+1. Generic audit rows remain structural and do not create a second financial data store.
+2. Header and entry triggers cover mutation paths that would be invisible if only transactions were audited.
+3. Actor identity is derived, tenant mismatches fail, and trigger failure leaves no unaudited ledger row.
+4. Browser roles cannot forge or edit audit history; service role can only read it for deletion verification.
+5. Unsafe request-ID free text is discarded instead of becoming a logging side channel.
+6. Tenant deletion now uses the complete current table inventory and preserves retry-safe Auth deletion ordering.
+7. Explicit read filters improve planner visibility without replacing RLS.
+8. The measured budget access path justified one catalog-guarded index; no cache was justified.
+9. No blocking financial, tenant-isolation, privacy, deletion-lifecycle or plan-correctness finding remains.
 
-### Evidence state
+### Exact-head evidence
 
-Class 3 CI #1413 is in progress. The first policy run found only document-schema omissions (`## Evaluation` and `- Verified:`), which this commit corrects. Database, static, unit, build and security results must rerun on the resulting exact head. The EXPLAIN pgTAP plan declaration is known to require reconciliation with the assertion count before final evidence.
+Verified implementation head: `06b6760714ef40525364cb05a307532e32704fff`.
+
+- CI #1423 policy, architecture, lint, typecheck, unit/static RLS and production build: passed.
+- CI #1423 fresh Supabase reset and full pgTAP, including 34 financial-audit assertions, atomicity/service-role tests and realistic EXPLAIN regressions: passed.
+- CI #1423 browser smoke: passed; cross-device UI audit correctly skipped because no UI changed.
+- CodeQL #559: passed.
+- Secret-history scan #559: passed.
+- Pull request review threads: none.
+- Independent review: no remaining blocker.
+
+This evidence commit changes documentation only. Repository policy must rerun applicable gates on the resulting final PR head before owner handoff.
 
 ## Risks and defenses
 
 | Risk | Defense |
 |---|---|
-| sensitive finance text leaks into audit | fixed typed columns only; no payload/JSON/free-text metadata |
-| audit can be forged or edited | no browser mutation grants; internal triggers only; append-only pgTAP |
-| mutation succeeds without audit | trigger executes in the same transaction and failures abort the write |
-| duplicate retry creates duplicate evidence | event follows actual inserted/changed rows; idempotent no-op emits nothing |
-| entry-only correction is invisible | audit `transaction_entries` as well as transaction headers |
-| actor is guessed | actor derives from `auth.uid()`; system actor is explicit only when no JWT actor exists |
-| account deletion leaves audit data | atomic purge plus Edge Function inventory and zero-row verification |
-| performance test becomes hardware-flaky | assert predicates/plan shape, not milliseconds |
-| speculative index/cache adds write or invalidation cost | reuse catalog evidence; add only measured indexes; no cache by default |
-| explicit filter is mistaken for authorization | RLS/security-invoker remain required and independently tested |
+| finance text leaks into audit | fixed typed columns; no amount/free-text/JSON payload |
+| request ID becomes a logging channel | strict opaque-token regex; invalid text becomes null |
+| audit can be forged or edited | browser read-only own-row grants; internal trigger writers |
+| mutation succeeds without audit | same-transaction trigger and rollback regression |
+| entry-only correction is invisible | transaction-entry triggers cover category and reconciliation changes |
+| service role becomes a write bypass | SELECT-only grant with privilege regression |
+| deletion leaves newer tenant rows | complete 19-table purge and independent zero-row inventory |
+| performance tests become hardware-flaky | plan shape/predicate assertions, no milliseconds |
+| speculative cache leaks or goes stale | no cache without measured need |
+| explicit filter is mistaken for authorization | RLS/security-invoker remain separately tested authorities |
 
 ## Tasks
 
 | ID | Task | Status | Evidence |
 |---|---|---|---|
 | T1 | issue and branch from current main | done | #268, branch from `cdbc0579` |
-| T2 | repository and prior-performance reconnaissance | done | PRs #206, #209, #236; current loaders/RPCs |
-| T3 | work packet and PR | done | packet, PR #270 |
-| T4 | audit schema/triggers | candidate | `20260804160000_financial_mutation_audit.sql` |
-| T5 | deletion lifecycle integration | candidate | purge replacement, Edge Function and tests |
-| T6 | explicit tenant filters | candidate | finance/budgets/reports + source contract |
-| T7 | audit/plan pgTAP | candidate | database audit and EXPLAIN suites |
-| T8 | exact-head CI and independent review | in_progress | CI #1413 and follow-ups |
-| T9 | owner merge decision | blocked | separate explicit command |
-| T10 | production migration and smoke | blocked | separate explicit command |
+| T2 | repository/performance reconnaissance | done | PRs #206, #209, #236 and current loaders/RPCs |
+| T3 | packet and PR | done | this packet, PR #270 |
+| T4 | audit schema/triggers | verified | audit migrations and pgTAP |
+| T5 | deletion lifecycle integration | verified | current purge, Edge Function and contracts |
+| T6 | explicit tenant filters | verified | finance/budgets/reports source contracts |
+| T7 | audit and plan regressions | verified | CI #1423 database |
+| T8 | exact-head CI and independent review | verified | CI #1423, CodeQL/secret #559 |
+| T9 | final documentation-only rerun | in_progress | resulting PR head |
+| T10 | owner merge decision | blocked | separate explicit command |
+| T11 | production migration and smoke | blocked | separate explicit command |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-04 | owner | implementer | implementing | explicit `tiếp theo`, roadmap #53 PR E | audit/plan contract absent | implement focused branch and PR |
-| 2026-08-04 | implementer | CI/evaluator | candidate | audit schema, lifecycle, filters and tests | exact-head SQL/application evidence incomplete | fix CI findings and complete independent review |
+| 2026-08-04 | implementer | evaluator | candidate | schema, lifecycle, filters and tests | exact-head evidence incomplete | evaluate and fix findings |
+| 2026-08-04 | evaluator | owner | verified | implementation head `06b6760`, CI #1423, CodeQL/secret #559 | final docs-only rerun | hand off only after final exact-head checks |
 
 ## Permission boundary
 
-Granted: focused repository branch writes, issue/PR metadata, public official documentation reads, tests and CI.
+Granted: focused branch writes, issue/PR metadata, public official documentation reads, tests and CI.
 
 Forbidden without separate owner command: merge, production migration, production data access/mutation, provider/configuration writes, deployment acceptance and production load/smoke tests.
 
@@ -206,4 +183,5 @@ Forbidden without separate owner command: merge, production migration, productio
 - Issue: #268
 - PR: #270
 - Baseline: `cdbc0579c551366c33519b13bc2c9c22548c0af7`
+- Verified implementation head: `06b6760714ef40525364cb05a307532e32704fff`
 - Production DDL/data/provider writes: none
