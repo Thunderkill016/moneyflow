@@ -1,7 +1,7 @@
 # MoneyFlow — MVP “chuẩn” definition (agent exit)
 
 **Authority:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` (G5)  
-**Backlog:** tracked in GitHub Issues, not in a Markdown file.  
+**Backlog:** tracked in GitHub Issues, not in a Markdown file.
 **Current acceptance ledger:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
 
 ## Positioning (lock)
@@ -42,7 +42,7 @@ Bank sync · AI advisor · family · invest/crypto · OCR · full YNAB envelope 
 4. Transfer excluded from expense (unit + e2e contract)  
 5. Landing G5 copy regression tests pass  
 6. Empty states on core pages: **one** primary CTA  
-7. Export reachable from Báo cáo in ≤ 2 clicks  
+7. Export reachable from Báo cáo in ≤ 2 clicks
 8. No P0 money bugs (float, double-count transfer, silent fail create)  
 9. Lighthouse lab scores **documented** (LCP may still miss 2.5s — note ok if CLS green + plan)  
 
