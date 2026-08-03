@@ -89,11 +89,12 @@ export async function getRulesWorkspace(): Promise<RulesWorkspace> {
   }
 
   try {
+    // Archived categories remain readable so the user can disable, retarget or
+    // delete an older rule. Save actions still accept active categories only.
     const categoryById = new Map(
       z
         .array(categoryRowSchema)
         .parse(categoriesResult.data ?? [])
-        .filter((category) => !category.is_archived)
         .map((category) => [category.id, category.name] as const),
     );
     const rules = z.array(ruleRowSchema).parse(rulesResult.data ?? []).map((row) => {
