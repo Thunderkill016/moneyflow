@@ -10,6 +10,7 @@ export const RULES_STORAGE_KEY = "moneyflow-rules-v2";
 export const LEGACY_RULES_STORAGE_KEY = "moneyflow-rules-v1";
 
 export type RuleStage = "candidate";
+export type RuleCategoryKind = "income" | "expense";
 /** Field to scan for the contains pattern. */
 export type RuleMatchField = "merchant" | "note" | "raw" | "any";
 
@@ -27,6 +28,8 @@ export type InboxRule = {
   categoryId?: string;
   /** Category label retained for display and demo compatibility. */
   category: string;
+  /** Derived category kind prevents income/expense cross-application. */
+  categoryKind?: RuleCategoryKind;
   /** Optional merchant normalization when matched. */
   merchant?: string;
   /** Monotonic rule revision used as candidate provenance. */
@@ -39,6 +42,7 @@ export type CreateRuleInput = {
   contains: string;
   category: string;
   categoryId?: string;
+  categoryKind?: RuleCategoryKind;
   stage?: RuleStage;
   field?: RuleMatchField;
   merchant?: string;
@@ -56,6 +60,8 @@ export type UpdateRuleInput = Partial<
 
 const FIELDS: RuleMatchField[] = ["merchant", "note", "raw", "any"];
 const STAGES: RuleStage[] = ["candidate"];
+const CATEGORY_KINDS: RuleCategoryKind[] = ["income", "expense"];
+const LEGACY_INCOME_CATEGORIES = new Set(["Lương", "Thưởng", "Thu nhập khác"]);
 
 export const RULE_FIELD_LABELS: Record<RuleMatchField, string> = {
   merchant: "Nơi chi",
@@ -91,6 +97,15 @@ export function isRuleStage(value: unknown): value is RuleStage {
   return typeof value === "string" && (STAGES as string[]).includes(value);
 }
 
+export function isRuleCategoryKind(value: unknown): value is RuleCategoryKind {
+  return typeof value === "string" && (CATEGORY_KINDS as string[]).includes(value);
+}
+
+/** Legacy built-in labels can be upgraded without inventing a category UUID. */
+export function inferLegacyRuleCategoryKind(category: string): RuleCategoryKind {
+  return LEGACY_INCOME_CATEGORIES.has(category.trim()) ? "income" : "expense";
+}
+
 function validTimestamp(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value));
 }
@@ -113,6 +128,7 @@ export function isInboxRule(value: unknown): value is InboxRule {
       (typeof item.categoryId === "string" && item.categoryId.length > 0)) &&
     typeof item.category === "string" &&
     item.category.trim().length > 0 &&
+    (item.categoryKind === undefined || isRuleCategoryKind(item.categoryKind)) &&
     typeof item.version === "number" &&
     Number.isSafeInteger(item.version) &&
     item.version >= 1 &&
@@ -133,6 +149,7 @@ export function normalizeStoredRule(value: unknown): InboxRule | null {
   const createdAt = validTimestamp(item.createdAt)
     ? item.createdAt
     : new Date(0).toISOString();
+  const category = typeof item.category === "string" ? item.category.trim() : "";
   const normalized: InboxRule = {
     id: typeof item.id === "string" ? item.id : "",
     stage: isRuleStage(item.stage) ? item.stage : "candidate",
@@ -144,7 +161,10 @@ export function normalizeStoredRule(value: unknown): InboxRule | null {
       typeof item.categoryId === "string" && item.categoryId.length > 0
         ? item.categoryId
         : undefined,
-    category: typeof item.category === "string" ? item.category.trim() : "",
+    category,
+    categoryKind: isRuleCategoryKind(item.categoryKind)
+      ? item.categoryKind
+      : inferLegacyRuleCategoryKind(category),
     merchant:
       typeof item.merchant === "string" && item.merchant.trim().length > 0
         ? item.merchant.trim()
@@ -177,7 +197,10 @@ export function createRule(input: CreateRuleInput): InboxRule {
   const category = input.category.trim();
   if (!contains) throw new Error("contains is required");
   if (!category) throw new Error("category is required");
-  if (input.priority !== undefined && (!Number.isSafeInteger(input.priority) || input.priority < 1)) {
+  if (
+    input.priority !== undefined &&
+    (!Number.isSafeInteger(input.priority) || input.priority < 1)
+  ) {
     throw new Error("priority must be a positive integer");
   }
   const merchant =
@@ -196,6 +219,7 @@ export function createRule(input: CreateRuleInput): InboxRule {
     field: input.field ?? "any",
     categoryId: input.categoryId,
     category,
+    categoryKind: input.categoryKind ?? inferLegacyRuleCategoryKind(category),
     merchant,
     version: input.version ?? 1,
     createdAt,
