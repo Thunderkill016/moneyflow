@@ -61,12 +61,19 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  v_requires_active_category boolean;
 begin
   if auth.uid() is null or new.user_id is distinct from auth.uid() then
     raise exception 'rule_tenant_mismatch';
   end if;
 
-  if not exists (
+  v_requires_active_category :=
+    tg_op = 'INSERT'
+    or new.enabled
+    or new.category_id is distinct from old.category_id;
+
+  if v_requires_active_category and not exists (
     select 1
     from public.categories category_record
     where category_record.id = new.category_id
@@ -83,7 +90,12 @@ end;
 $$;
 
 create trigger inbox_rules_validate_category
-  before insert or update of user_id, category_id, contains_text, merchant_name
+  before insert or update of
+    user_id,
+    category_id,
+    contains_text,
+    merchant_name,
+    enabled
   on public.inbox_rules
   for each row execute function public.validate_inbox_rule_category();
 
