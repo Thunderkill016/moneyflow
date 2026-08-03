@@ -16,6 +16,7 @@ import { MoneyValue } from "@/components/money-value";
 import type { ViewerSummary } from "@/components/user-chip";
 import type { AccountRegisterEntry } from "@/lib/account-register";
 import { accountKindLabels, type AccountSummary } from "@/lib/accounts";
+import { isValidDateOnly } from "@/lib/date-only";
 import {
   readDemoReconciliationState,
   writeDemoReconciliationState,
@@ -41,13 +42,15 @@ import styles from "./account-reconciliation-page.module.css";
 function formatSignedMoneyInput(value: string) {
   const negative = value.trimStart().startsWith("-");
   const formatted = formatMoneyInput(value);
-  return negative && formatted ? `-${formatted}` : formatted;
+  return negative ? `-${formatted}` : formatted;
 }
 
 function parseSignedMoneyInput(value: string) {
-  const negative = value.trimStart().startsWith("-");
+  const trimmed = value.trim();
+  if (!trimmed || trimmed === "-") return Number.NaN;
+  const negative = trimmed.startsWith("-");
   const digits = value.replace(/\D/g, "");
-  const amount = digits ? Number(digits) : 0;
+  const amount = digits ? Number(digits) : Number.NaN;
   const signed = negative ? -amount : amount;
   return Number.isSafeInteger(signed) ? signed : Number.NaN;
 }
@@ -140,6 +143,7 @@ export function AccountReconciliationPage({
   const laterEntryCount = openSession
     ? workspace.entries.length - eligibleEntries.length
     : 0;
+  const parsedStatementBalance = parseSignedMoneyInput(statementBalanceInput);
   const canStart = Boolean(
     account &&
       stateData.featureAvailable &&
@@ -148,6 +152,9 @@ export function AccountReconciliationPage({
       !account.isArchived &&
       account.currencyCode === "VND" &&
       !openSession &&
+      isValidDateOnly(statementDate) &&
+      statementDate <= today &&
+      Number.isSafeInteger(parsedStatementBalance) &&
       !busy,
   );
   const canComplete = Boolean(
@@ -173,16 +180,17 @@ export function AccountReconciliationPage({
   }
 
   async function startSession() {
-    if (!account || !canStart) return;
+    if (!account) return;
     const amount = parseSignedMoneyInput(statementBalanceInput);
     if (!Number.isSafeInteger(amount)) {
       setError("Số dư sao kê chưa hợp lệ.");
       return;
     }
-    if (!statementDate || statementDate > today) {
+    if (!isValidDateOnly(statementDate) || statementDate > today) {
       setError("Ngày sao kê chưa hợp lệ.");
       return;
     }
+    if (!canStart) return;
 
     setBusy("start");
     setError("");
@@ -478,6 +486,7 @@ export function AccountReconciliationPage({
                                 );
                                 setError("");
                               }}
+                              required
                             />
                             <strong>₫</strong>
                           </div>
