@@ -22,6 +22,7 @@ const base: InboxRule = {
   contains: "HIGHLANDS",
   field: "any",
   category: "Ăn uống",
+  categoryKind: "expense",
   version: 1,
   createdAt: "2026-07-12T02:10:00.000Z",
   updatedAt: "2026-07-12T02:10:00.000Z",
@@ -43,6 +44,7 @@ test("isInboxRule accepts the complete versioned contract", () => {
 test("isInboxRule rejects invalid contract fields", () => {
   assert.equal(isInboxRule({ ...base, contains: "" }), false);
   assert.equal(isInboxRule({ ...base, category: "" }), false);
+  assert.equal(isInboxRule({ ...base, categoryKind: "transfer" }), false);
   assert.equal(isInboxRule({ ...base, priority: 0 }), false);
   assert.equal(isInboxRule({ ...base, priority: 1.5 }), false);
   assert.equal(isInboxRule({ ...base, field: "amount" }), false);
@@ -70,6 +72,7 @@ test("normalizeStoredRule upgrades the legacy local shape to candidate v1", () =
       field: "merchant",
       categoryId: undefined,
       category: "Di chuyển",
+      categoryKind: "expense",
       merchant: undefined,
       version: 1,
       createdAt: "2026-07-12T02:10:00.000Z",
@@ -78,17 +81,34 @@ test("normalizeStoredRule upgrades the legacy local shape to candidate v1", () =
   );
 });
 
+test("normalizeStoredRule infers legacy income category kind", () => {
+  assert.equal(
+    normalizeStoredRule({
+      id: "income-legacy",
+      priority: 1,
+      enabled: true,
+      contains: "LUONG",
+      field: "raw",
+      category: "Lương",
+      createdAt: "2026-07-12T02:10:00.000Z",
+    })?.categoryKind,
+    "income",
+  );
+});
+
 test("createRule trims, versions and defaults", () => {
   const rule = createRule({
     contains: "  grab  ",
     category: "  Di chuyển  ",
     categoryId: "category-transport",
+    categoryKind: "expense",
     field: "merchant",
     createdAt: "2026-08-04T00:00:00.000Z",
   });
   assert.equal(rule.contains, "grab");
   assert.equal(rule.category, "Di chuyển");
   assert.equal(rule.categoryId, "category-transport");
+  assert.equal(rule.categoryKind, "expense");
   assert.equal(rule.stage, "candidate");
   assert.equal(rule.enabled, true);
   assert.equal(rule.priority, 1);
@@ -117,7 +137,14 @@ test("sortRulesByPriority uses stable deterministic tie breakers", () => {
 test("update and reorder increment only changed rule versions", () => {
   let list: InboxRule[] = [
     base,
-    { ...base, id: "rule-2", priority: 2, contains: "LUONG", category: "Lương" },
+    {
+      ...base,
+      id: "rule-2",
+      priority: 2,
+      contains: "LUONG",
+      category: "Lương",
+      categoryKind: "income",
+    },
   ];
   assert.equal(nextPriority(list), 3);
   list = updateRuleInList(list, {
