@@ -25,9 +25,29 @@ docs/research/pr-memory/2026/Q3/PR-253.md         | 12 +++++
 two commits are **functionally identical**, and the acceptance evidence recorded
 against `481a9ee` carries to `8e08a8a` without re-running acceptance.
 
-`8e08a8a` is proposed as the candidate because it is current `main` and carries the
-reconciled ledger. Choosing `481a9ee` instead is equally defensible and changes no
-product behavior. **This is the owner's choice, not a technical constraint.**
+### `8e08a8a` carries a full-gate CI run of its own
+
+This was checked rather than assumed, and it changed the recommendation. A push to
+`main` runs **every** gate regardless of risk classification, so CI **#1240** on
+`8e08a8a` is not the reduced documentation-only run its PR received:
+
+| Job | Result on `8e08a8a` |
+|---|---|
+| `verify` | success — diff hygiene, knowledge, CI classification, deployment contract, CSS ownership, architecture, lint, typecheck, unit + static RLS, production build |
+| `database` | success — "Database checks not required" **skipped**; fresh local reset and **pgTAP ran** |
+| `e2e` | success — "Browser checks not required" **skipped**; **Chromium and WebKit installed**, expense/Auth-CAPTCHA smoke passed, **production cross-device UI audit passed**, Playwright evidence uploaded |
+
+So `8e08a8a` has pgTAP, WebKit and the cross-device audit **on that exact commit**.
+
+### Recommendation
+
+**`8e08a8a`.** It is what is actually running on `main`; its evidence is stronger
+rather than weaker than the audited SHA; and its product content is provably
+identical to `481a9ee`. Releasing `481a9ee` while `main` sits at `8e08a8a` creates a
+gap between "the released SHA" and "what users have", for no gain.
+
+Choosing `481a9ee` is not wrong — it is the SHA the ledger scored directly. It just
+buys nothing and costs an explanation. **The choice remains the owner's.**
 
 ## 2. Re-verification at decision time
 
@@ -54,10 +74,16 @@ with `Cannot find module '@vercel/analytics/next'`. That was **a stale local
 and the failure disappeared after `npm ci`. It is recorded here rather than quietly
 re-run, because "green after I reinstalled" and "green" are different claims.
 
-**Not re-run here, and not claimed:** `test:db`, WebKit, the full responsive audit,
-provider state, physical devices and production route smoke. The ledger's retained
-CI #1234, CodeQL #379 and Secret history scan #379 evidence covers the merged
-candidate; nothing in this record supersedes those boundaries.
+**Not re-run locally:** `test:db`, WebKit, the full responsive audit. An earlier
+revision of this record listed those three as "not claimed". That was wrong, and the
+correction matters to the decision rather than being cosmetic: CI **#1240** ran all
+three on `8e08a8a` itself, as the table in section 1 shows. They are claimed — by
+CI, on the exact candidate, not by this container.
+
+**Genuinely not claimed anywhere here:** provider state reads or writes,
+physical-device acceptance, and an independent production route smoke. The ledger's
+retained CI #1234, CodeQL #379 and Secret history scan #379 evidence covers the
+merged candidate; nothing in this record supersedes those boundaries.
 
 ## 3. Criterion 8 at decision time
 
