@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const CORE_ROUTES = [
   "/dashboard",
@@ -13,13 +13,12 @@ const CORE_ROUTES = [
 ] as const;
 
 const APP_STATE_KEYS = {
-  seeded: "__mf_mvp_empty_state_seeded",
   transactions: "moneyflow-demo-transactions-v1",
   inbox: "moneyflow-inbox-candidates-v1",
   onboarding: "moneyflow-onboarding-done",
 } as const;
 
-async function settleRoute(page: import("@playwright/test").Page) {
+async function settleRoute(page: Page) {
   await expect(
     page.locator("[aria-busy='true']:visible, .loading-card:visible"),
   ).toHaveCount(0, { timeout: 15_000 });
@@ -31,20 +30,27 @@ async function settleRoute(page: import("@playwright/test").Page) {
   );
 }
 
+async function seedDeterministicEmptyDemo(page: Page) {
+  const response = await page.goto("/transactions", { waitUntil: "domcontentloaded" });
+  expect(response?.status() ?? 200, "/transactions should load for fixture setup").toBeLessThan(
+    400,
+  );
+  await page.evaluate((keys) => {
+    window.localStorage.clear();
+    window.localStorage.setItem(keys.transactions, "[]");
+    window.localStorage.setItem(keys.inbox, "[]");
+    window.localStorage.setItem(keys.onboarding, "1");
+  }, APP_STATE_KEYS);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(
+    page.getByRole("heading", { name: "Chưa có giao dịch", exact: true }),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator(".empty-state-actions:visible").first()).toBeVisible();
+}
+
 test.describe("locked MVP empty-state release gate", () => {
-  test.beforeEach(async ({ context }) => {
-    await context.addInitScript((keys) => {
-      try {
-        if (window.localStorage.getItem(keys.seeded) === "1") return;
-        window.localStorage.clear();
-        window.localStorage.setItem(keys.transactions, "[]");
-        window.localStorage.setItem(keys.inbox, "[]");
-        window.localStorage.setItem(keys.onboarding, "1");
-        window.localStorage.setItem(keys.seeded, "1");
-      } catch {
-        // Storage can be unavailable before the first same-origin navigation.
-      }
-    }, APP_STATE_KEYS);
+  test.beforeEach(async ({ page }) => {
+    await seedDeterministicEmptyDemo(page);
   });
 
   test("every rendered core empty-state action region has exactly one primary action", async ({
@@ -62,6 +68,11 @@ test.describe("locked MVP empty-state release gate", () => {
       expect(response?.status() ?? 200, `${route} should load`).toBeLessThan(400);
       await expect(page.locator("body")).toContainText(/\S/, { timeout: 15_000 });
       await settleRoute(page);
+      if (route === "/transactions") {
+        await expect(
+          page.getByRole("heading", { name: "Chưa có giao dịch", exact: true }),
+        ).toBeVisible({ timeout: 15_000 });
+      }
 
       const actionRegions = page.locator(
         ".empty-state-actions:visible, .report-empty:visible > div",
@@ -97,6 +108,11 @@ test.describe("locked MVP empty-state release gate", () => {
       });
     }
 
+    await testInfo.attach(`mvp-empty-state-actions-${testInfo.project.name}.json`, {
+      body: Buffer.from(JSON.stringify(evidence, null, 2)),
+      contentType: "application/json",
+    });
+
     const transactionsEvidence = evidence.find((item) => item.route === "/transactions");
     expect(
       transactionsEvidence?.actionRegions ?? 0,
@@ -107,11 +123,6 @@ test.describe("locked MVP empty-state release gate", () => {
       evidence.reduce((sum, item) => sum + item.actionRegions, 0),
       "the cross-route candidate must render at least one real empty-state action region",
     ).toBeGreaterThan(0);
-
-    await testInfo.attach(`mvp-empty-state-actions-${testInfo.project.name}.json`, {
-      body: Buffer.from(JSON.stringify(evidence, null, 2)),
-      contentType: "application/json",
-    });
   });
 
   test("Báo cáo exposes direct CSV and reaches advanced export in one click", async ({ page }) => {
