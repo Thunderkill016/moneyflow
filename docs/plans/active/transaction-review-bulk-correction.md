@@ -122,7 +122,7 @@ Users can correct one transaction at a time but cannot record what still needs c
 - Reconciliation sessions or cleared/reconciled states.
 - Import rules, bank sync, AI, OCR or background jobs.
 
-## Implementation record
+## Implementation plan
 
 ### Architecture fit
 
