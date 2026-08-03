@@ -42,7 +42,7 @@ test("MVP exit criteria include ship gates (keywords)", () => {
     "Transfer excluded from expense",
     "Landing G5",
     "Empty states",
-    "Export reachable from Insights",
+    "Export reachable from Báo cáo",
     "P0 money bugs",
   ] as const;
   for (const kw of keywords) {
