@@ -151,7 +151,7 @@ Create a new PR memory record and update current project memory only after exact
 | T2 | port tests for corrected semantics | 82 pgTAP assertions | done |
 | T3 | canonical migration | `20260803142000...sql` | candidate |
 | T4 | independent security/correctness review | findings resolved | pending |
-| T5 | exact-head Class 3 gates | CI, CodeQL, secret scan | running after ready-for-review transition |
+| T5 | exact-head Class 3 gates | CI, CodeQL, secret scan | pending ready-for-review run |
 | T6 | owner merge / production decision | separate commands | blocked on owner |
 
 ## Handoff record
@@ -159,7 +159,7 @@ Create a new PR memory record and update current project memory only after exact
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-03 | evaluator | implementer | implementing | #222 blocker review and issue #260 | corrected contract not yet encoded | write tests and canonical migration on current-main branch |
-| 2026-08-03 | implementer | evaluator | evaluating | canonical migration plus 82 assertions | gates have not run while PR is draft | mark PR ready to trigger exact-head database checks |
+| 2026-08-03 | implementer | evaluator | evaluating | canonical migration plus 82 assertions | draft workflow skipped gates by policy | transition PR to ready and inspect fresh-reset evidence |
 
 ### Current permission boundary
 
@@ -169,7 +169,7 @@ Create a new PR memory record and update current project memory only after exact
 
 ## Evaluation
 
-Candidate implementation exists. The earlier CI run on the draft PR intentionally skipped verify/database by workflow policy and is not evidence. Evaluation starts only with the ready-for-review run on the resulting exact head.
+Candidate implementation exists. CI #1291 on head `57729fd` is not database evidence because the PR was draft and the workflow intentionally skipped verify/database. Evaluation begins only with the ready-for-review run on the current head.
 
 ## Delivery record
 
