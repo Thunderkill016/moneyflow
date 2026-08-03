@@ -150,6 +150,13 @@ export function AccountDetailPage({
                 </div>
               </div>
               <div className={styles.headingActions}>
+                <Link
+                  className="secondary-button"
+                  href={`/accounts/${account.id}/reconcile`}
+                >
+                  <Icon name="check" />
+                  Đối soát
+                </Link>
                 <Link className="secondary-button" href="/transactions">
                   <Icon name="timeline" />
                   Mở sổ giao dịch
