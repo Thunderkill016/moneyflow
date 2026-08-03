@@ -1,14 +1,14 @@
 # Issue 174 provider security runbook on current main
 
-**Status:** evaluating  
-**Execution state:** current-main replacement in progress  
-**Active role:** evaluator  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016 controls merge, provider writes, production verification and issue acceptance  
-**Issue:** #174  
-**PR:** #249  
-**Supersedes:** PR #198  
-**Baseline:** `main@48a02052473b44910ff5a46cf2c837bedab39b6f`  
+**Status:** evaluating
+**Execution state:** current-main replacement in progress
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** Thunderkill016 controls merge, provider writes, production verification and issue acceptance
+**Issue:** #174
+**PR:** #249
+**Supersedes:** PR #198
+**Baseline:** `main@48a02052473b44910ff5a46cf2c837bedab39b6f`
 **Last updated:** 2026-08-03
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
