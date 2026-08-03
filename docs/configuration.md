@@ -9,6 +9,8 @@ MoneyFlow follows a configuration-first deployment model:
 - missing or malformed production configuration fails validation;
 - application code must not invent a production hostname, project URL or runtime mode.
 
+The Vietnamese [provider security controls runbook](operations/provider-security-controls.vi.md) defines the owner-operated activation, verification, evidence-redaction and rollback sequence for issue #174. Exact provider identifiers, hostnames, rule values and request evidence belong in a private operational record, not this repository.
+
 ## Required Vercel environment variables
 
 | Variable | Scope | Purpose |
