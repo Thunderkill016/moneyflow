@@ -1,5 +1,5 @@
 begin;
-select plan(35);
+select plan(34);
 
 select has_table(
   'public',
