@@ -70,6 +70,9 @@ begin
 
   if tg_op = 'INSERT' then
     v_requires_active_category := true;
+    new.version := 1;
+    new.created_at := now();
+    new.updated_at := new.created_at;
   else
     v_requires_active_category :=
       new.enabled
