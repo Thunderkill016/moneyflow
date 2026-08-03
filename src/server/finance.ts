@@ -39,15 +39,17 @@ const TRANSACTION_REVIEW_COLUMNS =
 
 type FinanceWorkspaceScope = "full" | "dashboard";
 
-const accountSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1),
-  currency_code: z.string().length(3).optional(),
-}).transform((row) => ({
-  id: row.id,
-  name: row.name,
-  currencyCode: row.currency_code ?? "VND",
-}));
+const accountSchema = z
+  .object({
+    id: z.string().uuid(),
+    name: z.string().min(1),
+    currency_code: z.string().length(3).optional(),
+  })
+  .transform((row) => ({
+    id: row.id,
+    name: row.name,
+    currencyCode: row.currency_code ?? "VND",
+  }));
 const categorySchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
@@ -135,7 +137,10 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
     id: row.id,
     kind: row.kind,
     categoryId: row.category_id ?? "",
-    category: row.kind === "transfer" ? "Chuyển tiền" : row.category_name ?? "Chưa phân loại",
+    category:
+      row.kind === "transfer"
+        ? "Chuyển tiền"
+        : row.category_name ?? "Chưa phân loại",
     note: row.note || row.category_name || "Giao dịch",
     accountId: row.account_id,
     account: row.account_name,
@@ -216,7 +221,9 @@ async function loadFinanceWorkspace(
   if (viewer.isDemo) return demoWorkspace();
 
   const supabase = await createClient();
-  if (!supabase) return { ...demoWorkspace(), dataError: "Không thể kết nối dữ liệu." };
+  if (!supabase) {
+    return { ...demoWorkspace(), dataError: "Không thể kết nối dữ liệu." };
+  }
 
   const today = todayInVietnam();
   const periodFeedPromise =
@@ -224,6 +231,7 @@ async function loadFinanceWorkspace(
       ? supabase
           .from("transaction_feed")
           .select(TRANSACTION_FEED_COLUMNS)
+          .eq("user_id", viewer.id)
           .gte("occurred_on", dashboardTransactionStart(today))
           .order("occurred_on", { ascending: false })
           .order("created_at", { ascending: false })
@@ -231,6 +239,7 @@ async function loadFinanceWorkspace(
       : supabase
           .from("transaction_feed")
           .select(TRANSACTION_FEED_COLUMNS)
+          .eq("user_id", viewer.id)
           .order("occurred_on", { ascending: false })
           .order("created_at", { ascending: false })
           .order("id", { ascending: false });
@@ -240,6 +249,7 @@ async function loadFinanceWorkspace(
       ? supabase
           .from("transaction_feed")
           .select(TRANSACTION_FEED_COLUMNS)
+          .eq("user_id", viewer.id)
           .order("occurred_on", { ascending: false })
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
@@ -251,6 +261,7 @@ async function loadFinanceWorkspace(
       ? supabase
           .from("transaction_review_feed")
           .select(TRANSACTION_REVIEW_COLUMNS)
+          .eq("user_id", viewer.id)
           .order("occurred_on", { ascending: false })
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
@@ -267,17 +278,22 @@ async function loadFinanceWorkspace(
     supabase
       .from("accounts")
       .select("id,name,currency_code")
+      .eq("user_id", viewer.id)
       .eq("is_archived", false)
       .order("created_at"),
     supabase
       .from("categories")
       .select("id,name,kind,icon,color")
+      .eq("user_id", viewer.id)
       .eq("is_archived", false)
       .order("created_at"),
     periodFeedPromise,
     recentFeedPromise,
     // Join currency so insights totalBalance stays VND-only (no FX mix).
-    supabase.from("account_balances").select("account_id,balance_minor,currency_code"),
+    supabase
+      .from("account_balances")
+      .select("account_id,balance_minor,currency_code")
+      .eq("user_id", viewer.id),
     reviewFeedPromise,
   ]);
 
@@ -300,8 +316,12 @@ async function loadFinanceWorkspace(
   }
 
   try {
-    const accounts = z.array(accountSchema).parse(accountsResult.data) satisfies AccountOption[];
-    const categories = z.array(categorySchema).parse(categoriesResult.data) satisfies CategoryOption[];
+    const accounts = z
+      .array(accountSchema)
+      .parse(accountsResult.data) satisfies AccountOption[];
+    const categories = z
+      .array(categorySchema)
+      .parse(categoriesResult.data) satisfies CategoryOption[];
     const reviewState = readReviewState(
       scope,
       reviewFeedResult.data,
@@ -320,7 +340,9 @@ async function loadFinanceWorkspace(
       const code = String(item.currency_code ?? "VND").toUpperCase();
       if (code !== "VND") return sum;
       const amount = Number(item.balance_minor);
-      if (!Number.isSafeInteger(amount)) throw new Error("invalid_account_balance");
+      if (!Number.isSafeInteger(amount)) {
+        throw new Error("invalid_account_balance");
+      }
       return sum + amount;
     }, 0);
 
