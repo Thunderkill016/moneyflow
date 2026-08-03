@@ -18,6 +18,14 @@ function countMatches(source: string, pattern: RegExp) {
   return [...source.matchAll(pattern)].length;
 }
 
+function auditTableDefinition() {
+  const match = migration.match(
+    /create table public\.financial_mutation_audit_events \(([\s\S]*?)\n\);/,
+  );
+  assert.ok(match, "missing financial mutation audit table definition");
+  return match[1];
+}
+
 test("large authenticated finance reads repeat the viewer tenant predicate", () => {
   assert.ok(
     countMatches(
@@ -68,8 +76,8 @@ test("audit schema is structural, append-only for browsers and trigger-owned", (
     /grant (?:insert|update|delete)[^;]*financial_mutation_audit_events[^;]*authenticated/i,
   );
   assert.doesNotMatch(
-    migration,
-    /\b(?:note|merchant|raw_snippet|payload|request_body|metadata)\b[^\n]*\b(?:text|json|jsonb)\b/i,
+    auditTableDefinition(),
+    /\b(?:note|merchant|raw_snippet|payload|request_body|metadata|amount)\b/i,
   );
   assert.match(migration, /financial_transactions_audit_mutation/);
   assert.match(migration, /transaction_entries_audit_mutation/);
