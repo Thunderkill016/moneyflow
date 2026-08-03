@@ -1,5 +1,5 @@
 begin;
-select plan(10);
+select plan(11);
 
 create or replace function pg_temp.explain_json(p_sql text)
 returns jsonb
