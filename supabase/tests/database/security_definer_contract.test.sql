@@ -24,7 +24,7 @@ where n.nspname = 'public'
 
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  27,
+  32,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 
