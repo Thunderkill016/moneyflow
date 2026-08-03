@@ -449,6 +449,23 @@ select throws_ok(
   'entry_not_found',
   'cross-tenant account-leg ID cannot be mutated'
 );
+select throws_ok(
+  format(
+    $sql$
+      select *
+      from public.reconciliation_snapshot_for_user(
+        %L::uuid,
+        %L::uuid,
+        '2026-08-02'::date
+      )
+    $sql$,
+    '77777777-7777-4777-8777-777777777777',
+    current_setting('moneyflow_test.current_reconciliation_account')
+  ),
+  'P0001',
+  'reconciliation_snapshot_forbidden',
+  'cross-tenant reconciliation snapshot helper call is rejected'
+);
 select is(
   (select count(*)::integer
    from public.account_reconciliation_summaries),
