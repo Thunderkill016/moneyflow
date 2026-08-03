@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { TransactionsPage } from "@/components/transactions-page";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
+import styles from "./timeline-review-boundary.module.css";
 
 export const metadata: Metadata = {
   title: "Dòng thời gian — Money Flow",
@@ -10,21 +11,25 @@ export const metadata: Metadata = {
 
 /**
  * Timeline (wireframes-inbox §16): approved ledger list with “đã duyệt” copy.
- * Reuses TransactionsPage; empty state CTAs Inbox / Capture.
+ * Reuses TransactionsPage while forcing the reviewed-only filter and hiding
+ * ledger-quality mutation controls that belong to `/transactions`.
  */
 export default async function Page() {
   const viewer = await requireViewer();
   const workspace = await getFinanceWorkspace();
 
   return (
-    <TransactionsPage
-      viewer={{
-        email: viewer.email,
-        displayName: viewer.displayName,
-        isDemo: viewer.isDemo,
-      }}
-      workspace={workspace}
-      variant="timeline"
-    />
+    <div className={styles.boundary}>
+      <TransactionsPage
+        viewer={{
+          email: viewer.email,
+          displayName: viewer.displayName,
+          isDemo: viewer.isDemo,
+        }}
+        workspace={workspace}
+        variant="timeline"
+        initialReview="reviewed"
+      />
+    </div>
   );
 }
