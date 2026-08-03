@@ -3,6 +3,11 @@
 import { startTransition, useEffect, useOptimistic, useState } from "react";
 import { approveInboxCandidateAction } from "@/app/actions/inbox-approval";
 import {
+  bulkSetTransactionReviewAction,
+  bulkUpdateTransactionCategoryAction,
+  type BulkTransactionActionResult,
+} from "@/app/actions/transaction-review";
+import {
   createSplitExpenseAction,
   createTransactionAction,
   deleteTransactionAction,
@@ -14,6 +19,8 @@ import {
 import { executeTransferMutation } from "@/hooks/transfer-mutation";
 import type {
   AccountOption,
+  BulkTransactionCategoryInput,
+  BulkTransactionReviewInput,
   CategoryOption,
   CreateSplitExpenseInput,
   CreateTransactionInput,
@@ -29,6 +36,11 @@ import {
   writeStoredTransactions,
 } from "@/lib/transaction-store";
 import {
+  applyBulkCategoryCorrection,
+  applyBulkReviewStatus,
+  getTransactionReviewStatus,
+} from "@/lib/transaction-review";
+import {
   buildOptimisticTransaction,
   reduceOptimisticTransactions,
 } from "@/lib/optimistic-transactions";
@@ -40,8 +52,17 @@ type Options = {
   isDemo: boolean;
 };
 
+function withReviewStatus(transaction: Transaction): Transaction {
+  return {
+    ...transaction,
+    reviewStatus: getTransactionReviewStatus(transaction),
+  };
+}
+
 export function useTransactions({ initialTransactions, accounts, categories, isDemo }: Options) {
-  const [transactions, setTransactions] = useState(initialTransactions);
+  const [transactions, setTransactions] = useState(
+    initialTransactions.map(withReviewStatus),
+  );
   const [optimisticTransactions, addOptimisticTransaction] = useOptimistic(
     transactions,
     reduceOptimisticTransactions,
@@ -74,6 +95,7 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         occurredOn: input.occurredOn,
         occurredAt: new Date().toISOString(),
         relativeDate: "Vừa xong",
+        reviewStatus: "reviewed",
       };
       setTransactions((current) => {
         const next = [transaction, ...current];
@@ -99,9 +121,10 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           allowHeuristicDuplicate: input.allowHeuristicDuplicate ?? false,
         });
         if (result.ok) {
+          const reviewed = withReviewStatus(result.transaction);
           setTransactions((current) => [
-            result.transaction,
-            ...current.filter((item) => item.id !== result.transaction.id),
+            reviewed,
+            ...current.filter((item) => item.id !== reviewed.id),
           ]);
         }
         return result;
@@ -118,13 +141,14 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     setIsMutating(true);
     return await new Promise<TransactionActionResult>((resolve) => {
       startTransition(async () => {
-        addOptimisticTransaction(optimistic.transaction);
+        addOptimisticTransaction(withReviewStatus(optimistic.transaction));
         try {
           const result = await createTransactionAction(input);
           if (result.ok && result.transaction) {
+            const reviewed = withReviewStatus(result.transaction);
             setTransactions((current) => [
-              result.transaction as Transaction,
-              ...current.filter((item) => item.id !== result.transaction?.id),
+              reviewed,
+              ...current.filter((item) => item.id !== reviewed.id),
             ]);
           }
           resolve(
@@ -173,16 +197,19 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         writeStoredTransactions(next);
         return next;
       });
-      return { ok: true, transaction };
+      return { ok: true, transaction: withReviewStatus(transaction) };
     }
 
     setIsMutating(true);
     try {
       const result = await restoreTransactionAction(transaction.id);
       if (result.ok) {
-        const restored = result.transaction ?? transaction;
+        const restored: Transaction = {
+          ...(result.transaction ?? transaction),
+          reviewStatus: getTransactionReviewStatus(transaction),
+        };
         setTransactions((current) => restoreTransactionInList(current, restored));
-        return { ok: true, transaction: result.transaction ?? transaction };
+        return { ok: true, transaction: restored };
       }
       return {
         ok: false,
@@ -212,9 +239,10 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           allowHeuristicDuplicate: input.allowHeuristicDuplicate ?? false,
         });
         if (result.ok) {
+          const reviewed = withReviewStatus(result.transaction);
           setTransactions((current) => [
-            result.transaction,
-            ...current.filter((item) => item.id !== result.transaction.id),
+            reviewed,
+            ...current.filter((item) => item.id !== reviewed.id),
           ]);
         }
         return result;
@@ -222,10 +250,15 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
 
       const result = await executeTransferMutation({ input, accounts, isDemo });
       if (result.ok) {
-        setTransactions((current) => [
-          result.transaction,
-          ...current.filter((item) => item.id !== result.transaction.id),
-        ]);
+        const reviewed = withReviewStatus(result.transaction);
+        setTransactions((current) => {
+          const next = [
+            reviewed,
+            ...current.filter((item) => item.id !== reviewed.id),
+          ];
+          if (isDemo) writeStoredTransactions(next);
+          return next;
+        });
       }
       return result;
     } finally {
@@ -245,21 +278,23 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         categories,
       });
       if (!built.ok) return { ok: false, message: built.message };
+      const reviewed = withReviewStatus(built.transaction);
       setTransactions((current) => {
-        const next = [built.transaction, ...current];
+        const next = [reviewed, ...current];
         writeStoredTransactions(next);
         return next;
       });
-      return { ok: true, transaction: built.transaction };
+      return { ok: true, transaction: reviewed };
     }
 
     setIsMutating(true);
     try {
       const result = await createSplitExpenseAction(input);
       if (result.ok && result.transaction) {
+        const reviewed = withReviewStatus(result.transaction);
         setTransactions((current) => [
-          result.transaction as Transaction,
-          ...current.filter((item) => item.id !== result.transaction?.id),
+          reviewed,
+          ...current.filter((item) => item.id !== reviewed.id),
         ]);
       }
       return result.ok
@@ -341,7 +376,10 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         setTransactions((current) =>
           current.map((item) =>
             item.id === result.transaction?.id
-              ? (result.transaction as Transaction)
+              ? {
+                  ...(result.transaction as Transaction),
+                  reviewStatus: getTransactionReviewStatus(item),
+                }
               : item,
           ),
         );
@@ -349,6 +387,84 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       return result.ok
         ? result
         : { ok: false, message: result.message || "Không cập nhật được. Thử lại." };
+    } catch {
+      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
+  async function bulkSetReviewStatus(
+    input: BulkTransactionReviewInput,
+  ): Promise<BulkTransactionActionResult> {
+    const applied = applyBulkReviewStatus(
+      transactions,
+      input.ids,
+      input.reviewStatus,
+    );
+    if (!applied.ok) return applied;
+
+    if (isDemo) {
+      setTransactions(applied.transactions);
+      writeStoredTransactions(applied.transactions);
+      return { ok: true, updatedIds: applied.updatedIds };
+    }
+
+    setIsMutating(true);
+    try {
+      const result = await bulkSetTransactionReviewAction(input);
+      if (result.ok) {
+        setTransactions((current) => {
+          const next = applyBulkReviewStatus(
+            current,
+            result.updatedIds,
+            input.reviewStatus,
+          );
+          return next.ok ? next.transactions : current;
+        });
+      }
+      return result;
+    } catch {
+      return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
+    } finally {
+      setIsMutating(false);
+    }
+  }
+
+  async function bulkUpdateCategory(
+    input: BulkTransactionCategoryInput,
+  ): Promise<BulkTransactionActionResult> {
+    const category = categories.find((item) => item.id === input.categoryId);
+    if (!category) {
+      return { ok: false, message: "Danh mục không còn tồn tại." };
+    }
+    const applied = applyBulkCategoryCorrection(
+      transactions,
+      input.ids,
+      category,
+    );
+    if (!applied.ok) return applied;
+
+    if (isDemo) {
+      setTransactions(applied.transactions);
+      writeStoredTransactions(applied.transactions);
+      return { ok: true, updatedIds: applied.updatedIds };
+    }
+
+    setIsMutating(true);
+    try {
+      const result = await bulkUpdateTransactionCategoryAction(input);
+      if (result.ok) {
+        setTransactions((current) => {
+          const next = applyBulkCategoryCorrection(
+            current,
+            result.updatedIds,
+            category,
+          );
+          return next.ok ? next.transactions : current;
+        });
+      }
+      return result;
     } catch {
       return { ok: false, message: "Mất kết nối. Kiểm tra mạng rồi thử lại." };
     } finally {
@@ -364,6 +480,8 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     updateTransaction,
     deleteTransaction,
     restoreTransaction,
+    bulkSetReviewStatus,
+    bulkUpdateCategory,
     isMutating,
   };
 }

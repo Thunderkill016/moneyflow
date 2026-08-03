@@ -12,12 +12,14 @@ import type {
   AccountOption,
   CategoryOption,
   Transaction,
+  TransactionReviewStatus,
 } from "@/lib/transactions/contracts";
 import {
   demoAccounts,
   demoCategories,
   sampleTransactions,
 } from "@/lib/demo/transaction-fixtures";
+import { getTransactionReviewStatus } from "@/lib/transaction-review";
 
 export type FinanceWorkspace = {
   transactions: Transaction[];
@@ -26,10 +28,14 @@ export type FinanceWorkspace = {
   totalBalance: number;
   today: string;
   dataError: string | null;
+  /** Present only when the caller owns the full transaction-review surface. */
+  reviewFeatureAvailable?: boolean;
 };
 
 const TRANSACTION_FEED_COLUMNS =
   "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
+const TRANSACTION_REVIEW_COLUMNS =
+  "id,review_status,occurred_on,created_at";
 
 type FinanceWorkspaceScope = "full" | "dashboard";
 
@@ -53,6 +59,12 @@ const splitLineSchema = z.object({
   category_id: z.string().uuid(),
   category_name: z.string().min(1),
   amount_minor: z.union([z.number(), z.string()]),
+});
+const reviewFeedSchema = z.object({
+  id: z.string().uuid(),
+  review_status: z.enum(["needs_review", "reviewed"]),
+  occurred_on: z.string(),
+  created_at: z.string(),
 });
 
 const feedSchema = z.object({
@@ -140,19 +152,24 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
 
 function demoWorkspace(): FinanceWorkspace {
   return {
-    transactions: sampleTransactions,
+    transactions: sampleTransactions.map((transaction) => ({
+      ...transaction,
+      reviewStatus: getTransactionReviewStatus(transaction),
+    })),
     accounts: demoAccounts,
     categories: demoCategories,
     totalBalance: 15_735_000,
     today: todayInVietnam(),
     dataError: null,
+    reviewFeatureAvailable: true,
   };
 }
 
 function newestFirst(left: Transaction, right: Transaction) {
   return (
     right.occurredOn.localeCompare(left.occurredOn) ||
-    right.occurredAt.localeCompare(left.occurredAt)
+    right.occurredAt.localeCompare(left.occurredAt) ||
+    right.id.localeCompare(left.id)
   );
 }
 
@@ -162,6 +179,34 @@ function deduplicateTransactions(transactions: Transaction[]) {
     if (!unique.has(transaction.id)) unique.set(transaction.id, transaction);
   }
   return [...unique.values()].sort(newestFirst);
+}
+
+function readReviewState(
+  scope: FinanceWorkspaceScope,
+  data: unknown[] | null,
+  hasError: boolean,
+) {
+  if (scope !== "full" || hasError) {
+    return {
+      available: false,
+      byId: new Map<string, TransactionReviewStatus>(),
+    };
+  }
+
+  try {
+    const rows = z.array(reviewFeedSchema).parse(data ?? []);
+    return {
+      available: true,
+      byId: new Map(
+        rows.map((row) => [row.id, row.review_status] as const),
+      ),
+    };
+  } catch {
+    return {
+      available: false,
+      byId: new Map<string, TransactionReviewStatus>(),
+    };
+  }
 }
 
 async function loadFinanceWorkspace(
@@ -182,11 +227,13 @@ async function loadFinanceWorkspace(
           .gte("occurred_on", dashboardTransactionStart(today))
           .order("occurred_on", { ascending: false })
           .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
       : supabase
           .from("transaction_feed")
           .select(TRANSACTION_FEED_COLUMNS)
           .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
 
   const recentFeedPromise =
     scope === "dashboard"
@@ -195,7 +242,18 @@ async function loadFinanceWorkspace(
           .select(TRANSACTION_FEED_COLUMNS)
           .order("occurred_on", { ascending: false })
           .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
           .limit(DASHBOARD_RECENT_TRANSACTION_LIMIT)
+      : Promise.resolve({ data: [] as unknown[], error: null });
+
+  const reviewFeedPromise =
+    scope === "full"
+      ? supabase
+          .from("transaction_review_feed")
+          .select(TRANSACTION_REVIEW_COLUMNS)
+          .order("occurred_on", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
       : Promise.resolve({ data: [] as unknown[], error: null });
 
   const [
@@ -204,6 +262,7 @@ async function loadFinanceWorkspace(
     periodFeedResult,
     recentFeedResult,
     balancesResult,
+    reviewFeedResult,
   ] = await Promise.all([
     supabase
       .from("accounts")
@@ -219,6 +278,7 @@ async function loadFinanceWorkspace(
     recentFeedPromise,
     // Join currency so insights totalBalance stays VND-only (no FX mix).
     supabase.from("account_balances").select("account_id,balance_minor,currency_code"),
+    reviewFeedPromise,
   ]);
 
   if (
@@ -235,17 +295,26 @@ async function loadFinanceWorkspace(
       totalBalance: 0,
       today,
       dataError: "Chưa tải được dữ liệu tài chính. Hãy thử tải lại trang.",
+      reviewFeatureAvailable: false,
     };
   }
 
   try {
     const accounts = z.array(accountSchema).parse(accountsResult.data) satisfies AccountOption[];
     const categories = z.array(categorySchema).parse(categoriesResult.data) satisfies CategoryOption[];
+    const reviewState = readReviewState(
+      scope,
+      reviewFeedResult.data,
+      Boolean(reviewFeedResult.error),
+    );
     const transactions = deduplicateTransactions(
       [...(periodFeedResult.data ?? []), ...(recentFeedResult.data ?? [])].map(
         mapTransactionFeedRow,
       ),
-    );
+    ).map((transaction) => ({
+      ...transaction,
+      reviewStatus: reviewState.byId.get(transaction.id) ?? "reviewed",
+    }));
     // Safe-to-spend / insights use VND only — FX accounts are display-only (TASK-129).
     const totalBalance = (balancesResult.data ?? []).reduce((sum, item) => {
       const code = String(item.currency_code ?? "VND").toUpperCase();
@@ -262,6 +331,7 @@ async function loadFinanceWorkspace(
       totalBalance,
       today,
       dataError: null,
+      reviewFeatureAvailable: reviewState.available,
     };
   } catch {
     return {
@@ -271,6 +341,7 @@ async function loadFinanceWorkspace(
       totalBalance: 0,
       today,
       dataError: "Dữ liệu tài chính không đúng định dạng. Hãy liên hệ hỗ trợ.",
+      reviewFeatureAvailable: false,
     };
   }
 }

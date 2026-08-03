@@ -1,12 +1,15 @@
 import type { Transaction } from "./transactions/contracts.ts";
+import { getTransactionReviewStatus } from "./transaction-review.ts";
 
 export type TransactionFilterKind = "all" | Transaction["kind"];
+export type TransactionReviewFilter = "all" | "needs_review" | "reviewed";
 
 export type TransactionFilterValues = {
   query: string;
   kind: TransactionFilterKind;
   account: string;
   category: string;
+  review: TransactionReviewFilter;
   fromDate: string;
   toDate: string;
   minAmountInput: string;
@@ -30,6 +33,12 @@ export function normalizeTransactionAmountInput(value?: string) {
   return Number.isSafeInteger(amount)
     ? new Intl.NumberFormat("vi-VN").format(amount)
     : "";
+}
+
+export function normalizeTransactionReviewParam(
+  value?: string,
+): TransactionReviewFilter {
+  return value === "needs_review" || value === "reviewed" ? value : "all";
 }
 
 export function parseTransactionAmountFilter(value: string) {
@@ -85,6 +94,9 @@ export function filterTransactions(
       values.category === "all" ||
       transaction.category === values.category ||
       transaction.splits?.some((line) => line.category === values.category);
+    const matchesReview =
+      values.review === "all" ||
+      getTransactionReviewStatus(transaction) === values.review;
     const matchesDate =
       (!values.fromDate || transaction.occurredOn >= values.fromDate) &&
       (!values.toDate || transaction.occurredOn <= values.toDate);
@@ -97,6 +109,7 @@ export function filterTransactions(
       matchesKind &&
       matchesAccount &&
       matchesCategory &&
+      matchesReview &&
       matchesDate &&
       matchesAmount
     );
@@ -113,6 +126,7 @@ export function transactionFilterSearch(values: TransactionFilterValues) {
   if (values.kind !== "all") params.set("kind", values.kind);
   if (values.account !== "all") params.set("account", values.account);
   if (values.category !== "all") params.set("category", values.category);
+  if (values.review !== "all") params.set("review", values.review);
   if (values.fromDate) params.set("from", values.fromDate);
   if (values.toDate) params.set("to", values.toDate);
   if (minAmount != null) params.set("min", String(minAmount));

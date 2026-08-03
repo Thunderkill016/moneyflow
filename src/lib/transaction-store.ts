@@ -1,6 +1,7 @@
 import type { Transaction } from "./transactions/contracts.ts";
 import { sampleTransactions } from "./demo/transaction-fixtures.ts";
 import { isSplitLine, sumSplitAmounts } from "./splits.ts";
+import { getTransactionReviewStatus } from "./transaction-review.ts";
 
 export const TRANSACTION_STORAGE_KEY = "moneyflow-demo-transactions-v1";
 
@@ -24,6 +25,9 @@ export function isTransaction(value: unknown): value is Transaction {
     Number.isFinite(Date.parse(item.occurredAt)) &&
     typeof item.relativeDate === "string" &&
     (item.isRecurringPayment === undefined || typeof item.isRecurringPayment === "boolean") &&
+    (item.reviewStatus === undefined ||
+      item.reviewStatus === "needs_review" ||
+      item.reviewStatus === "reviewed") &&
     (item.kind !== "transfer" || (
       typeof item.destinationAccountId === "string" &&
       typeof item.destinationAccount === "string" &&
@@ -38,15 +42,28 @@ export function isTransaction(value: unknown): value is Transaction {
   return sumSplitAmounts(item.splits) === item.amount;
 }
 
+function withNormalizedReviewStatus(transaction: Transaction): Transaction {
+  return {
+    ...transaction,
+    reviewStatus: getTransactionReviewStatus(transaction),
+  };
+}
+
+function normalizedSampleTransactions() {
+  return sampleTransactions.map(withNormalizedReviewStatus);
+}
+
 export function readStoredTransactions() {
   try {
     const saved = localStorage.getItem(TRANSACTION_STORAGE_KEY);
-    if (!saved) return sampleTransactions;
+    if (!saved) return normalizedSampleTransactions();
     const parsed: unknown = JSON.parse(saved);
-    return Array.isArray(parsed) && parsed.every(isTransaction) ? parsed : sampleTransactions;
+    return Array.isArray(parsed) && parsed.every(isTransaction)
+      ? parsed.map(withNormalizedReviewStatus)
+      : normalizedSampleTransactions();
   } catch {
     localStorage.removeItem(TRANSACTION_STORAGE_KEY);
-    return sampleTransactions;
+    return normalizedSampleTransactions();
   }
 }
 
@@ -63,5 +80,5 @@ export function restoreTransactionInList(
   restored: Transaction,
 ): Transaction[] {
   if (current.some((item) => item.id === restored.id)) return current;
-  return [restored, ...current];
+  return [withNormalizedReviewStatus(restored), ...current];
 }

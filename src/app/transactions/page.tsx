@@ -3,6 +3,7 @@ import { TransactionsPage } from "@/components/transactions-page";
 import {
   normalizeTransactionAmountInput,
   normalizeTransactionDateParam,
+  normalizeTransactionReviewParam,
 } from "@/lib/transaction-filters";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
@@ -28,6 +29,7 @@ export default async function Page({
     category?: string;
     kind?: string;
     account?: string;
+    review?: string;
     from?: string;
     to?: string;
     min?: string;
@@ -60,6 +62,7 @@ export default async function Page({
       initialCategory={initialCategory}
       initialAccount={initialAccount}
       initialKind={normalizeKind(params.kind)}
+      initialReview={normalizeTransactionReviewParam(params.review)}
       initialFromDate={normalizeTransactionDateParam(params.from)}
       initialToDate={normalizeTransactionDateParam(params.to)}
       initialMinAmount={normalizeTransactionAmountInput(params.min)}
