@@ -6,6 +6,7 @@
 **Permission scope:** branch_write  
 **Owner:** Thunderkill016 controls merge, provider writes, production verification and issue acceptance  
 **Issue:** #174  
+**PR:** #249  
 **Supersedes:** PR #198  
 **Baseline:** `main@48a02052473b44910ff5a46cf2c837bedab39b6f`  
 **Last updated:** 2026-08-03
@@ -17,7 +18,7 @@ Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 - Issue #174 remains open and tracks provider configuration plus production verification that source code cannot prove.
 - Repository-side CAPTCHA token plumbing, neutral Auth responses and password validation are already merged.
 - `docs/configuration.md` defines the safe activation order but does not provide an owner-operated evidence and rollback procedure.
-- PR #198 was based on `main@481d035c2f430b1addfa5f9b92cab3e03992b371` and is no longer mergeable.
+- PR #198 was based on `main@481d035c2f430b1addfa5f9b92cab3e03992b371` and is closed unmerged.
 - The PR #198 runbook contained exact provider identifiers and concrete Firewall thresholds. Current issue #174 explicitly requires identifiers, hostnames, thresholds, request IDs and screenshots to remain in a private operational record.
 - This replacement performs no Supabase, Cloudflare, Vercel, deployment, secret, database or production-data operation.
 
@@ -60,8 +61,8 @@ Publish a Vietnamese, owner-operated, public-safe runbook for issue #174 that pr
 - [x] Android Share Target verification uses synthetic data.
 - [x] Public completion evidence excludes identifiers, thresholds, user data and screenshots.
 - [x] `docs/configuration.md` links to the runbook and states the private-record boundary.
-- [ ] PR #198 is closed unmerged after replacement provenance is recorded.
-- [ ] Canonical memory records the current replacement candidate and the just-merged Dependabot truth.
+- [x] PR #198 is closed unmerged after replacement provenance is recorded.
+- [x] Canonical memory records the current replacement candidate and the just-merged Dependabot truth.
 - [ ] Exact-head CI, CodeQL and secret-history scan pass.
 - [ ] Human owner explicitly authorizes merge.
 
@@ -76,9 +77,9 @@ Publish a Vietnamese, owner-operated, public-safe runbook for issue #174 that pr
 
 1. Rebuild the runbook directly from current main using placeholders and a private-record model.
 2. Link the runbook from `docs/configuration.md`.
-3. Open a current-main replacement PR and add bounded PR memory.
+3. Open current-main replacement PR #249 and add bounded PR memory.
 4. Close PR #198 unmerged as superseded.
-5. Reconcile canonical memory with merged PR #245 and the new provider-runbook candidate.
+5. Reconcile canonical memory with merged PR #245 and provider-runbook candidate #249.
 6. Run risk-proportional exact-head repository checks, protected CodeQL and secret-history scan.
 7. Stop at ready-for-review; provider operations remain owner-controlled and separate.
 
@@ -94,8 +95,8 @@ Revert the documentation PR. No provider rollback is required because this task 
 | T2 | Recheck official Supabase, Cloudflare and Vercel guidance | done | official provider documentation dated 2026-08-03 |
 | T3 | Remove public identifiers and exact thresholds from the runbook design | done | placeholder/private-record model |
 | T4 | Add current-main runbook and configuration link | done | documentation branch |
-| T5 | Open replacement PR, add memory and close #198 unmerged | in progress | replacement delivery |
-| T6 | Reconcile merged #245 lifecycle and canonical candidate state | pending | documentation update |
+| T5 | Open replacement PR, add memory and close #198 unmerged | done | PR #249 open; PR #198 closed unmerged |
+| T6 | Reconcile merged #245 lifecycle and canonical candidate state | done | completed packet, PR memory and canonical snapshot |
 | T7 | Run exact-head CI, CodeQL and secret scan | pending | final head required |
 | T8 | Owner merge decision | blocked | explicit owner instruction required |
 
