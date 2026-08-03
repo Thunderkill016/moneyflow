@@ -2,7 +2,7 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-03
-- **Code baseline audited:** `main@c00de284c9062d08d7ec590242fb3802970a034a`
+- **Code baseline audited:** `main@48a02052473b44910ff5a46cf2c837bedab39b6f`
 - **Owner direction:** continue developing existing capabilities toward competitive depth; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 
@@ -79,7 +79,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Share Target | **Implemented and hardened** | bounded validation and ingestion | provider/edge controls and continued smoke |
 | Responsive UI | **Implemented with broad automation** | light/dark responsive app, expanded route/dialog and WebKit coverage | physical-device and deep error/destructive/Inbox states |
 | Accessibility/mobile | **Substantially implemented** | 44px targets, accessible names, modal placement, money wrapping and Vietnamese/VND regressions | physical keyboard/device proof and remaining confirmations |
-| CI/security scanning | **Implemented** | stable risk checks, real CodeQL analysis on every PR, secret scan, pinned Actions and knowledge/classifier contracts | keep ruleset, workflow and classifier guidance aligned |
+| CI/security scanning | **Implemented** | stable risk checks, real CodeQL analysis on every PR, secret scan, pinned Actions, knowledge/classifier contracts and grouped monthly Dependabot updates with manual review | keep ruleset/workflow/classifier guidance aligned; observe the next scheduled Dependabot run |
 | Specification workflow | **Implemented** | pinned Spec Kit adapter, constitution and templates integrated with MoneyFlow governance | run/review official initializer only in a dedicated pinned upgrade |
 | Database verification | **Implemented** | fresh reset, pgTAP domain/RLS/tenant/attack suites, complete tested public-FK left-prefix index coverage and diagnostic recurrence gate | reconciliation tests; production migration deployment and advisor rerun remain external evidence |
 | Performance tooling | **Implemented; acceptance partial** | dashboard one-RPC/bounds, complete public-FK coverage migration, k6 public/auth profiles and budgets | production advisor rerun, staging concurrency and realistic large-ledger benchmarks |
@@ -94,9 +94,11 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - PR #233 archived completed governance and public-experience packets and reconciled superseded PR truth.
 - PR #234 merged inclusive transaction date and integer-amount filters, canonical URL state, explicit invalid-range feedback, filter-preserving correction context and responsive controls at `45b6f22de80aa7c1fd67f2f402f4ffd6bd147cc8`.
 - PR #234 exact head passed CI #1145, CodeQL #298 and Secret history scan #298, including browser smoke and cross-device UI audit; that is repository/browser evidence, not a production-deployment claim.
-- PR #235 reconciled canonical memory and completed the transaction-range Spec Kit lifecycle at `29b24617d80aa7c1fd67f2f402f4ffd6bd147cc8`; it made no runtime or database change.
+- PR #235 reconciled canonical memory and completed the transaction-range Spec Kit lifecycle at `29b24617d80b1329072ad681086ce3656a5ab790`; it made no runtime or database change.
 - PR #236 merged fourteen additive foreign-key coverage indexes and a diagnostic complete-coverage pgTAP gate at `5971ba0cfc587e2482be81f955f4fdf3cb14b45c`.
 - PR #236 final head `443d30d7537af3c758659658a530be35677c6cf5` passed CI #1175 with a fresh reset and all 281 pgTAP tests, CodeQL #326 with real Initialize/Analyze and Secret history scan #326. This is repository migration-replay evidence, not proof of production deployment or a clean production advisor.
+- PR #245 merged monthly grouped Dependabot version-update configuration, queue limits and npm cooldowns at `48a02052473b44910ff5a46cf2c837bedab39b6f`; it changed no dependency version, lockfile, workflow or auto-merge behavior.
+- PR #245 final head `5e3f34dd22431c186daafe97e92b2b3bf7ede575` passed CI #1192, CodeQL #341 with real Initialize/Analyze and Secret history scan #341. Actual generated-PR behavior remains unproven until a future scheduled run.
 - PR #215 established layered project memory: concise hot rules, current snapshot, task routing and bounded cold PR records.
 - PR #213 merged and deployed one landing/auth/color candidate. That proves implementation, not final owner design approval.
 - The authenticated dashboard uses bounded `get_dashboard_bundle`; schema-skew fallback prevents false zero/empty data and must not be removed without equivalent evidence.
@@ -128,7 +130,7 @@ A screenshot, route existence, passing build or unmerged branch alone never prov
 | #53 audit/performance | **Partial**; FK coverage merged through #236, while production advisor rerun and scale acceptance remain |
 | #72 UI audit | Core route/VND/targets/modal/accessibility slices complete; deep states/devices remain |
 | #172 product assessment | Retention/WTP/demand warnings remain useful; old score/state/freeze is superseded |
-| #174 provider controls | Repository readiness implemented; provider configuration/production verification remain |
+| #174 provider controls | Repository readiness implemented; provider configuration/production verification remain external; PR #249 is a public-safe runbook candidate only |
 
 ## 9. Open pull-request memory
 
@@ -136,12 +138,11 @@ Open PRs are not product truth. Refresh and reverify against current `main` befo
 
 | PR | Interpretation |
 |---|---|
-| #245 | current-main candidate grouping and throttling Dependabot version updates; no dependency version, workflow or auto-merge change |
-| #198 | provider-security runbook candidate; repository documentation only, no provider operation performed |
+| #249 | current-main public-safe provider-security runbook candidate; documentation only, no provider operation or production evidence |
 | #170/#171 | diverged stacked CSS cleanup candidates; compare current CSS ownership and tests before reuse |
 | #119 | logo candidate requiring current browser evidence and explicit owner visual approval |
 
-Recently closed unmerged as stale, redundant or superseded: #245 replaces #197; merged #236 replaced closed unmerged #211; #232 replaced #223 and was itself replaced by merged #234 because of ancestry protection; #230 replaced #221; merged #213 superseded #208; current runtime superseded #217; #199 was a no-op analytics lockfile PR.
+Recently closed unmerged as stale, redundant or superseded: current candidate #249 replaces #198; merged #245 replaced #197; merged #236 replaced #211; #232 replaced #223 and was itself replaced by merged #234 because of ancestry protection; #230 replaced #221; merged #213 superseded #208; current runtime superseded #217; #199 was a no-op analytics lockfile PR.
 
 ## 10. True gaps after this audit
 
@@ -198,6 +199,9 @@ Do not repeat these as current facts:
 - Account history or transaction filtering proves reconciliation.
 - PR #211 is the current FK-index delivery candidate.
 - PR #236 remains an unmerged candidate.
+- PR #245 remains an unmerged Dependabot candidate.
+- PR #198 is the current provider-runbook candidate.
+- A public provider runbook may include exact provider IDs, hostnames, Firewall thresholds or request evidence.
 - Thirteen advisor findings alone prove complete public FK coverage.
 - Merged repository migration tests prove production deployment or a clean production advisor.
 - A successful CodeQL job shell proves scanning when initialization or analysis was skipped.
