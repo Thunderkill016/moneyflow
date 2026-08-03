@@ -29,6 +29,7 @@ const highlands = rule({
   contains: "HIGHLANDS",
   categoryId: "cat-food",
   category: "Ăn uống",
+  categoryKind: "expense",
   merchant: "Highlands Coffee",
   version: 4,
 });
@@ -40,6 +41,7 @@ const luong = rule({
   field: "raw",
   categoryId: "cat-salary",
   category: "Lương",
+  categoryKind: "income",
 });
 
 const grabDisabled = rule({
@@ -48,11 +50,13 @@ const grabDisabled = rule({
   contains: "GRAB",
   field: "merchant",
   category: "Di chuyển",
+  categoryKind: "expense",
 });
 
 test("ruleMatches is case-insensitive and stage bounded", () => {
   assert.equal(
     ruleMatches(highlands, {
+      kind: "expense",
       merchant: "highlands 45k",
       note: "",
       rawSnippet: "HIGHLANDS 45k",
@@ -61,6 +65,27 @@ test("ruleMatches is case-insensitive and stage bounded", () => {
   );
   assert.equal(
     ruleMatches({ ...highlands, enabled: false }, {
+      kind: "expense",
+      merchant: "HIGHLANDS",
+      note: "",
+    }),
+    false,
+  );
+});
+
+test("category kind and transfer boundaries block wrong candidate matches", () => {
+  assert.equal(
+    ruleMatches(luong, {
+      kind: "expense",
+      merchant: "LUONG",
+      note: "",
+      rawSnippet: "LUONG CT +25000000",
+    }),
+    false,
+  );
+  assert.equal(
+    ruleMatches(highlands, {
+      kind: "transfer",
       merchant: "HIGHLANDS",
       note: "",
     }),
@@ -72,6 +97,7 @@ test("field merchant ignores a raw-only match", () => {
   const merchantOnly = { ...highlands, field: "merchant" as const };
   assert.equal(
     ruleMatches(merchantOnly, {
+      kind: "expense",
       merchant: "Cafe",
       note: "",
       rawSnippet: "HIGHLANDS 45k",
@@ -79,7 +105,7 @@ test("field merchant ignores a raw-only match", () => {
     false,
   );
   assert.equal(
-    ruleMatches(merchantOnly, { merchant: "HIGHLANDS", note: "" }),
+    ruleMatches(merchantOnly, { kind: "expense", merchant: "HIGHLANDS", note: "" }),
     true,
   );
 });
@@ -90,8 +116,10 @@ test("lower priority wins and disabled rules are skipped", () => {
     priority: 5,
     contains: "HIGHLANDS",
     category: "Mua sắm",
+    categoryKind: "expense",
   });
   const match = findMatchingRule([lower, grabDisabled, highlands], {
+    kind: "expense",
     merchant: "HIGHLANDS",
     note: "",
   });
@@ -100,7 +128,12 @@ test("lower priority wins and disabled rules are skipped", () => {
 
 test("preview exposes normalized output and immutable rule revision", () => {
   const preview = previewRuleApplication(
-    { merchant: "HIGHLANDS 45K", note: "", rawSnippet: "HIGHLANDS 45k" },
+    {
+      kind: "expense" as const,
+      merchant: "HIGHLANDS 45K",
+      note: "",
+      rawSnippet: "HIGHLANDS 45k",
+    },
     [highlands, luong],
   );
   assert.equal(preview.changed, true);
@@ -114,7 +147,12 @@ test("preview exposes normalized output and immutable rule revision", () => {
 });
 
 test("existing normalized category is retained unless force is explicit", () => {
-  const target = { merchant: "HIGHLANDS", note: "", category: "Giải trí" };
+  const target = {
+    kind: "expense" as const,
+    merchant: "HIGHLANDS",
+    note: "",
+    category: "Giải trí",
+  };
   assert.equal(applyRuleToTarget(target, [highlands]).category, "Giải trí");
   assert.equal(
     applyRuleToTarget(target, [highlands], { force: true }).category,
