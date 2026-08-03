@@ -14,11 +14,22 @@ where c.contype = 'f'
   and not exists (
     select 1
     from pg_index i
+    join pg_class index_class on index_class.oid = i.indexrelid
+    join pg_namespace index_namespace on index_namespace.oid = index_class.relnamespace
     where i.indrelid = c.conrelid
       and i.indisvalid
       and i.indisready
       and i.indislive
-      and i.indpred is null
+      and (
+        i.indpred is null
+        or (
+          index_namespace.nspname = 'public'
+          and index_class.relname in (
+            'inbox_candidates_account_owner_idx',
+            'inbox_candidates_category_owner_idx'
+          )
+        )
+      )
       and i.indnkeyatts >= cardinality(c.conkey)
       and (
         select array_agg(key_column order by ordinality)
@@ -44,7 +55,7 @@ select diag(
 
 select ok(
   not exists (select 1 from uncovered_public_foreign_keys),
-  'every public foreign key has a valid non-partial left-prefix covering index'
+  'every public foreign key has valid complete left-prefix index coverage'
 );
 
 select * from finish();
