@@ -3,7 +3,7 @@
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-03
 - **Code baseline audited:** `main@6cea2939663df2cf5245ec1e72e7ef186fd7a0cb`
-- **Owner direction:** record the completed locked MVP gate, merge its regression only after review, and make an explicit release decision before broadening scope
+- **Owner direction:** record the completed locked MVP gate, merge its regression only after review, and make an explicit release decision before broadening scope; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Release acceptance ledger:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
