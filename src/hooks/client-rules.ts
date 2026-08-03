@@ -12,6 +12,7 @@ import {
   reorderStoredRules,
   updateStoredRule,
   type InboxRule,
+  type RuleCategoryKind,
   type RuleMatchField,
 } from "@/lib/inbox/rules-store";
 
@@ -32,6 +33,7 @@ export type SaveRuleForClientInput = {
   contains: string;
   categoryId?: string;
   category: string;
+  categoryKind: RuleCategoryKind;
   merchant?: string;
 };
 
@@ -64,6 +66,7 @@ export async function saveRuleForClient(
           contains: input.contains,
           categoryId: input.categoryId,
           category: input.category,
+          categoryKind: input.categoryKind,
           merchant: input.merchant,
         });
         return { ok: true, rules };
@@ -76,6 +79,7 @@ export async function saveRuleForClient(
         contains: input.contains,
         categoryId: input.categoryId,
         category: input.category,
+        categoryKind: input.categoryKind,
         merchant: input.merchant,
       });
       return { ok: true, rules: readStoredRules() };
