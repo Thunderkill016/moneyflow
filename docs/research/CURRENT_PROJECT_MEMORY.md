@@ -2,8 +2,8 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-03
-- **Code baseline audited:** `main@6cea2939663df2cf5245ec1e72e7ef186fd7a0cb`
-- **Owner direction:** record the completed locked MVP gate, merge its regression only after review, and make an explicit release decision before broadening scope; validation is required inside each workstream but is not a global feature freeze
+- **Code baseline audited:** `main@481a9ee72663477172b9f727cacbf3f530aa6630`
+- **Owner direction:** the locked MVP acceptance regression is merged; choose the release SHA and make an explicit release decision before broadening scope; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Release acceptance ledger:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
@@ -94,15 +94,15 @@ The locked MVP definition has nine exit criteria.
 
 | Criterion group | Current truth |
 |---|---|
-| lint/typecheck/test, expense e2e, demo build | **Repository evidenced** through `mvp-verify` and exact-head runtime checks |
+| lint/typecheck/test, expense e2e, demo build | **Repository evidenced** through exact-head PR #252 verification and merged current content |
 | transfer neutrality | **Repository evidenced** through unit/database/browser invariants |
 | landing G5 copy implementation | **Repository evidenced**; final visual approval is a separate owner decision |
-| export ≤2 clicks | **Verified unmerged on PR #252**; `/reports` exposes direct CSV and reaches `/settings/export` in one click on Chromium desktop/mobile |
+| export ≤2 clicks | **Repository evidenced**; the merged regression confirms direct CSV and one-click `/settings/export` from `/reports` on Chromium desktop/mobile |
 | Lighthouse documented | **Repository evidenced** in `docs/performance-budgets.md`, including LCP miss, CLS pass and mitigation plan |
-| no known P0 money bug | **Conditional**; no known public blocker, but universal absence cannot be proven from a suite |
-| one primary CTA across all core empty states | **Verified unmerged on PR #252**; the deterministic nine-route browser gate passed on Chromium desktop/mobile and records per-route action-region evidence |
+| no known P0 money bug | **Conditional**; post-merge searches found no open issue labeled `P0` or `priority:P0`, but universal absence cannot be proven from a suite or label search |
+| one primary CTA across all core empty states | **Repository evidenced**; the merged deterministic nine-route browser gate passed on Chromium desktop/mobile and records per-route action-region evidence |
 
-Functional MVP is complete. All nine locked exit criteria are reconciled on verified acceptance candidate `PR #252@0441af6`; criterion 8 remains inherently conditional. The regression is not current `main` truth until PR #252 merges. Provider controls, physical-device proof, final visual direction and approved staging load evidence are separate public-beta gates unless the owner explicitly promotes them.
+Functional MVP is complete. All nine locked exit criteria are reconciled on current `main@481a9ee`; criterion 8 remains inherently conditional. Provider controls, physical-device proof, final visual direction and approved staging load evidence are separate public-beta gates unless the owner explicitly promotes them.
 
 ## 7. Load-bearing merged and verified truth
 
@@ -118,7 +118,7 @@ Functional MVP is complete. All nine locked exit criteria are reconciled on veri
 - PR #249 merged the public-safe provider runbook without provider writes.
 - PR #250 merged the functional-MVP truth audit as `b7b0e1fb2c13e82061d7641f86e6b3c2a9b2bed4`.
 - PR #251 merged the locked release-evidence reconciliation as `6cea2939663df2cf5245ec1e72e7ef186fd7a0cb`.
-- PR #252 is **verified unmerged**: CI #1230, CodeQL #375 and Secret history scan #375 passed on `0441af6`; its 28-test Chromium desktop/mobile run closed the focused empty-state and export acceptance gate.
+- PR #252 merged the locked empty-state/export acceptance regression as `481a9ee72663477172b9f727cacbf3f530aa6630`; final CI #1234, CodeQL #379 and Secret history scan #379 passed before merge, and Vercel reports success for the merge commit.
 - PR #222 remains **verified unmerged**, not current behavior and not evidence that reconciliation was never built.
 - On 2026-08-03 the owner stated that several items previously described as undone had already been completed; exact private details must not be invented.
 
@@ -140,21 +140,20 @@ Open PRs are not product truth. Refresh and reverify against current `main` befo
 
 | PR | Interpretation |
 |---|---|
-| #252 | verified-unmerged test-only acceptance gate; all exact-head checks green; awaiting owner merge and release decision |
 | #170/#171 | old stacked CSS cleanup candidates; compare current CSS ownership and tests before reuse |
 | #119 | logo candidate requiring current browser evidence and explicit owner visual approval |
 
-PR #250 and PR #251 are merged and must not remain candidate-only.
+PR #250, PR #251 and PR #252 are merged and must not remain candidate-only.
 
 ## 10. True gaps after this audit
 
 ### Locked MVP release closure
 
-1. owner reviews and merges PR #252 so the acceptance regression becomes current `main` truth;
-2. confirm no known open P0 money blocker for the chosen release SHA;
+1. choose the release SHA, currently `main@481a9ee` unless a newer approved candidate replaces it;
+2. confirm there is still no known P0 money blocker at decision time;
 3. make an explicit human MVP release decision.
 
-The focused empty-state and export browser acceptance run is complete. Do not repeat it as missing work unless the candidate changes materially or a regression is observed.
+The focused empty-state/export acceptance run is complete and merged. Do not repeat it as missing work unless the candidate changes materially or a regression is observed.
 
 ### Separate public-beta hardening
 
@@ -172,9 +171,9 @@ The focused empty-state and export browser acceptance run is complete. Do not re
 
 ## 11. Current implementation direction
 
-Wave 0 is now an owner merge/release decision, not a missing-evidence hunt. Do not start another broad feature because an old issue says work is pending.
+Wave 0 repository acceptance is complete. The next step is an owner release decision, not another missing-evidence hunt or broad feature.
 
-After release closure, tracks may proceed independently: ledger trust, planning depth, reports/export, import/rules and measured scale. Reconciliation is post-MVP unless explicitly promoted.
+After the release decision, tracks may proceed independently: ledger trust, planning depth, reports/export, import/rules and measured scale. Reconciliation is post-MVP unless explicitly promoted.
 
 Validation remains embedded in each PR: financial/data work uses unit + migration replay + pgTAP + affected browser evidence; UI work uses responsive/browser and physical-device proof only where claimed; provider changes require before/after evidence, rollback and production smoke. CodeQL remains required on every PR.
 
@@ -205,7 +204,8 @@ Do not repeat these as current facts:
 - Spec Kit replaces MoneyFlow governance.
 - The merged public-experience candidate is owner-approved final design.
 - Feature development must freeze until a seven-day trial.
-- The locked MVP empty-state browser gate is still missing.
+- The locked MVP empty-state browser gate is still missing or unmerged.
+- PR #252 is still an open candidate.
 
 ## 13. Update and compaction protocol
 
