@@ -26,8 +26,8 @@ create table public.inbox_rules (
 create index inbox_rules_user_priority_idx
   on public.inbox_rules (user_id, priority, created_at, id);
 
-create index inbox_rules_user_category_idx
-  on public.inbox_rules (user_id, category_id);
+create index inbox_rules_category_user_idx
+  on public.inbox_rules (category_id, user_id);
 
 alter table public.inbox_rules enable row level security;
 
@@ -184,7 +184,7 @@ declare
   v_total_count integer;
 begin
   if v_user_id is null then
-    raise exception 'not_authenticated';
+    raise exception 'authentication_required';
   end if;
   if v_requested_count < 1 or v_requested_count > 100 then
     raise exception 'invalid_rule_order';
@@ -246,7 +246,7 @@ declare
   v_haystack text;
 begin
   if v_user_id is null then
-    raise exception 'not_authenticated';
+    raise exception 'authentication_required';
   end if;
   if p_expected_version is null or p_expected_version < 1 then
     raise exception 'invalid_rule_version';
