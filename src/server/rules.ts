@@ -28,6 +28,7 @@ const ruleRowSchema = z.object({
 const categoryRowSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1),
+  kind: z.enum(["income", "expense"]),
   is_archived: z.boolean(),
 });
 
@@ -74,7 +75,7 @@ export async function getRulesWorkspace(): Promise<RulesWorkspace> {
       .order("priority")
       .order("created_at")
       .order("id"),
-    supabase.from("categories").select("id,name,is_archived"),
+    supabase.from("categories").select("id,name,kind,is_archived"),
   ]);
 
   if (isMissingRulesContract(rulesResult.error)) {
@@ -95,7 +96,7 @@ export async function getRulesWorkspace(): Promise<RulesWorkspace> {
       z
         .array(categoryRowSchema)
         .parse(categoriesResult.data ?? [])
-        .map((category) => [category.id, category.name] as const),
+        .map((category) => [category.id, category] as const),
     );
     const rules = z.array(ruleRowSchema).parse(rulesResult.data ?? []).map((row) => {
       const category = categoryById.get(row.category_id);
@@ -108,7 +109,8 @@ export async function getRulesWorkspace(): Promise<RulesWorkspace> {
         contains: row.contains_text,
         field: row.match_field,
         categoryId: row.category_id,
-        category,
+        category: category.name,
+        categoryKind: category.kind,
         merchant: row.merchant_name ?? undefined,
         version: safePositiveInteger(row.version, "invalid_rule_version"),
         createdAt: row.created_at,
