@@ -100,6 +100,21 @@ Not applicable. No dependency, provider, service, background worker, AI model or
 8. Round-trip applied rule evidence through candidate mappings and Inbox reads with schema-skew fallback.
 9. Add browser regression and run Class 3 exact-head evaluation.
 
+## Evaluation
+
+### Current findings
+
+1. Rule evaluation remains a candidate-normalization aid and never becomes a ledger-write authority.
+2. Stable category IDs, tenant RLS and server-side category-kind checks prevent label drift and cross-tenant or income/expense misapplication.
+3. Preview evidence is revalidated against the exact enabled rule version and current candidate text before persistence.
+4. Raw source text, amount, date, account and transaction kind remain outside the rule mutation surface.
+5. Application-first deployment is preserved through calm rule-feature fallback and legacy Inbox-column retry.
+6. Archived-category rules remain visible and can be disabled or deleted without allowing an archived target to be re-enabled.
+
+### Evidence state
+
+Class 3 exact-head CI is in progress. Diff hygiene has passed on the implementation candidate; knowledge, application, database, browser and security gates must all pass again on the final unchanged head before handoff. No merge, production migration, production-data mutation or production smoke is authorized.
+
 ## Risks and defenses
 
 | Risk | Defense |
