@@ -68,10 +68,13 @@ begin
     raise exception 'rule_tenant_mismatch';
   end if;
 
-  v_requires_active_category :=
-    tg_op = 'INSERT'
-    or new.enabled
-    or new.category_id is distinct from old.category_id;
+  if tg_op = 'INSERT' then
+    v_requires_active_category := true;
+  else
+    v_requires_active_category :=
+      new.enabled
+      or new.category_id is distinct from old.category_id;
+  end if;
 
   if v_requires_active_category and not exists (
     select 1
