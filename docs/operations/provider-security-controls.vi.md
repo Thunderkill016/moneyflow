@@ -1,8 +1,8 @@
 # Runbook cấu hình bảo mật provider cho MoneyFlow
 
-**Issue theo dõi:** #174  
-**Đối tượng sử dụng:** chủ dự án thao tác thủ công trên Supabase, Cloudflare và Vercel  
-**Ngày đối chiếu tài liệu chính thức:** 2026-08-03  
+**Issue theo dõi:** #174
+**Đối tượng sử dụng:** chủ dự án thao tác thủ công trên Supabase, Cloudflare và Vercel
+**Ngày đối chiếu tài liệu chính thức:** 2026-08-03
 **Phạm vi:** hướng dẫn và bằng chứng; tài liệu này không thực hiện provider write
 
 Runbook này mô tả thứ tự an toàn để hoàn thành các provider controls mà source code và CI không thể chứng minh. Tất cả giá trị nhận diện production và thông số phòng thủ phải được lưu trong hồ sơ vận hành riêng, không đưa vào repository, issue công khai, chat hoặc ảnh chưa che.
