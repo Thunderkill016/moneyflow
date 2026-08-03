@@ -1,5 +1,5 @@
 begin;
-select plan(20);
+select plan(23);
 
 select has_table('public', 'inbox_rules', 'authenticated rules table exists');
 select has_column('public', 'inbox_rules', 'version', 'rules retain a monotonic version');
