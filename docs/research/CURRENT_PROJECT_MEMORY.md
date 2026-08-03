@@ -2,7 +2,7 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-03
-- **Code baseline audited:** `main@b185bce263589a79f8c7d4d9ff28ad4d73a9726b`
+- **Code baseline audited:** `main@45b6f22de80aa7c1fd67f2f402f4ffd6bd147cc8`
 - **Owner direction:** continue developing existing capabilities toward competitive depth; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 
@@ -61,7 +61,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Authentication/demo | **Implemented; external pending** | email/password, OAuth surfaces, recovery/reset, explicit demo, neutral responses, CAPTCHA token plumbing | provider policy/callback/confirmation, enforcement, rates, breached-password and edge rules |
 | Accounts | **Implemented, partial** | common account kinds, initial/derived balances, per-currency totals, CRUD/archive/restore, same-currency transfer, viewer-scoped register/detail with signed ledger impacts | reconciliation, trends/export, hide/archive/report semantics and richer register controls |
 | Categories | **Implemented** | income/expense categories, archive and cross-feature use | clearer archive impact; hierarchy only if evidence requires it |
-| Transactions | **Implemented** | create/search, kind/account/category filters, edit, soft delete/undo, grouping/pagination/totals | date/amount filters, review state, bounded bulk correction and audit; PR #232 is candidate only |
+| Transactions | **Implemented, partial** | create/search, kind/account/category/date/amount filters, canonical URL state, edit, soft delete/undo, grouping/pagination and truthful filtered totals | review state, bounded bulk correction, split-line editing and non-sensitive mutation audit |
 | Transfers | **Implemented** | balanced semantics, currency guard, report neutrality, shared mutation owner, idempotency and account-register source/destination presentation | reconciliation |
 | Split expenses | **Implemented** | validated multi-line expense and reporting allocation | in-place line editing and richer correction |
 | Dashboard | **Implemented + production hardened** | bounded one-RPC bundle for balances/activity/planning/Inbox | attention drill-down and measured acceptance |
@@ -87,10 +87,13 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 
 ## 6. Load-bearing merged truth
 
-- Reconciliation is absent: calculated balance and account history are not statement reconciliation.
+- Reconciliation is absent: calculated balance, account history and date/amount filtering are not statement reconciliation.
 - Account register/detail is merged through PR #228; PR #229 archived its packet and synchronized production-deployed truth.
 - PR #230 removed the CodeQL skip path. A green job shell with skipped initialization/analysis is not valid code-scanning evidence.
-- PR #231 merged the Spec Kit adapter at `b185bce263589a79f8c7d4d9ff28ad4d73a9726b`; generated specs cannot weaken financial invariants, permissions or required checks.
+- PR #231 merged the Spec Kit adapter; generated specs cannot weaken financial invariants, permissions or required checks.
+- PR #233 archived completed governance and public-experience packets and reconciled superseded PR truth.
+- PR #234 merged inclusive transaction date and integer-amount filters, canonical URL state, explicit invalid-range feedback, filter-preserving correction context and responsive controls at `45b6f22de80aa7c1fd67f2f402f4ffd6bd147cc8`.
+- PR #234 exact head passed CI #1145, CodeQL #298 and Secret history scan #298, including browser smoke and cross-device UI audit; that is repository/browser evidence, not a production-deployment claim.
 - PR #215 established layered project memory: concise hot rules, current snapshot, task routing and bounded cold PR records.
 - PR #213 merged and deployed one landing/auth/color candidate. That proves implementation, not final owner design approval.
 - The authenticated dashboard uses bounded `get_dashboard_bundle`; schema-skew fallback prevents false zero/empty data and must not be removed without equivalent evidence.
@@ -105,7 +108,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 
 ## 7. Engineering and evidence boundary
 
-Implemented engineering evidence includes modular boundaries, neutral transaction contracts, shared mutation owners, viewer-scoped account register projection, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names, real CodeQL analysis and load-profile contracts.
+Implemented engineering evidence includes modular boundaries, neutral transaction contracts, shared mutation owners, viewer-scoped account register projection, composable transaction filters, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names, real CodeQL analysis and load-profile contracts.
 
 Still needed: physical Android/iOS evidence, deep validation/destructive/Inbox states, approved staging load, realistic large-ledger benchmarks and non-sensitive mutation audit.
 
@@ -126,19 +129,18 @@ A screenshot, route existence, passing build or unmerged branch alone never prov
 
 ## 9. Open pull-request memory
 
-Open PRs are not product truth. Rebase and reverify against current `main` before merge.
+Open PRs are not product truth. Refresh and reverify against current `main` before merge.
 
 | PR | Interpretation |
 |---|---|
-| #233 | current-main lifecycle archive candidate for five completed packets; docs-only and unmerged |
-| #232 | verified transaction date/amount filter candidate at head `4706b71f5c7c4413be5e201784d673e9b2e97e23`; no merged transaction behavior change yet |
-| #211 | FK-index candidate; not merged/deployed; rebase, replay migration and rerun pgTAP before any merge |
+| #235 | docs-only post-merge reconciliation for PR #234; no runtime/database/provider change |
+| #211 | FK-index candidate from an older baseline; recreate on current main, replay migration and rerun pgTAP before any merge |
 | #198 | provider-security runbook candidate; repository documentation only, no provider operation performed |
 | #197 | Dependabot-noise maintenance candidate from an older baseline; refresh before reuse |
-| #170/#171 | diverged stacked CSS cleanup candidates; not absorbed into `main`; compare current CSS ownership and tests before reuse |
-| #119 | logo candidate requiring browser evidence and explicit owner visual approval |
+| #170/#171 | diverged stacked CSS cleanup candidates; compare current CSS ownership and tests before reuse |
+| #119 | logo candidate requiring current browser evidence and explicit owner visual approval |
 
-Recently closed unmerged as stale, redundant or superseded: #233 replaces #218/#220 lifecycle intent; #230 replaced #221; #232 replaced #223; merged #213 superseded #208; current runtime superseded #217; #199 was a no-op analytics lockfile PR.
+Recently closed unmerged as stale, redundant or superseded: #232 replaced #223 and was itself replaced by merged #234 because of ancestry protection; #230 replaced #221; merged #213 superseded #208; current runtime superseded #217; #199 was a no-op analytics lockfile PR.
 
 ## 10. True gaps after this audit
 
@@ -150,7 +152,7 @@ Recently closed unmerged as stale, redundant or superseded: #233 replaces #218/#
 
 ### P1 — deepen existing loops
 
-1. transaction review/date/amount/bulk correction;
+1. transaction review state, bounded bulk correction and split-line correction;
 2. budget history/copy/rollover/drill-down;
 3. recurring history/states/calendar/reminders/matching;
 4. goal contribution/funding/lifecycle;
@@ -171,7 +173,9 @@ Recently closed unmerged as stale, redundant or superseded: #233 replaces #218/#
 
 Parallel tracks: ledger trust; planning depth; reports/export/performance; advanced import/rules; onboarding/mobile/provider completion.
 
-Transaction range filters may merge as an independent P1 slice after owner approval. Reconciliation requires its own owner-approved financial/data specification and must never be inferred from account history.
+Transaction range filters are merged and should be treated as an existing ledger capability. The next ledger slice must specify review state or bounded correction separately. Reconciliation requires its own owner-approved financial/data specification and must never be inferred from account history or filtering.
+
+PR #211 is the highest-value stale candidate for technical refresh because it addresses measured foreign-key index findings without changing application semantics. It must be recreated from current main and reverified; old exact-head evidence cannot be reused as merge evidence.
 
 Validation is embedded in each PR: financial/data uses unit + migration replay + pgTAP + affected browser evidence; UI uses responsive/browser and physical-device proof where claimed; provider changes require before/after evidence, rollback and production smoke. Protected CodeQL analysis is required for every PR independently of product-layer gate selection.
 
@@ -189,7 +193,8 @@ Do not repeat these as current facts:
 - Dashboard still performs the original fan-out.
 - CAPTCHA application plumbing is missing.
 - Account register/detail is absent.
-- Account history proves reconciliation.
+- Transaction date/amount filters are missing or candidate-only.
+- Account history or transaction filtering proves reconciliation.
 - A successful CodeQL job shell proves scanning when initialization or analysis was skipped.
 - Spec Kit replaces MoneyFlow governance.
 - The merged public-experience candidate is the owner-approved final design.
