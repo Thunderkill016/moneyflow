@@ -1,11 +1,11 @@
 # Global personal-finance capability horizon
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
+**Status:** evaluating  
+**Execution state:** evaluating  
+**Active role:** evaluator  
 **Permission scope:** branch_write  
 **Owner:** Thunderkill016  
-**Issue/PR:** #258 / pending  
+**Issue/PR:** #258 / #259  
 **Last updated:** 2026-08-03
 
 ## Outcome
@@ -131,8 +131,8 @@ The released MVP definition became an accidental product ceiling. It can prove t
 | T2 | Define capability atlas | atlas document | done |
 | T3 | Define MoneyFlow product vision | vision document | done |
 | T4 | Define target architecture roadmap | architecture roadmap | done |
-| T5 | Align binding principles and README | focused documentation diff | doing |
-| T6 | Open PR, add PR memory and verify exact head | PR + CI | todo |
+| T5 | Align binding principles and README | focused documentation diff | done |
+| T6 | Open PR, add PR memory and verify exact head | PR #259 + CI | doing |
 
 ## Handoff record
 
@@ -140,6 +140,7 @@ The released MVP definition became an accidental product ceiling. It can prove t
 |---|---|---|---|---|---|---|
 | 2026-08-03 | human_owner | researcher | discovery | explicit owner request to pursue the best global capabilities | scope could become unbounded | research and define adoption boundaries |
 | 2026-08-03 | researcher | implementer | implementing | official-source synthesis and selected modular model | owner acceptance pending | write branch documents and open PR |
+| 2026-08-03 | implementer | evaluator | evaluating | PR #259, atlas, vision, architecture roadmap, principles and README | exact-head CI and owner review pending | evaluate actual diff and verification |
 
 ### Current permission boundary
 
@@ -148,3 +149,33 @@ The released MVP definition became an accidental product ceiling. It can prove t
 - Forbidden writes: `main`, runtime, database, providers and production data.
 - Human approval required before: merge or implementation of any newly listed high-risk capability.
 - Rollback: close the PR; no product/runtime state changes.
+
+## Evaluation
+
+### Acceptance evidence
+
+| Criterion | Evidence | Result |
+|---|---|---|
+| Capability horizon is comprehensive but not an automatic backlog | atlas adoption rules and explicit non-decisions | pass |
+| Product shape preserves a simple default Core | progressive product layers in vision | pass |
+| Architecture avoids premature rewrite | modular-monolith retention and extraction criteria | pass |
+| Financial distinctions remain honest | fact/expectation/assumption/projection model | pass |
+| Current behavior is not overstated | all new documents distinguish horizon from merged truth | pass |
+| Exact-head repository verification | CI pending | pending |
+| Owner acceptance | PR review pending | pending |
+
+### Remaining limitations
+
+- The documents do not select feature dates, providers, pricing or market order.
+- The horizon is broader than current validated user demand; bounded delivery still depends on self-use and user evidence.
+- PR #255 and PR #257 remain independent candidate work and are not accepted by this documentation PR.
+
+## Delivery record
+
+- Branch: `docs/global-personal-finance-horizon`
+- PR: #259
+- Squash commit: not merged
+- CI run: pending
+- Production deployment: not applicable
+- Production flow verified: not applicable
+- Work packet moved to `docs/plans/completed/`: no
