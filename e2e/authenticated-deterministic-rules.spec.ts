@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 const RULES_KEY = "moneyflow-rules-v2";
 const LEGACY_RULES_KEY = "moneyflow-rules-v1";
 const CANDIDATES_KEY = "moneyflow-inbox-candidates-v1";
+const RESET_GUARD_KEY = "moneyflow-rules-e2e-reset";
 
 async function createDemoRule(
   page: import("@playwright/test").Page,
@@ -26,7 +27,9 @@ async function createDemoRule(
 test.describe("Deterministic rules workspace", () => {
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(
-      ({ rulesKey, legacyKey, candidatesKey }) => {
+      ({ rulesKey, legacyKey, candidatesKey, resetGuardKey }) => {
+        if (window.sessionStorage.getItem(resetGuardKey) === "1") return;
+        window.sessionStorage.setItem(resetGuardKey, "1");
         window.localStorage.clear();
         window.localStorage.setItem(candidatesKey, "[]");
         window.localStorage.setItem("moneyflow-onboarding-done", "1");
@@ -37,6 +40,7 @@ test.describe("Deterministic rules workspace", () => {
         rulesKey: RULES_KEY,
         legacyKey: LEGACY_RULES_KEY,
         candidatesKey: CANDIDATES_KEY,
+        resetGuardKey: RESET_GUARD_KEY,
       },
     );
   });
