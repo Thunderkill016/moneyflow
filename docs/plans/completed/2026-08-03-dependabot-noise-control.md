@@ -1,8 +1,8 @@
 # Dependabot noise control — completed
 
-**Status:** completed  
-**Merged PR:** #245  
-**Merge commit:** `48a02052473b44910ff5a46cf2c837bedab39b6f`  
+**Status:** completed
+**Merged PR:** #245
+**Merge commit:** `48a02052473b44910ff5a46cf2c837bedab39b6f`
 **Completed:** 2026-08-03
 
 ## Repository reconnaissance
