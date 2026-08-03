@@ -1,11 +1,11 @@
 # Authenticated deterministic rules
 
-**Status:** implementing  
-**Execution state:** candidate  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Issue/PR:** #264 / #265  
+**Status:** implementing
+**Execution state:** candidate
+**Active role:** implementer
+**Permission scope:** branch_write
+**Owner:** Thunderkill016
+**Issue/PR:** #264 / #265
 **Last updated:** 2026-08-04
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet owns the persisted deterministic categorization-rule slice from roadmap issue #53. It does not authorize production DDL, production data writes or merge.
@@ -20,7 +20,8 @@ An authenticated MoneyFlow user can create, edit, enable, order and delete tenan
 - Existing `/rules` was a browser-local stub backed by `moneyflow-rules-v1`.
 - Existing rule semantics were case-insensitive `contains`, lower priority wins and first enabled match only.
 - Existing authenticated Inbox persistence and atomic approval live in `inbox_candidates`, `plan_inbox_candidate` and `approve_inbox_candidate`.
-- Existing rule consumers read synchronously from local storage and rules referenced category labels rather than stable IDs.
+- Existing candidate-stage paste rules read synchronously from local storage and referenced category labels rather than stable IDs.
+- Direct ledger entry reuses the legacy local helper but is intentionally outside this persisted `candidate` stage; this slice never auto-posts or changes the direct-entry authority.
 - Existing raw import evidence is retained separately and must not be rewritten by normalization.
 
 ## Research
@@ -49,9 +50,10 @@ Not applicable. No dependency, provider, service, background worker, AI model or
 - `inbox_rules` is tenant owned and protected by RLS.
 - Authenticated targets use a real category UUID owned by the same tenant.
 - Every meaningful rule change increments a monotonic version.
-- Reordering is one ownership-checked database RPC.
+- Reordering is one ownership-checked database RPC and must include the tenant's complete rule set.
 - Candidate evidence stores `applied_rule_id` and `applied_rule_version` without deleting historical evidence when a rule is later removed.
 - Server application rechecks ownership, pending status, category kind, enabled state, version and current match before normalization.
+- Inbox reads fall back to the pre-rule column contract when application code deploys before DDL.
 
 ### Demo parity
 
@@ -63,6 +65,7 @@ Not applicable. No dependency, provider, service, background worker, AI model or
 
 - `/rules` uses the user's actual active categories.
 - Users can preview arbitrary text without persisting or posting it.
+- Paste candidate preview loads viewer-scoped authenticated rules and records the applied rule revision after candidate creation.
 - Copy explicitly states that rules do not auto-post transactions.
 - Version and priority are visible.
 - Optimistic-version conflicts ask the user to reload rather than silently overwriting another edit.
@@ -75,13 +78,13 @@ Not applicable. No dependency, provider, service, background worker, AI model or
 - [x] Preview is pure, deterministic and includes matched rule revision.
 - [x] Authenticated rules persist in a tenant-owned RLS table.
 - [x] Cross-tenant category targets are rejected below the UI.
-- [x] Rule reorder is atomic and ownership checked.
+- [x] Rule reorder is atomic, ownership checked and complete-set only.
 - [x] Candidate normalization records rule ID/version and preserves raw source.
 - [x] Server rejects stale, disabled, nonmatching and cross-tenant applications.
 - [x] `/rules` supports create, edit, toggle, reorder, delete and preview.
-- [ ] Authenticated rule loading is wired into every current rule consumer.
-- [ ] Candidate provenance is round-tripped through TypeScript mappings and Inbox reads.
-- [ ] Permanent browser coverage proves demo CRUD, ordering and preview.
+- [x] Authenticated rules are wired into the candidate-stage paste preview and evidence path.
+- [x] Candidate provenance is round-tripped through TypeScript mappings and Inbox reads with application-first fallback.
+- [x] Permanent browser coverage covers demo CRUD, ordering, preview and phone width.
 - [ ] Exact-head knowledge, architecture, lint, typecheck, unit, build, database, pgTAP, browser, CodeQL and secret scan pass.
 - [ ] Independent evaluation finds no blocking financial, tenant-isolation or accessibility issue.
 
@@ -93,8 +96,8 @@ Not applicable. No dependency, provider, service, background worker, AI model or
 4. Add tenant/ordering/version/raw-preservation pgTAP.
 5. Add viewer-scoped loader, validated Server Actions and demo/authenticated client facade.
 6. Rebuild `/rules` against actual categories.
-7. Wire authenticated rules into paste, import and direct-entry consumers.
-8. Round-trip applied rule evidence through candidate mappings and approval provenance.
+7. Wire authenticated rules into the paste candidate preview and persistence path.
+8. Round-trip applied rule evidence through candidate mappings and Inbox reads with schema-skew fallback.
 9. Add browser regression and run Class 3 exact-head evaluation.
 
 ## Risks and defenses
@@ -108,21 +111,22 @@ Not applicable. No dependency, provider, service, background worker, AI model or
 | raw import text is normalized | RPC updates only category/name and optional merchant; pgTAP asserts raw equality |
 | rule deletion destroys history | candidate evidence is not a cascading foreign key |
 | low-confidence candidate silently posts | rules never call approval or ledger RPCs |
-| application deploy precedes DDL | loader and actions report feature unavailable without fabricated data |
+| partial reorder creates ambiguous priorities | reorder RPC requires the tenant's complete rule set |
+| application deploy precedes DDL | rules loader disables calmly and Inbox reads retry the pre-rule column contract |
 
 ## Tasks
 
 | ID | Task | Status | Evidence |
 |---|---|---|---|
-| T1 | issue, branch and draft PR from current main | done | #264, #265, `c54b8075` baseline |
+| T1 | issue, branch and PR from current main | done | #264, #265, `c54b8075` baseline |
 | T2 | pure versioned rule domain and tests | done | `rules-store*`, `apply-rules*` |
 | T3 | RLS schema, RPCs and pgTAP | candidate | migration and database test |
 | T4 | server loader, actions and client facade | candidate | `src/server/rules.ts`, actions, hook |
 | T5 | authenticated `/rules` workspace | candidate | route and component |
-| T6 | integrate all rule consumers | todo | paste/import/direct-entry |
-| T7 | rule provenance mappings | todo | Inbox types/mappings/actions |
-| T8 | browser regressions | todo | Playwright |
-| T9 | exact-head CI and independent evaluation | todo | GitHub checks and review |
+| T6 | integrate paste candidate preview/evidence | candidate | `capture-paste-page.tsx`, rule action facade |
+| T7 | rule provenance mappings and schema fallback | candidate | provenance and Inbox server mappings |
+| T8 | browser regressions | candidate | Playwright rules workspace spec |
+| T9 | exact-head CI and independent evaluation | in_progress | GitHub checks and review |
 | T10 | owner merge decision | blocked | separate explicit command |
 | T11 | production migration and authenticated smoke | blocked | separate explicit command |
 
@@ -130,8 +134,8 @@ Not applicable. No dependency, provider, service, background worker, AI model or
 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-04 | owner | implementer | implementing | explicit `tiếp theo`, roadmap #53 | local-only rules were not authenticated | implement focused branch and draft PR |
-| 2026-08-04 | implementer | CI/evaluator | candidate | domain, migration, loader/actions and workspace | consumer integration and exact-head evidence incomplete | finish integration, run CI, fix findings |
+| 2026-08-04 | owner | implementer | implementing | explicit `tiếp theo`, roadmap #53 | local-only rules were not authenticated | implement focused branch and PR |
+| 2026-08-04 | implementer | CI/evaluator | candidate | domain, migration, loader/actions, workspace, paste evidence and tests | exact-head evidence incomplete | run CI, fix findings, complete independent evaluation |
 
 ## Permission boundary
 
