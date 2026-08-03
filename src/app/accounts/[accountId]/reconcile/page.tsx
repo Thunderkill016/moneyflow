@@ -1,0 +1,58 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { AccountReconciliationPage } from "@/components/account-reconciliation-page";
+import { buildAccountRegister } from "@/lib/account-register";
+import { getAccountsWorkspace } from "@/server/accounts";
+import { requireViewer } from "@/server/auth";
+import { getFinanceWorkspace } from "@/server/finance";
+import { getAccountReconciliationState } from "@/server/reconciliation";
+
+export const metadata: Metadata = {
+  title: "Đối soát tài khoản — MoneyFlow",
+  description: "Đối chiếu sổ MoneyFlow với một kỳ sao kê tài khoản.",
+};
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ accountId: string }>;
+}) {
+  const { accountId } = await params;
+  const viewer = await requireViewer();
+  const [accountsWorkspace, financeWorkspace] = await Promise.all([
+    getAccountsWorkspace(),
+    getFinanceWorkspace(),
+  ]);
+  const account =
+    accountsWorkspace.accounts.find((item) => item.id === accountId) ?? null;
+  const dataError = accountsWorkspace.dataError ?? financeWorkspace.dataError;
+
+  if (!account && !dataError) notFound();
+
+  const entries = account
+    ? buildAccountRegister(financeWorkspace.transactions, account.id)
+    : [];
+  const reconciliationState = account
+    ? await getAccountReconciliationState(account.id, entries)
+    : {
+        featureAvailable: false,
+        rows: [],
+        sessions: [],
+        dataError: null,
+      };
+
+  return (
+    <AccountReconciliationPage
+      viewer={{
+        email: viewer.email,
+        displayName: viewer.displayName,
+        isDemo: viewer.isDemo,
+      }}
+      account={account}
+      registerEntries={entries}
+      initialState={reconciliationState}
+      today={financeWorkspace.today}
+      dataError={dataError}
+    />
+  );
+}
