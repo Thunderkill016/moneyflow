@@ -1,5 +1,5 @@
 begin;
-select plan(4);
+select plan(6);
 
 select ok(
   has_table_privilege(
@@ -79,6 +79,39 @@ select is(
   ),
   0,
   'failed audit trigger leaves no unaudited transaction row'
+);
+
+set local request.headers =
+  '{"x-request-id":"SECRET note and card number"}';
+select lives_ok(
+  $$
+    insert into public.financial_transactions (
+      id,
+      user_id,
+      kind,
+      note,
+      occurred_on,
+      idempotency_key
+    ) values (
+      '26831000-0000-4000-8000-000000000002'::uuid,
+      '26830000-0000-4000-8000-000000000001'::uuid,
+      'expense'::public.transaction_kind,
+      'ordinary transaction note',
+      current_date,
+      '26832000-0000-4000-8000-000000000002'::uuid
+    )
+  $$,
+  'unsafe request-ID text cannot break the financial mutation'
+);
+select is(
+  (
+    select request_id
+    from public.financial_mutation_audit_events
+    where action = 'transaction_created'
+      and entity_id = '26831000-0000-4000-8000-000000000002'::uuid
+  ),
+  null::text,
+  'unsafe request-ID free text is discarded instead of logged'
 );
 
 select * from finish();
