@@ -62,12 +62,15 @@ select lives_ok(
     $sql$
       insert into public.inbox_rules (
         id, user_id, stage, priority, enabled, match_field,
-        contains_text, category_id, merchant_name
+        contains_text, category_id, merchant_name, version,
+        created_at, updated_at
       ) values (
         '26410000-0000-4000-8000-000000000001'::uuid,
         '26400000-0000-4000-8000-000000000001'::uuid,
         'candidate', 1, true, 'any', 'HIGHLANDS', %L::uuid,
-        'Highlands Coffee'
+        'Highlands Coffee', 99,
+        '2000-01-01T00:00:00Z'::timestamptz,
+        '2000-01-01T00:00:00Z'::timestamptz
       )
     $sql$,
     current_setting('moneyflow_test.rules_category_a')
@@ -85,7 +88,7 @@ select is(
   (select version from public.inbox_rules
    where id = '26410000-0000-4000-8000-000000000001'::uuid),
   1,
-  'new rule starts at version one'
+  'new rule provenance is canonicalized to version one'
 );
 
 update public.inbox_rules
