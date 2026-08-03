@@ -4,6 +4,7 @@ import {
   filterTransactions,
   normalizeTransactionAmountInput,
   normalizeTransactionDateParam,
+  normalizeTransactionReviewParam,
   transactionFilterError,
   transactionFilterSearch,
   type TransactionFilterValues,
@@ -23,6 +24,7 @@ const transactions: Transaction[] = [
     occurredOn: "2026-07-10",
     occurredAt: "2026-07-10T02:00:00.000Z",
     relativeDate: "10 thg 7",
+    reviewStatus: "needs_review",
   },
   {
     id: "expense-split",
@@ -36,6 +38,7 @@ const transactions: Transaction[] = [
     occurredOn: "2026-07-15",
     occurredAt: "2026-07-15T02:00:00.000Z",
     relativeDate: "15 thg 7",
+    reviewStatus: "reviewed",
     splits: [
       { categoryId: "food", category: "Ăn uống", amount: 180_000 },
       { categoryId: "shopping", category: "Mua sắm", amount: 100_000 },
@@ -68,6 +71,7 @@ const transactions: Transaction[] = [
     occurredOn: "2026-07-25",
     occurredAt: "2026-07-25T02:00:00.000Z",
     relativeDate: "25 thg 7",
+    reviewStatus: "reviewed",
   },
 ];
 
@@ -77,6 +81,7 @@ function filters(overrides: Partial<TransactionFilterValues> = {}) {
     kind: "all" as const,
     account: "all",
     category: "all",
+    review: "all" as const,
     fromDate: "",
     toDate: "",
     minAmountInput: "",
@@ -85,10 +90,13 @@ function filters(overrides: Partial<TransactionFilterValues> = {}) {
   };
 }
 
-test("normalizes only valid date and safe amount parameters", () => {
+test("normalizes only valid date, review and safe amount parameters", () => {
   assert.equal(normalizeTransactionDateParam("2026-07-15"), "2026-07-15");
   assert.equal(normalizeTransactionDateParam("2026-02-30"), "");
   assert.equal(normalizeTransactionDateParam("15/07/2026"), "");
+  assert.equal(normalizeTransactionReviewParam("needs_review"), "needs_review");
+  assert.equal(normalizeTransactionReviewParam("reviewed"), "reviewed");
+  assert.equal(normalizeTransactionReviewParam("unknown"), "all");
   assert.equal(normalizeTransactionAmountInput("125000"), "125.000");
   assert.equal(normalizeTransactionAmountInput("125.000 ₫"), "125.000");
   assert.equal(normalizeTransactionAmountInput(""), "");
@@ -114,6 +122,23 @@ test("amount range is inclusive", () => {
   assert.deepEqual(
     result.map((item) => item.id),
     ["expense-split", "transfer"],
+  );
+});
+
+test("review state composes with existing filters and legacy rows default reviewed", () => {
+  const needsReview = filterTransactions(
+    transactions,
+    filters({ review: "needs_review", kind: "expense" }),
+  );
+  assert.deepEqual(needsReview.map((item) => item.id), ["expense-small"]);
+
+  const reviewed = filterTransactions(
+    transactions,
+    filters({ review: "reviewed", account: "MB Bank" }),
+  );
+  assert.deepEqual(
+    reviewed.map((item) => item.id),
+    ["expense-split", "transfer", "income"],
   );
 });
 
@@ -176,6 +201,7 @@ test("serializes only active filters with canonical amount values", () => {
       query: "  cà phê  ",
       kind: "expense",
       account: "Tiền mặt",
+      review: "needs_review",
       fromDate: "2026-07-01",
       minAmountInput: "45.000 ₫",
     }),
@@ -183,6 +209,7 @@ test("serializes only active filters with canonical amount values", () => {
   assert.equal(params.get("q"), "cà phê");
   assert.equal(params.get("kind"), "expense");
   assert.equal(params.get("account"), "Tiền mặt");
+  assert.equal(params.get("review"), "needs_review");
   assert.equal(params.get("from"), "2026-07-01");
   assert.equal(params.get("min"), "45000");
   assert.equal(params.has("category"), false);

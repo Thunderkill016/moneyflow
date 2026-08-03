@@ -7,12 +7,15 @@
  */
 export type {
   AccountOption,
+  BulkTransactionCategoryInput,
+  BulkTransactionReviewInput,
   CategoryOption,
   CreateSplitExpenseInput,
   CreateTransactionInput,
   CreateTransferInput,
   Transaction,
   TransactionKind,
+  TransactionReviewStatus,
   TransactionSplitLine,
   UpdateMoneyTransactionInput,
   UpdateTransferInput,

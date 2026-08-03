@@ -1,4 +1,5 @@
 export type TransactionKind = "expense" | "income";
+export type TransactionReviewStatus = "needs_review" | "reviewed";
 
 /** Multi-entry expense lines. Present when one expense is split across categories. */
 export type TransactionSplitLine = {
@@ -18,6 +19,8 @@ export type Transaction = {
   destinationAccountId?: string;
   destinationAccount?: string;
   isRecurringPayment?: boolean;
+  /** Legacy demo rows without this field are interpreted as reviewed. */
+  reviewStatus?: TransactionReviewStatus;
   /** Two or more lines when an expense is split across categories. */
   splits?: TransactionSplitLine[];
   amount: number;
@@ -89,4 +92,14 @@ export type UpdateTransferInput = Omit<
 > & {
   id: string;
   kind: "transfer";
+};
+
+export type BulkTransactionReviewInput = {
+  ids: string[];
+  reviewStatus: TransactionReviewStatus;
+};
+
+export type BulkTransactionCategoryInput = {
+  ids: string[];
+  categoryId: string;
 };
