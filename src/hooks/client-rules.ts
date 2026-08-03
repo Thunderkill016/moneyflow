@@ -1,4 +1,5 @@
 import {
+  applyRuleToCandidateAction,
   deleteRuleAction,
   listRulesAction,
   reorderRulesAction,
@@ -16,6 +17,10 @@ import {
 
 export type ClientRulesResult =
   | { ok: true; rules: InboxRule[] }
+  | { ok: false; message: string };
+
+export type ClientRuleEvidenceResult =
+  | { ok: true }
   | { ok: false; message: string };
 
 export type SaveRuleForClientInput = {
@@ -121,4 +126,14 @@ export async function reorderRulesForClient(
     }
   }
   return reorderRulesAction(orderedIds);
+}
+
+export async function persistCandidateRuleEvidenceForClient(
+  isDemo: boolean,
+  input: { candidateId: string; ruleId: string; ruleVersion: number },
+): Promise<ClientRuleEvidenceResult> {
+  // Demo candidates already carry the pure preview result in local storage.
+  if (isDemo) return { ok: true };
+  const result = await applyRuleToCandidateAction(input);
+  return result.ok ? { ok: true } : result;
 }
