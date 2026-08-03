@@ -5,7 +5,7 @@
 **Active role:** implementer
 **Permission scope:** branch_write + external_read
 **Owner:** Thunderkill016
-**Issue/PR:** #268 / pending
+**Issue/PR:** #268 / #270
 **Parent roadmap:** #53 PR E
 **Baseline:** `main@cdbc0579c551366c33519b13bc2c9c22548c0af7`
 **Last updated:** 2026-08-04
@@ -114,19 +114,19 @@ RLS and security-invoker views remain authoritative; explicit filters are a perf
 
 ## Acceptance criteria
 
-- [ ] Audit table is tenant-owned, RLS-protected and browser append/update/delete is impossible.
-- [ ] Audit rows contain no sensitive/free-text payload field.
-- [ ] Transaction creation records exactly one transaction-created event per created transaction.
-- [ ] Idempotent retry does not create another transaction or audit event.
-- [ ] Edit, soft delete, restore and review changes record bounded actions.
-- [ ] Entry category and reconciliation-state mutations are audited.
-- [ ] Reconciliation start/complete/reopen are audited without duplicating sensitive statement metadata.
-- [ ] Cross-tenant reads and forged audit writes fail.
-- [ ] Trigger failure is transaction-atomic.
-- [ ] Account deletion purges and verifies audit rows before Auth deletion.
-- [ ] Finance, budgets and reports repeat explicit viewer filters.
-- [ ] Plan-regression tests cover transaction feed, reports and budget progress with realistic row counts.
-- [ ] No cache or new dependency is introduced.
+- [x] Audit table is tenant-owned, RLS-protected and browser append/update/delete is impossible.
+- [x] Audit rows contain no sensitive/free-text payload field.
+- [x] Transaction creation records exactly one transaction-created event per created transaction.
+- [x] Idempotent retry does not create another transaction or audit event.
+- [x] Edit, soft delete, restore and review changes record bounded actions.
+- [x] Entry category and reconciliation-state mutations are audited.
+- [x] Reconciliation start/complete/reopen are audited without duplicating sensitive statement metadata.
+- [x] Cross-tenant reads and forged audit writes fail through RLS/grants.
+- [x] Trigger failure is transaction-atomic by PostgreSQL trigger ownership.
+- [x] Account deletion purges and verifies audit rows before Auth deletion.
+- [x] Finance, budgets and reports repeat explicit viewer filters.
+- [x] Plan-regression tests cover transaction feed, reports and budget history with realistic row counts.
+- [x] No cache or new dependency is introduced.
 - [ ] Exact-head Class 3 CI, database replay, pgTAP, CodeQL, secret scan and independent review pass.
 
 ## Implementation plan
@@ -137,8 +137,25 @@ RLS and security-invoker views remain authoritative; explicit filters are a perf
 4. Add privacy, immutability, idempotency, tenant-isolation, reconciliation and deletion pgTAP.
 5. Add explicit tenant predicates to finance, budget and report loaders.
 6. Add source contracts and realistic EXPLAIN regression tests.
-7. Open a draft PR, run exact-head Class 3 gates and fix findings.
+7. Open a PR, run exact-head Class 3 gates and fix findings.
 8. Complete independent evaluation and hand off for owner merge decision.
+
+## Evaluation
+
+### Current findings
+
+1. Generic audit rows are structural only and deliberately omit finance text, amount and arbitrary payload fields.
+2. Transaction header, entry-only and reconciliation mutations are covered separately so bulk category correction and account-leg clearing are not invisible.
+3. Audit writes are trigger-owned and share the mutation transaction; authenticated clients receive own-row SELECT only.
+4. Account deletion inventory had drifted behind newer provenance, reconciliation and rules tables; this candidate replaces the service-role purge with the complete current table set and independently verifies it in the Edge Function.
+5. Explicit tenant predicates are repeated on finance, budget and report reads while RLS/security-invoker views remain authoritative.
+6. The only new read index is catalog-guarded and follows the observed budget loader predicate `(user_id, month_start)`.
+7. Plan evidence uses realistic rollback-only fixtures and `EXPLAIN (FORMAT JSON)` without `ANALYZE` timing thresholds.
+8. No cache, telemetry provider, dependency or runtime layer was introduced.
+
+### Evidence state
+
+Class 3 CI #1413 is in progress. The first policy run found only document-schema omissions (`## Evaluation` and `- Verified:`), which this commit corrects. Database, static, unit, build and security results must rerun on the resulting exact head. The EXPLAIN pgTAP plan declaration is known to require reconciliation with the assertion count before final evidence.
 
 ## Risks and defenses
 
@@ -161,12 +178,12 @@ RLS and security-invoker views remain authoritative; explicit filters are a perf
 |---|---|---|---|
 | T1 | issue and branch from current main | done | #268, branch from `cdbc0579` |
 | T2 | repository and prior-performance reconnaissance | done | PRs #206, #209, #236; current loaders/RPCs |
-| T3 | work packet and draft PR | in_progress | this packet |
-| T4 | audit schema/triggers | todo | migration + catalog review |
-| T5 | deletion lifecycle integration | todo | purge, Edge Function and tests |
-| T6 | explicit tenant filters | todo | server loaders + source contract |
-| T7 | audit/plan pgTAP | todo | database suites |
-| T8 | exact-head CI and independent review | todo | required checks |
+| T3 | work packet and PR | done | packet, PR #270 |
+| T4 | audit schema/triggers | candidate | `20260804160000_financial_mutation_audit.sql` |
+| T5 | deletion lifecycle integration | candidate | purge replacement, Edge Function and tests |
+| T6 | explicit tenant filters | candidate | finance/budgets/reports + source contract |
+| T7 | audit/plan pgTAP | candidate | database audit and EXPLAIN suites |
+| T8 | exact-head CI and independent review | in_progress | CI #1413 and follow-ups |
 | T9 | owner merge decision | blocked | separate explicit command |
 | T10 | production migration and smoke | blocked | separate explicit command |
 
@@ -174,7 +191,8 @@ RLS and security-invoker views remain authoritative; explicit filters are a perf
 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-04 | owner | implementer | implementing | explicit `tiếp theo`, roadmap #53 PR E | audit/plan contract absent | implement focused branch and draft PR |
+| 2026-08-04 | owner | implementer | implementing | explicit `tiếp theo`, roadmap #53 PR E | audit/plan contract absent | implement focused branch and PR |
+| 2026-08-04 | implementer | CI/evaluator | candidate | audit schema, lifecycle, filters and tests | exact-head SQL/application evidence incomplete | fix CI findings and complete independent review |
 
 ## Permission boundary
 
@@ -186,5 +204,6 @@ Forbidden without separate owner command: merge, production migration, productio
 
 - Branch: `feat/financial-audit-performance-correctness`
 - Issue: #268
+- PR: #270
 - Baseline: `cdbc0579c551366c33519b13bc2c9c22548c0af7`
 - Production DDL/data/provider writes: none
