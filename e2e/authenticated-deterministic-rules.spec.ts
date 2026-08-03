@@ -6,7 +6,7 @@ const CANDIDATES_KEY = "moneyflow-inbox-candidates-v1";
 
 async function createDemoRule(
   page: import("@playwright/test").Page,
-  input: { contains: string; category: RegExp; merchant?: string },
+  input: { contains: string; categoryLabel: string; merchant?: string },
 ) {
   await page.goto("/rules");
   await page
@@ -14,7 +14,9 @@ async function createDemoRule(
     .first()
     .click();
   await page.getByLabel("Nếu chứa").fill(input.contains);
-  await page.getByLabel("Thì danh mục").selectOption({ label: input.category });
+  await page
+    .getByLabel("Thì danh mục")
+    .selectOption({ label: input.categoryLabel });
   if (input.merchant) {
     await page.getByLabel("Đổi tên nơi chi (tùy chọn)").fill(input.merchant);
   }
@@ -44,7 +46,7 @@ test.describe("Deterministic rules workspace", () => {
   }) => {
     await createDemoRule(page, {
       contains: "HIGHLANDS",
-      category: /Ăn uống/,
+      categoryLabel: "Ăn uống · Tiền ra",
       merchant: "Highlands Coffee",
     });
 
@@ -69,7 +71,7 @@ test.describe("Deterministic rules workspace", () => {
   }) => {
     await createDemoRule(page, {
       contains: "HIGHLANDS",
-      category: /Ăn uống/,
+      categoryLabel: "Ăn uống · Tiền ra",
       merchant: "Highlands Coffee",
     });
 
@@ -102,11 +104,11 @@ test.describe("Deterministic rules workspace", () => {
   test("reordering changes the deterministic winner", async ({ page }) => {
     await createDemoRule(page, {
       contains: "SHOP",
-      category: /Ăn uống/,
+      categoryLabel: "Ăn uống · Tiền ra",
     });
     await createDemoRule(page, {
       contains: "SHOP",
-      category: /Mua sắm/,
+      categoryLabel: "Mua sắm · Tiền ra",
     });
 
     await page.getByLabel("Nội dung mẫu").fill("SHOP ABC");
