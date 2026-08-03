@@ -181,6 +181,7 @@ declare
   v_user_id uuid := auth.uid();
   v_requested_count integer := coalesce(cardinality(p_rule_ids), 0);
   v_visible_count integer;
+  v_total_count integer;
 begin
   if v_user_id is null then
     raise exception 'not_authenticated';
@@ -190,6 +191,15 @@ begin
   end if;
   if (select count(distinct item) from unnest(p_rule_ids) item) <> v_requested_count then
     raise exception 'duplicate_rule_order';
+  end if;
+
+  select count(*)::integer
+  into v_total_count
+  from public.inbox_rules rule_record
+  where rule_record.user_id = v_user_id;
+
+  if v_total_count <> v_requested_count then
+    raise exception 'incomplete_rule_order';
   end if;
 
   select count(*)::integer
