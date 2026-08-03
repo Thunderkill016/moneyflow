@@ -1,11 +1,11 @@
 # Account reconciliation current-main port
 
-**Status:** implementing
+**Status:** evaluating
 **Execution state:** scoped_candidate
-**Active role:** implementer
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** #260 / pending
+**Issue/PR:** #260 / #261
 **Last updated:** 2026-08-03
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet ports the useful account-leg reconciliation model from draft PR #222 onto current `main`; it does not inherit #222's stale merge, verification or production claims.
@@ -28,12 +28,12 @@ MoneyFlow has a current-main database/domain contract for account reconciliation
 
 Draft PR #222 established useful concepts: account-leg states, statement sessions, exact difference, latest reopen, transfer independence, split-leg atomicity, row locks, RLS and pgTAP. It is not a delivery branch because it is stale, not mergeable and uses out-of-order migrations.
 
-### Blocking findings to resolve
+### Blocking findings resolved in the current candidate
 
-1. Its transaction trigger blocks every update on reconciled transactions, conflicting with current review-state mutation.
-2. Its completed summaries are dynamic across all later cleared/reconciled entries and can change historical sessions retroactively.
-3. Its four old migrations repeatedly override functions and precede migrations already merged to current main.
-4. Its project-memory replacement predates the MVP release, global horizon and PR #255.
+1. Reconciled transaction guards compare the financial row while excluding only `review_status` and `updated_at`; review updates remain allowed while financial rewrites remain blocked.
+2. Completed sessions persist their balance and account-leg counts; the summary view uses those stored values rather than later live ledger state.
+3. The current port uses one migration, `20260803142000_account_reconciliation_current_main.sql`, after the merged review migration.
+4. Current project memory is not replaced by the stale #222 snapshot; memory integration remains pending exact-head verification.
 
 ## Research
 
@@ -64,31 +64,34 @@ For a completed session, displayed cleared balance and difference use the stored
 For an open session, live balance is:
 
 1. account opening balance;
-2. plus account legs reconciled by sessions whose statement sequence is not later than the open session;
+2. plus account legs already reconciled for the account;
 3. plus currently cleared account legs eligible for this statement;
-4. each logical account leg counted exactly once.
+4. each entry amount included once and each logical account leg counted once.
 
-The implementation must not infer historical membership only from `occurred_on` and current state.
+A later statement cannot coexist with an older open statement for the same account. Once a statement is completed, its displayed summary switches to the stored completion snapshot.
 
 ### Review/reconciliation separation
 
 - `review_status` may change for a reconciled transaction.
-- Financial mutation remains blocked when it could change a reconciled fact: kind, occurred date, account ownership/entries, amount, category allocation where financially relevant, soft deletion or hard deletion.
+- Financial mutation remains blocked when it could change a reconciled fact: kind, occurred date, account ownership/entries, amount, category allocation, soft deletion or hard deletion.
 - Review updates must not reset clearing or reconciliation state.
 
 ### Acceptance criteria
 
-- [ ] Current-main canonical migration creates reconciliation types/tables/indexes/views/RPCs/triggers/grants.
-- [ ] Existing and new entries default pending without changing financial values.
-- [ ] Review-state changes succeed on reconciled transactions.
-- [ ] Amount/date/account/kind/category-entry/delete mutations that would change reconciled facts fail atomically.
-- [ ] Split account-leg entries move together; transfer legs remain independent.
-- [ ] Completed summaries remain unchanged after a backdated entry is reconciled in a later session.
-- [ ] Open-session balance counts prior reconciled and current cleared account legs exactly once.
-- [ ] Latest reopen changes only entries assigned to that session.
-- [ ] Cross-tenant IDs and rows are unavailable through views/RPCs.
-- [ ] Tenant purge removes reconciliation rows safely.
-- [ ] Fresh reset/full pgTAP and current-main forward-upgrade fixture pass.
+- [x] Current-main canonical migration creates reconciliation types/tables/indexes/views/RPCs/triggers/grants.
+- [x] Existing and new entries default pending without changing financial values.
+- [x] Review-state changes have a permanent regression on reconciled transactions.
+- [x] Amount/date/account/kind/category-entry/delete mutation guards have permanent coverage.
+- [x] Split account-leg entries move together; transfer legs remain independent.
+- [x] Completed-summary stability has a later-session backdated regression.
+- [x] Open-session balance and account-leg counts have explicit coverage.
+- [x] Latest reopen coverage checks session-owned membership only.
+- [x] Cross-tenant mutation and summary visibility have coverage.
+- [x] Tenant purge coverage includes reconciliation history.
+- [ ] Fresh reset/full pgTAP pass on the exact candidate head.
+- [ ] Forward-upgrade evidence from current-main migration order is recorded.
+- [ ] Independent security/correctness review is complete.
+- [ ] Exact-head CodeQL and secret scan pass.
 
 ### Out of scope
 
@@ -103,56 +106,52 @@ The implementation must not infer historical membership only from `occurred_on` 
 
 ### Migration shape
 
-Create one canonical migration after `20260803090000_transaction_review_bulk_correction.sql`, unless a minimal second migration is required by PostgreSQL dependency ordering. Do not copy the three superseding #222 migrations as separate history.
+One canonical migration follows `20260803090000_transaction_review_bulk_correction.sql` and encodes final definitions directly. The three superseding #222 migrations are not copied into current history.
 
-The canonical migration will:
+The canonical migration:
 
-1. create enums, sessions and events;
-2. add account-leg reconciliation columns/constraints/indexes;
-3. create session-stable summary/read contracts;
-4. create lock helper and ownership-safe lifecycle RPCs;
-5. create precise financial mutation guards that allow `review_status`;
-6. update tenant purge using the current-main definition;
-7. apply least-privilege grants and RLS.
+1. creates enums, sessions and events;
+2. adds account-leg reconciliation columns/constraints/indexes;
+3. creates live-open and stored-completed summary behavior;
+4. creates lock helper and ownership-safe lifecycle RPCs;
+5. creates precise financial mutation guards that allow `review_status`;
+6. preserves tenant purge compatibility by allowing physical account deletion to use existing cascades after entries are removed;
+7. applies least-privilege grants and RLS.
 
-### Tests first
+### Permanent tests
 
-Port and rewrite permanent pgTAP around final semantics rather than preserving old implementation details. Add explicit regressions for:
+The candidate adds 82 pgTAP assertions across:
 
-- reconciled transaction review-state mutation;
-- backdated entry reconciled in a later session;
-- stored completed-session zero difference;
-- open-session account-leg counting;
-- split/transfer behavior;
-- mutation guard field precision;
-- two-tenant attacks;
-- purge and forward upgrade.
+- `account_reconciliation_current_main.test.sql` — schema, review separation, stable history, reopen, cross-tenant and purge;
+- `account_reconciliation_account_legs.test.sql` — transfer independence and split atomicity;
+- `account_reconciliation_correction.test.sql` — cleared-state reset on financial correction/deletion;
+- `account_reconciliation_locking.test.sql` — account-scoped lifecycle lock ownership.
 
 ### Documentation integration
 
-Create a new PR memory record. Update current project memory only after exact-head verification and only by merging reconciliation facts into the current snapshot.
+Create a new PR memory record and update current project memory only after exact-head verification. No runtime or production claim is allowed from a local/fresh-reset result alone.
 
 ## Risks and counterexamples
 
-| Risk | Required defense |
-|---|---|
-| later backdated entry rewrites old statement | session-owned membership plus stored completed snapshot tests |
-| review and reconciliation become coupled | field-precise mutation trigger and review RPC regression |
-| split allocations count multiple times | logical account-leg grouping/counting |
-| transfer legs lock together | account-scoped state and tests for independent source/destination |
-| stale IDs or cross-tenant rows mutate | auth-derived owner, exact row locks/counts and two-user pgTAP |
-| forward migration history rejects old timestamps | new canonical timestamp after current main and upgrade fixture |
-| purge trigger blocks account deletion | delete reconciliation entries in current dependency order and verify zero remainder |
+| Risk | Required defense | Candidate evidence |
+|---|---|---|
+| later backdated entry rewrites old statement | completed snapshot | before/after later completion and reopen assertions |
+| review and reconciliation become coupled | field-precise transaction trigger | bulk review succeeds and state remains reconciled |
+| split allocations count multiple times | state by account leg, amount by entry | two split rows, one summary account-leg assertion |
+| transfer legs lock together | account-scoped state | source and destination complete in different sessions |
+| stale IDs or cross-tenant rows mutate | auth-derived owner and RLS | foreign entry ID rejection and empty summary view |
+| stale migration order | one current timestamp | canonical migration after review migration |
+| purge trigger blocks account deletion | no physical-delete guard; existing dependency order | purge regression |
 
 ## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
-| T1 | issue, branch and packet | #260, current-main branch | done |
-| T2 | port tests for corrected semantics | focused pgTAP | pending |
-| T3 | canonical migration | fresh reset and upgrade fixture | pending |
+| T1 | issue, branch and packet | #260, #261 | done |
+| T2 | port tests for corrected semantics | 82 pgTAP assertions | done |
+| T3 | canonical migration | `20260803142000...sql` | candidate |
 | T4 | independent security/correctness review | findings resolved | pending |
-| T5 | exact-head Class 3 gates | CI, CodeQL, secret scan | pending |
+| T5 | exact-head Class 3 gates | CI, CodeQL, secret scan | running after ready-for-review transition |
 | T6 | owner merge / production decision | separate commands | blocked on owner |
 
 ## Handoff record
@@ -160,6 +159,7 @@ Create a new PR memory record. Update current project memory only after exact-he
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-03 | evaluator | implementer | implementing | #222 blocker review and issue #260 | corrected contract not yet encoded | write tests and canonical migration on current-main branch |
+| 2026-08-03 | implementer | evaluator | evaluating | canonical migration plus 82 assertions | gates have not run while PR is draft | mark PR ready to trigger exact-head database checks |
 
 ### Current permission boundary
 
@@ -169,12 +169,14 @@ Create a new PR memory record. Update current project memory only after exact-he
 
 ## Evaluation
 
-Pending corrected implementation and exact-head evidence.
+Candidate implementation exists. The earlier CI run on the draft PR intentionally skipped verify/database by workflow policy and is not evidence. Evaluation starts only with the ready-for-review run on the resulting exact head.
 
 ## Delivery record
 
 - Branch: `feat/account-reconciliation-current-main`
 - Issue: #260
-- Draft PR: pending
+- PR: #261 (ready only for verification; not merge-ready)
 - Baseline: `c1731e937394aa50a46bb07b5c0240069f3176d7`
+- Candidate migration: `20260803142000_account_reconciliation_current_main.sql`
+- Candidate tests: 82 pgTAP assertions
 - Production DDL: not authorized
