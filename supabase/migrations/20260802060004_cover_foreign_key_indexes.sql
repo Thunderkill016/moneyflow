@@ -36,3 +36,6 @@ create index transaction_entries_transaction_owner_fk_idx
 
 create index transaction_import_provenance_batch_owner_fk_idx
   on public.transaction_import_provenance (import_batch_id, user_id);
+
+create index transaction_import_provenance_user_fk_idx
+  on public.transaction_import_provenance (user_id);
