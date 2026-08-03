@@ -60,8 +60,9 @@ No relevant breaking change affects ordinary PostgreSQL B-tree indexes or pgTAP 
 - [x] Any uncovered constraint is printed as schema/table/constraint diagnostic output.
 - [x] Partial coverage is rejected except for the two existing definitions already protected by focused pgTAP assertions.
 - [x] Current memory treats PR #236 as candidate-only and PR #211 as superseded.
-- [ ] Fresh reset and all pgTAP files pass on final exact head.
-- [ ] CodeQL and secret-history gates pass on final exact head.
+- [x] Fresh reset and all 281 pgTAP tests passed on implementation head `7a84c711332f9bc71846d2e3321b128168f9bffd` in CI #1172.
+- [x] CodeQL #323 and Secret history scan #323 passed on the same implementation head.
+- [ ] Final evidence-only head rerun passes before owner handoff.
 - [ ] Production advisor closure is claimed only after owner-controlled deployment and rerun.
 
 ## Implementation plan
@@ -119,9 +120,10 @@ The focused `foreign_key_access_indexes.test.sql` remains responsible for provin
 | T3 | Add diagnostic complete-coverage gate | done | constraint-level pgTAP output |
 | T4 | Classify three diagnostic findings | done | two safe nullable partials; one false coverage case |
 | T5 | Add provenance owner index and precise partial exceptions | done | migration + catalog gate |
-| T6 | Run final exact-head reset/full pgTAP and security gates | in progress | current CI cycle |
-| T7 | Owner merge decision | blocked | explicit owner instruction required |
-| T8 | Owner-controlled production deployment and advisor rerun | blocked | post-merge evidence required |
+| T6 | Run reset/full pgTAP and security gates on implementation head | done | CI #1172, CodeQL #323, Secret #323 |
+| T7 | Run final evidence-only exact-head gates | in progress | current CI cycle |
+| T8 | Owner merge decision | blocked | explicit owner instruction required |
+| T9 | Owner-controlled production deployment and advisor rerun | blocked | post-merge evidence required |
 
 ## Verification contract
 
@@ -137,8 +139,10 @@ The focused `foreign_key_access_indexes.test.sql` remains responsible for provin
 
 - First strict run correctly failed and named three constraints.
 - Two findings are valid nullable-FK partial coverage already enforced by focused tests.
-- One finding is a real missing complete index on `transaction_import_provenance.user_id` and is now addressed.
-- Final acceptance still depends on a fresh exact-head reset and all pgTAP files passing.
+- One finding was a real missing complete index on `transaction_import_provenance.user_id` and is now addressed.
+- Implementation head `7a84c711332f9bc71846d2e3321b128168f9bffd` passed a fresh reset and all 281 pgTAP tests in CI #1172.
+- CodeQL #323 completed real Initialize/Analyze and Secret #323 passed on that implementation head.
+- Final evidence-only exact-head verification remains before owner handoff.
 
 ### Rollback
 
@@ -159,5 +163,6 @@ Repository checks cannot prove production deployment or a clean production advis
 - Branch: `perf/cover-foreign-key-indexes-current-main`
 - Replacement PR: #236
 - Old PR #211: closed unmerged as superseded
-- Exact-head verification: pending
+- Implementation-head verification: CI #1172, CodeQL #323 and Secret #323 passed
+- Final evidence-only exact-head verification: pending
 - Production migration/advisor verification: not performed
