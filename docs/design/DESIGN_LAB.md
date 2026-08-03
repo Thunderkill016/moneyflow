@@ -33,7 +33,8 @@ Design work on this branch follows this order:
 6. `docs/product/PRINCIPLES.md` and `docs/MVP_DEFINITION.md`;
 7. `docs/UX_PRINCIPLES.md` and `docs/design-system.md` where they do not conflict with newer authority;
 8. source-specific research such as `docs/research/design-sources/YOUTUBE_GZTP0Z_YHI0.md`;
-9. candidate concepts created on this branch.
+9. candidate protocols such as `docs/design/AI_ART_DIRECTION_PROTOCOL.md`;
+10. candidate concepts created on this branch.
 
 A source, mockup, AI output, old concept or open branch is evidence—not authority.
 
@@ -101,6 +102,8 @@ For every video, article, product or screenshot:
 8. keep source-derived evidence separate from MoneyFlow interpretation;
 9. retain only lessons that survive owner, product and verification review.
 
+The first extracted operating method is formalized in `docs/design/AI_ART_DIRECTION_PROTOCOL.md`. It treats AI design as staged art direction: strategy first, controlled refinement second, system synthesis only after the core direction is resolved.
+
 ## 5. Standard design loop
 
 ### Step 1 — Frame the problem
@@ -160,11 +163,23 @@ Do not establish typography, palette, component composition or motion for a cand
 
 Unselected candidates become rejected/historical evidence, not hidden constraints.
 
-### Step 6 — Implement one vertical slice
+### Step 6 — Controlled visual refinement
+
+After a provisional direction is selected, use the iterative art-direction protocol:
+
+- preserve the core concept while naming the exact defect or variable;
+- change one or a small number of related properties per iteration;
+- test representative sizes and contexts;
+- record what improved and what regressed;
+- avoid vague requests such as “make it premium” or “make it professional.”
+
+A comprehensive system prompt is allowed only after the core direction is stable and owner-selected.
+
+### Step 7 — Implement one vertical slice
 
 A UI slice should include the real route, real data states and real responsive behavior. Avoid broad redesigns when one screen can validate the hypothesis.
 
-### Step 7 — Verify the claim
+### Step 8 — Verify the claim
 
 For an executable UI change, use risk-selected gates and record exact evidence. At minimum, verify affected flows, responsive layouts, keyboard/focus behavior, long Vietnamese text, empty/loading/error states and light/dark behavior where applicable.
 
@@ -192,10 +207,12 @@ Every candidate must preserve:
 Do not:
 
 - copy a video's finished UI as the design rationale;
-- claim lessons from an unavailable or unverified transcript;
+- claim lessons from unavailable details beyond the supplied notes;
 - treat the latest AI output as the best candidate;
 - generate three color variants and call them three directions;
 - start public experience work with gradient, shadow or high-fidelity code;
+- generate a full brand system before resolving the core artifact;
+- ask AI to “make it professional” without naming the defect;
 - add a new global CSS override layer;
 - use financial red/green as decoration;
 - change product scope through a design experiment;
@@ -209,7 +226,9 @@ A reviewable design task should leave:
 - a problem statement;
 - linked source notes;
 - current-state audit;
-- three candidate structures;
+- three candidate structures or concepts;
+- provisional selection rationale;
+- iteration log with named variables;
 - selection rationale or owner decision;
 - state matrix;
 - token/component impact;
@@ -219,22 +238,43 @@ A reviewable design task should leave:
 
 Put task state in a work packet when the risk classifier requires one. Do not create another management layer.
 
-## 9. Initial registered source
+## 9. Initial registered source and retained lesson
 
 The first owner-supplied source is:
 
 - `docs/research/design-sources/YOUTUBE_GZTP0Z_YHI0.md`
 
-Its URL is registered, but no lesson may be attributed to it until title/transcript or manual timestamped notes are verified.
+The repository now contains owner-supplied timestamped notes covering:
 
-## 10. Completion boundary for this branch
+- strategy and initial concepts at 0:32–1:23;
+- iterative refinement at 1:23–6:37;
+- pixel-grid density, simplification, scale, padding and squircle examples;
+- brand-guideline synthesis at 6:37–10:36;
+- HTMLPub MCP publishing at 11:30–13:01.
 
-This branch is established when:
+The retained cross-project lesson is the staged art-direction process, not Granular's pixel style or exact visual decisions. The title and complete transcript remain independently unverified, so claims beyond the supplied notes are prohibited.
+
+## 10. Completion boundary for this branch setup
+
+The design-lab setup is established because:
 
 - the branch exists from current `main`;
 - the design lab charter is committed;
 - the supplied video is registered as a source;
-- source uncertainty is stated honestly;
+- timestamped owner notes are recorded with evidence limits;
+- an iterative AI art-direction protocol is committed;
 - no product direction is silently activated.
 
-Further work should add verified source notes and one bounded MoneyFlow design experiment rather than immediately redesigning the whole application.
+## 11. Next bounded work
+
+The next task should apply the protocol to one bounded MoneyFlow artifact rather than redesigning the whole application.
+
+The experiment should:
+
+1. define a strategic frame;
+2. generate at least three independent concepts;
+3. choose one provisional candidate;
+4. run controlled iterations with named variables;
+5. stop for owner selection;
+6. create a compact system sheet only after selection;
+7. implement nothing beyond the selected scope without a new risk-classified task.
