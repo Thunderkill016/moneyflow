@@ -157,8 +157,8 @@ test("bulk category correction changes no financial value or unrelated row", () 
   assert.equal(result.ok, true);
   if (!result.ok) return;
   for (const id of ["expense-1", "expense-2"]) {
-    const before = base.find((item) => item.id === id)!;
-    const after = result.transactions.find((item) => item.id === id)!;
+    const before: Transaction = base.find((item) => item.id === id)!;
+    const after: Transaction = result.transactions.find((item) => item.id === id)!;
     assert.equal(after.categoryId, shoppingCategory.id);
     assert.equal(after.category, shoppingCategory.name);
     assert.equal(after.amount, before.amount);
