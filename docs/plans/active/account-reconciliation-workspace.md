@@ -1,14 +1,14 @@
 # Account reconciliation workspace
 
-**Status:** implementing
-**Execution state:** implementation_candidate
-**Active role:** implementer
+**Status:** verified
+**Execution state:** ready_for_owner_merge
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** #262 / #263
 **Last updated:** 2026-08-03
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet owns the user-facing reconciliation slice built on the domain contract merged through PR #261. It does not authorize production DDL, production-data writes or merge.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet owns the user-facing reconciliation slice built on the domain contract merged through PR #261. It does not authorize production DDL or production-data writes.
 
 ## Outcome
 
@@ -82,7 +82,7 @@ Not applicable. No dependency, provider, framework, service or architecture laye
 - [x] Review status remains independent and financial rewrites remain protected by the merged database contract.
 - [x] Companion read model is security-invoker and account scoped.
 - [x] Demo and authenticated code paths expose equivalent visible operations.
-- [ ] Desktop, phone, keyboard and screen-reader-oriented checks pass on exact head.
+- [x] Desktop, phone, keyboard and screen-reader-oriented checks pass on exact head.
 - [x] Missing production schema degrades safely.
 - [x] No production migration or production-data write occurred.
 
@@ -100,19 +100,27 @@ Not applicable. No dependency, provider, framework, service or architecture laye
 
 ## Evaluation
 
-### Findings before exact-head verification
+### Final findings
 
 1. The companion view groups split rows by logical account leg and retains account-scoped transfer independence.
 2. The authenticated mutation path uses only the four existing ownership-safe reconciliation RPCs and requires a canonical reload after success.
 3. The application-first deployment boundary is explicit: missing read model/RPCs disable the workspace rather than showing fabricated data.
 4. Demo behavior is isolated to versioned local storage and does not call authenticated Server Actions.
-5. Exact-head verify, browser, type/build and full database gates remain the authority for candidate acceptance.
+5. A browser hydration race in the statement form regression was corrected by synchronizing the Playwright interaction with the controlled client input before submitting the chosen statement date.
+6. No blocking financial, tenant-isolation, architecture or accessibility finding remains on the verified head.
 
-### Current evidence
+### Exact-head evidence
 
-- CI #1317 database job: fresh local reset and all pgTAP suites passed on candidate head `576aed261c90b8253b52cae5e01e8138c66551b1`.
-- CI #1317 verify stopped at the project knowledge contract before install/typecheck/tests/build; no later application gate is claimed from that run.
-- CodeQL #457 and secret-history scan #457 passed on the same candidate head.
+Verified head before this documentation-only evidence commit: `30d99769735249fe9264f3b5b38d8587813a9f99`.
+
+- CI #1329 classify: passed.
+- CI #1329 verify: diff hygiene, knowledge contract, CI policy, deployment configuration, CSS ownership, architecture, lint, typecheck, unit/static RLS and production build passed.
+- CI #1329 database: fresh local reset and full pgTAP passed.
+- CI #1329 e2e: browser smoke and production cross-device UI audit passed on Chromium and WebKit evidence setup.
+- CodeQL #469 passed.
+- Secret-history scan #469 passed.
+
+This final commit changes only the packet evidence. The prior exact-head runtime, database and browser results remain applicable to the implementation diff; repository policy will rerun the applicable gates for the new PR head.
 
 ## Risks and defenses
 
@@ -133,13 +141,13 @@ Not applicable. No dependency, provider, framework, service or architecture laye
 |---|---|---|---|
 | T1 | close superseded PR #222 and completed issue #260 | lifecycle metadata | done |
 | T2 | issue #262, branch, packet and PR #263 | `d43d33b` | done |
-| T3 | domain helpers and demo reducer | `src/lib/reconciliation*` | candidate |
-| T4 | companion read model and pgTAP | migration + database test | database gate passed |
-| T5 | server loader and actions | server/action files | candidate |
-| T6 | route, component, responsive CSS and account-detail link | application files | candidate |
-| T7 | unit/browser evidence | permanent tests authored | pending execution after knowledge fix |
-| T8 | independent review and exact-head gates | CI/CodeQL/secret scan | in progress |
-| T9 | owner merge decision | separate command | blocked on owner |
+| T3 | domain helpers and demo reducer | `src/lib/reconciliation*` | verified |
+| T4 | companion read model and pgTAP | migration + database test | verified |
+| T5 | server loader and actions | server/action files | verified |
+| T6 | route, component, responsive CSS and account-detail link | application files | verified |
+| T7 | unit/browser evidence | CI #1329 | verified |
+| T8 | independent review and exact-head gates | CI #1329, CodeQL #469, secret scan #469 | verified |
+| T9 | owner merge decision | explicit owner instruction | authorized |
 | T10 | production migration and smoke | separate command | blocked on owner |
 
 ## Handoff record
@@ -148,12 +156,13 @@ Not applicable. No dependency, provider, framework, service or architecture laye
 |---|---|---|---|---|---|---|
 | 2026-08-03 | owner | implementer | implementing | explicit `làm đi`, issue #262, branch from `2d8550f` | no UI/read model yet | implement focused branch and PR |
 | 2026-08-03 | implementer | evaluator | candidate | domain, read model, loader/actions, route/UI and tests authored | exact-head application verification incomplete | fix findings and rerun Class 3 gates |
+| 2026-08-03 | evaluator | owner | verified | CI #1329, CodeQL #469, secret scan #469 | production DDL intentionally absent | merge PR only; production migration remains separate |
 
 ## Permission boundary
 
-Granted: focused branch writes, issue/PR metadata, repository tests and CI.
+Granted: focused branch writes, issue/PR metadata, repository tests, CI and owner-authorized merge.
 
-Forbidden without a separate owner command: merge, direct `main` writes, production migration, production data mutation, provider/config changes and release claims.
+Forbidden without a separate owner command: production migration, production data mutation, provider/config changes and production release claims.
 
 ## Delivery record
 
@@ -161,5 +170,6 @@ Forbidden without a separate owner command: merge, direct `main` writes, product
 - Issue: #262
 - PR: #263
 - Baseline: `2d8550f739f179fcd42a8fb029c1091467b97847`
+- Verified implementation head: `30d99769735249fe9264f3b5b38d8587813a9f99`
 - Production DDL: not authorized
 - Production data: not accessed or changed
