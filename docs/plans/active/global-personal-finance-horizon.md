@@ -1,11 +1,11 @@
 # Global personal-finance capability horizon
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** evaluator  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Issue/PR:** #258 / #259  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** Thunderkill016
+**Issue/PR:** #258 / #259
 **Last updated:** 2026-08-03
 
 ## Outcome
