@@ -5,6 +5,7 @@ import {
   reorderRulesAction,
   saveRuleAction,
 } from "@/app/actions/rules";
+import { CANDIDATE_STORAGE_KEY } from "@/lib/inbox/candidate-store";
 import {
   addStoredRule,
   readStoredRules,
@@ -36,6 +37,41 @@ export type SaveRuleForClientInput = {
   categoryKind: RuleCategoryKind;
   merchant?: string;
 };
+
+export type CandidateRuleEvidenceInput = {
+  candidateId: string;
+  ruleId: string;
+  ruleVersion: number;
+};
+
+export function attachCandidateRuleEvidence(
+  value: unknown,
+  input: CandidateRuleEvidenceInput,
+): unknown[] | null {
+  if (
+    !Array.isArray(value) ||
+    !input.candidateId ||
+    !input.ruleId ||
+    !Number.isSafeInteger(input.ruleVersion) ||
+    input.ruleVersion < 1
+  ) {
+    return null;
+  }
+
+  let found = false;
+  const next = value.map((candidate) => {
+    if (!candidate || typeof candidate !== "object") return candidate;
+    const record = candidate as Record<string, unknown>;
+    if (record.id !== input.candidateId) return candidate;
+    found = true;
+    return {
+      ...record,
+      appliedRuleId: input.ruleId,
+      appliedRuleVersion: input.ruleVersion,
+    };
+  });
+  return found ? next : null;
+}
 
 export async function loadRulesForClient(
   isDemo: boolean,
@@ -134,10 +170,24 @@ export async function reorderRulesForClient(
 
 export async function persistCandidateRuleEvidenceForClient(
   isDemo: boolean,
-  input: { candidateId: string; ruleId: string; ruleVersion: number },
+  input: CandidateRuleEvidenceInput,
 ): Promise<ClientRuleEvidenceResult> {
-  // Demo candidates already carry the pure preview result in local storage.
-  if (isDemo) return { ok: true };
+  if (isDemo) {
+    try {
+      const stored = localStorage.getItem(CANDIDATE_STORAGE_KEY);
+      if (stored === null) {
+        return { ok: false, message: "Ứng viên demo không còn tồn tại." };
+      }
+      const next = attachCandidateRuleEvidence(JSON.parse(stored), input);
+      if (!next) {
+        return { ok: false, message: "Ứng viên demo không còn tồn tại." };
+      }
+      localStorage.setItem(CANDIDATE_STORAGE_KEY, JSON.stringify(next));
+      return { ok: true };
+    } catch {
+      return { ok: false, message: "Không lưu được bằng chứng quy tắc demo." };
+    }
+  }
   const result = await applyRuleToCandidateAction(input);
   return result.ok ? { ok: true } : result;
 }
