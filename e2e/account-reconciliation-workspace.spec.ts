@@ -1,6 +1,39 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const DEMO_KEY = "moneyflow-account-reconciliation-v1:demo-account-mb";
+
+async function fillStatementBalanceAfterHydration(
+  page: Page,
+  formattedBalance: string,
+) {
+  const balanceInput = page.getByLabel("Số dư cuối kỳ");
+  const rawBalance = formattedBalance.replaceAll(".", "");
+
+  await expect
+    .poll(
+      async () => {
+        await balanceInput.fill(rawBalance);
+        return balanceInput.inputValue();
+      },
+      {
+        message: "reconciliation balance input should be controlled by the hydrated client",
+        timeout: 15_000,
+      },
+    )
+    .toBe(formattedBalance);
+}
+
+async function fillStatementForm(
+  page: Page,
+  statementDate: string,
+  formattedBalance: string,
+) {
+  await fillStatementBalanceAfterHydration(page, formattedBalance);
+
+  const dateInput = page.getByLabel("Ngày kết thúc sao kê");
+  await dateInput.fill(statementDate);
+  await expect(dateInput).toHaveValue(statementDate);
+}
 
 test.describe("Account reconciliation workspace", () => {
   test.beforeEach(async ({ context }) => {
@@ -22,7 +55,7 @@ test.describe("Account reconciliation workspace", () => {
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Mở kỳ đối soát" })).toBeDisabled();
 
-    await page.getByLabel("Số dư cuối kỳ").fill("-100.000");
+    await fillStatementBalanceAfterHydration(page, "-100.000");
     await expect(page.getByRole("button", { name: "Mở kỳ đối soát" })).toBeEnabled();
   });
 
@@ -32,8 +65,8 @@ test.describe("Account reconciliation workspace", () => {
     await expect(
       page.getByRole("heading", { name: "Đối soát MB Bank" }),
     ).toBeVisible();
-    await page.getByLabel("Ngày kết thúc sao kê").fill("2026-07-14");
-    await page.getByLabel("Số dư cuối kỳ").fill("15.777.000");
+    await fillStatementForm(page, "2026-07-14", "15.777.000");
+    await expect(page.getByRole("button", { name: "Mở kỳ đối soát" })).toBeEnabled();
     await page.getByRole("button", { name: "Mở kỳ đối soát" }).click();
 
     await expect(page.getByText("Kỳ sao kê 14/07/2026 đang mở")).toBeVisible();
@@ -63,8 +96,8 @@ test.describe("Account reconciliation workspace", () => {
 
   test("does not enable completion while the statement difference is nonzero", async ({ page }) => {
     await page.goto("/accounts/demo-account-mb/reconcile");
-    await page.getByLabel("Ngày kết thúc sao kê").fill("2026-07-14");
-    await page.getByLabel("Số dư cuối kỳ").fill("15.777.000");
+    await fillStatementForm(page, "2026-07-14", "15.777.000");
+    await expect(page.getByRole("button", { name: "Mở kỳ đối soát" })).toBeEnabled();
     await page.getByRole("button", { name: "Mở kỳ đối soát" }).click();
 
     await expect(
