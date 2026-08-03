@@ -1,10 +1,11 @@
 # Dependabot noise control on current main
 
 **Status:** evaluating
-**Execution state:** current-main replacement in progress
+**Execution state:** replacement PR open
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** OpenAI agent
+**Issue/PR:** #245
 **Supersedes:** PR #197
 **Last updated:** 2026-08-03
 
@@ -64,8 +65,8 @@ Keep Dependabot enabled while reducing routine version-update noise and preservi
 
 1. Recreate the still-valid `.github/dependabot.yml` change directly from current main.
 2. Add a current-main work packet and bounded PR memory.
-3. Open a replacement PR and close PR #197 unmerged as superseded.
-4. Update canonical memory so only the replacement is treated as the active candidate.
+3. Open PR #245 and close PR #197 unmerged as superseded.
+4. Update canonical memory so only PR #245 is treated as the active candidate.
 5. Run exact-head CI, protected CodeQL and secret-history scanning.
 6. Stop at ready-for-review for an explicit owner merge decision.
 
@@ -80,7 +81,7 @@ Revert the configuration commit to restore weekly ungrouped version checks. No a
 | T1 | Compare PR #197 base with current main | done | Dependabot config unchanged |
 | T2 | Verify current GitHub Dependabot option support | done | official GitHub documentation |
 | T3 | Apply grouped monthly configuration on a current-main branch | done | `.github/dependabot.yml` |
-| T4 | Open replacement PR, add memory and close #197 unmerged | in progress | replacement delivery |
+| T4 | Open PR #245, add PR memory and close #197 unmerged | in progress | replacement delivery |
 | T5 | Run exact-head CI, CodeQL and secret scan | pending | final head required |
 | T6 | Owner merge decision | blocked | explicit owner instruction required |
 
