@@ -28,6 +28,9 @@ export type CandidateProvenance = {
   transferPairId?: string;
   approvedTransactionId?: string;
   approvedAt?: string;
+  /** Deterministic candidate normalization evidence. */
+  appliedRuleId?: string;
+  appliedRuleVersion?: number;
 };
 
 export type ImportBatchProvenance = {
@@ -63,6 +66,8 @@ export type CandidateProvenanceRow = {
   transfer_pair_id?: string | null;
   approved_transaction_id?: string | null;
   approved_at?: string | null;
+  applied_rule_id?: string | null;
+  applied_rule_version?: number | string | null;
 };
 
 export type BatchProvenanceRow = {
@@ -93,6 +98,12 @@ export function parserVersionForSource(source: CandidateSource): string {
   return PARSER_VERSION_BY_SOURCE[source];
 }
 
+function optionalPositiveInteger(value: number | string | null | undefined) {
+  if (value === null || value === undefined) return undefined;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : undefined;
+}
+
 export function candidateProvenanceFromRow(
   row: CandidateProvenanceRow,
 ): CandidateProvenance {
@@ -111,6 +122,8 @@ export function candidateProvenanceFromRow(
     transferPairId: row.transfer_pair_id ?? undefined,
     approvedTransactionId: row.approved_transaction_id ?? undefined,
     approvedAt: row.approved_at ?? undefined,
+    appliedRuleId: row.applied_rule_id ?? undefined,
+    appliedRuleVersion: optionalPositiveInteger(row.applied_rule_version),
   };
 }
 
@@ -126,6 +139,10 @@ export function batchProvenanceFromRow(
 export function candidateProvenanceInsertPatch(
   candidate: CreateCandidateWithProvenanceInput | PersistedInboxCandidate,
 ): Record<string, unknown> {
+  const hasRuleEvidence =
+    typeof candidate.appliedRuleId === "string" &&
+    Number.isSafeInteger(candidate.appliedRuleVersion) &&
+    (candidate.appliedRuleVersion ?? 0) >= 1;
   return {
     source_row_index: candidate.sourceRowIndex ?? null,
     source_external_id: candidate.sourceExternalId?.slice(0, 200) ?? null,
@@ -134,6 +151,12 @@ export function candidateProvenanceInsertPatch(
       parserVersionForSource(candidate.source),
     mapping_version:
       candidate.mappingVersion ?? CURRENT_IMPORT_MAPPING_VERSION,
+    ...(hasRuleEvidence
+      ? {
+          applied_rule_id: candidate.appliedRuleId,
+          applied_rule_version: candidate.appliedRuleVersion,
+        }
+      : {}),
   };
 }
 

@@ -13,8 +13,10 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 
-const CANDIDATE_COLUMNS =
+const CANDIDATE_BASE_COLUMNS =
   "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at,source_row_index,source_external_id,fingerprint_version,fingerprint,parser_version,mapping_version,match_status,match_reason,match_confidence,possible_transfer,transfer_pair_id,approved_transaction_id,approved_at";
+const CANDIDATE_RULE_COLUMNS =
+  `${CANDIDATE_BASE_COLUMNS},applied_rule_id,applied_rule_version`;
 
 const BATCH_COLUMNS =
   "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at,parser_version,mapping_version";
@@ -22,6 +24,19 @@ const BATCH_COLUMNS =
 export type InboxListResult =
   | { ok: true; candidates: InboxCandidate[]; batches: ImportBatch[] }
   | { ok: false; message: string };
+
+type InboxQueryError = { code?: string; message?: string } | null;
+
+function isMissingRuleProvenanceColumn(error: InboxQueryError) {
+  if (!error) return false;
+  const message = error.message ?? "";
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    message.includes("applied_rule_id") ||
+    message.includes("applied_rule_version")
+  );
+}
 
 /**
  * Authenticated Dashboard attention count. Returning null means the count is
@@ -52,24 +67,37 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
 
-  const [candResult, batchResult] = await Promise.all([
-    supabase
-      .from("inbox_candidates")
-      .select(CANDIDATE_COLUMNS)
-      .order("occurred_on", { ascending: false })
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("import_batches")
-      .select(BATCH_COLUMNS)
-      .order("created_at", { ascending: false }),
-  ]);
+  const ruleColumnResult = await supabase
+    .from("inbox_candidates")
+    .select(CANDIDATE_RULE_COLUMNS)
+    .order("occurred_on", { ascending: false })
+    .order("created_at", { ascending: false });
 
-  if (candResult.error || batchResult.error) {
+  let candidateRows: unknown[] = ruleColumnResult.data ?? [];
+  let candidateError: InboxQueryError = ruleColumnResult.error;
+
+  // Application-first rollout: old production schemas still serve the Inbox.
+  if (isMissingRuleProvenanceColumn(candidateError)) {
+    const legacyResult = await supabase
+      .from("inbox_candidates")
+      .select(CANDIDATE_BASE_COLUMNS)
+      .order("occurred_on", { ascending: false })
+      .order("created_at", { ascending: false });
+    candidateRows = legacyResult.data ?? [];
+    candidateError = legacyResult.error;
+  }
+
+  const batchResult = await supabase
+    .from("import_batches")
+    .select(BATCH_COLUMNS)
+    .order("created_at", { ascending: false });
+
+  if (candidateError || batchResult.error) {
     return { ok: false, message: "Không tải được Inbox từ máy chủ." };
   }
 
   try {
-    const candidates = (candResult.data ?? []).map((row) =>
+    const candidates = candidateRows.map((row) =>
       mapCandidateRow(row as InboxCandidateRow),
     );
     const batches = (batchResult.data ?? []).map((row) =>
@@ -107,7 +135,7 @@ export async function migrateLocalInboxToServer(input: {
     return listed;
   }
 
-  const { batchRows, candidateRows } = buildMigratePayloads(
+  const { batchRows, candidateRows: migrationRows } = buildMigratePayloads(
     input.batches,
     input.candidates,
     viewer.id,
@@ -123,8 +151,8 @@ export async function migrateLocalInboxToServer(input: {
     }
   }
 
-  if (candidateRows.length > 0) {
-    const { error } = await supabase.from("inbox_candidates").insert(candidateRows);
+  if (migrationRows.length > 0) {
+    const { error } = await supabase.from("inbox_candidates").insert(migrationRows);
     if (error) {
       return {
         ok: false,

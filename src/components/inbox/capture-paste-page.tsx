@@ -10,6 +10,10 @@ import {
   addCandidatesForClient,
   getPendingCountForClient,
 } from "@/hooks/client-inbox";
+import {
+  loadRulesForClient,
+  persistCandidateRuleEvidenceForClient,
+} from "@/hooks/client-rules";
 import { applyRulesToParsed } from "@/lib/inbox/apply-rules";
 import {
   SOURCE_HINT_LABELS,
@@ -18,13 +22,17 @@ import {
   type ParsedCandidate,
   type PasteSourceHint,
 } from "@/lib/inbox/parse-text";
-import { readStoredRules } from "@/lib/inbox/rules-store";
+import type { InboxRule } from "@/lib/inbox/rules-store";
 import { maskSnippetForDisplay } from "@/lib/mask-account";
 import { formatMoney } from "@/lib/money";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import { safeUserNotice } from "@/lib/safe-log";
 
 type Phase = "edit" | "preview" | "error";
+type RuleAwareParsedCandidate = ParsedCandidate & {
+  categoryId?: string;
+  matchedRuleVersion?: number;
+};
 
 const SOURCE_HINTS: PasteSourceHint[] = ["auto", "sms", "wallet", "other"];
 
@@ -59,10 +67,11 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
 
   const [text, setText] = useState("");
   const [sourceHint, setSourceHint] = useState<PasteSourceHint>("auto");
-  /** Apply local contains→category rules after parse (TASK-014). Default on. */
   const [applyRules, setApplyRules] = useState(true);
+  const [rules, setRules] = useState<InboxRule[]>([]);
+  const [rulesReady, setRulesReady] = useState(false);
   const [phase, setPhase] = useState<Phase>("edit");
-  const [candidates, setCandidates] = useState<ParsedCandidate[]>([]);
+  const [candidates, setCandidates] = useState<RuleAwareParsedCandidate[]>([]);
   const [needsReviewCount, setNeedsReviewCount] = useState(0);
   const [error, setError] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
@@ -73,8 +82,18 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
   useEffect(() => {
     textareaRef.current?.focus();
     let cancelled = false;
-    void getPendingCountForClient(viewer.isDemo).then((count) => {
-      if (!cancelled) setInboxCount(count);
+    void Promise.all([
+      getPendingCountForClient(viewer.isDemo),
+      loadRulesForClient(viewer.isDemo),
+    ]).then(([count, ruleResult]) => {
+      if (cancelled) return;
+      setInboxCount(count);
+      if (ruleResult.ok) {
+        setRules(ruleResult.rules);
+      } else {
+        setNotice("Chưa tải được quy tắc; bạn vẫn có thể phân tích và duyệt thủ công.");
+      }
+      setRulesReady(true);
     });
     return () => {
       cancelled = true;
@@ -97,7 +116,6 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
   function analyze() {
     setAnalyzing(true);
     setError("");
-    // Keep UI responsive for large pastes
     window.requestAnimationFrame(() => {
       try {
         const result = parsePasteText(text, { sourceHint });
@@ -109,24 +127,19 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
           setAnalyzing(false);
           return;
         }
-        let next = result.candidates;
-        if (applyRules) {
-          try {
-            next = applyRulesToParsed(next, readStoredRules());
-          } catch {
-            /* keep unparsed-category candidates if rules store fails */
-          }
+        let next = result.candidates as RuleAwareParsedCandidate[];
+        if (applyRules && rulesReady) {
+          next = applyRulesToParsed(next, rules) as RuleAwareParsedCandidate[];
         }
         setCandidates(next);
         setNeedsReviewCount(result.needsReviewCount);
         setPhase("preview");
         setError("");
-        // Counts + source hint only — never paste body / raw_snippet.
         trackProductEvent("paste_analyzed", {
           candidate_count: next.length,
           needs_review_count: result.needsReviewCount,
           source_hint: sourceHint,
-          apply_rules: applyRules,
+          apply_rules: applyRules && rulesReady,
         });
       } catch {
         setPhase("error");
@@ -157,17 +170,37 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
         setCommitting(false);
         return;
       }
+
+      const evidenceResults = await Promise.all(
+        result.candidates.map(async (created, index) => {
+          const previewed = candidates[index];
+          if (!previewed?.matchedRuleId || !previewed.matchedRuleVersion) {
+            return { ok: true as const };
+          }
+          return persistCandidateRuleEvidenceForClient(viewer.isDemo, {
+            candidateId: created.id,
+            ruleId: previewed.matchedRuleId,
+            ruleVersion: previewed.matchedRuleVersion,
+          });
+        }),
+      );
+      const evidenceFailureCount = evidenceResults.filter(
+        (item) => !item.ok,
+      ).length;
+
       const pending = await getPendingCountForClient(viewer.isDemo);
       setInboxCount(pending);
-      // Counts + source only — never paste body.
       trackProductEvent("paste_committed", {
         candidate_count: inputs.length,
         source: "paste",
         source_hint: sourceHint,
+        rule_evidence_failures: evidenceFailureCount,
       });
       setNotice(
         safeUserNotice(
-          `Đã đưa ${inputs.length} mục vào Inbox — chưa ghi sổ.`,
+          evidenceFailureCount > 0
+            ? `Đã đưa ${inputs.length} mục vào Inbox; ${evidenceFailureCount} gợi ý quy tắc cần tải lại.`
+            : `Đã đưa ${inputs.length} mục vào Inbox — chưa ghi sổ.`,
         ),
       );
       router.push("/inbox");
@@ -245,7 +278,11 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
 
               <fieldset className="capture-paste-source">
                 <legend>Nguồn gợi ý</legend>
-                <div className="capture-paste-source-options" role="radiogroup" aria-label="Nguồn gợi ý">
+                <div
+                  className="capture-paste-source-options"
+                  role="radiogroup"
+                  aria-label="Nguồn gợi ý"
+                >
                   {SOURCE_HINTS.map((hint) => (
                     <label key={hint} className="capture-paste-source-option">
                       <input
@@ -267,10 +304,10 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                   type="checkbox"
                   checked={applyRules}
                   onChange={(event) => setApplyRules(event.target.checked)}
-                  disabled={analyzing}
+                  disabled={analyzing || !rulesReady}
                 />
                 <span>
-                  Áp dụng quy tắc danh mục{" "}
+                  {rulesReady ? "Áp dụng quy tắc danh mục" : "Đang tải quy tắc…"}{" "}
                   <Link className="capture-paste-rules-link" href="/rules">
                     (Quản lý)
                   </Link>
@@ -319,7 +356,10 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                       <span className="capture-paste-preview-merchant">
                         {item.merchant}
                         {item.uncertainFields.includes("merchant") && (
-                          <span className="capture-paste-uncertain-tag" title="Không chắc merchant">
+                          <span
+                            className="capture-paste-uncertain-tag"
+                            title="Không chắc merchant"
+                          >
                             ⚠
                           </span>
                         )}
@@ -328,7 +368,10 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                         className={`font-mono capture-paste-preview-amount ${moneyClass(item.kind)}`}
                       >
                         {item.uncertainFields.includes("amount") && (
-                          <span className="capture-paste-uncertain-tag" title="Không chắc số tiền">
+                          <span
+                            className="capture-paste-uncertain-tag"
+                            title="Không chắc số tiền"
+                          >
                             ⚠{" "}
                           </span>
                         )}
@@ -337,7 +380,9 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                       </span>
                     </div>
                     <div className="capture-paste-preview-meta">
-                      <span className="font-mono capture-paste-date">{item.occurredOn}</span>
+                      <span className="font-mono capture-paste-date">
+                        {item.occurredOn}
+                      </span>
                       <span
                         className={`preview-chip sm confidence-badge ${confidenceClass(item.confidence)}`}
                       >
@@ -345,8 +390,14 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                       </span>
                       <span className="preview-chip sm source-badge">paste</span>
                       {item.category && (
-                        <span className="preview-chip sm category-badge" title={item.matchedRuleSummary}>
+                        <span
+                          className="preview-chip sm category-badge"
+                          title={item.matchedRuleSummary}
+                        >
                           {item.category}
+                          {item.matchedRuleVersion
+                            ? ` · v${item.matchedRuleVersion}`
+                            : ""}
                         </span>
                       )}
                     </div>

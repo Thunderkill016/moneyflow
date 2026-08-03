@@ -31,6 +31,8 @@ test("candidate provenance maps nullable Supabase fields without inventing data"
       transfer_pair_id: null,
       approved_transaction_id: null,
       approved_at: null,
+      applied_rule_id: null,
+      applied_rule_version: null,
     }),
     {
       sourceRowIndex: 7,
@@ -46,6 +48,34 @@ test("candidate provenance maps nullable Supabase fields without inventing data"
       transferPairId: undefined,
       approvedTransactionId: undefined,
       approvedAt: undefined,
+      appliedRuleId: undefined,
+      appliedRuleVersion: undefined,
+    },
+  );
+});
+
+test("candidate provenance retains a concrete applied rule revision", () => {
+  assert.deepEqual(
+    candidateProvenanceFromRow({
+      applied_rule_id: "26410000-0000-4000-8000-000000000001",
+      applied_rule_version: "4",
+    }),
+    {
+      sourceRowIndex: undefined,
+      sourceExternalId: undefined,
+      fingerprintVersion: undefined,
+      fingerprint: undefined,
+      parserVersion: undefined,
+      mappingVersion: undefined,
+      matchStatus: undefined,
+      matchReason: undefined,
+      matchConfidence: undefined,
+      possibleTransfer: undefined,
+      transferPairId: undefined,
+      approvedTransactionId: undefined,
+      approvedAt: undefined,
+      appliedRuleId: "26410000-0000-4000-8000-000000000001",
+      appliedRuleVersion: 4,
     },
   );
 });
@@ -73,6 +103,21 @@ test("candidate insert patch provides current explicit parser/mapping defaults",
     parser_version: "csv_import@1.0",
     mapping_version: CURRENT_IMPORT_MAPPING_VERSION,
   });
+});
+
+test("candidate insert patch emits rule columns only for a complete evidence pair", () => {
+  const patch = candidateProvenanceInsertPatch({
+    kind: "expense",
+    amount: 45_000,
+    merchant: "Cafe",
+    occurredOn: "2026-08-01",
+    source: "paste",
+    confidence: "high",
+    appliedRuleId: "26410000-0000-4000-8000-000000000001",
+    appliedRuleVersion: 4,
+  });
+  assert.equal(patch.applied_rule_id, "26410000-0000-4000-8000-000000000001");
+  assert.equal(patch.applied_rule_version, 4);
 });
 
 test("parseInboxDryRunResult accepts numeric strings from JSON boundaries", () => {
