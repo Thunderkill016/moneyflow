@@ -171,23 +171,22 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
         return;
       }
 
-      let evidenceFailureCount = 0;
-      if (!viewer.isDemo) {
-        const evidenceResults = await Promise.all(
-          result.candidates.map(async (created, index) => {
-            const previewed = candidates[index];
-            if (!previewed?.matchedRuleId || !previewed.matchedRuleVersion) {
-              return { ok: true as const };
-            }
-            return persistCandidateRuleEvidenceForClient(false, {
-              candidateId: created.id,
-              ruleId: previewed.matchedRuleId,
-              ruleVersion: previewed.matchedRuleVersion,
-            });
-          }),
-        );
-        evidenceFailureCount = evidenceResults.filter((item) => !item.ok).length;
-      }
+      const evidenceResults = await Promise.all(
+        result.candidates.map(async (created, index) => {
+          const previewed = candidates[index];
+          if (!previewed?.matchedRuleId || !previewed.matchedRuleVersion) {
+            return { ok: true as const };
+          }
+          return persistCandidateRuleEvidenceForClient(viewer.isDemo, {
+            candidateId: created.id,
+            ruleId: previewed.matchedRuleId,
+            ruleVersion: previewed.matchedRuleVersion,
+          });
+        }),
+      );
+      const evidenceFailureCount = evidenceResults.filter(
+        (item) => !item.ok,
+      ).length;
 
       const pending = await getPendingCountForClient(viewer.isDemo);
       setInboxCount(pending);
@@ -279,7 +278,11 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
 
               <fieldset className="capture-paste-source">
                 <legend>Nguồn gợi ý</legend>
-                <div className="capture-paste-source-options" role="radiogroup" aria-label="Nguồn gợi ý">
+                <div
+                  className="capture-paste-source-options"
+                  role="radiogroup"
+                  aria-label="Nguồn gợi ý"
+                >
                   {SOURCE_HINTS.map((hint) => (
                     <label key={hint} className="capture-paste-source-option">
                       <input
@@ -353,7 +356,10 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                       <span className="capture-paste-preview-merchant">
                         {item.merchant}
                         {item.uncertainFields.includes("merchant") && (
-                          <span className="capture-paste-uncertain-tag" title="Không chắc merchant">
+                          <span
+                            className="capture-paste-uncertain-tag"
+                            title="Không chắc merchant"
+                          >
                             ⚠
                           </span>
                         )}
@@ -362,7 +368,10 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                         className={`font-mono capture-paste-preview-amount ${moneyClass(item.kind)}`}
                       >
                         {item.uncertainFields.includes("amount") && (
-                          <span className="capture-paste-uncertain-tag" title="Không chắc số tiền">
+                          <span
+                            className="capture-paste-uncertain-tag"
+                            title="Không chắc số tiền"
+                          >
                             ⚠{" "}
                           </span>
                         )}
@@ -371,7 +380,9 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                       </span>
                     </div>
                     <div className="capture-paste-preview-meta">
-                      <span className="font-mono capture-paste-date">{item.occurredOn}</span>
+                      <span className="font-mono capture-paste-date">
+                        {item.occurredOn}
+                      </span>
                       <span
                         className={`preview-chip sm confidence-badge ${confidenceClass(item.confidence)}`}
                       >
@@ -379,9 +390,14 @@ export function CapturePastePage({ viewer }: { viewer: ViewerSummary }) {
                       </span>
                       <span className="preview-chip sm source-badge">paste</span>
                       {item.category && (
-                        <span className="preview-chip sm category-badge" title={item.matchedRuleSummary}>
+                        <span
+                          className="preview-chip sm category-badge"
+                          title={item.matchedRuleSummary}
+                        >
                           {item.category}
-                          {item.matchedRuleVersion ? ` · v${item.matchedRuleVersion}` : ""}
+                          {item.matchedRuleVersion
+                            ? ` · v${item.matchedRuleVersion}`
+                            : ""}
                         </span>
                       )}
                     </div>
