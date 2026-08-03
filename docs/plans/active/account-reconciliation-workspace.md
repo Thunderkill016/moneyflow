@@ -23,6 +23,14 @@ A MoneyFlow user can open one owned VND account, start a statement session, clea
 - The stable transaction feed intentionally does not expose entry IDs or reconciliation state. The UI uses a narrow companion read model instead of widening that contract.
 - Demo mode is browser-local and never calls authenticated Server Actions.
 
+## Research
+
+External research is not required for this implementation slice. The governing evidence is the merged PR #261 schema/RPC contract, the current account register implementation, MoneyFlow's integer-money and transfer-neutrality invariants, and the repository's existing Server Action/demo/runtime patterns.
+
+### Adoption review
+
+Not applicable. No dependency, provider, framework, service or architecture layer is introduced.
+
 ## Specification
 
 ### Core flow
@@ -88,7 +96,23 @@ A MoneyFlow user can open one owned VND account, start a statement session, clea
 6. Link account detail to the new workspace.
 7. Add focused desktop/mobile Playwright coverage.
 8. Run independent evaluation and exact-head Class 3 gates.
-9. Update bounded PR memory and current project memory truth.
+9. Update bounded PR memory and current project memory truth only when required by status impact.
+
+## Evaluation
+
+### Findings before exact-head verification
+
+1. The companion view groups split rows by logical account leg and retains account-scoped transfer independence.
+2. The authenticated mutation path uses only the four existing ownership-safe reconciliation RPCs and requires a canonical reload after success.
+3. The application-first deployment boundary is explicit: missing read model/RPCs disable the workspace rather than showing fabricated data.
+4. Demo behavior is isolated to versioned local storage and does not call authenticated Server Actions.
+5. Exact-head verify, browser, type/build and full database gates remain the authority for candidate acceptance.
+
+### Current evidence
+
+- CI #1317 database job: fresh local reset and all pgTAP suites passed on candidate head `576aed261c90b8253b52cae5e01e8138c66551b1`.
+- CI #1317 verify stopped at the project knowledge contract before install/typecheck/tests/build; no later application gate is claimed from that run.
+- CodeQL #457 and secret-history scan #457 passed on the same candidate head.
 
 ## Risks and defenses
 
@@ -108,13 +132,13 @@ A MoneyFlow user can open one owned VND account, start a statement session, clea
 | ID | Task | Evidence | Status |
 |---|---|---|---|
 | T1 | close superseded PR #222 and completed issue #260 | lifecycle metadata | done |
-| T2 | issue #262, branch, packet and draft PR #263 | `d43d33b` | done |
+| T2 | issue #262, branch, packet and PR #263 | `d43d33b` | done |
 | T3 | domain helpers and demo reducer | `src/lib/reconciliation*` | candidate |
-| T4 | companion read model and pgTAP | migration + database test | candidate |
+| T4 | companion read model and pgTAP | migration + database test | database gate passed |
 | T5 | server loader and actions | server/action files | candidate |
 | T6 | route, component, responsive CSS and account-detail link | application files | candidate |
-| T7 | unit/browser evidence | permanent tests authored | pending execution |
-| T8 | independent review and exact-head gates | CI/CodeQL/secret scan | pending |
+| T7 | unit/browser evidence | permanent tests authored | pending execution after knowledge fix |
+| T8 | independent review and exact-head gates | CI/CodeQL/secret scan | in progress |
 | T9 | owner merge decision | separate command | blocked on owner |
 | T10 | production migration and smoke | separate command | blocked on owner |
 
@@ -122,8 +146,8 @@ A MoneyFlow user can open one owned VND account, start a statement session, clea
 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-03 | owner | implementer | implementing | explicit `làm đi`, issue #262, branch from `2d8550f` | no UI/read model yet | implement focused branch and draft PR |
-| 2026-08-03 | implementer | evaluator | candidate | domain, read model, loader/actions, route/UI and tests authored | exact-head verification not run | evaluate actual diff and run Class 3 gates |
+| 2026-08-03 | owner | implementer | implementing | explicit `làm đi`, issue #262, branch from `2d8550f` | no UI/read model yet | implement focused branch and PR |
+| 2026-08-03 | implementer | evaluator | candidate | domain, read model, loader/actions, route/UI and tests authored | exact-head application verification incomplete | fix findings and rerun Class 3 gates |
 
 ## Permission boundary
 
@@ -135,7 +159,7 @@ Forbidden without a separate owner command: merge, direct `main` writes, product
 
 - Branch: `feat/account-reconciliation-workspace`
 - Issue: #262
-- PR: #263 (draft)
+- PR: #263
 - Baseline: `2d8550f739f179fcd42a8fb029c1091467b97847`
 - Production DDL: not authorized
 - Production data: not accessed or changed
