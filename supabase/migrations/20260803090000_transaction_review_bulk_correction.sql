@@ -23,7 +23,9 @@ create view public.transaction_review_feed with (security_invoker = true) as
 select
   transaction_record.id,
   transaction_record.user_id,
-  transaction_record.review_status
+  transaction_record.review_status,
+  transaction_record.occurred_on,
+  transaction_record.created_at
 from public.financial_transactions as transaction_record
 where transaction_record.deleted_at is null;
 
@@ -145,7 +147,8 @@ begin
     into v_category_kind, v_category_archived
   from public.categories as category
   where category.id = p_category_id
-    and category.user_id = v_user_id;
+    and category.user_id = v_user_id
+  for share;
 
   if v_category_kind is null then
     raise exception 'category_not_found';
