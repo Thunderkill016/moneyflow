@@ -34,7 +34,8 @@ export type FinanceWorkspace = {
 
 const TRANSACTION_FEED_COLUMNS =
   "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
-const TRANSACTION_REVIEW_COLUMNS = "id,review_status";
+const TRANSACTION_REVIEW_COLUMNS =
+  "id,review_status,occurred_on,created_at";
 
 type FinanceWorkspaceScope = "full" | "dashboard";
 
@@ -62,6 +63,8 @@ const splitLineSchema = z.object({
 const reviewFeedSchema = z.object({
   id: z.string().uuid(),
   review_status: z.enum(["needs_review", "reviewed"]),
+  occurred_on: z.string(),
+  created_at: z.string(),
 });
 
 const feedSchema = z.object({
@@ -165,7 +168,8 @@ function demoWorkspace(): FinanceWorkspace {
 function newestFirst(left: Transaction, right: Transaction) {
   return (
     right.occurredOn.localeCompare(left.occurredOn) ||
-    right.occurredAt.localeCompare(left.occurredAt)
+    right.occurredAt.localeCompare(left.occurredAt) ||
+    right.id.localeCompare(left.id)
   );
 }
 
@@ -223,11 +227,13 @@ async function loadFinanceWorkspace(
           .gte("occurred_on", dashboardTransactionStart(today))
           .order("occurred_on", { ascending: false })
           .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
       : supabase
           .from("transaction_feed")
           .select(TRANSACTION_FEED_COLUMNS)
           .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
 
   const recentFeedPromise =
     scope === "dashboard"
@@ -236,6 +242,7 @@ async function loadFinanceWorkspace(
           .select(TRANSACTION_FEED_COLUMNS)
           .order("occurred_on", { ascending: false })
           .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
           .limit(DASHBOARD_RECENT_TRANSACTION_LIMIT)
       : Promise.resolve({ data: [] as unknown[], error: null });
 
@@ -244,6 +251,9 @@ async function loadFinanceWorkspace(
       ? supabase
           .from("transaction_review_feed")
           .select(TRANSACTION_REVIEW_COLUMNS)
+          .order("occurred_on", { ascending: false })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
       : Promise.resolve({ data: [] as unknown[], error: null });
 
   const [
