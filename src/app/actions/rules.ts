@@ -77,6 +77,9 @@ function ruleError(error: RpcError) {
   if (message.includes("rule_no_longer_matches")) {
     return "Nội dung ứng viên đã đổi và không còn khớp quy tắc này.";
   }
+  if (message.includes("incomplete_rule_order")) {
+    return "Danh sách quy tắc đã thay đổi. Hãy tải lại trước khi sắp xếp.";
+  }
   if (message.includes("rule_not_available") || message.includes("rule_not_found")) {
     return "Quy tắc đã thay đổi hoặc không còn tồn tại.";
   }
@@ -136,21 +139,40 @@ export async function saveRuleAction(
   const auth = await authenticatedClient();
   if (!auth.ok) return { ok: false, message: auth.message };
 
-  const { data: category, error: categoryError } = await auth.supabase
-    .from("categories")
-    .select("id")
-    .eq("id", parsed.data.categoryId)
-    .eq("is_archived", false)
-    .maybeSingle();
-  if (categoryError || !category) {
-    return { ok: false, message: "Danh mục của quy tắc không còn khả dụng." };
-  }
-
   const merchantName = parsed.data.merchant?.trim() || null;
   if (parsed.data.id) {
     if (!parsed.data.expectedVersion) {
       return { ok: false, message: "Thiếu phiên bản quy tắc để cập nhật an toàn." };
     }
+
+    const { data: existing, error: existingError } = await auth.supabase
+      .from("inbox_rules")
+      .select("id,category_id")
+      .eq("id", parsed.data.id)
+      .eq("version", parsed.data.expectedVersion)
+      .maybeSingle();
+    if (existingError) return { ok: false, message: ruleError(existingError) };
+    if (!existing) {
+      return {
+        ok: false,
+        message: "Quy tắc đã được thay đổi ở nơi khác. Hãy tải lại trước khi lưu.",
+      };
+    }
+
+    const safelyDisablingExistingTarget =
+      !parsed.data.enabled && existing.category_id === parsed.data.categoryId;
+    if (!safelyDisablingExistingTarget) {
+      const { data: category, error: categoryError } = await auth.supabase
+        .from("categories")
+        .select("id")
+        .eq("id", parsed.data.categoryId)
+        .eq("is_archived", false)
+        .maybeSingle();
+      if (categoryError || !category) {
+        return { ok: false, message: "Danh mục của quy tắc không còn khả dụng." };
+      }
+    }
+
     const { data, error } = await auth.supabase
       .from("inbox_rules")
       .update({
@@ -174,6 +196,16 @@ export async function saveRuleAction(
       };
     }
   } else {
+    const { data: category, error: categoryError } = await auth.supabase
+      .from("categories")
+      .select("id")
+      .eq("id", parsed.data.categoryId)
+      .eq("is_archived", false)
+      .maybeSingle();
+    if (categoryError || !category) {
+      return { ok: false, message: "Danh mục của quy tắc không còn khả dụng." };
+    }
+
     let priority = parsed.data.priority;
     if (!priority) {
       const { data: last, error: lastError } = await auth.supabase
