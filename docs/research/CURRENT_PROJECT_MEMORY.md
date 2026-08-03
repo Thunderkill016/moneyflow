@@ -2,7 +2,7 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-03
-- **Code baseline audited:** `main@5971ba0cfc587e2482be81f955f4fdf3cb14b45c`
+- **Code baseline audited:** `main@c00de284c9062d08d7ec590242fb3802970a034a`
 - **Owner direction:** continue developing existing capabilities toward competitive depth; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 
@@ -94,7 +94,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - PR #233 archived completed governance and public-experience packets and reconciled superseded PR truth.
 - PR #234 merged inclusive transaction date and integer-amount filters, canonical URL state, explicit invalid-range feedback, filter-preserving correction context and responsive controls at `45b6f22de80aa7c1fd67f2f402f4ffd6bd147cc8`.
 - PR #234 exact head passed CI #1145, CodeQL #298 and Secret history scan #298, including browser smoke and cross-device UI audit; that is repository/browser evidence, not a production-deployment claim.
-- PR #235 reconciled canonical memory and completed the transaction-range Spec Kit lifecycle at `29b24617d80b1329072ad681086ce3656a5ab790`; it made no runtime or database change.
+- PR #235 reconciled canonical memory and completed the transaction-range Spec Kit lifecycle at `29b24617d80aa7c1fd67f2f402f4ffd6bd147cc8`; it made no runtime or database change.
 - PR #236 merged fourteen additive foreign-key coverage indexes and a diagnostic complete-coverage pgTAP gate at `5971ba0cfc587e2482be81f955f4fdf3cb14b45c`.
 - PR #236 final head `443d30d7537af3c758659658a530be35677c6cf5` passed CI #1175 with a fresh reset and all 281 pgTAP tests, CodeQL #326 with real Initialize/Analyze and Secret history scan #326. This is repository migration-replay evidence, not proof of production deployment or a clean production advisor.
 - PR #215 established layered project memory: concise hot rules, current snapshot, task routing and bounded cold PR records.
@@ -136,12 +136,12 @@ Open PRs are not product truth. Refresh and reverify against current `main` befo
 
 | PR | Interpretation |
 |---|---|
+| #245 | current-main candidate grouping and throttling Dependabot version updates; no dependency version, workflow or auto-merge change |
 | #198 | provider-security runbook candidate; repository documentation only, no provider operation performed |
-| #197 | Dependabot-noise maintenance candidate from an older baseline; refresh before reuse |
 | #170/#171 | diverged stacked CSS cleanup candidates; compare current CSS ownership and tests before reuse |
 | #119 | logo candidate requiring current browser evidence and explicit owner visual approval |
 
-Recently closed unmerged as stale, redundant or superseded: merged #236 replaced closed unmerged #211; #232 replaced #223 and was itself replaced by merged #234 because of ancestry protection; #230 replaced #221; merged #213 superseded #208; current runtime superseded #217; #199 was a no-op analytics lockfile PR.
+Recently closed unmerged as stale, redundant or superseded: #245 replaces #197; merged #236 replaced closed unmerged #211; #232 replaced #223 and was itself replaced by merged #234 because of ancestry protection; #230 replaced #221; merged #213 superseded #208; current runtime superseded #217; #199 was a no-op analytics lockfile PR.
 
 ## 10. True gaps after this audit
 
