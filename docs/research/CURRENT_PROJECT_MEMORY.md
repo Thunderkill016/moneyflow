@@ -3,10 +3,12 @@
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-03
 - **Code baseline audited:** `main@481a9ee72663477172b9f727cacbf3f530aa6630`
-- **Owner direction:** the locked MVP acceptance regression is merged; choose the release SHA and make an explicit release decision before broadening scope; validation is required inside each workstream but is not a global feature freeze
+- **Owner direction:** the MVP release decision is made — released as MVP at `main@8e08a8a` on 2026-08-03; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate and open
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Release acceptance ledger:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
+- **Release decision record:** `docs/release/MVP_RELEASE_DECISION_2026-08-03.md`
+- **Released MVP SHA:** `main@8e08a8a748a632b07bb42c27bf14539758b28824` — **released as MVP, not public-beta ready**
 
 ## 1. Purpose and authority
 
@@ -147,13 +149,17 @@ PR #250, PR #251 and PR #252 are merged and must not remain candidate-only.
 
 ## 10. True gaps after this audit
 
-### Locked MVP release closure
+### Locked MVP release closure — closed
 
-1. choose the release SHA, currently `main@481a9ee` unless a newer approved candidate replaces it;
-2. confirm there is still no known P0 money blocker at decision time;
-3. make an explicit human MVP release decision.
+The three remaining actions are done and recorded in `docs/release/MVP_RELEASE_DECISION_2026-08-03.md`:
 
-The focused empty-state/export acceptance run is complete and merged. Do not repeat it as missing work unless the candidate changes materially or a regression is observed.
+1. release SHA chosen: `main@8e08a8a`, whose product content is identical to the audited `481a9ee` (`git diff --name-only 481a9ee..8e08a8a` returns no file outside `docs/`) and which carries its own full-gate push-to-main run, CI #1240, including pgTAP, WebKit and the production cross-device UI audit;
+2. no known P0 money blocker confirmed at decision time — label searches for `P0`, `priority:P0`, `p0` and `bug:P0` returned zero open issues, and each open issue was classified as post-MVP depth, a public-beta gate, superseded framing or P2;
+3. explicit owner release decision recorded on 2026-08-03.
+
+**Criterion 8 stays conditional by construction.** The decision accepts knowingly that "no P0 money blocker is known and recorded" is not "none exists". A P0 found after this date opens a fix; it does not retroactively invalidate the decision.
+
+Do not reopen the empty-state/export acceptance run as missing work unless the candidate changes materially or a regression is observed.
 
 ### Separate public-beta hardening
 
