@@ -1,10 +1,10 @@
 # Implementation Plan: Transaction date and amount filters
 
 - **Spec:** `specs/002-transaction-range-filters/spec.md`
-- **Branch:** `feat/transaction-range-filters-current-main`
+- **Branch:** `feat/transaction-range-filters-current-main-v2`
 - **Change class:** Class 2 bounded UI/read-flow
 - **Work packet:** not required; one existing route/client surface, no persistence, provider work, unresolved research or non-obvious rollback
-- **Status:** evaluated; final evidence-only exact-head verification pending
+- **Status:** replacement delivery in PR #234; final exact-head verification pending
 - **Last updated:** 2026-08-03
 
 ## Technical context
@@ -25,9 +25,9 @@
 | Transfer neutrality | Existing totals continue to count only income/expense | pass |
 | Ownership/RLS | Existing loaders and mutation owners unchanged | pass |
 | Product scope | Deepens an existing ledger review loop | pass |
-| Current evidence | Current files equal the PR #223 pre-feature baseline; stale memory is not reused | pass |
+| Current evidence | Verified PR #232 feature blobs are recreated directly on latest `main`; stale memory is not reused | pass |
 | Bounded slice | One route, one client surface, pure helper, scoped CSS and tests | pass |
-| Risk-proportional verification | Full static/build, browser/mobile/UI, CodeQL and secret scan | pass on implementation head; final evidence-only head pending |
+| Risk-proportional verification | Full static/build, browser/mobile/UI, CodeQL and secret scan | pass on PR #232 merge candidate; pending on PR #234 exact head |
 
 ## Repository changes
 
@@ -42,7 +42,7 @@
 | `e2e/audit/responsive.audit.spec.ts` | Keep SAFE-09 transaction-group geometry evidence stable across demo-store hydration | Update test fixture/waiting only; assertions unchanged |
 | `specs/002-transaction-range-filters/**` | Feature requirements, plan and task traceability | Add |
 
-The implementation blobs are re-evaluated from PR #223 only because the three existing UI source files on current `main` have the exact same pre-feature SHAs as PR #223's base. Old PR memory and capability-roadmap rewrites are intentionally excluded.
+The implementation was first re-evaluated from PR #223 because the existing UI source files had the exact same pre-feature SHAs. PR #232 then verified the complete slice. PR #234 reuses those exact verified blobs on current `main@3e138c667ed8885108b3fbd388ca2900a1375ced` because the repository ruleset requires current-main ancestry before merge.
 
 ## Intentionally unchanged
 
@@ -72,7 +72,7 @@ The implementation blobs are re-evaluated from PR #223 only because the three ex
 | Edit clears context | URL/context Playwright flow |
 | Pagination totals only reflect visible rows | Filter before `windowTransactions` |
 | Phone controls clip | 4/2/1 grid and selected responsive/browser evidence |
-| Stale PR docs overwrite current truth | Exclude PR #223 memory/gap rewrites; create new bounded record |
+| Stale PR docs overwrite current truth | Exclude old capability-roadmap rewrites; use bounded PR #234 memory |
 | SAFE-09 reads a detached pre-hydration node or depends on unrelated quick capture | Seed one contract-valid transaction directly and poll current connected geometry; retain all layout thresholds |
 
 ## Acceptance evaluation
@@ -85,14 +85,15 @@ The implementation blobs are re-evaluated from PR #223 only because the three ex
 | Totals/pagination remain truthful | pass | filter-before-window implementation and regression tests |
 | Responsive/accessibility behavior | pass | 44px controls, named inputs, 4/2/1 layout and cross-device audit |
 | Financial/data/security boundary | pass | exact diff contains no schema/RLS/provider/mutation-owner change |
-| SAFE-09 stabilization | pass | implementation head audit passed at 320/360/390px with unchanged thresholds |
+| SAFE-09 stabilization | pass | audit passed at 320/360/390px with unchanged thresholds |
 
-Implementation head `d294e50872d5a78c332d1dce288678fa505f7819` passed CI #1127, CodeQL #283, Secret #283, 24/24 Playwright smoke and 384 passed/125 skipped cross-device audit cases. Artifact: `8837389357`, digest `sha256:26aa3d06b4f835b3617f8508da790d80c5b38cc1609f5c84f0441004ad8b69ec`.
+PR #232's final head `4706b71f5c7c4413be5e201784d673e9b2e97e23` passed CI #1130, CodeQL #286 and Secret #286. After `main` advanced, its latest merge candidate passed CI #1142, CodeQL #296 and Secret #296, including browser smoke and cross-device audit. GitHub nevertheless rejected merge because the branch ancestry predated current `main`; PR #234 resolves only that delivery constraint.
 
 ## Permission boundary
 
 - Allowed: focused branch and listed source/test/spec/memory paths.
-- Forbidden: direct `main` write, merge without owner instruction, database/provider/production writes, dependencies, reconciliation or bulk correction.
+- Forbidden: direct `main` write, database/provider/production writes, dependencies, reconciliation or bulk correction.
+- Owner authorization: merge PR #234 after all repository protections pass.
 - Stop if the implementation requires a server filter RPC, schema change or new mutation owner.
 
 ## Verification plan
@@ -109,8 +110,8 @@ Implementation head `d294e50872d5a78c332d1dce288678fa505f7819` passed CI #1127, 
 
 ## Delivery
 
-1. Replacement PR #232 exists on current `main`; PR #223 is closed unmerged as superseded.
-2. Requirements, implementation and implementation-head evidence are evaluated.
-3. Run the same selected gates on the final evidence-only head.
-4. Update the PR body without changing the branch and prepare owner review handoff.
-5. Owner decides merge and deployment.
+1. PR #234 exists directly on latest `main`; PRs #223 and #232 are closed unmerged as superseded.
+2. Requirements, implementation and prior merge-candidate evidence are evaluated.
+3. Run the same selected gates on PR #234's final exact head.
+4. Merge with expected-head protection because the owner explicitly authorized merge.
+5. Record merged capability truth and production evidence separately; do not claim deployment from repository checks alone.

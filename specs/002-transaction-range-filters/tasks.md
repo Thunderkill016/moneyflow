@@ -3,7 +3,7 @@
 - **Spec:** `specs/002-transaction-range-filters/spec.md`
 - **Plan:** `specs/002-transaction-range-filters/plan.md`
 - **Work packet:** not required
-- **Current phase:** final exact-head verification for PR #232
+- **Current phase:** final exact-head verification for PR #234
 - **Last updated:** 2026-08-03
 
 ## Reconnaissance and specification
@@ -66,10 +66,15 @@
 
 ## Delivery
 
-- [x] T090 Open replacement PR #232 and add its bounded PR memory.
-- [x] T091 Close PR #223 as superseded by the current-main implementation.
+- [x] T090 Open current-main replacement PR #234 and add its bounded PR memory.
+- [x] T091 Close PRs #223 and #232 unmerged as superseded.
 - [x] T092 Pass implementation-head CI #1127, CodeQL #283 and Secret history scan #283.
   - Evidence: `d294e50872d5a78c332d1dce288678fa505f7819`; CodeQL initialized and analyzed; database checks correctly not required
 - [x] T093 Evaluate acceptance criteria and responsive/browser artifacts.
   - Evidence: 24/24 Playwright smoke; cross-device audit 384 passed/125 skipped; SAFE-09 passed at 320/360/390px; artifact `8837389357`, digest `sha256:26aa3d06b4f835b3617f8508da790d80c5b38cc1609f5c84f0441004ad8b69ec`
-- [ ] T094 Pass the same gates on this final evidence-only head and prepare the owner review handoff without another branch change.
+- [x] T094 Reverify PR #232 against `main@3e138c667ed8885108b3fbd388ca2900a1375ced`.
+  - Evidence: CI #1142, CodeQL #296 and Secret history scan #296 succeeded; browser smoke and cross-device audit passed; merge remained blocked only because the published branch ancestry predated current `main`
+- [x] T095 Recreate the exact verified feature blobs on `feat/transaction-range-filters-current-main-v2`, which starts directly from latest `main`.
+- [ ] T096 Pass full exact-head CI, CodeQL and secret scan on PR #234.
+- [ ] T097 Squash merge PR #234 with expected-head protection under the owner's explicit merge authorization.
+- [ ] T098 Record post-merge capability/deployment truth without overstating repository checks as production evidence.
