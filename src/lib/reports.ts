@@ -1,6 +1,27 @@
 import type { Transaction } from "./sample-data.ts";
 
-export type ReportPeriod = "week" | "month" | "year";
+export type ReportPeriod = "week" | "month" | "year" | "custom";
+
+/**
+ * Longest custom window, in days.
+ *
+ * The server loads `previousStart..currentEnd`, so a custom range costs twice its
+ * own span in rows. Three years is already longer than the `year` preset and keeps
+ * the worst case bounded; anything beyond it is an export job, not a report.
+ */
+export const CUSTOM_RANGE_MAX_DAYS = 1_096;
+
+/**
+ * Span at which the trend switches from one bar per day to one per month.
+ *
+ * 62 is two months — twice what the `month` preset can already produce (31 bars),
+ * and the chart already scrolls horizontally and thins its labels above 14, so
+ * this stays inside behaviour the UI demonstrably handles. Above it, monthly
+ * buckets match what `year` has always done.
+ */
+export const TREND_DAILY_MAX_DAYS = 62;
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** R7 — month view is the default reports landing (JTBD: tháng này tiền đi đâu). */
 export const REPORTS_PATH = "/reports" as const;
@@ -42,12 +63,100 @@ function shiftDate(value: string, days: number) {
 }
 
 export function normalizeReportPeriod(value: string | null | undefined): ReportPeriod {
-  return value === "week" || value === "year" ? value : "month";
+  if (value === "week" || value === "year" || value === "custom") return value;
+  return "month";
 }
 
 /** Canonical period switcher href (always includes `period=` for share/bookmark). */
-export function reportPeriodHref(period: ReportPeriod): string {
-  return `${REPORTS_PATH}?period=${period}`;
+export function reportPeriodHref(period: ReportPeriod, from?: string, to?: string): string {
+  if (period !== "custom") return `${REPORTS_PATH}?period=${period}`;
+  const params = new URLSearchParams({ period: "custom" });
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  return `${REPORTS_PATH}?${params.toString()}`;
+}
+
+function daysBetween(start: string, end: string) {
+  return Math.round((parseDate(end).getTime() - parseDate(start).getTime()) / DAY_MS) + 1;
+}
+
+/** A real calendar date, not merely `YYYY-MM-DD`-shaped — rejects 2026-02-31. */
+function isRealDate(value: string): boolean {
+  if (!ISO_DATE.test(value)) return false;
+  return dateString(parseDate(value)) === value;
+}
+
+export type CustomRangeInput = { from?: string | null; to?: string | null };
+
+/**
+ * Normalise a user-supplied custom window.
+ *
+ * Every branch returns a usable window rather than throwing, because these values
+ * arrive from a query string that anyone can edit. `null` means "unusable — fall
+ * back to the month preset", and the caller decides how to say so.
+ */
+export function normalizeCustomRange(
+  input: CustomRangeInput,
+  today: string,
+): { from: string; to: string; clamped: boolean; swapped: boolean } | null {
+  const rawFrom = input.from ?? "";
+  const rawTo = input.to ?? "";
+  if (!isRealDate(rawFrom) || !isRealDate(rawTo)) return null;
+
+  // A reversed range is a slip, not an attack: honour the intent instead of
+  // discarding both dates the reader just typed.
+  const swapped = rawFrom > rawTo;
+  let from = swapped ? rawTo : rawFrom;
+  let to = swapped ? rawFrom : rawTo;
+
+  // A future end reports emptiness as if it were data. Clamp to today.
+  if (isRealDate(today) && to > today) to = today;
+  if (from > to) from = to;
+
+  let clamped = false;
+  if (daysBetween(from, to) > CUSTOM_RANGE_MAX_DAYS) {
+    from = shiftDate(to, -(CUSTOM_RANGE_MAX_DAYS - 1));
+    clamped = true;
+  }
+  return { from, to, clamped, swapped };
+}
+
+/**
+ * Range for an explicit window, with the previous window of equal length
+ * immediately before it.
+ *
+ * The equal-length rule is not new here — `reportRange` already compares each
+ * preset against "kỳ liền trước cùng số ngày", and the reports heading says so.
+ * A custom window follows the same rule so the comparison keeps meaning the same
+ * thing across all four periods.
+ */
+export function customReportRange(from: string, to: string): ReportRange {
+  if (!isRealDate(from) || !isRealDate(to) || from > to) throw new Error("invalid_report_range");
+  const span = daysBetween(from, to);
+  const previousEnd = shiftDate(from, -1);
+  return {
+    period: "custom",
+    currentStart: from,
+    currentEnd: to,
+    previousStart: shiftDate(previousEnd, -(span - 1)),
+    previousEnd,
+  };
+}
+
+/**
+ * The one range entry point callers should use. Presets keep their existing
+ * behaviour; `custom` needs `from`/`to` and falls back to the month preset when
+ * they are unusable, so a mangled URL still renders a report.
+ */
+export function resolveReportRange(
+  today: string,
+  period: ReportPeriod,
+  custom?: CustomRangeInput,
+): ReportRange {
+  if (period !== "custom") return reportRange(today, period);
+  const normalized = normalizeCustomRange(custom ?? {}, today);
+  if (!normalized) return reportRange(today, "month");
+  return customReportRange(normalized.from, normalized.to);
 }
 
 /**
@@ -57,10 +166,21 @@ export function reportPeriodHref(period: ReportPeriod): string {
 export function formatReportPeriodTitle(
   period: ReportPeriod,
   currentStart: string,
+  currentEnd?: string,
 ): string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(currentStart)) return "Báo cáo";
+  if (!ISO_DATE.test(currentStart)) return "Báo cáo";
   const year = Number(currentStart.slice(0, 4));
   const month = Number(currentStart.slice(5, 7));
+  if (period === "custom") {
+    // The dates themselves are the title. The caller passes currentEnd so the
+    // heading reads as the window the reader chose, not a preset name.
+    if (!currentEnd || !ISO_DATE.test(currentEnd)) return "Khoảng tự chọn";
+    const day = (value: string) => `${Number(value.slice(8, 10))}/${Number(value.slice(5, 7))}`;
+    const sameYear = currentStart.slice(0, 4) === currentEnd.slice(0, 4);
+    return sameYear
+      ? `${day(currentStart)} – ${day(currentEnd)}/${currentEnd.slice(0, 4)}`
+      : `${day(currentStart)}/${currentStart.slice(0, 4)} – ${day(currentEnd)}/${currentEnd.slice(0, 4)}`;
+  }
   if (period === "year") return `Năm ${year}`;
   if (period === "week") return "Tuần này";
   return `Tháng ${month}/${year}`;
@@ -118,7 +238,13 @@ function inRange(transaction: Transaction, start: string, end: string) {
 
 function trendBuckets(range: ReportRange) {
   const buckets: { key: string; label: string }[] = [];
-  if (range.period === "year") {
+  // Monthly for the year preset, and for any window too long to read one bar per
+  // day. Bucketing is chosen by span rather than by period name so a 90-day custom
+  // window cannot produce 90 bars the chart was never shaped for.
+  const monthly =
+    range.period === "year" ||
+    daysBetween(range.currentStart, range.currentEnd) > TREND_DAILY_MAX_DAYS;
+  if (monthly) {
     let cursor = range.currentStart.slice(0, 7);
     const end = range.currentEnd.slice(0, 7);
     while (cursor <= end) {
@@ -162,7 +288,10 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
     .map(([name, amount]) => ({ name, amount, share: expense ? Math.round((amount / expense) * 100) : 0 }))
     .sort((a, b) => b.amount - a.amount);
   const trend = trendBuckets(range).map((bucket) => {
-    const matches = current.filter((item) => range.period === "year" ? item.occurredOn.startsWith(bucket.key) : item.occurredOn === bucket.key);
+    // A monthly bucket key is `YYYY-MM`; a daily one is a full date. Matching on
+    // key length keeps this in step with trendBuckets without repeating its rule.
+    const matches = current.filter((item) =>
+      bucket.key.length === 7 ? item.occurredOn.startsWith(bucket.key) : item.occurredOn === bucket.key);
     return { ...bucket, income: sumKind(matches, "income"), expense: sumKind(matches, "expense") };
   });
   return {
