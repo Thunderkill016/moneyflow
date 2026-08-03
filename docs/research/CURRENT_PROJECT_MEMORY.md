@@ -3,12 +3,12 @@
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-03
 - **Code baseline audited:** `main@b185bce263589a79f8c7d4d9ff28ad4d73a9726b`
-- **Owner direction:** continue deepening existing capabilities; validation belongs inside each workstream and is not a global feature freeze
+- **Owner direction:** continue developing existing capabilities toward competitive depth; validation is required inside each workstream but is not a global feature freeze
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 
-## 1. Authority and status language
+## 1. Purpose and authority
 
-This snapshot answers what is implemented, partial, absent, externally pending or candidate-only. It is not a changelog.
+This compact snapshot answers what is implemented, partial, absent, externally pending or candidate-only. It is not a changelog.
 
 Authority order:
 
@@ -21,6 +21,8 @@ Authority order:
 
 Open pull requests and unmerged feature artifacts are candidate evidence only.
 
+## 2. Status vocabulary
+
 | Status | Meaning |
 |---|---|
 | **Implemented** | Merged behavior exists with relevant automated evidence. |
@@ -31,7 +33,7 @@ Open pull requests and unmerged feature artifacts are candidate evidence only.
 | **Candidate only** | Exists only in an open PR or branch. |
 | **Historical/superseded** | Preserved for provenance, not current direction. |
 
-## 2. Product identity and invariants
+## 3. Product identity
 
 MoneyFlow is a Vietnamese manual-first personal income-and-expense ledger.
 
@@ -39,28 +41,20 @@ Core jobs: record income/expense/split/transfer; know account balances; inspect 
 
 Non-goals without a new owner-approved specification: bank sync, AI financial advice, OCR product identity, household finance, investments/crypto/credit score, full FX accounting, native rewrite, full envelope budgeting, local-first/CRDT and ERP scope.
 
-Load-bearing invariants:
-
-- VND is integer đồng; never floating-point money.
-- Transfers are structural, balanced and excluded from income/expense.
-- Split totals must remain exact.
-- Authenticated user data requires RLS and tenant-isolation evidence.
-- Financial writes use validated Server Actions and ownership-safe RPCs.
-- Destructive ledger actions use soft delete and recovery.
-- Authenticated and demo failures never silently mix.
-- Missing balances, dates, commitments, income or planning assumptions are never invented.
-
-## 3. Runtime and delivery snapshot
+## 4. Runtime and invariant snapshot
 
 - Next.js App Router modular monolith on Vercel; React 19, TypeScript 5, Tailwind 4 and shadcn/Base UI/Radix.
 - Supabase Auth/PostgreSQL with RLS and an explicit browser-local demo runtime.
-- Server workspaces own viewer-aware reads; domain modules own testable financial calculations.
+- Server workspaces own viewer-aware reads; validated Server Actions and ownership-safe RPCs own financial writes.
+- VND is integer đồng. Transfers are structural, balanced and excluded from income/expense. Split totals must remain exact.
+- Destructive ledger actions use soft delete and recovery. Authenticated and demo failures never silently mix.
+- Missing balances, dates, commitments, income or planning assumptions are never invented.
 - Playwright, pgTAP, k6, secret-history scanning and risk-proportional CI cover selected boundaries.
 - Protected CodeQL performs and uploads a real JavaScript/TypeScript analysis for every pull request.
 - Spec Kit is an adopted feature-artifact interface; MoneyFlow governance, permissions, work packets, PR memory and owner decisions remain authoritative.
 - Build/lint/typecheck do not prove RLS, browser behavior, provider state or production correctness.
 
-## 4. Current capability inventory
+## 5. Current capability inventory
 
 | Capability | Status | Implemented now | True remaining depth |
 |---|---|---|---|
@@ -73,29 +67,29 @@ Load-bearing invariants:
 | Dashboard | **Implemented + production hardened** | bounded one-RPC bundle for balances/activity/planning/Inbox | attention drill-down and measured acceptance |
 | Dashboard fallback | **Implemented + production evidenced** | schema-skew fallback preserves real data instead of false zeros | compatibility with future bundle changes |
 | Budgets | **Implemented, basic loop** | current-month category limits, spend calculation and CRUD | history, comparison, copy month, rollover decision and drill-down |
-| Recurring commitments | **Implemented, partial occurrence model** | templates, current-month occurrence, transaction link, pay/undo, reserved totals | full history/states, calendar/reminders and matching |
+| Recurring commitments | **Implemented, partial occurrence model** | templates, current-month occurrence, transaction link, pay/undo and reserved totals | full history/states, calendar/reminders and matching |
 | Recurring income | **Implemented, partial occurrence model** | templates, current-month occurrence/link and expected totals | history/lifecycle, calendar/reminders and matching |
 | Goals | **Implemented, partial** | target, allocation, deadline, planned-daily pace and archive | contribution history, funding source, lifecycle and drill-down |
-| Reports | **Implemented, moderate depth** | week/month/year, prior comparable period, totals/change/category/trends, transfer exclusion | arbitrary range, account/type dimensions, drill-down/shared filters |
+| Reports | **Implemented, moderate depth** | week/month/year, prior comparable period, totals/change/category/trends and transfer exclusion | arbitrary range, account/type dimensions, drill-down/shared filters |
 | Period report export | **Implemented** | safe one-click period CSV | follow future report filters |
-| Export hub | **Implemented** | date range, transactions/candidates/all, CSV/JSON, UTF-8/formula safety | account/kind parity, schema version, planning data and restore docs |
+| Export hub | **Implemented** | date range, transactions/candidates/all, CSV/JSON and UTF-8/formula safety | account/kind parity, schema version, planning data and restore docs |
 | Import/Inbox | **Implemented + production evidenced** | CSV/XLSX/PDF, staging/review, provenance, dry-run, duplicate/transfer plan, atomic approval, RLS/idempotency | presets, batch management, bulk correction and resume/retry UX |
 | Rules | **Partial** | deterministic local parse rules | authenticated persisted rules with RLS/order/preview/version/audit/UI |
 | Privacy/deletion | **Implemented baseline** | privacy surfaces and recoverable ledger deletion | export-before-delete and destructive-flow production acceptance |
 | Share Target | **Implemented and hardened** | bounded validation and ingestion | provider/edge controls and continued smoke |
 | Responsive UI | **Implemented with broad automation** | light/dark responsive app, expanded route/dialog and WebKit coverage | physical-device and deep error/destructive/Inbox states |
-| Accessibility/mobile | **Substantially implemented** | 44px targets, accessible names, modal placement, money wrapping, Vietnamese/VND regressions | physical keyboard/device proof and remaining confirmations |
+| Accessibility/mobile | **Substantially implemented** | 44px targets, accessible names, modal placement, money wrapping and Vietnamese/VND regressions | physical keyboard/device proof and remaining confirmations |
 | CI/security scanning | **Implemented** | stable risk checks, real CodeQL analysis on every PR, secret scan, pinned Actions and knowledge/classifier contracts | keep ruleset, workflow and classifier guidance aligned |
 | Specification workflow | **Implemented** | pinned Spec Kit adapter, constitution and templates integrated with MoneyFlow governance | run/review official initializer only in a dedicated pinned upgrade |
 | Database verification | **Implemented** | fresh reset, pgTAP domain/RLS/tenant/attack suites | reconciliation tests; FK-index candidate remains unmerged |
 | Performance tooling | **Implemented; acceptance partial** | dashboard one-RPC/bounds, k6 public/auth profiles and budgets | staging concurrency and realistic large-ledger benchmarks |
 | Analytics | **Implemented baseline** | Vercel Analytics and Speed Insights | no retention/conversion claim without defined events/cohorts |
 
-## 5. Load-bearing merged truth
+## 6. Load-bearing merged truth
 
 - Reconciliation is absent: calculated balance and account history are not statement reconciliation.
 - Account register/detail is merged through PR #228; PR #229 archived its packet and synchronized production-deployed truth.
-- PR #230 removed the CodeQL skip path. A green job shell with skipped initialization/analysis is not a valid code-scanning result.
+- PR #230 removed the CodeQL skip path. A green job shell with skipped initialization/analysis is not valid code-scanning evidence.
 - PR #231 merged the Spec Kit adapter at `b185bce263589a79f8c7d4d9ff28ad4d73a9726b`; generated specs cannot weaken financial invariants, permissions or required checks.
 - PR #215 established layered project memory: concise hot rules, current snapshot, task routing and bounded cold PR records.
 - PR #213 merged and deployed one landing/auth/color candidate. That proves implementation, not final owner design approval.
@@ -109,7 +103,7 @@ Load-bearing invariants:
 - Provider enforcement remains external even though repository-side auth/CAPTCHA/security readiness exists.
 - Safe-to-spend/daily-allowance behavior remains withdrawn.
 
-## 6. Evidence boundary
+## 7. Engineering and evidence boundary
 
 Implemented engineering evidence includes modular boundaries, neutral transaction contracts, shared mutation owners, viewer-scoped account register projection, deployment/CSS/architecture checks, unit/static RLS, selected Supabase reset/pgTAP, selected browser/responsive/WebKit checks, stable required CI names, real CodeQL analysis and load-profile contracts.
 
@@ -117,7 +111,7 @@ Still needed: physical Android/iOS evidence, deep validation/destructive/Inbox s
 
 A screenshot, route existence, passing build or unmerged branch alone never proves completion. Provider and production claims require provider/production evidence.
 
-## 7. Reconciled issue status
+## 8. Reconciled issue status
 
 | Issue/slice | Current status |
 |---|---|
@@ -130,7 +124,7 @@ A screenshot, route existence, passing build or unmerged branch alone never prov
 | #172 product assessment | Retention/WTP/demand warnings remain useful; old score/state/freeze is superseded |
 | #174 provider controls | Repository readiness implemented; provider configuration/production verification remain |
 
-## 8. Current open pull-request memory
+## 9. Open pull-request memory
 
 Open PRs are not product truth. Rebase and reverify against current `main` before merge.
 
@@ -142,11 +136,11 @@ Open PRs are not product truth. Rebase and reverify against current `main` befor
 | #198 | provider-security runbook candidate; repository documentation only, no provider operation performed |
 | #197 | Dependabot-noise maintenance candidate from an older baseline; refresh before reuse |
 | #170/#171 | diverged stacked CSS cleanup candidates; not absorbed into `main`; compare current CSS ownership and tests before reuse |
-| #119 | logo candidate requiring real browser evidence and explicit owner visual approval |
+| #119 | logo candidate requiring browser evidence and explicit owner visual approval |
 
 Recently closed unmerged as stale, redundant or superseded: #233 replaces #218/#220 lifecycle intent; #230 replaced #221; #232 replaced #223; merged #213 superseded #208; current runtime superseded #217; #199 was a no-op analytics lockfile PR.
 
-## 9. True gaps
+## 10. True gaps after this audit
 
 ### P0 — financial/public trust
 
@@ -173,7 +167,7 @@ Recently closed unmerged as stale, redundant or superseded: #233 replaces #218/#
 4. large-ledger and staging-load acceptance;
 5. evidence-based dashboard attention/drill-down.
 
-## 10. Current implementation direction
+## 11. Current implementation direction
 
 Parallel tracks: ledger trust; planning depth; reports/export/performance; advanced import/rules; onboarding/mobile/provider completion.
 
@@ -181,7 +175,7 @@ Transaction range filters may merge as an independent P1 slice after owner appro
 
 Validation is embedded in each PR: financial/data uses unit + migration replay + pgTAP + affected browser evidence; UI uses responsive/browser and physical-device proof where claimed; provider changes require before/after evidence, rollback and production smoke. Protected CodeQL analysis is required for every PR independently of product-layer gate selection.
 
-## 11. Superseded-status register
+## 12. Superseded-status register
 
 Do not repeat these as current facts:
 
@@ -202,7 +196,7 @@ Do not repeat these as current facts:
 - All security work is incomplete.
 - Feature development must freeze until a seven-day trial.
 
-## 12. Update and compaction protocol
+## 13. Update and compaction protocol
 
 Every PR creates exactly one bounded record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md`. A status-changing PR also updates the affected row or section here.
 
