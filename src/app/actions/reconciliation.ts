@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import type { AccountReconciliationStateData } from "@/lib/reconciliation";
 import { createClient } from "@/lib/supabase/server";
@@ -47,12 +48,17 @@ function isMissingContract(error: RpcError) {
   if (!error) return false;
   const message = error.message ?? "";
   return (
+    error.code === "42P01" ||
     error.code === "42883" ||
     error.code === "PGRST202" ||
+    error.code === "PGRST205" ||
+    message.includes("account_reconciliation_entry_feed") ||
+    message.includes("account_reconciliation_summaries") ||
     message.includes("start_account_reconciliation") ||
     message.includes("set_account_entry_reconciliation_state") ||
     message.includes("complete_account_reconciliation") ||
     message.includes("reopen_account_reconciliation") ||
+    message.includes("Could not find the table") ||
     message.includes("Could not find the function")
   );
 }
@@ -91,6 +97,47 @@ async function authenticatedClient() {
   const viewer = await requireViewer();
   if (viewer.isDemo) return null;
   return createClient();
+}
+
+async function verifyEntryAccountBinding(
+  supabase: SupabaseClient,
+  accountId: string,
+  entryId: string,
+): Promise<ReconciliationActionResult | null> {
+  const { data, error } = await supabase
+    .from("account_reconciliation_entry_feed")
+    .select("entry_id")
+    .eq("account_id", accountId)
+    .eq("entry_id", entryId)
+    .maybeSingle();
+
+  if (error) return { ok: false, message: reconciliationError(error) };
+  if (!data) {
+    return {
+      ok: false,
+      message: "Giao dịch đã thay đổi hoặc không còn trong sổ tài khoản.",
+    };
+  }
+  return null;
+}
+
+async function verifySessionAccountBinding(
+  supabase: SupabaseClient,
+  accountId: string,
+  reconciliationId: string,
+): Promise<ReconciliationActionResult | null> {
+  const { data, error } = await supabase
+    .from("account_reconciliation_summaries")
+    .select("id")
+    .eq("account_id", accountId)
+    .eq("id", reconciliationId)
+    .maybeSingle();
+
+  if (error) return { ok: false, message: reconciliationError(error) };
+  if (!data) {
+    return { ok: false, message: "Kỳ đối soát không thuộc tài khoản này." };
+  }
+  return null;
 }
 
 async function canonicalState(accountId: string): Promise<ReconciliationActionResult> {
@@ -134,6 +181,13 @@ export async function setAccountEntryReconciliationStateAction(input: {
   const supabase = await authenticatedClient();
   if (!supabase) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
 
+  const bindingFailure = await verifyEntryAccountBinding(
+    supabase,
+    parsed.data.accountId,
+    parsed.data.entryId,
+  );
+  if (bindingFailure) return bindingFailure;
+
   const { error } = await supabase.rpc("set_account_entry_reconciliation_state", {
     p_entry_id: parsed.data.entryId,
     p_state: parsed.data.state,
@@ -151,6 +205,13 @@ export async function completeAccountReconciliationAction(input: {
   const supabase = await authenticatedClient();
   if (!supabase) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
 
+  const bindingFailure = await verifySessionAccountBinding(
+    supabase,
+    parsed.data.accountId,
+    parsed.data.reconciliationId,
+  );
+  if (bindingFailure) return bindingFailure;
+
   const { error } = await supabase.rpc("complete_account_reconciliation", {
     p_reconciliation_id: parsed.data.reconciliationId,
   });
@@ -166,6 +227,13 @@ export async function reopenAccountReconciliationAction(input: {
   if (!parsed.success) return { ok: false, message: "Kỳ đối soát chưa hợp lệ." };
   const supabase = await authenticatedClient();
   if (!supabase) return { ok: false, message: "Hãy dùng bộ nhớ demo trên thiết bị." };
+
+  const bindingFailure = await verifySessionAccountBinding(
+    supabase,
+    parsed.data.accountId,
+    parsed.data.reconciliationId,
+  );
+  if (bindingFailure) return bindingFailure;
 
   const { error } = await supabase.rpc("reopen_account_reconciliation", {
     p_reconciliation_id: parsed.data.reconciliationId,
