@@ -122,10 +122,10 @@ The canonical migration:
 
 The candidate adds 82 pgTAP assertions across:
 
-- `account_reconciliation_current_main.test.sql` — schema, review separation, stable history, reopen, cross-tenant and purge;
-- `account_reconciliation_account_legs.test.sql` — transfer independence and split atomicity;
-- `account_reconciliation_correction.test.sql` — cleared-state reset on financial correction/deletion;
-- `account_reconciliation_locking.test.sql` — account-scoped lifecycle lock ownership.
+- `account_reconciliation_current_main.test.sql` — 43 assertions for schema, review separation, stable history, reopen, cross-tenant and purge;
+- `account_reconciliation_account_legs.test.sql` — 21 assertions for transfer independence and split atomicity;
+- `account_reconciliation_correction.test.sql` — 13 assertions for cleared-state reset on financial correction/deletion;
+- `account_reconciliation_locking.test.sql` — 5 assertions for account-scoped lifecycle lock ownership.
 
 ### Documentation integration
 
