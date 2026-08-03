@@ -1,5 +1,5 @@
 begin;
-select plan(23);
+select plan(24);
 
 select has_table('public', 'inbox_rules', 'authenticated rules table exists');
 select has_column('public', 'inbox_rules', 'version', 'rules retain a monotonic version');
@@ -35,10 +35,7 @@ insert into auth.users (
   now(), now(), '', '', false, false
 );
 
-set local request.jwt.claims =
-  '{"sub":"26400000-0000-4000-8000-000000000001","role":"authenticated"}';
-set local role authenticated;
-
+-- Capture both fixtures before RLS hides the other tenant's categories.
 select set_config(
   'moneyflow_test.rules_category_a',
   (select id::text from public.categories
@@ -55,6 +52,10 @@ select set_config(
    order by created_at, id limit 1),
   true
 );
+
+set local request.jwt.claims =
+  '{"sub":"26400000-0000-4000-8000-000000000001","role":"authenticated"}';
+set local role authenticated;
 
 select lives_ok(
   format(
@@ -109,6 +110,17 @@ insert into public.inbox_rules (
   '26400000-0000-4000-8000-000000000001'::uuid,
   'candidate', 2, true, 'merchant', 'GRAB',
   current_setting('moneyflow_test.rules_category_a')::uuid
+);
+
+select throws_ok(
+  $$
+    select public.replace_inbox_rule_priorities(array[
+      '26410000-0000-4000-8000-000000000001'::uuid
+    ])
+  $$,
+  'P0001',
+  'incomplete_rule_order',
+  'partial reorder cannot create an ambiguous tenant rule order'
 );
 
 select lives_ok(
