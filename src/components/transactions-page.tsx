@@ -19,6 +19,7 @@ import {
   type CreateTransactionInput,
   type CreateTransferInput,
   type Transaction,
+  type TransactionReviewStatus,
   type UpdateMoneyTransactionInput,
   type UpdateTransferInput,
 } from "@/lib/sample-data";
@@ -30,12 +31,17 @@ import {
   transactionFilterError,
   transactionFilterSearch,
   type TransactionFilterKind,
+  type TransactionReviewFilter,
 } from "@/lib/transaction-filters";
 import {
   TRANSACTION_PAGE_SIZE,
   nextVisibleCount,
   windowTransactions,
 } from "@/lib/transaction-list";
+import {
+  evaluateBulkCategorySelection,
+  getTransactionReviewStatus,
+} from "@/lib/transaction-review";
 import { transferRowSubtitle } from "@/lib/transfers";
 
 const AddTransactionDialog = dynamic(
@@ -77,6 +83,7 @@ type TransactionsWorkspace = {
   totalBalance: number;
   today: string;
   dataError: string | null;
+  reviewFeatureAvailable?: boolean;
 };
 
 type TransactionsPageProps = {
@@ -87,6 +94,7 @@ type TransactionsPageProps = {
   initialCategory?: string;
   initialAccount?: string;
   initialKind?: KindFilter;
+  initialReview?: TransactionReviewFilter;
   initialFromDate?: string;
   initialToDate?: string;
   initialMinAmount?: string;
@@ -101,12 +109,15 @@ export function TransactionsPage({
   initialCategory = "all",
   initialAccount = "all",
   initialKind = "all",
+  initialReview = "all",
   initialFromDate = "",
   initialToDate = "",
   initialMinAmount = "",
   initialMaxAmount = "",
 }: TransactionsPageProps) {
   const isTimeline = variant === "timeline";
+  const reviewFeatureAvailable =
+    viewer.isDemo || workspace.reviewFeatureAvailable === true;
   const {
     transactions,
     addTransaction,
@@ -115,6 +126,8 @@ export function TransactionsPage({
     updateTransaction,
     deleteTransaction,
     restoreTransaction,
+    bulkSetReviewStatus,
+    bulkUpdateCategory,
     isMutating,
   } = useTransactions({
     initialTransactions: workspace.transactions,
@@ -131,10 +144,15 @@ export function TransactionsPage({
   const [kind, setKind] = useState<KindFilter>(initialKind);
   const [account, setAccount] = useState(initialAccount);
   const [category, setCategory] = useState(initialCategory);
+  const [review, setReview] = useState<TransactionReviewFilter>(
+    reviewFeatureAvailable ? initialReview : "all",
+  );
   const [fromDate, setFromDate] = useState(initialFromDate);
   const [toDate, setToDate] = useState(initialToDate);
   const [minAmountInput, setMinAmountInput] = useState(initialMinAmount);
   const [maxAmountInput, setMaxAmountInput] = useState(initialMaxAmount);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkCategoryId, setBulkCategoryId] = useState("");
   const [notice, setNotice] = useState("");
   const [pendingUndo, setPendingUndo] = useState<Transaction | null>(null);
   const noticeTimerRef = useRef<number | null>(null);
@@ -169,6 +187,7 @@ export function TransactionsPage({
       kind,
       account,
       category,
+      review,
       fromDate,
       toDate,
       minAmountInput,
@@ -190,10 +209,11 @@ export function TransactionsPage({
     maxAmountInput,
     minAmountInput,
     query,
+    review,
     toDate,
   ]);
 
-  const filterKey = `${kind}\0${account}\0${category}\0${query}\0${fromDate}\0${toDate}\0${minAmountInput}\0${maxAmountInput}`;
+  const filterKey = `${kind}\0${account}\0${category}\0${review}\0${query}\0${fromDate}\0${toDate}\0${minAmountInput}\0${maxAmountInput}`;
   const [pageState, setPageState] = useState({
     filterKey,
     visibleCount: TRANSACTION_PAGE_SIZE,
@@ -208,6 +228,7 @@ export function TransactionsPage({
     kind,
     account,
     category,
+    review,
     fromDate,
     toDate,
     minAmountInput,
@@ -221,6 +242,7 @@ export function TransactionsPage({
         kind,
         account,
         category,
+        review,
         fromDate,
         toDate,
         minAmountInput,
@@ -234,6 +256,7 @@ export function TransactionsPage({
       maxAmountInput,
       minAmountInput,
       query,
+      review,
       toDate,
       transactions,
     ],
@@ -243,6 +266,43 @@ export function TransactionsPage({
     () => windowTransactions(filtered, visibleCount),
     [filtered, visibleCount],
   );
+
+  useEffect(() => {
+    const filteredIds = new Set(filtered.map((item) => item.id));
+    setSelectedIds((current) => {
+      const next = current.filter((id) => filteredIds.has(id));
+      return next.length === current.length ? current : next;
+    });
+  }, [filtered]);
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const visibleIds = useMemo(
+    () => listWindow.visible.map((transaction) => transaction.id),
+    [listWindow.visible],
+  );
+  const allVisibleSelected =
+    visibleIds.length > 0 && visibleIds.every((id) => selectedSet.has(id));
+  const bulkCategorySelection = useMemo(
+    () => evaluateBulkCategorySelection(transactions, selectedIds),
+    [selectedIds, transactions],
+  );
+  const bulkCategoryOptions = useMemo(
+    () =>
+      bulkCategorySelection.ok
+        ? workspace.categories.filter(
+            (item) => item.kind === bulkCategorySelection.kind,
+          )
+        : [],
+    [bulkCategorySelection, workspace.categories],
+  );
+
+  useEffect(() => {
+    if (
+      !bulkCategoryOptions.some((item) => item.id === bulkCategoryId)
+    ) {
+      setBulkCategoryId("");
+    }
+  }, [bulkCategoryId, bulkCategoryOptions]);
 
   const filteredTotals = useMemo(() => {
     const income = filtered
@@ -293,6 +353,7 @@ export function TransactionsPage({
     kind !== "all" ||
     account !== "all" ||
     category !== "all" ||
+    review !== "all" ||
     Boolean(fromDate) ||
     Boolean(toDate) ||
     Boolean(minAmountInput) ||
@@ -310,11 +371,75 @@ export function TransactionsPage({
     setKind("all");
     setAccount("all");
     setCategory("all");
+    setReview("all");
     setFromDate("");
     setToDate("");
     setMinAmountInput("");
     setMaxAmountInput("");
+    setSelectedIds([]);
     window.history.replaceState(null, "", window.location.pathname);
+  }
+
+  function toggleTransactionSelection(id: string) {
+    setSelectedIds((current) =>
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
+    );
+  }
+
+  function toggleVisibleSelection() {
+    setSelectedIds((current) => {
+      const currentSet = new Set(current);
+      if (visibleIds.every((id) => currentSet.has(id))) {
+        return current.filter((id) => !visibleIds.includes(id));
+      }
+      return [...new Set([...current, ...visibleIds])];
+    });
+  }
+
+  async function handleBulkReview(reviewStatus: TransactionReviewStatus) {
+    const result = await bulkSetReviewStatus({ ids: selectedIds, reviewStatus });
+    if (!result.ok) {
+      showNotice(safeUserNotice(result.message, "Không cập nhật được trạng thái."));
+      return;
+    }
+    showNotice(
+      reviewStatus === "reviewed"
+        ? `Đã đánh dấu ${result.updatedIds.length} giao dịch là đã duyệt.`
+        : `Đã chuyển ${result.updatedIds.length} giao dịch sang cần kiểm tra.`,
+    );
+    setSelectedIds([]);
+  }
+
+  async function handleBulkCategory() {
+    const target = workspace.categories.find(
+      (item) => item.id === bulkCategoryId,
+    );
+    if (!target || !bulkCategorySelection.ok) {
+      showNotice(
+        bulkCategorySelection.ok
+          ? "Hãy chọn danh mục mới."
+          : bulkCategorySelection.message,
+      );
+      return;
+    }
+    const confirmed = window.confirm(
+      `Đổi danh mục của ${selectedIds.length} giao dịch sang “${target.name}”? Số tiền, ngày và tài khoản sẽ giữ nguyên.`,
+    );
+    if (!confirmed) return;
+
+    const result = await bulkUpdateCategory({
+      ids: selectedIds,
+      categoryId: target.id,
+    });
+    if (!result.ok) {
+      showNotice(safeUserNotice(result.message, "Không đổi được danh mục."));
+      return;
+    }
+    showNotice(`Đã đổi danh mục cho ${result.updatedIds.length} giao dịch.`);
+    setSelectedIds([]);
+    setBulkCategoryId("");
   }
 
   async function handleAdd(input: CreateTransactionInput) {
@@ -347,6 +472,7 @@ export function TransactionsPage({
       return;
     }
 
+    setSelectedIds((current) => current.filter((id) => id !== transaction.id));
     clearNoticeTimer();
     pendingUndoRef.current = transaction;
     setPendingUndo(transaction);
@@ -498,7 +624,7 @@ export function TransactionsPage({
             <p>
               {isTimeline
                 ? "Các giao dịch đã được duyệt — nguồn tin cậy cho số dư và insights."
-                : "Lọc giao dịch và xem tiền vào, tiền ra, còn lại cập nhật ngay theo kết quả."}
+                : "Lọc giao dịch, kiểm tra dữ liệu và sửa các lỗi phân loại lặp lại."}
             </p>
           </div>
           <div className="page-heading-actions">
@@ -640,6 +766,23 @@ export function TransactionsPage({
               </select>
             </label>
 
+            {reviewFeatureAvailable ? (
+              <label className="account-filter">
+                <span className="sr-only">Lọc theo trạng thái kiểm tra</span>
+                <select
+                  value={review}
+                  onChange={(event) =>
+                    setReview(event.target.value as TransactionReviewFilter)
+                  }
+                  aria-label="Lọc theo trạng thái kiểm tra"
+                >
+                  <option value="all">Mọi trạng thái</option>
+                  <option value="needs_review">Cần kiểm tra</option>
+                  <option value="reviewed">Đã duyệt</option>
+                </select>
+              </label>
+            ) : null}
+
             <div
               className={styles.rangeFilters}
               aria-label="Lọc theo thời gian và số tiền"
@@ -708,6 +851,99 @@ export function TransactionsPage({
             ) : null}
           </div>
 
+          {reviewFeatureAvailable && filtered.length ? (
+            <div className={styles.selectionToolbar} aria-label="Chọn giao dịch">
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={toggleVisibleSelection}
+                disabled={isMutating || visibleIds.length === 0}
+              >
+                {allVisibleSelected ? "Bỏ chọn đang hiện" : "Chọn đang hiện"}
+              </button>
+              <span aria-live="polite">
+                Đã chọn <strong>{selectedIds.length}</strong> giao dịch
+              </span>
+              {selectedIds.length ? (
+                <button
+                  type="button"
+                  className={styles.clearSelection}
+                  onClick={() => setSelectedIds([])}
+                  disabled={isMutating}
+                >
+                  Bỏ chọn tất cả
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {reviewFeatureAvailable && selectedIds.length ? (
+            <section className={styles.bulkBar} aria-label="Thao tác hàng loạt">
+              <div className={styles.bulkReviewActions}>
+                <span>{selectedIds.length} giao dịch</span>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => void handleBulkReview("reviewed")}
+                  disabled={isMutating}
+                >
+                  Đánh dấu đã duyệt
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => void handleBulkReview("needs_review")}
+                  disabled={isMutating}
+                >
+                  Chuyển sang cần kiểm tra
+                </button>
+              </div>
+              <div className={styles.bulkCategoryActions}>
+                <label>
+                  <span>Danh mục mới</span>
+                  <select
+                    value={bulkCategoryId}
+                    onChange={(event) => setBulkCategoryId(event.target.value)}
+                    disabled={isMutating || !bulkCategorySelection.ok}
+                    aria-label="Danh mục mới cho giao dịch đã chọn"
+                  >
+                    <option value="">Chọn danh mục</option>
+                    {bulkCategoryOptions.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={() => void handleBulkCategory()}
+                  disabled={
+                    isMutating ||
+                    !bulkCategorySelection.ok ||
+                    !bulkCategoryId
+                  }
+                >
+                  Đổi danh mục
+                </button>
+              </div>
+              {!bulkCategorySelection.ok ? (
+                <p className={styles.bulkReason}>{bulkCategorySelection.message}</p>
+              ) : (
+                <p className={styles.bulkHint}>
+                  Chỉ danh mục thay đổi; số tiền, ngày và tài khoản giữ nguyên.
+                </p>
+              )}
+            </section>
+          ) : null}
+
+          {!reviewFeatureAvailable && !viewer.isDemo ? (
+            <p className={styles.featureUnavailable} role="status">
+              Kiểm tra và sửa hàng loạt sẽ xuất hiện sau khi migration tương ứng được bật.
+            </p>
+          ) : null}
+
           {grouped.length ? (
             <div className="manager-list">
               <div className="manager-header" aria-hidden="true">
@@ -737,12 +973,40 @@ export function TransactionsPage({
                     const meta =
                       categoryMeta[transaction.category] ??
                       categoryMeta["Thu nhập khác"];
+                    const reviewStatus = getTransactionReviewStatus(transaction);
                     return (
                       <article className="manager-row" key={transaction.id}>
                         <span className={`transaction-icon ${meta.color}`}>
                           <Icon name={meta.icon as IconName} />
                         </span>
                         <span className="transaction-detail">
+                          {reviewFeatureAvailable ? (
+                            <span className={styles.rowReviewLine}>
+                              <label className={styles.rowSelection}>
+                                <input
+                                  type="checkbox"
+                                  checked={selectedSet.has(transaction.id)}
+                                  onChange={() =>
+                                    toggleTransactionSelection(transaction.id)
+                                  }
+                                  disabled={isMutating}
+                                  aria-label={`Chọn giao dịch ${transaction.note}`}
+                                />
+                                <span>Chọn</span>
+                              </label>
+                              <span
+                                className={`${styles.reviewBadge} ${
+                                  reviewStatus === "needs_review"
+                                    ? styles.needsReview
+                                    : styles.reviewed
+                                }`}
+                              >
+                                {reviewStatus === "needs_review"
+                                  ? "Cần kiểm tra"
+                                  : "Đã duyệt"}
+                              </span>
+                            </span>
+                          ) : null}
                           <strong>{transaction.note}</strong>
                           <small>
                             {transaction.kind === "transfer"
