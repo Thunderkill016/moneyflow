@@ -28,7 +28,8 @@ export type FinanceWorkspace = {
   totalBalance: number;
   today: string;
   dataError: string | null;
-  reviewFeatureAvailable: boolean;
+  /** Present only when the caller owns the full transaction-review surface. */
+  reviewFeatureAvailable?: boolean;
 };
 
 const TRANSACTION_FEED_COLUMNS =
