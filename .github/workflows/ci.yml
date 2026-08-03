@@ -72,17 +72,12 @@ jobs:
             echo "- CodeQL: $CODEQL"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  verify:
+  verify_policy:
+    name: Verify policy contracts
     if: github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false
     needs: classify
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      NEXT_PUBLIC_APP_MODE: authenticated
-      NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key # gitleaks:allow test value
-      NEXT_PUBLIC_SITE_URL: https://ci.example.test
-      LEGACY_SITE_HOSTS: old-ci.example.test
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -102,37 +97,65 @@ jobs:
           fi
       - name: Project knowledge contract
         run: npm run check:knowledge
-      - name: CI classification contract
+      - name: CI classification and retry contract
         run: npm run test:ci-policy
-      - name: Documentation-only or database-only summary
-        if: needs.classify.outputs.full_verify != 'true'
-        run: echo "Application dependency installation and static/build verification are not applicable."
+
+  verify_static:
+    name: Verify static quality
+    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.full_verify == 'true'
+    needs: classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_APP_MODE: authenticated
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key # gitleaks:allow test value
+      NEXT_PUBLIC_SITE_URL: https://ci.example.test
+      LEGACY_SITE_HOSTS: old-ci.example.test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Setup Node
-        if: needs.classify.outputs.full_verify == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
       - name: Install
-        if: needs.classify.outputs.full_verify == 'true'
         run: npm ci
       - name: Deployment configuration contract
-        if: needs.classify.outputs.full_verify == 'true'
         run: npm run check:deployment-env
       - name: CSS ownership and debt budgets
-        if: needs.classify.outputs.full_verify == 'true'
         run: npm run check:css-ownership
       - name: Architecture boundary contract
-        if: needs.classify.outputs.full_verify == 'true'
         run: npm run check:architecture
       - name: Lint
-        if: needs.classify.outputs.full_verify == 'true'
         run: npm run lint
       - name: Typecheck
-        if: needs.classify.outputs.full_verify == 'true'
         run: npm run typecheck
+
+  verify_tests:
+    name: Verify unit tests and static RLS
+    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.full_verify == 'true'
+    needs: classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_APP_MODE: authenticated
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key # gitleaks:allow test value
+      NEXT_PUBLIC_SITE_URL: https://ci.example.test
+      LEGACY_SITE_HOSTS: old-ci.example.test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
       - name: Unit tests and static RLS
-        if: needs.classify.outputs.full_verify == 'true'
         id: tests
         continue-on-error: true
         shell: bash
@@ -141,7 +164,7 @@ jobs:
         if: steps.tests.outcome == 'failure'
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: failing-test-output
+          name: failing-test-output-${{ github.run_attempt }}
           path: test-output.log
           if-no-files-found: error
           retention-days: 1
@@ -151,9 +174,69 @@ jobs:
       - name: Test summary
         if: steps.tests.outcome == 'success'
         run: tail -n 40 test-output.log
+
+  verify_build:
+    name: Verify production build
+    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.full_verify == 'true'
+    needs: classify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_APP_MODE: authenticated
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-project.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_test_key # gitleaks:allow test value
+      NEXT_PUBLIC_SITE_URL: https://ci.example.test
+      LEGACY_SITE_HOSTS: old-ci.example.test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
       - name: Production build
-        if: needs.classify.outputs.full_verify == 'true'
         run: npm run build
+
+  verify:
+    if: always() && (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false)
+    needs: [classify, verify_policy, verify_static, verify_tests, verify_build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify required shard results
+        shell: bash
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          FULL_VERIFY: ${{ needs.classify.outputs.full_verify }}
+          POLICY_RESULT: ${{ needs.verify_policy.result }}
+          STATIC_RESULT: ${{ needs.verify_static.result }}
+          TEST_RESULT: ${{ needs.verify_tests.result }}
+          BUILD_RESULT: ${{ needs.verify_build.result }}
+        run: |
+          set -euo pipefail
+
+          require_success() {
+            local label="$1"
+            local result="$2"
+            if [[ "$result" != "success" ]]; then
+              echo "::error::$label finished with result '$result'"
+              return 1
+            fi
+          }
+
+          require_success "classify" "$CLASSIFY_RESULT"
+          require_success "verify_policy" "$POLICY_RESULT"
+
+          if [[ "$FULL_VERIFY" == "true" ]]; then
+            require_success "verify_static" "$STATIC_RESULT"
+            require_success "verify_tests" "$TEST_RESULT"
+            require_success "verify_build" "$BUILD_RESULT"
+          else
+            echo "Heavy application verification was not selected; skipped shards are accepted."
+          fi
 
   database:
     if: github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false
@@ -188,65 +271,120 @@ jobs:
         if: steps.database-tests.outcome == 'failure'
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: failing-database-test-output
+          name: failing-database-test-output-${{ github.run_attempt }}
           path: database-test-output.log
           if-no-files-found: error
           retention-days: 1
       - name: Stop local Supabase
         if: always() && needs.classify.outputs.database == 'true'
         run: supabase stop --no-backup || true
-      - name: Fail after preserving database diagnostics
+      - name: Fail after preserving diagnostics
         if: steps.database-tests.outcome == 'failure'
         run: exit 1
       - name: Database test summary
         if: steps.database-tests.outcome == 'success'
         run: tail -n 80 database-test-output.log
 
-  e2e:
-    if: github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false
+  browser_smoke:
+    name: Browser smoke
+    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.browser_smoke == 'true'
     needs: [classify, verify]
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 25
     env:
-      # Cloudflare's documented dummy site key always passes in automated tests.
-      # It is intentionally scoped to CI and must never be copied to production.
       NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED: "true"
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
     steps:
       - name: Checkout
-        if: needs.classify.outputs.browser_smoke == 'true' || needs.classify.outputs.ui_audit == 'true'
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - name: Browser checks not required
-        if: needs.classify.outputs.browser_smoke != 'true' && needs.classify.outputs.ui_audit != 'true'
-        run: echo "No runtime or visual surface changed."
       - name: Setup Node
-        if: needs.classify.outputs.browser_smoke == 'true' || needs.classify.outputs.ui_audit == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
       - name: Install
-        if: needs.classify.outputs.browser_smoke == 'true' || needs.classify.outputs.ui_audit == 'true'
         run: npm ci
       - name: Install Chromium
-        if: needs.classify.outputs.browser_smoke == 'true' && needs.classify.outputs.ui_audit != 'true'
         run: npx playwright install --with-deps chromium
-      - name: Install Chromium and WebKit
-        if: needs.classify.outputs.ui_audit == 'true'
-        run: npx playwright install --with-deps chromium webkit
       - name: Expense and Auth CAPTCHA browser smoke
-        if: needs.classify.outputs.browser_smoke == 'true'
         run: npm run test:e2e
-      - name: Production cross-device UI audit
-        if: needs.classify.outputs.ui_audit == 'true'
-        run: npm run test:ui-audit:pr
-      - name: Upload Playwright evidence
-        if: always() && (needs.classify.outputs.browser_smoke == 'true' || needs.classify.outputs.ui_audit == 'true')
+      - name: Upload browser-smoke evidence
+        if: always()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: playwright-evidence-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            output/playwright/
-            output/playwright-audit/
+          name: browser-smoke-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/playwright/
           if-no-files-found: ignore
           retention-days: 3
+
+  ui_audit:
+    name: Cross-device UI audit
+    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.ui_audit == 'true'
+    needs: [classify, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED: "true"
+      NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Production cross-device UI audit
+        run: npm run test:ui-audit:pr
+      - name: Upload UI-audit evidence
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: ui-audit-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/playwright-audit/
+          if-no-files-found: ignore
+          retention-days: 3
+
+  e2e:
+    if: always() && (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false)
+    needs: [classify, verify, browser_smoke, ui_audit]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify required browser shard results
+        shell: bash
+        env:
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          BROWSER_REQUIRED: ${{ needs.classify.outputs.browser_smoke }}
+          BROWSER_RESULT: ${{ needs.browser_smoke.result }}
+          UI_AUDIT_REQUIRED: ${{ needs.classify.outputs.ui_audit }}
+          UI_AUDIT_RESULT: ${{ needs.ui_audit.result }}
+        run: |
+          set -euo pipefail
+
+          require_selected_success() {
+            local label="$1"
+            local required="$2"
+            local result="$3"
+
+            if [[ "$required" == "true" && "$result" != "success" ]]; then
+              echo "::error::$label was selected but finished with result '$result'"
+              return 1
+            fi
+
+            if [[ "$required" != "true" ]]; then
+              echo "$label was not selected; result '$result' is accepted."
+            fi
+          }
+
+          if [[ "$VERIFY_RESULT" != "success" ]]; then
+            echo "::error::verify finished with result '$VERIFY_RESULT'"
+            exit 1
+          fi
+
+          require_selected_success "browser_smoke" "$BROWSER_REQUIRED" "$BROWSER_RESULT"
+          require_selected_success "ui_audit" "$UI_AUDIT_REQUIRED" "$UI_AUDIT_RESULT"
