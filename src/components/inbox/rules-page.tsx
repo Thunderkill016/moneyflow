@@ -171,6 +171,7 @@ export function RulesPage({
       contains,
       categoryId: category.id,
       category: category.name,
+      categoryKind: category.kind,
       merchant: form.merchant.trim() || undefined,
     });
     setSaving(false);
@@ -196,6 +197,7 @@ export function RulesPage({
       contains: rule.contains,
       categoryId: rule.categoryId,
       category: rule.category,
+      categoryKind: rule.categoryKind ?? "expense",
       merchant: rule.merchant,
     });
     setSaving(false);
