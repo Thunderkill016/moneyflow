@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { isValidDateOnly } from "@/lib/date-only";
 import type { AccountReconciliationStateData } from "@/lib/reconciliation";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
@@ -20,7 +21,7 @@ const safeMoneySchema = z
 const accountIdSchema = z.string().uuid();
 const startSchema = z.object({
   accountId: accountIdSchema,
-  statementDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  statementDate: z.string().refine(isValidDateOnly),
   statementBalance: safeMoneySchema,
 });
 const entryStateSchema = z.object({
