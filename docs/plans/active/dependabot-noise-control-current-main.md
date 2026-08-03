@@ -17,9 +17,9 @@
 - Current main still checks npm and GitHub Actions weekly, permits up to five npm plus three Actions version-update PRs, and requests custom `dependencies` and `security` labels.
 - This replacement changes no dependency version, lockfile, workflow, runtime, database, provider setting or production data.
 
-### Current GitHub behavior checked on 2026-08-03
+## Research
 
-Official GitHub documentation confirms:
+Official GitHub documentation checked on 2026-08-03 confirms:
 
 - `schedule.interval: monthly` is supported;
 - `open-pull-requests-limit` caps open version-update PRs;
@@ -81,8 +81,8 @@ Revert the configuration commit to restore weekly ungrouped version checks. No a
 | T1 | Compare PR #197 base with current main | done | Dependabot config unchanged |
 | T2 | Verify current GitHub Dependabot option support | done | official GitHub documentation |
 | T3 | Apply grouped monthly configuration on a current-main branch | done | `.github/dependabot.yml` |
-| T4 | Open PR #245, add PR memory and close #197 unmerged | in progress | replacement delivery |
-| T5 | Run exact-head CI, CodeQL and secret scan | pending | final head required |
+| T4 | Open PR #245, add PR memory and close #197 unmerged | done | PR #245 open; PR #197 closed unmerged |
+| T5 | Run exact-head CI, CodeQL and secret scan | in progress | current head required |
 | T6 | Owner merge decision | blocked | explicit owner instruction required |
 
 ## Evaluation
