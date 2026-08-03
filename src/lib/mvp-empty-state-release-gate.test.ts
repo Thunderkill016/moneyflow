@@ -6,7 +6,7 @@ import test from "node:test";
 const root = join(import.meta.dirname, "../..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 
-const CORE_COMPONENTS = [
+const CORE_ROUTE_COMPONENTS = [
   "src/components/moneyflow-dashboard.tsx",
   "src/components/transactions-page.tsx",
   "src/components/accounts-page.tsx",
@@ -16,6 +16,16 @@ const CORE_COMPONENTS = [
   "src/components/planning/goals-page.tsx",
   "src/components/reports-page.tsx",
   "src/components/export-settings-page.tsx",
+] as const;
+
+const SHARED_EMPTY_STATE_OWNERS = [
+  "src/components/dashboard/dashboard-overview-sections.tsx",
+  "src/components/transactions-page.tsx",
+  "src/components/accounts-page.tsx",
+  "src/components/categories-page.tsx",
+  "src/components/planning/budgets-page.tsx",
+  "src/components/planning/commitments-page.tsx",
+  "src/components/planning/goals-page.tsx",
 ] as const;
 
 const CORE_ROUTES = [
@@ -31,7 +41,10 @@ const CORE_ROUTES = [
 ] as const;
 
 test("locked MVP core route files and browser gate remain present", () => {
-  for (const path of CORE_COMPONENTS) {
+  for (const path of CORE_ROUTE_COMPONENTS) {
+    assert.ok(existsSync(join(root, path)), `${path} must exist`);
+  }
+  for (const path of SHARED_EMPTY_STATE_OWNERS) {
     assert.ok(existsSync(join(root, path)), `${path} must exist`);
   }
 
@@ -63,14 +76,10 @@ test("shared EmptyState can render only one primary control", () => {
 });
 
 test("core action-bearing empty states do not reintroduce duplicate direct action regions", () => {
-  const sharedEmptyStateUsers = CORE_COMPONENTS.filter(
-    (path) => path !== "src/components/reports-page.tsx",
-  );
-
-  for (const path of sharedEmptyStateUsers) {
+  for (const path of SHARED_EMPTY_STATE_OWNERS) {
     const source = read(path);
     assert.ok(
-      source.includes("EmptyState") || path === "src/components/export-settings-page.tsx",
+      source.includes("EmptyState"),
       `${path} should use the shared EmptyState contract when it owns an action-bearing empty state`,
     );
     assert.ok(
@@ -78,6 +87,23 @@ test("core action-bearing empty states do not reintroduce duplicate direct actio
       `${path} must not bypass the shared action-region contract`,
     );
   }
+
+  const dashboardRoute = read("src/components/moneyflow-dashboard.tsx");
+  assert.match(
+    dashboardRoute,
+    /DashboardHeaderSections/,
+    "Dashboard must keep delegating its action-bearing ledger empty state to the audited section owner",
+  );
+  assert.ok(
+    !dashboardRoute.includes('className="empty-state-actions"'),
+    "Dashboard route component must not add a second direct empty-state action region",
+  );
+
+  const exportSettings = read("src/components/export-settings-page.tsx");
+  assert.ok(
+    !exportSettings.includes('className="empty-state-actions"'),
+    "Export settings must not add an unaudited direct empty-state action region",
+  );
 
   const reports = read("src/components/reports-page.tsx");
   const start = reports.indexOf('className="report-empty"');
