@@ -1,11 +1,11 @@
 # Cover public foreign keys with indexes on current main
 
-**Status:** implementing  
-**Execution state:** current-main replacement  
-**Active role:** implementer  
+**Status:** evaluating  
+**Execution state:** current-main replacement PR open  
+**Active role:** evaluator  
 **Permission scope:** branch_write  
 **Owner:** OpenAI agent  
-**Issue/PR:** #53 / replacement for #211  
+**Issue/PR:** #53 / #236  
 **Last updated:** 2026-08-03
 
 ## Outcome
@@ -114,6 +114,7 @@ Drop only the 13 named indexes introduced by `20260802060004_cover_foreign_key_i
 ## Delivery state
 
 - Branch: `perf/cover-foreign-key-indexes-current-main`
-- Replacement PR: pending number
-- Old PR #211: remains open until the replacement exists, then closes unmerged as superseded
+- Replacement PR: #236
+- Old PR #211: close unmerged as superseded by #236
+- Exact-head verification: pending
 - Production migration/advisor verification: not performed
