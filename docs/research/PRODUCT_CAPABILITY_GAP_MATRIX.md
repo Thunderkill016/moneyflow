@@ -1,9 +1,9 @@
 # MoneyFlow — competitive capability gap matrix
 
 - **Status:** active capability roadmap
-- **Audit date:** 2026-08-02
+- **Audit date:** 2026-08-03
 - **Owner direction:** mature existing MoneyFlow capabilities to competitive depth; validation belongs inside each workstream and does not freeze development
-- **Code baseline:** `main@f57b92ec471e816f96fa13dd464a7a98297bb2d4`
+- **Code baseline:** `main@45b6f22de80aa7c1fd67f2f402f4ffd6bd147cc8`
 - **Implementation authority:** `docs/research/CURRENT_PROJECT_MEMORY.md`
 - **Competitive evidence:** `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`
 
@@ -30,8 +30,8 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 - structural income, expense, split expense and balanced transfers;
 - transfer neutrality in reports;
 - RLS, tenant isolation, narrow financial RPCs and idempotency;
-- transaction create/edit/soft-delete/restore and existing search/filtering;
-- account create/edit/archive/restore and per-currency totals;
+- transaction create/edit/soft-delete/restore, text/kind/account/category/date/amount filtering, canonical URL state and filtered totals;
+- account create/edit/archive/restore, per-currency totals and viewer-scoped register/detail;
 - dashboard one-RPC healthy path plus schema-skew fallback;
 - import parsing, provenance, dry-run, duplicate planning and atomic approval;
 - week/month/year reports with previous-period comparison and trends;
@@ -39,11 +39,11 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 - current-month recurring occurrences linked to transactions;
 - goals with target, allocated amount, deadline and planned-daily pace;
 - responsive, long-Vietnamese and rich-VND automated evidence;
-- risk-proportional CI, CodeQL, secret scanning and pgTAP.
+- risk-proportional CI, real CodeQL analysis, secret scanning and pgTAP.
 
 ### Present but incomplete
 
-- account-level history and understanding;
+- account-level trends/export and reconciliation workflow;
 - ledger-wide review and batch correction;
 - budget history and drill-down;
 - recurring occurrence history/lifecycle/matching;
@@ -67,6 +67,8 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 
 | Capability | Audited status |
 |---|---|
+| Accounts | **Implemented, partial; register/detail merged** |
+| Transactions | **Implemented, partial; date/amount filters merged** |
 | Reports | **Implemented, moderate depth** |
 | Recurring commitments | **Implemented, partial occurrence model** |
 | Recurring income | **Implemented, partial occurrence model** |
@@ -78,8 +80,8 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 
 | Capability | Merged behavior now | Real remaining gap | Reference patterns | Priority |
 |---|---|---|---|---:|
-| Accounts | account kinds, initial/derived balance, create/edit/archive/restore, per-currency totals, same-currency transfers | account register/detail, reconciliation history, account-level trends/export, explicit hidden/report semantics | YNAB, Actual, Wallet | P0/P1 |
-| Transactions | income/expense/transfer/split, text + kind/account/category filters, edit, soft delete/undo, grouped list and filtered totals | date/amount filters, review state, multi-select, bounded bulk correction, split-line editing, audit history | Copilot, Monarch, Actual | P1 |
+| Accounts | account kinds, initial/derived balance, create/edit/archive/restore, per-currency totals, same-currency transfers, viewer-scoped register/detail with signed impacts | reconciliation, account-level trends/export, richer register controls and explicit hidden/report semantics | YNAB, Actual, Wallet | P0/P1 |
+| Transactions | income/expense/transfer/split, text + kind/account/category/date/amount filters, canonical URL state, edit, soft delete/undo, grouped list, truthful filtered totals and pagination | review state, multi-select, bounded bulk correction, split-line editing and non-sensitive mutation audit | Copilot, Monarch, Actual | P1 |
 | Reconciliation | absent | statement date/balance, pending/cleared/reconciled, exact difference, adjustment transaction, lock/reopen, history, RLS | YNAB, Actual | P0 |
 | Budgets | current-month category limit and calculated spent, CRUD | period history, previous-period view, copy month, rollover policy, transaction drill-down | YNAB, Monarch, Wallet | P1 |
 | Recurring commitments | template, due date, current-month occurrence, payment transaction link, pay/undo and reserved total | surfaced history, upcoming/due/overdue/skipped/cancelled states, edit-one/future, calendar/reminders, matching recorded transaction | Copilot, Rocket Money, Money Lover | P1 |
@@ -92,7 +94,7 @@ It does not mean bank sync, AI advice, OCR, household finance, investments, full
 | Dashboard | one bundled authenticated RPC, fallback, balances/activity/planning/Inbox count | direct drill-down, evidence-based attention states, measured large-ledger acceptance | Copilot, Monarch, Rocket Money | P2 |
 | Auth/security | app auth/recovery, neutral responses, CAPTCHA token plumbing, CSP/headers, hardened public ingestion, scanning | hosted provider settings, CAPTCHA enforcement, rate limits, breached-password control and edge rules | issue #174 | P0 for public beta |
 | Mobile/accessibility | responsive dark/light, broad matrix, 44px targets, modal and money-value fixes, rich-VND/long-label coverage | physical devices and remaining validation/destructive/Inbox/planning states | issue #72 | P1 |
-| Performance/audit | dashboard bundle/fallback, bounded window, k6 profiles, pgTAP | staging load acceptance, large-ledger benchmarks, FK-index candidate, mutation audit | PostgreSQL/Supabase evidence | P2 |
+| Performance/audit | dashboard bundle/fallback, bounded window, k6 profiles, pgTAP | staging load acceptance, large-ledger benchmarks, FK-index candidate and mutation audit | PostgreSQL/Supabase evidence | P2 |
 
 ## 4. Module gap details
 
@@ -104,15 +106,16 @@ Already implemented:
 - initial and ledger-derived balances;
 - add, edit, archive and restore;
 - per-currency totals without unsafe FX aggregation;
-- same-currency transfers.
+- same-currency transfers;
+- viewer-scoped account register/detail with signed ledger impacts and separate transfer movement totals.
 
 Build next:
 
 1. reconciliation specification and invariant tests;
 2. reconciliation session/domain implementation;
 3. mobile account reconciliation workflow;
-4. account register/detail and reconciliation history;
-5. account-level export/trends.
+4. reconciliation history;
+5. account-level export/trends and richer register controls.
 
 Do not implement direct balance overwrite. Differences are resolved through explicit financial adjustment transactions.
 
@@ -121,21 +124,22 @@ Do not implement direct balance overwrite. Differences are resolved through expl
 Already implemented:
 
 - search;
-- kind, account and category filters;
-- single-record edit;
+- kind, account, category, date and amount range filters;
+- canonical shareable URL state for supported filters;
+- single-record edit with filter-preserving correction context;
 - soft delete and undo/restore;
 - split expense creation;
-- grouped/paginated register and filtered totals.
+- grouped/paginated register and totals derived from the complete matching set.
 
 Build next:
 
-- date and amount range filters;
 - ledger review state distinct from Inbox candidate status;
-- list-context correction;
 - multi-select and safe bulk category/review changes;
 - eligible type changes with preview/guards;
 - split-line correction workflow;
 - non-sensitive mutation audit.
+
+Date/amount filtering does not imply cleared, reviewed or reconciled financial state.
 
 ### 4.3 Budgets
 
@@ -204,7 +208,7 @@ Build next:
 - shared filter state and context-preserving back navigation;
 - recurring/goal context where facts support it.
 
-Do not list previous-period comparison or trends as missing again.
+Transaction-ledger range filters are implemented but are not yet a shared report filter system.
 
 ### 4.7 Import, Inbox, rules and export
 
@@ -252,8 +256,8 @@ Build next:
 
 | Issue | Completed evidence | Remaining |
 |---|---|---|
-| #53 domain benchmark | import provenance/dry-run/atomic approval complete; many DB invariants and performance foundations complete | reconciliation, authenticated rules, mutation audit and final performance/index acceptance |
-| #72 UI audit | 20 routes/dialogs, rich VND/long Vietnamese, phone rows, report clipping, 44px/modal/accessibility batches | validation/destructive/Inbox/planning states and physical devices |
+| #53 domain benchmark | import provenance/dry-run/atomic approval complete; many DB invariants and performance foundations complete; account register and transaction range filters merged | reconciliation, authenticated rules, mutation audit and final performance/index acceptance |
+| #72 UI audit | 20 routes/dialogs, rich VND/long Vietnamese, phone rows, report clipping, 44px/modal/accessibility batches; transaction range controls covered by browser/UI audit | validation/destructive/Inbox/planning states and physical devices |
 | #172 product assessment | useful market-validation warnings | old scoring and feature-freeze direction are historical/superseded |
 | #174 provider controls | source/app readiness and read-only baseline complete | hosted provider writes and production verification |
 
@@ -264,7 +268,7 @@ Tracks may run in parallel when their domain boundaries do not conflict.
 ### Wave 1 — highest leverage
 
 - reconciliation specification and invariant tests;
-- transaction date/amount filters plus review-state contract;
+- transaction review-state contract;
 - budget period history and transaction drill-down;
 - arbitrary report range and transaction drill-down contract;
 - remaining onboarding/mobile error-state completion;
@@ -277,8 +281,8 @@ Tracks may run in parallel when their domain boundaries do not conflict.
 - recurring occurrence history/lifecycle;
 - recurring transaction matching;
 - goal contribution history/lifecycle;
-- account register/detail;
-- report shared filter state.
+- report shared filter state;
+- richer account register controls and account trends/export.
 
 ### Wave 3 — efficiency and ownership
 
@@ -312,6 +316,8 @@ Each implementation PR carries its own proof:
 
 Do not repeat these as current gaps:
 
+- transaction date/amount filters are missing or candidate-only;
+- account register/detail is missing;
 - reports have no previous-period comparison or trends;
 - recurring items have no occurrence-to-transaction linkage;
 - goals have no deadline or pace calculation;

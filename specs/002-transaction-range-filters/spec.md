@@ -1,17 +1,18 @@
 # Feature Specification: Transaction date and amount filters
 
 - **Feature directory:** `specs/002-transaction-range-filters/`
-- **Status:** accepted for implementation
+- **Status:** implemented
 - **Owner:** Thunderkill016
 - **Created:** 2026-08-03
 - **Last updated:** 2026-08-03
-- **Source candidate:** PR #223, re-evaluated against `main@b185bce263589a79f8c7d4d9ff28ad4d73a9726b`
+- **Delivery:** PR #234, merged as `45b6f22de80aa7c1fd67f2f402f4ffd6bd147cc8`
+- **Source lineage:** PR #223 was re-evaluated, PR #232 verified the slice, and PR #234 recreated the exact feature blobs on current-main ancestry
 
 ## Problem and outcome
 
-The transaction ledger already supports text, kind, account and category filters, but users cannot bound results by transaction date or amount. They must manually scan long ledgers, and the active filter context is not fully shareable through the URL.
+The transaction ledger already supported text, kind, account and category filters, but users could not bound results by transaction date or amount. They had to manually scan long ledgers, and the active filter context was not fully shareable through the URL.
 
-The outcome is an inclusive date-and-amount filter layer that composes with existing filters, keeps filtered totals and pagination truthful, preserves filter context after correction, and exposes canonical URL parameters.
+The implemented outcome is an inclusive date-and-amount filter layer that composes with existing filters, keeps filtered totals and pagination truthful, preserves filter context after correction, and exposes canonical URL parameters.
 
 ## User stories
 
@@ -105,12 +106,13 @@ Acceptance scenarios:
 
 | Date | Question | Decision | Decided by | Impact |
 |---|---|---|---|---|
-| 2026-08-03 | Reuse PR #223 or merge it unchanged? | Rebuild from current `main`; retain only feature/runtime evidence and replace stale governance content. | Owner continuation + repository audit | New current-main PR supersedes #223. |
+| 2026-08-03 | Reuse PR #223 or merge it unchanged? | Rebuild from current `main`; retain only feature/runtime evidence and replace stale governance content. | Owner continuation + repository audit | Current-main replacements superseded PR #223. |
+| 2026-08-03 | Why was PR #234 needed after PR #232 passed? | Repository protection required the published feature branch itself to contain current-main ancestry. | Repository ruleset | PR #234 reused exact verified blobs and merged. |
 | 2026-08-03 | Does this implement reconciliation or review state? | No. | Existing project direction | Explicitly out of scope. |
 
 ## Unresolved questions
 
-None block implementation or verification.
+None remain for this delivered slice.
 
 ## Traceability
 
@@ -120,3 +122,4 @@ None block implementation or verification.
 | US2 / FR-005–FR-008 | `/transactions` route parsing and Playwright correction flow |
 | US3 | scoped CSS, mobile browser project and UI audit |
 | Financial/data boundary | existing transaction totals plus exact diff review |
+| Final delivery | PR #234 exact head `397d05c751bb5998ccb02f46719f75e31c957e64`; CI #1145, CodeQL #298 and Secret history scan #298 |

@@ -3,7 +3,8 @@
 - **Spec:** `specs/002-transaction-range-filters/spec.md`
 - **Plan:** `specs/002-transaction-range-filters/plan.md`
 - **Work packet:** not required
-- **Current phase:** final exact-head verification for PR #234
+- **Current phase:** completed and merged
+- **Merged baseline:** `main@45b6f22de80aa7c1fd67f2f402f4ffd6bd147cc8`
 - **Last updated:** 2026-08-03
 
 ## Reconnaissance and specification
@@ -42,7 +43,7 @@
 - [x] T021 Add accessible date/amount controls, validation and clear behavior.
   - Depends on: T020
   - Permission: branch_write
-  - Evidence: named inputs, textual error, canonical URL state
+  - Evidence: named inputs, textual error and canonical URL state
 - [x] T022 Preserve filters after edit and explain when a corrected row leaves the result set.
   - Depends on: T020
   - Permission: branch_write
@@ -61,8 +62,7 @@
 - [x] T031 Stabilize existing SAFE-09 audit fixture without weakening geometry assertions.
   - Depends on: first exact-head browser run
   - Permission: branch_write
-  - Evidence: direct contract-valid demo transaction seed, connected-node polling, unchanged static/44px/no-overlap thresholds
-  - Finding: initial run passed all feature browser flows but exposed a 320px pre-hydration locator/quick-capture fixture flake; 360px and 390px SAFE-09 cases passed
+  - Evidence: direct contract-valid demo transaction seed, connected-node polling and unchanged static/44px/no-overlap thresholds
 
 ## Delivery
 
@@ -73,8 +73,11 @@
 - [x] T093 Evaluate acceptance criteria and responsive/browser artifacts.
   - Evidence: 24/24 Playwright smoke; cross-device audit 384 passed/125 skipped; SAFE-09 passed at 320/360/390px; artifact `8837389357`, digest `sha256:26aa3d06b4f835b3617f8508da790d80c5b38cc1609f5c84f0441004ad8b69ec`
 - [x] T094 Reverify PR #232 against `main@3e138c667ed8885108b3fbd388ca2900a1375ced`.
-  - Evidence: CI #1142, CodeQL #296 and Secret history scan #296 succeeded; browser smoke and cross-device audit passed; merge remained blocked only because the published branch ancestry predated current `main`
+  - Evidence: CI #1142, CodeQL #296 and Secret history scan #296 succeeded; merge remained blocked only because the published branch ancestry predated current `main`
 - [x] T095 Recreate the exact verified feature blobs on `feat/transaction-range-filters-current-main-v2`, which starts directly from latest `main`.
-- [ ] T096 Pass full exact-head CI, CodeQL and secret scan on PR #234.
-- [ ] T097 Squash merge PR #234 with expected-head protection under the owner's explicit merge authorization.
-- [ ] T098 Record post-merge capability/deployment truth without overstating repository checks as production evidence.
+- [x] T096 Pass full exact-head CI, CodeQL and secret scan on PR #234.
+  - Evidence: head `397d05c751bb5998ccb02f46719f75e31c957e64`; CI #1145, CodeQL #298 and Secret history scan #298; browser smoke, cross-device audit and Playwright evidence upload succeeded
+- [x] T097 Squash merge PR #234 with expected-head protection under the owner's explicit merge authorization.
+  - Evidence: merge commit `45b6f22de80aa7c1fd67f2f402f4ffd6bd147cc8`
+- [x] T098 Record post-merge capability truth without overstating repository checks as production evidence.
+  - Evidence: PR #234 memory, completed Spec Kit artifacts and post-merge lifecycle PR
