@@ -151,6 +151,7 @@ test.describe("Transaction review and bounded bulk correction", () => {
     await expect(page.getByText("Lương tháng 8", { exact: true })).toBeVisible();
     await expect(page.getByText("Cà phê cần sửa", { exact: true })).toBeHidden();
     await expect(page.getByLabel("Lọc theo trạng thái kiểm tra")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Xóa bộ lọc" })).toBeHidden();
     await expect(page.getByRole("button", { name: "Chọn đang hiện" })).toBeHidden();
     await expect(page.getByLabel("Chọn giao dịch Lương tháng 8")).toBeHidden();
   });
