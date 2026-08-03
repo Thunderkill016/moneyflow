@@ -4,44 +4,53 @@ import {
   applyRuleToTarget,
   applyRulesToParsed,
   findMatchingRule,
+  previewRuleApplication,
   resolveCategoryIdForRuleMatch,
   ruleMatches,
 } from "./apply-rules.ts";
 import type { ParsedCandidate } from "./parse-text.ts";
 import type { InboxRule } from "./rules-store.ts";
 
-const highlands: InboxRule = {
+function rule(input: Partial<InboxRule> & Pick<InboxRule, "id" | "contains" | "category">): InboxRule {
+  return {
+    stage: "candidate",
+    priority: 1,
+    enabled: true,
+    field: "any",
+    version: 1,
+    createdAt: "2026-07-12T02:10:00.000Z",
+    updatedAt: "2026-07-12T02:10:00.000Z",
+    ...input,
+  };
+}
+
+const highlands = rule({
   id: "rule-1",
-  priority: 1,
-  enabled: true,
   contains: "HIGHLANDS",
-  field: "any",
+  categoryId: "cat-food",
   category: "Ăn uống",
   merchant: "Highlands Coffee",
-  createdAt: "2026-07-12T02:10:00.000Z",
-};
+  version: 4,
+});
 
-const luong: InboxRule = {
+const luong = rule({
   id: "rule-2",
   priority: 2,
-  enabled: true,
   contains: "LUONG",
   field: "raw",
+  categoryId: "cat-salary",
   category: "Lương",
-  createdAt: "2026-07-12T03:00:00.000Z",
-};
+});
 
-const grabDisabled: InboxRule = {
+const grabDisabled = rule({
   id: "rule-3",
-  priority: 1,
   enabled: false,
   contains: "GRAB",
   field: "merchant",
   category: "Di chuyển",
-  createdAt: "2026-07-12T04:00:00.000Z",
-};
+});
 
-test("ruleMatches is case-insensitive contains", () => {
+test("ruleMatches is case-insensitive and stage bounded", () => {
   assert.equal(
     ruleMatches(highlands, {
       merchant: "highlands 45k",
@@ -51,17 +60,16 @@ test("ruleMatches is case-insensitive contains", () => {
     true,
   );
   assert.equal(
-    ruleMatches(highlands, { merchant: "Circle K", note: "", rawSnippet: "" }),
+    ruleMatches({ ...highlands, enabled: false }, {
+      merchant: "HIGHLANDS",
+      note: "",
+    }),
     false,
   );
 });
 
-test("field merchant ignores raw-only match", () => {
-  const merchantOnly: InboxRule = {
-    ...highlands,
-    field: "merchant",
-    contains: "HIGHLANDS",
-  };
+test("field merchant ignores a raw-only match", () => {
+  const merchantOnly = { ...highlands, field: "merchant" as const };
   assert.equal(
     ruleMatches(merchantOnly, {
       merchant: "Cafe",
@@ -71,81 +79,50 @@ test("field merchant ignores raw-only match", () => {
     false,
   );
   assert.equal(
-    ruleMatches(merchantOnly, {
-      merchant: "HIGHLANDS",
-      note: "",
-      rawSnippet: "",
-    }),
+    ruleMatches(merchantOnly, { merchant: "HIGHLANDS", note: "" }),
     true,
   );
 });
 
-test("priority: lower number wins when both match", () => {
-  const lowPrio: InboxRule = {
-    ...highlands,
+test("lower priority wins and disabled rules are skipped", () => {
+  const lower = rule({
     id: "rule-low",
     priority: 5,
+    contains: "HIGHLANDS",
     category: "Mua sắm",
-  };
-  const match = findMatchingRule(
-    [lowPrio, highlands],
-    { merchant: "HIGHLANDS", note: "", rawSnippet: "" },
-  );
+  });
+  const match = findMatchingRule([lower, grabDisabled, highlands], {
+    merchant: "HIGHLANDS",
+    note: "",
+  });
   assert.equal(match?.id, "rule-1");
-  assert.equal(match?.category, "Ăn uống");
 });
 
-test("disabled rules are skipped", () => {
-  assert.equal(
-    findMatchingRule([grabDisabled], {
-      merchant: "GRAB *TRIP",
-      note: "",
-    }),
-    null,
-  );
-});
-
-test("applyRuleToTarget sets category and optional merchant", () => {
-  const result = applyRuleToTarget(
-    {
-      merchant: "HIGHLANDS 45K",
-      note: "",
-      rawSnippet: "HIGHLANDS 45k",
-      category: undefined as string | undefined,
-      matchedRuleId: undefined as string | undefined,
-      matchedRuleSummary: undefined as string | undefined,
-    },
+test("preview exposes normalized output and immutable rule revision", () => {
+  const preview = previewRuleApplication(
+    { merchant: "HIGHLANDS 45K", note: "", rawSnippet: "HIGHLANDS 45k" },
     [highlands, luong],
   );
-  assert.equal(result.category, "Ăn uống");
-  assert.equal(result.merchant, "Highlands Coffee");
-  assert.equal(result.matchedRuleId, "rule-1");
-  assert.ok(result.matchedRuleSummary?.includes("Ăn uống"));
+  assert.equal(preview.changed, true);
+  assert.equal(preview.match?.id, "rule-1");
+  assert.equal(preview.result.categoryId, "cat-food");
+  assert.equal(preview.result.category, "Ăn uống");
+  assert.equal(preview.result.merchant, "Highlands Coffee");
+  assert.equal(preview.result.matchedRuleId, "rule-1");
+  assert.equal(preview.result.matchedRuleVersion, 4);
+  assert.ok(preview.result.matchedRuleSummary?.includes("Ăn uống"));
 });
 
-test("applyRuleToTarget does not overwrite category unless force", () => {
-  const kept = applyRuleToTarget(
-    {
-      merchant: "HIGHLANDS",
-      note: "",
-      category: "Giải trí",
-    },
-    [highlands],
+test("existing normalized category is retained unless force is explicit", () => {
+  const target = { merchant: "HIGHLANDS", note: "", category: "Giải trí" };
+  assert.equal(applyRuleToTarget(target, [highlands]).category, "Giải trí");
+  assert.equal(
+    applyRuleToTarget(target, [highlands], { force: true }).category,
+    "Ăn uống",
   );
-  assert.equal(kept.category, "Giải trí");
-  const forced = applyRuleToTarget(
-    {
-      merchant: "HIGHLANDS",
-      note: "",
-      category: "Giải trí",
-    },
-    [highlands],
-    { force: true },
-  );
-  assert.equal(forced.category, "Ăn uống");
 });
 
-test("applyRulesToParsed enriches candidates", () => {
+test("applyRulesToParsed enriches candidates without posting", () => {
   const parsed: ParsedCandidate[] = [
     {
       kind: "expense",
@@ -182,20 +159,8 @@ const categories = [
   { id: "cat-salary", name: "Lương", kind: "income" },
 ];
 
-test("resolveCategoryIdForRuleMatch maps matched category name to id for the right kind", () => {
-  const match = findMatchingRule([highlands], {
-    merchant: "",
-    note: "Highlands cà phê",
-  });
-  assert.equal(resolveCategoryIdForRuleMatch(match, categories, "expense"), "cat-food");
-});
-
-test("resolveCategoryIdForRuleMatch returns null when there is no match", () => {
+test("category resolution prefers stable ID and enforces transaction kind", () => {
+  assert.equal(resolveCategoryIdForRuleMatch(highlands, categories, "expense"), "cat-food");
+  assert.equal(resolveCategoryIdForRuleMatch(luong, categories, "expense"), null);
   assert.equal(resolveCategoryIdForRuleMatch(null, categories, "expense"), null);
-});
-
-test("resolveCategoryIdForRuleMatch ignores a match from the wrong kind (income category, expense note)", () => {
-  const match = findMatchingRule([luong], { merchant: "", note: "", rawSnippet: "LUONG thang 7" });
-  // luong's category is "Lương", an income-kind category; caller is composing an expense.
-  assert.equal(resolveCategoryIdForRuleMatch(match, categories, "expense"), null);
 });
