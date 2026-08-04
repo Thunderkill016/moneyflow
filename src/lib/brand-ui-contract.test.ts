@@ -155,9 +155,9 @@ test("installed and social assets use the fresh-blue identity", () => {
   assert.doesNotMatch(openGraph, /#0B6B3A/iu);
 });
 
-test("landing first viewport has a primary action and workflow proof", () => {
-  assert.match(landing, /Biết tiền đang ở đâu\./u);
-  assert.match(landing, /Biết vì sao nó thay đổi\./u);
+test("landing first viewport has a primary action and guided workflow entry", () => {
+  assert.match(landing, /Từ lúc ghi đến lúc hiểu tiền của mình\./u);
+  assert.match(landing, /ba câu hỏi rõ ràng/u);
   assert.match(landing, /Tạo sổ của bạn/u);
   assert.doesNotMatch(landing, /Bắt đầu miễn phí/u);
   assert.match(landing, /href="\/register" className=\{styles\.primaryCta\}/u);
@@ -165,8 +165,20 @@ test("landing first viewport has a primary action and workflow proof", () => {
     landing,
     /href="#cach-hoat-dong" className=\{styles\.secondaryCta\}/u,
   );
-  assert.match(landing, /aria-label="Chuỗi giao diện thật của MoneyFlow"/u);
+  assert.match(landing, /styles\.storySection/u);
+  assert.match(landing, /styles\.storyBand/u);
+  assert.doesNotMatch(landing, /styles\.proofStage/u);
   assert.doesNotMatch(landing, /import \{ Button \}/u);
+});
+
+test("auth proof rail copy is specific to each auth mode", () => {
+  assert.match(auth, /Quay lại đúng dữ liệu bạn đã ghi\./u);
+  assert.match(auth, /Tạo một sổ mà mỗi con số có chỗ kiểm tra\./u);
+  assert.match(auth, /Lấy lại đường vào sổ mà không thay đổi dữ liệu\./u);
+  assert.match(auth, /Tạo mật khẩu mới để tiếp tục với sổ của bạn\./u);
+  assert.match(auth, /\{content\.proofEyebrow\}/u);
+  assert.match(auth, /\{content\.proofTitle\}/u);
+  assert.doesNotMatch(auth, /Đăng nhập để tiếp tục từ dữ liệu của chính bạn\./u);
 });
 
 test("signed-in compatibility bridge is narrow and uses canonical icon asset", () => {
