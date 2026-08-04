@@ -10,16 +10,30 @@ Baseline: current `main` after PR #289
 
 This is a Class 3 financial read/write correctness slice because the selected month controls both displayed progress and the month targeted by budget mutations.
 
-## Current authority
+## Repository reconnaissance
 
-- `src/server/budgets.ts` owns tenant-aware budget/category reads but hardcodes `currentMonthStart()`.
-- `src/app/budgets/page.tsx` has no query contract and passes one `monthStart` into the client page.
-- `src/components/planning/budgets-page.tsx` renders one month and builds category-only transaction links.
-- `src/app/actions/budgets.ts` already accepts `monthStart` and delegates writes to `upsert_monthly_budget` / `delete_monthly_budget`.
-- existing `budget_progress` rows carry `month_start`; prefer this schema and existing RPC authority.
-- existing transaction filters are the drill-down boundary; do not add a second client-side ledger filter.
+- `src/server/budgets.ts` owned tenant-aware budget/category reads but hardcoded `currentMonthStart()`.
+- `src/app/budgets/page.tsx` had no query contract and passed one `monthStart` into the client page.
+- `src/components/planning/budgets-page.tsx` rendered one month and built category-only transaction links.
+- `src/app/actions/budgets.ts` already accepted `monthStart` and delegated writes to `upsert_monthly_budget` / `delete_monthly_budget`.
+- existing `budget_progress` rows carry `month_start`; the current schema and RPC authority are sufficient.
+- existing transaction filters are the drill-down boundary; a second client-side ledger filter is unnecessary and prohibited.
 
-## Product rules
+The current read path already had explicit `.eq("user_id", viewer.id)` predicates alongside RLS. The history implementation preserves that tenant boundary and extends only the bounded month set from one month to selected plus immediately previous month.
+
+## Research
+
+No external research was required. The repository already defined all relevant authorities:
+
+- Asia/Ho_Chi_Minh calendar semantics in the existing current-month helper;
+- integer-VND and transfer-neutral budget calculations in `src/lib/planning/budgets.ts`;
+- ownership-safe budget mutation RPCs in `src/app/actions/budgets.ts`;
+- URL-owned transaction filters in `src/lib/transaction-filters.ts`;
+- route-local budget amount layout and shared planning token ownership.
+
+The design therefore follows existing product contracts rather than adding rollover, forecasting, a new dependency or another financial calculation path.
+
+## Specification
 
 1. URL authority is `/budgets?month=YYYY-MM`.
 2. Calendar semantics use `Asia/Ho_Chi_Minh`.
@@ -30,9 +44,11 @@ This is a Class 3 financial read/write correctness slice because the selected mo
 7. VND remains integer đồng.
 8. Writes apply only to the effective selected month.
 9. Next-month navigation is disabled beyond the current month.
-10. Drill-down must carry selected month start/end, category and `kind=expense`.
+10. Drill-down carries selected month start/end, category and `kind=expense`.
+11. Authenticated history reads remain tenant and month bounded.
+12. Demo mode provides deterministic current/previous data and an honest older-month empty state.
 
-## Scope
+## Implementation plan
 
 ### Domain
 
@@ -48,26 +64,30 @@ All helpers use fixed dates in tests.
 
 ### Server
 
-- accept an effective selected month;
-- query selected and previous month through bounded reads;
+- accept the requested month and resolve one effective month;
+- query selected and previous month through one bounded read;
 - preserve explicit `.eq("user_id", viewer.id)` predicates plus RLS;
 - return selected month, previous month and adjustment notice;
-- demo mode returns deterministic selected/previous month fixtures.
+- return deterministic selected/previous demo fixtures.
 
-### Route/UI
+### Route and UI
 
 - read `searchParams.month` on the server page;
-- add previous/next month navigation and a month input;
-- retain the current action hierarchy and responsive budget cards;
+- remount the client workspace by effective month;
+- add previous/next month navigation and a GET month form;
 - show comparison only where prior data exists;
 - generate selected-month drill-down links;
-- keep state URL-owned, not duplicated in client-only state.
+- keep create/edit/delete bound to the effective selected month;
+- use route-local scoped CSS and existing MoneyFlow tokens.
 
-### Mutation boundary
+### Verification
 
-- create/edit uses the effective selected month already supplied to `BudgetDialog`;
-- deletion remains ID-owned and tenant-safe;
-- no bulk copy, rollover or cross-month mutation.
+- unit tests for month boundaries, hostile input, missing comparison and drill-down URLs;
+- static contract tests for route wiring, tenant/month predicates and selected-month mutation guards;
+- browser tests for current, previous, empty, hostile query and exact drill-down states;
+- permanent Chromium phone, Chromium desktop and WebKit phone discovery;
+- exact-head policy, lint/typecheck, unit/static RLS, production build, browser, CodeQL and secret-history gates;
+- independent review before merge.
 
 ## Explicit exclusions
 
@@ -83,10 +103,10 @@ All helpers use fixed dates in tests.
 
 - **Silent month repair:** return and render a notice for invalid/future input.
 - **Comparison lies:** model missing previous data separately from numeric zero.
-- **Month mutation mismatch:** selected month is resolved once on the server and threaded to the dialog/action payload.
+- **Month mutation mismatch:** selected month is resolved once on the server, used as the component remount key and threaded to dialog/action payloads.
 - **Drill-down mismatch:** use one pure month-boundary helper for both labels and transaction query dates.
 - **Demo aging:** use relative month fixtures rather than hardcoded historical calendar dates.
-- **Client full-ledger filtering:** prohibited; drill-down delegates to the existing server-backed transaction filter contract.
+- **Client full-ledger filtering:** prohibited; drill-down delegates to the existing transaction filter contract.
 
 ## Tasks
 
@@ -98,15 +118,28 @@ All helpers use fixed dates in tests.
 6. [x] Add static tenant/month contract tests.
 7. [x] Add Chromium/WebKit browser coverage for current, previous, empty and hostile query states.
 8. [x] Add mandatory PR memory after PR number is assigned.
-9. [ ] Run exact-head policy/static/unit/build/database classification/browser/CodeQL/secret gates.
-10. [ ] Independent review before any merge decision.
+9. [ ] Complete final exact-head gates.
+10. [ ] Complete independent review and merge decision.
+
+## Evaluation
+
+Current candidate evidence before the final documentation correction:
+
+- production build passed;
+- unit tests and static RLS passed, including the new domain and wiring contracts;
+- database replay was correctly classified as not required because no schema or migration changed;
+- CSS ownership and architecture contracts passed;
+- lint found and caused removal of a redundant state-synchronization effect;
+- policy found and caused correction of diff hygiene and work-packet structure.
+
+All prior runs are superseded by the final head. Browser, CodeQL, secret-history and stable summary evidence must be taken only from the final exact SHA.
 
 ## Acceptance
 
 - current, previous and empty months render truthful states;
 - invalid/future query values are repaired visibly;
 - missing prior data is not interpreted as zero;
-- selected-month mutations cannot target another month or tenant;
+- selected-month mutations cannot target another month or tenant through the shipped workspace;
 - transaction drill-down represents exactly the category/month spend window;
 - no clipped VND values or overflowing month controls at 320/360/390/tablet/desktop;
 - light/dark Chromium/WebKit audit passes;
