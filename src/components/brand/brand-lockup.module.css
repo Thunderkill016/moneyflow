@@ -8,7 +8,7 @@
 }
 
 .inverseLockup {
-  color: var(--mf-on-brand);
+  color: #ffffff;
 }
 
 .mark {
@@ -37,32 +37,27 @@
   height: 44px;
 }
 
-.container {
-  fill: var(--mf-brand);
+.flow {
+  stroke: var(--mf-brand-identity);
 }
 
-.glyph {
-  stroke: var(--mf-on-brand);
+.gate {
+  fill: var(--mf-text);
 }
 
-.inverseMark {
-  color: var(--mf-on-brand);
+.inverseMark .flow {
+  stroke: #ffffff;
 }
 
-.inverseMark .container {
-  fill: color-mix(in srgb, currentColor 13%, transparent);
-  stroke: color-mix(in srgb, currentColor 34%, transparent);
-  stroke-width: 1.5;
-}
-
-.inverseMark .glyph {
-  stroke: currentColor;
+.inverseMark .gate {
+  fill: #ffffff;
 }
 
 .wordmark {
   overflow: hidden;
+  color: inherit;
   font: inherit;
-  font-weight: 780;
+  font-weight: 700;
   letter-spacing: -0.025em;
   line-height: 1;
   text-overflow: ellipsis;
@@ -70,14 +65,13 @@
 }
 
 @media (forced-colors: active) {
-  .container,
-  .inverseMark .container {
-    fill: Canvas;
+  .flow,
+  .inverseMark .flow {
     stroke: CanvasText;
   }
 
-  .glyph,
-  .inverseMark .glyph {
-    stroke: CanvasText;
+  .gate,
+  .inverseMark .gate {
+    fill: CanvasText;
   }
 }

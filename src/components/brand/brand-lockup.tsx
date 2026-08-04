@@ -32,18 +32,25 @@ export function BrandMark({
         tone === "inverse" && styles.inverseMark,
         className,
       )}
-      viewBox="0 0 64 64"
+      viewBox="0 0 160 160"
       aria-hidden="true"
       focusable="false"
     >
-      <rect className={styles.container} x="4" y="4" width="56" height="56" rx="16" />
-      <path
-        className={styles.glyph}
-        d="M17 43V23.5C17 21.57 18.57 20 20.5 20H22.6L32 34.2L41.4 20H43.5C45.43 20 47 21.57 47 23.5V43"
+      <g
+        className={styles.flow}
         fill="none"
-        strokeWidth="5.5"
+        strokeWidth="16.18"
         strokeLinecap="round"
         strokeLinejoin="round"
+      >
+        <path d="M22.80 64.20C22.80 40.40 42.10 28.00 66.40 28.00H128.20" />
+        <path d="M137.20 95.80C137.20 119.60 117.90 132.00 93.60 132.00H31.80" />
+      </g>
+      <path
+        className={styles.gate}
+        d="M80 54.11A16 16 0 0 1 96 70.11V89.89A16 16 0 0 1 80 105.89A16 16 0 0 1 64 89.89V70.11A16 16 0 0 1 80 54.11ZM80 67.06A4.94 4.94 0 0 0 75.06 72V88.01A4.94 4.94 0 0 0 80 92.95A4.94 4.94 0 0 0 84.94 88.01V72A4.94 4.94 0 0 0 80 67.06Z"
+        fillRule="evenodd"
+        clipRule="evenodd"
       />
     </svg>
   );
