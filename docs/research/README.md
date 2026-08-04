@@ -21,6 +21,7 @@ Khung nghiên cứu **ứng dụng web quản lý thu chi cá nhân**.
 | Capability gap matrix | [PRODUCT_CAPABILITY_GAP_MATRIX.md](./PRODUCT_CAPABILITY_GAP_MATRIX.md) | Roadmap nâng chiều sâu các module đang có |
 | Competitive memory | [PRODUCT_COMPETITIVE_MEMORY.md](./PRODUCT_COMPETITIVE_MEMORY.md) | Pattern đối thủ, nguồn và giới hạn không sao chép |
 | UI/UX ledger | [UI_UX_RESEARCH_LEDGER.md](./UI_UX_RESEARCH_LEDGER.md) | Bằng chứng UI/UX tích lũy và concept bị supersede |
+| Webflow Design synthesis | [WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md](./WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md) | Quy trình design concept-neutral: user research → flow → content → wireframe → system → accessibility → verification |
 | Finance repositories | [REPOSITORY_REFERENCE_MAP.md](./REPOSITORY_REFERENCE_MAP.md) | Nguồn tham khảo theo capability |
 | Engineering foundations | [ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md](./ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md) | Nguồn kỹ thuật, testing, security và CI/CD |
 
@@ -31,7 +32,8 @@ Khung nghiên cứu **ứng dụng web quản lý thu chi cá nhân**.
 3. Dùng `docs/context/README.md` để chọn 2–4 tài liệu warm context.
 4. Dùng `PRODUCT_CAPABILITY_GAP_MATRIX.md` cho thứ tự phát triển.
 5. Dùng `PRODUCT_COMPETITIVE_MEMORY.md` khi cần pattern đối thủ.
-6. Chỉ mở `pr-memory/YYYY/QN/PR-<number>.md` khi cần provenance.
+6. Với UI/UX, đọc `UI_UX_RESEARCH_LEDGER.md`; với public/brand work, đọc thêm `PUBLIC_EXPERIENCE_FOUNDATION.md` và `WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md`.
+7. Chỉ mở `pr-memory/YYYY/QN/PR-<number>.md` khi cần provenance.
 
 Mọi PR targeting `main` phải có record riêng. PR đổi capability, architecture, security, operations hoặc verification phải cập nhật snapshot; PR không đổi current truth ghi `Status impact: none`.
 
