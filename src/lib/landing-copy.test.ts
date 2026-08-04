@@ -45,13 +45,13 @@ test("landing source exists and remains a Server Component", () => {
   assert.equal(/^\s*["']use client["']/.test(source), false);
 });
 
-test("landing states a specific traceable product promise", () => {
+test("landing states a specific guided and traceable product promise", () => {
   const source = readLandingSource();
-  assert.match(source, /Biết tiền đang ở đâu/);
-  assert.match(source, /Biết vì sao nó thay đổi/);
-  assert.match(source, /Ghi thu, chi và chuyển tiền đúng bản chất/);
-  assert.match(source, /mở lại mọi con số để kiểm tra/);
-  assert.match(source, /Không liên kết ngân hàng/);
+  assert.match(source, /Từ lúc ghi đến lúc hiểu tiền của mình/);
+  assert.match(source, /vừa ghi gì/);
+  assert.match(source, /tài khoản nào thay đổi/);
+  assert.match(source, /con số đó đến từ đâu/);
+  assert.match(source, /không cần liên kết ngân hàng/i);
   for (const phrase of FORBIDDEN_LANDING_PHRASES) {
     assert.equal(source.includes(phrase), false, `forbidden: ${phrase}`);
   }
@@ -78,17 +78,19 @@ test("landing states ownership and accounting boundaries honestly", () => {
   assert.match(source, /Bạn quyết định dữ liệu nào được ghi/i);
 });
 
-test("landing uses real product evidence as one connected workflow", () => {
+test("landing uses real product evidence as one guided workflow", () => {
   const source = readLandingSource();
   assert.match(source, /import Image from "next\/image"/);
   assert.match(source, /moneyflow-accounts\.svg/);
   assert.match(source, /moneyflow-quick-capture\.svg/);
   assert.match(source, /moneyflow-transactions\.svg/);
   assert.match(source, /Giao diện thật từ môi trường kiểm thử/);
-  assert.match(source, /styles\.proofStage/);
-  assert.match(source, /styles\.traceGrid/);
-  assert.match(source, /styles\.flowProof/);
+  assert.match(source, /styles\.storySection/);
+  assert.match(source, /styles\.storyList/);
+  assert.match(source, /styles\.storyBand/);
+  assert.match(source, /styles\.storyFigure/);
   assert.match(source, /styles\.controlGrid/);
+  assert.doesNotMatch(source, /styles\.proofStage/);
   assert.equal(source.includes("₫"), false);
   assert.equal(source.includes("US$"), false);
 });
@@ -96,9 +98,10 @@ test("landing uses real product evidence as one connected workflow", () => {
 test("landing module defines responsive, readable and reduced-motion layout", () => {
   const css = readLandingCss();
   assert.match(css, /\.hero\b/);
-  assert.match(css, /\.proofStage\b/);
-  assert.match(css, /\.traceGrid\b/);
-  assert.match(css, /@media \(max-width: 920px\)/);
+  assert.match(css, /\.storySection\b/);
+  assert.match(css, /\.storyBand\b/);
+  assert.match(css, /\.storyFigure\b/);
+  assert.match(css, /@media \(max-width: 980px\)/);
   assert.match(css, /@media \(max-width: 680px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
   assert.equal(css.includes("!important"), false);
