@@ -1,10 +1,17 @@
-# Webflow Design research entrypoint
+# Public design research entrypoint
 
-Use these files in order:
+Use the synthesis files first:
 
-1. `WEBFLOW_DESIGN_CATEGORY_INVENTORY.md` — dated topic coverage from the current public category snapshot.
-2. `WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md` — reusable knowledge, MoneyFlow application, operating system and review checklist.
-3. `WEBFLOW_DESIGN_CATEGORY_DECISION_LOG.md` — concise Adopt / Adapt / Reject decisions and current implementation findings.
+1. `WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md` — concept-neutral design foundations, MoneyFlow application and review checklist.
+2. `WEB_DESIGN_PROCESS_CONVERGENCE.md` — unified Webflow, UX Pilot and Framer delivery process from brief through post-launch learning.
+3. `WEBFLOW_DESIGN_CATEGORY_DECISION_LOG.md` — concise Adopt / Adapt / Reject decisions and implementation findings.
+
+Open dated inventories only when source provenance or topic coverage is needed:
+
+- `WEBFLOW_DESIGN_CATEGORY_INVENTORY.md`
+- `UXPILOT_DESIGN_CORPUS_INVENTORY.md`
+- `FRAMER_DESIGN_CORPUS_INVENTORY.md`
+- `WEBFLOW_DESIGN_CATEGORY_SOURCES.md`
 
 These files supplement, not replace:
 
@@ -12,4 +19,4 @@ These files supplement, not replace:
 - `PUBLIC_EXPERIENCE_FOUNDATION.md`
 - `../design/DESIGN_DIRECTION_STATUS.md`
 
-No file in this set selects a new named visual concept or authorizes copying Webflow assets, layouts or platform architecture.
+No file in this set selects a new named visual concept, authorizes copying external assets/layouts or migrates MoneyFlow to Webflow, UX Pilot or Framer.
