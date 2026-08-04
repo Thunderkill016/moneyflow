@@ -5,6 +5,7 @@ import { MinimumTargetSizeContract } from "@/components/minimum-target-size-cont
 import { MobileShellContract } from "@/components/mobile-shell-contract";
 import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
 import { RouteScrollReset } from "@/components/route-scroll-reset";
+import { RouteThemeBoundary } from "@/components/route-theme-boundary";
 import { normalizeSiteOrigin } from "@/lib/site-url";
 import "./legacy.css";
 import "./document-theme.css";
@@ -82,19 +83,30 @@ export default function RootLayout({
             __html: `
               (function() {
                 try {
-                  var theme = localStorage.getItem('moneyflow-theme') || 'system';
-                  var resolved = theme;
-                  if (theme === 'system') {
-                    resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  var pathname = window.location.pathname;
+                  var publicLightPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/privacy'];
+                  var isPublicLight = publicLightPaths.indexOf(pathname) !== -1 || pathname.indexOf('/auth/') === 0;
+                  var resolved = 'light';
+
+                  if (!isPublicLight) {
+                    var theme = localStorage.getItem('moneyflow-theme') || 'system';
+                    resolved = theme;
+                    if (theme === 'system') {
+                      resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    }
                   }
+
                   document.documentElement.setAttribute('data-theme', resolved);
-                } catch (e) {}
+                } catch (e) {
+                  document.documentElement.setAttribute('data-theme', 'light');
+                }
               })();
             `,
           }}
         />
       </head>
       <body>
+        <RouteThemeBoundary />
         <RouteScrollReset />
         <MobileShellContract />
         <MinimumTargetSizeContract />
