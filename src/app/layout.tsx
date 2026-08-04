@@ -84,7 +84,7 @@ export default function RootLayout({
               (function() {
                 try {
                   var pathname = window.location.pathname;
-                  var publicLightPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/privacy'];
+                  var publicLightPaths = ['/', '/landing', '/login', '/register', '/forgot-password', '/reset-password', '/privacy'];
                   var isPublicLight = publicLightPaths.indexOf(pathname) !== -1 || pathname.indexOf('/auth/') === 0;
                   var resolved = 'light';
 
