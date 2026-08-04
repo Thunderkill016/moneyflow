@@ -1,30 +1,41 @@
 # MoneyFlow logo identity
 
-**Status:** approved — canonical logo v1  
-**Approved by:** MoneyFlow owner  
-**Approved on:** 2026-07-28  
+**Status:** candidate v2 — owner review required  
+**Requested by:** MoneyFlow owner  
+**Requested on:** 2026-07-29  
 **Brand authority:** [`../brand/MONEYFLOW_BRAND_GUIDELINES.md`](../brand/MONEYFLOW_BRAND_GUIDELINES.md)  
 **Product authority:** [`../product/PRINCIPLES.md`](../product/PRINCIPLES.md)
 
-This file defines the canonical MoneyFlow logo system used by the web product, browser favicon and PWA metadata.
+This file defines the MoneyFlow logo candidate currently under review for the web product, favicon and PWA metadata. It replaces the previous M direction only after owner approval and successful verification.
 
 ## Brand idea
 
-MoneyFlow is a calm personal ledger. The logo identifies the product; it does not attempt to illustrate every finance feature.
+MoneyFlow is a personal ledger that helps people understand where money went. The candidate mark uses one Vietnamese rice-stalk image whose side grains are replaced by coin forms.
 
-The approved mark uses one recognizable **M**, one continuous construction and a stable rounded container for favicon, installed-app and compact navigation contexts.
+The intended reading order is:
 
-The identity supports the brand promise:
+1. rice stalk — familiar, grounded and culturally relevant;
+2. coin grains — personal money rather than agriculture;
+3. ordered vertical structure — money recorded and organized;
+4. upward growth — long-term clarity, not investment promises.
 
-> Tiền của bạn được ghi đúng, nhìn rõ và luôn thuộc về bạn.
+The mark must remain factual and calm. It must not become a wealth, farming, bank or investment badge.
 
-## Why this direction was selected
+## Why this construction
 
-The M mark is simpler and more durable than the explored alternatives. It avoids loading-ring ambiguity, forced `M/F/O` combinations and literal finance diagrams.
+The owner requested that the implementation stop relying on generated logo boards and instead use a web icon library already present in the repository.
 
-It deliberately excludes coins, wallets, cards, currency signs, arrows, rising charts, ledger lines inside letters, semantic bars, gradients, glass, glow, 3D and slogans inside the icon.
+The candidate therefore uses `lucide-react` as a construction system:
 
-## Canonical assets
+- Lucide `Leaf` provides the top rice grain;
+- six Lucide `Circle` components are optically stretched and rotated into coin-shaped side grains;
+- native SVG paths provide the central stalk and connecting branches;
+- the same silhouette is mirrored in `src/app/icon.svg` for favicon and installed-app use;
+- no additional dependency, bitmap asset or generated illustration is introduced.
+
+Lucide is a construction aid, not the final brand idea. The arrangement, proportions and coin-rice silhouette are MoneyFlow-specific.
+
+## Canonical candidate assets
 
 | Asset | Source |
 |---|---|
@@ -34,17 +45,20 @@ It deliberately excludes coins, wallets, cards, currency signs, arrows, rising c
 | Temporary signed-in shell bridge | `src/app/ai-uiux-guardrails.css` → `/icon.svg` |
 | Installed-app metadata | `src/app/manifest.ts` |
 
-Landing and authentication use the shared component directly. The signed-in shell still has a legacy wrapper and temporarily loads the exact canonical vector through a deliberately narrow compatibility selector. A later shell-component migration must remove that bridge rather than introduce another logo source.
+Landing and authentication use the shared component directly. The signed-in shell temporarily loads the same `/icon.svg` through a narrow compatibility selector.
 
-## Canonical construction
+## Construction
 
 ### Symbol
 
 - Canvas: `64 × 64` viewBox.
 - Container: rounded square from `(4, 4)` to `(60, 60)` with `16` radius.
 - Container color: MoneyFlow brand green.
-- Mark: a white continuous M path with rounded caps and joins.
-- Preserve the same silhouette across landing, auth, app shell, favicon and PWA use.
+- Central stalk: one vertical rounded stroke.
+- Top grain: one pointed rice grain from the Lucide `Leaf` primitive.
+- Coin grains: three balanced pairs of thick oval outlines, tilted outward like rice grains.
+- Six curved branches connect the side coins to the central stalk.
+- No enclosing coin ring, currency sign, chart, arrow, letter M, separate badge or extra emblem.
 
 ### Wordmark
 
@@ -53,69 +67,68 @@ Use the text `MoneyFlow` exactly.
 - Primary typeface: Inter with system fallbacks.
 - Do not place a slogan inside the lockup.
 - Use symbol plus wordmark where space permits.
-- The symbol may stand alone where the platform or surrounding interface already names MoneyFlow.
-- Do not introduce another competing letter gesture.
+- The symbol may stand alone where the platform already names MoneyFlow.
 
 ## Color
 
 | Role | Light/default | Dark appearance |
 |---|---|---|
-| Brand container | `#0B6B3A` | `#4AD58A` when a dedicated dark asset is produced |
-| Mark on brand | `#FFFFFF` | `#FFFFFF` or approved dark-canvas treatment |
+| Brand container | `#0B6B3A` | approved dark-surface treatment |
+| Coin-rice mark | `#FFFFFF` | `currentColor` on reversed surfaces |
 | Wordmark | `#102019` | `#F0F7F3` |
 
 Brand green is not the semantic income/success color.
 
-## Approved variants
+## Variants to verify
 
-1. Primary green container with white M.
-2. Reversed light/green mark on a dark or brand MoneyFlow surface.
+1. Primary green container with white coin-rice mark.
+2. Reversed monochrome mark on a dark or brand surface.
 3. Monochrome dark.
 4. Monochrome light.
 
-Geometry remains unchanged across variants. Optical raster adjustments may change pixel alignment, not the concept.
+Geometry must remain unchanged across variants. At micro size, the top grain, central stalk and three paired coin groups must remain distinct.
 
 ## Clear space and minimum size
 
 - Clear space: at least one quarter of the symbol width.
-- `16px`: favicon-only context; inspect raster output.
+- `16px`: favicon-only context; verify that the stalk and three coin pairs remain distinct.
 - `24px`: compact interface symbol.
 - `32–36px`: normal navigation mark.
 - `64px+`: marketing and installed-app contexts.
-- Never reduce M weight independently at small sizes.
 
 ## Accessibility
 
 - Where adjacent text names MoneyFlow, the mark is decorative and must not create a duplicate accessible name.
 - Shared component SVGs use `aria-hidden="true"` and `focusable="false"`.
-- Forced-colors mode must retain a visible mark using system colors.
-- Do not encode financial status in logo color.
+- Forced-colors mode uses system colors.
+- Do not encode income, expense or financial status through the logo color.
 
 ## Misuse
 
 Do not:
 
-- stretch, rotate or redraw the mark per screen;
-- change M geometry between surfaces;
-- apply glow, bevel, 3D, glass or decorative gradients;
-- add arrows, charts, percentages, coins or currency symbols;
-- put the full wordmark inside an app icon;
-- repeat the logo as decoration in the signed-in product;
-- recolor it with semantic income, expense, transfer or warning tokens;
-- combine it with rejected M/F/O or flow-ring experiments;
-- recreate the M with a second CSS polygon or an unrelated SVG path.
+- add realistic gold coins, gradients, metal, glow, glass, shadow or 3D;
+- add a circular badge around the whole stalk;
+- reintroduce the M, F or O experiments;
+- add currency signs, charts, arrows, percentages, wallets or bank cards;
+- change the number or placement of the top grain or six side coins per screen;
+- redraw the mark with unrelated CSS polygons or bitmap assets;
+- describe the mark as a promise of profit, wealth or guaranteed growth.
 
-## Release verification
+## Approval gate
 
-- [ ] Inspect at 16, 24, 32, 64 and 512px.
-- [ ] Check light, dark, reversed and monochrome appearances.
-- [ ] Verify browser favicon discovery.
-- [ ] Verify PWA manifest icon discovery.
-- [ ] Review landing, auth and signed-in shell screenshots.
-- [ ] Confirm decorative/accessibility behavior.
-- [ ] Confirm financial semantic colors remain separate from brand color.
-- [ ] Run repository checks appropriate to the change.
+This candidate must not be merged as the final identity until the owner reviews actual browser evidence.
+
+Required evidence:
+
+- [ ] inspect at 16, 24, 32, 64 and 512px;
+- [ ] check light, dark, reversed and monochrome appearances;
+- [ ] verify browser favicon and PWA discovery;
+- [ ] review landing, auth and signed-in shell screenshots;
+- [ ] confirm keyboard, forced-colors and accessibility behavior;
+- [ ] run repository static, unit, build and browser checks;
+- [ ] record explicit owner approval.
 
 ## Future changes
 
-A future redesign requires a new researched specification and explicit owner approval. It must replace the canonical implementation and this contract in the same reviewed pull request; parallel logo systems are not allowed.
+After approval, this document becomes the canonical contract and the previous M direction is retired. Parallel logo systems are not allowed.

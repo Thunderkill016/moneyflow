@@ -27,14 +27,33 @@ const guardrails = readFileSync(
   "utf8",
 );
 
-function canonicalPath(source: string): string {
-  const match = source.match(/d="([^"]*M17 43[^"]*)"/u);
-  assert.ok(match, "expected canonical MoneyFlow M path");
-  return match[1];
-}
+const STEM_PATH = "M32 50V17";
+const BRANCH_PATHS = [
+  "M32 24C29.8 24 28.2 23.2 26.4 22.6",
+  "M32 24C34.2 24 35.8 23.2 37.6 22.6",
+  "M32 34C29.2 34 27.2 33.2 25.2 32.6",
+  "M32 34C34.8 34 36.8 33.2 38.8 32.6",
+  "M32 44C29.8 44 28.2 43.2 26.4 42.6",
+  "M32 44C34.2 44 35.8 43.2 37.6 42.6",
+];
 
-test("shared brand component uses the exact canonical app-icon path", () => {
-  assert.equal(canonicalPath(component), canonicalPath(icon));
+test("shared brand component uses the Lucide coin-rice construction", () => {
+  assert.match(component, /import \{ Circle, Leaf \} from "lucide-react"/u);
+  assert.match(component, /data-brand-shape="coin-rice"/u);
+  assert.match(component, /<Leaf/u);
+  assert.match(component, new RegExp(STEM_PATH, "u"));
+  assert.match(icon, new RegExp(STEM_PATH, "u"));
+
+  for (const branch of BRANCH_PATHS) {
+    assert.match(component, new RegExp(branch, "u"));
+    assert.match(icon, new RegExp(branch, "u"));
+  }
+
+  assert.equal((component.match(/\{ x: /gu) ?? []).length, 6);
+  assert.equal((icon.match(/<ellipse /gu) ?? []).length, 6);
+  assert.match(component, /strokeWidth=\{4\.6\}/u);
+  assert.match(icon, /stroke-width="2\.3"/u);
+  assert.match(icon, /M32 8\.5C28\.6 12 28\.7 17\.2 32 20\.5/u);
   assert.match(component, /aria-hidden="true"/u);
   assert.match(component, /focusable="false"/u);
 });
