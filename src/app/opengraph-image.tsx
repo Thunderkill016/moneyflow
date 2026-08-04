@@ -17,7 +17,7 @@ export default function Image() {
           alignItems: "center",
           justifyContent: "center",
           gap: 36,
-          background: "#0EA5E9",
+          background: "#3445FB",
         }}
       >
         <div
