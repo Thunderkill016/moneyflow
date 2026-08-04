@@ -40,6 +40,10 @@
   color-scheme: dark;
 }
 
+.landingTheme header a[href="/login"] {
+  color: var(--public-ink);
+}
+
 .landingTheme [role="group"][aria-label="Chuỗi giao diện thật của MoneyFlow"] {
   border-color: var(--mf-border);
   box-shadow: var(--mf-shadow-lg);
