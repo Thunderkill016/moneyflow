@@ -1,10 +1,108 @@
 /*
- * Route-local amount layout for Budget cards.
+ * Route-local amount and month navigation layout for Budget cards.
  *
  * At tablet portrait widths a two-column card grid leaves each of the three
  * metric cells too narrow for full-precision VND. Keep the card grid, but give
  * each amount a full row. No clipping, ellipsis or shortened format is used.
  */
+
+.budgets-workspace .budget-month-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, auto) minmax(0, 1fr);
+  align-items: end;
+  gap: 16px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-lg);
+  background: var(--mf-surface);
+  padding: 16px;
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.budgets-workspace .budget-month-link,
+.budgets-workspace .budget-month-form button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-surface-muted);
+  color: var(--mf-text);
+  padding: 0 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.budgets-workspace .budget-month-link:last-child {
+  justify-self: end;
+}
+
+.budgets-workspace .budget-month-link.is-disabled {
+  cursor: not-allowed;
+  color: var(--mf-text-soft);
+  opacity: 0.68;
+}
+
+.budgets-workspace .budget-month-icon-previous {
+  transform: rotate(180deg);
+}
+
+.budgets-workspace .budget-month-form {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+}
+
+.budgets-workspace .budget-month-form label {
+  color: var(--mf-text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.budgets-workspace .budget-month-form > div {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.budgets-workspace .budget-month-form input {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--mf-border-strong);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  padding: 0 12px;
+}
+
+.budgets-workspace .budget-month-form button {
+  border-color: var(--mf-brand);
+  background: var(--mf-brand);
+  color: var(--mf-on-brand);
+}
+
+.budgets-workspace .budget-overview small {
+  display: block;
+  margin-top: 8px;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.budgets-workspace .budget-prior-context {
+  margin: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-surface-muted);
+  padding: 10px 12px;
+  color: var(--mf-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 @media (max-width: 900px) {
   .budgets-workspace .budget-category-metrics {
     grid-template-columns: minmax(0, 1fr);
@@ -18,5 +116,34 @@
 
   .budgets-workspace .budget-category-metrics > div:first-child {
     border-top: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .budgets-workspace .budget-month-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .budgets-workspace .budget-month-form {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .budgets-workspace .budget-month-link,
+  .budgets-workspace .budget-month-link:last-child {
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 430px) {
+  .budgets-workspace .budget-month-controls,
+  .budgets-workspace .budget-month-form > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .budgets-workspace .budget-month-form,
+  .budgets-workspace .budget-month-link {
+    grid-column: 1;
   }
 }
