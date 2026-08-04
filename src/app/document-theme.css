@@ -5,9 +5,9 @@
  * canvas, focus visibility, type roles and motion values. Components consume
  * --mf-* roles; route-level styling must not create an independent palette.
  *
- * Brand v2 uses a fresh blue identity with a two-color logo. Supporting colors
- * remain adjacent to blue. Green, red, yellow and violet are reserved for
- * financial or functional meaning rather than decoration.
+ * Brand v2 uses the classic blue identity with the approved B3.2 symbol.
+ * Supporting colors remain adjacent to blue. Green, red, yellow and indigo are
+ * reserved for financial or functional meaning rather than decoration.
  */
 :root {
   /* Brand blue ramp */
@@ -82,10 +82,10 @@
   --mf-warning-subtle: #fefce8;
   --mf-warning-text: #a16207;
   --mf-warning-border: #fde047;
-  --mf-info: var(--mf-brand-600);
-  --mf-info-subtle: var(--mf-brand-50);
-  --mf-info-text: var(--mf-brand-700);
-  --mf-info-border: var(--mf-brand-300);
+  --mf-info: #2563eb;
+  --mf-info-subtle: #eff6ff;
+  --mf-info-text: #1d4ed8;
+  --mf-info-border: #93c5fd;
 
   /* Compatibility semantic aliases used by route-level feedback components. */
   --mf-success: var(--mf-income);
