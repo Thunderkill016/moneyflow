@@ -108,9 +108,34 @@ test.describe("Global PFM UX benchmark", () => {
     await expect(card.getByText(/Còn lại|Vượt/, { exact: true })).toBeVisible();
 
     const drillDown = card.getByRole("link", { name: /Xem giao dịch danh mục/i });
-    await expect(drillDown).toHaveAttribute("href", /\/transactions\?category=/);
+    const href = await drillDown.getAttribute("href");
+    expect(href).toBeTruthy();
+    const target = new URL(href!, "http://moneyflow.test");
+    expect(target.pathname).toBe("/transactions");
+    expect(target.searchParams.get("category")).toBeTruthy();
+    expect(target.searchParams.get("kind")).toBe("expense");
+    expect(target.searchParams.get("from")).toMatch(/^\d{4}-\d{2}-01$/);
+    expect(target.searchParams.get("to")).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
     await drillDown.click();
-    await expect(page).toHaveURL(/\/transactions\?category=/);
+    await expect
+      .poll(() => {
+        const current = new URL(page.url());
+        return {
+          pathname: current.pathname,
+          category: current.searchParams.get("category"),
+          kind: current.searchParams.get("kind"),
+          from: current.searchParams.get("from"),
+          to: current.searchParams.get("to"),
+        };
+      })
+      .toEqual({
+        pathname: target.pathname,
+        category: target.searchParams.get("category"),
+        kind: "expense",
+        from: target.searchParams.get("from"),
+        to: target.searchParams.get("to"),
+      });
     await expect(page.getByLabel("Lọc theo danh mục")).not.toHaveValue("all");
   });
 });
