@@ -61,9 +61,19 @@ test("landing page repeats full openGraph/twitter objects (Next.js shallow-merge
   assert.match(twitterBlock, /card: "summary_large_image"/);
 });
 
-test("opengraph-image renders the canonical mark at standard OG size", () => {
+test("opengraph-image renders the canonical B3.2 mark at standard OG size", () => {
   assert.match(ogImage, /export const size = \{ width: 1200, height: 630 \}/);
-  assert.match(ogImage, /M17 43V23\.5C17 21\.57 18\.57 20 20\.5 20/);
+  assert.match(ogImage, /viewBox="0 0 160 160"/);
+  assert.match(
+    ogImage,
+    /M22\.80 64\.20C22\.80 40\.40 42\.10 28\.00 66\.40 28\.00H128\.20/,
+  );
+  assert.match(
+    ogImage,
+    /M137\.20 95\.80C137\.20 119\.60 117\.90 132\.00 93\.60 132\.00H31\.80/,
+  );
+  assert.match(ogImage, /M80 54\.11A16 16/);
+  assert.doesNotMatch(ogImage, /M17 43V23\.5/);
 });
 
 test("every sitemap-listed page has its own description and canonical (no thin indexable pages)", () => {
