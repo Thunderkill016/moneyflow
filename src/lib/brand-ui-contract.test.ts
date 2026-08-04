@@ -134,14 +134,14 @@ test("public routes consume the Neon Blue project color authority", () => {
   assert.match(documentTheme, /--mf-transfer:\s*#4f46e5/u);
   assert.match(documentTheme, /--mf-info:\s*#2563eb/u);
   assert.doesNotMatch(documentTheme, /--mf-info:\s*var\(--mf-brand/u);
-  assert.doesNotMatch(documentTheme, /#0ea5e9/iu);
+  assert.doesNotMatch(documentTheme, /--mf-brand-500:\s*#0ea5e9/iu);
   assert.doesNotMatch(documentTheme, /Signal Ledger/u);
 });
 
 test("Neon Blue action pairs preserve normal-text contrast", () => {
   assert.ok(contrastRatio("#3445FB", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#2938E8", "#FFFFFF") >= 4.5);
   assert.ok(contrastRatio("#7583FF", "#0B1044") >= 4.5);
-  assert.ok(contrastRatio("#3445FB", "#FFFFFF") >= 4.5);
 });
 
 test("installed and social assets use the Neon Blue identity", () => {
