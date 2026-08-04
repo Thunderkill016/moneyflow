@@ -37,7 +37,8 @@ function parseMonthParts(value: string, pattern: RegExp) {
   if (!match) return null;
   const year = Number(match[1]);
   const month = Number(match[2]);
-  if (!Number.isInteger(year) || year < 1 || year > 9999) return null;
+  // Year 0001-01 has no representable previous comparison month.
+  if (!Number.isInteger(year) || year < 2 || year > 9999) return null;
   if (!Number.isInteger(month) || month < 1 || month > 12) return null;
   return { year, month };
 }
