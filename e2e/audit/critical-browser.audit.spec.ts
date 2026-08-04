@@ -24,11 +24,11 @@ test.describe("critical browser compatibility audit", () => {
     });
   }
 
-  test("landing dark mode keeps public text and proof surfaces readable", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.use.colorScheme !== "dark", "dark-theme regression contract");
+  test("landing stays light and readable when the browser prefers dark", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.use.colorScheme !== "dark", "dark-preference regression contract");
 
     await page.goto("/landing", { waitUntil: "domcontentloaded" });
-    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
     const navigation = page.getByRole("navigation", {
       name: "Điều hướng trang chủ",
@@ -85,15 +85,16 @@ test.describe("critical browser compatibility audit", () => {
       ),
     };
 
-    /* Brand v2 dark-mode contract: navy canvas/surfaces with cool white text. */
-    expect(semanticColors.pageBackground).toBe("rgb(12, 17, 29)");
-    expect(semanticColors.brand).toBe("rgb(248, 250, 252)");
-    expect(semanticColors.hero).toBe("rgb(248, 250, 252)");
-    expect(semanticColors.lead).toBe("rgb(208, 213, 221)");
-    expect(semanticColors.proofBackground).toBe("rgb(16, 24, 40)");
-    expect(semanticColors.accountBackground).toBe("rgb(16, 24, 40)");
-    expect(semanticColors.controlBackground).toBe("rgb(16, 24, 40)");
-    expect(semanticColors.ctaTitle).toBe("rgb(248, 250, 252)");
+    /* Public-entry contract: saved or system dark preference cannot darken
+       landing surfaces. Workspace routes retain the selectable dark theme. */
+    expect(semanticColors.pageBackground).toBe("rgb(248, 250, 252)");
+    expect(semanticColors.brand).toBe("rgb(16, 24, 40)");
+    expect(semanticColors.hero).toBe("rgb(16, 24, 40)");
+    expect(semanticColors.lead).toBe("rgb(71, 84, 103)");
+    expect(semanticColors.proofBackground).toBe("rgb(255, 255, 255)");
+    expect(semanticColors.accountBackground).toBe("rgb(255, 255, 255)");
+    expect(semanticColors.controlBackground).toBe("rgb(255, 255, 255)");
+    expect(semanticColors.ctaTitle).toBe("rgb(16, 24, 40)");
   });
 
   test("signed-in shell exposes one authored navigation model", async ({ page }) => {

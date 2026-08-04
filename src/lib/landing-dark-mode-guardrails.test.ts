@@ -9,6 +9,10 @@ const publicTheme = readFileSync(
   "src/components/public-brand-theme.module.css",
   "utf8",
 );
+const routeThemeBoundary = readFileSync(
+  "src/components/route-theme-boundary.tsx",
+  "utf8",
+);
 const rejectedDirection = readFileSync(
   "docs/design/SIGNAL_LEDGER_V3.md",
   "utf8",
@@ -27,7 +31,7 @@ test("document theme authority loads after the frozen legacy entry", () => {
   assert.match(legacy, /@import "\.\/ai-uiux-guardrails\.css"/);
 });
 
-test("dark mode keeps semantic product tokens and public routes use the same authority", () => {
+test("workspace dark mode keeps Fresh Blue semantic product tokens", () => {
   assert.match(documentTheme, /MoneyFlow semantic document and theme authority/);
   assert.doesNotMatch(documentTheme, /authority — Signal Ledger/);
   assert.match(documentTheme, /html\[data-theme="dark"\]/);
@@ -35,34 +39,47 @@ test("dark mode keeps semantic product tokens and public routes use the same aut
   assert.match(documentTheme, /--mf-surface:\s*#101828/);
   assert.match(documentTheme, /--mf-text:\s*#f8fafc/);
   assert.match(documentTheme, /--mf-text-muted:\s*#d0d5dd/);
-  assert.match(documentTheme, /--mf-brand:\s*#60a5fa/);
-  assert.match(documentTheme, /--mf-brand-identity:\s*#60a5fa/);
-  assert.match(documentTheme, /--mf-brand-text:\s*#93c5fd/);
+  assert.match(documentTheme, /--mf-brand:\s*#38bdf8/);
+  assert.match(documentTheme, /--mf-brand-identity:\s*#38bdf8/);
+  assert.match(documentTheme, /--mf-brand-text:\s*#7dd3fc/);
   assert.match(documentTheme, /--mf-income:\s*#4ade80/);
-  assert.match(documentTheme, /--mf-income-text:\s*#86efac/);
   assert.match(documentTheme, /--mf-expense:\s*#f87171/);
-  assert.match(documentTheme, /--mf-expense-text:\s*#fca5a5/);
   assert.match(documentTheme, /--mf-warning:\s*#facc15/);
-  assert.match(documentTheme, /--mf-warning-text:\s*#fde047/);
   assert.match(documentTheme, /--mf-transfer:\s*#818cf8/);
-  assert.match(documentTheme, /--mf-transfer-text:\s*#a5b4fc/);
   assert.match(documentTheme, /--mf-info:\s*#60a5fa/);
-  assert.match(documentTheme, /--mf-focus-ring:\s*rgb\(96 165 250 \/ 24%\)/);
+  assert.match(documentTheme, /--mf-focus-ring:\s*rgb\(56 189 248 \/ 24%\)/);
+});
 
-  assert.match(publicTheme, /--public-canvas:\s*var\(--mf-canvas\)/);
-  assert.match(publicTheme, /--public-accent:\s*var\(--mf-brand\)/);
-  assert.match(publicTheme, /--auth-canvas:\s*var\(--mf-canvas\)/);
-  assert.match(publicTheme, /--auth-accent:\s*var\(--mf-brand\)/);
-  assert.match(publicTheme, /html\[data-theme="dark"\]/);
+test("public entry routes stay light while workspace routes restore the saved theme", () => {
   assert.match(
-    publicTheme,
-    /html\[data-theme="dark"\][\s\S]*--auth-muted:\s*var\(--mf-text\)/,
-    "dark auth muted copy must use the primary text role over luminous decoration",
+    rootLayout,
+    /import \{ RouteThemeBoundary \} from "@\/components\/route-theme-boundary"/,
   );
+  assert.match(rootLayout, /<RouteThemeBoundary \/>/);
   assert.match(
-    publicTheme,
-    /html\[data-theme="dark"\][\s\S]*--auth-soft:\s*var\(--mf-text-muted\)/,
+    rootLayout,
+    /publicLightPaths = \['\/', '\/landing', '\/login', '\/register'/,
   );
+  assert.match(rootLayout, /if \(!isPublicLight\)/);
+  assert.match(rootLayout, /localStorage\.getItem\('moneyflow-theme'\)/);
+
+  assert.match(routeThemeBoundary, /PUBLIC_LIGHT_PATHS/);
+  assert.match(routeThemeBoundary, /"\/landing"/);
+  assert.match(routeThemeBoundary, /"\/login"/);
+  assert.match(routeThemeBoundary, /"\/register"/);
+  assert.match(routeThemeBoundary, /"\/privacy"/);
+  assert.match(routeThemeBoundary, /pathname\.startsWith\("\/auth\/"\)/);
+  assert.match(
+    routeThemeBoundary,
+    /isPublicLightPath\(pathname\) \? "light" : resolveWorkspaceTheme\(\)/,
+  );
+
+  assert.match(publicTheme, /--mf-canvas:\s*#f8fafc/);
+  assert.match(publicTheme, /--mf-surface:\s*#ffffff/);
+  assert.match(publicTheme, /--mf-text:\s*#101828/);
+  assert.match(publicTheme, /--mf-brand-identity:\s*#0ea5e9/);
+  assert.match(publicTheme, /color-scheme:\s*light/);
+  assert.doesNotMatch(publicTheme, /html\[data-theme="dark"\]/);
 
   assert.match(rejectedDirection, /Status: rejected \/ superseded/);
   assert.match(rejectedDirection, /historical material only/);
