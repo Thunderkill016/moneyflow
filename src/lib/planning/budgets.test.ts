@@ -2,10 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   budgetBarColor,
+  budgetMonthEnd,
+  budgetMonthKey,
   budgetProgress,
   budgetRemaining,
   budgetStatusLabel,
   budgetThreshold,
+  budgetTransactionsHref,
+  compareBudgetAmount,
+  resolveBudgetMonth,
+  shiftBudgetMonth,
   sumBudgetSpent,
 } from "./budgets.ts";
 import type { Transaction } from "../sample-data.ts";
@@ -66,6 +72,64 @@ const priorMonthFood: Transaction = {
   occurredOn: "2026-06-20",
 };
 
+test("budget month helpers cross year boundaries without local timezone parsing", () => {
+  assert.equal(budgetMonthKey("2026-07-01"), "2026-07");
+  assert.equal(shiftBudgetMonth("2026-01-01", -1), "2025-12-01");
+  assert.equal(shiftBudgetMonth("2026-12-01", 1), "2027-01-01");
+  assert.equal(budgetMonthEnd("2024-02-01"), "2024-02-29");
+  assert.equal(budgetMonthEnd("2026-02-01"), "2026-02-28");
+});
+
+test("resolveBudgetMonth keeps valid history and exposes navigation", () => {
+  assert.deepEqual(resolveBudgetMonth("2026-06", "2026-08-01"), {
+    monthKey: "2026-06",
+    monthStart: "2026-06-01",
+    monthEnd: "2026-06-30",
+    previousMonthStart: "2026-05-01",
+    nextMonthStart: "2026-07-01",
+    canGoNext: true,
+    adjustment: null,
+  });
+});
+
+test("resolveBudgetMonth repairs invalid and future input visibly", () => {
+  const invalid = resolveBudgetMonth("2026-13", "2026-08-01");
+  assert.equal(invalid.monthStart, "2026-08-01");
+  assert.equal(invalid.adjustment, "invalid");
+  assert.equal(invalid.canGoNext, false);
+
+  const future = resolveBudgetMonth("2026-09", "2026-08-01");
+  assert.equal(future.monthStart, "2026-08-01");
+  assert.equal(future.adjustment, "future");
+  assert.equal(future.canGoNext, false);
+});
+
+test("budget comparison distinguishes missing prior data from numeric zero", () => {
+  assert.deepEqual(compareBudgetAmount(0, null), {
+    state: "unavailable",
+    difference: null,
+  });
+  assert.deepEqual(compareBudgetAmount(0, 0), {
+    state: "same",
+    difference: 0,
+  });
+  assert.deepEqual(compareBudgetAmount(1_200_000, 1_000_000), {
+    state: "increase",
+    difference: 200_000,
+  });
+  assert.deepEqual(compareBudgetAmount(800_000, 1_000_000), {
+    state: "decrease",
+    difference: -200_000,
+  });
+});
+
+test("budget transaction drill-down carries the exact month and expense category", () => {
+  assert.equal(
+    budgetTransactionsHref("2026-07-01", "Ăn uống & cà phê"),
+    "/transactions?from=2026-07-01&to=2026-07-31&category=%C4%82n+u%E1%BB%91ng+%26+c%C3%A0+ph%C3%AA&kind=expense",
+  );
+});
+
 test("budget progress can report overspending without hiding it", () => {
   assert.equal(budgetProgress({ spent: 750_000, limit: 1_000_000 }), 75);
   assert.equal(budgetProgress({ spent: 1_250_000, limit: 1_000_000 }), 125);
@@ -103,7 +167,12 @@ test("budgetBarColor returns distinct tokens per threshold (pair with text)", ()
   const over = budgetBarColor("over");
   assert.notEqual(ok, near);
   assert.notEqual(near, over);
-  assert.ok(over.includes("danger") || over.includes("EF4444") || over.includes("DC2626") || over.includes("var(--color-danger"));
+  assert.ok(
+    over.includes("danger") ||
+      over.includes("EF4444") ||
+      over.includes("DC2626") ||
+      over.includes("var(--color-danger"),
+  );
 });
 
 // --- TASK-117: budget spent ignores transfer ---
@@ -127,10 +196,7 @@ test("sumBudgetSpent ignores transfers even with matching categoryId", () => {
   );
   assert.equal(withoutTransfer, 45_000);
   assert.equal(withTransfer, 45_000);
-  assert.equal(
-    sumBudgetSpent([transferOut], "cat-food", "2026-07-01"),
-    0,
-  );
+  assert.equal(sumBudgetSpent([transferOut], "cat-food", "2026-07-01"), 0);
 });
 
 test("sumBudgetSpent after soft-delete drops the expense amount", () => {
