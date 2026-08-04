@@ -31,7 +31,7 @@ test("document theme authority loads after the frozen legacy entry", () => {
   assert.match(legacy, /@import "\.\/ai-uiux-guardrails\.css"/);
 });
 
-test("workspace dark mode keeps Fresh Blue semantic product tokens", () => {
+test("workspace dark mode keeps Neon Blue semantic product tokens", () => {
   assert.match(documentTheme, /MoneyFlow semantic document and theme authority/);
   assert.doesNotMatch(documentTheme, /authority — Signal Ledger/);
   assert.match(documentTheme, /html\[data-theme="dark"\]/);
@@ -39,15 +39,15 @@ test("workspace dark mode keeps Fresh Blue semantic product tokens", () => {
   assert.match(documentTheme, /--mf-surface:\s*#101828/);
   assert.match(documentTheme, /--mf-text:\s*#f8fafc/);
   assert.match(documentTheme, /--mf-text-muted:\s*#d0d5dd/);
-  assert.match(documentTheme, /--mf-brand:\s*#38bdf8/);
-  assert.match(documentTheme, /--mf-brand-identity:\s*#38bdf8/);
-  assert.match(documentTheme, /--mf-brand-text:\s*#7dd3fc/);
+  assert.match(documentTheme, /--mf-brand:\s*#7583ff/);
+  assert.match(documentTheme, /--mf-brand-identity:\s*#7583ff/);
+  assert.match(documentTheme, /--mf-brand-text:\s*#adb5ff/);
   assert.match(documentTheme, /--mf-income:\s*#4ade80/);
   assert.match(documentTheme, /--mf-expense:\s*#f87171/);
   assert.match(documentTheme, /--mf-warning:\s*#facc15/);
   assert.match(documentTheme, /--mf-transfer:\s*#818cf8/);
   assert.match(documentTheme, /--mf-info:\s*#60a5fa/);
-  assert.match(documentTheme, /--mf-focus-ring:\s*rgb\(56 189 248 \/ 24%\)/);
+  assert.match(documentTheme, /--mf-focus-ring:\s*rgb\(117 131 255 \/ 28%\)/);
 });
 
 test("public entry routes stay light while workspace routes restore the saved theme", () => {
@@ -77,7 +77,7 @@ test("public entry routes stay light while workspace routes restore the saved th
   assert.match(publicTheme, /--mf-canvas:\s*#f8fafc/);
   assert.match(publicTheme, /--mf-surface:\s*#ffffff/);
   assert.match(publicTheme, /--mf-text:\s*#101828/);
-  assert.match(publicTheme, /--mf-brand-identity:\s*#0ea5e9/);
+  assert.match(publicTheme, /--mf-brand-identity:\s*#3445fb/);
   assert.match(publicTheme, /color-scheme:\s*light/);
   assert.doesNotMatch(publicTheme, /html\[data-theme="dark"\]/);
 
