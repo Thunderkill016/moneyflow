@@ -21,6 +21,15 @@ import themeStyles from "./public-brand-theme.module.css";
 
 type Mode = "login" | "register" | "forgot" | "update";
 
+type ModeCopy = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  submit: string;
+  proofEyebrow: string;
+  proofTitle: string;
+};
+
 const copy = {
   login: {
     eyebrow: "Quay lại sổ của bạn",
@@ -28,6 +37,8 @@ const copy = {
     description:
       "Tiếp tục từ giao dịch gần nhất và kiểm tra dòng tiền của bạn.",
     submit: "Đăng nhập",
+    proofEyebrow: "Tiếp tục từ sổ của bạn",
+    proofTitle: "Quay lại đúng dữ liệu bạn đã ghi.",
   },
   register: {
     eyebrow: "Bắt đầu một sổ có thể đối chiếu",
@@ -35,6 +46,8 @@ const copy = {
     description:
       "Ghi thu, chi và chuyển tiền đúng bản chất ngay từ đầu.",
     submit: "Tạo tài khoản",
+    proofEyebrow: "Bắt đầu từ giao dịch đầu tiên",
+    proofTitle: "Tạo một sổ mà mỗi con số có chỗ kiểm tra.",
   },
   forgot: {
     eyebrow: "Khôi phục quyền truy cập",
@@ -42,6 +55,8 @@ const copy = {
     description:
       "Nhập email đã đăng ký. Chúng tôi sẽ gửi liên kết để bạn tạo mật khẩu mới.",
     submit: "Gửi liên kết",
+    proofEyebrow: "Khôi phục quyền truy cập",
+    proofTitle: "Lấy lại đường vào sổ mà không thay đổi dữ liệu.",
   },
   update: {
     eyebrow: "Bảo mật tài khoản",
@@ -49,11 +64,10 @@ const copy = {
     description:
       "Mật khẩu mới cần ít nhất 12 ký tự và chỉ nên được dùng cho MoneyFlow.",
     submit: "Lưu mật khẩu mới",
+    proofEyebrow: "Bảo vệ quyền truy cập",
+    proofTitle: "Tạo mật khẩu mới để tiếp tục với sổ của bạn.",
   },
-} satisfies Record<
-  Mode,
-  { eyebrow: string; title: string; description: string; submit: string }
->;
+} satisfies Record<Mode, ModeCopy>;
 
 const proofPoints = [
   {
@@ -349,8 +363,8 @@ export function AuthForm({
           </section>
 
           <aside className={styles.proofRail} aria-label="Điều MoneyFlow cam kết">
-            <p className={styles.proofEyebrow}>Một sổ có thể đối chiếu</p>
-            <h2>Đăng nhập để tiếp tục từ dữ liệu của chính bạn.</h2>
+            <p className={styles.proofEyebrow}>{content.proofEyebrow}</p>
+            <h2>{content.proofTitle}</h2>
             <div className={styles.proofList}>
               {proofPoints.map((point) => (
                 <article key={point.title}>
