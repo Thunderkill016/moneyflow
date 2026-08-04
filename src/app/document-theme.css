@@ -56,11 +56,12 @@
   --mf-border: #d0d5dd;
   --mf-border-strong: #98a2b3;
 
-  /* Brand and interaction roles */
+  /* Brand and interaction roles. Identity stays vivid; action uses a darker
+   * step so white button text remains above the 4.5:1 contrast threshold. */
   --mf-brand-identity: var(--mf-brand-500);
-  --mf-brand: var(--mf-brand-600);
-  --mf-brand-hover: var(--mf-brand-700);
-  --mf-brand-pressed: var(--mf-brand-800);
+  --mf-brand: var(--mf-brand-700);
+  --mf-brand-hover: var(--mf-brand-800);
+  --mf-brand-pressed: var(--mf-brand-900);
   --mf-brand-subtle: var(--mf-brand-50);
   --mf-brand-text: var(--mf-brand-700);
   --mf-on-brand: #ffffff;
