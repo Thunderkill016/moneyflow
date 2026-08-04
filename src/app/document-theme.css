@@ -1,61 +1,101 @@
 /*
  * MoneyFlow semantic document and theme authority.
  *
- * This file owns the project-wide color roles, light/dark resolution, global
+ * This file owns project-wide color roles, light/dark resolution, the global
  * canvas, focus visibility, type roles and motion values. Components consume
- * --mf-* roles; route-level styling must not create an independent brand
- * palette.
+ * --mf-* roles; route-level styling must not create an independent palette.
  *
- * The current owner-selected direction is white-first with a trust-blue action
- * family. Green, red, amber and violet remain reserved for financial semantic
- * meaning rather than decoration.
+ * Brand v2 uses a fresh blue identity with a two-color logo. Supporting colors
+ * remain adjacent to blue. Green, red, yellow and violet are reserved for
+ * financial or functional meaning rather than decoration.
  */
 :root {
-  /* Brand ramp */
-  --mf-brand-50: #eff4ff;
-  --mf-brand-100: #dfe8ff;
-  --mf-brand-200: #c5d3ff;
-  --mf-brand-300: #9fb5ff;
-  --mf-brand-400: #7592f5;
-  --mf-brand-500: #5273e8;
-  --mf-brand-600: #2f55d4;
-  --mf-brand-700: #2445b7;
-  --mf-brand-800: #1d378e;
-  --mf-brand-900: #192e6e;
-  --mf-brand-950: #111b3e;
+  /* Brand blue ramp */
+  --mf-brand-50: #eff6ff;
+  --mf-brand-100: #dbeafe;
+  --mf-brand-200: #bfdbfe;
+  --mf-brand-300: #93c5fd;
+  --mf-brand-400: #60a5fa;
+  --mf-brand-500: #3b82f6;
+  --mf-brand-600: #2563eb;
+  --mf-brand-700: #1d4ed8;
+  --mf-brand-800: #1e40af;
+  --mf-brand-900: #1e3a8a;
+  --mf-brand-950: #172554;
+
+  /* Harmonized supporting palette */
+  --mf-sky-50: #f0f9ff;
+  --mf-sky-300: #7dd3fc;
+  --mf-sky-500: #0ea5e9;
+  --mf-sky-700: #0369a1;
+  --mf-sky-900: #0c4a6e;
+  --mf-cyan-50: #ecfeff;
+  --mf-cyan-300: #67e8f9;
+  --mf-cyan-500: #06b6d4;
+  --mf-cyan-700: #0e7490;
+  --mf-cyan-900: #164e63;
+  --mf-indigo-50: #eef2ff;
+  --mf-indigo-300: #a5b4fc;
+  --mf-indigo-500: #6366f1;
+  --mf-indigo-700: #4338ca;
+  --mf-indigo-900: #312e81;
+  --mf-periwinkle-50: #f5f7ff;
+  --mf-periwinkle-300: #b8c2ff;
+  --mf-periwinkle-500: #8b9cf6;
+  --mf-periwinkle-700: #6673d9;
+  --mf-periwinkle-900: #414a91;
 
   /* White-first neutral foundation */
-  --mf-canvas: #f6f8fc;
+  --mf-canvas: #f8fafc;
   --mf-surface: #ffffff;
-  --mf-surface-muted: #f0f3f8;
-  --mf-surface-strong: #e7ecf3;
-  --mf-text: #111827;
-  --mf-text-muted: #4b5563;
-  --mf-text-soft: #6b7280;
-  --mf-border: #d7dee8;
-  --mf-border-strong: #b7c1d0;
+  --mf-surface-muted: #f8fafc;
+  --mf-surface-strong: #f2f4f7;
+  --mf-text: #101828;
+  --mf-text-muted: #475467;
+  --mf-text-soft: #667085;
+  --mf-border: #d0d5dd;
+  --mf-border-strong: #98a2b3;
 
   /* Brand and interaction roles */
+  --mf-brand-identity: var(--mf-brand-500);
   --mf-brand: var(--mf-brand-600);
   --mf-brand-hover: var(--mf-brand-700);
   --mf-brand-pressed: var(--mf-brand-800);
-  --mf-brand-subtle: #eaf0ff;
-  --mf-brand-text: #2443a8;
+  --mf-brand-subtle: var(--mf-brand-50);
+  --mf-brand-text: var(--mf-brand-700);
   --mf-on-brand: #ffffff;
 
-  /* Financial semantic roles */
-  --mf-income: #0c7a55;
-  --mf-income-subtle: #e6f6ef;
-  --mf-income-text: #086044;
-  --mf-expense: #c83e46;
-  --mf-expense-subtle: #fdebec;
-  --mf-expense-text: #9f2d35;
-  --mf-transfer: #7054cc;
-  --mf-transfer-subtle: #f0ecff;
-  --mf-transfer-text: #523cad;
-  --mf-warning: #9a6100;
-  --mf-warning-subtle: #fff2d8;
-  --mf-warning-text: #764900;
+  /* True functional and financial semantic roles */
+  --mf-income: #16a34a;
+  --mf-income-subtle: #f0fdf4;
+  --mf-income-text: #15803d;
+  --mf-income-border: #86efac;
+  --mf-expense: #dc2626;
+  --mf-expense-subtle: #fef2f2;
+  --mf-expense-text: #b91c1c;
+  --mf-expense-border: #fca5a5;
+  --mf-transfer: #4f46e5;
+  --mf-transfer-subtle: #eef2ff;
+  --mf-transfer-text: #4338ca;
+  --mf-transfer-border: #a5b4fc;
+  --mf-warning: #eab308;
+  --mf-warning-subtle: #fefce8;
+  --mf-warning-text: #a16207;
+  --mf-warning-border: #fde047;
+  --mf-info: var(--mf-brand-600);
+  --mf-info-subtle: var(--mf-brand-50);
+  --mf-info-text: var(--mf-brand-700);
+  --mf-info-border: var(--mf-brand-300);
+
+  /* Compatibility semantic aliases used by route-level feedback components. */
+  --mf-success: var(--mf-income);
+  --mf-success-soft: var(--mf-income-subtle);
+  --mf-success-text: var(--mf-income-text);
+  --mf-success-border: var(--mf-income-border);
+  --mf-danger: var(--mf-expense);
+  --mf-danger-soft: var(--mf-expense-subtle);
+  --mf-danger-text: var(--mf-expense-text);
+  --mf-danger-border: var(--mf-expense-border);
 
   /* Public proof surfaces use the same system, not a second theme. */
   --mf-stage: var(--mf-surface);
@@ -63,11 +103,12 @@
   --mf-stage-text: var(--mf-text);
   --mf-stage-muted: var(--mf-text-muted);
 
-  --mf-focus: var(--mf-brand-600);
-  --mf-overlay: rgb(13 17 27 / 58%);
-  --mf-shadow-sm: 0 1px 2px rgb(17 24 39 / 6%);
-  --mf-shadow-md: 0 14px 36px rgb(17 24 39 / 10%);
-  --mf-shadow-lg: 0 30px 72px rgb(17 24 39 / 15%);
+  --mf-focus: var(--mf-brand-500);
+  --mf-focus-ring: rgb(59 130 246 / 18%);
+  --mf-overlay: rgb(12 17 29 / 58%);
+  --mf-shadow-sm: 0 1px 2px rgb(16 24 40 / 6%);
+  --mf-shadow-md: 0 18px 48px rgb(16 24 40 / 10%);
+  --mf-shadow-lg: 0 30px 80px rgb(16 24 40 / 14%);
 
   --mf-radius-sm: 8px;
   --mf-radius-md: 12px;
@@ -89,58 +130,78 @@
 }
 
 html[data-theme="dark"] {
-  --mf-brand-50: #111b3e;
-  --mf-brand-100: #192e6e;
-  --mf-brand-200: #1d378e;
-  --mf-brand-300: #2445b7;
-  --mf-brand-400: #5273e8;
-  --mf-brand-500: #7592f5;
-  --mf-brand-600: #8ea7ff;
-  --mf-brand-700: #a7b9ff;
-  --mf-brand-800: #b8c7ff;
-  --mf-brand-900: #dfe8ff;
-  --mf-brand-950: #eff4ff;
+  /* Keep hue identity; move readable roles to lighter steps. */
+  --mf-brand-50: #172554;
+  --mf-brand-100: #1e3a8a;
+  --mf-brand-200: #1e40af;
+  --mf-brand-300: #2563eb;
+  --mf-brand-400: #3b82f6;
+  --mf-brand-500: #60a5fa;
+  --mf-brand-600: #60a5fa;
+  --mf-brand-700: #93c5fd;
+  --mf-brand-800: #bfdbfe;
+  --mf-brand-900: #dbeafe;
+  --mf-brand-950: #eff6ff;
 
-  --mf-canvas: #0d111b;
-  --mf-surface: #151a24;
-  --mf-surface-muted: #1d2430;
-  --mf-surface-strong: #283140;
-  --mf-text: #f7f8fa;
-  --mf-text-muted: #b9c1cc;
-  --mf-text-soft: #8e98a6;
-  --mf-border: #303a49;
-  --mf-border-strong: #475365;
+  --mf-canvas: #0c111d;
+  --mf-surface: #101828;
+  --mf-surface-muted: #1d2939;
+  --mf-surface-strong: #344054;
+  --mf-text: #f8fafc;
+  --mf-text-muted: #d0d5dd;
+  --mf-text-soft: #98a2b3;
+  --mf-border: #344054;
+  --mf-border-strong: #475467;
 
-  --mf-brand: #8ea7ff;
-  --mf-brand-hover: #a7b9ff;
-  --mf-brand-pressed: #7693f3;
-  --mf-brand-subtle: #1c2854;
-  --mf-brand-text: #b8c7ff;
-  --mf-on-brand: #0e1638;
+  --mf-brand-identity: #60a5fa;
+  --mf-brand: #60a5fa;
+  --mf-brand-hover: #93c5fd;
+  --mf-brand-pressed: #3b82f6;
+  --mf-brand-subtle: #172554;
+  --mf-brand-text: #93c5fd;
+  --mf-on-brand: #0c111d;
 
-  --mf-income: #4dd4a0;
-  --mf-income-subtle: #12392d;
-  --mf-income-text: #8ae7c2;
-  --mf-expense: #ff858b;
-  --mf-expense-subtle: #462126;
-  --mf-expense-text: #ffb5b9;
-  --mf-transfer: #b29eff;
-  --mf-transfer-subtle: #302858;
-  --mf-transfer-text: #cebfff;
-  --mf-warning: #f4be65;
-  --mf-warning-subtle: #433119;
-  --mf-warning-text: #f8d391;
+  --mf-income: #4ade80;
+  --mf-income-subtle: #14532d;
+  --mf-income-text: #86efac;
+  --mf-income-border: #22c55e;
+  --mf-expense: #f87171;
+  --mf-expense-subtle: #7f1d1d;
+  --mf-expense-text: #fca5a5;
+  --mf-expense-border: #dc2626;
+  --mf-transfer: #818cf8;
+  --mf-transfer-subtle: #312e81;
+  --mf-transfer-text: #a5b4fc;
+  --mf-transfer-border: #6366f1;
+  --mf-warning: #facc15;
+  --mf-warning-subtle: #713f12;
+  --mf-warning-text: #fde047;
+  --mf-warning-border: #ca8a04;
+  --mf-info: #60a5fa;
+  --mf-info-subtle: #172554;
+  --mf-info-text: #93c5fd;
+  --mf-info-border: #2563eb;
+
+  --mf-success: var(--mf-income);
+  --mf-success-soft: var(--mf-income-subtle);
+  --mf-success-text: var(--mf-income-text);
+  --mf-success-border: var(--mf-income-border);
+  --mf-danger: var(--mf-expense);
+  --mf-danger-soft: var(--mf-expense-subtle);
+  --mf-danger-text: var(--mf-expense-text);
+  --mf-danger-border: var(--mf-expense-border);
 
   --mf-stage: var(--mf-surface);
   --mf-stage-soft: var(--mf-surface-muted);
   --mf-stage-text: var(--mf-text);
   --mf-stage-muted: var(--mf-text-muted);
 
-  --mf-focus: #9fb5ff;
+  --mf-focus: #60a5fa;
+  --mf-focus-ring: rgb(96 165 250 / 24%);
   --mf-overlay: rgb(0 0 0 / 74%);
   --mf-shadow-sm: 0 1px 2px rgb(0 0 0 / 24%);
-  --mf-shadow-md: 0 14px 36px rgb(0 0 0 / 31%);
-  --mf-shadow-lg: 0 30px 72px rgb(0 0 0 / 42%);
+  --mf-shadow-md: 0 18px 48px rgb(0 0 0 / 32%);
+  --mf-shadow-lg: 0 30px 80px rgb(0 0 0 / 42%);
 }
 
 html,
@@ -152,10 +213,7 @@ body {
 }
 
 html[data-theme="light"],
-html[data-theme="light"] body {
-  background: var(--mf-canvas) !important;
-}
-
+html[data-theme="light"] body,
 html[data-theme="dark"],
 html[data-theme="dark"] body {
   background: var(--mf-canvas) !important;
@@ -169,14 +227,14 @@ body {
 /* Loaded after globals.css, so this is the final ambient product canvas. */
 body::before {
   background:
-    radial-gradient(circle at 78% -18%, rgb(47 85 212 / 10%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(117 146 245 / 4%), transparent 28rem) !important;
+    radial-gradient(circle at 78% -18%, rgb(59 130 246 / 10%), transparent 35rem),
+    radial-gradient(circle at -12% 30%, rgb(14 165 233 / 5%), transparent 28rem) !important;
 }
 
 html[data-theme="dark"] body::before {
   background:
-    radial-gradient(circle at 78% -18%, rgb(142 167 255 / 11%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(82 115 232 / 5%), transparent 28rem) !important;
+    radial-gradient(circle at 78% -18%, rgb(96 165 250 / 12%), transparent 35rem),
+    radial-gradient(circle at -12% 30%, rgb(79 70 229 / 7%), transparent 28rem) !important;
 }
 
 :focus-visible {

@@ -69,12 +69,19 @@ test("public routes consume the project color authority", () => {
   assert.match(publicTheme, /--public-stage:\s*var\(--mf-stage\)/u);
   assert.match(publicTheme, /--auth-stage:\s*var\(--mf-stage\)/u);
 
-  assert.match(documentTheme, /--mf-canvas:\s*#f6f8fc/u);
+  assert.match(documentTheme, /--mf-canvas:\s*#f8fafc/u);
   assert.match(documentTheme, /--mf-surface:\s*#ffffff/u);
-  assert.match(documentTheme, /--mf-brand-600:\s*#2f55d4/u);
-  assert.match(documentTheme, /--mf-income:\s*#0c7a55/u);
-  assert.match(documentTheme, /--mf-expense:\s*#c83e46/u);
-  assert.match(documentTheme, /--mf-transfer:\s*#7054cc/u);
+  assert.match(documentTheme, /--mf-brand-500:\s*#3b82f6/u);
+  assert.match(documentTheme, /--mf-brand-600:\s*#2563eb/u);
+  assert.match(documentTheme, /--mf-sky-500:\s*#0ea5e9/u);
+  assert.match(documentTheme, /--mf-cyan-500:\s*#06b6d4/u);
+  assert.match(documentTheme, /--mf-indigo-500:\s*#6366f1/u);
+  assert.match(documentTheme, /--mf-periwinkle-500:\s*#8b9cf6/u);
+  assert.match(documentTheme, /--mf-income:\s*#16a34a/u);
+  assert.match(documentTheme, /--mf-expense:\s*#dc2626/u);
+  assert.match(documentTheme, /--mf-warning:\s*#eab308/u);
+  assert.match(documentTheme, /--mf-transfer:\s*#4f46e5/u);
+  assert.match(documentTheme, /--mf-info:\s*var\(--mf-brand-600\)/u);
   assert.doesNotMatch(documentTheme, /Signal Ledger/u);
 });
 

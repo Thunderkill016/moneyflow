@@ -85,14 +85,15 @@ test.describe("critical browser compatibility audit", () => {
       ),
     };
 
-    expect(semanticColors.pageBackground).toBe("rgb(13, 17, 27)");
-    expect(semanticColors.brand).toBe("rgb(247, 248, 250)");
-    expect(semanticColors.hero).toBe("rgb(247, 248, 250)");
-    expect(semanticColors.lead).toBe("rgb(185, 193, 204)");
-    expect(semanticColors.proofBackground).toBe("rgb(21, 26, 36)");
-    expect(semanticColors.accountBackground).toBe("rgb(21, 26, 36)");
-    expect(semanticColors.controlBackground).toBe("rgb(21, 26, 36)");
-    expect(semanticColors.ctaTitle).toBe("rgb(247, 248, 250)");
+    /* Brand v2 dark-mode contract: navy canvas/surfaces with cool white text. */
+    expect(semanticColors.pageBackground).toBe("rgb(12, 17, 29)");
+    expect(semanticColors.brand).toBe("rgb(248, 250, 252)");
+    expect(semanticColors.hero).toBe("rgb(248, 250, 252)");
+    expect(semanticColors.lead).toBe("rgb(208, 213, 221)");
+    expect(semanticColors.proofBackground).toBe("rgb(16, 24, 40)");
+    expect(semanticColors.accountBackground).toBe("rgb(16, 24, 40)");
+    expect(semanticColors.controlBackground).toBe("rgb(16, 24, 40)");
+    expect(semanticColors.ctaTitle).toBe("rgb(248, 250, 252)");
   });
 
   test("signed-in shell exposes one authored navigation model", async ({ page }) => {

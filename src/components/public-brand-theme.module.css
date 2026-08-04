@@ -109,8 +109,10 @@
   --auth-surface: var(--mf-surface);
   --auth-surface-soft: var(--mf-surface-muted);
   --auth-ink: var(--mf-text);
-  --auth-muted: var(--mf-text-muted);
-  --auth-soft: var(--mf-text-soft);
+  /* Auth copy sits on luminous brand-tint decoration; use the primary dark text
+     role here so effective contrast stays above 4.5:1 at every viewport. */
+  --auth-muted: var(--mf-text);
+  --auth-soft: var(--mf-text-muted);
   --auth-line: var(--mf-border);
   --auth-line-strong: var(--mf-border-strong);
   --auth-accent: var(--mf-brand);
