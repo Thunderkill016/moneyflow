@@ -159,14 +159,20 @@ test("transactions page code-splits dialogs for smaller first paint", () => {
   assert.match(source, /ssr:\s*false/);
 });
 
-test("CSS reserves stable space for product evidence and money KPIs", () => {
+test("CSS reserves stable space for guided product evidence and money KPIs", () => {
   const landingCss = read("src/components/landing-page.module.css");
+  const landingSource = read("src/components/landing-page.tsx");
   const globals = read("src/app/globals.css");
   assert.match(landingCss, /\.hero\b/);
-  assert.match(landingCss, /min-height:\s*calc\(100svh - 72px\)/);
-  assert.match(landingCss, /\.proofStage\b/);
-  assert.match(landingCss, /\.proofStage[\s\S]*min-height:\s*670px/);
-  assert.match(landingCss, /\.accountShot[\s\S]*width:\s*72%/);
+  assert.match(
+    landingCss,
+    /min-height:\s*min\(760px,\s*calc\(100svh - 72px\)\)/,
+  );
+  assert.match(landingCss, /\.storyFigure\b/);
+  assert.match(landingCss, /\.storyFigure img[\s\S]*width:\s*100%/);
+  assert.match(landingCss, /\.storyFigure img[\s\S]*height:\s*auto/);
+  assert.match(landingSource, /width=\{step\.width\}/);
+  assert.match(landingSource, /height=\{step\.height\}/);
   assert.match(globals, /\.insights-kpi strong/);
   assert.match(globals, /font-variant-numeric:\s*tabular-nums/);
 });
