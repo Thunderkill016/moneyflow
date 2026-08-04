@@ -1,6 +1,6 @@
 # MoneyFlow logo identity
 
-**Status:** approved — canonical logo v2
+**Status:** approved — canonical logo v3
 **Approved by:** MoneyFlow owner
 **Approved on:** 2026-08-04
 **Brand authority:** [`../brand/MONEYFLOW_BRAND_GUIDELINES.md`](../brand/MONEYFLOW_BRAND_GUIDELINES.md)
@@ -47,20 +47,20 @@ Use `MoneyFlow` exactly. Product UI may render the wordmark with Inter SemiBold 
 
 | Role | Light/default | Dark appearance |
 |---|---|---|
-| Flow arms | `#0EA5E9` | `#38BDF8` |
+| Flow arms | `#3445FB` | `#7583FF` |
 | Gate and wordmark | `#101828` | `#FFFFFF` |
 | Inverse mark | `#FFFFFF` | `#FFFFFF` |
-| App-icon background | `#0EA5E9` | same asset |
+| App-icon background | `#3445FB` | same asset |
 | App-icon symbol | `#FFFFFF` | same asset |
 
-The primary brand color is fresh blue `#0EA5E9`. Interaction blue uses the darker ramp beginning at `#0284C7`. Functional info remains a separate true blue family (`#3B82F6` / `#2563EB`) and must not replace the identity color. Green, red, yellow and indigo remain reserved for income/success, expense/danger, warning and transfer meaning.
+The primary brand color is Neon Blue `#3445FB`. It is also the primary interaction color because white text on this blue exceeds WCAG AA for normal text. Hover uses `#2938E8`; pressed uses `#202DC4`. Dark mode uses the lighter `#7583FF` step with dark on-brand text where required. Functional info remains a separate true-blue family (`#3B82F6` / `#2563EB`) and must not replace the identity color. Green, red, yellow and indigo remain reserved for income/success, expense/danger, warning and transfer meaning.
 
 ## Approved variants
 
-1. Primary: fresh-blue flow, dark gate and dark wordmark.
-2. Dark mode: lighter fresh-blue flow, white gate and white wordmark.
-3. Inverse: all white on a brand or dark surface.
-4. App icon: fresh-blue rounded container with all-white symbol.
+1. Primary: Neon Blue flow, dark gate and dark wordmark.
+2. Dark mode: lighter Neon Blue flow, white gate and white wordmark.
+3. Inverse: all white on a Neon Blue or dark surface.
+4. App icon: Neon Blue rounded container with all-white symbol.
 
 Geometry remains unchanged across variants.
 
@@ -90,7 +90,7 @@ Do not:
 - add arrows, charts, percentages, coins, wallets or currency symbols;
 - put the full wordmark inside an app icon;
 - recolor it with semantic income, expense, transfer or warning tokens;
-- revive the retired green M, rice/coin or M/F/O directions;
+- revive the retired green M, rice/coin, M/F/O or Fresh Blue directions;
 - recreate the symbol with a CSS polygon or unrelated SVG path.
 
 ## Release verification
