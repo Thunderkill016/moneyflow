@@ -9,13 +9,15 @@ type TenantTable = {
   ownerColumn: "id" | "user_id";
 };
 
-/** Every persisted tenant table in the MoneyFlow schema. */
+/** Every persisted tenant table in the current MoneyFlow schema. */
 const TENANT_TABLES: readonly TenantTable[] = [
   { table: "profiles", ownerColumn: "id" },
   { table: "accounts", ownerColumn: "user_id" },
   { table: "categories", ownerColumn: "user_id" },
   { table: "financial_transactions", ownerColumn: "user_id" },
   { table: "transaction_entries", ownerColumn: "user_id" },
+  { table: "financial_mutation_audit_events", ownerColumn: "user_id" },
+  { table: "transaction_import_provenance", ownerColumn: "user_id" },
   { table: "monthly_budgets", ownerColumn: "user_id" },
   { table: "recurring_commitments", ownerColumn: "user_id" },
   { table: "commitment_occurrences", ownerColumn: "user_id" },
@@ -25,6 +27,9 @@ const TENANT_TABLES: readonly TenantTable[] = [
   { table: "savings_goal_allocations", ownerColumn: "user_id" },
   { table: "import_batches", ownerColumn: "user_id" },
   { table: "inbox_candidates", ownerColumn: "user_id" },
+  { table: "inbox_rules", ownerColumn: "user_id" },
+  { table: "account_reconciliations", ownerColumn: "user_id" },
+  { table: "account_reconciliation_events", ownerColumn: "user_id" },
 ] as const;
 
 function json(status: number, body: Record<string, unknown>) {

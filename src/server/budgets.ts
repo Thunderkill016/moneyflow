@@ -43,7 +43,9 @@ export function currentMonthStart() {
 
 function safePositiveMoney(value: unknown) {
   const amount = Number(value);
-  if (!Number.isSafeInteger(amount) || amount < 0) throw new Error("invalid_budget_money");
+  if (!Number.isSafeInteger(amount) || amount < 0) {
+    throw new Error("invalid_budget_money");
+  }
   return amount;
 }
 
@@ -62,7 +64,8 @@ export function mapBudgetRow(value: unknown): BudgetSummary {
 }
 
 function demoWorkspace(monthStart: string): BudgetsWorkspace {
-  const category = (name: string) => demoCategories.find((item) => item.name === name)!;
+  const category = (name: string) =>
+    demoCategories.find((item) => item.name === name)!;
   const food = category("Ăn uống");
   const transport = category("Di chuyển");
   const shopping = category("Mua sắm");
@@ -70,9 +73,36 @@ function demoWorkspace(monthStart: string): BudgetsWorkspace {
     monthStart,
     categories: demoCategories.filter((item) => item.kind === "expense"),
     budgets: [
-      { id: "demo-budget-food", categoryId: food.id, categoryName: food.name, categoryIcon: food.icon, categoryColor: food.color, monthStart, limit: 4_000_000, spent: 2_760_000 },
-      { id: "demo-budget-transport", categoryId: transport.id, categoryName: transport.name, categoryIcon: transport.icon, categoryColor: transport.color, monthStart, limit: 1_200_000, spent: 420_000 },
-      { id: "demo-budget-shopping", categoryId: shopping.id, categoryName: shopping.name, categoryIcon: shopping.icon, categoryColor: shopping.color, monthStart, limit: 2_000_000, spent: 1_100_000 },
+      {
+        id: "demo-budget-food",
+        categoryId: food.id,
+        categoryName: food.name,
+        categoryIcon: food.icon,
+        categoryColor: food.color,
+        monthStart,
+        limit: 4_000_000,
+        spent: 2_760_000,
+      },
+      {
+        id: "demo-budget-transport",
+        categoryId: transport.id,
+        categoryName: transport.name,
+        categoryIcon: transport.icon,
+        categoryColor: transport.color,
+        monthStart,
+        limit: 1_200_000,
+        spent: 420_000,
+      },
+      {
+        id: "demo-budget-shopping",
+        categoryId: shopping.id,
+        categoryName: shopping.name,
+        categoryIcon: shopping.icon,
+        categoryColor: shopping.color,
+        monthStart,
+        limit: 2_000_000,
+        spent: 1_100_000,
+      },
     ],
     dataError: null,
   };
@@ -84,24 +114,40 @@ export async function getBudgetsWorkspace(): Promise<BudgetsWorkspace> {
   if (viewer.isDemo) return demoWorkspace(monthStart);
 
   const supabase = await createClient();
-  if (!supabase) return { budgets: [], categories: [], monthStart, dataError: "Không thể kết nối dữ liệu ngân sách." };
+  if (!supabase) {
+    return {
+      budgets: [],
+      categories: [],
+      monthStart,
+      dataError: "Không thể kết nối dữ liệu ngân sách.",
+    };
+  }
 
   const [budgetsResult, categoriesResult] = await Promise.all([
     supabase
       .from("budget_progress")
-      .select("id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor")
+      .select(
+        "id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor",
+      )
+      .eq("user_id", viewer.id)
       .eq("month_start", monthStart)
       .order("category_name"),
     supabase
       .from("categories")
       .select("id,name,kind,icon,color")
+      .eq("user_id", viewer.id)
       .eq("kind", "expense")
       .eq("is_archived", false)
       .order("created_at"),
   ]);
 
   if (budgetsResult.error || categoriesResult.error) {
-    return { budgets: [], categories: [], monthStart, dataError: "Chưa tải được ngân sách. Hãy thử lại." };
+    return {
+      budgets: [],
+      categories: [],
+      monthStart,
+      dataError: "Chưa tải được ngân sách. Hãy thử lại.",
+    };
   }
 
   try {
@@ -112,6 +158,11 @@ export async function getBudgetsWorkspace(): Promise<BudgetsWorkspace> {
       dataError: null,
     };
   } catch {
-    return { budgets: [], categories: [], monthStart, dataError: "Dữ liệu ngân sách không đúng định dạng." };
+    return {
+      budgets: [],
+      categories: [],
+      monthStart,
+      dataError: "Dữ liệu ngân sách không đúng định dạng.",
+    };
   }
 }

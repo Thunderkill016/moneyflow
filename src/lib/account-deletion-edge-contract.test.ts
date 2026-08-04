@@ -8,13 +8,21 @@ const edgeFunction = readFileSync(
   join(root, "supabase/functions/delete-account/index.ts"),
   "utf8",
 );
-const purgeMigration = readFileSync(
+const originalPurgeMigration = readFileSync(
   join(
     root,
     "supabase/migrations/20260726000100_harden_tenant_deletion.sql",
   ),
   "utf8",
 );
+const currentPurgeMigration = readFileSync(
+  join(
+    root,
+    "supabase/migrations/20260804160000_financial_mutation_audit.sql",
+  ),
+  "utf8",
+);
+const purgeMigration = `${originalPurgeMigration}\n${currentPurgeMigration}`;
 const actions = readFileSync(join(root, "src/app/(auth)/actions.ts"), "utf8");
 const page = readFileSync(
   join(root, "src/components/delete-account-page.tsx"),
@@ -27,6 +35,8 @@ const tenantTables = [
   "categories",
   "financial_transactions",
   "transaction_entries",
+  "financial_mutation_audit_events",
+  "transaction_import_provenance",
   "monthly_budgets",
   "recurring_commitments",
   "commitment_occurrences",
@@ -36,6 +46,9 @@ const tenantTables = [
   "savings_goal_allocations",
   "import_batches",
   "inbox_candidates",
+  "inbox_rules",
+  "account_reconciliations",
+  "account_reconciliation_events",
 ];
 
 test("delete-account Edge Function authenticates and deletes only the caller", () => {
@@ -62,17 +75,17 @@ test("delete-account uses the service-role JWT for privileged operations", () =>
 
 test("tenant cleanup is one restricted database transaction", () => {
   assert.match(
-    purgeMigration,
+    currentPurgeMigration,
     /create or replace function public\.purge_user_tenant_data\(p_user_id uuid\)/i,
   );
-  assert.match(purgeMigration, /security definer/i);
-  assert.match(purgeMigration, /set search_path = ''/i);
+  assert.match(currentPurgeMigration, /security definer/i);
+  assert.match(currentPurgeMigration, /set search_path = ''/i);
   assert.match(
-    purgeMigration,
+    currentPurgeMigration,
     /revoke all on function public\.purge_user_tenant_data\(uuid\)[\s\S]*from public, anon, authenticated, service_role/i,
   );
   assert.match(
-    purgeMigration,
+    currentPurgeMigration,
     /grant execute on function public\.purge_user_tenant_data\(uuid\) to service_role/i,
   );
 
@@ -93,7 +106,7 @@ test("tenant cleanup is one restricted database transaction", () => {
     );
   }
 
-  assert.match(purgeMigration, /tenant_data_purge_incomplete/);
+  assert.match(currentPurgeMigration, /tenant_data_purge_incomplete/);
   assert.doesNotMatch(edgeFunction, /removeRemainingTenantRows/);
   assert.doesNotMatch(edgeFunction, /fallbackCleanup/);
 });
@@ -125,7 +138,10 @@ test("server action enforces confirmation and honors cleanup verification", () =
   assert.match(actions, /isDeleteConfirmValid\(confirmText\)/);
   assert.match(actions, /auth\.getUser\(\)/);
   assert.match(actions, /functions\.invoke<DeleteAccountFunctionResponse>/);
-  assert.match(actions, /body:\s*\{\s*confirm:\s*DELETE_CONFIRM_TEXT\s*\}/);
+  assert.match(
+    actions,
+    /body:\s*\{\s*confirm:\s*DELETE_CONFIRM_TEXT\s*\}/,
+  );
   assert.match(actions, /data\.ok !== true/);
   assert.match(
     actions,
