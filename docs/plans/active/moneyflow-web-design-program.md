@@ -1,18 +1,18 @@
 # MoneyFlow web design program
 
-**Status:** specified
-**Execution state:** specified
-**Active role:** planner
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** MoneyFlow owner
-**Issue/PR:** pending
+**Issue/PR:** #282
 **Last updated:** 2026-08-04
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet applies the merged Webflow, UX Pilot and Framer research to the current MoneyFlow web product. It is a design program, not permission to replace current product truth or financial behavior.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet applies the merged Webflow, UX Pilot and Framer research to the current MoneyFlow web product. External design tools may accelerate exploration, but repository code, tests and owner decisions remain authoritative.
 
 ## Outcome
 
-MoneyFlow will use one repeatable design process across public pages and the signed-in product: product truth and user jobs first, then flows and content, multiple low-fidelity structures, owner selection, system application, vertical-slice implementation, responsive/accessibility evidence and post-release learning. The first execution slice covers landing and the authentication family because those surfaces form the entry journey and already have concrete evidence gaps.
+Run one repeatable design process across MoneyFlow: product truth and user jobs first, then journeys, content, multiple structures, owner selection, system application, bounded implementation, responsive/accessibility evidence and post-release learning. The first slice covers the landing and authentication entry journey.
 
 ## Repository reconnaissance
 
@@ -20,205 +20,190 @@ MoneyFlow will use one repeatable design process across public pages and the sig
 
 - MoneyFlow is a Vietnamese manual-first personal income-and-expense ledger.
 - Public routes are Light-only; Light/Dark/System selection is restored only inside the signed-in workspace.
-- The public landing already follows value proposition → primary action → real product proof → workflow explanation → trust/control → final action.
-- Login, registration, password recovery and password update share one auth component and one supporting proof rail.
-- The landing uses real MoneyFlow screenshots from the test environment.
-- Broad responsive and browser automation exists, but final owner visual approval and physical-device evidence remain separate.
+- The landing already follows value → primary action → real product proof → workflow → control → final action.
+- The current mobile hero uses an overlapping screenshot composition that weakens proof readability at narrow widths.
+- Login, registration, recovery and password update share a proof rail whose headline currently uses login-specific language.
 
 ### Relevant repository areas
 
 | Area | Why it matters | Reuse/change/avoid |
 |---|---|---|
-| `src/components/landing-page.tsx` | Public narrative and conversion path | Reuse current product truth; change only after wireframe selection |
-| `src/components/landing-page.module.css` | Landing hierarchy, proof composition and responsive behavior | Audit stale local palette and mobile proof readability |
-| `src/components/auth-form.tsx` | Login/register/recovery/update family | Reuse behavior; make supporting content mode-specific |
-| `src/components/auth-form.module.css` | Auth layout and responsive states | Audit hierarchy and long/error states before visual change |
-| `src/components/public-brand-theme.module.css` | Public Light-only Fresh Blue authority | Keep as public semantic mapping; remove competing route-local identity values |
-| `src/app/document-theme.css` | Project semantic theme authority | Preserve identity/financial semantic separation |
-| `src/components/route-theme-boundary.tsx` | Public Light-only and workspace theme selection | Preserve current owner decision |
-| `tests/e2e/**` and UI audit harness | Browser, responsive and state evidence | Extend only for selected affected flows |
-| `docs/AI_UIUX_WORKFLOW.md` | Existing required UI/UX process | Use as execution policy |
-| `docs/research/WEB_DESIGN_PROCESS_CONVERGENCE.md` | Merged Webflow/UX Pilot/Framer synthesis | Use as operating-process evidence |
+| `src/components/landing-page.tsx` | Current production public narrative | Do not change before owner selection |
+| `src/components/landing-page.module.css` | Current proof composition and responsive behavior | Later bounded implementation target |
+| `src/components/auth-form.tsx` | Shared authentication family | Later mode-specific copy target |
+| `src/components/public-brand-theme.module.css` | Public Light-only Fresh Blue authority | Reuse unchanged |
+| `src/app/document-theme.css` | Project semantic theme authority | Preserve |
+| `src/components/design-preview/**` | Coded review prototypes | Review-only; delete before final production merge |
+| `src/app/design-preview/**` | Noindex prototype routes | Review-only; never treat as production evidence |
+| browser/UI audit harness | Responsive and accessibility evidence | Run on selected implementation |
 
 ### Existing tests and constraints
 
-- Related unit tests: brand/theme contracts, landing/public-light guardrails and auth behavior contracts.
-- Browser tests: public landing/auth smoke and cross-device Chromium/WebKit audit.
-- Product rules: no invented financial advice, no unsupported social proof, one primary action per viewport, semantic financial colors remain separate from brand color.
-- Public pages must stay Light-only.
-- No high-fidelity redesign is allowed before owner selects a low-fidelity structure.
+- B3.2 logo geometry and Fresh Blue remain canonical.
+- Public pages remain Light-only.
+- Financial semantics remain separate from brand color.
+- No invented social proof, bank connectivity, savings claim or conversion uplift.
+- One primary action per viewport.
+- Production landing/auth behavior cannot change until owner selects or combines a direction.
 
 ### Similar implementation and recent history
 
-- PR #280 restored Fresh Blue, black landing Login text and public Light-only behavior.
-- PR #281 merged the Webflow, UX Pilot and Framer research corpus and the unified design operating system.
-- Current landing and auth implementation are candidates for improvement, not a permanent named design concept.
+- PR #280 restored Fresh Blue and public Light-only behavior.
+- PR #281 merged the Webflow, UX Pilot and Framer design operating system.
+- PR #282 is the first execution of that process and remains a draft review PR.
 
 ### Open questions
 
-- [ ] Which low-fidelity public-entry structure should become the selected direction?
-- [ ] Does the mobile proof collage remain readable at 320/360/390 px under real-device conditions?
-- [ ] Which signed-in route should be the first workspace vertical slice after public entry: Dashboard, Transactions or Accounts?
-- [ ] What privacy-safe event contract will be used for post-release learning?
+- [ ] Which prototype—or combination—should become the selected production direction?
+- [ ] Which details need revision after desktop and mobile review?
+- [ ] What privacy-safe event contract will support post-release learning?
 
 ## Research
 
 ### Research scope and source selection
 
-- Decision question: how should MoneyFlow execute a complete, repeatable web-design process without allowing external design inspiration to override product truth?
-- Reference map consulted: merged UI/UX research ledger and the Webflow/UX Pilot/Framer corpus.
-- Source budget exception: the owner explicitly requested reading the public design corpus from all three sources; PR #281 records the discoverable snapshot and limits.
-- Expected decision: one MoneyFlow-specific process and the first bounded implementation slice.
+- Decision question: how should MoneyFlow redesign public entry without allowing a design tool or trend to override product truth?
+- Sources: merged Webflow synthesis, UX Pilot inventory, Framer inventory and cross-source convergence.
+- Expected decision: select one structural direction and define the first production vertical slice.
 
 ### Sources
 
 | Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
 |---|---|---|---|---|
-| `docs/research/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md` | merged internal synthesis | 2026-08-04 | user-centered process, content-first design, hierarchy, systems, accessibility and verification | does not select an aesthetic |
-| `docs/research/UXPILOT_DESIGN_CORPUS_INVENTORY.md` | merged source inventory | 2026-08-04 | UX research, flows, wireframes, prototypes, metrics and AI-assisted iteration | tool-specific claims are not binding |
-| `docs/research/FRAMER_DESIGN_CORPUS_INVENTORY.md` | merged source inventory | 2026-08-04 | responsive layout, components, animation, publishing and delivery practice | does not authorize a Framer migration |
-| `docs/research/WEB_DESIGN_PROCESS_CONVERGENCE.md` | merged MoneyFlow synthesis | 2026-08-04 | unified process from brief through post-launch learning | current product and owner decisions remain superior |
+| `docs/research/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md` | merged internal synthesis | 2026-08-04 | content-first hierarchy, systems, accessibility and verification | does not select an aesthetic |
+| `docs/research/UXPILOT_DESIGN_CORPUS_INVENTORY.md` | merged source inventory | 2026-08-04 | flows, wireframes, prototypes and evaluation | UX Pilot itself is not required |
+| `docs/research/FRAMER_DESIGN_CORPUS_INVENTORY.md` | merged source inventory | 2026-08-04 | responsive layout, components and delivery | no Framer migration |
+| `docs/research/WEB_DESIGN_PROCESS_CONVERGENCE.md` | merged MoneyFlow synthesis | 2026-08-04 | unified process from brief to learning | owner and code remain superior |
 
 ### Alternatives considered
 
 | Option | Advantages | Risks | Decision |
 |---|---|---|---|
-| Redesign the full product immediately | fast visible change | skips evidence, creates scope explosion and inconsistent routes | rejected |
-| Only document a process | low implementation risk | process would not change product behavior or review practice | rejected |
-| Run a phased program with a public-entry pilot | proves the process on a coherent journey and limits rollback | requires owner selection before visual implementation | selected |
+| Depend on UX Pilot generation | fast visual artifact when available | connector returned restricted/suggestion-only state | rejected as dependency |
+| Depend on Figma MCP generation | editable canvas | Starter plan reached MCP write limit | deferred, not blocking |
+| Coded prototypes in current stack | real responsive behavior, existing tokens/assets, Vercel review | temporary routes must not leak into final product | selected |
+| Redesign production immediately | fastest visible replacement | skips owner selection and increases rollback risk | rejected |
 
 ### Research decision
 
-Use a phased design program. The public entry journey is the pilot because it has one clear conversion path, shared brand authority, real product proof and a bounded auth family. Three genuinely different low-fidelity structures will be generated and reviewed before any high-fidelity visual redesign. Current Fresh Blue identity, B3.2 geometry, public Light-only behavior and financial semantic colors remain active.
+Use design-in-code as the review medium. Three structurally different prototypes run in the current Next.js stack under noindex `/design-preview/*` routes. They use current product truth, Fresh Blue, B3.2 and test-environment product assets. They do not replace production landing/auth routes and must be removed before the selected production implementation is merged.
 
 ### Adoption review
 
-Not applicable. No new runtime dependency, provider, framework or platform migration is authorized.
+No dependency, provider, framework or architecture pattern was added. The prototypes reuse existing Next.js, React, CSS Modules, Lucide, brand components and product media.
 
 ## Specification
 
 ### Problem
 
-MoneyFlow has extensive design research and strong implementation coverage, but the process has not yet been executed as one durable end-to-end program across the web. Current landing/auth surfaces contain known inconsistencies: auth supporting copy is not mode-specific, route-local legacy palette declarations still exist beside the semantic authority, and the mobile screenshot collage has not been accepted as readable evidence on real devices.
+The design process required comparable, responsive artifacts, but UX Pilot access was restricted and Figma generation reached the connected plan limit. Blocking on those tools would turn the process into documentation only. MoneyFlow needs reviewable alternatives without changing production behavior.
 
 ### User stories
 
-- As a first-time visitor, I can understand what MoneyFlow does, see real product evidence and choose the next action without decoding decorative content.
-- As a returning user, I can reach login quickly and read supporting content that matches the task I am performing.
-- As a registering or recovering user, I receive mode-specific context and recovery guidance.
-- As a mobile user, I can read the product proof and activate the primary action without horizontal overflow or hidden controls.
-- As the owner, I can compare genuinely different structures before committing implementation effort.
+- As the owner, I can open three real responsive prototypes and compare hierarchy and flow.
+- As a mobile reviewer, I can read each product proof as a linear card rather than a shrunken collage.
+- As the implementation team, I can translate the selected prototype using existing tokens and components.
 
 ### Acceptance criteria
 
-- [ ] A complete route and journey audit exists for public entry and the first signed-in destination.
-- [ ] Three low-fidelity public-entry directions differ in hierarchy or flow, not only styling.
-- [ ] Each direction includes 320/390 mobile and desktop intent, content order, primary action and trade-offs.
-- [ ] Owner selects one direction before high-fidelity implementation.
-- [ ] Auth supporting content is mode-specific in the selected implementation.
-- [ ] Public Fresh Blue roles come from the semantic authority; no competing legacy brand palette remains active.
-- [ ] Mobile product proof is readable at 320/360/390 px or replaced with a task-focused linear/cropped proof structure.
-- [ ] Selected changes pass exact-head static, unit, build, Chromium/WebKit and responsive checks.
-- [ ] Public routes remain Light-only and workspace theme choice remains unchanged.
-- [ ] No financial, database, auth-provider or production-data behavior changes.
+- [x] Public journey and current problems are audited.
+- [x] Three directions differ by hierarchy/flow, not just color.
+- [x] Each direction has a coded responsive route and representative Vietnamese content.
+- [x] Preview routes are marked `noindex, nofollow` and are not linked from production navigation.
+- [x] Production landing, auth, financial, database and provider behavior are unchanged.
+- [ ] Exact-head static, unit, build, CodeQL, secret and selected browser gates pass.
+- [ ] A reviewable deployment URL is available or the preview limitation is recorded honestly.
+- [ ] Owner selects, combines or rejects the prototypes.
+- [ ] Selected production implementation removes the temporary preview routes.
 
 ### Required states
 
-- Loading: auth submission and CAPTCHA state remain visible and understandable.
-- Empty: public proof never depends on private user data.
-- Populated: representative Vietnamese copy and long labels are used.
-- Validation/error: field-local errors and generic account-safe responses remain understandable.
-- Recovery/undo: forgot/reset/session recovery paths remain explicit.
-- Long data / large VND: screenshots and signed-in pilot route must not truncate important values.
-- Mobile/tablet/desktop: 320, 360, 390, tablet and desktop intent are documented and verified.
-- Accessibility: semantic landmarks, heading order, keyboard focus, target size, contrast, 200% text and reduced motion.
+- Mobile/tablet/desktop: prototypes reflow at 320–390px, tablet and desktop intent.
+- Long content: representative Vietnamese copy can wrap without clipping.
+- Accessibility: semantic sections, named navigation, keyboard links, focus and reduced motion.
+- Product media: only existing test-environment screenshots with truthful alt text.
 
 ### Financial and security constraints
 
-- No guessed financial data, savings claim or recommendation.
-- Integer VND and transfer invariants remain untouched.
-- No RLS, ownership, provider or authentication semantics change in this design slice.
-- No invented testimonials, user counts, bank connectivity or performance claims.
+- No guessed balances, savings or financial advice.
+- No financial logic, authentication semantics, RLS or provider changes.
+- Preview CTAs point to existing public routes and do not bypass authentication.
 
 ### Out of scope
 
-- Bank sync, AI advice, OCR identity, investments, household finance or full budgeting-method changes.
-- A full product-wide high-fidelity rewrite in one PR.
-- Replacing Next.js with Webflow, UX Pilot or Framer.
-- Changing B3.2 logo geometry or the approved Fresh Blue identity without a new owner decision.
+- Production redesign before owner selection.
+- Bank sync, AI advice, OCR identity, investment or household-finance expansion.
+- New design/runtime framework.
+- Keeping `/design-preview/*` after the review lifecycle.
 
 ## Implementation plan
 
 ### Architecture fit
 
-The existing React components, CSS Modules and semantic theme authority own the public experience. UX Pilot may be used only to generate review artifacts; selected implementation must live in the existing production codebase. The packet owns execution state and evidence.
+Review prototypes live in isolated App Router pages and one isolated component/CSS module. They consume the current public theme and shared brand component. Production routes remain untouched.
 
 ### Planned changes
 
 | File/area | Change | Reason |
 |---|---|---|
-| `docs/plans/active/moneyflow-web-design-program.md` | Track the program, decisions, tasks and evidence | Durable execution authority |
-| UX Pilot workspace | Generate three public-entry wireframe directions | Required divergence before convergence |
-| `docs/design/` or packet appendix | Record selected wireframe and rejected alternatives | Prevent implicit concept reuse |
-| `src/components/auth-form.tsx` | Make proof-rail copy mode-specific after structure selection | Current content mismatch |
-| `src/components/landing-page.module.css` | Remove/quarantine stale local identity palette; adjust mobile proof only with evidence | One semantic authority and readable mobile proof |
-| `src/components/public-brand-theme.module.css` | Keep public Fresh Blue Light-only mapping authoritative | Prevent design-system drift |
-| relevant unit/browser tests | Lock selected content, theme and responsive behavior | Permanent regression evidence |
+| `src/components/design-preview/**` | Three coded prototypes and review toolbar | Compare real responsive structures |
+| `src/app/design-preview/**` | Isolated noindex review routes | Open each direction directly |
+| packet/PR memory | Record tool limitations and review state | Durable truthful handoff |
+| production landing/auth | No change until owner selection | Preserve gate order |
 
 ### Data and migration impact
 
-- Schema/migration: none.
-- Backfill: none.
-- Compatibility: public and auth routes keep existing URLs and behavior.
-- Rollback: revert the focused visual/content commit; semantic theme and route behavior remain independently protected.
+- Schema/migration/backfill: none.
+- Compatibility: existing production URLs and behavior unchanged.
+- Rollback: delete isolated preview routes/components.
 
 ### Risks and counterexamples
 
 | Risk/counterexample | Prevention or test |
 |---|---|
-| Attractive wireframe weakens product truth | score against user job, financial honesty and real feature evidence |
-| Three directions are only color variants | require different content hierarchy or interaction structure |
-| Mobile screenshot proof becomes unreadable | 320/360/390 screenshots plus physical-device review before acceptance |
-| Auth copy exposes account existence | preserve server-owned generic responses and security contract |
-| Local CSS reintroduces brand drift | CSS ownership and permanent theme tests |
-| Process becomes documentation-only | complete one vertical slice and archive evidence after merge |
+| Prototype becomes accidental production surface | noindex, no production navigation link, delete before final merge |
+| Tool failure is presented as successful generation | record exact UX Pilot/Figma limitation |
+| Three directions collapse into styling variants | distinct proof-first, story-led and task-led structures |
+| Mobile proof remains unreadable | full-width linear proof cards below responsive breakpoint |
+| Preview copy implies unsupported capability | reuse current MoneyFlow product truth only |
 
 ### Verification plan
 
-- Static: diff hygiene, knowledge contract, CSS ownership, architecture, lint and typecheck.
-- Unit/domain: public theme, landing/auth copy and route contracts.
-- Database: not applicable.
-- Browser flow: landing → register/login; auth mode navigation and recovery links.
-- Responsive/visual: 320/360/390/tablet/desktop, Chromium/WebKit, 200% text and reduced motion.
-- Production/manual: owner visual review and physical-phone proof before claiming mobile-ready.
+- Static: diff hygiene, knowledge contract, CSS ownership, architecture, lint, typecheck.
+- Unit/build: existing test suite and production build.
+- Browser: prototype routes load; no horizontal overflow; links and headings work.
+- Responsive: 320/360/390/tablet/desktop and Chromium/WebKit where selected.
+- Manual: owner reviews desktop and phone before selecting production direction.
 
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| T1 | Create active packet and lock scope | merged PR #281 | this packet | done |
-| T2 | Audit public route journey, content and responsive evidence | T1 | route/content/state matrix | in_progress |
-| T3 | Generate three low-fidelity public-entry directions | T2 | UX Pilot artifacts + rationale | todo |
-| T4 | Owner selects or requests iteration | T3 | recorded owner decision | blocked |
-| T5 | Implement selected public-entry vertical slice | T4 | focused code diff | blocked |
-| T6 | Independent UI/UX and accessibility evaluation | T5 | review findings | blocked |
-| T7 | Exact-head verification and owner visual review | T6 | CI/browser/physical evidence | blocked |
-| T8 | Merge, production verification and archive packet | T7 | PR/deployment record | blocked |
-| T9 | Select first signed-in route and repeat process | T8 | next active packet/slice | blocked |
+| T1 | Create active packet and lock scope | PR #281 | packet | done |
+| T2 | Audit public journey/content/responsive risks | T1 | audit document | done |
+| T3 | Define three structural directions | T2 | direction document | done |
+| T4 | Build coded responsive prototypes | T3 | `/design-preview/*` routes | done |
+| T5 | Exact-head verification and preview deployment | T4 | CI/deployment evidence | in_progress |
+| T6 | Owner selects, combines or rejects | T5 | recorded owner decision | blocked |
+| T7 | Implement selected production slice and remove previews | T6 | focused production diff | blocked |
+| T8 | Independent UI/accessibility review | T7 | review evidence | blocked |
+| T9 | Merge, production verification and archive | T8 | merge/deployment record | blocked |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-04 | researcher | planner | specified | merged PR #281 + active packet | mobile proof readability and selected structure unresolved | audit current public journey and generate low-fidelity directions |
+| 2026-08-04 | researcher | planner | specified | PR #281 + audit + three directions | selection unresolved | Generate review artifacts |
+| 2026-08-04 | planner | implementer | implementing | UX Pilot restricted; Figma limit recorded | external design canvas unavailable | Build isolated coded prototypes |
+| 2026-08-04 | implementer | evaluator | evaluating | four noindex preview routes on PR #282 | final CI and share URL pending | Verify exact head and present prototypes |
 
 ### Current permission boundary
 
-- Granted scope: create branch/PR artifacts, wireframes and bounded public-entry implementation after owner selection.
-- Exact repositories/providers/resources: `Thunderkill016/moneyflow`; UX Pilot design workspace for review artifacts.
-- Forbidden writes: direct `main`, provider configuration, production data, database/auth changes and unapproved high-fidelity redesign.
-- Human approval required before: selecting one wireframe direction, merging and production rollout.
-- Rollback or stop condition: stop if a direction requires unsupported product claims, financial behavior changes or a new brand decision.
+- Granted scope: branch/PR artifacts and isolated review routes.
+- Exact repository: `Thunderkill016/moneyflow` branch `design/moneyflow-web-design-program`.
+- Forbidden writes: direct main, provider configuration, production data, database/auth changes and production landing replacement before owner selection.
+- Human approval required before: selecting a direction, applying it to production routes and merge.
+- Stop condition: unsupported claims, product-scope expansion or financial/auth behavior changes.
 
 ## Evaluation
 
@@ -226,38 +211,40 @@ The existing React components, CSS Modules and semantic theme authority own the 
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Program scope and authority recorded | active packet | pass |
-| Three different low-fidelity structures | pending | pending |
-| Owner selection before implementation | pending | pending |
-| Public Light-only and Fresh Blue preserved | pending implementation evidence | pending |
-| Mobile/browser/accessibility verification | pending | pending |
+| Audit and three distinct directions | design docs | pass |
+| Real responsive review artifacts | coded prototype routes | pass pending deployment smoke |
+| Production routes untouched | branch diff | pass |
+| Exact-head CI/browser evidence | active workflow runs | pending |
+| Owner selection | pending review | pending |
 
 ### Research and adoption evidence
 
-- Selected sources support the phased process and low-fidelity divergence.
-- Vendor/tool claims remain non-binding and no platform migration is authorized.
-- No new runtime tool or dependency is adopted.
+- The final artifact preserves the source-derived process without depending on a vendor tool.
+- No new dependency/provider was adopted.
+- Tool limitations are recorded rather than presented as successful output.
 
 ### Review findings
 
-- Correctness: pending.
-- Security/ownership: current auth/provider behavior must remain unchanged.
-- UI/UX/accessibility: pending wireframe and implementation review.
-- Maintainability/duplication: semantic theme authority must remain single-source.
-- Scope compliance: only public entry in the first slice.
+- Correctness: prototypes use existing routes/assets and product claims.
+- Security/ownership: no auth/provider/data behavior changed.
+- UI/UX/accessibility: final browser and owner review pending.
+- Maintainability: isolated temporary component and routes; no parallel production theme.
+- Scope: public-entry review artifacts only.
 
 ### Remaining limitations
 
-- Owner selection is required before visual implementation.
-- Physical-device evidence has not yet been produced.
-- Privacy-safe conversion measurement contract is not yet specified.
+- UX Pilot generation is unavailable through the current connector.
+- Figma MCP canvas generation is limited by the connected Starter plan.
+- Preview deployment URL and exact-head checks remain pending.
+- Owner has not selected a production direction.
 
 ## Delivery record
 
 - Branch: `design/moneyflow-web-design-program`
-- PR: pending
+- PR: #282, draft
 - Squash commit: pending
-- CI run: pending
-- Production deployment: not applicable until implementation slice
-- Production flow verified: pending
+- CI run: pending final exact head
+- Preview deployment: pending
+- Production deployment: not applicable
+- Production flow verified: not applicable; production routes unchanged
 - Work packet moved to `docs/plans/completed/`: pending
