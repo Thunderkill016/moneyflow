@@ -1,6 +1,6 @@
 # Webflow Design research decision log
 
-**Date:** 2026-08-04  
+**Date:** 2026-08-04
 **Status impact:** design process and research navigation only; no runtime or current capability change
 
 ## Adopt now
