@@ -5,23 +5,23 @@
  * canvas, focus visibility, type roles and motion values. Components consume
  * --mf-* roles; route-level styling must not create an independent palette.
  *
- * Brand v2 uses the classic blue identity with the approved B3.2 symbol.
+ * Brand v2 uses a fresh sky-blue identity with the approved B3.2 symbol.
  * Supporting colors remain adjacent to blue. Green, red, yellow and indigo are
  * reserved for financial or functional meaning rather than decoration.
  */
 :root {
-  /* Brand blue ramp */
-  --mf-brand-50: #eff6ff;
-  --mf-brand-100: #dbeafe;
-  --mf-brand-200: #bfdbfe;
-  --mf-brand-300: #93c5fd;
-  --mf-brand-400: #60a5fa;
-  --mf-brand-500: #3b82f6;
-  --mf-brand-600: #2563eb;
-  --mf-brand-700: #1d4ed8;
-  --mf-brand-800: #1e40af;
-  --mf-brand-900: #1e3a8a;
-  --mf-brand-950: #172554;
+  /* Fresh-blue brand ramp */
+  --mf-brand-50: #f0f9ff;
+  --mf-brand-100: #e0f2fe;
+  --mf-brand-200: #bae6fd;
+  --mf-brand-300: #7dd3fc;
+  --mf-brand-400: #38bdf8;
+  --mf-brand-500: #0ea5e9;
+  --mf-brand-600: #0284c7;
+  --mf-brand-700: #0369a1;
+  --mf-brand-800: #075985;
+  --mf-brand-900: #0c4a6e;
+  --mf-brand-950: #082f49;
 
   /* Harmonized supporting palette */
   --mf-sky-50: #f0f9ff;
@@ -56,11 +56,12 @@
   --mf-border: #d0d5dd;
   --mf-border-strong: #98a2b3;
 
-  /* Brand and interaction roles */
+  /* Brand and interaction roles. Identity stays vivid; action uses a darker
+   * step so white button text remains above the 4.5:1 contrast threshold. */
   --mf-brand-identity: var(--mf-brand-500);
-  --mf-brand: var(--mf-brand-600);
-  --mf-brand-hover: var(--mf-brand-700);
-  --mf-brand-pressed: var(--mf-brand-800);
+  --mf-brand: var(--mf-brand-700);
+  --mf-brand-hover: var(--mf-brand-800);
+  --mf-brand-pressed: var(--mf-brand-900);
   --mf-brand-subtle: var(--mf-brand-50);
   --mf-brand-text: var(--mf-brand-700);
   --mf-on-brand: #ffffff;
@@ -104,7 +105,7 @@
   --mf-stage-muted: var(--mf-text-muted);
 
   --mf-focus: var(--mf-brand-500);
-  --mf-focus-ring: rgb(59 130 246 / 18%);
+  --mf-focus-ring: rgb(14 165 233 / 18%);
   --mf-overlay: rgb(12 17 29 / 58%);
   --mf-shadow-sm: 0 1px 2px rgb(16 24 40 / 6%);
   --mf-shadow-md: 0 18px 48px rgb(16 24 40 / 10%);
@@ -131,17 +132,17 @@
 
 html[data-theme="dark"] {
   /* Keep hue identity; move readable roles to lighter steps. */
-  --mf-brand-50: #172554;
-  --mf-brand-100: #1e3a8a;
-  --mf-brand-200: #1e40af;
-  --mf-brand-300: #2563eb;
-  --mf-brand-400: #3b82f6;
-  --mf-brand-500: #60a5fa;
-  --mf-brand-600: #60a5fa;
-  --mf-brand-700: #93c5fd;
-  --mf-brand-800: #bfdbfe;
-  --mf-brand-900: #dbeafe;
-  --mf-brand-950: #eff6ff;
+  --mf-brand-50: #082f49;
+  --mf-brand-100: #0c4a6e;
+  --mf-brand-200: #075985;
+  --mf-brand-300: #0369a1;
+  --mf-brand-400: #0284c7;
+  --mf-brand-500: #38bdf8;
+  --mf-brand-600: #38bdf8;
+  --mf-brand-700: #7dd3fc;
+  --mf-brand-800: #bae6fd;
+  --mf-brand-900: #e0f2fe;
+  --mf-brand-950: #f0f9ff;
 
   --mf-canvas: #0c111d;
   --mf-surface: #101828;
@@ -153,13 +154,13 @@ html[data-theme="dark"] {
   --mf-border: #344054;
   --mf-border-strong: #475467;
 
-  --mf-brand-identity: #60a5fa;
-  --mf-brand: #60a5fa;
-  --mf-brand-hover: #93c5fd;
-  --mf-brand-pressed: #3b82f6;
-  --mf-brand-subtle: #172554;
-  --mf-brand-text: #93c5fd;
-  --mf-on-brand: #0c111d;
+  --mf-brand-identity: #38bdf8;
+  --mf-brand: #38bdf8;
+  --mf-brand-hover: #7dd3fc;
+  --mf-brand-pressed: #0ea5e9;
+  --mf-brand-subtle: #082f49;
+  --mf-brand-text: #7dd3fc;
+  --mf-on-brand: #082f49;
 
   --mf-income: #4ade80;
   --mf-income-subtle: #14532d;
@@ -196,8 +197,8 @@ html[data-theme="dark"] {
   --mf-stage-text: var(--mf-text);
   --mf-stage-muted: var(--mf-text-muted);
 
-  --mf-focus: #60a5fa;
-  --mf-focus-ring: rgb(96 165 250 / 24%);
+  --mf-focus: #38bdf8;
+  --mf-focus-ring: rgb(56 189 248 / 24%);
   --mf-overlay: rgb(0 0 0 / 74%);
   --mf-shadow-sm: 0 1px 2px rgb(0 0 0 / 24%);
   --mf-shadow-md: 0 18px 48px rgb(0 0 0 / 32%);
@@ -227,14 +228,14 @@ body {
 /* Loaded after globals.css, so this is the final ambient product canvas. */
 body::before {
   background:
-    radial-gradient(circle at 78% -18%, rgb(59 130 246 / 10%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(14 165 233 / 5%), transparent 28rem) !important;
+    radial-gradient(circle at 78% -18%, rgb(14 165 233 / 10%), transparent 35rem),
+    radial-gradient(circle at -12% 30%, rgb(6 182 212 / 5%), transparent 28rem) !important;
 }
 
 html[data-theme="dark"] body::before {
   background:
-    radial-gradient(circle at 78% -18%, rgb(96 165 250 / 12%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(79 70 229 / 7%), transparent 28rem) !important;
+    radial-gradient(circle at 78% -18%, rgb(56 189 248 / 12%), transparent 35rem),
+    radial-gradient(circle at -12% 30%, rgb(6 182 212 / 7%), transparent 28rem) !important;
 }
 
 :focus-visible {
