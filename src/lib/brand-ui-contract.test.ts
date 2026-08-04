@@ -90,7 +90,7 @@ test("landing and auth use the shared brand component", () => {
   assert.doesNotMatch(auth, /className=\{styles\.brandMark\}/u);
 });
 
-test("public routes consume the fresh-blue project color authority", () => {
+test("public routes consume the established-blue project color authority", () => {
   assert.match(
     landing,
     /import themeStyles from "\.\/public-brand-theme\.module\.css"/u,
@@ -106,16 +106,20 @@ test("public routes consume the fresh-blue project color authority", () => {
   assert.match(publicTheme, /--auth-accent:\s*var\(--mf-brand\)/u);
   assert.match(publicTheme, /--public-stage:\s*var\(--mf-stage\)/u);
   assert.match(publicTheme, /--auth-stage:\s*var\(--mf-stage\)/u);
+  assert.match(
+    publicTheme,
+    /\.landingTheme header a\[href="\/login"\]\s*\{[\s\S]*color:\s*var\(--public-ink\)/u,
+  );
 
   assert.match(documentTheme, /--mf-canvas:\s*#f8fafc/u);
   assert.match(documentTheme, /--mf-surface:\s*#ffffff/u);
-  assert.match(documentTheme, /--mf-brand-500:\s*#0ea5e9/u);
-  assert.match(documentTheme, /--mf-brand-600:\s*#0284c7/u);
-  assert.match(documentTheme, /--mf-brand-700:\s*#0369a1/u);
+  assert.match(documentTheme, /--mf-brand-500:\s*#3b82f6/u);
+  assert.match(documentTheme, /--mf-brand-600:\s*#2563eb/u);
+  assert.match(documentTheme, /--mf-brand-700:\s*#1d4ed8/u);
   assert.match(documentTheme, /--mf-brand-identity:\s*var\(--mf-brand-500\)/u);
-  assert.match(documentTheme, /--mf-brand:\s*var\(--mf-brand-700\)/u);
-  assert.match(documentTheme, /--mf-brand-hover:\s*var\(--mf-brand-800\)/u);
-  assert.match(documentTheme, /--mf-brand-pressed:\s*var\(--mf-brand-900\)/u);
+  assert.match(documentTheme, /--mf-brand:\s*var\(--mf-brand-600\)/u);
+  assert.match(documentTheme, /--mf-brand-hover:\s*var\(--mf-brand-700\)/u);
+  assert.match(documentTheme, /--mf-brand-pressed:\s*var\(--mf-brand-800\)/u);
   assert.match(documentTheme, /--mf-cyan-500:\s*#06b6d4/u);
   assert.match(documentTheme, /--mf-indigo-500:\s*#6366f1/u);
   assert.match(documentTheme, /--mf-periwinkle-500:\s*#8b9cf6/u);
@@ -129,10 +133,10 @@ test("public routes consume the fresh-blue project color authority", () => {
   assert.doesNotMatch(documentTheme, /Signal Ledger/u);
 });
 
-test("fresh-blue action pairs preserve normal-text contrast", () => {
-  assert.ok(contrastRatio("#0369A1", "#FFFFFF") >= 4.5);
-  assert.ok(contrastRatio("#38BDF8", "#082F49") >= 4.5);
-  assert.ok(contrastRatio("#0EA5E9", "#101828") >= 4.5);
+test("restored blue action pairs preserve normal-text contrast", () => {
+  assert.ok(contrastRatio("#2563EB", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#60A5FA", "#0C111D") >= 4.5);
+  assert.ok(contrastRatio("#3B82F6", "#101828") >= 4.5);
 });
 
 test("installed and social assets use the fresh-blue identity", () => {
