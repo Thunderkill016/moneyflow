@@ -56,11 +56,15 @@ test("public entry routes stay light while workspace routes restore the saved th
     /import \{ RouteThemeBoundary \} from "@\/components\/route-theme-boundary"/,
   );
   assert.match(rootLayout, /<RouteThemeBoundary \/>/);
-  assert.match(rootLayout, /publicLightPaths = \['\/', '\/login', '\/register'/);
+  assert.match(
+    rootLayout,
+    /publicLightPaths = \['\/', '\/landing', '\/login', '\/register'/,
+  );
   assert.match(rootLayout, /if \(!isPublicLight\)/);
   assert.match(rootLayout, /localStorage\.getItem\('moneyflow-theme'\)/);
 
   assert.match(routeThemeBoundary, /PUBLIC_LIGHT_PATHS/);
+  assert.match(routeThemeBoundary, /"\/landing"/);
   assert.match(routeThemeBoundary, /"\/login"/);
   assert.match(routeThemeBoundary, /"\/register"/);
   assert.match(routeThemeBoundary, /"\/privacy"/);
