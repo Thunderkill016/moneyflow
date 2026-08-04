@@ -7,6 +7,7 @@ const responsiveSpec = /responsive\.audit\.spec\.ts/;
 const criticalBrowserSpec = /critical-browser\.audit\.spec\.ts/;
 const safetyReviewSpec = /safety-review-states\.audit\.spec\.ts/;
 const reportsCustomRangeSpec = /reports-custom-range\.audit\.spec\.ts/;
+const budgetMonthHistorySpec = /budget-month-history\.audit\.spec\.ts/;
 const textScaleSpec = /text-scale\.audit\.spec\.ts/;
 const keyboardSpec = /keyboard\.audit\.spec\.ts/;
 
@@ -161,6 +162,34 @@ export default defineConfig({
     {
       name: "webkit-reports-phone",
       testMatch: reportsCustomRangeSpec,
+      use: {
+        browserName: "webkit",
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "chromium-budgets-phone",
+      testMatch: budgetMonthHistorySpec,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "chromium-budgets-desktop",
+      testMatch: budgetMonthHistorySpec,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 1366, height: 768 },
+      },
+    },
+    {
+      name: "webkit-budgets-phone",
+      testMatch: budgetMonthHistorySpec,
       use: {
         browserName: "webkit",
         viewport: { width: 390, height: 844 },
