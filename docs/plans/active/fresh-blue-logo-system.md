@@ -1,14 +1,14 @@
 # Fresh-blue logo system rollout
 
-**Status:** candidate
-**Execution state:** exact_head_verification
+**Status:** verified implementation, final documentation rerun pending
+**Execution state:** ready_for_owner_merge_after_final_checks
 **Active responsibility:** evaluator
 **Permission scope:** branch write, PR metadata, exact-head verification, owner-authorized merge
 **Owner:** Thunderkill016
 **PR:** #277
 **Baseline:** `main@105d6e6e3d77b6efbae385f83f7fe54d2393724b`
 **Branch:** `style/fresh-blue-logo-system`
-**Implementation commit:** `599fb59cc1df61acbce2acaddb9ec6492777aa19`
+**Verified implementation head:** `611a067d8c91f174a0cf19f45bc291d6be911773`
 **Last updated:** 2026-08-04
 
 ## Outcome
@@ -82,9 +82,11 @@ The same geometry must appear in the shared product lockup, signed-in shell icon
 - [x] brand ramp is fresh blue and info blue remains separate;
 - [x] light and dark filled action pairs meet normal-text contrast;
 - [x] old green M geometry and `#0B6B3A` do not remain in canonical assets;
-- [ ] all binary assets decode in the production build;
-- [ ] full UI-selected exact-head CI, CodeQL and secret scan pass;
-- [ ] owner-authorized merge uses the verified head SHA.
+- [x] all binary assets decode in the production build;
+- [x] implementation head passes full UI-selected CI, CodeQL and secret scan;
+- [x] generated landing, login, mobile, dark and signed-in shell evidence was visually reviewed;
+- [ ] final documentation head passes exact-head checks;
+- [ ] owner-authorized merge uses the verified final SHA.
 
 ## Implementation plan
 
@@ -115,15 +117,23 @@ The same geometry must appear in the shared product lockup, signed-in shell icon
 | T3 | apply fresh-blue semantic roles | done | identity/action/info separation in `document-theme.css` |
 | T4 | add source, geometry and contrast contracts | done | brand, dark-mode and SEO tests |
 | T5 | correct packet and diff hygiene | done | required sections and whitespace cleanup |
-| T6 | replace corrupt favicon and verify raster assets | in_progress | production build exposed corrupt ICO |
-| T7 | run exact-head CI and inspect browser evidence | blocked | waits for T6 final head |
-| T8 | merge exact verified head | blocked | owner authorization exists; checks still required |
+| T6 | replace corrupt favicon and verify raster assets | done | valid 16/32 ICO and successful production build |
+| T7 | run exact-head CI and inspect browser evidence | done | CI #1453, CodeQL/secret #589 and artifact review |
+| T8 | final documentation rerun | in_progress | resulting PR head |
+| T9 | merge exact verified head | blocked | owner authorization exists; waits for T8 |
 
 ## Evaluation
 
 The first candidate was not acceptable for merge. Exact-head gates found trailing Markdown whitespace, missing packet sections, a stale SEO assertion and a corrupt favicon that Turbopack could not decode. Audit also found that using `#0284C7` directly behind white normal text would fall below `4.5:1`, so action roles were moved to the darker `#0369A1` step while the logo identity remains vivid `#0EA5E9`.
 
-These findings are being fixed without weakening any gate. The candidate remains unverified until the regenerated binary assets build, unit/policy shards pass, browser and cross-device audits complete and the generated evidence is reviewed.
+All findings were corrected without weakening a gate. On implementation head `611a067d8c91f174a0cf19f45bc291d6be911773`, CI #1453 passed policy, CSS ownership, architecture, lint, typecheck, unit/static RLS, production build, Chromium browser smoke, Chromium/WebKit cross-device UI audit, `verify` and `e2e`. CodeQL #589 and secret-history scan #589 passed. The database job succeeded with database work correctly classified as not required.
+
+The UI audit reported 384 expected passes, 125 policy-selected skips and no unexpected or flaky result. Its evidence was reviewed directly for desktop/mobile landing, desktop/mobile login, dark landing and dark signed-in dashboard. The B3.2 mark remains visible, uses the intended light/dark treatment and introduces no observed overflow or hidden action.
+
+Artifacts:
+
+- UI audit `8884203185`, digest `sha256:a4198dda11b5c4135a17092ece751d8e0575db742ec3d6dbbfe487012248b91e`;
+- browser smoke `8884064663`, digest `sha256:d12ebab1ccdfe11a3a5a45f48fb982645a873f147529684cfc4d5cccc0776b6c`.
 
 ## Verification plan
 
@@ -140,3 +150,5 @@ These findings are being fixed without weakening any gate. The candidate remains
 | 2026-08-04 | owner | implementer | authorized | request to replace logo/colors everywhere, then explicit `merge` | implement and open the real PR |
 | 2026-08-04 | implementer | evaluator | candidate | PR #277, implementation commit `599fb59` | run exact-head gates |
 | 2026-08-04 | evaluator | implementer | findings | CI exposed packet, SEO, contrast and favicon defects | fix defects and re-evaluate final head |
+| 2026-08-04 | implementer | evaluator | corrected candidate | implementation head `611a067` | exact-head verification and visual evidence review |
+| 2026-08-04 | evaluator | owner | verified implementation | CI #1453, CodeQL/secret #589 and reviewed artifacts | run final documentation checks, then expected-head merge |
