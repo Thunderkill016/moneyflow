@@ -6,9 +6,21 @@ import { getReportsWorkspace } from "@/server/reports";
 
 export const metadata: Metadata = { title: "Báo cáo — MoneyFlow", description: "Xem xu hướng thu chi và xuất dữ liệu tài chính." };
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
-  const period = normalizeReportPeriod((await searchParams).period);
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
+}) {
+  const params = await searchParams;
+  const period = normalizeReportPeriod(params.period);
+  const custom = { from: params.from ?? null, to: params.to ?? null };
   const viewer = await requireViewer();
-  const workspace = await getReportsWorkspace(period);
-  return <ReportsPage viewer={{ email: viewer.email, displayName: viewer.displayName, isDemo: viewer.isDemo }} workspace={workspace} period={period} />;
+  const workspace = await getReportsWorkspace(period, custom);
+  return (
+    <ReportsPage
+      viewer={{ email: viewer.email, displayName: viewer.displayName, isDemo: viewer.isDemo }}
+      workspace={workspace}
+      period={period}
+    />
+  );
 }

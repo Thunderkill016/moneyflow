@@ -2,10 +2,15 @@ import "server-only";
 
 import {
   buildFinancialReport,
-  reportRange,
+  resolveReportRange,
+  type CustomRangeInput,
   type FinancialReport,
   type ReportPeriod,
 } from "@/lib/reports";
+import {
+  describeReportRangeAdjustment,
+  type ReportRangeNotice,
+} from "@/lib/report-range-notice";
 import type { Transaction } from "@/lib/transactions/contracts";
 import { sampleTransactions } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
@@ -20,12 +25,17 @@ export type ReportsWorkspace = {
   report: FinancialReport;
   transactions: Transaction[];
   dataError: string | null;
+  /** Why the resolved custom window differs from the query-string input. */
+  rangeNotice: ReportRangeNotice;
 };
 
 export async function getReportsWorkspace(
   period: ReportPeriod,
+  custom?: CustomRangeInput,
 ): Promise<ReportsWorkspace> {
-  const range = reportRange(todayInVietnam(), period);
+  const today = todayInVietnam();
+  const range = resolveReportRange(today, period, custom);
+  const rangeNotice = describeReportRangeAdjustment(period, custom, today);
   const viewer = await requireViewer();
   if (viewer.isDemo) {
     const transactions = sampleTransactions.filter(
@@ -37,6 +47,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport(transactions, range),
       transactions,
       dataError: null,
+      rangeNotice,
     };
   }
   const supabase = await createClient();
@@ -45,6 +56,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport([], range),
       transactions: [],
       dataError: "Không thể kết nối dữ liệu báo cáo.",
+      rangeNotice,
     };
   }
   const { data, error } = await supabase
@@ -60,6 +72,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport([], range),
       transactions: [],
       dataError: "Chưa tải được báo cáo. Hãy thử lại.",
+      rangeNotice,
     };
   }
   try {
@@ -68,12 +81,14 @@ export async function getReportsWorkspace(
       report: buildFinancialReport(transactions, range),
       transactions,
       dataError: null,
+      rangeNotice,
     };
   } catch {
     return {
       report: buildFinancialReport([], range),
       transactions: [],
       dataError: "Dữ liệu báo cáo không đúng định dạng.",
+      rangeNotice,
     };
   }
 }

@@ -6,6 +6,7 @@ const baseURL = process.env.UI_AUDIT_BASE_URL || `http://127.0.0.1:${PORT}`;
 const responsiveSpec = /responsive\.audit\.spec\.ts/;
 const criticalBrowserSpec = /critical-browser\.audit\.spec\.ts/;
 const safetyReviewSpec = /safety-review-states\.audit\.spec\.ts/;
+const reportsCustomRangeSpec = /reports-custom-range\.audit\.spec\.ts/;
 const textScaleSpec = /text-scale\.audit\.spec\.ts/;
 const keyboardSpec = /keyboard\.audit\.spec\.ts/;
 
@@ -136,6 +137,34 @@ export default defineConfig({
       use: {
         browserName: "webkit",
         viewport: { width: 768, height: 1024 },
+        hasTouch: true,
+      },
+    },
+    {
+      name: "chromium-reports-phone",
+      testMatch: reportsCustomRangeSpec,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "chromium-reports-desktop",
+      testMatch: reportsCustomRangeSpec,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 1366, height: 768 },
+      },
+    },
+    {
+      name: "webkit-reports-phone",
+      testMatch: reportsCustomRangeSpec,
+      use: {
+        browserName: "webkit",
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
         hasTouch: true,
       },
     },
