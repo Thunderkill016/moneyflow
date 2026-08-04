@@ -47,11 +47,12 @@ test("landing source exists and remains a Server Component", () => {
 
 test("landing states a specific guided and traceable product promise", () => {
   const source = readLandingSource();
-  assert.match(source, /Từ lúc ghi đến lúc hiểu tiền của mình/);
-  assert.match(source, /vừa ghi gì/);
-  assert.match(source, /tài khoản\s+nào thay đổi/);
-  assert.match(source, /con số đó đến từ đâu/);
-  assert.match(source, /không cần liên kết ngân hàng/i);
+  const compact = source.replace(/\s+/gu, " ");
+  assert.match(compact, /Từ lúc ghi đến lúc hiểu tiền của mình/);
+  assert.match(compact, /vừa ghi gì/);
+  assert.match(compact, /tài khoản nào thay đổi/);
+  assert.match(compact, /con số đó đến từ đâu/);
+  assert.match(compact, /không cần liên kết ngân hàng/i);
   for (const phrase of FORBIDDEN_LANDING_PHRASES) {
     assert.equal(source.includes(phrase), false, `forbidden: ${phrase}`);
   }
