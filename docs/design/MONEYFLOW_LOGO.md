@@ -22,7 +22,7 @@ MoneyFlow turns separate money movements into one clear system the user can unde
 | Signed-in shell compatibility asset | `src/app/ai-uiux-guardrails.css` → `/icon.svg` |
 | Social preview | `src/app/opengraph-image.tsx` |
 | Installed-app metadata | `src/app/manifest.ts` |
-| Installed-app raster icons | `public/icon-192.png`, `public/icon-512.png` |
+| Installed-app maskable vector | `public/icon-maskable.svg` |
 
 Landing and authentication use the shared component. The signed-in shell loads the same canonical `/icon.svg` asset through its narrow compatibility bridge, so no second symbol geometry is permitted.
 
@@ -60,14 +60,14 @@ The primary brand color is Neon Blue `#3445FB`. It is also the primary interacti
 1. Primary: Neon Blue flow, dark gate and dark wordmark.
 2. Dark mode: lighter Neon Blue flow, white gate and white wordmark.
 3. Inverse: all white on a Neon Blue or dark surface.
-4. App icon: Neon Blue rounded container with all-white symbol.
+4. App icon: Neon Blue container with all-white symbol.
 
 Geometry remains unchanged across variants.
 
 ## Clear space and minimum size
 
 - Clear space: at least one quarter of the symbol width.
-- `16px`: favicon-only context; inspect raster output.
+- `16px`: favicon-only context; inspect browser output.
 - `22–24px`: compact interface symbol.
 - `32–44px`: normal navigation mark.
 - `64px+`: marketing and installed-app contexts.
@@ -97,8 +97,8 @@ Do not:
 
 - [ ] Inspect at 16, 22, 24, 32, 44, 64, 192 and 512px.
 - [ ] Check light, dark and inverse appearances.
-- [ ] Verify browser favicon discovery.
-- [ ] Verify PWA manifest icon discovery.
+- [ ] Verify browser favicon discovery from `src/app/icon.svg`.
+- [ ] Verify PWA manifest SVG icon discovery.
 - [ ] Review landing, auth and signed-in shell screenshots.
 - [ ] Confirm decorative/accessibility behavior.
 - [ ] Confirm functional semantic colors remain separate from brand color.
