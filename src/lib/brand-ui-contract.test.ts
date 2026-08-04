@@ -90,7 +90,7 @@ test("landing and auth use the shared brand component", () => {
   assert.doesNotMatch(auth, /className=\{styles\.brandMark\}/u);
 });
 
-test("public routes consume the fresh-blue project color authority", () => {
+test("public routes consume the Neon Blue project color authority", () => {
   assert.match(
     landing,
     /import themeStyles from "\.\/public-brand-theme\.module\.css"/u,
@@ -110,20 +110,21 @@ test("public routes consume the fresh-blue project color authority", () => {
     publicTheme,
     /\.landingTheme header a\[href="\/login"\]\s*\{[\s\S]*color:\s*var\(--public-ink\)/u,
   );
-  assert.match(publicTheme, /--mf-brand-identity:\s*#0ea5e9/u);
-  assert.match(publicTheme, /--mf-brand:\s*#0369a1/u);
+  assert.match(publicTheme, /--mf-brand-identity:\s*#3445fb/u);
+  assert.match(publicTheme, /--mf-brand:\s*#3445fb/u);
+  assert.match(publicTheme, /--mf-brand-hover:\s*#2938e8/u);
   assert.match(publicTheme, /color-scheme:\s*light/u);
   assert.doesNotMatch(publicTheme, /html\[data-theme="dark"\]/u);
 
   assert.match(documentTheme, /--mf-canvas:\s*#f8fafc/u);
   assert.match(documentTheme, /--mf-surface:\s*#ffffff/u);
-  assert.match(documentTheme, /--mf-brand-500:\s*#0ea5e9/u);
-  assert.match(documentTheme, /--mf-brand-600:\s*#0284c7/u);
-  assert.match(documentTheme, /--mf-brand-700:\s*#0369a1/u);
+  assert.match(documentTheme, /--mf-brand-500:\s*#3445fb/u);
+  assert.match(documentTheme, /--mf-brand-600:\s*#2938e8/u);
+  assert.match(documentTheme, /--mf-brand-700:\s*#202dc4/u);
   assert.match(documentTheme, /--mf-brand-identity:\s*var\(--mf-brand-500\)/u);
-  assert.match(documentTheme, /--mf-brand:\s*var\(--mf-brand-700\)/u);
-  assert.match(documentTheme, /--mf-brand-hover:\s*var\(--mf-brand-800\)/u);
-  assert.match(documentTheme, /--mf-brand-pressed:\s*var\(--mf-brand-900\)/u);
+  assert.match(documentTheme, /--mf-brand:\s*var\(--mf-brand-500\)/u);
+  assert.match(documentTheme, /--mf-brand-hover:\s*var\(--mf-brand-600\)/u);
+  assert.match(documentTheme, /--mf-brand-pressed:\s*var\(--mf-brand-700\)/u);
   assert.match(documentTheme, /--mf-cyan-500:\s*#06b6d4/u);
   assert.match(documentTheme, /--mf-indigo-500:\s*#6366f1/u);
   assert.match(documentTheme, /--mf-periwinkle-500:\s*#8b9cf6/u);
@@ -133,26 +134,26 @@ test("public routes consume the fresh-blue project color authority", () => {
   assert.match(documentTheme, /--mf-transfer:\s*#4f46e5/u);
   assert.match(documentTheme, /--mf-info:\s*#2563eb/u);
   assert.doesNotMatch(documentTheme, /--mf-info:\s*var\(--mf-brand/u);
-  assert.doesNotMatch(documentTheme, /#0b6b3a/iu);
+  assert.doesNotMatch(documentTheme, /#0ea5e9/iu);
   assert.doesNotMatch(documentTheme, /Signal Ledger/u);
 });
 
-test("fresh-blue action pairs preserve normal-text contrast", () => {
-  assert.ok(contrastRatio("#0369A1", "#FFFFFF") >= 4.5);
-  assert.ok(contrastRatio("#38BDF8", "#082F49") >= 4.5);
-  assert.ok(contrastRatio("#0EA5E9", "#101828") >= 4.5);
+test("Neon Blue action pairs preserve normal-text contrast", () => {
+  assert.ok(contrastRatio("#3445FB", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#7583FF", "#0B1044") >= 4.5);
+  assert.ok(contrastRatio("#3445FB", "#FFFFFF") >= 4.5);
 });
 
-test("installed and social assets use the fresh-blue identity", () => {
+test("installed and social assets use the Neon Blue identity", () => {
   expectB32Geometry(openGraph);
-  assert.match(icon, /fill="#0EA5E9"/u);
+  assert.match(icon, /fill="#3445FB"/u);
   assert.match(icon, /stroke="#FFFFFF"/u);
-  assert.match(manifest, /theme_color:\s*"#0EA5E9"/u);
+  assert.match(manifest, /theme_color:\s*"#3445FB"/u);
   assert.match(manifest, /background_color:\s*"#F8FAFC"/u);
-  assert.match(openGraph, /background:\s*"#0EA5E9"/u);
-  assert.doesNotMatch(icon, /#0B6B3A/iu);
-  assert.doesNotMatch(manifest, /#0B6B3A/iu);
-  assert.doesNotMatch(openGraph, /#0B6B3A/iu);
+  assert.match(openGraph, /background:\s*"#3445FB"/u);
+  assert.doesNotMatch(icon, /#0EA5E9/iu);
+  assert.doesNotMatch(manifest, /#0EA5E9/iu);
+  assert.doesNotMatch(openGraph, /#0EA5E9/iu);
 });
 
 test("landing first viewport has a primary action and guided workflow entry", () => {
