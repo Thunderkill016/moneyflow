@@ -244,7 +244,7 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
 
         <section className="budget-month-controls" aria-label="Chọn tháng ngân sách">
           <Link href={monthHref(workspace.previousMonthStart)} className="budget-month-link">
-            <Icon name="arrowLeft" />
+            <Icon name="arrowRight" className="budget-month-icon-previous" />
             Tháng trước
           </Link>
           <form action="/budgets" method="get" className="budget-month-form">
