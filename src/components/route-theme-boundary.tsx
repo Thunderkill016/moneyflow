@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 export const PUBLIC_LIGHT_PATHS = new Set([
   "/",
+  "/landing",
   "/login",
   "/register",
   "/forgot-password",
