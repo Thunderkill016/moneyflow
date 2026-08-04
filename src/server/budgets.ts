@@ -140,14 +140,7 @@ function demoWorkspace(
   currentStart: string,
 ): BudgetsWorkspace {
   const selectedIsCurrent = resolution.monthStart === currentStart;
-  const selectedIsPrevious = resolution.monthStart === resolution.previousMonthStart;
-  const previousToCurrent = resolveBudgetMonth(
-    resolution.previousMonthStart.slice(0, 7),
-    currentStart,
-  );
-  const selectedIsImmediatePrevious =
-    resolution.monthStart === previousToCurrent.monthStart &&
-    previousToCurrent.nextMonthStart === currentStart;
+  const selectedIsImmediatePrevious = resolution.nextMonthStart === currentStart;
 
   return {
     ...workspaceMetadata(resolution),
