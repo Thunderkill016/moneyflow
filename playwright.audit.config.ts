@@ -5,8 +5,12 @@ const baseURL = process.env.UI_AUDIT_BASE_URL || `http://127.0.0.1:${PORT}`;
 
 const responsiveSpec = /responsive\.audit\.spec\.ts/;
 const criticalBrowserSpec = /critical-browser\.audit\.spec\.ts/;
+const safetyReviewSpec = /safety-review-states\.audit\.spec\.ts/;
 const textScaleSpec = /text-scale\.audit\.spec\.ts/;
 const keyboardSpec = /keyboard\.audit\.spec\.ts/;
+
+const responsiveWithSafety = [responsiveSpec, safetyReviewSpec];
+const criticalWithSafety = [criticalBrowserSpec, safetyReviewSpec];
 
 const commonUse = {
   baseURL,
@@ -34,7 +38,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium-phone-320",
-      testMatch: responsiveSpec,
+      testMatch: responsiveWithSafety,
       use: {
         browserName: "chromium",
         viewport: { width: 320, height: 568 },
@@ -44,7 +48,7 @@ export default defineConfig({
     },
     {
       name: "chromium-android-360",
-      testMatch: responsiveSpec,
+      testMatch: responsiveWithSafety,
       use: {
         browserName: "chromium",
         viewport: { width: 360, height: 800 },
@@ -54,7 +58,7 @@ export default defineConfig({
     },
     {
       name: "chromium-iphone-390",
-      testMatch: responsiveSpec,
+      testMatch: responsiveWithSafety,
       use: {
         browserName: "chromium",
         viewport: { width: 390, height: 844 },
@@ -64,7 +68,7 @@ export default defineConfig({
     },
     {
       name: "chromium-tablet-portrait",
-      testMatch: responsiveSpec,
+      testMatch: responsiveWithSafety,
       use: {
         browserName: "chromium",
         viewport: { width: 768, height: 1024 },
@@ -73,7 +77,7 @@ export default defineConfig({
     },
     {
       name: "chromium-tablet-landscape",
-      testMatch: responsiveSpec,
+      testMatch: responsiveWithSafety,
       use: {
         browserName: "chromium",
         viewport: { width: 1024, height: 768 },
@@ -82,7 +86,7 @@ export default defineConfig({
     },
     {
       name: "chromium-desktop-1366",
-      testMatch: responsiveSpec,
+      testMatch: responsiveWithSafety,
       use: {
         browserName: "chromium",
         viewport: { width: 1366, height: 768 },
@@ -90,7 +94,7 @@ export default defineConfig({
     },
     {
       name: "chromium-wide-1440",
-      testMatch: responsiveSpec,
+      testMatch: responsiveWithSafety,
       use: {
         browserName: "chromium",
         viewport: { width: 1440, height: 900 },
@@ -98,7 +102,7 @@ export default defineConfig({
     },
     {
       name: "chromium-phone-dark",
-      testMatch: criticalBrowserSpec,
+      testMatch: criticalWithSafety,
       use: {
         browserName: "chromium",
         viewport: { width: 390, height: 844 },
@@ -109,7 +113,7 @@ export default defineConfig({
     },
     {
       name: "chromium-desktop-dark",
-      testMatch: criticalBrowserSpec,
+      testMatch: criticalWithSafety,
       use: {
         browserName: "chromium",
         viewport: { width: 1366, height: 768 },
@@ -118,7 +122,7 @@ export default defineConfig({
     },
     {
       name: "webkit-iphone",
-      testMatch: criticalBrowserSpec,
+      testMatch: criticalWithSafety,
       use: {
         browserName: "webkit",
         viewport: { width: 390, height: 844 },
@@ -128,7 +132,7 @@ export default defineConfig({
     },
     {
       name: "webkit-tablet",
-      testMatch: criticalBrowserSpec,
+      testMatch: criticalWithSafety,
       use: {
         browserName: "webkit",
         viewport: { width: 768, height: 1024 },
@@ -155,7 +159,7 @@ export default defineConfig({
     },
     {
       name: "firefox-desktop",
-      testMatch: criticalBrowserSpec,
+      testMatch: criticalWithSafety,
       use: {
         browserName: "firefox",
         viewport: { width: 1366, height: 768 },
