@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { LandingPage } from "@/components/landing-page";
-import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
 import "./landing/safe-ux-login.css";
 
 const TITLE = "MoneyFlow — Biết tiền ở đâu, vì sao thay đổi";
@@ -38,15 +35,11 @@ const STRUCTURED_DATA = {
 };
 
 /**
- * Public home: static landing when Supabase is configured (logged-out).
- * Demo (no Supabase) redirects into the product. Authenticated users are
- * redirected in proxy so the public narrative stays focused on first visits.
+ * Public home: always renders the static landing for logged-out visitors,
+ * in both production and demo mode, matching /landing. Authenticated users
+ * are redirected in proxy so the public narrative stays focused on first visits.
  */
 export default function Home() {
-  if (!isSupabaseConfigured()) {
-    redirect(POST_AUTH_REDIRECT);
-  }
-
   return (
     <>
       <script
