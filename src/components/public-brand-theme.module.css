@@ -1,3 +1,41 @@
+.landingTheme.landingTheme,
+.authTheme.authTheme {
+  /* Public entry surfaces are intentionally light-only. These local semantic
+     roles prevent a saved workspace dark preference leaking into marketing,
+     authentication or privacy pages during client-side navigation. */
+  --mf-canvas: #f8fafc;
+  --mf-surface: #ffffff;
+  --mf-surface-muted: #f8fafc;
+  --mf-surface-strong: #f2f4f7;
+  --mf-text: #101828;
+  --mf-text-muted: #475467;
+  --mf-text-soft: #667085;
+  --mf-border: #d0d5dd;
+  --mf-border-strong: #98a2b3;
+  --mf-brand-50: #f0f9ff;
+  --mf-brand-100: #e0f2fe;
+  --mf-brand-500: #0ea5e9;
+  --mf-brand-700: #0369a1;
+  --mf-brand-800: #075985;
+  --mf-brand-900: #0c4a6e;
+  --mf-brand-identity: #0ea5e9;
+  --mf-brand: #0369a1;
+  --mf-brand-hover: #075985;
+  --mf-brand-pressed: #0c4a6e;
+  --mf-brand-subtle: #f0f9ff;
+  --mf-brand-text: #0369a1;
+  --mf-on-brand: #ffffff;
+  --mf-stage: #ffffff;
+  --mf-stage-soft: #f8fafc;
+  --mf-stage-text: #101828;
+  --mf-stage-muted: #475467;
+  --mf-focus: #0ea5e9;
+  --mf-focus-ring: rgb(14 165 233 / 18%);
+  --mf-shadow-md: 0 18px 48px rgb(16 24 40 / 10%);
+  --mf-shadow-lg: 0 30px 80px rgb(16 24 40 / 14%);
+  color-scheme: light;
+}
+
 .landingTheme.landingTheme {
   --public-canvas: var(--mf-canvas);
   --public-surface: var(--mf-surface);
@@ -16,28 +54,6 @@
   --public-stage-text: var(--mf-stage-text);
   --public-stage-muted: var(--mf-stage-muted);
   --public-warm: var(--mf-brand-100);
-  color-scheme: light;
-}
-
-:global(html[data-theme="dark"]) .landingTheme.landingTheme {
-  --public-canvas: var(--mf-canvas);
-  --public-surface: var(--mf-surface);
-  --public-surface-soft: var(--mf-surface-muted);
-  --public-ink: var(--mf-text);
-  --public-muted: var(--mf-text-muted);
-  --public-soft: var(--mf-text-soft);
-  --public-line: var(--mf-border);
-  --public-line-strong: var(--mf-border-strong);
-  --public-accent: var(--mf-brand);
-  --public-accent-hover: var(--mf-brand-hover);
-  --public-accent-soft: var(--mf-brand-subtle);
-  --public-on-accent: var(--mf-on-brand);
-  --public-stage: var(--mf-stage);
-  --public-stage-soft: var(--mf-stage-soft);
-  --public-stage-text: var(--mf-stage-text);
-  --public-stage-muted: var(--mf-stage-muted);
-  --public-warm: var(--mf-brand-subtle);
-  color-scheme: dark;
 }
 
 .landingTheme header a[href="/login"] {
@@ -105,29 +121,6 @@
   --auth-stage-soft: var(--mf-stage-soft);
   --auth-stage-text: var(--mf-stage-text);
   --auth-stage-muted: var(--mf-stage-muted);
-  color-scheme: light;
-}
-
-:global(html[data-theme="dark"]) .authTheme.authTheme {
-  --auth-canvas: var(--mf-canvas);
-  --auth-surface: var(--mf-surface);
-  --auth-surface-soft: var(--mf-surface-muted);
-  --auth-ink: var(--mf-text);
-  /* Auth copy sits on luminous brand-tint decoration; use the primary dark text
-     role here so effective contrast stays above 4.5:1 at every viewport. */
-  --auth-muted: var(--mf-text);
-  --auth-soft: var(--mf-text-muted);
-  --auth-line: var(--mf-border);
-  --auth-line-strong: var(--mf-border-strong);
-  --auth-accent: var(--mf-brand);
-  --auth-accent-hover: var(--mf-brand-hover);
-  --auth-accent-soft: var(--mf-brand-subtle);
-  --auth-on-accent: var(--mf-on-brand);
-  --auth-stage: var(--mf-stage);
-  --auth-stage-soft: var(--mf-stage-soft);
-  --auth-stage-text: var(--mf-stage-text);
-  --auth-stage-muted: var(--mf-stage-muted);
-  color-scheme: dark;
 }
 
 .authTheme section[aria-labelledby] {
