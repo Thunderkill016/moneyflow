@@ -5,7 +5,7 @@
 **Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** #274 / pending
+**Issue/PR:** #274 / #276
 **Parent:** #72
 **Baseline:** `main@105d6e6e3d77b6efbae385f83f7fe54d2393724b`
 **Last updated:** 2026-08-04
@@ -102,8 +102,8 @@ Evaluation begins from failing browser evidence, not source inspection alone. A 
 |---|---|---|---|
 | T1 | reconcile #72 remaining scope | done | issue comments and current audit files |
 | T2 | create child issue and branch | done | #274, `test/phase-b-safety-review-states` |
-| T3 | add state audit first | in_progress | Playwright spec pending |
-| T4 | evaluate P0/P1 findings | blocked | requires browser evidence |
+| T3 | add state audit first | done | `safety-review-states.audit.spec.ts` |
+| T4 | evaluate P0/P1 findings | in_progress | draft PR #276 CI/evidence |
 | T5 | exact-head CI and independent review | blocked | requires candidate head |
 | T6 | owner merge decision | blocked | separate explicit command |
 | T7 | physical-device acceptance | blocked | separate manual evidence |
@@ -113,6 +113,7 @@ Evaluation begins from failing browser evidence, not source inspection alone. A 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-04 | owner | implementer | implementing | explicit `tiếp theo`; #72 remaining scope | non-default safety states unproven | add browser audit and evaluate findings |
+| 2026-08-04 | implementer | evaluator | audit_first | PR #276, audit head pending CI | selectors/geometry may fail in real matrix | run exact-head Class 2/3 gates and fix evidence-backed P0/P1 only |
 
 ## Permission boundary
 
@@ -124,6 +125,6 @@ Forbidden without separate owner command: merge, production data/schema/provider
 
 - Branch: `test/phase-b-safety-review-states`
 - Issue: #274
-- PR: pending
+- PR: #276
 - Baseline: `105d6e6e3d77b6efbae385f83f7fe54d2393724b`
 - Production actions: none
