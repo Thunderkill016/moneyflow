@@ -44,6 +44,28 @@ function expectB32Geometry(source: string) {
   assert.match(source, /M80 67\.06A4\.94 4\.94/u);
 }
 
+function relativeLuminance(hex: string) {
+  const normalized = hex.replace("#", "");
+  assert.equal(normalized.length, 6);
+  const channels = [0, 2, 4].map((offset) =>
+    Number.parseInt(normalized.slice(offset, offset + 2), 16) / 255,
+  );
+  const linear = channels.map((channel) =>
+    channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4,
+  );
+  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+}
+
+function contrastRatio(first: string, second: string) {
+  const firstLuminance = relativeLuminance(first);
+  const secondLuminance = relativeLuminance(second);
+  const lighter = Math.max(firstLuminance, secondLuminance);
+  const darker = Math.min(firstLuminance, secondLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 test("shared component and app icon use the approved B3.2 geometry", () => {
   expectB32Geometry(component);
   expectB32Geometry(icon);
@@ -91,6 +113,9 @@ test("public routes consume the fresh-blue project color authority", () => {
   assert.match(documentTheme, /--mf-brand-600:\s*#0284c7/u);
   assert.match(documentTheme, /--mf-brand-700:\s*#0369a1/u);
   assert.match(documentTheme, /--mf-brand-identity:\s*var\(--mf-brand-500\)/u);
+  assert.match(documentTheme, /--mf-brand:\s*var\(--mf-brand-700\)/u);
+  assert.match(documentTheme, /--mf-brand-hover:\s*var\(--mf-brand-800\)/u);
+  assert.match(documentTheme, /--mf-brand-pressed:\s*var\(--mf-brand-900\)/u);
   assert.match(documentTheme, /--mf-cyan-500:\s*#06b6d4/u);
   assert.match(documentTheme, /--mf-indigo-500:\s*#6366f1/u);
   assert.match(documentTheme, /--mf-periwinkle-500:\s*#8b9cf6/u);
@@ -102,6 +127,12 @@ test("public routes consume the fresh-blue project color authority", () => {
   assert.doesNotMatch(documentTheme, /--mf-info:\s*var\(--mf-brand/u);
   assert.doesNotMatch(documentTheme, /#0b6b3a/iu);
   assert.doesNotMatch(documentTheme, /Signal Ledger/u);
+});
+
+test("fresh-blue action pairs preserve normal-text contrast", () => {
+  assert.ok(contrastRatio("#0369A1", "#FFFFFF") >= 4.5);
+  assert.ok(contrastRatio("#38BDF8", "#082F49") >= 4.5);
+  assert.ok(contrastRatio("#0EA5E9", "#101828") >= 4.5);
 });
 
 test("installed and social assets use the fresh-blue identity", () => {
