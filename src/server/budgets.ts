@@ -1,7 +1,12 @@
 import "server-only";
 
 import { z } from "zod";
-import type { BudgetSummary } from "@/lib/planning/budgets";
+import {
+  resolveBudgetMonth,
+  type BudgetMonthAdjustment,
+  type BudgetMonthResolution,
+  type BudgetSummary,
+} from "@/lib/planning/budgets";
 import type { CategoryOption } from "@/lib/transactions/contracts";
 import { demoCategories } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
@@ -9,8 +14,14 @@ import { requireViewer } from "@/server/auth";
 
 export type BudgetsWorkspace = {
   budgets: BudgetSummary[];
+  previousBudgets: BudgetSummary[];
   categories: CategoryOption[];
   monthStart: string;
+  monthEnd: string;
+  previousMonthStart: string;
+  nextMonthStart: string;
+  canGoNext: boolean;
+  adjustment: BudgetMonthAdjustment;
   dataError: string | null;
 };
 
@@ -63,62 +74,111 @@ export function mapBudgetRow(value: unknown): BudgetSummary {
   };
 }
 
-function demoWorkspace(monthStart: string): BudgetsWorkspace {
+function workspaceMetadata(resolution: BudgetMonthResolution) {
+  return {
+    monthStart: resolution.monthStart,
+    monthEnd: resolution.monthEnd,
+    previousMonthStart: resolution.previousMonthStart,
+    nextMonthStart: resolution.nextMonthStart,
+    canGoNext: resolution.canGoNext,
+    adjustment: resolution.adjustment,
+  };
+}
+
+function demoRows(monthStart: string, variant: "current" | "previous") {
   const category = (name: string) =>
     demoCategories.find((item) => item.name === name)!;
   const food = category("Ăn uống");
   const transport = category("Di chuyển");
   const shopping = category("Mua sắm");
+  const values =
+    variant === "current"
+      ? {
+          food: { limit: 4_000_000, spent: 2_760_000 },
+          transport: { limit: 1_200_000, spent: 420_000 },
+          shopping: { limit: 2_000_000, spent: 1_100_000 },
+        }
+      : {
+          food: { limit: 3_800_000, spent: 2_940_000 },
+          transport: { limit: 1_100_000, spent: 510_000 },
+          shopping: { limit: 2_200_000, spent: 980_000 },
+        };
+
+  return [
+    {
+      id: `demo-budget-food-${monthStart}`,
+      categoryId: food.id,
+      categoryName: food.name,
+      categoryIcon: food.icon,
+      categoryColor: food.color,
+      monthStart,
+      ...values.food,
+    },
+    {
+      id: `demo-budget-transport-${monthStart}`,
+      categoryId: transport.id,
+      categoryName: transport.name,
+      categoryIcon: transport.icon,
+      categoryColor: transport.color,
+      monthStart,
+      ...values.transport,
+    },
+    {
+      id: `demo-budget-shopping-${monthStart}`,
+      categoryId: shopping.id,
+      categoryName: shopping.name,
+      categoryIcon: shopping.icon,
+      categoryColor: shopping.color,
+      monthStart,
+      ...values.shopping,
+    },
+  ] satisfies BudgetSummary[];
+}
+
+function demoWorkspace(
+  resolution: BudgetMonthResolution,
+  currentStart: string,
+): BudgetsWorkspace {
+  const selectedIsCurrent = resolution.monthStart === currentStart;
+  const selectedIsPrevious = resolution.monthStart === resolution.previousMonthStart;
+  const previousToCurrent = resolveBudgetMonth(
+    resolution.previousMonthStart.slice(0, 7),
+    currentStart,
+  );
+  const selectedIsImmediatePrevious =
+    resolution.monthStart === previousToCurrent.monthStart &&
+    previousToCurrent.nextMonthStart === currentStart;
+
   return {
-    monthStart,
+    ...workspaceMetadata(resolution),
     categories: demoCategories.filter((item) => item.kind === "expense"),
-    budgets: [
-      {
-        id: "demo-budget-food",
-        categoryId: food.id,
-        categoryName: food.name,
-        categoryIcon: food.icon,
-        categoryColor: food.color,
-        monthStart,
-        limit: 4_000_000,
-        spent: 2_760_000,
-      },
-      {
-        id: "demo-budget-transport",
-        categoryId: transport.id,
-        categoryName: transport.name,
-        categoryIcon: transport.icon,
-        categoryColor: transport.color,
-        monthStart,
-        limit: 1_200_000,
-        spent: 420_000,
-      },
-      {
-        id: "demo-budget-shopping",
-        categoryId: shopping.id,
-        categoryName: shopping.name,
-        categoryIcon: shopping.icon,
-        categoryColor: shopping.color,
-        monthStart,
-        limit: 2_000_000,
-        spent: 1_100_000,
-      },
-    ],
+    budgets: selectedIsCurrent
+      ? demoRows(resolution.monthStart, "current")
+      : selectedIsImmediatePrevious
+        ? demoRows(resolution.monthStart, "previous")
+        : [],
+    previousBudgets: selectedIsCurrent
+      ? demoRows(resolution.previousMonthStart, "previous")
+      : [],
     dataError: null,
   };
 }
 
-export async function getBudgetsWorkspace(): Promise<BudgetsWorkspace> {
+export async function getBudgetsWorkspace(
+  requestedMonth?: string | null,
+): Promise<BudgetsWorkspace> {
   const viewer = await requireViewer();
-  const monthStart = currentMonthStart();
-  if (viewer.isDemo) return demoWorkspace(monthStart);
+  const currentStart = currentMonthStart();
+  const resolution = resolveBudgetMonth(requestedMonth, currentStart);
+  if (viewer.isDemo) return demoWorkspace(resolution, currentStart);
 
   const supabase = await createClient();
   if (!supabase) {
     return {
+      ...workspaceMetadata(resolution),
       budgets: [],
+      previousBudgets: [],
       categories: [],
-      monthStart,
       dataError: "Không thể kết nối dữ liệu ngân sách.",
     };
   }
@@ -130,7 +190,8 @@ export async function getBudgetsWorkspace(): Promise<BudgetsWorkspace> {
         "id,category_id,category_name,category_icon,category_color,month_start,limit_minor,spent_minor",
       )
       .eq("user_id", viewer.id)
-      .eq("month_start", monthStart)
+      .in("month_start", [resolution.monthStart, resolution.previousMonthStart])
+      .order("month_start", { ascending: false })
       .order("category_name"),
     supabase
       .from("categories")
@@ -143,25 +204,31 @@ export async function getBudgetsWorkspace(): Promise<BudgetsWorkspace> {
 
   if (budgetsResult.error || categoriesResult.error) {
     return {
+      ...workspaceMetadata(resolution),
       budgets: [],
+      previousBudgets: [],
       categories: [],
-      monthStart,
       dataError: "Chưa tải được ngân sách. Hãy thử lại.",
     };
   }
 
   try {
+    const rows = (budgetsResult.data ?? []).map(mapBudgetRow);
     return {
-      budgets: (budgetsResult.data ?? []).map(mapBudgetRow),
+      ...workspaceMetadata(resolution),
+      budgets: rows.filter((item) => item.monthStart === resolution.monthStart),
+      previousBudgets: rows.filter(
+        (item) => item.monthStart === resolution.previousMonthStart,
+      ),
       categories: z.array(categorySchema).parse(categoriesResult.data),
-      monthStart,
       dataError: null,
     };
   } catch {
     return {
+      ...workspaceMetadata(resolution),
       budgets: [],
+      previousBudgets: [],
       categories: [],
-      monthStart,
       dataError: "Dữ liệu ngân sách không đúng định dạng.",
     };
   }
