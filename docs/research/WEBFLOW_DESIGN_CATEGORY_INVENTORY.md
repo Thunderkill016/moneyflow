@@ -1,6 +1,6 @@
 # Webflow Design category inventory
 
-**Accessed:** 2026-08-04  
+**Accessed:** 2026-08-04
 **Status:** reference inventory; the synthesis and current MoneyFlow authorities decide applicability
 
 This inventory records the topic coverage found in the current public snapshot of https://webflow.com/blog/category/design. The category is live and exposes a “Show more” boundary, so this is a dated snapshot rather than a claim of permanent historical completeness.
