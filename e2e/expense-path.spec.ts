@@ -43,7 +43,7 @@ test.describe("Expense path (thu chi)", () => {
     await page.goto("/landing");
     await expect(
       page.getByRole("heading", {
-        name: /Biết tiền đang ở đâu.*Biết vì sao nó thay đổi/i,
+        name: "Từ lúc ghi đến lúc hiểu tiền của mình.",
       }),
     ).toBeVisible();
     await expect(
