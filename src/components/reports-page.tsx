@@ -29,6 +29,7 @@ const RANGE_NOTICES: Record<string, string | null> = {
   none: null,
   invalid: "Khoảng ngày không hợp lệ nên báo cáo đang hiển thị tháng này.",
   swapped: "Đã đổi thứ tự hai ngày cho đúng chiều.",
+  future: "Khoảng ngày có mốc trong tương lai nên báo cáo đã giới hạn đến hôm nay.",
   clamped: "Khoảng ngày quá dài nên đã rút lại còn 3 năm gần nhất.",
 };
 

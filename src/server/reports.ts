@@ -2,12 +2,15 @@ import "server-only";
 
 import {
   buildFinancialReport,
-  normalizeCustomRange,
   resolveReportRange,
   type CustomRangeInput,
   type FinancialReport,
   type ReportPeriod,
 } from "@/lib/reports";
+import {
+  describeReportRangeAdjustment,
+  type ReportRangeNotice,
+} from "@/lib/report-range-notice";
 import type { Transaction } from "@/lib/transactions/contracts";
 import { sampleTransactions } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
@@ -22,11 +25,8 @@ export type ReportsWorkspace = {
   report: FinancialReport;
   transactions: Transaction[];
   dataError: string | null;
-  /**
-   * How a custom window was adjusted before it was used, so the page can say so
-   * instead of quietly showing different dates than the reader typed.
-   */
-  rangeNotice: "invalid" | "swapped" | "clamped" | null;
+  /** Why the resolved custom window differs from the query-string input. */
+  rangeNotice: ReportRangeNotice;
 };
 
 export async function getReportsWorkspace(
@@ -35,7 +35,7 @@ export async function getReportsWorkspace(
 ): Promise<ReportsWorkspace> {
   const today = todayInVietnam();
   const range = resolveReportRange(today, period, custom);
-  const rangeNotice = describeRangeAdjustment(period, custom, today);
+  const rangeNotice = describeReportRangeAdjustment(period, custom, today);
   const viewer = await requireViewer();
   if (viewer.isDemo) {
     const transactions = sampleTransactions.filter(
@@ -91,24 +91,4 @@ export async function getReportsWorkspace(
       rangeNotice,
     };
   }
-}
-
-/**
- * Why the rendered window differs from what was asked for, if it does.
- *
- * Silence here would be the wrong default: a clamped three-year request and an
- * honoured one look identical on screen, and a reader comparing totals needs to
- * know which they are looking at.
- */
-function describeRangeAdjustment(
-  period: ReportPeriod,
-  custom: CustomRangeInput | undefined,
-  today: string,
-): ReportsWorkspace["rangeNotice"] {
-  if (period !== "custom") return null;
-  const normalized = normalizeCustomRange(custom ?? {}, today);
-  if (!normalized) return "invalid";
-  if (normalized.clamped) return "clamped";
-  if (normalized.swapped) return "swapped";
-  return null;
 }
