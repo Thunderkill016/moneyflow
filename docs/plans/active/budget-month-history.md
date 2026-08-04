@@ -1,7 +1,7 @@
 # Budget month history, comparison and drill-down
 
-Issue: #290  
-Branch: `feat/budget-month-history`  
+Issue: #290
+Branch: `feat/budget-month-history`
 Baseline: current `main` after PR #289
 
 ## Outcome
@@ -90,14 +90,14 @@ All helpers use fixed dates in tests.
 
 ## Tasks
 
-1. [ ] Add month normalization/boundary/comparison/drill-down helpers and unit tests.
-2. [ ] Extend budget workspace types and selected/previous month reads.
-3. [ ] Add route query handling and truthful adjustment notice.
-4. [ ] Add responsive month navigation and comparison UI.
-5. [ ] Bind selected month to create/edit and exact transaction links.
-6. [ ] Add static tenant/month contract tests.
-7. [ ] Add Chromium/WebKit browser coverage for current, previous, empty and hostile query states.
-8. [ ] Add mandatory PR memory after PR number is assigned.
+1. [x] Add month normalization/boundary/comparison/drill-down helpers and unit tests.
+2. [x] Extend budget workspace types and selected/previous month reads.
+3. [x] Add route query handling and truthful adjustment notice.
+4. [x] Add responsive month navigation and comparison UI.
+5. [x] Bind selected month to create/edit and exact transaction links.
+6. [x] Add static tenant/month contract tests.
+7. [x] Add Chromium/WebKit browser coverage for current, previous, empty and hostile query states.
+8. [x] Add mandatory PR memory after PR number is assigned.
 9. [ ] Run exact-head policy/static/unit/build/database classification/browser/CodeQL/secret gates.
 10. [ ] Independent review before any merge decision.
 
