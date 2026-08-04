@@ -49,7 +49,7 @@ test("landing states a specific guided and traceable product promise", () => {
   const source = readLandingSource();
   assert.match(source, /Từ lúc ghi đến lúc hiểu tiền của mình/);
   assert.match(source, /vừa ghi gì/);
-  assert.match(source, /tài khoản nào thay đổi/);
+  assert.match(source, /tài khoản\s+nào thay đổi/);
   assert.match(source, /con số đó đến từ đâu/);
   assert.match(source, /không cần liên kết ngân hàng/i);
   for (const phrase of FORBIDDEN_LANDING_PHRASES) {
