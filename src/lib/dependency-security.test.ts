@@ -43,7 +43,7 @@ test("framework runtime uses patched Next, PostCSS and Sharp releases", () => {
   };
 
   assert.equal(packageJson.dependencies?.next, "16.2.11");
-  assert.equal(packageJson.devDependencies?.["eslint-config-next"], "16.2.11");
+  assert.equal(packageJson.devDependencies?.["eslint-config-next"], "16.2.12");
   assert.equal(packageJson.overrides?.postcss, "8.5.19");
   assert.equal(packageJson.overrides?.sharp, "0.35.0");
 
