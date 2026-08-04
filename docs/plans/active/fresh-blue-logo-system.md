@@ -1,12 +1,14 @@
 # Fresh-blue logo system rollout
 
-**Status:** implementing  
-**Execution state:** owner-authorized correction  
-**Active responsibility:** implementer  
-**Permission scope:** branch write, PR creation, exact-head verification, owner-authorized merge  
+**Status:** candidate  
+**Execution state:** exact_head_verification  
+**Active responsibility:** evaluator  
+**Permission scope:** branch write, PR metadata, exact-head verification, owner-authorized merge  
 **Owner:** Thunderkill016  
+**PR:** #277  
 **Baseline:** `main@105d6e6e3d77b6efbae385f83f7fe54d2393724b`  
 **Branch:** `style/fresh-blue-logo-system`  
+**Implementation commit:** `599fb59cc1df61acbce2acaddb9ec6492777aa19`  
 **Last updated:** 2026-08-04
 
 ## Outcome
@@ -33,14 +35,14 @@ Replace the retired green M identity and trust-blue brand role with the owner-ap
 
 ## Acceptance criteria
 
-- [ ] landing and auth render the shared B3.2 mark;
-- [ ] signed-in shell renders the same canonical icon asset;
-- [ ] favicon, installed app and social preview use B3.2;
-- [ ] light mode uses fresh-blue flow with dark gate/wordmark;
-- [ ] dark mode uses lighter fresh-blue flow with white gate/wordmark;
-- [ ] inverse uses all-white geometry;
-- [ ] brand ramp is fresh blue and info blue remains separate;
-- [ ] old green M geometry and `#0B6B3A` do not remain in canonical assets;
+- [x] landing and auth render the shared B3.2 mark;
+- [x] signed-in shell renders the same canonical icon asset;
+- [x] favicon, installed app and social preview use B3.2;
+- [x] light mode uses fresh-blue flow with dark gate/wordmark;
+- [x] dark mode uses lighter fresh-blue flow with white gate/wordmark;
+- [x] inverse uses all-white geometry;
+- [x] brand ramp is fresh blue and info blue remains separate;
+- [x] old green M geometry and `#0B6B3A` do not remain in canonical assets;
 - [ ] full UI-selected exact-head CI, CodeQL and secret scan pass;
 - [ ] owner-authorized merge uses the verified head SHA.
 
@@ -66,4 +68,5 @@ Replace the retired green M identity and trust-blue brand role with the owner-ap
 
 | Date | From | To | State | Evidence | Next action |
 |---|---|---|---|---|---|
-| 2026-08-04 | owner | implementer | authorized | request to replace logo/colors everywhere, then explicit `merge` | implement and verify the real branch/PR |
+| 2026-08-04 | owner | implementer | authorized | request to replace logo/colors everywhere, then explicit `merge` | implement and open the real PR |
+| 2026-08-04 | implementer | evaluator | candidate | PR #277, implementation commit `599fb59` | add PR memory and run exact-head gates |
