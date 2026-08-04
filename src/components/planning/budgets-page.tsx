@@ -91,12 +91,6 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    setBudgets(workspace.budgets);
-    setEditing(null);
-    setDialogOpen(false);
-  }, [workspace.budgets, workspace.monthStart]);
-
-  useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(""), 3600);
     return () => window.clearTimeout(timer);
