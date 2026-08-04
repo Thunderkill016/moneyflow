@@ -38,11 +38,14 @@ test.describe("critical browser compatibility audit", () => {
     });
     const hero = page.locator("#landing-title");
     const lead = page.locator("#landing-title + p");
-    const proofStage = page.getByRole("group", {
-      name: "Chuỗi giao diện thật của MoneyFlow",
+    const story = page.getByRole("region", {
+      name: "Một dòng tiền, ba câu hỏi kiểm tra được.",
     });
-    const accountProof = page.getByRole("figure", {
-      name: "Ảnh giao diện MoneyFlow: tài khoản",
+    const firstStoryProof = story.getByRole("figure", {
+      name: /Bạn vừa ghi gì\?/u,
+    });
+    const accountProof = story.getByRole("figure", {
+      name: /Số dư nào thay đổi\?/u,
     });
     const control = page.getByRole("region", {
       name: "Sổ của bạn. Quyết định của bạn.",
@@ -56,7 +59,8 @@ test.describe("critical browser compatibility audit", () => {
     });
 
     await expect(hero).toBeVisible();
-    await expect(proofStage).toBeVisible();
+    await expect(story).toBeVisible();
+    await expect(firstStoryProof).toBeVisible();
     await expect(accountProof).toBeVisible();
     await expect(control).toBeVisible();
     await expect(finalCta).toBeVisible();
@@ -71,13 +75,16 @@ test.describe("critical browser compatibility audit", () => {
       brand: await brand.evaluate((element) => getComputedStyle(element).color),
       hero: await hero.evaluate((element) => getComputedStyle(element).color),
       lead: await lead.evaluate((element) => getComputedStyle(element).color),
-      proofBackground: await proofStage.evaluate(
+      firstStoryBackground: await firstStoryProof.evaluate(
         (element) => getComputedStyle(element).backgroundColor,
       ),
       accountBackground: await accountProof.evaluate(
         (element) => getComputedStyle(element).backgroundColor,
       ),
       controlBackground: await control.evaluate(
+        (element) => getComputedStyle(element).backgroundColor,
+      ),
+      ctaBackground: await finalCta.evaluate(
         (element) => getComputedStyle(element).backgroundColor,
       ),
       ctaTitle: await finalCtaTitle.evaluate(
@@ -91,10 +98,11 @@ test.describe("critical browser compatibility audit", () => {
     expect(semanticColors.brand).toBe("rgb(16, 24, 40)");
     expect(semanticColors.hero).toBe("rgb(16, 24, 40)");
     expect(semanticColors.lead).toBe("rgb(71, 84, 103)");
-    expect(semanticColors.proofBackground).toBe("rgb(255, 255, 255)");
+    expect(semanticColors.firstStoryBackground).toBe("rgb(255, 255, 255)");
     expect(semanticColors.accountBackground).toBe("rgb(255, 255, 255)");
     expect(semanticColors.controlBackground).toBe("rgb(255, 255, 255)");
-    expect(semanticColors.ctaTitle).toBe("rgb(16, 24, 40)");
+    expect(semanticColors.ctaBackground).toBe("rgb(16, 24, 40)");
+    expect(semanticColors.ctaTitle).toBe("rgb(255, 255, 255)");
   });
 
   test("signed-in shell exposes one authored navigation model", async ({ page }) => {
