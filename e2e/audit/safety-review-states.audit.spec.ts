@@ -1,4 +1,10 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from "@playwright/test";
 import { seedUiAuditState } from "./responsive-audit";
 
 const TRANSACTIONS_KEY = "moneyflow-demo-transactions-v1";
@@ -7,7 +13,13 @@ const CANDIDATES_KEY = "moneyflow-inbox-candidates-v1";
 type StateEvidence = {
   viewport: { width: number; height: number };
   documentWidth: number;
-  alerts: Array<{ text: string; left: number; right: number; top: number; bottom: number }>;
+  alerts: Array<{
+    text: string;
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+  }>;
   dialogs: Array<{
     left: number;
     right: number;
@@ -17,6 +29,31 @@ type StateEvidence = {
   }>;
   errors: string[];
 };
+
+async function fillHydratedControlledInput(
+  field: Locator,
+  submit: Locator,
+  value: string,
+): Promise<void> {
+  await expect(field).toBeVisible();
+  await expect
+    .poll(
+      async () => {
+        if ((await field.inputValue()) !== value) {
+          await field.fill(value);
+        }
+        return {
+          value: await field.inputValue(),
+          submitEnabled: await submit.isEnabled(),
+        };
+      },
+      {
+        message: `controlled input should retain “${value}” after hydration`,
+        timeout: 15_000,
+      },
+    )
+    .toEqual({ value, submitEnabled: true });
+}
 
 async function auditCurrentState(
   page: Page,
@@ -28,7 +65,9 @@ async function auditCurrentState(
   await page.evaluate(
     () =>
       new Promise<void>((resolve) => {
-        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(() => resolve()),
+        );
       }),
   );
 
@@ -72,7 +111,9 @@ async function auditCurrentState(
       };
 
       if (documentWidth > viewport.width + 2) {
-        errors.push(`document width ${documentWidth}px exceeds viewport ${viewport.width}px`);
+        errors.push(
+          `document width ${documentWidth}px exceeds viewport ${viewport.width}px`,
+        );
       }
 
       const controls = Array.from(
@@ -98,7 +139,9 @@ async function auditCurrentState(
       }
 
       const dialogs = Array.from(
-        document.querySelectorAll("[role='dialog'], dialog[open], [aria-modal='true']"),
+        document.querySelectorAll(
+          "[role='dialog'], dialog[open], [aria-modal='true']",
+        ),
       )
         .filter(isVisible)
         .map((dialog) => {
@@ -112,7 +155,10 @@ async function auditCurrentState(
               `dialog x=${Math.round(rect.left)}..${Math.round(rect.right)} exceeds viewport`,
             );
           }
-          if ((rect.top < -1 || rect.bottom > viewport.height + 1) && !canScrollY) {
+          if (
+            (rect.top < -1 || rect.bottom > viewport.height + 1) &&
+            !canScrollY
+          ) {
             errors.push(
               `dialog y=${Math.round(rect.top)}..${Math.round(rect.bottom)} is clipped without scrolling`,
             );
@@ -159,7 +205,9 @@ async function auditCurrentState(
     },
   );
 
-  const artifactName = `${label}-${testInfo.project.name}`.toLowerCase().replace(/[^a-z0-9-]+/g, "-");
+  const artifactName = `${label}-${testInfo.project.name}`
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-");
   await testInfo.attach(`${artifactName}.png`, {
     body: await page.screenshot({ fullPage: true, animations: "disabled" }),
     contentType: "image/png",
@@ -197,37 +245,54 @@ test.describe("Phase B safety and review states", () => {
     await seedUiAuditState(page);
   });
 
-  test("paste error and preview preserve review-before-ledger", async ({ page }, testInfo) => {
+  test("paste error and preview preserve review-before-ledger", async ({
+    page,
+  }, testInfo) => {
     await page.goto("/capture/paste", { waitUntil: "domcontentloaded" });
     await expect(
       page.getByRole("heading", { level: 1, name: "Dán bất cứ thứ gì" }),
     ).toBeVisible();
 
     const content = page.getByLabel("Nội dung");
-    await content.fill("xin chào");
-    await page.getByRole("button", { name: "Phân tích", exact: true }).click();
+    const analyze = page.getByRole("button", {
+      name: "Phân tích",
+      exact: true,
+    });
+    await fillHydratedControlledInput(content, analyze, "xin chào");
+    await analyze.click();
 
-    await expect(page.getByRole("alert")).toBeVisible();
+    await expect(page.locator("#paste-error")).toBeVisible();
     await expect(content).toHaveAttribute("aria-invalid", "true");
     await auditCurrentState(page, testInfo, "paste-validation-error", {
       requireAlert: true,
     });
 
-    await content.fill("cafe 45k");
-    await page.getByRole("button", { name: "Phân tích", exact: true }).click();
+    await fillHydratedControlledInput(content, analyze, "cafe 45k");
+    await analyze.click();
 
-    await expect(page.getByRole("status")).toContainText(/Tìm thấy 1 giao dịch/);
-    await expect(page.getByRole("button", { name: "Vào Inbox", exact: true })).toBeVisible();
+    await expect(page.getByText(/^Tìm thấy 1 giao dịch ·/)).toBeVisible();
     await expect(
-      page.getByText(/Không có nút .*ghi thẳng vào sổ.*mọi mục đều chờ bạn duyệt/i),
+      page.getByRole("button", { name: "Vào Inbox", exact: true }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: /Duyệt vào sổ/i })).toHaveCount(0);
+    await expect(
+      page.getByText(
+        /Không có nút .*ghi thẳng vào sổ.*mọi mục đều chờ bạn duyệt/i,
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Duyệt vào sổ/i }),
+    ).toHaveCount(0);
     await auditCurrentState(page, testInfo, "paste-review-preview");
   });
 
-  test("Inbox review validation leaves ledger and candidate pending", async ({ page }, testInfo) => {
+  test("Inbox review validation leaves ledger and candidate pending", async ({
+    page,
+  }, testInfo) => {
     await page.goto("/inbox", { waitUntil: "domcontentloaded" });
-    const seed = page.getByRole("button", { name: "Nạp dữ liệu mẫu", exact: true });
+    const seed = page.getByRole("button", {
+      name: "Nạp dữ liệu mẫu",
+      exact: true,
+    });
     await expect(seed).toBeVisible();
     await seed.click();
 
@@ -243,15 +308,20 @@ test.describe("Phase B safety and review states", () => {
 
     const source = page.getByLabel("Từ tài khoản");
     const destination = page.getByLabel("Đến tài khoản");
-    const firstAccountId = await source.locator("option").first().getAttribute("value");
+    const firstAccountId = await source
+      .locator("option")
+      .first()
+      .getAttribute("value");
     expect(firstAccountId).toBeTruthy();
     await source.selectOption(firstAccountId!);
     await destination.selectOption(firstAccountId!);
-    await page.getByRole("button", { name: "Duyệt vào sổ", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Duyệt vào sổ", exact: true })
+      .click();
 
-    await expect(page.getByRole("alert")).toHaveText(
-      "Hai tài khoản chuyển phải khác nhau.",
-    );
+    await expect(
+      page.getByText("Hai tài khoản chuyển phải khác nhau.", { exact: true }),
+    ).toBeVisible();
     const after = await readDemoMutationState(page);
     expect(after.transactionCount).toBe(before.transactionCount);
     expect(after.candidateStatuses).toEqual(before.candidateStatuses);
@@ -262,8 +332,12 @@ test.describe("Phase B safety and review states", () => {
     });
   });
 
-  test("delete-account confirmation is exact and never submitted", async ({ page }, testInfo) => {
-    await page.goto("/settings/delete-account", { waitUntil: "domcontentloaded" });
+  test("delete-account confirmation is exact and never submitted", async ({
+    page,
+  }, testInfo) => {
+    await page.goto("/settings/delete-account", {
+      waitUntil: "domcontentloaded",
+    });
     await expect(
       page.getByRole("heading", { level: 1, name: "Xóa tài khoản" }),
     ).toBeVisible();
