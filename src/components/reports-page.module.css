@@ -13,3 +13,75 @@
     line-height: 1.2;
   }
 }
+
+/*
+ * Custom date window. Owned here rather than in a global layer — this control
+ * exists only on /reports, and the legacy layers are being retired, not extended.
+ */
+.customRange {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-card-radius, 16px);
+  background: var(--mf-surface);
+  padding: 14px 16px;
+}
+
+.customRange label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 160px;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.customRange input[type="date"] {
+  min-height: 44px;
+  width: 100%;
+  border: 1px solid var(--mf-border);
+  border-radius: 12px;
+  background: var(--mf-canvas);
+  padding: 0 12px;
+  color: var(--mf-text);
+  font-size: 14px;
+}
+
+.customRange input[type="date"]:focus-visible {
+  outline: 2px solid var(--mf-brand);
+  outline-offset: 2px;
+}
+
+.customRange button {
+  flex: 0 0 auto;
+}
+
+.rangeNotice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--mf-text-muted);
+  font-size: 13px;
+}
+
+.rangeNotice svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+  .customRange {
+    /* Two dates and the action stack rather than crowd to under 44px each. */
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .customRange button {
+    width: 100%;
+  }
+}

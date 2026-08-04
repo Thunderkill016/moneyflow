@@ -20,6 +20,18 @@ import type { ReportsWorkspace } from "@/server/reports";
 import { AppShell } from "@/components/layout/app-shell";
 import styles from "./reports-page.module.css";
 
+/**
+ * Said out loud when the rendered window differs from what was asked for. A
+ * clamped three-year request and an honoured one look identical otherwise, and a
+ * reader comparing totals needs to know which one they have.
+ */
+const RANGE_NOTICES: Record<string, string | null> = {
+  none: null,
+  invalid: "Khoảng ngày không hợp lệ nên báo cáo đang hiển thị tháng này.",
+  swapped: "Đã đổi thứ tự hai ngày cho đúng chiều.",
+  clamped: "Khoảng ngày quá dài nên đã rút lại còn 3 năm gần nhất.",
+};
+
 function dateLabel(value: string) {
   return new Intl.DateTimeFormat("vi-VN", {
     day: "numeric",
@@ -46,10 +58,14 @@ export function ReportsPage({
     ? Math.round(report.totals.expense / expenseDays.length)
     : 0;
 
-  const csvDownloadHref = reportCsvDownloadHref(period);
+  // The resolved range — not the raw query string — drives every label, link and
+  // input below, so a clamped or repaired window shows the dates actually used.
+  const { currentStart, currentEnd } = report.range;
+  const csvDownloadHref = reportCsvDownloadHref(period, currentStart, currentEnd);
   const exportDisabled = Boolean(workspace.dataError);
-  const periodTitle = formatReportPeriodTitle(period, report.range.currentStart);
-  const rangeCaption = `${dateLabel(report.range.currentStart)} – ${dateLabel(report.range.currentEnd)} · So với kỳ liền trước cùng số ngày.`;
+  const periodTitle = formatReportPeriodTitle(period, currentStart, currentEnd);
+  const rangeCaption = `${dateLabel(currentStart)} – ${dateLabel(currentEnd)} · So với kỳ liền trước cùng số ngày.`;
+  const rangeNotice = RANGE_NOTICES[workspace.rangeNotice ?? "none"];
 
   return (
     <AppShell
@@ -105,7 +121,47 @@ export function ReportsPage({
               {item.label}
             </Link>
           ))}
+          <Link
+            // Seeded with the window already on screen, so switching to the custom
+            // view starts from what the reader was looking at rather than blank.
+            href={reportPeriodHref("custom", currentStart, currentEnd)}
+            className={period === "custom" ? "active" : ""}
+            aria-current={period === "custom" ? "page" : undefined}
+          >
+            Tự chọn
+          </Link>
         </nav>
+
+        {period === "custom" && (
+          <form
+            // A plain GET form: the chosen window lands in the URL, so it can be
+            // shared, bookmarked and reloaded without client state.
+            method="get"
+            action="/reports"
+            className={styles.customRange}
+            aria-label="Chọn khoảng ngày"
+          >
+            <input type="hidden" name="period" value="custom" />
+            <label>
+              <span>Từ ngày</span>
+              <input type="date" name="from" defaultValue={currentStart} max={currentEnd} required />
+            </label>
+            <label>
+              <span>Đến ngày</span>
+              <input type="date" name="to" defaultValue={currentEnd} required />
+            </label>
+            <button type="submit" className="secondary-button">
+              Áp dụng
+            </button>
+          </form>
+        )}
+
+        {rangeNotice && (
+          <p className={styles.rangeNotice} role="status">
+            <Icon name="bell" />
+            <span>{rangeNotice}</span>
+          </p>
+        )}
 
         <section
           className={`report-metrics ${styles.metrics}`}

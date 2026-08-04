@@ -17,7 +17,22 @@ export const EXPORT_CSV_LABEL = "Xuất CSV" as const;
 export const EXPORT_SETTINGS_HREF = "/settings/export" as const;
 
 /** Period report CSV download (server route; integer money + formula escape). */
-export function reportCsvDownloadHref(period: string = "month"): string {
+/**
+ * CSV link for the window currently on screen.
+ *
+ * `custom` carries `from`/`to` so the download matches what the reader is looking
+ * at. Without them the link would silently fall back to the month preset — the
+ * export and the page would disagree, and the file name would look right anyway.
+ */
+export function reportCsvDownloadHref(
+  period: string = "month",
+  from?: string | null,
+  to?: string | null,
+): string {
+  if (period === "custom" && from && to) {
+    const params = new URLSearchParams({ period: "custom", from, to });
+    return `/reports/export?${params.toString()}`;
+  }
   const safe =
     period === "week" || period === "year" || period === "month" ? period : "month";
   return `/reports/export?period=${safe}`;

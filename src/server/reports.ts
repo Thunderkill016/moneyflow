@@ -2,7 +2,9 @@ import "server-only";
 
 import {
   buildFinancialReport,
-  reportRange,
+  normalizeCustomRange,
+  resolveReportRange,
+  type CustomRangeInput,
   type FinancialReport,
   type ReportPeriod,
 } from "@/lib/reports";
@@ -20,12 +22,20 @@ export type ReportsWorkspace = {
   report: FinancialReport;
   transactions: Transaction[];
   dataError: string | null;
+  /**
+   * How a custom window was adjusted before it was used, so the page can say so
+   * instead of quietly showing different dates than the reader typed.
+   */
+  rangeNotice: "invalid" | "swapped" | "clamped" | null;
 };
 
 export async function getReportsWorkspace(
   period: ReportPeriod,
+  custom?: CustomRangeInput,
 ): Promise<ReportsWorkspace> {
-  const range = reportRange(todayInVietnam(), period);
+  const today = todayInVietnam();
+  const range = resolveReportRange(today, period, custom);
+  const rangeNotice = describeRangeAdjustment(period, custom, today);
   const viewer = await requireViewer();
   if (viewer.isDemo) {
     const transactions = sampleTransactions.filter(
@@ -37,6 +47,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport(transactions, range),
       transactions,
       dataError: null,
+      rangeNotice,
     };
   }
   const supabase = await createClient();
@@ -45,6 +56,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport([], range),
       transactions: [],
       dataError: "Không thể kết nối dữ liệu báo cáo.",
+      rangeNotice,
     };
   }
   const { data, error } = await supabase
@@ -60,6 +72,7 @@ export async function getReportsWorkspace(
       report: buildFinancialReport([], range),
       transactions: [],
       dataError: "Chưa tải được báo cáo. Hãy thử lại.",
+      rangeNotice,
     };
   }
   try {
@@ -68,12 +81,34 @@ export async function getReportsWorkspace(
       report: buildFinancialReport(transactions, range),
       transactions,
       dataError: null,
+      rangeNotice,
     };
   } catch {
     return {
       report: buildFinancialReport([], range),
       transactions: [],
       dataError: "Dữ liệu báo cáo không đúng định dạng.",
+      rangeNotice,
     };
   }
+}
+
+/**
+ * Why the rendered window differs from what was asked for, if it does.
+ *
+ * Silence here would be the wrong default: a clamped three-year request and an
+ * honoured one look identical on screen, and a reader comparing totals needs to
+ * know which they are looking at.
+ */
+function describeRangeAdjustment(
+  period: ReportPeriod,
+  custom: CustomRangeInput | undefined,
+  today: string,
+): ReportsWorkspace["rangeNotice"] {
+  if (period !== "custom") return null;
+  const normalized = normalizeCustomRange(custom ?? {}, today);
+  if (!normalized) return "invalid";
+  if (normalized.clamped) return "clamped";
+  if (normalized.swapped) return "swapped";
+  return null;
 }
