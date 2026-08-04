@@ -1,9 +1,9 @@
 # MoneyFlow logo identity
 
-**Status:** approved — canonical logo v2  
-**Approved by:** MoneyFlow owner  
-**Approved on:** 2026-08-04  
-**Brand authority:** [`../brand/MONEYFLOW_BRAND_GUIDELINES.md`](../brand/MONEYFLOW_BRAND_GUIDELINES.md)  
+**Status:** approved — canonical logo v2
+**Approved by:** MoneyFlow owner
+**Approved on:** 2026-08-04
+**Brand authority:** [`../brand/MONEYFLOW_BRAND_GUIDELINES.md`](../brand/MONEYFLOW_BRAND_GUIDELINES.md)
 **Product authority:** [`../product/PRINCIPLES.md`](../product/PRINCIPLES.md)
 
 This file defines the canonical MoneyFlow logo system used by the web product, browser favicon, social preview and PWA metadata.
