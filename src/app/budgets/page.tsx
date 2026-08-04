@@ -20,6 +20,7 @@ export default async function Page({
   const workspace = await getBudgetsWorkspace(params.month ?? null);
   return (
     <BudgetsPage
+      key={workspace.monthStart}
       viewer={{
         email: viewer.email,
         displayName: viewer.displayName,
