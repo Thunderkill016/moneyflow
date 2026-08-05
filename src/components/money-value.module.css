@@ -45,3 +45,34 @@
 .transfer {
   color: var(--mf-transfer);
 }
+
+/*
+ * The ledger audit seeds intentionally large integer-VND values. Keep complete
+ * amounts on one line and use a denser, readable scale instead of wrapping or
+ * clipping financial data inside summary and row owners.
+ */
+[data-slot="ledger-summary"] .value,
+[data-slot="timeline-summary"] .value {
+  font-size: clamp(17px, 1.65vw, 21px);
+  letter-spacing: -0.025em;
+}
+
+[data-slot="ledger-row"] .value,
+[data-slot="timeline-row"] .value {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+@media (max-width: 430px) {
+  [data-slot="ledger-summary"] .value,
+  [data-slot="timeline-summary"] .value {
+    font-size: 16px;
+    letter-spacing: -0.03em;
+  }
+
+  [data-slot="ledger-row"] .value,
+  [data-slot="timeline-row"] .value {
+    font-size: 14px;
+    letter-spacing: -0.03em;
+  }
+}
