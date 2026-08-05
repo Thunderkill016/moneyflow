@@ -12,7 +12,6 @@ const expectedLegacyImports = [
   "./globals.css",
   "./ui-refresh.css",
   "./benchmark-ux.css",
-  "./safe-to-spend-withdrawal.css",
   "./cross-device-stabilization.css",
   "./ai-uiux-refresh.css",
   "./ai-uiux-guardrails.css",
@@ -20,12 +19,12 @@ const expectedLegacyImports = [
 
 // Existing document-selector debt is isolated here until each legacy route is
 // migrated. Adding another file to this list requires a reviewed architecture
-// change; normal feature work must not expand it.
+// change; normal feature work must not expand it. Retired files leave this set
+// in the same PR that removes their legacy import.
 const legacyDocumentAllowlist = new Set([
   "src/app/globals.css",
   "src/app/ui-refresh.css",
   "src/app/benchmark-ux.css",
-  "src/app/safe-to-spend-withdrawal.css",
   "src/app/cross-device-stabilization.css",
   "src/app/ai-uiux-refresh.css",
   "src/app/ai-uiux-guardrails.css",
