@@ -179,9 +179,14 @@ export function DashboardPlanningColumn({
               <p className="weekly-summary-compare">{weeklyCompareLine}</p>
             ) : null}
             <p className="goal-dashboard-more">
-              <Link href={WEEKLY_SUMMARY_REPORTS_HREF}>
+              <LinkButton
+                unstyled
+                targetSize="important"
+                className="inline-flex items-center"
+                href={WEEKLY_SUMMARY_REPORTS_HREF}
+              >
                 {WEEKLY_SUMMARY_REPORTS_LABEL}
-              </Link>
+              </LinkButton>
             </p>
           </>
         ) : (
@@ -419,7 +424,14 @@ export function DashboardPlanningColumn({
               )}
             </div>
             <p className="goal-dashboard-more">
-              <Link href="/goals">Xem tất cả mục tiêu →</Link>
+              <LinkButton
+                unstyled
+                targetSize="important"
+                className="inline-flex items-center"
+                href="/goals"
+              >
+                Xem tất cả mục tiêu →
+              </LinkButton>
             </p>
           </>
         ) : (
