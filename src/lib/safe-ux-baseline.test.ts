@@ -64,7 +64,7 @@ test("SAFE-04/05: Dashboard owns responsive layout while Budgets and Goals retai
   assert.match(goalsPage, /import "\.\.\/safe-ux-planning\.css"/);
   assert.match(
     dashboardCss,
-    /@media \(max-width:\s*760px\)[\s\S]*?\.dashboard :global\(\.content-grid\.insights-main-grid\)[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+    /@media \(max-width:\s*1080px\)[\s\S]*?\.dashboard :global\(\.content-grid\.insights-main-grid\)[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/,
   );
   assert.match(
     dashboardCss,
