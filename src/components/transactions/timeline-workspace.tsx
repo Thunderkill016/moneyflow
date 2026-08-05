@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
@@ -137,6 +138,15 @@ export function TimelineWorkspace({
         className={`${styles.workspace} ${styles.timeline}`}
         data-slot="timeline-workspace"
       >
+        {workspace.dataError ? (
+          <Alert tone="error" live="assertive" className={styles.dataAlert}>
+            <AlertDescription className={styles.alertContent}>
+              <Icon name="bell" />
+              <span>{workspace.dataError}</span>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         <section className={styles.titleRow} aria-labelledby="timeline-title">
           <div className={styles.titleCopy}>
             <p className={styles.eyebrow}>Sổ đã duyệt</p>
