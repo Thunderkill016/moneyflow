@@ -18,15 +18,36 @@ Current presentation debt remains temporarily compatible, but every new pull req
 
 The gate evaluates added lines rather than imposing an immediate zero-debt requirement. Existing debt can therefore be migrated incrementally without making current `main` unbuildable.
 
-## Implementation
+## Repository reconnaissance
 
-### Gate entrypoint
+Phase 0 established that current `main` has two root CSS owners, seven legacy imports, nine document-selector allowlist files, 1,112 `!important` declarations against a 1,200 budget and two invisible presentation contract components.
 
-- `scripts/check-ui-migration-diff.mjs`
-- npm command: `npm run check:ui-migration`
-- enforced by `scripts/classify-ci-changes.mjs` before CI risk classification
-- diff source: GitHub event base/head on pull requests; current commit on non-PR runs
-- source-of-truth token scan: definitions found across current `src` CSS and runtime custom-property declarations
+Relevant existing boundaries:
+
+- `scripts/classify-ci-changes.mjs` already runs in a full-history checkout before risk selection.
+- `scripts/check-css-ownership.mjs` protects the current global import order and aggregate debt budget, but does not reject each new declaration individually.
+- `src/app/legacy.css` is frozen and must shrink rather than gain imports.
+- `/insights` survives only as a compatibility redirect while current navigation and tests should use `/dashboard`.
+- current route/component code still registers global legacy classes, so enforcement must be diff-based rather than an immediate repository-wide zero rule.
+- current Playwright coverage is strong at route level, while shared primitive APIs are not yet stable enough to justify a durable story catalogue.
+
+## Research
+
+The selected control is a changed-line gate rather than another aggregate ceiling. Aggregate budgets can stay green while every new PR consumes remaining headroom; a diff rule prevents regression immediately without blocking cleanup of existing debt.
+
+Alternatives rejected:
+
+| Alternative | Reason |
+|---|---|
+| Raise or retain only the 1,200 `!important` budget | Allows new debt until the ceiling is reached |
+| Make all existing debt blocking now | Would stop unrelated delivery before migration owners exist |
+| Add another CSS override layer | Deepens the cascade problem the program is meant to remove |
+| Install Storybook in Phase 1 | Creates configuration and story churn before primitive APIs are approved |
+| Replace CSS Modules/Tailwind/Base UI | Out of scope and does not solve ownership by itself |
+
+Storybook decision: defer installation until Phase 2, when at least five high-value primitive states and their APIs are known. No dependency, lockfile, hosted provider or production bundle change is included. The detailed decision is recorded in `docs/research/UI_STORYBOOK_ADOPTION_DECISION_2026-08-05.md`.
+
+## Specification
 
 ### Blocking rules
 
@@ -50,11 +71,11 @@ ui-migration: allow-runtime-token -- <reason>
 ui-migration: allow-legacy-class -- <reason>
 ```
 
-Exceptions are not automatic approval. They remain reviewable debt and should be paired with an owner/removal plan.
+Exceptions are reviewable debt, not automatic approval.
 
-### Current legacy class set
+### Initial legacy class set
 
-The initial diff-only set prevents new registrations of:
+The diff-only set prevents new registrations of:
 
 - `dashboard`
 - `insights-dashboard`
@@ -69,17 +90,52 @@ The initial diff-only set prevents new registrations of:
 - `safe-card`
 - `safe-card-hero`
 
-The set does not remove current consumers. It expands only with repository evidence and tests.
+The set does not remove current consumers and expands only with repository evidence and regression fixtures.
 
-## Storybook decision
+### Acceptance criteria
 
-Installation is deferred until Phase 2. The repository already has strong page/browser coverage, while the primitive APIs that would own stable stories have not yet been approved. Adding Storybook now would create configuration and story churn around components still rescued by global CSS.
+- Existing product code and CSS render unchanged.
+- Current debt is not made instantly blocking.
+- Every added line in a PR is checked before CI risk classification.
+- CSS Modules remain allowed.
+- known Base UI, Radix, Next and Tailwind runtime-token prefixes remain allowed.
+- policy files classify as full-risk and select every CI gate.
+- the fixture suite covers accepted and rejected examples, including a single-token `className="dashboard"` counterexample.
+- no dependency or hosted tool is added.
 
-Decision record: `docs/research/UI_STORYBOOK_ADOPTION_DECISION_2026-08-05.md`.
+## Implementation plan
 
-A bounded development-only spike may be reopened in Phase 2 after at least five high-value primitive states are identified. No hosted provider is authorized.
+### Files
 
-## Task state
+| File | Change |
+|---|---|
+| `scripts/check-ui-migration-diff.mjs` | Parse unified diff, collect source token definitions and report blocking violations |
+| `scripts/check-ui-migration-diff.test.mjs` | Cover global CSS, `!important`, token, route and legacy-class cases |
+| `scripts/classify-ci-changes.mjs` | Run the no-new-debt check before classification and mark policy files full-risk |
+| `scripts/classify-ci-changes.test.mjs` | Verify policy changes select every gate |
+| `package.json` | Expose `check:ui-migration` and include fixtures in `test:ci-policy` |
+| Phase documentation and PR memory | Record scope, Storybook decision, evidence and permission boundary |
+
+### Runtime and data impact
+
+- Application runtime: none.
+- Product CSS/components/routes: none.
+- Database/RLS/auth/provider/production data: none.
+- Dependency and lockfile: none.
+- Rollback: revert PR #298.
+
+### Risks and controls
+
+| Risk | Control |
+|---|---|
+| False positive from third-party runtime CSS variables | Known runtime prefixes and explicit same-line reason for other sources |
+| Existing legacy source becomes blocked | Added-line-only evaluation |
+| Exception comments become a bypass | Reason required; review and future removal inventory |
+| Parser misses a source shape | Regression fixtures; one real single-token counterexample was found and fixed before final review |
+| Policy disables itself | Policy files trigger full CI |
+| Storybook becomes a second application too early | Deferred to a bounded Phase 2 decision |
+
+## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
@@ -91,13 +147,12 @@ A bounded development-only spike may be reopened in Phase 2 after at least five 
 | P1-T6 | Decide Storybook/equivalent spike | adoption decision | deferred to Phase 2; no dependency added |
 | P1-T7 | Owner accepts guardrails before Phase 2 | exact-head PR evidence | pending |
 
-## Verification
+## Evaluation
 
-Required on exact head:
+Required exact-head evidence:
 
-- UI migration gate fixture suite;
-- CI classifier/retry policy tests;
-- project knowledge and diff hygiene;
+- diff hygiene and project knowledge contract;
+- UI migration fixture suite and CI classifier/retry tests;
 - CSS ownership and architecture contracts;
 - lint and typecheck;
 - unit/static RLS tests;
@@ -106,26 +161,16 @@ Required on exact head:
 - browser smoke;
 - Chromium/WebKit cross-device audit;
 - CodeQL;
-- all-ref secret scan, noting the independently tracked pre-existing Penpot finding until PR #295 is resolved.
+- all-ref secret scan, with the independently tracked pre-existing Penpot finding remaining outside this diff until PR #295 is resolved.
 
-Because this PR changes CI policy, the classifier must select every gate.
+Current findings:
 
-## Risks and controls
+- the classifier has successfully run the new gate against PR #298 itself;
+- a single-token legacy-class parser gap was found and fixed with a regression fixture;
+- diff hygiene, static quality, unit/static RLS and production build have passed on intermediate heads;
+- exact-head full evidence remains pending after template correction.
 
-| Risk | Control |
-|---|---|
-| False positive from third-party runtime CSS variables | Known Base UI, Radix, Next and Tailwind prefixes; explicit reason for other runtime tokens |
-| A current legacy class is blocked before migration | Diff-only behavior; existing source is not rejected |
-| Exception comments become a bypass | Same-line reason, code review and future removal inventory |
-| Gate misses multiline/dynamic registration | Initial gate covers common source forms; Phase 2 inventory can expand fixtures and parsing based on actual counterexamples |
-| Policy script disables itself | Policy files are classified as full-risk and exercise every CI gate |
-| Storybook becomes a second application too early | No installation in Phase 1; bounded Phase 2 adoption gate |
-
-## Rollback
-
-Revert the Phase 1 PR. No product CSS, component, route, database, provider or production state requires rollback.
-
-## Current permission boundary
+### Current permission boundary
 
 - Granted: Phase 1 policy scripts, fixtures, package command and documentation on `agent/ui-phase-1-no-new-debt`.
 - Forbidden: product/runtime UI code, CSS changes, dependencies, Storybook installation, existing PR/issue mutation, merge and deployment.
