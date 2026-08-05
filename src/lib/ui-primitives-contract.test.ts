@@ -6,6 +6,7 @@ import test from "node:test";
 const root = process.cwd();
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 
+const documentTheme = read("src/app/document-theme.css");
 const button = read("src/components/ui/button.tsx");
 const textField = read("src/components/ui/text-field.tsx");
 const selectField = read("src/components/ui/select-field.tsx");
@@ -73,6 +74,18 @@ test("feedback primitives use semantic tones without making every message assert
   assert.match(toast, /aria-live="polite"/u);
   assert.match(toast, /role=\{urgent \? "alert" : undefined\}/u);
   assert.match(toast, /new Map\(messages\.map/u);
+});
+
+test("semantic primitives reference canonical theme roles", () => {
+  const semanticSources = [badge, alert, toast, moneyValue].join("\n");
+
+  for (const family of ["info", "income", "warning", "expense", "transfer"]) {
+    assert.match(documentTheme, new RegExp(`--mf-${family}-subtle:`, "u"));
+    assert.doesNotMatch(
+      semanticSources,
+      new RegExp(`--mf-${family}-soft`, "u"),
+    );
+  }
 });
 
 test("surface, empty and money primitives keep semantic ownership bounded", () => {
