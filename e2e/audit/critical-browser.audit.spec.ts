@@ -24,6 +24,18 @@ test.describe("critical browser compatibility audit", () => {
     });
   }
 
+  test("root viewport enables safe-area layout without changing public light mode", async ({
+    page,
+  }) => {
+    await page.goto("/landing", { waitUntil: "domcontentloaded" });
+
+    await expect(page.locator('meta[name="viewport"]')).toHaveAttribute(
+      "content",
+      /viewport-fit=cover/u,
+    );
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  });
+
   test("landing stays light and readable when the browser prefers dark", async ({ page }, testInfo) => {
     test.skip(testInfo.project.use.colorScheme !== "dark", "dark-preference regression contract");
 
@@ -136,10 +148,14 @@ test.describe("critical browser compatibility audit", () => {
         const shellPaddingBottom = Number.parseFloat(
           getComputedStyle(navigation.parentElement).paddingBottom,
         );
+        const scrollPaddingBottom = Number.parseFloat(
+          getComputedStyle(document.documentElement).scrollPaddingBottom,
+        );
         return {
           itemCount: navigation.children.length,
           navigationHeight,
           shellPaddingBottom,
+          scrollPaddingBottom,
           documentOverflow:
             document.documentElement.scrollWidth -
             document.documentElement.clientWidth,
@@ -148,6 +164,9 @@ test.describe("critical browser compatibility audit", () => {
 
       expect(metrics.itemCount).toBe(5);
       expect(metrics.shellPaddingBottom).toBeGreaterThanOrEqual(
+        metrics.navigationHeight - 2,
+      );
+      expect(metrics.scrollPaddingBottom).toBeGreaterThanOrEqual(
         metrics.navigationHeight - 2,
       );
       expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
@@ -162,6 +181,70 @@ test.describe("critical browser compatibility audit", () => {
           .getByRole("banner")
           .getByRole("button", { name: "Ghi chi tiêu", exact: true }),
       ).toBeVisible();
+
+      const topbarHeight = await page
+        .getByRole("banner")
+        .evaluate((element) => element.getBoundingClientRect().height);
+      const scrollPaddingTop = await page.locator("html").evaluate((element) =>
+        Number.parseFloat(getComputedStyle(element).scrollPaddingTop),
+      );
+      expect(scrollPaddingTop).toBeGreaterThanOrEqual(topbarHeight - 2);
     }
+  });
+
+  test("shell modal Sheet closes with Escape and restores trigger focus", async ({
+    page,
+  }) => {
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    const viewportWidth = page.viewportSize()?.width ?? 1_440;
+
+    if (viewportWidth <= 760) {
+      const trigger = page.getByRole("button", { name: /^Mở tài khoản/u });
+      await expect(trigger).toBeVisible();
+      await trigger.click();
+
+      const sheet = page.getByRole("dialog", { name: "Thêm & tài khoản" });
+      await expect(sheet).toBeVisible();
+      await expect(sheet.getByRole("button", { name: "Đóng" })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(sheet).toBeHidden();
+      await expect(trigger).toBeFocused();
+      return;
+    }
+
+    const trigger = page.getByRole("button", {
+      name: "Nhập nhanh",
+      exact: true,
+    });
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+
+    const sheet = page.getByRole("dialog", { name: "Ghi giao dịch" });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Đóng" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+    await expect(trigger).toBeFocused();
+  });
+
+  test("Accounts exposes its explicit mobile action without replacing Ghi", async ({
+    page,
+  }) => {
+    const viewportWidth = page.viewportSize()?.width ?? 1_440;
+    test.skip(viewportWidth > 760, "explicit Accounts action is a mobile shell contract");
+
+    await page.goto("/accounts", { waitUntil: "domcontentloaded" });
+    const topbarAction = page
+      .getByRole("banner")
+      .getByRole("button", { name: "Thêm tài khoản", exact: true });
+    const captureAction = page
+      .getByRole("navigation", { name: "Điều hướng di động" })
+      .getByRole("button", { name: "Ghi chi tiêu", exact: true });
+
+    await expect(topbarAction).toBeVisible();
+    await expect(captureAction).toBeVisible();
+    const box = await topbarAction.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.height).toBeGreaterThanOrEqual(44);
   });
 });

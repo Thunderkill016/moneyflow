@@ -17,10 +17,12 @@ type ToastProps = ToastMessage & {
   className?: string
 }
 
-type ToastRegionProps = {
+type ToastRegionProps = Omit<
+  React.ComponentPropsWithoutRef<"section">,
+  "aria-label" | "children"
+> & {
   messages: readonly ToastMessage[]
   label?: string
-  className?: string
 }
 
 const toneClass: Record<ToastTone, string> = {
@@ -65,6 +67,7 @@ function ToastRegion({
   messages,
   label = "Thông báo",
   className,
+  ...props
 }: ToastRegionProps) {
   const uniqueMessages = Array.from(
     new Map(messages.map((message) => [message.id, message])).values()
@@ -80,6 +83,7 @@ function ToastRegion({
         "pointer-events-none fixed right-4 bottom-4 z-[100] grid w-[min(24rem,calc(100%-2rem))] gap-2",
         className
       )}
+      {...props}
     >
       <div aria-live="polite" aria-relevant="additions text" className="grid gap-2">
         {routineMessages.map((message) => (

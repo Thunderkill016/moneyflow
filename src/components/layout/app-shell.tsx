@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/app/(auth)/actions";
+import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon, type IconName } from "@/components/icons";
 import {
   UserChip,
@@ -11,6 +12,17 @@ import {
   viewerLabel,
   type ViewerSummary,
 } from "@/components/user-chip";
+import {
+  Button,
+  IconButton,
+  LinkButton,
+} from "@/components/ui/button";
+import { Sheet } from "@/components/ui/sheet";
+import {
+  ToastRegion,
+  type ToastMessage,
+  type ToastTone,
+} from "@/components/ui/toast";
 import { CAPTURE_OPTIONS } from "@/lib/capture/options";
 import {
   isSearchShortcut,
@@ -22,7 +34,6 @@ import {
   APP_HOME_HREF,
   GHI_CHI_TIEU_HREF,
   GHI_CHI_TIEU_LABEL,
-  isPlanningPath,
   ADVANCED_NAV_LINKS,
   MORE_NAV_LINKS,
   PLANNING_LINKS,
@@ -32,6 +43,21 @@ import {
 import styles from "./app-shell.module.css";
 
 const INBOX_BADGE_COUNT = 0;
+
+const APP_SHELL_SHEET_CLASS = [
+  "w-[min(32rem,100%)]",
+  "max-[760px]:inset-x-0",
+  "max-[760px]:top-auto",
+  "max-[760px]:bottom-0",
+  "max-[760px]:h-auto",
+  "max-[760px]:max-h-[88svh]",
+  "max-[760px]:w-full",
+  "max-[760px]:max-w-none",
+  "max-[760px]:rounded-t-3xl",
+  "max-[760px]:border-x-0",
+  "max-[760px]:border-t",
+  "max-[760px]:border-b-0",
+].join(" ");
 
 const DEFAULT_GHI_CHI_ACTION: PrimaryAction = {
   label: GHI_CHI_TIEU_LABEL,
@@ -92,6 +118,9 @@ export type AppShellProps = {
   inboxCount?: number;
   notice?: string;
   noticeAction?: NoticeAction;
+  noticeTone?: ToastTone;
+  noticeUrgent?: boolean;
+  showPrimaryActionOnMobile?: boolean;
   children: React.ReactNode;
 };
 
@@ -103,18 +132,47 @@ export function AppShell({
   inboxCount = INBOX_BADGE_COUNT,
   notice,
   noticeAction,
+  noticeTone,
+  noticeUrgent = false,
+  showPrimaryActionOnMobile = false,
   children,
 }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [captureOpen, setCaptureOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  const captureTitleId = useId();
-  const moreTitleId = useId();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const resolvedPrimary = primaryAction ?? DEFAULT_GHI_CHI_ACTION;
   const resolvedMobilePrimary = fabAction ?? DEFAULT_GHI_CHI_ACTION;
+  const toastPresentation = resolveToastPresentation(notice, noticeAction);
+  const toastMessages: ToastMessage[] = notice
+    ? [
+        {
+          id: `app-shell:${notice}:${noticeAction?.label ?? ""}`,
+          title: (
+            <span className={styles.toastTitle}>
+              <Icon name={toastPresentation.icon} aria-hidden="true" />
+              <span>{notice}</span>
+            </span>
+          ),
+          tone: noticeTone ?? toastPresentation.tone,
+          urgent: noticeUrgent,
+          action: noticeAction ? (
+            <Button
+              type="button"
+              variant="ghost"
+              targetSize="important"
+              onClick={noticeAction.onClick}
+              disabled={noticeAction.disabled}
+            >
+              <Icon name="restore" aria-hidden="true" />
+              {noticeAction.label}
+            </Button>
+          ) : undefined,
+        },
+      ]
+    : [];
 
   function openCapture() {
     setMoreOpen(false);
@@ -134,6 +192,20 @@ export function AppShell({
     }
     action.onClick?.();
   }
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.dataset.moneyflowShell;
+    root.dataset.moneyflowShell = "mounted";
+
+    return () => {
+      if (previous === undefined) {
+        delete root.dataset.moneyflowShell;
+      } else {
+        root.dataset.moneyflowShell = previous;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -173,39 +245,39 @@ export function AppShell({
   }, [searchBar]);
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-app-shell="true">
       <aside className={styles.sidebar} aria-label="Điều hướng chính">
-        <Brand />
+        <BrandLockup
+          href={APP_HOME_HREF}
+          ariaLabel="MoneyFlow, về Tổng quan"
+          size="compact"
+          className={styles.brand}
+        />
         <nav className={styles.primaryNav}>
           {PRIMARY_NAV.map((item) => {
             if (item.kind === "action") {
               const active =
                 captureOpen || pathIsActive(pathname, "/capture");
               return (
-                <button
+                <Button
                   type="button"
+                  unstyled
+                  targetSize="important"
                   key={item.label}
                   className={cx(styles.navButton, active && styles.navActive)}
                   onClick={openCapture}
                   aria-current={active ? "page" : undefined}
-                  // Below 1100px the sidebar collapses and this label is hidden
-                  // with `display: none`, which also removes it from the
-                  // accessible name — leaving an unnamed button. Naming it here
-                  // keeps the name independent of the stylesheet. The string is
-                  // the same one rendered below, so the visible and accessible
-                  // names cannot drift.
                   aria-label={item.label}
+                  aria-haspopup="dialog"
+                  aria-expanded={captureOpen}
                 >
-                  <Icon name={item.icon} />
+                  <Icon name={item.icon} aria-hidden="true" />
                   <span>{item.label}</span>
-                </button>
+                </Button>
               );
             }
 
-            const insightsRelated =
-              item.href === "/insights" && isPlanningPath(pathname);
-            const active =
-              pathIsActive(pathname, item.href) || insightsRelated;
+            const active = pathIsActive(pathname, item.href);
             return (
               <Link
                 href={item.href}
@@ -213,13 +285,8 @@ export function AppShell({
                 key={item.label}
                 aria-current={active ? "page" : undefined}
                 aria-label={item.label}
-                title={
-                  insightsRelated
-                    ? "Kế hoạch nằm dưới Tổng quan"
-                    : undefined
-                }
               >
-                <Icon name={item.icon} />
+                <Icon name={item.icon} aria-hidden="true" />
                 <span>{item.label}</span>
               </Link>
             );
@@ -235,7 +302,7 @@ export function AppShell({
             )}
             aria-label="Cài đặt"
           >
-            <Icon name="settings" />
+            <Icon name="settings" aria-hidden="true" />
             <span>Cài đặt</span>
           </Link>
           <div className={styles.profileSlot}>
@@ -246,11 +313,16 @@ export function AppShell({
 
       <div className={styles.pageColumn}>
         <header className={styles.topbar}>
-          <Brand mobile />
+          <BrandLockup
+            href={APP_HOME_HREF}
+            ariaLabel="MoneyFlow, về Tổng quan"
+            size="compact"
+            className={styles.mobileBrand}
+          />
 
           {searchBar ? (
             <div className={styles.search}>
-              <Icon name="search" />
+              <Icon name="search" aria-hidden="true" />
               <input
                 ref={searchInputRef}
                 data-app-search="true"
@@ -268,7 +340,7 @@ export function AppShell({
               aria-label="Tìm giao dịch trên sổ (⌘K)"
               prefetch
             >
-              <Icon name="search" />
+              <Icon name="search" aria-hidden="true" />
               <span className={styles.searchPlaceholder}>
                 Tìm giao dịch...
               </span>
@@ -277,34 +349,45 @@ export function AppShell({
           )}
 
           <div className={styles.topbarActions}>
-            {resolvedPrimary.href ? (
-              <Link
-                className={styles.primaryAction}
+            {resolvedPrimary.href && !resolvedPrimary.disabled ? (
+              <LinkButton
+                unstyled
+                targetSize="important"
+                className={cx(
+                  styles.primaryAction,
+                  showPrimaryActionOnMobile && styles.primaryActionMobileVisible,
+                )}
                 href={resolvedPrimary.href}
-                aria-disabled={resolvedPrimary.disabled || undefined}
-                onClick={
-                  resolvedPrimary.disabled
-                    ? (event) => event.preventDefault()
-                    : undefined
-                }
               >
-                <Icon name={resolvedPrimary.icon ?? "plus"} />
+                <Icon
+                  name={resolvedPrimary.icon ?? "plus"}
+                  aria-hidden="true"
+                />
                 {resolvedPrimary.label}
-              </Link>
+              </LinkButton>
             ) : (
-              <button
+              <Button
                 type="button"
-                className={styles.primaryAction}
+                unstyled
+                targetSize="important"
+                className={cx(
+                  styles.primaryAction,
+                  showPrimaryActionOnMobile && styles.primaryActionMobileVisible,
+                )}
                 onClick={resolvedPrimary.onClick}
                 disabled={resolvedPrimary.disabled}
               >
-                <Icon name={resolvedPrimary.icon ?? "plus"} />
+                <Icon
+                  name={resolvedPrimary.icon ?? "plus"}
+                  aria-hidden="true"
+                />
                 {resolvedPrimary.label}
-              </button>
+              </Button>
             )}
 
-            <button
+            <IconButton
               type="button"
+              unstyled
               className={styles.mobileAccountButton}
               onClick={openMore}
               aria-label={`Mở tài khoản ${viewerLabel(viewer)}`}
@@ -312,7 +395,7 @@ export function AppShell({
               aria-expanded={moreOpen}
             >
               <span className={styles.avatar}>{viewerInitial(viewer)}</span>
-            </button>
+            </IconButton>
           </div>
         </header>
 
@@ -332,8 +415,10 @@ export function AppShell({
           if (item.kind === "action") {
             const active = pathIsActive(pathname, "/capture");
             return (
-              <button
+              <Button
                 type="button"
+                unstyled
+                targetSize="important"
                 key={item.label}
                 className={cx(
                   styles.mobileNavItem,
@@ -345,9 +430,12 @@ export function AppShell({
                 aria-label={resolvedMobilePrimary.label}
                 disabled={resolvedMobilePrimary.disabled}
               >
-                <Icon name={resolvedMobilePrimary.icon ?? item.icon} />
+                <Icon
+                  name={resolvedMobilePrimary.icon ?? item.icon}
+                  aria-hidden="true"
+                />
                 <span>Ghi</span>
-              </button>
+              </Button>
             );
           }
 
@@ -364,8 +452,10 @@ export function AppShell({
                 pathIsActive(pathname, link.href),
               );
             return (
-              <button
+              <Button
                 type="button"
+                unstyled
+                targetSize="important"
                 key={item.label}
                 className={cx(
                   styles.mobileNavItem,
@@ -375,21 +465,18 @@ export function AppShell({
                 aria-haspopup="dialog"
                 aria-expanded={moreOpen}
               >
-                <Icon name={item.icon} />
+                <Icon name={item.icon} aria-hidden="true" />
                 <span>{item.label}</span>
                 {inboxCount > 0 ? (
                   <span className={styles.badge} aria-hidden="true">
                     {inboxCount > 99 ? "99+" : inboxCount}
                   </span>
                 ) : null}
-              </button>
+              </Button>
             );
           }
 
-          const insightsRelated =
-            item.href === "/insights" && isPlanningPath(pathname);
-          const active =
-            pathIsActive(pathname, item.href) || insightsRelated;
+          const active = pathIsActive(pathname, item.href);
           return (
             <Link
               href={item.href}
@@ -400,7 +487,7 @@ export function AppShell({
               key={item.label}
               aria-current={active ? "page" : undefined}
             >
-              <Icon name={item.icon} />
+              <Icon name={item.icon} aria-hidden="true" />
               <span>{item.label}</span>
             </Link>
           );
@@ -410,82 +497,58 @@ export function AppShell({
       <CaptureSheet
         open={captureOpen}
         onClose={() => setCaptureOpen(false)}
-        titleId={captureTitleId}
         inboxCount={inboxCount}
       />
       <MoreSheet
         open={moreOpen}
         onClose={() => setMoreOpen(false)}
-        titleId={moreTitleId}
         pathname={pathname}
         inboxCount={inboxCount}
         viewer={viewer}
       />
-      <Toast notice={notice} action={noticeAction} />
+      <ToastRegion
+        messages={toastMessages}
+        className={styles.toastRegion}
+        style={{
+          bottom: "var(--mf-shell-feedback-bottom)",
+          zIndex: "var(--mf-shell-layer-feedback)",
+        }}
+      />
     </div>
-  );
-}
-
-function Brand({ mobile = false }: { mobile?: boolean }) {
-  return (
-    <Link
-      className={cx(styles.brand, mobile && styles.mobileBrand)}
-      href={APP_HOME_HREF}
-      aria-label="MoneyFlow, về Tổng quan"
-    >
-      <span className={styles.brandMark} aria-hidden="true">
-        <span />
-      </span>
-      <span>MoneyFlow</span>
-    </Link>
   );
 }
 
 function CaptureSheet({
   open,
   onClose,
-  titleId,
   inboxCount,
 }: {
   open: boolean;
   onClose: () => void;
-  titleId: string;
   inboxCount: number;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
-
   return (
-    <dialog
-      ref={dialogRef}
-      className={styles.sheet}
-      aria-labelledby={titleId}
-      onClose={onClose}
-      onClick={(event) => {
-        if (event.target === dialogRef.current) onClose();
+    <Sheet
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
       }}
-    >
-      <div className={styles.dialogHandle} />
-      <div className={styles.dialogHeading}>
-        <h2 id={titleId}>Ghi giao dịch</h2>
-        <button
+      title="Ghi giao dịch"
+      description="Chọn cách ghi nhanh hoặc đưa dữ liệu vào để duyệt trước khi vào sổ."
+      side="center"
+      className={cx(styles.shellSheet, APP_SHELL_SHEET_CLASS)}
+      footer={
+        <Button
           type="button"
-          className={styles.iconButton}
+          variant="outline"
+          targetSize="important"
+          className={styles.sheetCancel}
           onClick={onClose}
-          aria-label="Đóng"
         >
-          <Icon name="close" />
-        </button>
-      </div>
-      <p className={styles.sheetLead}>
-        Chọn cách ghi nhanh hoặc đưa dữ liệu vào để duyệt trước khi vào sổ.
-      </p>
+          Hủy
+        </Button>
+      }
+    >
       <div className={styles.captureActions}>
         {CAPTURE_OPTIONS.map((option) => (
           <Link
@@ -495,13 +558,13 @@ function CaptureSheet({
             onClick={onClose}
           >
             <span className={styles.captureOptionIcon}>
-              <Icon name={option.icon} />
+              <Icon name={option.icon} aria-hidden="true" />
             </span>
             <span>
               <strong>{option.label}</strong>
               <small>{option.description}</small>
             </span>
-            <Icon name="arrowRight" />
+            <Icon name="arrowRight" aria-hidden="true" />
           </Link>
         ))}
       </div>
@@ -517,64 +580,34 @@ function CaptureSheet({
           Trang nhập liệu
         </Link>
       </p>
-      <button
-        type="button"
-        className={styles.cancelButton}
-        onClick={onClose}
-      >
-        Hủy
-      </button>
-    </dialog>
+    </Sheet>
   );
 }
 
 function MoreSheet({
   open,
   onClose,
-  titleId,
   pathname,
   inboxCount,
   viewer,
 }: {
   open: boolean;
   onClose: () => void;
-  titleId: string;
   pathname: string;
   inboxCount: number;
   viewer: ViewerSummary;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
-
   return (
-    <dialog
-      ref={dialogRef}
-      className={styles.sheet}
-      aria-labelledby={titleId}
-      onClose={onClose}
-      onClick={(event) => {
-        if (event.target === dialogRef.current) onClose();
+    <Sheet
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onClose();
       }}
+      title="Thêm & tài khoản"
+      description="Mở công cụ, kế hoạch và tùy chọn tài khoản mà không thay đổi luồng ghi chính."
+      side="right"
+      className={cx(styles.shellSheet, APP_SHELL_SHEET_CLASS)}
     >
-      <div className={styles.dialogHandle} />
-      <div className={styles.dialogHeading}>
-        <h2 id={titleId}>Thêm &amp; tài khoản</h2>
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={onClose}
-          aria-label="Đóng"
-        >
-          <Icon name="close" />
-        </button>
-      </div>
-
       <SheetLinks
         label="Công cụ hàng ngày"
         items={MORE_NAV_LINKS}
@@ -606,7 +639,7 @@ function MoreSheet({
               )}
               onClick={onClose}
             >
-              <Icon name={item.icon} />
+              <Icon name={item.icon} aria-hidden="true" />
               <span>{item.label}</span>
               {badge != null ? (
                 <span
@@ -638,7 +671,7 @@ function MoreSheet({
           className={styles.accountAction}
           onClick={onClose}
         >
-          <Icon name="settings" />
+          <Icon name="settings" aria-hidden="true" />
           <span>Cài đặt tài khoản</span>
         </Link>
         {viewer.isDemo ? (
@@ -650,25 +683,27 @@ function MoreSheet({
             )}
             onClick={onClose}
           >
-            <Icon name="arrowRight" />
+            <Icon name="arrowRight" aria-hidden="true" />
             <span>Tạo tài khoản</span>
           </Link>
         ) : (
           <form action={signOut} className={styles.signoutForm}>
-            <button
+            <Button
               type="submit"
+              unstyled
+              targetSize="important"
               className={cx(
                 styles.accountAction,
                 styles.accountActionDanger,
               )}
             >
-              <Icon name="arrowRight" />
+              <Icon name="arrowRight" aria-hidden="true" />
               <span>Đăng xuất</span>
-            </button>
+            </Button>
           </form>
         )}
       </section>
-    </dialog>
+    </Sheet>
   );
 }
 
@@ -697,7 +732,7 @@ function SheetLinks({
             )}
             onClick={onClose}
           >
-            <Icon name={item.icon} />
+            <Icon name={item.icon} aria-hidden="true" />
             <span>{item.label}</span>
           </Link>
         );
@@ -706,73 +741,36 @@ function SheetLinks({
   );
 }
 
-function Toast({
-  notice,
-  action,
-}: {
-  notice?: string;
-  action?: NoticeAction;
-}) {
+function resolveToastPresentation(
+  notice?: string,
+  action?: NoticeAction,
+): { tone: ToastTone; icon: IconName } {
   const text = (notice || "").toLowerCase();
-  let variant: "success" | "error" | "warning" | "info" = "success";
-  let icon: IconName = "check";
 
-  if (action) {
-    variant = "info";
-    icon = "restore";
-  } else if (
+  if (action) return { tone: "info", icon: "restore" };
+  if (
     text.includes("lỗi") ||
     text.includes("thất bại") ||
     text.includes("không thể") ||
-    text.includes("hãy") ||
     text.includes("không khôi phục") ||
     text.includes("chưa thể hoàn tác")
   ) {
-    variant = "error";
-    icon = "bell";
-  } else if (
+    return { tone: "error", icon: "bell" };
+  }
+  if (
     text.includes("cảnh báo") ||
     text.includes("chưa") ||
     text.includes("yêu cầu")
   ) {
-    variant = "warning";
-    icon = "bell";
-  } else if (
+    return { tone: "warning", icon: "bell" };
+  }
+  if (
     text.includes("thông tin") ||
     text.includes("chi tiết") ||
     text.includes("đang") ||
     text.includes("khôi phục")
   ) {
-    variant = "info";
-    icon = "bell";
+    return { tone: "info", icon: "bell" };
   }
-
-  return (
-    <div
-      className={cx(
-        styles.toast,
-        notice && styles.toastVisible,
-        variant === "error" && styles.toastError,
-        variant === "warning" && styles.toastWarning,
-      )}
-      role="status"
-      aria-live="polite"
-    >
-      <span className={styles.toastIcon}>
-        <Icon name={icon} />
-      </span>
-      <span className={styles.toastMessage}>{notice}</span>
-      {notice && action ? (
-        <button
-          type="button"
-          className={styles.toastAction}
-          onClick={action.onClick}
-          disabled={action.disabled}
-        >
-          <Icon name="restore" />
-          {action.label}
-        </button>
-      ) : null}
-    </div>
-  );
+  return { tone: "success", icon: "check" };
 }

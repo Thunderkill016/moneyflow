@@ -201,6 +201,7 @@ export function AccountsPage({
         onClick: () => openAccount(null),
         disabled: Boolean(dataError),
       }}
+      showPrimaryActionOnMobile
       notice={notice}
     >
       <main className={`${styles.workspace} dashboard accounts-workspace`}>
