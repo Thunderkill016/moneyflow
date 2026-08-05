@@ -46,14 +46,18 @@ function walk(directory) {
 export function parseUnifiedDiff(patch) {
   const additions = [];
   let file = null;
+  let oldFile = null;
   let isNewFile = false;
+  let isRenamedFile = false;
   let newLine = null;
 
   for (const rawLine of patch.split(/\r?\n/)) {
     const diffHeader = rawLine.match(/^diff --git a\/(.+) b\/(.+)$/);
     if (diffHeader) {
+      oldFile = normalizePath(diffHeader[1]);
       file = normalizePath(diffHeader[2]);
       isNewFile = false;
+      isRenamedFile = oldFile !== file;
       newLine = null;
       continue;
     }
@@ -64,6 +68,7 @@ export function parseUnifiedDiff(patch) {
     const targetHeader = rawLine.match(/^\+\+\+ b\/(.+)$/);
     if (targetHeader) {
       file = normalizePath(targetHeader[1]);
+      isRenamedFile = oldFile !== null && oldFile !== file;
       continue;
     }
     const hunkHeader = rawLine.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
@@ -73,7 +78,7 @@ export function parseUnifiedDiff(patch) {
     }
     if (!file || newLine === null) continue;
     if (rawLine.startsWith("+") && !rawLine.startsWith("+++")) {
-      additions.push({ file, line: newLine, content: rawLine.slice(1), isNewFile });
+      additions.push({ file, line: newLine, content: rawLine.slice(1), isNewFile, isRenamedFile });
       newLine += 1;
     } else if (rawLine.startsWith(" ")) {
       newLine += 1;
@@ -100,10 +105,22 @@ export function collectDefinedTokens(root = process.cwd()) {
   return tokens;
 }
 
-const cssImportPath = (line) =>
-  line.match(/^\s*import\s+(?:[^"']+?\s+from\s+)?["']([^"']+\.css)["']\s*;?/)?.[1] ?? null;
-const localCssAtImport = (line) =>
-  line.match(/^\s*@import\s+["']([^"']+\.css)["']/)?.[1] ?? null;
+const cssImportPath = (line) => {
+  const patterns = [
+    /^\s*import\s+(?:[^"']+?\s+from\s+)?["']([^"']+\.css)["']\s*;?/,
+    /\bimport\(\s*["']([^"']+\.css)["']\s*\)/,
+    /\brequire\(\s*["']([^"']+\.css)["']\s*\)/,
+  ];
+  for (const pattern of patterns) {
+    const match = line.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+};
+const localCssAtImport = (line) => {
+  const match = line.match(/^\s*@import\s+(?:(?:url\(\s*)?["']([^"']+\.css)["']\s*\)?|url\(\s*([^"')\s]+\.css)\s*\))/);
+  return match?.[1] ?? match?.[2] ?? null;
+};
 const referencedTokens = (line) =>
   [...line.matchAll(/var\(\s*(--[A-Za-z0-9_-]+)/g)].map((match) => match[1]);
 
@@ -121,15 +138,24 @@ function quotedLegacyTokens(line) {
   return [...found];
 }
 
+function registeredLegacyTokens(line) {
+  const classRegistration =
+    /\bclassName\s*=/.test(line) ||
+    /\.className\s*=/.test(line) ||
+    /\.classList\.(?:add|remove|toggle|replace)\s*\(/.test(line) ||
+    /\b(?:clsx|classNames|classnames|cn)\s*\(/.test(line);
+  return classRegistration ? quotedLegacyTokens(line) : [];
+}
+
 export function evaluateUiMigrationDiff({ patch, definedTokens = new Set() }) {
   const additions = parseUnifiedDiff(patch);
   const violations = [];
   const reportedNewGlobalFiles = new Set();
 
-  for (const { file, line, content, isNewFile } of additions) {
+  for (const { file, line, content, isNewFile, isRenamedFile } of additions) {
     const location = `${file}:${line}`;
 
-    if (isNewFile && /^src\/app\/.*\.css$/.test(file) && !isCssModule(file) && !reportedNewGlobalFiles.has(file)) {
+    if ((isNewFile || isRenamedFile) && /^src\/app\/.*\.css$/.test(file) && !isCssModule(file) && !reportedNewGlobalFiles.has(file)) {
       reportedNewGlobalFiles.add(file);
       violations.push({
         rule: "no-new-route-global-css",
@@ -192,7 +218,7 @@ export function evaluateUiMigrationDiff({ patch, definedTokens = new Set() }) {
     }
 
     if (isRouteOrComponentCode(file) && !hasReason(content, "ui-migration: allow-legacy-class")) {
-      for (const token of quotedLegacyTokens(content)) {
+      for (const token of registeredLegacyTokens(content)) {
         violations.push({
           rule: "no-new-legacy-class-registration",
           location,
