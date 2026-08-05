@@ -2,10 +2,10 @@
 
 **Status:** evaluating  
 **Execution state:** evaluating  
-**Active role:** planner  
+**Active role:** human_owner  
 **Permission scope:** branch_write  
 **Owner:** Thunderkill016  
-**Issue/PR:** pending  
+**Issue/PR:** #297  
 **Parent packet:** `docs/plans/active/ui-system-migration.md`  
 **Last updated:** 2026-08-05
 
@@ -58,7 +58,7 @@ The merge candidate passed policy, CSS ownership, architecture, lint, typecheck,
 | P0-T5 | Map live class families and behavior enforced through CSS | baseline ownership findings | partial — critical families mapped; exhaustive live DOM consumer map remains future work |
 | P0-T6 | Capture representative current-main evidence | UI artifact #8905362804 and browser artifact #8905168099 | done as preserved CI evidence; owner visual review pending |
 | P0-T7 | Reconcile issue #72 and open UI PRs | open-work disposition table | done as recommendation; no item mutated |
-| P0-T8 | Present baseline and order to owner | this PR and artifacts | pending |
+| P0-T8 | Present baseline and order to owner | PR #297 and artifacts | done; owner decision pending |
 
 ## Decisions requested from owner
 
@@ -78,38 +78,36 @@ The merge candidate passed policy, CSS ownership, architecture, lint, typecheck,
 - Existing screenshots are preserved in the Actions artifact; this packet does not commit a large binary baseline.
 - Automated UI success does not prove visual quality or physical-device readiness.
 
-## Verification plan
+## Verification
 
-This is a documentation-only Class 0 phase.
+Exact head after PR memory: `607cf44c51ff1a3984ae4f337ed6124a8b5fb04a`.
 
-Required on final head:
-
-- project-knowledge contract;
-- CI policy contract;
-- diff hygiene;
-- protected CodeQL;
-- changed-file review proving no runtime/CSS/test/dependency modification.
-
-The secret-history scan may remain affected by the known all-ref finding handled independently by PR #295; this packet must not weaken or modify that control.
+- CI #1598 / run `30988805822`: passed.
+- Protected CodeQL #729 / run `30988805864`: passed.
+- Changed-file review: five documentation files only.
+- Secret history scan #729 / run `30988805802`: failed on the existing all-ref finding at commit `a684722cba43b7d8efb2f05d510552d36d1103b2`, `tools/atoryn-design-plugin-v08/ui.html`; PR #297 did not add or modify that finding. PR #295 owns the independent resolution candidate.
+- Runtime, browser and database gates: not applicable to this documentation-only diff; existing current-main UI evidence is referenced as baseline, not claimed as a test of this PR.
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Next allowed action |
 |---|---|---|---|---|---|
 | 2026-08-05 | human_owner | planner | evaluating | Explicit instruction to start the plan | Execute Phase 0 only |
-| 2026-08-05 | planner | human_owner | evaluating | Authority index, baseline, open-work disposition and CI artifact references | Review findings and approve/revise Phase 1 |
+| 2026-08-05 | planner | human_owner | evaluating | PR #297, authority index, baseline, open-work disposition, CI #1598 and CodeQL #729 | Review findings and approve/revise Phase 1 |
 
 ### Current permission boundary
 
 - Granted: Phase 0 source/CI inspection and documentation on `agent/ui-phase-0-baseline`.
 - Forbidden: product/runtime files, CSS, tests, dependencies, workflow/provider/security settings, existing PR/issue mutation, merge and deployment.
-- Stop condition: Phase 0 findings are presented to the owner. No Phase 1 write begins without a new explicit approval.
+- Stop condition: reached. Phase 0 findings are presented to the owner. No Phase 1 write begins without a new explicit approval.
 
 ## Delivery record
 
 - Branch: `agent/ui-phase-0-baseline`
-- PR: pending
-- CI: pending
+- PR: #297
+- CI: #1598 passed
+- CodeQL: #729 passed
+- Secret history: #729 failed on the known unrelated all-ref finding
 - Product behavior changed: no
 - Production deployment: not applicable
 - Owner Phase 0 acceptance: pending
