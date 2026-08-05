@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { MoneyValue } from "@/components/money-value";
+import { Button, LinkButton } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   EXPORT_CSV_LABEL,
   EXPORT_SETTINGS_HREF,
@@ -40,14 +41,15 @@ export function DashboardHeaderSections({
   displayName,
   attentionItems,
   totals,
+  today,
   isEmptyLedger,
   onAddTransaction,
 }: {
   displayName: string;
   attentionItems: AttentionItem[];
   totals: DashboardTotals;
+  today: string;
   isEmptyLedger: boolean;
-  /** Kept by the caller for the empty-ledger call to action below. */
   onAddTransaction: () => void;
 }) {
   return (
@@ -58,12 +60,14 @@ export function DashboardHeaderSections({
           <h1>Chào {displayName}.</h1>
         </div>
         <div className="welcome-actions">
-          <Link
+          <LinkButton
             className="secondary-button insights-export-csv"
             href={EXPORT_SETTINGS_HREF}
+            variant="outline"
+            targetSize="important"
           >
-            <Icon name="arrowDown" /> {EXPORT_CSV_LABEL}
-          </Link>
+            <Icon name="arrowDown" aria-hidden="true" /> {EXPORT_CSV_LABEL}
+          </LinkButton>
         </div>
       </section>
 
@@ -77,9 +81,9 @@ export function DashboardHeaderSections({
                   href={item.href}
                   className={`attention-chip attention-chip-${item.tone}`}
                 >
-                  <Icon name="bell" />
+                  <Icon name="bell" aria-hidden="true" />
                   <span>{item.label}</span>
-                  <Icon name="arrowRight" />
+                  <Icon name="arrowRight" aria-hidden="true" />
                 </Link>
               </li>
             ))}
@@ -87,12 +91,11 @@ export function DashboardHeaderSections({
         </section>
       ) : null}
 
-      {/*
-        No primary action here: the shell already presents "Ghi chi tiêu" in the
-        top bar on desktop and in the tab bar on phones. Repeating it beside the
-        figure would put two identical primary buttons in one viewport.
-      */}
-      <DashboardStatement totals={totals} isEmptyLedger={isEmptyLedger} />
+      <DashboardStatement
+        totals={totals}
+        today={today}
+        isEmptyLedger={isEmptyLedger}
+      />
 
       <nav className="insights-planning-nav" aria-label="Kế hoạch từ Tổng quan">
         <p className="insights-planning-label">Kế hoạch</p>
@@ -100,12 +103,12 @@ export function DashboardHeaderSections({
           {PLANNING_LINKS.map((item) => (
             <li key={item.href}>
               <Link href={item.href} className="insights-planning-link">
-                <Icon name={item.icon} />
+                <Icon name={item.icon} aria-hidden="true" />
                 <span>
                   <strong>{item.label}</strong>
                   {item.description ? <small>{item.description}</small> : null}
                 </span>
-                <Icon name="arrowRight" />
+                <Icon name="arrowRight" aria-hidden="true" />
               </Link>
             </li>
           ))}
@@ -114,11 +117,20 @@ export function DashboardHeaderSections({
 
       {isEmptyLedger ? (
         <EmptyState
-          icon="wallet"
+          icon={<Icon name="wallet" />}
           title={INSIGHTS_LEDGER_EMPTY.title}
           description={INSIGHTS_LEDGER_EMPTY.description}
-          actionLabel={GHI_CHI_TIEU_LABEL}
-          onAction={onAddTransaction}
+          primaryAction={
+            <Button
+              type="button"
+              intent="secondary"
+              targetSize="important"
+              onClick={onAddTransaction}
+            >
+              <Icon name="plus" aria-hidden="true" />
+              {GHI_CHI_TIEU_LABEL}
+            </Button>
+          }
           className="insights-empty"
         />
       ) : null}
@@ -149,18 +161,25 @@ export function DashboardLedgerColumn({
                 <h2>Chi theo danh mục</h2>
                 <p>Top danh mục tháng này — thanh ngang, không biểu đồ tròn.</p>
               </div>
-              <Link className="section-link" href={REPORTS_MONTH_HREF}>
-                {REPORTS_MONTH_LINK_LABEL} <Icon name="arrowRight" />
-              </Link>
+              <LinkButton
+                unstyled
+                targetSize="important"
+                className="section-link shrink-0"
+                href={REPORTS_MONTH_HREF}
+              >
+                {REPORTS_MONTH_LINK_LABEL}{" "}
+                <Icon name="arrowRight" aria-hidden="true" />
+              </LinkButton>
             </div>
             {topCategories.length ? (
               <ul className="insights-category-list">
                 {topCategories.map((item) => {
-                  const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                  const meta =
+                    categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
                   return (
                     <li className="insights-category-row" key={item.name}>
                       <span className={`transaction-icon ${meta.color}`}>
-                        <Icon name={meta.icon as IconName} />
+                        <Icon name={meta.icon as IconName} aria-hidden="true" />
                       </span>
                       <div className="insights-category-meta">
                         <div className="insights-category-labels">
@@ -179,7 +198,10 @@ export function DashboardLedgerColumn({
                         >
                           <i
                             style={{
-                              width: `${Math.max(item.share, item.amount > 0 ? 4 : 0)}%`,
+                              width: `${Math.max(
+                                item.share,
+                                item.amount > 0 ? 4 : 0,
+                              )}%`,
                             }}
                           />
                         </div>
@@ -192,17 +214,21 @@ export function DashboardLedgerColumn({
             ) : (
               <div className="panel-empty compact">
                 <span>
-                  <Icon name="chart" />
+                  <Icon name="chart" aria-hidden="true" />
                 </span>
                 <h3>Chưa có chi tiêu tháng này</h3>
-                <p>Khi bạn ghi chi, danh mục sẽ hiện ở đây dưới dạng thanh ngang.</p>
-                <button
+                <p>
+                  Khi bạn ghi chi, danh mục sẽ hiện ở đây dưới dạng thanh ngang.
+                </p>
+                <Button
                   type="button"
+                  intent="secondary"
+                  targetSize="important"
                   onClick={onAddTransaction}
                   disabled={actionsDisabled}
                 >
                   {GHI_CHI_TIEU_LABEL}
-                </button>
+                </Button>
               </div>
             )}
           </article>
@@ -213,18 +239,24 @@ export function DashboardLedgerColumn({
                 <h2>Giao dịch gần đây</h2>
                 <p>Cập nhật ngay khi bạn ghi khoản mới.</p>
               </div>
-              <Link className="section-link" href="/transactions">
-                Xem tất cả <Icon name="arrowRight" />
-              </Link>
+              <LinkButton
+                unstyled
+                targetSize="important"
+                className="section-link shrink-0"
+                href="/transactions"
+              >
+                Xem tất cả <Icon name="arrowRight" aria-hidden="true" />
+              </LinkButton>
             </div>
             <div className="transaction-list">
               {transactions.slice(0, 5).map((transaction) => {
                 const meta =
-                  categoryMeta[transaction.category] ?? categoryMeta["Thu nhập khác"];
+                  categoryMeta[transaction.category] ??
+                  categoryMeta["Thu nhập khác"];
                 return (
                   <div className="transaction-row" key={transaction.id}>
                     <span className={`transaction-icon ${meta.color}`}>
-                      <Icon name={meta.icon as IconName} />
+                      <Icon name={meta.icon as IconName} aria-hidden="true" />
                     </span>
                     <span className="transaction-detail">
                       <strong>{transaction.note}</strong>
@@ -237,7 +269,9 @@ export function DashboardLedgerColumn({
                           : `${transaction.category} · ${transaction.account}`}
                       </small>
                     </span>
-                    <span className="transaction-time">{transaction.relativeDate}</span>
+                    <span className="transaction-time">
+                      {transaction.relativeDate}
+                    </span>
                     <MoneyValue
                       amount={transaction.amount}
                       mode="kind"

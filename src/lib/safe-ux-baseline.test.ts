@@ -48,67 +48,76 @@ test("SAFE-03: authenticated Inbox count is server-derived and demo storage is i
   assert.match(inboxServer, /select\("id", \{ count: "exact", head: true \}\)/);
 });
 
-test("SAFE-04/05: Dashboard, Budgets and Goals share the repaired responsive contract", () => {
-  const css = readProjectFile("src/app/safe-ux-planning.css");
+test("SAFE-04/05: Dashboard owns responsive layout while Budgets and Goals retain their compatibility contract", () => {
+  const planningCss = readProjectFile("src/app/safe-ux-planning.css");
+  const dashboardCss = readProjectFile(
+    "src/components/dashboard/dashboard.module.css",
+  );
   const dashboardPage = readProjectFile("src/app/dashboard/page.tsx");
+  const dashboard = readProjectFile("src/components/moneyflow-dashboard.tsx");
   const budgetsPage = readProjectFile("src/app/budgets/page.tsx");
   const goalsPage = readProjectFile("src/app/goals/page.tsx");
 
-  assert.match(dashboardPage, /import "\.\.\/safe-ux-planning\.css"/);
+  assert.doesNotMatch(dashboardPage, /import\s+["'][^"']+\.css["']/);
+  assert.match(dashboard, /dashboard\.module\.css/);
   assert.match(budgetsPage, /import "\.\.\/safe-ux-planning\.css"/);
   assert.match(goalsPage, /import "\.\.\/safe-ux-planning\.css"/);
   assert.match(
-    css,
-    /\.insights-dashboard \.budget-panel \.section-heading p,[\s\S]*?\.goal-dashboard-panel \.section-heading p[\s\S]*?display:\s*block/,
+    dashboardCss,
+    /@media \(max-width:\s*1080px\)[\s\S]*?\.dashboard :global\(\.content-grid\.insights-main-grid\)[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/,
   );
   assert.match(
-    css,
+    dashboardCss,
+    /@media \(max-width:\s*760px\)[\s\S]*?\.dashboard :global\(\.right-stack\)[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+  );
+  assert.match(
+    planningCss,
     /\.budgets-workspace \.budget-overview,[\s\S]*?\.goals-workspace \.goal-hero[\s\S]*?grid-template-columns:\s*1fr/,
   );
   assert.match(
-    css,
+    planningCss,
     /\.budgets-workspace \.budget-category-actions a,[\s\S]*?\.goals-workspace \.goal-actions button[\s\S]*?min-height:\s*44px/,
   );
-  assert.match(
-    css,
-    /\.budget-card-grid,[\s\S]*?\.goal-card-grid[\s\S]*?grid-template-columns:\s*1fr/,
-  );
+  assert.doesNotMatch(planningCss, /\.insights-dashboard/);
 });
 
-test("SAFE-06: amount surfaces are neutral by default and token-driven", () => {
-  const css = readProjectFile("src/app/safe-ux-planning.css");
+test("SAFE-06: Dashboard amount surfaces are neutral and semantic color stays on figures", () => {
+  const dashboardCss = readProjectFile(
+    "src/components/dashboard/dashboard.module.css",
+  );
+  const statementCss = readProjectFile(
+    "src/components/dashboard/statement.module.css",
+  );
 
   assert.match(
-    css,
-    /\.insights-dashboard \.insights-kpi > article:first-child[\s\S]*?background:\s*var\(--mf-surface\)/,
+    statementCss,
+    /\.statement\s*\{[\s\S]*?background:\s*var\(--mf-surface\)/,
   );
+  assert.match(statementCss, /\.legendIncome[\s\S]*?var\(--mf-income\)/);
+  assert.match(statementCss, /\.legendExpense[\s\S]*?var\(--mf-expense\)/);
   assert.match(
-    css,
-    /article:nth-child\(2\)[\s\S]*?var\(--mf-income\)/,
+    dashboardCss,
+    /\.dashboard :global\(\.panel\),[\s\S]*?background:\s*var\(--mf-surface\)/,
   );
-  assert.match(
-    css,
-    /article:nth-child\(3\)[\s\S]*?var\(--mf-expense\)/,
-  );
-  assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b/i);
+  assert.doesNotMatch(`${dashboardCss}\n${statementCss}`, /#[0-9a-f]{3,8}\b/i);
 });
 
-test("SAFE-06B: weekly and today totals stay anchored below the card header", () => {
-  const css = readProjectFile("src/app/dashboard/safe-ux-weekly-summary.css");
-  const dashboardPage = readProjectFile("src/app/dashboard/page.tsx");
+test("SAFE-06B: weekly totals stay anchored below the locally owned card header", () => {
+  const dashboardCss = readProjectFile(
+    "src/components/dashboard/dashboard.module.css",
+  );
 
-  assert.match(dashboardPage, /import "\.\/safe-ux-weekly-summary\.css"/);
   assert.match(
-    css,
-    /\.weekly-summary-panel \.section-heading[\s\S]*?margin-bottom:\s*14px/,
+    dashboardCss,
+    /\.dashboard :global\(\.weekly-summary-panel \.section-heading\)[\s\S]*?margin-bottom:\s*14px/,
   );
   assert.match(
-    css,
-    /\.weekly-summary-panel \.weekly-summary-kpis\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/,
+    dashboardCss,
+    /\.dashboard :global\(\.weekly-summary-kpis\)\s*\{[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)/,
   );
   assert.match(
-    css,
-    /\.weekly-summary-panel \.weekly-summary-kpis > div[\s\S]*?display:\s*grid[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/,
+    dashboardCss,
+    /\.dashboard :global\(\.weekly-summary-kpis > div\)[\s\S]*?display:\s*grid[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/,
   );
-  assert.match(css, /@media \(max-width:\s*760px\)/);
+  assert.match(dashboardCss, /@media \(max-width:\s*760px\)/);
 });

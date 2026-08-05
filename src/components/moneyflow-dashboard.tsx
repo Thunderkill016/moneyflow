@@ -7,8 +7,10 @@ import {
   DashboardLedgerColumn,
 } from "@/components/dashboard/dashboard-overview-sections";
 import { DashboardPlanningColumn } from "@/components/dashboard/dashboard-planning-sections";
+import styles from "@/components/dashboard/dashboard.module.css";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems } from "@/lib/attention";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
@@ -243,18 +245,19 @@ export function MoneyFlowDashboard({
       }}
       notice={notice}
     >
-      <main className="dashboard insights-dashboard">
+      <main className={styles.dashboard}>
         {workspace.dataError ? (
-          <div className="data-alert" role="alert">
-            <Icon name="bell" />
-            <span>{workspace.dataError}</span>
-          </div>
+          <Alert tone="error" live="assertive" className="data-alert">
+            <Icon name="bell" aria-hidden="true" />
+            <AlertDescription>{workspace.dataError}</AlertDescription>
+          </Alert>
         ) : null}
 
         <DashboardHeaderSections
           displayName={displayName}
           attentionItems={attentionItems}
           totals={totals}
+          today={workspace.today}
           isEmptyLedger={isEmptyLedger && !workspace.dataError}
           onAddTransaction={openGhiChi}
         />

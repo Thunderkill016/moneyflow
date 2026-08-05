@@ -2,10 +2,6 @@ import type { Metadata } from "next";
 import { MoneyFlowDashboard } from "@/components/moneyflow-dashboard";
 import { requireViewer } from "@/server/auth";
 import { getDashboardPageWorkspace } from "@/server/dashboard";
-import "./calm-ledger-overview.css";
-import "./calm-ledger-overview-actions.css";
-import "../safe-ux-planning.css";
-import "./safe-ux-weekly-summary.css";
 
 export const metadata: Metadata = {
   title: "Tổng quan — MoneyFlow",
