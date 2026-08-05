@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
+import { useTransactionLedger } from "@/hooks/use-transaction-ledger";
 import { formatMoney } from "@/lib/money";
 import {
   categoryMeta,
@@ -54,13 +55,17 @@ export function TimelineWorkspace({
   workspace: TimelineWorkspaceData;
 }) {
   const [query, setQuery] = useState("");
+  const transactions = useTransactionLedger({
+    initialTransactions: workspace.transactions,
+    isDemo: viewer.isDemo,
+  });
 
   const reviewed = useMemo(
     () =>
-      workspace.transactions.filter(
+      transactions.filter(
         (transaction) => getTransactionReviewStatus(transaction) === "reviewed",
       ),
-    [workspace.transactions],
+    [transactions],
   );
 
   const filtered = useMemo(
