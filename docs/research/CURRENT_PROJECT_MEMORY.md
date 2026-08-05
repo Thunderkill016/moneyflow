@@ -6,6 +6,8 @@
 - **Owner direction:** MoneyFlow is released as a functional MVP; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate
 - **UI-system migration:** parent plan PR #296 and Phases 0–4 are delivered through PRs #297–#301; Phase 5 remains unauthorized
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
+- **Memory size target:** target: **150–250 lines**
+- **Memory hard failure:** hard failure: above **500 lines** or **64 KiB**
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Release acceptance:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
 - **Release decision:** `docs/release/MVP_RELEASE_DECISION_2026-08-03.md`
