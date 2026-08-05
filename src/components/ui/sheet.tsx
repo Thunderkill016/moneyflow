@@ -7,7 +7,7 @@ import { IconButton } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
-type SheetSide = "left" | "right" | "top" | "bottom"
+type SheetSide = "center" | "left" | "right" | "top" | "bottom"
 
 type SheetProps = {
   open: boolean
@@ -24,6 +24,7 @@ type SheetProps = {
 }
 
 const modalSideClass: Record<SheetSide, string> = {
+  center: "m-auto h-auto max-h-[calc(100dvh-2rem)]",
   left:
     "fixed inset-y-0 left-0 right-auto m-0 h-dvh max-h-dvh w-[min(28rem,100%)] rounded-none border-y-0 border-l-0",
   right:
@@ -34,7 +35,7 @@ const modalSideClass: Record<SheetSide, string> = {
     "fixed inset-x-0 bottom-0 top-auto m-0 h-auto max-h-[85dvh] w-full max-w-none rounded-none border-x-0 border-b-0",
 }
 
-const nonModalSideClass: Record<SheetSide, string> = {
+const nonModalSideClass: Record<Exclude<SheetSide, "center">, string> = {
   left: "inset-y-0 left-0 h-dvh w-[min(28rem,100%)] border-r",
   right: "inset-y-0 right-0 h-dvh w-[min(28rem,100%)] border-l",
   top: "inset-x-0 top-0 max-h-[85dvh] w-full border-b",
@@ -76,6 +77,10 @@ function Sheet({
   }
 
   if (!open) return null
+
+  if (side === "center") {
+    throw new Error("A non-modal Sheet must use an edge side")
+  }
 
   return (
     <aside
