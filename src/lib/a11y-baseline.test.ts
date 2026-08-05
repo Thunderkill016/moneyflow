@@ -39,11 +39,12 @@ test("AddTransactionDialog delegates modal focus lifecycle to shared Dialog", ()
   assert.match(src, /moneyKindPrefix/);
   assert.doesNotMatch(src, /<dialog\b|showModal\(\)/);
 
-  assert.match(dialog, /previouslyFocused/);
+  assert.match(dialog, /restoreFocusRef/);
   assert.match(dialog, /initialFocusRef/);
-  assert.match(dialog, /focusables/);
-  assert.match(dialog, /event\.key === "Escape"/);
-  assert.match(dialog, /previous\.focus\(\)/);
+  assert.match(dialog, /dialog\.showModal\(\)/);
+  assert.match(dialog, /focusTarget\?\.focus\(\)/);
+  assert.match(dialog, /onCancel=/);
+  assert.match(dialog, /target\.focus\(\)/);
 });
 
 test("Insights dashboard: signed money for thu/chi KPI + recent rows", () => {
