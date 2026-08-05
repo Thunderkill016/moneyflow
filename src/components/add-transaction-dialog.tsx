@@ -1,14 +1,21 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Icon, type IconName } from "@/components/icons";
 import {
-  categoryMeta,
-  type AccountOption,
-  type CategoryOption,
-  type CreateTransactionInput,
-  type TransactionKind,
-} from "@/lib/sample-data";
+  FormEvent,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Icon, type IconName } from "@/components/icons";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { SelectField } from "@/components/ui/select-field";
+import { TextField } from "@/components/ui/text-field";
+import { findMatchingRule, resolveCategoryIdForRuleMatch } from "@/lib/inbox/apply-rules";
+import { readStoredRules, type InboxRule } from "@/lib/inbox/rules-store";
 import { formatMoneyInput, moneyKindPrefix, parseMoneyInput } from "@/lib/money";
 import {
   isRecentCategoryId,
@@ -18,9 +25,15 @@ import {
   readQuickAddPrefs,
   writeQuickAddPrefs,
 } from "@/lib/quick-add-prefs";
+import {
+  categoryMeta,
+  type AccountOption,
+  type CategoryOption,
+  type CreateTransactionInput,
+  type TransactionKind,
+} from "@/lib/sample-data";
 import { todayInVietnam } from "@/lib/vietnam-date";
-import { findMatchingRule, resolveCategoryIdForRuleMatch } from "@/lib/inbox/apply-rules";
-import { readStoredRules, type InboxRule } from "@/lib/inbox/rules-store";
+import styles from "./transactions/transaction-form.module.css";
 
 const KEEP_OPEN_SUCCESS = "Đã lưu · nhập khoản tiếp";
 
@@ -41,14 +54,12 @@ export function AddTransactionDialog({
   accounts: AccountOption[];
   categories: CategoryOption[];
   disabled?: boolean;
-  /** Render as page panel (no modal) for `/capture/quick`. */
   embedded?: boolean;
   title?: string;
   eyebrow?: string;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const formId = useId();
   const amountInputRef = useRef<HTMLInputElement>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
   const idempotencyKeyRef = useRef<string | null>(null);
   const prefsHydratedRef = useRef(false);
   const savedFlashTimerRef = useRef<number | null>(null);
@@ -63,7 +74,6 @@ export function AddTransactionDialog({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [savedFlash, setSavedFlash] = useState("");
-
   const [recentCategoryIds, setRecentCategoryIds] = useState<string[]>([]);
   const [rules, setRules] = useState<InboxRule[]>([]);
   const [autoRuleHint, setAutoRuleHint] = useState<string | null>(null);
@@ -76,29 +86,23 @@ export function AddTransactionDialog({
   const selectedAccountId = accounts.some((item) => item.id === accountId)
     ? accountId
     : accounts[0]?.id ?? "";
-  const selectedCategoryId = availableCategories.some((item) => item.id === categoryId)
+  const selectedCategoryId = availableCategories.some(
+    (item) => item.id === categoryId,
+  )
     ? categoryId
     : pickCategoryForKind(availableCategories, recentCategoryIds);
   const hasRecentForKind = availableCategories.some((item) =>
     isRecentCategoryId(item.id, recentCategoryIds),
   );
-
   const kindSign = moneyKindPrefix(kind);
   const amountLabel =
     kind === "expense" ? "Số tiền chi (₫)" : "Số tiền thu (₫)";
-  const submitLabel = submitting
-    ? "Đang lưu..."
-    : keepOpen
-      ? "Lưu & thêm tiếp"
-      : "Lưu";
 
   function focusAmount(select = true) {
     const input = amountInputRef.current;
     if (!input) return;
     input.focus();
-    if (select && input.value) {
-      input.select();
-    }
+    if (select && input.value) input.select();
   }
 
   function clearSavedFlashTimer() {
@@ -125,7 +129,9 @@ export function AddTransactionDialog({
       setKind(prefs.kind);
       setKeepOpen(prefs.keepOpen);
       if (prefs.accountId) setAccountId(prefs.accountId);
-      if (prefs.recentCategoryIds?.length) setRecentCategoryIds(prefs.recentCategoryIds);
+      if (prefs.recentCategoryIds?.length) {
+        setRecentCategoryIds(prefs.recentCategoryIds);
+      }
       const forKind = categories.filter((item) => item.kind === prefs.kind);
       const preferred = pickCategoryForKind(
         forKind,
@@ -136,35 +142,16 @@ export function AddTransactionDialog({
       setOccurredOn(todayInVietnam());
     });
     return () => window.cancelAnimationFrame(frame);
-    // Hydrate once on mount; categories may arrive later via selectedCategoryId fallback.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional one-shot prefs hydrate
   }, []);
 
   useEffect(() => {
-    if (embedded) return;
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) {
-      // Native <dialog showModal> traps focus; remember opener to restore on close.
-      previouslyFocusedRef.current =
-        document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      dialog.showModal();
-      // Focus amount after modal opens (Ivy: type first).
-      window.requestAnimationFrame(() => focusAmount(false));
-    }
-    if (!open && dialog.open) dialog.close();
-  }, [open, embedded]);
-
-  useEffect(() => {
     if (!open && !embedded) return;
-    // Embedded path (or re-open): amount first for <10s entry.
     const frame = window.requestAnimationFrame(() => focusAmount(false));
     return () => window.cancelAnimationFrame(frame);
   }, [open, embedded]);
 
-  useEffect(() => {
-    return () => clearSavedFlashTimer();
-  }, []);
+  useEffect(() => () => clearSavedFlashTimer(), []);
 
   useEffect(() => {
     if (!open) return;
@@ -172,7 +159,6 @@ export function AddTransactionDialog({
     return () => window.cancelAnimationFrame(frame);
   }, [open]);
 
-  /** Same "contains" rules the Inbox uses (docs/history/wireframes-inbox.md §14), reused here so a rule set up once also speeds up direct entry, not only paste/import. */
   function applyNoteChange(value: string) {
     setNote(value);
     markInputChanged();
@@ -180,25 +166,22 @@ export function AddTransactionDialog({
       if (!value.trim()) setAutoRuleHint(null);
       return;
     }
-    const match = findMatchingRule(rules, { merchant: "", note: value, rawSnippet: "" });
+    const match = findMatchingRule(rules, {
+      merchant: "",
+      note: value,
+      rawSnippet: "",
+    });
     const targetId = resolveCategoryIdForRuleMatch(match, categories, kind);
     if (!match || !targetId) {
       setAutoRuleHint(null);
       return;
     }
     setCategoryId(targetId);
-    setAutoRuleHint(`tự động theo quy tắc “${match.contains}” → ${match.category}`);
+    setAutoRuleHint(
+      `tự động theo quy tắc “${match.contains}” → ${match.category}`,
+    );
   }
 
-  function restoreFocus() {
-    const prev = previouslyFocusedRef.current;
-    previouslyFocusedRef.current = null;
-    if (prev && typeof prev.focus === "function") {
-      window.requestAnimationFrame(() => prev.focus());
-    }
-  }
-
-  /** Parent sets `open=false`; effect closes the dialog; `onClose` restores focus. */
   function handleRequestClose() {
     clearSavedFlashTimer();
     setSavedFlash("");
@@ -214,8 +197,7 @@ export function AddTransactionDialog({
   function changeKind(nextKind: TransactionKind) {
     setKind(nextKind);
     const forKind = categories.filter((item) => item.kind === nextKind);
-    const nextCategory = pickCategoryForKind(forKind, recentCategoryIds);
-    setCategoryId(nextCategory);
+    setCategoryId(pickCategoryForKind(forKind, recentCategoryIds));
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
     markInputChanged();
@@ -228,7 +210,10 @@ export function AddTransactionDialog({
     categoryId: string;
     keepOpen: boolean;
   }) {
-    const recentCategoryIdsNext = pushRecentCategoryId(recentCategoryIds, next.categoryId);
+    const recentCategoryIdsNext = pushRecentCategoryId(
+      recentCategoryIds,
+      next.categoryId,
+    );
     setRecentCategoryIds(recentCategoryIdsNext);
     writeQuickAddPrefs({ ...next, recentCategoryIds: recentCategoryIdsNext });
   }
@@ -241,12 +226,10 @@ export function AddTransactionDialog({
       focusAmount(false);
       return;
     }
-
     if (!selectedAccountId || !selectedCategoryId) {
       setError("Bạn cần có ít nhất một tài khoản và danh mục phù hợp.");
       return;
     }
-
     if (!/^\d{4}-\d{2}-\d{2}$/.test(occurredOn)) {
       setError("Chọn ngày giao dịch hợp lệ.");
       return;
@@ -254,7 +237,6 @@ export function AddTransactionDialog({
 
     const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
     idempotencyKeyRef.current = idempotencyKey;
-
     setSubmitting(true);
     let result: { ok: boolean; message?: string };
     try {
@@ -284,7 +266,6 @@ export function AddTransactionDialog({
       categoryId: selectedCategoryId,
       keepOpen,
     });
-
     idempotencyKeyRef.current = null;
     setAmount("");
     setNote("");
@@ -297,99 +278,132 @@ export function AddTransactionDialog({
       window.requestAnimationFrame(() => focusAmount(false));
       return;
     }
-
     handleRequestClose();
   }
 
-  const formBody = (
-    <form onSubmit={handleSubmit} noValidate>
-      <div className="segmented-control" role="group" aria-label="Loại giao dịch">
-        <button
+  const submitDisabled =
+    disabled || !accounts.length || !availableCategories.length;
+  const footer = (
+    <div className={styles.footerActions}>
+      <Button
+        type="button"
+        intent="secondary"
+        targetSize="important"
+        onClick={handleRequestClose}
+        disabled={submitting}
+      >
+        Hủy
+      </Button>
+      <Button
+        form={formId}
+        type="submit"
+        intent="primary"
+        targetSize="important"
+        pending={submitting}
+        pendingLabel="Đang lưu..."
+        disabled={submitDisabled}
+        data-keep-open={keepOpen ? "true" : undefined}
+      >
+        <Icon name="check" /> {keepOpen ? "Lưu & thêm tiếp" : "Lưu"}
+      </Button>
+    </div>
+  );
+
+  const form = (
+    <form
+      id={formId}
+      className={styles.form}
+      onSubmit={handleSubmit}
+      noValidate
+    >
+      <div className={styles.segmented} role="group" aria-label="Loại giao dịch">
+        <Button
           type="button"
-          className={kind === "expense" ? "active" : ""}
+          unstyled
+          targetSize="important"
+          className={`${styles.segment}${
+            kind === "expense" ? ` ${styles.segmentActive}` : ""
+          }`}
           onClick={() => changeKind("expense")}
           aria-pressed={kind === "expense"}
         >
           Khoản chi (−)
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className={kind === "income" ? "active" : ""}
+          unstyled
+          targetSize="important"
+          className={`${styles.segment}${
+            kind === "income" ? ` ${styles.segmentActive}` : ""
+          }`}
           onClick={() => changeKind("income")}
           aria-pressed={kind === "income"}
         >
           Khoản thu (+)
-        </button>
+        </Button>
       </div>
 
-      <label className="amount-field" htmlFor="add-tx-amount">
-        <span>{amountLabel}</span>
-        <div>
-          <span className="amount-kind-sign" aria-hidden="true">
-            {kindSign}
-          </span>
-          <input
-            id="add-tx-amount"
-            ref={amountInputRef}
-            name="amount"
-            autoFocus
-            inputMode="decimal"
-            autoComplete="off"
-            placeholder="0"
-            value={amount}
-            required
-            aria-required="true"
-            aria-invalid={error ? true : undefined}
-            aria-describedby={
-              error ? "amount-error" : savedFlash ? "keep-open-success" : "amount-hint"
-            }
-            onChange={(event) => {
-              setAmount(formatMoneyInput(event.target.value));
-              markInputChanged();
-            }}
-          />
-          <strong aria-hidden="true">₫</strong>
-        </div>
-      </label>
-      <p id="amount-hint" className="sr-only">
-        {kind === "expense"
-          ? "Số tiền khoản chi, đơn vị đồng Việt Nam."
-          : "Số tiền khoản thu, đơn vị đồng Việt Nam."}
-      </p>
-      {error && (
-        <p id="amount-error" className="field-error" role="alert">
-          {error}
-        </p>
-      )}
-      {savedFlash && !error && (
-        <p id="keep-open-success" className="keep-open-success" role="status" aria-live="polite">
-          {savedFlash}
-        </p>
-      )}
+      <TextField
+        id="add-tx-amount"
+        inputRef={amountInputRef}
+        label={amountLabel}
+        description={
+          kind === "expense"
+            ? "Số tiền khoản chi, đơn vị đồng Việt Nam."
+            : "Số tiền khoản thu, đơn vị đồng Việt Nam."
+        }
+        inputMode="decimal"
+        autoComplete="off"
+        placeholder="0"
+        value={amount}
+        required
+        prefix={kindSign}
+        suffix="₫"
+        targetSize="important"
+        inputClassName={styles.amountInput}
+        error={error.startsWith("Nhập số tiền") ? error : undefined}
+        onChange={(event) => {
+          setAmount(formatMoneyInput(event.target.value));
+          markInputChanged();
+        }}
+      />
 
-      <fieldset className="category-fieldset">
+      {error && !error.startsWith("Nhập số tiền") ? (
+        <Alert tone="error" live="assertive" className={styles.formAlert}>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      {savedFlash && !error ? (
+        <Alert tone="success" live="polite" className={styles.formStatus}>
+          <AlertDescription>{savedFlash}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <fieldset className={styles.categoryFieldset}>
         <legend>
           Danh mục
           {autoRuleHint ? (
-            <span className="category-legend-hint"> · {autoRuleHint}</span>
+            <span className={styles.legendHint}> · {autoRuleHint}</span>
           ) : hasRecentForKind ? (
-            <span className="category-legend-hint"> · hay dùng trước lên trước</span>
+            <span className={styles.legendHint}> · hay dùng trước lên trước</span>
           ) : null}
         </legend>
-        <div className="category-grid">
+        <div className={styles.categoryGrid}>
           {availableCategories.map((item) => {
-            const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+            const meta =
+              categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
             const recent = isRecentCategoryId(item.id, recentCategoryIds);
             return (
-              <button
+              <Button
                 type="button"
+                unstyled
+                targetSize="important"
                 key={item.id}
-                className={[
-                  selectedCategoryId === item.id ? "category-choice selected" : "category-choice",
-                  recent ? "category-choice-recent" : "",
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
+                className={`${styles.categoryChoice}${
+                  selectedCategoryId === item.id
+                    ? ` ${styles.categorySelected}`
+                    : ""
+                }${recent ? ` ${styles.categoryRecent}` : ""}`}
                 onClick={() => {
                   setCategoryId(item.id);
                   categoryTouchedRef.current = true;
@@ -400,69 +414,64 @@ export function AddTransactionDialog({
                 aria-pressed={selectedCategoryId === item.id}
                 data-recent={recent ? "true" : undefined}
               >
-                <span className={`transaction-icon ${meta.color}`}>
+                <span className={styles.categoryIcon}>
                   <Icon name={meta.icon as IconName} />
                 </span>
-                <span className="category-choice-label">
+                <span className={styles.categoryLabel}>
                   {item.name}
                   {recent ? (
-                    <span className="category-recent-badge" aria-label="Gần đây">
+                    <span className={styles.recentBadge} aria-label="Gần đây">
                       Gần đây
                     </span>
                   ) : null}
                 </span>
-              </button>
+              </Button>
             );
           })}
         </div>
       </fieldset>
 
-      <div className="form-grid">
-        <label htmlFor="add-tx-account">
-          <span>Tài khoản</span>
-          <select
-            id="add-tx-account"
-            name="accountId"
-            value={selectedAccountId}
-            onChange={(event) => {
-              setAccountId(event.target.value);
-              markInputChanged();
-            }}
-          >
-            {accounts.map((item) => (
-              <option value={item.id} key={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label htmlFor="add-tx-date">
-          <span>Ngày</span>
-          <input
-            id="add-tx-date"
-            name="occurredOn"
-            type="date"
-            value={occurredOn}
-            onChange={(event) => {
-              setOccurredOn(event.target.value);
-              markInputChanged();
-            }}
-          />
-        </label>
-        <label className="form-span-full" htmlFor="add-tx-note">
-          <span>Ghi chú</span>
-          <input
-            id="add-tx-note"
-            name="note"
-            value={note}
-            onChange={(event) => applyNoteChange(event.target.value)}
-            placeholder="Ví dụ: Cơm trưa"
-            maxLength={500}
-          />
-        </label>
+      <div className={styles.formGrid}>
+        <SelectField
+          label="Tài khoản"
+          value={selectedAccountId}
+          targetSize="important"
+          disabled={submitting}
+          onChange={(event) => {
+            setAccountId(event.target.value);
+            markInputChanged();
+          }}
+        >
+          {accounts.map((item) => (
+            <option value={item.id} key={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </SelectField>
+        <TextField
+          label="Ngày"
+          type="date"
+          value={occurredOn}
+          targetSize="important"
+          disabled={submitting}
+          onChange={(event) => {
+            setOccurredOn(event.target.value);
+            markInputChanged();
+          }}
+        />
+        <TextField
+          label="Ghi chú"
+          rootClassName={styles.spanFull}
+          value={note}
+          targetSize="important"
+          disabled={submitting}
+          onChange={(event) => applyNoteChange(event.target.value)}
+          placeholder="Ví dụ: Cơm trưa"
+          maxLength={500}
+        />
       </div>
 
-      <label className="keep-open-row" htmlFor="add-tx-keep-open">
+      <label className={styles.keepOpenRow} htmlFor="add-tx-keep-open">
         <input
           id="add-tx-keep-open"
           type="checkbox"
@@ -478,31 +487,13 @@ export function AddTransactionDialog({
             });
           }}
         />
-        <span>
-          <strong className="keep-open-title">Lưu xong thêm tiếp</strong>
-          <span className="keep-open-hint">Giữ form mở, focus lại số tiền sau mỗi lần lưu</span>
+        <span className={styles.keepOpenCopy}>
+          <strong>Lưu xong thêm tiếp</strong>
+          <span>Giữ form mở, focus lại số tiền sau mỗi lần lưu</span>
         </span>
       </label>
 
-      <div className="dialog-footer-actions">
-        <button
-          className="secondary-button"
-          type="button"
-          onClick={handleRequestClose}
-          disabled={submitting}
-        >
-          Hủy
-        </button>
-        <button
-          className="primary-button"
-          type="submit"
-          disabled={disabled || submitting || !accounts.length || !availableCategories.length}
-          data-keep-open={keepOpen ? "true" : undefined}
-        >
-          <Icon name="check" />
-          {submitLabel}
-        </button>
-      </div>
+      {embedded ? footer : null}
     </form>
   );
 
@@ -510,52 +501,34 @@ export function AddTransactionDialog({
     if (!open) return null;
     return (
       <section
-        className="transaction-dialog transaction-dialog-embedded capture-quick-form"
-        aria-labelledby="transaction-dialog-title"
+        className={styles.embedded}
+        aria-labelledby="transaction-embedded-title"
+        data-slot="quick-capture-form"
       >
-        <div className="dialog-heading">
-          <div>
-            <p className="eyebrow">{eyebrow}</p>
-            <h2 id="transaction-dialog-title">{title}</h2>
-          </div>
-        </div>
-        {formBody}
+        <header className={styles.embeddedHeading}>
+          <p className={styles.embeddedEyebrow}>{eyebrow}</p>
+          <h2 id="transaction-embedded-title">{title}</h2>
+        </header>
+        {form}
       </section>
     );
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="transaction-dialog"
-      onCancel={(event) => {
-        // Keep trap until parent closes via open=false + dialog.close().
-        event.preventDefault();
-        handleRequestClose();
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !submitting) handleRequestClose();
       }}
-      onClose={() => {
-        // Fires after native close (focus trap ends). Restore opener focus.
-        restoreFocus();
-      }}
-      aria-labelledby="transaction-dialog-title"
-      aria-modal="true"
+      title={title}
+      description={eyebrow}
+      dismissible={!submitting}
+      initialFocusRef={amountInputRef}
+      className={styles.dialog}
+      contentClassName={styles.dialogContent}
+      footer={footer}
     >
-      <div className="dialog-handle" aria-hidden="true" />
-      <div className="dialog-heading">
-        <div>
-          <p className="eyebrow">{eyebrow}</p>
-          <h2 id="transaction-dialog-title">{title}</h2>
-        </div>
-        <button
-          className="icon-button"
-          type="button"
-          onClick={handleRequestClose}
-          aria-label="Đóng"
-        >
-          <Icon name="close" />
-        </button>
-      </div>
-      {formBody}
-    </dialog>
+      {form}
+    </Dialog>
   );
 }
