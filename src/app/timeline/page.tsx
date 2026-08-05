@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TransactionsPage } from "@/components/transactions-page";
+import { TransactionsWorkspace } from "@/components/transactions/transactions-workspace";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
 import styles from "./timeline-review-boundary.module.css";
@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 
 /**
  * Timeline (wireframes-inbox §16): approved ledger list with “đã duyệt” copy.
- * Reuses TransactionsPage while forcing the reviewed-only filter and hiding
- * ledger-quality mutation controls that belong to `/transactions`.
+ * Reuses the Phase 5 ledger workspace while forcing the reviewed-only filter
+ * and hiding ledger-quality mutation controls that belong to `/transactions`.
  */
 export default async function Page() {
   const viewer = await requireViewer();
@@ -20,7 +20,7 @@ export default async function Page() {
 
   return (
     <div className={styles.boundary}>
-      <TransactionsPage
+      <TransactionsWorkspace
         viewer={{
           email: viewer.email,
           displayName: viewer.displayName,
