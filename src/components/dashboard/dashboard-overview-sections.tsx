@@ -161,10 +161,15 @@ export function DashboardLedgerColumn({
                 <h2>Chi theo danh mục</h2>
                 <p>Top danh mục tháng này — thanh ngang, không biểu đồ tròn.</p>
               </div>
-              <Link className="section-link" href={REPORTS_MONTH_HREF}>
+              <LinkButton
+                unstyled
+                targetSize="important"
+                className="section-link shrink-0"
+                href={REPORTS_MONTH_HREF}
+              >
                 {REPORTS_MONTH_LINK_LABEL}{" "}
                 <Icon name="arrowRight" aria-hidden="true" />
-              </Link>
+              </LinkButton>
             </div>
             {topCategories.length ? (
               <ul className="insights-category-list">
@@ -234,9 +239,14 @@ export function DashboardLedgerColumn({
                 <h2>Giao dịch gần đây</h2>
                 <p>Cập nhật ngay khi bạn ghi khoản mới.</p>
               </div>
-              <Link className="section-link" href="/transactions">
+              <LinkButton
+                unstyled
+                targetSize="important"
+                className="section-link shrink-0"
+                href="/transactions"
+              >
                 Xem tất cả <Icon name="arrowRight" aria-hidden="true" />
-              </Link>
+              </LinkButton>
             </div>
             <div className="transaction-list">
               {transactions.slice(0, 5).map((transaction) => {
