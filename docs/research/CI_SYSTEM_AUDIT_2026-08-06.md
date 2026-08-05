@@ -1,72 +1,53 @@
 # MoneyFlow CI system audit — 2026-08-06
 
-**Status:** measured implementation candidate
+**Status:** full-risk implementation verified; documentation-only comparison pending
 **Repository baseline:** `main@429eb6777a63b3172a04ce164a512420e31085c8`
 **Implementation branch:** `agent/ci-system-hardening`
+**Pull request:** #304
 **Work packet:** `docs/plans/active/ci-system-hardening-2026-08.md`
-**Measurement timezone:** GitHub Actions timestamps are UTC; project decisions use Asia/Ho_Chi_Minh.
+**Measurement timezone:** GitHub Actions logs use UTC; project decisions use Asia/Ho_Chi_Minh.
 
 ## Executive result
 
-MoneyFlow already has a comparatively strong risk-proportional CI design: immutable action pins, least-privilege top-level permissions, stale-run cancellation, stable required summaries, independent retryable shards, fresh local database tests, Chromium/WebKit browser coverage, real CodeQL upload and an all-ref secret scan.
+MoneyFlow already had a strong risk-proportional CI architecture: immutable action pins, explicit permissions, stale-run cancellation, stable protected summaries, independently retryable shards, fresh local database tests, Chromium/WebKit coverage, real CodeQL upload and an all-ref secret scan.
 
-The highest-confidence immediate improvements are therefore not a redesign of the test strategy. They are:
+The highest-confidence first improvements were therefore bounded rather than a rewrite:
 
 1. replace the deprecated `actions/checkout@v4.4.0` runtime with verified `v7.0.1`;
 2. stop persisting repository credentials in every read-only checkout;
-3. prevent non-database changes from allocating a runner and preparing checkout/Supabase/artifact actions only to print “not required”;
-4. lock those decisions with repository tests;
-5. preserve every existing command and coverage boundary.
+3. prevent non-database changes from running checkout/Supabase/artifact setup merely to print “not required”;
+4. preserve the stable `database` required check through a lightweight summary;
+5. protect the new topology with tests;
+6. retain every existing verification command and browser/security boundary.
 
-The dominant full-risk latency is the cross-device UI audit, not checkout, npm caching or browser installation. The measured UI test command took about 8.3 minutes of a roughly 9 minute 13 second job. Reducing its coverage would make CI look faster while weakening the project, so this audit does not do that.
+The dominant full-risk latency remains the cross-device UI test execution at about 8.3 minutes. This PR does not make CI appear faster by deleting projects, widths, states or assertions.
 
-## Audit boundary and method
+## Audit method and evidence boundary
 
-### Repository evidence
+### Repository sources inspected
 
-Inspected:
-
-- all three files in `.github/workflows` currently used by the project;
-- Dependabot configuration;
-- npm scripts for policy, lint, type checking, tests, build, architecture and deployment contracts;
-- Playwright smoke and audit configuration;
-- Supabase migration/RLS/database test scripts;
-- Vercel production-only deployment configuration;
-- risk classifier, retry-graph and exact-head monitoring scripts;
-- current project memory and prior CI work packets;
-- recent pull requests that changed CI, security scans, browser reliability or deployment policy.
-
-### Runtime evidence
-
-The principal measured baseline is the exact implementation head of PR #301:
-
-- commit `3a2088a3a0c80075386db9c5bf5630f87c2d209f`;
-- CI run #1746, run ID `31034093941`;
-- CodeQL run #866, run ID `31034093947`;
-- Secret history run #866, run ID `31034093950`.
-
-The documentation-only comparison baseline is PR #303 head `884c54df549f3f81c450c14898e0717a14218b4d`, CI #1760.
-
-Job logs were inspected rather than inferring performance from YAML. Durations below are rounded from log timestamps and are intended as an engineering baseline, not billing-grade metrics.
+- `.github/workflows/ci.yml`, `codeql.yml` and `secret-history.yml`;
+- `.github/dependabot.yml`;
+- `package.json` scripts for policy, lint, type checking, tests, build and audits;
+- Playwright smoke/audit configuration;
+- Supabase migration, reset, RLS and pgTAP scripts;
+- `vercel.json` and deployment-environment contracts;
+- CI classifier, retry graph and exact-head monitoring scripts;
+- current project memory and prior delivery/CI packets;
+- recent PRs that changed CI, CodeQL, secret scanning, browser reliability or deployment policy;
+- exact workflow jobs, step logs, artifacts, failures and same-SHA reruns.
 
 ### Measurement limitation
 
-The available connector can inspect workflows associated with known commits and retrieve their jobs/logs, but it does not expose a complete paginated repository workflow-run census. Therefore this audit does **not** claim a repository-wide first-attempt failure percentage.
+The available GitHub connector can inspect workflow runs associated with known commits but does not expose a complete paginated repository run census. This audit therefore does **not** claim a repository-wide first-attempt failure percentage.
 
-What is known:
+A future reliability SLO needs a repeatable collector using the GitHub Actions REST API or authenticated `gh` in an approved environment.
 
-- the representative PR #301 exact head completed all three workflows successfully;
-- recent merged PR records consistently include exact-head green evidence, but those records do not prove first-attempt success;
-- prior failures and flakes listed below are real incidents found in PR history and logs;
-- a future failure-rate SLO needs a repeatable run-census collector using the GitHub Actions API or authenticated `gh` in an approved environment.
+## Current architecture
 
-## Current CI architecture
+### CI workflow
 
-### Workflow 1: CI
-
-The classifier reads the complete PR diff and selects risk-proportional gates. Workflow/configuration and unknown changes receive full verification. Documentation-only changes keep policy and stable summaries while skipping application/browser work.
-
-Full-risk graph before this change:
+The classifier reads the complete PR diff and selects risk-proportional gates. Workflow/configuration and unknown changes receive full verification. Documentation-only changes retain policy and stable summaries while application/database/browser executors skip truthfully.
 
 ```text
 classify
@@ -75,252 +56,219 @@ classify
   ├─ verify_tests ──┼─> verify
   └─ verify_build ──┘
 
-classify ─> database
+classify ── database=true ──> database_checks ─┐
+         └─ database=false ─> skipped ─────────┼─> database
 
 verify ─> browser_smoke ─┐
        └> ui_audit ──────┼─> e2e
 ```
 
-Protected stable identities are `verify`, `database` and `e2e`. The application and browser shards are intentionally independent so “Re-run failed jobs” does not repeat already successful expensive work on the same SHA.
+Stable protected identities remain `verify`, `database` and `e2e`. Heavy shards stay separate so GitHub's failed-job rerun can repeat only failed work on the same SHA.
 
-### Workflow 2: CodeQL
+### CodeQL workflow
 
-Runs on PRs to `main`, pushes to `main`, a weekly schedule and manual dispatch. It performs real JavaScript/TypeScript extraction with `build-mode: none`, executes queries, uploads SARIF and waits for processing. This is not a cosmetic workflow: a prior attempt to make CodeQL risk-selective produced a green shell result without required uploaded analysis and blocked merges.
+Runs on PRs to `main`, pushes to `main`, weekly schedule and manual dispatch. It performs real JavaScript/TypeScript extraction, query execution, SARIF upload and processing. It is intentionally not path-skipped because a previous shell-only green result left repository rules waiting for the missing analysis.
 
-### Workflow 3: Secret history scan
+### Secret-history workflow
 
-Runs on the same event classes as CodeQL. It checks out full history, fetches every branch/tag, downloads a checksum-verified Gitleaks binary and scans `--all` refs. This broad scope previously found a reviewed publishable-key finding outside the immediate product diff.
+Runs on the same event classes as CodeQL. It checks out complete history, fetches every branch/tag, verifies the Gitleaks archive checksum and scans `--all` refs. Current measured cost is small and broad coverage previously found a reviewed finding outside the immediate PR path.
 
 ### Deployment
 
-No GitHub Actions deployment job exists. Vercel owns automatic deployment and `vercel.json` allows it only for `main`; branch deployments are disabled. CI validates deployment environment contracts but does not deploy or mutate provider configuration.
+GitHub Actions does not deploy this repository. Vercel owns automatic deployment and `vercel.json` allows deployment only from `main`; branch deployments are disabled. This PR performs no deployment or provider mutation.
 
-## Measured baseline
+## Baseline before the change
 
-### Full-risk exact head
+Principal baseline: PR #301 implementation head `3a2088a3a0c80075386db9c5bf5630f87c2d209f`.
 
-| Workflow / job | Job ID | Approx. duration | Dominant measured work | Result |
-|---|---:|---:|---|---|
-| CI / static quality | `92401847806` | 45.8 s | `npm ci` 15.3 s; ESLint 15.7 s; typecheck 9.7 s | success with 2 lint warnings |
-| CI / unit + static RLS | `92401847845` | 36 s | `npm ci` ~15 s; 723 tests 9.14 s | success |
-| CI / production build | `92401847795` | 45.3 s | `npm ci` ~14 s; Next build 21.3 s | success |
-| CI / policy contracts | `92401847971` | 4.6 s | full-history checkout plus fast knowledge/CI-policy scripts | success |
-| CI / database, not selected | `92401847817` | 3.6 s | runner/action preparation and checkout despite no DB test | success/no-op |
-| CI / browser smoke | `92402106588` | 3 m 05 s | Chromium/deps 24.4 s; 58 tests 2.3 m | success |
-| CI / cross-device UI audit | `92402106498` | 9 m 13 s | browsers/deps ~36 s; 554 scheduled tests, 8.3 m | 427 passed, 127 skipped |
-| CodeQL | `92401777269` | 64.9 s | real extraction/query/upload/processing; overlay cache hit | success |
-| Secret history | `92401723175` | ~6 s | 2,337 commits / 14.27 MB scanned in 1.39 s | success |
+- CI #1746, run `31034093941`;
+- CodeQL #866, run `31034093947`;
+- Secret history #866, run `31034093950`.
 
-### CI job count
+| Job | Approx. duration | Measured work | Result |
+|---|---:|---|---|
+| Static quality | 45.8 s | `npm ci` 15.3 s; lint 15.7 s; typecheck 9.7 s | success, 2 warnings |
+| Unit/static RLS | 36 s | `npm ci` ~15 s; 723 tests 9.14 s | success |
+| Production build | 45.3 s | `npm ci` ~14 s; build 21.3 s | success |
+| Policy contracts | 4.6 s | full-history checkout plus policy scripts | success |
+| Old unselected database job | 3.6 s | runner/action preparation and checkout despite no DB work | success/no-op |
+| Browser smoke | 3 m 05 s | browser/deps 24.4 s; 58 tests 2.3 m | success |
+| Cross-device UI audit | 9 m 13 s | browser/deps ~36 s; 554 scheduled, tests 8.3 m | 427 passed, 127 skipped |
+| CodeQL | 64.9 s | extraction/query/upload/processing | success |
+| Secret history | ~6 s | 2,337 commits / 14.27 MB; scan 1.39 s | success |
 
-Before this change:
+### Real bottleneck order
 
-- full-risk CI exposes 10 jobs;
-- CodeQL adds 1 job;
-- secret history adds 1 job;
-- total full-risk workflow jobs visible: 12.
+1. Cross-device UI test execution: about 8.3 minutes.
+2. Browser smoke test execution: about 2.3 minutes.
+3. CodeQL extraction/query/upload: about one minute.
+4. Repeated `npm ci`: about 12–15 seconds per Node job.
+5. Playwright browser/dependency installation: about 20–36 seconds.
+6. Secret-history scan: not a bottleneck.
 
-After the database executor/summary split:
+## Real incidents and preserved decisions
 
-- full-risk database-selected CI exposes 11 jobs because `database_checks` is separately retryable and `database` stays the stable summary;
-- non-database changes show `database_checks` as skipped without runner execution while the stable `database` summary still runs;
-- this slightly increases graph clarity/job count for database-selected runs but removes unnecessary heavy setup from the much more common non-database path.
-
-### Slowest steps and real bottlenecks
-
-1. **UI audit test execution:** roughly 8.3 minutes; primary wall-clock bottleneck.
-2. **Browser smoke test execution:** roughly 2.3 minutes.
-3. **CodeQL query/extraction/upload:** roughly one minute total; security work is genuine and benefits from overlay cache.
-4. **Repeated npm install:** approximately 12–15 seconds in each Node job; visible aggregate runner cost, but independent jobs are valuable for diagnosis/retry.
-5. **Playwright browser/dependency install:** approximately 24–36 seconds; meaningful but much smaller than actual browser tests.
-6. **Secret history:** not a bottleneck.
-
-## Real incidents and reliability findings
-
-| Incident | Evidence and consequence | Current decision |
+| Incident | Consequence | Decision |
 |---|---|---|
-| `ready_for_review` did not activate required gates | historical PR #214; a draft could become reviewable without a fresh required result | explicit trigger and conditional are retained |
-| CodeQL appeared green without uploaded analysis | historical PRs #221/#230; repository rules continued waiting for code-scanning evidence | CodeQL runs real upload on every PR head |
-| One UI safety case failed then same exact head passed on rerun | historical PR #228, SAFE-09 | preserve isolated browser shards and same-SHA failed-job rerun; do not add blind automatic retry |
-| WebKit interacted before hydration | historical PR #232 | fixed the locator/interaction boundary rather than weakening the assertion |
-| All-ref Gitleaks found a reviewed browser-safe publishable key on another branch | PR #295 | keep all-ref scope and exact-fingerprint review; do not path-limit the scanner |
-| Old checkout runtime emits Node 20 deprecation warning | repeated in CI and CodeQL logs on current runner | upgrade to checkout v7.0.1 |
-| Non-database PR still downloads/prepares DB-related actions and checks out repository | measured in PR #301 and docs-only #303 | conditional executor plus stable summary |
-| ESLint reports two warnings | `transactions-page.tsx`, `react-hooks/exhaustive-deps` | fix separately, then consider zero-warning policy; do not hide or abruptly fail this CI PR |
-| `npm ci` reports four moderate advisories | repeated Node jobs | perform exploitability/runtime review separately; do not add a noisy blanket blocker without policy |
+| `ready_for_review` once failed to trigger required gates | draft could become reviewable without fresh evidence | retain explicit event and condition |
+| CodeQL once returned a green shell without uploaded analysis | branch rules remained blocked | retain real analysis/upload on every PR head |
+| SAFE-09 failed once and passed on a same-SHA rerun | demonstrated an isolated browser flake | preserve separate shards and diagnostic reruns; no blind automatic retry |
+| WebKit interacted before hydration | false negative from test boundary | fix locator/hydration behavior, not assertion scope |
+| all-ref Gitleaks found a reviewed finding on another branch | narrow PR-only scan would miss evidence | retain all-ref coverage |
+| old checkout emitted Node 20 deprecation warnings | future runner compatibility risk | upgrade to checkout v7.0.1 |
+| unselected database path still prepared heavy actions | wasted runner/action work | conditional executor plus stable summary |
 
 ## Security assessment
 
-### Strong existing controls
+### Existing strong controls
 
-- top-level `contents: read` in CI and secret scan;
-- CodeQL adds only `packages: read` and `security-events: write` required for analysis/upload;
-- third-party actions are pinned to immutable full commit SHAs;
+- CI and secret scan use `contents: read`;
+- CodeQL adds only `packages: read` and `security-events: write`;
+- third-party actions use immutable full SHAs;
 - Supabase CLI and Gitleaks versions are explicit;
-- Gitleaks archive checksum is verified before execution;
-- test keys are synthetic and labelled;
-- artifacts have short retention;
-- branch deployment is disabled and production is main-only;
-- exact-head monitoring rejects stale green results.
+- Gitleaks archive checksum is verified;
+- test keys are synthetic;
+- diagnostic artifacts have short retention;
+- exact-head monitoring rejects stale green results;
+- Vercel deployment is `main`-only.
 
-### Immediate hardening applied
+### Immediate hardening verified
 
-All read-only jobs now use `actions/checkout` v7.0.1 pinned to:
+All read-only checkouts now use official `actions/checkout` v7.0.1 at:
 
 `3d3c42e5aac5ba805825da76410c181273ba90b1`
 
-Every checkout sets `persist-credentials: false`. This removes the old Node runtime deprecation and reduces the period in which the repository token is available through local Git configuration. No inspected job pushes, tags, commits or fetches private secondary repositories.
+Every checkout sets `persist-credentials: false`. Exact-head logs show checkout v7 running successfully, removing its temporary Git credential configuration after fetch and no longer emitting the old checkout Node 20 deprecation warning.
 
-### Deferred security work
+### Security follow-up
 
-- inspect the four moderate npm advisories against production dependency paths and reachability;
-- keep Dependabot grouped/monthly noise policy unless a security advisory requires an immediate targeted PR;
-- periodically refresh pinned action SHAs through reviewed Dependabot PRs;
-- consider an organization/repository policy that requires full-length action pins if not already enforced outside the repo.
+- `actions/setup-node@v7.0.0` has an open upstream bundled-dependency DoS report without a confirmed patched signed release. Current use has fixed inputs, read-only permissions, timeouts and no secret-bearing custom input. Track urgently and upgrade when an official patched release exists; do not pin an unreleased branch.
+- Triage the four moderate npm advisories by production reachability and exploitability rather than adding a noisy blanket gate.
+- Continue reviewed Dependabot updates for pinned action SHAs.
 
-## Accuracy and coverage assessment
+## Implementation
 
-### What CI catches well
+### Workflow changes
 
-- syntax/config and knowledge-policy drift;
-- architecture/CSS/deployment contract violations;
-- ESLint and TypeScript errors;
-- complete Node test suite and static RLS checks;
-- production Next.js compilation;
-- fresh local Supabase migration/reset/pgTAP for selected database changes;
-- critical Chromium flows and CAPTCHA behavior;
-- broad Chromium/WebKit responsive and accessibility state coverage;
-- JavaScript/TypeScript security queries and workflow-code analysis;
-- secrets across every reachable branch/tag history.
+- upgraded every CI, CodeQL and secret-history checkout to verified checkout v7.0.1 full SHA;
+- disabled persisted credentials in every read-only checkout;
+- created conditional `database_checks` for Supabase start/reset/pgTAP;
+- retained `database` as the stable `always()` result validator;
+- kept all policy, lint, typecheck, test, build, database, browser and security commands unchanged.
 
-### Remaining accuracy gaps
+### Permanent contracts
 
-- no repository-wide measured first-attempt reliability SLO;
-- no physical Android/iOS acceptance in routine CI, intentionally deferred to final product acceptance;
-- two lint warnings are visible but not blocking;
-- npm advisory output is visible but not triaged into an explicit allow/block policy;
-- Vercel production deployment success is separate from GitHub required checks; production smoke remains a deliberate post-merge boundary.
+`ci-retry-graph.test.mjs` now requires:
 
-## Resource and speed assessment
+- conditional `database_checks` selection;
+- stable `database` summary with selected/unselected result validation;
+- no checkout/Supabase/artifact action in the summary;
+- all eight CI checkouts to disable credential persistence;
+- existing `verify`, `e2e` and attempt-specific artifact behavior.
 
-### Safe savings implemented
+## Full-risk exact-head verification
 
-The old `database` job always allocated a runner and prepared action dependencies. The new graph is:
+Verified head: `d68790a5047a38eaf3a753f87ee7936883d39a6e`.
 
-```text
-classify ── database=true ──> database_checks ─┐
-         └─ database=false ─> skipped ─────────┼─> database (stable summary)
-```
+- CI #1764, run `31043251727`: **success**;
+- CodeQL #883, run `31043252721`: **success**;
+- Secret history #883, run `31043252598`: **success**.
 
-For non-database changes:
+| Gate | Exact-head evidence | Comparison |
+|---|---|---|
+| Policy | knowledge, diff hygiene and CI topology contracts passed | new topology protected |
+| Static | lint/typecheck/architecture/CSS/deployment contracts passed | same 2 pre-existing hook warnings |
+| Tests | 723/723 passed; command 7.954 s | same count; normal faster-run variance |
+| Build | production Next build passed; command ~22.1 s | effectively unchanged |
+| Database executor | fresh Supabase start/reset/pgTAP passed | selected path preserved |
+| Stable database | validated selected executor success | protected identity preserved |
+| Browser smoke | 58 passed in 2.2 m | same coverage; modest run variance |
+| UI audit | 554 scheduled; 427 passed, 127 skipped; tests 8.3 m | exact same counts and dominant runtime |
+| Stable e2e | validated both browser shards | protected identity preserved |
+| CodeQL | scanned 436 TS, 17 JS and 4 workflow files; upload processed | real security evidence preserved |
+| Secret history | scanned every ref; 2,358 commits in 1.29 s | broad scope preserved |
 
-- `database_checks` must be `skipped`;
-- no checkout, Supabase action or artifact action runs there;
-- `database` validates the classifier and skipped result using shell only;
-- branch protection retains the same stable required check name.
+### Interpretation
 
-For database changes:
+The full-risk head proves correctness and coverage preservation. It does **not** prove a general speedup:
 
-- fresh start/reset/pgTAP and diagnostics remain unchanged;
-- the heavy executor can be rerun independently;
-- the stable summary fails if the selected executor did not succeed.
+- static/build timings were similar or slightly slower because of hosted-runner variance;
+- tests and browser smoke were faster on this run, also within normal variance;
+- UI audit retained the same 8.3-minute critical path;
+- CodeQL and Gitleaks retained full security scope.
 
-### Savings not taken
+The measured optimization claim is narrower: checkout runtime/security is improved, and the unselected database path is structurally able to skip its heavy executor. The following documentation-only head must verify that latter path in GitHub Actions.
 
-- Recombining Node shards could avoid repeated `npm ci` but would make late failures repeat successful lint/test/build work and reduce diagnosis quality.
-- Browser cache could save some download time, but Playwright does not generally recommend browser-binary caching and the measured test runtime dominates.
-- Removing browser projects or states would improve wall time by reducing correctness, which violates the task.
-- Narrowing CodeQL or Gitleaks would save little relative to the security evidence lost.
+## Deferred and rejected work
 
-## Ranked improvement backlog
+### Do next
 
-Scales: impact/urgency 1–5; cost/risk 1–5 where 5 is higher.
+1. Fix the two `react-hooks/exhaustive-deps` warnings in a focused product-code PR, then decide whether warnings should become blocking.
+2. Triage four moderate npm advisories by reachability.
+3. Track the setup-node upstream advisory and upgrade to the first official patched release.
+4. Build a complete Actions run census and first-attempt reliability SLO when an authenticated API/`gh` environment is available.
+5. Reconcile Supabase CLI's `[inbucket]` deprecation warning with official docs before migrating to `[local_smtp]`.
+6. Add `merge_group` only if repository merge queue is actually enabled.
+
+### Measure later
+
+- UI-audit sharding by browser/project family, including report/artifact merge and flake behavior;
+- verified Next build-artifact reuse in browser jobs;
+- targeted action version updates that solve a measured project problem.
+
+### Not suitable now
+
+- combining static/test/build only to avoid repeated `npm ci`;
+- caching Playwright browser binaries by default;
+- skipping CodeQL or all-ref secret scanning for docs-only changes;
+- reducing browser matrix, widths, states or tests;
+- unpinning third-party actions;
+- blind automatic retries;
+- changing Supabase config while CLI and official docs disagree;
+- pinning unreleased action branches.
+
+## Ranked backlog
+
+Impact/urgency: 1–5. Cost/risk: 1–5 where 5 is higher.
 
 | Rank | Improvement | Impact | Urgency | Cost | Risk | Decision |
 |---:|---|---:|---:|---:|---:|---|
-| 1 | Upgrade checkout runtime and disable persisted credentials | 4 | 5 | 1 | 1 | do now — implemented |
-| 2 | Conditional DB executor with stable required summary | 4 | 4 | 2 | 2 | do now — implemented and contract-tested |
-| 3 | Preserve/extend workflow topology contracts | 4 | 4 | 1 | 1 | do now — implemented |
-| 4 | Record repeatable baseline and decisions in repo | 4 | 4 | 2 | 1 | do now — this document |
-| 5 | Fix two React hook lint warnings, then decide zero-warning policy | 3 | 3 | 2 | 2 | do next in focused code PR |
-| 6 | Triage four moderate npm advisories by reachability/runtime | 4 | 3 | 2 | 2 | do next; do not blanket-fail yet |
-| 7 | Build a complete Actions run census and reliability dashboard/SLO | 4 | 3 | 3 | 1 | do after an authenticated API/`gh` environment is available |
-| 8 | Experiment with UI-audit sharding by project family | 4 wall-time / variable minutes | 2 | 4 | 3 | measure later; requires report/artifact merge design |
-| 9 | Experiment with verified Next build artifact reuse in browser jobs | 3 | 2 | 4 | 3 | deferred; prior project decision requires proof |
-| 10 | Cache Playwright browser binaries | 1 | 1 | 3 | 3 | not suitable now |
-| 11 | Skip CodeQL or all-ref secret scanning for docs-only changes | 2 speed | 1 | 1 | 5 | rejected |
-| 12 | Reduce browser matrix/test set to improve latency | 5 speed | 1 | 1 | 5 | rejected |
+| 1 | checkout v7 + no persisted credentials | 4 | 5 | 1 | 1 | implemented and full-risk verified |
+| 2 | conditional DB executor + stable summary | 4 | 4 | 2 | 2 | implemented; selected path verified |
+| 3 | topology/credential contracts | 4 | 4 | 1 | 1 | implemented and passing |
+| 4 | durable measured audit | 4 | 4 | 2 | 1 | implemented |
+| 5 | fix hook warnings and decide warning policy | 3 | 3 | 2 | 2 | next focused PR |
+| 6 | triage npm advisories | 4 | 3 | 2 | 2 | next security review |
+| 7 | monitor setup-node advisory | 4 | 4 | 1 | 2 | urgent watch |
+| 8 | complete Actions reliability census/SLO | 4 | 3 | 3 | 1 | later |
+| 9 | UI-audit sharding experiment | 4 wall-time | 2 | 4 | 3 | measure later |
+| 10 | build-artifact reuse experiment | 3 | 2 | 4 | 3 | deferred |
+| 11 | Playwright browser cache | 1 | 1 | 3 | 3 | rejected now |
+| 12 | narrow security/browser coverage | apparent speed only | 1 | 1 | 5 | rejected |
 
-## Implementation diff
+## Pending documentation-only comparison
 
-### `.github/workflows/ci.yml`
+The next exact head changes documentation only. Acceptance requires:
 
-- checkout v7.0.1 full SHA in every repository checkout;
-- `persist-credentials: false` in every checkout;
-- add conditional `database_checks` executor;
-- convert `database` into a stable `always()` summary;
-- preserve all verification, database, browser and artifact commands.
+- classifier selects documentation-only path;
+- static/test/build/browser executors skip;
+- `database_checks` skips without runner/action setup;
+- stable `database` validates that skipped result and succeeds;
+- stable `verify` and `e2e` succeed;
+- CodeQL still uploads real analysis;
+- all-ref Gitleaks still passes.
 
-### `.github/workflows/codeql.yml`
-
-- checkout v7.0.1 full SHA;
-- disable persisted credentials;
-- preserve real analysis/upload configuration and permissions.
-
-### `.github/workflows/secret-history.yml`
-
-- checkout v7.0.1 full SHA;
-- preserve all-ref fetch, verified Gitleaks version/checksum and scan command.
-
-### `scripts/ci-retry-graph.test.mjs`
-
-New permanent assertions require:
-
-- a conditional `database_checks` executor;
-- stable `database` `always()` summary;
-- selected/unselected executor result validation;
-- no checkout/Supabase/artifact action in the summary;
-- all eight CI checkouts to disable credential persistence;
-- existing retry-safe artifact names and `verify`/`e2e` topology.
-
-## Before/after verification
-
-This section is intentionally pending until the exact branch head runs on GitHub-hosted runners.
-
-Required evidence before a performance or reliability claim:
-
-- all full-risk CI shards pass;
-- full database executor and stable summary pass;
-- complete test count remains at least the current baseline unless legitimate tests are added/removed with explanation;
-- browser smoke and Chromium/WebKit audit retain the same selected project/state coverage;
-- CodeQL uploads and processing complete;
-- all-ref Gitleaks completes;
-- checkout logs identify v7 and no longer emit the old checkout Node 20 warning;
-- a later documentation-only exact head shows `database_checks: skipped` and stable `database: success` without checkout/action setup;
-- measured duration comparison is recorded here and in PR memory.
+The final result and run IDs will be recorded in PR #304 and the repo's CI memory without claiming savings beyond observed evidence.
 
 ## Durable lessons
 
-1. Optimize the measured critical path, not the most visible YAML repetition.
+1. Optimize measured critical paths, not visible YAML repetition.
 2. Stable required checks and conditional heavy executors can coexist.
-3. Skipping an executor is safe only when a stable summary validates both classifier intent and actual result.
-4. Real security evidence may need to run even when application tests are risk-proportional.
-5. Same-SHA failed-job reruns are useful only when expensive work is separated into truthful job boundaries.
+3. An unselected executor is safe only when a stable summary validates intent and actual result.
+4. Security evidence may need to run even when application tests are risk-proportional.
+5. Same-SHA failed-job reruns are useful only with truthful independent boundaries.
 6. A fast all-history secret scan should not be narrowed merely because its scope looks broad.
-7. CI “green” is insufficient when the required external artifact—such as uploaded CodeQL analysis—is missing.
-8. Before/after claims belong to exact commit heads and concrete run/job IDs, not generic expectations.
-
-## External source record
-
-Primary references consulted on 2026-08-06:
-
-- GitHub Docs: workflow syntax, job dependencies, conditions, concurrency, permissions and reruns.
-- GitHub Docs: secure use of GitHub Actions and immutable action pinning.
-- `actions/checkout` official v7.0.1 release and source documentation.
-- `actions/setup-node` official cache behavior documentation.
-- GitHub CodeQL official workflow and analysis documentation.
-- Playwright official CI documentation and browser caching guidance.
-- Supabase official local development and database testing documentation.
-- Gitleaks official release/source documentation.
-
-General recommendations were adopted only when supported by MoneyFlow source, logs or historical failures.
+7. A green shell is insufficient when a required external artifact such as CodeQL analysis is absent.
+8. Before/after claims belong to exact heads and concrete run/job IDs.
+9. Upstream deprecation warnings are signals, not permission to apply undocumented migrations.
+10. Coverage-preserving CI hardening can improve security/resource use without making unsupported speed claims.
