@@ -1,8 +1,8 @@
 # MoneyFlow UI migration — Phase 1 no-new-debt guardrails
 
-**Status:** evaluating
-**Execution state:** evaluating
-**Active role:** evaluator
+**Status:** completed
+**Execution state:** completed
+**Active role:** human_owner
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Parent packet:** PR #296, `docs/plans/active/ui-system-migration.md`
@@ -30,7 +30,7 @@ Relevant existing boundaries:
 - `/insights` survives only as a compatibility redirect while current navigation and tests should use `/dashboard`.
 - current route/component code still registers global legacy classes, so enforcement must be diff-based rather than an immediate repository-wide zero rule.
 - current Playwright coverage is strong at route level, while shared primitive APIs are not yet stable enough to justify a durable story catalogue.
-- PR #298 was created before PRs #295–#297 reached `main`, so final evaluation requires rebuilding its candidate from current `main` plus only the Phase 1 files.
+- PR #298 was created before PRs #295–#297 reached `main`, so final evaluation rebuilt its candidate from current `main` plus only the Phase 1 files.
 
 ## Research
 
@@ -144,14 +144,14 @@ Detection is limited to `className`, `classList`, `className =` and common class
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
-| P1-T1 | Prevent new root/global stylesheet imports | diff gate + rename/import fixtures | done; exact-head verification pending |
-| P1-T2 | Prevent new unreviewed `!important` | diff gate + exception fixture | done; exact-head verification pending |
-| P1-T3 | Validate token references in added CSS declarations | source token inventory + fixtures | done; exact-head verification pending |
-| P1-T4 | Prevent new `/insights` UI/test references | redirect exception + fixtures | done; exact-head verification pending |
-| P1-T5 | Prevent new known legacy class registrations without false-positive plain strings | syntax-bounded detector + fixtures | done; exact-head verification pending |
+| P1-T1 | Prevent new root/global stylesheet imports | diff gate + rename/import fixtures | done |
+| P1-T2 | Prevent new unreviewed `!important` | diff gate + exception fixture | done |
+| P1-T3 | Validate token references in added CSS declarations | source token inventory + fixtures | done |
+| P1-T4 | Prevent new `/insights` UI/test references | redirect exception + fixtures | done |
+| P1-T5 | Prevent new known legacy class registrations without false-positive plain strings | syntax-bounded detector + fixtures | done |
 | P1-T6 | Decide Storybook/equivalent spike | adoption decision | done — deferred to Phase 2; no dependency added |
 | P1-T7 | Owner accepts guardrails before Phase 2 | explicit instruction on 2026-08-05 | done; Phase 2 remains unauthorized |
-| P1-T8 | Rebuild candidate on current `main` and pass protected gates | exact-head workflow runs | evaluating |
+| P1-T8 | Rebuild candidate on current `main` and pass protected gates | CI #1626, CodeQL #754, Secret history #754 | done |
 
 ## Evaluation
 
@@ -169,23 +169,24 @@ Required exact-head evidence:
 - CodeQL;
 - all-ref secret scan.
 
-Current findings:
+Completed evidence before the closure-only record update:
 
-- the classifier successfully ran the guardrail against earlier PR #298 heads;
-- the reviewed secret-history fingerprint is now merged through PR #295;
-- focused local regression execution after hardening passed 11 of 11 tests;
+- focused local regression execution passed 11 of 11 tests;
+- CI #1626 passed policy contracts, static quality, unit/static RLS, production build, fresh database reset and pgTAP, browser smoke and Chromium/WebKit cross-device audit;
+- CodeQL #754 passed;
+- Secret history scan #754 passed;
 - the hardening closes rename, dynamic/CommonJS import, CSS `url(...)` import and plain-string false-positive gaps;
-- final protected evidence remains pending on a candidate rebuilt from current `main`.
+- the final closure-only head must retain the same protected green state before merge.
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Next allowed action |
 |---|---|---|---|---|---|
 | 2026-08-05 | human_owner | evaluator | evaluating | Explicit instruction: “Hoàn thành p1” | Harden guardrail, synchronize with current `main`, run exact-head gates and merge only if green |
+| 2026-08-05 | evaluator | human_owner | completed | CI #1626, CodeQL #754, Secret history #754 and owner acceptance | Merge PR #298 after the closure-only exact-head checks remain green |
 
 ### Current permission boundary
 
-- Granted: finish Phase 1 policy scripts, fixtures, package command, documentation, project memory and PR merge after protected checks pass.
+- Phase 1 is complete when PR #298 merges with protected checks green.
 - Forbidden: product/runtime UI code, product CSS, dependencies, Storybook installation, provider writes, deployment and production-data access.
-- Stop condition: any protected exact-head gate fails for an unresolved Phase 1 cause.
-- Next phase: Phase 2 token and primitive ownership requires a new explicit approval.
+- Phase 2 token and primitive ownership requires a new explicit owner approval.
