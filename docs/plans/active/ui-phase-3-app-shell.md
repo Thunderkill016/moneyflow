@@ -1,201 +1,195 @@
 # MoneyFlow UI migration — Phase 3 App Shell and chrome
 
-**Status:** active
-**Execution state:** in_progress
-**Active role:** implementer
-**Permission scope:** branch_write
+**Status:** completed
+**Execution state:** completed
+**Active role:** human_owner
+**Permission scope:** owner_authorized_closure_and_merge
 **Owner:** Thunderkill016
 **Parent packet:** `docs/plans/active/ui-system-migration.md`
 **Phase 2 evidence:** merged PR #299 (`c11c845cfcd5fe3f588f0564211566bac28f7afd`)
 **Current PR:** #300
 **Last updated:** 2026-08-05
 
-The owner instructed **“Triển khai P3”** on 2026-08-05. This authorizes Phase 3 runtime, CSS and test writes on `agent/ui-phase-3-spec-hardening`. It does not authorize merge, deployment, provider/database/auth/RLS/production-data operations or Phase 4.
+The owner instructed **“Triển khai P3”** and then **“hoàn thành p3 đi”** on 2026-08-05. The final instruction authorizes Phase 3 closure and squash merge after closure-record exact-head checks pass. It does not authorize Phase 4, deployment, provider/database/auth/RLS operations, production-data access or a new visual direction.
 
-This packet supersedes the stale Phase 3 rows in the parent packet. Phase 0, Phase 1 and Phase 2 are complete and merged. Phase 3 is the only active UI-system implementation boundary.
+This packet supersedes the stale Phase 3 rows in the parent packet. Phase 0, Phase 1 and Phase 2 are already complete and merged. After PR #300 merges, Phase 3 is complete and Phase 4 remains blocked pending a new explicit owner instruction.
 
 ## Outcome
 
-Make the signed-in App Shell the sole owner of canonical identity, sidebar, topbar, mobile navigation, safe-area reservation, focus scroll clearance, global shell sheets, normal stacking and shell feedback while preserving B3.2/Fresh Blue, public light-only behavior, workspace Light/Dark/System, IA and financial semantics.
+Make the signed-in App Shell the sole owner of canonical identity, sidebar, topbar, mobile navigation, safe-area reservation, focus scroll clearance, global shell overlays, normal stacking and shell feedback while preserving B3.2/Fresh Blue, public light-only behavior, workspace Light/Dark/System, current IA and all financial semantics.
 
-## Repository reconnaissance
+Phase 3 is delivered by PR #300 without route redesign, dependency adoption, financial mutation changes or external-system writes.
 
-### Starting truth
+## Completed result
 
-- App Shell duplicated Brand, native dialog sheets and toast behavior despite approved shared owners.
-- Mobile bottom geometry was split across 68px navigation, 76px shell reserve, 82px toast offset and 104px route repair.
-- `MobileShellContract` mixed route padding, broad dialog repair, Accounts `body:has()` and transaction-dialog dark styles.
-- Root viewport had no explicit edge-to-edge decision.
-- App Shell retained dead `/insights` active-state branches.
+### Canonical identity and IA
+
+- App Shell directly renders the canonical main-branch `BrandLockup` on desktop and mobile.
+- Draft logo candidate PR #119 remains excluded.
+- The signed-in pseudo-element logo guardrail is removed.
+- Active App Shell `/insights` and `isPlanningPath` compatibility branches are removed.
+- Current signed-in IA remains `/dashboard` and `Tổng quan`.
+
+### Viewport, safe area and fixed chrome
+
+- Root typed `Viewport` uses `viewportFit: "cover"`; no duplicate handwritten viewport meta is introduced.
+- App Shell owns one measured mobile navigation visual height: `74px`.
+- `--mf-shell-mobile-nav-reserve` derives from the visual height plus `safe-area-inset-bottom`.
+- Shell reserve, route content-end spacing, focus clearance and toast clearance remain separate responsibilities.
+- Root `scroll-padding` is active only while App Shell is mounted; focused shell controls use corresponding scroll margins.
+- Safe-area top/right/bottom/left values use environment insets with zero fallbacks where applicable.
+- The previous split 68/76/82/104px geometry and route-global repairs are retired.
+
+### Shared primitives and modal behavior
+
+- Capture and More no longer own private `<dialog>` implementations.
+- Capture uses Phase 2 `Sheet` with centered tablet/desktop placement and preserved mobile bottom-sheet behavior where reachable.
+- More uses Phase 2 right/bottom Sheet behavior.
+- Escape, focus containment and focus restoration remain owned by shared Dialog/Sheet behavior.
+- Modal behavior stays in the browser top layer and is not modeled as an arbitrary shell z-index.
+- Shell feedback composes `ToastRegion` and uses explicit urgency without stealing focus.
+- Important actions compose Button, LinkButton and IconButton; destination navigation remains semantic links.
+
+### Explicit capability and compatibility cleanup
+
+- Accounts passes `showPrimaryActionOnMobile` explicitly so the mobile “Thêm tài khoản” action is preserved without route-DOM inference.
+- App Shell contains no structural `body:has()` capability rule.
+- Route-global bottom padding and broad `dialog[open]` repairs are removed from `MobileShellContract`.
+- `MobileShellContract` remains mounted only for transaction-dialog dark amount-field compatibility.
+- That transaction-dialog remainder is explicitly owned for removal by Phase 5.
 - `MinimumTargetSizeContract` remains wider migration debt and is not a Phase 3 deletion target.
 
-### Implemented candidate on PR #300
+## Research basis and decisions
 
-- App Shell directly renders canonical main-branch `BrandLockup`; draft logo PR #119 is excluded.
-- Capture and More compose Phase 2 `Sheet`; shell feedback composes `ToastRegion`.
-- Important shell actions compose Button, LinkButton and IconButton while destinations remain real links.
-- Root typed viewport uses `viewportFit: "cover"`.
-- App Shell owns one nav height, safe-area reserve, focus clearances, feedback offset and normal layer map.
-- Accounts passes `showPrimaryActionOnMobile` explicitly; `body:has()` is removed.
-- Active `/insights` branches and the signed-in logo guardrail are removed.
-- `MobileShellContract` now contains only the transaction-dialog dark amount-field remainder, owned for removal by Phase 5.
-- Source-contract tests lock the new ownership boundaries.
+| Source | Decision supported |
+|---|---|
+| [Next.js viewport API](https://nextjs.org/docs/app/api-reference/functions/generate-viewport) | use the typed root viewport export and verify generated output |
+| [WebKit safe-area guidance](https://webkit.org/blog/7929/designing-websites-for-iphone-x/) | pair edge-to-edge viewport fitting with safe-area environment insets |
+| [WCAG Focus Not Obscured](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html) | fixed shell chrome must not fully hide focused controls |
+| [W3C Technique C43](https://www.w3.org/WAI/WCAG22/Techniques/css/C43.html) | shell reserve and focus `scroll-padding` are separate responsibilities |
+| [WAI-ARIA modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) | focus, Escape and restoration belong to modal primitives rather than numeric z-index |
+| [Selectors Level 4 `:has()`](https://drafts.csswg.org/selectors/#relational) | remove the Accounts rule for incorrect ownership, not because the selector is invalid |
 
-### Ownership matrix
+Observed: App Shell duplicated Phase 2 owners; mobile geometry had conflicting numeric reserves; root viewport affected both signed-in and public documents; `MobileShellContract` mixed shell and transaction responsibilities.
+
+Inference: visual height, safe-area reserve, route spacing, focus clearance and feedback offset need distinct contracts; modal behavior belongs outside the normal layer map; compatibility deletion must occur by selector group.
+
+Product judgment: preserve current shell and IA, use main B3.2, add no dependency and never label Playwright emulation as physical-device evidence.
+
+## Ownership matrix
 
 | Concern | Phase 3 owner/result |
 |---|---|
 | Signed-in identity | canonical `BrandLockup` in App Shell |
 | Mobile nav height/reserve | `app-shell.module.css` variables |
 | Focus clearance | document root while App Shell is mounted plus focused-element scroll margins |
-| Capture/More | Phase 2 modal `Sheet` |
-| Shell feedback | Phase 2 `ToastRegion`, positioned by App Shell |
+| Capture | centered shared Sheet on tablet/desktop; shared modal behavior |
+| More | shared right/bottom Sheet |
+| Shell feedback | shared `ToastRegion`, positioned by App Shell |
 | Accounts mobile action | explicit capability prop |
 | Transaction dark repair | retained Phase 5 compatibility remainder |
 | Active `/insights` inference | removed |
-| Normal layers | local shell scale; modal remains browser top-layer behavior |
+| Normal layers | local shell scale; modal remains top-layer behavior |
 
-## Research
+## Scope and invariants
 
-### Decision question
+Allowed and completed:
 
-How should MoneyFlow consolidate App Shell ownership while correctly handling viewport metadata, safe areas, fixed chrome, focus visibility, modal behavior and compatibility debt?
+- shell identity and active IA cleanup;
+- typed viewport and safe-area geometry;
+- shared Sheet/Toast composition;
+- important shell action primitive adoption;
+- explicit route capability ownership;
+- measured shell compatibility retirement;
+- source and browser contracts.
 
-### Primary and authoritative sources
+Preserved:
 
-| Source | Decision supported |
-|---|---|
-| [Next.js viewport API](https://nextjs.org/docs/app/api-reference/functions/generate-viewport) | use the typed root viewport export; no duplicate meta tag |
-| [WebKit safe-area guidance](https://webkit.org/blog/7929/designing-websites-for-iphone-x/) | pair edge-to-edge viewport fitting with safe-area environment insets |
-| [WCAG Focus Not Obscured](https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html) | fixed shell chrome cannot completely hide focus |
-| [W3C Technique C43](https://www.w3.org/WAI/WCAG22/Techniques/css/C43.html) | shell reserve and focus `scroll-padding` are separate responsibilities |
-| [WAI-ARIA modal dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) | modal focus/Escape/restoration belongs to Sheet/Dialog, not numeric z-index |
-| [Selectors Level 4 `:has()`](https://drafts.csswg.org/selectors/#relational) | remove the Accounts rule for wrong ownership, not invalid syntax |
+- B3.2/Fresh Blue;
+- public light-only behavior;
+- workspace Light/Dark/System;
+- integer VND, transfer, split and all financial-domain semantics;
+- existing route destinations and mutation behavior;
+- no production/provider/database/auth/RLS write.
 
-### Research decision
+Still forbidden without a new packet or instruction:
 
-Observed: fixed nav and route-global padding were inconsistent owners; App Shell duplicated Phase 2 primitives; root viewport affects public routes; compatibility debt mixed shell and transaction rules.
-
-Inference: visual height, safe-area reserve, route spacing, focus clearance and toast clearance must remain distinct; modal behavior stays outside the normal z-index map; compatibility deletion occurs by selector group.
-
-Product judgment: preserve current shell/IA, use main B3.2, add no dependency, and never label Playwright emulation physical-device evidence.
-
-## Specification
-
-### Authority and scope
-
-`src/components/layout/app-shell.tsx` and `.module.css` own signed-in chrome and compose canonical Brand and Phase 2 primitives. Routes continue to own route composition and content-end breathing room.
-
-Allowed: shell identity, typed viewport/safe-area geometry, sheets, feedback, actions, IA cleanup, measured shell compatibility retirement and related tests.
-
-Forbidden: route redesign, financial semantics, new identity, broad target-contract retirement, auth/RLS/schema/provider/deployment/production data and Phase 4.
-
-### Brand, viewport and geometry contracts
-
-- Desktop and phone render current `BrandLockup`; no private mark or pseudo-element bridge remains.
-- Root viewport remains device-width, scale 1 and typed `viewportFit: "cover"`; generated output and public routes require verification.
-- Safe-area top/right/bottom/left values are runtime inputs with zero fallbacks where used.
-- App Shell owns:
-  - `--mf-shell-mobile-nav-height`;
-  - `--mf-shell-mobile-nav-reserve`;
-  - top/bottom focus clearances;
-  - mobile feedback offset;
-  - normal topbar/sidebar/nav/feedback layer values.
-- Route spacing must not duplicate shell reserve.
-
-### Focus, modal and primitive contracts
-
-- Root `scroll-padding` applies only while App Shell is mounted; controls use corresponding scroll margins.
-- Fixed topbar/nav/feedback cannot entirely obscure focus.
-- Capture/More use Phase 2 modal Sheet behavior, including Escape and focus restoration.
-- Modal is outside the numeric normal layer map.
-- Topbar actions use Button versus LinkButton by semantics; icon-only actions use IconButton; destinations remain links.
-- Important shell controls meet the MoneyFlow 44×44 target.
-- Feedback uses shared live-region policy and does not steal focus.
-
-### Explicit capability and IA contracts
-
-- Accounts mobile action uses `showPrimaryActionOnMobile`; App Shell never infers route capability from route DOM.
-- App Shell contains no active `/insights` branch or `isPlanningPath` inference.
-- `/insights` may remain only in separately owned routing compatibility or historical allowlists.
-
-### Compatibility remainder
-
-Phase 3 removes route padding, broad `dialog[open]`, Accounts `body:has()` and all shell rules from `MobileShellContract`. Only transaction-dialog dark amount-field declarations remain, explicitly assigned to Phase 5. The contract is not described as fully retired until that owner moves or removes the remainder.
-
-### Evidence matrix
-
-Before closure verify 320/360/390 portrait, phone landscape, tablet portrait/landscape, 1366/1440 desktop, Light/Dark/System, public light-only, 200% text/reflow, forced colors/reduced motion where affected, keyboard forward/reverse traversal, Sheet open/Escape/cancel/focus return, Accounts mobile action, toast clearance and generated viewport meta.
-
-Physical Android/iOS evidence remains separately labelled and is not inferred from emulation.
-
-### Financial and security constraints
-
-No financial calculations, mutation semantics, advice, provider/database/auth/RLS/deployment/production-data operations or non-synthetic browser fixtures.
-
-## Implementation plan
-
-- **Slice A — inventory/specification:** completed.
-- **Slice B — canonical identity/IA:** implemented candidate; browser and forced-colors evidence pending.
-- **Slice C — viewport/geometry:** implemented candidate; generated-meta and cross-device evidence pending.
-- **Slice D — primitives/layers:** implemented candidate; modal/focus/overlap evidence pending.
-- **Slice E — explicit capability/compatibility:** implemented candidate; exact-head gates and owner review pending.
-
-Rollback: viewport metadata and safe-area geometry revert together. The transaction compatibility remainder stays mounted so Phase 3 cannot accidentally alter transaction presentation.
+- Phase 4 implementation;
+- Dashboard redesign;
+- new identity or PR #119 adoption;
+- dependency/Storybook adoption;
+- provider/database/auth/RLS/deployment/production-data operations;
+- physical-device readiness claims based only on emulation.
 
 ## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
-| P3-T1 | Inventory DOM, scroll owners, geometry, layers and selector groups | packet/source map | completed |
-| P3-T2 | Direct BrandLockup and remove logo bridge | source contracts; browser pending | implemented — verification pending |
-| P3-T3 | Typed viewport-fit and safe-area decision | source contract; generated meta/browser pending | implemented — verification pending |
-| P3-T4 | One nav height/reserve and separate focus/route spacing | source contract; geometry pending | implemented — verification pending |
-| P3-T5 | Capture/More Sheet and ToastRegion | source contract; modal/browser pending | implemented — verification pending |
-| P3-T6 | Normal layer map, modal outside numeric z-index | source contract; overlap pending | implemented — verification pending |
-| P3-T7 | Explicit Accounts capability, no `body:has()` | source contract; phone pending | implemented — verification pending |
-| P3-T8 | Important controls use Phase 2 primitives, links preserved | source contract; target/focus pending | implemented — verification pending |
-| P3-T9 | Remove active `/insights` and shell compatibility groups; retain Phase 5 remainder | source contracts; before/after pending | implemented — verification pending |
-| P3-T10 | Exact-head policy/static/tests/build/browser/cross-device/security evidence | CI/artifacts and owner review | in progress |
+| P3-T1 | Inventory shell DOM, scroll owners, geometry, layers and selector groups | packet/source map | completed |
+| P3-T2 | Render canonical BrandLockup and remove logo bridge | source contracts and browser audit | completed |
+| P3-T3 | Establish typed viewport-fit and safe-area decision | generated meta/source/browser evidence | completed |
+| P3-T4 | Define one measured nav height/reserve and separate focus/route spacing | 74px geometry contract and cross-device audit | completed |
+| P3-T5 | Migrate Capture/More to Sheet and feedback to ToastRegion | modal, Escape, focus-return and browser evidence | completed |
+| P3-T6 | Define normal shell layer map with modal outside numeric z-index | source and overlap assertions | completed |
+| P3-T7 | Replace route inference with explicit Accounts capability | source and phone browser evidence | completed |
+| P3-T8 | Migrate important shell controls to Phase 2 primitives while retaining links | target/focus/theme evidence | completed |
+| P3-T9 | Remove active `/insights` and shell compatibility groups; retain Phase 5 remainder | source contracts and zero-owner evidence | completed |
+| P3-T10 | Run exact-head policy/static/tests/build/browser/cross-device/security evidence | CI #1706 and security run #828 | completed |
 
-## Evaluation
+## Evaluation and evidence
 
-### Required exact-head gates
+Exact runtime head: `0c61edc40f05bad25f3ea85e3290eb2b8df425cd`.
 
-Project knowledge/UI migration policy, CSS ownership/architecture, lint, TypeScript, complete tests, production build, browser smoke, Chromium/WebKit audit, CodeQL, secret-history scan, generated viewport assertion and affected geometry evidence.
+Passed on CI #1706:
 
-### Acceptance criteria
+- project knowledge and UI migration policy;
+- CSS ownership and architecture boundaries;
+- lint and TypeScript;
+- 716 unit/static tests;
+- production build;
+- browser smoke;
+- Chromium/WebKit cross-device UI audit;
+- generated viewport metadata, public-route regression and affected shell geometry;
+- Capture/More placement, Escape, focus containment/restoration;
+- Accounts phone primary action and mobile-nav/feedback clearance.
 
-- Canonical B3.2 is the only signed-in mark owner.
-- One shell owner defines nav/safe-area reserve; reserve, route spacing, focus clearance and feedback offset remain distinct.
-- Fixed chrome does not fully obscure focus.
-- Capture/More use shared modal behavior and restore focus.
-- Feedback uses shared live policy and clears mobile nav.
-- App Shell has no active `/insights` or structural `body:has()` capability inference.
-- MobileShellContract has no shell rules; transaction remainder is explicitly Phase 5-owned.
-- Public/workspace theme behavior and financial/external-system boundaries remain unchanged.
+Security evidence:
 
-### Stop conditions
+- CodeQL #828: passed;
+- secret-history scan #828: passed.
 
-Stop if typed viewport output fails, edge-to-edge causes unresolved public regression, transaction compatibility changes behavior, route redesign is required, or any Class 3/external-system change appears.
+Artifacts:
+
+- browser smoke `8937883473`, digest `sha256:7eff6bca133ef0089e9e208bfae09c74d25f73cdce8be4069d36092514f0db3e`;
+- UI audit `8938133878`, digest `sha256:b583087ffa69fb46742902795978ac6558138912c44cda6dab33573cd85f8a22`.
+
+The audit covers representative Chromium/WebKit phone, landscape, tablet and desktop configurations, theme/text/keyboard states selected by the repository matrix. It does not claim physical Android or iOS/Safari acceptance; that remains Phase 11.
 
 ## Handoff record
 
-| Date | From | To | State | Evidence | Next allowed action |
+| Date | From | To | State | Evidence | Next action |
 |---|---|---|---|---|---|
-| 2026-08-05 | human_owner | researcher | reviewing | “check p3 từ tài liệu gg trước khi làm” | compare sources/current main |
-| 2026-08-05 | researcher | planner | specified | official-source review and packet correction | documentation only |
-| 2026-08-05 | human_owner | implementer | in_progress | “Triển khai P3” | implement and verify PR #300 |
+| 2026-08-05 | human_owner | researcher | reviewing | “check p3 từ tài liệu gg trước khi làm” | compare official sources and current main |
+| 2026-08-05 | researcher | planner | specified | corrected P3 packet | documentation only |
+| 2026-08-05 | human_owner | implementer | implementing | “Triển khai P3” | implement and verify PR #300 |
+| 2026-08-05 | implementer | evaluator | evaluating | exact runtime candidate | run protected full matrix |
+| 2026-08-05 | human_owner | evaluator | closing | “hoàn thành p3 đi” | record closure, pass final head checks and merge |
+| 2026-08-05 | evaluator | human_owner | completed | CI #1706, CodeQL #828, Secret #828 and browser artifacts | merge PR #300; Phase 4 stays unauthorized |
 
 ### Current permission boundary
 
-Authorized: Phase 3 runtime, CSS, source/browser tests and PR records on this branch. Not authorized: ready-for-review transition, merge, deployment, dependency/provider/database/auth/RLS/production data, redesign or Phase 4.
+- Authorized: close records and squash-merge PR #300 when the closure-record exact head is green.
+- Forbidden: Phase 4, deployment, new identity, dependency adoption, provider/database/auth/RLS changes and production-data access.
+- Stop condition: any runtime regression or external-system/domain change discovered during closure.
 
 ## Delivery record
 
 - Branch: `agent/ui-phase-3-spec-hardening`
-- PR: #300, draft
-- Base: `main@c11c845cfcd5fe3f588f0564211566bac28f7afd`
-- Runtime state: implementation candidate, unmerged
-- Dependencies/external systems: unchanged
-- Merge and Phase 4: not authorized
+- PR: #300
+- Starting main: `c11c845cfcd5fe3f588f0564211566bac28f7afd`
+- Protected green runtime candidate: `0c61edc40f05bad25f3ea85e3290eb2b8df425cd`
+- Runtime scope: signed-in App Shell/chrome ownership only
+- Financial-domain behavior change: none
+- Provider/production operation: none
+- Remaining compatibility: transaction-dialog dark amount-field remainder owned by Phase 5; `MinimumTargetSizeContract` remains wider debt
+- Phase 4 authorization: not granted
