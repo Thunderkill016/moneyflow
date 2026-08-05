@@ -1,16 +1,16 @@
 # MoneyFlow UI migration — Phase 2 tokens and primitives
 
-**Status:** evaluating
-**Execution state:** closure verification
-**Active role:** evaluator
-**Permission scope:** branch_write_and_owner_authorized_closure
+**Status:** completed
+**Execution state:** completed
+**Active role:** human_owner
+**Permission scope:** owner_authorized_closure_and_merge
 **Owner:** Thunderkill016
 **Parent packet:** `docs/plans/active/ui-system-migration.md`
 **Phase 1 evidence:** merged PR #298
 **Current PR:** #299
 **Last updated:** 2026-08-05
 
-The owner instructed **“Bắt đầu p2”**, requested external-standards corrections and then explicitly instructed **“hoàn tất p2 đi”** on 2026-08-05. The final instruction authorizes Phase 2 closure and merge when the exact PR head passes protected gates. It does not authorize Phase 3, deployment, provider operations, production-data access or a new visual direction.
+The owner instructed **“Bắt đầu p2”**, requested external-standards corrections and then explicitly instructed **“hoàn tất p2 đi”** on 2026-08-05. The final instruction authorizes Phase 2 closure and merge after protected exact-head gates pass. It does not authorize Phase 3, deployment, provider operations, production-data access or a new visual direction.
 
 ## Outcome
 
@@ -164,24 +164,22 @@ The internal reassessment condition was reached. Installation remains deferred b
 | P2-T7 | Stabilize MoneyValue and finance-status presentation | existing helpers + MoneyValue contract | done |
 | P2-T8 | Migrate bounded low-risk consumers | shared composition proof set | done |
 | P2-T9 | Inventory remaining target-contract rescues | selector-group classification | done |
-| P2-T10 | Owner approves closure boundary | “hoàn tất p2 đi” | authorized; exact-head verification in progress |
+| P2-T10 | Owner approves closure boundary | “hoàn tất p2 đi” + protected green candidate | done |
 
 ## Evaluation
 
-Required exact-head gates:
+Protected green candidate head: `9b20cbcca21f7d3c6a3dbd7957a8959458b8721d`.
 
-- no-new-debt, diff hygiene and project knowledge;
-- CSS ownership, architecture, lint and TypeScript;
-- complete unit/static suite including primitive contracts;
-- production build;
-- browser smoke;
-- Chromium/WebKit cross-device audit, including existing text-200 and keyboard projects;
-- CodeQL;
-- all-ref secret history scan.
+- CI #1671 / run `31011440050`: passed policy, project knowledge, CSS ownership, architecture, lint, typecheck, complete unit/static tests, production build, browser smoke, Chromium/WebKit cross-device audit and e2e aggregation.
+- CodeQL #798: passed.
+- Secret history scan #798: passed.
+- Browser smoke artifact #8932739362: `sha256:f40b85d5f38e190ce1056ab29d56ada6c0178c6d1a963b9e484326f759978405`.
+- Cross-device UI artifact #8932945033: `sha256:dc061242253f6655950f61019e29b610a0e52706f11a951e8948b8280563102b`.
+- Database gate: correctly classified not required; no database/auth/RLS/provider/production-data boundary changed.
+- Initial ready-for-review runs exposed governance schema and nullable target-size TypeScript failures; both were fixed and were not waived.
+- The closure-record-only final head must retain the same protected green state before merge.
 
-Database/provider/production-data gates are not applicable.
-
-First ready-for-review run correctly exposed a governance-schema failure: required work-packet headings and exact PR-memory field names had been lost during compaction, and the current project snapshot was stale. This closure correction restores the required headings/fields and synchronizes `CURRENT_PROJECT_MEMORY.md`; the failure is not waived.
+Automated browser evidence does not replace later physical Android and iOS/Safari acceptance, which remains outside Phase 2 closure.
 
 ## Handoff record
 
@@ -189,11 +187,12 @@ First ready-for-review run correctly exposed a governance-schema failure: requir
 |---|---|---|---|---|---|
 | 2026-08-05 | human_owner | planner | specified | “Bắt đầu p2” | define matrix/inventory |
 | 2026-08-05 | human_owner | implementer | implementing | standards corrections requested | harden contract and implement bounded slices |
-| 2026-08-05 | human_owner | evaluator | evaluating | “hoàn tất p2 đi” | pass exact-head gates, fix failures, record closure and merge |
+| 2026-08-05 | human_owner | evaluator | evaluating | “hoàn tất p2 đi” | pass protected gates and record closure |
+| 2026-08-05 | evaluator | human_owner | completed | CI #1671, CodeQL #798, Secret #798 and browser artifacts | pass final closure-record exact-head gates, then merge PR #299 |
 
 ### Current permission boundary
 
-- Authorized: finish Phase 2 verification, closure records and merge PR #299 when exact-head protected gates are green.
+- Authorized: merge PR #299 when the closure-record exact head is protected-green.
 - Forbidden: Phase 3, broad route redesign, new identity, Storybook/dependency installation, database/auth/RLS/provider changes, deployment and production-data access.
 - Stop condition: any required domain mutation, provider or production-data change.
 
@@ -202,6 +201,7 @@ First ready-for-review run correctly exposed a governance-schema failure: requir
 - Branch: `agent/ui-phase-2-primitives`
 - PR: #299
 - Starting main: `8688d95160579eacb908f0162994edba4901fc0c`
+- Protected green candidate: `9b20cbcca21f7d3c6a3dbd7957a8959458b8721d`
 - Runtime scope: shared presentation primitives only
 - Financial-domain behavior change: none
 - Provider/production operation: none
