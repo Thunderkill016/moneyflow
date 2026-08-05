@@ -1,12 +1,12 @@
 # MoneyFlow UI migration — Phase 0 authority and baseline
 
-**Status:** completed  
-**Execution state:** completed  
-**Active role:** human_owner  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Issue/PR:** #297  
-**Parent packet:** `docs/plans/active/ui-system-migration.md`  
+**Status:** completed
+**Execution state:** completed
+**Active role:** human_owner
+**Permission scope:** branch_write
+**Owner:** Thunderkill016
+**Issue/PR:** #297
+**Parent packet:** `docs/plans/active/ui-system-migration.md`
 **Last updated:** 2026-08-05
 
 The owner approved starting the migration program on 2026-08-05 and explicitly instructed completion of Phase 0 on 2026-08-05. Phase 0 is accepted as a documentation, source/CI inspection and evidence-inventory baseline. It does not authorize production/provider operations or Phase 2.
