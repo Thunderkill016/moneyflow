@@ -1,9 +1,9 @@
 # MoneyFlow current design-system authority
 
-**Status:** candidate current-truth index — owner approval required before merge  
-**Program:** `docs/plans/active/ui-system-migration.md`  
-**Phase:** 0 — authority, inventory and baseline  
-**Baseline ref:** `main@9f31aa02a64bcff30705c187fceb09cf5fa61ded`  
+**Status:** current and owner-approved
+**Program:** `docs/plans/active/ui-system-migration.md`
+**Phase:** 0 — authority, inventory and baseline
+**Baseline ref:** `main@9f31aa02a64bcff30705c187fceb09cf5fa61ded`
 **Last reviewed:** 2026-08-05
 
 This index does not select a new layout or aesthetic direction. It records the current decisions that future UI work must preserve unless the owner explicitly replaces them.
@@ -71,7 +71,7 @@ Open branches, draft PRs, design-tool output and generated concepts are candidat
 - `docs/research/WEB_DESIGN_PROCESS_CONVERGENCE.md`
 - `docs/product/PRINCIPLES.md`
 - `docs/MVP_DEFINITION.md`
-- this index after owner approval and merge
+- this index
 
 ### Mixed: retain principles, do not treat literal visual values as current
 
@@ -108,15 +108,16 @@ Useful material includes truthful claims, calm hierarchy, progressive disclosure
 9. Preserve full integer VND, balanced-transfer meaning, recovery and truthful error states.
 10. Every visual phase requires owner-reviewed browser evidence before merge.
 
-## Unresolved owner decisions
+## Deferred decisions
 
-- Whether the currently shipped Guided Story landing remains the long-term public structure or receives a separate redesign packet.
+- Whether the currently shipped Guided Story landing later receives a separate redesign packet. During architecture cleanup it remains preserved.
 - Whether to adopt a development-only component-state harness such as Storybook after a bounded spike.
 - Whether stable tokens later move to a DTCG-format generated artifact.
 - Which physical Android and iOS/Safari devices will be used for final acceptance.
 
 ## Approval record
 
-- Owner approval: pending
-- Approved date: pending
+- Owner approval: accepted
+- Approved date: 2026-08-05
+- Evidence: explicit owner instruction to complete Phase 0
 - Superseding decision: none
