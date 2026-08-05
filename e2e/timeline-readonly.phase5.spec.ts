@@ -89,6 +89,7 @@ test("Phase 5 timeline reads the demo ledger but exposes no mutation controls", 
   const search = page.getByLabel("Tìm trong dòng thời gian");
   await search.fill("không khớp");
   await expect(timeline).toContainText("Không tìm thấy giao dịch đã duyệt");
-  await search.fill("đã duyệt");
+  await page.getByRole("button", { name: "Xóa tìm kiếm", exact: true }).click();
+  await expect(search).toHaveValue("");
   await expect(timeline).toContainText(REVIEWED_NOTE);
 });
