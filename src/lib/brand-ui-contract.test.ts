@@ -14,6 +14,10 @@ const landing = readFileSync(
   "utf8",
 );
 const auth = readFileSync(join(root, "src/components/auth-form.tsx"), "utf8");
+const appShell = readFileSync(
+  join(root, "src/components/layout/app-shell.tsx"),
+  "utf8",
+);
 const publicTheme = readFileSync(
   join(root, "src/components/public-brand-theme.module.css"),
   "utf8",
@@ -77,7 +81,7 @@ test("shared component and app icon use the approved B3.2 geometry", () => {
   assert.doesNotMatch(icon, /M17 43V23\.5/u);
 });
 
-test("landing and auth use the shared brand component", () => {
+test("landing, auth and signed-in shell use the shared brand component", () => {
   assert.match(
     landing,
     /import \{ BrandLockup \} from "@\/components\/brand\/brand-lockup"/u,
@@ -86,8 +90,14 @@ test("landing and auth use the shared brand component", () => {
     auth,
     /import \{ BrandLockup \} from "@\/components\/brand\/brand-lockup"/u,
   );
+  assert.match(
+    appShell,
+    /import \{ BrandLockup \} from "@\/components\/brand\/brand-lockup"/u,
+  );
+  assert.match(appShell, /ariaLabel="MoneyFlow, về Tổng quan"/u);
   assert.doesNotMatch(landing, /className=\{styles\.brandMark\}/u);
   assert.doesNotMatch(auth, /className=\{styles\.brandMark\}/u);
+  assert.doesNotMatch(appShell, /function Brand\(/u);
 });
 
 test("public routes consume the fresh-blue project color authority", () => {
@@ -181,12 +191,12 @@ test("auth proof rail copy is specific to each auth mode", () => {
   assert.doesNotMatch(auth, /Đăng nhập để tiếp tục từ dữ liệu của chính bạn\./u);
 });
 
-test("signed-in compatibility bridge is narrow and uses canonical icon asset", () => {
-  assert.match(
+test("signed-in compatibility logo bridge is retired", () => {
+  assert.doesNotMatch(
     guardrails,
     /a\[aria-label="MoneyFlow, về Tổng quan"\] > span:first-child/u,
   );
-  assert.match(guardrails, /url\("\/icon\.svg"\)/u);
+  assert.doesNotMatch(guardrails, /url\("\/icon\.svg"\)/u);
   assert.doesNotMatch(guardrails, /aria-label\^=/u);
   assert.doesNotMatch(guardrails, /clip-path:\s*polygon/u);
 });
