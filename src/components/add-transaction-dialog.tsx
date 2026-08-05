@@ -71,6 +71,7 @@ export function AddTransactionDialog({
   const [accountId, setAccountId] = useState("");
   const [occurredOn, setOccurredOn] = useState(() => todayInVietnam());
   const [keepOpen, setKeepOpen] = useState(false);
+  const [keepOpenSession, setKeepOpenSession] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [savedFlash, setSavedFlash] = useState("");
@@ -78,6 +79,7 @@ export function AddTransactionDialog({
   const [rules, setRules] = useState<InboxRule[]>([]);
   const [autoRuleHint, setAutoRuleHint] = useState<string | null>(null);
   const categoryTouchedRef = useRef(false);
+  const effectiveOpen = open || keepOpenSession;
 
   const availableCategories = useMemo(() => {
     const filtered = categories.filter((item) => item.kind === kind);
@@ -146,18 +148,18 @@ export function AddTransactionDialog({
   }, []);
 
   useEffect(() => {
-    if (!open && !embedded) return;
+    if (!effectiveOpen && !embedded) return;
     const frame = window.requestAnimationFrame(() => focusAmount(false));
     return () => window.cancelAnimationFrame(frame);
-  }, [open, embedded]);
+  }, [effectiveOpen, embedded]);
 
   useEffect(() => () => clearSavedFlashTimer(), []);
 
   useEffect(() => {
-    if (!open) return;
+    if (!effectiveOpen) return;
     const frame = window.requestAnimationFrame(() => setRules(readStoredRules()));
     return () => window.cancelAnimationFrame(frame);
-  }, [open]);
+  }, [effectiveOpen]);
 
   function applyNoteChange(value: string) {
     setNote(value);
@@ -184,6 +186,7 @@ export function AddTransactionDialog({
 
   function handleRequestClose() {
     clearSavedFlashTimer();
+    setKeepOpenSession(false);
     setSavedFlash("");
     onClose();
   }
@@ -237,6 +240,7 @@ export function AddTransactionDialog({
 
     const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
     idempotencyKeyRef.current = idempotencyKey;
+    if (keepOpen) setKeepOpenSession(true);
     setSubmitting(true);
     let result: { ok: boolean; message?: string };
     try {
@@ -498,7 +502,7 @@ export function AddTransactionDialog({
   );
 
   if (embedded) {
-    if (!open) return null;
+    if (!effectiveOpen) return null;
     return (
       <section
         className={styles.embedded}
@@ -516,7 +520,7 @@ export function AddTransactionDialog({
 
   return (
     <Dialog
-      open={open}
+      open={effectiveOpen}
       onOpenChange={(nextOpen) => {
         if (!nextOpen && !submitting) handleRequestClose();
       }}
