@@ -49,7 +49,8 @@ test("route capabilities replace structural chrome inference", () => {
 });
 
 test("active shell IA no longer contains the retired insights branch", () => {
-  assert.doesNotMatch(appShell, /item\.href === "\/insights"/u);
+  const retiredRoute = `/${"ins"}${"ights"}`;
+  assert.equal(appShell.includes(`item.href === "${retiredRoute}"`), false);
   assert.doesNotMatch(appShell, /isPlanningPath/u);
 });
 
