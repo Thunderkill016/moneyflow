@@ -9,7 +9,30 @@
 
 This is the first P2-T2 inventory. It records only source facts verified at Phase 2 start. Missing primitive files, exports, consumers and token references are unresolved work, not assumed absence.
 
-## 1. Token authority verified
+## 1. Authority classification
+
+Phase 2 distinguishes three types of evidence:
+
+| Type | Meaning in this inventory |
+|---|---|
+| External standard/tool behavior | Requirements or capabilities documented by W3C/WCAG, Next.js or Storybook |
+| Selected migration practice | Incremental ownership, compatibility retention and evidence-driven removal |
+| MoneyFlow project policy | Rules intentionally stricter or more specific than external minimums because of this repository's product and legacy state |
+
+Verified external target-size baseline:
+
+- WCAG 2.2 Level AA SC 2.5.8 uses 24×24 CSS px, with spacing and other defined exceptions.
+- WCAG 2.2 Level AAA SC 2.5.5 uses 44×44 CSS px, with defined exceptions.
+- Therefore 44×44 is not the universal WCAG AA minimum.
+
+Verified MoneyFlow policy:
+
+- important financial/navigation/destructive/icon-only actions target at least 44×44 CSS px;
+- other controls must meet WCAG AA target-size or a valid exception;
+- inline prose links are not automatically expanded to 44px;
+- the existing global 44px repair is compatibility debt, not the intended final architecture.
+
+## 2. Token authority verified
 
 `src/app/document-theme.css` explicitly owns project-wide color roles, light/dark resolution, canvas, focus visibility, type roles and motion values. Components are expected to consume `--mf-*` roles rather than create independent route palettes.
 
@@ -41,6 +64,8 @@ The theme file currently maps success roles to income and danger roles to expens
 
 These aliases are compatibility boundaries. Phase 2 does not delete or rename them until all consumers are inventoried and computed values are proven unchanged.
 
+The Phase 1 token scanner is useful for catching new undefined references, but it is not a complete CSS/runtime compiler. Runtime, generated or external tokens require an explicit known prefix or documented source rather than being assumed invalid.
+
 ### Theme behavior to preserve
 
 - B3.2/Fresh Blue remains selected.
@@ -49,7 +74,7 @@ These aliases are compatibility boundaries. Phase 2 does not delete or rename th
 - Dark mode changes readable semantic values without changing their meaning.
 - Finance colors are functional roles, not decorative palette choices.
 
-## 2. Action primitive verified
+## 3. Action primitive verified
 
 ### `src/components/ui/button.tsx`
 
@@ -59,7 +84,7 @@ Current implementation:
 - uses class-variance-authority;
 - exposes variants `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`;
 - exposes sizes `default`, `xs`, `sm`, `lg`, `icon`, `icon-xs`, `icon-sm`, `icon-lg`;
-- current visual target sizes range from 24px to 36px;
+- current visible/control boxes range from 24px to 36px before global repair;
 - includes focus-visible, disabled, invalid and icon-child styling;
 - does not yet expose an explicit pending contract or a distinct MoneyFlow LinkButton/IconButton API.
 
@@ -67,10 +92,13 @@ Inventory judgment:
 
 - preserve existing variants as compatibility inputs until direct consumers are mapped;
 - do not globally increase every current size without route evidence;
-- separate important-action target geometry from dense visual size;
+- classify each consumer as WCAG-AA baseline, MoneyFlow-important or valid exception;
+- use at least 44×44 for important action instances and icon-only controls;
+- allow compact low-risk controls only when AA target-size/spacing requirements are met;
+- separate visible density from actual pointer-target geometry;
 - prefer an explicit MoneyFlow semantic API rather than adding more route classes.
 
-## 3. Global target-size compatibility verified
+## 4. Global target-size compatibility verified
 
 ### `MinimumTargetSizeContract`
 
@@ -87,42 +115,63 @@ The module currently:
 
 Inventory judgment:
 
-- this contract remains mounted during Phase 2;
+- the broad global rule is stricter than WCAG AA and too wide for the final ownership model;
+- its intent remains valuable for important actions, but it incorrectly treats every target family as equivalent;
+- it remains mounted during Phase 2 to avoid regressions;
 - action primitives should begin absorbing target-size ownership;
 - route-specific repairs are not automatically primitive responsibilities;
 - removal requires a later measured consumer inventory and zero-regression evidence;
 - no selector is deleted from scanner or grep evidence alone.
 
-## 4. Initial ownership gaps
+### Required P2-T9 classification
+
+Every remaining repaired consumer must eventually be classified as:
+
+1. **MoneyFlow important:** retain at least 44×44 through the owning primitive/component;
+2. **WCAG AA baseline:** at least 24×24 or valid spacing behavior;
+3. **Valid exception:** inline text, equivalent control, user-agent-owned or essential presentation;
+4. **Route-specific compatibility debt:** requires a local owner before the global selector is removed.
+
+## 5. P0/P1 clarification carried into Phase 2
+
+- The 1,200 `!important` budget is a temporary MoneyFlow regression ceiling, not a W3C or framework standard.
+- The no-new-global-CSS gate is a MoneyFlow migration policy selected because the repository already has seven global compatibility layers; Next.js itself supports global CSS.
+- The `/dashboard`, `/insights` and legacy-class rules are repository-specific.
+- The five-state Storybook reassessment gate is an internal adoption heuristic, not a Storybook requirement.
+- These clarifications do not invalidate P0 or P1; they prevent internal controls from being misrepresented as universal standards.
+
+## 6. Initial ownership gaps
 
 The following are required by Phase 2 but not yet fully inventoried:
 
 | Boundary | Inventory question | Current state |
 |---|---|---|
 | LinkButton | Is there an existing semantic link wrapper or only Button `link` styling? | unresolved |
-| IconButton | Are icon-only actions standardized and accessibility names enforced? | unresolved |
+| IconButton | Are icon-only actions standardized, named accessibly and guaranteed a 44px target? | unresolved |
 | TextField/Input | Which wrappers own label, description and error relationships? | unresolved |
 | Select | Which implementation owns trigger, popup, validation and long labels? | unresolved |
-| Checkbox/Radio | Which controls rely on global label target repair? | unresolved |
-| Dialog/Sheet | Which Base UI/Radix wrappers own focus, scroll and cancellation? | unresolved |
+| Checkbox/Radio | Which controls rely on global label target repair and which should be 44px important choices? | unresolved |
+| Dialog/Sheet | Which Base UI/Radix wrappers own focus, scroll, cancellation and 44px close/confirm targets? | unresolved |
 | Card/Badge/Alert/Toast/EmptyState | Which components are shared versus route-local/global-class consumers? | unresolved |
 | MoneyValue | Which component and helpers own full integer VND and accessible labels? | unresolved |
 | Direct Button consumers | Which routes depend on existing 24–36px size names or Button `link`? | unresolved |
-| Token references | Which files consume canonical roles versus success/danger aliases or raw values? | unresolved |
+| Token references | Which files consume canonical roles versus success/danger aliases, runtime tokens or raw values? | unresolved |
 
-## 5. Next inventory actions
+## 7. Next inventory actions
 
 1. Enumerate the actual files and exports under `src/components/ui/**` and finance presentation boundaries.
 2. Find direct consumers of Button variants and sizes before changing defaults.
 3. Classify token definitions and references as canonical, compatibility, runtime external or unknown.
-4. Identify five low-risk consumer candidates that can prove the action-primitive API without touching App Shell or financial mutations.
-5. Record which global 44px selectors are satisfied by primitives and which remain route-specific.
-6. Add focused contract tests before the first executable primitive change.
+4. Classify target-size consumers as MoneyFlow-important, AA-baseline, valid exception or route-specific debt.
+5. Identify five low-risk consumer candidates that can prove the action-primitive API without touching App Shell or financial mutations.
+6. Record which global 44px selectors are satisfied by primitives and which remain route-specific.
+7. Add focused contract tests before the first executable primitive change.
 
-## 6. Constraints
+## 8. Constraints
 
 - No rendered token value change in the inventory slice.
 - No new global stylesheet or unreviewed `!important`.
+- No universal 44px rule in new primitive code.
 - No Storybook dependency at Phase 2 start.
 - No App Shell, broad route redesign, financial logic, database, auth, RLS, provider or production-data change.
 - Open PR #299 remains candidate evidence only until owner review, protected checks and merge.
