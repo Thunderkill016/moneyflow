@@ -1,1 +1,0 @@
-This temporary note prevents no-op status claims before the draft pull request numbers exist. It will be removed after the numbered PR memory records are created.
