@@ -13,14 +13,17 @@ function read(rel: string): string {
   return readFileSync(join(root, rel), "utf8");
 }
 
-test("R4: amount autofocus on open (ref + autoFocus + focus helper)", () => {
+test("R4: shared Dialog receives the amount focus target", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
+  const dialog = read("src/components/ui/dialog.tsx");
   assert.match(src, /amountInputRef/);
-  assert.match(src, /autoFocus/);
+  assert.match(src, /inputRef=\{amountInputRef\}/);
   assert.match(src, /focusAmount/);
-  assert.match(src, /showModal\(\)/);
-  // After open / keep-open save, re-focus amount for <10s entry.
+  assert.match(src, /initialFocusRef=\{amountInputRef\}/);
   assert.match(src, /requestAnimationFrame\(\(\) => focusAmount/);
+  assert.doesNotMatch(src, /<dialog\b|showModal\(\)/);
+  assert.match(dialog, /initialFocusRef/);
+  assert.match(dialog, /previouslyFocused/);
 });
 
 test("R4: recent categories order via quick-add prefs helpers", () => {
@@ -29,7 +32,7 @@ test("R4: recent categories order via quick-add prefs helpers", () => {
   assert.match(src, /pushRecentCategoryId/);
   assert.match(src, /pickCategoryForKind/);
   assert.match(src, /isRecentCategoryId/);
-  assert.match(src, /category-choice-recent|data-recent/);
+  assert.match(src, /data-recent/);
   assert.match(src, /Gần đây/);
   assert.match(src, /hay dùng trước/);
 });
@@ -40,9 +43,7 @@ test("R4: save-and-add-another keep-open UX polish", () => {
   assert.match(src, /Lưu & thêm tiếp/);
   assert.match(src, /keepOpen/);
   assert.match(src, /KEEP_OPEN_SUCCESS|Đã lưu · nhập khoản tiếp/);
-  assert.match(src, /keep-open-success/);
-  assert.match(src, /role="status"/);
-  // Primary label reflects mode; hint explains focus loop.
+  assert.match(src, /<Alert tone="success" live="polite"/);
   assert.match(src, /Giữ form mở/);
 });
 
@@ -53,9 +54,15 @@ test("R4: default dialog copy is G5 thu chi (not inbox brand)", () => {
   assert.doesNotMatch(src, /hộp thư|Inbox-first/i);
 });
 
-test("R4: CSS supports keep-open success + recent category chips", () => {
-  const css = read("src/app/globals.css");
-  assert.match(css, /\.keep-open-success/);
-  assert.match(css, /\.category-recent-badge|\.category-choice-recent/);
-  assert.match(css, /\.keep-open-hint|\.keep-open-title/);
+test("R4: local form owner supports keep-open status and recent category chips", () => {
+  const src = read("src/components/add-transaction-dialog.tsx");
+  const css = read("src/components/transactions/transaction-form.module.css");
+  assert.match(src, /styles\.formStatus/);
+  assert.match(src, /styles\.categoryRecent/);
+  assert.match(src, /styles\.recentBadge/);
+  assert.match(src, /styles\.keepOpenRow/);
+  assert.match(css, /\.formStatus/);
+  assert.match(css, /\.categoryRecent/);
+  assert.match(css, /\.recentBadge/);
+  assert.match(css, /\.keepOpenRow/);
 });
