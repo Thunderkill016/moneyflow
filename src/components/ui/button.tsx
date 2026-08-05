@@ -96,6 +96,7 @@ function Button({
 }: ButtonProps) {
   const resolvedVariant = variant ?? (intent ? intentVariant[intent] : "default")
   const resolvedSize = size ?? (density ? densitySize[density] : "default")
+  const resolvedTargetSize: ButtonTargetSize = targetSize ?? "compat"
 
   return (
     <ButtonPrimitive
@@ -105,11 +106,11 @@ function Button({
       disabled={disabled || pending}
       className={cn(
         unstyled
-          ? targetSizeClass[targetSize]
+          ? targetSizeClass[resolvedTargetSize]
           : buttonVariants({
               variant: resolvedVariant,
               size: resolvedSize,
-              targetSize,
+              targetSize: resolvedTargetSize,
             }),
         className
       )}
@@ -140,17 +141,18 @@ function LinkButton({
 }: LinkButtonProps) {
   const resolvedVariant = variant ?? (intent ? intentVariant[intent] : "default")
   const resolvedSize = size ?? (density ? densitySize[density] : "default")
+  const resolvedTargetSize: ButtonTargetSize = targetSize ?? "compat"
 
   return (
     <Link
       data-slot="link-button"
       className={cn(
         unstyled
-          ? targetSizeClass[targetSize]
+          ? targetSizeClass[resolvedTargetSize]
           : buttonVariants({
               variant: resolvedVariant,
               size: resolvedSize,
-              targetSize,
+              targetSize: resolvedTargetSize,
             }),
         className
       )}
