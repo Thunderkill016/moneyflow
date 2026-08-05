@@ -52,12 +52,19 @@ type ButtonIntent = "primary" | "secondary" | "quiet" | "destructive"
 type ButtonDensity = "standard" | "compact"
 type ButtonTargetSize = "compat" | "aa" | "important"
 
+const targetSizeClass: Record<ButtonTargetSize, string> = {
+  compat: "",
+  aa: "min-h-6 min-w-6",
+  important: "min-h-11 min-w-11",
+}
+
 type ButtonProps = ButtonPrimitive.Props &
   VariantProps<typeof buttonVariants> & {
     intent?: ButtonIntent
     density?: ButtonDensity
     pending?: boolean
     pendingLabel?: React.ReactNode
+    unstyled?: boolean
   }
 
 const intentVariant: Record<ButtonIntent, NonNullable<ButtonProps["variant"]>> = {
@@ -81,6 +88,7 @@ function Button({
   density,
   pending = false,
   pendingLabel,
+  unstyled = false,
   disabled,
   children,
   "aria-busy": ariaBusy,
@@ -96,12 +104,14 @@ function Button({
       aria-busy={pending || ariaBusy || undefined}
       disabled={disabled || pending}
       className={cn(
-        buttonVariants({
-          variant: resolvedVariant,
-          size: resolvedSize,
-          targetSize,
-          className,
-        })
+        unstyled
+          ? targetSizeClass[targetSize]
+          : buttonVariants({
+              variant: resolvedVariant,
+              size: resolvedSize,
+              targetSize,
+            }),
+        className
       )}
       {...props}
     >
@@ -115,6 +125,7 @@ type LinkButtonProps = Omit<React.ComponentProps<typeof Link>, "className"> &
     className?: string
     intent?: ButtonIntent
     density?: ButtonDensity
+    unstyled?: boolean
   }
 
 function LinkButton({
@@ -124,6 +135,7 @@ function LinkButton({
   targetSize = "compat",
   intent,
   density,
+  unstyled = false,
   ...props
 }: LinkButtonProps) {
   const resolvedVariant = variant ?? (intent ? intentVariant[intent] : "default")
@@ -133,12 +145,14 @@ function LinkButton({
     <Link
       data-slot="link-button"
       className={cn(
-        buttonVariants({
-          variant: resolvedVariant,
-          size: resolvedSize,
-          targetSize,
-          className,
-        })
+        unstyled
+          ? targetSizeClass[targetSize]
+          : buttonVariants({
+              variant: resolvedVariant,
+              size: resolvedSize,
+              targetSize,
+            }),
+        className
       )}
       {...props}
     />
