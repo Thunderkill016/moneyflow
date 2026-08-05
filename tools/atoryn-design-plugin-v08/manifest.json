@@ -1,7 +1,7 @@
 {
   "name": "Atoryn Agent Bridge",
   "description": "Governed AI bridge for Penpot Cloud with Flex, tokens and components",
-  "version": 4,
+  "version": 2,
   "code": "plugin.js",
   "icon": "icon.svg",
   "permissions": ["content:write", "library:write", "allow:localstorage"]
