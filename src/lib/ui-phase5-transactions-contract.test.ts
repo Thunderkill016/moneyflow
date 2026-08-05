@@ -12,6 +12,10 @@ const workspace = readFileSync(
   "src/components/transactions/transactions-workspace.tsx",
   "utf8",
 );
+const timelineWorkspace = readFileSync(
+  "src/components/transactions/timeline-workspace.tsx",
+  "utf8",
+);
 const workspaceCss = readFileSync(
   "src/components/transactions/transactions-workspace.module.css",
   "utf8",
@@ -22,6 +26,10 @@ const transactionFormCss = readFileSync(
 );
 const quickCapture = readFileSync(
   "src/components/inbox/capture-quick-page.tsx",
+  "utf8",
+);
+const emptyState = readFileSync(
+  "src/components/ui/empty-state.tsx",
   "utf8",
 );
 const dialogSources = [
@@ -44,14 +52,19 @@ const retiredClassNames = [
   "filter-reset-button",
 ];
 
-test("transactions and timeline routes use the Phase 5 local workspace", () => {
+test("transactions and timeline routes use explicit Phase 5 owners", () => {
   assert.match(
     transactionsRoute,
     /@\/components\/transactions\/transactions-workspace/,
   );
   assert.match(transactionsRoute, /<TransactionsWorkspace/);
   assert.doesNotMatch(transactionsRoute, /@\/components\/transactions-page/);
-  assert.match(timelineRoute, /<TransactionsWorkspace/);
+  assert.match(
+    timelineRoute,
+    /@\/components\/transactions\/timeline-workspace/,
+  );
+  assert.match(timelineRoute, /<TimelineWorkspace/);
+  assert.doesNotMatch(timelineRoute, /<TransactionsWorkspace/);
   assert.doesNotMatch(timelineRoute, /@\/components\/transactions-page/);
   assert.equal(existsSync("src/components/transactions-page.tsx"), false);
   assert.equal(existsSync("src/components/transactions-page.module.css"), false);
@@ -66,6 +79,25 @@ test("ledger presentation composes Phase 2 primitives and stable evidence slots"
   assert.match(workspace, /data-slot="ledger-day-group"/);
   assert.match(workspace, /data-slot="ledger-row"/);
   assert.match(workspace, /targetSize="important"/);
+});
+
+test("timeline is a read-only approved-ledger boundary", () => {
+  assert.match(timelineWorkspace, /data-slot="timeline-workspace"/);
+  assert.match(timelineWorkspace, /data-slot="timeline-summary"/);
+  assert.match(timelineWorkspace, /data-slot="timeline-search"/);
+  assert.match(timelineWorkspace, /data-slot="timeline-row"/);
+  assert.match(timelineWorkspace, /getTransactionReviewStatus/);
+  assert.match(timelineWorkspace, /=== "reviewed"/);
+  assert.doesNotMatch(timelineWorkspace, /useTransactions/);
+  assert.doesNotMatch(timelineWorkspace, /AddTransactionDialog|EditTransactionDialog/);
+  assert.doesNotMatch(
+    timelineWorkspace,
+    /deleteTransaction|updateTransaction|bulkSetReviewStatus|bulkUpdateCategory/,
+  );
+  assert.doesNotMatch(
+    timelineWorkspace,
+    /Lọc theo danh mục|Lọc theo trạng thái kiểm tra|Đánh dấu đã duyệt/,
+  );
 });
 
 test("active ledger workspace does not register retired manager and action classes", () => {
@@ -89,6 +121,14 @@ test("filtered summary keeps transfer exclusion and complete integer money flow"
   assert.doesNotMatch(
     workspace,
     /filteredTotals[\s\S]*item\.kind === "transfer"/,
+  );
+  assert.match(
+    timelineWorkspace,
+    /filter\(\(item\) => item\.kind === "income"\)[\s\S]*filter\(\(item\) => item\.kind === "expense"\)/,
+  );
+  assert.match(
+    timelineWorkspace,
+    /return \{ income, expense, net: income - expense \}/,
   );
 });
 
@@ -125,6 +165,13 @@ test("quick capture composes the embedded transaction form behind a local route 
   assert.match(dialogSources[0].source, /data-slot="quick-capture-form"/);
   assert.match(transactionFormCss, /max-height: calc\(100dvh - 24px\)/);
   assert.match(transactionFormCss, /@media \(max-width: 360px\)/);
+});
+
+test("shared empty state exposes stable semantic action slots", () => {
+  assert.match(emptyState, /data-slot="empty-state"/);
+  assert.match(emptyState, /data-slot="empty-state-actions"/);
+  assert.match(emptyState, /data-slot="empty-state-primary-action"/);
+  assert.match(emptyState, /data-slot="empty-state-secondary-action"/);
 });
 
 test("retired transaction amount shell repair is absent", () => {
