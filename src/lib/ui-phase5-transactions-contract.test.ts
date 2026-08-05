@@ -148,7 +148,7 @@ test("local ledger owner defines narrow reflow and forced-colors behavior", () =
 });
 
 test("Phase 5 packet records explicit authorization without merge permission", () => {
-  assert.match(packet, /“tiếp tục p5”/);
+  assert.match(packet, /[`“]tiếp tục p5[`”]/);
   assert.match(packet, /Permission scope:\*\* branch_write/);
-  assert.match(packet, /Merge\/deployment remains an owner decision/);
+  assert.match(packet, /Merge (?:and|\/) deployment remain(?:s)? owner decision/);
 });
