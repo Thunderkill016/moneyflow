@@ -50,8 +50,17 @@ test("server-only app changes do not trigger the responsive audit", () => {
   assert.equal(result.codeql, true);
 });
 
-test("CI policy changes exercise every gate", () => {
+test("CI workflow changes exercise every gate", () => {
   const result = classifyChanges([".github/workflows/ci.yml"]);
+  assert.equal(result.fullVerify, true);
+  assert.equal(result.database, true);
+  assert.equal(result.browserSmoke, true);
+  assert.equal(result.uiAudit, true);
+  assert.equal(result.codeql, true);
+});
+
+test("UI migration policy changes exercise every gate", () => {
+  const result = classifyChanges(["scripts/check-ui-migration-diff.mjs"]);
   assert.equal(result.fullVerify, true);
   assert.equal(result.database, true);
   assert.equal(result.browserSmoke, true);
