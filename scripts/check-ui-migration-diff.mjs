@@ -108,12 +108,17 @@ const referencedTokens = (line) =>
   [...line.matchAll(/var\(\s*(--[A-Za-z0-9_-]+)/g)].map((match) => match[1]);
 
 function quotedLegacyTokens(line) {
-  const found = [];
-  for (const token of LEGACY_CLASS_TOKENS) {
-    const pattern = new RegExp(`["'\\x60][^"'\\x60]*?(?:^|\\s)${escapeRegExp(token)}(?=\\s|["'\\x60])`);
-    if (pattern.test(line)) found.push(token);
+  const found = new Set();
+  for (const match of line.matchAll(/(["'`])([^"'`]*)\1/g)) {
+    const classTokens = match[2]
+      .replace(/\$\{[^}]+\}/g, " ")
+      .split(/\s+/)
+      .filter(Boolean);
+    for (const token of classTokens) {
+      if (LEGACY_CLASS_TOKENS.has(token)) found.add(token);
+    }
   }
-  return found;
+  return [...found];
 }
 
 export function evaluateUiMigrationDiff({ patch, definedTokens = new Set() }) {
