@@ -39,6 +39,11 @@ test("dashboard presentation composes Phase 2 feedback and action primitives", (
   assert.match(overview, /@\/components\/ui\/empty-state/);
   assert.match(overview, /Button, LinkButton/);
   assert.match(overview, /intent="secondary"/);
+  assert.match(overview, /className="section-link shrink-0"/);
+  assert.match(
+    planning,
+    /targetSize="important"[\s\S]*className="inline-flex items-center"[\s\S]*Xem tất cả mục tiêu/,
+  );
 });
 
 test("dashboard period comes from the workspace date", () => {
