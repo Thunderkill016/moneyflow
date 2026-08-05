@@ -25,8 +25,8 @@ const guardrails = readFileSync(
   join(root, "src/app/ai-uiux-guardrails.css"),
   "utf8",
 );
-const mobileShellCompatibility = readFileSync(
-  join(root, "src/components/mobile-shell-contract.module.css"),
+const transactionForm = readFileSync(
+  join(root, "src/components/transactions/transaction-form.module.css"),
   "utf8",
 );
 const toast = readFileSync(
@@ -67,14 +67,8 @@ test("active shell IA no longer contains the retired insights branch", () => {
 
 test("viewport and safe-area geometry are explicit and single-owner", () => {
   assert.match(layout, /viewportFit:\s*"cover"/u);
-  assert.match(
-    appShellStyles,
-    /--mf-shell-mobile-nav-height:\s*74px/u,
-  );
-  assert.match(
-    appShellStyles,
-    /--mf-shell-mobile-nav-reserve:\s*calc\(/u,
-  );
+  assert.match(appShellStyles, /--mf-shell-mobile-nav-height:\s*74px/u);
+  assert.match(appShellStyles, /--mf-shell-mobile-nav-reserve:\s*calc\(/u);
   assert.match(appShellStyles, /safe-area-inset-bottom/u);
   assert.match(appShellStyles, /scroll-padding-top/u);
   assert.match(appShellStyles, /scroll-padding-bottom/u);
@@ -93,17 +87,20 @@ test("normal shell layers are separate from modal top-layer behavior", () => {
   assert.doesNotMatch(appShellStyles, /\.shellSheet\s*\{[^}]*z-index/u);
 });
 
-test("MobileShellContract is reduced to transaction-dialog debt only", () => {
-  assert.match(layout, /MobileShellContract/u);
+test("Phase 5 retires the MobileShellContract transaction remainder", () => {
+  assert.doesNotMatch(layout, /MobileShellContract/u);
   assert.equal(
     existsSync(join(root, "src/components/mobile-shell-contract.tsx")),
-    true,
+    false,
   );
-  assert.match(mobileShellCompatibility, /\.transaction-dialog/u);
-  assert.doesNotMatch(mobileShellCompatibility, /body:has/u);
-  assert.doesNotMatch(mobileShellCompatibility, /main\.dashboard/u);
-  assert.doesNotMatch(mobileShellCompatibility, /transactions-workspace/u);
-  assert.doesNotMatch(mobileShellCompatibility, /dialog\[open\]/u);
+  assert.equal(
+    existsSync(join(root, "src/components/mobile-shell-contract.module.css")),
+    false,
+  );
+  assert.match(transactionForm, /\.amountControl/u);
+  assert.match(transactionForm, /background:\s*var\(--mf-surface\)/u);
+  assert.match(transactionForm, /color:\s*var\(--mf-text\)/u);
+  assert.match(transactionForm, /100dvh/u);
 });
 
 test("signed-in logo guardrail is removed after direct BrandLockup adoption", () => {
