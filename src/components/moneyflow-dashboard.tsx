@@ -243,7 +243,7 @@ export function MoneyFlowDashboard({
       }}
       notice={notice}
     >
-      <main className="dashboard insights-dashboard">
+      <main className="insights-dashboard">
         {workspace.dataError ? (
           <div className="data-alert" role="alert">
             <Icon name="bell" />
