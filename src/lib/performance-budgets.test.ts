@@ -151,11 +151,13 @@ test("insights dashboard defers AddTransactionDialog chunk", () => {
   assert.match(source, /ssr:\s*false/);
 });
 
-test("transactions page code-splits dialogs for smaller first paint", () => {
-  const source = read("src/components/transactions-page.tsx");
+test("transactions workspace code-splits dialogs for smaller first paint", () => {
+  const source = read("src/components/transactions/transactions-workspace.tsx");
   assert.match(source, /dynamic\(/);
   assert.match(source, /add-transaction-dialog/);
   assert.match(source, /transfer-dialog/);
+  assert.match(source, /split-expense-dialog/);
+  assert.match(source, /edit-transaction-dialog/);
   assert.match(source, /ssr:\s*false/);
 });
 
