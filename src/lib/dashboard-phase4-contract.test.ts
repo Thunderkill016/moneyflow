@@ -23,6 +23,7 @@ const dashboardCss = readFileSync(
   "src/components/dashboard/dashboard.module.css",
   "utf8",
 );
+const retiredKpiClass = ["insights", "kpi"].join("-");
 
 test("dashboard route no longer imports page-global presentation styles", () => {
   assert.doesNotMatch(page, /import\s+["'][^"']+\.css["'];?/);
@@ -64,7 +65,7 @@ test("dashboard module owns one responsive and forced-colors contract", () => {
     /@media \(max-width: 760px\)[\s\S]*\.dashboard :global\(\.right-stack\)[\s\S]*grid-template-columns: minmax\(0, 1fr\)/,
   );
   assert.match(dashboardCss, /@media \(forced-colors: active\)/);
-  assert.doesNotMatch(dashboardCss, /insights-kpi/);
+  assert.equal(dashboardCss.includes(retiredKpiClass), false);
   assert.doesNotMatch(dashboardCss, /:has\s*\(/);
 });
 
