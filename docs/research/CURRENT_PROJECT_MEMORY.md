@@ -1,10 +1,10 @@
 # MoneyFlow — current project memory
 
 - **Status:** active implementation-status authority
-- **Audit date:** 2026-08-05
-- **Code baseline audited before this PR:** `main@c11c845cfcd5fe3f588f0564211566bac28f7afd`
+- **Audit date:** 2026-08-06
+- **Current main audited:** `429eb6777a63b3172a04ce164a512420e31085c8`
 - **Owner direction:** MoneyFlow is released as a functional MVP; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate
-- **UI-system migration:** parent plan PR #296 and Phases 0–3 are delivered through PRs #297–#300; Phase 4 remains unauthorized
+- **UI-system migration:** parent plan PR #296 and Phases 0–4 are delivered through PRs #297–#301; Phase 5 remains unauthorized
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Release acceptance:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
@@ -80,7 +80,7 @@ MoneyFlow is functional-MVP complete. Competitive depth and public-beta hardenin
 | Reconciliation | Verified-unmerged database/domain contract through PR #222 | owner decides integrate or rebuild; no current-main UI |
 | Categories | Merged income/expense category lifecycle | clearer archive-impact depth if required |
 | Transactions | Merged create/search/filter/edit, split/transfer, soft delete/undo and truthful totals | review state, bulk correction and split-line editing |
-| Dashboard | Merged bounded bundle, planning/activity/Inbox summaries and schema-skew fallback | richer attention/drill-down depth |
+| Dashboard | Merged Phase 4 local presentation ownership, deterministic period, truthful range semantics, planning/activity summaries and schema-skew fallback | richer attention/drill-down depth |
 | Budgets | Merged current-month category limits and CRUD | history, comparison, copy, rollover and drill-down |
 | Recurring | Merged templates, current-month occurrence/link and pay/undo baseline | history, lifecycle, reminders and matching |
 | Goals | Merged target, allocation, deadline, planned pace and archive | contribution history and funding lifecycle |
@@ -90,8 +90,8 @@ MoneyFlow is functional-MVP complete. Competitive depth and public-beta hardenin
 | Rules | Partial deterministic local parse rules | authenticated persisted rules |
 | Privacy/deletion | Merged baseline privacy surfaces and recoverable ledger deletion | deep destructive public-beta acceptance |
 | Onboarding/navigation | Merged privacy → wallet → first expense/dashboard and Core/Lab navigation | release-journey acceptance only |
-| Responsive/accessibility | Broad automated route/dialog/device coverage | physical-device acceptance remains separate |
-| CI/security/performance | Risk-selected CI, CodeQL, secret scan, database/browser harnesses and performance documentation | provider/staging capacity claims remain evidence-specific |
+| Responsive/accessibility | Broad automated route/dialog/device coverage including P4 Chromium/WebKit Dashboard audit | physical-device acceptance remains separate |
+| CI/security/performance | Risk-selected CI, exact-head monitoring commands, CodeQL, secret scan, database/browser harnesses and performance documentation | provider/staging capacity claims remain evidence-specific |
 
 ## 6. UI-system migration truth
 
@@ -112,55 +112,36 @@ PR #297 established the authority index, route/presentation topology and startin
 
 PR #298 prevents new unowned global CSS layers, CSS import chains, unreviewed `!important`, unknown token references, stale `/insights` use and known legacy-class registration. The rules inspect added lines so existing debt can be migrated incrementally.
 
-The global-CSS freeze, `!important` budget, route rules and legacy-class list are MoneyFlow policy rather than universal Next.js/web requirements.
-
 ### Phase 2 — token and primitive ownership
 
-PR #299 establishes:
-
-- additive Button semantic intent/density/target/pending API while preserving compatibility variants/sizes;
-- real-link LinkButton and accessible-name-required IconButton;
-- TextField, native-first SelectField, CheckboxField and native grouped RadioGroup;
-- native modal Dialog and explicit modal/non-modal Sheet;
-- semantic Badge, Alert, Toast/ToastRegion and EmptyState contracts;
-- MoneyValue using existing money-formatting helpers and tabular numerals;
-- source-contract tests for semantics, target policy, native control use, overlay distinction, live-region policy and canonical token references.
-
-Target policy:
-
-- WCAG AA baseline is 24×24 CSS px or a valid defined exception;
-- 44×44 CSS px is the MoneyFlow important-action target for important financial, destructive, confirmation, icon-only, mobile-navigation and frequent-capture controls;
-- 44px is not forced onto every link, button or select.
-
-`MinimumTargetSizeContract` remains compatibility debt because it still combines universal targets, important route actions, action discoverability and responsive layout repairs. Phase 2 classifies its remaining groups but does not remove them.
-
-Success/danger token aliases remain until zero-reference evidence. New semantic primitive references use canonical `--mf-*-subtle` roles. No token value or financial-domain behavior changes in Phase 2.
-
-Storybook remains deferred because current source/unit/browser evidence covers the initial slice and no separate dependency adoption was approved.
+PR #299 established MoneyFlow-native Button, LinkButton, IconButton, field, Dialog, Sheet, Badge, Alert, Toast, EmptyState and MoneyValue contracts with source/unit evidence. WCAG AA 24×24 remains the accessibility baseline; 44×44 is the MoneyFlow important-action policy, not a requirement for every control.
 
 ### Phase 3 — App Shell and chrome ownership
 
-PR #300 establishes:
+PR #300 established canonical BrandLockup ownership, typed edge-to-edge viewport/safe-area contracts, one measured mobile-navigation reserve, Phase 2 Sheet/Dialog/Toast composition, explicit route capabilities and reduced `MobileShellContract` compatibility. Its exact-head policy/static/type/build, 716 tests, browser smoke, Chromium/WebKit audit, CodeQL and secret scan were green.
 
-- canonical main-branch `BrandLockup` as the signed-in desktop/mobile identity owner; draft logo PR #119 remains excluded;
-- typed root viewport with `viewportFit: "cover"` and safe-area environment insets;
-- one measured 74px mobile-nav height and a reserve derived from that height plus the bottom safe area;
-- distinct shell reserve, route spacing, focus clearance and feedback clearance contracts;
-- root scroll padding only while App Shell is mounted;
-- Capture and More composed from Phase 2 Sheet/Dialog behavior, including Escape and focus restoration;
-- centered Capture placement on tablet/desktop and shared bottom-sheet behavior where applicable;
-- shared ToastRegion feedback and a bounded normal shell layer map, with modal behavior outside numeric z-index ownership;
-- explicit Accounts `showPrimaryActionOnMobile` capability instead of `body:has()`/positional inference;
-- removal of active App Shell `/insights` branches, signed-in logo guardrail, route-global bottom padding and broad `dialog[open]` repairs;
-- `MobileShellContract` reduced to transaction-dialog dark amount-field compatibility owned for Phase 5 removal.
+### Phase 4 — Dashboard ownership pilot
 
-Exact runtime head `0c61edc40f05bad25f3ea85e3290eb2b8df425cd` passed CI #1706 policy/static/type/build, 716 tests, browser smoke and Chromium/WebKit cross-device audit. CodeQL #828 and secret-history scan #828 passed. Browser artifact `8937883473` and UI-audit artifact `8938133878` own the retained evidence.
+PR #301 was squash-merged as `4b48626935aa0ed3ddd0058bb0561ae1c2d17335` and established:
 
-Automated browser evidence does not prove physical Android or iOS/Safari acceptance. That remains Phase 11.
+- no Dashboard-specific global CSS imports from `/dashboard/page.tsx`;
+- `src/components/dashboard/dashboard.module.css` as the route presentation owner;
+- dedicated `DashboardStatement` module ownership with period copy derived from `workspace.today` rather than browser-local time;
+- Phase 2 Alert, Button, LinkButton and EmptyState composition;
+- budget usage meter semantics with explicit over-limit text;
+- bounded goal progress semantics;
+- one responsive owner resolving contradictory phone columns and the 320px section-action overflow;
+- important supporting links with 44px targets;
+- removal of retired Dashboard, weekly, action and safe-to-spend withdrawal bridges after active-path proof;
+- source/unit contracts for deterministic period, semantics, local ownership and absence of active spending advice.
+
+Exact head `3a2088a3a0c80075386db9c5bf5630f87c2d209f` passed CI #1746, policy/CSS ownership/architecture, lint, TypeScript, 723 unit/static tests, production build, browser smoke, Chromium/WebKit cross-device audit, CodeQL #866 and secret-history scan #866.
+
+Production-boundary closure on 2026-08-06 confirmed a READY deployment containing `main@429eb6777a63b3172a04ce164a512420e31085c8`, HTTP 200 public rendering, expected unauthenticated `/dashboard` → login behavior and no active backend errors for `/dashboard` or `/login` in the inspected one-hour window. No production account or private data was accessed, so authenticated production Dashboard visuals remain evidenced by the exact-head browser audit rather than a fresh production session.
 
 ### Next UI boundary
 
-Phase 4 Dashboard work is not authorized by Phase 3 completion. A new explicit owner instruction and a bounded Phase 4 packet are required before product-code writes.
+Phase 5 Transactions and Capture is the next sequenced boundary. Phase 4 completion does **not** authorize Phase 5. A new explicit owner instruction and bounded Phase 5 packet/specification correction are required before product-code writes.
 
 ## 7. Verification and evidence boundaries
 
@@ -169,7 +150,8 @@ Phase 4 Dashboard work is not authorized by Phase 3 completion. A new explicit o
 - Provider changes require before/after evidence, rollback and production smoke.
 - Automated browser success does not prove physical-device acceptance or visual quality by itself.
 - A successful job shell is not evidence when initialization/analysis or selected shards were skipped.
-- PR #300 changes no database, auth, RLS, provider, production-data or financial-domain boundary.
+- P4 changed no database, Auth, RLS, provider setting, production data or financial formula.
+- Physical Android and iOS/Safari acceptance remains Phase 11 evidence.
 
 ## 8. Reconciled issue status
 
@@ -192,7 +174,7 @@ Open PRs are not product truth and must be refreshed against current `main` befo
 | #170/#171 | older CSS cleanup candidates; compare against current ownership and tests before reuse |
 | #119 | visual/logo candidate requiring current browser evidence and owner approval |
 
-PRs #295–#300 are merged and must not be described as candidates. PR #222 is closed-unmerged verified evidence, not an open PR and not current behavior.
+PRs #295–#302 are merged and must not be described as candidates. PR #222 is closed-unmerged verified evidence, not current behavior.
 
 ## 10. True gaps after this audit
 
@@ -212,9 +194,9 @@ PRs #295–#300 are merged and must not be described as candidates. PR #222 is c
 
 ### UI migration debt
 
-- Phase 4 Dashboard pilot and later route-by-route adoption of Phase 2 primitives;
+- Phase 5 Transactions/Capture and later route-by-route adoption of Phase 2 primitives;
 - compatibility-variant and alias retirement after zero-reference evidence;
-- Phase 5 removal of the transaction-dialog remainder from `MobileShellContract`;
+- removal of the transaction-dialog remainder from `MobileShellContract` during Phase 5;
 - local ownership of responsive repairs currently in `MinimumTargetSizeContract` and its final removal;
 - physical Android and iOS/Safari acceptance;
 - separately approved component-harness adoption if evidence later justifies it.
@@ -233,7 +215,9 @@ PRs #295–#300 are merged and must not be described as candidates. PR #222 is c
 - PR #295 restored the repository-wide secret-history gate through a reviewed fingerprint-specific repair.
 - PR #296/#297/#298 merged the UI-system parent plan, Phase 0 baseline and Phase 1 guardrails.
 - PR #299 delivered Phase 2 shared primitive ownership.
-- PR #300 delivered canonical App Shell/chrome ownership with protected browser evidence.
+- PR #300 delivered canonical App Shell/chrome ownership.
+- PR #301 delivered and merged the Phase 4 Dashboard ownership pilot.
+- PR #302 delivered exact-head CI monitoring commands and runbook.
 - PR #222 remains verified unmerged and is not current behavior.
 
 ## 12. Superseded-status register
@@ -248,6 +232,7 @@ Do not repeat these as current facts:
 - Goals lack deadline or pace calculation.
 - Export only supports current-month CSV or depends on `/insights`.
 - Dashboard still performs the original authenticated fan-out.
+- Dashboard still depends on page-imported global CSS or a CSS-only safe-to-spend withdrawal bridge.
 - CAPTCHA plumbing, account register/detail or transaction range filters are missing.
 - Reconciliation was never designed or tested.
 - Closed-unmerged PR #222 is current product behavior.
@@ -256,22 +241,5 @@ Do not repeat these as current facts:
 - Provider/device acceptance is automatically part of the locked MVP exit definition.
 - Repository tests prove private provider state or physical-device acceptance.
 - Spec Kit replaces MoneyFlow governance.
-- The UI migration parent or Phases 0–3 are still pending, blocked or unauthorized.
-- Phase 2 is unauthorized or only documentation.
-- Phase 3 still uses a private Brand, private shell dialogs/toast, `body:has()` route inference or a 68px nav reserve.
-- 44×44 is the universal WCAG AA target minimum.
-- Every sheet is modal or every toast should be assertive.
-- A 320px phone viewport alone proves WCAG reflow.
-
-## 13. Update and compaction protocol
-
-Every PR changes exactly one bounded record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md`. A status-changing PR also updates the affected row or section here.
-
-Budgets:
-
-- target: **150–250 lines**;
-- soft warning: above **300 lines** or **32 KiB**;
-- hard failure: above **500 lines** or **64 KiB**;
-- PR record hard failure: above **140 lines** or **12 KiB**.
-
-Record private operational evidence only as redacted summaries. Never store secrets, provider identifiers, exact defensive thresholds, request IDs, user financial data or unredacted screenshots here.
+- The UI migration parent or Phases 0–4 are pending, blocked or unauthorized.
+- Phase 5 is authorized by Phase 4 completion.
