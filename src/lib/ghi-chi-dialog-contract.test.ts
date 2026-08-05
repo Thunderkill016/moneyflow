@@ -39,11 +39,15 @@ test("R4: recent categories order via quick-add prefs helpers", () => {
   assert.match(src, /hay dùng trước/);
 });
 
-test("R4: save-and-add-another keep-open UX polish", () => {
+test("R4: save-and-add-another keeps a controlled dialog session alive", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   assert.match(src, /Lưu xong thêm tiếp/);
   assert.match(src, /Lưu & thêm tiếp/);
   assert.match(src, /keepOpen/);
+  assert.match(src, /keepOpenSession/);
+  assert.match(src, /effectiveOpen = open \|\| keepOpenSession/);
+  assert.match(src, /if \(keepOpen\) setKeepOpenSession\(true\)/);
+  assert.match(src, /open=\{effectiveOpen\}/);
   assert.match(src, /KEEP_OPEN_SUCCESS|Đã lưu · nhập khoản tiếp/);
   assert.match(src, /<Alert tone="success" live="polite"/);
   assert.match(src, /Giữ form mở/);
