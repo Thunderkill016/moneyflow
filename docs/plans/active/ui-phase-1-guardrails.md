@@ -2,7 +2,7 @@
 
 **Status:** evaluating
 **Execution state:** evaluating
-**Active role:** implementer
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Parent packet:** PR #296, `docs/plans/active/ui-system-migration.md`
@@ -10,7 +10,7 @@
 **Current PR:** #298
 **Last updated:** 2026-08-05
 
-The owner approved continuing after Phase 0 on 2026-08-05. This is interpreted as permission for Phase 1 only: implement diff-based no-new-debt policy, verify it, and decide whether to add a component-state harness. It does not authorize primitive, App Shell, route, CSS, visual-direction, merge or deployment changes.
+The owner instructed **“Hoàn thành p1”** on 2026-08-05. This records owner acceptance of the Phase 1 direction and permission to finish verification and merge the no-new-debt guardrails. It does not authorize Phase 2 primitive work, product UI/CSS changes, provider operations, deployment or production-data access.
 
 ## Outcome
 
@@ -30,6 +30,7 @@ Relevant existing boundaries:
 - `/insights` survives only as a compatibility redirect while current navigation and tests should use `/dashboard`.
 - current route/component code still registers global legacy classes, so enforcement must be diff-based rather than an immediate repository-wide zero rule.
 - current Playwright coverage is strong at route level, while shared primitive APIs are not yet stable enough to justify a durable story catalogue.
+- PR #298 was created before PRs #295–#297 reached `main`, so final evaluation requires rebuilding its candidate from current `main` plus only the Phase 1 files.
 
 ## Research
 
@@ -53,13 +54,13 @@ Storybook decision: defer installation until Phase 2, when at least five high-va
 
 | Rule | Blocks | Allowed path |
 |---|---|---|
-| `no-new-route-global-css` | New non-module stylesheet under `src/app` | Use a route/component CSS Module |
-| `no-new-global-css-import` | New plain `.css` import from product TS/JS outside the frozen root owners | Use `.module.css`; existing root imports remain frozen |
-| `no-new-css-import-chain` | New local CSS `@import` extending the cascade | Import the owning module/component directly |
+| `no-new-route-global-css` | New or renamed non-module stylesheet under `src/app` | Use a route/component CSS Module |
+| `no-new-global-css-import` | New static, dynamic or CommonJS plain `.css` import from product TS/JS outside the frozen root owners | Use `.module.css`; existing root imports remain frozen |
+| `no-new-css-import-chain` | New local quoted or `url(...)` CSS `@import` extending the cascade | Import the owning module/component directly |
 | `no-new-important` | Added `!important` in product CSS | Remove the ownership conflict; exceptional vendor repair requires inline reason |
 | `known-token-reference` | Added `var(--token)` with no source definition | Define the semantic/local token or document an external runtime token inline |
 | `canonical-dashboard-route` | Added `/insights` in current source/tests | Use `/dashboard`; compatibility redirect file remains allowed |
-| `no-new-legacy-class-registration` | Added known legacy global classes in route/component code | Use local module/component ownership |
+| `no-new-legacy-class-registration` | Added known legacy global classes in actual class-registration contexts | Use local module/component ownership |
 
 ### Narrow exception syntax
 
@@ -90,7 +91,7 @@ The diff-only set prevents new registrations of:
 - `safe-card`
 - `safe-card-hero`
 
-The set does not remove current consumers and expands only with repository evidence and regression fixtures.
+Detection is limited to `className`, `classList`, `className =` and common class-composition helpers. Plain copy, analytics labels or unrelated string values are not treated as CSS registrations.
 
 ### Acceptance criteria
 
@@ -99,8 +100,10 @@ The set does not remove current consumers and expands only with repository evide
 - Every added line in a PR is checked before CI risk classification.
 - CSS Modules remain allowed.
 - known Base UI, Radix, Next and Tailwind runtime-token prefixes remain allowed.
+- new or renamed App Router global stylesheets are blocked.
+- static, dynamic, CommonJS and CSS `url(...)` import bypasses are covered.
+- plain legacy words outside class-registration contexts do not create false positives.
 - policy files classify as full-risk and select every CI gate.
-- the fixture suite covers accepted and rejected examples, including a single-token `className="dashboard"` counterexample.
 - no dependency or hosted tool is added.
 
 ## Implementation plan
@@ -110,11 +113,11 @@ The set does not remove current consumers and expands only with repository evide
 | File | Change |
 |---|---|
 | `scripts/check-ui-migration-diff.mjs` | Parse unified diff, collect source token definitions and report blocking violations |
-| `scripts/check-ui-migration-diff.test.mjs` | Cover global CSS, `!important`, token, route and legacy-class cases |
+| `scripts/check-ui-migration-diff.test.mjs` | Cover global CSS, import variants, renames, `!important`, token, route, class-registration and false-positive cases |
 | `scripts/classify-ci-changes.mjs` | Run the no-new-debt check before classification and mark policy files full-risk |
 | `scripts/classify-ci-changes.test.mjs` | Verify policy changes select every gate |
 | `package.json` | Expose `check:ui-migration` and include fixtures in `test:ci-policy` |
-| Phase documentation and PR memory | Record scope, Storybook decision, evidence and permission boundary |
+| Phase documentation, project memory and PR memory | Record scope, Storybook decision, evidence, owner acceptance and permission boundary |
 
 ### Runtime and data impact
 
@@ -130,8 +133,10 @@ The set does not remove current consumers and expands only with repository evide
 |---|---|
 | False positive from third-party runtime CSS variables | Known runtime prefixes and explicit same-line reason for other sources |
 | Existing legacy source becomes blocked | Added-line-only evaluation |
+| Plain strings are mistaken for class registration | Restrict detection to class-related syntax and keep a negative regression fixture |
+| Import or rename syntax bypasses the gate | Cover static, dynamic, CommonJS, quoted/url CSS imports and file renames |
 | Exception comments become a bypass | Reason required; review and future removal inventory |
-| Parser misses a source shape | Regression fixtures; one real single-token counterexample was found and fixed before final review |
+| Parser misses a source shape | Regression fixtures and exact-head self-check |
 | Policy disables itself | Policy files trigger full CI |
 | Storybook becomes a second application too early | Deferred to a bounded Phase 2 decision |
 
@@ -139,13 +144,14 @@ The set does not remove current consumers and expands only with repository evide
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
-| P1-T1 | Prevent new root/global stylesheet imports | diff gate + fixtures | candidate complete |
-| P1-T2 | Prevent new unreviewed `!important` | diff gate + exception fixture | candidate complete |
-| P1-T3 | Validate token references in added CSS declarations | source token inventory + fixtures | candidate complete |
-| P1-T4 | Prevent new `/insights` UI/test references | redirect exception + fixtures | candidate complete |
-| P1-T5 | Prevent new known legacy class registrations | initial legacy set + fixtures | candidate complete |
-| P1-T6 | Decide Storybook/equivalent spike | adoption decision | deferred to Phase 2; no dependency added |
-| P1-T7 | Owner accepts guardrails before Phase 2 | exact-head PR evidence | pending |
+| P1-T1 | Prevent new root/global stylesheet imports | diff gate + rename/import fixtures | done; exact-head verification pending |
+| P1-T2 | Prevent new unreviewed `!important` | diff gate + exception fixture | done; exact-head verification pending |
+| P1-T3 | Validate token references in added CSS declarations | source token inventory + fixtures | done; exact-head verification pending |
+| P1-T4 | Prevent new `/insights` UI/test references | redirect exception + fixtures | done; exact-head verification pending |
+| P1-T5 | Prevent new known legacy class registrations without false-positive plain strings | syntax-bounded detector + fixtures | done; exact-head verification pending |
+| P1-T6 | Decide Storybook/equivalent spike | adoption decision | done — deferred to Phase 2; no dependency added |
+| P1-T7 | Owner accepts guardrails before Phase 2 | explicit instruction on 2026-08-05 | done; Phase 2 remains unauthorized |
+| P1-T8 | Rebuild candidate on current `main` and pass protected gates | exact-head workflow runs | evaluating |
 
 ## Evaluation
 
@@ -161,18 +167,25 @@ Required exact-head evidence:
 - browser smoke;
 - Chromium/WebKit cross-device audit;
 - CodeQL;
-- all-ref secret scan, with the independently tracked pre-existing Penpot finding remaining outside this diff until PR #295 is resolved.
+- all-ref secret scan.
 
 Current findings:
 
-- the classifier has successfully run the new gate against PR #298 itself;
-- a single-token legacy-class parser gap was found and fixed with a regression fixture;
-- diff hygiene, static quality, unit/static RLS and production build have passed on intermediate heads;
-- exact-head full evidence remains pending after template correction.
+- the classifier successfully ran the guardrail against earlier PR #298 heads;
+- the reviewed secret-history fingerprint is now merged through PR #295;
+- focused local regression execution after hardening passed 11 of 11 tests;
+- the hardening closes rename, dynamic/CommonJS import, CSS `url(...)` import and plain-string false-positive gaps;
+- final protected evidence remains pending on a candidate rebuilt from current `main`.
+
+## Handoff record
+
+| Date | From | To | State | Evidence | Next allowed action |
+|---|---|---|---|---|---|
+| 2026-08-05 | human_owner | evaluator | evaluating | Explicit instruction: “Hoàn thành p1” | Harden guardrail, synchronize with current `main`, run exact-head gates and merge only if green |
 
 ### Current permission boundary
 
-- Granted: Phase 1 policy scripts, fixtures, package command and documentation on `agent/ui-phase-1-no-new-debt`.
-- Forbidden: product/runtime UI code, CSS changes, dependencies, Storybook installation, existing PR/issue mutation, merge and deployment.
-- Stop condition: exact-head evidence is presented to the owner.
+- Granted: finish Phase 1 policy scripts, fixtures, package command, documentation, project memory and PR merge after protected checks pass.
+- Forbidden: product/runtime UI code, product CSS, dependencies, Storybook installation, provider writes, deployment and production-data access.
+- Stop condition: any protected exact-head gate fails for an unresolved Phase 1 cause.
 - Next phase: Phase 2 token and primitive ownership requires a new explicit approval.
