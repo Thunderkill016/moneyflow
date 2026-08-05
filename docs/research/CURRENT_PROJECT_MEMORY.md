@@ -1,9 +1,10 @@
 # MoneyFlow — current project memory
 
 - **Status:** active implementation-status authority
-- **Audit date:** 2026-08-03
+- **Audit date:** 2026-08-05
 - **Code baseline audited:** `main@481a9ee72663477172b9f727cacbf3f530aa6630`
 - **Owner direction:** the MVP release decision is made — released as MVP at `main@8e08a8a` on 2026-08-03; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate and open
+- **UI-system migration:** parent plan PR #296 is merged; Phase 0 authority and baseline are owner-accepted through PR #297; Phase 1 remains separately governed by PR #298; Phase 2 is not authorized
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Release acceptance ledger:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
@@ -121,6 +122,9 @@ Functional MVP is complete. All nine locked exit criteria are reconciled on curr
 - PR #250 merged the functional-MVP truth audit as `b7b0e1fb2c13e82061d7641f86e6b3c2a9b2bed4`.
 - PR #251 merged the locked release-evidence reconciliation as `6cea2939663df2cf5245ec1e72e7ef186fd7a0cb`.
 - PR #252 merged the locked empty-state/export acceptance regression as `481a9ee72663477172b9f727cacbf3f530aa6630`; final CI #1234, CodeQL #379 and Secret history scan #379 passed before merge, and Vercel reports success for the merge commit.
+- PR #295 merged the reviewed fingerprint-specific repair for the repository-wide secret-history gate without weakening the detector.
+- PR #296 merged the owner-approved UI-system migration parent governance packet.
+- PR #297 records the owner-accepted Phase 0 design authority, presentation baseline and open-work disposition; it becomes current project truth only after merge.
 - PR #222 remains **verified unmerged**, not current behavior and not evidence that reconciliation was never built.
 - On 2026-08-03 the owner stated that several items previously described as undone had already been completed; exact private details must not be invented.
 
@@ -142,10 +146,11 @@ Open PRs are not product truth. Refresh and reverify against current `main` befo
 
 | PR | Interpretation |
 |---|---|
+| #298 | Phase 1 no-new-presentation-debt guardrails; implementation candidate, separately governed and not Phase 0 truth until merged |
 | #170/#171 | old stacked CSS cleanup candidates; compare current CSS ownership and tests before reuse |
 | #119 | logo candidate requiring current browser evidence and explicit owner visual approval |
 
-PR #250, PR #251 and PR #252 are merged and must not remain candidate-only.
+PR #250, PR #251, PR #252, PR #295 and PR #296 are merged and must not remain candidate-only.
 
 ## 10. True gaps after this audit
 
@@ -177,9 +182,9 @@ Do not reopen the empty-state/export acceptance run as missing work unless the c
 
 ## 11. Current implementation direction
 
-Wave 0 repository acceptance is complete. The next step is an owner release decision, not another missing-evidence hunt or broad feature.
+The MVP release decision is complete. The UI-system migration is now the active presentation-architecture program: the parent plan is merged and Phase 0 establishes the accepted authority and baseline. Phase 1 remains separately reviewed through PR #298; Phase 2 requires a new explicit owner decision.
 
-After the release decision, tracks may proceed independently: ledger trust, planning depth, reports/export, import/rules and measured scale. Reconciliation is post-MVP unless explicitly promoted.
+Other tracks may proceed independently: ledger trust, planning depth, reports/export, import/rules and measured scale. Reconciliation is post-MVP unless explicitly promoted.
 
 Validation remains embedded in each PR: financial/data work uses unit + migration replay + pgTAP + affected browser evidence; UI work uses responsive/browser and physical-device proof only where claimed; provider changes require before/after evidence, rollback and production smoke. CodeQL remains required on every PR.
 
@@ -212,6 +217,7 @@ Do not repeat these as current facts:
 - Feature development must freeze until a seven-day trial.
 - The locked MVP empty-state browser gate is still missing or unmerged.
 - PR #252 is still an open candidate.
+- The UI migration parent plan or Phase 0 baseline is still awaiting owner approval.
 
 ## 13. Update and compaction protocol
 
