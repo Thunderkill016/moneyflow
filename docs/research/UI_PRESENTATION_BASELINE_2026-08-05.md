@@ -1,8 +1,8 @@
 # MoneyFlow UI presentation baseline — 2026-08-05
 
-**Status:** Phase 0 evidence, owner review pending  
-**Program:** `docs/plans/active/ui-system-migration.md`  
-**Baseline main ref:** `9f31aa02a64bcff30705c187fceb09cf5fa61ded`  
+**Status:** Phase 0 evidence, owner-accepted
+**Program:** `docs/plans/active/ui-system-migration.md`
+**Baseline main ref:** `9f31aa02a64bcff30705c187fceb09cf5fa61ded`
 **Evidence merge candidate:** PR #291 merge candidate `45a6689e2a913f74d8b41475c649f8fdb93663c4`, exact head `7ccaae55b910a5f0ec5132dee51ef3e3c9a91784`
 
 This document records the measurable starting point for the UI-system migration. It does not claim that all presentation debt is already enumerated. Values are included only when current source or exact-head CI proves them.
@@ -117,15 +117,16 @@ The current repository has no merged command that emits all of the following on 
 - live DOM consumer count for every legacy class family;
 - computed-style owner for representative elements.
 
-Phase 0 must not invent these values. The next implementation stage should create a reproducible read-only inventory command or CI artifact before setting numeric deletion targets.
+Phase 0 does not invent these values. The next implementation stages may add reproducible read-only inventory tooling before setting numeric deletion targets.
 
-## Baseline acceptance questions for owner
+## Owner acceptance record
 
-1. Confirm that `main@9f31aa0` is the correct migration baseline.
-2. Confirm that B3.2/Fresh Blue and current public/workspace theme behavior stay fixed during architecture migration.
-3. Confirm the proposed execution order: guardrails → primitives → App Shell → Dashboard → daily ledger → remaining routes.
-4. Confirm whether the current Guided Story landing is architecture-cleanup only or a separate redesign target.
-5. Identify physical Android and iOS/Safari devices available for final acceptance.
+1. `main@9f31aa0` is accepted as the captured migration baseline, not as a claim that current `main` never advances.
+2. B3.2/Fresh Blue and current public/workspace theme behavior remain fixed during architecture migration unless explicitly superseded.
+3. The working execution order is accepted: guardrails → primitives → App Shell → Dashboard → daily ledger → remaining routes.
+4. Guided Story is preserved during architecture cleanup; any redesign requires a separate approved packet.
+5. Physical Android and iOS/Safari acceptance remains a later required gate.
+6. The owner accepted this baseline on 2026-08-05 through the explicit instruction to complete Phase 0.
 
 ## Evidence references
 
