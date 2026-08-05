@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dashboardPeriodLabel } from "./dashboard-period";
+import { dashboardPeriodLabel } from "./dashboard-period.ts";
 
 test("dashboard period label is derived from the workspace date", () => {
   assert.equal(dashboardPeriodLabel("2026-08-06"), "Tháng 8");
