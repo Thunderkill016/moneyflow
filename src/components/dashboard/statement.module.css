@@ -8,7 +8,7 @@
  *   2. Tháng này vào/ra thế nào?   -> the flow bar
  *   3. Tiền đi đâu?                -> the category list (rendered separately)
  *
- * Rules this file keeps (docs/design/CALM_LEDGER_V2.md):
+ * Rules this file keeps:
  * - neutral surfaces; semantic color only on figures and the flow bar
  * - no gradients, glow, glassmorphism or gamification
  * - money is never truncated, at any width
@@ -16,15 +16,12 @@
  */
 
 .statement {
+  min-width: 0;
   border: 1px solid var(--mf-border);
   border-radius: var(--mf-radius-lg);
   background: var(--mf-surface);
   box-shadow: var(--mf-shadow-sm);
 }
-
-/* --------------------------------------------------------------------------
-   Standing figure
-   -------------------------------------------------------------------------- */
 
 .standing {
   display: flex;
@@ -37,6 +34,7 @@
 
 .standingText {
   min-width: 0;
+  max-width: 100%;
 }
 
 .label {
@@ -48,12 +46,8 @@
   text-transform: uppercase;
 }
 
-/*
- * The figure carries the page. It is set in Inter with tabular figures and
- * tightened optically — large numerals need negative tracking to read as one
- * value rather than a row of separate digits.
- */
 .figure {
+  max-width: 100%;
   display: block;
   margin: 10px 0 0;
   color: var(--mf-text);
@@ -79,15 +73,6 @@
   flex: 0 0 auto;
 }
 
-/* --------------------------------------------------------------------------
-   Flow bar — the month in one line
-   --------------------------------------------------------------------------
-   Expense is drawn as a share of income, because that is the relationship a
-   thu–chi ledger is actually about. A pie chart is excluded by the design
-   system, and three separate KPI boxes state the numbers without stating the
-   relationship between them.
-   -------------------------------------------------------------------------- */
-
 .flow {
   border-top: 1px solid var(--mf-border);
   padding: 20px 26px 22px;
@@ -109,11 +94,6 @@
   text-transform: uppercase;
 }
 
-/*
- * The track itself is the money that came in; the fill is the part of it that
- * went out. One filled portion against a quiet remainder reads in a glance —
- * two solid segments competing for the same bar did not.
- */
 .track {
   position: relative;
   height: 10px;
@@ -153,11 +133,6 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  /*
-   * The dot repeats the figure's colour so meaning survives greyscale and
-   * colour-blindness alongside the written label — colour is never the only
-   * signal.
-   */
   background: currentcolor;
 }
 
@@ -171,6 +146,12 @@
 
 .legendRest {
   color: var(--mf-text-muted);
+}
+
+.legendText {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .legendLabel {
@@ -202,15 +183,16 @@
   font-size: 14px;
 }
 
-/* --------------------------------------------------------------------------
-   Phone
-   -------------------------------------------------------------------------- */
-
 @media (max-width: 640px) {
   .standing {
     align-items: stretch;
     gap: 18px;
     padding: 20px 18px 18px;
+  }
+
+  .figure {
+    font-size: clamp(28px, 8.8vw, 36px);
+    letter-spacing: var(--mf-money-track-md);
   }
 
   .action {
@@ -221,10 +203,6 @@
     padding: 18px 18px 20px;
   }
 
-  /*
-   * One legend entry per row on phones. Side by side, three đồng values cannot
-   * hold full precision at 320–390px, and money is never truncated.
-   */
   .legend {
     gap: 10px;
   }
@@ -233,10 +211,19 @@
     width: 100%;
     justify-content: space-between;
   }
+}
 
-  .legendText {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
+@media (forced-colors: active) {
+  .track {
+    border-color: CanvasText;
+    background: Canvas;
+  }
+
+  .trackExpense {
+    background: Highlight;
+  }
+
+  .dot {
+    forced-color-adjust: none;
   }
 }
