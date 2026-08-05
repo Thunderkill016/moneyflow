@@ -38,9 +38,20 @@ function EmptyState({
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
       {primaryAction || secondaryAction ? (
-        <div className="flex flex-wrap justify-center gap-2">
-          {primaryAction}
-          {secondaryAction}
+        <div
+          data-slot="empty-state-actions"
+          className="flex flex-wrap justify-center gap-2"
+        >
+          {primaryAction ? (
+            <span data-slot="empty-state-primary-action" className="contents">
+              {primaryAction}
+            </span>
+          ) : null}
+          {secondaryAction ? (
+            <span data-slot="empty-state-secondary-action" className="contents">
+              {secondaryAction}
+            </span>
+          ) : null}
         </div>
       ) : null}
     </section>
