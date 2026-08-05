@@ -1,5 +1,5 @@
 :global(html[data-moneyflow-shell="mounted"]) {
-  --mf-shell-mobile-nav-height: 68px;
+  --mf-shell-mobile-nav-height: 74px;
   --mf-shell-mobile-nav-reserve: calc(
     var(--mf-shell-mobile-nav-height) + env(safe-area-inset-bottom, 0px)
   );
