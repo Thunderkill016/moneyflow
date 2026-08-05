@@ -23,7 +23,9 @@ test("R4: shared Dialog receives the amount focus target", () => {
   assert.match(src, /requestAnimationFrame\(\(\) => focusAmount/);
   assert.doesNotMatch(src, /<dialog\b|showModal\(\)/);
   assert.match(dialog, /initialFocusRef/);
-  assert.match(dialog, /previouslyFocused/);
+  assert.match(dialog, /restoreFocusRef/);
+  assert.match(dialog, /dialog\.showModal\(\)/);
+  assert.match(dialog, /target\.focus\(\)/);
 });
 
 test("R4: recent categories order via quick-add prefs helpers", () => {
