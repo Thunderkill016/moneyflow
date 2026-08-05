@@ -1,0 +1,128 @@
+# MoneyFlow Phase 2 token and primitive inventory — 2026-08-05
+
+**Status:** initial inventory — incomplete by design
+**Program:** `docs/plans/active/ui-system-migration.md`
+**Phase packet:** `docs/plans/active/ui-phase-2-primitives.md`
+**Branch:** `agent/ui-phase-2-primitives`
+**PR:** #299
+**Starting main:** `8688d95160579eacb908f0162994edba4901fc0c`
+
+This is the first P2-T2 inventory. It records only source facts verified at Phase 2 start. Missing primitive files, exports, consumers and token references are unresolved work, not assumed absence.
+
+## 1. Token authority verified
+
+`src/app/document-theme.css` explicitly owns project-wide color roles, light/dark resolution, canvas, focus visibility, type roles and motion values. Components are expected to consume `--mf-*` roles rather than create independent route palettes.
+
+### Canonical role families currently visible
+
+| Family | Current purpose |
+|---|---|
+| `--mf-brand-*` | Fresh Blue identity and interaction ramp |
+| `--mf-canvas`, `--mf-surface*` | document and component surfaces |
+| `--mf-text*` | primary, muted and soft text |
+| `--mf-border*` | standard and strong borders |
+| `--mf-income*` | income and positive financial meaning |
+| `--mf-expense*` | expense and destructive financial meaning |
+| `--mf-transfer*` | transfers and money movement |
+| `--mf-warning*` | warning and attention |
+| `--mf-info*` | informational feedback |
+| `--mf-focus*` | focus color and ring |
+| `--mf-shadow*` | shared elevation |
+| `--mf-radius*` | shared radius roles |
+| `--mf-font-*`, `--mf-money-*` | UI and financial typography |
+| `--mf-fast`, `--mf-normal`, `--mf-ease` | motion timing |
+
+### Verified compatibility aliases
+
+The theme file currently maps success roles to income and danger roles to expense:
+
+- `--mf-success`, `--mf-success-soft`, `--mf-success-text`, `--mf-success-border`;
+- `--mf-danger`, `--mf-danger-soft`, `--mf-danger-text`, `--mf-danger-border`.
+
+These aliases are compatibility boundaries. Phase 2 does not delete or rename them until all consumers are inventoried and computed values are proven unchanged.
+
+### Theme behavior to preserve
+
+- B3.2/Fresh Blue remains selected.
+- Public routes remain light-only.
+- Signed-in workspace retains Light/Dark/System behavior.
+- Dark mode changes readable semantic values without changing their meaning.
+- Finance colors are functional roles, not decorative palette choices.
+
+## 2. Action primitive verified
+
+### `src/components/ui/button.tsx`
+
+Current implementation:
+
+- wraps `@base-ui/react/button`;
+- uses class-variance-authority;
+- exposes variants `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`;
+- exposes sizes `default`, `xs`, `sm`, `lg`, `icon`, `icon-xs`, `icon-sm`, `icon-lg`;
+- current visual target sizes range from 24px to 36px;
+- includes focus-visible, disabled, invalid and icon-child styling;
+- does not yet expose an explicit pending contract or a distinct MoneyFlow LinkButton/IconButton API.
+
+Inventory judgment:
+
+- preserve existing variants as compatibility inputs until direct consumers are mapped;
+- do not globally increase every current size without route evidence;
+- separate important-action target geometry from dense visual size;
+- prefer an explicit MoneyFlow semantic API rather than adding more route classes.
+
+## 3. Global target-size compatibility verified
+
+### `MinimumTargetSizeContract`
+
+The root-mounted invisible component exists only to apply a CSS Module with global repairs.
+
+The module currently:
+
+- applies a 44×44px minimum to broad button, link, role-button, tab, summary and select families;
+- repairs checkbox/radio label targets;
+- contains route-specific Inbox, Accounts, Categories, Onboarding, Landing, Planning, Reports, Capture and Privacy selectors;
+- uses multiple `!important` declarations to outrank legacy layers;
+- controls discoverability of some edit/delete row actions;
+- adds mobile wrapping rules for several action groups.
+
+Inventory judgment:
+
+- this contract remains mounted during Phase 2;
+- action primitives should begin absorbing target-size ownership;
+- route-specific repairs are not automatically primitive responsibilities;
+- removal requires a later measured consumer inventory and zero-regression evidence;
+- no selector is deleted from scanner or grep evidence alone.
+
+## 4. Initial ownership gaps
+
+The following are required by Phase 2 but not yet fully inventoried:
+
+| Boundary | Inventory question | Current state |
+|---|---|---|
+| LinkButton | Is there an existing semantic link wrapper or only Button `link` styling? | unresolved |
+| IconButton | Are icon-only actions standardized and accessibility names enforced? | unresolved |
+| TextField/Input | Which wrappers own label, description and error relationships? | unresolved |
+| Select | Which implementation owns trigger, popup, validation and long labels? | unresolved |
+| Checkbox/Radio | Which controls rely on global label target repair? | unresolved |
+| Dialog/Sheet | Which Base UI/Radix wrappers own focus, scroll and cancellation? | unresolved |
+| Card/Badge/Alert/Toast/EmptyState | Which components are shared versus route-local/global-class consumers? | unresolved |
+| MoneyValue | Which component and helpers own full integer VND and accessible labels? | unresolved |
+| Direct Button consumers | Which routes depend on existing 24–36px size names or Button `link`? | unresolved |
+| Token references | Which files consume canonical roles versus success/danger aliases or raw values? | unresolved |
+
+## 5. Next inventory actions
+
+1. Enumerate the actual files and exports under `src/components/ui/**` and finance presentation boundaries.
+2. Find direct consumers of Button variants and sizes before changing defaults.
+3. Classify token definitions and references as canonical, compatibility, runtime external or unknown.
+4. Identify five low-risk consumer candidates that can prove the action-primitive API without touching App Shell or financial mutations.
+5. Record which global 44px selectors are satisfied by primitives and which remain route-specific.
+6. Add focused contract tests before the first executable primitive change.
+
+## 6. Constraints
+
+- No rendered token value change in the inventory slice.
+- No new global stylesheet or unreviewed `!important`.
+- No Storybook dependency at Phase 2 start.
+- No App Shell, broad route redesign, financial logic, database, auth, RLS, provider or production-data change.
+- Open PR #299 remains candidate evidence only until owner review, protected checks and merge.
