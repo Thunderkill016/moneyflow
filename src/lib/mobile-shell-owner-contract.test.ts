@@ -24,7 +24,7 @@ const layout = readFileSync(join(root, "src/app/layout.tsx"), "utf8");
 
 test("App Shell keeps mobile content and focused controls above fixed navigation", () => {
   assert.match(appShellCss, /@media \(max-width: 760px\)/u);
-  assert.match(appShellCss, /--mf-shell-mobile-nav-height:\s*68px/u);
+  assert.match(appShellCss, /--mf-shell-mobile-nav-height:\s*74px/u);
   assert.match(appShellCss, /--mf-shell-mobile-nav-reserve:\s*calc\(/u);
   assert.match(appShellCss, /safe-area-inset-bottom/u);
   assert.match(appShellCss, /padding-bottom:\s*var\(--mf-shell-mobile-nav-reserve\)/u);
