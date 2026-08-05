@@ -19,20 +19,38 @@ const rules = (result) => result.violations.map((item) => item.rule);
 test("parseUnifiedDiff records added file, line and new-file state", () => {
   const result = parseUnifiedDiff(patch("src/app/example.css", [".x {}", ".y {}"], { newFile: true }));
   assert.deepEqual(result, [
-    { file: "src/app/example.css", line: 1, content: ".x {}", isNewFile: true },
-    { file: "src/app/example.css", line: 2, content: ".y {}", isNewFile: true },
+    { file: "src/app/example.css", line: 1, content: ".x {}", isNewFile: true, isRenamedFile: false },
+    { file: "src/app/example.css", line: 2, content: ".y {}", isNewFile: true, isRenamedFile: false },
   ]);
 });
 
-test("new App Router global stylesheets and imports are rejected", () => {
-  const result = evaluateUiMigrationDiff({
+test("new and renamed App Router global stylesheets are rejected", () => {
+  const created = evaluateUiMigrationDiff({
+    patch: patch("src/app/reports/report.css", [".report {}"], { newFile: true }),
+  });
+  assert.ok(rules(created).includes("no-new-route-global-css"));
+
+  const renamed = evaluateUiMigrationDiff({
     patch: [
-      patch("src/app/reports/report.css", [".report {}"], { newFile: true }),
-      patch("src/app/reports/page.tsx", ['import "./report.css";']),
+      "diff --git a/src/legacy/report.css b/src/app/reports/report.css",
+      "similarity index 90%",
+      "rename from src/legacy/report.css",
+      "rename to src/app/reports/report.css",
+      "--- a/src/legacy/report.css",
+      "+++ b/src/app/reports/report.css",
+      "@@ -1 +1 @@",
+      "-.report { color: black; }",
+      "+.report { color: currentColor; }",
     ].join("\n"),
   });
-  assert.ok(rules(result).includes("no-new-route-global-css"));
-  assert.ok(rules(result).includes("no-new-global-css-import"));
+  assert.ok(rules(renamed).includes("no-new-route-global-css"));
+});
+
+test("static, dynamic and require global CSS imports are rejected", () => {
+  for (const line of ['import "./report.css";', 'await import("./report.css");', 'require("./report.css");']) {
+    const result = evaluateUiMigrationDiff({ patch: patch("src/app/reports/page.tsx", [line]) });
+    assert.ok(rules(result).includes("no-new-global-css-import"), line);
+  }
 });
 
 test("CSS Module imports remain allowed", () => {
@@ -40,6 +58,13 @@ test("CSS Module imports remain allowed", () => {
     patch: patch("src/app/reports/page.tsx", ['import styles from "./report.module.css";']),
   });
   assert.equal(result.violations.length, 0);
+});
+
+test("quoted and url CSS import chains are rejected", () => {
+  for (const line of ['@import "./legacy.css";', '@import url("./legacy.css");', '@import url(./legacy.css);']) {
+    const result = evaluateUiMigrationDiff({ patch: patch("src/components/example.module.css", [line]) });
+    assert.ok(rules(result).includes("no-new-css-import-chain"), line);
+  }
 });
 
 test("new important declarations require an explicit reason", () => {
@@ -85,24 +110,26 @@ test("new /insights references fail outside the compatibility redirect", () => {
 });
 
 test("new route/component registrations of known legacy classes fail", () => {
-  const multiToken = evaluateUiMigrationDiff({
-    patch: patch("src/components/accounts-page.tsx", [
-      '<main className={`${styles.workspace} dashboard accounts-workspace`}>',
+  const cases = [
+    '<main className={`${styles.workspace} dashboard accounts-workspace`}>',
+    '<main className="dashboard">',
+    'const classes = cn(styles.root, "panel");',
+    'node.classList.add("mobile-nav");',
+  ];
+  for (const line of cases) {
+    const result = evaluateUiMigrationDiff({ patch: patch("src/components/example.tsx", [line]) });
+    assert.ok(rules(result).includes("no-new-legacy-class-registration"), line);
+  }
+});
+
+test("legacy words outside class-registration contexts do not create false positives", () => {
+  const result = evaluateUiMigrationDiff({
+    patch: patch("src/components/example.tsx", [
+      'const analyticsView = "dashboard";',
+      'const copy = "Open the dashboard";',
     ]),
   });
-  assert.ok(rules(multiToken).includes("no-new-legacy-class-registration"));
-
-  const singleToken = evaluateUiMigrationDiff({
-    patch: patch("src/components/example.tsx", ['<main className="dashboard">']),
-  });
-  assert.ok(rules(singleToken).includes("no-new-legacy-class-registration"));
-
-  const allowed = evaluateUiMigrationDiff({
-    patch: patch("src/components/accounts-page.tsx", [
-      '<main className={styles.workspace}>',
-    ]),
-  });
-  assert.equal(allowed.violations.length, 0);
+  assert.equal(result.violations.length, 0);
 });
 
 test("documentation and deletion-only patches do not create violations", () => {
