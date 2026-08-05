@@ -1,11 +1,11 @@
 # Allowlist one browser-safe Supabase publishable-key fingerprint
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** evaluator  
-**Permission scope:** branch_write  
-**Owner:** MoneyFlow owner  
-**Issue/PR:** draft PR pending  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** MoneyFlow owner
+**Issue/PR:** PR #295
 **Last updated:** 2026-08-05
 
 ## Outcome
@@ -75,8 +75,8 @@ Not a new dependency or service. This uses the repository's existing Gitleaks ex
 - [x] Exactly one fingerprint is added.
 - [x] No key value is added to the change.
 - [x] No detector, workflow, rule or path allowlist changes.
-- [ ] Secret history scan passes on the exact candidate.
-- [ ] CI policy and CodeQL pass.
+- [x] Secret history scan passes on the exact candidate.
+- [ ] CI policy and CodeQL pass on the final exact head.
 - [ ] Independent review confirms the fingerprint maps to a publishable, not secret, key.
 
 ### Security constraints
@@ -121,14 +121,14 @@ Remove the single fingerprint entry. No runtime or provider rollback exists beca
 | T1 | Verify finding type from official Supabase docs | source notes | done |
 | T2 | Confirm existing fingerprint-specific policy | `.gitleaksignore` | done |
 | T3 | Add one exact fingerprint | diff | done |
-| T4 | Open draft PR and create numbered memory | PR | pending |
-| T5 | Evaluate exact-head protected checks | workflow runs/logs | pending |
+| T4 | Open PR and create numbered memory | PR #295 | done |
+| T5 | Evaluate exact-head protected checks | workflow runs/logs | evaluating |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-05 | implementer | evaluator | evaluating | official docs + one-line policy diff | exact-head scan pending | open draft PR and inspect protected checks |
+| 2026-08-05 | implementer | evaluator | evaluating | official docs + one-line policy diff | final exact-head policy rerun pending | inspect protected checks and owner review |
 
 ### Current permission boundary
 
@@ -145,7 +145,8 @@ Remove the single fingerprint entry. No runtime or provider rollback exists beca
 |---|---|---|
 | one exact fingerprint | compare diff | pass |
 | no secret value in diff | review | pass |
-| protected checks | pending | pending |
+| Secret history scan | run 30982496100 | pass on prior exact head; final rerun pending |
+| CodeQL | run 30982496125 | pass on prior exact head; final rerun pending |
 
 ### Remaining limitations
 
@@ -156,7 +157,7 @@ Remove the single fingerprint entry. No runtime or provider rollback exists beca
 ## Delivery record
 
 - Branch: `security/allowlist-publishable-key-fingerprint`
-- PR: pending
-- CI: pending
+- PR: #295
+- CI: final exact-head rerun pending
 - Merge: not authorized
 - Provider changes: none
