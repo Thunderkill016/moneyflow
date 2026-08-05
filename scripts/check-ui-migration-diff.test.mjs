@@ -85,12 +85,17 @@ test("new /insights references fail outside the compatibility redirect", () => {
 });
 
 test("new route/component registrations of known legacy classes fail", () => {
-  const rejected = evaluateUiMigrationDiff({
+  const multiToken = evaluateUiMigrationDiff({
     patch: patch("src/components/accounts-page.tsx", [
       '<main className={`${styles.workspace} dashboard accounts-workspace`}>',
     ]),
   });
-  assert.ok(rules(rejected).includes("no-new-legacy-class-registration"));
+  assert.ok(rules(multiToken).includes("no-new-legacy-class-registration"));
+
+  const singleToken = evaluateUiMigrationDiff({
+    patch: patch("src/components/example.tsx", ['<main className="dashboard">']),
+  });
+  assert.ok(rules(singleToken).includes("no-new-legacy-class-registration"));
 
   const allowed = evaluateUiMigrationDiff({
     patch: patch("src/components/accounts-page.tsx", [
