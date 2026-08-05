@@ -5,7 +5,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LinkButton } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactionLedger } from "@/hooks/use-transaction-ledger";
@@ -321,13 +321,14 @@ export function TimelineWorkspace({
               title="Không tìm thấy giao dịch đã duyệt"
               description="Thử đổi từ khóa tìm kiếm."
               primaryAction={
-                <LinkButton
-                  href="/timeline"
+                <Button
+                  type="button"
                   intent="secondary"
                   targetSize="important"
+                  onClick={() => setQuery("")}
                 >
                   Xóa tìm kiếm
-                </LinkButton>
+                </Button>
               }
               className={styles.emptyState}
             />
