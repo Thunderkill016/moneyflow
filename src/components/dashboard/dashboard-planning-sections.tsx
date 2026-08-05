@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { MoneyValue } from "@/components/money-value";
 import { PlanningCardEmpty } from "@/components/planning-card-empty";
+import { LinkButton } from "@/components/ui/button";
+import { formatMoney } from "@/lib/money";
 import {
   budgetBarColor,
   budgetProgress,
@@ -76,6 +78,19 @@ export function DashboardPlanningColumn({
   const featuredLevel = featuredBudget ? budgetThreshold(featuredBudget) : null;
   const featuredStatus = featuredBudget ? budgetStatusLabel(featuredBudget) : "";
   const featuredRemaining = featuredBudget ? budgetRemaining(featuredBudget) : 0;
+  const featuredBudgetMeterValue = featuredBudget
+    ? Math.min(featuredBudget.spent, featuredBudget.limit)
+    : 0;
+  const featuredBudgetOverage = featuredBudget
+    ? Math.max(0, featuredBudget.spent - featuredBudget.limit)
+    : 0;
+  const featuredBudgetValueText = featuredBudget
+    ? featuredLevel === "over"
+      ? `${featuredStatus}. Đã dùng ${featuredProgress} phần trăm, vượt ${formatMoney(
+          featuredBudgetOverage,
+        )}`
+      : `${featuredStatus}. Đã dùng ${featuredProgress} phần trăm`
+    : "";
 
   const reservedCommitments = commitmentTotals(commitments).reserved;
   const activeCommitmentCount = commitments.filter((item) => !item.isArchived).length;
@@ -87,6 +102,7 @@ export function DashboardPlanningColumn({
 
   const featuredGoal = pickFeaturedGoal(goals);
   const featuredGoalProgress = featuredGoal ? goalProgress(featuredGoal) : 0;
+  const featuredGoalProgressValue = Math.min(featuredGoalProgress, 100);
   const featuredGoalDaily = featuredGoal ? dailyGoalSaving(featuredGoal, today) : 0;
   const featuredGoalLeft = featuredGoal ? goalRemaining(featuredGoal) : 0;
   const featuredGoalAchieved = featuredGoalProgress >= 100;
@@ -102,13 +118,15 @@ export function DashboardPlanningColumn({
             <h2>{WEEKLY_SUMMARY_TITLE}</h2>
             <p>{formatWeekRangeLabel(weeklySummary.weekStart, weeklySummary.weekEnd)}</p>
           </div>
-          <Link
+          <LinkButton
+            unstyled
+            targetSize="important"
             className="icon-button"
             href={WEEKLY_SUMMARY_REPORTS_HREF}
             aria-label="Mở báo cáo theo tuần"
           >
-            <Icon name="arrowRight" />
-          </Link>
+            <Icon name="arrowRight" aria-hidden="true" />
+          </LinkButton>
         </div>
         {weeklyHasActivity ? (
           <>
@@ -189,9 +207,15 @@ export function DashboardPlanningColumn({
             <h2>Ngân sách tháng</h2>
             <p>{featuredBudget?.categoryName ?? "Chưa thiết lập"}</p>
           </div>
-          <Link className="icon-button" href="/budgets" aria-label="Mở chi tiết ngân sách">
-            <Icon name="arrowRight" />
-          </Link>
+          <LinkButton
+            unstyled
+            targetSize="important"
+            className="icon-button"
+            href="/budgets"
+            aria-label="Mở chi tiết ngân sách"
+          >
+            <Icon name="arrowRight" aria-hidden="true" />
+          </LinkButton>
         </div>
         {featuredBudget && featuredLevel ? (
           <>
@@ -209,11 +233,12 @@ export function DashboardPlanningColumn({
             </div>
             <div
               className="budget-track"
-              role="progressbar"
-              aria-valuenow={Math.min(featuredProgress, 100)}
+              role="meter"
+              aria-label={`Mức sử dụng ngân sách ${featuredBudget.categoryName}`}
+              aria-valuenow={featuredBudgetMeterValue}
               aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`${featuredStatus}. Đã dùng ${featuredProgress} phần trăm`}
+              aria-valuemax={featuredBudget.limit}
+              aria-valuetext={featuredBudgetValueText}
             >
               <span
                 style={{
@@ -230,6 +255,11 @@ export function DashboardPlanningColumn({
                     {" · Còn "}
                     <MoneyValue amount={featuredRemaining} />
                   </>
+                ) : featuredLevel === "over" && featuredBudgetOverage > 0 ? (
+                  <>
+                    {" · Vượt "}
+                    <MoneyValue amount={featuredBudgetOverage} />
+                  </>
                 ) : null}
               </span>
               <strong className="font-mono">Đã dùng {featuredProgress}%</strong>
@@ -242,7 +272,7 @@ export function DashboardPlanningColumn({
 
       <article className="insight-panel" aria-label="Khoản định kỳ đang giữ trước">
         <span className="round-icon purple">
-          <Icon name="calendar" />
+          <Icon name="calendar" aria-hidden="true" />
         </span>
         <div>
           <p className="eyebrow">Khoản định kỳ</p>
@@ -283,7 +313,7 @@ export function DashboardPlanningColumn({
 
       <article className="insight-panel" aria-label="Lương định kỳ chờ nhận">
         <span className="round-icon green">
-          <Icon name="wallet" />
+          <Icon name="wallet" aria-hidden="true" />
         </span>
         <div>
           <p className="eyebrow">Lương định kỳ</p>
@@ -329,9 +359,15 @@ export function DashboardPlanningColumn({
             <h2>Mục tiêu tiết kiệm</h2>
             <p>{featuredGoal?.name ?? "Chưa có mục tiêu"}</p>
           </div>
-          <Link className="icon-button" href="/goals" aria-label="Mở trang mục tiêu tiết kiệm">
-            <Icon name="arrowRight" />
-          </Link>
+          <LinkButton
+            unstyled
+            targetSize="important"
+            className="icon-button"
+            href="/goals"
+            aria-label="Mở trang mục tiêu tiết kiệm"
+          >
+            <Icon name="arrowRight" aria-hidden="true" />
+          </LinkButton>
         </div>
         {featuredGoal ? (
           <>
@@ -347,12 +383,16 @@ export function DashboardPlanningColumn({
             <div
               className="budget-track"
               role="progressbar"
-              aria-valuenow={featuredGoalProgress}
+              aria-valuenow={featuredGoalProgressValue}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-label={`${featuredGoal.name}: đã đạt ${featuredGoalProgress} phần trăm`}
+              aria-valuetext={
+                featuredGoalAchieved
+                  ? `${featuredGoal.name}: đã đạt mục tiêu`
+                  : `${featuredGoal.name}: đã đạt ${featuredGoalProgress} phần trăm`
+              }
             >
-              <span style={{ width: `${featuredGoalProgress}%` }} />
+              <span style={{ width: `${featuredGoalProgressValue}%` }} />
             </div>
             <div className="budget-foot">
               <span>
