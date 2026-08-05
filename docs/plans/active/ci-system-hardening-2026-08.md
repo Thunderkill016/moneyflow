@@ -1,9 +1,9 @@
 # MoneyFlow CI system audit and hardening — 2026-08
 
-**Status:** implementing
-**Execution state:** evaluating documentation-only path
-**Active role:** evaluator
-**Permission scope:** branch_write
+**Status:** verified
+**Execution state:** ready for owner review
+**Active role:** human_owner
+**Permission scope:** owner_merge_decision_required
 **Owner:** Thunderkill016
 **PR:** #304
 **Baseline:** `main@429eb6777a63b3172a04ce164a512420e31085c8`
@@ -14,189 +14,168 @@ Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. The owner explicitly authori
 
 ## Outcome
 
-Improve MoneyFlow's existing risk-proportional CI without weakening lint, type checking, complete tests, production build, fresh database tests, Chromium/WebKit coverage, CodeQL upload, all-ref Gitleaks or protected check identities.
+Harden MoneyFlow's risk-proportional CI without weakening lint, type checking, complete tests, production build, fresh database tests, Chromium/WebKit coverage, CodeQL upload, all-ref Gitleaks or protected check identities.
 
-Delivered candidate changes:
+Verified candidate result:
 
 - official checkout v7.0.1 full SHA in all workflows;
 - no persisted Git credentials in read-only checkout jobs;
 - conditional database executor plus stable `database` summary;
 - contract tests for credential and retry topology;
-- source/log-grounded baseline, decision record and ranked backlog.
+- selected and unselected database paths verified on GitHub-hosted runners;
+- source/log-grounded baseline, decision record and current CI memory.
 
 ## Repository reconnaissance
 
-Inspected:
+Inspected all workflows, Dependabot configuration, npm verification scripts, Playwright configs, Supabase migration/RLS/database scripts, Vercel configuration, classifier/retry/exact-head scripts, prior CI/security work and representative workflow jobs/logs/artifacts/reruns.
 
-- all `.github/workflows` files and Dependabot configuration;
-- `package.json`, Playwright configs and Vercel configuration;
-- classifier, CI-policy, retry-graph, deployment, RLS and migration scripts;
-- current memory and prior CI/security/reliability packets;
-- representative exact-head jobs, step logs, artifacts, failed runs and reruns.
+Current architecture:
 
-Current workflows:
-
-1. `CI`: classifier, policy/static/test/build shards, stable `verify`, database gate, browser smoke, UI audit and stable `e2e`.
+1. `CI`: classifier, policy/static/test/build shards, stable `verify`, conditional DB executor, stable `database`, browser smoke, UI audit and stable `e2e`.
 2. `CodeQL`: real JavaScript/TypeScript extraction, query execution, SARIF upload and processing.
-3. `Secret history scan`: verified Gitleaks binary over every branch and tag.
+3. `Secret history scan`: checksum-verified Gitleaks over every branch and tag.
 
 Deployment is external to GitHub Actions. Vercel deploys only `main`; branch deployments are disabled.
 
 Historical decisions that remain binding:
 
-- `ready_for_review` must trigger fresh evidence;
-- CodeQL must upload a real analysis on every PR head;
+- `ready_for_review` triggers fresh evidence;
+- CodeQL uploads a real analysis on every PR head;
 - stable checks remain `verify`, `database` and `e2e`;
 - expensive shards remain independently retryable;
-- Playwright browser cache requires measured evidence;
+- Playwright cache requires measured evidence;
 - Gitleaks retains all-ref coverage.
 
 ## Research
 
-### Questions
+Official GitHub Actions, secure-use, checkout, CodeQL, Playwright, Supabase and Gitleaks documentation/source were compared with project logs.
 
-1. Is the old checkout runtime still appropriate for the current runner?
-2. Do read-only jobs need persisted repository credentials?
-3. Can the no-database path skip heavy setup while preserving the stable required check?
-4. What is the measured critical path?
-5. Which common optimizations would weaken MoneyFlow-specific protections?
+Adopted:
 
-### Decisions from official/upstream sources and project evidence
+- immutable full-SHA pins and least privilege;
+- checkout v7.0.1 and `persist-credentials: false`;
+- stable summaries validating conditional heavy jobs;
+- real CodeQL upload;
+- fresh Supabase reset/pgTAP;
+- all-ref Gitleaks.
 
-| Area | Decision |
-|---|---|
-| GitHub workflow dependencies and `always()` | stable summaries may validate conditional heavy executors |
-| GitHub secure use | retain immutable pins and least privilege |
-| checkout v7.0.1 | replace the old Node-runtime release with official full SHA |
-| checkout credentials | set `persist-credentials: false` because inspected jobs are read-only |
-| failed-job reruns | retain independent shards and summary jobs |
-| CodeQL | retain real analysis/upload rather than path-skipping required evidence |
-| Playwright | do not cache browser binaries without project-specific benefit |
-| Supabase | retain fresh local reset and pgTAP for selected database changes |
-| Gitleaks | retain verified binary and all-ref scan |
+Rejected/deferred:
 
-Rejected:
-
-- collapsing static/test/build merely to avoid repeated installs;
-- reducing browser projects/states/tests;
-- path-skipping CodeQL or all-ref Gitleaks;
+- collapse verification shards only to avoid repeated installs;
+- reduce browser/test/security scope;
+- cache Playwright browsers without project measurements;
 - blind retries;
 - unpinned or unreleased action refs;
-- undocumented Supabase configuration migration.
+- undocumented Supabase configuration migration;
+- `merge_group` before merge queue is enabled.
 
 ## Specification
 
 ### Functional invariants
 
-- Existing classifier decisions and verification commands remain unchanged.
-- Full-risk workflow changes run policy, lint, typecheck, complete tests, build, database, browser and security gates.
+- Existing classifier decisions and commands remain unchanged.
+- Workflow changes run policy, lint, typecheck, complete tests, build, DB, browser and security gates.
 - `verify`, `database` and `e2e` retain stable identities.
-- Selected database changes still run fresh Supabase start/reset/pgTAP.
-- Unselected database changes require `database_checks: skipped` and stable `database: success`.
-- CodeQL still uploads and processes a real analysis.
-- Gitleaks still scans every reachable ref.
+- DB-selected changes run fresh Supabase start/reset/pgTAP.
+- DB-unselected changes require executor `skipped` and stable summary `success`.
+- CodeQL performs real analysis/upload.
+- Gitleaks scans every ref.
 
 ### Security invariants
 
-- All third-party actions remain pinned to immutable full SHAs.
-- Permissions remain explicit and least privilege.
-- Read-only checkouts do not persist repository credentials.
-- No production secret, provider token or data is introduced.
+- Third-party actions use immutable full SHAs.
+- Permissions stay explicit and least privilege.
+- Read-only checkouts do not persist credentials.
+- No production secret/provider/data is introduced.
 
 ### Diagnostics invariants
 
-- Failing test/database output remains retained with attempt-specific names.
-- Browser evidence remains uploaded for selected runs.
-- Summary jobs name the selected shard with an unexpected result.
+- Failing test/database logs retain attempt-specific artifacts.
+- Selected browser evidence remains uploaded.
+- Stable summaries identify unexpected shard results.
 
 ## Implementation plan
 
-| Area | Change | State |
+| Area | Result | State |
 |---|---|---|
-| All workflows | checkout v7.0.1 full SHA | implemented and full-risk verified |
-| Read-only checkout | `persist-credentials: false` | implemented and full-risk verified |
-| Database topology | conditional `database_checks` plus stable `database` | selected path verified; unselected path evaluating |
-| CI contracts | credential and database topology assertions | passing |
-| Audit memory | architecture, baseline, incidents, ranking and lessons | recorded |
-| Full-risk exact head | all CI/database/browser/security gates | passed |
-| Documentation-only head | verify unselected executor and stable summary | in progress |
+| All workflows | checkout v7.0.1 full SHA | verified |
+| Read-only checkout | `persist-credentials: false` | verified |
+| DB topology | conditional executor + stable summary | selected/unselected paths verified |
+| CI contracts | credential and topology assertions | passing |
+| Audit/current CI memory | baseline, incidents, decisions, ranking, lessons | recorded |
+| Exact-head gates | CI, DB, browser, CodeQL and Gitleaks | passed |
 
 ## Risks and defenses
 
 | Risk | Defense |
 |---|---|
-| Protected `database` identity disappears | retain stable `database` job ID |
-| skipped executor is treated as success incorrectly | summary validates classifier intent and actual `skipped` result |
-| database failure is hidden | summary requires executor `success` when selected |
-| checkout upgrade breaks hosted runner | exact-head runner execution passed |
-| hidden write needs checkout token | inspected jobs are read-only; full-risk execution passed without persisted credentials |
-| coverage is reduced accidentally | workflow changes classify full risk; exact counts are compared |
-| optimization claim exceeds evidence | only exact-head measured claims are recorded |
+| Protected DB identity disappears | stable `database` job retained |
+| incorrect skip appears successful | summary validates classifier intent and actual result |
+| DB failure is hidden | summary requires selected executor success |
+| checkout upgrade breaks runner | exact-head execution passed |
+| hidden write needs token | inspected jobs are read-only; execution passed without persisted credentials |
+| coverage is reduced | exact job/test/browser counts compared |
+| savings are overstated | record only executor/action work proven removed |
 
 ## Verification plan
 
-### Full-risk result
+### Full-risk head
 
-Head `d68790a5047a38eaf3a753f87ee7936883d39a6e` passed:
+`d68790a5047a38eaf3a753f87ee7936883d39a6e` passed:
 
 - CI #1764 (`31043251727`);
 - CodeQL #883 (`31043252721`);
 - Secret history #883 (`31043252598`).
 
-Coverage retained:
+Preserved evidence:
 
 - 723 tests;
 - production build;
-- fresh database start/reset/pgTAP;
+- fresh Supabase reset/pgTAP;
 - 58 browser smoke cases;
-- 554 UI audit cases scheduled, 427 passed and 127 skipped;
+- UI audit 554 scheduled, 427 passed, 127 skipped, 8.3-minute command;
 - CodeQL analysis of 436 TS, 17 JS and 4 workflow files;
 - all-ref Gitleaks scan.
 
-### Documentation-only acceptance
+### Documentation-only probe
 
-The new exact head must prove:
+Closed-unmerged PR #305, run `31044872202`, proved:
 
-- documentation-only classification;
-- policy passes;
-- static/test/build/browser executors skip;
-- `database_checks` skips without runner/action setup;
-- stable `database`, `verify` and `e2e` pass;
-- CodeQL and all-ref Gitleaks still pass.
+- one-file documentation diff classified docs-only;
+- database selection false;
+- database executor skipped with `steps: null` before executor runner/action setup;
+- stable summary succeeded using shell only and no repository checkout.
+
+No probe merge/deployment/provider/product write occurred.
 
 ## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
-| CIH-T1 | Inspect workflows, scripts, deployment and delivery contracts | source inventory | done |
-| CIH-T2 | Inspect run history, timing, failures and reruns | measured baseline | done |
-| CIH-T3 | Research project-relevant official/upstream guidance | decision table | done |
-| CIH-T4 | Upgrade checkout and disable persisted credentials | workflow diff and logs | done |
-| CIH-T5 | Split database executor from stable summary | topology and contracts | done |
-| CIH-T6 | Record priorities and limitations | audit document | done |
-| CIH-T7 | Open focused PR and add PR memory | PR #304 | done |
-| CIH-T8 | Run full exact-head gates | CI #1764, CodeQL/secret #883 | done |
-| CIH-T9 | Run documentation-only exact-head comparison | workflow evidence | in progress |
-| CIH-T10 | Record final measured result in current memory | memory update | pending |
-| CIH-T11 | Present verified candidate to owner | review handoff | pending |
+| CIH-T1 | Inspect workflows, scripts, deployment and contracts | source inventory | done |
+| CIH-T2 | Inspect timing, failures and reruns | measured baseline | done |
+| CIH-T3 | Research relevant official/upstream guidance | decision table | done |
+| CIH-T4 | Upgrade checkout and disable persisted credentials | workflows/logs | done |
+| CIH-T5 | Split DB executor from stable summary | topology/contracts | done |
+| CIH-T6 | Record priorities and limits | audit | done |
+| CIH-T7 | Open focused PR and PR memory | PR #304 | done |
+| CIH-T8 | Run full exact-head gates | CI #1764; security #883 | done |
+| CIH-T9 | Verify documentation-only DB path | closed probe #305 | done |
+| CIH-T10 | Record final result in repo CI memory | `CI_CURRENT_MEMORY.md` | done |
+| CIH-T11 | Present verified candidate to owner | this handoff | done |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-06 | human_owner | researcher | discovery | explicit CI audit and safe implementation request | runtime behavior unknown | inspect source and run history |
-| 2026-08-06 | researcher | implementer | implementing | measured baseline and official research | exact head unverified | implement bounded slice |
-| 2026-08-06 | implementer | evaluator | full-risk verified | CI #1764, CodeQL/secret #883 | unselected DB path pending | run documentation-only comparison |
+| 2026-08-06 | human_owner | researcher | discovery | explicit audit request | runtime unknown | inspect source/runs |
+| 2026-08-06 | researcher | implementer | implementing | baseline and official research | exact head unknown | implement bounded slice |
+| 2026-08-06 | implementer | evaluator | full-risk verified | CI #1764; CodeQL/secret #883 | unselected path unknown | run isolated probe |
+| 2026-08-06 | evaluator | human_owner | verified | probe #305 and durable memory | merge remains unapproved | review PR #304 and decide merge separately |
 
 ## Current permission boundary
 
-Allowed:
-
-- focused writes on `agent/ci-system-hardening` and PR #304;
-- inspect Actions logs/artifacts and Vercel deployment metadata;
-- run risk-proportional checks and evidence-based same-SHA failed-job reruns.
-
-Forbidden without separate explicit owner instruction:
+Allowed work is complete on PR #304. Forbidden without a separate explicit owner instruction:
 
 - merge or write `main`;
 - deploy or change Vercel/Supabase settings;
@@ -206,4 +185,4 @@ Forbidden without separate explicit owner instruction:
 
 ## Evaluation
 
-The candidate is accepted for owner review only when the documentation-only head proves the optimized unselected database path, all required security workflows remain green and the final measured result is stored without unsupported speed claims.
+The candidate has verified both DB-selected and documentation-only DB-unselected paths, retained all full-risk coverage and recorded exact evidence. It is ready for owner review but remains unmerged and is not current project truth.
