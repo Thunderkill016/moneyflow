@@ -1,4 +1,5 @@
 import { MoneyValue } from "@/components/money-value";
+import { dashboardPeriodLabel } from "@/lib/dashboard-period";
 import { formatMoney } from "@/lib/money";
 import styles from "./statement.module.css";
 
@@ -8,16 +9,6 @@ export type StatementTotals = {
   expense: number;
   net: number;
 };
-
-export function dashboardPeriodLabel(today: string): string {
-  const match = /^\d{4}-(\d{2})-\d{2}$/.exec(today);
-  if (!match) return "Kỳ hiện tại";
-  const month = Number(match[1]);
-  if (!Number.isInteger(month) || month < 1 || month > 12) {
-    return "Kỳ hiện tại";
-  }
-  return `Tháng ${month}`;
-}
 
 /**
  * Expense drawn as a share of income.
