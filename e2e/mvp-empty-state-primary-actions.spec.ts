@@ -45,7 +45,9 @@ async function seedDeterministicEmptyDemo(page: Page) {
   await expect(
     page.getByRole("heading", { name: "Chưa có giao dịch", exact: true }),
   ).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator(".empty-state-actions:visible").first()).toBeVisible();
+  await expect(
+    page.locator('[data-slot="empty-state-actions"]:visible').first(),
+  ).toBeVisible();
 }
 
 test.describe("locked MVP empty-state release gate", () => {
@@ -75,7 +77,7 @@ test.describe("locked MVP empty-state release gate", () => {
       }
 
       const actionRegions = page.locator(
-        ".empty-state-actions:visible, .report-empty:visible > div",
+        '[data-slot="empty-state-actions"]:visible, .empty-state-actions:visible, .report-empty:visible > div',
       );
       const actionRegionCount = await actionRegions.count();
       const primaryActions: number[] = [];
@@ -83,8 +85,18 @@ test.describe("locked MVP empty-state release gate", () => {
 
       for (let index = 0; index < actionRegionCount; index += 1) {
         const region = actionRegions.nth(index);
-        const primary = region.locator(".primary-button:visible");
-        const secondary = region.locator(".secondary-button:visible");
+        const isSharedPrimitive =
+          (await region.getAttribute("data-slot")) === "empty-state-actions";
+        const primary = isSharedPrimitive
+          ? region.locator(
+              '[data-slot="empty-state-primary-action"] [data-slot="button"]:visible, [data-slot="empty-state-primary-action"] [data-slot="link-button"]:visible',
+            )
+          : region.locator(".primary-button:visible");
+        const secondary = isSharedPrimitive
+          ? region.locator(
+              '[data-slot="empty-state-secondary-action"] [data-slot="button"]:visible, [data-slot="empty-state-secondary-action"] [data-slot="link-button"]:visible',
+            )
+          : region.locator(".secondary-button:visible");
         const primaryCount = await primary.count();
         const secondaryCount = await secondary.count();
 
