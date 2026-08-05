@@ -1,12 +1,13 @@
 # MoneyFlow UI migration — Phase 1 no-new-debt guardrails
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Parent packet:** PR #296, `docs/plans/active/ui-system-migration.md`  
-**Phase 0 evidence:** PR #297  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** implementer
+**Permission scope:** branch_write
+**Owner:** Thunderkill016
+**Parent packet:** PR #296, `docs/plans/active/ui-system-migration.md`
+**Phase 0 evidence:** PR #297
+**Current PR:** #298
 **Last updated:** 2026-08-05
 
 The owner approved continuing after Phase 0 on 2026-08-05. This is interpreted as permission for Phase 1 only: implement diff-based no-new-debt policy, verify it, and decide whether to add a component-state harness. It does not authorize primitive, App Shell, route, CSS, visual-direction, merge or deployment changes.
