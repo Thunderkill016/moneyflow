@@ -10,136 +10,146 @@
 **Current PR:** #299
 **Last updated:** 2026-08-05
 
-The owner instructed **“Bắt đầu p2”**, requested external-standards corrections, instructed those corrections to be applied and then explicitly instructed **“hoàn tất p2 đi”** on 2026-08-05. The final instruction authorizes Phase 2 closure and merge when the exact PR head passes the protected repository gates. It does not authorize Phase 3 App Shell work, deployment, provider operations, production-data access or a new visual direction.
+The owner instructed **“Bắt đầu p2”**, requested external-standards corrections and then explicitly instructed **“hoàn tất p2 đi”** on 2026-08-05. The final instruction authorizes Phase 2 closure and merge when the exact PR head passes protected gates. It does not authorize Phase 3, deployment, provider operations, production-data access or a new visual direction.
 
 ## Outcome
 
-Establish MoneyFlow-native token and primitive contracts so actions, form controls, overlays, feedback, empty states and financial values own their semantics, accessibility and target behavior directly. Preserve the current B3.2/Fresh Blue identity, public light-only behavior, workspace Light/Dark/System behavior and all financial-domain semantics.
+Establish MoneyFlow-native token and primitive contracts so actions, form controls, overlays, feedback, empty states and financial values own their semantics, accessibility and target behavior directly. Preserve B3.2/Fresh Blue, public light-only behavior, workspace Light/Dark/System behavior and all financial-domain semantics.
 
-Phase 2 does not attempt a big-bang route migration or remove `MinimumTargetSizeContract`. It creates the owned primitives, proves bounded composition, inventories remaining global rescues and leaves route-by-route retirement to later phases.
+Phase 2 creates owned shared primitives, proves bounded composition and inventories remaining global repairs. It does not perform a big-bang route migration or remove `MinimumTargetSizeContract`.
 
-## Standards and project-policy boundary
+## Repository reconnaissance
 
-### External standards and official behavior
+Verified starting and completion boundaries:
 
-| Source | Phase 2 consequence |
-|---|---|
-| WCAG 2.2 SC 2.5.8 | AA target baseline is 24×24 CSS px or a defined exception |
-| WCAG 2.2 SC 2.5.5 | 44×44 CSS px is the enhanced AAA target, not universal AA |
-| WAI-ARIA APG | Native semantics first; custom composites must own applicable role/state/keyboard/focus behavior |
-| WCAG 1.4.1 | Financial/status meaning is not color-only |
-| WCAG 3.3.1 and 3.3.3 | Errors are identified in text and correction is suggested when known |
-| WCAG 3.3.4 | Consequential financial/stored-data actions require reversible, checked or confirmed protection |
-| WCAG 4.1.3 | Routine status updates are announced without moving focus; not every toast is assertive |
-| WCAG 1.4.4 and 1.4.10 | 200% text resize, equivalent 320 CSS-pixel reflow and actual mobile viewport are separate evidence |
-| WCAG 2.4.11 | Focus must remain not entirely obscured by author-created UI |
-| Next.js App Router CSS docs | Next.js permits global CSS; MoneyFlow's freeze is a repository migration policy |
-| Storybook docs | Isolated state review is useful but installation and a five-state threshold are not external requirements |
+- `src/app/document-theme.css` is the executable semantic theme/color authority.
+- Existing Button used Base UI/CVA with 24–36px visual sizes and compatibility variants.
+- `MinimumTargetSizeContract` globally repaired broad control families to 44px and mixed target geometry with route discoverability/responsive fixes.
+- Phase 1 prevents new global CSS layers, import chains, unreviewed `!important`, unknown token references and known legacy-class registration.
+- Existing `src/lib/money.ts` owns currency formatting/domain display helpers.
+- Existing Card is noninteractive by default and already satisfies the Phase 2 surface boundary.
+- PR #299 changes shared presentation primitives only; it changes no database, auth, RLS, provider, production-data or financial mutation logic.
+
+Completed source inventory:
+
+- action: Button, LinkButton, IconButton;
+- forms: TextField, SelectField, CheckboxField, RadioGroup;
+- overlays: Dialog, Sheet;
+- feedback/surfaces: Card, Badge, Alert, Toast/ToastRegion, EmptyState;
+- finance presentation: MoneyValue;
+- contracts: `src/lib/ui-primitives-contract.test.ts`;
+- compatibility inventory: `docs/research/UI_PHASE_2_TOKEN_PRIMITIVE_INVENTORY_2026-08-05.md`.
+
+## Research
+
+Phase 2 separates external requirements, migration practices and MoneyFlow policy.
+
+### External standards/tool behavior
+
+- WCAG 2.2 AA target-size baseline is 24×24 CSS px or a defined exception.
+- WCAG 2.2 enhanced target is 44×44 CSS px; it is not universal AA.
+- WAI-ARIA APG supports native semantics first and requires custom composites to implement applicable role, state, relationship, keyboard and focus behavior.
+- WCAG requires non-color-only meaning, text error identification, correction suggestions when known, status semantics, focus not entirely obscured and reversible/checked/confirmed safeguards for consequential financial or stored-data operations.
+- 200% text resize, equivalent 320 CSS-pixel reflow and actual mobile viewport are separate evidence categories.
+- Next.js permits global CSS; MoneyFlow's no-new-global-CSS gate is project-specific.
+- Storybook supports isolated component-state review but does not require installation or a five-state threshold.
+
+### Selected migration practices
+
+- add owned primitives while preserving current compatibility inputs;
+- prefer native controls when they meet requirements;
+- preserve token values and financial behavior while moving ownership;
+- retain compatibility layers until consumers are measured and migrated;
+- treat scanner output as guardrail/evidence rather than automatic deletion authority;
+- require exact-head source/static/build/browser evidence before closure.
 
 ### MoneyFlow policy
 
-- `document-theme.css` remains the sole executable semantic theme/color authority during this migration.
-- No new root/global CSS layer is allowed while existing compatibility layers are retired.
-- The 1,200 `!important` ceiling is an internal regression budget.
-- `/dashboard`, legacy-class and route restrictions remain repository-specific controls.
+- `document-theme.css` remains the only executable theme/color authority during this migration.
 - Important financial, destructive, confirmation, icon-only, mobile-navigation and frequent-capture actions use an actual target of at least 44×44 CSS px.
 - Other controls meet WCAG AA target-size/spacing or a valid exception.
-- Compatibility API and CSS remain only while their consumers are measured and migrated.
+- The global-CSS freeze, `!important` budget, route/class restrictions and Storybook reassessment gate are repository controls, not universal standards.
+- Guided Story and B3.2/Fresh Blue remain preserved.
 
-## Implemented primitive contracts
+## Specification
 
-### Actions
+### Action primitives
 
-`src/components/ui/button.tsx` now retains the previous variant/size inputs while adding:
+Button retains existing variant/size inputs while adding semantic intent, density, target policy, pending label, `aria-busy`, duplicate-activation prevention and an unstyled route-compatibility bridge. LinkButton renders real navigation. IconButton requires an accessible name and defaults to the important target. Generic invalid behavior remains a form concern, not a Button state.
 
-- semantic intent: primary, secondary, quiet and destructive;
-- semantic density: standard and compact;
-- target policy: compat, AA and important;
-- pending label, `aria-busy` and duplicate-activation prevention;
-- `LinkButton` with real link semantics;
-- `IconButton` with a required accessible name and important target by default;
-- an explicit unstyled compatibility bridge for route-owned visual treatments.
+### Form primitives
 
-The desired Button contract no longer treats invalid as a generic button state.
+- TextField owns label, description, error, correction suggestion, value preservation, prefix/suffix, pending and target policy.
+- SelectField is native-first and owns label/description/error/placeholder and target policy.
+- CheckboxField is native, owns its associated label/error and supports indeterminate state.
+- RadioGroup uses native fieldset/legend and native radio keyboard behavior.
 
-### Forms
+No custom combobox or roving-tabindex radio was added without a product requirement that justified replacing native behavior.
 
-| Primitive | Ownership |
-|---|---|
-| TextField | label, description, error, correction suggestion, input value, prefix/suffix, pending and target policy |
-| SelectField | native-first select, label/description/error/placeholder and target policy |
-| CheckboxField | native checkbox, label target, description/error and indeterminate state |
-| RadioGroup | native fieldset/legend grouping, native radio keyboard model, controlled/uncontrolled values and option descriptions |
+### Overlay primitives
 
-No custom combobox or custom roving-tabindex radio implementation was added because current product requirements do not justify replacing valid native behavior.
+- Dialog uses the native modal dialog contract with required title, optional description, initial focus, Escape/cancel policy, focus restoration, scroll containment and accessible close target.
+- Sheet requires an explicit modal/non-modal mode. Modal composes Dialog. Non-modal does not claim modal semantics or trap focus.
 
-### Overlays
+### Feedback, surface and financial presentation
 
-| Primitive | Ownership |
-|---|---|
-| Dialog | native modal dialog, accessible title, optional description, initial focus, Escape/cancel policy, focus restoration, scrolling and accessible 44px close action |
-| Sheet | explicit modal/non-modal mode; modal composes Dialog, non-modal does not claim modal semantics or trap focus |
+- Card remains a noninteractive surface.
+- Badge adds neutral/info/income/warning/expense/transfer semantic tones.
+- Alert exposes explicit off/polite/assertive announcement policy.
+- Toast uses a polite routine region, urgent-only alerts, ID deduplication and no automatic focus.
+- EmptyState exposes one primary-action slot and optional secondary action.
+- MoneyValue composes existing money helpers, uses tabular numerals and requires explicit sign/kind rather than guessing meaning.
 
-### Feedback, surfaces and empty states
+### Token rules
 
-| Primitive | Ownership |
-|---|---|
-| Card | existing noninteractive surface retained; clickability is not implied |
-| Badge | compatibility variants plus neutral/info/income/warning/expense/transfer semantic tones |
-| Alert | semantic tones and explicit off/polite/assertive announcement policy |
-| Toast/ToastRegion | polite routine messages, urgent-only alerts, deduplication, no automatic focus and optional normal-flow action |
-| EmptyState | title, explanation, one primary-action slot and optional secondary-action slot |
-
-### Financial presentation
-
-`MoneyValue` composes the existing helpers in `src/lib/money.ts`. It owns full-value formatting, explicit sign/kind policy, tabular numerals, unavailable treatment and accessible labels without inferring transaction meaning or changing amount semantics.
-
-## Token normalization result
-
-- No rendered token value changed.
+- No token value changes.
 - New semantic components consume canonical income, expense, transfer, warning and info roles.
-- New TSX references incorrectly using nonexistent `--mf-*-soft` names were corrected to canonical `--mf-*-subtle` roles.
-- Success and danger aliases remain compatibility boundaries pending zero-reference evidence.
-- Phase 1 token validation remains a guardrail rather than a complete TSX/CSS compiler.
+- Incorrect new TSX references to nonexistent `--mf-*-soft` names were corrected to canonical `--mf-*-subtle` roles.
+- Success/danger aliases remain until zero-reference evidence.
 
-## Bounded proof consumers
+### Financial mutation boundary
 
-Phase 2 proves composition through a deliberately small shared-consumer set:
+The new primitives contain no mutation logic. Future route consumers that commit or alter stored financial data must identify a reversible, checked or confirmed safeguard and prevent duplicate mutation while pending. Domain changes remain separately governed.
 
-1. Dialog consumes IconButton for its named important close action.
-2. Modal Sheet consumes Dialog and inherits the modal focus/dismissal contract.
-3. Non-modal Sheet consumes IconButton without claiming modal behavior.
-4. Badge, Alert and Toast consume canonical semantic token roles.
-5. MoneyValue consumes existing domain formatting helpers.
+## Implementation plan
 
-No broad route default, App Shell or financial mutation workflow changed. This is the lowest-risk proof boundary for Phase 2.
+### Completed slices
 
-## MinimumTargetSizeContract result
+1. Specify standards, API, state, keyboard, target and mutation-safety boundaries.
+2. Inventory tokens, aliases, existing primitives and global target repairs.
+3. Adapt action primitives without changing compatibility defaults.
+4. Add native-first form primitives.
+5. Add modal/non-modal overlay primitives.
+6. Add feedback, empty-state and semantic finance presentation contracts.
+7. Add source-contract regression tests.
+8. Prove bounded internal composition without broad route changes.
+9. Classify remaining `MinimumTargetSizeContract` selector groups.
+10. Reassess Storybook and continue to defer it.
 
-The global contract remains mounted because it still combines target sizing, action discoverability and route-specific responsive repairs.
+### Bounded proof consumers
 
-Remaining selector groups are classified as:
+- Dialog consumes IconButton.
+- Modal Sheet consumes Dialog.
+- Non-modal Sheet consumes IconButton.
+- Badge/Alert/Toast consume canonical semantic token roles.
+- MoneyValue consumes existing money-formatting helpers.
 
-| Group | Classification |
-|---|---|
-| universal button/link/role/tab/summary/select rule | overbroad route compatibility debt mixing AA, important and exception cases |
-| checkbox/radio labels | mixed AA/important compatibility debt |
-| Inbox select-all and edit/delete/recurring controls | important checkbox/icon-only targets |
-| onboarding, landing CTA, login and capture navigation | important action/navigation targets |
-| commitment, budget and goal actions | important financial targets plus route layout debt |
-| CSV export and privacy action-list links | explicit action targets rather than prose links |
-| filters, toolbar selects and attention chips | mixed AA or route-specific debt requiring per-consumer evidence |
-| mobile wrapping/full-width repairs | route responsive debt, not primitive ownership |
+This is intentionally lower-risk than changing every route to a new default in Phase 2.
 
-No selector is removed on grep/scanner evidence alone. Final removal requires route owners, zero-consumer proof and physical-device acceptance in a later phase.
+### Remaining compatibility debt
 
-## Storybook reassessment
+`MinimumTargetSizeContract` remains mounted because it combines:
 
-The internal five-high-value-state condition has been reached. Storybook remains deferred because the current source contracts, unit/static tests and existing Playwright route/device matrix cover the initial slice, while a second build/configuration surface has not demonstrated lower review cost. No dependency, lockfile, hosted provider or production bundle changed.
+- universal target repairs that mix AA, important and exception cases;
+- important Inbox/row/financial/navigation actions;
+- action discoverability;
+- route-specific responsive wrapping and full-width fixes.
 
-## Financial mutation boundary
+Final removal requires route ownership, zero-consumer proof and physical-device acceptance in later work.
 
-The new primitives contain no mutation logic and the bounded proof consumers do not create, update or delete stored financial data. Future route adoption must identify an existing reversible, checked or confirmed safeguard and use pending state to prevent duplicate mutations. Domain-behavior changes remain separately governed.
+### Storybook decision
+
+The internal reassessment condition was reached. Installation remains deferred because source contracts, unit/static tests and existing Playwright route/device audits cover this slice; a second configuration/build surface did not demonstrate lower review cost and no separate dependency adoption was approved.
 
 ## Tasks
 
@@ -151,50 +161,37 @@ The new primitives contain no mutation logic and the bounded proof consumers do 
 | P2-T4 | Implement TextField, SelectField, CheckboxField and RadioGroup | source + contract tests | done |
 | P2-T5 | Implement Dialog and Sheet | source + contract tests | done |
 | P2-T6 | Establish Card, Badge, Alert, Toast and EmptyState contracts | source + contract tests | done |
-| P2-T7 | Stabilize MoneyValue and finance-status presentation | existing money helpers + MoneyValue contract | done |
-| P2-T8 | Migrate a bounded low-risk consumer set | Dialog/IconButton, Sheet/Dialog and semantic-token/domain-helper composition | done |
-| P2-T9 | Inventory remaining MinimumTargetSizeContract rescues | selector-group classification in inventory | done |
-| P2-T10 | Owner approves completion and closure boundary | explicit “hoàn tất p2 đi”; exact-head gates still required | authorized, verification pending |
+| P2-T7 | Stabilize MoneyValue and finance-status presentation | existing helpers + MoneyValue contract | done |
+| P2-T8 | Migrate bounded low-risk consumers | shared composition proof set | done |
+| P2-T9 | Inventory remaining target-contract rescues | selector-group classification | done |
+| P2-T10 | Owner approves closure boundary | “hoàn tất p2 đi” | authorized; exact-head verification in progress |
 
-## Verification contract
+## Evaluation
 
-Before merge, the exact final head must pass:
+Required exact-head gates:
 
-- UI migration no-new-debt policy;
-- diff hygiene and project knowledge;
-- primitive contract tests and complete unit/static suite;
+- no-new-debt, diff hygiene and project knowledge;
 - CSS ownership, architecture, lint and TypeScript;
+- complete unit/static suite including primitive contracts;
 - production build;
 - browser smoke;
 - Chromium/WebKit cross-device audit, including existing text-200 and keyboard projects;
 - CodeQL;
 - all-ref secret history scan.
 
-Database/provider/production-data gates are not selected because this phase changes none of those boundaries.
+Database/provider/production-data gates are not applicable.
 
-## Risks and controls
+First ready-for-review run correctly exposed a governance-schema failure: required work-packet headings and exact PR-memory field names had been lost during compaction, and the current project snapshot was stale. This closure correction restores the required headings/fields and synchronizes `CURRENT_PROJECT_MEMORY.md`; the failure is not waived.
 
-| Risk | Control |
-|---|---|
-| Shared Button defaults alter existing routes | compatibility defaults remain; semantic API is additive |
-| Universal 44px sizing harms dense layouts | two-level target policy; no new global selector |
-| TSX arbitrary token references bypass CSS scanner | source contract and manual authority reconciliation |
-| Native form controls are replaced unnecessarily | native-first primitives |
-| Overlay abstraction changes mutation behavior | primitives own presentation/focus only |
-| Toasts create announcement spam | polite default, urgent-only alert and ID deduplication |
-| MoneyValue guesses meaning | explicit kind/sign inputs and existing domain helpers |
-| Global target contract is removed too early | retain until route migration and zero-consumer proof |
-| Tool adoption becomes unbounded | Storybook remains separately approved and deferred |
-
-## Handoff and permission record
+## Handoff record
 
 | Date | From | To | State | Evidence | Next action |
 |---|---|---|---|---|---|
-| 2026-08-05 | human_owner | planner | specified | “Bắt đầu p2” | define matrix and inventory |
-| 2026-08-05 | human_owner | implementer | implementing | standards corrections requested | harden contract before runtime writes |
-| 2026-08-05 | human_owner | evaluator | evaluating | “hoàn tất p2 đi” | move PR from draft, run exact-head gates, fix failures, record closure and merge if green |
+| 2026-08-05 | human_owner | planner | specified | “Bắt đầu p2” | define matrix/inventory |
+| 2026-08-05 | human_owner | implementer | implementing | standards corrections requested | harden contract and implement bounded slices |
+| 2026-08-05 | human_owner | evaluator | evaluating | “hoàn tất p2 đi” | pass exact-head gates, fix failures, record closure and merge |
 
-### Current boundary
+### Current permission boundary
 
 - Authorized: finish Phase 2 verification, closure records and merge PR #299 when exact-head protected gates are green.
 - Forbidden: Phase 3, broad route redesign, new identity, Storybook/dependency installation, database/auth/RLS/provider changes, deployment and production-data access.
