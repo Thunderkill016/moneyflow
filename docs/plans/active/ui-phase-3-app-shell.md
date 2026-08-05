@@ -20,9 +20,11 @@ Make the signed-in App Shell the sole owner of canonical identity, sidebar, topb
 
 Phase 3 is delivered by PR #300 without route redesign, dependency adoption, financial mutation changes or external-system writes.
 
-## Completed result
+## Repository reconnaissance
 
-### Canonical identity and IA
+### Completed result
+
+#### Canonical identity and IA
 
 - App Shell directly renders the canonical main-branch `BrandLockup` on desktop and mobile.
 - Draft logo candidate PR #119 remains excluded.
@@ -30,7 +32,7 @@ Phase 3 is delivered by PR #300 without route redesign, dependency adoption, fin
 - Active App Shell `/insights` and `isPlanningPath` compatibility branches are removed.
 - Current signed-in IA remains `/dashboard` and `Tổng quan`.
 
-### Viewport, safe area and fixed chrome
+#### Viewport, safe area and fixed chrome
 
 - Root typed `Viewport` uses `viewportFit: "cover"`; no duplicate handwritten viewport meta is introduced.
 - App Shell owns one measured mobile navigation visual height: `74px`.
@@ -40,7 +42,7 @@ Phase 3 is delivered by PR #300 without route redesign, dependency adoption, fin
 - Safe-area top/right/bottom/left values use environment insets with zero fallbacks where applicable.
 - The previous split 68/76/82/104px geometry and route-global repairs are retired.
 
-### Shared primitives and modal behavior
+#### Shared primitives and modal behavior
 
 - Capture and More no longer own private `<dialog>` implementations.
 - Capture uses Phase 2 `Sheet` with centered tablet/desktop placement and preserved mobile bottom-sheet behavior where reachable.
@@ -50,7 +52,7 @@ Phase 3 is delivered by PR #300 without route redesign, dependency adoption, fin
 - Shell feedback composes `ToastRegion` and uses explicit urgency without stealing focus.
 - Important actions compose Button, LinkButton and IconButton; destination navigation remains semantic links.
 
-### Explicit capability and compatibility cleanup
+#### Explicit capability and compatibility cleanup
 
 - Accounts passes `showPrimaryActionOnMobile` explicitly so the mobile “Thêm tài khoản” action is preserved without route-DOM inference.
 - App Shell contains no structural `body:has()` capability rule.
@@ -59,7 +61,9 @@ Phase 3 is delivered by PR #300 without route redesign, dependency adoption, fin
 - That transaction-dialog remainder is explicitly owned for removal by Phase 5.
 - `MinimumTargetSizeContract` remains wider migration debt and is not a Phase 3 deletion target.
 
-## Research basis and decisions
+## Research
+
+### Research basis and decisions
 
 | Source | Decision supported |
 |---|---|
@@ -76,7 +80,9 @@ Inference: visual height, safe-area reserve, route spacing, focus clearance and 
 
 Product judgment: preserve current shell and IA, use main B3.2, add no dependency and never label Playwright emulation as physical-device evidence.
 
-## Ownership matrix
+## Specification
+
+### Ownership matrix
 
 | Concern | Phase 3 owner/result |
 |---|---|
@@ -91,7 +97,7 @@ Product judgment: preserve current shell and IA, use main B3.2, add no dependenc
 | Active `/insights` inference | removed |
 | Normal layers | local shell scale; modal remains top-layer behavior |
 
-## Scope and invariants
+### Scope and invariants
 
 Allowed and completed:
 
@@ -121,7 +127,11 @@ Still forbidden without a new packet or instruction:
 - provider/database/auth/RLS/deployment/production-data operations;
 - physical-device readiness claims based only on emulation.
 
-## Tasks
+## Implementation plan
+
+The bounded implementation sequence is complete. Compatibility retirement stopped at the transaction-dialog remainder and `MinimumTargetSizeContract` boundary rather than expanding into Phase 5 or Phase 10 work.
+
+### Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
@@ -136,7 +146,11 @@ Still forbidden without a new packet or instruction:
 | P3-T9 | Remove active `/insights` and shell compatibility groups; retain Phase 5 remainder | source contracts and zero-owner evidence | completed |
 | P3-T10 | Run exact-head policy/static/tests/build/browser/cross-device/security evidence | CI #1706 and security run #828 | completed |
 
-## Evaluation and evidence
+Rollback remains a single PR revert. The transaction compatibility remainder stays mounted so Phase 3 does not silently alter transaction presentation.
+
+## Evaluation
+
+### Exact-head evidence
 
 Exact runtime head: `0c61edc40f05bad25f3ea85e3290eb2b8df425cd`.
 
