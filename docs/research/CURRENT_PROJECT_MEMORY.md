@@ -2,9 +2,9 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-05
-- **Code baseline audited before this PR:** `main@8688d95160579eacb908f0162994edba4901fc0c`
+- **Code baseline audited before this PR:** `main@c11c845cfcd5fe3f588f0564211566bac28f7afd`
 - **Owner direction:** MoneyFlow is released as a functional MVP; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate
-- **UI-system migration:** parent plan PR #296, Phase 0 PR #297 and Phase 1 PR #298 are merged; Phase 2 shared token/primitive ownership is delivered by PR #299; Phase 3 remains unauthorized
+- **UI-system migration:** parent plan PR #296 and Phases 0–3 are delivered through PRs #297–#300; Phase 4 remains unauthorized
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Release acceptance:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
@@ -136,11 +136,31 @@ Target policy:
 
 Success/danger token aliases remain until zero-reference evidence. New semantic primitive references use canonical `--mf-*-subtle` roles. No token value or financial-domain behavior changes in Phase 2.
 
-Storybook was reassessed after the high-value state threshold and remains deferred because current source/unit/browser evidence covers the initial slice and no separate dependency adoption was approved.
+Storybook remains deferred because current source/unit/browser evidence covers the initial slice and no separate dependency adoption was approved.
+
+### Phase 3 — App Shell and chrome ownership
+
+PR #300 establishes:
+
+- canonical main-branch `BrandLockup` as the signed-in desktop/mobile identity owner; draft logo PR #119 remains excluded;
+- typed root viewport with `viewportFit: "cover"` and safe-area environment insets;
+- one measured 74px mobile-nav height and a reserve derived from that height plus the bottom safe area;
+- distinct shell reserve, route spacing, focus clearance and feedback clearance contracts;
+- root scroll padding only while App Shell is mounted;
+- Capture and More composed from Phase 2 Sheet/Dialog behavior, including Escape and focus restoration;
+- centered Capture placement on tablet/desktop and shared bottom-sheet behavior where applicable;
+- shared ToastRegion feedback and a bounded normal shell layer map, with modal behavior outside numeric z-index ownership;
+- explicit Accounts `showPrimaryActionOnMobile` capability instead of `body:has()`/positional inference;
+- removal of active App Shell `/insights` branches, signed-in logo guardrail, route-global bottom padding and broad `dialog[open]` repairs;
+- `MobileShellContract` reduced to transaction-dialog dark amount-field compatibility owned for Phase 5 removal.
+
+Exact runtime head `0c61edc40f05bad25f3ea85e3290eb2b8df425cd` passed CI #1706 policy/static/type/build, 716 tests, browser smoke and Chromium/WebKit cross-device audit. CodeQL #828 and secret-history scan #828 passed. Browser artifact `8937883473` and UI-audit artifact `8938133878` own the retained evidence.
+
+Automated browser evidence does not prove physical Android or iOS/Safari acceptance. That remains Phase 11.
 
 ### Next UI boundary
 
-Phase 3 App Shell work is not authorized by Phase 2 completion. Later migration must remain route-bounded, preserve financial semantics, document affected target categories and retain rollback/browser evidence.
+Phase 4 Dashboard work is not authorized by Phase 3 completion. A new explicit owner instruction and a bounded Phase 4 packet are required before product-code writes.
 
 ## 7. Verification and evidence boundaries
 
@@ -149,7 +169,7 @@ Phase 3 App Shell work is not authorized by Phase 2 completion. Later migration 
 - Provider changes require before/after evidence, rollback and production smoke.
 - Automated browser success does not prove physical-device acceptance or visual quality by itself.
 - A successful job shell is not evidence when initialization/analysis or selected shards were skipped.
-- PR #299 changes no database, auth, RLS, provider or production-data boundary.
+- PR #300 changes no database, auth, RLS, provider, production-data or financial-domain boundary.
 
 ## 8. Reconciled issue status
 
@@ -169,11 +189,10 @@ Open PRs are not product truth and must be refreshed against current `main` befo
 
 | PR | Interpretation |
 |---|---|
-| #299 | Phase 2 token/primitive ownership; becomes current truth only after exact-head gates and merge |
 | #170/#171 | older CSS cleanup candidates; compare against current ownership and tests before reuse |
 | #119 | visual/logo candidate requiring current browser evidence and owner approval |
 
-PR #295, #296, #297 and #298 are merged and must not be described as candidates. PR #222 is closed-unmerged verified evidence, not an open PR and not current behavior.
+PRs #295–#300 are merged and must not be described as candidates. PR #222 is closed-unmerged verified evidence, not an open PR and not current behavior.
 
 ## 10. True gaps after this audit
 
@@ -193,10 +212,10 @@ PR #295, #296, #297 and #298 are merged and must not be described as candidates.
 
 ### UI migration debt
 
-- route-by-route adoption of Phase 2 primitives;
+- Phase 4 Dashboard pilot and later route-by-route adoption of Phase 2 primitives;
 - compatibility-variant and alias retirement after zero-reference evidence;
-- local ownership of responsive repairs currently in the global target contract;
-- final `MinimumTargetSizeContract` removal;
+- Phase 5 removal of the transaction-dialog remainder from `MobileShellContract`;
+- local ownership of responsive repairs currently in `MinimumTargetSizeContract` and its final removal;
 - physical Android and iOS/Safari acceptance;
 - separately approved component-harness adoption if evidence later justifies it.
 
@@ -213,7 +232,8 @@ PR #295, #296, #297 and #298 are merged and must not be described as candidates.
 - PR #250/#251/#252 merged functional-MVP audit, release-evidence reconciliation and empty-state/export acceptance.
 - PR #295 restored the repository-wide secret-history gate through a reviewed fingerprint-specific repair.
 - PR #296/#297/#298 merged the UI-system parent plan, Phase 0 baseline and Phase 1 guardrails.
-- PR #299 delivers Phase 2 shared primitive ownership; its PR record owns exact-head closure evidence.
+- PR #299 delivered Phase 2 shared primitive ownership.
+- PR #300 delivered canonical App Shell/chrome ownership with protected browser evidence.
 - PR #222 remains verified unmerged and is not current behavior.
 
 ## 12. Superseded-status register
@@ -236,8 +256,9 @@ Do not repeat these as current facts:
 - Provider/device acceptance is automatically part of the locked MVP exit definition.
 - Repository tests prove private provider state or physical-device acceptance.
 - Spec Kit replaces MoneyFlow governance.
-- The UI migration parent, Phase 0 or Phase 1 is still pending.
+- The UI migration parent or Phases 0–3 are still pending, blocked or unauthorized.
 - Phase 2 is unauthorized or only documentation.
+- Phase 3 still uses a private Brand, private shell dialogs/toast, `body:has()` route inference or a 68px nav reserve.
 - 44×44 is the universal WCAG AA target minimum.
 - Every sheet is modal or every toast should be assertive.
 - A 320px phone viewport alone proves WCAG reflow.
