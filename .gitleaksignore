@@ -18,5 +18,8 @@ d214d8a3a60e7d7905becdb502f39a8079246c73:vercel.json:generic-api-key:12
 # Browser-safe publishable key in a retired readiness workflow.
 59cfc661832b5b139968e53b81553621ff4da9df:.github/workflows/readiness-supabase-client.yml:generic-api-key:27
 
+# Browser-safe Supabase publishable key in the isolated Penpot bridge prototype.
+a684722cba43b7d8efb2f05d510552d36d1103b2:tools/atoryn-design-plugin-v08/ui.html:generic-api-key:3
+
 # Deliberately invalid test key.
 c7ca29414ed7df7138674bbf9fef70828e30cc65:src/lib/supabase/config.test.ts:generic-api-key:63
