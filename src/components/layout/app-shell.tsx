@@ -535,7 +535,7 @@ function CaptureSheet({
       }}
       title="Ghi giao dịch"
       description="Chọn cách ghi nhanh hoặc đưa dữ liệu vào để duyệt trước khi vào sổ."
-      side="right"
+      side="center"
       className={cx(styles.shellSheet, APP_SHELL_SHEET_CLASS)}
       footer={
         <Button
