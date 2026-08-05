@@ -3,7 +3,7 @@
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-05
 - **Code baseline audited before this PR:** `main@8688d95160579eacb908f0162994edba4901fc0c`
-- **Owner direction:** MoneyFlow is released as a functional MVP; validation remains embedded in each workstream and public-beta gates remain separate
+- **Owner direction:** MoneyFlow is released as a functional MVP; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate
 - **UI-system migration:** parent plan PR #296, Phase 0 PR #297 and Phase 1 PR #298 are merged; Phase 2 shared token/primitive ownership is delivered by PR #299; Phase 3 remains unauthorized
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
@@ -69,7 +69,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - Build/lint/typecheck do not prove RLS, browser behavior, provider state or production correctness.
 - CodeQL, secret-history scanning and risk-proportional CI remain protected gates.
 
-## 5. Functional capability snapshot
+## 5. Current capability inventory
 
 MoneyFlow is functional-MVP complete. Competitive depth and public-beta hardening remain separate.
 
@@ -151,23 +151,31 @@ Phase 3 App Shell work is not authorized by Phase 2 completion. Later migration 
 - A successful job shell is not evidence when initialization/analysis or selected shards were skipped.
 - PR #299 changes no database, auth, RLS, provider or production-data boundary.
 
-## 8. Load-bearing merged and verified truth
+## 8. Reconciled issue status
 
-- PR #183/#184 merged atomic Inbox approval, provenance, dry-run, transfer planning and idempotency.
-- PR #206/#207 merged dashboard one-RPC hardening and schema-skew fallback.
-- PR #228/#229 merged account register/detail and deployment/auth-routing evidence.
-- PR #231 merged the Spec Kit adapter without replacing MoneyFlow governance.
-- PR #234/#235 merged transaction date/amount filters.
-- PR #236/#244 merged complete public-FK index coverage and pgTAP evidence.
-- PR #245 merged grouped monthly Dependabot configuration.
-- PR #249 merged a public-safe provider runbook without provider writes.
-- PR #250/#251/#252 merged functional-MVP audit, release-evidence reconciliation and empty-state/export acceptance.
-- PR #295 restored the repository-wide secret-history gate through a reviewed fingerprint-specific repair.
-- PR #296/#297/#298 merged the UI-system parent plan, Phase 0 baseline and Phase 1 guardrails.
-- PR #299 delivers Phase 2 shared primitive ownership; its PR record owns exact-head closure evidence.
-- PR #222 remains verified unmerged and is not current behavior.
+| Issue/slice | Current status |
+|---|---|
+| #53 DB invariants/import | Substantially implemented; provenance, dry-run, atomic approval and public-FK coverage are merged |
+| #53 reconciliation | Verified-unmerged contract through PR #222; absent on main |
+| #53 authenticated rules | Absent on main; deterministic local rules exist |
+| #53 audit/performance | Partial; strong repository tooling exists while capacity claims remain evidence-specific |
+| #72 UI audit | Broad automated coverage merged; physical-device detail remains separate |
+| #172 product assessment | market-validation warnings remain useful; old global feature-freeze framing is superseded |
+| #174 provider controls | repository readiness/runbook merged; private provider execution is not inferred |
 
-## 9. True remaining gaps
+## 9. Open pull-request memory
+
+Open PRs are not product truth and must be refreshed against current `main` before reuse.
+
+| PR | Interpretation |
+|---|---|
+| #299 | Phase 2 token/primitive ownership; becomes current truth only after exact-head gates and merge |
+| #170/#171 | older CSS cleanup candidates; compare against current ownership and tests before reuse |
+| #119 | visual/logo candidate requiring current browser evidence and owner approval |
+
+PR #295, #296, #297 and #298 are merged and must not be described as candidates. PR #222 is closed-unmerged verified evidence, not an open PR and not current behavior.
+
+## 10. True gaps after this audit
 
 ### Public-beta hardening
 
@@ -192,13 +200,30 @@ Phase 3 App Shell work is not authorized by Phase 2 completion. Later migration 
 - physical Android and iOS/Safari acceptance;
 - separately approved component-harness adoption if evidence later justifies it.
 
-## 10. Superseded-status register
+## 11. Load-bearing merged and verified truth
+
+- PR #183/#184 merged atomic Inbox approval, provenance, dry-run, transfer planning and idempotency.
+- PR #206/#207 merged dashboard one-RPC hardening and schema-skew fallback.
+- PR #228/#229 merged account register/detail and deployment/auth-routing evidence.
+- PR #231 merged the Spec Kit adapter without replacing MoneyFlow governance.
+- PR #234/#235 merged transaction date/amount filters.
+- PR #236/#244 merged complete public-FK index coverage and pgTAP evidence.
+- PR #245 merged grouped monthly Dependabot configuration.
+- PR #249 merged a public-safe provider runbook without provider writes.
+- PR #250/#251/#252 merged functional-MVP audit, release-evidence reconciliation and empty-state/export acceptance.
+- PR #295 restored the repository-wide secret-history gate through a reviewed fingerprint-specific repair.
+- PR #296/#297/#298 merged the UI-system parent plan, Phase 0 baseline and Phase 1 guardrails.
+- PR #299 delivers Phase 2 shared primitive ownership; its PR record owns exact-head closure evidence.
+- PR #222 remains verified unmerged and is not current behavior.
+
+## 12. Superseded-status register
 
 Do not repeat these as current facts:
 
 - CSV import is absent.
 - Rules are entirely absent.
-- Reports lack comparison or trends.
+- Import provenance/dry-run/atomic approval are future work.
+- Reports lack previous-period comparison or trends.
 - Recurring items have no occurrence linkage.
 - Goals lack deadline or pace calculation.
 - Export only supports current-month CSV or depends on `/insights`.
@@ -217,15 +242,15 @@ Do not repeat these as current facts:
 - Every sheet is modal or every toast should be assertive.
 - A 320px phone viewport alone proves WCAG reflow.
 
-## 11. Update and compaction protocol
+## 13. Update and compaction protocol
 
 Every PR changes exactly one bounded record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md`. A status-changing PR also updates the affected row or section here.
 
 Budgets:
 
-- snapshot target: 150–250 lines;
-- soft warning: above 300 lines or 32 KiB;
-- hard failure: above 500 lines or 64 KiB;
-- PR record hard failure: above 140 lines or 12 KiB.
+- target: **150–250 lines**;
+- soft warning: above **300 lines** or **32 KiB**;
+- hard failure: above **500 lines** or **64 KiB**;
+- PR record hard failure: above **140 lines** or **12 KiB**.
 
 Record private operational evidence only as redacted summaries. Never store secrets, provider identifiers, exact defensive thresholds, request IDs, user financial data or unredacted screenshots here.
