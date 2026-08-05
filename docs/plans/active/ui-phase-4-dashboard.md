@@ -1,117 +1,117 @@
 # MoneyFlow UI-system Phase 4 — Dashboard pilot
 
-**Status:** specified
-**Execution state:** planned
-**Active role:** planner
-**Permission scope:** docs_only
-**Owner:** MoneyFlow owner
-**Issue/PR:** pending draft PR
+**Status:** implementing
+**Execution state:** in progress
+**Active role:** implementer
+**Permission scope:** owner_authorized_branch_write
+**Owner:** Thunderkill016
+**Parent packet:** `docs/plans/active/ui-system-migration.md`
+**Phase 3 evidence:** merged PR #300 (`75129a6a0f212c12b20763a5d44c2de268832423`)
+**Current PR:** #301
 **Last updated:** 2026-08-06
+
+The owner first instructed **“sửa p4 đi”** and then **“bắt đầu p4”** on 2026-08-06. The latter authorizes Phase 4 runtime, CSS and test implementation on PR #301 plus exact-head verification. It does not authorize merge, deployment, Phase 5, provider/database/Auth/RLS operations, production-data access or a new visual identity.
+
+This packet supersedes the stale Phase 4 rows in `docs/plans/active/ui-system-migration.md` wherever they conflict. The parent packet remains the program-level sequence; this file controls the Dashboard pilot.
 
 ## Outcome
 
-Make `/dashboard` the first route that fully proves the MoneyFlow migration method after Phases 0–3: one local presentation owner, explicit component/state contracts, deterministic financial presentation, responsive hierarchy that survives reflow and no live dependency on Dashboard-specific legacy/global CSS.
+Make `/dashboard` the first route that fully proves the MoneyFlow migration method after Phases 0–3:
 
-This packet supersedes the Phase 4 task table in `docs/plans/active/ui-system-migration.md` wherever the two conflict. The parent packet remains the program-level sequence; this file is the controlling Phase 4 specification.
+- one local presentation owner;
+- explicit component and state contracts;
+- deterministic financial presentation;
+- responsive hierarchy that survives reflow;
+- no live dependency on Dashboard-specific legacy or page-global CSS;
+- no change to formulas, persisted data, financial advice or App Shell geometry.
 
-## Authorization and boundary
+The implementation candidate remains unmerged until exact-head policy, static, unit, build, browser and security evidence is green and the owner separately approves completion.
 
-The owner instructed **“sửa p4 đi”** on 2026-08-06. That instruction authorizes correction of the Phase 4 specification and documentation only.
+## Repository reconnaissance
 
-It does **not** authorize:
-
-- product/runtime/CSS/test implementation;
-- merging this packet;
-- Phase 5 or later work;
-- a visual-direction or branding change;
-- financial calculation, advice, database, migration, Auth, RLS, provider, deployment or production-data operations.
-
-Implementation requires a new explicit owner instruction such as **“triển khai P4”**. Merge and deployment remain separate owner decisions.
-
-## Post-Phase-3 baseline
+### Post-Phase-3 baseline
 
 Phase 3 was squash-merged through PR #300 at `main@75129a6a0f212c12b20763a5d44c2de268832423`.
 
-The current Dashboard composition is distributed across:
+Before Phase 4 implementation, Dashboard presentation was distributed across:
 
 - `src/app/dashboard/page.tsx`;
 - `src/components/moneyflow-dashboard.tsx`;
 - `src/components/dashboard/dashboard-overview-sections.tsx`;
 - `src/components/dashboard/dashboard-planning-sections.tsx`;
 - `src/components/dashboard/statement.tsx` and `statement.module.css`;
-- `src/app/dashboard/calm-ledger-overview.css`;
-- `src/app/dashboard/calm-ledger-overview-actions.css`;
+- three Dashboard-specific global stylesheets;
 - Dashboard selectors mixed into `src/app/safe-ux-planning.css`;
-- `src/app/dashboard/safe-ux-weekly-summary.css`;
-- inherited selectors and compatibility rules under `src/app/legacy.css`.
+- a safe-to-spend withdrawal stylesheet imported from `src/app/legacy.css`;
+- inherited legacy selector families.
 
-### Current source findings
+### Findings confirmed before implementation
 
-1. `/dashboard/page.tsx` imports four global presentation files. The route therefore still relies on cascade order rather than one local Dashboard owner.
-2. `DashboardStatement` already owns most of its presentation through a CSS Module, so the old Phase 4 task “make the statement component-owned” is stale. The remaining work is to finish and protect that ownership.
-3. Global `.insights-kpi` rules still describe a retired four-card DOM while the render tree now uses `DashboardStatement`.
-4. Safe-to-spend markup is absent from the active Dashboard render tree, but withdrawal/hidden-selector bridges remain in global styles.
-5. `calm-ledger-overview-actions.css` says an old in-page primary action still exists, while current JSX intentionally omits that duplicate.
-6. Phone layout rules conflict: one stylesheet selects a one-column arrangement at `max-width: 760px`, while a later stylesheet reintroduces two columns at `max-width: 430px`.
-7. Budget usage is exposed as `progressbar` and clamps `aria-valuenow` to 100 even when visible/accessible copy can report more than 100%, creating a semantics mismatch.
-8. Dashboard calculations use `workspace.today`, while `DashboardStatement` derives the displayed month from `new Date()`. Data and period copy can disagree at month/timezone boundaries.
-9. `safe-ux-planning.css` mixes Dashboard, Budgets and Goals selectors. Phase 4 must extract only Dashboard ownership without redesigning Phase 7 routes.
-10. Dashboard still consumes compatibility presentation components/classes where Phase 2 primitives or an explicit adapter should own the contract, including alert, empty-state, action and money-display surfaces.
-11. Open PR #294 is a stale pre-Phase-3 candidate for removing the legacy `dashboard` class. Its intent is relevant, but its old shell geometry assertions and branch evidence are not directly reusable. Phase 4 must disposition it against current `main`; it must not be merged blindly.
+1. `/dashboard/page.tsx` imported four global presentation files, so route appearance depended on cascade order rather than one local owner.
+2. `DashboardStatement` already owned most presentation through a CSS Module; remaining work was to finish and protect that boundary rather than recreate it.
+3. Global KPI rules described retired four-card markup while the active render tree used `DashboardStatement`.
+4. Numeric safe-to-spend markup was absent from active Dashboard JSX, but global hiding and withdrawal bridges remained.
+5. The duplicate in-page primary action was already absent, while a stylesheet still documented and hid the old path.
+6. Phone rules contradicted one another: one layer selected a single-column layout while a later layer reintroduced two columns at a narrower width.
+7. Budget usage claimed progress semantics and clamped its numeric accessibility value while text could report an over-limit percentage.
+8. Dashboard calculations used `workspace.today`, while the statement generated its month label from browser-local time.
+9. `safe-ux-planning.css` mixed Dashboard selectors with Budgets and Goals compatibility owned by Phase 7.
+10. Dashboard error, empty-state and action surfaces still bypassed some Phase 2 primitives.
+11. PR #294 was a stale pre-Phase-3 mobile-clearance candidate whose intent was relevant but whose old shell measurements and assertions were not reusable unchanged.
 
-## Research decisions
+### Implemented ownership result on PR #301
 
-### Next.js CSS ownership
+- `/dashboard/page.tsx` imports no Dashboard-specific global CSS.
+- `src/components/dashboard/dashboard.module.css` is the route-level presentation owner.
+- `DashboardStatement` retains its dedicated module and receives the same workspace date used by Dashboard calculations.
+- Dashboard error, empty-state and action surfaces compose Phase 2 primitives.
+- Budget usage exposes meter semantics and explicit over-limit text.
+- Goal completion retains bounded progress semantics.
+- Dashboard selectors are removed from mixed planning compatibility CSS while Budgets and Goals declarations remain for Phase 7.
+- Retired Dashboard global styles, action bridge, weekly override and safe-to-spend withdrawal bridge are deleted.
+- Source contracts guard ownership, period source, range semantics, responsive behavior and the absence of active spending advice.
 
-Next.js documents CSS Modules as locally scoped and warns that global styles can persist across client-side navigation and conflict by import order. Phase 4 therefore treats removal of Dashboard-specific page-global CSS ownership as a primary acceptance criterion, not optional cleanup.
+## Research
 
-Source: <https://nextjs.org/docs/app/getting-started/css>
+### Research basis and decisions
 
-### Reflow and zoom
+| Source | Phase 4 decision |
+|---|---|
+| [Next.js CSS guidance](https://nextjs.org/docs/app/getting-started/css) | use locally scoped component/route ownership and remove Dashboard page-global styling |
+| [WCAG 2.2 Reflow](https://www.w3.org/WAI/WCAG22/Understanding/reflow.html) | ordinary content must work at an equivalent 320 CSS-pixel width without lost information or two-dimensional document scrolling |
+| [WAI-ARIA meter pattern](https://www.w3.org/WAI/ARIA/apg/patterns/meter/) | budget usage is a scalar measurement with a known range and explicit value text |
+| [WAI-ARIA progressbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/progressbar/) | goal completion may use progress semantics when value, bounds and text remain consistent |
+| [WCAG Use of Color](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html) | warning, over-limit, income, expense and completion states need written or structural cues in addition to color |
+| [MDN container queries](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries) | container-dependent composition is optional when pane width, rather than viewport width, owns layout |
 
-WCAG 2.2 Reflow requires ordinary content to work at an equivalent 320 CSS-pixel width without two-dimensional scrolling or lost information, except content that genuinely requires a two-dimensional layout. Money figures must remain complete rather than truncated.
+Observed: global imports and shared compatibility selectors could continue influencing Dashboard after client navigation; the period label could disagree with server-selected data; over-limit budget accessibility values were internally contradictory.
 
-Source: <https://www.w3.org/WAI/WCAG22/Understanding/reflow.html>
+Inference: Dashboard needs one route module, a separately owned statement module, deterministic period input and text-first range states before legacy selector deletion is trustworthy.
 
-### Range semantics
+Product judgment: preserve the selected B3.2/Fresh Blue direction, existing information hierarchy and current financial calculations. Phase 4 is ownership and correctness work, not a visual redesign.
 
-A budget-used value is a scalar measurement within or beyond a known range and should use a meter/text-first contract when that communicates the state accurately. A goal can use progressbar only when it genuinely represents task/process completion. `aria-valuenow`, min/max and visible/value text must never contradict one another.
+## Specification
 
-Sources:
-
-- <https://www.w3.org/WAI/ARIA/apg/patterns/meter/>
-- <https://www.w3.org/WAI/ARIA/apg/patterns/progressbar/>
-
-### Status cannot rely on color alone
-
-Income, expense, warning and completion states require written labels, values, symbols or structure in addition to color.
-
-Source: <https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html>
-
-### Container-dependent composition
-
-Cards whose layout depends on their pane width may use container queries after a bounded compatibility review. Viewport media queries remain acceptable for page-level composition. Container queries are an implementation option, not a mandatory dependency or redesign.
-
-Source: <https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries>
-
-## Product and financial invariants
+### Product and financial invariants
 
 Phase 4 must preserve:
 
 - VND as integer đồng;
 - transfers excluded from income and expense;
-- exact split/transaction totals;
-- current balance reconciliation behavior;
+- exact split and transaction totals;
+- current balance reconciliation;
 - current budget, recurring-income, commitment and goal calculations;
 - no invented balances, dates, assumptions or advice;
 - no numeric safe-to-spend recommendation;
 - complete, non-truncated money values;
-- current B3.2/Fresh Blue direction and Light/Dark/System workspace behavior;
-- current navigation destinations and Phase 3 App Shell geometry.
+- current B3.2/Fresh Blue direction;
+- Light/Dark/System workspace behavior;
+- current navigation destinations;
+- Phase 3 App Shell geometry and mobile-navigation reserve.
 
-Any discovered need to change a formula, financial definition, persisted data contract or product advice exits this packet and requires a separate owner-approved specification.
+Any need to change a formula, financial definition, persisted data contract or product advice exits this packet and requires a separate owner-approved specification.
 
-## Target ownership model
+### Target ownership model
 
 ```text
 /dashboard page
@@ -119,9 +119,9 @@ Any discovered need to change a formula, financial definition, persisted data co
   -> MoneyFlowDashboard orchestration
        -> Dashboard route module
        -> DashboardStatement module
-       -> Dashboard ledger/category/recent modules
-       -> Dashboard weekly/planning snapshot modules
-       -> Phase 2 primitives or explicitly documented adapters
+       -> Dashboard overview/ledger components
+       -> Dashboard weekly/planning snapshot components
+       -> Phase 2 primitives or documented adapters
   -> AppShell owns chrome, primary capture and safe-area reserve
 
 legacy/global CSS
@@ -130,20 +130,18 @@ legacy/global CSS
 
 ### Ownership rules
 
-- `src/app/dashboard/page.tsx` must not import Dashboard-specific global CSS at Phase 4 completion.
-- Dashboard component files must use CSS Modules or shared primitive-owned styles.
-- No new root/global stylesheet, import chain, `!important`, document selector or legacy class registration.
-- No structural style inference through `:has()` where an explicit state/variant prop or data attribute can own the contract.
-- Phase 4 may split a mixed compatibility stylesheet only to preserve non-Dashboard behavior unchanged; Budgets/Goals redesign remains Phase 7.
-- A selector/file is deleted only after source, DOM and affected-browser zero-consumer evidence.
+- `src/app/dashboard/page.tsx` must not import Dashboard-specific global CSS.
+- Dashboard component files use CSS Modules or shared primitive-owned styling.
+- No new root/global stylesheet, CSS import chain, `!important`, document selector or legacy-class registration.
+- No structural capability inference through `:has()` where an explicit prop or data attribute can own state.
+- Mixed compatibility CSS may be split only while preserving non-Dashboard routes unchanged.
+- A selector or file is deleted only after source, DOM and affected-browser zero-consumer evidence.
 
-## State and hierarchy contract
-
-### Required Dashboard states
+### Required states
 
 - empty ledger;
 - populated/rich ledger;
-- current month with no expenses but historical transactions present;
+- historical transactions with no current-month expense;
 - data error;
 - attention strip absent and populated;
 - budget absent, under, near and over limit;
@@ -151,48 +149,32 @@ legacy/global CSS
 - recurring income absent, pending and fully received;
 - goal absent, active and achieved;
 - positive, zero and negative balance/net;
-- long Vietnamese labels/notes;
+- long Vietnamese labels and notes;
 - large and negative VND values;
 - demo and authenticated presentation where repository fixtures support both.
 
 ### Information hierarchy
 
-1. Current standing/balance.
-2. Current period money flow.
-3. Attention requiring user review.
-4. Where money went and recent ledger activity.
+1. Current standing and balance.
+2. Current-period money flow.
+3. Attention requiring review.
+4. Category distribution and recent ledger activity.
 5. Weekly and planning snapshots as supporting information.
-6. Links to deeper planning/report routes.
+6. Links to deeper planning and report routes.
 
-Supporting information must not visually compete with the standing figure or the primary daily capture action.
+Supporting information must not visually compete with the standing figure or the App Shell capture action.
 
 ### Action hierarchy
 
 - App Shell remains the normal high-emphasis owner of **Ghi chi tiêu**.
-- Populated Dashboard must not add a second competing high-emphasis primary action.
-- An empty state may offer a contextual action, but its emphasis and accessible naming must make the hierarchy clear rather than duplicating the shell blindly.
-- Navigation remains a real link; mutation/dialog activation remains a button.
-- Important financial, icon-only and frequent-capture controls retain the MoneyFlow 44×44 target policy from Phase 2.
+- Populated Dashboard does not add a second competing high-emphasis action.
+- Empty or no-expense states may expose a contextual secondary action.
+- Navigation remains a semantic link; dialog activation remains a button.
+- Important financial and icon-only controls retain the Phase 2 44×44 target policy.
 
-## Corrected implementation tasks
+### Responsive acceptance
 
-| ID | Task | Dependency | Required evidence | Status |
-|---|---|---|---|---|
-| P4-T1 | Inventory the exact Dashboard render tree, imports, active computed selectors, legacy hits and open PR #294 disposition on current `main` | P3 complete | selector-to-owner map, DOM probes, current screenshots | blocked — implementation not authorized |
-| P4-T2 | Lock presentation invariants for balance, monthly flow, transfer exclusion, no safe-to-spend and one deterministic period source | P4-T1 | source/unit contract linked to existing finance tests | blocked — implementation not authorized |
-| P4-T3 | Introduce one Dashboard route module and remove Dashboard-specific global imports from `/dashboard/page.tsx`; preserve non-Dashboard compatibility behavior unchanged | P4-T1 | import graph, computed-style before/after, no-new-debt checks | blocked — implementation not authorized |
-| P4-T4 | Finish `DashboardStatement` ownership, pass period from the workspace source and cover positive/zero/negative/no-income/expense-over-income presentation | P4-T2, P4-T3 | unit/source/browser evidence with large VND and timezone boundary | blocked — implementation not authorized |
-| P4-T5 | Resolve action hierarchy and migrate Dashboard alert, empty state and actions to Phase 2 primitives or a documented adapter | P4-T2, P4-T3 | accessible-role/name/action-count evidence | blocked — implementation not authorized |
-| P4-T6 | Localize category distribution, recent transactions, attention strip, weekly summary and planning snapshots behind component modules | P4-T3 | owner map and empty/rich/long-data screenshots | blocked — implementation not authorized |
-| P4-T7 | Correct budget/goal range semantics, value text, non-color cues, forced-colors behavior and over-limit representation without changing calculations | P4-T2, P4-T6 | accessibility tree, semantic assertions, contrast/forced-colors evidence | blocked — implementation not authorized |
-| P4-T8 | Establish one responsive supporting-pane contract; resolve the 760/430 conflict and test component widths, reflow, text zoom and orientation | P4-T3 through P4-T7 | geometry assertions and reviewed screenshots | blocked — implementation not authorized |
-| P4-T9 | Delete retired `.insights-kpi`, duplicate-action, safe-to-spend and other Dashboard selector bridges only after zero-consumer proof; split mixed planning CSS without changing Phase 7 routes | P4-T3 through P4-T8 | selector deletion list, DOM/source zero hits, before/after evidence | blocked — implementation not authorized |
-| P4-T10 | Run exact-head policy, architecture, CSS ownership, lint, TypeScript, complete unit/static tests, production build, browser smoke, Chromium/WebKit Dashboard matrix, CodeQL and secret-history scan | P4-T9 | exact-head workflow runs and retained artifacts | blocked — implementation not authorized |
-| P4-T11 | Owner reviews empty/rich/error, Light/Dark/System, phone/tablet/desktop, 200% text and 400% reflow evidence and decides merge | P4-T10 | explicit owner decision | blocked — implementation not authorized |
-
-## Responsive acceptance matrix
-
-Minimum evidence:
+Minimum matrix:
 
 | Class | Width/state |
 |---|---|
@@ -200,92 +182,145 @@ Minimum evidence:
 | Large phone/small tablet | 430, 600 and 760 CSS px |
 | Tablet/supporting pane | 768 and 1024 CSS px |
 | Desktop | 1280 and 1440 CSS px |
-| Zoom/reflow | 200% text and 400% browser zoom/equivalent 320 CSS px |
-| Orientation | representative phone portrait/landscape |
+| Zoom/reflow | 200% text and 400% browser zoom or equivalent 320 CSS px |
+| Orientation | representative phone portrait and landscape |
 | Engines | Chromium and WebKit |
-| Theme | Light, Dark and System resolution where harness supports it |
-| Data | empty, rich, error, long Vietnamese, large/negative VND |
+| Theme | Light, Dark and System resolution where supported |
+| Data | empty, rich, error, long Vietnamese and large/negative VND |
 
 Acceptance rules:
 
 - no horizontal document scrolling for ordinary content;
 - no clipped or ellipsized money value;
 - no content hidden beneath Phase 3 mobile navigation;
-- links/buttons remain reachable and visibly focused;
+- links and buttons remain reachable and visibly focused;
 - supporting cards stack or recompose without reversing semantic reading order;
-- any intentionally horizontally scrollable region has a bounded purpose, visible affordance and individually reflowing items.
+- an intentionally horizontally scrollable navigation rail remains bounded and each item reflows internally.
 
-## Verification plan
+## Implementation plan
 
-### Static and source
+### Architecture fit
 
-- `npm run check:knowledge`
-- `npm run test:ci-policy`
-- `npm run check:ui-migration`
-- `npm run check:css-ownership`
-- `npm run check:architecture`
-- lint, typecheck and production build
-- exact import/selector/component-owner contracts
-- no new `/insights`, global stylesheet, `!important`, unknown token or legacy-class registration
+The route now composes one local Dashboard module and the existing statement module. Shared Phase 2 primitives own alert, action and empty-state semantics. Planning route compatibility remains outside the Dashboard owner and is preserved for Phase 7.
 
-### Unit and domain
+### Implemented file changes
 
-- current finance/domain tests remain unchanged or are strengthened without rewriting expected calculations;
-- deterministic period label uses the same workspace period source as Dashboard calculations;
-- budget/meter and goal/progress semantics remain internally consistent;
-- action hierarchy and empty-state contracts are source/unit asserted.
+| File/area | Change | Reason |
+|---|---|---|
+| `src/app/dashboard/page.tsx` | remove Dashboard-specific global CSS imports | stop route-level cascade ownership |
+| `src/components/dashboard/dashboard.module.css` | add route-scoped presentation owner | consolidate layout, responsive and forced-colors rules |
+| `src/components/moneyflow-dashboard.tsx` | consume module, Alert and deterministic date path | remove legacy root classes and primitive bypasses |
+| `dashboard-overview-sections.tsx` | compose Button, LinkButton and EmptyState | clarify action hierarchy and semantics |
+| `dashboard-planning-sections.tsx` | correct meter/progress values and icon-link targets | align accessibility semantics without changing calculations |
+| `statement.tsx` / `statement.module.css` | inject workspace date and finish phone/forced-colors ownership | prevent timezone mismatch and global override dependence |
+| `src/lib/dashboard-period.ts` | add deterministic period helper | provide unit-testable period presentation |
+| `src/app/safe-ux-planning.css` | remove Dashboard selectors only | preserve Phase 7 route compatibility |
+| retired Dashboard/withdrawal styles | delete after active-path proof | remove dead cascade bridges |
+| Phase 4 tests | add ownership, period and range contracts | prevent regression to global/ambiguous ownership |
 
-### Browser and accessibility
+### Data and migration impact
 
-- empty, rich and data-error Dashboard;
-- keyboard traversal and visible focus;
-- accessible roles/names/value text for attention, range and action surfaces;
-- Light/Dark/System and forced-colors spot check;
-- Chromium/WebKit responsive matrix;
-- no claim of physical Android/iOS readiness, which remains Phase 11.
+- Schema/migration: none.
+- Backfill: none.
+- Database/Auth/RLS/provider operation: none.
+- Financial formulas: unchanged.
+- Rollback: revert PR #301; no database rollback required.
 
-### Database/provider/production
+### Risks and counterexamples
 
-Not applicable unless implementation unexpectedly crosses one of those boundaries. No deployment or production-data work is authorized by this packet.
-
-## Risks and counterexamples
-
-| Risk/counterexample | Prevention/evidence |
+| Risk | Prevention/evidence |
 |---|---|
-| Local module appears correct only because a later legacy rule still wins | computed-style ownership probes and disable/remove comparison on the implementation branch |
-| Deleting a dead-looking selector breaks a dynamic state | source/DOM interaction coverage plus before/after browser evidence; scanner output alone is insufficient |
-| Mixed `safe-ux-planning.css` extraction restyles Budgets/Goals | preserve non-Dashboard declarations byte/behavior-equivalent and run representative planning-route smoke |
-| Action deduplication removes the only discoverable empty-state path | explicit state/action hierarchy contract and accessible action-count tests |
-| 400% reflow forces money truncation | row/stack recomposition; never solve by clipping or compact formatting that changes truth |
-| Budget over-limit semantics hide the overage | text-first over-limit state and consistent min/max/value text |
-| Container queries add needless complexity | use only when a card genuinely depends on container width; viewport queries remain valid otherwise |
-| Period label changes independently from data | inject one workspace-derived period value through the component tree |
-| PR #294 is merged as a shortcut with stale geometry assertions | close/supersede or rebuild its one-line intent inside the authorized P4 branch after current-main inventory |
-| Dashboard pilot expands into Planning redesign | only Dashboard snapshots and compatibility extraction are in scope; planning route hierarchy remains Phase 7 |
+| Local module appears correct only because a later legacy rule still wins | remove Dashboard selectors from shared/global layers and verify computed behavior in browser audits |
+| Dead-looking selector supports a dynamic state | source contracts plus empty/rich/error and interaction evidence; scanner output alone is insufficient |
+| Planning CSS extraction changes Budgets/Goals | preserve their declarations and run representative planning-route smoke through the existing cross-device matrix |
+| Contextual empty CTA competes with App Shell primary action | use secondary intent and accessible action-role assertions |
+| 400% reflow truncates money | stack/recompose layout; never clip or compact values to alter truth |
+| Budget over-limit semantics hide overage | meter bounds plus explicit written VND overage and percentage text |
+| Period label diverges from data | inject `workspace.today` through one helper and component path |
+| PR #294 reintroduces stale shell assertions | supersede its intent through PR #301 rather than merging the old branch |
+| Dashboard work expands into Planning redesign | preserve planning route behavior; only Dashboard snapshots and compatibility extraction are in scope |
 
-## Rollback and stop conditions
-
-Rollback is a focused revert of the Phase 4 implementation PR(s); no database rollback is expected.
+### Stop conditions
 
 Stop and require a separate specification when:
 
-- a financial formula or domain definition must change;
+- a financial formula or definition must change;
 - safe-to-spend or other financial advice is proposed;
 - a database, migration, Auth, RLS, provider or production-data operation is required;
-- the selected visual identity/direction must change;
-- the work must redesign Budgets, Commitments, Income templates or Goals routes rather than preserve their current behavior.
+- the selected identity or visual direction must change;
+- Budgets, Commitments, Income templates or Goals routes require redesign rather than behavior-preserving compatibility extraction.
+
+## Tasks
+
+| ID | Task | Evidence | Status |
+|---|---|---|---|
+| P4-T1 | Inventory Dashboard render tree, imports, selector owners and PR #294 disposition | current-main source review and packet | completed |
+| P4-T2 | Lock balance, flow, transfer exclusion, no-advice and deterministic-period invariants | source/unit contracts | completed |
+| P4-T3 | Introduce one Dashboard route module and remove page-global imports | import graph and ownership tests | completed |
+| P4-T4 | Finish statement ownership and workspace-derived period | helper/unit/source tests | completed |
+| P4-T5 | Resolve action hierarchy and compose Phase 2 Alert/Button/LinkButton/EmptyState | source and accessibility contracts | completed |
+| P4-T6 | Localize category, recent transaction, attention, weekly and planning snapshot presentation | Dashboard module and component diff | completed |
+| P4-T7 | Correct budget/goal range semantics and non-color over-limit cues | semantic source contracts | completed |
+| P4-T8 | Establish one responsive/forced-colors contract and remove the narrow-width contradiction | module media rules; browser evidence pending | implemented — evaluating |
+| P4-T9 | Remove retired Dashboard and withdrawal bridges after active-path proof | deletion list and zero-active-JSX contracts | completed |
+| P4-T10 | Run exact-head policy/static/tests/build/browser/cross-device/security matrix | workflow runs and artifacts | running |
+| P4-T11 | Owner reviews evidence and decides completion/merge | explicit owner decision | blocked pending P4-T10 |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-06 | researcher/planner | owner | specified | current-main source review plus official Next.js/W3C/MDN guidance | implementation and exact computed-style inventory not authorized | owner reviews this packet; a new explicit instruction may authorize P4 implementation |
+| 2026-08-06 | researcher/planner | owner | specified | current-main review and official sources | implementation unauthorized | owner reviews packet |
+| 2026-08-06 | human_owner | implementer | implementing | “bắt đầu p4” | exact-head verification pending | implement bounded P4 on PR #301 |
+| 2026-08-06 | implementer | evaluator | evaluating | local Dashboard owner, primitive composition, semantics and deletion candidate | static/browser regressions possible | run protected full matrix and fix actual failures |
+
+### Current permission boundary
+
+- Authorized: Phase 4 code, CSS, test and packet writes on PR #301; exact-head verification; disposition stale PR #294.
+- Forbidden: merge, deployment, provider/database/Auth/RLS changes, production-data access, Phase 5 and new identity.
+- Human approval required before: Phase 4 closure and merge.
+
+## Evaluation
+
+### Candidate evidence
+
+Current implementation candidate: `fb9a778026db074eb2144f7f8a5c34faefb3298b` before this packet-schema correction.
+
+Observed so far:
+
+- UI migration classifier passed after removing a retired-route literal from a source-contract regex;
+- database classification correctly reported database checks not required;
+- project knowledge failed only because the earlier packet omitted repository-required top-level headings;
+- no runtime, static, unit, build or browser conclusion is claimed from that failed run;
+- CodeQL and secret-history checks remain exact-head dependent and must be refreshed after documentation changes.
+
+### Required final evidence
+
+- project knowledge and UI migration policy;
+- CSS ownership and architecture;
+- lint and TypeScript;
+- complete unit/static suite;
+- production build;
+- browser smoke;
+- Chromium/WebKit cross-device audit including Dashboard empty/rich/error states;
+- CodeQL;
+- all-ref secret-history scan;
+- retained browser artifacts and digest identifiers where emitted.
+
+### Current limitations
+
+- No physical Android or iOS/Safari claim; physical-device acceptance remains Phase 11.
+- No production deployment or production-data verification is authorized.
+- Visual acceptance remains pending owner review after exact-head evidence is green.
 
 ## Delivery record
 
 - Branch: `agent/ui-phase-4-dashboard-spec`
-- PR: pending
-- Runtime implementation: not started
-- Merge: not authorized
-- Deployment/provider/production data: not authorized
-- Phase 5: not authorized
+- PR: #301
+- Starting main: `75129a6a0f212c12b20763a5d44c2de268832423`
+- Runtime implementation: in progress, unmerged
+- Current ownership result: local Dashboard module plus dedicated statement module
+- Financial-domain behavior change: none
+- Database/provider/production operation: none
+- Phase 5 authorization: not granted
+- Merge authorization: not granted
