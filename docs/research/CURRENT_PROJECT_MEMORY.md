@@ -2,232 +2,230 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-05
-- **Code baseline audited:** `main@481a9ee72663477172b9f727cacbf3f530aa6630`
-- **Owner direction:** the MVP release decision is made — released as MVP at `main@8e08a8a` on 2026-08-03; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate and open
-- **UI-system migration:** parent plan PR #296 is merged; Phase 0 authority and baseline are owner-accepted through PR #297; Phase 1 remains separately governed by PR #298; Phase 2 is not authorized
+- **Code baseline audited before this PR:** `main@8688d95160579eacb908f0162994edba4901fc0c`
+- **Owner direction:** MoneyFlow is released as a functional MVP; validation remains embedded in each workstream and public-beta gates remain separate
+- **UI-system migration:** parent plan PR #296, Phase 0 PR #297 and Phase 1 PR #298 are merged; Phase 2 shared token/primitive ownership is delivered by PR #299; Phase 3 remains unauthorized
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
-- **Release acceptance ledger:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
-- **Release decision record:** `docs/release/MVP_RELEASE_DECISION_2026-08-03.md`
-- **Released MVP SHA:** `main@8e08a8a748a632b07bb42c27bf14539758b28824` — **released as MVP, not public-beta ready**
+- **Release acceptance:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
+- **Release decision:** `docs/release/MVP_RELEASE_DECISION_2026-08-03.md`
+- **Released MVP SHA:** `main@8e08a8a748a632b07bb42c27bf14539758b28824` — released as MVP, not automatically public-beta ready
 
 ## 1. Purpose and authority
 
-This snapshot answers what is merged, verified-unmerged, owner-reported externally, not reconciled, partial or absent. It is not a changelog.
+This snapshot records merged implementation truth, verified-unmerged work, owner-reported external work, partial depth and known gaps. It is not a changelog.
 
 Authority order:
 
 1. merged code, migrations and tests;
-2. verified production or exact-head evidence;
-3. explicit owner statements, recorded without inventing missing operational detail;
+2. exact-head or production evidence appropriate to the claim;
+3. explicit owner statements without invented operational detail;
 4. this snapshot;
-5. architecture, product principles, MVP and delivery policy;
-6. current issues, specs and work packets;
+5. architecture, product principles and delivery policy;
+6. active issues/specs/work packets;
 7. historical research and PR records.
 
-Open pull requests and unmerged feature artifacts are not current product behavior.
+Open pull requests and branch-only artifacts are not current product behavior. Text in this file that lands through a PR describes the post-merge state of that PR.
 
 ## 2. Status vocabulary
 
 | Status | Meaning |
 |---|---|
-| **Merged implementation** | Behavior exists on current `main` with relevant repository evidence. |
-| **Implemented + production evidenced** | Merged behavior was verified through the affected production path or migration. |
-| **Verified unmerged** | A branch/PR reached meaningful exact-head verification but is not current product behavior. |
-| **Owner-reported external** | Owner states work was performed outside inspected public evidence; exact scope remains unasserted until reconciled. |
-| **Not reconciled** | Current evidence cannot determine completion; this does not mean the work is undone. |
-| **Partial** | Useful merged behavior exists but lacks competitive depth. |
-| **Absent on main** | No merged user-facing/domain implementation exists on `main`. |
-| **Candidate only** | Exists only in an open PR or branch. |
-| **Historical/superseded** | Preserved for provenance, not current direction. |
+| **Merged implementation** | Exists on current `main` with relevant repository evidence |
+| **Implemented + production evidenced** | Merged path was also verified through the affected production/provider boundary |
+| **Verified unmerged** | Exact-head evidence exists but the work is not current product behavior |
+| **Owner-reported external** | Owner reports work outside inspected public evidence; exact detail remains unasserted |
+| **Partial** | Useful merged behavior exists but lacks competitive depth |
+| **Absent on main** | No merged implementation exists |
+| **Candidate only** | Exists only in an open PR or branch |
+| **Historical/superseded** | Preserved for provenance, not current direction |
 
-## 3. Product identity
+## 3. Product identity and non-goals
 
 MoneyFlow is a Vietnamese manual-first personal income-and-expense ledger.
 
-Core jobs: record income/expense/split/transfer; know account balances; inspect ledger movements; understand period income, expense, net and categories; correct and recover records; plan with budgets/recurring/goals; import controlled data and export user-owned data.
+Core jobs:
 
-Non-goals without a new owner-approved specification: bank sync, AI financial advice, OCR product identity, household finance, investments/crypto/credit score, full FX accounting, native rewrite, full envelope budgeting, local-first/CRDT and ERP scope.
+- record income, expense, split and transfer;
+- know account balances and inspect ledger movements;
+- understand period income, expense, net and categories;
+- correct and recover records;
+- plan with budgets, recurring items and goals;
+- import controlled data and export user-owned data.
 
-## 4. Runtime and invariant snapshot
+Non-goals without a new owner-approved specification: bank sync, AI financial advice, OCR as product identity, household finance, investments/crypto/credit score, full FX accounting, native rewrite, full envelope budgeting, local-first/CRDT and ERP scope.
 
-- Next.js App Router modular monolith on Vercel; React, TypeScript, Tailwind and shadcn/Base UI/Radix.
+## 4. Runtime and financial invariants
+
+- Next.js App Router modular monolith on Vercel; React, TypeScript, Tailwind and shared Base UI/Radix primitives.
 - Supabase Auth/PostgreSQL with RLS and an explicit browser-local demo runtime.
-- Server workspaces own viewer-aware reads; validated Server Actions and ownership-safe RPCs own financial writes.
-- VND is integer đồng. Transfers are balanced and excluded from income/expense. Split totals remain exact.
-- Destructive ledger actions use soft delete and recovery. Authenticated and demo failures never silently mix.
+- Viewer-aware server reads and validated Server Actions/ownership-safe RPCs own financial writes.
+- VND is integer đồng.
+- Transfers are balanced and excluded from income/expense.
+- Split totals remain exact.
+- Destructive ledger actions use soft delete and recovery where supported.
+- Authenticated and demo failures never silently mix.
 - Missing balances, dates, commitments, income or planning assumptions are never invented.
-- `scripts/mvp-verify.sh` owns deployment-contract, lint, typecheck, unit-test and build verification.
-- Playwright, pgTAP, k6, secret-history scanning and risk-proportional CI cover selected boundaries.
-- Protected CodeQL performs real JavaScript/TypeScript analysis for every pull request.
-- Spec Kit is a feature-artifact interface; MoneyFlow governance, permissions, work packets, PR memory and owner decisions remain authoritative.
 - Build/lint/typecheck do not prove RLS, browser behavior, provider state or production correctness.
+- CodeQL, secret-history scanning and risk-proportional CI remain protected gates.
 
-## 5. Current capability inventory
+## 5. Functional capability snapshot
 
-### MVP summary
+MoneyFlow is functional-MVP complete. Competitive depth and public-beta hardening remain separate.
 
-All 16 capabilities in `docs/MVP_DEFINITION.md` have a merged implementation baseline. MoneyFlow is **functional-MVP complete**. Competitive depth and public-beta hardening are separate from the locked MVP feature set.
+| Capability | Current truth | Remaining distinction |
+|---|---|---|
+| Authentication/demo | Merged email/password, OAuth surfaces, recovery/reset, demo and CAPTCHA plumbing | hosted-provider acceptance remains separate |
+| Accounts | Merged CRUD/archive/restore, balances, transfers and register/detail | reconciliation integration and richer controls |
+| Reconciliation | Verified-unmerged database/domain contract through PR #222 | owner decides integrate or rebuild; no current-main UI |
+| Categories | Merged income/expense category lifecycle | clearer archive-impact depth if required |
+| Transactions | Merged create/search/filter/edit, split/transfer, soft delete/undo and truthful totals | review state, bulk correction and split-line editing |
+| Dashboard | Merged bounded bundle, planning/activity/Inbox summaries and schema-skew fallback | richer attention/drill-down depth |
+| Budgets | Merged current-month category limits and CRUD | history, comparison, copy, rollover and drill-down |
+| Recurring | Merged templates, current-month occurrence/link and pay/undo baseline | history, lifecycle, reminders and matching |
+| Goals | Merged target, allocation, deadline, planned pace and archive | contribution history and funding lifecycle |
+| Reports | Merged period comparisons, totals, category/trend views and transfer exclusion | arbitrary range, account/type dimensions and drill-down |
+| Export | Merged direct CSV plus date-range CSV/JSON bundles | restore documentation and broader planning portability |
+| Import/Inbox | Merged CSV/XLSX/PDF staging, provenance, dry-run, duplicate/transfer planning and atomic approval | presets, batch UX and resume/retry depth |
+| Rules | Partial deterministic local parse rules | authenticated persisted rules |
+| Privacy/deletion | Merged baseline privacy surfaces and recoverable ledger deletion | deep destructive public-beta acceptance |
+| Onboarding/navigation | Merged privacy → wallet → first expense/dashboard and Core/Lab navigation | release-journey acceptance only |
+| Responsive/accessibility | Broad automated route/dialog/device coverage | physical-device acceptance remains separate |
+| CI/security/performance | Risk-selected CI, CodeQL, secret scan, database/browser harnesses and performance documentation | provider/staging capacity claims remain evidence-specific |
 
-| Capability | Current status | Merged behavior now | Remaining distinction |
-|---|---|---|---|
-| Authentication/demo | **Merged implementation; provider detail not reconciled** | email/password, OAuth surfaces, recovery/reset, explicit demo, neutral responses and CAPTCHA token plumbing | hosted provider acceptance remains separate public-beta evidence |
-| Accounts | **Merged implementation, partial depth** | common account kinds, balances, CRUD/archive/restore, same-currency transfer and viewer-scoped register/detail | reconciliation integration and richer controls are post-MVP depth |
-| Reconciliation | **Verified unmerged; absent on main** | PR #222 defined and tested the database/domain contract with 92 pgTAP assertions | owner decides whether to integrate or rebuild; no UI or production migration |
-| Categories | **Merged implementation** | income/expense categories, archive and cross-feature use | clearer archive impact only if evidence requires it |
-| Transactions | **Merged implementation, partial depth** | create/search/filter/edit, soft delete/undo, split/transfer handling, grouping/pagination and truthful totals | review state, bulk correction and split-line editing are post-MVP depth |
-| Transfers | **Merged implementation** | balanced semantics, currency guard, report neutrality, idempotency and register presentation | reconciliation integration only |
-| Dashboard | **Merged implementation + production hardened** | bounded one-RPC bundle, planning/activity/Inbox summaries and schema-skew fallback | attention/drill-down depth |
-| Budgets | **Merged implementation — MVP basic loop** | current-month category limits, spend calculation and CRUD | history, comparison, copy, rollover and drill-down |
-| Recurring commitments | **Merged implementation — partial occurrence model** | templates, current-month occurrence, transaction link, pay/undo and reserved totals | history/states/calendar/reminders/matching |
-| Recurring income | **Merged implementation — partial occurrence model** | templates, current-month occurrence/link and expected totals | history/lifecycle/calendar/reminders/matching |
-| Goals | **Merged implementation — MVP light depth** | target, allocation, deadline, planned pace and archive | contribution history, funding source and lifecycle |
-| Reports | **Merged implementation — moderate depth** | week/month/year, previous comparison, totals/change/category/trends and transfer exclusion | arbitrary range, account/type dimensions and drill-down |
-| Export | **Merged implementation** | direct period CSV from `/reports` plus date-range CSV/JSON transaction/candidate/all bundles | restore docs and broader planning portability |
-| Import/Inbox | **Merged implementation + production evidenced** | CSV/XLSX/PDF, staging/review, provenance, dry-run, duplicate/transfer planning and atomic approval | presets, batch UX, bulk correction and resume/retry depth |
-| Rules | **Partial** | deterministic local parse rules | authenticated persisted rules are post-MVP work |
-| Privacy/deletion | **Merged implementation baseline** | privacy surfaces and recoverable ledger deletion | deep destructive acceptance may remain public-beta hardening |
-| Onboarding/navigation | **Merged implementation** | privacy → wallet → first expense/dashboard and Core/Lab navigation | release-journey acceptance only |
-| Responsive/accessibility | **Merged broad automation; external detail not reconciled** | broad route/dialog matrix, WebKit, rich VND, long Vietnamese, 44px targets and responsive regressions | owner-held physical-device evidence remains separate |
-| CI/security/performance tooling | **Merged implementation** | risk-selected CI, CodeQL, secret scan, grouped Dependabot, dashboard bundle/fallback, k6 contracts, FK coverage and Lighthouse documentation | provider/staging capacity claims remain evidence-specific |
+## 6. UI-system migration truth
 
-## 6. MVP exit evidence
+### Authority and preserved direction
 
-The locked MVP definition has nine exit criteria.
+- `src/app/document-theme.css` is the executable semantic theme/color authority.
+- B3.2/Fresh Blue remains selected.
+- Public routes remain light-only.
+- Signed-in workspace retains Light/Dark/System behavior.
+- Financial colors are functional roles, not decorative palette choices.
+- Guided Story remains the preserved landing direction unless a separate redesign packet is approved.
 
-| Criterion group | Current truth |
-|---|---|
-| lint/typecheck/test, expense e2e, demo build | **Repository evidenced** through exact-head PR #252 verification and merged current content |
-| transfer neutrality | **Repository evidenced** through unit/database/browser invariants |
-| landing G5 copy implementation | **Repository evidenced**; final visual approval is a separate owner decision |
-| export ≤2 clicks | **Repository evidenced**; the merged regression confirms direct CSV and one-click `/settings/export` from `/reports` on Chromium desktop/mobile |
-| Lighthouse documented | **Repository evidenced** in `docs/performance-budgets.md`, including LCP miss, CLS pass and mitigation plan |
-| no known P0 money bug | **Conditional**; post-merge searches found no open issue labeled `P0` or `priority:P0`, but universal absence cannot be proven from a suite or label search |
-| one primary CTA across all core empty states | **Repository evidenced**; the merged deterministic nine-route browser gate passed on Chromium desktop/mobile and records per-route action-region evidence |
+### Phase 0 — accepted baseline
 
-Functional MVP is complete. All nine locked exit criteria are reconciled on current `main@481a9ee`; criterion 8 remains inherently conditional. Provider controls, physical-device proof, final visual direction and approved staging load evidence are separate public-beta gates unless the owner explicitly promotes them.
+PR #297 established the authority index, route/presentation topology and starting debt measurements. The accepted starting figures were two root CSS owners, seven legacy imports, nine document-selector allowlist files, 1,112 `!important` declarations against a temporary 1,200 ceiling and two invisible root presentation contracts. Those are migration-baseline figures, not timeless external standards.
 
-## 7. Load-bearing merged and verified truth
+### Phase 1 — no-new-debt guardrails
 
-- PR #183/#184 merged, migrated and production-smoked atomic Inbox approval, provenance, dry-run, transfer planning and idempotency.
+PR #298 prevents new unowned global CSS layers, CSS import chains, unreviewed `!important`, unknown token references, stale `/insights` use and known legacy-class registration. The rules inspect added lines so existing debt can be migrated incrementally.
+
+The global-CSS freeze, `!important` budget, route rules and legacy-class list are MoneyFlow policy rather than universal Next.js/web requirements.
+
+### Phase 2 — token and primitive ownership
+
+PR #299 establishes:
+
+- additive Button semantic intent/density/target/pending API while preserving compatibility variants/sizes;
+- real-link LinkButton and accessible-name-required IconButton;
+- TextField, native-first SelectField, CheckboxField and native grouped RadioGroup;
+- native modal Dialog and explicit modal/non-modal Sheet;
+- semantic Badge, Alert, Toast/ToastRegion and EmptyState contracts;
+- MoneyValue using existing money-formatting helpers and tabular numerals;
+- source-contract tests for semantics, target policy, native control use, overlay distinction, live-region policy and canonical token references.
+
+Target policy:
+
+- WCAG AA baseline is 24×24 CSS px or a valid defined exception;
+- 44×44 CSS px is the MoneyFlow important-action target for important financial, destructive, confirmation, icon-only, mobile-navigation and frequent-capture controls;
+- 44px is not forced onto every link, button or select.
+
+`MinimumTargetSizeContract` remains compatibility debt because it still combines universal targets, important route actions, action discoverability and responsive layout repairs. Phase 2 classifies its remaining groups but does not remove them.
+
+Success/danger token aliases remain until zero-reference evidence. New semantic primitive references use canonical `--mf-*-subtle` roles. No token value or financial-domain behavior changes in Phase 2.
+
+Storybook was reassessed after the high-value state threshold and remains deferred because current source/unit/browser evidence covers the initial slice and no separate dependency adoption was approved.
+
+### Next UI boundary
+
+Phase 3 App Shell work is not authorized by Phase 2 completion. Later migration must remain route-bounded, preserve financial semantics, document affected target categories and retain rollback/browser evidence.
+
+## 7. Verification and evidence boundaries
+
+- UI/shared-component changes require policy, lint, typecheck, complete tests, production build, browser smoke and cross-device audit when selected.
+- Financial/data work additionally requires affected unit/migration/pgTAP/browser evidence.
+- Provider changes require before/after evidence, rollback and production smoke.
+- Automated browser success does not prove physical-device acceptance or visual quality by itself.
+- A successful job shell is not evidence when initialization/analysis or selected shards were skipped.
+- PR #299 changes no database, auth, RLS, provider or production-data boundary.
+
+## 8. Load-bearing merged and verified truth
+
+- PR #183/#184 merged atomic Inbox approval, provenance, dry-run, transfer planning and idempotency.
 - PR #206/#207 merged dashboard one-RPC hardening and schema-skew fallback.
-- PR #213 merged/deployed one landing/auth/color candidate; implementation evidence is not final visual approval.
-- PR #215 established layered project memory and code/migrations/tests as final executable truth.
 - PR #228/#229 merged account register/detail and deployment/auth-routing evidence.
 - PR #231 merged the Spec Kit adapter without replacing MoneyFlow governance.
-- PR #234/#235 merged transaction date/amount filters and completed their Spec Kit lifecycle.
-- PR #236/#244 merged fourteen FK indexes plus complete-coverage pgTAP; production advisor closure remains separate.
+- PR #234/#235 merged transaction date/amount filters.
+- PR #236/#244 merged complete public-FK index coverage and pgTAP evidence.
 - PR #245 merged grouped monthly Dependabot configuration.
-- PR #249 merged the public-safe provider runbook without provider writes.
-- PR #250 merged the functional-MVP truth audit as `b7b0e1fb2c13e82061d7641f86e6b3c2a9b2bed4`.
-- PR #251 merged the locked release-evidence reconciliation as `6cea2939663df2cf5245ec1e72e7ef186fd7a0cb`.
-- PR #252 merged the locked empty-state/export acceptance regression as `481a9ee72663477172b9f727cacbf3f530aa6630`; final CI #1234, CodeQL #379 and Secret history scan #379 passed before merge, and Vercel reports success for the merge commit.
-- PR #295 merged the reviewed fingerprint-specific repair for the repository-wide secret-history gate without weakening the detector.
-- PR #296 merged the owner-approved UI-system migration parent governance packet.
-- PR #297 records the owner-accepted Phase 0 design authority, presentation baseline and open-work disposition; it becomes current project truth only after merge.
-- PR #222 remains **verified unmerged**, not current behavior and not evidence that reconciliation was never built.
-- On 2026-08-03 the owner stated that several items previously described as undone had already been completed; exact private details must not be invented.
+- PR #249 merged a public-safe provider runbook without provider writes.
+- PR #250/#251/#252 merged functional-MVP audit, release-evidence reconciliation and empty-state/export acceptance.
+- PR #295 restored the repository-wide secret-history gate through a reviewed fingerprint-specific repair.
+- PR #296/#297/#298 merged the UI-system parent plan, Phase 0 baseline and Phase 1 guardrails.
+- PR #299 delivers Phase 2 shared primitive ownership; its PR record owns exact-head closure evidence.
+- PR #222 remains verified unmerged and is not current behavior.
 
-## 8. Reconciled issue status
+## 9. True remaining gaps
 
-| Issue/slice | Current status |
-|---|---|
-| #53 DB invariants/import | **Substantially implemented**; import/provenance production evidenced and complete public-FK coverage merged |
-| #53 reconciliation | **Verified-unmerged contract through PR #222; absent on main** |
-| #53 authenticated rules | **Absent on main; local rules exist** |
-| #53 audit/performance | **Partial**; strong tooling and lab evidence exist, while capacity claims remain profile/provider-specific |
-| #72 UI audit | **Broad automated coverage merged**; exact owner-held physical-device detail not reconciled |
-| #172 product assessment | market-validation warnings remain useful; old feature-freeze framing is superseded |
-| #174 provider controls | repository readiness and runbook merged; later owner execution is **not reconciled** |
-
-## 9. Open pull-request memory
-
-Open PRs are not product truth. Refresh and reverify against current `main` before reuse.
-
-| PR | Interpretation |
-|---|---|
-| #298 | Phase 1 no-new-presentation-debt guardrails; implementation candidate, separately governed and not Phase 0 truth until merged |
-| #170/#171 | old stacked CSS cleanup candidates; compare current CSS ownership and tests before reuse |
-| #119 | logo candidate requiring current browser evidence and explicit owner visual approval |
-
-PR #250, PR #251, PR #252, PR #295 and PR #296 are merged and must not remain candidate-only.
-
-## 10. True gaps after this audit
-
-### Locked MVP release closure — closed
-
-The three remaining actions are done and recorded in `docs/release/MVP_RELEASE_DECISION_2026-08-03.md`:
-
-1. release SHA chosen: `main@8e08a8a`, whose product content is identical to the audited `481a9ee` (`git diff --name-only 481a9ee..8e08a8a` returns no file outside `docs/`) and which carries its own full-gate push-to-main run, CI #1240, including pgTAP, WebKit and the production cross-device UI audit;
-2. no known P0 money blocker confirmed at decision time — label searches for `P0`, `priority:P0`, `p0` and `bug:P0` returned zero open issues, and each open issue was classified as post-MVP depth, a public-beta gate, superseded framing or P2;
-3. explicit owner release decision recorded on 2026-08-03.
-
-**Criterion 8 stays conditional by construction.** The decision accepts knowingly that "no P0 money blocker is known and recorded" is not "none exists". A P0 found after this date opens a fix; it does not retroactively invalidate the decision.
-
-Do not reopen the empty-state/export acceptance run as missing work unless the candidate changes materially or a regression is observed.
-
-### Separate public-beta hardening
+### Public-beta hardening
 
 - reconcile owner-held provider/device/deep-state evidence without exposing private identifiers or data;
 - decide whether final visual-direction approval is required before broader use;
 - run approved staging/provider load or advisor checks only when a capacity claim is needed.
 
-### Post-MVP depth
+### Post-MVP product depth
 
-1. decide whether to integrate or rebuild PR #222 reconciliation;
-2. transaction review state, bounded bulk correction and split-line correction;
-3. budget/recurring/goal history and lifecycle;
-4. report arbitrary range/account/type/drill-down;
-5. import batch UX, authenticated persisted rules, portability and mutation audit.
+- decide whether to integrate or rebuild reconciliation;
+- transaction review state, bounded bulk correction and split-line correction;
+- budget/recurring/goal history and lifecycle;
+- report arbitrary range/account/type/drill-down;
+- import batch UX, authenticated persisted rules, portability and mutation audit.
 
-## 11. Current implementation direction
+### UI migration debt
 
-The MVP release decision is complete. The UI-system migration is now the active presentation-architecture program: the parent plan is merged and Phase 0 establishes the accepted authority and baseline. Phase 1 remains separately reviewed through PR #298; Phase 2 requires a new explicit owner decision.
+- route-by-route adoption of Phase 2 primitives;
+- compatibility-variant and alias retirement after zero-reference evidence;
+- local ownership of responsive repairs currently in the global target contract;
+- final `MinimumTargetSizeContract` removal;
+- physical Android and iOS/Safari acceptance;
+- separately approved component-harness adoption if evidence later justifies it.
 
-Other tracks may proceed independently: ledger trust, planning depth, reports/export, import/rules and measured scale. Reconciliation is post-MVP unless explicitly promoted.
-
-Validation remains embedded in each PR: financial/data work uses unit + migration replay + pgTAP + affected browser evidence; UI work uses responsive/browser and physical-device proof only where claimed; provider changes require before/after evidence, rollback and production smoke. CodeQL remains required on every PR.
-
-## 12. Superseded-status register
+## 10. Superseded-status register
 
 Do not repeat these as current facts:
 
 - CSV import is absent.
 - Rules are entirely absent.
-- Import provenance/dry-run/atomic approval are future work.
-- Reports lack previous-period comparison or trends.
+- Reports lack comparison or trends.
 - Recurring items have no occurrence linkage.
 - Goals lack deadline or pace calculation.
-- Export only supports a current-month CSV.
-- Export still depends on retired `/insights` wording.
-- Lighthouse lab scores are not documented.
+- Export only supports current-month CSV or depends on `/insights`.
 - Dashboard still performs the original authenticated fan-out.
-- CAPTCHA application plumbing is missing.
-- Account register/detail is absent.
-- Transaction date/amount filters are missing or candidate-only.
+- CAPTCHA plumbing, account register/detail or transaction range filters are missing.
 - Reconciliation was never designed or tested.
 - Closed-unmerged PR #222 is current product behavior.
-- Missing public evidence proves the owner did not perform the work.
-- Functional MVP requires every competitive-depth item in the capability matrix.
-- Provider/device acceptance is automatically part of the locked nine-item MVP exit definition.
-- A merged repository test proves private provider state or physical-device acceptance.
-- A successful CodeQL job shell proves scanning when initialization or analysis was skipped.
+- Missing public evidence proves the owner did not perform private work.
+- Functional MVP requires every competitive-depth item.
+- Provider/device acceptance is automatically part of the locked MVP exit definition.
+- Repository tests prove private provider state or physical-device acceptance.
 - Spec Kit replaces MoneyFlow governance.
-- The merged public-experience candidate is owner-approved final design.
-- Feature development must freeze until a seven-day trial.
-- The locked MVP empty-state browser gate is still missing or unmerged.
-- PR #252 is still an open candidate.
-- The UI migration parent plan or Phase 0 baseline is still awaiting owner approval.
+- The UI migration parent, Phase 0 or Phase 1 is still pending.
+- Phase 2 is unauthorized or only documentation.
+- 44×44 is the universal WCAG AA target minimum.
+- Every sheet is modal or every toast should be assertive.
+- A 320px phone viewport alone proves WCAG reflow.
 
-## 13. Update and compaction protocol
+## 11. Update and compaction protocol
 
-Every PR creates exactly one bounded record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md`. A status-changing PR also updates the affected row or section here.
+Every PR changes exactly one bounded record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md`. A status-changing PR also updates the affected row or section here.
 
 Budgets:
 
-- snapshot target: **150–250 lines**;
-- soft warning: above **300 lines** or **32 KiB**;
-- hard failure: above **500 lines** or **64 KiB**;
-- PR record hard failure: above **140 lines** or **12 KiB**.
+- snapshot target: 150–250 lines;
+- soft warning: above 300 lines or 32 KiB;
+- hard failure: above 500 lines or 64 KiB;
+- PR record hard failure: above 140 lines or 12 KiB.
 
 Record private operational evidence only as redacted summaries. Never store secrets, provider identifiers, exact defensive thresholds, request IDs, user financial data or unredacted screenshots here.
