@@ -9,9 +9,14 @@ export type StatementTotals = {
   net: number;
 };
 
-/** Vietnamese month label for the period the flow bar describes. */
-function monthLabel(date = new Date()): string {
-  return `Tháng ${date.getMonth() + 1}`;
+export function dashboardPeriodLabel(today: string): string {
+  const match = /^\d{4}-(\d{2})-\d{2}$/.exec(today);
+  if (!match) return "Kỳ hiện tại";
+  const month = Number(match[1]);
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    return "Kỳ hiện tại";
+  }
+  return `Tháng ${month}`;
 }
 
 /**
@@ -29,15 +34,17 @@ export function flowShares(income: number, expense: number) {
 
 export function DashboardStatement({
   totals,
+  today,
   isEmptyLedger,
   action,
 }: {
   totals: StatementTotals;
+  today: string;
   isEmptyLedger: boolean;
   action?: React.ReactNode;
 }) {
   const shares = flowShares(totals.income, totals.expense);
-  const period = monthLabel();
+  const period = dashboardPeriodLabel(today);
 
   return (
     <section className={styles.statement} aria-labelledby="mf-standing-label">
@@ -50,7 +57,7 @@ export function DashboardStatement({
             amount={totals.balance}
             label="Bạn đang có"
             align="start"
-            className={`${styles.figure} dashboard-standing-money ${
+            className={`${styles.figure} ${
               totals.balance < 0 ? styles.figureNegative : ""
             }`}
           />
@@ -74,9 +81,9 @@ export function DashboardStatement({
             <div
               className={styles.track}
               role="img"
-              aria-label={`${period}: tiền vào ${formatMoney(totals.income)}, tiền ra ${formatMoney(
-                totals.expense,
-              )}`}
+              aria-label={`${period}: tiền vào ${formatMoney(
+                totals.income,
+              )}, tiền ra ${formatMoney(totals.expense)}`}
             >
               <i
                 className={styles.trackExpense}
