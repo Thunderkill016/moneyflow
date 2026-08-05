@@ -12,6 +12,10 @@ const appShellStyles = readFileSync(
   join(root, "src/components/layout/app-shell.module.css"),
   "utf8",
 );
+const sheet = readFileSync(
+  join(root, "src/components/ui/sheet.tsx"),
+  "utf8",
+);
 const layout = readFileSync(join(root, "src/app/layout.tsx"), "utf8");
 const accountsPage = readFileSync(
   join(root, "src/components/accounts-page.tsx"),
@@ -42,6 +46,13 @@ test("App Shell composes the approved shared owners", () => {
   assert.doesNotMatch(appShell, /function Toast\(/u);
 });
 
+test("capture chooser uses deliberate centered modal placement", () => {
+  assert.match(sheet, /type SheetSide = "center" \| "left"/u);
+  assert.match(sheet, /center:\s*"m-auto h-auto/u);
+  assert.match(appShell, /title="Ghi giao dịch"[\s\S]*side="center"/u);
+  assert.match(appShell, /title="Thêm & tài khoản"[\s\S]*side="right"/u);
+});
+
 test("route capabilities replace structural chrome inference", () => {
   assert.match(appShell, /showPrimaryActionOnMobile/u);
   assert.match(accountsPage, /showPrimaryActionOnMobile/u);
@@ -58,7 +69,7 @@ test("viewport and safe-area geometry are explicit and single-owner", () => {
   assert.match(layout, /viewportFit:\s*"cover"/u);
   assert.match(
     appShellStyles,
-    /--mf-shell-mobile-nav-height:\s*68px/u,
+    /--mf-shell-mobile-nav-height:\s*74px/u,
   );
   assert.match(
     appShellStyles,
