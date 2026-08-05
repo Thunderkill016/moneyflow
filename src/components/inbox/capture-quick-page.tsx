@@ -1,11 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
@@ -18,6 +24,7 @@ import type {
   CreateTransactionInput,
   Transaction,
 } from "@/lib/sample-data";
+import styles from "./capture-quick-page.module.css";
 
 type QuickWorkspace = {
   transactions: Transaction[];
@@ -28,8 +35,9 @@ type QuickWorkspace = {
 
 /**
  * Capture → Quick Add (wireframes-inbox §7).
- * Reuses AddTransactionDialog form (embedded) with date + keep-open + remember prefs.
- * Saves to ledger; also records a high-confidence manual candidate (approved).
+ * Reuses the locally owned AddTransactionDialog form in embedded mode with
+ * date, keep-open and remembered preferences. Saves to the ledger and records
+ * an optional high-confidence manual candidate as already approved.
  */
 export function CaptureQuickPage({
   viewer,
@@ -69,12 +77,15 @@ export function CaptureQuickPage({
     const result = await addTransaction(input);
     if (!result.ok) return result;
 
-    const account = workspace.accounts.find((item) => item.id === input.accountId);
-    const category = workspace.categories.find((item) => item.id === input.categoryId);
+    const account = workspace.accounts.find(
+      (item) => item.id === input.accountId,
+    );
+    const category = workspace.categories.find(
+      (item) => item.id === input.categoryId,
+    );
     const merchant = input.note.trim() || category?.name || "Thêm nhanh";
 
     try {
-      // Optional high-confidence trail in inbox store (already committed to ledger).
       await addCandidatesForClient(viewer.isDemo, [
         {
           kind: input.kind,
@@ -94,7 +105,7 @@ export function CaptureQuickPage({
       ]);
       setInboxCount(await getPendingCountForClient(viewer.isDemo));
     } catch {
-      /* candidate mirror is optional — ledger save already succeeded */
+      // Candidate mirroring is optional; the ledger save already succeeded.
     }
 
     setNotice("Đã lưu giao dịch.");
@@ -106,7 +117,8 @@ export function CaptureQuickPage({
     router.push("/capture");
   }
 
-  const hasSetup = workspace.accounts.length > 0 && workspace.categories.length > 0;
+  const hasSetup =
+    workspace.accounts.length > 0 && workspace.categories.length > 0;
 
   return (
     <AppShell
@@ -119,54 +131,77 @@ export function CaptureQuickPage({
       }}
       notice={notice}
     >
-      <main className="dashboard capture-workspace capture-quick-workspace">
-        <section className="transactions-title-row capture-title-row">
-          <div>
-            <p className="eyebrow">
-              <Link className="capture-paste-back" href="/capture">
-                ← Capture
-              </Link>
-            </p>
-            <h1>Thêm nhanh</h1>
+      <main className={styles.workspace} data-slot="capture-quick-workspace">
+        <section className={styles.titleRow} aria-labelledby="capture-quick-title">
+          <div className={styles.titleCopy}>
+            <LinkButton
+              className={styles.eyebrow}
+              href="/capture"
+              intent="quiet"
+              targetSize="important"
+            >
+              ← Capture
+            </LinkButton>
+            <h1 id="capture-quick-title">Thêm nhanh</h1>
             <p>
               Ghi một khoản thu/chi tay — tần suất cao, rủi ro thấp. Tài khoản và danh mục được nhớ
               cho lần sau.
             </p>
           </div>
-          <div className="page-heading-actions">
-            <Link className="secondary-button" href="/inbox">
-              <Icon name="inbox" />
-              Về Inbox
-            </Link>
+          <div className={styles.headingActions}>
+            <LinkButton
+              href="/inbox"
+              intent="secondary"
+              targetSize="important"
+            >
+              <Icon name="inbox" /> Về Inbox
+            </LinkButton>
           </div>
         </section>
 
-        {workspace.dataError && (
-          <section className="panel capture-quick-state" role="alert">
-            <h2>Không tải được dữ liệu</h2>
-            <p>{workspace.dataError}</p>
-            <button type="button" className="secondary-button" onClick={() => router.refresh()}>
+        {workspace.dataError ? (
+          <Alert tone="error" live="assertive" className={styles.state}>
+            <AlertTitle>Không tải được dữ liệu</AlertTitle>
+            <AlertDescription>{workspace.dataError}</AlertDescription>
+            <Button
+              type="button"
+              intent="secondary"
+              targetSize="important"
+              onClick={() => router.refresh()}
+            >
               Thử lại
-            </button>
-          </section>
-        )}
+            </Button>
+          </Alert>
+        ) : null}
 
-        {!workspace.dataError && !hasSetup && (
-          <section className="panel capture-quick-state">
-            <h2>Chưa sẵn sàng thêm giao dịch</h2>
-            <p>Bạn cần ít nhất một tài khoản và danh mục trước khi thêm nhanh.</p>
-            <div className="capture-quick-state-actions">
-              <Link className="primary-button" href="/accounts">
+        {!workspace.dataError && !hasSetup ? (
+          <EmptyState
+            icon={<Icon name="wallet" />}
+            title="Chưa sẵn sàng thêm giao dịch"
+            description="Bạn cần ít nhất một tài khoản và danh mục trước khi thêm nhanh."
+            primaryAction={
+              <LinkButton
+                href="/accounts"
+                intent="primary"
+                targetSize="important"
+              >
                 Quản lý tài khoản
-              </Link>
-              <Link className="secondary-button" href="/capture">
+              </LinkButton>
+            }
+            secondaryAction={
+              <LinkButton
+                href="/capture"
+                intent="secondary"
+                targetSize="important"
+              >
                 Về Capture
-              </Link>
-            </div>
-          </section>
-        )}
+              </LinkButton>
+            }
+            className={styles.state}
+          />
+        ) : null}
 
-        {!workspace.dataError && hasSetup && (
+        {!workspace.dataError && hasSetup ? (
           <AddTransactionDialog
             open={formOpen}
             embedded
@@ -178,7 +213,7 @@ export function CaptureQuickPage({
             categories={workspace.categories}
             disabled={isMutating}
           />
-        )}
+        ) : null}
       </main>
     </AppShell>
   );
