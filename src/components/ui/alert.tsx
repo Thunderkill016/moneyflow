@@ -13,13 +13,13 @@ type AlertProps = React.ComponentProps<"div"> & {
 const toneClass: Record<AlertTone, string> = {
   neutral: "border-border bg-muted text-foreground",
   info:
-    "border-[var(--mf-info-border)] bg-[var(--mf-info-soft)] text-[var(--mf-info-text)]",
+    "border-[var(--mf-info-border)] bg-[var(--mf-info-subtle)] text-[var(--mf-info-text)]",
   success:
-    "border-[var(--mf-income-border)] bg-[var(--mf-income-soft)] text-[var(--mf-income-text)]",
+    "border-[var(--mf-income-border)] bg-[var(--mf-income-subtle)] text-[var(--mf-income-text)]",
   warning:
-    "border-[var(--mf-warning-border)] bg-[var(--mf-warning-soft)] text-[var(--mf-warning-text)]",
+    "border-[var(--mf-warning-border)] bg-[var(--mf-warning-subtle)] text-[var(--mf-warning-text)]",
   error:
-    "border-[var(--mf-expense-border)] bg-[var(--mf-expense-soft)] text-[var(--mf-expense-text)]",
+    "border-[var(--mf-expense-border)] bg-[var(--mf-expense-subtle)] text-[var(--mf-expense-text)]",
 }
 
 function Alert({
