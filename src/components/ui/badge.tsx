@@ -23,15 +23,15 @@ const badgeVariants = cva(
       tone: {
         neutral: "border-border bg-muted text-foreground",
         info:
-          "border-[var(--mf-info-border)] bg-[var(--mf-info-soft)] text-[var(--mf-info-text)]",
+          "border-[var(--mf-info-border)] bg-[var(--mf-info-subtle)] text-[var(--mf-info-text)]",
         income:
-          "border-[var(--mf-income-border)] bg-[var(--mf-income-soft)] text-[var(--mf-income-text)]",
+          "border-[var(--mf-income-border)] bg-[var(--mf-income-subtle)] text-[var(--mf-income-text)]",
         warning:
-          "border-[var(--mf-warning-border)] bg-[var(--mf-warning-soft)] text-[var(--mf-warning-text)]",
+          "border-[var(--mf-warning-border)] bg-[var(--mf-warning-subtle)] text-[var(--mf-warning-text)]",
         expense:
-          "border-[var(--mf-expense-border)] bg-[var(--mf-expense-soft)] text-[var(--mf-expense-text)]",
+          "border-[var(--mf-expense-border)] bg-[var(--mf-expense-subtle)] text-[var(--mf-expense-text)]",
         transfer:
-          "border-[var(--mf-transfer-border)] bg-[var(--mf-transfer-soft)] text-[var(--mf-transfer-text)]",
+          "border-[var(--mf-transfer-border)] bg-[var(--mf-transfer-subtle)] text-[var(--mf-transfer-text)]",
       },
       density: {
         standard: "h-5 px-2 py-0.5",
