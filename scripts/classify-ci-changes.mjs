@@ -2,6 +2,8 @@ import fs from "node:fs";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
+import { runUiMigrationDiffCheck } from "./check-ui-migration-diff.mjs";
+
 const normalize = (value) => value.trim().replaceAll("\\", "/").replace(/^\.\//, "");
 
 const isDocumentationOnlyPath = (file) =>
@@ -23,6 +25,8 @@ const workflowOrPolicyMatchers = [
   startsWith(".github/workflows/"),
   equals("scripts/classify-ci-changes.mjs"),
   equals("scripts/classify-ci-changes.test.mjs"),
+  equals("scripts/check-ui-migration-diff.mjs"),
+  equals("scripts/check-ui-migration-diff.test.mjs"),
 ];
 
 const databaseMatchers = [
@@ -112,7 +116,7 @@ export function classifyChanges(inputFiles, { forceFull = false } = {}) {
       browserSmoke: true,
       uiAudit: true,
       codeql: true,
-      reason: "CI workflow or classifier changed; exercise every gate",
+      reason: "CI workflow or policy changed; exercise every gate",
     };
   }
 
@@ -151,18 +155,14 @@ function writeGithubOutput(entries, destination) {
 }
 
 function runCli() {
+  runUiMigrationDiffCheck();
   const forceFull = process.env.FORCE_FULL === "true";
   const input = fs.readFileSync(0, "utf8").split(/\r?\n/);
   const result = classifyChanges(input, { forceFull });
   const entries = toOutputEntries(result);
 
-  if (process.env.GITHUB_OUTPUT) {
-    writeGithubOutput(entries, process.env.GITHUB_OUTPUT);
-  }
-
+  if (process.env.GITHUB_OUTPUT) writeGithubOutput(entries, process.env.GITHUB_OUTPUT);
   process.stdout.write(`${JSON.stringify({ ...result, outputs: entries }, null, 2)}\n`);
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
-  runCli();
-}
+if (import.meta.url === pathToFileURL(process.argv[1] || "").href) runCli();
