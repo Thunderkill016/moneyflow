@@ -56,7 +56,7 @@ function fieldValues(section, label) {
 
 function isUnresolved(value) {
   if (value === null || value.length === 0) return true;
-  if (/<[^>\n]+>/u.test(value)) return true;
+  if (/^<[^>\n]+>$/u.test(value)) return true;
   if (/^(?:todo|tbd|unknown)\b/iu.test(value)) return true;
   return /^(?:n\/?a|not applicable|none)$/iu.test(value);
 }
