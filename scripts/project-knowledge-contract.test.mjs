@@ -1,3 +1,5 @@
+import "./bootstrap-task-context.test.mjs";
+
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -127,7 +129,9 @@ test("fails when hard memory budgets are exceeded", () => {
 
   withFixture(contract, memory, (root) => {
     const result = validateCurrentProjectMemory(root, contract);
-    assert.ok(result.failures.some((failure) => failure.includes("hard hot-memory budget")));
+    assert.ok(
+      result.failures.some((failure) => failure.includes("hard hot-memory budget")),
+    );
   });
 });
 
