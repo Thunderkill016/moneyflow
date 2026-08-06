@@ -253,6 +253,9 @@
 
 .initialBalance {
   min-width: 0;
+  display: grid;
+  justify-items: start;
+  gap: 3px;
   color: var(--mf-text-muted);
   font-size: 12px;
   line-height: 1.45;
@@ -325,6 +328,18 @@
   background: color-mix(in srgb, var(--mf-surface) 76%, transparent);
 }
 
+@media (max-width: 1100px) {
+  .cardFoot {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .cardActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 900px) {
   .summary {
     grid-template-columns: minmax(0, 1fr);
@@ -390,8 +405,7 @@
     padding: 17px;
   }
 
-  .cardTitleRow,
-  .cardFoot {
+  .cardTitleRow {
     align-items: stretch;
     flex-direction: column;
   }
@@ -403,7 +417,6 @@
   .cardActions {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 100%;
   }
 
   .cardActions > * {
