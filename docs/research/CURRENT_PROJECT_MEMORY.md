@@ -237,10 +237,11 @@ PRs #295–#306 are merged and must not be described as candidates. Older closed
 
 Do not repeat these as current facts:
 
+- Reports lack previous-period comparison or trends.
 - CSV import is absent.
 - Rules are entirely absent.
 - Import provenance/dry-run/atomic approval are future work.
-- Reports lack custom ranges, previous-period comparison or trends.
+- Reports lack custom ranges.
 - Recurring items have no occurrence linkage.
 - Goals lack deadline or pace calculation.
 - Export only supports current-month CSV or depends on `/insights`.
