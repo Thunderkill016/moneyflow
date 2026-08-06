@@ -13,7 +13,7 @@ const appShell = readFileSync(
   "utf8",
 );
 const accountsPage = readFileSync(
-  join(root, "src/components/accounts-page.tsx"),
+  join(root, "src/components/accounts/accounts-workspace.tsx"),
   "utf8",
 );
 const layout = readFileSync(join(root, "src/app/layout.tsx"), "utf8");
