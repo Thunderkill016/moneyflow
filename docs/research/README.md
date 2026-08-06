@@ -16,8 +16,10 @@ Khung nghiên cứu **ứng dụng web quản lý thu chi cá nhân**.
 |---|---|---|
 | Warm-context router | [`docs/context/README.md`](../context/README.md) | Chọn đúng tài liệu theo boundary; không preload toàn bộ repo history |
 | Current project memory | [CURRENT_PROJECT_MEMORY.md](./CURRENT_PROJECT_MEMORY.md) | Snapshot gọn về current truth và true gaps |
+| Machine knowledge contract | [PROJECT_KNOWLEDGE_CONTRACT.json](./PROJECT_KNOWLEDGE_CONTRACT.json) | Heading, reference và size budget ổn định cho policy; không biến prose thành API |
 | Pull-request memory index | [PR_MEMORY_LOG.md](./PR_MEMORY_LOG.md) | Policy, trust boundary và size budget |
 | Per-PR records | `pr-memory/YYYY/QN/PR-<number>.md` | Cold provenance riêng cho từng PR |
+| Historical failure register | [HISTORICAL_FAILURE_REGISTER_2026-08-06.md](./HISTORICAL_FAILURE_REGISTER_2026-08-06.md) | Mẫu lỗi lặp lại, root cause, tầng phát hiện và prevention status |
 | Capability gap matrix | [PRODUCT_CAPABILITY_GAP_MATRIX.md](./PRODUCT_CAPABILITY_GAP_MATRIX.md) | Roadmap nâng chiều sâu các module đang có |
 | Competitive memory | [PRODUCT_COMPETITIVE_MEMORY.md](./PRODUCT_COMPETITIVE_MEMORY.md) | Pattern đối thủ, nguồn và giới hạn không sao chép |
 | UI/UX ledger | [UI_UX_RESEARCH_LEDGER.md](./UI_UX_RESEARCH_LEDGER.md) | Bằng chứng UI/UX tích lũy và concept bị supersede |

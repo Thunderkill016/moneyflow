@@ -20,7 +20,7 @@
     "check:architecture": "node scripts/check-architecture.mjs",
     "ci:status": "node scripts/watch-pr-ci.mjs --once",
     "ci:watch": "node scripts/watch-pr-ci.mjs",
-    "test:ci-policy": "node --test scripts/classify-ci-changes.test.mjs scripts/ci-retry-graph.test.mjs scripts/check-ui-migration-diff.test.mjs scripts/watch-pr-ci.test.mjs",
+    "test:ci-policy": "node --test scripts/classify-ci-changes.test.mjs scripts/ci-retry-graph.test.mjs scripts/check-ui-migration-diff.test.mjs scripts/watch-pr-ci.test.mjs scripts/project-knowledge-contract.test.mjs",
     "mvp-verify": "bash scripts/mvp-verify.sh",
     "check:rls": "bash scripts/check-rls-migrations.sh",
     "test:db": "SUPABASE_TELEMETRY_DISABLED=1 npx supabase test db",
