@@ -14,6 +14,7 @@
     "test:load:public": "k6 run tests/load/public-smoke.js",
     "test:load:dashboard": "k6 run tests/load/authenticated-dashboard.js",
     "check:knowledge": "node scripts/check-project-knowledge.mjs",
+    "task:brief": "node scripts/bootstrap-task-context.mjs",
     "check:deployment-env": "node scripts/check-deployment-env.mjs --force",
     "check:css-ownership": "node scripts/check-css-ownership.mjs",
     "check:ui-migration": "node scripts/check-ui-migration-diff.mjs",
