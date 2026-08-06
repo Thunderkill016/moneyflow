@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const read = (path: string) => readFileSync(path, "utf8");
+const normalizeSource = (source: string) => source.replace(/\s+/gu, " ").trim();
 const browserConfirm = ["window", "confirm"].join(".");
 
 const reports = read("src/components/reports-page.tsx");
@@ -23,11 +24,15 @@ const deletionReceipt = read("src/app/account-deletion-result/page.tsx");
 const timeline = read("src/components/transactions/timeline-workspace.tsx");
 
 test("Reports is locally owned and preserves resolved-range truth", () => {
+  const normalizedReports = normalizeSource(reports);
   assert.match(reports, /SecondaryWorkspace slot="reports-workspace"/);
   assert.match(reports, /data-slot="report-periods"/);
   assert.match(reports, /slot="report-metrics"/);
   assert.match(reports, /aria-describedby="report-trend-data"/);
-  assert.match(reports, /không phải bản sao lưu có thể khôi phục toàn bộ tài khoản/);
+  assert.match(
+    normalizedReports,
+    /không phải bản sao lưu có thể khôi phục toàn bộ tài khoản/,
+  );
   assert.doesNotMatch(reports, new RegExp(browserConfirm.replace(".", "\\.")));
 });
 
@@ -65,7 +70,7 @@ test("Rules and Imports expose review consequences without browser confirms", ()
 });
 
 test("Settings states exact export, parser and deletion capabilities", () => {
-  assert.match(settingsHub, /chưa phải bản sao lưu đầy đủ/i);
+  assert.match(normalizeSource(settingsHub), /chưa phải bản sao lưu đầy đủ/i);
   assert.match(exportPage, /export giao dịch\/Inbox/);
   assert.match(exportPage, /Accounts, categories, budgets, goals/);
   assert.match(privacyPage, /Chưa khả dụng · không ghi consent/);
