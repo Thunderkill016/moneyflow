@@ -4,7 +4,7 @@
   min-width: 0;
   width: 100%;
   padding: clamp(20px, 3vw, 36px);
-  padding-bottom: calc(clamp(28px, 5vw, 56px) + var(--mf-shell-mobile-reserve, 0px));
+  padding-bottom: clamp(28px, 5vw, 56px);
 }
 
 .header {
@@ -36,7 +36,7 @@
 }
 
 .breadcrumb {
-  color: var(--mf-brand);
+  color: var(--mf-brand-text);
   text-decoration: none;
 }
 
@@ -98,10 +98,10 @@
   gap: 7px;
   min-width: 0;
   border: 1px solid var(--mf-border);
-  border-radius: var(--mf-card-radius, 16px);
+  border-radius: 16px;
   background: var(--mf-surface);
   padding: 16px;
-  box-shadow: var(--mf-shadow-xs, 0 1px 2px rgb(15 23 42 / 0.04));
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
 }
 
 .summaryLabel {
@@ -133,7 +133,7 @@
 
 .contained {
   border: 1px solid var(--mf-border);
-  border-radius: var(--mf-card-radius, 16px);
+  border-radius: 16px;
   background: var(--mf-surface);
   padding: clamp(16px, 2.5vw, 24px);
 }
