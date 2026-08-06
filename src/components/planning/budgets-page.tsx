@@ -4,15 +4,26 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { deleteBudgetAction, saveBudgetAction } from "@/app/actions/budgets";
-import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import { PlanningCard } from "@/components/planning/planning-card";
+import {
+  Button,
+  LinkButton,
+  PlanningHeader,
+  PlanningReviewDialog,
+  PlanningSection,
+  PlanningSummary,
+  PlanningSummaryItem,
+  PlanningWorkspace,
+  planningStyles,
+} from "@/components/planning/planning-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { formatMoney } from "@/lib/money";
 import {
-  budgetBarColor,
   budgetProgress,
   budgetRemaining,
   budgetStatusLabel,
@@ -23,7 +34,7 @@ import {
   type BudgetSummary,
   type SaveBudgetInput,
 } from "@/lib/planning/budgets";
-import { budgetToneToCard, PAGE_EMPTY_BUDGET } from "@/lib/planning-pages";
+import { budgetToneToCard } from "@/lib/planning-pages";
 import { categoryMeta, type CategoryOption } from "@/lib/sample-data";
 
 const BudgetDialog = dynamic(
@@ -85,6 +96,7 @@ function monthHref(monthStart: string) {
 export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   const [budgets, setBudgets] = useState(workspace.budgets);
   const [editing, setEditing] = useState<BudgetSummary | null>(null);
+  const [reviewBudget, setReviewBudget] = useState<BudgetSummary | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogVersion, setDialogVersion] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -169,25 +181,28 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
     return result;
   }
 
-  async function removeBudget(budget: BudgetSummary) {
+  function requestRemove(budget: BudgetSummary) {
     if (budget.monthStart !== workspace.monthStart) {
       setNotice("Không thể xóa ngân sách của tháng khác.");
       return;
     }
-    if (!window.confirm(`Xóa hạn mức ${budget.categoryName}? Các giao dịch vẫn được giữ nguyên.`)) {
-      return;
-    }
-    setBusyId(budget.id);
+    setReviewBudget(budget);
+  }
+
+  async function confirmRemove() {
+    if (!reviewBudget) return;
+    setBusyId(reviewBudget.id);
     const result = viewer.isDemo
       ? { ok: true as const }
-      : await deleteBudgetAction(budget.id);
+      : await deleteBudgetAction(reviewBudget.id);
     setBusyId(null);
     if (!result.ok) {
       setNotice(result.message);
       return;
     }
-    setBudgets((current) => current.filter((item) => item.id !== budget.id));
-    setNotice("Đã xóa hạn mức ngân sách.");
+    setBudgets((current) => current.filter((item) => item.id !== reviewBudget.id));
+    setNotice("Đã xóa hạn mức ngân sách. Các giao dịch vẫn được giữ nguyên.");
+    setReviewBudget(null);
   }
 
   return (
@@ -205,121 +220,97 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
       }}
       notice={notice}
     >
-      <main className="dashboard budgets-workspace">
+      <PlanningWorkspace>
         {workspace.dataError ? (
-          <div className="data-alert" role="alert">
-            <Icon name="bell" />
-            <span>{workspace.dataError}</span>
-          </div>
+          <Alert tone="error" live="assertive">
+            <AlertDescription>{workspace.dataError}</AlertDescription>
+          </Alert>
         ) : null}
-
         {adjustmentNotice ? (
-          <div className="data-alert budget-month-notice" role="status">
-            <Icon name="bell" />
-            <span>{adjustmentNotice}</span>
-          </div>
+          <Alert tone="warning" live="polite">
+            <AlertDescription>{adjustmentNotice}</AlertDescription>
+          </Alert>
         ) : null}
 
-        <section className="budgets-heading">
-          <div>
-            <p className="eyebrow">
-              <Link href="/insights" className="planning-back-link">
-                Insights
-              </Link>
-              {" · "}Kế hoạch chi tiêu
-            </p>
-            <h1>Ngân sách</h1>
-            <p>
-              {monthLabel} · Hạn mức, đã chi và còn lại được đặt cạnh nhau để dễ quyết
-              định.
-            </p>
-          </div>
-        </section>
+        <PlanningHeader
+          section="Kế hoạch chi tiêu"
+          title="Ngân sách"
+          description={`${monthLabel} · So sánh hạn mức với số đã chi và mở đúng giao dịch đứng sau mỗi tổng.`}
+          truthNote="Ngân sách là hạn mức theo danh mục cho từng tháng. MoneyFlow không chuyển tiền vào phong bì, không tự phân bổ số dư và không cộng dồn hạn mức sang tháng sau."
+        />
 
-        <section className="budget-month-controls" aria-label="Chọn tháng ngân sách">
-          <Link href={monthHref(workspace.previousMonthStart)} className="budget-month-link">
-            <Icon name="arrowRight" className="budget-month-icon-previous" />
+        <section className={planningStyles.periodNav} aria-label="Chọn tháng ngân sách" data-slot="planning-period-nav">
+          <Link href={monthHref(workspace.previousMonthStart)} className={planningStyles.periodLink}>
+            <Icon name="arrowRight" />
             Tháng trước
           </Link>
-          <form action="/budgets" method="get" className="budget-month-form">
+          <form action="/budgets" method="get" className={planningStyles.periodForm}>
             <label htmlFor="budget-month">Tháng đang xem</label>
-            <div>
+            <div className={planningStyles.periodFormRow}>
               <input
                 id="budget-month"
                 name="month"
                 type="month"
                 defaultValue={workspace.monthStart.slice(0, 7)}
               />
-              <button type="submit">Xem tháng</button>
+              <Button type="submit" intent="secondary" targetSize="important">
+                Xem tháng
+              </Button>
             </div>
           </form>
           {workspace.canGoNext ? (
-            <Link href={monthHref(workspace.nextMonthStart)} className="budget-month-link">
+            <Link href={monthHref(workspace.nextMonthStart)} className={planningStyles.periodLink}>
               Tháng sau
               <Icon name="arrowRight" />
             </Link>
           ) : (
-            <span className="budget-month-link is-disabled" aria-disabled="true">
+            <span className={planningStyles.periodDisabled} aria-disabled="true">
               Tháng sau
               <Icon name="arrowRight" />
             </span>
           )}
         </section>
 
-        <section className="budget-overview" aria-label="Tổng quan ngân sách">
-          <div>
-            <span>Tổng hạn mức</span>
-            <MoneyValue amount={totals.limit} emphasis="strong" />
-            <small>
-              {comparisonText(
-                totals.limit,
-                hasPreviousData ? previousTotals.limit : null,
-              )}
-            </small>
-          </div>
-          <div>
-            <span>Đã chi</span>
-            <MoneyValue amount={totals.spent} emphasis="strong" />
-            <small>
-              {comparisonText(
-                totals.spent,
-                hasPreviousData ? previousTotals.spent : null,
-              )}
-            </small>
-          </div>
-          <div>
-            <span>{totals.spent > totals.limit ? "Đã vượt" : "Còn lại"}</span>
+        <PlanningSummary label="Tổng quan ngân sách">
+          <PlanningSummaryItem
+            label="Tổng hạn mức"
+            meta={comparisonText(totals.limit, hasPreviousData ? previousTotals.limit : null)}
+          >
+            <MoneyValue amount={totals.limit} emphasis="strong" align="start" />
+          </PlanningSummaryItem>
+          <PlanningSummaryItem
+            label="Đã chi"
+            meta={comparisonText(totals.spent, hasPreviousData ? previousTotals.spent : null)}
+          >
+            <MoneyValue amount={totals.spent} emphasis="strong" align="start" />
+          </PlanningSummaryItem>
+          <PlanningSummaryItem
+            label={totals.spent > totals.limit ? "Đã vượt" : "Còn lại"}
+            meta={hasPreviousData ? `Đối chiếu với ${previousMonthLabel}.` : "Chưa có dữ liệu tháng trước."}
+          >
             <MoneyValue
               amount={Math.abs(totals.limit - totals.spent)}
               emphasis="strong"
-              className={totals.spent > totals.limit ? "negative" : "positive"}
+              align="start"
             />
-            <small>
-              {hasPreviousData
-                ? `Đối chiếu với ${previousMonthLabel}.`
-                : "Chưa có dữ liệu tháng trước."}
-            </small>
-          </div>
-        </section>
+          </PlanningSummaryItem>
+        </PlanningSummary>
 
-        {budgets.length ? (
-          <section className="budget-list-section">
-            <div className="section-heading">
-              <div>
-                <h2>Theo danh mục</h2>
-                <p>Chọn “Xem giao dịch” để kiểm tra đúng các khoản của {monthLabel}.</p>
-              </div>
-            </div>
-
-            <div className="budget-card-grid">
+        <PlanningSection
+          title="Theo danh mục"
+          description={`Chọn “Xem giao dịch” để kiểm tra đúng các khoản của ${monthLabel}.`}
+          slot="budget-list"
+        >
+          {budgets.length ? (
+            <div className={planningStyles.grid}>
               {budgets.map((budget) => {
                 const progress = budgetProgress(budget);
                 const remaining = budgetRemaining(budget);
                 const level = budgetThreshold(budget);
+                const tone = budgetToneToCard(level);
                 const statusText = budgetStatusLabel(budget);
                 const meta =
                   categoryMeta[budget.categoryName] ?? categoryMeta["Thu nhập khác"];
-                const isOver = remaining < 0;
                 const previousBudget = previousByCategory.get(budget.categoryId);
                 const transactionHref = budgetTransactionsHref(
                   workspace.monthStart,
@@ -327,54 +318,47 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
                 );
 
                 return (
-                  <PlanningCard
-                    key={budget.id}
-                    tone={budgetToneToCard(level)}
-                    className="budget-category-card"
-                  >
-                    <div className="budget-category-top">
-                      <span className={`transaction-icon ${meta.color}`}>
+                  <PlanningCard key={budget.id} tone={tone}>
+                    <div className={planningStyles.cardTop}>
+                      <span className={planningStyles.icon}>
                         <Icon name={meta.icon as IconName} />
                       </span>
-                      <div>
+                      <div className={planningStyles.cardTitle}>
                         <h3>{budget.categoryName}</h3>
-                        <p>
-                          <span className="budget-status-text">{statusText}</span>
-                        </p>
+                        <p>{monthLabel}</p>
                       </div>
-                      <strong aria-label={`Đã dùng ${Math.min(progress, 999)} phần trăm`}>
-                        {Math.min(progress, 999)}%
-                      </strong>
+                      <span className={planningStyles.status} data-slot="planning-card-status">
+                        {statusText} · {Math.min(progress, 999)}%
+                      </span>
                     </div>
 
-                    <div className="budget-category-metrics">
-                      <div>
-                        <span>Hạn mức</span>
-                        <MoneyValue amount={budget.limit} emphasis="strong" />
+                    <div className={planningStyles.metrics}>
+                      <div className={planningStyles.metric}>
+                        <span className={planningStyles.metricLabel}>Hạn mức</span>
+                        <MoneyValue amount={budget.limit} emphasis="strong" align="start" />
                       </div>
-                      <div>
-                        <span>Đã chi</span>
-                        <MoneyValue amount={budget.spent} emphasis="strong" />
+                      <div className={planningStyles.metric}>
+                        <span className={planningStyles.metricLabel}>Đã chi</span>
+                        <MoneyValue amount={budget.spent} emphasis="strong" align="start" />
                       </div>
-                      <div>
-                        <span>{isOver ? "Vượt" : "Còn lại"}</span>
-                        <MoneyValue
-                          amount={Math.abs(remaining)}
-                          emphasis="strong"
-                          className={isOver ? "negative" : "positive"}
-                        />
+                      <div className={planningStyles.metric}>
+                        <span className={planningStyles.metricLabel}>
+                          {remaining < 0 ? "Vượt" : "Còn lại"}
+                        </span>
+                        <MoneyValue amount={Math.abs(remaining)} emphasis="strong" align="start" />
                       </div>
                     </div>
 
                     {previousBudget ? (
-                      <p className="budget-prior-context">
-                        {previousMonthLabel}: hạn mức {formatMoney(previousBudget.limit)}, đã chi{" "}
-                        {formatMoney(previousBudget.spent)}.
+                      <p className={planningStyles.context}>
+                        {previousMonthLabel}: hạn mức {formatMoney(previousBudget.limit)}, đã chi {formatMoney(previousBudget.spent)}.
                       </p>
-                    ) : null}
+                    ) : (
+                      <p className={planningStyles.context}>Chưa có hạn mức cùng danh mục ở tháng trước.</p>
+                    )}
 
                     <div
-                      className="budget-track"
+                      className={planningStyles.progress}
                       role="progressbar"
                       aria-valuenow={Math.min(progress, 100)}
                       aria-valuemin={0}
@@ -382,57 +366,64 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
                       aria-label={`${statusText}. Đã dùng ${progress} phần trăm`}
                     >
                       <span
-                        style={{
-                          width: `${Math.min(100, progress)}%`,
-                          backgroundColor: budgetBarColor(level),
-                        }}
+                        className={planningStyles.progressFill}
+                        data-tone={tone}
+                        style={{ width: `${Math.min(100, progress)}%` }}
                       />
                     </div>
 
-                    <div className="budget-category-actions">
-                      <Link
+                    <div className={planningStyles.actions} data-slot="planning-card-actions">
+                      <LinkButton
                         href={transactionHref}
+                        intent="primary"
+                        targetSize="important"
                         aria-label={`Xem giao dịch danh mục ${budget.categoryName} trong ${monthLabel}`}
                       >
-                        <Icon name="arrowRight" />
-                        Xem giao dịch
-                      </Link>
-                      <button type="button" onClick={() => openDialog(budget)}>
-                        <Icon name="edit" />
-                        Sửa
-                      </button>
-                      <button
+                        <Icon name="arrowRight" /> Xem giao dịch
+                      </LinkButton>
+                      <Button
                         type="button"
-                        onClick={() => removeBudget(budget)}
-                        disabled={busyId === budget.id}
+                        intent="secondary"
+                        targetSize="important"
+                        onClick={() => openDialog(budget)}
                       >
-                        <Icon name="trash" />
-                        Xóa hạn mức
-                      </button>
+                        <Icon name="edit" /> Sửa
+                      </Button>
+                      <Button
+                        type="button"
+                        intent="quiet"
+                        targetSize="important"
+                        disabled={busyId === budget.id}
+                        onClick={() => requestRemove(budget)}
+                      >
+                        <Icon name="trash" /> Xóa hạn mức
+                      </Button>
                     </div>
                   </PlanningCard>
                 );
               })}
             </div>
-          </section>
-        ) : (
-          <EmptyState
-            icon={PAGE_EMPTY_BUDGET.icon}
-            title={`Chưa có ngân sách cho ${monthLabel}`}
-            description="Tháng này chưa có hạn mức theo danh mục. Bạn có thể thêm hạn mức mà không ảnh hưởng các tháng khác."
-            actionLabel={
-              !workspace.dataError && availableCategories.length
-                ? PAGE_EMPTY_BUDGET.actionLabel
-                : undefined
-            }
-            onAction={
-              !workspace.dataError && availableCategories.length
-                ? () => openDialog(null)
-                : undefined
-            }
-          />
-        )}
-      </main>
+          ) : (
+            <EmptyState
+              icon={<Icon name="target" />}
+              title={`Chưa có ngân sách cho ${monthLabel}`}
+              description="Tháng này chưa có hạn mức theo danh mục. Thêm hạn mức không ảnh hưởng các tháng khác."
+              primaryAction={
+                !workspace.dataError && availableCategories.length ? (
+                  <Button
+                    type="button"
+                    intent="primary"
+                    targetSize="important"
+                    onClick={() => openDialog(null)}
+                  >
+                    <Icon name="plus" /> Tạo ngân sách đầu tiên
+                  </Button>
+                ) : undefined
+              }
+            />
+          )}
+        </PlanningSection>
+      </PlanningWorkspace>
 
       <BudgetDialog
         key={`${workspace.monthStart}-${editing?.id ?? "new"}-${dialogVersion}`}
@@ -446,6 +437,27 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
         monthStart={workspace.monthStart}
         onClose={() => setDialogOpen(false)}
         onSave={save}
+      />
+      <PlanningReviewDialog
+        open={Boolean(reviewBudget)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !busyId) setReviewBudget(null);
+        }}
+        title="Xóa hạn mức ngân sách?"
+        description="Kiểm tra đúng danh mục và tháng trước khi tiếp tục."
+        details={[
+          { label: "Danh mục", value: reviewBudget?.categoryName ?? "" },
+          { label: "Tháng", value: monthLabel },
+          {
+            label: "Hạn mức",
+            value: reviewBudget ? formatMoney(reviewBudget.limit) : "",
+          },
+        ]}
+        consequence="Chỉ hạn mức của tháng này bị xóa. Các giao dịch và số dư tài khoản vẫn được giữ nguyên."
+        confirmLabel="Xóa hạn mức"
+        confirmIntent="destructive"
+        pending={Boolean(reviewBudget && busyId === reviewBudget.id)}
+        onConfirm={confirmRemove}
       />
     </AppShell>
   );
