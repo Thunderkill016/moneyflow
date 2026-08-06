@@ -48,6 +48,17 @@ test("parseArgs requires explicit task, boundary and risk class", () => {
       listBoundaries: false,
     },
   );
+  assert.equal(
+    parseArgs([
+      "--task",
+      "Update docs",
+      "--boundary",
+      "product",
+      "--class",
+      "0",
+    ]).riskClass,
+    0,
+  );
   assert.throws(
     () => parseArgs(["--task", "x", "--boundary", "ui"]),
     /--class/,
@@ -82,8 +93,12 @@ test("verification plan remains risk proportional", () => {
     "npm run check:knowledge",
     "npm run test:ci-policy",
   ]);
+
+  const uiPlan = buildVerificationPlan(2);
+  assert.ok(uiPlan.required.includes("npm run test:e2e"));
+  assert.equal(uiPlan.required.includes("npm run test:ui-audit:pr"), false);
   assert.ok(
-    buildVerificationPlan(2).required.includes("npm run test:ui-audit:pr"),
+    uiPlan.conditional.some((entry) => entry.includes("test:ui-audit:pr")),
   );
   assert.match(buildVerificationPlan(3).planning, /full work packet/);
 });
@@ -140,5 +155,6 @@ test("manifest and markdown expose only selected context and gates", () => {
   assert.match(markdown, /Migrate Reports workspace/);
   assert.match(markdown, /docs\/design-system\.md/);
   assert.match(markdown, /test:ui-audit:pr/);
+  assert.match(markdown, /only when a visual\/layout surface changes|layout, styling/);
   assert.doesNotMatch(markdown, /CI\/deployment\/performance/);
 });
