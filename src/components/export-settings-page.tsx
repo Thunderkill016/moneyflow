@@ -1,9 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import {
+  SecondaryHeader,
+  SecondarySection,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   buildExportContent,
@@ -21,6 +27,7 @@ import {
 import { recordPrivacyExport } from "@/lib/privacy-prefs";
 import type { Transaction } from "@/lib/sample-data";
 import { readStoredTransactions } from "@/lib/transaction-store";
+import styles from "./settings/settings-surfaces.module.css";
 
 type ExportWorkspace = {
   transactions: Transaction[];
@@ -28,10 +35,6 @@ type ExportWorkspace = {
   dataError: string | null;
 };
 
-/**
- * Export data (wireframes-inbox §19).
- * Client-side CSV/JSON for approved txns and/or inbox candidates.
- */
 export function ExportSettingsPage({
   viewer,
   workspace,
@@ -39,17 +42,12 @@ export function ExportSettingsPage({
   viewer: ViewerSummary;
   workspace: ExportWorkspace;
 }) {
-  const formId = useId();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [ledgerWarning, setLedgerWarning] = useState<string | null>(
-    workspace.dataError,
-  );
+  const [ledgerWarning, setLedgerWarning] = useState<string | null>(workspace.dataError);
   const [inboxCount, setInboxCount] = useState(0);
   const [candidates, setCandidates] = useState<InboxCandidate[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>(
-    workspace.transactions,
-  );
+  const [transactions, setTransactions] = useState<Transaction[]>(workspace.transactions);
   const [kind, setKind] = useState<ExportDataKind>("transactions");
   const [format, setFormat] = useState<ExportFormat>("csv");
   const [from, setFrom] = useState("");
@@ -64,11 +62,7 @@ export function ExportSettingsPage({
       const storedCandidates = readStoredCandidates();
       setCandidates(storedCandidates);
       setInboxCount(countPending(storedCandidates));
-      if (viewer.isDemo) {
-        setTransactions(readStoredTransactions());
-      } else {
-        setTransactions(workspace.transactions);
-      }
+      setTransactions(viewer.isDemo ? readStoredTransactions() : workspace.transactions);
     } catch {
       setError("Không đọc được dữ liệu xuất từ trình duyệt. Thử tải lại trang.");
     }
@@ -80,7 +74,7 @@ export function ExportSettingsPage({
       setReady(true);
     });
     return () => window.cancelAnimationFrame(frame);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only hydrate
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per route load
   }, []);
 
   useEffect(() => {
@@ -90,7 +84,6 @@ export function ExportSettingsPage({
   }, [notice]);
 
   const effectiveFormat: ExportFormat = kind === "all" ? "json" : format;
-
   const preview = useMemo(() => {
     try {
       return buildExportContent({
@@ -106,7 +99,8 @@ export function ExportSettingsPage({
   }, [kind, effectiveFormat, transactions, candidates, from, to]);
 
   const isEmpty = preview !== null && preview.count === 0;
-  const canDownload = ready && !error && !exporting && preview !== null && preview.count > 0;
+  const canDownload =
+    ready && !error && !exporting && preview !== null && preview.count > 0;
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -116,14 +110,19 @@ export function ExportSettingsPage({
       const filename = exportFilename(kind, preview.extension, { from, to });
       downloadTextFile(filename, preview.body, preview.mime);
       recordPrivacyExport();
-      setNotice(
-        `Đã tải ${preview.count} mục (${preview.extension.toUpperCase()}).`,
-      );
+      setNotice(`Đã tải ${preview.count} mục (${preview.extension.toUpperCase()}).`);
     } catch {
       setError("Không tạo được file tải xuống. Thử lại.");
     } finally {
       setExporting(false);
     }
+  }
+
+  function resetForm() {
+    setFrom("");
+    setTo("");
+    setKind("transactions");
+    setFormat("csv");
   }
 
   return (
@@ -133,107 +132,109 @@ export function ExportSettingsPage({
       notice={notice}
       primaryAction={{
         label: exporting ? "Đang xuất…" : "Tải xuống",
-        onClick: () => {
-          const form = document.getElementById(formId) as HTMLFormElement | null;
-          form?.requestSubmit();
-        },
+        onClick: () =>
+          (document.getElementById("export-data-form") as HTMLFormElement | null)?.requestSubmit(),
         disabled: !canDownload,
         icon: "arrowDown",
       }}
     >
-      <main className="dashboard privacy-workspace export-workspace">
-        <section className="transactions-title-row">
-          <div>
-            <p className="eyebrow">Cài đặt</p>
-            <h1>Xuất dữ liệu</h1>
-            <p>
-              <strong>Dữ liệu của bạn thuộc về bạn.</strong> Tải sổ thu chi
-              (CSV/JSON) bất cứ lúc nào. File được tạo trên thiết bị của bạn —
-              không gửi lên máy chủ chỉ để xuất.
-            </p>
-            <ul className="settings-trust-bar" aria-label="Cam kết tin cậy">
-              <li>
-                <Icon name="arrowDown" size={14} />
-                <span>Xuất CSV bất cứ lúc nào</span>
-              </li>
-              <li>
-                <Icon name="lock" size={14} />
-                <span>File trên thiết bị</span>
-              </li>
-            </ul>
-          </div>
-          <div className="page-heading-actions">
-            <Link className="secondary-button" href="/settings">
-              <Icon name="settings" />
-              Cài đặt
-            </Link>
-            <Link className="secondary-button" href="/settings/privacy">
-              <Icon name="lock" />
-              Quyền riêng tư
-            </Link>
-          </div>
-        </section>
+      <SecondaryWorkspace slot="settings-export-workspace">
+        <SecondaryHeader
+          section="Cài đặt · Quyền dữ liệu"
+          title="Xuất giao dịch và Inbox"
+          description={
+            <>
+              <p>
+                File được tạo trên thiết bị từ giao dịch và ứng viên Inbox mà
+                MoneyFlow hiện hỗ trợ xuất. Không có file nào được gửi lên máy chủ
+                chỉ để tạo bản tải xuống.
+              </p>
+              <ul className={styles.trustBar} aria-label="Phạm vi xuất">
+                <li>
+                  <Icon name="arrowDown" />
+                  CSV hoặc JSON
+                </li>
+                <li>
+                  <Icon name="lock" />
+                  Tạo file trên thiết bị
+                </li>
+              </ul>
+            </>
+          }
+          actions={
+            <>
+              <LinkButton href="/settings" intent="secondary" targetSize="important">
+                Cài đặt
+              </LinkButton>
+              <LinkButton
+                href="/settings/privacy"
+                intent="secondary"
+                targetSize="important"
+              >
+                Quyền riêng tư
+              </LinkButton>
+            </>
+          }
+        />
 
-        {!ready && (
-          <section
-            className="panel privacy-loading"
-            aria-busy="true"
-            aria-label="Đang tải trang xuất dữ liệu"
-          >
-            <div className="loading-line wide" />
-            <div className="loading-line" />
-            <div className="loading-line" />
+        <Alert tone="warning" live="polite">
+          <AlertDescription>
+            Đây là <strong>export giao dịch/Inbox</strong>, chưa phải bản sao lưu
+            đầy đủ có thể khôi phục tài khoản. Accounts, categories, budgets, goals,
+            templates, rules và settings chưa được đóng gói thành archive restore.
+          </AlertDescription>
+        </Alert>
+
+        {!ready ? (
+          <section className={styles.loading} aria-busy="true" aria-label="Đang tải trang xuất">
+            <span />
+            <span />
+            <span />
           </section>
-        )}
+        ) : null}
 
-        {ready && error && (
-          <section className="panel privacy-error" role="alert">
-            <p>{error}</p>
-            <button type="button" className="secondary-button" onClick={reload}>
-              Thử lại
-            </button>
-          </section>
-        )}
+        {ready && error ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertAction}>
+              <span>{error}</span>
+              <Button type="button" intent="secondary" targetSize="important" onClick={reload}>
+                Thử lại
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        {ready && !error && ledgerWarning && (
-          <section className="panel export-warning" role="status">
-            <p>
-              {ledgerWarning} Bạn vẫn có thể xuất ứng viên Inbox trên thiết bị
-              này.
-            </p>
-          </section>
-        )}
+        {ready && !error && ledgerWarning ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              {ledgerWarning} Bạn vẫn có thể xuất ứng viên Inbox lưu trên thiết bị này.
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        {ready && !error && (
-          <form
-            id={formId}
-            className="privacy-form export-form"
-            onSubmit={onSubmit}
-            noValidate
-          >
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-kind-heading`}
+        {ready && !error ? (
+          <form id="export-data-form" className={styles.form} onSubmit={onSubmit} noValidate>
+            <SecondarySection
+              title="Loại dữ liệu"
+              description={<p>Chọn đúng tập bản ghi cần tải.</p>}
+              contained
+              slot="settings-section"
             >
-              <h2 id={`${formId}-kind-heading`}>Loại dữ liệu</h2>
-              <fieldset className="privacy-fieldset">
+              <fieldset>
                 <legend className="sr-only">Loại dữ liệu xuất</legend>
-                <div
-                  className="privacy-radio-list"
-                  role="radiogroup"
-                  aria-label="Loại dữ liệu"
-                >
+                <div className={styles.radioList}>
                   {EXPORT_KIND_OPTIONS.map((option) => {
-                    const inputId = `${formId}-kind-${option.value}`;
                     const selected = kind === option.value;
                     return (
                       <label
                         key={option.value}
-                        htmlFor={inputId}
-                        className={`privacy-radio-card${selected ? " is-selected" : ""}`}
+                        className={
+                          selected
+                            ? `${styles.radioCard} ${styles.radioSelected}`
+                            : styles.radioCard
+                        }
                       >
                         <input
-                          id={inputId}
                           type="radio"
                           name="exportKind"
                           value={option.value}
@@ -244,161 +245,127 @@ export function ExportSettingsPage({
                           }}
                           disabled={exporting}
                         />
-                        <span className="privacy-radio-body">
-                          <span className="privacy-radio-label">
-                            {option.label}
-                          </span>
-                          <span className="privacy-radio-desc">
-                            {option.description}
-                          </span>
+                        <span className={styles.radioBody}>
+                          <span className={styles.radioLabel}>{option.label}</span>
+                          <span className={styles.radioDescription}>{option.description}</span>
                         </span>
                       </label>
                     );
                   })}
                 </div>
               </fieldset>
-            </section>
+            </SecondarySection>
 
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-range-heading`}
+            <SecondarySection
+              title="Khoảng ngày"
+              description={<p>Để trống để xuất toàn bộ bản ghi thuộc loại đã chọn.</p>}
+              contained
+              slot="settings-section"
             >
-              <h2 id={`${formId}-range-heading`}>Khoảng ngày</h2>
-              <p className="privacy-panel-lead">
-                Lọc theo ngày giao dịch / ứng viên (YYYY-MM-DD). Để trống để xuất
-                toàn bộ.
-              </p>
-              <div className="export-date-row">
-                <label className="export-date-field" htmlFor={`${formId}-from`}>
-                  <span>Từ</span>
+              <div className={styles.dateRow}>
+                <label className={styles.dateField}>
+                  <span>Từ ngày</span>
                   <input
-                    id={`${formId}-from`}
                     type="date"
                     value={from}
                     max={to || workspace.today || undefined}
-                    onChange={(e) => setFrom(e.target.value)}
+                    onChange={(event) => setFrom(event.target.value)}
                     disabled={exporting}
                   />
                 </label>
-                <label className="export-date-field" htmlFor={`${formId}-to`}>
-                  <span>Đến</span>
+                <label className={styles.dateField}>
+                  <span>Đến ngày</span>
                   <input
-                    id={`${formId}-to`}
                     type="date"
                     value={to}
                     min={from || undefined}
                     max={workspace.today || undefined}
-                    onChange={(e) => setTo(e.target.value)}
+                    onChange={(event) => setTo(event.target.value)}
                     disabled={exporting}
                   />
                 </label>
               </div>
-            </section>
+            </SecondarySection>
 
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-format-heading`}
+            <SecondarySection
+              title="Định dạng"
+              description={
+                <p>
+                  {kind === "all"
+                    ? "Gói giao dịch + Inbox luôn dùng JSON để giữ cấu trúc."
+                    : "CSV thuận tiện cho bảng tính; JSON giữ cấu trúc trường."}
+                </p>
+              }
+              contained
+              slot="settings-section"
             >
-              <h2 id={`${formId}-format-heading`}>Định dạng</h2>
               {kind === "all" ? (
-                <p className="privacy-panel-lead">
-                  Toàn bộ luôn xuất dạng <strong>JSON</strong> (gộp sổ + inbox).
-                </p>
+                <span className={styles.capabilityStatus}>JSON bắt buộc</span>
               ) : (
-                <fieldset className="privacy-fieldset">
-                  <legend className="sr-only">Định dạng file</legend>
-                  <div
-                    className="export-format-row"
-                    role="radiogroup"
-                    aria-label="Định dạng file"
-                  >
-                    {(
-                      [
-                        { value: "csv" as const, label: "CSV" },
-                        { value: "json" as const, label: "JSON" },
-                      ] as const
-                    ).map((option) => {
-                      const inputId = `${formId}-fmt-${option.value}`;
-                      const selected = format === option.value;
-                      return (
-                        <label
-                          key={option.value}
-                          htmlFor={inputId}
-                          className={`export-format-chip${selected ? " is-selected" : ""}`}
-                        >
-                          <input
-                            id={inputId}
-                            type="radio"
-                            name="exportFormat"
-                            value={option.value}
-                            checked={selected}
-                            onChange={() => setFormat(option.value)}
-                            disabled={exporting}
-                          />
-                          {option.label}
-                        </label>
-                      );
-                    })}
-                  </div>
-                </fieldset>
-              )}
-            </section>
-
-            <section
-              className="panel privacy-panel export-summary"
-              aria-live="polite"
-            >
-              <h2 className="sr-only">Tóm tắt xuất</h2>
-              {isEmpty ? (
-                <div className="export-empty">
-                  <p>
-                    Không có mục nào khớp bộ lọc hiện tại. Thử nới khoảng ngày
-                    hoặc đổi loại dữ liệu — hoặc ghi thêm giao dịch rồi xuất.
-                  </p>
-                  <div className="export-empty-actions">
-                    <Link className="primary-button" href="/transactions">
-                      Xem giao dịch
-                    </Link>
-                  </div>
+                <div className={styles.formatRow} role="radiogroup" aria-label="Định dạng file">
+                  {(["csv", "json"] as const).map((value) => (
+                    <label
+                      key={value}
+                      className={
+                        format === value
+                          ? `${styles.formatChip} ${styles.formatSelected}`
+                          : styles.formatChip
+                      }
+                    >
+                      <input
+                        type="radio"
+                        name="exportFormat"
+                        value={value}
+                        checked={format === value}
+                        onChange={() => setFormat(value)}
+                        disabled={exporting}
+                      />
+                      {value.toUpperCase()}
+                    </label>
+                  ))}
                 </div>
+              )}
+            </SecondarySection>
+
+            <section className={styles.summary} aria-live="polite" data-slot="export-summary">
+              {isEmpty ? (
+                <p>
+                  Không có bản ghi khớp bộ lọc hiện tại. Nới khoảng ngày hoặc đổi loại
+                  dữ liệu trước khi tải.
+                </p>
               ) : (
-                <p className="export-summary-text">
-                  Sẵn sàng xuất{" "}
-                  <strong className="font-mono">{preview?.count ?? 0}</strong>{" "}
-                  mục ·{" "}
+                <p>
+                  Sẵn sàng xuất <strong>{preview?.count ?? 0}</strong> mục ·{" "}
                   <strong>{effectiveFormat.toUpperCase()}</strong>
-                  {from || to
-                    ? ` · ${from || "…"} → ${to || "…"}`
-                    : " · toàn bộ thời gian"}
+                  {from || to ? ` · ${from || "…"} → ${to || "…"}` : " · toàn bộ thời gian"}
                 </p>
               )}
             </section>
 
-            <div className="privacy-form-actions">
-              <button
+            <div className={styles.formActions}>
+              <Button
                 type="submit"
-                className="primary-button"
+                intent="primary"
+                targetSize="important"
+                pending={exporting}
+                pendingLabel="Đang xuất…"
                 disabled={!canDownload}
               >
-                {exporting ? "Đang xuất…" : "Tải xuống"}
-              </button>
-              <button
+                Tải xuống
+              </Button>
+              <Button
                 type="button"
-                className="secondary-button"
+                intent="secondary"
+                targetSize="important"
                 disabled={exporting}
-                onClick={() => {
-                  setFrom("");
-                  setTo("");
-                  setKind("transactions");
-                  setFormat("csv");
-                }}
+                onClick={resetForm}
               >
                 Đặt lại
-              </button>
+              </Button>
             </div>
           </form>
-        )}
-      </main>
+        ) : null}
+      </SecondaryWorkspace>
     </AppShell>
   );
 }
