@@ -14,7 +14,7 @@ function reportExport(
   page: import("@playwright/test").Page,
   href: string,
 ) {
-  return page.locator(`a[href="${href}"]:visible`).first();
+  return page.locator(`a[href="${href}"]`).first();
 }
 
 async function transactionCount(
@@ -85,14 +85,17 @@ test.describe("reports custom range", () => {
   test("the export downloads the chosen window, not the month preset", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 1366, height: 900 });
     await page.goto(
       `/reports?period=custom&from=${RANGE.from}&to=${RANGE.to}`,
       { waitUntil: "domcontentloaded" },
     );
     const href = `/reports/export?period=custom&from=${RANGE.from}&to=${RANGE.to}`;
+    const exportLink = reportExport(page, href);
+    await expect(exportLink).toBeVisible();
     const [download] = await Promise.all([
       page.waitForEvent("download"),
-      reportExport(page, href).click(),
+      exportLink.click(),
     ]);
     expect(download.suggestedFilename()).toBe(
       `moneyflow-${RANGE.from}-${RANGE.to}.csv`,
