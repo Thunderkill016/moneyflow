@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const RULES_KEY = "moneyflow-rules-v2";
 const LEGACY_RULES_KEY = "moneyflow-rules-v1";
@@ -6,22 +6,28 @@ const CANDIDATES_KEY = "moneyflow-inbox-candidates-v1";
 const RESET_GUARD_KEY = "moneyflow-rules-e2e-reset";
 
 async function createDemoRule(
-  page: import("@playwright/test").Page,
+  page: Page,
   input: { contains: string; categoryLabel: string; merchant?: string },
 ) {
-  await page.goto("/rules");
+  await page.goto("/rules", { waitUntil: "domcontentloaded" });
   await page
     .getByRole("button", { name: "Thêm quy tắc", exact: true })
     .first()
     .click();
-  await page.getByLabel("Nếu chứa").fill(input.contains);
-  await page
+
+  const dialog = page.getByRole("dialog", { name: "Thêm quy tắc" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Nếu chứa").fill(input.contains);
+  await dialog
     .getByLabel("Thì danh mục")
     .selectOption({ label: input.categoryLabel });
   if (input.merchant) {
-    await page.getByLabel("Đổi tên nơi chi (tùy chọn)").fill(input.merchant);
+    await dialog
+      .getByLabel("Đổi tên nơi giao dịch (tùy chọn)")
+      .fill(input.merchant);
   }
-  await page.getByRole("button", { name: "Lưu quy tắc" }).click();
+  await dialog.getByRole("button", { name: "Lưu quy tắc" }).click();
+  await expect(dialog).toBeHidden();
 }
 
 test.describe("Deterministic rules workspace", () => {
@@ -54,17 +60,22 @@ test.describe("Deterministic rules workspace", () => {
       merchant: "Highlands Coffee",
     });
 
-    await expect(
-      page.getByText("“HIGHLANDS” → Highlands Coffee → Ăn uống"),
-    ).toBeVisible();
-    await expect(page.getByText("v1", { exact: true })).toBeVisible();
+    const rule = page
+      .locator('[data-slot="rules-list"] li')
+      .filter({ hasText: "Highlands Coffee" });
+    await expect(rule).toContainText("Ăn uống");
+    await expect(rule).toContainText("Phiên bản 1");
 
     await page.getByLabel("Nội dung mẫu").fill("highlands 45k");
-    await expect(page.getByText(/Khớp v1:/)).toBeVisible();
-    await expect(page.getByText(/không tự ghi vào sổ/i)).toBeVisible();
+    const preview = page
+      .locator("main")
+      .getByRole("status")
+      .filter({ hasText: "Khớp quy tắc ưu tiên v1:" });
+    await expect(preview).toContainText("Highlands Coffee");
+    await expect(page.getByText(/không tự tạo giao dịch trong sổ/i)).toBeVisible();
 
-    await page.getByRole("button", { name: "Bật", exact: true }).click();
-    await expect(page.getByText("Đã tắt", { exact: true })).toBeVisible();
+    await rule.getByRole("button", { name: "Tắt", exact: true }).click();
+    await expect(rule).toContainText("Đã tắt");
     await expect(
       page.getByText("Không có quy tắc đang bật nào khớp nội dung này."),
     ).toBeVisible();
@@ -79,7 +90,7 @@ test.describe("Deterministic rules workspace", () => {
       merchant: "Highlands Coffee",
     });
 
-    await page.goto("/capture/paste");
+    await page.goto("/capture/paste", { waitUntil: "domcontentloaded" });
     await expect(page.getByText("Áp dụng quy tắc danh mục")).toBeVisible();
     await page.getByLabel("Nội dung").fill("HIGHLANDS 45k");
     await page.getByRole("button", { name: "Phân tích", exact: true }).click();
@@ -116,17 +127,25 @@ test.describe("Deterministic rules workspace", () => {
     });
 
     await page.getByLabel("Nội dung mẫu").fill("SHOP ABC");
-    await expect(page.getByText(/→ Ăn uống/).last()).toBeVisible();
+    const initialPreview = page
+      .locator("main")
+      .getByRole("status")
+      .filter({ hasText: "Khớp quy tắc ưu tiên" });
+    await expect(initialPreview).toContainText("Ăn uống");
 
     await page
       .getByRole("button", { name: /Tăng ưu tiên.*Mua sắm/ })
       .click();
-    await expect(page.getByText(/Khớp v2:.*Mua sắm/)).toBeVisible();
+    const reorderedPreview = page
+      .locator("main")
+      .getByRole("status")
+      .filter({ hasText: "Khớp quy tắc ưu tiên v2:" });
+    await expect(reorderedPreview).toContainText("Mua sắm");
   });
 
   test("keeps rule controls usable at phone width", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
-    await page.goto("/rules");
+    await page.goto("/rules", { waitUntil: "domcontentloaded" });
 
     await expect(
       page.getByRole("heading", { name: "Quy tắc", exact: true }),
