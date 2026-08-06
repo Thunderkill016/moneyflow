@@ -8,23 +8,28 @@ import {
   readdirSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, relative, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 const DEFAULT_ROOT = process.cwd();
-const BASELINE_CONTEXT = [
+const MANDATORY_CONTEXT = [
   "AGENTS.md",
   "README.md",
   "docs/research/CURRENT_PROJECT_MEMORY.md",
   "docs/context/README.md",
+  "ARCHITECTURE.md",
+  "docs/product/PRINCIPLES.md",
+  "docs/MVP_DEFINITION.md",
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
+];
+const CLASS_3_CONTEXT = [
+  "docs/engineering/AI_DELIVERY_WORKFLOW.md",
+  "docs/engineering/AGENT_OPERATING_MODEL.md",
 ];
 const POLICY_REQUIRED = ["npm run check:knowledge", "npm run test:ci-policy"];
 const EXECUTABLE_REQUIRED = [
   ...POLICY_REQUIRED,
-  "npm run check:deployment-env",
-  "npm run check:architecture",
   "npm run lint",
   "npm run typecheck",
   "npm run test",
@@ -61,6 +66,8 @@ const CLASS_PLANS = {
       "Use a concise PR plan when one subsystem changes and rollback is straightforward.",
     required: EXECUTABLE_REQUIRED,
     conditional: [
+      "npm run check:deployment-env — when deployment/runtime configuration changes",
+      "npm run check:architecture — when architecture, import ownership or shared boundaries change",
       "npm run test:e2e — when runtime application code changes",
       "Protected CodeQL must perform a real analysis.",
     ],
@@ -71,6 +78,8 @@ const CLASS_PLANS = {
       "Use a concise plan for one bounded screen; use a full packet for multi-flow work or unresolved research.",
     required: [...EXECUTABLE_REQUIRED, "npm run test:e2e"],
     conditional: [
+      "npm run check:deployment-env — when deployment/runtime configuration changes",
+      "npm run check:architecture — when architecture, import ownership or shared boundaries change",
       "npm run check:css-ownership — when presentation ownership, styles or shared UI primitives change",
       "npm run test:ui-audit:pr — when layout, styling, shared components or audit contracts change",
       "Human review of the relevant browser evidence is required.",
@@ -247,6 +256,29 @@ function extractBacktickPaths(value) {
     .filter((candidate) => candidate.includes("/") || candidate.includes("."));
 }
 
+export function resolveRepositoryPath(root, candidate, label) {
+  if (typeof candidate !== "string" || candidate.trim().length === 0) {
+    throw new Error(`${label} requires a non-empty path`);
+  }
+
+  const absoluteRoot = resolve(root);
+  const absolute = resolve(absoluteRoot, candidate);
+  const relativePath = relative(absoluteRoot, absolute);
+  if (
+    relativePath.length === 0 ||
+    relativePath === ".." ||
+    relativePath.startsWith(`..${sep}`) ||
+    isAbsolute(relativePath)
+  ) {
+    throw new Error(`${label} must stay inside the repository root`);
+  }
+
+  return {
+    absolute,
+    relative: relativePath.split(sep).join("/"),
+  };
+}
+
 export function buildVerificationPlan(riskClass) {
   const plan = CLASS_PLANS[riskClass];
   if (!plan) throw new Error(`Unsupported risk class: ${riskClass}`);
@@ -256,9 +288,12 @@ export function buildVerificationPlan(riskClass) {
 export function validateTaskState({ root, options, route, git }) {
   const errors = [];
   const warnings = [];
-  const packetPath = options.packet ? resolve(root, options.packet) : null;
+  const requiredContext = [
+    ...MANDATORY_CONTEXT,
+    ...(options.riskClass === 3 ? CLASS_3_CONTEXT : []),
+  ];
 
-  for (const requiredPath of BASELINE_CONTEXT) {
+  for (const requiredPath of requiredContext) {
     if (!existsSync(resolve(root, requiredPath))) {
       errors.push(`Missing required context: ${requiredPath}`);
     }
@@ -281,11 +316,21 @@ export function validateTaskState({ root, options, route, git }) {
     warnings.push("Working tree is not clean; confirm the existing changes belong to this task.");
   }
 
-  if (options.riskClass === 3 && !packetPath) {
+  let packet = null;
+  if (options.packet) {
+    try {
+      const resolvedPacket = resolveRepositoryPath(root, options.packet, "--packet");
+      packet = resolvedPacket.relative;
+      if (!packet.startsWith("docs/plans/active/") || !packet.endsWith(".md")) {
+        errors.push("--packet must reference a Markdown file under docs/plans/active/.");
+      } else if (!existsSync(resolvedPacket.absolute)) {
+        errors.push(`Work packet does not exist: ${packet}`);
+      }
+    } catch (error) {
+      errors.push(error.message);
+    }
+  } else if (options.riskClass === 3) {
     errors.push("Class 3 requires --packet docs/plans/active/<slug>.md.");
-  }
-  if (packetPath && !existsSync(packetPath)) {
-    errors.push(`Work packet does not exist: ${relative(root, packetPath)}`);
   }
 
   const alias = options.boundary.toLowerCase();
@@ -301,11 +346,7 @@ export function validateTaskState({ root, options, route, git }) {
     warnings.push("This boundary commonly requires Class 2 browser evidence.");
   }
 
-  return {
-    errors,
-    warnings,
-    packet: packetPath ? relative(root, packetPath) : null,
-  };
+  return { errors, warnings, packet };
 }
 
 function listActivePackets(root) {
@@ -320,7 +361,12 @@ function listActivePackets(root) {
 export function buildManifest({ root, options, route, git, validation }) {
   const verification = buildVerificationPlan(options.riskClass);
   const readNow = [
-    ...new Set([...BASELINE_CONTEXT, ...extractBacktickPaths(route.loadNext)]),
+    ...new Set([
+      ...MANDATORY_CONTEXT,
+      ...(options.riskClass === 3 ? CLASS_3_CONTEXT : []),
+      ...(validation.packet ? [validation.packet] : []),
+      ...extractBacktickPaths(route.loadNext),
+    ]),
   ];
 
   return {
@@ -338,6 +384,7 @@ export function buildManifest({ root, options, route, git, validation }) {
     },
     context: {
       readNow,
+      inspectAffectedCodeAndTestsAfter: "README.md",
       loadNext: route.loadNext,
       verifyAgainst: route.verifyAgainst,
       packet: validation.packet,
@@ -359,11 +406,27 @@ export function buildManifest({ root, options, route, git, validation }) {
   };
 }
 
+function buildReadSequence(manifest) {
+  const files = manifest.context.readNow;
+  const readmeIndex = files.indexOf(manifest.context.inspectAffectedCodeAndTestsAfter);
+  if (readmeIndex === -1) return files.map((path) => ({ type: "file", value: path }));
+
+  return [
+    ...files.slice(0, readmeIndex + 1).map((path) => ({ type: "file", value: path })),
+    {
+      type: "action",
+      value: "Inspect the affected code, tests and migrations for this task.",
+    },
+    ...files.slice(readmeIndex + 1).map((path) => ({ type: "file", value: path })),
+  ];
+}
+
 function bullets(items) {
   return items.length ? items.map((item) => `- ${item}`).join("\n") : "- None";
 }
 
 export function renderPrompt(manifest) {
+  const sequence = buildReadSequence(manifest);
   return [
     `Work on MoneyFlow task: ${manifest.task}`,
     "",
@@ -373,13 +436,13 @@ export function renderPrompt(manifest) {
       ? `Active packet: ${manifest.context.packet}`
       : "Active packet: not supplied",
     "",
-    "Read only the following starting context, in order:",
-    ...manifest.context.readNow.map((path, index) => `${index + 1}. ${path}`),
+    "Follow this starting sequence in order:",
+    ...sequence.map((item, index) => `${index + 1}. ${item.value}`),
     "",
     `Route guidance: ${manifest.context.loadNext}`,
     `Verify against: ${manifest.context.verifyAgainst}`,
     "",
-    "Before coding, inspect affected code/tests and reconcile the task with current merged truth. Do not preload unrelated PR history.",
+    "Reconcile the task with current merged truth before coding. Do not preload unrelated PR history.",
     "Implement the smallest coherent slice, keep requirements unchanged, and preserve MoneyFlow financial/ownership invariants.",
     "Run the risk-selected verification listed by the task brief and report exact evidence. Never merge or deploy without owner authorization.",
   ].join("\n");
@@ -389,6 +452,7 @@ export function renderMarkdown(manifest) {
   const repoLine = manifest.repository.branch
     ? `${manifest.repository.branch}@${manifest.repository.head || "unknown"}`
     : "unavailable";
+  const sequence = buildReadSequence(manifest);
 
   return [
     "# MoneyFlow task brief",
@@ -408,9 +472,13 @@ export function renderMarkdown(manifest) {
     "",
     bullets(manifest.warnings),
     "",
-    "## Read now",
+    "## Starting sequence",
     "",
-    ...manifest.context.readNow.map((path, index) => `${index + 1}. \`${path}\``),
+    ...sequence.map((item, index) =>
+      item.type === "file"
+        ? `${index + 1}. \`${item.value}\``
+        : `${index + 1}. **${item.value}**`,
+    ),
     "",
     "## Boundary guidance",
     "",
@@ -453,9 +521,8 @@ function printBoundaries() {
 }
 
 function writeOutput(path, content) {
-  const absolute = resolve(path);
-  mkdirSync(dirname(absolute), { recursive: true });
-  writeFileSync(absolute, content.endsWith("\n") ? content : `${content}\n`, "utf8");
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, content.endsWith("\n") ? content : `${content}\n`, "utf8");
 }
 
 export function main(argv = process.argv.slice(2)) {
@@ -491,8 +558,12 @@ export function main(argv = process.argv.slice(2)) {
           ? renderPrompt(manifest)
           : renderMarkdown(manifest);
 
-    if (options.output) writeOutput(resolve(root, options.output), content);
-    else console.log(content);
+    if (options.output) {
+      const output = resolveRepositoryPath(root, options.output, "--output");
+      writeOutput(output.absolute, content);
+    } else {
+      console.log(content);
+    }
 
     if (validation.errors.length > 0) {
       console.error("Task brief blocked:");
