@@ -6,7 +6,8 @@
 - **Owner direction:** MoneyFlow is released as a functional MVP; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate
 - **UI-system migration:** parent plan PR #296 and Phases 0–7 are merged; Phase 8 secondary/safety work is candidate-only on PR #309
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
-- **Memory size target:** target **150–250 lines**; hard failure above **500 lines** or **64 KiB**
+- **Memory size target:** target: **150–250 lines**
+- **Memory hard failure:** hard failure: above **500 lines** or **64 KiB**
 - **No production migration pending:** P8 contains no schema/data migration; production applicability still depends on an owner-authorized merge and provider evidence
 - **Current production applicability:** P6 is production-evidenced; P7 is merged with repository evidence but its production deployment has not been independently recorded here; P8 is candidate-only
 - **Owner-confirmed external work:** none newly asserted for P8; private provider/device evidence remains owner-held unless supplied
@@ -245,10 +246,11 @@ PRs #295–#308 are merged and must not be described as candidates. Older closed
 
 Do not repeat these as current facts:
 
-- Reports lack previous-period comparison, trends or custom ranges.
+- Reports lack previous-period comparison or trends.
+- Reports lack custom ranges.
 - CSV/XLSX/PDF staging is absent.
 - Rules are entirely absent.
-- Import provenance/dry-run/authenticated atomic approval are future work.
+- Import provenance/dry-run/atomic approval are future work.
 - Budgets lack historical month selection or previous-month comparison.
 - Recurring items have no occurrence linkage.
 - Goals lack deadline or pace calculation.
