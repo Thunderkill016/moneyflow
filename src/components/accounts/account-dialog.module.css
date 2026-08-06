@@ -20,6 +20,17 @@
   gap: 14px;
 }
 
+.form [data-slot="text-field"],
+.form [data-slot="text-field-control"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.form [data-slot="text-field-input"] {
+  width: 0;
+  max-width: 100%;
+}
+
 .spanFull {
   grid-column: 1 / -1;
 }
