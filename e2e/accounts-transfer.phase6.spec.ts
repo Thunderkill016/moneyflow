@@ -78,7 +78,9 @@ test.describe("Phase 6 Accounts and Transfer", () => {
     await page.getByRole("button", { name: "Chuyển tiền", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Chuyển tiền" });
     await expect(dialog).toBeVisible();
-    await dialog.getByLabel("Số tiền chuyển").fill("50000");
+    await dialog
+      .getByRole("textbox", { name: "Số tiền chuyển", exact: true })
+      .fill("50000");
 
     const review = dialog.locator('[data-slot="transfer-review"]');
     await expect(review).toContainText("MB Bank");
