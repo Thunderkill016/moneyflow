@@ -1,100 +1,98 @@
 # Historical failure audit and prevention
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Issue/PR:** #310 / pending  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** Thunderkill016
+**Issue/PR:** #310 / #311
 **Last updated:** 2026-08-06
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
 
 ## Outcome
 
-MoneyFlow converts repeated historical failure patterns into durable, evidence-backed prevention. Contributors and agents receive earlier feedback for known contract drift without reducing exact-head, browser, database or security coverage.
+MoneyFlow converts repeated historical failure patterns into durable, evidence-backed prevention. Known contract drift should fail earlier without reducing exact-head, browser, database or security coverage.
 
 ## Repository reconnaissance
 
 ### Current behavior
 
-- `scripts/check-project-knowledge.mjs` checks required documents, per-PR memory, current-memory budgets and many exact string markers.
-- The checker currently mixes stable structure with volatile prose in `CURRENT_PROJECT_MEMORY.md`; semantically correct edits can therefore fail CI when wording changes.
-- Recent Phase 5–8 PRs required many follow-up commits to retarget selectors, preserve marker strings and repair source contracts after implementation.
-- PR #304 already audits CI topology, runtime and critical-path cost. It is verified but unmerged and remains reference evidence rather than current-main behavior.
-- The repository already has strong architecture, CSS, database, browser, CodeQL, secret-history and exact-head gates. This work must improve signal, not add a parallel management framework.
+- `scripts/check-project-knowledge.mjs` owns knowledge-policy verification.
+- Before this branch, it mixed stable headings and budgets with volatile prose in `CURRENT_PROJECT_MEMORY.md`.
+- Recent UI-system PRs required follow-up commits for exact project-memory strings, stale selectors and source-contract mismatch.
+- PR #304 already contains a measured but unmerged CI audit. This packet reuses its findings and does not copy its workflow changes.
+- Existing architecture, CSS, unit, database, browser, CodeQL and secret-history gates remain the verification authorities.
 
 ### Relevant repository areas
 
-| Area | Why it matters | Reuse/change/avoid |
+| Area | Why it matters | Decision |
 |---|---|---|
-| `scripts/check-project-knowledge.mjs` | current knowledge-policy owner | change bounded prose-dependent logic |
-| `docs/research/CURRENT_PROJECT_MEMORY.md` | human/AI current truth | avoid making prose a schema |
-| `docs/research/PR_MEMORY_LOG.md` | immutable per-PR evidence model | reuse |
-| `scripts/*ci*.mjs` | CI selection/retry contracts | reuse; avoid duplicating PR #304 |
-| `e2e/`, `playwright*.config.ts` | browser/state and responsive evidence | later focused slices only |
-| `docs/research/CI_SYSTEM_AUDIT_2026-08-06.md` on PR #304 | measured CI/topology evidence | reference, do not silently port |
-| merged PR/commit history | root-cause and false-green evidence | source of failure register |
+| `scripts/check-project-knowledge.mjs` | policy entry point | retain and delegate structured checks |
+| `docs/research/CURRENT_PROJECT_MEMORY.md` | human/AI current truth | do not make prose a schema |
+| `docs/research/PR_MEMORY_LOG.md` | immutable PR evidence | reuse |
+| `scripts/*ci*.mjs` | gate classification and retry | reuse; do not duplicate PR #304 |
+| `e2e/`, Playwright configs | later selector/state prevention | out of first slice |
+| merged PR and commit history | failure evidence | record with limits |
 
 ### Existing tests and constraints
 
-- Related tests: CI policy tests, project knowledge checker in protected policy job, source-contract tests under `src/lib`, Playwright smoke and cross-device audits.
-- Database/RLS tests: unaffected by the first structured-knowledge slice.
-- Browser tests: unaffected by the first slice; later state/selector work requires selected browser evidence.
-- Product/architecture rules: no hidden chat memory, no blind retries, exact-head evidence only, no reduced financial/security coverage, no merge without owner decision.
+- Policy: `check:knowledge`, `test:ci-policy`, diff hygiene and per-PR memory.
+- Browser/database: unchanged in the first slice; selected only by actual diff.
+- No blind retries, no weaker verification and no merge/deploy without owner approval.
+- Exact-head evidence outranks a locally green focused test.
 
 ### Similar implementation and recent history
 
-- PR #205 replaced ambiguous CSP substring checks with exact token-list assertions.
-- PR #212 established risk-proportional gates with stable protected summaries.
-- PR #215 layered project memory and per-PR evidence.
-- PR #267 separated retryable shards without weakening stable checks.
-- PR #304 measured the CI system and rejected unsupported optimization claims.
-- PR #309 exposed exact-prose marker drift, multiline JSX regex coupling and component contract drift in one run.
+- PR #205 replaced ambiguous CSP substring checks with exact token assertions.
+- PR #212 established risk-proportional verification.
+- PR #215 established layered project memory.
+- PR #267 preserved independent retryable shards.
+- PR #304 measured CI topology and rejected unsupported optimization claims.
+- PR #309 exposed exact-prose marker drift and source-regex coupling.
 
 ### Open questions
 
-- [x] Is a complete historical workflow census available? No; connector coverage is incomplete, so no fabricated recurrence percentage will be claimed.
-- [x] Should PR #304 changes be copied? No; reuse its findings, leave its unmerged implementation isolated.
-- [ ] Can source-contract ambiguity be detected with low enough false-positive risk to become a gate?
-- [ ] Which Playwright fixture should own deterministic demo-state reset?
+- [x] Is a complete historical Actions census available? No; no exact recurrence percentage is claimed.
+- [x] Should PR #304 be copied? No; it remains separate unmerged evidence.
+- [ ] Can source-contract ambiguity be detected without noisy false positives?
+- [ ] Which fixture should own deterministic demo-state reset?
 
 ## Research
 
 ### Research scope and source selection
 
-- Decision question: How should repeated failures be recorded and converted into preventive action without blaming contributors or hiding flakes?
-- Reference map consulted: `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md`
-- Source budget: four focused official sources covering postmortems, workflow logs/artifacts and browser retries.
-- Expected decision or uncertainty to resolve: choose a bounded register/action model and preserve evidence needed to distinguish product regressions from harness or provider failures.
+- Decision question: how should repeated failures become preventive actions without hiding flakes or blaming contributors?
+- Reference map: `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md`.
+- Source budget: four official sources covering postmortems, Actions evidence and Playwright retries.
 
 ### Questions researched
 
-1. What makes a post-incident action durable rather than a reminder to be more careful?
-2. Which GitHub evidence can support exact failure classification?
-3. How should retries be interpreted without hiding real failures?
+1. What makes prevention more reliable than asking contributors to remember a rule?
+2. What evidence supports product-versus-harness classification?
+3. What does a passing retry prove and not prove?
 
 ### Sources
 
-| Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
+| Source | Authority/type | Date accessed | Establishes | Limit |
 |---|---|---|---|---|
-| Google SRE, Postmortem Culture | primary operational guidance | 2026-08-06 | blameless root-cause analysis and preventive action | not a MoneyFlow acceptance authority |
-| Google SRE, Postmortem Practices | primary operational guidance | 2026-08-06 | tracked, owned, measurable action items; automation over human vigilance | large-service examples require scaling down |
-| GitHub Docs, workflow logs and artifacts | official platform documentation | 2026-08-06 | failed-step logs and persisted artifacts support diagnosis | connector does not expose a complete census |
-| Playwright Docs, test retries | official test framework documentation | 2026-08-06 | retries distinguish expected, flaky and failed outcomes | a passing retry alone does not establish root cause |
+| Google SRE, Postmortem Culture | primary guidance | 2026-08-06 | blameless root-cause and prevention | not MoneyFlow acceptance authority |
+| Google SRE, Postmortem Practices | primary guidance | 2026-08-06 | owned, measurable, automated actions | large-service examples require scaling down |
+| GitHub Docs, workflow logs/artifacts | official docs | 2026-08-06 | failed-step and artifact evidence | connector census is incomplete |
+| Playwright Docs, retries | official docs | 2026-08-06 | expected/flaky/failed outcome model | passing retry alone does not prove cause |
 
 ### Alternatives considered
 
-| Option | Advantages | Risks | Decision |
+| Option | Advantage | Risk | Decision |
 |---|---|---|---|
-| Read every red run and patch each message | appears exhaustive | duplicates incidents, overfits stale code, high noise | rejected |
-| Add broad retries | faster green result | hides deterministic failures and wastes runtime | rejected |
-| Failure register plus prioritized prevention | preserves evidence and targets recurrence | requires judgment and maintenance | selected |
-| Add another external reliability platform | dashboards and automation | new cost, privacy/ownership and duplicate CI concerns | rejected for this slice |
+| Patch every historical red run | looks exhaustive | duplicates incidents and stale code | reject |
+| Add broad retries | faster apparent green | hides deterministic failures | reject |
+| Register patterns and prevent high-confidence families | durable and bounded | requires evidence maintenance | select |
+| Add an external reliability platform | richer dashboards | cost, privacy and duplicate ownership | reject for this slice |
 
 ### Research decision
 
-Use repository evidence to group failure families. Implement only prevention whose detector observes the real failure boundary and can be regression-proven. Keep product, harness, provider and inconclusive statuses separate. Do not use competitor or generic SRE practice as proof that a MoneyFlow test is correct.
+Group failures by stable signatures and implement only detectors that observe the real boundary and have a red-proof test. Keep product, harness/provider and inconclusive classifications separate.
 
 ### Adoption review
 
@@ -104,131 +102,114 @@ Not applicable. No dependency, provider, service, framework or runtime architect
 
 ### Problem
 
-MoneyFlow has strong final verification but contributors still spend repeated CI cycles on known contract-drift patterns. Exact prose markers, stale selectors and false-green audit assumptions move detection later than necessary. This increases turnaround time and risks normalizing blind fixes.
+Strong final CI still catches some known contract-drift patterns late. Exact prose markers and stale assumptions create avoidable repair cycles and encourage symptom-level fixes.
 
 ### User stories
 
-- As a contributor or agent, I receive a local/policy failure for a stable structural violation without being blocked by harmless prose edits.
-- As a reviewer, I can trace each preventive rule to a real incident and understand what remains unverified.
-- As the owner, I can see which repeated failures are prevented, partial or intentionally not automated.
+- As a contributor, I can safely improve project-memory prose without breaking a machine contract.
+- As a reviewer, I can trace prevention to real incidents and see residual uncertainty.
+- As owner, I can distinguish prevented, partial and intentionally unautomated failure families.
 
 ### Acceptance criteria
 
-- [x] A durable failure register records evidence, root cause, earliest detection layer and prevention status.
-- [ ] Current project-memory structure and budgets are machine-readable.
-- [ ] Paraphrasing superseded claims does not fail `check:knowledge`.
-- [ ] Removing required headings/references or exceeding hard budgets fails.
-- [ ] CI-policy tests exercise the structured contract.
-- [ ] No current project truth is weakened or rewritten to satisfy the checker.
-- [ ] Exact-head selected checks pass on the branch.
+- [x] Failure register records evidence, root cause, detection layer and prevention status.
+- [x] Stable current-memory structure and budgets have a machine-readable contract.
+- [x] Superseded-claim paraphrasing remains green in focused tests.
+- [x] Missing headings, hard-budget violations and malformed contracts remain red in focused tests.
+- [x] New tests are included in `test:ci-policy`.
+- [ ] Exact-head policy/static/unit/build/security checks pass.
+- [ ] No product truth or verification scope is weakened.
 
 ### Required states
 
-- Loading: not applicable.
-- Empty: malformed/missing contract reports an actionable error.
-- Populated: valid contract and memory pass with optional soft-budget warning.
-- Validation/error: schema, required structures and monotonic budgets have distinct messages.
-- Recovery/undo: revert the helper/JSON and restore the previous marker block.
-- Long data / large VND: not applicable.
-- Mobile/tablet/desktop: not applicable to the first slice.
-- Accessibility: not applicable to the first slice.
+- Empty/missing contract: actionable parse/read failure.
+- Valid contract: pass, with optional soft-budget warning.
+- Invalid structure or budget: distinct failure messages.
+- Recovery: revert helper/JSON and restore the previous marker block.
+- UI, responsive and financial states: not applicable to this first slice.
 
 ### Financial and security constraints
 
-- No guessed financial data or recommendation.
-- Integer VND and transfer invariants remain untouched.
-- Ownership/RLS implications: none.
-- No provider, secret, production data, migration or deployment write.
+- Financial calculations, integer VND, transfer rules, RLS and ownership are untouched.
+- No provider, secret, migration, deployment or production-data write.
 
 ### Out of scope
 
-- Merging PR #304 or changing its workflow topology.
+- Merging PR #304.
 - Reducing CodeQL, Gitleaks, browser, UI-audit or database coverage.
-- Claiming a repository-wide failure rate from incomplete data.
-- Automatically classifying one passing retry as a flake.
-- Fixing all open product/UI debt in the same PR.
+- Inventing repository-wide failure rates.
+- Calling one passing retry a confirmed flake.
+- Fixing all UI/product debt in PR #311.
 
 ## Implementation plan
 
 ### Architecture fit
 
-`check-project-knowledge.mjs` remains the policy entry point. A small internal helper owns JSON validation and current-memory shape/budget checks. The Markdown snapshot remains human-readable current truth; the JSON file owns only stable machine assertions, not a duplicate roadmap.
+`check-project-knowledge.mjs` remains the public policy entry point. `project-knowledge-contract.mjs` owns JSON validation and current-memory shape/budget checks. Markdown remains readable current truth; JSON contains only stable machine fields.
 
 ### Planned changes
 
-| File/area | Change | Reason |
+| File | Change | Reason |
 |---|---|---|
-| `docs/research/PROJECT_KNOWLEDGE_CONTRACT.json` | add structured headings/references/budgets/assertions | remove volatile prose API |
-| `scripts/project-knowledge-contract.mjs` | parse and validate contract/memory | testable owner |
-| `scripts/project-knowledge-contract.test.mjs` | red/green contract fixtures | prevent recurrence |
-| `scripts/check-project-knowledge.mjs` | delegate current-memory checks | preserve one policy entry point |
-| `package.json` | include new test in CI policy suite | local/exact-head feedback |
-| `docs/research/HISTORICAL_FAILURE_REGISTER_2026-08-06.md` | durable evidence register | avoid rediscovery |
-| this packet / PR memory | lifecycle and evidence | repository-backed handoff |
+| `PROJECT_KNOWLEDGE_CONTRACT.json` | headings, references, assertions and budgets | remove prose API |
+| `project-knowledge-contract.mjs` | parse and validate contract/memory | testable owner |
+| focused Node test | valid and counterexample fixtures | recurrence prevention |
+| `check-project-knowledge.mjs` | delegate structured checks | preserve one entry point |
+| `package.json` | add test to CI policy suite | early feedback |
+| failure register and packet | evidence and handoff | avoid rediscovery |
 
 ### Data and migration impact
 
-- Schema/migration: none.
-- Backfill: none.
-- Compatibility: current headings, references and budget values are preserved.
-- Rollback: remove JSON/helper/test and restore the exact current-memory marker block.
+- Schema, migration and backfill: none.
+- Compatibility: existing heading/reference/budget intent remains.
+- Rollback: remove helper/JSON/test and restore prior exact marker block.
 
 ### Risks and counterexamples
 
-| Risk/counterexample | Prevention or test |
+| Risk | Prevention |
 |---|---|
-| JSON duplicates changing product truth | store only structural assertions, IDs and budgets |
-| Contract becomes another stale file | checker validates it on every policy run; current truth remains Markdown/code |
-| Human changes budget prose but not JSON | JSON is explicit machine authority; prose no longer silently controls CI |
-| Helper accepts contradictory limits | schema tests require monotonic line/byte budgets |
-| Removing exact strings weakens trust | keep headings, references, status booleans and stale-claim IDs structured |
-| PR conflicts with Phase 8 memory edits | avoid editing `CURRENT_PROJECT_MEMORY.md` in this slice |
+| JSON duplicates a roadmap | store only stable structure, IDs and budgets |
+| Contract limits contradict each other | monotonic-budget tests |
+| Removing prose checks weakens trust | retain required headings/references and structured assertions |
+| Conflict with Phase 8 memory edits | do not edit `CURRENT_PROJECT_MEMORY.md` |
+| Green draft run is mistaken for full evidence | use `ready_for_review` exact-head run only |
 
 ### Verification plan
 
-- Static: syntax/check:knowledge and lint if selected.
-- Unit/domain: `node --test scripts/project-knowledge-contract.test.mjs`; full `test:ci-policy`.
-- Database: not required; no DB boundary.
-- Browser flow: not required for the first slice.
-- Responsive/visual: not required for the first slice.
-- Production/manual: none until owner-approved merge; no production behavior changes.
+- Focused: `node --test scripts/project-knowledge-contract.test.mjs`.
+- Policy: diff hygiene, `check:knowledge`, `test:ci-policy`.
+- Static/unit/build/security: risk-selected exact-head gates.
+- Database/UI audit: not required unless classifier selects them.
+- Production: not applicable before an owner-authorized merge.
 
 ## Tasks
 
-| ID | Task | Dependency | Evidence | Status |
-|---|---|---|---|---|
-| HF-T1 | Create issue, branch and reconnaissance | owner authorization | #310 + branch | done |
-| HF-T2 | Build historical failure register | T1 | register with repository evidence | done |
-| HF-T3 | Add structured knowledge contract/helper | T2 | JSON + helper | done |
-| HF-T4 | Add red/green contract tests | T3 | Node test suite | done; execution pending |
-| HF-T5 | Integrate helper into policy entry point | T3 | `check:knowledge` | active |
-| HF-T6 | Add PR memory and draft PR | T5 | PR exact number/record | todo |
-| HF-T7 | Run exact-head selected checks | T6 | CI/security results | todo |
-| HF-T8 | Evaluate next failure family | T7 | scope/risk decision | todo |
-
-Rules:
-
-- One task should produce a reviewable result.
-- Parallel tasks must not edit overlapping ownership areas.
-- New discoveries update the specification/plan before implementation scope changes.
-- Research is complete when it supports a decision, not when every historical run has been read.
-- A task may advance only when the current execution state's evidence exists.
+| ID | Task | Evidence | Status |
+|---|---|---|---|
+| HF-T1 | Create issue/branch and inspect history | #310 and branch | done |
+| HF-T2 | Build failure register | ranked repository evidence | done |
+| HF-T3 | Add structured contract/helper | JSON and module | done |
+| HF-T4 | Add red/green tests | focused 5/5 local pass | done |
+| HF-T5 | Integrate policy entry point | checker and package script | done |
+| HF-T6 | Add PR memory and PR | #311 record | done |
+| HF-T7 | Run exact-head checks | CI/security | evaluating |
+| HF-T8 | Select later failure family | evidence/risk decision | pending |
 
 ## Handoff record
 
-| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
+| Date | From | To | State | Evidence | Open risk | Next action |
 |---|---|---|---|---|---|---|
-| 2026-08-06 | human_owner | researcher | discovery | explicit “Làm đi”; issue #310 | complete workflow census unavailable | inspect repo/history |
-| 2026-08-06 | researcher | planner | specified | PR/commit evidence; PR #304 audit; official sources | recurrence counts are qualitative | define first prevention slice |
-| 2026-08-06 | planner | implementer | implementing | failure register + structured contract design | policy integration/tests not yet executed | integrate and verify |
+| 2026-08-06 | owner | researcher | discovery | explicit authorization, #310 | incomplete census | inspect history |
+| 2026-08-06 | researcher | planner | specified | register evidence, PR #304 audit, official sources | qualitative ranking | define first slice |
+| 2026-08-06 | planner | implementer | implementing | structured contract design | integration unverified | implement/tests |
+| 2026-08-06 | implementer | evaluator | evaluating | focused 5/5 pass, PR #311 | exact-head pending | repair findings and rerun |
 
 ### Current permission boundary
 
-- Granted scope: branch writes for bounded historical failure prevention.
-- Exact repositories/providers/resources: `Thunderkill016/moneyflow`; GitHub repository evidence.
-- Forbidden writes: `main`, database, Supabase/Auth/provider settings, Vercel, production data, deployment.
-- Human approval required before: merge, deployment, broad workflow topology change, new dependency/tool.
-- Rollback or stop condition: stop if the detector requires volatile prose, weak heuristics, reduced coverage or conflicts with current truth.
+- Granted: branch writes on `Thunderkill016/moneyflow`.
+- Forbidden: `main`, database/provider settings, production data and deployment.
+- Human approval required before merge, deployment, broad workflow change or new dependency.
+- Stop if prevention needs volatile prose, weak heuristics or reduced coverage.
 
 ## Evaluation
 
@@ -236,38 +217,38 @@ Rules:
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Failure register exists | `HISTORICAL_FAILURE_REGISTER_2026-08-06.md` | pass |
-| Structured current-memory contract | JSON/helper | implementation present; execution pending |
-| Prose paraphrase remains green | focused test | execution pending |
-| Structural/budget violation remains red | focused tests | execution pending |
-| Exact-head verification | pending PR | pending |
+| Failure register | research artifact | pass |
+| Structured contract | JSON/helper | pass |
+| Paraphrase green | focused test | pass |
+| Structural/budget red proof | focused tests | pass |
+| Diff hygiene | first exact-head run found Markdown trailing spaces | fixed; rerun pending |
+| Full exact-head | PR #311 | pending |
 
 ### Research and adoption evidence
 
-- Selected sources still support the final implementation: yes; system-level prevention and preserved evidence fit the selected slice.
-- Important source limitations remain respected: no complete frequency claim and no blind flake label.
-- New tool/dependency/pattern passed the adoption review, or not applicable: not applicable.
+- Sources support system-level prevention and evidence preservation.
+- No complete census or unsupported flake claim is introduced.
+- Adoption review remains not applicable.
 
 ### Review findings
 
-- Correctness: pending integration and test execution.
+- Correctness: helper tests pass; repository integration pending rerun.
 - Security/ownership: no runtime/provider/data boundary touched.
-- UI/UX/accessibility: no product UI change in first slice.
-- Maintainability/duplication: JSON is intentionally limited to machine-stable contract fields.
-- Scope compliance: PR #304 workflow changes remain isolated.
+- Maintainability: machine fields are intentionally narrow.
+- Scope: PR #304 remains separate.
 
 ### Remaining limitations
 
-- The failure register is evidence-complete for selected incidents, not a full Actions census.
-- Selector hygiene, browser state isolation and breakpoint mapping require separate evaluated slices.
-- Exact-head verification and owner merge decision remain pending.
+- Register covers selected evidence, not every historical Actions run.
+- Selector hygiene, browser-state isolation and breakpoint mapping are later slices.
+- Merge and deployment remain owner decisions.
 
 ## Delivery record
 
 - Branch: `chore/historical-failure-prevention`
-- PR: pending
+- PR: #311
 - Squash commit: pending
-- CI run: pending
+- CI: pending exact-head rerun
 - Production deployment: not authorized
-- Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: no
+- Production verification: not applicable
+- Packet moved to completed: no
