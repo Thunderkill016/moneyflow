@@ -20,6 +20,16 @@ const BASELINE_CONTEXT = [
   "docs/context/README.md",
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
 ];
+const POLICY_REQUIRED = ["npm run check:knowledge", "npm run test:ci-policy"];
+const EXECUTABLE_REQUIRED = [
+  ...POLICY_REQUIRED,
+  "npm run check:deployment-env",
+  "npm run check:architecture",
+  "npm run lint",
+  "npm run typecheck",
+  "npm run test",
+  "npm run build",
+];
 
 export const ROUTE_ALIASES = {
   product: "Product scope/current status",
@@ -39,25 +49,17 @@ const CLASS_PLANS = {
   0: {
     label: "Class 0 — documentation/mechanical",
     planning: "Inline plan or a clear PR description is normally sufficient.",
-    required: ["npm run check:knowledge", "npm run test:ci-policy"],
+    required: POLICY_REQUIRED,
     conditional: [
-      "Protected CodeQL must still perform a real analysis on the pull request.",
+      "Diff hygiene must match the documentation/mechanical scope.",
+      "Protected CodeQL must still perform a real pull-request analysis.",
     ],
   },
   1: {
     label: "Class 1 — bounded executable change",
     planning:
       "Use a concise PR plan when one subsystem changes and rollback is straightforward.",
-    required: [
-      "npm run check:knowledge",
-      "npm run test:ci-policy",
-      "npm run check:deployment-env",
-      "npm run check:architecture",
-      "npm run lint",
-      "npm run typecheck",
-      "npm run test",
-      "npm run build",
-    ],
+    required: EXECUTABLE_REQUIRED,
     conditional: [
       "npm run test:e2e — when runtime application code changes",
       "Protected CodeQL must perform a real analysis.",
@@ -67,28 +69,18 @@ const CLASS_PLANS = {
     label: "Class 2 — UI or user-flow change",
     planning:
       "Use a concise plan for one bounded screen; use a full packet for multi-flow work or unresolved research.",
-    required: [
-      "npm run check:knowledge",
-      "npm run test:ci-policy",
-      "npm run check:deployment-env",
-      "npm run check:css-ownership",
-      "npm run check:architecture",
-      "npm run lint",
-      "npm run typecheck",
-      "npm run test",
-      "npm run build",
-      "npm run test:e2e",
-      "npm run test:ui-audit:pr",
-    ],
+    required: [...EXECUTABLE_REQUIRED, "npm run test:e2e"],
     conditional: [
-      "Human review of relevant browser evidence is required.",
+      "npm run check:css-ownership — when presentation ownership, styles or shared UI primitives change",
+      "npm run test:ui-audit:pr — when layout, styling, shared components or audit contracts change",
+      "Human review of the relevant browser evidence is required.",
       "Protected CodeQL must perform a real analysis.",
     ],
   },
   3: {
     label: "Class 3 — financial/data/security/operations",
     planning: "A full work packet is required before implementation.",
-    required: ["npm run check:knowledge", "npm run test:ci-policy"],
+    required: POLICY_REQUIRED,
     conditional: [
       "npm run check:deployment-env, check:architecture, lint, typecheck, test and build — when shared/application executable code changes",
       "npm run test:db — when database, migration, RLS, grant, RPC or persistent ownership truth changes",
@@ -116,11 +108,7 @@ export function parseContextRoutes(markdown) {
     if (line.startsWith("## ")) break;
     if (!line.startsWith("|")) continue;
 
-    const cells = line
-      .slice(1, -1)
-      .split("|")
-      .map(cleanCell);
-
+    const cells = line.slice(1, -1).split("|").map(cleanCell);
     if (cells.length !== 3) continue;
     if (cells[0] === "Task boundary" || /^-+$/.test(cells[0])) continue;
 
@@ -143,11 +131,10 @@ export function selectRoute(routes, requestedBoundary) {
   const exact = routes.find((route) => route.boundary.toLowerCase() === normalized);
   if (exact) return exact;
 
-  const fuzzy = routes.filter(
-    (route) =>
-      route.boundary.toLowerCase().includes(normalized) ||
-      normalized.includes(route.boundary.toLowerCase()),
-  );
+  const fuzzy = routes.filter((route) => {
+    const boundary = route.boundary.toLowerCase();
+    return boundary.includes(normalized) || normalized.includes(boundary);
+  });
   if (fuzzy.length === 1) return fuzzy[0];
 
   throw new Error(
@@ -168,10 +155,19 @@ export function parseArgs(argv) {
     allowMain: false,
     listBoundaries: false,
   };
+  const valueOptions = new Map([
+    ["--task", "task"],
+    ["--boundary", "boundary"],
+    ["--class", "riskClass"],
+    ["--packet", "packet"],
+    ["--root", "root"],
+    ["--base", "base"],
+    ["--format", "format"],
+    ["--output", "output"],
+  ]);
 
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
-
     if (value === "--allow-main") {
       options.allowMain = true;
       continue;
@@ -181,31 +177,21 @@ export function parseArgs(argv) {
       continue;
     }
 
+    const field = valueOptions.get(value);
+    if (!field) throw new Error(`Unknown option: ${value}`);
     const nextValue = argv[index + 1];
-    const assign = (field, label) => {
-      if (!nextValue || nextValue.startsWith("--")) {
-        throw new Error(`${label} requires a value`);
-      }
-      options[field] = nextValue;
-      index += 1;
-    };
-
-    if (value === "--task") assign("task", "--task");
-    else if (value === "--boundary") assign("boundary", "--boundary");
-    else if (value === "--class") assign("riskClass", "--class");
-    else if (value === "--packet") assign("packet", "--packet");
-    else if (value === "--root") assign("root", "--root");
-    else if (value === "--base") assign("base", "--base");
-    else if (value === "--format") assign("format", "--format");
-    else if (value === "--output") assign("output", "--output");
-    else throw new Error(`Unknown option: ${value}`);
+    if (!nextValue || nextValue.startsWith("--")) {
+      throw new Error(`${value} requires a value`);
+    }
+    options[field] = nextValue;
+    index += 1;
   }
 
   if (options.listBoundaries) return options;
   if (!options.task) throw new Error("--task is required");
   if (!options.boundary) throw new Error("--boundary is required");
   if (
-    !options.riskClass ||
+    options.riskClass === null ||
     !["0", "1", "2", "3"].includes(String(options.riskClass))
   ) {
     throw new Error("--class must be one of 0, 1, 2 or 3");
@@ -234,9 +220,8 @@ export function inspectGit(root, base = "main") {
   const head = runGit(root, ["rev-parse", "HEAD"]);
   const statusOutput = runGit(root, ["status", "--porcelain=v1"]);
   const status = statusOutput ? statusOutput.split(/\r?\n/).filter(Boolean) : [];
-  const baseRef = runGit(root, ["rev-parse", "--verify", base])
-    ? base
-    : `origin/${base}`;
+  const localBase = runGit(root, ["rev-parse", "--verify", base]);
+  const baseRef = localBase ? base : `origin/${base}`;
   const mergeBase = runGit(root, ["merge-base", "HEAD", baseRef]);
   const committedDiff = mergeBase
     ? runGit(root, ["diff", "--name-only", `${mergeBase}...HEAD`])
@@ -278,7 +263,6 @@ export function validateTaskState({ root, options, route, git }) {
       errors.push(`Missing required context: ${requiredPath}`);
     }
   }
-
   for (const routedPath of extractBacktickPaths(route.loadNext)) {
     if (!existsSync(resolve(root, routedPath))) {
       warnings.push(`Routed reference not found locally: ${routedPath}`);
@@ -294,9 +278,7 @@ export function validateTaskState({ root, options, route, git }) {
     warnings.push("Git state could not be read; branch/head safety was not verified.");
   }
   if (git.dirty) {
-    warnings.push(
-      "Working tree is not clean; confirm the existing changes belong to this task.",
-    );
+    warnings.push("Working tree is not clean; confirm the existing changes belong to this task.");
   }
 
   if (options.riskClass === 3 && !packetPath) {
@@ -306,20 +288,17 @@ export function validateTaskState({ root, options, route, git }) {
     errors.push(`Work packet does not exist: ${relative(root, packetPath)}`);
   }
 
+  const alias = options.boundary.toLowerCase();
   if (
-    ["ledger", "accounts", "planning", "reports", "import", "auth", "ci"].includes(
-      options.boundary.toLowerCase(),
-    ) && options.riskClass < 3
+    ["ledger", "accounts", "planning", "reports", "import", "auth", "ci"].includes(alias) &&
+    options.riskClass < 3
   ) {
     warnings.push(
       "This boundary commonly reaches Class 3. Reconfirm that the selected task does not alter financial, data, security or operational truth.",
     );
   }
-  if (
-    ["ui", "brand"].includes(options.boundary.toLowerCase()) &&
-    options.riskClass < 2
-  ) {
-    warnings.push("This boundary commonly requires Class 2 browser and responsive evidence.");
+  if (["ui", "brand"].includes(alias) && options.riskClass < 2) {
+    warnings.push("This boundary commonly requires Class 2 browser evidence.");
   }
 
   return {
@@ -340,8 +319,9 @@ function listActivePackets(root) {
 
 export function buildManifest({ root, options, route, git, validation }) {
   const verification = buildVerificationPlan(options.riskClass);
-  const routedPaths = extractBacktickPaths(route.loadNext);
-  const readNow = [...new Set([...BASELINE_CONTEXT, ...routedPaths])];
+  const readNow = [
+    ...new Set([...BASELINE_CONTEXT, ...extractBacktickPaths(route.loadNext)]),
+  ];
 
   return {
     generatedAt: new Date().toISOString(),
@@ -497,13 +477,13 @@ export function main(argv = process.argv.slice(2)) {
 
   const root = resolve(options.root);
   try {
-    const routerPath = resolve(root, "docs/context/README.md");
-    const routes = parseContextRoutes(readFileSync(routerPath, "utf8"));
+    const routes = parseContextRoutes(
+      readFileSync(resolve(root, "docs/context/README.md"), "utf8"),
+    );
     const route = selectRoute(routes, options.boundary);
     const git = inspectGit(root, options.base);
     const validation = validateTaskState({ root, options, route, git });
     const manifest = buildManifest({ root, options, route, git, validation });
-
     const content =
       options.format === "json"
         ? JSON.stringify(manifest, null, 2)
@@ -518,7 +498,6 @@ export function main(argv = process.argv.slice(2)) {
       console.error("Task brief blocked:");
       for (const error of validation.errors) console.error(`- ${error}`);
     }
-
     return validation.errors.length > 0 ? 3 : 0;
   } catch (error) {
     console.error(error.message);
