@@ -1,9 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
 import { InboxBulkBar, type BulkApplyPayload } from "@/components/inbox/inbox-bulk-bar";
 import {
@@ -11,8 +9,28 @@ import {
   type ReviewSubmitPayload,
 } from "@/components/inbox/inbox-review-panel";
 import { AppShell } from "@/components/layout/app-shell";
+import { MoneyValue } from "@/components/money-value";
+import {
+  SecondaryHeader,
+  SecondarySummary,
+  SecondarySummaryItem,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { ViewerSummary } from "@/components/user-chip";
+import {
+  loadInboxForClient,
+  persistCandidateListForClient,
+  updateCandidateForClient,
+} from "@/hooks/client-inbox";
 import { useTransactions } from "@/hooks/use-transactions";
+import {
+  approvalIdempotencyKey,
+  findDemoApprovalTransaction,
+  reconcileDemoApprovalTransaction,
+} from "@/lib/inbox/approval-recovery";
 import {
   CONFIDENCE_LABELS,
   SOURCE_LABELS,
@@ -25,11 +43,6 @@ import {
   type InboxCandidate,
   type InboxFilter,
 } from "@/lib/inbox/candidate-store";
-import {
-  loadInboxForClient,
-  persistCandidateListForClient,
-  updateCandidateForClient,
-} from "@/hooks/client-inbox";
 import { annotateCandidates, type DetectedCandidate } from "@/lib/inbox/detect";
 import {
   isEditableKeyboardTarget,
@@ -44,13 +57,17 @@ import {
   markCandidatesStatus,
   partitionBulkApprove,
 } from "@/lib/inbox/review";
-import { formatMoney } from "@/lib/money";
 import { safeUserNotice } from "@/lib/safe-log";
 import type {
   AccountOption,
   CategoryOption,
   Transaction,
 } from "@/lib/sample-data";
+import {
+  readStoredTransactions,
+  writeStoredTransactions,
+} from "@/lib/transaction-store";
+import styles from "./inbox-page.module.css";
 
 type LoadState = "loading" | "ready" | "error";
 
@@ -63,27 +80,15 @@ type InboxWorkspace = {
 
 const FILTERS: { id: InboxFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
-  { id: "needs_review", label: "⚠ Cần xem" },
-  { id: "duplicate", label: "Trùng?" },
-  { id: "transfer", label: "CK?" },
+  { id: "needs_review", label: "Cần xem" },
+  { id: "duplicate", label: "Có thể trùng" },
+  { id: "transfer", label: "Có thể chuyển khoản" },
 ];
 
-function confidenceClass(confidence: InboxCandidate["confidence"]): string {
-  if (confidence === "high") return "ok";
-  if (confidence === "medium") return "warning";
-  return "danger";
-}
-
-function moneySign(kind: InboxCandidate["kind"]): string {
-  if (kind === "income") return "+";
-  if (kind === "transfer") return "↔ ";
-  return "−";
-}
-
-function moneyClass(kind: InboxCandidate["kind"]): string {
-  if (kind === "income") return "positive";
-  if (kind === "transfer") return "transfer";
-  return "negative";
+function confidenceTone(confidence: InboxCandidate["confidence"]) {
+  if (confidence === "high") return styles.confidenceHigh;
+  if (confidence === "medium") return styles.confidenceMedium;
+  return styles.confidenceLow;
 }
 
 export function InboxPage({
@@ -109,27 +114,27 @@ export function InboxPage({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [reviewId, setReviewId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
-  /** Keyboard focus row in the visible list (−1 = none until j/k). */
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const candidatesRef = useRef<InboxCandidate[]>(candidates);
+
   useEffect(() => {
     candidatesRef.current = candidates;
   }, [candidates]);
 
   const load = useCallback(
     async (opts?: { showLoading?: boolean }) => {
-      const showLoading = opts?.showLoading ?? false;
-      if (showLoading) {
+      if (opts?.showLoading) {
         setLoadState("loading");
         setErrorMessage("");
       }
       const result = await loadInboxForClient(viewer.isDemo);
       if (!result.ok) {
-        setErrorMessage(result.message || "Không tải được inbox");
+        setErrorMessage(result.message || "Không tải được Inbox.");
         setLoadState("error");
         return;
       }
       setCandidates(result.candidates);
+      candidatesRef.current = result.candidates;
       setErrorMessage("");
       setLoadState("ready");
     },
@@ -142,11 +147,12 @@ export function InboxPage({
       const result = await loadInboxForClient(viewer.isDemo);
       if (cancelled) return;
       if (!result.ok) {
-        setErrorMessage(result.message || "Không tải được inbox");
+        setErrorMessage(result.message || "Không tải được Inbox.");
         setLoadState("error");
         return;
       }
       setCandidates(result.candidates);
+      candidatesRef.current = result.candidates;
       setLoadState("ready");
     })();
     return () => {
@@ -156,7 +162,7 @@ export function InboxPage({
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 4200);
+    const timer = window.setTimeout(() => setNotice(""), 5000);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
@@ -164,31 +170,33 @@ export function InboxPage({
     () =>
       annotateCandidates(
         candidates,
-        workspace.transactions.map((tx) => ({
-          id: tx.id,
-          kind: tx.kind,
-          amount: tx.amount,
-          occurredOn: tx.occurredOn,
-          note: tx.note,
-          account: tx.account,
-          accountId: tx.accountId,
+        workspace.transactions.map((transaction) => ({
+          id: transaction.id,
+          kind: transaction.kind,
+          amount: transaction.amount,
+          occurredOn: transaction.occurredOn,
+          note: transaction.note,
+          account: transaction.account,
+          accountId: transaction.accountId,
         })),
       ),
     [candidates, workspace.transactions],
   );
-
   const pendingCount = useMemo(() => countPending(detected), [detected]);
   const visible = useMemo(
     () => sortCandidatesNewest(filterCandidates(detected, filter)),
     [detected, filter],
   );
   const visibleRef = useRef(visible);
+
   useEffect(() => {
     visibleRef.current = visible;
   }, [visible]);
 
   const reviewCandidate = useMemo((): DetectedCandidate | null => {
-    const found = detected.find((item) => item.id === reviewId && item.status === "pending");
+    const found = detected.find(
+      (item) => item.id === reviewId && item.status === "pending",
+    );
     return found ?? null;
   }, [detected, reviewId]);
 
@@ -198,53 +206,51 @@ export function InboxPage({
     );
     return selectedIds.filter((id) => pendingIds.has(id));
   }, [candidates, selectedIds]);
-
   const activeSelectedIdsRef = useRef(activeSelectedIds);
+
   useEffect(() => {
     activeSelectedIdsRef.current = activeSelectedIds;
   }, [activeSelectedIds]);
 
-  /** Display focus index (clamped if list shrank); −1 until j/k used. */
   const safeFocusedIndex =
     visible.length === 0
       ? -1
       : focusedIndex < 0
         ? -1
         : Math.min(focusedIndex, visible.length - 1);
-
   const focusedIndexRef = useRef(safeFocusedIndex);
+
   useEffect(() => {
     focusedIndexRef.current = safeFocusedIndex;
   }, [safeFocusedIndex]);
 
-  // Scroll focused row into view (keyboard j/k).
   useEffect(() => {
     if (safeFocusedIndex < 0) return;
-    const el = document.querySelector<HTMLElement>(
-      `[data-inbox-index="${safeFocusedIndex}"]`,
-    );
-    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    document
+      .querySelector<HTMLElement>(`[data-inbox-index="${safeFocusedIndex}"]`)
+      ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [safeFocusedIndex]);
 
   async function persist(next: InboxCandidate[], changedIds: string[]) {
     const result = await persistCandidateListForClient(viewer.isDemo, next, changedIds);
     if (!result.ok) {
       setErrorMessage(result.message);
-      setNotice(result.message);
       return false;
     }
     setCandidates(result.candidates);
+    candidatesRef.current = result.candidates;
     return true;
   }
 
   function seedDemo() {
     if (!viewer.isDemo) {
-      setNotice("Dữ liệu mẫu chỉ dùng ở chế độ demo trên thiết bị.");
+      setNotice("Dữ liệu mẫu chỉ dùng trong chế độ demo trên thiết bị.");
       return;
     }
     const next = sampleCandidates.map((item) => ({ ...item }));
     writeStoredCandidates(next);
     setCandidates(next);
+    candidatesRef.current = next;
     setSelectedIds([]);
     setNotice("Đã nạp dữ liệu mẫu vào Inbox.");
   }
@@ -258,19 +264,22 @@ export function InboxPage({
   function toggleSelectAllVisible() {
     const visibleIds = visible.map((item) => item.id);
     const allSelected =
-      visibleIds.length > 0 && visibleIds.every((id) => activeSelectedIds.includes(id));
+      visibleIds.length > 0 &&
+      visibleIds.every((id) => activeSelectedIds.includes(id));
     if (allSelected) {
       setSelectedIds((current) => current.filter((id) => !visibleIds.includes(id)));
       return;
     }
     setSelectedIds((current) => {
-      const set = new Set(current);
-      for (const id of visibleIds) set.add(id);
-      return [...set];
+      const next = new Set(current);
+      for (const id of visibleIds) next.add(id);
+      return [...next];
     });
   }
 
-  async function postOne(payload: ReviewSubmitPayload): Promise<{ ok: boolean; message?: string }> {
+  async function postOne(
+    payload: ReviewSubmitPayload,
+  ): Promise<{ ok: boolean; message?: string }> {
     const post = payload.post;
     const accountId =
       post.mode === "money" ? post.input.accountId : post.input.sourceAccountId;
@@ -280,19 +289,46 @@ export function InboxPage({
         ? workspace.categories.find((item) => item.id === post.input.categoryId)
         : undefined;
 
-    let result: { ok: boolean; message?: string };
-    try {
-      if (post.mode === "transfer") {
-        result = await addTransfer(post.input);
-      } else {
-        result = await addTransaction(post.input);
+    let result: {
+      ok: boolean;
+      message?: string;
+      transaction?: Transaction;
+    };
+
+    const existingDemo = viewer.isDemo
+      ? findDemoApprovalTransaction(readStoredTransactions(), payload.candidateId)
+      : null;
+
+    if (existingDemo) {
+      result = { ok: true, transaction: existingDemo };
+    } else {
+      try {
+        result =
+          post.mode === "transfer"
+            ? await addTransfer(post.input)
+            : await addTransaction(post.input);
+      } catch {
+        return { ok: false, message: "Mất kết nối khi ghi sổ. Hãy thử lại." };
       }
-    } catch {
-      return { ok: false, message: "Mất kết nối khi ghi sổ. Hãy thử lại." };
     }
 
     if (!result.ok) {
       return { ok: false, message: result.message || "Không thể ghi sổ." };
+    }
+
+    if (
+      viewer.isDemo &&
+      result.transaction &&
+      result.transaction.id !== payload.candidateId
+    ) {
+      const stored = readStoredTransactions();
+      writeStoredTransactions(
+        reconcileDemoApprovalTransaction(
+          stored,
+          payload.candidateId,
+          result.transaction.id,
+        ),
+      );
     }
 
     const next = markCandidatesStatus(
@@ -314,10 +350,20 @@ export function InboxPage({
     );
     const saved = await persist(next, [payload.candidateId]);
     if (!saved) {
-      return { ok: false, message: "Đã ghi sổ nhưng chưa cập nhật được trạng thái Inbox." };
+      setNotice(
+        "Giao dịch đã vào sổ nhưng trạng thái Inbox chưa đồng bộ. Bấm duyệt lại là an toàn: MoneyFlow dùng cùng mã ứng viên và không tạo bản sao.",
+      );
+      return {
+        ok: false,
+        message:
+          "Giao dịch đã vào sổ; trạng thái Inbox chưa đồng bộ. Hãy thử lại để hoàn tất trạng thái — không tạo giao dịch trùng.",
+      };
     }
-    candidatesRef.current = next;
-    setSelectedIds((current) => current.filter((id) => id !== payload.candidateId));
+
+    setSelectedIds((current) =>
+      current.filter((id) => id !== payload.candidateId),
+    );
+    setErrorMessage("");
     setNotice(
       safeUserNotice(
         `Đã duyệt “${payload.draft.merchant.trim() || "giao dịch"}” vào sổ.`,
@@ -336,15 +382,13 @@ export function InboxPage({
   async function handleReject(candidateId: string) {
     const target = candidatesRef.current.find((item) => item.id === candidateId);
     const next = markCandidatesStatus(candidatesRef.current, [candidateId], "rejected");
-    const saved = await persist(next, [candidateId]);
-    if (!saved) return;
-    candidatesRef.current = next;
+    if (!(await persist(next, [candidateId]))) return;
     setSelectedIds((current) => current.filter((id) => id !== candidateId));
     setReviewId(null);
     setNotice(
       safeUserNotice(
         `Đã từ chối${target ? ` “${target.merchant}”` : ""}.`,
-        "Đã từ chối.",
+        "Đã từ chối ứng viên.",
       ),
     );
   }
@@ -353,13 +397,14 @@ export function InboxPage({
     const result = await updateCandidateForClient(
       viewer.isDemo,
       { id: candidateId, possibleDuplicate: true },
-      candidates,
+      candidatesRef.current,
     );
     if (!result.ok) {
       setNotice(result.message);
       return;
     }
     setCandidates(result.candidates);
+    candidatesRef.current = result.candidates;
     setNotice("Đã đánh dấu có thể trùng. Hãy kiểm tra trước khi duyệt.");
   }
 
@@ -372,16 +417,16 @@ export function InboxPage({
           payload.selectedIds,
           "rejected",
         );
-        const saved = await persist(next, payload.selectedIds);
-        if (!saved) return;
-        candidatesRef.current = next;
+        if (!(await persist(next, payload.selectedIds))) return;
         setSelectedIds([]);
-        setNotice(`Đã từ chối ${payload.selectedIds.length} mục.`);
+        setNotice(`Đã từ chối ${payload.selectedIds.length} ứng viên.`);
         return;
       }
 
       if (payload.action === "category") {
-        const category = workspace.categories.find((item) => item.id === payload.categoryId);
+        const category = workspace.categories.find(
+          (item) => item.id === payload.categoryId,
+        );
         if (!category) {
           setNotice("Chưa chọn được danh mục.");
           return;
@@ -391,21 +436,16 @@ export function InboxPage({
           payload.selectedIds,
           category,
         );
-        const saved = await persist(next, payload.selectedIds);
-        if (!saved) return;
-        candidatesRef.current = next;
-        setNotice(`Đã gán danh mục “${category.name}” (chỉ dòng khớp loại thu/chi).`);
+        if (!(await persist(next, payload.selectedIds))) return;
+        setNotice(`Đã gán danh mục “${category.name}” cho các ứng viên cùng loại.`);
         return;
       }
 
-      // approve — never auto-post low conf without opt-in (partitionBulkApprove)
-      const list = candidatesRef.current;
       const { eligible, skippedLow } = partitionBulkApprove(
-        list,
+        candidatesRef.current,
         payload.selectedIds,
         payload.includeLowConfidence,
       );
-
       let approved = 0;
       let failed = 0;
       for (const candidate of eligible) {
@@ -418,7 +458,7 @@ export function InboxPage({
           draft,
           workspace.accounts,
           workspace.categories,
-          crypto.randomUUID(),
+          approvalIdempotencyKey(candidate.id),
         );
         if (!post.ok) {
           failed += 1;
@@ -434,12 +474,9 @@ export function InboxPage({
       }
 
       setSelectedIds([]);
-      const skipNote =
-        skippedLow.length > 0
-          ? ` · Bỏ qua ${skippedLow.length} dòng conf thấp (không opt-in)`
-          : "";
-      const failNote = failed > 0 ? ` · Lỗi ${failed}` : "";
-      setNotice(`Đã duyệt ${approved}${skipNote}${failNote}.`);
+      setNotice(
+        `Đã duyệt ${approved}${skippedLow.length ? ` · Bỏ qua ${skippedLow.length} độ tin thấp` : ""}${failed ? ` · Cần xử lý lại ${failed}` : ""}.`,
+      );
     } finally {
       setBulkBusy(false);
     }
@@ -450,6 +487,7 @@ export function InboxPage({
   const isMutatingRef = useRef(isMutating);
   const reviewOpen = reviewId != null && reviewCandidate != null;
   const reviewOpenRef = useRef(reviewOpen);
+
   useEffect(() => {
     handleBulkApplyRef.current = handleBulkApply;
     bulkBusyRef.current = bulkBusy;
@@ -457,11 +495,9 @@ export function InboxPage({
     reviewOpenRef.current = reviewOpen;
   });
 
-  // Desktop power keys: j/k · x · a · c · n (wireframes Keyboard section).
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.defaultPrevented) return;
-      if (isEditableKeyboardTarget(event.target)) return;
+      if (event.defaultPrevented || isEditableKeyboardTarget(event.target)) return;
       if (reviewOpenRef.current) return;
 
       const action = resolveInboxShortcut(event.key, {
@@ -481,31 +517,32 @@ export function InboxPage({
         router.push("/capture/quick");
         return;
       }
-
       if (loadState !== "ready") return;
+
       const list = visibleRef.current;
-      if (list.length === 0 && (action === "next" || action === "prev" || action === "toggle_select")) {
+      if (
+        list.length === 0 &&
+        (action === "next" || action === "prev" || action === "toggle_select")
+      ) {
         return;
       }
 
       if (action === "next" || action === "prev") {
         event.preventDefault();
-        const dir = action === "next" ? 1 : -1;
-        setFocusedIndex((current) => moveFocusIndex(current, dir, list.length));
+        setFocusedIndex((current) =>
+          moveFocusIndex(current, action === "next" ? 1 : -1, list.length),
+        );
         return;
       }
 
       if (action === "toggle_select") {
-        const idx = focusedIndexRef.current;
-        if (idx < 0 || idx >= list.length) {
+        const index = focusedIndexRef.current;
+        if (index < 0 || index >= list.length) {
           setNotice("Dùng J/K chọn hàng rồi X để đánh dấu.");
           return;
         }
         event.preventDefault();
-        const id = list[idx]!.id;
-        setSelectedIds((current) =>
-          current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
-        );
+        toggleSelect(list[index]!.id);
         return;
       }
 
@@ -515,9 +552,12 @@ export function InboxPage({
           focusedIndexRef.current >= 0 && focusedIndexRef.current < list.length
             ? list[focusedIndexRef.current]!.id
             : null;
-        const ids = resolveApproveTargetIds(activeSelectedIdsRef.current, focused);
+        const ids = resolveApproveTargetIds(
+          activeSelectedIdsRef.current,
+          focused,
+        );
         if (ids.length === 0) {
-          setNotice("Chọn mục bằng X (hoặc J/K rồi A) để duyệt.");
+          setNotice("Chọn ứng viên bằng X trước khi duyệt.");
           return;
         }
         event.preventDefault();
@@ -535,132 +575,169 @@ export function InboxPage({
   }, [loadState, router]);
 
   const allVisibleSelected =
-    visible.length > 0 && visible.every((item) => activeSelectedIds.includes(item.id));
+    visible.length > 0 &&
+    visible.every((item) => activeSelectedIds.includes(item.id));
 
   return (
     <AppShell
       viewer={viewer}
       inboxCount={pendingCount}
       notice={notice}
+      primaryAction={{ label: "Capture", href: "/capture", icon: "plus" }}
+      fabAction={{ label: "Capture", href: "/capture", icon: "plus" }}
     >
-      <main className="dashboard inbox-workspace">
-        <section className="transactions-title-row inbox-title-row">
-          <div>
-            <p className="eyebrow">Hộp thư tài chính</p>
-            <h1>Inbox</h1>
+      <SecondaryWorkspace slot="inbox-workspace">
+        <SecondaryHeader
+          section="Hộp thư tài chính"
+          title="Inbox"
+          description={
             <p>
-              {loadState === "ready"
-                ? `Cần duyệt: ${pendingCount}`
-                : "Duyệt giao dịch trước khi vào sổ."}
+              Ứng viên chỉ trở thành giao dịch thật sau khi bạn kiểm tra và duyệt.
+              Độ tin thấp không được ghi hàng loạt nếu chưa bật rõ ràng.
             </p>
-          </div>
-          <div className="page-heading-actions">
-            <Link className="primary-button" href="/capture">
-              <Icon name="plus" />
-              Capture
-            </Link>
-          </div>
-        </section>
+          }
+          actions={
+            <>
+              <LinkButton href="/rules" intent="secondary" targetSize="important">
+                <Icon name="rules" />
+                Quy tắc
+              </LinkButton>
+              <LinkButton href="/imports" intent="secondary" targetSize="important">
+                <Icon name="imports" />
+                Lịch sử import
+              </LinkButton>
+            </>
+          }
+        />
+
+        <SecondarySummary label="Trạng thái Inbox" slot="inbox-summary">
+          <SecondarySummaryItem label="Chờ duyệt" value={pendingCount} />
+          <SecondarySummaryItem label="Đang hiển thị" value={visible.length} />
+          <SecondarySummaryItem label="Đã chọn" value={activeSelectedIds.length} />
+        </SecondarySummary>
 
         {workspace.dataError ? (
-          <div className="data-alert" role="status">
-            <Icon name="bell" />
-            <span>{workspace.dataError} — vẫn duyệt được bằng dữ liệu demo trên thiết bị.</span>
-          </div>
+          <Alert tone="warning" live="polite">
+            <AlertDescription className={styles.alertContent}>
+              <Icon name="bell" />
+              <span>{workspace.dataError}</span>
+            </AlertDescription>
+          </Alert>
         ) : null}
 
-        {loadState === "error" && (
-          <div className="data-alert" role="alert">
-            <Icon name="bell" />
-            <span>{errorMessage || "Không tải được inbox"}</span>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => load({ showLoading: true })}
-            >
-              Thử lại
-            </button>
-          </div>
-        )}
+        {loadState === "error" ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertWithAction}>
+              <span>{errorMessage || "Không tải được Inbox."}</span>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                onClick={() => void load({ showLoading: true })}
+              >
+                Thử lại
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        <section className="inbox-toolbar panel" aria-label="Bộ lọc Inbox">
-          <div className="filter-group inbox-filter-chips" role="toolbar" aria-label="Lọc ứng viên">
+        <section className={styles.toolbar} aria-label="Bộ lọc Inbox">
+          <div className={styles.filters} role="toolbar" aria-label="Lọc ứng viên">
             {FILTERS.map((item) => (
-              <button
+              <Button
                 key={item.id}
                 type="button"
-                className={filter === item.id ? "active" : ""}
+                intent={filter === item.id ? "primary" : "secondary"}
+                targetSize="important"
                 onClick={() => setFilter(item.id)}
                 aria-pressed={filter === item.id}
               >
                 {item.label}
-              </button>
+              </Button>
             ))}
           </div>
-          <p className="inbox-sort-hint">Sắp xếp: Mới nhất</p>
+          <p>Sắp xếp: mới nhất</p>
         </section>
 
-        {loadState === "loading" && (
-          <section className="inbox-list panel" aria-busy="true" aria-label="Đang tải Inbox">
-            {Array.from({ length: 8 }, (_, index) => (
-              <div className="inbox-skeleton-row" key={index}>
-                <span className="loading-line inbox-skel-date" />
-                <span className="loading-line inbox-skel-merchant" />
-                <span className="loading-line inbox-skel-money" />
-                <span className="loading-line inbox-skel-badge" />
-                <span className="loading-line inbox-skel-badge" />
+        {loadState === "loading" ? (
+          <section
+            className={styles.loading}
+            aria-busy="true"
+            aria-label="Đang tải Inbox"
+          >
+            {Array.from({ length: 7 }, (_, index) => (
+              <div className={styles.skeletonRow} key={index}>
+                <span />
+                <span />
+                <span />
+                <span />
               </div>
             ))}
           </section>
-        )}
+        ) : null}
 
-        {loadState === "ready" && visible.length === 0 && (
-          <section className="panel inbox-empty-panel">
-            {pendingCount === 0 ? (
-              <EmptyState
-                icon="inbox"
-                title="Inbox trống"
-                description="Chưa có giao dịch chờ duyệt. Hãy dán text, tải file hoặc thêm nhanh."
-                actionLabel="Dán text"
-                actionHref="/capture/paste"
-                secondaryLabel="Tải file"
-                secondaryHref="/capture/upload"
-              />
-            ) : (
-              <EmptyState
-                icon="search"
-                title="Không có mục khớp bộ lọc"
-                description="Thử chọn “Tất cả” hoặc đổi bộ lọc khác."
-                actionLabel="Xem tất cả"
-                onAction={() => setFilter("all")}
-              />
-            )}
-            {pendingCount === 0 && (
-              <div className="inbox-empty-extra">
-                <Link className="secondary-button" href="/capture/quick">
-                  Thêm nhanh
-                </Link>
-                {viewer.isDemo && (
-                  <button type="button" className="secondary-button" onClick={seedDemo}>
+        {loadState === "ready" && visible.length === 0 ? (
+          <EmptyState
+            icon={<Icon name={pendingCount === 0 ? "inbox" : "search"} />}
+            title={pendingCount === 0 ? "Inbox trống" : "Không có mục khớp bộ lọc"}
+            description={
+              pendingCount === 0
+                ? "Dán nội dung, tải file hoặc thêm nhanh để tạo ứng viên chờ duyệt."
+                : "Chọn Tất cả hoặc thay đổi bộ lọc để xem các ứng viên còn lại."
+            }
+            primaryAction={
+              pendingCount === 0 ? (
+                <LinkButton
+                  href="/capture/paste"
+                  intent="primary"
+                  targetSize="important"
+                >
+                  Dán nội dung
+                </LinkButton>
+              ) : (
+                <Button
+                  type="button"
+                  intent="secondary"
+                  targetSize="important"
+                  onClick={() => setFilter("all")}
+                >
+                  Xem tất cả
+                </Button>
+              )
+            }
+            secondaryAction={
+              pendingCount === 0 ? (
+                viewer.isDemo ? (
+                  <Button
+                    type="button"
+                    intent="secondary"
+                    targetSize="important"
+                    onClick={seedDemo}
+                  >
                     Nạp dữ liệu mẫu
-                  </button>
-                )}
-              </div>
-            )}
-          </section>
-        )}
+                  </Button>
+                ) : (
+                  <LinkButton
+                    href="/capture/upload"
+                    intent="secondary"
+                    targetSize="important"
+                  >
+                    Tải file
+                  </LinkButton>
+                )
+              ) : undefined
+            }
+          />
+        ) : null}
 
-        {loadState === "ready" && visible.length > 0 && (
-          <section className="inbox-list panel" aria-label="Danh sách chờ duyệt">
-            <div className="inbox-list-header" aria-hidden="true">
-              <span className="inbox-col-check">
-                <input
-                  type="checkbox"
-                  checked={allVisibleSelected}
-                  onChange={toggleSelectAllVisible}
-                  aria-label="Chọn tất cả đang hiển thị"
-                />
-              </span>
+        {loadState === "ready" && visible.length > 0 ? (
+          <section
+            className={styles.list}
+            aria-label="Danh sách chờ duyệt"
+            data-slot="inbox-candidate-list"
+          >
+            <div className={styles.listHeader} aria-hidden="true">
+              <span />
               <span>Ngày</span>
               <span>Mô tả</span>
               <span>Số tiền</span>
@@ -668,7 +745,15 @@ export function InboxPage({
               <span>Độ tin</span>
               <span />
             </div>
-            <ul className="inbox-rows">
+            <label className={styles.selectAll}>
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleSelectAllVisible}
+              />
+              <span>Chọn tất cả {visible.length} ứng viên đang hiển thị</span>
+            </label>
+            <ul className={styles.rows}>
               {visible.map((candidate, index) => {
                 const selected = activeSelectedIds.includes(candidate.id);
                 const focused = safeFocusedIndex === index;
@@ -676,84 +761,88 @@ export function InboxPage({
                   <li key={candidate.id}>
                     <article
                       data-inbox-index={index}
-                      className={`inbox-row${candidate.confidence === "low" ? " low-conf" : ""}${selected ? " selected" : ""}${focused ? " focused" : ""}`}
+                      className={[
+                        styles.row,
+                        candidate.confidence === "low" && styles.lowConfidence,
+                        selected && styles.selected,
+                        focused && styles.focused,
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                       aria-current={focused ? "true" : undefined}
+                      data-slot="inbox-candidate-row"
                     >
-                      <label className="inbox-col-check">
-                        <span className="sr-only">Chọn {candidate.merchant}</span>
+                      <label className={styles.rowCheck}>
+                        <span className={styles.srOnly}>Chọn {candidate.merchant}</span>
                         <input
                           type="checkbox"
                           checked={selected}
                           onChange={() => toggleSelect(candidate.id)}
                         />
                       </label>
-                      <time className="inbox-row-date" dateTime={candidate.occurredOn}>
+                      <time className={styles.date} dateTime={candidate.occurredOn}>
                         {formatCandidateDate(candidate.occurredOn)}
                       </time>
                       <button
                         type="button"
-                        className="inbox-row-main inbox-row-open"
+                        className={styles.main}
                         onClick={() => setReviewId(candidate.id)}
                       >
                         <strong>{candidate.merchant}</strong>
-                        {(candidate.note || candidate.category || candidate.account) && (
+                        {candidate.note || candidate.category || candidate.account ? (
                           <small>
                             {[candidate.note, candidate.category, candidate.account]
                               .filter(Boolean)
                               .join(" · ")}
                           </small>
-                        )}
-                        {candidate.possibleDuplicate ? (
-                          <span className="preview-chip sm warning">Trùng?</span>
                         ) : null}
-                        {candidate.possibleTransfer ? (
-                          <span className="preview-chip sm info">CK?</span>
-                        ) : null}
-                        {candidate.kind === "transfer" && !candidate.possibleTransfer ? (
-                          <span className="preview-chip sm info">CK</span>
-                        ) : null}
+                        <span className={styles.flags}>
+                          {candidate.possibleDuplicate ? <span>Có thể trùng</span> : null}
+                          {candidate.possibleTransfer || candidate.kind === "transfer" ? (
+                            <span>Chuyển khoản</span>
+                          ) : null}
+                        </span>
                       </button>
-                      <strong
-                        className={`inbox-row-amount font-mono ${moneyClass(candidate.kind)}`}
-                      >
-                        {moneySign(candidate.kind)}
-                        {formatMoney(candidate.amount)}
-                      </strong>
-                      <span className="preview-chip sm source-badge" title="Nguồn">
-                        {SOURCE_LABELS[candidate.source]}
-                      </span>
+                      <MoneyValue
+                        amount={candidate.amount}
+                        mode="kind"
+                        kind={candidate.kind}
+                        label={`Ứng viên ${candidate.merchant}`}
+                        emphasis="strong"
+                        className={styles.amount}
+                      />
+                      <span className={styles.source}>{SOURCE_LABELS[candidate.source]}</span>
                       <span
-                        className={`preview-chip sm confidence-badge ${confidenceClass(candidate.confidence)}`}
-                        title={CONFIDENCE_LABELS[candidate.confidence]}
+                        className={`${styles.confidence} ${confidenceTone(candidate.confidence)}`}
                       >
                         {CONFIDENCE_LABELS[candidate.confidence]}
                       </span>
-                      <div className="inbox-row-actions">
-                        <button
-                          type="button"
-                          className="secondary-button inbox-row-dismiss"
-                          onClick={() => setReviewId(candidate.id)}
-                          aria-label={`Duyệt ${candidate.merchant}`}
-                        >
-                          Duyệt
-                        </button>
-                      </div>
+                      <Button
+                        type="button"
+                        intent="secondary"
+                        targetSize="important"
+                        onClick={() => setReviewId(candidate.id)}
+                        aria-label={`Duyệt ${candidate.merchant}`}
+                      >
+                        Duyệt
+                      </Button>
                     </article>
                   </li>
                 );
               })}
             </ul>
-            <p className="inbox-list-footer">
-              Hiển thị {visible.length} / {pendingCount} mục chờ duyệt. Chọn nhiều để duyệt hàng
-              loạt; conf thấp không tự vào sổ.
-            </p>
-            <p className="inbox-kbd-hint" aria-label="Phím tắt Inbox">
-              <span className="inbox-kbd-label">Phím tắt:</span>{" "}
-              <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>X</kbd> chọn · <kbd>A</kbd> duyệt ·{" "}
-              <kbd>C</kbd> Capture · <kbd>N</kbd> Thêm nhanh
-            </p>
+            <div className={styles.listFooter}>
+              <p>
+                Hiển thị {visible.length}/{pendingCount} ứng viên chờ duyệt. Độ tin
+                thấp không tự vào sổ.
+              </p>
+              <p aria-label="Phím tắt Inbox">
+                <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>X</kbd> chọn · <kbd>A</kbd>{" "}
+                duyệt · <kbd>C</kbd> Capture · <kbd>N</kbd> Thêm nhanh
+              </p>
+            </div>
           </section>
-        )}
+        ) : null}
 
         <InboxBulkBar
           candidates={candidates}
@@ -766,7 +855,7 @@ export function InboxPage({
 
         <InboxReviewPanel
           key={reviewCandidate?.id ?? "inbox-review-closed"}
-          open={reviewId != null && reviewCandidate != null}
+          open={reviewOpen}
           candidate={reviewCandidate}
           accounts={workspace.accounts}
           categories={workspace.categories}
@@ -776,7 +865,7 @@ export function InboxPage({
           onReject={handleReject}
           onMarkDuplicate={handleMarkDuplicate}
         />
-      </main>
+      </SecondaryWorkspace>
     </AppShell>
   );
 }
