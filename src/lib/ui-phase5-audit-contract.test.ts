@@ -6,6 +6,10 @@ const moneyCss = readFileSync(
   "src/components/money-value.module.css",
   "utf8",
 );
+const transactionFormCss = readFileSync(
+  "src/components/transactions/transaction-form.module.css",
+  "utf8",
+);
 const modalAudit = readFileSync(
   "e2e/audit/modal-dialog.responsive.audit.spec.ts",
   "utf8",
@@ -24,6 +28,15 @@ test("large ledger money remains complete and unwrapped at phone widths", () => 
   assert.match(moneyCss, /white-space:\s*nowrap/);
   assert.match(moneyCss, /overflow-wrap:\s*normal/);
   assert.doesNotMatch(moneyCss, /text-overflow:\s*ellipsis/);
+});
+
+test("transaction forms own deterministic full-width phone sheet geometry", () => {
+  assert.match(transactionFormCss, /@media \(max-width: 620px\)/);
+  assert.match(transactionFormCss, /\.dialog\.dialog\s*\{/);
+  assert.match(transactionFormCss, /width:\s*100%/);
+  assert.match(transactionFormCss, /max-width:\s*none/);
+  assert.match(transactionFormCss, /margin:\s*auto 0 0/);
+  assert.doesNotMatch(transactionFormCss, /\.transaction-dialog/);
 });
 
 test("dialog audit targets the shared primitive instead of retired transaction classes", () => {
