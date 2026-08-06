@@ -356,7 +356,7 @@ test.describe("Phase B safety and review states", () => {
     await expect(reviewSubmit).toBeDisabled();
     await auditCurrentState(page, testInfo, "delete-confirmation-invalid");
 
-    await confirmation.fill("XÓA");
+    await fillHydratedControlledInput(confirmation, reviewSubmit, "XÓA");
     await expect(confirmation).toHaveAttribute("aria-invalid", "false");
     await expect(page.getByText(/Xác nhận hợp lệ/)).toBeVisible();
     await expect(reviewSubmit).toBeEnabled();
