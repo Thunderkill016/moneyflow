@@ -49,13 +49,24 @@ test("the audit captures every required safety-state artifact", () => {
   }
 });
 
-test("destructive confirmation is exercised without submitting deletion", () => {
+test("destructive confirmation uses review-before-delete without submitting deletion", () => {
   assert.match(safetySpec, /page\.goto\("\/settings\/delete-account"/);
   assert.match(safetySpec, /confirmation\.fill\("XOA"\)/);
   assert.match(safetySpec, /confirmation\.fill\("XÓA"\)/);
-  assert.match(safetySpec, /expect\(destructiveSubmit\)\.toBeDisabled\(\)/);
-  assert.match(safetySpec, /expect\(destructiveSubmit\)\.toBeEnabled\(\)/);
-  assert.doesNotMatch(safetySpec, /destructiveSubmit\.click\(/);
+  assert.match(safetySpec, /expect\(reviewSubmit\)\.toBeDisabled\(\)/);
+  assert.match(safetySpec, /expect\(reviewSubmit\)\.toBeEnabled\(\)/);
+  assert.match(safetySpec, /await reviewSubmit\.click\(\)/);
+  assert.match(
+    safetySpec,
+    /name: "Xóa vĩnh viễn tài khoản và dữ liệu\?"/,
+  );
+  assert.match(safetySpec, /name: "Xóa vĩnh viễn",\s*exact: true/);
+  assert.match(safetySpec, /expect\(afterReview\)\.toEqual\(before\)/);
+  assert.match(safetySpec, /name: "Hủy", exact: true/);
+  assert.doesNotMatch(
+    safetySpec,
+    /getByRole\("button",\s*\{\s*name: "Xóa vĩnh viễn"[^}]*\}\s*\)\s*\.click\(/,
+  );
 });
 
 test("failed Inbox review validation proves candidate and ledger state are unchanged", () => {
