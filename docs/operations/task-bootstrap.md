@@ -2,16 +2,18 @@
 
 `npm run task:brief` compiles the existing MoneyFlow context router, risk policy and local Git state into one bounded task brief for a human or coding agent.
 
-It exists to reduce repeated repository scanning at the start of a task. It does not replace `AGENTS.md`, the task context router, the risk classifier, a required work packet, code review or CI.
+It reduces repeated repository scanning at the start of a task. It does not replace `AGENTS.md`, the context router, risk classification, a required work packet, code review or CI.
 
 ## Why this tool exists
 
-MoneyFlow already has strong source-of-truth documents, but a new agent session still has to choose the correct subset, restate the risk class, inspect the branch and remember the relevant verification gates. Repeating that manually creates two opposite failure modes:
+MoneyFlow already has strong sources of truth, but each new agent session still has to reconstruct the same startup state: which documents to load, where the affected code lives, what risk class applies, whether the branch is safe and which verification layers matter.
 
-- too much context: old PR history and unrelated domain documents crowd out the current task;
+Manual reconstruction creates two opposite failure modes:
+
+- too much context: historical PRs and unrelated domain documents crowd out the current task;
 - too little context: the agent misses an invariant, required packet or verification layer.
 
-The CLI keeps the authority in the existing documents and turns them into a small, explicit startup manifest.
+The CLI keeps authority in the existing documents and turns them into a small, explicit startup manifest.
 
 ## Basic use
 
@@ -22,13 +24,13 @@ npm run task:brief -- \
   --class 2
 ```
 
-List the supported aliases:
+List supported aliases:
 
 ```bash
 npm run task:brief -- --list-boundaries
 ```
 
-Class 3 work must name the active packet:
+Class 3 work must name an existing active packet:
 
 ```bash
 npm run task:brief -- \
@@ -38,13 +40,30 @@ npm run task:brief -- \
   --packet docs/plans/active/account-closing-contract.md
 ```
 
+`--packet` must stay inside the repository and resolve to a Markdown file under `docs/plans/active/`. A historical/completed packet or an arbitrary existing file does not satisfy the Class 3 requirement.
+
+## Starting sequence
+
+The generated brief preserves the project-owned read order:
+
+1. `AGENTS.md`;
+2. `README.md`;
+3. affected code, tests and migrations;
+4. `docs/research/CURRENT_PROJECT_MEMORY.md`;
+5. `docs/context/README.md`;
+6. `ARCHITECTURE.md`, product principles and MVP definition;
+7. risk-proportional delivery policy;
+8. only the references selected by the boundary router.
+
+Class 3 additionally loads the AI delivery workflow, agent operating model and supplied active packet. This command does not preload PR history.
+
 ## Output modes
 
 The default Markdown output includes:
 
 - task, selected boundary and explicit risk class;
 - branch, exact head, dirty state and changed files;
-- the minimum starting document list;
+- the ordered startup sequence;
 - the selected row from `docs/context/README.md`;
 - planning and verification requirements;
 - blocking errors, warnings and owner boundaries;
@@ -71,7 +90,7 @@ npm run task:brief -- \
   --format prompt
 ```
 
-Write the result to a local file:
+Write the result to a repository-local file:
 
 ```bash
 npm run task:brief -- \
@@ -82,26 +101,37 @@ npm run task:brief -- \
   --output .tmp/task-brief.md
 ```
 
-`.tmp/` output is local evidence unless a task explicitly requires a reviewed repository artifact.
+`--output` cannot escape the repository root. `.tmp/` output remains local evidence unless the task explicitly requires a reviewed repository artifact.
+
+## Risk-proportional verification
+
+Risk class is an explicit input. The command does not infer financial, data, security or operational meaning from filenames or natural-language task text.
+
+The brief separates always-required commands from conditional evidence. Examples:
+
+- Class 1 does not automatically require deployment or architecture contracts unless those boundaries change;
+- Class 2 requires browser smoke, while CSS ownership and the cross-device UI audit apply only to presentation, layout, shared-component or audit-contract changes;
+- Class 3 selects database, browser, responsive and production evidence according to the actual changed boundary.
+
+The generated plan is a startup aid, not proof that a selected command ran.
 
 ## Safety behavior
 
 The command exits with code `3` when startup is blocked, including:
 
 - implementation is being started from `main`;
-- a Class 3 task does not supply an existing active work packet;
-- required baseline context is missing.
+- Class 3 lacks an existing active work packet;
+- a packet or output path escapes repository ownership;
+- required authority documents are missing.
 
 Use `--allow-main` only for read-only reconnaissance. It does not authorize implementation on `main`.
 
 The tool warns, but does not silently decide, when:
 
 - the working tree is dirty;
-- a selected boundary commonly requires a higher class than the supplied class;
+- a selected boundary commonly reaches a higher risk class;
 - a routed reference cannot be found locally;
 - Git branch/head state cannot be verified.
-
-Risk class remains an explicit input. The CLI does not infer financial, data, security or operational meaning from filenames or a natural-language prompt.
 
 ## Boundary aliases
 
@@ -119,28 +149,36 @@ Risk class remains an explicit input. The CLI does not infer financial, data, se
 | `ci` | CI/deployment/performance |
 | `brand` | Brand/landing |
 
-Aliases resolve to rows parsed from `docs/context/README.md`; the CLI does not maintain a second copy of each row's loading and verification guidance.
+Aliases resolve to rows parsed from `docs/context/README.md`. Tests verify every alias against the current router so a renamed route fails visibly instead of silently drifting.
 
 ## Relationship to other tools
 
 - `task:brief` starts and scopes work.
 - `ci:status` and `ci:watch` inspect exact-head pull-request checks.
-- the candidate CI recovery tool in PR #314 handles stale or unresponsive Actions runs.
+- candidate PR #314 owns stale or unresponsive Actions recovery.
 - GitHub Actions remains the source of truth for protected checks.
 
-The task bootstrap command never reruns CI, edits packets, creates branches, opens pull requests, changes provider settings or deploys production.
+The task bootstrap command never runs tests automatically, reruns CI, edits packets, creates branches, opens pull requests, changes provider settings, merges or deploys.
 
 ## Verification and maintenance
 
-Focused tests cover argument validation, context-router parsing, alias selection, risk-proportional gate output, main-branch blocking and Class 3 packet enforcement.
+Focused tests cover:
 
-The tests are loaded by the existing project-knowledge contract test, because the CLI compiles the project-owned knowledge router rather than application runtime behavior.
+- argument and Class 0 parsing;
+- router-table parsing and every current alias;
+- risk-proportional required versus conditional gates;
+- main-branch blocking;
+- Class 3 packet ownership;
+- repository path containment;
+- mandatory read order and Class 3 operating-model context.
 
-When `docs/context/README.md` changes, run:
+The test file is registered directly in `npm run test:ci-policy`.
+
+When `docs/context/README.md`, the authority read order or risk policy changes, run:
 
 ```bash
 npm run test:ci-policy
 npm run task:brief -- --list-boundaries
 ```
 
-Rollback is bounded: remove the npm script, the CLI, its tests and this runbook. No product runtime, database, provider or production state is involved.
+Rollback is bounded: remove the npm script, CLI, tests and this runbook. No product runtime, database, provider or production state is involved.
