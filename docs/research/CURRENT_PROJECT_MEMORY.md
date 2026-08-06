@@ -2,9 +2,9 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-06
-- **Current main audited:** `f6cea659030397e21d4287912faef173bc7a0966`
+- **Current main audited:** `372036fe8d1e583c3a81083ebef11f902e4f8b46`
 - **Owner direction:** MoneyFlow is released as a functional MVP; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate
-- **UI-system migration:** parent plan PR #296 and Phases 0–5 are merged; Phase 6 Accounts and Transfer is authorized only on candidate PR #307
+- **UI-system migration:** parent plan PR #296 and Phases 0–6 are merged; Phase 7 Planning is candidate-only on PR #308
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Memory size target:** target: **150–250 lines**
 - **Memory hard failure:** hard failure: above **500 lines** or **64 KiB**
@@ -68,6 +68,9 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - Split totals remain exact.
 - Destructive ledger actions use soft delete and recovery where supported.
 - Account archive is reversible; archived balances/history remain stored while active-account totals and new-transaction choices exclude archived accounts.
+- Budgets are monthly category limits, not envelope-assigned cash.
+- Unpaid commitments and expected income remain plans until explicit ledger posting.
+- Goal allocation is a planning number; current main does not transfer or lock account money.
 - Authenticated and demo failures never silently mix.
 - Missing balances, dates, commitments, income or planning assumptions are never invented.
 - Build/lint/typecheck do not prove RLS, browser behavior, provider state or production correctness.
@@ -80,22 +83,22 @@ MoneyFlow is functional-MVP complete. Competitive depth and public-beta hardenin
 | Capability | Current truth | Remaining distinction |
 |---|---|---|
 | Authentication/demo | Merged email/password, OAuth surfaces, recovery/reset, demo and CAPTCHA plumbing | hosted-provider acceptance remains separate |
-| Accounts | Merged CRUD/archive/restore, balances, transfers, register/detail and reconciliation route integration | Phase 6 local presentation ownership is candidate-only on PR #307; richer account-closing lifecycle requires separate financial specification |
+| Accounts | Merged Phase 6 local workspace, CRUD/archive/restore, explicit active totals, archived-balance visibility, transfers, register/detail and reconciliation route integration | richer account-closing lifecycle requires separate financial specification |
 | Reconciliation | Merged account-leg/session domain and UI integration with account-scoped state and exact-zero completion contracts | production/provider applicability remains evidence-specific; no bank feed or automatic matching claim |
 | Categories | Merged income/expense category lifecycle | clearer archive-impact depth if required |
 | Transactions | Merged Phase 5 local ledger/capture ownership, search/filter/ranges, review/bulk correction, edit, split/transfer and soft delete/undo | split-line correction and broader mutation audit remain depth gaps |
 | Timeline | Merged reviewed-only read-only ledger projection | broader history/export depth only |
 | Dashboard | Merged Phase 4 local presentation ownership, deterministic period, truthful range semantics, planning/activity summaries and schema-skew fallback | richer attention/drill-down depth |
-| Budgets | Merged current-month category limits and CRUD | history, comparison, copy, rollover and drill-down |
-| Recurring | Merged templates, current-month occurrence/link and pay/undo baseline | history, lifecycle, reminders and matching |
-| Goals | Merged target, allocation, deadline, planned pace and archive | contribution history and funding lifecycle |
+| Budgets | Merged category limits, historical month selection, previous-month comparison, progress and transaction drill-down | rollover, flex buckets and deeper lifecycle remain separate product depth |
+| Recurring | Merged expense/income templates, current-month occurrence links and pay/receive undo baseline | broader history, flexible schedules and matching remain depth gaps |
+| Goals | Merged target, planning allocation, deadline, planned pace and archive | contribution history and account-backed funding lifecycle are absent |
 | Reports | Merged period comparisons, totals, category/trend views, custom ranges and transfer exclusion | account/type dimensions and deeper drill-down |
 | Export | Merged direct CSV plus date-range CSV/JSON bundles | restore documentation and broader planning portability |
 | Import/Inbox | Merged CSV/XLSX/PDF staging, provenance, dry-run, duplicate/transfer planning and atomic approval | presets, batch UX and resume/retry depth |
 | Rules | Partial deterministic local parse rules | authenticated persisted rules |
 | Privacy/deletion | Merged baseline privacy surfaces and recoverable ledger deletion | deep destructive public-beta acceptance |
 | Onboarding/navigation | Merged privacy → wallet → first expense/dashboard and Core/Lab navigation | release-journey acceptance only |
-| Responsive/accessibility | Broad automated route/dialog/device coverage through Phase 5 across Chromium/WebKit, 200% text and keyboard | physical-device acceptance remains separate; Phase 6 candidate evidence pending |
+| Responsive/accessibility | Broad automated route/dialog/device coverage through Phase 6 across Chromium/WebKit, 200% text and keyboard | physical-device acceptance remains separate; Phase 7 candidate evidence pending |
 | CI/security/performance | Risk-selected CI, exact-head monitoring commands, CodeQL, secret scan, database/browser harnesses and performance documentation | provider/staging capacity claims remain evidence-specific |
 
 ## 6. UI-system migration truth
@@ -131,29 +134,41 @@ PR #301 was squash-merged as `4b48626935aa0ed3ddd0058bb0561ae1c2d17335`. Dashboa
 
 ### Phase 5 — Transactions and Capture
 
-PR #306 was squash-merged as `f6cea659030397e21d4287912faef173bc7a0966` and established:
+PR #306 was squash-merged as `f6cea659030397e21d4287912faef173bc7a0966`. It established local `/transactions`, capture and timeline owners, shared transaction-dialog lifecycle, semantic evidence slots, full-width phone dialogs, preserved integer/split/transfer invariants and retired the old transaction owner.
 
-- a locally owned `/transactions` ledger workspace;
-- locally owned summary, filters, ranges, bulk review/category correction, day groups and rows;
-- shared add/edit/transfer/split dialog lifecycle at the merged boundary;
-- an embedded `/capture/quick` form owner;
-- a reviewed-only read-only `/timeline` owner and hook;
-- stable semantic evidence slots replacing retired manager/dialog selectors;
-- preserved integer money, transfer exclusion, split exactness and eight-second delete undo;
-- full-width phone transaction dialogs and complete large-VND rendering at 320–390 CSS pixels;
-- removal of the retired transactions component/module and final MobileShellContract repair.
+Exact head `15a7ed6fcaf97596088f365c7703e9d3227ed97d` passed CI #1831, CodeQL #949 and secret-history scan #949, including browser smoke and the Chromium/WebKit cross-device matrix.
 
-Exact head `15a7ed6fcaf97596088f365c7703e9d3227ed97d` passed CI #1831, CodeQL #949 and secret-history scan #949, including browser smoke and the Chromium/WebKit cross-device matrix. Merge did not authorize deployment or production-data/provider changes.
+### Phase 6 — Accounts and Transfer
 
-### Phase 6 — Accounts and Transfer candidate
+PR #307 was squash-merged as `372036fe8d1e583c3a81083ebef11f902e4f8b46` after explicit owner merge instruction. It established:
 
-Owner instruction `Làm đi` authorized bounded branch work on 2026-08-06. PR #307 is candidate-only and is not current product behavior until owner-authorized merge.
+- a locally owned Accounts workspace and shared account form/review contracts;
+- explicit active-account totals separated by currency;
+- retained archived balances/history with restore and register access;
+- shared review for account archive instead of `window.confirm`;
+- dedicated Transfer presentation ownership while preserving balanced same-currency mutations;
+- responsive account/transfer evidence and retirement of the old Accounts page owner.
 
-The candidate moves `/accounts`, account create/edit, archive review and Transfer presentation behind local owners while preserving existing financial mutations. It explicitly distinguishes active totals from archived balances. A rule requiring zero balance or a balancing transfer before archive remains a separate Class 3 decision.
+The exact PR head passed CI #1857, CodeQL #974 and secret-history scan #974. Merging `main` automatically triggered Vercel production deployment `dpl_GD5hVfLXh66rmrJnZiiADN8f4HK9`, which reached `READY` for merge commit `372036fe8d1e583c3a81083ebef11f902e4f8b46`. The agent did not manually trigger that deployment.
+
+A rule requiring zero account balance, a balancing transfer or automatic account-closing entry remains a separate Class 3 financial decision.
+
+### Phase 7 — Planning candidate
+
+Owner instruction `làm đi` authorized bounded Phase 7 work on 2026-08-06. PR #308 is candidate-only and is not current product behavior until owner-authorized merge.
+
+The candidate:
+
+- introduces locally owned Planning workspace/header/summary/card/review contracts;
+- migrates Budgets, Commitments, recurring income and Goals to Phase 2 primitives;
+- preserves Budget history/comparison/drill-down and recurring ledger mutations;
+- replaces Planning `window.confirm` flows with explicit reversible reviews;
+- corrects copy that implied unpaid commitments were locked cash or Goal allocations moved account money;
+- preserves the current tracking-budget model and does not add envelope, rollover, auto-posting, account-backed Goals or safe-to-spend guidance.
 
 ### Next UI boundary
 
-Phase 7 Planning is not authorized by Phase 6 work. It requires a new explicit owner instruction and bounded packet after Phase 6 reaches an owner decision.
+Phase 8 is not authorized by Phase 7 branch work. It requires a new explicit owner instruction after PR #308 reaches an owner decision.
 
 ## 7. Verification and evidence boundaries
 
@@ -162,7 +177,8 @@ Phase 7 Planning is not authorized by Phase 6 work. It requires a new explicit o
 - Provider changes require before/after evidence, rollback and production smoke.
 - Automated browser success does not prove physical-device acceptance or visual quality by itself.
 - A successful job shell is not evidence when initialization/analysis or selected shards were skipped.
-- Candidate PR #307 changes no database, Auth, RLS, provider setting, production data or financial formula.
+- Candidate PR #308 changes no database, Auth, RLS, provider setting, production data or financial formula.
+- A future merge to `main` is expected to auto-trigger Vercel; branch verification does not authorize that merge.
 - Physical Android and iOS/Safari acceptance remains Phase 11 evidence.
 
 ## 8. Reconciled issue status
@@ -173,7 +189,7 @@ Phase 7 Planning is not authorized by Phase 6 work. It requires a new explicit o
 | #53 reconciliation | Merged account-leg/session contract and UI integration; production applicability remains evidence-specific |
 | #53 authenticated rules | Absent on main; deterministic local rules exist |
 | #53 audit/performance | Partial; strong repository tooling exists while capacity claims remain evidence-specific |
-| #72 UI audit | Broad automated coverage merged; validation/destructive/import/planning depth and physical-device detail remain separate |
+| #72 UI audit | Broad automated coverage merged through Phase 6; validation/destructive/import/planning depth and physical-device detail remain separate |
 | #172 product assessment | market-validation warnings remain useful; old global feature-freeze framing is superseded |
 | #174 provider controls | repository readiness/runbook merged; private provider execution is not inferred |
 
@@ -183,11 +199,11 @@ Open PRs are not product truth and must be refreshed against current `main` befo
 
 | PR | Interpretation |
 |---|---|
-| #307 | authorized Phase 6 Accounts/Transfer candidate; exact-head evaluation in progress; not merged |
+| #308 | authorized Phase 7 Planning candidate; exact-head evaluation in progress; not merged |
 | #170/#171 | older CSS cleanup candidates; compare against current ownership and tests before reuse |
 | #119 | visual/logo candidate requiring current browser evidence and owner approval |
 
-PRs #295–#306 are merged and must not be described as candidates. Older closed/unmerged reconciliation and transaction candidates remain provenance only.
+PRs #295–#307 are merged and must not be described as candidates. Older closed/unmerged reconciliation and transaction candidates remain provenance only.
 
 ## 10. True gaps after this audit
 
@@ -201,14 +217,14 @@ PRs #295–#306 are merged and must not be described as candidates. Older closed
 
 - richer account-closing lifecycle, reconciliation matching depth and bank-independent statement workflow;
 - split-line transaction correction and mutation audit;
-- budget/recurring/goal history and lifecycle;
+- budget rollover/flex planning, recurring history/matching and Goal funding/contribution history;
 - report account/type dimensions and drill-down;
 - import batch UX, authenticated persisted rules and portability.
 
 ### UI migration debt
 
-- evaluate/merge or reject Phase 6 candidate PR #307;
-- Phase 7 Planning and later route-by-route adoption of Phase 2 primitives;
+- evaluate/merge or reject Phase 7 candidate PR #308;
+- Phase 8 and later route-by-route adoption of Phase 2 primitives;
 - compatibility-variant and alias retirement after zero-reference evidence;
 - remaining local ownership of responsive repairs and final legacy CSS retirement;
 - physical Android and iOS/Safari acceptance;
@@ -231,7 +247,8 @@ PRs #295–#306 are merged and must not be described as candidates. Older closed
 - PR #301 delivered and merged the Phase 4 Dashboard ownership pilot.
 - PR #302 delivered exact-head CI monitoring commands and runbook.
 - PR #306 delivered and merged Phase 5 Transactions/Capture ownership.
-- PR #307 remains candidate-only until exact-head verification and owner merge decision.
+- PR #307 delivered and production-deployed Phase 6 Accounts/Transfer ownership.
+- PR #308 remains candidate-only until cumulative exact-head verification and owner merge decision.
 
 ## 12. Superseded-status register
 
@@ -242,6 +259,7 @@ Do not repeat these as current facts:
 - Rules are entirely absent.
 - Import provenance/dry-run/atomic approval are future work.
 - Reports lack custom ranges.
+- Budgets lack historical month selection or previous-month comparison.
 - Recurring items have no occurrence linkage.
 - Goals lack deadline or pace calculation.
 - Export only supports current-month CSV or depends on `/insights`.
@@ -250,7 +268,9 @@ Do not repeat these as current facts:
 - CAPTCHA plumbing, account register/detail, reconciliation integration or transaction range filters are missing.
 - Transactions still use the retired manager workspace or transaction dialog classes.
 - Phase 5 remains unauthorized, pending or unmerged.
-- Candidate PR #307 is current product behavior.
+- PR #307 remains candidate-only or unmerged.
+- Phase 6 was not deployed after merge.
+- Candidate PR #308 is current product behavior.
 - Missing public evidence proves the owner did not perform private work.
 - Functional MVP requires every competitive-depth item.
 - Provider/device acceptance is automatically part of the locked MVP exit definition.
