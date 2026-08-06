@@ -1,12 +1,25 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import type { BudgetSummary, SaveBudgetInput } from "@/lib/planning/budgets";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { SelectField } from "@/components/ui/select-field";
+import { TextField } from "@/components/ui/text-field";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import type { BudgetSummary, SaveBudgetInput } from "@/lib/planning/budgets";
 import type { CategoryOption } from "@/lib/sample-data";
+import styles from "./planning-dialog.module.css";
 
-export function BudgetDialog({ open, budget, categories, monthStart, onClose, onSave }: {
+export function BudgetDialog({
+  open,
+  budget,
+  categories,
+  monthStart,
+  onClose,
+  onSave,
+}: {
   open: boolean;
   budget: BudgetSummary | null;
   categories: CategoryOption[];
@@ -14,49 +27,134 @@ export function BudgetDialog({ open, budget, categories, monthStart, onClose, on
   onClose: () => void;
   onSave: (input: SaveBudgetInput) => Promise<{ ok: boolean; message?: string }>;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const [error, setError] = useState("");
+  const limitRef = useRef<HTMLInputElement>(null);
+  const [categoryId, setCategoryId] = useState(budget?.categoryId ?? categories[0]?.id ?? "");
+  const [limit, setLimit] = useState(budget ? formatMoneyInput(String(budget.limit)) : "");
+  const [categoryError, setCategoryError] = useState("");
+  const [limitError, setLimitError] = useState("");
+  const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const formId = "budget-form";
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+  function clearErrors() {
+    setCategoryError("");
+    setLimitError("");
+    setFormError("");
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const categoryId = String(data.get("categoryId") ?? "");
-    const limit = parseMoneyInput(String(data.get("limit") ?? ""));
-    if (!categoryId) { setError("Chọn một danh mục chi tiêu."); return; }
-    if (!Number.isSafeInteger(limit) || limit <= 0) { setError("Hạn mức cần lớn hơn 0."); return; }
+    const parsedLimit = parseMoneyInput(limit);
+    clearErrors();
+
+    if (!categoryId) {
+      setCategoryError("Chọn một danh mục chi tiêu.");
+      return;
+    }
+    if (!Number.isSafeInteger(parsedLimit) || parsedLimit <= 0) {
+      setLimitError("Hạn mức cần lớn hơn 0.");
+      limitRef.current?.focus();
+      return;
+    }
 
     setSubmitting(true);
     let result: { ok: boolean; message?: string };
     try {
-      result = await onSave({ categoryId, monthStart, limit });
+      result = await onSave({ categoryId, monthStart, limit: parsedLimit });
     } catch {
       result = { ok: false, message: "Mất kết nối khi lưu ngân sách." };
     } finally {
       setSubmitting(false);
     }
-    if (!result.ok) { setError(result.message || "Không thể lưu ngân sách."); return; }
-    setError("");
+    if (!result.ok) setFormError(result.message || "Không thể lưu ngân sách.");
   }
 
-  return <dialog ref={dialogRef} className="account-dialog budget-dialog" onCancel={(event) => { event.preventDefault(); if (!submitting) onClose(); }} onClose={onClose} aria-labelledby="budget-dialog-title">
-    <div className="dialog-heading"><div><p className="eyebrow">Kế hoạch tháng</p><h2 id="budget-dialog-title">{budget ? "Sửa ngân sách" : "Thêm ngân sách"}</h2></div><button className="icon-button" type="button" onClick={onClose} disabled={submitting} aria-label="Đóng"><Icon name="close" /></button></div>
-    <form className="account-form" onSubmit={handleSubmit}>
-      <label><span>Danh mục</span>{budget && <input type="hidden" name="categoryId" value={budget.categoryId} />}<select name={budget ? undefined : "categoryId"} defaultValue={budget?.categoryId ?? categories[0]?.id ?? ""} disabled={Boolean(budget)}>{categories.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
-      <label><span>Hạn mức tháng</span><div className="account-money-input"><input name="limit" inputMode="decimal" defaultValue={budget ? formatMoneyInput(String(budget.limit)) : ""} placeholder="0" onInput={(event) => { event.currentTarget.value = formatMoneyInput(event.currentTarget.value); setError(""); }} autoFocus={Boolean(budget)} /><strong>₫</strong></div></label>
-      <p className="account-form-hint">MoneyFlow sẽ so sánh hạn mức với các giao dịch trong danh mục này.</p>
-      {error && <p className="field-error" role="alert">{error}</p>}
-      <div className="dialog-footer-actions">
-        <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>Hủy</button>
-        <button className="primary-button account-submit" type="submit" disabled={submitting || !categories.length}><Icon name="check" />{submitting ? "Đang lưu..." : budget ? "Lưu thay đổi" : "Thêm ngân sách"}</button>
-      </div>
-    </form>
-  </dialog>;
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !submitting) onClose();
+      }}
+      title={budget ? "Sửa ngân sách" : "Thêm ngân sách"}
+      description="Hạn mức áp dụng cho một danh mục trong đúng tháng đang xem."
+      dismissible={!submitting}
+      initialFocusRef={limitRef}
+      className={styles.dialog}
+      contentClassName={styles.dialogContent}
+      footer={
+        <div className={styles.footerActions}>
+          <Button
+            type="button"
+            intent="secondary"
+            targetSize="important"
+            disabled={submitting}
+            onClick={onClose}
+          >
+            Hủy
+          </Button>
+          <Button
+            form={formId}
+            type="submit"
+            intent="primary"
+            targetSize="important"
+            pending={submitting}
+            pendingLabel="Đang lưu…"
+            disabled={!categories.length}
+          >
+            <Icon name="check" /> {budget ? "Lưu thay đổi" : "Thêm ngân sách"}
+          </Button>
+        </div>
+      }
+    >
+      <form id={formId} className={styles.form} onSubmit={handleSubmit} noValidate>
+        <div className={styles.formGrid}>
+          <SelectField
+            label="Danh mục"
+            value={categoryId}
+            error={categoryError || undefined}
+            targetSize="important"
+            disabled={Boolean(budget) || submitting}
+            onChange={(event) => {
+              setCategoryId(event.target.value);
+              clearErrors();
+            }}
+          >
+            {categories.map((item) => (
+              <option value={item.id} key={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </SelectField>
+          <TextField
+            inputRef={limitRef}
+            label="Hạn mức tháng"
+            description="MoneyFlow so sánh hạn mức này với các giao dịch chi thuộc danh mục."
+            value={limit}
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0"
+            suffix="₫"
+            error={limitError || undefined}
+            targetSize="important"
+            inputClassName={styles.amountInput}
+            disabled={submitting}
+            onChange={(event) => {
+              setLimit(formatMoneyInput(event.target.value));
+              clearErrors();
+            }}
+          />
+        </div>
+        <Alert tone="info">
+          <AlertDescription>
+            Hạn mức không giữ hoặc chuyển tiền. Xóa hạn mức cũng không xóa giao dịch.
+          </AlertDescription>
+        </Alert>
+        {formError ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        ) : null}
+      </form>
+    </Dialog>
+  );
 }
