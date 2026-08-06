@@ -1,7 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, IconButton } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { SelectField } from "@/components/ui/select-field";
+import { TextField } from "@/components/ui/text-field";
 import {
   canTransferSameCurrency,
   currencySymbolHint,
@@ -12,6 +17,7 @@ import { formatMoneyInput, parseMoneyInputToMinor } from "@/lib/money";
 import type { CreateTransferInput } from "@/lib/sample-data";
 import { TRANSFER_LIST_HINT } from "@/lib/transfers";
 import { todayInVietnam } from "@/lib/vietnam-date";
+import styles from "./transactions/transaction-form.module.css";
 
 export type TransferAccountOption = {
   id: string;
@@ -31,7 +37,7 @@ export function TransferDialog({
   onClose: () => void;
   onTransfer: (input: CreateTransferInput) => Promise<{ ok: boolean; message?: string }>;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
   const idempotencyRef = useRef<string | null>(null);
   const [sourceId, setSourceId] = useState(accounts[0]?.id ?? "");
   const [destinationId, setDestinationId] = useState(accounts[1]?.id ?? "");
@@ -39,13 +45,6 @@ export function TransferDialog({
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
 
   const sourceAccount = accounts.find((item) => item.id === sourceId) ?? accounts[0];
   const source = sourceAccount?.id ?? "";
@@ -72,13 +71,20 @@ export function TransferDialog({
   const destination = destinationOptions.some((item) => item.id === destinationId)
     ? destinationId
     : destinationOptions[0]?.id ?? "";
-
   const symbol = currencySymbolHint(sourceCurrency);
   const transferPairsExist = accounts.some((a) =>
     accounts.some((b) =>
       canTransferSameCurrency(
-        { id: a.id, currencyCode: a.currencyCode ?? "VND", isArchived: a.isArchived ?? false },
-        { id: b.id, currencyCode: b.currencyCode ?? "VND", isArchived: b.isArchived ?? false },
+        {
+          id: a.id,
+          currencyCode: a.currencyCode ?? "VND",
+          isArchived: a.isArchived ?? false,
+        },
+        {
+          id: b.id,
+          currencyCode: b.currencyCode ?? "VND",
+          isArchived: b.isArchived ?? false,
+        },
       ),
     ),
   );
@@ -100,6 +106,7 @@ export function TransferDialog({
     const parsedAmount = parseMoneyInputToMinor(amount, sourceCurrency);
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
       setError("Nhập số tiền lớn hơn 0.");
+      amountRef.current?.focus();
       return;
     }
     if (!source || !destination || source === destination) {
@@ -112,8 +119,16 @@ export function TransferDialog({
       !from ||
       !to ||
       !canTransferSameCurrency(
-        { id: from.id, currencyCode: from.currencyCode ?? "VND", isArchived: from.isArchived ?? false },
-        { id: to.id, currencyCode: to.currencyCode ?? "VND", isArchived: to.isArchived ?? false },
+        {
+          id: from.id,
+          currencyCode: from.currencyCode ?? "VND",
+          isArchived: from.isArchived ?? false,
+        },
+        {
+          id: to.id,
+          currencyCode: to.currencyCode ?? "VND",
+          isArchived: to.isArchived ?? false,
+        },
       )
     ) {
       setError(transferCurrencyMismatchMessage());
@@ -122,7 +137,6 @@ export function TransferDialog({
 
     const idempotencyKey = idempotencyRef.current ?? crypto.randomUUID();
     idempotencyRef.current = idempotencyKey;
-    const occurredOn = todayInVietnam();
 
     setSubmitting(true);
     let result: { ok: boolean; message?: string };
@@ -132,7 +146,7 @@ export function TransferDialog({
         destinationAccountId: destination,
         amount: parsedAmount,
         note: note.trim(),
-        occurredOn,
+        occurredOn: todayInVietnam(),
         idempotencyKey,
       });
     } catch {
@@ -156,125 +170,141 @@ export function TransferDialog({
     return code === "VND" ? item.name : `${item.name} (${code})`;
   }
 
+  const formId = "transfer-transaction-form";
+
   return (
-    <dialog
-      ref={ref}
-      className="transaction-dialog transfer-dialog"
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!submitting) onClose();
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !submitting) onClose();
       }}
-      aria-labelledby="transfer-dialog-title"
-    >
-      <div className="dialog-handle" aria-hidden="true" />
-      <div className="dialog-heading">
-        <div>
-          <p className="eyebrow">Giữa các ví của bạn</p>
-          <h2 id="transfer-dialog-title">Chuyển tiền</h2>
+      title="Chuyển tiền"
+      description="Giữa các ví của bạn"
+      dismissible={!submitting}
+      initialFocusRef={amountRef}
+      className={styles.dialog}
+      contentClassName={styles.dialogContent}
+      footer={
+        <div className={styles.footerActions}>
+          <Button
+            type="button"
+            intent="secondary"
+            targetSize="important"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Hủy
+          </Button>
+          <Button
+            form={formId}
+            type="submit"
+            intent="primary"
+            targetSize="important"
+            pending={submitting}
+            pendingLabel="Đang chuyển..."
+            disabled={!transferPairsExist || destinationOptions.length === 0}
+          >
+            <Icon name="arrows" /> Xác nhận chuyển tiền
+          </Button>
         </div>
-        <button type="button" className="icon-button" onClick={onClose} disabled={submitting} aria-label="Đóng">
-          <Icon name="close" />
-        </button>
-      </div>
-      <form onSubmit={submit}>
-        <label className="amount-field">
-          <span>Số tiền chuyển</span>
-          <div>
-            <input
-              autoFocus
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="0"
-              value={amount}
-              onChange={(event) => {
-                setAmount(formatMoneyInput(event.target.value));
-                changed();
-              }}
-            />
-            <strong>{symbol}</strong>
-          </div>
-        </label>
-        {error && (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="transfer-accounts">
-          <label>
-            <span>Từ tài khoản</span>
-            <select
-              value={source}
-              onChange={(event) => {
-                setSourceId(event.target.value);
-                changed();
-              }}
-            >
-              {accounts.map((item) => (
+      }
+    >
+      <form id={formId} className={styles.form} onSubmit={submit} noValidate>
+        <TextField
+          inputRef={amountRef}
+          label="Số tiền chuyển"
+          inputMode="decimal"
+          autoComplete="off"
+          placeholder="0"
+          value={amount}
+          suffix={symbol}
+          targetSize="important"
+          inputClassName={styles.amountInput}
+          error={error.startsWith("Nhập số tiền") ? error : undefined}
+          onChange={(event) => {
+            setAmount(formatMoneyInput(event.target.value));
+            changed();
+          }}
+        />
+
+        {error && !error.startsWith("Nhập số tiền") ? (
+          <Alert tone="error" live="assertive" className={styles.formAlert}>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        <div className={styles.transferAccounts}>
+          <SelectField
+            label="Từ tài khoản"
+            value={source}
+            targetSize="important"
+            onChange={(event) => {
+              setSourceId(event.target.value);
+              changed();
+            }}
+          >
+            {accounts.map((item) => (
+              <option value={item.id} key={item.id}>
+                {accountLabel(item)}
+              </option>
+            ))}
+          </SelectField>
+
+          <IconButton
+            type="button"
+            variant="outline"
+            className={styles.swapButton}
+            onClick={swap}
+            aria-label="Đổi chiều chuyển tiền"
+            disabled={!destination || submitting}
+          >
+            <Icon name="arrows" />
+          </IconButton>
+
+          <SelectField
+            label="Đến tài khoản"
+            value={destination}
+            targetSize="important"
+            disabled={destinationOptions.length === 0 || submitting}
+            onChange={(event) => {
+              setDestinationId(event.target.value);
+              changed();
+            }}
+          >
+            {destinationOptions.length === 0 ? (
+              <option value="">Không có tài khoản cùng loại tiền</option>
+            ) : (
+              destinationOptions.map((item) => (
                 <option value={item.id} key={item.id}>
                   {accountLabel(item)}
                 </option>
-              ))}
-            </select>
-          </label>
-          <button type="button" onClick={swap} className="transfer-swap" aria-label="Đổi chiều chuyển tiền" disabled={!destination}>
-            <Icon name="arrows" />
-          </button>
-          <label>
-            <span>Đến tài khoản</span>
-            <select
-              value={destination}
-              onChange={(event) => {
-                setDestinationId(event.target.value);
-                changed();
-              }}
-              disabled={destinationOptions.length === 0}
-            >
-              {destinationOptions.length === 0 ? (
-                <option value="">Không có tài khoản cùng loại tiền</option>
-              ) : (
-                destinationOptions.map((item) => (
-                  <option value={item.id} key={item.id}>
-                    {accountLabel(item)}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
+              ))
+            )}
+          </SelectField>
         </div>
-        <label className="transfer-note">
-          <span>Ghi chú</span>
-          <input
-            value={note}
-            onChange={(event) => {
-              setNote(event.target.value);
-              changed();
-            }}
-            placeholder="Ví dụ: Chuyển sang quỹ tiết kiệm"
-            maxLength={500}
-          />
-        </label>
-        <div className="transfer-explainer">
+
+        <TextField
+          label="Ghi chú"
+          value={note}
+          targetSize="important"
+          onChange={(event) => {
+            setNote(event.target.value);
+            changed();
+          }}
+          placeholder="Ví dụ: Chuyển sang quỹ tiết kiệm"
+          maxLength={500}
+          disabled={submitting}
+        />
+
+        <div className={styles.explainer}>
           <Icon name="check" />
           <p>
             <strong>Cùng loại tiền, tổng tài sản không đổi · {TRANSFER_LIST_HINT}.</strong>{" "}
-            Chỉ chuyển giữa hai tài khoản cùng {sourceCurrency}.
-            Chưa hỗ trợ đổi ngoại tệ hay chuyển chéo loại tiền.
+            Chỉ chuyển giữa hai tài khoản cùng {sourceCurrency}. Chưa hỗ trợ đổi ngoại tệ hay
+            chuyển chéo loại tiền.
           </p>
         </div>
-        <div className="dialog-footer-actions">
-          <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>
-            Hủy
-          </button>
-          <button
-            className="primary-button"
-            type="submit"
-            disabled={submitting || !transferPairsExist || destinationOptions.length === 0}
-          >
-            <Icon name="arrows" />
-            {submitting ? "Đang chuyển..." : "Xác nhận chuyển tiền"}
-          </button>
-        </div>
       </form>
-    </dialog>
+    </Dialog>
   );
 }

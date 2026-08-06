@@ -15,6 +15,7 @@ type TextFieldProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> 
   targetSize?: TextFieldTargetSize
   rootClassName?: string
   inputClassName?: string
+  inputRef?: React.Ref<HTMLInputElement>
 }
 
 function joinIds(...ids: Array<string | undefined>) {
@@ -33,6 +34,7 @@ function TextField({
   targetSize = "aa",
   rootClassName,
   inputClassName,
+  inputRef,
   disabled,
   "aria-describedby": ariaDescribedBy,
   ...props
@@ -68,6 +70,7 @@ function TextField({
           </span>
         ) : null}
         <input
+          ref={inputRef}
           id={inputId}
           data-slot="text-field-input"
           aria-invalid={error ? true : undefined}

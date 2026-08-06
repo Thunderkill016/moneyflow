@@ -6,7 +6,7 @@ import { readDashboardSource } from "./test-support/dashboard-source.ts";
 
 /**
  * TASK-119 — A11y baseline contracts for insights + add money dialog.
- * Source-level guards (no browser); complements unit tests in money.test.ts.
+ * Source-level guards (no browser); complements unit and browser evidence.
  */
 
 const ROOT = process.cwd();
@@ -15,41 +15,43 @@ function read(rel: string) {
   return readFileSync(join(ROOT, rel), "utf8");
 }
 
-test("globals.css: focus-visible ring on interactive + money form controls", () => {
+test("global legacy focus-visible baseline remains available", () => {
   const css = read("src/app/globals.css");
   assert.match(css, /button:focus-visible/);
   assert.match(css, /input:focus-visible/);
   assert.match(css, /a:focus-visible/);
-  // Amount field sets outline:0 — must re-enable focus-visible specifically.
-  assert.match(css, /\.amount-field input:focus-visible/);
-  assert.match(css, /\.segmented-control button:focus-visible/);
-  assert.match(css, /\.category-choice:focus-visible/);
   assert.match(css, /outline:\s*2px solid var\(--color-border-focus\)/);
 });
 
-test("AddTransactionDialog: labels, kind signs, native modal focus trap", () => {
+test("AddTransactionDialog delegates modal focus lifecycle to shared Dialog", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
-  assert.match(src, /showModal\(\)/);
-  assert.match(src, /aria-labelledby="transaction-dialog-title"/);
-  assert.match(src, /htmlFor="add-tx-amount"|id="add-tx-amount"/);
+  const dialog = read("src/components/ui/dialog.tsx");
+
+  assert.match(src, /import \{ Dialog \}/);
+  assert.match(src, /initialFocusRef=\{amountInputRef\}/);
+  assert.match(src, /dismissible=\{!submitting\}/);
+  assert.match(src, /id="add-tx-amount"/);
   assert.match(src, /Số tiền/);
   assert.match(src, /Tài khoản/);
   assert.match(src, /Ghi chú/);
-  // Expense/income not color-only in kind control + amount sign.
-  assert.match(src, /Khoản chi \(−\)|−\s*Khoản chi|aria-label=.*chi/i);
-  assert.match(src, /Khoản thu \(\+\)|\+\s*Khoản thu|aria-label=.*thu/i);
-  assert.match(src, /amount-kind-sign|moneyKindPrefix/);
-  // Focus restore after close (dialog focus trap companion).
-  assert.match(src, /previouslyFocused|restoreFocus|activeElement/);
+  assert.match(src, /Khoản chi \(−\)/);
+  assert.match(src, /Khoản thu \(\+\)/);
+  assert.match(src, /moneyKindPrefix/);
+  assert.doesNotMatch(src, /<dialog\b|showModal\(\)/);
+
+  assert.match(dialog, /restoreFocusRef/);
+  assert.match(dialog, /initialFocusRef/);
+  assert.match(dialog, /dialog\.showModal\(\)/);
+  assert.match(dialog, /focusTarget\?\.focus\(\)/);
+  assert.match(dialog, /onCancel=/);
+  assert.match(dialog, /target\.focus\(\)/);
 });
 
 test("Insights dashboard: signed money for thu/chi KPI + recent rows", () => {
   const src = readDashboardSource();
   assert.match(src, /MoneyValue/);
-  // KPI thu/chi use explicit ledger kinds, not color alone.
   assert.match(src, /mode="kind"[\s\S]{0,100}kind="income"/);
   assert.match(src, /mode="kind"[\s\S]{0,100}kind="expense"/);
-  // Category spend rows (all expenses) use the shared expense-kind contract.
   assert.match(
     src,
     /amount=\{item\.amount\}[\s\S]{0,100}kind="expense"/,

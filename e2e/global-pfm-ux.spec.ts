@@ -94,7 +94,9 @@ test.describe("Global PFM UX benchmark", () => {
       .getByText("Còn lại", { exact: true })
       .locator("..");
     await expect(netSummary).toContainText(/−\s*125\.000/);
-    await expect(page.locator(".manager-row").filter({ hasText: NOTE })).toBeVisible();
+    await expect(
+      page.locator('[data-slot="ledger-row"]').filter({ hasText: NOTE }),
+    ).toBeVisible();
   });
 
   test("shows explicit budget decisions and a transaction drill-down", async ({

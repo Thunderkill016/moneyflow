@@ -207,13 +207,17 @@ test.describe("cross-device responsive audit", () => {
     });
     await page.reload({ waitUntil: "domcontentloaded" });
 
-    const header = page.locator(".date-group-header:visible").first();
+    const header = page
+      .locator('[data-slot="ledger-day-group"]:visible > header')
+      .first();
     await expect(header).toBeVisible();
 
     const readMetrics = async () =>
       header.evaluate((element) => {
         if (!element.isConnected) return null;
-        const row = element.parentElement?.querySelector<HTMLElement>(".manager-row");
+        const row = element.parentElement?.querySelector<HTMLElement>(
+          '[data-slot="ledger-row"]',
+        );
         if (!row?.isConnected) return null;
 
         const position = getComputedStyle(element).position;

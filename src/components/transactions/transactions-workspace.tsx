@@ -1,13 +1,17 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
-import styles from "./transactions-page.module.css";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Button,
+  IconButton,
+  LinkButton,
+} from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
 import { formatMoney, formatMoneyInput } from "@/lib/money";
@@ -43,6 +47,7 @@ import {
   getTransactionReviewStatus,
 } from "@/lib/transaction-review";
 import { transferRowSubtitle } from "@/lib/transfers";
+import styles from "./transactions-workspace.module.css";
 
 const AddTransactionDialog = dynamic(
   () =>
@@ -74,9 +79,9 @@ const DELETE_UNDO_MS = 8000;
 const NOTICE_MS = 3500;
 
 type KindFilter = TransactionFilterKind;
-export type TransactionsPageVariant = "ledger" | "timeline";
+export type TransactionsWorkspaceVariant = "ledger" | "timeline";
 
-type TransactionsWorkspace = {
+type TransactionsWorkspaceData = {
   transactions: Transaction[];
   accounts: AccountOption[];
   categories: CategoryOption[];
@@ -86,10 +91,10 @@ type TransactionsWorkspace = {
   reviewFeatureAvailable?: boolean;
 };
 
-type TransactionsPageProps = {
+type TransactionsWorkspaceProps = {
   viewer: ViewerSummary;
-  workspace: TransactionsWorkspace;
-  variant?: TransactionsPageVariant;
+  workspace: TransactionsWorkspaceData;
+  variant?: TransactionsWorkspaceVariant;
   initialQuery?: string;
   initialCategory?: string;
   initialAccount?: string;
@@ -101,7 +106,28 @@ type TransactionsPageProps = {
   initialMaxAmount?: string;
 };
 
-export function TransactionsPage({
+type DayGroup = {
+  date: string;
+  relativeDate: string;
+  displayDate: string;
+  transactions: Transaction[];
+  netForDay: number;
+};
+
+function kindLabel(value: KindFilter) {
+  if (value === "expense") return "Khoản chi";
+  if (value === "income") return "Khoản thu";
+  if (value === "transfer") return "Chuyển tiền";
+  return "Tất cả";
+}
+
+function iconTone(kind: Transaction["kind"]) {
+  if (kind === "income") return styles.iconIncome;
+  if (kind === "transfer") return styles.iconTransfer;
+  return styles.iconExpense;
+}
+
+export function TransactionsWorkspace({
   viewer,
   workspace,
   variant = "ledger",
@@ -114,7 +140,7 @@ export function TransactionsPage({
   initialToDate = "",
   initialMinAmount = "",
   initialMaxAmount = "",
-}: TransactionsPageProps) {
+}: TransactionsWorkspaceProps) {
   const isTimeline = variant === "timeline";
   const reviewFeatureAvailable =
     viewer.isDemo || workspace.reviewFeatureAvailable === true;
@@ -224,8 +250,7 @@ export function TransactionsPage({
     next: string[] | ((current: string[]) => string[]),
   ) {
     setSelectionState((current) => {
-      const currentIds =
-        current.filterKey === filterKey ? current.ids : [];
+      const currentIds = current.filterKey === filterKey ? current.ids : [];
       return {
         filterKey,
         ids: typeof next === "function" ? next(currentIds) : next,
@@ -285,7 +310,6 @@ export function TransactionsPage({
     () => windowTransactions(filtered, visibleCount),
     [filtered, visibleCount],
   );
-
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const visibleIds = useMemo(
     () => listWindow.visible.map((transaction) => transaction.id),
@@ -322,15 +346,8 @@ export function TransactionsPage({
     return { income, expense, net: income - expense };
   }, [filtered]);
 
-  const grouped = useMemo(() => {
-    const groups: {
-      date: string;
-      relativeDate: string;
-      displayDate: string;
-      transactions: Transaction[];
-      netForDay: number;
-    }[] = [];
-
+  const grouped = useMemo<DayGroup[]>(() => {
+    const groups: DayGroup[] = [];
     for (const transaction of listWindow.visible) {
       let group = groups.find((item) => item.date === transaction.occurredOn);
       if (!group) {
@@ -352,7 +369,6 @@ export function TransactionsPage({
       if (transaction.kind === "income") group.netForDay += transaction.amount;
       if (transaction.kind === "expense") group.netForDay -= transaction.amount;
     }
-
     return groups;
   }, [listWindow.visible]);
 
@@ -470,7 +486,7 @@ export function TransactionsPage({
       return;
     }
     const confirmed = window.confirm(
-      `Xóa giao dịch “${transaction.note}” (${formatMoney(transaction.amount)})? Giao dịch sẽ được ẩn khỏi sổ của bạn.`,
+      `Xóa giao dịch “${transaction.note}” (${formatMoney(transaction.amount)})? Giao dịch sẽ được ẩn khỏi sổ của bạn. Bạn có thể hoàn tác trong 8 giây.`,
     );
     if (!confirmed) return;
 
@@ -612,39 +628,47 @@ export function TransactionsPage({
       }
     >
       <main
-        className={`dashboard transactions-workspace${
-          isTimeline ? " timeline-workspace" : ""
-        }`}
+        className={`${styles.workspace}${isTimeline ? ` ${styles.timeline}` : ""}`}
+        data-slot="transactions-workspace"
       >
         {workspace.dataError ? (
-          <div className="data-alert" role="alert">
-            <Icon name="bell" />
-            <span>{workspace.dataError}</span>
-          </div>
+          <Alert tone="error" live="assertive" className={styles.dataAlert}>
+            <AlertDescription className={styles.alertContent}>
+              <Icon name="bell" />
+              <span>{workspace.dataError}</span>
+            </AlertDescription>
+          </Alert>
         ) : null}
 
-        <section className="transactions-title-row">
-          <div>
-            <p className="eyebrow">
+        <section className={styles.titleRow} aria-labelledby="transactions-title">
+          <div className={styles.titleCopy}>
+            <p className={styles.eyebrow}>
               {isTimeline ? "Sổ đã duyệt" : "Dòng tiền của bạn"}
             </p>
-            <h1>{isTimeline ? "Dòng thời gian (đã duyệt)" : "Sổ giao dịch"}</h1>
+            <h1 id="transactions-title">
+              {isTimeline ? "Dòng thời gian (đã duyệt)" : "Sổ giao dịch"}
+            </h1>
             <p>
               {isTimeline
-                ? "Các giao dịch đã được duyệt — nguồn tin cậy cho số dư và insights."
+                ? "Các giao dịch đã được duyệt — nguồn tin cậy cho số dư và báo cáo."
                 : "Lọc giao dịch, kiểm tra dữ liệu và sửa các lỗi phân loại lặp lại."}
             </p>
           </div>
-          <div className="page-heading-actions">
+          <div className={styles.headingActions}>
             {isTimeline ? (
-              <Link className="secondary-button" href="/reports/export?period=month">
+              <LinkButton
+                href="/reports/export?period=month"
+                intent="secondary"
+                targetSize="important"
+              >
                 <Icon name="archive" /> Export
-              </Link>
+              </LinkButton>
             ) : (
               <>
-                <button
+                <Button
                   type="button"
-                  className="secondary-button"
+                  intent="secondary"
+                  targetSize="important"
                   onClick={() => setSplitOpen(true)}
                   disabled={
                     expenseCategoryCount < 2 ||
@@ -653,32 +677,34 @@ export function TransactionsPage({
                   }
                 >
                   <Icon name="spark" /> Chia khoản chi
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="secondary-button"
+                  intent="secondary"
+                  targetSize="important"
                   onClick={() => setTransferOpen(true)}
                   disabled={
                     workspace.accounts.length < 2 || Boolean(workspace.dataError)
                   }
                 >
                   <Icon name="arrows" /> Chuyển tiền ví
-                </button>
+                </Button>
               </>
             )}
           </div>
         </section>
 
         <section
-          className={`transaction-summary transaction-summary-four ${styles.summary}`}
+          className={styles.summary}
           aria-label="Tóm tắt theo bộ lọc"
           aria-live="polite"
+          data-slot="ledger-summary"
         >
-          <div>
+          <div className={styles.summaryItem}>
             <p>{isTimeline ? "Đã duyệt" : "Giao dịch"}</p>
-            <span className="font-mono">{filtered.length}</span>
+            <strong className={styles.summaryCount}>{filtered.length}</strong>
           </div>
-          <div>
+          <div className={styles.summaryItem}>
             <p>Tiền vào</p>
             <MoneyValue
               amount={filteredTotals.income}
@@ -687,7 +713,7 @@ export function TransactionsPage({
               label="Tiền vào"
             />
           </div>
-          <div>
+          <div className={styles.summaryItem}>
             <p>Tiền ra</p>
             <MoneyValue
               amount={filteredTotals.expense}
@@ -696,7 +722,7 @@ export function TransactionsPage({
               label="Tiền ra"
             />
           </div>
-          <div>
+          <div className={styles.summaryItem}>
             <p>Còn lại</p>
             <MoneyValue
               amount={filteredTotals.net}
@@ -706,96 +732,96 @@ export function TransactionsPage({
           </div>
         </section>
 
-        <section className="transaction-manager panel">
-          <div className="manager-toolbar">
-            <label className="mobile-manager-search">
-              <Icon name="search" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Tìm theo ghi chú, danh mục..."
-                aria-label={
-                  isTimeline ? "Tìm trong dòng thời gian" : "Tìm trong giao dịch"
-                }
-              />
+        <section className={styles.manager} aria-label="Danh sách giao dịch">
+          <div className={styles.toolbar} data-slot="ledger-filters">
+            <label className={styles.searchField}>
+              <span>Tìm giao dịch</span>
+              <div className={styles.searchControl}>
+                <Icon name="search" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Tìm theo ghi chú, danh mục..."
+                  aria-label={
+                    isTimeline ? "Tìm trong dòng thời gian" : "Tìm trong giao dịch"
+                  }
+                />
+              </div>
             </label>
 
-            <div className="filter-group" aria-label="Lọc theo loại">
+            <div className={styles.kindFilter} aria-label="Lọc theo loại">
               {(["all", "expense", "income", "transfer"] as KindFilter[]).map(
                 (value) => (
-                  <button
+                  <Button
                     type="button"
+                    unstyled
+                    targetSize="important"
                     key={value}
-                    className={kind === value ? "active" : ""}
+                    className={`${styles.kindButton}${
+                      kind === value ? ` ${styles.kindButtonActive}` : ""
+                    }`}
                     onClick={() => setKind(value)}
                     aria-pressed={kind === value}
                   >
-                    {value === "all"
-                      ? "Tất cả"
-                      : value === "expense"
-                        ? "Khoản chi"
-                        : value === "income"
-                          ? "Khoản thu"
-                          : "Chuyển tiền"}
-                  </button>
+                    {kindLabel(value)}
+                  </Button>
                 ),
               )}
             </div>
 
-            <label className="category-filter account-filter">
-              <span className="sr-only">Lọc theo danh mục</span>
-              <select
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
-                aria-label="Lọc theo danh mục"
-              >
-                <option value="all">Mọi danh mục</option>
-                {workspace.categories.map((item) => (
-                  <option value={item.name} key={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="account-filter">
-              <span className="sr-only">Lọc theo tài khoản</span>
-              <select
-                value={account}
-                onChange={(event) => setAccount(event.target.value)}
-                aria-label="Lọc theo tài khoản"
-              >
-                <option value="all">Mọi tài khoản</option>
-                {workspace.accounts.map((item) => (
-                  <option value={item.name} key={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {reviewFeatureAvailable ? (
-              <label className="account-filter">
-                <span className="sr-only">Lọc theo trạng thái kiểm tra</span>
+            <div className={styles.selectGrid}>
+              <label className={styles.field}>
+                <span>Danh mục</span>
                 <select
-                  value={review}
-                  onChange={(event) =>
-                    setReview(event.target.value as TransactionReviewFilter)
-                  }
-                  aria-label="Lọc theo trạng thái kiểm tra"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                  aria-label="Lọc theo danh mục"
                 >
-                  <option value="all">Mọi trạng thái</option>
-                  <option value="needs_review">Cần kiểm tra</option>
-                  <option value="reviewed">Đã duyệt</option>
+                  <option value="all">Mọi danh mục</option>
+                  {workspace.categories.map((item) => (
+                    <option value={item.name} key={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
                 </select>
               </label>
-            ) : null}
 
-            <div
-              className={styles.rangeFilters}
-              aria-label="Lọc theo thời gian và số tiền"
-            >
-              <label className={styles.rangeField}>
+              <label className={styles.field}>
+                <span>Tài khoản</span>
+                <select
+                  value={account}
+                  onChange={(event) => setAccount(event.target.value)}
+                  aria-label="Lọc theo tài khoản"
+                >
+                  <option value="all">Mọi tài khoản</option>
+                  {workspace.accounts.map((item) => (
+                    <option value={item.name} key={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {reviewFeatureAvailable ? (
+                <label className={styles.field}>
+                  <span>Trạng thái</span>
+                  <select
+                    value={review}
+                    onChange={(event) =>
+                      setReview(event.target.value as TransactionReviewFilter)
+                    }
+                    aria-label="Lọc theo trạng thái kiểm tra"
+                  >
+                    <option value="all">Mọi trạng thái</option>
+                    <option value="needs_review">Cần kiểm tra</option>
+                    <option value="reviewed">Đã duyệt</option>
+                  </select>
+                </label>
+              ) : null}
+            </div>
+
+            <div className={styles.rangeFilters} aria-label="Lọc theo thời gian và số tiền">
+              <label className={styles.field}>
                 <span>Từ ngày</span>
                 <input
                   type="date"
@@ -805,7 +831,7 @@ export function TransactionsPage({
                   aria-label="Từ ngày"
                 />
               </label>
-              <label className={styles.rangeField}>
+              <label className={styles.field}>
                 <span>Đến ngày</span>
                 <input
                   type="date"
@@ -815,7 +841,7 @@ export function TransactionsPage({
                   aria-label="Đến ngày"
                 />
               </label>
-              <label className={styles.rangeField}>
+              <label className={styles.field}>
                 <span>Từ số tiền</span>
                 <input
                   inputMode="numeric"
@@ -828,7 +854,7 @@ export function TransactionsPage({
                   aria-label="Số tiền tối thiểu"
                 />
               </label>
-              <label className={styles.rangeField}>
+              <label className={styles.field}>
                 <span>Đến số tiền</span>
                 <input
                   inputMode="numeric"
@@ -841,46 +867,51 @@ export function TransactionsPage({
                   aria-label="Số tiền tối đa"
                 />
               </label>
-              {filterError ? (
-                <p className={styles.filterError} role="alert">
-                  {filterError}
-                </p>
-              ) : null}
             </div>
 
+            {filterError ? (
+              <Alert tone="error" live="assertive" className={styles.filterAlert}>
+                <AlertDescription>{filterError}</AlertDescription>
+              </Alert>
+            ) : null}
+
             {hasActiveFilters ? (
-              <button
+              <Button
                 type="button"
-                className="filter-reset-button"
+                intent="quiet"
+                targetSize="important"
+                className={styles.resetButton}
                 onClick={clearFilters}
               >
                 Xóa bộ lọc
-              </button>
+              </Button>
             ) : null}
           </div>
 
           {reviewFeatureAvailable && filtered.length ? (
             <div className={styles.selectionToolbar} aria-label="Chọn giao dịch">
-              <button
+              <Button
                 type="button"
-                className="secondary-button"
+                intent="secondary"
+                targetSize="important"
                 onClick={toggleVisibleSelection}
                 disabled={isMutating || visibleIds.length === 0}
               >
                 {allVisibleSelected ? "Bỏ chọn đang hiện" : "Chọn đang hiện"}
-              </button>
+              </Button>
               <span aria-live="polite">
                 Đã chọn <strong>{selectedIds.length}</strong> giao dịch
               </span>
               {selectedIds.length ? (
-                <button
+                <Button
                   type="button"
-                  className={styles.clearSelection}
+                  intent="quiet"
+                  targetSize="important"
                   onClick={() => setSelectedIds([])}
                   disabled={isMutating}
                 >
                   Bỏ chọn tất cả
-                </button>
+                </Button>
               ) : null}
             </div>
           ) : null}
@@ -888,26 +919,30 @@ export function TransactionsPage({
           {reviewFeatureAvailable && selectedIds.length ? (
             <section className={styles.bulkBar} aria-label="Thao tác hàng loạt">
               <div className={styles.bulkReviewActions}>
-                <span>{selectedIds.length} giao dịch</span>
-                <button
+                <strong>{selectedIds.length} giao dịch</strong>
+                <Button
                   type="button"
-                  className="secondary-button"
+                  intent="secondary"
+                  targetSize="important"
+                  pending={isMutating}
+                  pendingLabel="Đang cập nhật..."
                   onClick={() => void handleBulkReview("reviewed")}
-                  disabled={isMutating}
                 >
                   Đánh dấu đã duyệt
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="secondary-button"
+                  intent="secondary"
+                  targetSize="important"
+                  pending={isMutating}
+                  pendingLabel="Đang cập nhật..."
                   onClick={() => void handleBulkReview("needs_review")}
-                  disabled={isMutating}
                 >
                   Chuyển sang cần kiểm tra
-                </button>
+                </Button>
               </div>
               <div className={styles.bulkCategoryActions}>
-                <label>
+                <label className={styles.field}>
                   <span>Danh mục mới</span>
                   <select
                     value={effectiveBulkCategoryId}
@@ -923,18 +958,19 @@ export function TransactionsPage({
                     ))}
                   </select>
                 </label>
-                <button
+                <Button
                   type="button"
-                  className="primary-button"
+                  intent="primary"
+                  targetSize="important"
+                  pending={isMutating}
+                  pendingLabel="Đang đổi..."
                   onClick={() => void handleBulkCategory()}
                   disabled={
-                    isMutating ||
-                    !bulkCategorySelection.ok ||
-                    !effectiveBulkCategoryId
+                    !bulkCategorySelection.ok || !effectiveBulkCategoryId
                   }
                 >
                   Đổi danh mục
-                </button>
+                </Button>
               </div>
               {!bulkCategorySelection.ok ? (
                 <p className={styles.bulkReason}>{bulkCategorySelection.message}</p>
@@ -947,27 +983,33 @@ export function TransactionsPage({
           ) : null}
 
           {!reviewFeatureAvailable && !viewer.isDemo ? (
-            <p className={styles.featureUnavailable} role="status">
-              Kiểm tra và sửa hàng loạt sẽ xuất hiện sau khi migration tương ứng được bật.
-            </p>
+            <Alert tone="info" live="polite" className={styles.featureUnavailable}>
+              <AlertDescription>
+                Kiểm tra và sửa hàng loạt sẽ xuất hiện sau khi migration tương ứng được bật.
+              </AlertDescription>
+            </Alert>
           ) : null}
 
           {grouped.length ? (
-            <div className="manager-list">
-              <div className="manager-header" aria-hidden="true">
+            <div className={styles.list} data-slot="ledger-list">
+              <div className={styles.listHeader} aria-hidden="true">
                 <span>Giao dịch</span>
-                <span>Thời gian</span>
                 <span>Số tiền</span>
-                <span />
+                <span>Thao tác</span>
               </div>
 
               {grouped.map((group) => (
-                <div key={group.date}>
-                  <div className="date-group-header">
-                    <span className="date-group-title">
+                <section
+                  className={styles.dayGroup}
+                  key={group.date}
+                  data-slot="ledger-day-group"
+                  aria-labelledby={`transaction-day-${group.date}`}
+                >
+                  <header className={styles.dayHeader}>
+                    <h2 id={`transaction-day-${group.date}`}>
                       {group.relativeDate}, {group.displayDate}
-                    </span>
-                    <span className="date-group-total">
+                    </h2>
+                    <span className={styles.dayTotal}>
                       <span>Tổng:</span>{" "}
                       <MoneyValue
                         amount={group.netForDay}
@@ -975,7 +1017,7 @@ export function TransactionsPage({
                         label={`Tổng ${group.displayDate}`}
                       />
                     </span>
-                  </div>
+                  </header>
 
                   {group.transactions.map((transaction) => {
                     const meta =
@@ -983,13 +1025,18 @@ export function TransactionsPage({
                       categoryMeta["Thu nhập khác"];
                     const reviewStatus = getTransactionReviewStatus(transaction);
                     return (
-                      <article className="manager-row" key={transaction.id}>
-                        <span className={`transaction-icon ${meta.color}`}>
+                      <article
+                        className={styles.row}
+                        key={transaction.id}
+                        data-slot="ledger-row"
+                        data-transaction-id={transaction.id}
+                      >
+                        <span className={`${styles.transactionIcon} ${iconTone(transaction.kind)}`}>
                           <Icon name={meta.icon as IconName} />
                         </span>
-                        <span className="transaction-detail">
+                        <div className={styles.detail}>
                           {reviewFeatureAvailable ? (
-                            <span className={styles.rowReviewLine}>
+                            <div className={styles.rowReviewLine}>
                               <label className={styles.rowSelection}>
                                 <input
                                   type="checkbox"
@@ -1013,7 +1060,7 @@ export function TransactionsPage({
                                   ? "Cần kiểm tra"
                                   : "Đã duyệt"}
                               </span>
-                            </span>
+                            </div>
                           ) : null}
                           <strong>{transaction.note}</strong>
                           <small>
@@ -1034,31 +1081,34 @@ export function TransactionsPage({
                               ? " · Từ lịch định kỳ"
                               : ""}
                           </small>
-                        </span>
-                        <time dateTime={transaction.occurredAt}>
-                          {transaction.relativeDate}
-                        </time>
+                          <time dateTime={transaction.occurredAt}>
+                            {transaction.relativeDate}
+                          </time>
+                        </div>
                         <MoneyValue
                           amount={transaction.amount}
                           mode="kind"
                           kind={transaction.kind}
                           emphasis="strong"
-                          className="manager-amount"
+                          className={styles.amount}
                         />
                         {transaction.isRecurringPayment ? (
-                          <Link
+                          <LinkButton
                             href="/commitments"
-                            className="recurring-lock"
+                            unstyled
+                            targetSize="important"
+                            className={styles.recurringLock}
                             title="Quản lý ở trang Định kỳ"
                             aria-label={`Quản lý ${transaction.note} ở trang Định kỳ`}
                           >
                             <Icon name="lock" />
-                          </Link>
+                          </LinkButton>
                         ) : (
-                          <span className="manager-actions">
-                            <button
+                          <span className={styles.rowActions}>
+                            <IconButton
                               type="button"
-                              className="edit-button"
+                              variant="ghost"
+                              className={styles.editButton}
                               onClick={() => handleEditClick(transaction)}
                               disabled={isMutating}
                               aria-label={
@@ -1068,67 +1118,82 @@ export function TransactionsPage({
                               }
                             >
                               <Icon name="edit" />
-                            </button>
-                            <button
+                            </IconButton>
+                            <IconButton
                               type="button"
-                              className="delete-button"
+                              variant="ghost"
+                              className={styles.deleteButton}
                               onClick={() => handleDelete(transaction)}
                               disabled={isMutating}
                               aria-label={`Xóa giao dịch ${transaction.note}`}
                             >
                               <Icon name="trash" />
-                            </button>
+                            </IconButton>
                           </span>
                         )}
                       </article>
                     );
                   })}
-                </div>
+                </section>
               ))}
 
               {listWindow.hasMore || listWindow.total > TRANSACTION_PAGE_SIZE ? (
-                <div className="list-load-more" role="status">
-                  <p className="list-load-more-meta">
-                    Đang hiện <span className="font-mono">{listWindow.shown}</span>
-                    {" / "}
-                    <span className="font-mono">{listWindow.total}</span> giao dịch
+                <div className={styles.loadMore} role="status">
+                  <p>
+                    Đang hiện <strong>{listWindow.shown}</strong> /{" "}
+                    <strong>{listWindow.total}</strong> giao dịch
                     {listWindow.hasMore ? ` · còn ${listWindow.remaining} nữa` : ""}
                   </p>
                   {listWindow.hasMore ? (
-                    <button
+                    <Button
                       type="button"
-                      className="secondary-button list-load-more-button"
+                      intent="secondary"
+                      targetSize="important"
                       onClick={loadMore}
                     >
                       Tải thêm {Math.min(TRANSACTION_PAGE_SIZE, listWindow.remaining)}
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
               ) : null}
             </div>
           ) : transactions.length ? (
-            <div className="filter-empty">
-              <span>
-                <Icon name="search" />
-              </span>
-              <h2>Không tìm thấy giao dịch</h2>
-              <p>{filterError ?? "Thử đổi từ khóa hoặc bỏ bớt bộ lọc."}</p>
-              <button type="button" onClick={clearFilters}>
-                Xóa bộ lọc
-              </button>
-            </div>
+            <EmptyState
+              icon={<Icon name="search" />}
+              title="Không tìm thấy giao dịch"
+              description={filterError ?? "Thử đổi từ khóa hoặc bỏ bớt bộ lọc."}
+              primaryAction={
+                <Button
+                  type="button"
+                  intent="secondary"
+                  targetSize="important"
+                  onClick={clearFilters}
+                >
+                  Xóa bộ lọc
+                </Button>
+              }
+              className={styles.emptyState}
+            />
           ) : (
             <EmptyState
-              icon={isTimeline ? "timeline" : "arrows"}
+              icon={<Icon name={isTimeline ? "timeline" : "arrows"} />}
               title="Chưa có giao dịch"
               description={
                 isTimeline
                   ? "Ghi khoản chi hoặc thu để dòng tiền hiện trên timeline."
                   : "Ghi khoản chi đầu tiên để bắt đầu theo dõi dòng tiền."
               }
-              actionLabel={GHI_CHI_TIEU_LABEL}
-              onAction={() => setDialogOpen(true)}
-              className="filter-empty-as-empty"
+              primaryAction={
+                <Button
+                  type="button"
+                  intent="secondary"
+                  targetSize="important"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  {GHI_CHI_TIEU_LABEL}
+                </Button>
+              }
+              className={styles.emptyState}
             />
           )}
         </section>

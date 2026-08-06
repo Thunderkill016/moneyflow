@@ -8,7 +8,7 @@ const read = (path: string) => readFileSync(join(root, path), "utf8");
 
 const CORE_ROUTE_COMPONENTS = [
   "src/components/moneyflow-dashboard.tsx",
-  "src/components/transactions-page.tsx",
+  "src/components/transactions/transactions-workspace.tsx",
   "src/components/accounts-page.tsx",
   "src/components/categories-page.tsx",
   "src/components/planning/budgets-page.tsx",
@@ -20,7 +20,7 @@ const CORE_ROUTE_COMPONENTS = [
 
 const SHARED_EMPTY_STATE_OWNERS = [
   "src/components/dashboard/dashboard-overview-sections.tsx",
-  "src/components/transactions-page.tsx",
+  "src/components/transactions/transactions-workspace.tsx",
   "src/components/accounts-page.tsx",
   "src/components/categories-page.tsx",
   "src/components/planning/budgets-page.tsx",
@@ -80,13 +80,23 @@ test("core action-bearing empty states do not reintroduce duplicate direct actio
     const source = read(path);
     assert.ok(
       source.includes("EmptyState"),
-      `${path} should use the shared EmptyState contract when it owns an action-bearing empty state`,
+      `${path} should use a shared EmptyState contract when it owns an action-bearing empty state`,
     );
     assert.ok(
       !source.includes('className="empty-state-actions"'),
       `${path} must not bypass the shared action-region contract`,
     );
   }
+
+  const transactions = read(
+    "src/components/transactions/transactions-workspace.tsx",
+  );
+  assert.match(transactions, /@\/components\/ui\/empty-state/);
+  assert.equal(
+    (transactions.match(/<EmptyState/g) ?? []).length,
+    2,
+    "Transactions keeps one no-results branch and one true-empty branch",
+  );
 
   const dashboardRoute = read("src/components/moneyflow-dashboard.tsx");
   assert.match(

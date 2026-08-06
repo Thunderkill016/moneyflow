@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { MinimumTargetSizeContract } from "@/components/minimum-target-size-contract";
-import { MobileShellContract } from "@/components/mobile-shell-contract";
 import { PrivacySafeSpeedInsights } from "@/components/privacy-safe-speed-insights";
 import { RouteScrollReset } from "@/components/route-scroll-reset";
 import { RouteThemeBoundary } from "@/components/route-theme-boundary";
@@ -109,7 +108,6 @@ export default function RootLayout({
       <body>
         <RouteThemeBoundary />
         <RouteScrollReset />
-        <MobileShellContract />
         <MinimumTargetSizeContract />
         {children}
         <Analytics />

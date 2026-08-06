@@ -32,14 +32,12 @@ type DialogCase = {
 };
 
 /**
- * The `[open]` filter is required, not cosmetic: several dialogs share each class
- * and all of them sit in the DOM closed, so a bare class selector resolves to
- * three elements on /transactions.
+ * The `[open]` filter is required, not cosmetic: several dialogs sit in the DOM
+ * closed, so a bare owner selector can resolve to multiple elements.
  *
- * One case per dialog primitive, not per dialog. Every modal in the product carries
- * `.transaction-dialog` or `.account-dialog` except the capture chooser, whose
- * layout lives in the app-shell CSS Module — so that is the one a global dialog
- * rule can silently break, and #145 names it as a third affected flow.
+ * The account flow still owns its historical class. Transaction dialogs now use
+ * the shared Phase 2 Dialog primitive, whose stable evidence surface is
+ * `data-slot="dialog"`; the audit must not reintroduce the retired global class.
  */
 const CASES: DialogCase[] = [
   {
@@ -52,7 +50,7 @@ const CASES: DialogCase[] = [
     label: "transaction dialog",
     route: "/transactions",
     opener: /^Ghi chi tiêu$/,
-    selector: "dialog.transaction-dialog[open]",
+    selector: 'dialog[data-slot="dialog"][open]',
   },
 ];
 

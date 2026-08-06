@@ -13,7 +13,6 @@ test("TASK-200: e2e expense path spec and npm script exist", () => {
   assert.match(body, /insights/i);
   assert.match(body, /export|Tải xuống|settings\/export/i);
   assert.match(body, /TASK-200/);
-  assert.ok(!/inbox.*click|goto\("\/inbox"\)/i.test(body) || true);
 
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
     scripts?: Record<string, string>;
@@ -26,11 +25,18 @@ test("TASK-203/204 copy contracts in product code", () => {
   const transfers = readFileSync(join(root, "src/lib/transfers.ts"), "utf8");
   assert.match(transfers, /Chuyển khoản · không tính chi|TRANSFER_LIST_HINT/);
 
-  const txPage = readFileSync(join(root, "src/components/transactions-page.tsx"), "utf8");
-  assert.match(txPage, /transferRowSubtitle/);
-  assert.match(txPage, /EmptyState/);
+  const txWorkspace = readFileSync(
+    join(root, "src/components/transactions/transactions-workspace.tsx"),
+    "utf8",
+  );
+  assert.match(txWorkspace, /transferRowSubtitle/);
+  assert.match(txWorkspace, /EmptyState/);
+  assert.match(txWorkspace, /data-slot="ledger-row"/);
 
-  const dash = readFileSync(join(root, "src/components/moneyflow-dashboard.tsx"), "utf8");
+  const dash = readFileSync(
+    join(root, "src/components/moneyflow-dashboard.tsx"),
+    "utf8",
+  );
   assert.match(dash, /GHI_CHI_TIEU_LABEL/);
   assert.ok(
     !dash.includes('secondaryLabel="Thêm tài khoản"'),

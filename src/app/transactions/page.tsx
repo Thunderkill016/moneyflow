@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TransactionsPage } from "@/components/transactions-page";
+import { TransactionsWorkspace } from "@/components/transactions/transactions-workspace";
 import {
   normalizeTransactionAmountInput,
   normalizeTransactionDateParam,
@@ -51,7 +51,7 @@ export default async function Page({
     : "all";
 
   return (
-    <TransactionsPage
+    <TransactionsWorkspace
       viewer={{
         email: viewer.email,
         displayName: viewer.displayName,

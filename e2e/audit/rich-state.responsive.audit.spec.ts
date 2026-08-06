@@ -207,7 +207,10 @@ test.describe("large VND and long Vietnamese responsive states", () => {
       await assertNoClippedMoney(page, route);
 
       if (route.path === "/transactions") {
-        const row = page.locator(".manager-row").filter({ hasText: LONG_EXPENSE_NOTE }).first();
+        const row = page
+          .locator('[data-slot="ledger-row"]')
+          .filter({ hasText: LONG_EXPENSE_NOTE })
+          .first();
         await expect(row).toBeVisible();
         const rect = await row.evaluate((element) => {
           const box = element.getBoundingClientRect();

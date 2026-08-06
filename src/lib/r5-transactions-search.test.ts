@@ -35,12 +35,18 @@ test("R5: ⌘K still recognized as search shortcut", () => {
   assert.equal(isSearchShortcut({ key: "k", ctrlKey: true }), true);
 });
 
-test("R5: transactions page wires AppShell searchBar to query state", () => {
-  const page = readSrc("src/components/transactions-page.tsx");
-  assert.match(page, /searchBar=\{\{/);
-  assert.match(page, /value:\s*query/);
-  assert.match(page, /onChange:\s*setQuery|onChange:\s*\(v\)\s*=>\s*setQuery/);
-  assert.match(page, /transferRowSubtitle/);
+test("R5: Phase 5 workspace wires AppShell searchBar to query state", () => {
+  const workspace = readSrc(
+    "src/components/transactions/transactions-workspace.tsx",
+  );
+  assert.match(workspace, /searchBar=\{\{/);
+  assert.match(workspace, /value:\s*query/);
+  assert.match(
+    workspace,
+    /onChange:\s*setQuery|onChange:\s*\(v\)\s*=>\s*setQuery/,
+  );
+  assert.match(workspace, /transferRowSubtitle/);
+  assert.match(workspace, /data-slot="ledger-filters"/);
 });
 
 test("R5: AppShell ⌘K navigates with focus=search when no searchBar", () => {
@@ -56,13 +62,13 @@ test("R5: transfer list hint constant is “không tính chi”", () => {
 });
 
 test("R5: transfer surfaces use shared not-expense copy", () => {
-  const tx = readSrc("src/components/transactions-page.tsx");
+  const tx = readSrc("src/components/transactions/transactions-workspace.tsx");
   const dash = readDashboardSource();
   const transferDlg = readSrc("src/components/transfer-dialog.tsx");
   const editDlg = readSrc("src/components/edit-transaction-dialog.tsx");
 
   for (const [label, src] of [
-    ["transactions-page", tx],
+    ["transactions-workspace", tx],
     ["dashboard-composition", dash],
   ] as const) {
     assert.match(src, /transferRowSubtitle/, `${label} must use transferRowSubtitle`);
