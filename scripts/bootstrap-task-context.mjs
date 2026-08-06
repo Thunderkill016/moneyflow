@@ -1,13 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  readdirSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
@@ -35,6 +29,25 @@ const EXECUTABLE_REQUIRED = [
   "npm run test",
   "npm run build",
 ];
+const HIGH_RISK_ALIASES = new Set([
+  "ledger",
+  "accounts",
+  "planning",
+  "reports",
+  "import",
+  "auth",
+  "ci",
+]);
+const VALUE_OPTIONS = new Map([
+  ["--task", "task"],
+  ["--boundary", "boundary"],
+  ["--class", "riskClass"],
+  ["--packet", "packet"],
+  ["--root", "root"],
+  ["--base", "base"],
+  ["--format", "format"],
+  ["--output", "output"],
+]);
 
 export const ROUTE_ALIASES = {
   product: "Product scope/current status",
@@ -135,19 +148,14 @@ export function parseContextRoutes(markdown) {
 }
 
 export function selectRoute(routes, requestedBoundary) {
-  const alias = ROUTE_ALIASES[requestedBoundary.toLowerCase()] || requestedBoundary;
-  const normalized = alias.toLowerCase();
-  const exact = routes.find((route) => route.boundary.toLowerCase() === normalized);
-  if (exact) return exact;
-
-  const fuzzy = routes.filter((route) => {
-    const boundary = route.boundary.toLowerCase();
-    return boundary.includes(normalized) || normalized.includes(boundary);
-  });
-  if (fuzzy.length === 1) return fuzzy[0];
+  const target = ROUTE_ALIASES[requestedBoundary.toLowerCase()] || requestedBoundary;
+  const route = routes.find(
+    (candidate) => candidate.boundary.toLowerCase() === target.toLowerCase(),
+  );
+  if (route) return route;
 
   throw new Error(
-    `Unknown or ambiguous boundary: ${requestedBoundary}. Use --list-boundaries to inspect valid aliases.`,
+    `Unknown boundary: ${requestedBoundary}. Use --list-boundaries to inspect valid aliases.`,
   );
 }
 
@@ -164,16 +172,6 @@ export function parseArgs(argv) {
     allowMain: false,
     listBoundaries: false,
   };
-  const valueOptions = new Map([
-    ["--task", "task"],
-    ["--boundary", "boundary"],
-    ["--class", "riskClass"],
-    ["--packet", "packet"],
-    ["--root", "root"],
-    ["--base", "base"],
-    ["--format", "format"],
-    ["--output", "output"],
-  ]);
 
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
@@ -186,7 +184,7 @@ export function parseArgs(argv) {
       continue;
     }
 
-    const field = valueOptions.get(value);
+    const field = VALUE_OPTIONS.get(value);
     if (!field) throw new Error(`Unknown option: ${value}`);
     const nextValue = argv[index + 1];
     if (!nextValue || nextValue.startsWith("--")) {
@@ -230,8 +228,11 @@ export function inspectGit(root, base = "main") {
   const statusOutput = runGit(root, ["status", "--porcelain=v1"]);
   const status = statusOutput ? statusOutput.split(/\r?\n/).filter(Boolean) : [];
   const localBase = runGit(root, ["rev-parse", "--verify", base]);
-  const baseRef = localBase ? base : `origin/${base}`;
-  const mergeBase = runGit(root, ["merge-base", "HEAD", baseRef]);
+  const remoteBase = localBase
+    ? null
+    : runGit(root, ["rev-parse", "--verify", `origin/${base}`]);
+  const baseRef = localBase ? base : remoteBase ? `origin/${base}` : null;
+  const mergeBase = baseRef ? runGit(root, ["merge-base", "HEAD", baseRef]) : null;
   const committedDiff = mergeBase
     ? runGit(root, ["diff", "--name-only", `${mergeBase}...HEAD`])
     : null;
@@ -244,6 +245,8 @@ export function inspectGit(root, base = "main") {
     available: Boolean(branch && head),
     branch,
     head,
+    baseRef,
+    baseComparisonAvailable: Boolean(mergeBase),
     dirty: status.length > 0,
     status,
     changedFiles: [...new Set([...committedFiles, ...dirtyFiles])].sort(),
@@ -311,6 +314,10 @@ export function validateTaskState({ root, options, route, git }) {
   }
   if (!git.available) {
     warnings.push("Git state could not be read; branch/head safety was not verified.");
+  } else if (git.baseComparisonAvailable === false) {
+    warnings.push(
+      `Base ref ${options.base} was unavailable; committed changed files could not be calculated.`,
+    );
   }
   if (git.dirty) {
     warnings.push("Working tree is not clean; confirm the existing changes belong to this task.");
@@ -319,12 +326,16 @@ export function validateTaskState({ root, options, route, git }) {
   let packet = null;
   if (options.packet) {
     try {
-      const resolvedPacket = resolveRepositoryPath(root, options.packet, "--packet");
-      packet = resolvedPacket.relative;
-      if (!packet.startsWith("docs/plans/active/") || !packet.endsWith(".md")) {
+      const candidate = resolveRepositoryPath(root, options.packet, "--packet");
+      if (
+        !candidate.relative.startsWith("docs/plans/active/") ||
+        !candidate.relative.endsWith(".md")
+      ) {
         errors.push("--packet must reference a Markdown file under docs/plans/active/.");
-      } else if (!existsSync(resolvedPacket.absolute)) {
-        errors.push(`Work packet does not exist: ${packet}`);
+      } else if (!existsSync(candidate.absolute)) {
+        errors.push(`Work packet does not exist: ${candidate.relative}`);
+      } else {
+        packet = candidate.relative;
       }
     } catch (error) {
       errors.push(error.message);
@@ -334,10 +345,7 @@ export function validateTaskState({ root, options, route, git }) {
   }
 
   const alias = options.boundary.toLowerCase();
-  if (
-    ["ledger", "accounts", "planning", "reports", "import", "auth", "ci"].includes(alias) &&
-    options.riskClass < 3
-  ) {
+  if (HIGH_RISK_ALIASES.has(alias) && options.riskClass < 3) {
     warnings.push(
       "This boundary commonly reaches Class 3. Reconfirm that the selected task does not alter financial, data, security or operational truth.",
     );
@@ -349,16 +357,7 @@ export function validateTaskState({ root, options, route, git }) {
   return { errors, warnings, packet };
 }
 
-function listActivePackets(root) {
-  const directory = resolve(root, "docs/plans/active");
-  if (!existsSync(directory)) return [];
-  return readdirSync(directory)
-    .filter((name) => name.endsWith(".md"))
-    .map((name) => `docs/plans/active/${name}`)
-    .sort();
-}
-
-export function buildManifest({ root, options, route, git, validation }) {
+export function buildManifest({ options, route, git, validation }) {
   const verification = buildVerificationPlan(options.riskClass);
   const readNow = [
     ...new Set([
@@ -379,8 +378,10 @@ export function buildManifest({ root, options, route, git, validation }) {
     repository: {
       branch: git.branch,
       head: git.head,
+      baseRef: git.baseRef,
+      baseComparisonAvailable: git.baseComparisonAvailable,
       dirty: git.dirty,
-      changedFiles: git.changedFiles,
+      changedFiles: git.changedFiles || [],
     },
     context: {
       readNow,
@@ -388,7 +389,6 @@ export function buildManifest({ root, options, route, git, validation }) {
       loadNext: route.loadNext,
       verifyAgainst: route.verifyAgainst,
       packet: validation.packet,
-      activePackets: listActivePackets(root),
     },
     planning: verification.planning,
     verification: {
@@ -409,16 +409,14 @@ export function buildManifest({ root, options, route, git, validation }) {
 function buildReadSequence(manifest) {
   const files = manifest.context.readNow;
   const readmeIndex = files.indexOf(manifest.context.inspectAffectedCodeAndTestsAfter);
-  if (readmeIndex === -1) return files.map((path) => ({ type: "file", value: path }));
+  const fileItems = files.map((value) => ({ type: "file", value }));
+  if (readmeIndex === -1) return fileItems;
 
-  return [
-    ...files.slice(0, readmeIndex + 1).map((path) => ({ type: "file", value: path })),
-    {
-      type: "action",
-      value: "Inspect the affected code, tests and migrations for this task.",
-    },
-    ...files.slice(readmeIndex + 1).map((path) => ({ type: "file", value: path })),
-  ];
+  fileItems.splice(readmeIndex + 1, 0, {
+    type: "action",
+    value: "Inspect the affected code, tests and migrations for this task.",
+  });
+  return fileItems;
 }
 
 function bullets(items) {
@@ -449,7 +447,7 @@ export function renderPrompt(manifest) {
 }
 
 export function renderMarkdown(manifest) {
-  const repoLine = manifest.repository.branch
+  const repositoryState = manifest.repository.branch
     ? `${manifest.repository.branch}@${manifest.repository.head || "unknown"}`
     : "unavailable";
   const sequence = buildReadSequence(manifest);
@@ -460,7 +458,8 @@ export function renderMarkdown(manifest) {
     `- **Task:** ${manifest.task}`,
     `- **Boundary:** ${manifest.boundary}`,
     `- **Risk:** ${manifest.riskLabel}`,
-    `- **Repository state:** ${repoLine}`,
+    `- **Repository state:** ${repositoryState}`,
+    `- **Base comparison:** ${manifest.repository.baseComparisonAvailable ? manifest.repository.baseRef : "unavailable"}`,
     `- **Working tree:** ${manifest.repository.dirty ? "dirty" : "clean or unavailable"}`,
     `- **Work packet:** ${manifest.context.packet || "not supplied"}`,
     "",
@@ -550,7 +549,7 @@ export function main(argv = process.argv.slice(2)) {
     const route = selectRoute(routes, options.boundary);
     const git = inspectGit(root, options.base);
     const validation = validateTaskState({ root, options, route, git });
-    const manifest = buildManifest({ root, options, route, git, validation });
+    const manifest = buildManifest({ options, route, git, validation });
     const content =
       options.format === "json"
         ? JSON.stringify(manifest, null, 2)
