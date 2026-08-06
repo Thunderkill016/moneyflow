@@ -109,7 +109,7 @@ test("account and ledger surfaces delegate creation to one transfer mutation own
     "utf8",
   );
   const accountsPageSource = readFileSync(
-    new URL("../components/accounts-page.tsx", import.meta.url),
+    new URL("../components/accounts/accounts-workspace.tsx", import.meta.url),
     "utf8",
   );
   const ownerSource = readFileSync(

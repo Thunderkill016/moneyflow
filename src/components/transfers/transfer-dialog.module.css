@@ -1,0 +1,145 @@
+.dialog {
+  width: min(620px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+}
+
+.dialogContent {
+  max-height: calc(100dvh - 24px);
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.amountInput {
+  font-family: var(--mf-font-money);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(22px, 5vw, 30px);
+  font-weight: 720;
+  letter-spacing: var(--mf-money-track-sm);
+}
+
+.formAlert {
+  margin: 0;
+}
+
+.transferAccounts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px minmax(0, 1fr);
+  align-items: end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.swapButton {
+  align-self: end;
+}
+
+.review {
+  min-width: 0;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--mf-border);
+  border-radius: 14px;
+  background: var(--mf-surface-muted);
+  padding: 14px;
+}
+
+.reviewRow {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(90px, auto) minmax(0, 1fr);
+  align-items: baseline;
+  gap: 12px;
+}
+
+.reviewRow span {
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reviewRow strong {
+  min-width: 0;
+  color: var(--mf-text);
+  overflow-wrap: anywhere;
+}
+
+.explainer {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid var(--mf-info-border);
+  border-radius: 11px;
+  background: var(--mf-info-subtle);
+  padding: 12px;
+  color: var(--mf-info-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.explainer svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+
+.explainer p {
+  margin: 0;
+}
+
+.footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+@media (max-width: 620px) {
+  .dialog.dialog {
+    width: 100%;
+    max-width: none;
+    max-height: min(92dvh, 100%);
+    margin: auto 0 0;
+    border: 0;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .dialogContent {
+    max-height: min(92dvh, 100%);
+  }
+
+  .transferAccounts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .swapButton {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+
+  .reviewRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .footerActions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .footerActions > * {
+    width: 100%;
+  }
+}
+
+@media (forced-colors: active) {
+  .review,
+  .explainer {
+    border: 1px solid CanvasText;
+  }
+}

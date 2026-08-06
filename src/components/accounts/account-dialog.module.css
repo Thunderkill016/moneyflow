@@ -1,0 +1,152 @@
+.dialog {
+  width: min(560px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+}
+
+.dialogContent {
+  max-height: calc(100dvh - 24px);
+}
+
+.form {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+
+.formGrid {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.form [data-slot="text-field"],
+.form [data-slot="text-field-control"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.form [data-slot="text-field-input"] {
+  width: 0;
+  max-width: 100%;
+}
+
+.spanFull {
+  grid-column: 1 / -1;
+}
+
+.formHint {
+  margin: 0;
+  color: var(--mf-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.formAlert {
+  margin: 0;
+}
+
+.amountInput {
+  font-family: var(--mf-font-money);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(20px, 5vw, 28px);
+  font-weight: 720;
+  letter-spacing: var(--mf-money-track-sm);
+}
+
+.footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+.archiveReview {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.archiveAccount {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--mf-border);
+  border-radius: 14px;
+  background: var(--mf-surface-muted);
+  padding: 14px;
+}
+
+.archiveAccount strong,
+.archiveAccount p {
+  margin: 0;
+}
+
+.archiveAccount strong {
+  color: var(--mf-text);
+  overflow-wrap: anywhere;
+}
+
+.archiveAccount p {
+  color: var(--mf-text-muted);
+  font-size: 13px;
+}
+
+.archiveConsequences {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--mf-text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.archiveFooter {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+@media (max-width: 620px) {
+  .dialog.dialog {
+    width: 100%;
+    max-width: none;
+    max-height: min(92dvh, 100%);
+    margin: auto 0 0;
+    border: 0;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .dialogContent {
+    max-height: min(92dvh, 100%);
+  }
+
+  .formGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .spanFull {
+    grid-column: 1;
+  }
+
+  .footerActions,
+  .archiveFooter {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .footerActions > *,
+  .archiveFooter > * {
+    width: 100%;
+  }
+}
+
+@media (forced-colors: active) {
+  .archiveAccount {
+    border: 1px solid CanvasText;
+  }
+}

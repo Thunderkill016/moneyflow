@@ -21,7 +21,7 @@ import { seedUiAuditState } from "./responsive-audit";
  * spec skips.
  */
 
-/** Matches the phone bottom-sheet breakpoint in globals.css and app-shell.module.css. */
+/** Matches the phone bottom-sheet breakpoint in local dialog owner modules. */
 const PHONE_MAX_WIDTH = 760;
 
 type DialogCase = {
@@ -35,16 +35,16 @@ type DialogCase = {
  * The `[open]` filter is required, not cosmetic: several dialogs sit in the DOM
  * closed, so a bare owner selector can resolve to multiple elements.
  *
- * The account flow still owns its historical class. Transaction dialogs now use
- * the shared Phase 2 Dialog primitive, whose stable evidence surface is
- * `data-slot="dialog"`; the audit must not reintroduce the retired global class.
+ * Account and transaction forms now both use the shared Phase 2 Dialog primitive.
+ * Its stable evidence surface is `data-slot="dialog"`; the audit must not depend on
+ * the retired account or transaction global classes.
  */
 const CASES: DialogCase[] = [
   {
     label: "account dialog",
     route: "/accounts",
     opener: /^Thêm tài khoản$/,
-    selector: "dialog.account-dialog[open]",
+    selector: 'dialog[data-slot="dialog"][open]',
   },
   {
     label: "transaction dialog",
@@ -66,9 +66,9 @@ type Geometry = {
 };
 
 /**
- * The dialogs run a `dialog-in` scale animation. Measuring the moment they become
- * visible catches them mid-transform — a 320px sheet reads as left: 1.69px rather
- * than 0. Wait for the animation to finish instead of loosening the assertion.
+ * Dialogs can run an entrance animation. Measuring the moment they become visible
+ * catches a transformed intermediate box. Wait for the animation to finish instead
+ * of loosening the geometry assertion.
  */
 async function settle(page: import("@playwright/test").Page, selector: string) {
   await page.waitForFunction((sel) => {
@@ -78,10 +78,6 @@ async function settle(page: import("@playwright/test").Page, selector: string) {
   }, selector);
 }
 
-/**
- * Measured from the element itself rather than a selector string, because the
- * capture chooser's only class is a hashed CSS Module name that no test can spell.
- */
 async function measure(dialog: import("@playwright/test").Locator): Promise<Geometry> {
   return dialog.evaluate((el) => {
     const node = el as HTMLDialogElement;
@@ -101,8 +97,6 @@ async function measure(dialog: import("@playwright/test").Locator): Promise<Geom
 }
 
 function assertCentred(box: Geometry, label: string) {
-  // Assert the real property — centred — rather than merely "not at x=0", so a
-  // half-fixed layout still fails.
   expect(
     box.centreOffsetX,
     `${label} is off-centre by ${Math.round(box.centreOffsetX)}px ` +
@@ -155,35 +149,15 @@ test.describe("modal dialog placement", () => {
     });
   }
 
-  /**
-   * The "Ghi giao dịch" chooser, third of the three flows named in #145 and the one
-   * that matters most here: it is the only modal in the product whose layout lives in
-   * a CSS Module rather than globals.css, so it is the dialog a global dialog rule can
-   * silently break. A centring rule at class-level specificity would outrank its
-   * (0,1,0) `.sheet` rule and flatten the phone sheet into a floating card.
-   *
-   * Located structurally rather than by accessible name. Its trigger is labelled
-   * "Nhập nhanh" (the "Ghi giao dịch" string is the dialog's own heading), and below
-   * 1100px the sidebar collapses to icons with that label set to `display: none`,
-   * which removes it from the accessible name. The single `<button>` inside the
-   * sidebar's primary nav is stable at every width where the sidebar exists.
-   */
   const chooserTrigger = 'aside[aria-label="Điều hướng chính"] nav button';
 
   test("capture chooser is placed deliberately", async ({ page }, testInfo) => {
     const width = page.viewportSize()?.width ?? 0;
-    // The sidebar is `display: none` below 760px and the centre mobile nav button
-    // runs "Ghi chi tiêu" directly, so the chooser has no phone entry point at all.
-    // Skipping explicitly, with the width recorded, rather than letting a missing
-    // trigger turn into a silent pass.
     test.skip(width <= PHONE_MAX_WIDTH, `chooser has no trigger at ${width}px`);
 
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
 
     const trigger = page.locator(chooserTrigger);
-    // Assert the trigger before clicking. Without this, a renamed sidebar would make
-    // the click time out with a locator error rather than a layout failure — and a
-    // reader would take the red for a regression in placement.
     await expect(trigger, "capture chooser trigger should exist beside the nav links")
       .toHaveCount(1);
     await trigger.click();
@@ -212,8 +186,6 @@ test.describe("modal dialog placement", () => {
   });
 
   test("a placed dialog still traps focus and closes on Escape", async ({ page }) => {
-    // #145 requires overlay, focus trap, close button and keyboard dismissal to
-    // keep working after the placement fix.
     await page.goto(CASES[0]!.route, { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: CASES[0]!.opener }).first().click();
     await page.locator(CASES[0]!.selector).waitFor({ state: "visible" });
