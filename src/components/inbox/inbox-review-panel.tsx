@@ -89,6 +89,9 @@ export function InboxReviewPanel({
 
   if (!candidate || !draft) return null;
 
+  const activeCandidate = candidate;
+  const activeDraft = draft;
+
   function patchDraft(partial: Partial<CandidateReviewDraft>) {
     setDraft((current) => (current ? { ...current, ...partial } : current));
     setError("");
@@ -98,7 +101,7 @@ export function InboxReviewPanel({
     const nextMoneyKind = kind === "income" ? "income" : "expense";
     const nextCategory =
       kind === "transfer"
-        ? draft.categoryId
+        ? activeDraft.categoryId
         : categories.find((item) => item.kind === nextMoneyKind)?.id ?? "";
     patchDraft({ kind, categoryId: nextCategory });
   }
@@ -106,12 +109,12 @@ export function InboxReviewPanel({
   async function handleApprove(event: FormEvent) {
     event.preventDefault();
     const amount = parseMoneyInput(amountText);
-    const nextDraft: CandidateReviewDraft = { ...draft, amount };
+    const nextDraft: CandidateReviewDraft = { ...activeDraft, amount };
     const post = buildLedgerPost(
       nextDraft,
       accounts,
       categories,
-      approvalIdempotencyKey(candidate.id),
+      approvalIdempotencyKey(activeCandidate.id),
     );
     if (!post.ok) {
       setError(post.message);
@@ -121,7 +124,7 @@ export function InboxReviewPanel({
     setSubmitting(true);
     try {
       const result = await onApprove({
-        candidateId: candidate.id,
+        candidateId: activeCandidate.id,
         draft: nextDraft,
         post,
       });
