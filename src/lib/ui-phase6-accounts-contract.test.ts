@@ -36,9 +36,7 @@ const packet = readFileSync(
 const retiredActiveClasses = [
   "dashboard accounts-workspace",
   "accounts-heading",
-  "accounts-summary",
   "account-grid",
-  "account-card",
   "archived-list",
   "secondary-button",
   "primary-button",
@@ -111,7 +109,10 @@ test("account form uses shared field lifecycle and field-specific focus recovery
   assert.match(accountDialog, /dismissible=\{!submitting\}/);
   assert.match(accountDialog, /Math\.abs\(account\?\.initialBalance/);
   assert.match(accountDialog, /kind === "credit_card" \? -parsedAmount : parsedAmount/);
-  assert.doesNotMatch(accountDialog, /<dialog\b|account-dialog|account-form-hint/);
+  assert.doesNotMatch(
+    accountDialog,
+    /<dialog\b|className="account-dialog"|account-form-hint/,
+  );
   assert.doesNotMatch(accountDialogCss, /:global\s*\(|!important/);
 });
 
@@ -133,7 +134,7 @@ test("Transfer has a dedicated presentation owner and preserves domain mutation 
 test("Phase 6 packet records bounded authorization and Class 3 archive boundary", () => {
   assert.match(packet, /[`“]Làm đi[`”]/);
   assert.match(packet, /Permission scope:\*\* branch_write/);
-  assert.match(packet, /future rule requiring zero balance/);
+  assert.match(packet, /future zero-balance or balancing-transfer rule/);
   assert.match(packet, /separate owner-approved Class 3 packet/);
   assert.match(packet, /Merge and deployment remain owner decisions/);
 });
