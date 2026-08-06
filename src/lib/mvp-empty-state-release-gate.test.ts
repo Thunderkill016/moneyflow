@@ -9,7 +9,7 @@ const read = (path: string) => readFileSync(join(root, path), "utf8");
 const CORE_ROUTE_COMPONENTS = [
   "src/components/moneyflow-dashboard.tsx",
   "src/components/transactions/transactions-workspace.tsx",
-  "src/components/accounts-page.tsx",
+  "src/components/accounts/accounts-workspace.tsx",
   "src/components/categories-page.tsx",
   "src/components/planning/budgets-page.tsx",
   "src/components/planning/commitments-page.tsx",
@@ -21,7 +21,7 @@ const CORE_ROUTE_COMPONENTS = [
 const SHARED_EMPTY_STATE_OWNERS = [
   "src/components/dashboard/dashboard-overview-sections.tsx",
   "src/components/transactions/transactions-workspace.tsx",
-  "src/components/accounts-page.tsx",
+  "src/components/accounts/accounts-workspace.tsx",
   "src/components/categories-page.tsx",
   "src/components/planning/budgets-page.tsx",
   "src/components/planning/commitments-page.tsx",
@@ -96,6 +96,14 @@ test("core action-bearing empty states do not reintroduce duplicate direct actio
     (transactions.match(/<EmptyState/g) ?? []).length,
     2,
     "Transactions keeps one no-results branch and one true-empty branch",
+  );
+
+  const accounts = read("src/components/accounts/accounts-workspace.tsx");
+  assert.match(accounts, /@\/components\/ui\/empty-state/);
+  assert.equal(
+    (accounts.match(/<EmptyState/g) ?? []).length,
+    1,
+    "Accounts keeps one true-empty branch behind the shared owner",
   );
 
   const dashboardRoute = read("src/components/moneyflow-dashboard.tsx");
