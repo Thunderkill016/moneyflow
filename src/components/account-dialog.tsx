@@ -1,15 +1,30 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { accountKindLabels, type AccountKind, type AccountSummary, type SaveAccountInput } from "@/lib/accounts";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { SelectField } from "@/components/ui/select-field";
+import { TextField } from "@/components/ui/text-field";
+import {
+  accountKindLabels,
+  type AccountKind,
+  type AccountSummary,
+  type SaveAccountInput,
+} from "@/lib/accounts";
 import {
   SUPPORTED_CURRENCY_CODES,
   currencySelectLabel,
   currencySymbolHint,
   normalizeCurrencyCode,
 } from "@/lib/currency";
-import { formatMoneyInput, formatMoneyInputFromMinor, parseMoneyInputToMinor } from "@/lib/money";
+import {
+  formatMoneyInput,
+  formatMoneyInputFromMinor,
+  parseMoneyInputToMinor,
+} from "@/lib/money";
+import styles from "./accounts/account-dialog.module.css";
 
 export function AccountDialog({
   open,
@@ -22,33 +37,44 @@ export function AccountDialog({
   onClose: () => void;
   onSave: (input: SaveAccountInput) => Promise<{ ok: boolean; message?: string }>;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState(account?.name ?? "");
   const [kind, setKind] = useState<AccountKind>(account?.kind ?? "cash");
-  const [currencyCode, setCurrencyCode] = useState(normalizeCurrencyCode(account?.currencyCode ?? "VND"));
-  const [error, setError] = useState("");
+  const [currencyCode, setCurrencyCode] = useState(
+    normalizeCurrencyCode(account?.currencyCode ?? "VND"),
+  );
+  const [amount, setAmount] = useState(
+    formatMoneyInputFromMinor(Math.abs(account?.initialBalance ?? 0), account?.currencyCode ?? "VND"),
+  );
+  const [nameError, setNameError] = useState("");
+  const [amountError, setAmountError] = useState("");
+  const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const isEdit = Boolean(account);
   const symbol = currencySymbolHint(currencyCode);
+  const formId = "account-form";
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+  function clearErrors() {
+    setNameError("");
+    setAmountError("");
+    setFormError("");
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const name = String(formData.get("name") ?? "").trim();
-    const amount = parseMoneyInputToMinor(String(formData.get("initialBalance") ?? ""), currencyCode);
-    if (!name || name.length > 80) {
-      setError("Tên tài khoản cần từ 1 đến 80 ký tự.");
+    const trimmedName = name.trim();
+    const parsedAmount = parseMoneyInputToMinor(amount, currencyCode);
+
+    clearErrors();
+    if (!trimmedName || trimmedName.length > 80) {
+      setNameError("Tên tài khoản cần từ 1 đến 80 ký tự.");
+      nameRef.current?.focus();
       return;
     }
-    if (!Number.isSafeInteger(amount) || amount < 0) {
-      setError("Số dư phải là số nguyên không âm.");
+    if (!Number.isSafeInteger(parsedAmount) || parsedAmount < 0) {
+      setAmountError("Số dư phải là số nguyên không âm.");
+      amountRef.current?.focus();
       return;
     }
 
@@ -57,10 +83,10 @@ export function AccountDialog({
     try {
       result = await onSave({
         id: account?.id,
-        name,
+        name: trimmedName,
         kind,
         currencyCode: isEdit ? account?.currencyCode : currencyCode,
-        initialBalance: kind === "credit_card" ? -amount : amount,
+        initialBalance: kind === "credit_card" ? -parsedAmount : parsedAmount,
       });
     } catch {
       result = { ok: false, message: "Mất kết nối khi lưu tài khoản." };
@@ -69,84 +95,152 @@ export function AccountDialog({
     }
 
     if (!result.ok) {
-      setError(result.message || "Không thể lưu tài khoản.");
-      return;
+      setFormError(result.message || "Không thể lưu tài khoản.");
     }
-    setError("");
-    formRef.current?.reset();
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="account-dialog"
-      onCancel={(event) => { event.preventDefault(); if (!submitting) onClose(); }}
-      onClose={onClose}
-      aria-labelledby="account-dialog-title"
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !submitting) onClose();
+      }}
+      title={account ? "Sửa tài khoản" : "Thêm tài khoản"}
+      description={
+        account
+          ? "Cập nhật tên, loại tài khoản hoặc số dư ban đầu."
+          : "Tạo nơi giữ tiền để bắt đầu ghi giao dịch."
+      }
+      dismissible={!submitting}
+      initialFocusRef={nameRef}
+      className={styles.dialog}
+      contentClassName={styles.dialogContent}
+      footer={
+        <div className={styles.footerActions}>
+          <Button
+            type="button"
+            intent="secondary"
+            targetSize="important"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Hủy
+          </Button>
+          <Button
+            form={formId}
+            type="submit"
+            intent="primary"
+            targetSize="important"
+            pending={submitting}
+            pendingLabel="Đang lưu..."
+          >
+            <Icon name="check" /> {account ? "Lưu thay đổi" : "Thêm tài khoản"}
+          </Button>
+        </div>
+      }
     >
-      <div className="dialog-handle" aria-hidden="true" />
-      <div className="dialog-heading">
-        <div><p className="eyebrow">Sổ tài chính</p><h2 id="account-dialog-title">{account ? "Sửa tài khoản" : "Thêm tài khoản"}</h2></div>
-        <button className="icon-button" type="button" onClick={onClose} disabled={submitting} aria-label="Đóng"><Icon name="close" /></button>
-      </div>
+      <form id={formId} data-slot="account-form" className={styles.form} onSubmit={handleSubmit} noValidate>
+        <div className={styles.formGrid}>
+          <TextField
+            inputRef={nameRef}
+            label="Tên tài khoản"
+            value={name}
+            placeholder="Ví dụ: Vietcombank"
+            maxLength={80}
+            targetSize="important"
+            error={nameError || undefined}
+            rootClassName={styles.spanFull}
+            disabled={submitting}
+            onChange={(event) => {
+              setName(event.target.value);
+              clearErrors();
+            }}
+          />
 
-      <form ref={formRef} className="account-form" onSubmit={handleSubmit}>
-        <label><span>Tên tài khoản</span><input name="name" defaultValue={account?.name ?? ""} placeholder="Ví dụ: Vietcombank" maxLength={80} autoFocus required /></label>
-        <label><span>Loại tài khoản</span><select value={kind} onChange={(event) => { setKind(event.target.value as AccountKind); setError(""); }}>
-          {(Object.entries(accountKindLabels) as [AccountKind, string][]).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-        </select></label>
-        <label>
-          <span>Loại tiền</span>
+          <SelectField
+            label="Loại tài khoản"
+            value={kind}
+            targetSize="important"
+            disabled={submitting}
+            onChange={(event) => {
+              setKind(event.target.value as AccountKind);
+              clearErrors();
+            }}
+          >
+            {(Object.entries(accountKindLabels) as [AccountKind, string][]).map(
+              ([value, label]) => (
+                <option value={value} key={value}>
+                  {label}
+                </option>
+              ),
+            )}
+          </SelectField>
+
           {isEdit ? (
-            <input value={currencySelectLabel(currencyCode)} readOnly disabled aria-readonly="true" />
+            <TextField
+              label="Loại tiền"
+              value={currencySelectLabel(currencyCode)}
+              description="Không thể đổi loại tiền sau khi tạo tài khoản."
+              readOnly
+              disabled
+              targetSize="important"
+            />
           ) : (
-            <select
+            <SelectField
+              label="Loại tiền"
               value={currencyCode}
+              description="Chỉ chuyển tiền giữa hai tài khoản cùng loại tiền."
+              targetSize="important"
+              disabled={submitting}
               onChange={(event) => {
                 setCurrencyCode(normalizeCurrencyCode(event.target.value));
-                setError("");
+                clearErrors();
               }}
             >
               {SUPPORTED_CURRENCY_CODES.map((code) => (
-                <option value={code} key={code}>{currencySelectLabel(code)}</option>
+                <option value={code} key={code}>
+                  {currencySelectLabel(code)}
+                </option>
               ))}
-            </select>
+            </SelectField>
           )}
-        </label>
-        {!isEdit && currencyCode !== "VND" && (
-          <p className="account-form-hint">
-            Tài khoản ngoại tệ chỉ để theo dõi số dư. Không chuyển được sang tài khoản loại tiền khác (chưa hỗ trợ đổi ngoại tệ).
-          </p>
-        )}
-        <label>
-          <span>{kind === "credit_card" ? "Dư nợ hiện tại" : "Số dư ban đầu"}</span>
-          <div className="account-money-input">
-            <input
-              name="initialBalance"
-              inputMode="decimal"
-              defaultValue={formatMoneyInputFromMinor(account?.initialBalance ?? 0, currencyCode)}
-              placeholder="0"
-              onInput={(event) => {
-                event.currentTarget.value = formatMoneyInput(event.currentTarget.value);
-                setError("");
-              }}
-            />
-            <strong>{symbol}</strong>
-          </div>
-        </label>
-        <p className="account-form-hint">
-          {kind === "credit_card"
-            ? "Dư nợ được ghi âm vào tổng tài sản của bạn."
-            : currencyCode === "VND"
-              ? "Dùng số dư tại thời điểm bắt đầu sử dụng MoneyFlow."
-              : "Nhập số nguyên đơn vị chính (ví dụ 200 USD). Phần lẻ nhỏ nhất được quy đổi theo chuẩn loại tiền."}
-        </p>
-        {error && <p className="field-error" role="alert">{error}</p>}
-        <div className="dialog-footer-actions">
-          <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>Hủy</button>
-          <button className="primary-button account-submit" type="submit" disabled={submitting}><Icon name="check" />{submitting ? "Đang lưu..." : account ? "Lưu thay đổi" : "Thêm tài khoản"}</button>
+
+          <TextField
+            inputRef={amountRef}
+            label={kind === "credit_card" ? "Dư nợ hiện tại" : "Số dư ban đầu"}
+            value={amount}
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0"
+            suffix={symbol}
+            targetSize="important"
+            error={amountError || undefined}
+            inputClassName={styles.amountInput}
+            rootClassName={styles.spanFull}
+            disabled={submitting}
+            onChange={(event) => {
+              setAmount(formatMoneyInput(event.target.value));
+              clearErrors();
+            }}
+          />
         </div>
+
+        <p className={styles.formHint}>
+          {kind === "credit_card"
+            ? "Nhập số dư nợ dưới dạng số dương. MoneyFlow lưu khoản nợ này như một giá trị âm trong tổng tài sản."
+            : isEdit
+              ? "Thay đổi số dư ban đầu sẽ thay đổi số dư hiện tại theo cùng mức chênh lệch; hãy đối chiếu trước khi lưu."
+              : currencyCode === "VND"
+                ? "Dùng số dư tại thời điểm bắt đầu sử dụng MoneyFlow."
+                : "Nhập số nguyên theo đơn vị chính; MoneyFlow lưu theo đơn vị nhỏ nhất của loại tiền."}
+        </p>
+
+        {formError ? (
+          <Alert tone="error" live="assertive" className={styles.formAlert}>
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        ) : null}
       </form>
-    </dialog>
+    </Dialog>
   );
 }
