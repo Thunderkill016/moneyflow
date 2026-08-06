@@ -1,0 +1,48 @@
+.dialog {
+  width: min(100% - 1.5rem, 38rem);
+}
+
+.content {
+  min-width: 0;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.identityGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem;
+  min-width: 0;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  width: 100%;
+}
+
+@media (max-width: 560px) {
+  .dialog {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .identityGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .footer {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .footer > * {
+    width: 100%;
+  }
+}
