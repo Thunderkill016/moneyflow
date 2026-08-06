@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  PARSER_IMPROVEMENT_AVAILABLE,
   defaultPrivacyPrefs,
   formatPrivacyActivityAt,
   isPrivacyPrefs,
   isRawRetention,
   rawRetentionLabel,
   rawRetentionMaxAgeMs,
+  savePrivacyPrefs,
 } from "./privacy-prefs.ts";
 
 test("default privacy prefs: 7 days retention, improve parser off", () => {
@@ -17,6 +19,16 @@ test("default privacy prefs: 7 days retention, improve parser off", () => {
   assert.equal(prefs.lastDeleteAt, null);
   assert.equal(prefs.updatedAt, null);
   assert.equal(isPrivacyPrefs(prefs), true);
+});
+
+test("inactive parser capability never records consent", () => {
+  assert.equal(PARSER_IMPROVEMENT_AVAILABLE, false);
+  const saved = savePrivacyPrefs({
+    rawRetention: "days_7",
+    improveParser: true,
+    now: new Date("2026-08-06T00:00:00.000Z"),
+  });
+  assert.equal(saved.improveParser, false);
 });
 
 test("isRawRetention accepts known values only", () => {
