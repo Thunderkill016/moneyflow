@@ -106,6 +106,21 @@ Stable evidence slots:
 - `settings-workspace`, `settings-section`, `export-summary`, `privacy-capability-status`, `delete-account-review`;
 - `account-deletion-receipt`.
 
+## Implementation plan
+
+1. Reconcile P7 merged truth and record P8 authorization.
+2. Establish the shared secondary/safety layout and review owners.
+3. Migrate Reports and Categories without changing formulas or lifecycle semantics.
+4. Preserve authenticated atomic Inbox approval and add retry identity to the demo/browser path.
+5. Migrate Rules and import history/preview/direct dry-run flows with explicit consequence reviews.
+6. Verify Timeline as the existing Phase 5 owner.
+7. Migrate Settings, export, privacy, appearance, notifications and account deletion.
+8. Disable inactive parser consent and add a cleanup-result receipt.
+9. Add source/domain/browser contracts and repair stale audits at their semantic owners.
+10. Reconcile issue #72 from exact evidence and retain physical-device/provider limitations.
+11. Run exact-head policy, static, unit, build, browser, cross-device and security gates.
+12. Stop for explicit owner merge decision.
+
 ## Implemented slices
 
 - shared secondary/safety layout and review owners;
@@ -153,6 +168,7 @@ Findings are fixed in the owning boundary rather than hidden or allowlisted:
 7. Parser improvement had no processing implementation. The unavailable capability is disabled, historical true values normalize to false and new saves cannot record true.
 8. Account deletion cleanup parameters were previously invisible. `/account-deletion-result` now displays server verified/unverified and local complete/partial outcomes.
 9. Provider-backed recent password/OAuth verification remains explicitly absent; P8 does not simulate it through a checkbox or typed text alone.
+10. The first ready-for-review policy run correctly rejected missing standard project-memory and packet markers. The governance files now restore those markers; the failed run is not used as implementation evidence.
 
 ## Verification plan
 
