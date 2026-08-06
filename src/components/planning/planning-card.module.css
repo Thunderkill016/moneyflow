@@ -12,7 +12,7 @@
 .card[data-tone="watch"],
 .card[data-tone="soon"] {
   border-color: var(--mf-warning-border);
-  box-shadow: inset 0 3px 0 var(--mf-warning-default);
+  box-shadow: inset 0 3px 0 var(--mf-warning);
 }
 
 .card[data-tone="near"] {
@@ -23,13 +23,13 @@
 .card[data-tone="over"],
 .card[data-tone="overdue"] {
   border-color: var(--mf-expense-border);
-  box-shadow: inset 0 4px 0 var(--mf-expense-default);
+  box-shadow: inset 0 4px 0 var(--mf-expense);
 }
 
 .card[data-tone="paid"],
 .card[data-tone="achieved"] {
   border-color: var(--mf-income-border);
-  box-shadow: inset 0 3px 0 var(--mf-income-default);
+  box-shadow: inset 0 3px 0 var(--mf-income);
 }
 
 @media (max-width: 600px) {
