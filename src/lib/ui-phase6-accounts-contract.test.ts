@@ -33,15 +33,15 @@ const packet = readFileSync(
   "utf8",
 );
 
-const retiredActiveClasses = [
-  "dashboard accounts-workspace",
-  "accounts-heading",
-  "account-grid",
-  "archived-list",
-  "secondary-button",
-  "primary-button",
-  "data-alert",
-  "font-mono",
+const retiredClassRegistrations = [
+  /className="dashboard accounts-workspace"/,
+  /className="accounts-heading"/,
+  /className="account-grid"/,
+  /className="archived-list"/,
+  /className="secondary-button"/,
+  /className="primary-button"/,
+  /className="data-alert"/,
+  /className="font-mono"/,
 ];
 
 test("Accounts route uses the explicit Phase 6 workspace", () => {
@@ -65,12 +65,8 @@ test("Accounts workspace composes Phase 2 primitives and stable evidence slots",
 });
 
 test("active Accounts workspace does not register retired global presentation classes", () => {
-  for (const className of retiredActiveClasses) {
-    assert.equal(
-      workspace.includes(className),
-      false,
-      `active Accounts workspace still registers ${className}`,
-    );
+  for (const pattern of retiredClassRegistrations) {
+    assert.doesNotMatch(workspace, pattern);
   }
   assert.doesNotMatch(workspaceCss, /:global\s*\(|!important/);
   assert.match(workspaceCss, /@media \(max-width: 760px\)/);
