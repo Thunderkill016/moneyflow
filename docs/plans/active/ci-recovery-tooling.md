@@ -1,11 +1,11 @@
 # Exact-head CI recovery tooling
 
-**Status:** planned  
-**Execution state:** planned  
-**Active role:** implementer  
+**Status:** evaluating  
+**Execution state:** evaluating  
+**Active role:** evaluator  
 **Permission scope:** branch_write  
 **Owner:** human owner + implementing agent  
-**Issue/PR:** pending draft PR  
+**Issue/PR:** PR #314  
 **Last updated:** 2026-08-07
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
@@ -18,206 +18,205 @@ MoneyFlow contributors and coding agents can recover a stuck GitHub Actions run 
 
 ### Current behavior
 
-- `scripts/watch-pr-ci.mjs` can read and watch pull-request checks, reject stale-head evidence and print failed exact-head logs.
-- The current tooling cannot cancel an unresponsive workflow, force-cancel a zombie run, dispatch a clean manual CI run or verify that the replacement run still targets the original head.
+- `scripts/watch-pr-ci.mjs` already reads and watches PR checks, rejects stale-head evidence and prints failed exact-head logs.
+- Before this candidate, repository tooling could not cancel an unresponsive run, force-cancel a zombie record, dispatch a clean manual CI run or prove that the replacement still targeted the original head.
 - PR #309 exposed the gap when CI run #1933 remained queued/running after independent jobs were cancelled and the available connector lacked force-cancel/workflow-dispatch actions.
 
 ### Relevant repository areas
 
 | Area | Why it matters | Reuse/change/avoid |
 |---|---|---|
-| `scripts/watch-pr-ci.mjs` | Existing exact-head monitoring contract and CLI style | Reuse behavior and terminology; do not overload monitoring with recovery writes |
-| `scripts/watch-pr-ci.test.mjs` | Existing pure helper-test pattern | Reuse test structure |
-| `.github/workflows/ci.yml` | Supports `workflow_dispatch`; manual runs force the complete suite | Read only; do not change workflow policy in this slice |
-| `docs/operations/ci-observability.md` | Current operator runbook | Extend with recovery procedure and safety rules |
-| `package.json` | Repository command surface | Add one `ci:recover` command and its tests |
+| `scripts/watch-pr-ci.mjs` | Existing exact-head terminology and monitoring contract | Reused concepts; recovery writes remain in a separate command |
+| `scripts/recover-pr-ci.mjs` | New operational recovery owner | Added |
+| `scripts/recover-pr-ci.test.mjs` | Safety and orchestration contracts | Added |
+| `.github/workflows/ci.yml` | Supports `workflow_dispatch`; manual runs force all gates | Read only; unchanged |
+| `docs/operations/ci-observability.md` | Durable operator handoff | Extended |
+| `package.json` | Discoverable command and policy test surface | Added `ci:recover` and test entry |
 
 ### Existing tests and constraints
 
-- Related unit tests: `scripts/watch-pr-ci.test.mjs`, `scripts/ci-retry-graph.test.mjs`, CI classifier tests.
-- Database/RLS tests: not applicable; no database behavior changes.
-- Browser tests: not applicable to the tool itself; manual CI dispatch still executes full repository gates.
-- Product/architecture rules: scripts own repeatable repository automation; Class 3 CI-policy tooling requires a packet, rollback and owner review.
+- Related tests: CI classifier, retry graph, exact-head monitor and project-knowledge contracts.
+- Database/RLS and browser tests are not directly applicable to the CLI implementation; the replacement manual CI run still executes the full repository suite.
+- Class 3 CI operations work requires owner review, exact-head evidence and rollback.
 
 ### Similar implementation and recent history
 
-- Existing pattern to reuse: `scripts/watch-pr-ci.mjs` resolves a PR, records exact head, invokes `gh`, watches checks and rejects a moved head.
-- Relevant history: PR #302 introduced exact-head monitoring but intentionally stopped at observation and diagnostics.
+- PR #302 introduced exact-head monitoring but intentionally stopped at observation and diagnostics.
+- The new command extends that boundary rather than replacing `ci:status` or `ci:watch`.
 
 ### Open questions
 
-- [x] Can GitHub CLI force-cancel an unresponsive run? Yes: current `gh run cancel` supports `--force`.
-- [x] Can a clean run target the same branch head without a new commit? Yes: `gh workflow run <workflow> --ref <branch>` creates a `workflow_dispatch` run.
-- [x] How is replacement evidence kept exact? Filter runs by commit SHA, remember prior run IDs and re-read the PR head after completion.
+- [x] Current GitHub CLI supports `gh run cancel <id> --force`.
+- [x] `gh workflow run <workflow> --ref <branch>` can dispatch against an unchanged branch head.
+- [x] Replacement evidence can be bounded by exact SHA, prior run IDs, `workflow_dispatch` event and before/after PR-head checks.
 
 ## Research
 
 ### Research scope and source selection
 
 - Decision question: what is the smallest official GitHub-supported recovery flow for a stuck exact-head Actions run?
-- Reference map consulted: `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` plus focused official GitHub documentation.
+- Reference map consulted: `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` plus official GitHub documentation.
 - Source budget: four primary GitHub/GitHub CLI references.
-- Expected decision or uncertainty to resolve: cancel/force-cancel semantics, manual dispatch by ref, rerun/watch behavior and concurrency limits.
+- Expected decision: cancel/force-cancel semantics, manual dispatch by ref, run discovery/watching and concurrency limits.
 
 ### Questions researched
 
-1. Which official command force-cancels a workflow run that ignores normal cancellation?
-2. How can CI be dispatched against the existing branch without changing code?
-3. How should the tool identify and watch the correct exact-head run?
-4. When should the tool avoid cancellation and return a pending result instead?
+1. Which official command force-cancels a run that ignores normal cancellation?
+2. How can CI run on the existing branch without a new commit?
+3. How can the replacement be proven to target the recorded exact head?
+4. When must automatic recovery refuse to cancel a fresh run?
 
 ### Sources
 
 | Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
 |---|---|---|---|---|
-| GitHub CLI `gh run cancel` manual | Official CLI documentation | 2026-08-07 | `gh run cancel <run-id> --force` is supported | Requires authenticated `gh` with Actions write permission |
-| GitHub CLI `gh workflow run` manual | Official CLI documentation | 2026-08-07 | `workflow_dispatch` can run a workflow at a specified branch/tag through `--ref` | Workflow must already support `workflow_dispatch` |
-| GitHub CLI run list/watch/rerun manuals | Official CLI documentation | 2026-08-07 | Runs can be filtered by commit, watched with exit status and rerun with dependencies | A rerun preserves the original event SHA/ref and is not always usable while a run is still active |
-| GitHub Actions workflow-run and concurrency docs | Official platform documentation | 2026-08-07 | Force-cancel is reserved for unresponsive cancellation; concurrency may replace pending/in-progress runs in one group | Provider scheduling failures remain outside repository control |
+| GitHub CLI `gh run cancel` manual | Official CLI docs | 2026-08-07 | Normal and `--force` cancellation | Requires authenticated Actions write permission |
+| GitHub CLI `gh workflow run` manual | Official CLI docs | 2026-08-07 | `workflow_dispatch` against `--ref` | Workflow must support manual dispatch |
+| GitHub CLI run list/view/watch/rerun manuals | Official CLI docs | 2026-08-07 | Exact-commit filtering, JSON fields and exit-status watching | Provider scheduling remains external |
+| GitHub Actions workflow-run/concurrency docs | Official platform docs | 2026-08-07 | Force-cancel is for unresponsive cancellation; concurrency replaces runs in one group | Does not guarantee runner capacity |
 
 ### Alternatives considered
 
 | Option | Advantages | Risks | Decision |
 |---|---|---|---|
-| Keep manual UI instructions only | No code change | Slow, inconsistent, hidden session knowledge, easy to select wrong run/ref | Rejected |
-| Create no-op commits to retrigger CI | Works through normal PR synchronization | Pollutes history and violates repository guidance | Rejected |
-| Modify CI concurrency policy now | Could reduce some future collisions | Changes required-check behavior and does not recover an already stuck record | Rejected for this bounded slice |
-| Add a dedicated `gh` recovery script | Official primitives, auditable, testable, exact-head aware, no runtime dependency | Requires authenticated local/agent GitHub CLI | Selected |
+| Manual UI instructions | No code | Slow, inconsistent and hidden-session dependent | Rejected |
+| No-op commits | Familiar PR event | Pollutes history and violates repository guidance | Rejected |
+| Concurrency-policy change | May prevent some future collisions | Changes required-check behavior and does not recover an existing zombie | Rejected for this slice |
+| Dedicated `gh` command | Official, auditable, testable and exact-head aware | Requires authenticated `gh` | Selected |
 
 ### Research decision
 
-Add a standalone recovery command beside the existing monitoring command. It will resolve the PR and exact head, inspect exact-head runs, avoid cancelling a fresh active run unless explicitly forced, force-cancel a stale/unresponsive run, dispatch `ci.yml` on the unchanged head branch, discover the replacement exact-head run, watch it and reject the result if the PR head moves.
+Keep monitoring and recovery separate. The recovery command records the PR head, selects only exact-head runs, refuses fresh/unknown-idle cancellation unless `--force` is supplied, attempts normal then force cancellation, dispatches `ci.yml` on the unchanged branch, discovers only a new manual run for the recorded SHA, watches with exit status and rejects moved-head evidence.
 
 ### Adoption review
 
-- Observed problem: current automation can observe but cannot recover stuck GitHub Actions runs.
-- Existing or simpler alternatives considered: UI instructions, no-op commits, connector retries and concurrency changes; none provide repeatable exact-head recovery.
-- License/code-reuse compatibility: no copied third-party code and no new dependency; only documented GitHub CLI commands.
-- Secrets, user-data and privacy exposure: no financial/user data; relies on existing authenticated `gh` credentials and never prints tokens.
-- Runtime, bundle, deployment and operational cost: development-only Node script; no application bundle or provider service.
-- Owning boundary and maintenance responsibility: `scripts/` and `docs/operations/`.
-- Migration and rollback: additive command; rollback removes the script, tests, package command and runbook section.
-- Verification plan: pure unit tests, project knowledge/CI policy checks and exact-head PR workflows.
-- Removal condition if the expected benefit does not appear: remove if GitHub CLI/API behavior makes safe exact-head recovery impossible or the command causes incorrect run cancellation.
+- Observed problem: agents can diagnose but cannot reproducibly recover stuck Actions runs.
+- Existing/simpler alternatives: manual UI, connector retries, no-op commits and concurrency changes were insufficient or unsafe.
+- License/code reuse: no copied code and no dependency.
+- Secrets/privacy: delegates authentication to `gh`; never prints token values or financial data.
+- Runtime/deployment cost: development-only Node script; zero application bundle impact.
+- Owner: `scripts/` with procedure in `docs/operations/`.
+- Rollback: remove script, tests, package command and runbook section.
+- Verification: pure tests, fake-`gh` CLI integration tests and exact-head PR gates.
+- Removal condition: remove if the command cannot preserve exact-head identity or causes incorrect cancellation.
 
 ## Specification
 
 ### Problem
 
-An agent or contributor can identify a stuck CI run but currently cannot recover it reproducibly. Manual retries may target the wrong run, create unnecessary commits, or report evidence for a stale head.
+A contributor can identify a stuck CI run but cannot recover it reproducibly. Manual retries can target the wrong record, create unnecessary commits or lead to stale-head claims.
 
 ### User stories
 
-- As a contributor, I can recover a stale CI run with one command so that I do not create no-op commits.
-- As an agent, I can prove the replacement run targets the same head before reporting success.
-- As an owner, I can preview recovery actions with dry-run mode before any Actions write.
+- As a contributor, I can recover a stale CI run with one command without changing code.
+- As an agent, I can prove the replacement run targets the original head.
+- As an owner, I can preview every Actions write through dry-run mode.
 
 ### Acceptance criteria
 
-- [ ] Resolve PR number/URL, repository, branch and exact head through `gh pr view`.
-- [ ] List and select only runs whose `headSha` matches the recorded exact head.
-- [ ] Return pending without writes when the newest active run is younger than the configured stale threshold.
-- [ ] Support explicit recovery through `--force` and safe preview through `--dry-run`.
-- [ ] Force-cancel an eligible active run using official GitHub CLI behavior.
-- [ ] Dispatch the configured workflow against the same branch with no commit change.
-- [ ] Discover a new exact-head run that was not present before dispatch.
-- [ ] Watch the replacement run with non-zero failure status and reject completion if the PR head moved.
-- [ ] Unit-test parsing, run selection, staleness and recovery planning without network access.
-- [ ] Document operator commands, permissions, exit codes and rollback.
+- [x] Resolve PR number/URL, repository, branch and exact head through `gh pr view`.
+- [x] List and select only runs whose `headSha` matches the recorded head.
+- [x] Return pending without writes for a fresh active run or unknown idle timestamp.
+- [x] Support `--force`, `--dry-run`, `--cancel-only` and `--no-watch`.
+- [x] Attempt normal cancellation, then official force cancellation with REST fallback.
+- [x] Dispatch the configured workflow against the unchanged branch.
+- [x] Discover only a new `workflow_dispatch` run for the recorded SHA.
+- [x] Watch with non-zero failure status and reject moved-head evidence.
+- [x] Unit-test parsing, selection, staleness, planning and force-cancel path construction.
+- [x] Exercise dry-run and fresh-run safety through a fake GitHub CLI.
+- [x] Document commands, permissions, exit codes, safety limits and rollback.
+- [ ] Pass final exact-head repository gates on PR #314.
 
 ### Required states
 
-- Loading: command prints resolved PR, branch and exact head before writes.
-- Empty: no prior exact-head run dispatches a clean run.
-- Populated: successful latest exact-head run exits without redundant dispatch.
-- Validation/error: invalid flags, missing repo, missing `gh`, unauthorized writes and malformed JSON exit clearly.
-- Recovery/undo: `--dry-run`; cancellation does not change code; a failed replacement remains inspectable through existing monitoring tooling.
-- Long data / large VND: not applicable.
-- Mobile/tablet/desktop: not applicable.
-- Accessibility: CLI output is text-first and does not rely on color.
+- Loading: prints PR, branch, exact SHA and newest exact-head run.
+- Empty: dispatches a clean run when no exact-head run exists.
+- Populated: exits when newest exact-head CI already succeeded.
+- Validation/error: clear exit for invalid flags, missing `gh`, authorization failure, malformed JSON or moved head.
+- Recovery: dry-run, bounded stale threshold, force override and preserved failed-run diagnostics.
+- Accessibility: text output does not depend on color.
+- Financial/mobile states: not applicable.
 
 ### Financial and security constraints
 
-- No product, financial, database, Auth, RLS, provider configuration or production-data behavior changes.
-- Never print credentials or environment secrets.
-- Never merge, push to `main`, alter branch protection or bypass required checks.
+- No product, finance, database, Auth, RLS, provider configuration or production-data behavior changes.
+- Never print credentials.
+- Never merge, push to `main`, change branch protection or bypass checks.
 
 ### Out of scope
 
 - Automatic merge or deployment.
-- Changes to workflow concurrency, required check names, permissions or repository rulesets.
-- Recovery for non-GitHub CI providers.
-- Background daemon or persistent agent service.
+- Workflow concurrency, required-check, permissions or ruleset changes.
+- Non-GitHub CI providers.
+- Background agents or persistent services.
 
 ## Implementation plan
 
 ### Architecture fit
 
-The behavior belongs in `scripts/` because it is repeatable repository automation. It composes the existing GitHub CLI and existing CI workflow; it does not create a new framework or modify the application runtime.
+The command belongs in `scripts/` as repeatable repository automation and composes existing GitHub CLI/workflow interfaces. It adds no application runtime layer or dependency.
 
 ### Planned changes
 
-| File/area | Change | Reason |
+| File/area | Change | Result |
 |---|---|---|
-| `scripts/recover-pr-ci.mjs` | Add exact-head recovery CLI and exported pure decision helpers | Own operational recovery behavior |
-| `scripts/recover-pr-ci.test.mjs` | Test argument parsing, selection, staleness and plan decisions | Prevent unsafe cancellation/dispatch regressions |
-| `package.json` | Add `ci:recover`; include tests in `test:ci-policy` | Discoverable repository command and protected contract |
-| `docs/operations/ci-observability.md` | Add recovery workflow, safety model and examples | Durable operational handoff |
-| `docs/research/pr-memory/2026/Q3/PR-<number>.md` | Record bounded provenance after draft PR exists | Satisfy PR memory policy |
-| this packet | Track state, permissions, evidence and rollback | Class 3 governance |
+| `scripts/recover-pr-ci.mjs` | Add recovery CLI and pure decisions | implemented |
+| `scripts/recover-pr-ci.test.mjs` | Add helper and fake-CLI contracts | implemented |
+| `package.json` | Add `ci:recover` and policy-test entry | implemented |
+| `docs/operations/ci-observability.md` | Add recovery procedure and limits | implemented |
+| `docs/research/pr-memory/2026/Q3/PR-314.md` | Record bounded provenance | implemented |
+| this packet | Track Class 3 state/evidence | updated |
 
 ### Data and migration impact
 
-- Schema/migration: none.
-- Backfill: none.
-- Compatibility: requires a current GitHub CLI; force-cancel falls back to the official REST endpoint through `gh api` when needed.
-- Rollback: remove the additive command and documentation.
+- Schema/backfill: none.
+- Compatibility: current `gh`; force-cancel falls back through `gh api`.
+- Rollback: remove additive tooling/docs.
 
 ### Risks and counterexamples
 
-| Risk/counterexample | Prevention or test |
+| Risk | Prevention/evidence |
 |---|---|
-| Cancels a healthy run that is merely waiting briefly | Configurable stale threshold; require `--force` to override |
-| Dispatches against a moved branch | Record head before writes and verify it before/after dispatch/watch |
-| Selects an old run for another SHA | Filter and validate `headSha` exactly |
-| Treats an existing run as the replacement | Record prior run IDs and require a new ID after dispatch |
-| Hides a failed replacement | `gh run watch --exit-status`; existing failed-log extraction remains available |
-| Leaks credentials | Never read or print token values; delegate auth to `gh` |
+| Cancel healthy queued work | 15-minute idle threshold; invalid timestamp returns pending; explicit `--force` required to override |
+| Dispatch on moved branch | PR head checked before dispatch, during discovery and after watch |
+| Reuse old run | previous IDs excluded; event and SHA validated |
+| Hide replacement failure | `gh run watch --exit-status`; final run status/conclusion checked |
+| Leak credentials | no token reads/prints; auth delegated to `gh` |
+| Claim provider outage repaired | runbook states scheduler/outage limits explicitly |
 
 ### Verification plan
 
-- Static: `npm run check:knowledge`, `npm run test:ci-policy`, lint and typecheck through CI classification.
-- Unit/domain: Node tests for pure recovery helpers.
-- Database: not applicable.
-- Browser flow: not applicable to the script; manual workflow dispatch runs the complete suite.
-- Responsive/visual: not applicable.
-- Production/manual: dry-run against an open PR; real cancellation only on an explicitly stale/unresponsive run.
+- Static: project knowledge, CI policy, lint, typecheck and build through PR #314.
+- Unit: Node helper and fake-CLI tests.
+- Database/browser/responsive: no direct tool surface; manual recovery dispatch still forces all gates when used.
+- Manual: dry-run against an open PR after merge/availability of authenticated `gh`.
 
 ## Tasks
 
-| ID | Task | Dependency | Evidence | Status |
-|---|---|---|---|---|
-| T1 | Record research, specification and rollback in packet | reconnaissance + official docs | this packet | done |
-| T2 | Implement recovery command and pure decision helpers | T1 | script diff | todo |
-| T3 | Add unit contracts and npm command | T2 | `test:ci-policy` | todo |
-| T4 | Extend CI observability runbook | T2 | docs review | todo |
-| T5 | Open/update PR, add bounded PR memory and run exact-head gates | T2–T4 | PR + workflow evidence | todo |
-| T6 | Independent evaluation against acceptance matrix | T5 | evaluation section | todo |
+| ID | Task | Evidence | Status |
+|---|---|---|---|
+| T1 | Research/specification/rollback | packet + official sources | done |
+| T2 | Implement recovery command | `scripts/recover-pr-ci.mjs` | done |
+| T3 | Add tests and npm command | 9/9 focused tests locally | done |
+| T4 | Extend runbook and PR memory | docs diff | done |
+| T5 | Run final exact-head gates | PR #314 workflows | in_progress |
+| T6 | Independent acceptance review | evaluation matrix | todo |
 
 ## Handoff record
 
-| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
+| Date | From | To | State | Artifacts/evidence | Open risks | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-07 | researcher | planner | specified | repository reconnaissance + official GitHub sources | final CLI ergonomics not yet implemented | Create focused implementation plan |
-| 2026-08-07 | planner | implementer | planned | this packet, branch `chore/ci-recovery-tooling` | unit tests and exact-head CI pending | Implement T2–T4 |
+| 2026-08-07 | researcher | planner | specified | repo reconnaissance + official GitHub docs | CLI implementation pending | Plan bounded script |
+| 2026-08-07 | planner | implementer | planned | branch + packet | tests/CI pending | Implement T2–T4 |
+| 2026-08-07 | implementer | evaluator | evaluating | PR #314 diff; 9 focused tests pass locally | exact-head CI and authenticated real dry-run pending | Review diff and run selected gates |
 
 ### Current permission boundary
 
-- Granted scope: write only `chore/ci-recovery-tooling` and its PR.
-- Exact repositories/providers/resources: `Thunderkill016/moneyflow`; GitHub metadata/actions read during verification.
-- Forbidden writes: `main`, product runtime, production/provider configuration, branch protection, required checks, production data and unrelated PR branches.
-- Human approval required before: merge, deployment or provider/ruleset changes.
-- Rollback or stop condition: stop if exact-head identity cannot be guaranteed or recovery requires broader credentials than existing `gh` Actions write permission.
+- Granted: write only `chore/ci-recovery-tooling` and PR #314.
+- Resources: repository files and GitHub metadata/actions read for verification.
+- Forbidden: `main`, unrelated branches/PRs, branch protection, rulesets, provider configuration, deployment and production data.
+- Human approval required before: merge or any governance/provider write.
+- Stop condition: exact-head identity cannot be guaranteed or broader credentials become necessary.
 
 ## Evaluation
 
@@ -225,35 +224,37 @@ The behavior belongs in `scripts/` because it is repeatable repository automatio
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Exact-head safe recovery command | pending | pending |
-| Pure unit coverage | pending | pending |
-| Durable runbook | pending | pending |
-| Required exact-head checks | pending | pending |
+| Exact-head recovery decisions | helper tests | pass |
+| Dry-run performs no writes | fake-`gh` call log | pass |
+| Fresh active run remains untouched | fake-`gh` integration, exit `8` | pass |
+| Durable runbook and rollback | operations doc + packet | pass |
+| Required exact-head checks | pending PR #314 | pending |
 
 ### Research and adoption evidence
 
-- Selected sources still support the final implementation: pending implementation review.
-- Important source limitations remain respected: pending.
-- New tool/dependency/pattern passed the adoption review, or not applicable: no dependency planned.
+- Official CLI fields/flags used by the implementation remain documented.
+- Force cancellation is used only after normal cancellation and only for an eligible or explicitly forced run.
+- No dependency, application runtime or hidden service was introduced.
 
 ### Review findings
 
-- Correctness: pending.
-- Security/ownership: pending.
-- UI/UX/accessibility: CLI only; pending text-output review.
-- Maintainability/duplication: pending.
-- Scope compliance: pending.
+- Correctness: exact SHA, new run ID and moved-head checks are explicit.
+- Security/ownership: Actions writes require existing `gh` permissions; tokens are not exposed.
+- Accessibility: text-only CLI output.
+- Maintainability: standalone tool extends rather than overloads monitoring.
+- Scope: workflow topology and provider rules remain unchanged.
 
 ### Remaining limitations
 
-- GitHub service outages and provider scheduler defects cannot be fixed by repository code; the tool only applies official cancellation/dispatch recovery.
+- GitHub outages and runner capacity remain provider concerns.
+- A real force-cancel/dispatch dry-run requires an environment with authenticated GitHub CLI; CI can verify code contracts but should not mutate unrelated live runs.
 
 ## Delivery record
 
 - Branch: `chore/ci-recovery-tooling`
-- PR: pending
-- Squash commit: pending
+- PR: #314
+- Squash commit: pending owner decision
 - CI run: pending
 - Production deployment: not applicable
 - Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: pending acceptance
+- Work packet moved to `docs/plans/completed/`: pending merge/acceptance
