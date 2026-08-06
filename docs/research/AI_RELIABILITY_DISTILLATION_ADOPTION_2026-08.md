@@ -90,17 +90,18 @@ These sources do not define MoneyFlow's financial semantics, permission scope or
 |---|---|
 | `docs/templates/FEATURE_WORK_PACKET.md` | adds the control contract |
 | `scripts/work-packet-contract.mjs` | validates the template and changed active packets; fails closed when scope is unavailable |
-| `scripts/work-packet-contract.test.mjs` | covers structure, duplicate fields, unresolved values, distinct feedback signals and every local Git change state |
+| `scripts/work-packet-contract.test.mjs` | covers structure, duplicate fields, unresolved values, distinct feedback signals, valid literal angle-bracket syntax and every local Git change state |
 | `package.json` | registers `check:work-packets` and runs it explicitly after `test:ci-policy` tests |
 | `docs/plans/active/task-bootstrap-cli.md` | first real packet to adopt the contract |
 
 ## Verification evidence
 
 - `node --check scripts/work-packet-contract.mjs`: passed in the isolated implementation fixture.
-- `node --test scripts/work-packet-contract.test.mjs`: 13/13 passed.
+- `node --test scripts/work-packet-contract.test.mjs`: 14/14 passed.
 - Synthetic Git coverage includes committed, staged, unstaged and untracked active packets without duplicate paths.
 - Missing Git scope and an explicitly invalid base both fail closed.
 - Control subsections outside `## Control contract`, duplicate fields, unresolved marker values and copied success/semantic signals fail.
+- Legitimate evidence containing inline syntax such as ``<button>`` remains valid; only a whole-field angle-bracket placeholder is unresolved.
 - The actual PR #315 control contract passed as one changed active packet against a synthetic `main` base.
 - Replacing its semantic evidence with bare `Not applicable` failed with exit code `1`.
 - Protected exact-head MoneyFlow CI remains unavailable because GitHub has not produced a workflow run/status for the PR head.
