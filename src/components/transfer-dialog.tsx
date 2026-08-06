@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
+import { MoneyValue } from "@/components/money-value";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, IconButton } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -17,7 +18,7 @@ import { formatMoneyInput, parseMoneyInputToMinor } from "@/lib/money";
 import type { CreateTransferInput } from "@/lib/sample-data";
 import { TRANSFER_LIST_HINT } from "@/lib/transfers";
 import { todayInVietnam } from "@/lib/vietnam-date";
-import styles from "./transactions/transaction-form.module.css";
+import styles from "./transfers/transfer-dialog.module.css";
 
 export type TransferAccountOption = {
   id: string;
@@ -71,7 +72,13 @@ export function TransferDialog({
   const destination = destinationOptions.some((item) => item.id === destinationId)
     ? destinationId
     : destinationOptions[0]?.id ?? "";
+  const destinationAccount = destinationOptions.find((item) => item.id === destination);
   const symbol = currencySymbolHint(sourceCurrency);
+  const parsedReviewAmount = parseMoneyInputToMinor(amount, sourceCurrency);
+  const reviewAmount =
+    Number.isSafeInteger(parsedReviewAmount) && parsedReviewAmount > 0
+      ? parsedReviewAmount
+      : 0;
   const transferPairsExist = accounts.some((a) =>
     accounts.some((b) =>
       canTransferSameCurrency(
@@ -179,7 +186,7 @@ export function TransferDialog({
         if (!nextOpen && !submitting) onClose();
       }}
       title="Chuyển tiền"
-      description="Giữa các ví của bạn"
+      description="Giữa các tài khoản cùng loại tiền"
       dismissible={!submitting}
       initialFocusRef={amountRef}
       className={styles.dialog}
@@ -209,7 +216,13 @@ export function TransferDialog({
         </div>
       }
     >
-      <form id={formId} className={styles.form} onSubmit={submit} noValidate>
+      <form
+        id={formId}
+        data-slot="transfer-form"
+        className={styles.form}
+        onSubmit={submit}
+        noValidate
+      >
         <TextField
           inputRef={amountRef}
           label="Số tiền chuyển"
@@ -238,6 +251,7 @@ export function TransferDialog({
             label="Từ tài khoản"
             value={source}
             targetSize="important"
+            disabled={submitting}
             onChange={(event) => {
               setSourceId(event.target.value);
               changed();
@@ -296,12 +310,37 @@ export function TransferDialog({
           disabled={submitting}
         />
 
+        <div data-slot="transfer-review" className={styles.review}>
+          <div className={styles.reviewRow}>
+            <span>Từ</span>
+            <strong>{sourceAccount ? accountLabel(sourceAccount) : "Chưa chọn"}</strong>
+          </div>
+          <div className={styles.reviewRow}>
+            <span>Đến</span>
+            <strong>
+              {destinationAccount ? accountLabel(destinationAccount) : "Chưa chọn"}
+            </strong>
+          </div>
+          <div className={styles.reviewRow}>
+            <span>Số tiền</span>
+            <MoneyValue
+              amount={reviewAmount}
+              mode="kind"
+              kind="transfer"
+              currencyCode={sourceCurrency}
+              emphasis="strong"
+              align="start"
+              label="Số tiền chuyển"
+            />
+          </div>
+        </div>
+
         <div className={styles.explainer}>
           <Icon name="check" />
           <p>
             <strong>Cùng loại tiền, tổng tài sản không đổi · {TRANSFER_LIST_HINT}.</strong>{" "}
-            Chỉ chuyển giữa hai tài khoản cùng {sourceCurrency}. Chưa hỗ trợ đổi ngoại tệ hay
-            chuyển chéo loại tiền.
+            Chỉ chuyển giữa hai tài khoản cùng {sourceCurrency}. Chưa hỗ trợ đổi ngoại tệ,
+            phí chuyển tiền hay chuyển chéo loại tiền.
           </p>
         </div>
       </form>
