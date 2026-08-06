@@ -103,6 +103,25 @@ npm run task:brief -- \
 
 `--output` cannot escape the repository root. `.tmp/` output remains local evidence unless the task explicitly requires a reviewed repository artifact.
 
+## Work-packet reliability contract
+
+The task-start command validates that Class 3 points to a real active packet. A separate repository check validates the content of the canonical template and every active packet changed by the branch:
+
+```bash
+npm run check:work-packets
+```
+
+Changed active packets must resolve four external control sections:
+
+- **State:** authoritative location, writer/owner and propagation path;
+- **Feedback:** expected failing signal, deterministic success signal and semantic/user-path evidence;
+- **Removal impact:** what breaks if removed and how rollback is verified;
+- **Action safety:** permissions, reversibility, escalation and failure containment.
+
+The check rejects missing or empty fields plus unresolved `TODO`, `TBD`, `unknown` and angle-bracket placeholders. Historical packets are not mass-rewritten; they adopt the contract when next changed.
+
+A green build or successful request is not semantic evidence by itself. For bugs and new behavior, record the expected failing signal before accepting green evidence, or explain why red-first is impossible for that task type.
+
 ## Risk-proportional verification
 
 Risk class is an explicit input. The command does not infer financial, data, security or operational meaning from filenames or natural-language task text.
@@ -154,6 +173,7 @@ Aliases resolve to rows parsed from `docs/context/README.md`. Tests verify every
 ## Relationship to other tools
 
 - `task:brief` starts and scopes work.
+- `check:work-packets` verifies externalized task decisions.
 - `ci:status` and `ci:watch` inspect exact-head pull-request checks.
 - candidate PR #314 owns stale or unresponsive Actions recovery.
 - GitHub Actions remains the source of truth for protected checks.
@@ -170,15 +190,19 @@ Focused tests cover:
 - main-branch blocking;
 - Class 3 packet ownership;
 - repository path containment;
-- mandatory read order and Class 3 operating-model context.
+- mandatory read order and Class 3 operating-model context;
+- missing semantic evidence and unresolved work-packet fields;
+- permissions, reversibility, escalation and failure containment;
+- branch-diff selection of changed active packets.
 
-The test file is registered directly in `npm run test:ci-policy`.
+The test files are registered directly in `npm run test:ci-policy`.
 
-When `docs/context/README.md`, the authority read order or risk policy changes, run:
+When `docs/context/README.md`, the authority read order, risk policy or packet contract changes, run:
 
 ```bash
 npm run test:ci-policy
+npm run check:work-packets
 npm run task:brief -- --list-boundaries
 ```
 
-Rollback is bounded: remove the npm script, CLI, tests and this runbook. No product runtime, database, provider or production state is involved.
+Rollback is bounded: remove the npm scripts, CLI, contract checker, tests and runbook/template changes. No product runtime, database, provider or production state is involved.
