@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AccountsPage } from "@/components/accounts-page";
+import { AccountsWorkspace } from "@/components/accounts/accounts-workspace";
 import { requireViewer } from "@/server/auth";
 import { getAccountsWorkspace } from "@/server/accounts";
 
@@ -11,5 +11,15 @@ export const metadata: Metadata = {
 export default async function Page() {
   const viewer = await requireViewer();
   const workspace = await getAccountsWorkspace();
-  return <AccountsPage viewer={{ email: viewer.email, displayName: viewer.displayName, isDemo: viewer.isDemo }} initialAccounts={workspace.accounts} dataError={workspace.dataError} />;
+  return (
+    <AccountsWorkspace
+      viewer={{
+        email: viewer.email,
+        displayName: viewer.displayName,
+        isDemo: viewer.isDemo,
+      }}
+      initialAccounts={workspace.accounts}
+      dataError={workspace.dataError}
+    />
+  );
 }
