@@ -33,6 +33,23 @@ function redirectLegacyDomain(request: NextRequest): NextResponse | null {
   return response;
 }
 
+function redirectDeletionReceipt(request: NextRequest): NextResponse | null {
+  if (
+    request.method !== "GET" ||
+    request.nextUrl.pathname !== "/login" ||
+    request.nextUrl.searchParams.get("deleted") !== "1"
+  ) {
+    return null;
+  }
+
+  const destination = request.nextUrl.clone();
+  destination.pathname = "/account-deletion-result";
+  const response = NextResponse.redirect(destination, 303);
+  clearSupabaseAuthCookies(request, response);
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
+
 function sharePayloadTooLarge() {
   return new NextResponse("Nội dung chia sẻ vượt quá giới hạn cho phép.", {
     status: 413,
@@ -44,14 +61,12 @@ function sharePayloadTooLarge() {
 }
 
 export async function proxy(request: NextRequest) {
-  // Retired hostnames are deployment configuration, not application constants.
-  // Clear their isolated auth cookies before moving the request to the configured site origin.
   const canonicalRedirect = redirectLegacyDomain(request);
   if (canonicalRedirect) return canonicalRedirect;
 
-  // PWA share_target POSTs multipart to /capture/share — reject declared
-  // oversized bodies before invoking the Node multipart parser, then rewrite
-  // before auth so the body is not lost on a login redirect (TASK-021).
+  const deletionReceipt = redirectDeletionReceipt(request);
+  if (deletionReceipt) return deletionReceipt;
+
   if (
     request.method === "POST" &&
     request.nextUrl.pathname === "/capture/share"
