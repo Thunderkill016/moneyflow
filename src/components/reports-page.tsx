@@ -2,6 +2,18 @@
 
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/icons";
+import { AppShell } from "@/components/layout/app-shell";
+import { MoneyValue } from "@/components/money-value";
+import {
+  SecondaryHeader,
+  SecondarySection,
+  SecondarySummary,
+  SecondarySummaryItem,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import {
   EXPORT_CSV_LABEL,
@@ -17,14 +29,8 @@ import {
 } from "@/lib/reports";
 import { categoryMeta } from "@/lib/sample-data";
 import type { ReportsWorkspace } from "@/server/reports";
-import { AppShell } from "@/components/layout/app-shell";
 import styles from "./reports-page.module.css";
 
-/**
- * Said out loud when the rendered window differs from what was asked for. A
- * clamped three-year request and an honoured one look identical otherwise, and a
- * reader comparing totals needs to know which one they have.
- */
 const RANGE_NOTICES: Record<string, string | null> = {
   none: null,
   invalid: "Khoảng ngày không hợp lệ nên báo cáo đang hiển thị tháng này.",
@@ -40,6 +46,13 @@ function dateLabel(value: string) {
     year: "numeric",
     timeZone: "Asia/Ho_Chi_Minh",
   }).format(new Date(`${value}T00:00:00+07:00`));
+}
+
+function expenseChangeLabel(value: number | null) {
+  if (value === null) return "Chưa có dữ liệu kỳ trước";
+  if (value > 0) return `Tăng ${Math.abs(value)}%`;
+  if (value < 0) return `Giảm ${Math.abs(value)}%`;
+  return "Không đổi";
 }
 
 export function ReportsPage({
@@ -58,9 +71,6 @@ export function ReportsPage({
   const averageExpense = expenseDays.length
     ? Math.round(report.totals.expense / expenseDays.length)
     : 0;
-
-  // The resolved range — not the raw query string — drives every label, link and
-  // input below, so a clamped or repaired window shows the dates actually used.
   const { currentStart, currentEnd } = report.range;
   const csvDownloadHref = reportCsvDownloadHref(period, currentStart, currentEnd);
   const exportDisabled = Boolean(workspace.dataError);
@@ -78,65 +88,69 @@ export function ReportsPage({
         disabled: exportDisabled,
       }}
     >
-      <main className="dashboard reports-workspace">
-        {workspace.dataError && (
-          <div className="data-alert" role="alert">
-            <Icon name="bell" />
-            <span>{workspace.dataError}</span>
-          </div>
-        )}
+      <SecondaryWorkspace slot="reports-workspace">
+        {workspace.dataError ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertContent}>
+              <Icon name="bell" />
+              <span>{workspace.dataError}</span>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        <section className="reports-heading">
-          <div>
-            <p className="eyebrow">Bức tranh tài chính</p>
-            <h1>Báo cáo</h1>
-            <p className="reports-period-title" data-period={period}>
-              <span className="reports-period-pill">{periodTitle}</span>
-              <span className="reports-range-caption">{rangeCaption}</span>
+        <SecondaryHeader
+          section="Bức tranh tài chính"
+          title="Báo cáo"
+          description={
+            <p>
+              Đọc tiền vào, tiền ra và xu hướng theo khoảng ngày đã được MoneyFlow
+              kiểm tra. Chuyển tiền giữa các tài khoản không được tính là thu hoặc chi.
             </p>
-          </div>
-          <div className="reports-heading-actions">
-            <Link
-              className="secondary-button report-export"
-              href={exportDisabled ? EXPORT_SETTINGS_HREF : csvDownloadHref}
-              aria-disabled={exportDisabled || undefined}
+          }
+          actions={
+            <LinkButton
+              href={EXPORT_SETTINGS_HREF}
+              intent="secondary"
+              targetSize="important"
             >
               <Icon name="arrowDown" />
-              {EXPORT_CSV_LABEL}
-              <span className="report-export-period"> · {periodTitle}</span>
-            </Link>
-            <Link className="report-export-advanced" href={EXPORT_SETTINGS_HREF}>
               Tùy chọn xuất
-            </Link>
+            </LinkButton>
+          }
+        />
+
+        <section className={styles.periodBlock} aria-labelledby="report-period-title">
+          <div className={styles.periodTitle} id="report-period-title" data-period={period}>
+            <span className={styles.periodPill}>{periodTitle}</span>
+            <span className={styles.rangeCaption}>{rangeCaption}</span>
           </div>
+          <nav
+            className={styles.periods}
+            aria-label="Chọn kỳ báo cáo"
+            data-slot="report-periods"
+          >
+            {REPORT_PERIOD_OPTIONS.map((item) => (
+              <Link
+                key={item.value}
+                href={reportPeriodHref(item.value)}
+                className={period === item.value ? styles.periodActive : styles.periodLink}
+                aria-current={period === item.value ? "page" : undefined}
+              >
+                {item.label}
+              </Link>
+            ))}
+            <Link
+              href={reportPeriodHref("custom", currentStart, currentEnd)}
+              className={period === "custom" ? styles.periodActive : styles.periodLink}
+              aria-current={period === "custom" ? "page" : undefined}
+            >
+              Tự chọn
+            </Link>
+          </nav>
         </section>
 
-        <nav className="report-periods" aria-label="Chọn kỳ báo cáo">
-          {REPORT_PERIOD_OPTIONS.map((item) => (
-            <Link
-              key={item.value}
-              href={reportPeriodHref(item.value)}
-              className={period === item.value ? "active" : ""}
-              aria-current={period === item.value ? "page" : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <Link
-            // Seeded with the window already on screen, so switching to the custom
-            // view starts from what the reader was looking at rather than blank.
-            href={reportPeriodHref("custom", currentStart, currentEnd)}
-            className={period === "custom" ? "active" : ""}
-            aria-current={period === "custom" ? "page" : undefined}
-          >
-            Tự chọn
-          </Link>
-        </nav>
-
-        {period === "custom" && (
+        {period === "custom" ? (
           <form
-            // A plain GET form: the chosen window lands in the URL, so it can be
-            // shared, bookmarked and reloaded without client state.
             method="get"
             action="/reports"
             className={styles.customRange}
@@ -145,207 +159,268 @@ export function ReportsPage({
             <input type="hidden" name="period" value="custom" />
             <label>
               <span>Từ ngày</span>
-              <input type="date" name="from" defaultValue={currentStart} max={currentEnd} required />
+              <input
+                type="date"
+                name="from"
+                defaultValue={currentStart}
+                max={currentEnd}
+                required
+              />
             </label>
             <label>
               <span>Đến ngày</span>
               <input type="date" name="to" defaultValue={currentEnd} required />
             </label>
-            <button type="submit" className="secondary-button">
+            <Button type="submit" intent="secondary" targetSize="important">
               Áp dụng
-            </button>
+            </Button>
           </form>
-        )}
+        ) : null}
 
-        {rangeNotice && (
-          <p className={styles.rangeNotice} role="status">
-            <Icon name="bell" />
-            <span>{rangeNotice}</span>
-          </p>
-        )}
+        {rangeNotice ? (
+          <Alert tone="info" live="polite">
+            <AlertDescription className={styles.alertContent}>
+              <Icon name="bell" />
+              <span>{rangeNotice}</span>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        <section
-          className={`report-metrics ${styles.metrics}`}
-          aria-label="Tổng quan kỳ báo cáo"
-        >
-          <article>
-            <span>Tiền vào</span>
-            <strong className="positive font-mono">
-              +{formatMoney(report.totals.income)}
-            </strong>
-            <small>{report.totals.transactions} giao dịch trong kỳ</small>
-          </article>
-          <article>
-            <span>Tiền ra</span>
-            <strong className="negative font-mono">
-              −{formatMoney(report.totals.expense)}
-            </strong>
-            <small
-              className={
-                expenseChange !== null && expenseChange > 0 ? "negative" : "positive"
-              }
-            >
-              {expenseChange === null
-                ? "Chưa có dữ liệu kỳ trước"
-                : `${expenseChange > 0 ? "Tăng" : expenseChange < 0 ? "Giảm" : "Không đổi"} ${Math.abs(expenseChange)}%`}
-            </small>
-          </article>
-          <article>
-            <span>Còn lại</span>
-            <strong
-              className={`font-mono ${report.totals.net >= 0 ? "positive" : "negative"}`}
-            >
-              {report.totals.net >= 0 ? "+" : "−"}
-              {formatMoney(Math.abs(report.totals.net))}
-            </strong>
-            <small>Tiền vào trừ tiền ra</small>
-          </article>
-          <article>
-            <span>Kỳ trước</span>
-            <strong className="font-mono">{formatMoney(report.previous.expense)}</strong>
-            <small>Chi tiêu cùng số ngày</small>
-          </article>
-        </section>
+        <SecondarySummary label="Tổng quan kỳ báo cáo" slot="report-metrics">
+          <SecondarySummaryItem
+            label="Tiền vào"
+            value={
+              <MoneyValue
+                amount={report.totals.income}
+                mode="kind"
+                kind="income"
+                label="Tiền vào"
+                emphasis="strong"
+                align="start"
+              />
+            }
+            meta={`${report.totals.transactions} giao dịch trong kỳ`}
+          />
+          <SecondarySummaryItem
+            label="Tiền ra"
+            value={
+              <MoneyValue
+                amount={report.totals.expense}
+                mode="kind"
+                kind="expense"
+                label="Tiền ra"
+                emphasis="strong"
+                align="start"
+              />
+            }
+            meta={
+              <span
+                className={
+                  expenseChange !== null && expenseChange > 0
+                    ? styles.changeWarning
+                    : styles.changeCalm
+                }
+              >
+                {expenseChangeLabel(expenseChange)}
+              </span>
+            }
+          />
+          <SecondarySummaryItem
+            label="Còn lại"
+            value={
+              <MoneyValue
+                amount={report.totals.net}
+                mode="signed"
+                label="Còn lại"
+                emphasis="strong"
+                align="start"
+              />
+            }
+            meta="Tiền vào trừ tiền ra"
+          />
+          <SecondarySummaryItem
+            label="Kỳ trước"
+            value={
+              <MoneyValue
+                amount={report.previous.expense}
+                label="Chi tiêu kỳ trước"
+                emphasis="strong"
+                align="start"
+              />
+            }
+            meta="Chi tiêu cùng số ngày"
+          />
+        </SecondarySummary>
 
         {report.totals.transactions ? (
-          <div className="reports-grid">
-            <section className="report-panel trend-panel">
-              <div className="section-heading report-chart-heading">
-                <div>
-                  <h2>Nhịp chi tiêu</h2>
-                  <p>
-                    Mức chi theo từng {period === "year" ? "tháng" : "ngày"}; chuyển tiền
-                    giữa các ví được loại trừ.
-                  </p>
-                </div>
-                <div className="report-chart-stat">
+          <div className={styles.grid}>
+            <SecondarySection
+              title="Nhịp chi tiêu"
+              description={
+                <p>
+                  Mức chi theo từng {period === "year" ? "tháng" : "ngày"}; chuyển
+                  tiền giữa các tài khoản được loại trừ.
+                </p>
+              }
+              action={
+                <div className={styles.chartStat}>
                   <span>TB/ngày có chi</span>
-                  <strong className="font-mono">{formatMoney(averageExpense)}</strong>
+                  <MoneyValue
+                    amount={averageExpense}
+                    label="Trung bình ngày có chi"
+                    emphasis="strong"
+                  />
                 </div>
-              </div>
+              }
+              contained
+              slot="report-trend"
+            >
               {expenseDays.length ? (
-                <div className="trend-scroll">
-                  <div
-                    className="trend-chart"
-                    role="img"
-                    aria-label="Biểu đồ nhịp chi tiêu"
-                    style={{
-                      gridTemplateColumns: `repeat(${report.trend.length}, minmax(0, 1fr))`,
-                    }}
-                  >
-                    {report.trend.map((item, index) => (
-                      <div
-                        className={item.expense ? "trend-column has-value" : "trend-column"}
-                        key={item.key}
-                        title={`${item.label}: chi ${formatMoney(item.expense)}`}
-                      >
-                        <div className="trend-bars">
-                          <span
-                            className="expense"
-                            style={{
-                              height: `${
-                                item.expense
-                                  ? Math.max(7, (item.expense / maxExpense) * 100)
-                                  : 0
-                              }%`,
-                            }}
-                          >
-                            {item.expense === maxExpense && (
-                              <b className="font-mono">{formatMoney(item.expense)}</b>
-                            )}
-                          </span>
+                <>
+                  <div className={styles.trendScroll}>
+                    <div
+                      className={styles.trendChart}
+                      role="img"
+                      aria-label={`Biểu đồ nhịp chi tiêu ${periodTitle}`}
+                      aria-describedby="report-trend-data"
+                      style={{
+                        gridTemplateColumns: `repeat(${report.trend.length}, minmax(0, 1fr))`,
+                      }}
+                    >
+                      {report.trend.map((item, index) => (
+                        <div
+                          className={
+                            item.expense
+                              ? `${styles.trendColumn} ${styles.hasValue}`
+                              : styles.trendColumn
+                          }
+                          key={item.key}
+                          title={`${item.label}: chi ${formatMoney(item.expense)}`}
+                        >
+                          <div className={styles.trendBars}>
+                            <span
+                              className={styles.expenseBar}
+                              style={{
+                                height: `${
+                                  item.expense
+                                    ? Math.max(7, (item.expense / maxExpense) * 100)
+                                    : 0
+                                }%`,
+                              }}
+                            >
+                              {item.expense === maxExpense ? (
+                                <b>{formatMoney(item.expense)}</b>
+                              ) : null}
+                            </span>
+                          </div>
+                          <small>
+                            {report.trend.length <= 14 ||
+                            index === 0 ||
+                            index === report.trend.length - 1 ||
+                            (index + 1) % 5 === 0
+                              ? item.label
+                              : ""}
+                          </small>
                         </div>
-                        <small>
-                          {report.trend.length <= 14 ||
-                          index === 0 ||
-                          index === report.trend.length - 1 ||
-                          (index + 1) % 5 === 0
-                            ? item.label
-                            : ""}
-                        </small>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                  <ul className={styles.srTrendData} id="report-trend-data">
+                    {report.trend.map((item) => (
+                      <li key={item.key}>
+                        {item.label}: chi {formatMoney(item.expense)}
+                      </li>
+                    ))}
+                  </ul>
+                </>
               ) : (
-                <div className="report-subempty compact">
+                <div className={styles.subEmpty}>
                   <Icon name="chart" />
                   <p>Chưa có khoản chi trong kỳ này.</p>
                 </div>
               )}
-            </section>
+            </SecondarySection>
 
-            <section className="report-panel category-panel">
-              <div className="section-heading">
-                <div>
-                  <h2>Chi theo danh mục</h2>
-                  <p>Những nơi tiền của bạn đi nhiều nhất · {periodTitle}.</p>
-                </div>
-              </div>
+            <SecondarySection
+              title="Chi theo danh mục"
+              description={<p>Những nơi tiền của bạn đi nhiều nhất · {periodTitle}.</p>}
+              contained
+              slot="report-categories"
+            >
               {report.categories.length ? (
-                <div className="report-categories">
+                <div className={styles.categories}>
                   {report.categories.map((item) => {
                     const meta =
                       categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
                     return (
-                      <div className="report-category" key={item.name}>
-                        <span className={`transaction-icon ${meta.color}`}>
+                      <article className={styles.category} key={item.name}>
+                        <span className={styles.categoryIcon} aria-hidden="true">
                           <Icon name={meta.icon as IconName} />
                         </span>
-                        <div>
+                        <div className={styles.categoryBody}>
                           <strong>{item.name}</strong>
-                          <span>
+                          <span
+                            className={styles.categoryTrack}
+                            aria-label={`${item.share}% tổng chi`}
+                          >
                             <i style={{ width: `${item.share}%` }} />
                           </span>
                         </div>
-                        <div>
-                          <strong className="font-mono">{formatMoney(item.amount)}</strong>
+                        <div className={styles.categoryAmount}>
+                          <MoneyValue
+                            amount={item.amount}
+                            mode="kind"
+                            kind="expense"
+                            label={`Chi cho ${item.name}`}
+                            emphasis="strong"
+                          />
                           <small>{item.share}%</small>
                         </div>
-                      </div>
+                      </article>
                     );
                   })}
                 </div>
               ) : (
-                <div className="report-subempty">
+                <div className={styles.subEmpty}>
                   <Icon name="chart" />
                   <p>Chưa có khoản chi trong kỳ này.</p>
                 </div>
               )}
-            </section>
+            </SecondarySection>
           </div>
         ) : (
-          <section className="report-empty">
-            <span>
-              <Icon name="chart" />
-            </span>
-            <h2>Chưa có dữ liệu trong kỳ</h2>
-            <p>Thêm giao dịch hoặc chọn kỳ dài hơn để MoneyFlow tạo báo cáo.</p>
-            <div>
-              <Link className="primary-button" href="/transactions">
+          <EmptyState
+            icon={<Icon name="chart" />}
+            title="Chưa có dữ liệu trong kỳ"
+            description="Thêm giao dịch hoặc chọn kỳ dài hơn để MoneyFlow tạo báo cáo."
+            primaryAction={
+              <LinkButton href="/transactions" intent="primary" targetSize="important">
                 <Icon name="plus" />
                 Thêm giao dịch
-              </Link>
-              {period !== "year" && (
-                <Link className="secondary-button" href={reportPeriodHref("year")}>
+              </LinkButton>
+            }
+            secondaryAction={
+              period !== "year" ? (
+                <LinkButton
+                  href={reportPeriodHref("year")}
+                  intent="secondary"
+                  targetSize="important"
+                >
                   Xem cả năm
-                </Link>
-              )}
-            </div>
-          </section>
+                </LinkButton>
+              ) : undefined
+            }
+          />
         )}
 
         {!exportDisabled ? (
-          <p className="reports-export-foot">
-            <Link href={csvDownloadHref}>
-              <Icon name="arrowDown" />
-              {EXPORT_CSV_LABEL} {periodTitle}
-            </Link>
-            <span aria-hidden="true"> · </span>
-            <Link href={EXPORT_SETTINGS_HREF}>Khoảng ngày &amp; JSON</Link>
+          <p className={styles.exportNote}>
+            Nút xuất nhanh tải CSV của đúng kỳ đang xem. Dữ liệu Inbox và JSON nằm
+            trong <Link href={EXPORT_SETTINGS_HREF}>Tùy chọn xuất</Link>; đây không
+            phải bản sao lưu có thể khôi phục toàn bộ tài khoản.
           </p>
         ) : null}
-      </main>
+      </SecondaryWorkspace>
     </AppShell>
   );
 }
