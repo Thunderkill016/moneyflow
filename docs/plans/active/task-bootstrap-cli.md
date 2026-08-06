@@ -206,8 +206,11 @@ The task-start command stays in `scripts/`; the durable task contract stays in t
 | Risk/counterexample | Prevention or test |
 |---|---|
 | control fields become empty ceremony | reject missing, empty, TODO/TBD/unknown and angle-bracket placeholders in changed active packets |
+| contract headings or fields appear in the wrong section or more than once | require one owned control section and reject duplicate headings/fields |
+| Git scope cannot be proven | fail closed instead of reporting zero changed packets |
+| local packet changes are not committed yet | include staged, unstaged and untracked active packet paths |
 | old packets all fail immediately | validate only active packets changed against the branch base |
-| green build is treated as user success | require a separate `Semantic evidence` field |
+| green build is treated as user success | require a separate `Semantic evidence` field and reject copied success evidence |
 | tests pass without exercising the fix | require `Expected failing signal`; allow explicit explanation when red-first is impossible |
 | agent acts beyond authority | require permissions, reversibility, escalation and failure containment |
 | new contract becomes another tool | register under existing `test:ci-policy`; no new workflow/service |
@@ -215,7 +218,7 @@ The task-start command stays in `scripts/`; the durable task contract stays in t
 
 ### Verification plan
 
-- Static/unit: `node --test scripts/bootstrap-task-context.test.mjs scripts/work-packet-contract.test.mjs`; `npm run test:ci-policy`.
+- Static/unit: `node --test scripts/bootstrap-task-context.test.mjs scripts/work-packet-contract.test.mjs`; `npm run test:ci-policy`; `npm run check:work-packets`.
 - Database/browser/responsive/production: not applicable.
 - Manual: valid and invalid packet fixtures, actual changed packet, real router, feature branch output and `main`/Class 3 blocking.
 
@@ -227,8 +230,8 @@ The task-start command stays in `scripts/`; the durable task contract stays in t
 | T2 | research agent context and reliability failures | T1 | focused source decision | done |
 | T3 | implement task bootstrap CLI | T2 | branch script | done |
 | T4 | harden branch, packet and path safety | T3 | focused contracts | done |
-| T5 | externalize state/feedback/removal/action contract | T2 | template + checker | implementing |
-| T6 | register final policy tests and update runbook/provenance | T5 | exact branch diff | todo |
+| T5 | externalize state/feedback/removal/action contract | T2 | template + fail-closed checker | done |
+| T6 | register final policy tests and update runbook/provenance | T5 | 14/14 isolated contracts + branch records | done |
 | T7 | run protected exact-head checks | T6 | CI/CodeQL/secret evidence | blocked_provider |
 
 Rules:
@@ -247,7 +250,8 @@ Rules:
 | 2026-08-07 | researcher | planner | specified | repository audit + focused sources | no branch evidence | plan bounded implementation |
 | 2026-08-07 | planner | implementer | planned | acceptance, risks and adoption review | integration pending | implement on focused branch |
 | 2026-08-07 | implementer | evaluator | evaluating | PR #315; CLI; runbook; focused tests | protected exact-head checks absent | harden local contracts only |
-| 2026-08-07 | researcher | implementer | implementing | user `DISTILLATION.md` + official source cross-check | final contract tests not yet executed by CI | finish packet contract and record provider blocker |
+| 2026-08-07 | researcher | implementer | implementing | user `DISTILLATION.md` + official source cross-check | final contract hardening pending | finish fail-closed contract |
+| 2026-08-07 | implementer | evaluator | evaluating | 14/14 contract tests; actual packet fixture; fail-closed scope; PR memory | protected CI/CodeQL/secret runs absent | inspect only exact-head provider evidence when available |
 
 ### Current permission boundary
 
@@ -265,18 +269,19 @@ Rules:
 |---|---|---|
 | task parser/argument/gate contracts | isolated prototype tests | pass |
 | feature-branch manifest and `main` safety | synthetic Git fixtures | pass |
-| work-packet control contract | focused fixtures plus this actual packet | pending exact-head execution |
+| work-packet control contract | 14/14 isolated contracts; actual PR packet passed; invalid semantic evidence exited `1` | pass locally |
 | protected exact-head checks | no workflow/check returned by provider | blocked |
 
 ### Research and adoption evidence
 
 - The supplied distillation supports external state, deterministic feedback, semantic evidence and bounded action permissions.
 - OpenAI guidance supports repository instructions and reliable tests; Fowler supports red-before-green as an observable record.
+- Official `actions/checkout` guidance confirms `fetch-depth: 0` provides all branch/tag history required by the fail-closed protected gate.
 - No dependency, provider, runtime service or second workflow was added.
 
 ### Review findings
 
-- Correctness: pure helper tests existed before the final control-contract hardening; exact-head execution is pending.
+- Correctness: final work-packet hardening passed 14/14 isolated contracts and the actual packet fixture; exact-head protected execution is pending.
 - Security/ownership: local read-only inspection and branch-only documentation/tooling writes.
 - UI/accessibility: plain Markdown/JSON/prompt; no shipped UI.
 - Maintainability: route rows are parsed from current policy; contract reuses the current packet and CI-policy surfaces.
@@ -285,7 +290,7 @@ Rules:
 ### Remaining limitations
 
 - Boundary and class remain explicit by design.
-- The packet contract proves fields are resolved, not that every claim is true; reviewers still inspect evidence.
+- The packet contract proves fields are resolved, structurally owned and non-duplicated, not that every claim is true; reviewers still inspect evidence.
 - Exact-head repository verification is blocked until GitHub creates/approves workflow runs.
 
 ## Delivery record
