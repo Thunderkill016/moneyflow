@@ -79,6 +79,14 @@ These sources do not define MoneyFlow's financial semantics, permission scope or
 | `package.json` | registers `check:work-packets` and the contract under `test:ci-policy` |
 | `docs/plans/active/task-bootstrap-cli.md` | first real packet to adopt the contract |
 
+## Verification evidence
+
+- `node --check scripts/work-packet-contract.mjs`: passed in the isolated implementation fixture.
+- `node --test scripts/work-packet-contract.test.mjs`: 6/6 passed in a synthetic Git repository.
+- A changed valid active packet passed the branch-diff checker.
+- Replacing semantic evidence with `<semantic>` failed the checker with exit code `1`.
+- Protected exact-head MoneyFlow CI remains unavailable because GitHub has not produced a workflow run/status for the PR head.
+
 ## Removal condition
 
 Remove or redesign the contract if review shows that fields are routinely ceremonial, duplicate existing evidence without improving decisions, or create more task-start friction than the failures they prevent. Do not remove it merely because tests are green; evaluate whether it improves semantic review and task closure.
