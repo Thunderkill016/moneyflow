@@ -1,6 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import {
+  loadProjectKnowledgeContract,
+  PROJECT_KNOWLEDGE_CONTRACT_PATH,
+  validateCurrentProjectMemory,
+} from "./project-knowledge-contract.mjs";
 
 const root = process.cwd();
 const failures = [];
@@ -17,6 +22,7 @@ const requiredFiles = [
   "docs/context/README.md",
   "docs/research/README.md",
   "docs/research/CURRENT_PROJECT_MEMORY.md",
+  PROJECT_KNOWLEDGE_CONTRACT_PATH,
   "docs/research/PR_MEMORY_LOG.md",
   "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
   "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
@@ -59,24 +65,14 @@ for (const path of requiredFiles) {
   }
 }
 
-function enforceMemoryBudgets() {
-  try {
-    const snapshot = read("docs/research/CURRENT_PROJECT_MEMORY.md");
-    const lines = snapshot.split(/\r?\n/u).length;
-    const bytes = Buffer.byteLength(snapshot, "utf8");
+function enforceStructuredProjectMemory() {
+  const loaded = loadProjectKnowledgeContract(root);
+  failures.push(...loaded.failures);
+  if (!loaded.contract || loaded.failures.length > 0) return;
 
-    if (lines > 500 || bytes > 64 * 1024) {
-      failures.push(
-        `CURRENT_PROJECT_MEMORY.md exceeds the hard hot-memory budget (${lines} lines, ${bytes} bytes; maximum 500 lines and 64 KiB)`,
-      );
-    } else if (lines > 300 || bytes > 32 * 1024) {
-      warnings.push(
-        `CURRENT_PROJECT_MEMORY.md exceeds the soft compaction threshold (${lines} lines, ${bytes} bytes; target 150-250 lines, soft threshold 300 lines or 32 KiB)`,
-      );
-    }
-  } catch {
-    // Missing file already reported.
-  }
+  const result = validateCurrentProjectMemory(root, loaded.contract);
+  failures.push(...result.failures);
+  warnings.push(...result.warnings);
 }
 
 function pullRequestDiff(event) {
@@ -184,7 +180,7 @@ function enforcePullRequestMemoryUpdate() {
   }
 }
 
-enforceMemoryBudgets();
+enforceStructuredProjectMemory();
 enforcePullRequestMemoryUpdate();
 
 const currentTruthFiles = [
@@ -271,20 +267,6 @@ requireMarkers("docs/research/README.md", [
   "PRODUCT_COMPETITIVE_MEMORY.md",
   "REPOSITORY_REFERENCE_MAP.md",
   "ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
-]);
-
-requireMarkers("docs/research/CURRENT_PROJECT_MEMORY.md", [
-  "# MoneyFlow — current project memory",
-  "## 5. Current capability inventory",
-  "## 8. Reconciled issue status",
-  "## 9. Open pull-request memory",
-  "## 10. True gaps after this audit",
-  "## 12. Superseded-status register",
-  "validation is required inside each workstream but is not a global feature freeze",
-  "Reports lack previous-period comparison or trends",
-  "Import provenance/dry-run/atomic approval are future work",
-  "target: **150–250 lines**",
-  "hard failure: above **500 lines** or **64 KiB**",
 ]);
 
 requireMarkers("docs/research/PR_MEMORY_LOG.md", [
