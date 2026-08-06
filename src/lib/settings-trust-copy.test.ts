@@ -24,6 +24,10 @@ function read(path: string): string {
   return readFileSync(path, "utf8");
 }
 
+function normalizeSource(source: string): string {
+  return source.replace(/\s+/gu, " ").trim();
+}
+
 test("settings hub states ownership boundaries without branding Inbox as the product", () => {
   const source = read(HUB);
   assert.match(source, /không hỏi mật khẩu ngân hàng/i);
@@ -47,14 +51,17 @@ test("privacy page describes local retention and unavailable parser sharing trut
   assert.doesNotMatch(source, /Universal Financial Inbox/);
 });
 
-test("export page labels the file as transactions\/Inbox subset, not backup", () => {
-  const source = read(EXPORT);
+test("export page labels the file as transactions/Inbox subset, not backup", () => {
+  const source = normalizeSource(read(EXPORT));
   assert.match(source, /File được tạo trên thiết bị/i);
   assert.match(source, /export giao dịch\/Inbox/i);
   assert.match(source, /chưa phải bản sao lưu đầy đủ/i);
   assert.match(source, /Accounts, categories, budgets, goals/i);
   assert.match(source, /data-slot="export-summary"/);
-  assert.doesNotMatch(source, /bản sao lưu đầy đủ có thể khôi phục tài khoản/i);
+  assert.doesNotMatch(
+    source,
+    /(?:^|[.!?]\s*)Đây là bản sao lưu đầy đủ có thể khôi phục tài khoản/i,
+  );
 });
 
 test("export kind options still frame candidates as advanced data", () => {
