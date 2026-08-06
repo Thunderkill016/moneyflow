@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -130,6 +130,8 @@ export function PlanningReviewDialog({
   pending?: boolean;
   onConfirm: () => void | Promise<void>;
 }) {
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
   return (
     <Dialog
       open={open}
@@ -137,10 +139,11 @@ export function PlanningReviewDialog({
       title={title}
       description={description}
       dismissible={!pending}
-      initialFocusRef={undefined}
+      initialFocusRef={cancelRef}
       footer={
         <>
           <Button
+            ref={cancelRef}
             type="button"
             intent="secondary"
             targetSize="important"
