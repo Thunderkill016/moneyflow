@@ -1,0 +1,41 @@
+.card {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: 1rem;
+  background: var(--mf-surface);
+  padding: 1rem;
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.card[data-tone="watch"],
+.card[data-tone="soon"] {
+  border-color: var(--mf-warning-border);
+  box-shadow: inset 0 3px 0 var(--mf-warning);
+}
+
+.card[data-tone="near"] {
+  border-color: var(--mf-warning-border);
+  box-shadow: inset 0 4px 0 var(--mf-warning-text);
+}
+
+.card[data-tone="over"],
+.card[data-tone="overdue"] {
+  border-color: var(--mf-expense-border);
+  box-shadow: inset 0 4px 0 var(--mf-expense);
+}
+
+.card[data-tone="paid"],
+.card[data-tone="achieved"] {
+  border-color: var(--mf-income-border);
+  box-shadow: inset 0 3px 0 var(--mf-income);
+}
+
+@media (max-width: 600px) {
+  .card {
+    gap: 0.875rem;
+    border-radius: 0.875rem;
+    padding: 0.875rem;
+  }
+}

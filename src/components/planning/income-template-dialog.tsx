@@ -1,10 +1,19 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import type { RecurringIncomeTemplate, SaveIncomeTemplateInput } from "@/lib/planning/income-templates";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { SelectField } from "@/components/ui/select-field";
+import { TextField } from "@/components/ui/text-field";
 import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import type {
+  RecurringIncomeTemplate,
+  SaveIncomeTemplateInput,
+} from "@/lib/planning/income-templates";
 import type { AccountOption, CategoryOption } from "@/lib/sample-data";
+import styles from "./planning-dialog.module.css";
 
 export function IncomeTemplateDialog({
   open,
@@ -21,167 +30,218 @@ export function IncomeTemplateDialog({
   onClose: () => void;
   onSave: (input: SaveIncomeTemplateInput) => Promise<{ ok: boolean; message?: string }>;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const [error, setError] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const dueDayRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState(template?.name ?? "");
+  const [amount, setAmount] = useState(
+    template ? formatMoneyInput(String(template.amount)) : "",
+  );
+  const [dueDay, setDueDay] = useState(String(template?.dueDay ?? 5));
+  const [categoryId, setCategoryId] = useState(template?.categoryId ?? categories[0]?.id ?? "");
+  const [accountId, setAccountId] = useState(template?.accountId ?? accounts[0]?.id ?? "");
+  const [nameError, setNameError] = useState("");
+  const [amountError, setAmountError] = useState("");
+  const [dueDayError, setDueDayError] = useState("");
+  const [categoryError, setCategoryError] = useState("");
+  const [accountError, setAccountError] = useState("");
+  const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const formId = "income-template-form";
 
-  useEffect(() => {
-    const dialog = ref.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+  function clearErrors() {
+    setNameError("");
+    setAmountError("");
+    setDueDayError("");
+    setCategoryError("");
+    setAccountError("");
+    setFormError("");
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const amount = parseMoneyInput(String(data.get("amount") ?? ""));
-    const dueDay = Number(data.get("dueDay"));
-    const input: SaveIncomeTemplateInput = {
-      id: template?.id,
-      name: String(data.get("name") ?? "").trim(),
-      amount,
-      dueDay,
-      accountId: String(data.get("accountId") ?? ""),
-      categoryId: String(data.get("categoryId") ?? ""),
-    };
-    if (!input.name) {
-      setError("Nhập tên khoản thu định kỳ.");
+    const trimmedName = name.trim();
+    const parsedAmount = parseMoneyInput(amount);
+    const parsedDueDay = Number(dueDay);
+    clearErrors();
+
+    if (!trimmedName || trimmedName.length > 80) {
+      setNameError("Tên khoản thu cần từ 1 đến 80 ký tự.");
+      nameRef.current?.focus();
       return;
     }
-    if (!Number.isSafeInteger(amount) || amount <= 0) {
-      setError("Số tiền cần lớn hơn 0.");
+    if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
+      setAmountError("Số tiền cần lớn hơn 0.");
+      amountRef.current?.focus();
       return;
     }
-    if (!Number.isInteger(dueDay) || dueDay < 1 || dueDay > 31) {
-      setError("Ngày dự kiến phải từ 1 đến 31.");
+    if (!Number.isInteger(parsedDueDay) || parsedDueDay < 1 || parsedDueDay > 31) {
+      setDueDayError("Ngày dự kiến phải từ 1 đến 31.");
+      dueDayRef.current?.focus();
       return;
     }
+    if (!categoryId) {
+      setCategoryError("Chọn một danh mục thu.");
+      return;
+    }
+    if (!accountId) {
+      setAccountError("Chọn tài khoản sẽ nhận tiền khi ghi giao dịch.");
+      return;
+    }
+
     setSubmitting(true);
     let result: { ok: boolean; message?: string };
     try {
-      result = await onSave(input);
+      result = await onSave({
+        id: template?.id,
+        name: trimmedName,
+        amount: parsedAmount,
+        dueDay: parsedDueDay,
+        accountId,
+        categoryId,
+      });
     } catch {
-      result = { ok: false, message: "Mất kết nối khi lưu." };
+      result = { ok: false, message: "Mất kết nối khi lưu khoản thu định kỳ." };
     } finally {
       setSubmitting(false);
     }
-    if (!result.ok) {
-      setError(result.message || "Không thể lưu lương định kỳ.");
-      return;
-    }
-    setError("");
+    if (!result.ok) setFormError(result.message || "Không thể lưu khoản thu định kỳ.");
   }
 
   return (
-    <dialog
-      ref={ref}
-      className="account-dialog commitment-dialog"
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!submitting) onClose();
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !submitting) onClose();
       }}
-      aria-labelledby="income-template-dialog-title"
+      title={template ? "Sửa khoản thu định kỳ" : "Thêm khoản thu định kỳ"}
+      description="Mẫu này là thu nhập dự kiến. Số dư chỉ thay đổi sau khi bạn xác nhận đã nhận."
+      dismissible={!submitting}
+      initialFocusRef={nameRef}
+      className={styles.dialog}
+      contentClassName={styles.dialogContent}
+      footer={
+        <div className={styles.footerActions}>
+          <Button
+            type="button"
+            intent="secondary"
+            targetSize="important"
+            disabled={submitting}
+            onClick={onClose}
+          >
+            Hủy
+          </Button>
+          <Button
+            form={formId}
+            type="submit"
+            intent="primary"
+            targetSize="important"
+            pending={submitting}
+            pendingLabel="Đang lưu…"
+            disabled={!accounts.length || !categories.length}
+          >
+            <Icon name="check" /> Lưu khoản thu định kỳ
+          </Button>
+        </div>
+      }
     >
-      <div className="dialog-heading">
-        <div>
-          <p className="eyebrow">Thu nhập định kỳ</p>
-          <h2 id="income-template-dialog-title">
-            {template ? "Sửa lương định kỳ" : "Thêm lương định kỳ"}
-          </h2>
-        </div>
-        <button
-          className="icon-button"
-          type="button"
-          onClick={onClose}
-          disabled={submitting}
-          aria-label="Đóng"
-        >
-          <Icon name="close" />
-        </button>
-      </div>
-      <form className="account-form" onSubmit={submit}>
-        <label>
-          <span>Tên khoản thu</span>
-          <input
-            name="name"
+      <form id={formId} className={styles.form} onSubmit={submit} noValidate>
+        <div className={styles.formGrid}>
+          <TextField
+            inputRef={nameRef}
+            label="Tên khoản thu"
+            value={name}
             maxLength={80}
-            defaultValue={template?.name ?? ""}
             placeholder="Ví dụ: Lương tháng"
-            autoFocus
+            error={nameError || undefined}
+            targetSize="important"
+            rootClassName={styles.spanFull}
+            disabled={submitting}
+            onChange={(event) => {
+              setName(event.target.value);
+              clearErrors();
+            }}
           />
-        </label>
-        <label>
-          <span>Số tiền mỗi tháng</span>
-          <div className="account-money-input">
-            <input
-              name="amount"
-              inputMode="decimal"
-              defaultValue={template ? formatMoneyInput(String(template.amount)) : ""}
-              placeholder="0"
-              onInput={(event) => {
-                event.currentTarget.value = formatMoneyInput(event.currentTarget.value);
-                setError("");
-              }}
-            />
-            <strong>₫</strong>
-          </div>
-        </label>
-        <div className="commitment-form-row">
-          <label>
-            <span>Ngày dự kiến</span>
-            <input
-              name="dueDay"
-              type="number"
-              min="1"
-              max="31"
-              defaultValue={template?.dueDay ?? 5}
-            />
-          </label>
-          <label>
-            <span>Danh mục thu</span>
-            <select name="categoryId" defaultValue={template?.categoryId ?? categories[0]?.id}>
-              {categories.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <label>
-          <span>Nhận về tài khoản</span>
-          <select name="accountId" defaultValue={template?.accountId ?? accounts[0]?.id}>
+          <TextField
+            inputRef={amountRef}
+            label="Số tiền dự kiến"
+            value={amount}
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="0"
+            suffix="₫"
+            error={amountError || undefined}
+            targetSize="important"
+            inputClassName={styles.amountInput}
+            disabled={submitting}
+            onChange={(event) => {
+              setAmount(formatMoneyInput(event.target.value));
+              clearErrors();
+            }}
+          />
+          <TextField
+            inputRef={dueDayRef}
+            label="Ngày dự kiến"
+            value={dueDay}
+            type="number"
+            min={1}
+            max={31}
+            error={dueDayError || undefined}
+            targetSize="important"
+            disabled={submitting}
+            onChange={(event) => {
+              setDueDay(event.target.value);
+              clearErrors();
+            }}
+          />
+          <SelectField
+            label="Danh mục thu"
+            value={categoryId}
+            error={categoryError || undefined}
+            targetSize="important"
+            disabled={submitting}
+            onChange={(event) => {
+              setCategoryId(event.target.value);
+              clearErrors();
+            }}
+          >
+            {categories.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="Tài khoản nhận tiền"
+            description="Chỉ được sử dụng sau khi bạn xác nhận tạo giao dịch thu."
+            value={accountId}
+            error={accountError || undefined}
+            targetSize="important"
+            rootClassName={styles.spanFull}
+            disabled={submitting}
+            onChange={(event) => {
+              setAccountId(event.target.value);
+              clearErrors();
+            }}
+          >
             {accounts.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.name}
               </option>
             ))}
-          </select>
-        </label>
-        <p className="account-form-hint">
-          Khác hóa đơn định kỳ: đây là khoản thu, không giữ trước an toàn chi tiêu. Khi xác nhận đã
-          nhận, MoneyFlow tạo một giao dịch thu vào tài khoản này.
-        </p>
-        {error ? (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-        <div className="dialog-footer-actions">
-          <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>
-            Hủy
-          </button>
-          <button
-            className="primary-button account-submit"
-            type="submit"
-            disabled={submitting || !accounts.length || !categories.length}
-          >
-            <Icon name="check" />
-            {submitting ? "Đang lưu..." : "Lưu lương định kỳ"}
-          </button>
+          </SelectField>
         </div>
+        <Alert tone="info">
+          <AlertDescription>
+            Lưu mẫu không cộng thu nhập và không thay đổi số dư. Review “Ghi đã nhận” sẽ nêu rõ trước khi tạo giao dịch thu thật.
+          </AlertDescription>
+        </Alert>
+        {formError ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        ) : null}
       </form>
-    </dialog>
+    </Dialog>
   );
 }

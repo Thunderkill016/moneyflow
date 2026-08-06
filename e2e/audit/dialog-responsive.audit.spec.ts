@@ -11,7 +11,11 @@ const CASES: DialogCase[] = [
   { label: "account-create", path: "/accounts", action: /^Thêm tài khoản$/i },
   { label: "budget-create", path: "/budgets", action: /^Thêm ngân sách$/i },
   { label: "commitment-create", path: "/commitments", action: /^Thêm khoản định kỳ$/i },
-  { label: "income-template-create", path: "/income-templates", action: /^Thêm lương định kỳ$/i },
+  {
+    label: "income-template-create",
+    path: "/income-templates",
+    action: /^Thêm khoản thu định kỳ$/i,
+  },
   { label: "goal-create", path: "/goals", action: /^Thêm mục tiêu$/i },
 ];
 

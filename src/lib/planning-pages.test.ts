@@ -1,5 +1,5 @@
 /**
- * R6 / Q4 — Budgets/commitments/goals/categories: shared shell + empty 1 CTA.
+ * Planning page domain/presentation contracts.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -23,10 +23,11 @@ import {
 const root = process.cwd();
 const BUDGETS = join(root, "src/components/planning/budgets-page.tsx");
 const COMMITMENTS = join(root, "src/components/planning/commitments-page.tsx");
+const INCOME = join(root, "src/components/planning/income-templates-page.tsx");
 const GOALS = join(root, "src/components/planning/goals-page.tsx");
 const CATEGORIES = join(root, "src/components/categories-page.tsx");
 const SHELL = join(root, "src/components/planning/planning-card.tsx");
-const CSS = join(root, "src/app/globals.css");
+const SHELL_CSS = join(root, "src/components/planning/planning-card.module.css");
 
 function read(path: string) {
   return readFileSync(path, "utf8");
@@ -61,7 +62,7 @@ test("page empty copy is calm Vietnamese (no guilt)", () => {
     PAGE_EMPTY_GOAL,
     PAGE_EMPTY_CATEGORY,
   ]
-    .map((c) => `${c.title} ${c.description} ${c.actionLabel ?? ""}`)
+    .map((config) => `${config.title} ${config.description} ${config.actionLabel ?? ""}`)
     .join(" ");
   assert.doesNotMatch(blob, /lãng phí|tội|phải tiết kiệm|sai lầm|thất bại/i);
 });
@@ -119,61 +120,46 @@ test("budgetToneToCard preserves calm threshold bands", () => {
   assert.equal(budgetToneToCard("over"), "over");
 });
 
-test("PlanningCard shell component exists", () => {
+test("PlanningCard shell owns its module and tone data", () => {
   assert.ok(existsSync(SHELL), "planning-card.tsx must exist");
+  assert.ok(existsSync(SHELL_CSS), "planning-card.module.css must exist");
   const source = read(SHELL);
   assert.match(source, /export function PlanningCard/);
-  assert.match(source, /planning-card/);
-  assert.match(source, /planning-card--/);
+  assert.match(source, /planning-card\.module\.css/);
+  assert.match(source, /data-slot="planning-card"/);
+  assert.match(source, /data-tone=\{tone\}/);
+  assert.doesNotMatch(source, /planning-card--/);
 });
 
-test("budgets / commitments / goals pages use PlanningCard shell", () => {
-  for (const path of [BUDGETS, COMMITMENTS, GOALS]) {
+test("all four Planning pages use the shared shell and UI empty state", () => {
+  for (const path of [BUDGETS, COMMITMENTS, INCOME, GOALS]) {
     const source = read(path);
     assert.match(source, /PlanningCard/, `${path} must use PlanningCard`);
+    assert.match(source, /PlanningWorkspace/, `${path} must use PlanningWorkspace`);
     assert.match(source, /from "@\/components\/planning\/planning-card"/, `${path} import`);
+    assert.match(source, /@\/components\/ui\/empty-state/);
+    assert.doesNotMatch(source, /secondaryLabel/);
   }
-});
 
-test("Q4 budgets / commitments / goals / categories empties: EmptyState + 1 primary CTA", () => {
-  const budgets = read(BUDGETS);
   const commitments = read(COMMITMENTS);
-  const goals = read(GOALS);
-  const categories = read(CATEGORIES);
-
-  assert.match(budgets, /EmptyState/);
-  assert.match(budgets, /PAGE_EMPTY_BUDGET/);
-  assert.doesNotMatch(budgets, /budget-page-empty/);
-  // No secondary CTA on happy-path empty
-  assert.doesNotMatch(budgets, /secondaryLabel/);
-
-  assert.match(commitments, /EmptyState/);
-  assert.match(commitments, /PAGE_EMPTY_COMMITMENT/);
   assert.match(commitments, /commitmentDueTone|commitmentDueLabel/);
-  // Error empty uses one primary CTA, not secondary-only multi chrome
-  assert.doesNotMatch(commitments, /secondaryLabel/);
-  assert.match(commitments, /actionLabel="Về Tổng quan"|actionHref="\/insights"/);
+  assert.match(commitments, /href="\/dashboard"/);
 
-  assert.match(goals, /EmptyState/);
-  assert.match(goals, /PAGE_EMPTY_GOAL/);
-  assert.doesNotMatch(goals, /budget-page-empty/);
-  assert.doesNotMatch(goals, /secondaryLabel/);
-
+  const categories = read(CATEGORIES);
   assert.match(categories, /EmptyState/);
   assert.match(categories, /PAGE_EMPTY_CATEGORY/);
   assert.match(categories, /PAGE_EMPTY_CATEGORY_FILTER/);
-  assert.doesNotMatch(categories, /secondaryLabel/);
-  // No ad-hoc multi-button empty block
   assert.doesNotMatch(categories, /account-empty/);
 });
 
-test("CSS defines shared planning-card shell + calm tone modifiers", () => {
-  const css = read(CSS);
-  assert.match(css, /\.planning-card\b/);
-  assert.match(css, /\.planning-card--near/);
-  assert.match(css, /\.planning-card--over/);
-  assert.match(css, /\.planning-card--soon/);
-  assert.match(css, /\.planning-card--overdue/);
-  assert.match(css, /\.planning-card--paid/);
-  assert.match(css, /\.planning-card--achieved/);
+test("PlanningCard CSS defines calm tone modifiers locally", () => {
+  const css = read(SHELL_CSS);
+  assert.match(css, /\.card\b/);
+  assert.match(css, /\[data-tone="near"\]/);
+  assert.match(css, /\[data-tone="over"\]/);
+  assert.match(css, /\[data-tone="soon"\]/);
+  assert.match(css, /\[data-tone="overdue"\]/);
+  assert.match(css, /\[data-tone="paid"\]/);
+  assert.match(css, /\[data-tone="achieved"\]/);
+  assert.doesNotMatch(css, /:global\s*\(|!important/);
 });

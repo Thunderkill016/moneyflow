@@ -271,17 +271,17 @@ test.describe("cross-device responsive audit", () => {
     for (const route of [
       {
         path: "/budgets",
-        summary: ".budget-overview",
-        actions: ".budget-category-actions a, .budget-category-actions button",
+        summaryName: "Tổng quan ngân sách",
+        listSlot: "budget-list",
       },
       {
         path: "/goals",
-        summary: ".goal-hero",
-        actions: ".goal-actions button",
+        summaryName: "Tổng quan mục tiêu",
+        listSlot: "goal-list",
       },
     ]) {
       await page.goto(route.path, { waitUntil: "domcontentloaded" });
-      const summary = page.locator(route.summary);
+      const summary = page.getByRole("region", { name: route.summaryName });
       await expect(summary).toBeVisible();
 
       const gridColumns = await summary.evaluate(
@@ -289,9 +289,15 @@ test.describe("cross-device responsive audit", () => {
       );
       expect(gridColumns.trim().split(/\s+/)).toHaveLength(1);
 
-      const actionHeights = await page.locator(route.actions).evaluateAll((elements) =>
+      const actions = page.locator(
+        `[data-slot="${route.listSlot}"] [data-slot="planning-card-actions"] a, ` +
+          `[data-slot="${route.listSlot}"] [data-slot="planning-card-actions"] button`,
+      );
+      await expect(actions.first()).toBeVisible();
+      const actionHeights = await actions.evaluateAll((elements) =>
         elements.map((element) => element.getBoundingClientRect().height),
       );
+      expect(actionHeights.length).toBeGreaterThan(0);
       for (const height of actionHeights) {
         expect(height).toBeGreaterThanOrEqual(44);
       }

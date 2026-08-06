@@ -103,7 +103,9 @@ test.describe("Global PFM UX benchmark", () => {
     page,
   }) => {
     await page.goto("/budgets");
-    const card = page.locator(".budget-category-card").first();
+    const card = page
+      .locator('[data-slot="budget-list"] [data-slot="planning-card"]')
+      .first();
     await expect(card).toBeVisible();
     await expect(card.getByText("Hạn mức", { exact: true })).toBeVisible();
     await expect(card.getByText("Đã chi", { exact: true })).toBeVisible();
