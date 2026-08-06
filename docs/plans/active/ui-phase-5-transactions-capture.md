@@ -1,8 +1,8 @@
 # MoneyFlow UI-system Phase 5 — Transactions and Capture
 
 **Status:** active
-**Execution state:** evaluating
-**Active role:** implementer
+**Execution state:** ready_for_review
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Parent packet:** `docs/plans/active/ui-system-migration.md`
@@ -27,15 +27,18 @@ At authorization:
 - Phase 2 already supplied shared Button, LinkButton, IconButton, fields, Dialog, Alert, EmptyState and MoneyValue contracts.
 - browser evidence covered core transaction paths but one rich-state assertion still targeted `.manager-row`.
 
-Current branch candidate:
+Verified branch candidate:
 
-- `/transactions` and `/timeline` use `transactions/transactions-workspace.tsx` and its local module.
+- `/transactions` uses `transactions/transactions-workspace.tsx` and its local module.
+- `/timeline` has a separate read-only owner and read-only ledger hook; it exposes no edit/delete/review/category mutation controls.
 - summary, filters, ranges, selection, bulk correction, day groups, rows, money and actions compose Phase 2 primitives.
 - add/edit/transfer/split use shared Dialog/field/action contracts and `transaction-form.module.css`.
 - `/capture/quick` reuses the add form in embedded mode behind a route-owned module.
 - the retired transactions component/module and `MobileShellContract` remainder were deleted after active-route replacement.
-- rich-state evidence now targets `data-slot="ledger-row"`.
-- broader root legacy styles may still contain dead transaction selectors; deletion requires zero-reference proof rather than blind broad removal.
+- browser evidence uses stable `data-slot` surfaces rather than retired transaction classes.
+- phone transaction dialogs are full-width bottom sheets owned by the transaction form module; the local doubled-class selector intentionally outranks shared utility classes.
+- complete large integer-VND values remain visible and unwrapped at 320–390 CSS pixels.
+- broader root legacy styles still contain historical transaction selectors interleaved with active account-dialog rules; they are bounded residual debt, not active-route ownership, and were not deleted blindly.
 
 Preserved invariants:
 
@@ -53,18 +56,20 @@ Preserved invariants:
 | Source | Authority/type | Applied decision |
 |---|---|---|
 | [WAI-ARIA APG Dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) | W3C WAI | shared Dialog owns focus entry/containment/return, Escape and dismissal behavior |
+| [H102: modal dialogs with the HTML dialog element](https://www.w3.org/WAI/WCAG22/Techniques/html/H102) | W3C WAI | retain native `showModal()`, Escape and focus restoration while changing phone geometry only |
 | [WCAG 2.2 Error Prevention](https://www.w3.org/WAI/WCAG22/Understanding/error-prevention-legal-financial-data.html) | W3C WAI | validate before mutation and retain confirmation plus reversible delete/undo |
-| [WCAG 2.2 Reflow / G225](https://www.w3.org/WAI/WCAG22/Techniques/general/G225) | W3C WAI | daily ledger content reflows at 320 CSS pixels without document-level horizontal scrolling |
+| [WCAG 2.2 Reflow / G225](https://www.w3.org/WAI/WCAG22/Techniques/general/G225) | W3C WAI | daily ledger content and complete financial values reflow at 320 CSS pixels without document-level horizontal scrolling |
+| [MDN `<dialog>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog) | web-platform reference | keep native modal/top-layer and backdrop semantics; presentation remains CSS-owned |
 | [MDN viewport meta](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta/name/viewport) | web-platform reference | transaction forms use dynamic viewport sizing so virtual-keyboard layouts keep final actions reachable |
 
-Observed: the old dialogs duplicated lifecycle behavior, selector ownership was split across global and local layers, and the existing domain behavior/tests were worth preserving.
+Observed: the old dialogs duplicated lifecycle behavior, selector ownership was split across global and local layers, and the existing domain behavior/tests were worth preserving. The first full cross-device run also proved that same-specificity utility rules could defeat phone owner geometry and that large seeded VND values still exceeded narrow boxes.
 
-Decision: use Branch-by-Abstraction inside the existing product. Move one complete daily-ledger flow onto shared primitives and local presentation owners, preserve domain payloads, then remove compatibility only after the final active consumer moves.
+Decision: use Branch-by-Abstraction inside the existing product. Move one complete daily-ledger flow onto shared primitives and local presentation owners, preserve domain payloads, then remove compatibility only after the final active consumer moves. Fix measured layout defects in the owner instead of weakening audit thresholds.
 
 ## Specification
 
 ```text
-/transactions and /timeline
+/transactions
   -> TransactionsWorkspace + existing domain hooks
        -> transactions-workspace.module.css
        -> ledger summary / filters / bulk toolbar
@@ -72,6 +77,12 @@ Decision: use Branch-by-Abstraction inside the existing product. Move one comple
        -> Phase 2 feedback, actions, empty state and money primitives
        -> shared add/edit/transfer/split Dialog + field contracts
   -> AppShell owns chrome, primary capture and undo notice
+
+/timeline
+  -> TimelineWorkspace + read-only ledger hook
+       -> reviewed transactions only
+       -> search / summary / export
+       -> no mutation hooks or dialogs
 
 /capture/quick
   -> AddTransactionDialog embedded mode
@@ -89,7 +100,8 @@ Ledger contracts:
 - review selection has transaction-specific accessible names and explicit status text;
 - bulk category changes preserve amount/date/account and require confirmation;
 - edit/delete/recurring actions use important touch targets;
-- no-results and true-empty states expose the correct recovery action.
+- no-results and true-empty states expose the correct recovery action;
+- Timeline projects reviewed ledger facts without mounting mutation owners.
 
 Dialog/capture contracts:
 
@@ -99,12 +111,15 @@ Dialog/capture contracts:
 - pending state prevents duplicate submission and locks dismissal;
 - errors attach to the field or an assertive form alert;
 - embedded quick capture reuses the same form without a nested modal;
-- 320px and virtual-keyboard layouts keep form content and final actions reachable.
+- phone dialogs use deliberate full-width bottom-sheet geometry;
+- 320px, 200% text and virtual-keyboard layouts keep form content and final actions reachable.
 
 Stable evidence slots:
 
 - `transactions-workspace`, `ledger-summary`, `ledger-filters`, `ledger-list`, `ledger-day-group`, `ledger-row`;
+- `timeline-workspace`, `timeline-summary`, `timeline-row`;
 - `capture-quick-workspace`, `quick-capture-form`;
+- `dialog`, `dialog-content`, `empty-state` and child empty-state slots;
 - browser tests prefer roles, labels and slots over retired class names.
 
 ## Implementation plan
@@ -114,62 +129,85 @@ Stable evidence slots:
 3. Preserve all orchestration and financial calculations while changing presentation ownership only.
 4. Migrate add/edit/transfer/split to the shared Dialog/action/field contracts.
 5. Reuse the add form for embedded quick capture with dynamic-viewport and narrow-screen ownership.
-6. Repair browser evidence to target roles/labels/slots.
-7. Remove retired component/module and invisible amount repair after active-consumer proof; bound broader dead global cleanup with zero-reference evidence.
-8. Run exact-head policy, static, unit, build, browser, Chromium/WebKit, CodeQL and secret-history gates.
-9. Record truthful PR memory and stop for explicit owner merge decision.
+6. Split Timeline into an explicit read-only projection.
+7. Repair browser evidence to target roles/labels/slots.
+8. Remove retired component/module and invisible amount repair after active-consumer proof; bound broader dead global cleanup with zero-reference evidence.
+9. Run exact-head policy, static, unit, build, browser, Chromium/WebKit, CodeQL and secret-history gates.
+10. Record truthful PR memory and stop for explicit owner merge decision.
 
 ## Tasks
 
 | ID | Task | Status |
 |---|---|---|
-| P5-T1 ledger contracts | completed |
-| P5-T2 summary/filters/ranges/bulk owner | completed; evaluating |
-| P5-T3 rows/money/actions/review owner | completed; evaluating |
-| P5-T4 shared add/edit/transfer/split dialogs | completed; evaluating |
-| P5-T5 soft delete and eight-second undo | completed; evaluating |
-| P5-T6 embedded quick capture and keyboard-safe layout | completed; evaluating |
-| P5-T7 stable audit evidence | completed; evaluating |
-| P5-T8 remove compatibility after last consumer | retired component/module and MobileShellContract removed; broader dead global selectors remain under evaluation |
-| P5-T9 full verification matrix | evaluating |
-| P5-T10 owner approval and merge | blocked |
+| P5-T1 ledger contracts | completed and verified |
+| P5-T2 summary/filters/ranges/bulk owner | completed and verified |
+| P5-T3 rows/money/actions/review owner | completed and verified, including large-VND phone states |
+| P5-T4 shared add/edit/transfer/split dialogs | completed and verified, including full-width phone geometry |
+| P5-T5 soft delete and eight-second undo | completed and browser-verified |
+| P5-T6 embedded quick capture and keyboard-safe layout | completed and verified |
+| P5-T7 stable audit evidence | completed and verified |
+| P5-T8 remove compatibility after last consumer | active component/module and MobileShellContract compatibility removed; residual historical global selectors explicitly bounded |
+| P5-T9 full verification matrix | completed on implementation head `81d9cf0cc289a8676e9150278789b4d9957a3c32` |
+| P5-T10 owner approval and merge | blocked pending explicit owner decision |
 
 ## Evaluation
 
-- PR #306 was marked ready-for-review only to activate heavy gates; this is not merge authorization.
-- CI #1792 selected policy, static, unit/static tests, production build, browser smoke, cross-device UI audit and CodeQL for exact head `103593eda2e3309232a2da37f359d384e6f55a2a`; database checks were correctly not selected.
-- Secret-history scan #910 passed on that head.
-- The first policy run rejected the head because this packet lacked the exact `Specification`/`Evaluation` headings and PR memory lacked required fields. This commit corrects those knowledge contracts.
-- Earlier draft CI #1784 is not accepted as implementation evidence because all heavy shards were skipped.
-- Static, test, build, browser, audit and CodeQL results must be re-evaluated on the new exact head before the candidate can be called verified-unmerged.
+PR #306 was marked ready-for-review only to activate heavy gates; this is not merge authorization. Earlier draft CI shells are not accepted as evidence because heavy shards were skipped.
+
+Evaluation found and fixed real defects rather than weakening tests:
+
+1. Timeline initially retained review/filter mutation controls; it was split into a read-only owner and read-only hook.
+2. Browser assertions still depended on `.manager-row`, `.empty-state-actions`, `.transaction-dialog` and old SAFE-09 classes; they now use stable roles and slots.
+3. The shared Dialog utility width defeated a same-specificity local phone rule, leaving an 18px inset; the transaction form owner now deterministically wins and produces a full-width bottom sheet.
+4. Seeded 12.345.678.900 VND and 4.567.890.123 VND values overflowed narrow summary/row boxes; responsive money ownership now keeps the complete values visible without ellipsis or wrapping.
+5. Parent-controlled closing initially defeated `Lưu & thêm tiếp`; the add form now preserves the keep-open session and refocuses amount.
+
+Exact implementation-head evidence:
+
+- Head: `81d9cf0cc289a8676e9150278789b4d9957a3c32`.
+- CI #1827, run `31070085106`: success.
+- Policy/knowledge/diff hygiene: success.
+- Deployment contract, CSS ownership/debt budget, architecture, lint and typecheck: success.
+- Complete unit/static RLS suite: success.
+- Production build: success.
+- Browser smoke: success; artifact `browser-smoke-evidence-31070085106-1`, SHA-256 `65ccb37db1437903da99395a081f91d508b02f9472a5675d61cba310ce165a1d`.
+- Cross-device UI audit: success across phone 320/360/390, tablet, desktop, dark mode, Chromium/WebKit, 200% text and keyboard; artifact `ui-audit-evidence-31070085106-1`, SHA-256 `e8df3389fcdda6e2e987e73a7863548967d0057cb0f284bd597c07ae0b46b069`.
+- Final browser aggregation: success.
+- CodeQL #945, run `31070085098`: success.
+- Secret history scan #945, run `31070085113`: success.
+- Database checks correctly reported not required; no database, migration or RLS path changed.
+
+The documentation evidence commits after this implementation head do not change runtime behavior. Their cumulative PR diff remains subject to repository exact-head checks before owner review.
 
 Acceptance matrix:
 
 | Boundary | Required proof | State |
 |---|---|---|
-| policy/knowledge | diff hygiene, knowledge and CI-policy contracts | rerun required |
-| static | deployment env, CSS ownership, architecture, lint, typecheck | pending exact head |
-| domain | complete unit/static RLS tests | pending exact head |
-| build | production build | pending exact head |
-| expense add/edit/delete/undo | browser smoke/focused flows | pending exact head |
-| transfer/split | browser flows and invariant tests | pending exact head |
-| 320px/long Vietnamese/large VND | Chromium/WebKit artifacts | pending exact head |
-| dialog focus and keyboard | role/focus browser evidence | pending exact head |
-| security | CodeQL and secret-history | exact-head rerun pending |
+| policy/knowledge | diff hygiene, knowledge and CI-policy contracts | passed |
+| static | deployment env, CSS ownership, architecture, lint, typecheck | passed |
+| domain | complete unit/static RLS tests | passed |
+| build | production build | passed |
+| expense add/edit/delete/undo | browser smoke/focused flows | passed |
+| transfer/split | browser flows and invariant tests | passed |
+| Timeline read-only boundary | focused source and browser contracts | passed |
+| 320px/long Vietnamese/large VND | Chromium/WebKit artifacts | passed |
+| dialog focus and keyboard | modal placement/focus/Escape plus keyboard matrix | passed |
+| security | CodeQL and secret-history | passed |
 | production/provider | separate post-merge boundary | not attempted; not authorized |
+| physical Android/iOS acceptance | later migration acceptance phase | not part of automated P5 closure |
 
 Open risks:
 
-- heavy gates may reveal stale browser assumptions or typing errors;
-- broad legacy CSS deletion must avoid collateral changes to unrelated routes;
-- automated audit does not replace physical Android/iOS acceptance, which remains Phase 11.
+- automated Chromium/WebKit evidence does not replace later physical Android/iOS acceptance;
+- historical root transaction selectors remain dead debt interleaved with active account-dialog rules and require a separately bounded zero-reference cleanup;
+- no production behavior exists until the owner merges and the exact merge is deployed/verified.
 
 ## Risk and rollback
 
 - Primary risk: a presentation refactor regresses a high-frequency financial flow despite unchanged domain logic.
-- Mitigation: preserve payloads/hooks and require exact-head source, unit, build and browser evidence.
+- Mitigation: preserved payloads/hooks plus exact-head source, unit, build and browser evidence.
 - Schema/migration/backfill: none.
-- Database/Auth/RLS/provider/production-data writes: none authorized or planned.
+- Database/Auth/RLS/provider/production-data writes: none authorized or performed.
 - Rollback: revert the eventual Phase 5 merge commit; no database rollback is required.
 
 ## Handoff record
@@ -177,7 +215,8 @@ Open risks:
 | Date | From | To | State | Evidence | Next allowed action |
 |---|---|---|---|---|---|
 | 2026-08-06 | human owner | implementer | implementing | explicit `tiếp tục p5` | bounded branch implementation and verification |
-| 2026-08-06 | implementer | evaluator | evaluating | PR #306 ready-for-review for heavy gates | fix evidence-backed failures only; no merge/deploy |
+| 2026-08-06 | implementer | evaluator | evaluating | PR #306 ready-for-review to activate heavy gates | inspect and fix evidence-backed failures only |
+| 2026-08-06 | evaluator | human owner | ready_for_review | CI #1827, CodeQL #945, secret scan #945 and browser artifacts green on implementation head | review PR and explicitly approve or reject merge; no deployment implied |
 
 ## Current permission boundary
 
