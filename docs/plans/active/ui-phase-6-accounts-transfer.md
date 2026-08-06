@@ -1,14 +1,14 @@
 # MoneyFlow UI-system Phase 6 — Accounts and Transfer
 
 **Status:** active
-**Execution state:** implementing
-**Active role:** implementer
+**Execution state:** evaluating
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Parent packet:** `docs/plans/active/ui-system-migration.md`
 **Base main:** `f6cea659030397e21d4287912faef173bc7a0966`
 **Branch:** `feat/ui-phase-6-accounts-transfer`
-**Pull request:** pending
+**Pull request:** #307
 **Last updated:** 2026-08-06
 
 The owner instructed **`Làm đi`** after the Phase 6 reconnaissance and Google/official-source review on 2026-08-06. This authorizes bounded Phase 6 specification correction, product-code work and verification on the focused branch. It does not authorize merge, deployment, database/schema/Auth/RLS/provider writes, production-data access, a new visual direction or later UI phases.
@@ -26,8 +26,20 @@ At authorization:
 - account layout, cards, archive rows, mobile reflow and dark mode were still jointly owned by `globals.css`, `ui-refresh.css`, `cross-device-stabilization.css` and later compatibility layers.
 - `AccountDialog` duplicated native `<dialog>` lifecycle, used raw controls/global classes and exposed only a form-level error.
 - `TransferDialog` already used the Phase 2 Dialog/field/action contracts and preserved same-currency/idempotent transfer behavior, but its presentation was owned by the Phase 5 transaction form module.
-- account register/detail already had a strong local module and MoneyValue composition; only remaining global action/feedback bridges require bounded cleanup.
+- account register/detail already had a strong local module and MoneyValue composition; remaining global action/feedback bridges are bounded separately from the Accounts list migration.
 - `CURRENT_PROJECT_MEMORY.md` still described Phase 5 as unauthorized even though PR #306 was squash-merged as `f6cea659030397e21d4287912faef173bc7a0966`.
+
+Implemented candidate:
+
+- `/accounts` now uses `accounts/accounts-workspace.tsx` and a local CSS Module.
+- active totals are explicitly labeled as active-account totals and never aggregate unlike currencies.
+- archived accounts remain visible with retained balances, register access and restore actions.
+- account cards compose shared Alert, Button, LinkButton, EmptyState and MoneyValue contracts.
+- account creation/editing composes shared Dialog, TextField, SelectField, Button and Alert contracts with field-specific focus recovery.
+- archive review uses a shared Dialog, initially focuses the non-destructive action and explains balance/history consequences.
+- Transfer retains existing mutation/domain owners but has a dedicated presentation module and review summary.
+- retired `accounts-page.tsx` and `accounts-page.module.css` are deleted after route replacement.
+- the first draft CI classifier found that `accounts-workspace` was also a retired global class name; the evidence slot was renamed to `account-overview-workspace` instead of weakening the guardrail.
 
 Preserved invariants:
 
@@ -56,13 +68,13 @@ Observed:
 
 - MoneyFlow currently calculates the headline totals from active accounts only, while archived accounts retain their balances and history.
 - Changing archive rules to require a zero balance or create a balancing transfer would alter financial lifecycle behavior and cross a Class 3 boundary.
-- The existing archive mutation is reversible, but the current `window.confirm` does not explain that archived balances leave the active-account totals.
+- The existing archive mutation is reversible, but the previous `window.confirm` did not explain that archived balances leave the active-account totals.
 
 Decision:
 
 - Phase 6 preserves the existing archive mutation and total calculation.
-- The Accounts workspace must label totals as active-account totals and keep archived balances visibly available in the archived group.
-- The archive confirmation must name the account, show its balance and explain that history is preserved while the account leaves new-transaction choices and active totals.
+- The Accounts workspace labels totals as active-account totals and keeps archived balances visibly available in the archived group.
+- The archive confirmation names the account, shows its balance and explains that history is preserved while the account leaves new-transaction choices and active totals.
 - A future rule requiring zero balance or a balancing transfer before archive requires a separate owner-approved Class 3 packet, database/domain review and migration/RPC/browser evidence.
 
 ## Specification
@@ -76,13 +88,12 @@ Decision:
        -> archived accounts and retained balances
        -> shared Alert, Button, LinkButton, IconButton, EmptyState and MoneyValue
        -> AccountDialog using shared Dialog/field/action contracts
-       -> ArchiveAccountDialog using shared Dialog and reversible lifecycle
+       -> AccountArchiveDialog using shared Dialog and reversible lifecycle
        -> TransferDialog with its own transfer presentation owner
 
 /accounts/[accountId]
   -> existing account register/detail domain projection
        -> local account-detail module
-       -> shared feedback/action primitives
        -> no mutation or reconciliation redesign
 ```
 
@@ -123,7 +134,7 @@ Transfer contracts:
 
 Stable evidence slots:
 
-- `accounts-workspace`, `accounts-summary`, `accounts-active-list`, `account-card`;
+- `account-overview-workspace`, `accounts-summary`, `accounts-active-list`, `account-card`;
 - `accounts-archived-list`, `archived-account-row`;
 - `account-form`, `account-archive-review`;
 - `transfer-form`, `transfer-review`;
@@ -137,9 +148,9 @@ Stable evidence slots:
 4. Replace `AccountDialog` with shared Dialog/TextField/SelectField/Button/Alert contracts and field-specific focus recovery.
 5. Replace `window.confirm` with a reviewable reversible archive dialog that explains active-total consequences.
 6. Move Transfer presentation from the transaction form module to a transfer-owned module and add a clear transfer review.
-7. Clean remaining account-detail global feedback/action bridges without changing register calculations.
-8. Add source contracts and focused browser coverage for create/edit/archive/restore/transfer/account-register states.
-9. Remove retired Accounts files/global selectors only after active-consumer proof.
+7. Preserve the existing account-register calculation owner; defer any remaining integration-only bridge cleanup if it would broaden the reviewed boundary.
+8. Add source contracts and focused browser coverage for create/edit/archive/restore/transfer states.
+9. Remove retired Accounts files after active-consumer proof.
 10. Run exact-head policy, static, unit, build, browser, Chromium/WebKit, CodeQL and secret-history gates.
 11. Record truthful PR memory and stop for explicit owner merge decision.
 
@@ -147,15 +158,15 @@ Stable evidence slots:
 
 | ID | Task | Status |
 |---|---|---|
-| P6-T1 merged-memory reconciliation and packet | in progress |
-| P6-T2 local Accounts workspace owner | pending |
-| P6-T3 shared account form | pending |
-| P6-T4 archive/restore review states | pending |
-| P6-T5 transfer presentation owner and review | pending |
-| P6-T6 account-register integration cleanup | pending |
-| P6-T7 stable source/browser evidence | pending |
-| P6-T8 zero-consumer legacy retirement | pending |
-| P6-T9 exact-head verification matrix | pending |
+| P6-T1 merged-memory reconciliation and packet | packet and PR memory created; current project memory pending final candidate evidence |
+| P6-T2 local Accounts workspace owner | implemented; evaluation pending |
+| P6-T3 shared account form | implemented; evaluation pending |
+| P6-T4 archive/restore review states | implemented; evaluation pending |
+| P6-T5 transfer presentation owner and review | implemented; evaluation pending |
+| P6-T6 account-register integration cleanup | bounded to preserve existing local owner; no calculation rewrite |
+| P6-T7 stable source/browser evidence | source and focused Playwright contracts added; exact-head execution pending |
+| P6-T8 zero-consumer legacy retirement | retired Accounts component/module removed; global selector deletion pending zero-consumer proof |
+| P6-T9 exact-head verification matrix | pending ready-for-review heavy gates |
 | P6-T10 owner approval and merge | blocked pending explicit owner decision |
 
 ## Verification plan
