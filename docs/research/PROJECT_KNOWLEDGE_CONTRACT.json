@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "currentProjectMemory": {
+    "path": "docs/research/CURRENT_PROJECT_MEMORY.md",
+    "requiredHeadings": [
+      "# MoneyFlow — current project memory",
+      "## 5. Current capability inventory",
+      "## 8. Reconciled issue status",
+      "## 9. Open pull-request memory",
+      "## 10. True gaps after this audit",
+      "## 12. Superseded-status register"
+    ],
+    "requiredReferences": [
+      "docs/context/README.md",
+      "docs/research/pr-memory/YYYY/QN/"
+    ],
+    "budget": {
+      "targetMinLines": 150,
+      "targetMaxLines": 250,
+      "softMaxLines": 300,
+      "softMaxBytes": 32768,
+      "hardMaxLines": 500,
+      "hardMaxBytes": 65536
+    }
+  },
+  "statusAssertions": {
+    "validationRequiredPerWorkstream": true,
+    "globalFeatureFreeze": false
+  },
+  "supersededClaimIds": [
+    "reports-no-comparison-or-trends",
+    "import-integrity-future-work"
+  ]
+}
