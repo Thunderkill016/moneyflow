@@ -1,7 +1,7 @@
 # MoneyFlow UI-system Phase 7 — Planning
 
-**Status:** active
-**Execution state:** evaluating
+**Status:** ready_for_review
+**Execution state:** ready_for_review
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
@@ -118,45 +118,61 @@ Stable evidence slots:
 
 | ID | Task | Status |
 |---|---|---|
-| P7-T1 packet and P6 truth reconciliation | implementing — packet done; snapshot update in this PR |
+| P7-T1 packet and P6 truth reconciliation | done |
 | P7-T2 shared Planning page/card/review owners | done |
 | P7-T3 Budgets migration | done |
 | P7-T4 Commitments migration and truthful copy | done |
 | P7-T5 Income templates migration | done |
 | P7-T6 Goals migration and earmark truth | done |
-| P7-T7 stable source/domain evidence | done; browser matrix evaluating |
-| P7-T8 active global Planning selector retirement | active consumers removed; broad legacy definitions require separate zero-consumer proof |
-| P7-T9 full verification matrix | evaluating |
+| P7-T7 stable source/domain/browser evidence | done |
+| P7-T8 active global Planning selector retirement | done for active consumers; broad compatibility definitions require later zero-consumer proof |
+| P7-T9 full verification matrix | done on implementation head; cumulative documentation head pending final confirmation |
 | P7-T10 owner approval and merge | blocked pending explicit owner decision |
 
 ## Evaluation
 
-Findings are fixed in the owning boundary rather than hidden or allowlisted:
+Findings were fixed in their owning boundary rather than hidden or allowlisted:
 
 1. The first local tone modules referenced nonexistent `--mf-*-default` names. They now consume canonical `--mf-warning`, `--mf-expense` and `--mf-income` tokens from `document-theme.css`.
 2. A source contract initially registered the literal retired dashboard route while trying to forbid it. The test now builds the comparison string without adding a new legacy route reference.
-3. Draft PR runs correctly selected full verification but skipped the expensive jobs by workflow policy. PR #308 was marked ready for review solely to activate complete exact-head evaluation; this is not merge authorization.
-4. The first ready-for-review run proved static quality, typecheck, unit/static RLS and production build, while policy correctly rejected the missing PR memory record and missing Evaluation heading. Both governance artifacts are corrected in this documentation round.
+3. Draft PR runs correctly selected full verification but skipped expensive jobs by workflow policy. PR #308 was marked ready for review only to activate complete exact-head evaluation; this is not merge authorization.
+4. The first ready-for-review run proved static quality, typecheck, unit/static RLS and production build, while policy correctly rejected missing PR memory and Evaluation artifacts. Both were added before subsequent runs.
 5. Review dialogs focus the least destructive **Hủy** action first and lock dismissal while pending.
 6. Active Planning routes no longer depend on the old global workspace/card/action vocabulary. Remaining global definitions are compatibility debt and are not deleted without repository-wide zero-consumer evidence.
+7. Browser smoke exposed a stale `.budget-category-card` selector. It was repointed to `budget-list → planning-card`; no legacy class was restored.
+8. Cross-device audit exposed stale recurring-income action copy and retired `.budget-overview`, `.goal-hero`, `.budget-category-actions` and `.goal-actions` selectors. The audit now uses accessible names and Phase 7 semantic slots while preserving its one-column summary, ≥44px action and no-overflow requirements.
+9. The repaired implementation head passed the complete selected Chromium/WebKit matrix. No geometry, clipping or financial mutation regression remained.
 
-## Verification plan
+## Verification
 
-- policy, project knowledge, CSS ownership, architecture, lint and typecheck;
-- complete unit/static RLS suite;
-- production build;
-- focused domain tests for budgets, commitment occurrences, income occurrences and goals;
-- browser coverage for budget month history, pay/undo, receive/undo, allocation/release, archive guards, large VND and long Vietnamese copy;
-- selected Chromium/WebKit phone, tablet, desktop, light/dark, 200% text and keyboard matrix;
-- CodeQL and secret-history scan;
-- no database job should be selected unless the diff unexpectedly crosses a database boundary.
+Implementation head: `467515a18551ed536a7ca330773d577c2bf6c351`.
 
-Current intermediate evidence at implementation head `feb8b1544753db530a67fa1e0b10a7b35bc698d2`:
+CI #1867, run `31086979621`: success.
 
-- draft classifier: success with 0 violations and full UI gates selected;
-- CodeQL #979, run `31084640123`: success;
-- secret-history scan #979, run `31084640260`: success;
-- ready-for-review CI #1863, run `31084800488`: static quality, typecheck, unit/static RLS and production build succeeded; database correctly reported not required; policy failed only for the two governance artifacts corrected above, so browser shards were dependency-skipped and are not claimed as evidence.
+| Gate | Job/result |
+|---|---|
+| classify | `92568830722` — success |
+| policy | `92568873248` — success |
+| static quality | `92568873246` — success |
+| database classification | `92568873244` — success; database checks not required |
+| unit/static RLS | `92568873579` — success |
+| production build | `92568873575` — success |
+| verify aggregation | `92568949217` — success |
+| browser smoke | `92568998087` — success; 68 Playwright cases passed across Chromium and mobile Chromium |
+| cross-device UI audit | `92568998096` — success; 184 passed/4 skipped in the selected audit matrix plus 2 WebKit financial-detail cases passed |
+| e2e aggregation | `92570689922` — success |
+
+Artifacts:
+
+- browser smoke evidence: ID `8964494328`, digest `sha256:8aa3e36b10980a7832404b5f2ca4231cb1c0a8337bb93e7619677d03761ccb1d`;
+- UI audit evidence: ID `8964576449`, digest `sha256:6fba9e99636731f6981e026003853c14478a0fab1bf23d6081554b1a441287cd`.
+
+Security:
+
+- CodeQL #983, run `31086979561`: success;
+- secret-history scan #983, run `31086979754`: success.
+
+The documentation-only cumulative head created by this evidence update must pass its own exact-head CI and security workflows before final handoff. Implementation-head evidence is not substituted for that final confirmation.
 
 ## Explicitly out of scope
 
