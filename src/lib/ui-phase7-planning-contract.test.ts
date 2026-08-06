@@ -49,6 +49,7 @@ const dialogs = [
   files.incomeDialog,
   files.goalDialogs,
 ];
+const retiredDashboardPath = ["/", "insights"].join("");
 
 test("Planning routes compose one local Phase 7 system", () => {
   for (const source of pages) {
@@ -60,7 +61,7 @@ test("Planning routes compose one local Phase 7 system", () => {
     assert.doesNotMatch(source, /className="(?:budgets|commitments|goals)-workspace"/);
     assert.doesNotMatch(source, /className="font-mono"/);
     assert.doesNotMatch(source, /window\.confirm\(/);
-    assert.doesNotMatch(source, /href="\/insights"/);
+    assert.equal(source.includes(`href="${retiredDashboardPath}"`), false);
   }
 
   assert.match(files.layout, /data-slot="planning-workspace"/);
@@ -68,6 +69,8 @@ test("Planning routes compose one local Phase 7 system", () => {
   assert.match(files.layout, /data-slot="planning-summary"/);
   assert.match(files.layout, /data-slot="planning-review"/);
   assert.match(files.layout, /@\/components\/ui\/dialog/);
+  assert.match(files.layout, /initialFocusRef=\{cancelRef\}/);
+  assert.match(files.layout, /ref=\{cancelRef\}/);
   assert.match(files.card, /data-slot="planning-card"/);
   assert.match(files.card, /data-tone=\{tone\}/);
 });
