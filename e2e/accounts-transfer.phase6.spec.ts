@@ -1,10 +1,25 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
-async function visibleButton(page: import("@playwright/test").Page, name: string) {
-  return page
-    .getByRole("button", { name, exact: true })
-    .filter({ visible: true })
-    .first();
+async function firstVisible(locator: Locator): Promise<Locator | null> {
+  const count = await locator.count();
+  for (let index = 0; index < count; index += 1) {
+    const candidate = locator.nth(index);
+    if (await candidate.isVisible()) return candidate;
+  }
+  return null;
+}
+
+async function visibleButton(page: Page, name: string) {
+  const locator = page.getByRole("button", { name, exact: true });
+  await expect
+    .poll(async () => Boolean(await firstVisible(locator)), {
+      message: `Expected a visible ${name} button`,
+      timeout: 10_000,
+    })
+    .toBe(true);
+  const button = await firstVisible(locator);
+  expect(button).not.toBeNull();
+  return button!;
 }
 
 test.describe("Phase 6 Accounts and Transfer", () => {
@@ -19,7 +34,7 @@ test.describe("Phase 6 Accounts and Transfer", () => {
   test("reviews account archive consequences and preserves cancel focus", async ({ page }) => {
     await page.goto("/accounts");
 
-    await expect(page.locator('[data-slot="accounts-workspace"]')).toBeVisible();
+    await expect(page.locator('[data-slot="account-overview-workspace"]')).toBeVisible();
     await expect(page.locator('[data-slot="accounts-summary"]')).toContainText(
       "đang hoạt động",
     );
