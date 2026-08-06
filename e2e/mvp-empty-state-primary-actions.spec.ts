@@ -25,16 +25,21 @@ async function settleRoute(page: Page) {
   await page.evaluate(
     () =>
       new Promise<void>((resolve) => {
-        window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+        window.requestAnimationFrame(() =>
+          window.requestAnimationFrame(() => resolve()),
+        );
       }),
   );
 }
 
 async function seedDeterministicEmptyDemo(page: Page) {
-  const response = await page.goto("/transactions", { waitUntil: "domcontentloaded" });
-  expect(response?.status() ?? 200, "/transactions should load for fixture setup").toBeLessThan(
-    400,
-  );
+  const response = await page.goto("/transactions", {
+    waitUntil: "domcontentloaded",
+  });
+  expect(
+    response?.status() ?? 200,
+    "/transactions should load for fixture setup",
+  ).toBeLessThan(400);
   await page.evaluate((keys) => {
     window.localStorage.clear();
     window.localStorage.setItem(keys.transactions, "[]");
@@ -66,13 +71,22 @@ test.describe("locked MVP empty-state release gate", () => {
     }> = [];
 
     for (const route of CORE_ROUTES) {
-      const response = await page.goto(route, { waitUntil: "domcontentloaded" });
-      expect(response?.status() ?? 200, `${route} should load`).toBeLessThan(400);
-      await expect(page.locator("body")).toContainText(/\S/, { timeout: 15_000 });
+      const response = await page.goto(route, {
+        waitUntil: "domcontentloaded",
+      });
+      expect(response?.status() ?? 200, `${route} should load`).toBeLessThan(
+        400,
+      );
+      await expect(page.locator("body")).toContainText(/\S/, {
+        timeout: 15_000,
+      });
       await settleRoute(page);
       if (route === "/transactions") {
         await expect(
-          page.getByRole("heading", { name: "Chưa có giao dịch", exact: true }),
+          page.getByRole("heading", {
+            name: "Chưa có giao dịch",
+            exact: true,
+          }),
         ).toBeVisible({ timeout: 15_000 });
       }
 
@@ -120,12 +134,17 @@ test.describe("locked MVP empty-state release gate", () => {
       });
     }
 
-    await testInfo.attach(`mvp-empty-state-actions-${testInfo.project.name}.json`, {
-      body: Buffer.from(JSON.stringify(evidence, null, 2)),
-      contentType: "application/json",
-    });
+    await testInfo.attach(
+      `mvp-empty-state-actions-${testInfo.project.name}.json`,
+      {
+        body: Buffer.from(JSON.stringify(evidence, null, 2)),
+        contentType: "application/json",
+      },
+    );
 
-    const transactionsEvidence = evidence.find((item) => item.route === "/transactions");
+    const transactionsEvidence = evidence.find(
+      (item) => item.route === "/transactions",
+    );
     expect(
       transactionsEvidence?.actionRegions ?? 0,
       "the deterministic empty transaction store must render the real Transactions empty action region",
@@ -137,15 +156,26 @@ test.describe("locked MVP empty-state release gate", () => {
     ).toBeGreaterThan(0);
   });
 
-  test("Báo cáo exposes direct CSV and reaches advanced export in one click", async ({ page }) => {
+  test("Báo cáo exposes direct CSV and reaches advanced export in one click", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1366, height: 900 });
     await page.goto("/reports", { waitUntil: "domcontentloaded" });
     await settleRoute(page);
 
-    const directCsv = page.locator('a[href^="/reports/export?period="]:visible').first();
+    const directCsv = page
+      .getByRole("banner")
+      .getByRole("link", { name: "Xuất CSV", exact: true });
     await expect(directCsv).toBeVisible();
-    await expect(directCsv).toHaveAttribute("href", "/reports/export?period=month");
+    await expect(directCsv).toHaveAttribute(
+      "href",
+      "/reports/export?period=month",
+    );
 
-    const advancedExport = page.getByRole("link", { name: "Tùy chọn xuất", exact: true });
+    const advancedExport = page
+      .getByRole("main")
+      .getByRole("link", { name: "Tùy chọn xuất", exact: true })
+      .first();
     await expect(advancedExport).toBeVisible();
     await advancedExport.click();
     await expect(page).toHaveURL(/\/settings\/export(?:\?.*)?$/);
