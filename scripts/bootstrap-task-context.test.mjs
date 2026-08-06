@@ -88,7 +88,7 @@ test("router parser and aliases select the project-owned route", () => {
     loadNext: "`docs/design-system.md`, `docs/UX_PRINCIPLES.md`",
     verifyAgainst: "browser evidence",
   });
-  assert.throws(() => selectRoute(routes, "unknown"), /Unknown or ambiguous/);
+  assert.throws(() => selectRoute(routes, "unknown"), /Unknown boundary/);
 });
 
 test("every alias resolves against the current repository router", () => {
@@ -133,11 +133,13 @@ test("class 3 blocks without a packet and main blocks by default", () => {
       packet: null,
       allowMain: false,
       boundary: "ci",
+      base: "main",
     },
     route,
     git: {
       available: true,
       branch: "main",
+      baseComparisonAvailable: true,
       dirty: false,
     },
   });
@@ -166,18 +168,48 @@ test("packet and output paths cannot escape or bypass active-plan ownership", ()
       packet: "README.md",
       allowMain: true,
       boundary: "ci",
+      base: "main",
     },
     route,
     git: {
       available: true,
       branch: "feat/tooling",
+      baseComparisonAvailable: true,
+      dirty: false,
+    },
+  });
+
+  assert.equal(validation.packet, null);
+  assert.ok(
+    validation.errors.some((message) =>
+      message.includes("docs/plans/active/"),
+    ),
+  );
+});
+
+test("missing base comparison produces a visible warning", () => {
+  const route = selectRoute(parseContextRoutes(ROUTER), "product");
+  const validation = validateTaskState({
+    root: process.cwd(),
+    options: {
+      riskClass: 0,
+      packet: null,
+      allowMain: false,
+      boundary: "product",
+      base: "main",
+    },
+    route,
+    git: {
+      available: true,
+      branch: "docs/task",
+      baseComparisonAvailable: false,
       dirty: false,
     },
   });
 
   assert.ok(
-    validation.errors.some((message) =>
-      message.includes("docs/plans/active/"),
+    validation.warnings.some((message) =>
+      message.includes("committed changed files could not be calculated"),
     ),
   );
 });
@@ -186,7 +218,6 @@ test("manifest follows the mandatory read order and selected gates", () => {
   const route = selectRoute(parseContextRoutes(ROUTER), "ui");
   const validation = { errors: [], warnings: [], packet: null };
   const manifest = buildManifest({
-    root: "/missing-root",
     options: {
       task: "Migrate Reports workspace",
       boundary: "ui",
@@ -196,6 +227,8 @@ test("manifest follows the mandatory read order and selected gates", () => {
     git: {
       branch: "feat/reports",
       head: "abc123",
+      baseRef: "main",
+      baseComparisonAvailable: true,
       dirty: false,
       changedFiles: ["src/app/reports/page.tsx"],
     },
@@ -210,6 +243,7 @@ test("manifest follows the mandatory read order and selected gates", () => {
   assert.match(markdown, /docs\/design-system\.md/);
   assert.match(markdown, /test:ui-audit:pr/);
   assert.match(markdown, /layout, styling/);
+  assert.match(markdown, /Base comparison:\*\* main/);
 
   const readme = markdown.indexOf("README.md");
   const affectedCode = markdown.indexOf("Inspect the affected code");
@@ -222,7 +256,6 @@ test("class 3 manifests include operating-model context and the packet", () => {
   const route = selectRoute(parseContextRoutes(ROUTER), "ci");
   const packet = "docs/plans/active/ci-recovery-tooling.md";
   const manifest = buildManifest({
-    root: "/missing-root",
     options: {
       task: "Recover exact-head CI",
       boundary: "ci",
@@ -232,6 +265,8 @@ test("class 3 manifests include operating-model context and the packet", () => {
     git: {
       branch: "feat/ci-recovery",
       head: "def456",
+      baseRef: "main",
+      baseComparisonAvailable: true,
       dirty: false,
       changedFiles: [],
     },
