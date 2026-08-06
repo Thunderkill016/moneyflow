@@ -1,15 +1,22 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import {
+  SecondaryHeader,
+  SecondarySection,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   countPending,
   readStoredCandidates,
 } from "@/lib/inbox/candidate-store";
 import {
+  PARSER_IMPROVEMENT_AVAILABLE,
   RAW_RETENTION_OPTIONS,
   defaultPrivacyPrefs,
   formatPrivacyActivityAt,
@@ -18,19 +25,14 @@ import {
   type PrivacyPrefs,
   type RawRetention,
 } from "@/lib/privacy-prefs";
+import styles from "./settings/settings-surfaces.module.css";
 
-/**
- * Privacy settings (wireframes-inbox §18 + R8 G5 trust).
- * Lead with ownership / no bank password; parsed-draft preferences secondary.
- */
 export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
-  const formId = useId();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inboxCount, setInboxCount] = useState(0);
   const [prefs, setPrefs] = useState<PrivacyPrefs>(defaultPrivacyPrefs);
   const [rawRetention, setRawRetention] = useState<RawRetention>("days_7");
-  const [improveParser, setImproveParser] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [notice, setNotice] = useState("");
@@ -40,12 +42,11 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
       const stored = readPrivacyPrefs();
       setPrefs(stored);
       setRawRetention(stored.rawRetention);
-      setImproveParser(stored.improveParser);
       setInboxCount(countPending(readStoredCandidates()));
       setDirty(false);
       setError(null);
     } catch {
-      setError("Không đọc được tùy chọn quyền riêng tư từ trình duyệt. Thử tải lại trang.");
+      setError("Không đọc được tùy chọn quyền riêng tư trên trình duyệt. Thử lại.");
     }
   }
 
@@ -63,28 +64,18 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  function onRetentionChange(value: RawRetention) {
-    setRawRetention(value);
-    setDirty(true);
-  }
-
-  function onImproveChange(checked: boolean) {
-    setImproveParser(checked);
-    setDirty(true);
-  }
-
   function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || !dirty) return;
     setSaving(true);
     try {
       const next = savePrivacyPrefs({
         rawRetention,
-        improveParser,
+        improveParser: false,
       });
       setPrefs(next);
       setDirty(false);
-      setNotice("Đã lưu tùy chọn quyền riêng tư.");
+      setNotice("Đã lưu thời gian giữ draft import.");
       setError(null);
     } catch {
       setError("Không lưu được tùy chọn. Thử lại.");
@@ -95,7 +86,6 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
 
   function onReset() {
     setRawRetention(prefs.rawRetention);
-    setImproveParser(prefs.improveParser);
     setDirty(false);
   }
 
@@ -106,240 +96,200 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
       notice={notice}
       primaryAction={{
         label: saving ? "Đang lưu…" : "Lưu",
-        onClick: () => {
-          const form = document.getElementById(formId) as HTMLFormElement | null;
-          form?.requestSubmit();
-        },
+        onClick: () =>
+          (document.getElementById("privacy-settings-form") as HTMLFormElement | null)?.requestSubmit(),
         disabled: saving || !ready || Boolean(error) || !dirty,
         icon: "check",
       }}
     >
-      <main className="dashboard privacy-workspace">
-        <section className="transactions-title-row">
-          <div>
-            <p className="eyebrow">Cài đặt</p>
-            <h1>Quyền riêng tư</h1>
-            <p>
-              <strong>Dữ liệu của bạn thuộc về bạn.</strong> MoneyFlow không hỏi
-              mật khẩu ngân hàng. Bạn xuất hoặc xóa bất cứ lúc nào.
-            </p>
-            <ul className="settings-trust-bar" aria-label="Cam kết tin cậy">
-              <li>
-                <Icon name="lock" size={14} />
-                <span>Không mật khẩu NH</span>
-              </li>
-              <li>
-                <Icon name="arrowDown" size={14} />
-                <span>Xuất CSV</span>
-              </li>
-              <li>
-                <Icon name="trash" size={14} />
-                <span>Xóa khi muốn</span>
-              </li>
-            </ul>
-          </div>
-          <div className="page-heading-actions">
-            <Link className="secondary-button" href="/settings">
-              <Icon name="settings" />
-              Cài đặt
-            </Link>
-            <Link className="secondary-button" href="/settings/export">
-              <Icon name="arrowDown" />
-              Xuất dữ liệu
-            </Link>
-            <Link className="secondary-button" href="/privacy">
-              <Icon name="lock" />
-              Chính sách
-            </Link>
-          </div>
-        </section>
-
-        {!ready && (
-          <section
-            className="panel privacy-loading"
-            aria-busy="true"
-            aria-label="Đang tải quyền riêng tư"
-          >
-            <div className="loading-line wide" />
-            <div className="loading-line" />
-            <div className="loading-line" />
-          </section>
-        )}
-
-        {ready && error && (
-          <section className="panel privacy-error" role="alert">
-            <p>{error}</p>
-            <button type="button" className="secondary-button" onClick={reload}>
-              Thử lại
-            </button>
-          </section>
-        )}
-
-        {ready && !error && (
-          <form
-            id={formId}
-            className="privacy-form"
-            onSubmit={onSubmit}
-            noValidate
-          >
-            <section
-              className="panel privacy-panel privacy-trust-panel"
-              aria-labelledby={`${formId}-trust-heading`}
-            >
-              <h2 id={`${formId}-trust-heading`}>Cam kết tin cậy</h2>
-              <p className="privacy-panel-lead">
-                Không kết nối ngân hàng, không lấy mật khẩu NH / OTP. Sổ thu chi
-                của bạn — mang đi (xuất) hoặc xóa khi cần. Chi tiết:{" "}
-                <Link href="/privacy">chính sách quyền riêng tư</Link>.
+      <SecondaryWorkspace slot="settings-privacy-workspace">
+        <SecondaryHeader
+          section="Cài đặt · Quyền dữ liệu"
+          title="Quyền riêng tư"
+          description={
+            <>
+              <p>
+                MoneyFlow không hỏi mật khẩu ngân hàng hoặc OTP. Trang này chỉ quản
+                lý thời gian giữ draft import trên thiết bị và hiển thị trạng thái
+                những khả năng dữ liệu đang thực sự hoạt động.
               </p>
-              <ul className="privacy-trust-links">
+              <ul className={styles.trustBar} aria-label="Cam kết tin cậy">
                 <li>
-                  <Link href="/settings/export">Xuất dữ liệu (CSV/JSON)</Link>
+                  <Icon name="lock" />
+                  Không mật khẩu ngân hàng
                 </li>
                 <li>
-                  <Link href="/settings/delete-account">Xóa tài khoản / dữ liệu thiết bị</Link>
+                  <Icon name="arrowDown" />
+                  Xuất giao dịch/Inbox
+                </li>
+                <li>
+                  <Icon name="trash" />
+                  Yêu cầu xóa tài khoản
                 </li>
               </ul>
-            </section>
+            </>
+          }
+          actions={
+            <>
+              <LinkButton href="/settings" intent="secondary" targetSize="important">
+                Cài đặt
+              </LinkButton>
+              <LinkButton
+                href="/settings/export"
+                intent="secondary"
+                targetSize="important"
+              >
+                Xuất dữ liệu
+              </LinkButton>
+              <LinkButton href="/privacy" intent="quiet" targetSize="important">
+                Chính sách
+              </LinkButton>
+            </>
+          }
+        />
 
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-retention-heading`}
+        {!ready ? (
+          <section className={styles.loading} aria-busy="true" aria-label="Đang tải quyền riêng tư">
+            <span />
+            <span />
+            <span />
+          </section>
+        ) : null}
+
+        {ready && error ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertAction}>
+              <span>{error}</span>
+              <Button type="button" intent="secondary" targetSize="important" onClick={reload}>
+                Thử lại
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {ready && !error ? (
+          <form id="privacy-settings-form" className={styles.form} onSubmit={onSubmit} noValidate>
+            <SecondarySection
+              title="Giữ draft import trên thiết bị"
+              description={
+                <p>
+                  MoneyFlow không giữ file gốc trong preference này. Chỉ các dòng đã
+                  parse và đoạn mô tả ngắn có thể được giữ để tiếp tục xem trước.
+                </p>
+              }
+              contained
+              slot="settings-section"
             >
-              <h2 id={`${formId}-retention-heading`}>
-                Giữ draft import (Nâng cao)
-              </h2>
-              <p className="privacy-panel-lead">
-                MoneyFlow không lưu file gốc. Sau khi đọc file, chỉ các dòng đã
-                parse và đoạn mô tả ngắn được giữ trên trình duyệt để bạn xem
-                trước. Tùy chọn bên dưới được áp dụng thật khi mở lại ứng dụng.
-              </p>
-              <fieldset className="privacy-fieldset">
+              <fieldset>
                 <legend className="sr-only">Thời gian giữ draft import</legend>
-                <div
-                  className="privacy-radio-list"
-                  role="radiogroup"
-                  aria-label="Thời gian giữ draft import"
-                >
+                <div className={styles.radioList}>
                   {RAW_RETENTION_OPTIONS.map((option) => {
-                    const inputId = `${formId}-ret-${option.value}`;
                     const selected = rawRetention === option.value;
                     return (
                       <label
                         key={option.value}
-                        htmlFor={inputId}
-                        className={`privacy-radio-card${selected ? " is-selected" : ""}`}
+                        className={
+                          selected
+                            ? `${styles.radioCard} ${styles.radioSelected}`
+                            : styles.radioCard
+                        }
                       >
                         <input
-                          id={inputId}
                           type="radio"
                           name="rawRetention"
                           value={option.value}
                           checked={selected}
-                          onChange={() => onRetentionChange(option.value)}
+                          onChange={() => {
+                            setRawRetention(option.value);
+                            setDirty(true);
+                          }}
                           disabled={saving}
                         />
-                        <span className="privacy-radio-body">
-                          <span className="privacy-radio-label">{option.label}</span>
-                          <span className="privacy-radio-desc">{option.description}</span>
+                        <span className={styles.radioBody}>
+                          <span className={styles.radioLabel}>{option.label}</span>
+                          <span className={styles.radioDescription}>{option.description}</span>
                         </span>
                       </label>
                     );
                   })}
                 </div>
               </fieldset>
-            </section>
+            </SecondarySection>
 
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-improve-heading`}
+            <SecondarySection
+              title="Cải thiện parser"
+              description={<p>Trạng thái khả năng gửi mẫu để cải thiện parser.</p>}
+              contained
+              slot="privacy-capability-status"
             >
-              <h2 id={`${formId}-improve-heading`}>Cải thiện parser (tùy chọn)</h2>
-              <label
-                className="privacy-check-row"
-                htmlFor={`${formId}-improve`}
-              >
-                <input
-                  id={`${formId}-improve`}
-                  type="checkbox"
-                  checked={improveParser}
-                  onChange={(e) => onImproveChange(e.target.checked)}
-                  disabled={saving}
-                />
-                <span>
-                  <span className="privacy-check-title">
-                    Cho phép dùng mẫu đã ẩn danh để cải thiện parser
-                  </span>
-                  <span className="privacy-check-desc">
-                    Tắt mặc định. Không gửi số dư, tên tài khoản hay dữ liệu nhận
-                    diện cá nhân khi bật.
+              <div className={`${styles.checkRow} ${styles.disabledCapability}`}>
+                <input type="checkbox" checked={false} disabled readOnly />
+                <span className={styles.checkBody}>
+                  <span className={styles.checkTitle}>Chia sẻ mẫu đã ẩn danh</span>
+                  <span className={styles.checkDescription}>
+                    Chưa khả dụng. MoneyFlow hiện không có pipeline gửi mẫu parser,
+                    quy tắc ẩn danh, thời gian lưu hoặc cơ chế rút consent để thực thi
+                    khả năng này.
                   </span>
                 </span>
-              </label>
-            </section>
+              </div>
+              <span className={styles.capabilityStatus}>
+                {PARSER_IMPROVEMENT_AVAILABLE ? "Đang khả dụng" : "Chưa khả dụng · không ghi consent"}
+              </span>
+            </SecondarySection>
 
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-log-heading`}
+            <SecondarySection
+              title="Nhật ký trên thiết bị"
+              description={<p>Các mốc này chỉ được lưu trong browser hiện tại.</p>}
+              contained
+              slot="settings-section"
             >
-              <h2 id={`${formId}-log-heading`}>Nhật ký</h2>
-              <ul className="privacy-activity-list">
+              <ul className={styles.activityList}>
                 <li>
-                  <span className="privacy-activity-label">Xuất dữ liệu gần nhất</span>
-                  <time
-                    className="privacy-activity-value font-mono"
-                    dateTime={prefs.lastExportAt ?? undefined}
-                  >
+                  <span className={styles.activityLabel}>Xuất dữ liệu gần nhất</span>
+                  <time className={styles.activityValue} dateTime={prefs.lastExportAt ?? undefined}>
                     {formatPrivacyActivityAt(prefs.lastExportAt)}
                   </time>
                 </li>
                 <li>
-                  <span className="privacy-activity-label">Xóa dữ liệu gần nhất</span>
-                  <time
-                    className="privacy-activity-value font-mono"
-                    dateTime={prefs.lastDeleteAt ?? undefined}
-                  >
+                  <span className={styles.activityLabel}>Xóa dữ liệu gần nhất</span>
+                  <time className={styles.activityValue} dateTime={prefs.lastDeleteAt ?? undefined}>
                     {formatPrivacyActivityAt(prefs.lastDeleteAt)}
                   </time>
                 </li>
                 <li>
-                  <span className="privacy-activity-label">Lần lưu tùy chọn</span>
-                  <time
-                    className="privacy-activity-value font-mono"
-                    dateTime={prefs.updatedAt ?? undefined}
-                  >
+                  <span className={styles.activityLabel}>Lưu tùy chọn gần nhất</span>
+                  <time className={styles.activityValue} dateTime={prefs.updatedAt ?? undefined}>
                     {formatPrivacyActivityAt(prefs.updatedAt)}
                   </time>
                 </li>
               </ul>
-              <p className="privacy-activity-hint">
-                Nhật ký chỉ lưu trên trình duyệt này.{" "}
-                <Link href="/settings/export">Xuất dữ liệu</Link> ghi mốc xuất;{" "}
-                <Link href="/settings/delete-account">Xóa tài khoản</Link> xóa
-                dữ liệu thiết bị (và đăng xuất).
-              </p>
-            </section>
+            </SecondarySection>
 
-            <div className="privacy-form-actions">
-              <button
+            <div className={styles.formActions}>
+              <Button
                 type="submit"
-                className="primary-button"
-                disabled={saving || !dirty}
+                intent="primary"
+                targetSize="important"
+                pending={saving}
+                pendingLabel="Đang lưu…"
+                disabled={!dirty}
               >
-                {saving ? "Đang lưu…" : "Lưu"}
-              </button>
-              <button
+                Lưu
+              </Button>
+              <Button
                 type="button"
-                className="secondary-button"
+                intent="secondary"
+                targetSize="important"
                 disabled={saving || !dirty}
                 onClick={onReset}
               >
                 Hoàn tác
-              </button>
+              </Button>
             </div>
           </form>
-        )}
-      </main>
+        ) : null}
+      </SecondaryWorkspace>
     </AppShell>
   );
 }
