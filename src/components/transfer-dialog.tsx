@@ -330,7 +330,7 @@ export function TransferDialog({
               currencyCode={sourceCurrency}
               emphasis="strong"
               align="start"
-              label="Số tiền chuyển"
+              label="Số tiền trong phần kiểm tra chuyển khoản"
             />
           </div>
         </div>
