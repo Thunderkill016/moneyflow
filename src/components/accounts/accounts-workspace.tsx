@@ -238,7 +238,7 @@ export function AccountsWorkspace({
       showPrimaryActionOnMobile
       notice={notice}
     >
-      <main data-slot="accounts-workspace" className={styles.workspace}>
+      <main data-slot="account-overview-workspace" className={styles.workspace}>
         {dataError ? (
           <Alert tone="error" live="assertive" className={styles.alert}>
             <AlertTitle>Chưa tải được tài khoản</AlertTitle>
