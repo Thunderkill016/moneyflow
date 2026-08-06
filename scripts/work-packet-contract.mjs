@@ -24,6 +24,14 @@ export const CONTROL_CONTRACT = {
   ],
 };
 
+const ACTIVE_PACKET_PATHSPEC = ":(glob)docs/plans/active/*.md";
+
+function headingCount(markdown, heading) {
+  return markdown
+    .split(/\r?\n/u)
+    .filter((line) => line.trim() === heading).length;
+}
+
 function sectionBody(markdown, heading) {
   const lines = markdown.split(/\r?\n/u);
   const start = lines.findIndex((line) => line.trim() === heading);
@@ -40,39 +48,92 @@ function sectionBody(markdown, heading) {
   return body.join("\n");
 }
 
-function fieldValue(section, label) {
+function fieldValues(section, label) {
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-  const match = section.match(new RegExp(`^-\\s+${escaped}:\\s*(.*)$`, "mu"));
-  return match?.[1]?.trim() ?? null;
+  return [...section.matchAll(new RegExp(`^-\\s+${escaped}:\\s*(.*)$`, "gmu"))]
+    .map((match) => match[1].trim());
 }
 
 function isUnresolved(value) {
   if (value === null || value.length === 0) return true;
-  if (/^<.*>$/u.test(value)) return true;
-  return /^(todo|tbd|unknown)$/iu.test(value);
+  if (/<[^>\n]+>/u.test(value)) return true;
+  if (/^(?:todo|tbd|unknown)\b/iu.test(value)) return true;
+  return /^(?:n\/?a|not applicable|none)$/iu.test(value);
+}
+
+function normalizeSignal(value) {
+  return value.trim().replace(/\s+/gu, " ").toLowerCase();
 }
 
 export function validateWorkPacket(markdown, { allowPlaceholders = false } = {}) {
   const failures = [];
+  const controlHeading = "## Control contract";
+  const controlCount = headingCount(markdown, controlHeading);
 
-  if (!markdown.includes("## Control contract")) {
-    failures.push("missing required heading: ## Control contract");
+  if (controlCount === 0) {
+    failures.push(`missing required heading: ${controlHeading}`);
+    return failures;
+  }
+  if (controlCount > 1) {
+    failures.push(`duplicate required heading: ${controlHeading}`);
   }
 
+  const controlSection = sectionBody(markdown, controlHeading);
+  if (controlSection === null) return failures;
+
+  const values = new Map();
   for (const [heading, fields] of Object.entries(CONTROL_CONTRACT)) {
-    const section = sectionBody(markdown, heading);
-    if (section === null) {
-      failures.push(`missing required heading: ${heading}`);
+    const count = headingCount(controlSection, heading);
+    if (count === 0) {
+      failures.push(`${controlHeading} is missing required heading: ${heading}`);
       continue;
     }
+    if (count > 1) {
+      failures.push(`${controlHeading} has duplicate heading: ${heading}`);
+    }
+
+    const section = sectionBody(controlSection, heading);
+    if (section === null) continue;
 
     for (const field of fields) {
-      const value = fieldValue(section, field);
-      if (value === null) {
+      const matches = fieldValues(section, field);
+      const value = matches[0] ?? null;
+      values.set(`${heading}:${field}`, value);
+      if (matches.length === 0) {
         failures.push(`${heading} is missing field: ${field}`);
-      } else if (!allowPlaceholders && isUnresolved(value)) {
-        failures.push(`${heading} has unresolved field: ${field}`);
+      } else {
+        if (matches.length > 1) {
+          failures.push(`${heading} has duplicate field: ${field}`);
+        }
+        if (!allowPlaceholders && isUnresolved(value)) {
+          failures.push(`${heading} has unresolved field: ${field}`);
+        }
       }
+    }
+  }
+
+  if (!allowPlaceholders) {
+    const expected = values.get("### Feedback:Expected failing signal");
+    const success = values.get("### Feedback:Success signal");
+    const semantic = values.get("### Feedback:Semantic evidence");
+
+    if (
+      expected &&
+      success &&
+      normalizeSignal(expected) === normalizeSignal(success)
+    ) {
+      failures.push(
+        "### Feedback must distinguish the expected failing signal from the success signal",
+      );
+    }
+    if (
+      success &&
+      semantic &&
+      normalizeSignal(success) === normalizeSignal(semantic)
+    ) {
+      failures.push(
+        "### Feedback must distinguish the deterministic success signal from semantic evidence",
+      );
     }
   }
 
@@ -91,54 +152,115 @@ function runGit(root, args) {
   }
 }
 
-function resolveBase(root, requestedBase) {
-  const candidates = [requestedBase, process.env.WORK_PACKET_BASE, "main", "origin/main"]
-    .filter(Boolean)
-    .filter((value, index, values) => values.indexOf(value) === index);
+function verifyRef(root, ref) {
+  return runGit(root, [
+    "rev-parse",
+    "--verify",
+    "--end-of-options",
+    `${ref}^{commit}`,
+  ]);
+}
 
-  for (const candidate of candidates) {
-    if (runGit(root, ["rev-parse", "--verify", candidate])) return candidate;
+function resolveBase(root, requestedBase) {
+  const explicitBase = requestedBase ?? process.env.WORK_PACKET_BASE ?? null;
+  if (explicitBase) {
+    if (verifyRef(root, explicitBase)) {
+      return { base: explicitBase, error: null };
+    }
+    return {
+      base: null,
+      error: `requested work-packet base ref does not exist: ${explicitBase}`,
+    };
   }
-  return null;
+
+  for (const candidate of ["main", "origin/main"]) {
+    if (verifyRef(root, candidate)) return { base: candidate, error: null };
+  }
+  return {
+    base: null,
+    error: "work-packet diff scope requires a resolvable main or origin/main ref",
+  };
+}
+
+function changedPaths(root, args, errorMessage) {
+  const output = runGit(root, args);
+  if (output === null) return { files: [], error: errorMessage };
+  return { files: output.split(/\r?\n/u).filter(Boolean), error: null };
 }
 
 export function collectChangedActivePackets(root, requestedBase = null) {
-  const base = resolveBase(root, requestedBase);
-  if (!base) {
-    return {
-      files: [],
-      warning:
-        "Work-packet diff scope could not be resolved because neither the requested base, main nor origin/main exists.",
-    };
+  const resolved = resolveBase(root, requestedBase);
+  if (resolved.error) {
+    return { files: [], error: resolved.error, base: null };
   }
 
-  const mergeBase = runGit(root, ["merge-base", "HEAD", base]);
+  const mergeBase = runGit(root, ["merge-base", "HEAD", resolved.base]);
   if (!mergeBase) {
     return {
       files: [],
-      warning: `Work-packet diff scope could not find a merge base with ${base}.`,
+      error: `work-packet diff scope could not find a merge base with ${resolved.base}`,
+      base: resolved.base,
     };
   }
 
-  const output = runGit(root, [
-    "diff",
-    "--name-only",
-    "--diff-filter=ACMR",
-    `${mergeBase}...HEAD`,
-    "--",
-    ":(glob)docs/plans/active/*.md",
-  ]);
+  const sources = [
+    changedPaths(
+      root,
+      [
+        "diff",
+        "--name-only",
+        "--diff-filter=ACMR",
+        `${mergeBase}...HEAD`,
+        "--",
+        ACTIVE_PACKET_PATHSPEC,
+      ],
+      "work-packet committed diff could not be read from Git",
+    ),
+    changedPaths(
+      root,
+      [
+        "diff",
+        "--cached",
+        "--name-only",
+        "--diff-filter=ACMR",
+        "--",
+        ACTIVE_PACKET_PATHSPEC,
+      ],
+      "work-packet staged diff could not be read from Git",
+    ),
+    changedPaths(
+      root,
+      [
+        "diff",
+        "--name-only",
+        "--diff-filter=ACMR",
+        "--",
+        ACTIVE_PACKET_PATHSPEC,
+      ],
+      "work-packet unstaged diff could not be read from Git",
+    ),
+    changedPaths(
+      root,
+      [
+        "ls-files",
+        "--others",
+        "--exclude-standard",
+        "--",
+        ACTIVE_PACKET_PATHSPEC,
+      ],
+      "work-packet untracked-file scope could not be read from Git",
+    ),
+  ];
 
-  if (output === null) {
-    return {
-      files: [],
-      warning: "Work-packet diff scope could not be read from Git.",
-    };
+  const failedSource = sources.find((source) => source.error);
+  if (failedSource) {
+    return { files: [], error: failedSource.error, base: resolved.base };
   }
 
   return {
-    files: output.split(/\r?\n/u).filter(Boolean),
-    warning: null,
+    files: [...new Set(sources.flatMap((source) => source.files))].sort(),
+    error: null,
+    base: resolved.base,
   };
 }
 
@@ -158,7 +280,9 @@ export function validateRepositoryWorkPackets(root, requestedBase = null) {
   }
 
   const changed = collectChangedActivePackets(root, requestedBase);
-  if (changed.warning) warnings.push(changed.warning);
+  if (changed.error) {
+    failures.push(`work-packet scope unavailable: ${changed.error}`);
+  }
 
   for (const file of changed.files) {
     const absolute = resolve(root, file);
@@ -168,14 +292,38 @@ export function validateRepositoryWorkPackets(root, requestedBase = null) {
     }
   }
 
-  return { failures, warnings, checkedPackets: changed.files };
+  return {
+    failures,
+    warnings,
+    checkedPackets: changed.files,
+    base: changed.base,
+  };
 }
 
 export function main(argv = process.argv.slice(2)) {
-  const baseIndex = argv.indexOf("--base");
+  const baseIndices = argv
+    .map((value, index) => (value === "--base" ? index : -1))
+    .filter((index) => index !== -1);
+  if (baseIndices.length > 1) {
+    console.error("--base may be provided only once");
+    return 2;
+  }
+
+  const baseIndex = baseIndices[0] ?? -1;
   const requestedBase = baseIndex === -1 ? null : argv[baseIndex + 1];
   if (baseIndex !== -1 && (!requestedBase || requestedBase.startsWith("--"))) {
     console.error("--base requires a Git ref");
+    return 2;
+  }
+
+  const consumedIndices = new Set();
+  if (baseIndex !== -1) {
+    consumedIndices.add(baseIndex);
+    consumedIndices.add(baseIndex + 1);
+  }
+  const unknownArgs = argv.filter((value, index) => !consumedIndices.has(index));
+  if (unknownArgs.length > 0) {
+    console.error(`unknown argument(s): ${unknownArgs.join(", ")}`);
     return 2;
   }
 
@@ -185,7 +333,7 @@ export function main(argv = process.argv.slice(2)) {
 
   if (result.failures.length === 0) {
     console.log(
-      `Work-packet contract passed (${result.checkedPackets.length} changed active packet(s)).`,
+      `Work-packet contract passed (${result.checkedPackets.length} changed active packet(s), base ${result.base}).`,
     );
   }
   return result.failures.length > 0 ? 1 : 0;
