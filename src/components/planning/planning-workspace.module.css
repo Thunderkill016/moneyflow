@@ -302,17 +302,17 @@
 .progressFill[data-tone="watch"],
 .progressFill[data-tone="near"],
 .progressFill[data-tone="soon"] {
-  background: var(--mf-warning-default);
+  background: var(--mf-warning);
 }
 
 .progressFill[data-tone="over"],
 .progressFill[data-tone="overdue"] {
-  background: var(--mf-expense-default);
+  background: var(--mf-expense);
 }
 
 .progressFill[data-tone="paid"],
 .progressFill[data-tone="achieved"] {
-  background: var(--mf-income-default);
+  background: var(--mf-income);
 }
 
 .actions {
