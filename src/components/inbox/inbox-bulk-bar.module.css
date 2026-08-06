@@ -1,7 +1,7 @@
 .bar {
   position: sticky;
   z-index: 20;
-  bottom: calc(var(--mf-mobile-nav-height, 0px) + 0.75rem);
+  bottom: 0.75rem;
   min-width: 0;
   border: 1px solid var(--mf-border);
   border-radius: 1rem;
@@ -104,7 +104,7 @@
 
 @media (max-width: 520px) {
   .bar {
-    bottom: calc(var(--mf-mobile-nav-height, 0px) + 0.35rem);
+    bottom: 0.35rem;
     border-radius: 0.875rem;
   }
 
