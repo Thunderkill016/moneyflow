@@ -28,6 +28,11 @@ const page = readFileSync(
   join(root, "src/components/delete-account-page.tsx"),
   "utf8",
 );
+const receipt = readFileSync(
+  join(root, "src/app/account-deletion-result/page.tsx"),
+  "utf8",
+);
+const proxy = readFileSync(join(root, "src/proxy.ts"), "utf8");
 
 const tenantTables = [
   "profiles",
@@ -162,7 +167,23 @@ test("authenticated UI deletes server account before wiping local data", () => {
     "local data must be preserved when server deletion fails",
   );
   assert.match(page, /if \(!result\.ok\)/);
-  assert.match(page, /localCleanup", "partial"/);
-  assert.match(page, /serverCleanup", "unverified"/);
-  assert.match(page, /!result\.cleanupVerified/);
+  assert.match(
+    page,
+    /params\.set\("localCleanup", failedKeys\.length === 0 \? "complete" : "partial"\)/,
+  );
+  assert.match(
+    page,
+    /params\.set\("serverCleanup", result\.cleanupVerified \? "verified" : "unverified"\)/,
+  );
+  assert.match(page, /slot="delete-account-review"/);
+});
+
+test("account deletion outcome is rendered as an explicit noindex receipt", () => {
+  assert.match(proxy, /account-deletion-result/);
+  assert.match(receipt, /robots:\s*\{ index: false, follow: false \}/);
+  assert.match(receipt, /data-slot="account-deletion-receipt"/);
+  assert.match(receipt, /serverCleanup === "verified"/);
+  assert.match(receipt, /localCleanup === "complete"/);
+  assert.match(receipt, /cleanup chưa xác minh đầy đủ/);
+  assert.match(receipt, /Chỉ dọn được một phần/);
 });
