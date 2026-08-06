@@ -57,7 +57,7 @@ test("Accounts workspace composes Phase 2 primitives and stable evidence slots",
   assert.match(workspace, /@\/components\/ui\/button/);
   assert.match(workspace, /@\/components\/ui\/empty-state/);
   assert.match(workspace, /@\/components\/money-value/);
-  assert.match(workspace, /data-slot="accounts-workspace"/);
+  assert.match(workspace, /data-slot="account-overview-workspace"/);
   assert.match(workspace, /data-slot="accounts-summary"/);
   assert.match(workspace, /data-slot="accounts-active-list"/);
   assert.match(workspace, /data-slot="account-card"/);
