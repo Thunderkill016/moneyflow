@@ -1,14 +1,14 @@
 # MoneyFlow UI-system Phase 7 — Planning
 
 **Status:** active
-**Execution state:** implementing
-**Active role:** implementer
+**Execution state:** evaluating
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Parent packet:** `docs/plans/active/ui-system-migration.md`
 **Base main:** `372036fe8d1e583c3a81083ebef11f902e4f8b46`
 **Branch:** `feat/ui-phase-7-planning`
-**Pull request:** pending
+**Pull request:** #308
 **Last updated:** 2026-08-06
 
 The owner instructed **`làm đi`** after Phase 7 reconnaissance and comparison. This authorizes bounded specification correction, product-code work, tests and a focused pull request on the Phase 7 branch. It does not authorize merge, database/schema/Auth/RLS/provider writes, production-data access, a new budgeting model, goal-backed account movements or later UI phases.
@@ -21,18 +21,18 @@ Budgets, recurring expense commitments, recurring income templates and savings g
 
 At authorization:
 
-- Planning already has four working product boundaries under `src/components/planning/` and `src/lib/planning/`.
-- Budgets already support historical month selection, previous-month comparison, category progress and transaction drill-down.
-- Commitment payment creates a real expense ledger entry and undo removes the linked entry.
-- Income receipt creates a real income ledger entry and undo removes the linked entry.
-- Goals store `target`, `allocated`, deadline and archive state, but do not transfer or lock account money.
-- Shared `PlanningCard` only emits global class names and does not own its styles.
-- Planning pages share global `dashboard`, `budgets-heading`, `budget-overview`, card-grid, action and feedback classes.
-- Multiple planning mutations still use `window.confirm`.
-- Planning breadcrumbs still point at `/insights`, while the current route and vocabulary are `/dashboard` and `Tổng quan`.
-- Commitment copy claims MoneyFlow “giữ trước” money and protects “có thể chi”, even though the current domain only totals unpaid commitments.
-- Goal copy claims money is “khóa”, “mở khóa” or “rút ra”, while the current mutation changes only the goal allocation number.
-- `CURRENT_PROJECT_MEMORY.md` still describes merged/deployed Phase 6 as candidate-only.
+- Planning already had four working product boundaries under `src/components/planning/` and `src/lib/planning/`.
+- Budgets already supported historical month selection, previous-month comparison, category progress and transaction drill-down.
+- Commitment payment created a real expense ledger entry and undo removed the linked entry.
+- Income receipt created a real income ledger entry and undo removed the linked entry.
+- Goals stored `target`, `allocated`, deadline and archive state, but did not transfer or lock account money.
+- Shared `PlanningCard` only emitted global class names and did not own its styles.
+- Planning pages shared global `dashboard`, `budgets-heading`, `budget-overview`, card-grid, action and feedback classes.
+- Multiple Planning mutations still used `window.confirm`.
+- Planning breadcrumbs still pointed at `/insights`, while the current route and vocabulary are `/dashboard` and `Tổng quan`.
+- Commitment copy claimed MoneyFlow “giữ trước” money and protected “có thể chi”, even though the current domain only totaled unpaid commitments.
+- Goal copy claimed money was “khóa”, “mở khóa” or “rút ra”, while the current mutation changed only the goal allocation number.
+- `CURRENT_PROJECT_MEMORY.md` still described merged/deployed Phase 6 as candidate-only.
 
 Preserved invariants:
 
@@ -118,16 +118,27 @@ Stable evidence slots:
 
 | ID | Task | Status |
 |---|---|---|
-| P7-T1 packet and P6 truth reconciliation | implementing |
-| P7-T2 shared Planning page/card/review owners | pending |
-| P7-T3 Budgets migration | pending |
-| P7-T4 Commitments migration and truthful copy | pending |
-| P7-T5 Income templates migration | pending |
-| P7-T6 Goals migration and earmark truth | pending |
-| P7-T7 stable source/domain/browser evidence | pending |
-| P7-T8 active global Planning selector retirement | pending |
-| P7-T9 full verification matrix | pending |
+| P7-T1 packet and P6 truth reconciliation | implementing — packet done; snapshot update in this PR |
+| P7-T2 shared Planning page/card/review owners | done |
+| P7-T3 Budgets migration | done |
+| P7-T4 Commitments migration and truthful copy | done |
+| P7-T5 Income templates migration | done |
+| P7-T6 Goals migration and earmark truth | done |
+| P7-T7 stable source/domain evidence | done; browser matrix evaluating |
+| P7-T8 active global Planning selector retirement | active consumers removed; broad legacy definitions require separate zero-consumer proof |
+| P7-T9 full verification matrix | evaluating |
 | P7-T10 owner approval and merge | blocked pending explicit owner decision |
+
+## Evaluation
+
+Findings are fixed in the owning boundary rather than hidden or allowlisted:
+
+1. The first local tone modules referenced nonexistent `--mf-*-default` names. They now consume canonical `--mf-warning`, `--mf-expense` and `--mf-income` tokens from `document-theme.css`.
+2. A source contract initially registered the literal retired dashboard route while trying to forbid it. The test now builds the comparison string without adding a new legacy route reference.
+3. Draft PR runs correctly selected full verification but skipped the expensive jobs by workflow policy. PR #308 was marked ready for review solely to activate complete exact-head evaluation; this is not merge authorization.
+4. The first ready-for-review run proved static quality, typecheck, unit/static RLS and production build, while policy correctly rejected the missing PR memory record and missing Evaluation heading. Both governance artifacts are corrected in this documentation round.
+5. Review dialogs focus the least destructive **Hủy** action first and lock dismissal while pending.
+6. Active Planning routes no longer depend on the old global workspace/card/action vocabulary. Remaining global definitions are compatibility debt and are not deleted without repository-wide zero-consumer evidence.
 
 ## Verification plan
 
@@ -139,6 +150,13 @@ Stable evidence slots:
 - selected Chromium/WebKit phone, tablet, desktop, light/dark, 200% text and keyboard matrix;
 - CodeQL and secret-history scan;
 - no database job should be selected unless the diff unexpectedly crosses a database boundary.
+
+Current intermediate evidence at implementation head `feb8b1544753db530a67fa1e0b10a7b35bc698d2`:
+
+- draft classifier: success with 0 violations and full UI gates selected;
+- CodeQL #979, run `31084640123`: success;
+- secret-history scan #979, run `31084640260`: success;
+- ready-for-review CI #1863, run `31084800488`: static quality, typecheck, unit/static RLS and production build succeeded; database correctly reported not required; policy failed only for the two governance artifacts corrected above, so browser shards were dependency-skipped and are not claimed as evidence.
 
 ## Explicitly out of scope
 
