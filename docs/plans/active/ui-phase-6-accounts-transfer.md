@@ -1,7 +1,7 @@
 # MoneyFlow UI-system Phase 6 — Accounts and Transfer
 
 **Status:** active
-**Execution state:** evaluating
+**Execution state:** ready_for_review
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
@@ -11,68 +11,69 @@
 **Pull request:** #307
 **Last updated:** 2026-08-06
 
-The owner instructed **`Làm đi`** after the Phase 6 reconnaissance and Google/official-source review on 2026-08-06. This authorizes bounded Phase 6 specification correction, product-code work and verification on the focused branch. It does not authorize merge, deployment, database/schema/Auth/RLS/provider writes, production-data access, a new visual direction or later UI phases.
+The owner instructed **`Làm đi`** after Phase 6 repository reconnaissance and official-source research. This authorized bounded specification correction, product-code work and verification on the focused branch. It did not authorize merge, deployment, database/schema/Auth/RLS/provider writes, production-data access, a new visual direction or later UI phases.
 
 ## Outcome
 
-Accounts, account creation/editing, archive/restore review and transfer presentation become one coherent locally owned interface boundary. Existing financial calculations, transfer invariants, account lifecycle RPCs and reconciliation contracts remain unchanged.
+Accounts, account creation/editing, archive/restore review and transfer presentation now form one coherent locally owned candidate boundary. Existing account balances, archive RPCs, transfer mutations, reconciliation contracts and financial calculations remain unchanged.
 
 ## Repository reconnaissance
 
 At authorization:
 
-- `/accounts` used `src/components/accounts-page.tsx`, a small CSS Module and global classes including `dashboard`, `accounts-workspace`, `accounts-summary`, `account-card`, `secondary-button`, `data-alert` and `font-mono`.
-- `accounts-page.module.css` depended on `:global(...)` bridges and a local token redirect to survive a legacy `!important` card rule.
-- Accounts layout, cards, archive rows, mobile reflow and dark mode were jointly owned by several compatibility stylesheets.
-- `AccountDialog` duplicated native `<dialog>` lifecycle, used raw controls/global classes and exposed only a form-level error.
-- `TransferDialog` already used shared Dialog/field/action contracts and preserved same-currency/idempotent transfer behavior, but its presentation was owned by the Phase 5 transaction form module.
-- account register/detail already had a local owner and MoneyValue composition, so its financial projection is preserved.
-- `CURRENT_PROJECT_MEMORY.md` incorrectly said Phase 5 remained unauthorized after PR #306 had merged.
+- `/accounts` used `src/components/accounts-page.tsx` plus global `dashboard`, `accounts-workspace`, `accounts-summary`, `account-card`, action and feedback classes.
+- `accounts-page.module.css` used `:global(...)` bridges and a token redirect to survive a legacy `!important` rule.
+- account layout, cards, archive rows, mobile reflow and dark mode were jointly owned by compatibility stylesheets.
+- `AccountDialog` duplicated native `<dialog>` lifecycle and exposed only form-level error feedback.
+- `TransferDialog` already used Phase 2 primitives but borrowed Phase 5 transaction-form presentation.
+- account register/detail already had a local owner and remained outside calculation changes.
+- project memory incorrectly described merged Phase 5 as unauthorized.
 
-Implemented candidate:
+Verified candidate:
 
-- `/accounts` now uses `accounts/accounts-workspace.tsx` and a local CSS Module.
-- active totals are explicitly labeled and never aggregate unlike currencies.
-- archived accounts remain visible with retained balances, register access and restore actions.
+- `/accounts` uses `accounts/accounts-workspace.tsx` and its local CSS Module.
+- active totals are explicitly named and unlike currencies are never aggregated.
+- archived accounts retain visible balances, register access and restore actions.
 - account cards compose shared Alert, Button, LinkButton, EmptyState and MoneyValue contracts.
-- account creation/editing composes shared Dialog, TextField, SelectField, Button and Alert contracts with field-specific focus recovery.
-- archive review initially focuses the non-destructive action and explains balance/history consequences.
-- Transfer retains existing mutation/domain owners but has a dedicated presentation module and review summary.
-- retired `accounts-page.tsx` and `accounts-page.module.css` are deleted after route replacement.
+- account create/edit composes shared Dialog, TextField, SelectField, Button and Alert contracts with field-specific focus recovery.
+- credit-card debt is edited as an absolute input while its stored initial balance remains negative.
+- archive review initially focuses the non-destructive action and explains the effects on active totals, new-transaction choices, history and restore.
+- Transfer retains `executeTransferMutation` and domain preparation while using a dedicated presentation module and review summary.
+- retired `accounts-page.tsx` and `accounts-page.module.css` were deleted after route replacement.
+- evidence and regression contracts use stable semantic slots rather than retired presentation classes.
 - project memory records P5 merged truth and P6 candidate-only status.
 
 Preserved invariants:
 
-- VND remains integer đồng and supported non-VND currencies remain integer minor units.
-- account currency remains immutable after creation.
-- credit-card balances remain negative financial values.
-- transfers remain same-currency, balanced, idempotent and excluded from income/expense.
-- account balances continue to derive from existing account/ledger owners.
-- existing Server Actions, RPCs, tenant ownership and RLS remain unchanged.
-- account archive remains reversible through restore.
-- reconciliation database/domain/UI contracts remain separate and unchanged.
+- money remains integer minor units; VND remains integer đồng;
+- account currency remains immutable after creation;
+- credit-card balances remain negative financial values;
+- transfers remain same-currency, balanced, idempotent and excluded from income/expense;
+- existing Server Actions, RPCs, tenant ownership and RLS remain unchanged;
+- archive remains reversible;
+- reconciliation remains a separate merged boundary;
 - Fresh Blue/B3.2 and signed-in Light/Dark/System behavior remain unchanged.
 
 ## Research
 
 | Source | Authority/type | Applied decision |
 |---|---|---|
-| [WAI-ARIA APG Dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) | W3C WAI | shared Dialog owns focus entry/containment/return and Escape; destructive confirmation initially focuses the least destructive action |
-| [WCAG 2.2 Error Prevention](https://www.w3.org/WAI/WCAG22/Understanding/error-prevention-legal-financial-data.html) | W3C WAI | account archive must be reversible or reviewed/confirmed with clear consequences |
+| [WAI-ARIA APG Dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/) | W3C WAI | shared Dialog owns focus entry/containment/return and Escape; archive review initially focuses the least destructive action |
+| [WCAG 2.2 Error Prevention](https://www.w3.org/WAI/WCAG22/Understanding/error-prevention-legal-financial-data.html) | W3C WAI | account archive must be reversible or checked/confirmed with clear consequences |
 | [G168 confirmation technique](https://www.w3.org/WAI/WCAG22/Techniques/general/G168) | W3C WAI | confirmation names the selected account and explains the consequence of continuing |
-| [MDN `<dialog>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog) | web-platform reference | retain native modal/top-layer semantics through the shared Dialog owner |
-| [Actual Budget: Accounts](https://actualbudget.org/docs/accounts/) | established open-source PFM documentation | mature account-closing flows preserve history and explicitly handle non-zero balances |
-| [Actual Budget API reference](https://actualbudget.org/docs/api/reference/) | official product/API documentation | non-zero account closure is a financial lifecycle contract, not a presentation-only CSS decision |
+| [MDN `<dialog>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog) | web-platform reference | retain native modal/top-layer semantics through the shared owner |
+| [Actual Budget: Accounts](https://actualbudget.org/docs/accounts/) | established open-source PFM documentation | mature account closing preserves history and handles non-zero balances explicitly |
+| [Actual Budget API reference](https://actualbudget.org/docs/api/reference/) | official product/API documentation | non-zero closure is a financial lifecycle contract, not a presentation-only change |
 
 Observed:
 
 - MoneyFlow calculates headline totals from active accounts while archived accounts retain balances and history.
-- Requiring a zero balance or creating a balancing transfer would alter financial lifecycle behavior and cross a Class 3 boundary.
-- The existing archive mutation is reversible, but the previous `window.confirm` did not explain that archived balances leave active totals.
+- requiring zero balance or creating a balancing transfer would change financial lifecycle behavior.
+- the old reversible archive flow did not adequately explain its effect on active totals.
 
 Decision:
 
-- preserve the existing archive mutation and total calculation;
+- preserve the current mutation and total calculation;
 - label totals as active-account totals and display archived balances separately;
 - show account identity, balance and consequences before archive;
 - require a separate owner-approved Class 3 packet for any future zero-balance or balancing-transfer rule.
@@ -82,46 +83,41 @@ Decision:
 ```text
 /accounts
   -> AccountsWorkspace + existing account/transfer owners
-       -> local Accounts CSS Module
+       -> accounts-workspace.module.css
        -> active totals by currency
-       -> active account cards
-       -> archived accounts and retained balances
-       -> shared Alert, Button, LinkButton, EmptyState and MoneyValue
-       -> AccountDialog using shared Dialog/field/action contracts
-       -> AccountArchiveDialog using shared Dialog and reversible lifecycle
-       -> TransferDialog with its own presentation owner
+       -> active cards and archived rows
+       -> shared feedback/actions/empty state/money primitives
+       -> shared AccountDialog lifecycle
+       -> reversible AccountArchiveDialog
+       -> dedicated Transfer presentation owner
 ```
 
 Accounts contracts:
 
-- active totals are named as active totals;
-- unlike currencies are never aggregated;
-- complete values remain visible at 320–390 CSS pixels;
-- account cards expose register, edit and archive actions with stable accessible names;
+- active and archived totals remain explicit and currency-safe;
+- complete financial values remain inside their measured boxes at supported widths;
+- cards expose register, edit and archive actions with stable accessible names;
 - archived rows expose register and restore actions;
 - empty/error states do not invent balances;
-- archive review shows account identity, complete balance and exact consequences;
 - no active Accounts element registers retired global account/action classes.
 
 Account form contracts:
 
 - shared Dialog owns modal lifecycle and focus return;
-- account name is initial focus;
-- invalid name/amount returns focus to the affected field;
+- name is initial focus and invalid fields regain focus;
 - pending state prevents duplicate submit and dismissal;
-- currency is selectable only on create and explicitly immutable on edit;
-- credit-card input displays absolute debt while storing a negative initial balance;
-- phone geometry is a full-width bottom sheet with reachable final actions.
+- currency is selectable only on create;
+- phone geometry is a full-width bottom sheet with contained inputs and reachable actions.
 
 Transfer contracts:
 
-- `executeTransferMutation` and domain preparation remain authoritative;
-- only active same-currency account pairs are selectable;
+- existing mutation/domain preparation remains authoritative;
+- only active same-currency pairs are selectable;
 - source and destination cannot match;
-- amount is a positive safe integer in the source currency minor unit;
-- idempotency prevents duplicate transfers;
+- amount is a positive safe integer;
+- idempotency prevents duplicates;
 - review names source, destination and complete amount and states total assets do not change;
-- no FX, fee, conversion or income/expense classification is introduced.
+- no FX, fees, conversion or income/expense classification is introduced.
 
 Stable evidence slots:
 
@@ -133,61 +129,72 @@ Stable evidence slots:
 
 ## Implementation plan
 
-1. Reconcile P5 merged truth and authorize this bounded packet.
-2. Move `/accounts` behind a local workspace and remove active global class registration.
-3. Compose totals/cards/actions/empty/error states from Phase 2 primitives.
-4. Replace AccountDialog with shared lifecycle/field contracts.
+1. Reconcile P5 truth and authorize P6.
+2. Move `/accounts` behind a local workspace.
+3. Compose Accounts states from Phase 2 primitives.
+4. Migrate account form lifecycle and validation.
 5. Replace `window.confirm` with reviewable archive confirmation.
-6. Move Transfer presentation to a transfer-owned module and add review.
-7. Add source and focused browser contracts.
-8. Remove retired Accounts files after route replacement.
-9. Run exact-head policy, static, unit, build, browser, Chromium/WebKit, CodeQL and secret-history gates.
-10. Record truthful evidence and stop for explicit owner merge decision.
+6. Move Transfer presentation to a dedicated owner.
+7. Add source and browser contracts.
+8. remove retired Accounts component/module after route replacement.
+9. run exact-head policy, static, unit, build, browser, cross-device and security gates.
+10. stop for explicit owner merge decision.
 
 ## Tasks
 
 | ID | Task | Status |
 |---|---|---|
-| P6-T1 memory reconciliation and packet | completed for candidate state |
-| P6-T2 local Accounts workspace owner | implemented; evaluation in progress |
-| P6-T3 shared account form | implemented; evaluation in progress |
-| P6-T4 archive/restore review states | implemented; evaluation in progress |
-| P6-T5 transfer presentation owner and review | implemented; evaluation in progress |
+| P6-T1 memory reconciliation and packet | completed and verified |
+| P6-T2 local Accounts workspace owner | completed and verified |
+| P6-T3 shared account form | completed and verified |
+| P6-T4 archive/restore review states | completed and verified |
+| P6-T5 transfer presentation owner and review | completed and verified |
 | P6-T6 preserve account-register integration | completed without calculation rewrite |
-| P6-T7 stable source/browser evidence | added; exact-head execution in progress |
-| P6-T8 retired Accounts owner removal | component/module removed; broader global deletion requires zero-consumer proof |
-| P6-T9 exact-head verification matrix | in progress |
+| P6-T7 stable source/browser evidence | completed and verified |
+| P6-T8 retired Accounts owner removal | component/module removed; unrelated historical global selectors remain bounded until zero-consumer proof |
+| P6-T9 full verification matrix | completed on implementation head `4aa6e91c950be0883236be47216873f25a868ea9` |
 | P6-T10 owner approval and merge | blocked pending explicit owner decision |
 
 ## Evaluation
 
-The first draft classifier rejected `data-slot="accounts-workspace"` because the string matched a retired global class name. The implementation renamed the evidence surface to `account-overview-workspace`; the no-new-debt guardrail was not weakened or bypassed.
+Evaluation found and corrected real defects without weakening thresholds:
 
-The first ready-for-review policy run then identified two documentation-contract defects: the packet lacked this Evaluation heading, and PR memory announced a snapshot update without modifying `CURRENT_PROJECT_MEMORY.md`. Both findings are being corrected directly. Draft/skipped jobs are not accepted as implementation evidence.
+1. the first evidence slot matched a retired global class and was renamed instead of allowlisted;
+2. stale tests still read the removed Accounts owner and were moved to the new boundary while preserving shell, MVP and transfer invariants;
+3. the transfer amount input and review value had ambiguous accessible names and were separated;
+4. the modal audit still targeted retired account-dialog classes and now uses the shared Dialog slot;
+5. account inputs exceeded the 320px viewport because the flex input retained intrinsic width; the local form owner now contains it;
+6. tablet-landscape card actions compressed initial-balance MoneyValue boxes while their text painted outside; the local card owner now stacks that footer at the measured breakpoint and gives the value stable geometry.
 
-Evaluation must continue through static/type/build, focused browser behavior and the full selected cross-device matrix. Any financial, database, RLS or provider discovery stops this presentation slice and returns to specification.
+Implementation-head evidence:
+
+- head: `4aa6e91c950be0883236be47216873f25a868ea9`;
+- CI #1855, run `31077021628`: success;
+- policy, knowledge, deployment, CSS ownership, architecture, lint and typecheck: success;
+- complete unit/static RLS suite: success;
+- production build: success;
+- database classification: success, checks correctly not required;
+- browser smoke: success; artifact `browser-smoke-evidence-31077021628-1`, ID `8958019900`, SHA-256 `5857dc544e13452c18d2b3209b0de4c875a1a222d8d16412aa175214d348039a`;
+- cross-device audit: success across selected Chromium/WebKit phone, tablet, desktop, dark mode, 200% text and keyboard projects; artifact `ui-audit-evidence-31077021628-1`, ID `8958146545`, SHA-256 `7ff1280677b3c2d83128e05159c4970d0f826c2b2a58a09270c39817a82395ab`;
+- final browser aggregation: success;
+- CodeQL #972, run `31077021643`: success;
+- secret-history scan #972, run `31077021613`: success.
+
+The documentation commit after this implementation head does not change runtime behavior. Its cumulative PR diff still requires exact-head checks before owner review.
 
 ## Verification plan
 
-- policy/knowledge/diff hygiene and CSS ownership/debt gates;
-- lint, TypeScript, complete unit/static RLS and production build;
-- source contracts proving local ownership, shared primitives and preserved domain owners;
-- browser flows for validation, archive cancel/confirm/restore and transfer review/success;
-- 320/360/390 phone, tablet and desktop overflow/complete-money evidence;
-- signed-in light/dark/system behavior, 200% text, keyboard and forced-colors where selected;
-- CodeQL and secret-history scan;
-- database checks must report not required unless a real domain/schema change is discovered.
+Completed implementation-head proof covers policy, static quality, unit/static RLS, build, focused account/transfer behavior, supported responsive geometry, Chromium/WebKit audit, CodeQL and secret history. No database, provider or production boundary was selected or attempted.
 
 ## Explicitly out of scope
 
-- requiring zero-balance archive or automatically creating a balancing transfer;
+- zero-balance archive or automatic balancing transfer;
 - reconciliation UI/state/database changes;
-- account deletion or bank synchronization;
-- FX conversion, exchange rates or cross-currency transfers;
-- changing balances, ledger formulas, RPCs, RLS, schema or production data;
+- account deletion, bank sync, FX or cross-currency transfer;
+- changing balances, formulas, RPCs, RLS, schema or production data;
 - deployment, provider configuration or production acceptance;
 - Phase 7 Planning or later UI phases.
 
 ## Merge and deployment boundary
 
-Merge and deployment remain owner decisions. Ready-for-review activates verification only; it is not authorization to merge, deploy or mutate production/provider state.
+Merge and deployment remain owner decisions. Ready-for-review and green checks are not authorization to merge, deploy or mutate production/provider state.
