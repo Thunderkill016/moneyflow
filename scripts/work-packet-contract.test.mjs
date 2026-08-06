@@ -100,6 +100,14 @@ test("allows placeholders in the canonical template but not an active packet", (
   );
 });
 
+test("allows literal angle-bracket syntax inside resolved evidence", () => {
+  const packet = VALID_PACKET.replace(
+    "the real user flow returns the expected result",
+    "the rendered `<button>` remains keyboard reachable",
+  );
+  assert.deepEqual(validateWorkPacket(packet), []);
+});
+
 test("rejects unresolved marker prefixes and bare non-answers", () => {
   const todoPacket = VALID_PACKET.replace(
     "branch-only repository writes",
