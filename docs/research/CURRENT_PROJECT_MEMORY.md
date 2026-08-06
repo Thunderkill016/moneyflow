@@ -7,6 +7,10 @@
 - **UI-system migration:** parent plan PR #296 and Phases 0–7 are merged; Phase 8 secondary/safety work is candidate-only on PR #309
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Memory size target:** target **150–250 lines**; hard failure above **500 lines** or **64 KiB**
+- **No production migration pending:** P8 contains no schema/data migration; production applicability still depends on an owner-authorized merge and provider evidence
+- **Current production applicability:** P6 is production-evidenced; P7 is merged with repository evidence but its production deployment has not been independently recorded here; P8 is candidate-only
+- **Owner-confirmed external work:** none newly asserted for P8; private provider/device evidence remains owner-held unless supplied
+- **Current merged gap:** physical-device acceptance, provider-backed recent authentication for destructive account deletion and a complete versioned archive/restore remain outside current merged capability
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Release acceptance:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
 - **Release decision:** `docs/release/MVP_RELEASE_DECISION_2026-08-03.md`
