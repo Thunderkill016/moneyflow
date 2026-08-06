@@ -2,9 +2,9 @@
 
 ## Purpose
 
-MoneyFlow treats CI evidence as valid only for the pull request's current head SHA. This runbook reduces repeated GitHub API polling while keeping failure diagnosis precise.
+MoneyFlow treats CI evidence as valid only for the pull request's current head SHA. This runbook reduces repeated GitHub API polling while keeping failure diagnosis precise, and provides a bounded recovery path when an exact-head workflow run becomes stale or unresponsive.
 
-## Commands
+## Monitoring commands
 
 Prerequisites:
 
@@ -35,9 +35,88 @@ Use a slower refresh interval when GitHub is under load:
 npm run ci:watch -- 301 --interval 30 --repo Thunderkill016/moneyflow
 ```
 
-## Guarantees
+## Recovery command
+
+Use recovery only when the selected exact-head CI run is failed, cancelled, stale or demonstrably unresponsive. Do not create no-op commits to retrigger CI.
+
+Preview the plan without Actions writes:
+
+```bash
+npm run ci:recover -- 309 --repo Thunderkill016/moneyflow --dry-run
+```
+
+Recover a run that has been idle for at least the default 15-minute threshold:
+
+```bash
+npm run ci:recover -- 309 --repo Thunderkill016/moneyflow
+```
+
+Explicitly recover a known zombie run without waiting for the threshold:
+
+```bash
+npm run ci:recover -- 309 --repo Thunderkill016/moneyflow --force
+```
+
+Cancel an eligible run without dispatching a replacement:
+
+```bash
+npm run ci:recover -- 309 --repo Thunderkill016/moneyflow --cancel-only
+```
+
+Dispatch and return after the replacement run is discovered instead of watching it to completion:
+
+```bash
+npm run ci:recover -- 309 --repo Thunderkill016/moneyflow --no-watch
+```
+
+Use a different workflow only when it already supports `workflow_dispatch`:
+
+```bash
+npm run ci:recover -- 309 --repo Thunderkill016/moneyflow --workflow ci.yml
+```
+
+### Recovery behavior
 
 The command:
+
+1. resolves the pull request, branch and exact head SHA;
+2. lists only workflow runs attached to that exact SHA;
+3. selects the newest exact-head run;
+4. exits with pending status rather than cancelling a fresh active run;
+5. attempts normal cancellation, then uses official force-cancel behavior only if the run remains active;
+6. rechecks the PR head before dispatch;
+7. dispatches the workflow on the unchanged head branch without creating a commit;
+8. ignores all pre-existing run IDs and accepts only a new `workflow_dispatch` run for the recorded SHA;
+9. watches the replacement with `--exit-status` unless `--no-watch` is supplied;
+10. rechecks the PR head after completion and rejects stale evidence.
+
+The current `ci.yml` manual path forces the complete application/database/browser selection. Recovery does not weaken required checks or convert a skipped gate into evidence.
+
+### Safety controls
+
+- Default automatic cancellation requires 15 minutes of established run inactivity.
+- Missing or invalid activity timestamps fail safe as pending; use `--force` only after independently confirming the run is unresponsive.
+- `--dry-run` performs no GitHub Actions writes.
+- `--force` authorizes run cancellation, not merge, deployment, branch-protection or ruleset changes.
+- The command never reads or prints token values; authentication remains owned by `gh`.
+- The GitHub identity needs pull-request read access and Actions write access for cancellation and dispatch.
+- A moved PR head exits with code `3`; rerun the command against the new head rather than accepting old evidence.
+
+### Recovery exit codes
+
+- `0`: no recovery needed, dry-run completed, cancellation-only completed, replacement discovered with `--no-watch`, or replacement CI passed on the unchanged head;
+- `1`: replacement CI completed unsuccessfully;
+- `2`: usage, authentication, GitHub CLI, API or malformed-response error;
+- `3`: PR head moved, so the result is stale;
+- `8`: active run is not stale enough, or a replacement exact-head run did not appear before the discovery timeout.
+
+### Recovery limits
+
+Repository tooling cannot repair a GitHub service outage or guarantee runner capacity. It can only apply the official cancellation, force-cancellation, manual-dispatch and run-watching interfaces. If force-cancel is accepted but no replacement run appears, preserve the exact SHA and provider evidence, then inspect GitHub Status or support channels rather than changing product code.
+
+## Monitoring guarantees
+
+The monitoring command:
 
 1. reads the PR head SHA before monitoring;
 2. delegates check watching to `gh pr checks --watch --fail-fast`;
@@ -46,7 +125,7 @@ The command:
 5. lists only exact-head workflow runs when diagnosis is needed;
 6. prints only failed-step logs through `gh run view --log-failed`.
 
-Exit codes:
+Monitoring exit codes:
 
 - `0`: all selected checks passed on the same exact head;
 - `1`: a selected check failed or was cancelled;
@@ -82,6 +161,9 @@ The current UI audit invokes a production build inside Playwright even though `v
 
 ## Official references
 
-- GitHub CLI: `gh pr checks`, `gh run watch`, `gh run list`, and `gh run view --log-failed`.
-- GitHub Actions: workflow concurrency, dependency caching, and workflow artifacts.
-- Playwright: CI worker guidance, sharding guidance, and the recommendation not to cache browser binaries by default.
+- [GitHub CLI: cancel a run, including `--force`](https://cli.github.com/manual/gh_run_cancel)
+- [GitHub CLI: dispatch a workflow at a ref](https://cli.github.com/manual/gh_workflow_run)
+- [GitHub CLI: list, rerun and watch workflow runs](https://cli.github.com/manual/gh_run)
+- [GitHub Actions workflow-run REST endpoints](https://docs.github.com/en/rest/actions/workflow-runs)
+- [GitHub Actions concurrency behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+- Playwright CI worker, sharding and browser-cache guidance.
