@@ -124,17 +124,18 @@ test("core action-bearing empty states do not reintroduce duplicate direct actio
   );
 
   const reports = read("src/components/reports-page.tsx");
-  const start = reports.indexOf('className="report-empty"');
-  const end = reports.indexOf('className="reports-export-foot"');
-  assert.ok(start >= 0 && end > start, "Reports empty branch must remain discoverable");
+  const start = reports.indexOf('<EmptyState\n            icon={<Icon name="chart" />}');
+  const end = reports.indexOf('        {!exportDisabled ? (', start);
+  assert.ok(start >= 0 && end > start, "Reports EmptyState branch must remain discoverable");
   const reportEmptyBranch = reports.slice(start, end);
   assert.equal(
-    (reportEmptyBranch.match(/className="primary-button"/g) ?? []).length,
+    (reportEmptyBranch.match(/primaryAction=/g) ?? []).length,
     1,
     "Reports empty state exposes exactly one primary action",
   );
   assert.ok(
-    (reportEmptyBranch.match(/className="secondary-button"/g) ?? []).length <= 1,
+    (reportEmptyBranch.match(/secondaryAction=/g) ?? []).length <= 1,
     "Reports empty state exposes at most one muted secondary action",
   );
+  assert.doesNotMatch(reportEmptyBranch, /empty-state-actions/);
 });
