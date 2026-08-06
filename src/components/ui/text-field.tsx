@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 type TextFieldTargetSize = "aa" | "important"
 
 type TextFieldProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> & {
+  ref?: React.Ref<HTMLInputElement>
   label: React.ReactNode
   description?: React.ReactNode
   error?: React.ReactNode
@@ -15,6 +16,7 @@ type TextFieldProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> 
   targetSize?: TextFieldTargetSize
   rootClassName?: string
   inputClassName?: string
+  /** @deprecated Prefer the React 19 `ref` prop. Kept while existing consumers migrate. */
   inputRef?: React.Ref<HTMLInputElement>
 }
 
@@ -23,6 +25,7 @@ function joinIds(...ids: Array<string | undefined>) {
 }
 
 function TextField({
+  ref: forwardedRef,
   id,
   label,
   description,
@@ -44,6 +47,7 @@ function TextField({
   const descriptionId = description ? `${inputId}-description` : undefined
   const errorId = error ? `${inputId}-error` : undefined
   const suggestionId = correctionSuggestion ? `${inputId}-suggestion` : undefined
+  const resolvedRef = forwardedRef ?? inputRef
 
   return (
     <div data-slot="text-field" className={cn("grid gap-1.5", rootClassName)}>
@@ -70,7 +74,7 @@ function TextField({
           </span>
         ) : null}
         <input
-          ref={inputRef}
+          ref={resolvedRef}
           id={inputId}
           data-slot="text-field-input"
           aria-invalid={error ? true : undefined}
