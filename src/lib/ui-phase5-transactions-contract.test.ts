@@ -35,9 +35,12 @@ const emptyState = readFileSync(
 const dialogSources = [
   "src/components/add-transaction-dialog.tsx",
   "src/components/edit-transaction-dialog.tsx",
-  "src/components/transfer-dialog.tsx",
   "src/components/split-expense-dialog.tsx",
 ].map((path) => ({ path, source: readFileSync(path, "utf8") }));
+const transferDialog = readFileSync(
+  "src/components/transfer-dialog.tsx",
+  "utf8",
+);
 const packet = readFileSync(
   "docs/plans/active/ui-phase-5-transactions-capture.md",
   "utf8",
@@ -141,7 +144,7 @@ test("ledger deletion remains confirmed, soft and recoverable for eight seconds"
   assert.match(workspace, /label: "Hoàn tác"/);
 });
 
-test("transaction dialogs use the shared lifecycle and local form owner", () => {
+test("Phase 5 add, edit and split dialogs use the shared lifecycle and local transaction form owner", () => {
   for (const { path, source } of dialogSources) {
     assert.match(source, /@\/components\/ui\/dialog/, `${path} must use Dialog`);
     assert.match(source, /transaction-form\.module\.css/);
@@ -153,9 +156,18 @@ test("transaction dialogs use the shared lifecycle and local form owner", () => 
   }
   assert.match(dialogSources[0].source, /initialFocusRef=\{amountInputRef\}/);
   assert.match(dialogSources[1].source, /initialFocusRef=\{amountRef\}/);
-  assert.match(dialogSources[2].source, /initialFocusRef=\{amountRef\}/);
-  assert.match(dialogSources[3].source, /initialFocusRef=\{firstAmountRef\}/);
+  assert.match(dialogSources[2].source, /initialFocusRef=\{firstAmountRef\}/);
   assert.doesNotMatch(transactionFormCss, /:global\s*\(|!important/);
+});
+
+test("Transfer keeps the shared lifecycle while later phases may own its presentation", () => {
+  assert.match(transferDialog, /@\/components\/ui\/dialog/);
+  assert.match(transferDialog, /dismissible=\{!submitting\}/);
+  assert.match(transferDialog, /initialFocusRef=\{amountRef\}/);
+  assert.match(transferDialog, /targetSize="important"/);
+  assert.doesNotMatch(transferDialog, /<dialog\b/);
+  assert.doesNotMatch(transferDialog, /transaction-dialog|dialog-heading|dialog-footer-actions/);
+  assert.doesNotMatch(transferDialog, /primary-button|secondary-button|icon-button/);
 });
 
 test("quick capture composes the embedded transaction form behind a local route owner", () => {
