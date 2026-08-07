@@ -103,6 +103,22 @@ npm run task:brief -- \
 
 `--output` cannot escape the repository root. `.tmp/` output remains local evidence unless the task explicitly requires a reviewed repository artifact.
 
+## Git base truth and freshness
+
+The task brief does not fetch from the network. It compares against refs already present in the checkout and prints the selected base so the scope is auditable.
+
+For the default `main` comparison:
+
+1. use `origin/main` when that fetched remote-tracking ref exists;
+2. otherwise fall back to local `main`;
+3. if neither can produce a merge base, emit a visible warning instead of claiming an empty committed diff.
+
+This matters because local `main` does not automatically advance when the remote branch changes. A stale local `main` can make files already merged upstream appear to belong to the current task. `origin/main` is normally the better local representation of fetched merged truth, but it is only as fresh as the last `git fetch`.
+
+When server-fresh merged truth matters, fetch before running the brief. The command intentionally does not hide network/authentication work inside task startup.
+
+The work-packet checker follows the same default preference. An explicitly supplied packet `--base <ref>` remains exact and is not silently rewritten to another ref.
+
 ## Work-packet reliability contract
 
 The task-start command validates that Class 3 points to a real active packet. A separate repository check validates the content of the canonical template and every active packet changed by the branch:
@@ -150,7 +166,8 @@ The tool warns, but does not silently decide, when:
 - the working tree is dirty;
 - a selected boundary commonly reaches a higher risk class;
 - a routed reference cannot be found locally;
-- Git branch/head state cannot be verified.
+- Git branch/head state cannot be verified;
+- the selected base cannot produce a committed comparison.
 
 ## Boundary aliases
 
@@ -175,7 +192,7 @@ Aliases resolve to rows parsed from `docs/context/README.md`. Tests verify every
 - `task:brief` starts and scopes work.
 - `check:work-packets` verifies externalized task decisions.
 - `ci:status` and `ci:watch` inspect exact-head pull-request checks.
-- candidate PR #314 owns stale or unresponsive Actions recovery.
+- PR #314 owns stale or unresponsive Actions recovery.
 - GitHub Actions remains the source of truth for protected checks.
 
 The task bootstrap command never runs tests automatically, reruns CI, edits packets, creates branches, opens pull requests, changes provider settings, merges or deploys.
@@ -193,11 +210,13 @@ Focused tests cover:
 - mandatory read order and Class 3 operating-model context;
 - missing semantic evidence and unresolved work-packet fields;
 - permissions, reversibility, escalation and failure containment;
-- branch-diff selection of changed active packets.
+- committed, staged, unstaged and untracked active-packet discovery;
+- default `origin/main` preference when local `main` is stale;
+- exact preservation of an explicit packet base.
 
 The test files are registered directly in `npm run test:ci-policy`.
 
-When `docs/context/README.md`, the authority read order, risk policy or packet contract changes, run:
+When `docs/context/README.md`, the authority read order, risk policy, packet contract or base-selection semantics change, run:
 
 ```bash
 npm run test:ci-policy
