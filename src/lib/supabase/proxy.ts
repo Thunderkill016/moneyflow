@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { ACCOUNT_DELETION_PATH } from "@/lib/account-deletion-reauth";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
@@ -22,7 +23,6 @@ const protectedPaths = [
   "/reports",
 ];
 const authPaths = ["/login", "/register", "/forgot-password"];
-const ACCOUNT_DELETION_PATH = "/settings/delete-account";
 
 /** Supabase SSR cookies look like `sb-<ref>-auth-token` (and chunked variants). */
 function hasSupabaseAuthCookie(request: NextRequest): boolean {
