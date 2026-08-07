@@ -1,15 +1,15 @@
 # MoneyFlow — current project memory
 
 - **Status:** active implementation-status authority
-- **Audit date:** 2026-08-06
-- **Current main audited:** `31fc4e852623ee503ee85a728f4be52d1c874d1b`
+- **Audit date:** 2026-08-07
+- **Current main audited:** `31fc4e852623ee503ee85a728f4be52d1c874d1b` as the last fully recorded merge baseline; this snapshot also describes the post-merge state of PR #309 as required by the repository memory contract
 - **Owner direction:** MoneyFlow is released as a functional MVP; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate
-- **UI-system migration:** parent plan PR #296 and Phases 0–7 are merged; Phase 8 secondary/safety work is candidate-only on PR #309
+- **UI-system migration:** parent plan PR #296 and Phases 0–8 are merged once PR #309 lands; Phase 9 remains unauthorized
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Memory size target:** target: **150–250 lines**
 - **Memory hard failure:** hard failure: above **500 lines** or **64 KiB**
-- **No production migration pending:** P8 contains no schema/data migration; production applicability still depends on an owner-authorized merge and provider evidence
-- **Current production applicability:** P6 is production-evidenced; P7 is merged with repository evidence but its production deployment has not been independently recorded here; P8 is candidate-only
+- **No production migration pending:** P8 contains no schema/data migration; its merge is expected to trigger the existing Vercel path, whose exact deployment evidence must be observed separately
+- **Current production applicability:** P6 is production-evidenced; P7 is merged with repository evidence; P8 is merged with repository evidence once PR #309 lands, while its production deployment must not be inferred before exact provider evidence exists
 - **Owner-confirmed external work:** none newly asserted for P8; private provider/device evidence remains owner-held unless supplied
 - **Current merged gap:** physical-device acceptance, provider-backed recent authentication for destructive account deletion and a complete versioned archive/restore remain outside current merged capability
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
@@ -75,7 +75,7 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - Budgets are monthly category limits, not envelope-assigned cash.
 - Unpaid commitments and expected income remain plans until explicit ledger posting.
 - Goal allocation is a planning number; it does not transfer or lock account money.
-- Authenticated Inbox candidate approval uses the merged atomic approval path; demo/browser retry semantics require separate local evidence.
+- Authenticated Inbox candidate approval uses the merged atomic approval path; demo/browser approval uses candidate-linked retry identity after P8.
 - Authenticated and demo failures never silently mix.
 - Missing balances, dates, commitments, income or planning assumptions are never invented.
 - Build/lint/typecheck do not prove RLS, browser behavior, provider state or production correctness.
@@ -90,20 +90,20 @@ MoneyFlow is functional-MVP complete. Competitive depth and public-beta hardenin
 | Authentication/demo | Merged email/password, OAuth surfaces, recovery/reset, demo and CAPTCHA plumbing | hosted-provider acceptance and sensitive-action recent-auth remain separate |
 | Accounts | Merged Phase 6 workspace, CRUD/archive/restore, active totals, archived-balance visibility, transfer, register/detail and reconciliation integration | richer account-closing lifecycle requires separate financial specification |
 | Reconciliation | Merged account-leg/session domain and UI with account-scoped state and exact-zero completion | production applicability remains evidence-specific; no bank feed or automatic matching claim |
-| Categories | Merged flat income/expense category lifecycle | icon/color ownership and review presentation are Phase 8 candidate-only |
+| Categories | Merged flat income/expense lifecycle plus P8 local identity presentation, editable icon/color and reversible hide review | nested groups, merge/tags and historical recategorization remain separate depth |
 | Transactions | Merged Phase 5 ledger/capture ownership, search/filter/ranges, review/bulk correction, edit, split/transfer and soft delete/undo | split-line correction and broader mutation audit remain depth gaps |
-| Timeline | Merged reviewed-only read-only ledger projection with local Phase 5 owner | Phase 8 verifies; it does not reimplement Timeline |
+| Timeline | Merged reviewed-only read-only ledger projection with local Phase 5 owner | P8 verifies; it does not reimplement Timeline |
 | Dashboard | Merged Phase 4 ownership, deterministic period, truthful range semantics, planning/activity summaries and schema-skew fallback | richer attention/drill-down depth |
 | Budgets | Merged category limits, historical month selection, previous-month comparison, progress and drill-down | rollover, flex buckets and deeper lifecycle remain separate product depth |
 | Recurring | Merged expense/income templates, current-month occurrence links and pay/receive undo | broader history, flexible schedules and matching remain depth gaps |
 | Goals | Merged target, planning earmark, deadline, pace and archive | contribution history and account-backed funding lifecycle are absent |
-| Reports | Merged period comparisons, totals, category/trend views, custom ranges and transfer exclusion | account/type dimensions and deeper drill-down; local P8 presentation remains candidate-only |
-| Export | Merged direct CSV plus date-range transaction/Inbox CSV/JSON | not a complete versioned backup/restore archive |
-| Import/Inbox | Merged CSV/XLSX/PDF staging, provenance, dry-run, duplicate/transfer planning and authenticated atomic approval | presets, batch UX and demo retry depth; Phase 8 review presentation is candidate-only |
-| Rules | Merged deterministic candidate-only rules with preview/order/version evidence | broader conditions/actions and auto-posting remain out of current scope |
-| Privacy/deletion | Merged privacy/export/delete baseline and server-first account deletion | deep destructive acceptance, cleanup receipt and recent-auth remain distinct boundaries |
+| Reports | Merged period comparisons, totals, category/trend views, custom ranges, transfer exclusion and P8 local secondary presentation | account/type dimensions and deeper drill-down |
+| Export | Merged transaction/Inbox CSV/JSON with explicit scope and date-range support | not a complete versioned backup/restore archive |
+| Import/Inbox | Merged CSV/XLSX/PDF staging, provenance, dry-run, duplicate/transfer planning, authenticated atomic approval, P8 review presentation and candidate-linked demo retry | presets and broader batch UX remain depth gaps |
+| Rules | Merged deterministic candidate-only rules with preview/order/version evidence, P8 review ownership and mobile-reachable add flow | broader conditions/actions and auto-posting remain out of current scope |
+| Privacy/deletion | Merged privacy/export/delete baseline, server-first account deletion, P8 final review and cleanup receipt | provider-backed recent-auth and deeper destructive acceptance remain separate boundaries |
 | Onboarding/navigation | Merged privacy → wallet → first expense/dashboard and Core/Lab navigation | release-journey acceptance only |
-| Responsive/accessibility | Broad automated route/dialog/device coverage through Phase 7 across Chromium/WebKit, 200% text and keyboard | physical-device acceptance remains separate; Phase 8 evidence pending |
+| Responsive/accessibility | Broad automated route/dialog/device coverage through Phase 8 across Chromium/WebKit, 200% text and keyboard | physical-device acceptance remains separate |
 | CI/security/performance | Risk-selected CI, exact-head monitoring, CodeQL, secret scan, database/browser harnesses and performance docs | provider/staging capacity claims remain evidence-specific |
 
 ## 6. UI-system migration truth
@@ -144,26 +144,17 @@ PR #308 was squash-merged as `31fc4e852623ee503ee85a728f4be52d1c874d1b` after ex
 
 The final PR head `e273e3911537d6a90f680d4382058f0d8023b0d0` passed CI #1871, CodeQL #987 and secret-history #987, including browser smoke and Chromium/WebKit cross-device audit. P7 production deployment state has not been independently recorded in this snapshot and must not be inferred from merge alone.
 
-### Phase 8 — secondary and safety candidate
+### Phase 8 — secondary and safety
 
-Owner instruction `làm đi` authorized bounded P8 work on 2026-08-06. PR #309 is candidate-only until exact-head verification and an explicit owner merge decision.
+PR #309 establishes locally owned secondary/safety presentation and review contracts across Reports, Categories, Inbox, Rules, Imports and Settings/data-rights surfaces. It preserves existing report math, flat categories, authenticated atomic approval, review-first import defaults and Phase 5 Timeline ownership while adding candidate-linked demo approval retry identity, explicit destructive reviews, truthful export/import/privacy copy and an account-deletion cleanup receipt.
 
-The candidate currently targets:
+The first recovered cumulative run exposed a real mobile Rules regression after one rule existed. P8 fixes the owning AppShell contract so the add action remains reachable on phones without duplicating the empty-state CTA. Corrected implementation head `6bc575b2b8f6c0949f19c011f0327a7413f84f97` passed CI #1936 (`31150496664`), including Browser smoke, Cross-device UI audit and `e2e`, plus CodeQL #1047 and secret-history #1047. The final governance-only head is required to refresh exact-head gates before owner-authorized squash merge; final run IDs live in PR metadata to avoid a self-referential evidence commit.
 
-- shared secondary/safety page, summary, section and review owners;
-- Reports, Categories, Inbox individual/bulk review and demo retry identity;
-- Rules, import history/preview/direct dry-run and review states;
-- Settings hub, appearance, notification, export, privacy and account-deletion surfaces;
-- truthful transaction/Inbox export scope;
-- inactive parser-sharing capability with no stored consent;
-- server/local account-deletion receipt;
-- Timeline verification only.
-
-It does not add a report builder, nested categories, automatic rule posting, bank sync, a complete backup/restore product, remote parser-training processing, provider-backed recent-auth or database/provider changes.
+P8 does not add a report builder, nested categories, automatic rule posting, bank sync, a complete backup/restore product, remote parser-training processing, provider-backed recent-auth or database/provider changes.
 
 ### Next UI boundary
 
-Phase 9 Landing/Auth cleanup is not authorized by P8 branch work. A deletion-result receipt needed to display P8 cleanup outcomes is bounded safety evidence, not a general Auth redesign.
+Phase 9 Landing/Auth cleanup is not authorized by P8 work. A deletion-result receipt needed to display P8 cleanup outcomes is bounded safety evidence, not a general Auth redesign.
 
 ## 7. Verification and evidence boundaries
 
@@ -172,9 +163,9 @@ Phase 9 Landing/Auth cleanup is not authorized by P8 branch work. A deletion-res
 - Provider changes require before/after evidence, rollback and production smoke.
 - Automated browser success does not prove physical-device acceptance or visual quality by itself.
 - A successful job shell is not evidence when initialization/analysis or selected shards were skipped.
-- P8 candidate changes no database schema, migration, RLS or provider setting unless the final diff proves otherwise.
-- A future merge to `main` is expected to auto-trigger Vercel; branch verification does not authorize merge.
-- Physical Android and iOS/Safari acceptance remains Phase 11 evidence.
+- P8 changes no database schema, migration, RLS or provider setting.
+- Merge to `main` is expected to auto-trigger Vercel; repository evidence does not by itself prove the production deployment reached `READY`.
+- Physical Android and iOS/Safari acceptance remains later physical-device evidence.
 
 ## 8. Reconciled issue status
 
@@ -184,7 +175,7 @@ Phase 9 Landing/Auth cleanup is not authorized by P8 branch work. A deletion-res
 | #53 reconciliation | Merged account-leg/session contract and UI; production applicability remains evidence-specific |
 | #53 authenticated rules | Persisted deterministic rules exist where server feature contract is available; broader automation remains absent |
 | #53 audit/performance | Strong repository tooling exists; provider capacity claims remain evidence-specific |
-| #72 UI audit | Broad automated coverage merged through Phase 7; validation/destructive/import/settings depth is P8 candidate-only; physical-device acceptance remains open |
+| #72 UI audit | Automated validation/destructive/import/settings and cross-device coverage is merged through P8; physical Android/iOS acceptance remains open and must not be inferred from emulation |
 | #172 product assessment | market-validation warnings remain useful; old global feature-freeze framing is superseded |
 | #174 provider controls | repository readiness/runbook merged; private provider execution is not inferred |
 
@@ -194,11 +185,10 @@ Open PRs are not product truth and must be refreshed against current `main` befo
 
 | PR | Interpretation |
 |---|---|
-| #309 | authorized P8 secondary/safety candidate; implementation/evaluation in progress; not merged |
 | #170/#171 | older CSS cleanup candidates; compare against current ownership and tests before reuse |
 | #119 | visual/logo candidate requiring current browser evidence and owner approval |
 
-PRs #295–#308 are merged and must not be described as candidates. Older closed/unmerged reconciliation and transaction candidates remain provenance only.
+PRs #295–#309 are merged in the post-merge state described by this snapshot and must not be described as candidates. Older closed/unmerged reconciliation and transaction candidates remain provenance only.
 
 ## 10. True gaps after this audit
 
@@ -220,7 +210,6 @@ PRs #295–#308 are merged and must not be described as candidates. Older closed
 
 ### UI migration debt
 
-- evaluate/merge or reject P8 PR #309;
 - Phase 9 public/Auth cleanup after a separate owner decision;
 - compatibility alias retirement after zero-reference evidence;
 - final legacy CSS retirement and product-wide target-size sweep;
@@ -240,7 +229,7 @@ PRs #295–#308 are merged and must not be described as candidates. Older closed
 - PR #306 merged Phase 5 Transactions/Capture/Timeline ownership.
 - PR #307 merged and production-evidenced Phase 6 Accounts/Transfer ownership.
 - PR #308 merged Phase 7 Planning ownership after exact-head CI/security/browser evidence.
-- PR #309 remains candidate-only until cumulative exact-head verification and owner merge decision.
+- PR #309 delivers Phase 8 secondary/safety ownership after owner-authorized final exact-head verification; production deployment evidence remains a separate post-merge observation.
 
 ## 12. Superseded-status register
 
@@ -258,7 +247,8 @@ Do not repeat these as current facts:
 - Unpaid commitments are reserved cash.
 - Export only supports current-month CSV or depends on a retired route.
 - P7 remains candidate-only.
-- P8 candidate behavior is current product truth before merge.
+- P8 remains candidate-only after PR #309 merges.
+- P8 branch behavior is current product truth before merge.
 - Transaction/Inbox export is a complete restorable account backup.
 - The parser-improvement preference proves remote samples are being processed.
 - A merge proves Vercel production readiness without provider evidence.
