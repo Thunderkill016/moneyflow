@@ -138,6 +138,63 @@ The check rejects missing or empty fields plus unresolved `TODO`, `TBD`, `unknow
 
 A green build or successful request is not semantic evidence by itself. For bugs and new behavior, record the expected failing signal before accepting green evidence, or explain why red-first is impossible for that task type.
 
+## Requirement → task → evidence traceability
+
+From `planned` onward, a changed active packet must make its implementation coverage machine-readable instead of leaving specification, tasks and evidence as unrelated prose.
+
+### Acceptance criteria
+
+Assign stable IDs:
+
+```markdown
+- [ ] AC1: Stale authentication cannot permanently delete an account.
+- [ ] AC2: Fresh step-up returns the same user to the deletion flow.
+```
+
+Discovery and specification may remain fluid. The checker does not force stable IDs until the packet reaches `planned`.
+
+### Task coverage
+
+Each task names the criteria it implements:
+
+```markdown
+| ID | Task | Covers | Dependency | Evidence | Status |
+|---|---|---|---|---|---|
+| T1 | Add the server enforcement | AC1 | none | focused unit/source contract | todo |
+| T2 | Wire the step-up path | AC2 | T1 | browser flow | todo |
+```
+
+A task that is necessary for delivery but does not directly implement a product criterion must explain that relationship rather than inventing a fake AC:
+
+```markdown
+| T3 | Record research provenance | internal: research provenance | none | research note | done |
+```
+
+The checker fails when:
+
+- a criterion has no covering task;
+- a task references an unknown AC;
+- AC IDs are duplicated;
+- `internal:` has no reason;
+- a planned task has no evidence target.
+
+This is structural traceability only. It does not claim that the wording of an AC, task or evidence target is semantically correct.
+
+### Review evidence
+
+At `ready_for_review` and later, every AC must have one resolved row in `### Acceptance evidence` and the result must be `pass`:
+
+```markdown
+| Criterion | Evidence | Result |
+|---|---|---|
+| AC1 | exact-head unit/source contract | pass |
+| AC2 | Browser smoke run 12345 | pass |
+```
+
+Task-level evidence explains how work is verified. Criterion-level acceptance evidence answers whether the requested outcome is actually proven. The two are related but not interchangeable.
+
+The contract intentionally starts at `planned` so it does not turn early discovery into paperwork. It is incremental: historical and completed packets are not mass rewritten; changed active packets adopt the schema when they are next planned or modified.
+
 ## Risk-proportional verification
 
 Risk class is an explicit input. The command does not infer financial, data, security or operational meaning from filenames or natural-language task text.
@@ -190,7 +247,7 @@ Aliases resolve to rows parsed from `docs/context/README.md`. Tests verify every
 ## Relationship to other tools
 
 - `task:brief` starts and scopes work.
-- `check:work-packets` verifies externalized task decisions.
+- `check:work-packets` verifies externalized task decisions and requirement/task/evidence traceability.
 - `ci:status` and `ci:watch` inspect exact-head pull-request checks.
 - PR #314 owns stale or unresponsive Actions recovery.
 - GitHub Actions remains the source of truth for protected checks.
@@ -212,7 +269,10 @@ Focused tests cover:
 - permissions, reversibility, escalation and failure containment;
 - committed, staged, unstaged and untracked active-packet discovery;
 - default `origin/main` preference when local `main` is stale;
-- exact preservation of an explicit packet base.
+- exact preservation of an explicit packet base;
+- duplicate, uncovered and unknown AC IDs;
+- task `Covers` semantics and required evidence targets;
+- lifecycle-aware criterion evidence at `ready_for_review` and later.
 
 The test files are registered directly in `npm run test:ci-policy`.
 

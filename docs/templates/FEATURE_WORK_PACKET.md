@@ -128,8 +128,10 @@ Who is affected, what fails today and why it matters.
 
 ### Acceptance criteria
 
-- [ ] Observable outcome.
-- [ ] Observable outcome.
+Assign stable IDs once the packet reaches `planned`. Discovery/specification may still refine or omit IDs while the requirements are changing.
+
+- [ ] AC1: Observable outcome.
+- [ ] AC2: Observable outcome.
 
 ### Required states
 
@@ -188,9 +190,12 @@ Explain which existing boundary owns the behavior and why. A repository or frame
 
 ## Tasks
 
-| ID | Task | Dependency | Evidence | Status |
-|---|---|---|---|---|
-| T1 | | | | todo |
+`Covers` lists one or more acceptance IDs such as `AC1, AC2`. A research, CI, documentation or enabling task that does not directly implement an acceptance criterion uses `internal: <reason>` instead of inventing a fake requirement mapping. `Evidence` names the proof target, not merely `pending`.
+
+| ID | Task | Covers | Dependency | Evidence | Status |
+|---|---|---|---|---|---|
+| T1 | | AC1 | | <test/artifact/observation> | todo |
+| T2 | | internal: <why this task is required> | | <test/artifact/observation> | todo |
 
 Rules:
 
@@ -201,6 +206,7 @@ Rules:
 - A task may advance only when the current execution state's evidence exists.
 - A green mechanism check is not semantic evidence; record the real path or user outcome separately.
 - For a bug fix or new behavior, record the expected failing signal before accepting a green result, unless the packet explains why a red-first check is impossible.
+- From `planned` onward every AC must have at least one covering task; every task must either cover known AC IDs or explain its internal purpose.
 
 ## Handoff record
 
@@ -222,9 +228,12 @@ Add one entry whenever responsibility changes or the task moves to another execu
 
 ### Acceptance evidence
 
+Use the same AC IDs as the specification. At `ready_for_review` and later every criterion must have resolved evidence and a `pass` result; task-level evidence alone is not enough.
+
 | Criterion | Evidence | Result |
 |---|---|---|
-| | | pass/fail |
+| AC1 | <exact test/artifact/user-path evidence> | pass/fail |
+| AC2 | <exact test/artifact/user-path evidence> | pass/fail |
 
 ### Research and adoption evidence
 
