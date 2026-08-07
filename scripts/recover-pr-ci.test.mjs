@@ -207,6 +207,16 @@ test("recovery planning avoids fresh cancellation and handles terminal runs", ()
       cancelOnly: false,
       nowMs,
     }).action,
+    "pending",
+  );
+  assert.equal(
+    buildRecoveryPlan({
+      run: { status: "in_progress", updatedAt: "2026-08-06T23:00:00Z" },
+      staleAfterSeconds: 900,
+      force: false,
+      cancelOnly: false,
+      nowMs,
+    }).action,
     "cancel_and_dispatch",
   );
   assert.equal(
@@ -272,19 +282,19 @@ exit 1
   }
 }
 
-test("dry-run previews stale cancellation and replacement dispatch without writes", () => {
+test("dry-run previews stale in-progress cancellation and replacement dispatch without writes", () => {
   withFakeGh(
     {
       run: {
         databaseId: 1933,
         workflowName: "CI",
-        status: "queued",
+        status: "in_progress",
         conclusion: null,
         headSha: "head-sha",
         headBranch: "feature/test",
         event: "pull_request",
         createdAt: "2020-01-01T00:00:00Z",
-        startedAt: null,
+        startedAt: "2020-01-01T00:00:00Z",
         updatedAt: "2020-01-01T00:00:00Z",
         url: "https://github.com/example/actions/runs/1933",
         attempt: 1,
@@ -312,6 +322,38 @@ test("dry-run previews stale cancellation and replacement dispatch without write
       const calls = readFileSync(callLog, "utf8");
       assert.match(calls, /pr view 309/);
       assert.match(calls, /run list/);
+      assert.doesNotMatch(calls, /run cancel|workflow run/);
+    },
+  );
+});
+
+test("stale queued runs remain pending without --force", () => {
+  withFakeGh(
+    {
+      run: {
+        databaseId: 1999,
+        workflowName: "CI",
+        status: "queued",
+        conclusion: null,
+        headSha: "head-sha",
+        headBranch: "feature/test",
+        event: "pull_request",
+        createdAt: "2020-01-01T00:00:00Z",
+        startedAt: null,
+        updatedAt: "2020-01-01T00:00:00Z",
+        url: "https://github.com/example/actions/runs/1999",
+        attempt: 1,
+      },
+    },
+    ({ env, callLog }) => {
+      const result = spawnSync(
+        process.execPath,
+        [scriptPath, "309", "--repo", "Thunderkill016/moneyflow"],
+        { encoding: "utf8", env },
+      );
+      assert.equal(result.status, 8, result.stderr);
+      assert.match(result.stdout, /waiting states require --force/);
+      const calls = readFileSync(callLog, "utf8");
       assert.doesNotMatch(calls, /run cancel|workflow run/);
     },
   );
