@@ -222,16 +222,20 @@ function runGit(root, args) {
   }
 }
 
+function resolveComparisonBase(root, base) {
+  if (base === "main") {
+    const remoteMain = runGit(root, ["rev-parse", "--verify", "origin/main"]);
+    if (remoteMain) return "origin/main";
+  }
+  return runGit(root, ["rev-parse", "--verify", base]) ? base : null;
+}
+
 export function inspectGit(root, base = "main") {
   const branch = runGit(root, ["branch", "--show-current"]);
   const head = runGit(root, ["rev-parse", "HEAD"]);
   const statusOutput = runGit(root, ["status", "--porcelain=v1"]);
   const status = statusOutput ? statusOutput.split(/\r?\n/).filter(Boolean) : [];
-  const localBase = runGit(root, ["rev-parse", "--verify", base]);
-  const remoteBase = localBase
-    ? null
-    : runGit(root, ["rev-parse", "--verify", `origin/${base}`]);
-  const baseRef = localBase ? base : remoteBase ? `origin/${base}` : null;
+  const baseRef = resolveComparisonBase(root, base);
   const mergeBase = baseRef ? runGit(root, ["merge-base", "HEAD", baseRef]) : null;
   const committedDiff = mergeBase
     ? runGit(root, ["diff", "--name-only", `${mergeBase}...HEAD`])
