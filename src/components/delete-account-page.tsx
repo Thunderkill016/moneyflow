@@ -27,6 +27,11 @@ import {
 } from "@/lib/inbox/candidate-store";
 import styles from "./settings/settings-surfaces.module.css";
 
+const ACCOUNT_DELETION_PATH = "/settings/delete-account";
+const ACCOUNT_DELETION_REAUTH_URL = `/login?reauth=1&next=${encodeURIComponent(
+  ACCOUNT_DELETION_PATH,
+)}`;
+
 export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
   const confirmRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
@@ -100,6 +105,16 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
 
       const result = await finalizeAccountDeletion(confirmText);
       if (!result.ok) {
+        if (result.requiresReauthentication) {
+          // Destructive confirmation never crosses the authentication boundary.
+          // Returning from step-up requires the user to type XÓA again.
+          setConfirmText("");
+          setReviewOpen(false);
+          setDeleting(false);
+          router.push(ACCOUNT_DELETION_REAUTH_URL);
+          return;
+        }
+
         setError(result.message);
         setReviewOpen(false);
         setDeleting(false);
@@ -151,11 +166,11 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
                 </li>
                 <li>
                   <Icon name="lock" />
-                  Máy chủ xóa trước
+                  Xác thực lại khi cần
                 </li>
                 <li>
                   <Icon name="trash" />
-                  Dọn thiết bị sau
+                  Máy chủ xóa trước, dọn thiết bị sau
                 </li>
               </ul>
             </>
@@ -239,9 +254,10 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
               {!viewer.isDemo ? (
                 <Alert tone="warning" live="polite">
                   <AlertDescription>
-                    Luồng hiện tại yêu cầu phiên đăng nhập hợp lệ nhưng chưa yêu cầu
-                    xác thực lại mật khẩu/OAuth ngay trước thao tác. Recent re-auth là
-                    hardening provider riêng, không được giả lập bằng checkbox client.
+                    Máy chủ yêu cầu một lần xác thực tương tác trong 10 phút gần
+                    nhất trước khi xóa. Nếu phiên quá cũ, MoneyFlow đưa bạn qua
+                    bước đăng nhập lại rồi quay lại đây; dữ liệu chưa bị xóa trong
+                    bước xác thực lại.
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -323,6 +339,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
         description="Đây là bước xác nhận cuối. Không thể hoàn tác sau khi máy chủ hoàn tất."
         details={[
           { label: "Chế độ", value: viewer.isDemo ? "Demo trên thiết bị" : "Tài khoản đăng nhập" },
+          { label: "Xác thực", value: viewer.isDemo ? "Không áp dụng" : "Máy chủ yêu cầu xác thực tương tác gần đây" },
           { label: "Máy chủ", value: viewer.isDemo ? "Không có tài khoản máy chủ" : "Xóa tài khoản và tenant data trước" },
           { label: "Thiết bị", value: "Dọn local stores sau kết quả máy chủ" },
           { label: "Export", value: "Không tự tạo; cần tải trước khi xác nhận" },
@@ -330,7 +347,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
         consequence={
           viewer.isDemo
             ? "Dữ liệu demo trên browser hiện tại sẽ bị xóa. Giao diện theme được giữ theo contract hiện tại."
-            : "Nếu máy chủ thất bại, dữ liệu local chưa bị xóa. Nếu máy chủ thành công nhưng cleanup không xác minh đầy đủ, trang đăng nhập nhận trạng thái verified/unverified và complete/partial để hiển thị hoặc hỗ trợ tiếp theo."
+            : "Nếu cần xác thực lại hoặc máy chủ thất bại, dữ liệu local chưa bị xóa. Nếu máy chủ thành công nhưng cleanup không xác minh đầy đủ, trang đăng nhập nhận trạng thái verified/unverified và complete/partial để hiển thị hoặc hỗ trợ tiếp theo."
         }
         confirmLabel="Xóa vĩnh viễn"
         confirmIntent="destructive"
