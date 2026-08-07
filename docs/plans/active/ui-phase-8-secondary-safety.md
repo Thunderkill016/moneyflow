@@ -2,16 +2,16 @@
 
 **Status:** active
 **Execution state:** evaluating
-**Active role:** evaluator
+**Active role:** ci_or_production
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Parent packet:** `docs/plans/active/ui-system-migration.md`
 **Base main:** `31fc4e852623ee503ee85a728f4be52d1c874d1b`
 **Branch:** `feat/ui-phase-8-secondary-safety`
 **Pull request:** #309
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-07
 
-The owner instructed **`làm đi`** after Phase 8 reconnaissance and product comparison. This authorizes bounded specification correction, product-code work, tests and a focused pull request on the Phase 8 branch. It does not authorize merge, provider writes, production-data access, a new report builder, nested categories, new automation semantics, bank sync, a full backup/restore product or unreviewed database changes.
+The owner instructed **`làm đi`** after Phase 8 reconnaissance and product comparison. This authorized bounded specification correction, product-code work, tests and a focused pull request on the Phase 8 branch. The owner later explicitly authorized squash merge once the final exact-head gates are complete and the head remains unchanged/mergeable. This does not authorize provider writes, production-data access, a new report builder, nested categories, new automation semantics, bank sync, a full backup/restore product or unreviewed database changes.
 
 ## Outcome
 
@@ -31,7 +31,7 @@ At authorization:
 - Export covered transactions and Inbox candidates, not a complete restorable account archive.
 - Parser-improvement preference stored a boolean despite no remote processing pipeline.
 - Account deletion already required typed `XÓA` and performed server deletion before local cleanup, but cleanup query state had no visible receipt.
-- Issue #72 still tracks validation/error states, destructive confirmations, Inbox/import review, settings coverage and physical-device acceptance.
+- Issue #72 still tracked validation/error states, destructive confirmations, Inbox/import review, settings coverage and physical-device acceptance.
 
 Preserved invariants:
 
@@ -119,7 +119,7 @@ Stable evidence slots:
 9. Add source/domain/browser contracts and repair stale audits at their semantic owners.
 10. Reconcile issue #72 from exact evidence and retain physical-device/provider limitations.
 11. Run exact-head policy, static, unit, build, browser, cross-device and security gates.
-12. Stop for explicit owner merge decision.
+12. Use the owner's merge authorization only after the final exact-head gates pass and the head is unchanged/mergeable.
 
 ## Implemented slices
 
@@ -128,6 +128,7 @@ Stable evidence slots:
 - Categories local workspace/card/dialog, editable icon/color and hide review;
 - Inbox local workspace/review/bulk confirmation and candidate-based demo retry identity;
 - Rules local preview/editor/list and delete review;
+- mobile Rules creation remains reachable after the first rule replaces the empty-state CTA;
 - import history local ownership and metadata review;
 - import preview commit/cancel reviews;
 - direct CSV local dry-run and final ledger-write review;
@@ -136,7 +137,7 @@ Stable evidence slots:
 - privacy retention UI and inactive parser capability enforcement;
 - account deletion local ownership, final review and noindex cleanup receipt;
 - source/domain/browser Phase 8 contracts;
-- project-memory reconciliation for P7 merged truth and P8 candidate state.
+- project-memory reconciliation for P7 merged truth and P8 post-merge state.
 
 ## Tasks
 
@@ -146,14 +147,14 @@ Stable evidence slots:
 | P8-T2 shared secondary/safety owners | done |
 | P8-T3 Reports migration | done |
 | P8-T4 Categories migration | done |
-| P8-T5 Inbox review/integrity migration | done; evaluating exact head |
-| P8-T6 Rules and Imports migration | done; evaluating exact head |
-| P8-T7 Timeline regression verification | source contract done; browser evaluation pending |
-| P8-T8 Settings/export/privacy/delete migration | done; evaluating exact head |
-| P8-T9 issue #72 reconciliation | pending final evidence |
-| P8-T10 active global-selector retirement | active consumers moved; broad definitions require zero-consumer proof |
-| P8-T11 full verification matrix | evaluating |
-| P8-T12 owner approval and merge | blocked pending explicit owner decision |
+| P8-T5 Inbox review/integrity migration | done |
+| P8-T6 Rules and Imports migration | done |
+| P8-T7 Timeline regression verification | done |
+| P8-T8 Settings/export/privacy/delete migration | done |
+| P8-T9 issue #72 reconciliation | automated P8 scope proven; final issue comment pending merge evidence |
+| P8-T10 active global-selector retirement | active P8 consumers moved; broad zero-consumer retirement remains a later bounded cleanup |
+| P8-T11 full verification matrix | implementation head passed; final governance-head refresh pending |
+| P8-T12 owner approval and merge | owner approval granted; merge pending final exact-head checks |
 
 ## Evaluation
 
@@ -168,7 +169,9 @@ Findings are fixed in the owning boundary rather than hidden or allowlisted:
 7. Parser improvement had no processing implementation. The unavailable capability is disabled, historical true values normalize to false and new saves cannot record true.
 8. Account deletion cleanup parameters were previously invisible. `/account-deletion-result` now displays server verified/unverified and local complete/partial outcomes.
 9. Provider-backed recent password/OAuth verification remains explicitly absent; P8 does not simulate it through a checkbox or typed text alone.
-10. The first ready-for-review policy run correctly rejected missing standard project-memory and packet markers. The governance files now restore those markers; the failed run is not used as implementation evidence.
+10. The first ready-for-review policy run correctly rejected missing standard project-memory and packet markers. Governance files restored those markers; the failed run is not implementation evidence.
+11. After GitHub recovered from its Actions incident, CI #1935 exposed a real mobile Rules defect: after the first rule existed, the empty-state add CTA disappeared while the AppShell primary action remained hidden below 760px. The fix uses the existing `showPrimaryActionOnMobile` ownership contract only when the rule list is populated, preserving a single add CTA and keeping the existing role-based browser locator truthful.
+12. Corrected implementation head `6bc575b2b8f6c0949f19c011f0327a7413f84f97` passed CI #1936 (`31150496664`), Browser smoke, Cross-device UI audit, `e2e`, CodeQL #1047 and secret-history #1047. This governance reconciliation intentionally creates a new final head, so one last exact-head refresh is required before merge.
 
 ## Verification plan
 
@@ -179,13 +182,22 @@ Findings are fixed in the owning boundary rather than hidden or allowlisted:
 - browser coverage for custom reports, category hide review, low-confidence individual/bulk Inbox review, Rules/Imports truth, export scope, parser capability, delete review/receipt and 320px geometry;
 - Chromium/WebKit phone, tablet, desktop, light/dark, 200% text and keyboard matrix when selected;
 - CodeQL and secret-history scan;
-- database checks only if classifier unexpectedly detects a database boundary.
+- database checks only if classifier detects a database boundary.
 
 Intermediate stale checkpoint at draft head `f18693f97432cda320534a01373b840bd194aa12`:
 
 - classifier CI #1872 / run `31092981166`: success;
 - secret-history scan #988: success;
 - expensive draft jobs were skipped by policy and are not evidence for the cumulative implementation.
+
+Recovered/corrected implementation evidence:
+
+- CI #1935 on `09d68b54983c919c657a1a532de57615bc765498` proved policy/static/unit/build/verify but Browser smoke correctly failed the mobile Rules flow;
+- commit `6bc575b2b8f6c0949f19c011f0327a7413f84f97` repaired the actual mobile CTA ownership defect rather than weakening the test;
+- CI #1936 / run `31150496664` on `6bc575b2b8f6c0949f19c011f0327a7413f84f97`: success across policy, static, complete unit/static-RLS, build, database aggregator, Browser smoke, Cross-device UI audit and `e2e`;
+- CodeQL #1047 and secret-history #1047: success on the corrected implementation head.
+
+The final governance-only head must refresh the same selected exact-head gates before merge. Final run IDs are recorded in PR metadata rather than forcing another self-referential evidence commit.
 
 ## Explicitly out of scope
 
@@ -198,8 +210,8 @@ Intermediate stale checkpoint at draft head `f18693f97432cda320534a01373b840bd19
 - remote parser-training submission/anonymization/consent processing;
 - provider-backed password/OAuth recent re-auth;
 - schema, migration, RPC, RLS or provider changes not explicitly justified by discovered evidence;
-- merge, production deployment approval or Phase 9 work.
+- manual production deployment or Phase 9 work.
 
 ## Merge and deployment boundary
 
-Merge remains an owner decision. A merge to `main` is expected to trigger the connected Vercel production deployment automatically; green checks and ready-for-review state are not merge authorization.
+The owner has authorized squash merge once the final exact-head gates are green and the PR head is unchanged/mergeable. A merge to `main` is expected to trigger the connected Vercel production deployment automatically; the agent must observe that deployment rather than trigger one manually. Automated browser evidence does not claim physical Android/iOS readiness or provider-backed recent re-auth.
