@@ -269,6 +269,11 @@ export function RulesPage({
           ? { label: "Thêm quy tắc", onClick: openAdd, icon: "plus" }
           : undefined
       }
+      showPrimaryActionOnMobile={
+        featureAvailable &&
+        availableCategories.length > 0 &&
+        orderedRules.length > 0
+      }
     >
       <SecondaryWorkspace slot="rules-workspace">
         <SecondaryHeader
