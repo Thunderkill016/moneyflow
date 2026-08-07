@@ -66,7 +66,7 @@ test("landing is responsive, public-light and motion accessible", () => {
   assert.match(landingStyles, /min-height:\s*44px/);
   assert.doesNotMatch(
     landingStyles,
-    /\.loginLink\s*\{[^}]*display:\s*none/isu,
+    /\.loginLink\s*\{[^}]*display:\s*none/is,
   );
   assert.match(
     landingStyles,
