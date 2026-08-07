@@ -71,29 +71,14 @@
   background: transparent !important;
 }
 
-.desktop-search,
 .icon-button {
   border-color: var(--color-border-default) !important;
   background: var(--color-bg-elevated) !important;
   box-shadow: none !important;
 }
 
-.desktop-search {
-  width: min(360px, 38vw) !important;
-  height: 44px !important;
-  border-radius: var(--mf-control-radius) !important;
-  color: var(--color-text-secondary) !important;
-}
-
-.desktop-search-placeholder,
-.desktop-search input::placeholder {
+.desktop-search-placeholder {
   color: var(--color-text-tertiary) !important;
-}
-
-.desktop-search kbd {
-  border-color: var(--color-border-default) !important;
-  background: var(--color-bg-secondary) !important;
-  color: var(--color-text-secondary) !important;
 }
 
 .icon-button {
@@ -105,23 +90,6 @@
 
 .icon-button:hover {
   background: var(--color-bg-tertiary) !important;
-}
-
-.mobile-account-button {
-  display: none;
-  width: 44px;
-  height: 44px;
-  cursor: pointer;
-  place-items: center;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  padding: 0;
-}
-
-.mobile-account-button .avatar {
-  width: 38px;
-  height: 38px;
 }
 
 /* Shared authenticated actions */
@@ -414,15 +382,6 @@
 }
 
 /* Dialogs and quick capture */
-.capture-sheet,
-.more-sheet {
-  border-radius: 20px !important;
-  border-color: var(--color-border-default) !important;
-  background: var(--color-bg-elevated) !important;
-  padding: 20px !important;
-  color: var(--color-text-primary) !important;
-  box-shadow: 0 24px 72px rgb(5 29 15 / 24%) !important;
-}
 
 .capture-sheet-lead {
   color: var(--color-text-secondary) !important;
@@ -553,38 +512,6 @@
 }
 
 /* Mobile product chrome */
-.mobile-nav {
-  border-top: 1px solid var(--color-border-default) !important;
-  background: var(--color-bg-elevated) !important;
-  box-shadow: 0 -4px 16px rgb(15 31 22 / 9%) !important;
-  backdrop-filter: none !important;
-}
-
-.mobile-nav a,
-.mobile-nav button {
-  min-width: 48px;
-  min-height: 48px;
-  border-radius: 10px;
-  color: var(--color-text-secondary) !important;
-}
-
-.mobile-nav a.active,
-.mobile-nav button.active {
-  color: var(--color-accent-text) !important;
-}
-
-.mobile-fab {
-  width: 56px !important;
-  height: 56px !important;
-  border: 4px solid var(--color-bg-elevated) !important;
-  background: var(--color-accent-default) !important;
-  box-shadow: 0 10px 24px rgb(10 84 48 / 28%) !important;
-}
-
-.mobile-fab:hover {
-  transform: none !important;
-  box-shadow: 0 12px 28px rgb(10 84 48 / 30%) !important;
-}
 
 /* Dark theme */
 [data-theme="dark"] .app-shell {
@@ -594,9 +521,6 @@
   background: var(--color-bg-primary);
 }
 
-[data-theme="dark"] .mobile-nav,
-[data-theme="dark"] .capture-sheet,
-[data-theme="dark"] .more-sheet,
 [data-theme="dark"] .profile-menu {
   background: var(--color-bg-elevated) !important;
 }
@@ -638,25 +562,6 @@
 
   .page-column {
     margin-left: 0 !important;
-  }
-
-  .mobile-brand {
-    min-width: 0;
-    padding: 0;
-    font-size: 16px !important;
-  }
-
-  .mobile-brand .brand-mark {
-    width: 30px !important;
-    height: 30px !important;
-  }
-
-  .desktop-add {
-    display: none !important;
-  }
-
-  .mobile-account-button {
-    display: grid;
   }
 
   .dashboard {
@@ -743,25 +648,6 @@
   .insights-category-row {
     padding: 12px;
   }
-
-  .capture-sheet,
-  .more-sheet {
-    width: calc(100vw - 16px) !important;
-    max-height: calc(100dvh - 16px) !important;
-    margin: auto 8px 8px !important;
-    border-radius: 20px 20px 16px 16px !important;
-    padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-  }
-
-  .mobile-nav {
-    min-height: var(--mobile-nav-height);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  .mobile-fab {
-    width: 56px !important;
-    height: 56px !important;
-  }
 }
 
 @media (max-width: 420px) {
@@ -781,9 +667,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .app-shell .primary-button,
-  .insights-kpi article,
-  .transaction-row,
-  .mobile-fab {
+.insights-kpi article,
+.transaction-row {
     transition: none !important;
   }
 }

@@ -58,33 +58,68 @@ test("mobile tabs = 5 (4 primary + Thêm)", () => {
   );
 });
 
+/**
+ * These two tests used to read `globals.css` for `.mobile-nav` and `.mobile-fab`.
+ * Both classes are absent from the DOM — a probe across five routes at 390 and
+ * 1366 finds zero nodes — so the rules they asserted never applied, and the tests
+ * were green regardless of what the real bottom nav did.
+ *
+ * Repointed at `app-shell.module.css`, which is what `app-shell.tsx` actually
+ * renders. The five-column and safe-area claims are true there, so these become
+ * real guards rather than decorative ones.
+ */
+function shellModule(): string {
+  return readFileSync(
+    join(process.cwd(), "src/components/layout/app-shell.module.css"),
+    "utf8",
+  );
+}
+
+/** The phone block of the CSS Module, where `.mobileNav` is laid out. */
+function moduleMobileBlock(source: string): string {
+  const start = source.indexOf("@media (max-width: 760px)");
+  assert.ok(start >= 0, "expected a 760px block in app-shell.module.css");
+  return source.slice(start);
+}
+
 test("CSS: bottom nav is 5 equal columns + safe-area", () => {
-  const block = mobileBlock(css());
+  const block = moduleMobileBlock(shellModule());
+  const navIdx = block.indexOf(".mobileNav {");
+  assert.ok(navIdx >= 0, "expected .mobileNav rule in the module's phone block");
+  const nav = block.slice(navIdx, navIdx + 700);
+
   assert.match(
-    block,
+    nav,
     /grid-template-columns:\s*repeat\(\s*5\s*,\s*minmax\(0,\s*1fr\)\s*\)/,
   );
-  assert.match(block, /safe-area-inset-bottom/);
-  assert.match(block, /\.mobile-nav\s*\{/);
+  // Asserted inside the .mobileNav rule, not merely somewhere in the file: the
+  // module uses safe-area in five places, so a file-wide match would pass even if
+  // the nav itself lost its inset padding.
+  assert.match(nav, /env\(safe-area-inset-bottom\)/);
+  assert.match(nav, /position:\s*fixed/);
+  assert.match(nav, /bottom:\s*0/);
 });
 
-test("CSS: FAB sits above nav and content end clears FAB", () => {
-  const source = css();
-  assert.match(source, /--mobile-content-end:/);
-  assert.match(source, /--mobile-fab-clearance:/);
-  assert.match(source, /--mobile-nav-height:/);
-  assert.match(source, /--mobile-fab-gap:/);
+test("CSS: the centre nav item is the capture action, not a separate FAB", () => {
+  // The Calm Ledger redesign removed the floating action button; capture became
+  // the middle tab. The old test asserted a `.mobile-fab` rule in globals.css and
+  // passed for as long as that dead rule sat there.
+  const source = shellModule();
+  assert.match(source, /\.mobileCapture\s*\{/);
+  assert.doesNotMatch(
+    shell(),
+    /styles\.mobileFab/,
+    "a reintroduced FAB needs its own contract, not this one",
+  );
 
-  const block = mobileBlock(source);
-  assert.match(block, /padding-bottom:\s*var\(--mobile-content-end\)/);
-  assert.match(block, /\.mobile-fab\s*\{/);
-  // Multiline calc is OK — assert token presence near FAB.
-  const fabIdx = block.indexOf(".mobile-fab {");
-  assert.ok(fabIdx >= 0, "expected .mobile-fab rule in mobile block");
-  const fabSlice = block.slice(fabIdx, fabIdx + 600);
-  assert.match(fabSlice, /--mobile-nav-height/);
-  assert.match(fabSlice, /--mobile-fab-gap/);
-  assert.match(fabSlice, /safe-area-inset-bottom/);
+  // The shell owns the clearance that keeps the last row above the bottom nav.
+  const block = moduleMobileBlock(source);
+  const shellIdx = block.indexOf(".shell {");
+  assert.ok(shellIdx >= 0, "expected .shell rule in the module's phone block");
+  assert.match(
+    block.slice(shellIdx, shellIdx + 300),
+    /padding-bottom:\s*calc\([^)]*env\(safe-area-inset-bottom\)/,
+  );
 });
 
 test("CSS: dialogs full-width bottom sheets on mobile", () => {
