@@ -22,6 +22,7 @@ const protectedPaths = [
   "/reports",
 ];
 const authPaths = ["/login", "/register", "/forgot-password"];
+const ACCOUNT_DELETION_PATH = "/settings/delete-account";
 
 /** Supabase SSR cookies look like `sb-<ref>-auth-token` (and chunked variants). */
 function hasSupabaseAuthCookie(request: NextRequest): boolean {
@@ -82,8 +83,18 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Logged-in: auth screens + public `/` → Tổng quan (POST_AUTH_REDIRECT)
-  if (isAuthenticated && (authPaths.includes(path) || path === "/")) {
+  const accountDeletionReauth =
+    path === "/login" &&
+    request.nextUrl.searchParams.get("reauth") === "1" &&
+    request.nextUrl.searchParams.get("next") === ACCOUNT_DELETION_PATH;
+
+  // Logged-in users normally leave auth screens. The one exception is explicit
+  // account-deletion step-up, which must be able to create a fresh Auth session.
+  if (
+    isAuthenticated &&
+    (authPaths.includes(path) || path === "/") &&
+    !accountDeletionReauth
+  ) {
     const homeUrl = request.nextUrl.clone();
     homeUrl.pathname = POST_AUTH_REDIRECT;
     homeUrl.search = "";
