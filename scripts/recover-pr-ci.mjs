@@ -40,17 +40,13 @@ export function parseArgs(argv, env = process.env) {
     help: false,
   };
 
-  const readValue = (flag, index) => {
+  const valueAt = (flag, index) => {
     const value = argv[index + 1];
-    if (!value || value.startsWith("--")) {
-      throw new Error(`${flag} requires a value`);
-    }
+    if (!value || value.startsWith("--")) throw new Error(`${flag} requires a value`);
     return value;
   };
-
-  const readInteger = (flag, index, minimum) => {
-    const raw = readValue(flag, index);
-    const value = Number(raw);
+  const integerAt = (flag, index, minimum) => {
+    const value = Number(valueAt(flag, index));
     if (!Number.isInteger(value) || value < minimum) {
       throw new Error(`${flag} must be an integer of at least ${minimum}`);
     }
@@ -58,70 +54,24 @@ export function parseArgs(argv, env = process.env) {
   };
 
   for (let index = 0; index < argv.length; index += 1) {
-    const value = argv[index];
-
-    if (value === "--help" || value === "-h") {
-      options.help = true;
-      continue;
-    }
-    if (value === "--force") {
-      options.force = true;
-      continue;
-    }
-    if (value === "--dry-run") {
-      options.dryRun = true;
-      continue;
-    }
-    if (value === "--cancel-only") {
-      options.cancelOnly = true;
-      continue;
-    }
-    if (value === "--no-watch") {
-      options.watch = false;
-      continue;
-    }
-    if (value === "--repo") {
-      options.repo = readValue(value, index);
-      index += 1;
-      continue;
-    }
-    if (value === "--workflow") {
-      options.workflow = readValue(value, index);
-      index += 1;
-      continue;
-    }
-    if (value === "--stale-after") {
-      options.staleAfterSeconds = readInteger(value, index, 60);
-      index += 1;
-      continue;
-    }
-    if (value === "--interval") {
-      options.intervalSeconds = readInteger(value, index, 3);
-      index += 1;
-      continue;
-    }
-    if (value === "--discovery-timeout") {
-      options.discoveryTimeoutSeconds = readInteger(value, index, 15);
-      index += 1;
-      continue;
-    }
-    if (value === "--cancel-grace") {
-      options.cancelGraceSeconds = readInteger(value, index, 0);
-      index += 1;
-      continue;
-    }
-    if (value.startsWith("--")) {
-      throw new Error(`Unknown option: ${value}`);
-    }
-    if (options.pr !== null) {
-      throw new Error("Provide at most one PR number or URL");
-    }
-    options.pr = value;
+    const arg = argv[index];
+    if (arg === "--help" || arg === "-h") options.help = true;
+    else if (arg === "--force") options.force = true;
+    else if (arg === "--dry-run") options.dryRun = true;
+    else if (arg === "--cancel-only") options.cancelOnly = true;
+    else if (arg === "--no-watch") options.watch = false;
+    else if (arg === "--repo") options.repo = valueAt(arg, index++);
+    else if (arg === "--workflow") options.workflow = valueAt(arg, index++);
+    else if (arg === "--stale-after") options.staleAfterSeconds = integerAt(arg, index++, 60);
+    else if (arg === "--interval") options.intervalSeconds = integerAt(arg, index++, 3);
+    else if (arg === "--discovery-timeout") options.discoveryTimeoutSeconds = integerAt(arg, index++, 15);
+    else if (arg === "--cancel-grace") options.cancelGraceSeconds = integerAt(arg, index++, 0);
+    else if (arg.startsWith("--")) throw new Error(`Unknown option: ${arg}`);
+    else if (options.pr !== null) throw new Error("Provide at most one PR number or URL");
+    else options.pr = arg;
   }
 
-  if (!options.help && options.pr === null) {
-    throw new Error("Provide a pull request number or URL");
-  }
+  if (!options.help && options.pr === null) throw new Error("Provide a pull request number or URL");
   if (!options.help && !options.repo) {
     throw new Error("Provide --repo OWNER/REPO or set GITHUB_REPOSITORY");
   }
@@ -133,8 +83,7 @@ export function isActiveRun(run) {
 }
 
 export function runIdleSeconds(run, nowMs = Date.now()) {
-  if (!run) return null;
-  const timestamp = run.updatedAt || run.startedAt || run.createdAt;
+  const timestamp = run?.updatedAt || run?.startedAt || run?.createdAt;
   if (!timestamp) return null;
   const parsed = Date.parse(timestamp);
   if (!Number.isFinite(parsed)) return null;
@@ -145,27 +94,22 @@ export function chooseExactHeadRun(runs, headSha) {
   return [...runs]
     .filter((run) => run.headSha === headSha)
     .sort((left, right) => {
-      const leftTime = Date.parse(left.createdAt || 0) || 0;
-      const rightTime = Date.parse(right.createdAt || 0) || 0;
-      if (leftTime !== rightTime) return rightTime - leftTime;
-      return Number(right.databaseId || 0) - Number(left.databaseId || 0);
+      const delta = (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0);
+      return delta || Number(right.databaseId || 0) - Number(left.databaseId || 0);
     })[0] ?? null;
 }
 
 export function findReplacementRun(runs, { headSha, previousRunIds }) {
-  const previousIds = new Set([...previousRunIds].map(Number));
+  const previous = new Set([...previousRunIds].map(Number));
   return [...runs]
-    .filter(
-      (run) =>
-        run.headSha === headSha &&
-        run.event === "workflow_dispatch" &&
-        !previousIds.has(Number(run.databaseId)),
+    .filter((run) =>
+      run.headSha === headSha &&
+      run.event === "workflow_dispatch" &&
+      !previous.has(Number(run.databaseId)),
     )
     .sort((left, right) => {
-      const leftTime = Date.parse(left.createdAt || 0) || 0;
-      const rightTime = Date.parse(right.createdAt || 0) || 0;
-      if (leftTime !== rightTime) return rightTime - leftTime;
-      return Number(right.databaseId || 0) - Number(left.databaseId || 0);
+      const delta = (Date.parse(right.createdAt || 0) || 0) - (Date.parse(left.createdAt || 0) || 0);
+      return delta || Number(right.databaseId || 0) - Number(left.databaseId || 0);
     })[0] ?? null;
 }
 
@@ -184,10 +128,7 @@ export function buildRecoveryPlan({
 
   if (run.status === "completed") {
     if (run.conclusion === "success") {
-      return {
-        action: "already_success",
-        reason: "The newest exact-head run already succeeded.",
-      };
+      return { action: "already_success", reason: "The newest exact-head run already succeeded." };
     }
     return cancelOnly
       ? {
@@ -213,6 +154,13 @@ export function buildRecoveryPlan({
   }
 
   const idleSeconds = runIdleSeconds(run, nowMs);
+  if (!force && run.status !== "in_progress") {
+    return {
+      action: "pending",
+      idleSeconds,
+      reason: `The newest exact-head run is ${run.status}; waiting states require --force because elapsed time alone does not prove the run is stale.`,
+    };
+  }
   if (!force && idleSeconds === null) {
     return {
       action: "pending",
@@ -233,14 +181,12 @@ export function buildRecoveryPlan({
     idleSeconds,
     reason: force
       ? "--force authorizes recovery of the active exact-head run."
-      : `The active exact-head run has been idle for ${idleSeconds}s, meeting the ${staleAfterSeconds}s threshold.`,
+      : `The in-progress exact-head run has been idle for ${idleSeconds}s, meeting the ${staleAfterSeconds}s threshold.`,
   };
 }
 
 export function forceCancelApiPath(repo, runId) {
-  if (!/^[^/]+\/[^/]+$/.test(repo)) {
-    throw new Error("Repository must use OWNER/REPO format");
-  }
+  if (!/^[^/]+\/[^/]+$/.test(repo)) throw new Error("Repository must use OWNER/REPO format");
   return `repos/${repo}/actions/runs/${runId}/force-cancel`;
 }
 
@@ -248,8 +194,8 @@ function usage() {
   return `Usage: node scripts/recover-pr-ci.mjs PR_NUMBER_OR_URL --repo OWNER/REPO [options]\n\n` +
     `Options:\n` +
     `  --workflow FILE_OR_NAME       Workflow to dispatch (default: ${DEFAULT_WORKFLOW})\n` +
-    `  --stale-after SECONDS         Minimum idle time before automatic cancellation (default: ${DEFAULT_STALE_AFTER_SECONDS})\n` +
-    `  --force                       Recover an active run without waiting for the stale threshold\n` +
+    `  --stale-after SECONDS         Minimum in-progress idle time before automatic cancellation (default: ${DEFAULT_STALE_AFTER_SECONDS})\n` +
+    `  --force                       Authorize recovery of queued/waiting states or bypass the stale threshold\n` +
     `  --dry-run                     Print the recovery plan without Actions writes\n` +
     `  --cancel-only                 Cancel an eligible run without dispatching a replacement\n` +
     `  --no-watch                    Return after the replacement run is discovered\n` +
@@ -259,24 +205,14 @@ function usage() {
     `  -h, --help                    Show this help`;
 }
 
-function ghArgsWithRepo(args, repo) {
-  return repo ? [...args, "--repo", repo] : args;
-}
-
-function runGh(
-  args,
-  { repo, capture = true, allowFailure = false, attachRepo = true } = {},
-) {
-  const finalArgs = attachRepo ? ghArgsWithRepo(args, repo) : args;
+function runGh(args, { repo, capture = true, allowFailure = false, attachRepo = true } = {}) {
+  const finalArgs = attachRepo && repo ? [...args, "--repo", repo] : args;
   const result = spawnSync("gh", finalArgs, {
     encoding: "utf8",
     stdio: capture ? ["ignore", "pipe", "pipe"] : "inherit",
     maxBuffer: 20 * 1024 * 1024,
   });
-
-  if (result.error) {
-    throw new Error(`Unable to run GitHub CLI: ${result.error.message}`);
-  }
+  if (result.error) throw new Error(`Unable to run GitHub CLI: ${result.error.message}`);
   if (!allowFailure && result.status !== 0) {
     const details = capture ? result.stderr.trim() || result.stdout.trim() : "";
     throw new Error(`gh ${args.join(" ")} failed${details ? `: ${details}` : ""}`);
@@ -294,60 +230,33 @@ function readJson(args, repo) {
 }
 
 function resolvePullRequest(pr, repo) {
-  return readJson(
-    [
-      "pr",
-      "view",
-      String(pr),
-      "--json",
-      "number,url,headRefOid,headRefName,isDraft,state",
-    ],
-    repo,
-  );
+  return readJson([
+    "pr", "view", String(pr), "--json", "number,url,headRefOid,headRefName,isDraft,state",
+  ], repo);
 }
 
 function listWorkflowRuns({ repo, workflow, headSha }) {
-  return readJson(
-    [
-      "run",
-      "list",
-      "--workflow",
-      workflow,
-      "--commit",
-      headSha,
-      "--limit",
-      "50",
-      "--json",
-      "databaseId,workflowName,status,conclusion,headSha,headBranch,event,createdAt,startedAt,updatedAt,url,attempt",
-    ],
-    repo,
-  );
+  return readJson([
+    "run", "list", "--workflow", workflow, "--commit", headSha, "--limit", "50", "--json",
+    "databaseId,workflowName,status,conclusion,headSha,headBranch,event,createdAt,startedAt,updatedAt,url,attempt",
+  ], repo);
 }
 
 function readRun(runId, repo) {
-  return readJson(
-    [
-      "run",
-      "view",
-      String(runId),
-      "--json",
-      "databaseId,status,conclusion,headSha,headBranch,event,createdAt,startedAt,updatedAt,url,attempt",
-    ],
-    repo,
-  );
+  return readJson([
+    "run", "view", String(runId), "--json",
+    "databaseId,status,conclusion,headSha,headBranch,event,createdAt,startedAt,updatedAt,url,attempt",
+  ], repo);
 }
 
-function sleep(seconds) {
-  return new Promise((resolvePromise) => setTimeout(resolvePromise, seconds * 1000));
-}
+const sleep = (seconds) => new Promise((resolvePromise) => setTimeout(resolvePromise, seconds * 1000));
 
 async function assertUnmovedHead({ pr, repo, expectedHead }) {
   const current = resolvePullRequest(pr, repo);
   if (current.headRefOid !== expectedHead) {
-    throw Object.assign(
-      new Error(`PR head moved: ${expectedHead} -> ${current.headRefOid}`),
-      { exitCode: EXIT_STALE_HEAD },
-    );
+    throw Object.assign(new Error(`PR head moved: ${expectedHead} -> ${current.headRefOid}`), {
+      exitCode: EXIT_STALE_HEAD,
+    });
   }
   return current;
 }
@@ -359,15 +268,11 @@ async function cancelRun({ runId, repo, graceSeconds, dryRun }) {
     return;
   }
 
-  const normalCancel = runGh(["run", "cancel", String(runId)], {
-    repo,
-    allowFailure: true,
-  });
-  if (normalCancel.status !== 0) {
-    const details = normalCancel.stderr.trim() || normalCancel.stdout.trim();
+  const normal = runGh(["run", "cancel", String(runId)], { repo, allowFailure: true });
+  if (normal.status !== 0) {
+    const details = normal.stderr.trim() || normal.stdout.trim();
     console.warn(`Normal cancellation did not complete${details ? `: ${details}` : "."}`);
   }
-
   if (graceSeconds > 0) await sleep(graceSeconds);
 
   const afterNormal = readRun(runId, repo);
@@ -377,30 +282,18 @@ async function cancelRun({ runId, repo, graceSeconds, dryRun }) {
   }
 
   console.log(`Run ${runId} is still ${afterNormal.status}; force-cancelling.`);
-  const forceCancel = runGh(["run", "cancel", String(runId), "--force"], {
+  const forced = runGh(["run", "cancel", String(runId), "--force"], {
     repo,
     allowFailure: true,
   });
-  if (forceCancel.status === 0) return;
+  if (forced.status === 0) return;
 
-  const path = forceCancelApiPath(repo, runId);
-  const fallback = runGh(
-    [
-      "api",
-      "--method",
-      "POST",
-      "-H",
-      "Accept: application/vnd.github+json",
-      path,
-    ],
-    { attachRepo: false, allowFailure: true },
-  );
+  const fallback = runGh([
+    "api", "--method", "POST", "-H", "Accept: application/vnd.github+json",
+    forceCancelApiPath(repo, runId),
+  ], { attachRepo: false, allowFailure: true });
   if (fallback.status !== 0) {
-    const details =
-      fallback.stderr.trim() ||
-      fallback.stdout.trim() ||
-      forceCancel.stderr.trim() ||
-      forceCancel.stdout.trim();
+    const details = fallback.stderr.trim() || fallback.stdout.trim() || forced.stderr.trim() || forced.stdout.trim();
     throw new Error(`Unable to force-cancel run ${runId}${details ? `: ${details}` : ""}`);
   }
 }
@@ -411,8 +304,7 @@ function dispatchWorkflow({ workflow, branch, repo, dryRun }) {
     return;
   }
   const result = runGh(["workflow", "run", workflow, "--ref", branch], { repo });
-  const output = result.stdout.trim();
-  if (output) console.log(output);
+  if (result.stdout.trim()) console.log(result.stdout.trim());
 }
 
 async function waitForReplacementRun({
@@ -427,8 +319,10 @@ async function waitForReplacementRun({
   const deadline = Date.now() + timeoutSeconds * 1000;
   while (Date.now() < deadline) {
     await assertUnmovedHead({ pr, repo, expectedHead: headSha });
-    const runs = listWorkflowRuns({ repo, workflow, headSha });
-    const replacement = findReplacementRun(runs, { headSha, previousRunIds });
+    const replacement = findReplacementRun(
+      listWorkflowRuns({ repo, workflow, headSha }),
+      { headSha, previousRunIds },
+    );
     if (replacement) return replacement;
     await sleep(intervalSeconds);
   }
@@ -444,7 +338,6 @@ export async function main(argv = process.argv.slice(2)) {
     console.error(usage());
     return EXIT_USAGE;
   }
-
   if (options.help) {
     console.log(usage());
     return 0;
@@ -452,9 +345,7 @@ export async function main(argv = process.argv.slice(2)) {
 
   try {
     const pullRequest = resolvePullRequest(options.pr, options.repo);
-    if (pullRequest.state !== "OPEN") {
-      throw new Error(`PR #${pullRequest.number} is not open.`);
-    }
+    if (pullRequest.state !== "OPEN") throw new Error(`PR #${pullRequest.number} is not open.`);
 
     const headSha = pullRequest.headRefOid;
     const branch = pullRequest.headRefName;
@@ -463,19 +354,11 @@ export async function main(argv = process.argv.slice(2)) {
     console.log(`Exact head: ${headSha}`);
     console.log(`Draft: ${pullRequest.isDraft ? "yes" : "no"}`);
 
-    const runsBefore = listWorkflowRuns({
-      repo: options.repo,
-      workflow: options.workflow,
-      headSha,
-    });
+    const runsBefore = listWorkflowRuns({ repo: options.repo, workflow: options.workflow, headSha });
     const latestRun = chooseExactHeadRun(runsBefore, headSha);
-    if (latestRun) {
-      console.log(
-        `Latest exact-head run: ${latestRun.databaseId} · ${latestRun.status}/${latestRun.conclusion || "none"} · ${latestRun.url}`,
-      );
-    } else {
-      console.log("Latest exact-head run: none");
-    }
+    console.log(latestRun
+      ? `Latest exact-head run: ${latestRun.databaseId} · ${latestRun.status}/${latestRun.conclusion || "none"} · ${latestRun.url}`
+      : "Latest exact-head run: none");
 
     const plan = buildRecoveryPlan({
       run: latestRun,
@@ -485,14 +368,11 @@ export async function main(argv = process.argv.slice(2)) {
     });
     console.log(`Recovery plan: ${plan.action} — ${plan.reason}`);
 
-    if (plan.action === "already_success" || plan.action === "nothing_to_cancel") {
-      return 0;
-    }
-    if (plan.action === "pending") {
-      return EXIT_PENDING;
-    }
+    if (["already_success", "nothing_to_cancel"].includes(plan.action)) return 0;
+    if (plan.action === "pending") return EXIT_PENDING;
+
     if (options.dryRun) {
-      if (plan.action === "cancel" || plan.action === "cancel_and_dispatch") {
+      if (["cancel", "cancel_and_dispatch"].includes(plan.action)) {
         await cancelRun({
           runId: latestRun.databaseId,
           repo: options.repo,
@@ -500,24 +380,14 @@ export async function main(argv = process.argv.slice(2)) {
           dryRun: true,
         });
       }
-      if (plan.action === "dispatch" || plan.action === "cancel_and_dispatch") {
-        dispatchWorkflow({
-          workflow: options.workflow,
-          branch,
-          repo: options.repo,
-          dryRun: true,
-        });
+      if (["dispatch", "cancel_and_dispatch"].includes(plan.action)) {
+        dispatchWorkflow({ workflow: options.workflow, branch, repo: options.repo, dryRun: true });
       }
       return 0;
     }
 
-    await assertUnmovedHead({
-      pr: options.pr,
-      repo: options.repo,
-      expectedHead: headSha,
-    });
-
-    if (plan.action === "cancel" || plan.action === "cancel_and_dispatch") {
+    await assertUnmovedHead({ pr: options.pr, repo: options.repo, expectedHead: headSha });
+    if (["cancel", "cancel_and_dispatch"].includes(plan.action)) {
       await cancelRun({
         runId: latestRun.databaseId,
         repo: options.repo,
@@ -527,19 +397,9 @@ export async function main(argv = process.argv.slice(2)) {
     }
     if (plan.action === "cancel") return 0;
 
-    await assertUnmovedHead({
-      pr: options.pr,
-      repo: options.repo,
-      expectedHead: headSha,
-    });
-
+    await assertUnmovedHead({ pr: options.pr, repo: options.repo, expectedHead: headSha });
     const previousRunIds = new Set(runsBefore.map((run) => Number(run.databaseId)));
-    dispatchWorkflow({
-      workflow: options.workflow,
-      branch,
-      repo: options.repo,
-      dryRun: false,
-    });
+    dispatchWorkflow({ workflow: options.workflow, branch, repo: options.repo, dryRun: false });
 
     const replacement = await waitForReplacementRun({
       repo: options.repo,
@@ -551,53 +411,29 @@ export async function main(argv = process.argv.slice(2)) {
       timeoutSeconds: options.discoveryTimeoutSeconds,
     });
     if (!replacement) {
-      console.error(
-        `No new workflow_dispatch run for exact head ${headSha} appeared within ${options.discoveryTimeoutSeconds}s.`,
-      );
+      console.error(`No new workflow_dispatch run for exact head ${headSha} appeared within ${options.discoveryTimeoutSeconds}s.`);
       return EXIT_PENDING;
     }
-
-    console.log(
-      `Replacement run: ${replacement.databaseId} · ${replacement.status}/${replacement.conclusion || "none"} · ${replacement.url}`,
-    );
+    console.log(`Replacement run: ${replacement.databaseId} · ${replacement.status}/${replacement.conclusion || "none"} · ${replacement.url}`);
 
     if (!options.watch) {
-      await assertUnmovedHead({
-        pr: options.pr,
-        repo: options.repo,
-        expectedHead: headSha,
-      });
+      await assertUnmovedHead({ pr: options.pr, repo: options.repo, expectedHead: headSha });
       return 0;
     }
 
-    const watched = runGh(
-      [
-        "run",
-        "watch",
-        String(replacement.databaseId),
-        "--compact",
-        "--exit-status",
-        "--interval",
-        String(options.intervalSeconds),
-      ],
-      { repo: options.repo, capture: false, allowFailure: true },
-    );
+    const watched = runGh([
+      "run", "watch", String(replacement.databaseId), "--compact", "--exit-status", "--interval",
+      String(options.intervalSeconds),
+    ], { repo: options.repo, capture: false, allowFailure: true });
 
-    await assertUnmovedHead({
-      pr: options.pr,
-      repo: options.repo,
-      expectedHead: headSha,
-    });
-
+    await assertUnmovedHead({ pr: options.pr, repo: options.repo, expectedHead: headSha });
     const finalRun = readRun(replacement.databaseId, options.repo);
     if (finalRun.headSha !== headSha) {
       console.error(`Replacement run targeted ${finalRun.headSha}, expected ${headSha}.`);
       return EXIT_STALE_HEAD;
     }
     if (watched.status !== 0 || finalRun.status !== "completed" || finalRun.conclusion !== "success") {
-      console.error(
-        `Replacement run ${replacement.databaseId} finished as ${finalRun.status}/${finalRun.conclusion || "none"}.`,
-      );
+      console.error(`Replacement run ${replacement.databaseId} finished as ${finalRun.status}/${finalRun.conclusion || "none"}.`);
       return EXIT_FAILURE;
     }
 
@@ -612,6 +448,4 @@ export async function main(argv = process.argv.slice(2)) {
 const isDirectExecution =
   process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 
-if (isDirectExecution) {
-  process.exitCode = await main();
-}
+if (isDirectExecution) process.exitCode = await main();
