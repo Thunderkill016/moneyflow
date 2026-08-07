@@ -25,6 +25,19 @@ export const CONTROL_CONTRACT = {
 };
 
 const ACTIVE_PACKET_PATHSPEC = ":(glob)docs/plans/active/*.md";
+const EXECUTION_STATES = [
+  "discovery",
+  "specified",
+  "planned",
+  "implementing",
+  "evaluating",
+  "ready_for_review",
+  "merged",
+  "deployed",
+  "accepted",
+];
+const TRACEABILITY_STATES = new Set(EXECUTION_STATES.slice(2));
+const REVIEW_EVIDENCE_STATES = new Set(EXECUTION_STATES.slice(5));
 
 function headingCount(markdown, heading) {
   return markdown
@@ -61,11 +74,312 @@ function isUnresolved(value) {
   return /^(?:n\/?a|not applicable|none)$/iu.test(value);
 }
 
+function isTraceUnresolved(value) {
+  if (isUnresolved(value)) return true;
+  return /^(?:pending|pass\/fail)\b/iu.test(value ?? "");
+}
+
 function normalizeSignal(value) {
   return value.trim().replace(/\s+/gu, " ").toLowerCase();
 }
 
-export function validateWorkPacket(markdown, { allowPlaceholders = false } = {}) {
+function executionStateValues(markdown) {
+  return [
+    ...markdown.matchAll(/^\*\*Execution state:\*\*\s*(.*?)\s*$/gmu),
+  ].map((match) => match[1].trim());
+}
+
+function splitTableRow(line) {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return null;
+  return trimmed
+    .slice(1, -1)
+    .split("|")
+    .map((cell) => cell.trim());
+}
+
+function isSeparatorRow(cells) {
+  return cells.every((cell) => /^:?-{3,}:?$/u.test(cell));
+}
+
+function parseFirstTable(section) {
+  if (section === null) return null;
+  const lines = section.split(/\r?\n/u);
+  const headerIndex = lines.findIndex((line) => line.trim().startsWith("|"));
+  if (headerIndex === -1) return null;
+
+  const header = splitTableRow(lines[headerIndex]);
+  const separator = splitTableRow(lines[headerIndex + 1] ?? "");
+  if (!header || !separator || !isSeparatorRow(separator)) return null;
+
+  const rows = [];
+  for (let index = headerIndex + 2; index < lines.length; index += 1) {
+    const cells = splitTableRow(lines[index]);
+    if (!cells) break;
+    if (isSeparatorRow(cells)) continue;
+    rows.push(cells);
+  }
+  return { header, rows };
+}
+
+function headerIndex(table, name) {
+  return table.header.findIndex(
+    (cell) => cell.trim().toLowerCase() === name.toLowerCase(),
+  );
+}
+
+function parseAcceptanceCriteria(markdown) {
+  const section = sectionBody(markdown, "### Acceptance criteria");
+  if (section === null) return { section: null, criteria: [], unlabelled: [] };
+
+  const criteria = [];
+  const unlabelled = [];
+  for (const line of section.split(/\r?\n/u)) {
+    if (!/^\s*-\s+\[[ xX]\]\s+/u.test(line)) continue;
+    const match = line.match(/^\s*-\s+\[[ xX]\]\s+(AC\d+):\s*(.+?)\s*$/iu);
+    if (!match) {
+      unlabelled.push(line.trim());
+      continue;
+    }
+    criteria.push({ id: match[1].toUpperCase(), text: match[2].trim() });
+  }
+  return { section, criteria, unlabelled };
+}
+
+function parseTaskCoverage(value) {
+  const normalized = value.trim().replaceAll("`", "");
+  const internal = normalized.match(/^internal:\s*(.*)$/iu);
+  if (internal) {
+    return {
+      kind: "internal",
+      reason: internal[1].trim(),
+      refs: [],
+      malformed: false,
+    };
+  }
+
+  const refs = [...normalized.matchAll(/\bAC\d+\b/giu)].map((match) =>
+    match[0].toUpperCase(),
+  );
+  const remainder = normalized
+    .replace(/\bAC\d+\b/giu, "")
+    .replace(/[\s,;/+&]+/gu, "");
+  return {
+    kind: "criteria",
+    reason: null,
+    refs,
+    malformed: refs.length === 0 || remainder.length > 0,
+  };
+}
+
+function validateTraceabilityTemplate(markdown) {
+  const failures = [];
+  const acceptance = parseAcceptanceCriteria(markdown);
+  if (acceptance.section === null) {
+    failures.push("missing required heading: ### Acceptance criteria");
+  } else if (acceptance.criteria.length === 0) {
+    failures.push(
+      "canonical template must include at least one labelled acceptance criterion such as AC1",
+    );
+  }
+
+  const tasks = parseFirstTable(sectionBody(markdown, "## Tasks"));
+  if (!tasks) {
+    failures.push("canonical template is missing the Tasks table");
+  } else {
+    for (const required of ["ID", "Task", "Covers", "Dependency", "Evidence", "Status"]) {
+      if (headerIndex(tasks, required) === -1) {
+        failures.push(`canonical Tasks table is missing column: ${required}`);
+      }
+    }
+  }
+
+  const evidence = parseFirstTable(sectionBody(markdown, "### Acceptance evidence"));
+  if (!evidence) {
+    failures.push("canonical template is missing the Acceptance evidence table");
+  } else {
+    for (const required of ["Criterion", "Evidence", "Result"]) {
+      if (headerIndex(evidence, required) === -1) {
+        failures.push(`canonical Acceptance evidence table is missing column: ${required}`);
+      }
+    }
+  }
+
+  return failures;
+}
+
+function validateActiveTraceability(markdown, { requireTraceability = false } = {}) {
+  const failures = [];
+  const stateValues = executionStateValues(markdown);
+  const hasTraceabilitySurface =
+    stateValues.length > 0 ||
+    headingCount(markdown, "### Acceptance criteria") > 0 ||
+    headingCount(markdown, "## Tasks") > 0;
+
+  if (!requireTraceability && !hasTraceabilitySurface) return failures;
+
+  if (stateValues.length !== 1) {
+    failures.push("work packet must declare exactly one **Execution state:** value");
+    return failures;
+  }
+  const state = stateValues[0];
+  if (!EXECUTION_STATES.includes(state)) {
+    failures.push(`unsupported execution state for traceability: ${state}`);
+    return failures;
+  }
+  if (!TRACEABILITY_STATES.has(state)) return failures;
+
+  const acceptance = parseAcceptanceCriteria(markdown);
+  if (acceptance.section === null) {
+    failures.push("planned-or-later packet is missing ### Acceptance criteria");
+    return failures;
+  }
+  for (const line of acceptance.unlabelled) {
+    failures.push(`acceptance criterion is missing a stable AC# identifier: ${line}`);
+  }
+  if (acceptance.criteria.length === 0) {
+    failures.push("planned-or-later packet must define at least one AC# acceptance criterion");
+  }
+
+  const criterionCounts = new Map();
+  for (const criterion of acceptance.criteria) {
+    criterionCounts.set(criterion.id, (criterionCounts.get(criterion.id) ?? 0) + 1);
+  }
+  for (const [id, count] of criterionCounts) {
+    if (count > 1) failures.push(`duplicate acceptance criterion identifier: ${id}`);
+  }
+  const criterionIds = new Set(acceptance.criteria.map((criterion) => criterion.id));
+
+  const tasks = parseFirstTable(sectionBody(markdown, "## Tasks"));
+  if (!tasks) {
+    failures.push("planned-or-later packet is missing a valid Tasks table");
+    return failures;
+  }
+
+  const requiredTaskColumns = ["ID", "Task", "Covers", "Dependency", "Evidence", "Status"];
+  const taskIndices = new Map(
+    requiredTaskColumns.map((name) => [name, headerIndex(tasks, name)]),
+  );
+  for (const [name, index] of taskIndices) {
+    if (index === -1) failures.push(`Tasks table is missing column: ${name}`);
+  }
+  if ([...taskIndices.values()].some((index) => index === -1)) return failures;
+
+  const coveredCriteria = new Set();
+  const taskIds = new Set();
+  for (const row of tasks.rows) {
+    const id = row[taskIndices.get("ID")]?.trim() ?? "";
+    const covers = row[taskIndices.get("Covers")]?.trim() ?? "";
+    const evidence = row[taskIndices.get("Evidence")]?.trim() ?? "";
+    const taskLabel = id || "<unnamed task>";
+
+    if (isTraceUnresolved(id)) {
+      failures.push("Tasks table contains a task with unresolved ID");
+    } else if (taskIds.has(id)) {
+      failures.push(`duplicate task identifier: ${id}`);
+    } else {
+      taskIds.add(id);
+    }
+
+    if (isTraceUnresolved(evidence)) {
+      failures.push(`${taskLabel} has unresolved Evidence`);
+    }
+
+    const coverage = parseTaskCoverage(covers);
+    if (coverage.kind === "internal") {
+      if (isTraceUnresolved(coverage.reason)) {
+        failures.push(`${taskLabel} internal coverage requires a non-empty reason`);
+      }
+      continue;
+    }
+
+    if (coverage.malformed) {
+      failures.push(
+        `${taskLabel} Covers must list AC# identifiers or use internal: <reason>`,
+      );
+      continue;
+    }
+
+    for (const ref of coverage.refs) {
+      if (!criterionIds.has(ref)) {
+        failures.push(`${taskLabel} references unknown acceptance criterion: ${ref}`);
+      } else {
+        coveredCriteria.add(ref);
+      }
+    }
+  }
+
+  for (const id of criterionIds) {
+    if (!coveredCriteria.has(id)) {
+      failures.push(`${id} has no covering task`);
+    }
+  }
+
+  if (!REVIEW_EVIDENCE_STATES.has(state)) return failures;
+
+  const evaluation = parseFirstTable(sectionBody(markdown, "### Acceptance evidence"));
+  if (!evaluation) {
+    failures.push(
+      "ready-for-review packet is missing a valid Acceptance evidence table",
+    );
+    return failures;
+  }
+
+  const criterionIndex = headerIndex(evaluation, "Criterion");
+  const evidenceIndex = headerIndex(evaluation, "Evidence");
+  const resultIndex = headerIndex(evaluation, "Result");
+  if (criterionIndex === -1) failures.push("Acceptance evidence table is missing column: Criterion");
+  if (evidenceIndex === -1) failures.push("Acceptance evidence table is missing column: Evidence");
+  if (resultIndex === -1) failures.push("Acceptance evidence table is missing column: Result");
+  if ([criterionIndex, evidenceIndex, resultIndex].some((index) => index === -1)) {
+    return failures;
+  }
+
+  const evidencedCriteria = new Set();
+  for (const row of evaluation.rows) {
+    const rawCriterion = row[criterionIndex]?.trim().replaceAll("`", "") ?? "";
+    const match = rawCriterion.match(/^(AC\d+)$/iu);
+    if (!match) {
+      failures.push(
+        `Acceptance evidence row must identify exactly one AC# criterion: ${rawCriterion || "<empty>"}`,
+      );
+      continue;
+    }
+    const id = match[1].toUpperCase();
+    if (!criterionIds.has(id)) {
+      failures.push(`Acceptance evidence references unknown criterion: ${id}`);
+      continue;
+    }
+    if (evidencedCriteria.has(id)) {
+      failures.push(`duplicate acceptance evidence row: ${id}`);
+      continue;
+    }
+    evidencedCriteria.add(id);
+
+    const evidenceValue = row[evidenceIndex]?.trim() ?? "";
+    const resultValue = row[resultIndex]?.trim() ?? "";
+    if (isTraceUnresolved(evidenceValue) || isTraceUnresolved(resultValue)) {
+      failures.push(`${id} acceptance evidence must be resolved before ready_for_review`);
+      continue;
+    }
+    if (resultValue.toLowerCase() !== "pass") {
+      failures.push(`${id} acceptance evidence result must be pass before ready_for_review`);
+    }
+  }
+
+  for (const id of criterionIds) {
+    if (!evidencedCriteria.has(id)) {
+      failures.push(`${id} is missing criterion-specific acceptance evidence`);
+    }
+  }
+
+  return failures;
+}
+
+export function validateWorkPacket(
+  markdown,
+  { allowPlaceholders = false, requireTraceability = false } = {},
+) {
   const failures = [];
   const controlHeading = "## Control contract";
   const controlCount = headingCount(markdown, controlHeading);
@@ -136,6 +450,12 @@ export function validateWorkPacket(markdown, { allowPlaceholders = false } = {})
       );
     }
   }
+
+  failures.push(
+    ...(allowPlaceholders
+      ? validateTraceabilityTemplate(markdown)
+      : validateActiveTraceability(markdown, { requireTraceability })),
+  );
 
   return failures;
 }
@@ -274,6 +594,7 @@ export function validateRepositoryWorkPackets(root, requestedBase = null) {
   } else {
     for (const failure of validateWorkPacket(readFileSync(templatePath, "utf8"), {
       allowPlaceholders: true,
+      requireTraceability: true,
     })) {
       failures.push(`${WORK_PACKET_TEMPLATE}: ${failure}`);
     }
@@ -287,7 +608,9 @@ export function validateRepositoryWorkPackets(root, requestedBase = null) {
   for (const file of changed.files) {
     const absolute = resolve(root, file);
     if (!existsSync(absolute)) continue;
-    for (const failure of validateWorkPacket(readFileSync(absolute, "utf8"))) {
+    for (const failure of validateWorkPacket(readFileSync(absolute, "utf8"), {
+      requireTraceability: true,
+    })) {
       failures.push(`${relative(root, absolute)}: ${failure}`);
     }
   }
