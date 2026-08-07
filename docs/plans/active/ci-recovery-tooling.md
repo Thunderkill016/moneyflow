@@ -1,11 +1,11 @@
 # Exact-head CI recovery tooling
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** evaluator  
-**Permission scope:** branch_write  
-**Owner:** human owner + implementing agent  
-**Issue/PR:** PR #314  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** human owner + implementing agent
+**Issue/PR:** PR #314
 **Last updated:** 2026-08-07
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
