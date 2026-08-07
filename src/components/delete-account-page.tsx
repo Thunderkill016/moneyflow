@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import type { ViewerSummary } from "@/components/user-chip";
+import { accountDeletionReauthUrl } from "@/lib/account-deletion-reauth";
 import {
   clearLocalMoneyFlowStores,
   DELETE_CONFIRM_TEXT,
@@ -26,11 +27,6 @@ import {
   readStoredCandidates,
 } from "@/lib/inbox/candidate-store";
 import styles from "./settings/settings-surfaces.module.css";
-
-const ACCOUNT_DELETION_PATH = "/settings/delete-account";
-const ACCOUNT_DELETION_REAUTH_URL = `/login?reauth=1&next=${encodeURIComponent(
-  ACCOUNT_DELETION_PATH,
-)}`;
 
 export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
   const confirmRef = useRef<HTMLInputElement>(null);
@@ -111,7 +107,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
           setConfirmText("");
           setReviewOpen(false);
           setDeleting(false);
-          router.push(ACCOUNT_DELETION_REAUTH_URL);
+          router.push(accountDeletionReauthUrl());
           return;
         }
 
