@@ -14,8 +14,12 @@ const reauthPolicy = readFileSync(
   "utf8",
 );
 
-test("password step-up refuses credentials for a different current identity", () => {
+test("step-up actions require both the reauth flag and deletion return path", () => {
   assert.match(actions, /formData\.get\("reauth"\) === "1"/);
+  assert.match(actions, /nextPath === ACCOUNT_DELETION_PATH/);
+});
+
+test("password step-up refuses credentials for a different current identity", () => {
   assert.match(actions, /auth\.getUser\(\)/);
   assert.match(actions, /currentUser\.email/);
   assert.match(actions, /parsed\.data\.email/);
