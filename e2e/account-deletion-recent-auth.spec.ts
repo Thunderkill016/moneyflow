@@ -24,7 +24,7 @@ test.describe("Account deletion recent authentication", () => {
     await expect(
       page.getByRole("link", { name: /Quay lại xóa tài khoản/ }).first(),
     ).toHaveAttribute("href", "/settings/delete-account");
-    await expect(page.getByText(/xóa vĩnh viễn/i).first()).toBeVisible();
+    await expect(page.getByPlaceholder("XÓA")).toHaveCount(0);
   });
 
   test("ignores reauth presentation for unrelated internal next paths", async ({ page }) => {
