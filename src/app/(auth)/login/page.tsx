@@ -9,8 +9,22 @@ export const metadata: Metadata = {
   alternates: { canonical: "/login" },
 };
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+const ACCOUNT_DELETION_PATH = "/settings/delete-account";
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; reauth?: string }>;
+}) {
   const params = await searchParams;
   const next = safeNextPath(params.next);
-  return <AuthForm mode="login" next={next} demoMode={!isSupabaseConfigured()} />;
+  const reauth = params.reauth === "1" && next === ACCOUNT_DELETION_PATH;
+  return (
+    <AuthForm
+      mode="login"
+      next={next}
+      demoMode={!isSupabaseConfigured()}
+      reauth={reauth}
+    />
+  );
 }
