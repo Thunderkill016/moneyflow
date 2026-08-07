@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/auth-form";
+import { ACCOUNT_DELETION_PATH } from "@/lib/account-deletion-reauth";
 import { safeNextPath } from "@/lib/auth-redirect";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -8,8 +9,6 @@ export const metadata: Metadata = {
   description: "Đăng nhập MoneyFlow để ghi thu chi, theo dõi ví và ngân sách của bạn.",
   alternates: { canonical: "/login" },
 };
-
-const ACCOUNT_DELETION_PATH = "/settings/delete-account";
 
 export default async function Page({
   searchParams,
