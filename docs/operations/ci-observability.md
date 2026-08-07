@@ -45,13 +45,13 @@ Preview the plan without Actions writes:
 npm run ci:recover -- 309 --repo Thunderkill016/moneyflow --dry-run
 ```
 
-Recover a run that has been idle for at least the default 15-minute threshold:
+Recover an `in_progress` run that has been idle for at least the default 15-minute threshold:
 
 ```bash
 npm run ci:recover -- 309 --repo Thunderkill016/moneyflow
 ```
 
-Explicitly recover a known zombie run without waiting for the threshold:
+Queued and other waiting states (`queued`, `requested`, `waiting`, `pending`) are intentionally **not** auto-cancelled from elapsed time alone. They may represent runner capacity, concurrency, approval or provider scheduling rather than a zombie run. After independently confirming the run is genuinely unresponsive, use the explicit override:
 
 ```bash
 npm run ci:recover -- 309 --repo Thunderkill016/moneyflow --force
@@ -82,20 +82,33 @@ The command:
 1. resolves the pull request, branch and exact head SHA;
 2. lists only workflow runs attached to that exact SHA;
 3. selects the newest exact-head run;
-4. exits with pending status rather than cancelling a fresh active run;
-5. attempts normal cancellation, then uses official force-cancel behavior only if the run remains active;
-6. rechecks the PR head before dispatch;
-7. dispatches the workflow on the unchanged head branch without creating a commit;
-8. ignores all pre-existing run IDs and accepts only a new `workflow_dispatch` run for the recorded SHA;
-9. watches the replacement with `--exit-status` unless `--no-watch` is supplied;
-10. rechecks the PR head after completion and rejects stale evidence.
+4. exits with pending status for queued/waiting/requested/pending states unless `--force` is supplied;
+5. permits stale-threshold automatic cancellation only for an `in_progress` run with established idle time;
+6. attempts normal cancellation, then uses official force-cancel behavior only if the run remains active;
+7. rechecks the PR head before dispatch;
+8. dispatches the workflow on the unchanged head branch without creating a commit;
+9. ignores all pre-existing run IDs and accepts only a new `workflow_dispatch` run for the recorded SHA;
+10. watches the replacement with `--exit-status` unless `--no-watch` is supplied;
+11. rechecks the PR head after completion and rejects stale evidence.
 
 The current `ci.yml` manual path forces the complete application/database/browser selection. Recovery does not weaken required checks or convert a skipped gate into evidence.
 
+### CodeQL and secret-history boundary
+
+CI recovery and security evidence are separate layers.
+
+- A successful `ci.yml` replacement is evidence only for the CI workflow it ran.
+- Required CodeQL still needs a real JavaScript/TypeScript analysis associated with the pull-request candidate; do not infer CodeQL acceptance from a successful CI run.
+- A manual `workflow_dispatch` of `codeql.yml` on a feature branch is not automatically equivalent to pull-request-scoped code-scanning evidence. The protected pull-request CodeQL run remains the authoritative path unless a dedicated governance change explicitly proves and configures equivalent `ref`/`sha` upload semantics.
+- Secret-history evidence remains owned by the repository's secret-history workflow; CI recovery does not replace it.
+
+This separation prevents a manual recovery workflow from producing a green mechanism signal while required security evidence is still absent.
+
 ### Safety controls
 
-- Default automatic cancellation requires 15 minutes of established run inactivity.
-- Missing or invalid activity timestamps fail safe as pending; use `--force` only after independently confirming the run is unresponsive.
+- Default automatic cancellation applies only to an `in_progress` run with at least 15 minutes of established inactivity.
+- Waiting states (`queued`, `requested`, `waiting`, `pending`) return pending regardless of age unless `--force` is supplied.
+- Missing or invalid activity timestamps fail safe as pending.
 - `--dry-run` performs no GitHub Actions writes.
 - `--force` authorizes run cancellation, not merge, deployment, branch-protection or ruleset changes.
 - The command never reads or prints token values; authentication remains owned by `gh`.
@@ -108,11 +121,11 @@ The current `ci.yml` manual path forces the complete application/database/browse
 - `1`: replacement CI completed unsuccessfully;
 - `2`: usage, authentication, GitHub CLI, API or malformed-response error;
 - `3`: PR head moved, so the result is stale;
-- `8`: active run is not stale enough, or a replacement exact-head run did not appear before the discovery timeout.
+- `8`: a run is pending/not safely recoverable, or a replacement exact-head run did not appear before the discovery timeout.
 
 ### Recovery limits
 
-Repository tooling cannot repair a GitHub service outage or guarantee runner capacity. It can only apply the official cancellation, force-cancellation, manual-dispatch and run-watching interfaces. If force-cancel is accepted but no replacement run appears, preserve the exact SHA and provider evidence, then inspect GitHub Status or support channels rather than changing product code.
+Repository tooling cannot repair a GitHub service outage or guarantee runner capacity. It can only apply the official cancellation, force-cancellation, manual-dispatch and run-watching interfaces. If a waiting-state run remains blocked, preserve the exact SHA and provider evidence rather than treating age alone as authorization to cancel it. If force-cancel is accepted but no replacement run appears, inspect GitHub Status or support channels rather than changing product code.
 
 ## Monitoring guarantees
 
@@ -166,4 +179,5 @@ The current UI audit invokes a production build inside Playwright even though `v
 - [GitHub CLI: list, rerun and watch workflow runs](https://cli.github.com/manual/gh_run)
 - [GitHub Actions workflow-run REST endpoints](https://docs.github.com/en/rest/actions/workflow-runs)
 - [GitHub Actions concurrency behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+- [GitHub code scanning SARIF upload behavior](https://docs.github.com/en/code-security/code-scanning/integrating-with-code-scanning/uploading-a-sarif-file-to-github)
 - Playwright CI worker, sharding and browser-cache guidance.
