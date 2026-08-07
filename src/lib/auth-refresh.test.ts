@@ -1,15 +1,22 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
 const authForm = readFileSync("src/components/auth-form.tsx", "utf8");
 const authStyles = readFileSync("src/components/auth-form.module.css", "utf8");
+const publicTheme = readFileSync(
+  "src/components/public-brand-theme.module.css",
+  "utf8",
+);
 const documentTheme = readFileSync("src/app/document-theme.css", "utf8");
 
-test("authentication uses the product-owned module and document theme", () => {
+test("authentication uses the product-owned module and public semantic theme", () => {
   assert.doesNotMatch(rootLayout, /auth-refresh\.css/);
+  assert.equal(existsSync("src/app/auth-refresh.css"), false);
   assert.match(authForm, /auth-form\.module\.css/);
+  assert.match(authForm, /public-brand-theme\.module\.css/);
+  assert.match(authForm, /themeStyles\.authTheme/);
   assert.match(rootLayout, /document-theme\.css/);
 });
 
@@ -35,7 +42,7 @@ test("auth copy stays factual and task-focused", () => {
   assert.match(authForm, /aria-label="Điều MoneyFlow cam kết"/);
 });
 
-test("authentication is form-first, responsive, themed and motion accessible", () => {
+test("authentication is form-first, responsive, public-light and motion accessible", () => {
   assert.match(authStyles, /min-height:\s*100svh/);
   assert.match(authStyles, /place-items:\s*center/);
   assert.match(authStyles, /\.authStage\b/);
@@ -45,7 +52,9 @@ test("authentication is form-first, responsive, themed and motion accessible", (
   assert.match(authStyles, /min-height:\s*5[02]px/);
   assert.match(authStyles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(authStyles, /\.story\b/);
-  assert.match(authStyles, /html\[data-theme="dark"\]/);
+  assert.doesNotMatch(authStyles, /html\[data-theme="dark"\]/);
+  assert.match(publicTheme, /color-scheme:\s*light/);
+  assert.doesNotMatch(publicTheme, /html\[data-theme="dark"\]/);
   assert.match(documentTheme, /html\[data-theme="dark"\]/);
   assert.doesNotMatch(authStyles, /!important/);
 });
