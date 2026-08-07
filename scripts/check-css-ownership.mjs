@@ -17,6 +17,12 @@ const expectedLegacyImports = [
   "./ai-uiux-guardrails.css",
 ];
 
+const retiredPublicLegacyFiles = [
+  "src/app/landing-refresh.css",
+  "src/app/landing-dark-mode-guardrails.css",
+  "src/app/auth-refresh.css",
+];
+
 // Existing document-selector debt is isolated here until each legacy route is
 // migrated. Adding another file to this list requires a reviewed architecture
 // change; normal feature work must not expand it. Retired files leave this set
@@ -28,8 +34,6 @@ const legacyDocumentAllowlist = new Set([
   "src/app/cross-device-stabilization.css",
   "src/app/ai-uiux-refresh.css",
   "src/app/ai-uiux-guardrails.css",
-  "src/app/landing-refresh.css",
-  "src/app/auth-refresh.css",
 ]);
 
 const maxImportantDeclarations = 1200;
@@ -117,6 +121,12 @@ if (!equalArrays(actualLegacyImports, expectedLegacyImports)) {
   );
 }
 
+for (const retired of retiredPublicLegacyFiles) {
+  if (fs.existsSync(path.join(root, retired))) {
+    fail(`${retired} is a retired public generation and must not be restored; use the current local Landing/Auth owners instead.`);
+  }
+}
+
 const ownerPath = path.join(root, documentOwner);
 const ownerSource = read(ownerPath);
 for (const required of [":root", "html[data-theme=\"dark\"]", "html,", "body {"]) {
@@ -171,6 +181,7 @@ console.log(
       legacyImports: actualLegacyImports.length,
       documentOwner,
       legacyDocumentAllowlist: [...legacyDocumentAllowlist].sort(),
+      retiredPublicLegacyFiles,
       importantDeclarations,
       importantBudget: maxImportantDeclarations,
       unauthorizedDocumentSelectors: unauthorizedDocumentSelectors.length,
