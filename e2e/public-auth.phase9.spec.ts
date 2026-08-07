@@ -64,7 +64,7 @@ test.describe("UI migration Phase 9 public and auth surfaces", () => {
   test("login password field remains password-manager friendly", async ({ page }) => {
     await page.goto("/login", { waitUntil: "domcontentloaded" });
 
-    const password = page.getByLabel("Mật khẩu", { exact: true });
+    const password = page.getByLabel(/^Mật khẩu/);
     await expect(password).toBeVisible();
     await expect(password).toHaveAttribute("autocomplete", "current-password");
 
