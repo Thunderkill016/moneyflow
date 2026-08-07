@@ -45,9 +45,10 @@ test("server action exposes a typed reauthentication-required result", () => {
 });
 
 test("explicit login reauth mode is reachable without weakening normal auth redirects", () => {
+  assert.match(loginPage, /ACCOUNT_DELETION_PATH/);
   assert.match(loginPage, /reauth/);
   assert.match(authForm, /reauth/);
-  assert.match(proxy, /reauth/);
+  assert.match(proxy, /ACCOUNT_DELETION_PATH/);
   assert.match(proxy, /searchParams\.get\("reauth"\) === "1"/);
   assert.match(proxy, /authPaths\.includes\(path\)/);
 });
@@ -60,7 +61,6 @@ test("Google step-up requests fresh provider authentication and preserves safe n
 
 test("deletion UI routes stale authenticated users through step-up and re-entry", () => {
   assert.match(deletePage, /requiresReauthentication/);
-  assert.match(deletePage, /\/login\?reauth=1/);
-  assert.match(deletePage, /\/settings\/delete-account/);
+  assert.match(deletePage, /accountDeletionReauthUrl\(\)/);
   assert.match(deletePage, /setConfirmText\(""\)/);
 });
