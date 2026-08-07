@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2.110.3";
+import { evaluateAccountDeletionRecentAuth } from "../_shared/account-deletion-recent-auth.ts";
 
 const DELETE_CONFIRM_TEXT = "XÓA";
 const JSON_HEADERS = { "Content-Type": "application/json; charset=utf-8" };
@@ -121,6 +122,24 @@ Deno.serve(async (request: Request) => {
   } = await userClient.auth.getUser(accessToken);
   if (userError || !user) {
     return json(401, { ok: false, code: "authentication_required" });
+  }
+
+  // Deletion authority is stronger than session validity. Verify the signed JWT
+  // claims independently, then require a recent interactive AMR event. Access-
+  // token refresh does not create a fresh identity-verification timestamp, so a
+  // long-lived refreshed session cannot silently regain destructive authority.
+  const { data: claimsData, error: claimsError } =
+    await userClient.auth.getClaims(accessToken);
+  if (claimsError || !claimsData?.claims) {
+    return json(503, { ok: false, code: "recent_auth_unavailable" });
+  }
+
+  const recentAuth = evaluateAccountDeletionRecentAuth(claimsData.claims.amr);
+  if (!recentAuth.ok) {
+    return json(428, {
+      ok: false,
+      code: "recent_auth_required",
+    });
   }
 
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
