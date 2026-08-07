@@ -6,6 +6,11 @@ import { redirect } from "next/navigation";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { z } from "zod";
 import {
+  ACCOUNT_DELETION_REAUTH_COOKIE_MAX_AGE_SECONDS,
+  ACCOUNT_DELETION_REAUTH_USER_COOKIE,
+  REAUTH_ACCOUNT_MISMATCH_MESSAGE,
+} from "@/lib/account-deletion-reauth";
+import {
   CAPTCHA_TOKEN_FIELD,
   captchaTokenRequiredButMissing,
   getPublicAuthCaptchaConfig,
@@ -82,6 +87,29 @@ function isCaptchaError(error: { code?: string } | null): boolean {
   return error?.code === "captcha_failed";
 }
 
+async function setExpectedDeletionReauthUser(userId: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(ACCOUNT_DELETION_REAUTH_USER_COOKIE, userId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/auth/callback",
+    maxAge: ACCOUNT_DELETION_REAUTH_COOKIE_MAX_AGE_SECONDS,
+  });
+}
+
+async function clearExpectedDeletionReauthUser() {
+  const cookieStore = await cookies();
+  cookieStore.set(ACCOUNT_DELETION_REAUTH_USER_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/auth/callback",
+    maxAge: 0,
+    expires: new Date(0),
+  });
+}
+
 export async function login(
   _: AuthState,
   formData: FormData,
@@ -97,12 +125,40 @@ export async function login(
 
   const supabase = await createClient();
   if (!supabase) return configurationError();
-  const { error } = await supabase.auth.signInWithPassword({
+
+  const reauth = formData.get("reauth") === "1";
+  let expectedReauthUserId: string | null = null;
+  if (reauth) {
+    const {
+      data: { user: currentUser },
+      error: currentUserError,
+    } = await supabase.auth.getUser();
+    if (currentUserError || !currentUser) {
+      return {
+        message:
+          "Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục, sau đó mở lại bước xóa tài khoản.",
+      };
+    }
+    if (
+      !currentUser.email ||
+      currentUser.email.trim().toLowerCase() !== parsed.data.email
+    ) {
+      return { message: REAUTH_ACCOUNT_MISMATCH_MESSAGE };
+    }
+    expectedReauthUserId = currentUser.id;
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
     ...parsed.data,
     options: captcha.token ? { captchaToken: captcha.token } : undefined,
   });
   if (isCaptchaError(error)) return captchaFailure();
   if (error) return { message: "Email hoặc mật khẩu không đúng." };
+
+  if (expectedReauthUserId && data.user?.id !== expectedReauthUserId) {
+    await supabase.auth.signOut({ scope: "local" });
+    return { message: REAUTH_ACCOUNT_MISMATCH_MESSAGE };
+  }
 
   redirect(
     safeNextPath(String(formData.get("next") ?? ""), POST_AUTH_REDIRECT),
@@ -141,15 +197,12 @@ export async function register(
   });
   if (isCaptchaError(error)) return captchaFailure();
   if (error) {
-    // Do not expose whether this address already exists. Provider logs retain
-    // the exact error for operators; the public response stays neutral.
     return {
       message:
         "Không thể tạo tài khoản lúc này. Kiểm tra thông tin hoặc thử lại sau.",
     };
   }
 
-  // Immediate session (email confirm off) → onboarding for first capture.
   if (data.session) redirect(nextPath);
 
   return {
@@ -166,6 +219,18 @@ export async function signInWithGoogle(formData?: FormData) {
   const reauth = formData?.get("reauth") === "1";
   const supabase = await createClient();
   if (!supabase) redirect("/login?error=config");
+
+  if (reauth) {
+    const {
+      data: { user: currentUser },
+      error: currentUserError,
+    } = await supabase.auth.getUser();
+    if (currentUserError || !currentUser) {
+      redirect(`/login?next=${encodeURIComponent(nextPath)}&error=reauth-session`);
+    }
+    await setExpectedDeletionReauthUser(currentUser.id);
+  }
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
@@ -173,7 +238,10 @@ export async function signInWithGoogle(formData?: FormData) {
       ...(reauth ? { queryParams: { max_age: "0" } } : {}),
     },
   });
-  if (error || !data.url) redirect("/login?error=oauth");
+  if (error || !data.url) {
+    if (reauth) await clearExpectedDeletionReauthUser();
+    redirect("/login?error=oauth");
+  }
   redirect(data.url);
 }
 
@@ -201,7 +269,6 @@ export async function requestPasswordReset(
   });
   if (isCaptchaError(error)) return captchaFailure();
 
-  // Keep the response identical whether the email exists or not.
   return {
     success: true,
     message:
@@ -352,7 +419,6 @@ export async function finalizeAccountDeletion(
   const cleanupVerified =
     data.cleanupVerified === true && data.tenantRowsRemaining === 0;
 
-  // Best effort: remove the local SSR session cookie after the Auth user is gone.
   await supabase.auth.signOut({ scope: "local" });
   return { ok: true, cleanupVerified };
 }
