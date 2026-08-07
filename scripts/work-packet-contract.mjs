@@ -173,12 +173,12 @@ function resolveBase(root, requestedBase) {
     };
   }
 
-  for (const candidate of ["main", "origin/main"]) {
+  for (const candidate of ["origin/main", "main"]) {
     if (verifyRef(root, candidate)) return { base: candidate, error: null };
   }
   return {
     base: null,
-    error: "work-packet diff scope requires a resolvable main or origin/main ref",
+    error: "work-packet diff scope requires a resolvable origin/main or main ref",
   };
 }
 
