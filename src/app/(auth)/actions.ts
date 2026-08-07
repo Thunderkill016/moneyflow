@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { z } from "zod";
 import {
   CAPTCHA_TOKEN_FIELD,
@@ -162,12 +163,14 @@ export async function signInWithGoogle(formData?: FormData) {
     formData ? String(formData.get("next") ?? "") : "",
     POST_AUTH_REDIRECT,
   );
+  const reauth = formData?.get("reauth") === "1";
   const supabase = await createClient();
   if (!supabase) redirect("/login?error=config");
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: `${getSiteOrigin()}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      ...(reauth ? { queryParams: { max_age: "0" } } : {}),
     },
   });
   if (error || !data.url) redirect("/login?error=oauth");
@@ -255,12 +258,25 @@ export async function signOut() {
 
 export type AccountDeletionResult =
   | { ok: true; cleanupVerified: boolean }
-  | { ok: false; message: string };
+  | {
+      ok: false;
+      message: string;
+      requiresReauthentication?: false;
+    }
+  | {
+      ok: false;
+      message: string;
+      requiresReauthentication: true;
+    };
 
 type DeleteAccountFunctionResponse = {
   ok?: unknown;
   cleanupVerified?: unknown;
   tenantRowsRemaining?: unknown;
+};
+
+type DeleteAccountFunctionError = {
+  code?: unknown;
 };
 
 /** Permanently delete only the currently authenticated user and their tenant rows. */
@@ -292,6 +308,7 @@ export async function finalizeAccountDeletion(
       ok: false,
       message:
         "Phiên đăng nhập đã hết hạn. Đăng nhập lại trước khi xóa tài khoản.",
+      requiresReauthentication: true,
     };
   }
 
@@ -300,6 +317,30 @@ export async function finalizeAccountDeletion(
       "delete-account",
       { body: { confirm: DELETE_CONFIRM_TEXT } },
     );
+
+  if (deleteError instanceof FunctionsHttpError) {
+    try {
+      const body = (await deleteError.context.json()) as DeleteAccountFunctionError;
+      if (body?.code === "recent_auth_required") {
+        return {
+          ok: false,
+          requiresReauthentication: true,
+          message:
+            "Để bảo vệ thao tác xóa vĩnh viễn, hãy xác thực lại tài khoản rồi quay lại bước xác nhận.",
+        };
+      }
+      if (body?.code === "recent_auth_unavailable") {
+        return {
+          ok: false,
+          message:
+            "Chưa kiểm tra được trạng thái xác thực gần đây. Dữ liệu chưa bị xóa; hãy thử lại sau.",
+        };
+      }
+    } catch {
+      // Fall through to the bounded generic server-deletion failure below.
+    }
+  }
+
   if (deleteError || !data || data.ok !== true) {
     return {
       ok: false,
