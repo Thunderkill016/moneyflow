@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 import { z } from "zod";
 import {
+  ACCOUNT_DELETION_PATH,
   ACCOUNT_DELETION_REAUTH_COOKIE_MAX_AGE_SECONDS,
   ACCOUNT_DELETION_REAUTH_USER_COOKIE,
   REAUTH_ACCOUNT_MISMATCH_MESSAGE,
@@ -126,7 +127,12 @@ export async function login(
   const supabase = await createClient();
   if (!supabase) return configurationError();
 
-  const reauth = formData.get("reauth") === "1";
+  const nextPath = safeNextPath(
+    String(formData.get("next") ?? ""),
+    POST_AUTH_REDIRECT,
+  );
+  const reauth =
+    formData.get("reauth") === "1" && nextPath === ACCOUNT_DELETION_PATH;
   let expectedReauthUserId: string | null = null;
   if (reauth) {
     const {
@@ -160,9 +166,7 @@ export async function login(
     return { message: REAUTH_ACCOUNT_MISMATCH_MESSAGE };
   }
 
-  redirect(
-    safeNextPath(String(formData.get("next") ?? ""), POST_AUTH_REDIRECT),
-  );
+  redirect(nextPath);
 }
 
 export async function register(
@@ -216,7 +220,8 @@ export async function signInWithGoogle(formData?: FormData) {
     formData ? String(formData.get("next") ?? "") : "",
     POST_AUTH_REDIRECT,
   );
-  const reauth = formData?.get("reauth") === "1";
+  const reauth =
+    formData?.get("reauth") === "1" && nextPath === ACCOUNT_DELETION_PATH;
   const supabase = await createClient();
   if (!supabase) redirect("/login?error=config");
 
