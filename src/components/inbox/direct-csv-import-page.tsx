@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -12,10 +11,20 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from "react";
-import { useTransactions } from "@/hooks/use-transactions";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import { MoneyValue } from "@/components/money-value";
+import {
+  SecondaryHeader,
+  SecondaryReviewDialog,
+  SecondarySection,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
+import { SelectField } from "@/components/ui/select-field";
 import type { ViewerSummary } from "@/components/user-chip";
+import { useTransactions } from "@/hooks/use-transactions";
 import {
   directImportRowStatusLabel,
   formatDirectImportSummary,
@@ -33,13 +42,13 @@ import {
   type CsvColumnMap,
   type ParseCsvResult,
 } from "@/lib/inbox/parse-csv";
-import { formatMoney } from "@/lib/money";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import type {
   AccountOption,
   CategoryOption,
   Transaction,
 } from "@/lib/sample-data";
+import styles from "./direct-csv-import-page.module.css";
 
 type DirectImportWorkspace = {
   transactions: Transaction[];
@@ -53,54 +62,40 @@ type DirectImportWorkspace = {
 const PREVIEW_LIMIT = 12;
 const CSV_ACCEPT = ".csv,text/csv,application/csv";
 
-type Phase =
-  | "idle"
-  | "reading"
-  | "mapped"
-  | "importing"
-  | "done"
-  | "error";
+type Phase = "idle" | "reading" | "mapped" | "importing" | "done" | "error";
 
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function moneySign(kind: "expense" | "income"): string {
-  return kind === "income" ? "+" : "−";
-}
-
-function moneyClass(kind: "expense" | "income"): string {
-  return kind === "income" ? "positive" : "negative";
+function formatBytes(value: number): string {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function toLedgerLike(transactions: Transaction[]): LedgerLike[] {
-  return transactions.map((t) => ({
-    id: t.id,
-    kind: t.kind,
-    amount: t.amount,
-    occurredOn: t.occurredOn,
-    note: t.note,
-    accountId: t.accountId,
-    account: t.account,
+  return transactions.map((transaction) => ({
+    id: transaction.id,
+    kind: transaction.kind,
+    amount: transaction.amount,
+    occurredOn: transaction.occurredOn,
+    note: transaction.note,
+    accountId: transaction.accountId,
+    account: transaction.account,
   }));
 }
 
-function headerOptions(headers: string[]): { value: string; label: string }[] {
+function headerOptions(headers: string[]) {
   return [
     { value: "", label: "— Không dùng —" },
-    ...headers.map((h, i) => ({
-      value: String(i),
-      label: h || `Cột ${i + 1}`,
+    ...headers.map((header, index) => ({
+      value: String(index),
+      label: header || `Cột ${index + 1}`,
     })),
   ];
 }
 
 function indexFromSelect(value: string): number | null {
   if (value === "") return null;
-  const n = Number(value);
-  return Number.isInteger(n) && n >= 0 ? n : null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 export function DirectCsvImportPage({
@@ -112,11 +107,7 @@ export function DirectCsvImportPage({
 }) {
   const router = useRouter();
   const inputId = useId();
-  const accountIdField = useId();
-  const expenseCatField = useId();
-  const incomeCatField = useId();
   const inputRef = useRef<HTMLInputElement>(null);
-
   const { transactions, addTransaction, isMutating } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
@@ -127,11 +118,11 @@ export function DirectCsvImportPage({
   const accounts = workspace.accounts;
   const categories = workspace.categories;
   const expenseCategories = useMemo(
-    () => categories.filter((c) => c.kind === "expense"),
+    () => categories.filter((category) => category.kind === "expense"),
     [categories],
   );
   const incomeCategories = useMemo(
-    () => categories.filter((c) => c.kind === "income"),
+    () => categories.filter((category) => category.kind === "income"),
     [categories],
   );
 
@@ -159,6 +150,7 @@ export function DirectCsvImportPage({
     failed: number;
     skipped: number;
   } | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
     if (!notice) return;
@@ -195,10 +187,7 @@ export function DirectCsvImportPage({
 
   const reparseWithMap = useCallback(
     (text: string, name: string, map: CsvColumnMap) => {
-      const result = parseCsvStatement(text, {
-        fileName: name,
-        columnMap: map,
-      });
+      const result = parseCsvStatement(text, { fileName: name, columnMap: map });
       setParseResult(result);
       if (!result.ok) {
         setPhase("error");
@@ -222,7 +211,7 @@ export function DirectCsvImportPage({
 
       if (!file.name.toLowerCase().endsWith(".csv") && file.type !== "text/csv") {
         setPhase("error");
-        setError("Chỉ hỗ trợ CSV cho import thẳng vào sổ. Dùng Capture → Tải lên cho Excel/PDF.");
+        setError("Chỉ hỗ trợ CSV. Dùng Capture → Tải lên cho Excel hoặc PDF.");
         return;
       }
       if (file.size <= 0) {
@@ -232,7 +221,7 @@ export function DirectCsvImportPage({
       }
       if (file.size > MAX_UPLOAD_BYTES) {
         setPhase("error");
-        setError("File quá lớn (tối đa 10MB).");
+        setError("File quá lớn; giới hạn hiện tại là 10 MB.");
         return;
       }
 
@@ -247,17 +236,17 @@ export function DirectCsvImportPage({
           return;
         }
         const first = matrix[0]!;
-        const looksHeader = first.some((c) => /[a-zA-ZÀ-ỹ]/.test(c));
-        const hdrs = looksHeader
-          ? first.map((h, i) => h.trim() || `Cột ${i + 1}`)
-          : first.map((_, i) => `Cột ${i + 1}`);
-        const auto = mapCsvColumns(looksHeader ? first : hdrs);
-        setHeaders(hdrs);
+        const looksHeader = first.some((cell) => /[a-zA-ZÀ-ỹ]/.test(cell));
+        const nextHeaders = looksHeader
+          ? first.map((header, index) => header.trim() || `Cột ${index + 1}`)
+          : first.map((_, index) => `Cột ${index + 1}`);
+        const auto = mapCsvColumns(looksHeader ? first : nextHeaders);
+        setHeaders(nextHeaders);
         setColumnMap(auto.map);
         reparseWithMap(text, file.name, auto.map);
       } catch {
         setPhase("error");
-        setError("Không đọc được file. Thử CSV UTF-8 ≤10MB.");
+        setError("Không đọc được file. Thử CSV UTF-8 không quá 10 MB.");
       }
     },
     [reparseWithMap],
@@ -276,18 +265,9 @@ export function DirectCsvImportPage({
   }
 
   function updateMapField(role: keyof CsvColumnMap, value: string) {
-    const next: CsvColumnMap = {
-      ...columnMap,
-      [role]: indexFromSelect(value),
-    };
-    // Single amount column vs debit/credit mutual preference
-    if (role === "amount" && next.amount !== null) {
-      // keep debit/credit if user set them; amount takes precedence in parser
-    }
+    const next: CsvColumnMap = { ...columnMap, [role]: indexFromSelect(value) };
     setColumnMap(next);
-    if (csvText && fileName) {
-      reparseWithMap(csvText, fileName, next);
-    }
+    if (csvText && fileName) reparseWithMap(csvText, fileName, next);
   }
 
   function reset() {
@@ -301,6 +281,7 @@ export function DirectCsvImportPage({
     setParseResult(null);
     setResultSummary(null);
     setImportProgress({ done: 0, total: 0 });
+    setReviewOpen(false);
     if (inputRef.current) inputRef.current.value = "";
   }
 
@@ -308,10 +289,12 @@ export function DirectCsvImportPage({
     if (!plan || plan.readyCount === 0 || phase === "importing") return;
     if (workspace.dataError) {
       setError(workspace.dataError);
+      setReviewOpen(false);
       return;
     }
     if (!accountId || !expenseCategoryId || !incomeCategoryId) {
       setError("Chọn tài khoản và danh mục thu/chi trước khi ghi sổ.");
+      setReviewOpen(false);
       return;
     }
 
@@ -322,16 +305,16 @@ export function DirectCsvImportPage({
 
     let created = 0;
     let failed = 0;
-    for (let i = 0; i < posts.length; i += 1) {
-      const post = posts[i]!;
-      const result = await addTransaction(post.input);
+    for (let index = 0; index < posts.length; index += 1) {
+      const result = await addTransaction(posts[index]!.input);
       if (result.ok) created += 1;
       else failed += 1;
-      setImportProgress({ done: i + 1, total: posts.length });
+      setImportProgress({ done: index + 1, total: posts.length });
     }
 
     const skipped = plan.duplicateCount + plan.transferSkipped + plan.invalidSkipped;
     setResultSummary({ created, failed, skipped });
+    setReviewOpen(false);
     trackProductEvent("import_direct_committed", {
       created_count: created,
       failed_count: failed,
@@ -340,11 +323,12 @@ export function DirectCsvImportPage({
       source_type: "csv",
     });
 
-    if (created > 0 && failed === 0) {
-      setNotice(`Đã ghi ${created} giao dịch vào sổ.`);
-      setPhase("done");
-    } else if (created > 0) {
-      setNotice(`Đã ghi ${created} giao dịch; ${failed} lỗi.`);
+    if (created > 0) {
+      setNotice(
+        failed === 0
+          ? `Đã ghi ${created} giao dịch vào sổ.`
+          : `Đã ghi ${created} giao dịch; ${failed} dòng lỗi.`,
+      );
       setPhase("done");
     } else {
       setPhase("error");
@@ -358,171 +342,187 @@ export function DirectCsvImportPage({
 
   const mapOptions = headerOptions(headers);
   const previewRows = plan?.rows.slice(0, PREVIEW_LIMIT) ?? [];
-  const dataError = workspace.dataError;
   const noAccounts = accounts.length === 0;
-  const noCategories =
-    expenseCategories.length === 0 || incomeCategories.length === 0;
+  const noCategories = expenseCategories.length === 0 || incomeCategories.length === 0;
+  const selectedAccount = accounts.find((account) => account.id === accountId);
+  const selectedExpense = expenseCategories.find(
+    (category) => category.id === expenseCategoryId,
+  );
+  const selectedIncome = incomeCategories.find(
+    (category) => category.id === incomeCategoryId,
+  );
+  const busy = phase === "importing" || isMutating;
 
   return (
-    <AppShell
-      viewer={viewer}
-      notice={notice}
-      primaryAction={{
-        label: "Ghi chi tiêu",
-        href: "/capture/quick",
-        icon: "plus",
-      }}
-    >
-      <main className="dashboard imports-workspace direct-import-workspace">
-        <section className="transactions-title-row">
-          <div>
-            <p className="eyebrow">
-              <Link className="capture-paste-back" href="/imports">
-                ← Imports
-              </Link>
-            </p>
-            <h1>Import CSV thẳng vào sổ</h1>
+    <AppShell viewer={viewer} notice={notice}>
+      <SecondaryWorkspace slot="direct-import-workspace">
+        <SecondaryHeader
+          section="Imports · Công cụ nâng cao"
+          title="Import CSV thẳng vào sổ"
+          description={
             <p>
-              Power-user: map cột CSV, chọn ví + danh mục mặc định, ghi thu/chi
-              đã duyệt — bỏ qua Inbox. Trùng fingerprint sẽ bị bỏ qua. Chuyển
-              khoản (cần hai tài khoản) dùng Capture → Inbox.
+              Luồng này bỏ qua Inbox và tạo giao dịch đã duyệt sau bước dry-run cùng
+              review cuối. Chuyển khoản bị bỏ qua vì cần hai tài khoản và phải đi qua
+              Capture → Inbox.
             </p>
-          </div>
-          <div className="page-heading-actions">
-            <Link className="secondary-button" href="/capture/upload">
-              <Icon name="upload" />
-              Vào Inbox
-            </Link>
-            <Link className="secondary-button" href="/transactions">
-              <Icon name="timeline" />
-              Giao dịch
-            </Link>
-          </div>
-        </section>
-
-        {dataError && (
-          <section className="panel imports-error" role="alert">
-            <p>{dataError}</p>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => router.refresh()}
-            >
-              Thử lại
-            </button>
-          </section>
-        )}
-
-        {!dataError && noAccounts && (
-          <section className="panel imports-error" role="alert">
-            <p>Chưa có tài khoản. Tạo ví trước khi import.</p>
-            <Link className="primary-button" href="/accounts">
-              Mở Tài khoản
-            </Link>
-          </section>
-        )}
-
-        {!dataError && !noAccounts && noCategories && (
-          <section className="panel imports-error" role="alert">
-            <p>Cần ít nhất một danh mục chi và một danh mục thu.</p>
-            <Link className="primary-button" href="/categories">
-              Mở Danh mục
-            </Link>
-          </section>
-        )}
-
-        {!dataError && !noAccounts && !noCategories && (
-          <>
-            {(phase === "idle" || phase === "reading" || (phase === "error" && !parseResult?.ok)) && (
-              <section
-                className="panel capture-upload-panel"
-                aria-labelledby="direct-upload-heading"
+          }
+          actions={
+            <>
+              <LinkButton
+                href="/capture/upload"
+                intent="primary"
+                targetSize="important"
               >
-                <h2 id="direct-upload-heading" className="sr-only">
-                  Tải CSV
-                </h2>
+                <Icon name="upload" />
+                Dùng Inbox mặc định
+              </LinkButton>
+              <LinkButton
+                href="/imports"
+                intent="secondary"
+                targetSize="important"
+              >
+                Lịch sử import
+              </LinkButton>
+            </>
+          }
+        />
+
+        <Alert tone="warning" live="polite">
+          <AlertDescription>
+            Đây là đường nâng cao. Hãy kiểm tra map cột, dry-run và số dòng bỏ qua.
+            Không có một nút undo toàn batch; các giao dịch đã tạo phải được xử lý
+            theo lifecycle của sổ giao dịch.
+          </AlertDescription>
+        </Alert>
+
+        {workspace.dataError ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertAction}>
+              <span>{workspace.dataError}</span>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                onClick={() => router.refresh()}
+              >
+                Thử lại
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {!workspace.dataError && noAccounts ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription className={styles.alertAction}>
+              <span>Chưa có tài khoản để nhận giao dịch import.</span>
+              <LinkButton href="/accounts" intent="primary" targetSize="important">
+                Mở Tài khoản
+              </LinkButton>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {!workspace.dataError && !noAccounts && noCategories ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription className={styles.alertAction}>
+              <span>Cần ít nhất một danh mục chi và một danh mục thu.</span>
+              <LinkButton href="/categories" intent="primary" targetSize="important">
+                Mở Danh mục
+              </LinkButton>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {!workspace.dataError && !noAccounts && !noCategories ? (
+          <>
+            {phase === "idle" ||
+            phase === "reading" ||
+            (phase === "error" && !parseResult?.ok) ? (
+              <SecondarySection
+                title="1. Chọn CSV"
+                description={
+                  <p>
+                    File được đọc trên thiết bị. Giới hạn {formatBytes(MAX_UPLOAD_BYTES)};
+                    Excel/PDF dùng Capture → Tải lên.
+                  </p>
+                }
+                contained
+                slot="direct-import-upload"
+              >
                 <div
-                  className={`capture-upload-dropzone${dragOver ? " is-dragover" : ""}${phase === "error" ? " is-error" : ""}${phase === "reading" ? " is-loading" : ""}`}
+                  className={[
+                    styles.dropzone,
+                    dragOver && styles.dragOver,
+                    phase === "error" && styles.dropError,
+                    phase === "reading" && styles.dropLoading,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
                   onDrop={onDrop}
-                  onDragOver={(e) => {
-                    e.preventDefault();
+                  onDragOver={(event) => {
+                    event.preventDefault();
                     setDragOver(true);
                   }}
                   onDragLeave={() => setDragOver(false)}
                   aria-busy={phase === "reading"}
                 >
-                  <span className="capture-upload-drop-icon" aria-hidden>
-                    <Icon name="upload" />
-                  </span>
-                  <p className="capture-upload-drop-title">
-                    {phase === "reading"
-                      ? "Đang phân tích…"
-                      : "Kéo thả CSV (map cột → ghi sổ)"}
-                  </p>
-                  <p className="capture-upload-drop-meta">
-                    tối đa {formatBytes(MAX_UPLOAD_BYTES)} · chỉ CSV · không ghi
-                    bank password · dedupe tự động
-                  </p>
-                  <span className="capture-upload-or">Hoặc</span>
-                  <label
-                    className="secondary-button capture-upload-pick"
-                    htmlFor={inputId}
-                  >
+                  <Icon name="upload" />
+                  <strong>
+                    {phase === "reading" ? "Đang phân tích…" : "Kéo thả CSV hoặc chọn file"}
+                  </strong>
+                  <span>CSV UTF-8 · tối đa {formatBytes(MAX_UPLOAD_BYTES)}</span>
+                  <label className={styles.fileButton} htmlFor={inputId}>
                     Chọn CSV
                   </label>
                   <input
                     id={inputId}
                     ref={inputRef}
                     type="file"
-                    className="sr-only"
+                    className={styles.fileInput}
                     accept={CSV_ACCEPT}
                     disabled={phase === "reading"}
                     onChange={onInputChange}
                   />
                 </div>
-                <p className="capture-upload-trust-inline">
-                  <Icon name="lock" />
-                  <span>
-                    File chỉ xử lý trên máy này. Ghi thẳng vào sổ (đã duyệt) —
-                    không qua Inbox. Bật dedupe để tránh trùng.
-                  </span>
-                </p>
-                {error && (
-                  <p className="capture-paste-error" role="alert">
-                    {error}
-                  </p>
-                )}
-                {phase === "error" && (
-                  <div className="capture-paste-actions">
-                    <button type="button" className="primary-button" onClick={reset}>
-                      Chọn file khác
-                    </button>
-                  </div>
-                )}
-              </section>
-            )}
+                {error ? (
+                  <Alert tone="error" live="assertive">
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                ) : null}
+                {phase === "error" ? (
+                  <Button
+                    type="button"
+                    intent="secondary"
+                    targetSize="important"
+                    onClick={reset}
+                  >
+                    Chọn file khác
+                  </Button>
+                ) : null}
+              </SecondarySection>
+            ) : null}
 
             {(phase === "mapped" ||
               phase === "importing" ||
               phase === "done" ||
               (phase === "error" && parseResult?.ok)) &&
-              parseResult?.ok && (
-                <section className="panel import-preview-panel direct-import-panel">
-                  <div className="import-preview-header">
-                    <p className="import-preview-filename font-mono">
-                      {fileName}
-                      {fileSize > 0 ? ` · ${formatBytes(fileSize)}` : ""}
-                    </p>
-                    <p className="imports-list-meta">
-                      {parseResult.rows.length} dòng hợp lệ
-                      {parseResult.skippedRows > 0
-                        ? ` · ${parseResult.skippedRows} bỏ qua khi parse`
+            parseResult?.ok ? (
+              <>
+                <SecondarySection
+                  title="2. Map cột và đích ghi"
+                  description={
+                    <p>
+                      {fileName} {fileSize ? `· ${formatBytes(fileSize)}` : ""} ·{" "}
+                      {parseResult.rows.length} dòng parse hợp lệ
+                      {parseResult.skippedRows
+                        ? ` · ${parseResult.skippedRows} dòng bỏ qua khi parse`
                         : ""}
                     </p>
-                  </div>
-
-                  <h2 className="import-preview-section-title">Map cột</h2>
-                  <div className="direct-import-map-grid">
+                  }
+                  contained
+                  slot="direct-import-mapping"
+                >
+                  <div className={styles.mapGrid}>
                     {(
                       [
                         ["date", "Ngày"],
@@ -532,226 +532,224 @@ export function DirectCsvImportPage({
                         ["credit", "Ghi có (thu)"],
                       ] as const
                     ).map(([role, label]) => (
-                      <label key={role} className="direct-import-map-field">
-                        <span>{label}</span>
-                        <select
-                          value={
-                            columnMap[role] === null
-                              ? ""
-                              : String(columnMap[role])
-                          }
-                          onChange={(e) => updateMapField(role, e.target.value)}
-                          disabled={phase === "importing" || phase === "done"}
-                          aria-label={label}
-                        >
-                          {mapOptions.map((opt) => (
-                            <option key={`${role}-${opt.value}`} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+                      <SelectField
+                        key={role}
+                        label={label}
+                        value={columnMap[role] === null ? "" : String(columnMap[role])}
+                        onChange={(event) => updateMapField(role, event.target.value)}
+                        disabled={busy || phase === "done"}
+                        targetSize="important"
+                      >
+                        {mapOptions.map((option) => (
+                          <option key={`${role}-${option.value}`} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </SelectField>
                     ))}
                   </div>
-
-                  <h2 className="import-preview-section-title">Ghi vào ví</h2>
-                  <div className="direct-import-map-grid">
-                    <label className="direct-import-map-field" htmlFor={accountIdField}>
-                      <span>Tài khoản</span>
-                      <select
-                        id={accountIdField}
-                        value={accountId}
-                        onChange={(e) => setAccountId(e.target.value)}
-                        disabled={phase === "importing" || phase === "done"}
-                      >
-                        {accounts.map((a: AccountOption) => (
-                          <option key={a.id} value={a.id}>
-                            {a.name}
-                            {a.currencyCode && a.currencyCode !== "VND"
-                              ? ` (${a.currencyCode})`
-                              : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label
-                      className="direct-import-map-field"
-                      htmlFor={expenseCatField}
+                  <div className={styles.mapGrid}>
+                    <SelectField
+                      label="Tài khoản"
+                      value={accountId}
+                      onChange={(event) => setAccountId(event.target.value)}
+                      disabled={busy || phase === "done"}
+                      targetSize="important"
                     >
-                      <span>Danh mục chi (−)</span>
-                      <select
-                        id={expenseCatField}
-                        value={expenseCategoryId}
-                        onChange={(e) => setExpenseCategoryId(e.target.value)}
-                        disabled={phase === "importing" || phase === "done"}
-                      >
-                        {expenseCategories.map((c: CategoryOption) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label
-                      className="direct-import-map-field"
-                      htmlFor={incomeCatField}
+                      {accounts.map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name}
+                          {account.currencyCode && account.currencyCode !== "VND"
+                            ? ` (${account.currencyCode})`
+                            : ""}
+                        </option>
+                      ))}
+                    </SelectField>
+                    <SelectField
+                      label="Danh mục chi"
+                      value={expenseCategoryId}
+                      onChange={(event) => setExpenseCategoryId(event.target.value)}
+                      disabled={busy || phase === "done"}
+                      targetSize="important"
                     >
-                      <span>Danh mục thu (+)</span>
-                      <select
-                        id={incomeCatField}
-                        value={incomeCategoryId}
-                        onChange={(e) => setIncomeCategoryId(e.target.value)}
-                        disabled={phase === "importing" || phase === "done"}
-                      >
-                        {incomeCategories.map((c: CategoryOption) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                      {expenseCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </SelectField>
+                    <SelectField
+                      label="Danh mục thu"
+                      value={incomeCategoryId}
+                      onChange={(event) => setIncomeCategoryId(event.target.value)}
+                      disabled={busy || phase === "done"}
+                      targetSize="important"
+                    >
+                      {incomeCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </SelectField>
                   </div>
-
-                  <label className="direct-import-dedupe">
+                  <label className={styles.checkRow}>
                     <input
                       type="checkbox"
                       checked={skipDuplicates}
-                      onChange={(e) => setSkipDuplicates(e.target.checked)}
-                      disabled={phase === "importing" || phase === "done"}
+                      onChange={(event) => setSkipDuplicates(event.target.checked)}
+                      disabled={busy || phase === "done"}
                     />
                     <span>
-                      Bỏ qua dòng trùng (cùng tài khoản, ngày, số tiền, mô tả
-                      với sổ hiện tại hoặc trong file)
+                      <strong>Bỏ qua dòng trùng</strong>
+                      <small>
+                        So cùng tài khoản, ngày, số tiền và mô tả với sổ hiện tại hoặc
+                        trong file. Tắt tùy chọn làm tăng nguy cơ tạo bản sao.
+                      </small>
                     </span>
                   </label>
+                </SecondarySection>
 
-                  {plan && (
-                    <>
-                      <h2 className="import-preview-section-title">
-                        Xem trước
-                      </h2>
-                      <p className="imports-list-stats font-mono" role="status">
-                        {formatDirectImportSummary(plan)}
+                {plan ? (
+                  <SecondarySection
+                    title="3. Dry-run"
+                    description={<p>{formatDirectImportSummary(plan)}</p>}
+                    contained
+                    slot="direct-import-preview"
+                  >
+                    <div className={styles.tableScroll}>
+                      <table className={styles.table}>
+                        <thead>
+                          <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Ngày</th>
+                            <th scope="col">Mô tả</th>
+                            <th scope="col">Số tiền</th>
+                            <th scope="col">Trạng thái</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {previewRows.map((row) => (
+                            <tr key={`${row.rowIndex}-${row.fingerprint}`}>
+                              <td>{row.rowIndex}</td>
+                              <td>{row.occurredOn}</td>
+                              <td>{row.merchant || row.note || "—"}</td>
+                              <td>
+                                <MoneyValue
+                                  amount={row.amount}
+                                  mode="kind"
+                                  kind={row.kind}
+                                  label={`Dòng ${row.rowIndex}`}
+                                />
+                              </td>
+                              <td>
+                                <span
+                                  className={
+                                    row.status === "ready"
+                                      ? styles.readyStatus
+                                      : styles.skippedStatus
+                                  }
+                                >
+                                  {directImportRowStatusLabel(row.status)}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {plan.rows.length > PREVIEW_LIMIT ? (
+                      <p className={styles.hint}>
+                        Hiển thị {PREVIEW_LIMIT}/{plan.rows.length} dòng.
                       </p>
-                      <div className="import-preview-table-wrap">
-                        <div className="import-preview-table-scroll">
-                          <table className="import-preview-table">
-                            <thead>
-                              <tr>
-                                <th scope="col">#</th>
-                                <th scope="col">Ngày</th>
-                                <th scope="col">Mô tả</th>
-                                <th scope="col">Số tiền</th>
-                                <th scope="col">Trạng thái</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {previewRows.map((row) => (
-                                <tr key={`${row.rowIndex}-${row.fingerprint}`}>
-                                  <td className="font-mono">{row.rowIndex}</td>
-                                  <td className="font-mono">{row.occurredOn}</td>
-                                  <td title={row.merchant || row.note}>
-                                    {row.merchant || row.note || "—"}
-                                  </td>
-                                  <td
-                                    className={`font-mono money ${moneyClass(row.kind)}`}
-                                  >
-                                    <span aria-hidden>
-                                      {moneySign(row.kind)}
-                                    </span>
-                                    {formatMoney(row.amount)}
-                                  </td>
-                                  <td>
-                                    <span
-                                      className={`preview-chip sm imports-status-${row.status === "ready" ? "parsed" : "cancelled"}`}
-                                    >
-                                      {directImportRowStatusLabel(row.status)}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                        {plan.rows.length > PREVIEW_LIMIT && (
-                          <p className="imports-list-hint">
-                            Hiển thị {PREVIEW_LIMIT}/{plan.rows.length} dòng.
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  )}
+                    ) : null}
 
-                  {phase === "importing" && (
-                    <p className="capture-upload-file-meta" role="status" aria-live="polite">
-                      Đang ghi {importProgress.done}/{importProgress.total}
-                      {isMutating ? "…" : ""}
-                    </p>
-                  )}
-
-                  {resultSummary && phase === "done" && (
-                    <section className="panel direct-import-result" role="status">
-                      <p>
-                        Đã ghi <strong className="font-mono">{resultSummary.created}</strong>{" "}
-                        giao dịch
-                        {resultSummary.failed > 0
-                          ? ` · ${resultSummary.failed} lỗi`
-                          : ""}
-                        {resultSummary.skipped > 0
-                          ? ` · ${resultSummary.skipped} bỏ qua (trùng / chuyển / không hợp lệ)`
-                          : ""}
-                        .
+                    {phase === "importing" ? (
+                      <p className={styles.progress} role="status" aria-live="polite">
+                        Đang ghi {importProgress.done}/{importProgress.total}…
                       </p>
-                    </section>
-                  )}
+                    ) : null}
 
-                  {error && (
-                    <p className="capture-paste-error" role="alert">
-                      {error}
-                    </p>
-                  )}
+                    {resultSummary && phase === "done" ? (
+                      <Alert tone={resultSummary.failed ? "warning" : "success"} live="polite">
+                        <AlertDescription>
+                          Đã ghi {resultSummary.created} giao dịch
+                          {resultSummary.failed ? ` · ${resultSummary.failed} lỗi` : ""}
+                          {resultSummary.skipped ? ` · ${resultSummary.skipped} bỏ qua` : ""}.
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
 
-                  <div className="capture-paste-actions direct-import-actions">
-                    {phase !== "done" && (
-                      <button
+                    {error ? (
+                      <Alert tone="error" live="assertive">
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    ) : null}
+
+                    <div className={styles.actions}>
+                      {phase !== "done" ? (
+                        <Button
+                          type="button"
+                          intent="destructive"
+                          targetSize="important"
+                          disabled={!plan || plan.readyCount === 0 || busy}
+                          onClick={() => setReviewOpen(true)}
+                        >
+                          Xem lại ghi {plan?.readyCount ?? 0} giao dịch
+                        </Button>
+                      ) : (
+                        <LinkButton
+                          href="/transactions"
+                          intent="primary"
+                          targetSize="important"
+                        >
+                          Xem giao dịch
+                        </LinkButton>
+                      )}
+                      <Button
                         type="button"
-                        className="primary-button"
-                        disabled={
-                          !plan ||
-                          plan.readyCount === 0 ||
-                          phase === "importing"
-                        }
-                        onClick={() => void runImport()}
+                        intent="secondary"
+                        targetSize="important"
+                        onClick={reset}
+                        disabled={busy}
                       >
-                        {phase === "importing"
-                          ? `Đang ghi ${importProgress.done}/${importProgress.total}…`
-                          : plan
-                            ? `Ghi ${plan.readyCount} giao dịch vào sổ`
-                            : "Ghi vào sổ"}
-                      </button>
-                    )}
-                    {phase === "done" && (
-                      <Link className="primary-button" href="/transactions">
-                        Xem giao dịch
-                      </Link>
-                    )}
-                    <button
-                      type="button"
-                      className="secondary-button"
-                      onClick={reset}
-                      disabled={phase === "importing"}
-                    >
-                      {phase === "done" ? "Import file khác" : "Hủy"}
-                    </button>
-                    <Link className="secondary-button" href="/imports">
-                      Lịch sử import
-                    </Link>
-                  </div>
-                </section>
-              )}
+                        {phase === "done" ? "Import file khác" : "Hủy"}
+                      </Button>
+                    </div>
+                  </SecondarySection>
+                ) : null}
+              </>
+            ) : null}
           </>
-        )}
-      </main>
+        ) : null}
+      </SecondaryWorkspace>
+
+      <SecondaryReviewDialog
+        open={reviewOpen}
+        onOpenChange={(open) => {
+          if (!open && !busy) setReviewOpen(false);
+        }}
+        title="Ghi trực tiếp giao dịch vào sổ?"
+        description="Xác nhận dry-run trước khi bỏ qua Inbox."
+        details={[
+          { label: "File", value: fileName || "CSV" },
+          { label: "Sẽ tạo", value: `${plan?.readyCount ?? 0} giao dịch` },
+          {
+            label: "Sẽ bỏ qua",
+            value: `${(plan?.duplicateCount ?? 0) + (plan?.transferSkipped ?? 0) + (plan?.invalidSkipped ?? 0)} dòng`,
+          },
+          { label: "Tài khoản", value: selectedAccount?.name ?? "Chưa chọn" },
+          {
+            label: "Danh mục mặc định",
+            value: `Chi: ${selectedExpense?.name ?? "—"} · Thu: ${selectedIncome?.name ?? "—"}`,
+          },
+        ]}
+        consequence="Các dòng đủ điều kiện sẽ trở thành giao dịch đã duyệt ngay và không xuất hiện trong Inbox. Chuyển khoản cùng dòng trùng/không hợp lệ được bỏ qua theo dry-run; không có undo toàn batch."
+        confirmLabel={`Ghi ${plan?.readyCount ?? 0} giao dịch`}
+        confirmIntent="destructive"
+        pending={busy}
+        onConfirm={runImport}
+        slot="direct-import-review"
+      />
     </AppShell>
   );
 }

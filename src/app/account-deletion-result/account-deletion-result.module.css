@@ -1,0 +1,137 @@
+.page {
+  min-height: 100dvh;
+  background: var(--mf-canvas);
+  padding: clamp(1rem, 4vw, 2.5rem);
+  color: var(--mf-text);
+}
+
+.topbar {
+  width: min(100%, 64rem);
+  margin: 0 auto 1.5rem;
+}
+
+.card {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 42rem);
+  margin: 0 auto;
+  border: 1px solid var(--mf-border);
+  border-radius: 1.25rem;
+  background: var(--mf-surface);
+  padding: clamp(1.25rem, 4vw, 2rem);
+  box-shadow: 0 1.25rem 3rem rgb(15 23 42 / 0.1);
+}
+
+.icon {
+  display: inline-flex;
+  width: 3rem;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--mf-income) 14%, var(--mf-surface));
+  color: var(--mf-income);
+}
+
+.warning {
+  background: color-mix(in srgb, var(--mf-warning) 14%, var(--mf-surface));
+  color: var(--mf-warning);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--mf-brand-text);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.card h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.description {
+  margin: 0;
+  color: var(--mf-text-muted);
+  line-height: 1.65;
+}
+
+.results {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.results > div {
+  display: grid;
+  grid-template-columns: minmax(9rem, 0.42fr) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+}
+
+.results > div + div {
+  border-top: 1px solid var(--mf-border);
+}
+
+.results dt {
+  color: var(--mf-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.results dd {
+  margin: 0;
+  font-weight: 650;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.notice {
+  display: grid;
+  gap: 0.35rem;
+  border: 1px solid color-mix(in srgb, var(--mf-warning) 50%, var(--mf-border));
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--mf-warning) 8%, var(--mf-surface));
+  padding: 0.875rem;
+  color: var(--mf-text);
+}
+
+.notice span {
+  color: var(--mf-text-muted);
+  line-height: 1.55;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding-inline: 0.75rem;
+  }
+
+  .results > div {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .actions > * {
+    width: 100%;
+  }
+}

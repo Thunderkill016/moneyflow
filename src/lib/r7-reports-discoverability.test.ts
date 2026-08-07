@@ -73,7 +73,8 @@ test("R7: reports page wires period title, tabs, and dual export paths", () => {
   assert.match(page, /EXPORT_CSV_LABEL/);
   assert.match(page, /EXPORT_SETTINGS_HREF/);
   assert.match(page, /primaryAction=\{\{/);
-  assert.match(page, /report-export/);
+  assert.match(page, /data-slot="report-periods"/);
+  assert.match(page, /LinkButton[\s\S]*EXPORT_SETTINGS_HREF/);
   assert.match(page, /\/reports\/export|reportCsvDownloadHref/);
   assert.match(page, /settings\/export|EXPORT_SETTINGS_HREF/);
 });

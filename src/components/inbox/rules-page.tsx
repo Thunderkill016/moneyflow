@@ -1,18 +1,28 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useId, useMemo, useState, type FormEvent } from "react";
-import { EmptyState } from "@/components/empty-state";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import {
+  SecondaryHeader,
+  SecondaryReviewDialog,
+  SecondarySection,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SelectField } from "@/components/ui/select-field";
+import { TextField } from "@/components/ui/text-field";
 import type { ViewerSummary } from "@/components/user-chip";
+import { getPendingCountForClient } from "@/hooks/client-inbox";
 import {
   deleteRuleForClient,
   loadRulesForClient,
   reorderRulesForClient,
   saveRuleForClient,
 } from "@/hooks/client-rules";
-import { getPendingCountForClient } from "@/hooks/client-inbox";
 import type { CategorySummary } from "@/lib/categories";
 import { previewRuleApplication } from "@/lib/inbox/apply-rules";
 import {
@@ -23,6 +33,7 @@ import {
   type InboxRule,
   type RuleMatchField,
 } from "@/lib/inbox/rules-store";
+import styles from "./rules-page.module.css";
 
 const FIELD_OPTIONS: RuleMatchField[] = ["any", "merchant", "note", "raw"];
 
@@ -71,24 +82,28 @@ export function RulesPage({
   featureAvailable: boolean;
   dataError: string | null;
 }) {
-  const formId = useId();
+  const containsRef = useRef<HTMLInputElement>(null);
   const [ready, setReady] = useState(!viewer.isDemo);
   const [error, setError] = useState<string | null>(dataError);
   const [rules, setRules] = useState(() => sortRulesByPriority(initialRules));
   const [inboxCount, setInboxCount] = useState(0);
   const [form, setForm] = useState<FormState>(() => emptyForm(categories));
-  const [showForm, setShowForm] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
   const [previewText, setPreviewText] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<InboxRule | null>(null);
 
   const availableCategories = useMemo(
     () => categories.filter((category) => !category.isArchived),
     [categories],
   );
   const categoryById = useMemo(
-    () => new Map(availableCategories.map((category) => [category.id, category] as const)),
+    () =>
+      new Map(
+        availableCategories.map((category) => [category.id, category] as const),
+      ),
     [availableCategories],
   );
   const orderedRules = useMemo(() => sortRulesByPriority(rules), [rules]);
@@ -138,13 +153,13 @@ export function RulesPage({
   function openAdd() {
     setForm(emptyForm(availableCategories));
     setFormError("");
-    setShowForm(true);
+    setFormOpen(true);
   }
 
   function openEdit(rule: InboxRule) {
     setForm(formFromRule(rule));
     setFormError("");
-    setShowForm(true);
+    setFormOpen(true);
   }
 
   async function submitRule(event: FormEvent) {
@@ -152,8 +167,11 @@ export function RulesPage({
     if (saving) return;
     const contains = form.contains.trim();
     const category = categoryById.get(form.categoryId);
+    setFormError("");
+
     if (!contains) {
       setFormError("Nhập chuỗi cần khớp, ví dụ HIGHLANDS.");
+      containsRef.current?.focus();
       return;
     }
     if (!category) {
@@ -162,7 +180,6 @@ export function RulesPage({
     }
 
     setSaving(true);
-    setFormError("");
     const result = await saveRuleForClient(viewer.isDemo, {
       id: form.id,
       expectedVersion: form.expectedVersion,
@@ -175,12 +192,13 @@ export function RulesPage({
       merchant: form.merchant.trim() || undefined,
     });
     setSaving(false);
+
     if (!result.ok) {
       setFormError(result.message);
       return;
     }
     setRules(result.rules);
-    setShowForm(false);
+    setFormOpen(false);
     setForm(emptyForm(availableCategories));
     setNotice(form.id ? "Đã cập nhật quy tắc." : "Đã thêm quy tắc.");
   }
@@ -219,6 +237,7 @@ export function RulesPage({
       return;
     }
     setRules(result.rules);
+    setDeleteTarget(null);
     setNotice("Đã xóa quy tắc. Bằng chứng cũ trên ứng viên vẫn được giữ nguyên.");
   }
 
@@ -250,275 +269,369 @@ export function RulesPage({
           ? { label: "Thêm quy tắc", onClick: openAdd, icon: "plus" }
           : undefined
       }
+      showPrimaryActionOnMobile={
+        featureAvailable &&
+        availableCategories.length > 0 &&
+        orderedRules.length > 0
+      }
     >
-      <main className="dashboard rules-workspace">
-        <section className="transactions-title-row">
-          <div>
-            <p className="eyebrow">Tự động hóa có kiểm soát</p>
-            <h1>Quy tắc</h1>
+      <SecondaryWorkspace slot="rules-workspace">
+        <SecondaryHeader
+          section="Tự động hóa có kiểm soát"
+          title="Quy tắc"
+          description={
             <p>
-              Cùng một nội dung và cùng phiên bản quy tắc luôn cho cùng kết quả.
-              Quy tắc chỉ chuẩn hóa ứng viên để bạn xem trước; không tự ghi vào sổ.
+              Quy tắc chạy theo thứ tự ưu tiên và chỉ chuẩn hóa ứng viên để bạn xem
+              trước. Quy tắc không tự tạo giao dịch trong sổ.
             </p>
-          </div>
-          <div className="page-heading-actions">
-            {featureAvailable && availableCategories.length > 0 ? (
-              <button type="button" className="primary-button" onClick={openAdd}>
-                <Icon name="plus" />
-                Thêm quy tắc
-              </button>
-            ) : null}
-            <Link className="secondary-button" href="/capture/paste">
-              <Icon name="paste" />
-              Mở trang dán
-            </Link>
-          </div>
-        </section>
+          }
+          actions={
+            <>
+              <LinkButton href="/inbox" intent="secondary" targetSize="important">
+                <Icon name="inbox" />
+                Inbox
+              </LinkButton>
+              <LinkButton
+                href="/capture/paste"
+                intent="secondary"
+                targetSize="important"
+              >
+                <Icon name="paste" />
+                Mở trang dán
+              </LinkButton>
+            </>
+          }
+        />
 
         {!featureAvailable ? (
-          <section className="panel rules-error" role="status">
-            <h2>Quy tắc chưa được bật trên máy chủ</h2>
-            <p>
-              Inbox vẫn hoạt động bình thường. Workspace này chỉ khả dụng sau khi
-              hợp đồng cơ sở dữ liệu được triển khai riêng.
-            </p>
-          </section>
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              Quy tắc chưa được bật trên máy chủ. Inbox vẫn hoạt động bình thường;
+              workspace này chỉ khả dụng khi hợp đồng lưu quy tắc được triển khai.
+            </AlertDescription>
+          </Alert>
         ) : null}
 
         {featureAvailable ? (
-          <section className="panel rules-form-panel" aria-labelledby="rules-preview-heading">
-            <div className="rules-list-header">
-              <div>
-                <p className="eyebrow">Xem trước, không ghi sổ</p>
-                <h2 id="rules-preview-heading">Thử một nội dung</h2>
-              </div>
-              <span className="preview-chip sm">{RULE_STAGE_LABELS.candidate}</span>
-            </div>
-            <label className="rules-field rules-field-wide">
-              <span>Nội dung mẫu</span>
-              <input
-                value={previewText}
-                onChange={(event) => setPreviewText(event.target.value)}
-                placeholder="Ví dụ: HIGHLANDS 45K"
-                autoComplete="off"
-              />
-            </label>
+          <SecondarySection
+            title="Thử một nội dung"
+            description={
+              <p>
+                Xem quy tắc ưu tiên cao nhất sẽ khớp thế nào. Kết quả vẫn ở giai
+                đoạn “{RULE_STAGE_LABELS.candidate}” và phải được duyệt trong Inbox.
+              </p>
+            }
+            contained
+            slot="rules-preview"
+          >
+            <TextField
+              label="Nội dung mẫu"
+              value={previewText}
+              onChange={(event) => setPreviewText(event.target.value)}
+              placeholder="Ví dụ: HIGHLANDS 45K"
+              autoComplete="off"
+              targetSize="important"
+            />
             {previewText.trim() ? (
               preview?.match ? (
-                <div className="data-alert" role="status">
-                  <Icon name="check" />
-                  <span>
-                    Khớp <strong>v{preview.match.version}</strong>: {formatRuleSummary(preview.match)}.
-                    Kết quả này vẫn cần được duyệt trong Inbox.
-                  </span>
-                </div>
+                <Alert tone="info" live="polite">
+                  <AlertDescription>
+                    Khớp quy tắc ưu tiên v{preview.match.version}:{" "}
+                    <strong>{formatRuleSummary(preview.match)}</strong>. Chưa có giao
+                    dịch nào được tạo.
+                  </AlertDescription>
+                </Alert>
               ) : (
-                <p className="rules-list-hint">Không có quy tắc đang bật nào khớp nội dung này.</p>
+                <p className={styles.hint}>
+                  Không có quy tắc đang bật nào khớp nội dung này.
+                </p>
               )
             ) : null}
-          </section>
+          </SecondarySection>
         ) : null}
 
         {!ready ? (
-          <section className="panel rules-loading" aria-busy="true" aria-label="Đang tải quy tắc">
-            <div className="loading-line wide" />
-            <div className="loading-line" />
+          <section className={styles.loading} aria-busy="true" aria-label="Đang tải quy tắc">
+            <span />
+            <span />
           </section>
         ) : null}
 
         {ready && error ? (
-          <section className="panel rules-error" role="alert">
-            <p>{error}</p>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => window.location.reload()}
-            >
-              Tải lại
-            </button>
-          </section>
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertAction}>
+              <span>{error}</span>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                onClick={() => window.location.reload()}
+              >
+                Tải lại
+              </Button>
+            </AlertDescription>
+          </Alert>
         ) : null}
 
-        {ready && !error && showForm ? (
-          <section className="panel rules-form-panel" aria-labelledby={`${formId}-heading`}>
-            <h2 id={`${formId}-heading`}>{form.id ? "Sửa quy tắc" : "Thêm quy tắc"}</h2>
-            <p className="rules-form-lead">
-              Chuỗi được khớp không phân biệt hoa thường. Danh mục và tên nơi chi là
-              dữ liệu chuẩn hóa; nội dung gốc không bị thay đổi.
-            </p>
-            <form className="rules-form" onSubmit={submitRule}>
-              <div className="rules-form-grid">
-                <label className="rules-field">
-                  <span>Nếu chứa</span>
-                  <input
-                    value={form.contains}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, contains: event.target.value }))
-                    }
-                    placeholder="HIGHLANDS, LUONG, GRAB…"
-                    maxLength={120}
-                    autoComplete="off"
-                    required
-                    disabled={saving}
-                  />
-                </label>
-                <label className="rules-field">
-                  <span>Trong trường</span>
-                  <select
-                    value={form.field}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        field: event.target.value as RuleMatchField,
-                      }))
-                    }
-                    disabled={saving}
-                  >
-                    {FIELD_OPTIONS.map((field) => (
-                      <option key={field} value={field}>
-                        {RULE_FIELD_LABELS[field]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="rules-field">
-                  <span>Thì danh mục</span>
-                  <select
-                    value={form.categoryId}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, categoryId: event.target.value }))
-                    }
-                    required
-                    disabled={saving}
-                  >
-                    {availableCategories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name} · {category.kind === "income" ? "Tiền vào" : "Tiền ra"}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="rules-field rules-field-wide">
-                  <span>Đổi tên nơi chi (tùy chọn)</span>
-                  <input
-                    value={form.merchant}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, merchant: event.target.value }))
-                    }
-                    placeholder="Highlands Coffee"
-                    maxLength={200}
-                    autoComplete="off"
-                    disabled={saving}
-                  />
-                </label>
-              </div>
-              {formError ? <p className="rules-form-error" role="alert">{formError}</p> : null}
-              <div className="rules-form-actions">
-                <button type="submit" className="primary-button" disabled={saving}>
-                  {saving ? "Đang lưu…" : "Lưu quy tắc"}
-                </button>
-                <button
-                  type="button"
-                  className="secondary-button"
-                  disabled={saving}
-                  onClick={() => setShowForm(false)}
-                >
-                  Hủy
-                </button>
-              </div>
-            </form>
-          </section>
-        ) : null}
-
-        {ready && !error && featureAvailable && orderedRules.length === 0 && !showForm ? (
+        {ready && !error && featureAvailable && orderedRules.length === 0 ? (
           <EmptyState
-            icon="rules"
+            icon={<Icon name="rules" />}
             title="Chưa có quy tắc"
             description="Thêm một quy tắc, thử nội dung và xem kết quả trước khi dùng trong Inbox."
-            actionLabel="Thêm quy tắc"
-            onAction={availableCategories.length > 0 ? openAdd : undefined}
-            secondaryLabel="Về Inbox"
-            secondaryHref="/inbox"
+            primaryAction={
+              availableCategories.length > 0 ? (
+                <Button
+                  type="button"
+                  intent="primary"
+                  targetSize="important"
+                  onClick={openAdd}
+                >
+                  Thêm quy tắc
+                </Button>
+              ) : undefined
+            }
+            secondaryAction={
+              <LinkButton href="/inbox" intent="secondary" targetSize="important">
+                Về Inbox
+              </LinkButton>
+            }
           />
         ) : null}
 
         {ready && !error && orderedRules.length > 0 ? (
-          <section className="panel rules-list-panel" aria-labelledby="rules-list-heading">
-            <div className="rules-list-header">
-              <div>
-                <h2 id="rules-list-heading">Ưu tiên cao → thấp</h2>
-                <p className="rules-list-count">
-                  {orderedRules.length} quy tắc · {orderedRules.filter((rule) => rule.enabled).length} bật
-                </p>
-              </div>
-              <span className="preview-chip sm">Phiên bản được lưu trên ứng viên</span>
-            </div>
-            <ol className="rules-list">
+          <SecondarySection
+            title="Ưu tiên cao đến thấp"
+            description={
+              <p>
+                Quy tắc đầu tiên khớp sẽ quyết định gợi ý. Phiên bản quy tắc được
+                lưu cùng ứng viên để giữ dấu vết giải thích.
+              </p>
+            }
+            action={
+              <span className={styles.count}>
+                {orderedRules.length} quy tắc ·{" "}
+                {orderedRules.filter((rule) => rule.enabled).length} đang bật
+              </span>
+            }
+            slot="rules-list"
+          >
+            <ol className={styles.list}>
               {orderedRules.map((rule, index) => (
-                <li key={rule.id} className={`rules-list-item${rule.enabled ? "" : " is-disabled"}`}>
-                  <span className="rules-list-priority font-mono" aria-label={`Ưu tiên ${index + 1}`}>
-                    {index + 1}.
+                <li
+                  key={rule.id}
+                  className={rule.enabled ? styles.item : `${styles.item} ${styles.disabled}`}
+                >
+                  <span className={styles.priority} aria-label={`Ưu tiên ${index + 1}`}>
+                    {index + 1}
                   </span>
-                  <div className="rules-list-body">
-                    <p className="rules-list-summary">{formatRuleSummary(rule)}</p>
-                    <p className="rules-list-meta">
-                      <span className="preview-chip sm">{RULE_FIELD_LABELS[rule.field]}</span>
-                      <span className="preview-chip sm">v{rule.version}</span>
-                      {!rule.enabled ? <span className="preview-chip sm confidence-badge warning">Đã tắt</span> : null}
-                    </p>
+                  <div className={styles.body}>
+                    <strong>{formatRuleSummary(rule)}</strong>
+                    <div className={styles.meta}>
+                      <span>{RULE_FIELD_LABELS[rule.field]}</span>
+                      <span>Phiên bản {rule.version}</span>
+                      <span>{rule.enabled ? "Đang bật" : "Đã tắt"}</span>
+                    </div>
                   </div>
-                  <div className="rules-list-actions">
-                    <button
+                  <div className={styles.actions}>
+                    <Button
                       type="button"
-                      className="secondary-button"
+                      intent="quiet"
+                      targetSize="important"
                       disabled={saving || index === 0}
                       onClick={() => void moveRule(rule.id, -1)}
                       aria-label={`Tăng ưu tiên ${formatRuleSummary(rule)}`}
                     >
                       Lên
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
-                      className="secondary-button"
+                      intent="quiet"
+                      targetSize="important"
                       disabled={saving || index === orderedRules.length - 1}
                       onClick={() => void moveRule(rule.id, 1)}
                       aria-label={`Giảm ưu tiên ${formatRuleSummary(rule)}`}
                     >
                       Xuống
-                    </button>
-                    <button type="button" className="secondary-button" disabled={saving} onClick={() => openEdit(rule)}>
-                      Sửa
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
-                      className="secondary-button rules-toggle"
+                      intent="secondary"
+                      targetSize="important"
+                      disabled={saving}
+                      onClick={() => openEdit(rule)}
+                    >
+                      Sửa
+                    </Button>
+                    <Button
+                      type="button"
+                      intent="secondary"
+                      targetSize="important"
                       disabled={saving}
                       onClick={() => void toggleEnabled(rule)}
                       aria-pressed={rule.enabled}
                     >
-                      {rule.enabled ? "Bật" : "Tắt"}
-                    </button>
-                    <button
+                      {rule.enabled ? "Tắt" : "Bật"}
+                    </Button>
+                    <Button
                       type="button"
-                      className="secondary-button rules-delete"
+                      intent="destructive"
+                      targetSize="important"
                       disabled={saving}
-                      onClick={() => void deleteRule(rule)}
+                      onClick={() => setDeleteTarget(rule)}
                       aria-label={`Xóa quy tắc ${formatRuleSummary(rule)}`}
                     >
                       Xóa
-                    </button>
+                    </Button>
                   </div>
                 </li>
               ))}
             </ol>
-            <p className="rules-list-hint">
-              Quy tắc chỉ chuẩn hóa ứng viên đang chờ duyệt. Dữ liệu độ tin cậy thấp,
-              giao dịch nghi chuyển khoản và mọi ứng viên chưa chắc chắn vẫn phải được
-              người dùng xem trước.
-            </p>
-          </section>
+          </SecondarySection>
         ) : null}
-      </main>
+      </SecondaryWorkspace>
+
+      <Dialog
+        open={formOpen}
+        onOpenChange={(open) => {
+          if (!open && !saving) setFormOpen(false);
+        }}
+        title={form.id ? "Sửa quy tắc" : "Thêm quy tắc"}
+        description="Chuỗi được khớp không phân biệt hoa thường. Nội dung gốc của ứng viên không bị thay đổi."
+        dismissible={!saving}
+        initialFocusRef={containsRef}
+        className={styles.dialog}
+        contentClassName={styles.dialogContent}
+        footer={
+          <div className={styles.dialogFooter}>
+            <Button
+              type="button"
+              intent="secondary"
+              targetSize="important"
+              disabled={saving}
+              onClick={() => setFormOpen(false)}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              form="rule-form"
+              intent="primary"
+              targetSize="important"
+              pending={saving}
+              pendingLabel="Đang lưu…"
+            >
+              Lưu quy tắc
+            </Button>
+          </div>
+        }
+      >
+        <form id="rule-form" className={styles.form} onSubmit={submitRule} noValidate>
+          <TextField
+            ref={containsRef}
+            label="Nếu chứa"
+            value={form.contains}
+            onChange={(event) => {
+              setForm((current) => ({ ...current, contains: event.target.value }));
+              setFormError("");
+            }}
+            placeholder="HIGHLANDS, LUONG, GRAB…"
+            maxLength={120}
+            autoComplete="off"
+            required
+            disabled={saving}
+            targetSize="important"
+          />
+          <SelectField
+            label="Trong trường"
+            value={form.field}
+            onChange={(event) =>
+              setForm((current) => ({
+                ...current,
+                field: event.target.value as RuleMatchField,
+              }))
+            }
+            disabled={saving}
+            targetSize="important"
+          >
+            {FIELD_OPTIONS.map((field) => (
+              <option key={field} value={field}>
+                {RULE_FIELD_LABELS[field]}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="Thì danh mục"
+            value={form.categoryId}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, categoryId: event.target.value }))
+            }
+            required
+            disabled={saving || availableCategories.length === 0}
+            targetSize="important"
+          >
+            {availableCategories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name} · {category.kind === "income" ? "Tiền vào" : "Tiền ra"}
+              </option>
+            ))}
+          </SelectField>
+          <TextField
+            label="Đổi tên nơi giao dịch (tùy chọn)"
+            value={form.merchant}
+            onChange={(event) =>
+              setForm((current) => ({ ...current, merchant: event.target.value }))
+            }
+            placeholder="Highlands Coffee"
+            maxLength={200}
+            autoComplete="off"
+            disabled={saving}
+            targetSize="important"
+          />
+          <label className={styles.checkRow}>
+            <input
+              type="checkbox"
+              checked={form.enabled}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, enabled: event.target.checked }))
+              }
+              disabled={saving}
+            />
+            <span>
+              <strong>Bật quy tắc sau khi lưu</strong>
+              <small>Quy tắc tắt vẫn giữ phiên bản nhưng không tham gia khớp.</small>
+            </span>
+          </label>
+          {formError ? (
+            <Alert tone="error" live="assertive">
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          ) : null}
+        </form>
+      </Dialog>
+
+      <SecondaryReviewDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open && !saving) setDeleteTarget(null);
+        }}
+        title="Xóa quy tắc?"
+        description="Quy tắc sẽ ngừng áp dụng cho các ứng viên mới."
+        details={
+          deleteTarget
+            ? [
+                { label: "Quy tắc", value: formatRuleSummary(deleteTarget) },
+                { label: "Phiên bản", value: `v${deleteTarget.version}` },
+                { label: "Ứng viên cũ", value: "Giữ bằng chứng đã áp dụng" },
+              ]
+            : []
+        }
+        consequence="Ứng viên đã tạo vẫn giữ thông tin parser/rule cũ để giải thích. Không có giao dịch nào bị thay đổi hoặc xóa."
+        confirmLabel="Xóa quy tắc"
+        confirmIntent="destructive"
+        pending={saving}
+        onConfirm={() => (deleteTarget ? deleteRule(deleteTarget) : undefined)}
+        slot="rule-delete-review"
+      />
     </AppShell>
   );
 }

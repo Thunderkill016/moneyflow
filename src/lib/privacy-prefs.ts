@@ -1,9 +1,16 @@
 /**
- * Privacy settings preferences (wireframes-inbox §18).
- * Client-only localStorage — enforced parsed-draft retention + parser opt-in.
+ * Privacy settings preferences.
+ * Client-only localStorage for parsed-draft retention and local activity markers.
  */
 
 export const PRIVACY_PREFS_KEY = "moneyflow-privacy-prefs-v1";
+
+/**
+ * No remote parser-sample submission pipeline exists in the current product.
+ * Keep the historical field readable for backwards compatibility, but never
+ * present or store it as active consent while this capability is false.
+ */
+export const PARSER_IMPROVEMENT_AVAILABLE = false;
 
 /** How long parsed import drafts may remain available in this browser. */
 export type RawRetention = "delete_now" | "days_7" | "days_30";
@@ -11,10 +18,7 @@ export type RawRetention = "delete_now" | "days_7" | "days_30";
 export type PrivacyPrefs = {
   /** Parsed import draft retention policy. Default: 7 days. */
   rawRetention: RawRetention;
-  /**
-   * Opt-in: allow anonymized samples to improve parser.
-   * Default off — never share without explicit consent.
-   */
+  /** Historical compatibility field; false while the capability is unavailable. */
   improveParser: boolean;
   /** ISO timestamp of last data export (client-recorded). */
   lastExportAt: string | null;
@@ -85,6 +89,11 @@ export function defaultPrivacyPrefs(): PrivacyPrefs {
   };
 }
 
+function withoutInactiveConsent(prefs: PrivacyPrefs): PrivacyPrefs {
+  if (PARSER_IMPROVEMENT_AVAILABLE || !prefs.improveParser) return prefs;
+  return { ...prefs, improveParser: false };
+}
+
 export function readPrivacyPrefs(): PrivacyPrefs {
   if (typeof window === "undefined") return defaultPrivacyPrefs();
   try {
@@ -95,7 +104,11 @@ export function readPrivacyPrefs(): PrivacyPrefs {
       window.localStorage.removeItem(PRIVACY_PREFS_KEY);
       return defaultPrivacyPrefs();
     }
-    return parsed;
+    const normalized = withoutInactiveConsent(parsed);
+    if (normalized !== parsed) {
+      window.localStorage.setItem(PRIVACY_PREFS_KEY, JSON.stringify(normalized));
+    }
+    return normalized;
   } catch {
     try {
       window.localStorage.removeItem(PRIVACY_PREFS_KEY);
@@ -109,13 +122,13 @@ export function readPrivacyPrefs(): PrivacyPrefs {
 export function writePrivacyPrefs(prefs: PrivacyPrefs): void {
   if (typeof window === "undefined") return;
   if (!isPrivacyPrefs(prefs)) return;
-  window.localStorage.setItem(PRIVACY_PREFS_KEY, JSON.stringify(prefs));
+  window.localStorage.setItem(
+    PRIVACY_PREFS_KEY,
+    JSON.stringify(withoutInactiveConsent(prefs)),
+  );
 }
 
-/**
- * Save user-edited fields; stamps `updatedAt`.
- * Keeps activity log timestamps unless provided.
- */
+/** Save user-edited retention; inactive parser consent is always stored false. */
 export function savePrivacyPrefs(input: {
   rawRetention: RawRetention;
   improveParser: boolean;
@@ -127,7 +140,7 @@ export function savePrivacyPrefs(input: {
   const now = input.now ?? new Date();
   const next: PrivacyPrefs = {
     rawRetention: input.rawRetention,
-    improveParser: input.improveParser,
+    improveParser: PARSER_IMPROVEMENT_AVAILABLE ? input.improveParser : false,
     lastExportAt:
       input.lastExportAt !== undefined ? input.lastExportAt : current.lastExportAt,
     lastDeleteAt:
@@ -163,10 +176,9 @@ export function recordPrivacyDelete(now: Date = new Date()): PrivacyPrefs {
 }
 
 export function rawRetentionLabel(value: RawRetention): string {
-  return RAW_RETENTION_OPTIONS.find((o) => o.value === value)?.label ?? value;
+  return RAW_RETENTION_OPTIONS.find((option) => option.value === value)?.label ?? value;
 }
 
-/** Format ISO for Nhật ký (vi-VN, Asia/Ho_Chi_Minh). */
 export function formatPrivacyActivityAt(
   iso: string | null,
   emptyLabel = "Chưa có",

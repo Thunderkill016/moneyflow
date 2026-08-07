@@ -1,9 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useId, useState, type FormEvent } from "react";
-import { Icon } from "@/components/icons";
+import { useEffect, useState, type FormEvent } from "react";
 import { AppShell } from "@/components/layout/app-shell";
+import {
+  SecondaryHeader,
+  SecondarySection,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   countPending,
@@ -17,22 +22,16 @@ import {
   saveThemePreference,
   type ThemePreference,
 } from "@/lib/theme-prefs";
+import styles from "./settings/settings-surfaces.module.css";
 
-/**
- * Appearance settings — theme preference (light / dark / system).
- */
 export function AppearanceSettingsPage({ viewer }: { viewer: ViewerSummary }) {
-  const formId = useId();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inboxCount, setInboxCount] = useState(0);
-  const [preference, setPreference] = useState<ThemePreference>(
-    defaultThemePreference(),
-  );
+  const [preference, setPreference] = useState<ThemePreference>(defaultThemePreference());
   const [saved, setSaved] = useState<ThemePreference>(defaultThemePreference());
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
-
   const dirty = preference !== saved;
 
   function reload() {
@@ -65,9 +64,7 @@ export function AppearanceSettingsPage({ viewer }: { viewer: ViewerSummary }) {
   useEffect(() => {
     if (!ready || preference !== "system") return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
-    function onChange() {
-      applyThemeToDocument("system");
-    }
+    const onChange = () => applyThemeToDocument("system");
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
   }, [ready, preference]);
@@ -79,14 +76,14 @@ export function AppearanceSettingsPage({ viewer }: { viewer: ViewerSummary }) {
 
   function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || !dirty) return;
     setSaving(true);
     try {
       const next = saveThemePreference(preference);
       applyThemeToDocument(next);
       setSaved(next);
       setPreference(next);
-      setNotice("Đã lưu giao diện.");
+      setNotice("Đã lưu giao diện trên thiết bị này.");
       setError(null);
     } catch {
       setError("Không lưu được giao diện. Thử lại.");
@@ -107,90 +104,71 @@ export function AppearanceSettingsPage({ viewer }: { viewer: ViewerSummary }) {
       notice={notice}
       primaryAction={{
         label: saving ? "Đang lưu…" : "Lưu",
-        onClick: () => {
-          const form = document.getElementById(formId) as HTMLFormElement | null;
-          form?.requestSubmit();
-        },
+        onClick: () =>
+          (document.getElementById("appearance-settings-form") as HTMLFormElement | null)?.requestSubmit(),
         disabled: saving || !ready || Boolean(error) || !dirty,
         icon: "check",
       }}
     >
-      <main className="dashboard privacy-workspace appearance-workspace">
-        <section className="transactions-title-row">
-          <div>
-            <p className="eyebrow">Cài đặt</p>
-            <h1>Giao diện</h1>
-            <p>
-              Chọn chế độ sáng, tối hoặc theo hệ thống. Tùy chọn lưu trên thiết
-              bị này.
-            </p>
-          </div>
-          <div className="page-heading-actions">
-            <Link className="secondary-button" href="/settings">
-              <Icon name="settings" />
-              Cài đặt
-            </Link>
-            <Link className="secondary-button" href="/inbox">
-              <Icon name="inbox" />
-              Inbox
-            </Link>
-          </div>
-        </section>
+      <SecondaryWorkspace slot="settings-appearance-workspace">
+        <SecondaryHeader
+          section="Cài đặt"
+          title="Giao diện"
+          description={<p>Chọn sáng, tối hoặc theo hệ thống. Tùy chọn được lưu trên thiết bị hiện tại.</p>}
+          actions={
+            <>
+              <LinkButton href="/settings" intent="secondary" targetSize="important">
+                Cài đặt
+              </LinkButton>
+              <LinkButton href="/inbox" intent="quiet" targetSize="important">
+                Inbox
+              </LinkButton>
+            </>
+          }
+        />
 
-        {!ready && (
-          <section
-            className="panel privacy-loading"
-            aria-busy="true"
-            aria-label="Đang tải giao diện"
-          >
-            <div className="loading-line wide" />
-            <div className="loading-line" />
-            <div className="loading-line" />
+        {!ready ? (
+          <section className={styles.loading} aria-busy="true" aria-label="Đang tải giao diện">
+            <span />
+            <span />
+            <span />
           </section>
-        )}
+        ) : null}
 
-        {ready && error && (
-          <section className="panel privacy-error" role="alert">
-            <p>{error}</p>
-            <button type="button" className="secondary-button" onClick={reload}>
-              Thử lại
-            </button>
-          </section>
-        )}
+        {ready && error ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertAction}>
+              <span>{error}</span>
+              <Button type="button" intent="secondary" targetSize="important" onClick={reload}>
+                Thử lại
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        {ready && !error && (
-          <form
-            id={formId}
-            className="privacy-form"
-            onSubmit={onSubmit}
-            noValidate
-          >
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-theme-heading`}
+        {ready && !error ? (
+          <form id="appearance-settings-form" className={styles.form} onSubmit={onSubmit} noValidate>
+            <SecondarySection
+              title="Chủ đề workspace"
+              description={<p>Áp dụng ngay khi chọn; bấm Lưu để ghi nhớ cho lần mở sau.</p>}
+              contained
+              slot="settings-section"
             >
-              <h2 id={`${formId}-theme-heading`}>Chủ đề</h2>
-              <p className="privacy-panel-lead">
-                Áp dụng ngay khi chọn. Bấm Lưu để ghi nhớ cho lần mở sau.
-              </p>
-              <fieldset className="privacy-fieldset">
+              <fieldset>
                 <legend className="sr-only">Chế độ giao diện</legend>
-                <div
-                  className="privacy-radio-list"
-                  role="radiogroup"
-                  aria-label="Chế độ giao diện"
-                >
+                <div className={styles.radioList}>
                   {THEME_OPTIONS.map((option) => {
-                    const inputId = `${formId}-theme-${option.value}`;
                     const selected = preference === option.value;
                     return (
                       <label
                         key={option.value}
-                        htmlFor={inputId}
-                        className={`privacy-radio-card${selected ? " is-selected" : ""}`}
+                        className={
+                          selected
+                            ? `${styles.radioCard} ${styles.radioSelected}`
+                            : styles.radioCard
+                        }
                       >
                         <input
-                          id={inputId}
                           type="radio"
                           name="theme"
                           value={option.value}
@@ -198,41 +176,41 @@ export function AppearanceSettingsPage({ viewer }: { viewer: ViewerSummary }) {
                           onChange={() => onSelect(option.value)}
                           disabled={saving}
                         />
-                        <span className="privacy-radio-body">
-                          <span className="privacy-radio-label">
-                            {option.label}
-                          </span>
-                          <span className="privacy-radio-desc">
-                            {option.description}
-                          </span>
+                        <span className={styles.radioBody}>
+                          <span className={styles.radioLabel}>{option.label}</span>
+                          <span className={styles.radioDescription}>{option.description}</span>
                         </span>
                       </label>
                     );
                   })}
                 </div>
               </fieldset>
-            </section>
+            </SecondarySection>
 
-            <div className="privacy-form-actions">
-              <button
+            <div className={styles.formActions}>
+              <Button
                 type="submit"
-                className="primary-button"
-                disabled={saving || !dirty}
+                intent="primary"
+                targetSize="important"
+                pending={saving}
+                pendingLabel="Đang lưu…"
+                disabled={!dirty}
               >
-                {saving ? "Đang lưu…" : "Lưu"}
-              </button>
-              <button
+                Lưu
+              </Button>
+              <Button
                 type="button"
-                className="secondary-button"
-                onClick={onReset}
+                intent="secondary"
+                targetSize="important"
                 disabled={saving || !dirty}
+                onClick={onReset}
               >
-                Hủy
-              </button>
+                Hoàn tác
+              </Button>
             </div>
           </form>
-        )}
-      </main>
+        ) : null}
+      </SecondaryWorkspace>
     </AppShell>
   );
 }

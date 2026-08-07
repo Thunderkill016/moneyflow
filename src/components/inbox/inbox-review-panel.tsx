@@ -1,12 +1,18 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { Icon } from "@/components/icons";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import { InboxExplainPanel } from "@/components/inbox/inbox-explain-panel";
+import { MoneyValue } from "@/components/money-value";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { SelectField } from "@/components/ui/select-field";
+import { TextField } from "@/components/ui/text-field";
 import {
   CONFIDENCE_LABELS,
   type InboxCandidate,
 } from "@/lib/inbox/candidate-store";
+import { approvalIdempotencyKey } from "@/lib/inbox/approval-recovery";
 import {
   buildLedgerPost,
   confidenceScoreLabel,
@@ -15,26 +21,9 @@ import {
   type LedgerPostResult,
 } from "@/lib/inbox/review";
 import { maskSnippetForDisplay } from "@/lib/mask-account";
-import { formatMoney, formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
 import type { AccountOption, CategoryOption } from "@/lib/sample-data";
-
-function moneySign(kind: InboxCandidate["kind"]): string {
-  if (kind === "income") return "+";
-  if (kind === "transfer") return "↔ ";
-  return "−";
-}
-
-function moneyClass(kind: InboxCandidate["kind"]): string {
-  if (kind === "income") return "positive";
-  if (kind === "transfer") return "transfer";
-  return "negative";
-}
-
-function confidenceClass(confidence: InboxCandidate["confidence"]): string {
-  if (confidence === "high") return "ok";
-  if (confidence === "medium") return "warning";
-  return "danger";
-}
+import styles from "./inbox-review-panel.module.css";
 
 export type ReviewSubmitPayload = {
   candidateId: string;
@@ -49,6 +38,12 @@ function initialDraft(
 ): CandidateReviewDraft | null {
   if (!candidate) return null;
   return draftFromCandidate(candidate, accounts, categories);
+}
+
+function confidenceTone(confidence: InboxCandidate["confidence"]) {
+  if (confidence === "high") return styles.confidenceHigh;
+  if (confidence === "medium") return styles.confidenceMedium;
+  return styles.confidenceLow;
 }
 
 export function InboxReviewPanel({
@@ -72,8 +67,7 @@ export function InboxReviewPanel({
   onReject: (candidateId: string) => void;
   onMarkDuplicate: (candidateId: string) => void;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const idempotencyKeyRef = useRef<string | null>(null);
+  const merchantRef = useRef<HTMLInputElement>(null);
   const seed = initialDraft(candidate, accounts, categories);
   const [draft, setDraft] = useState<CandidateReviewDraft | null>(seed);
   const [amountText, setAmountText] = useState(() =>
@@ -81,13 +75,6 @@ export function InboxReviewPanel({
   );
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
 
   const moneyKind = draft?.kind === "income" ? "income" : "expense";
   const availableCategories = useMemo(
@@ -98,44 +85,37 @@ export function InboxReviewPanel({
     candidate?.possibleDuplicate === true ||
     error.includes("rất giống") ||
     draft?.allowHeuristicDuplicate === true;
+  const isBusy = busy || submitting;
 
-  if (!candidate) {
-    return (
-      <dialog
-        ref={dialogRef}
-        className="transaction-dialog inbox-review-dialog"
-        onClose={onClose}
-        aria-labelledby="inbox-review-title"
-      />
-    );
-  }
+  if (!candidate || !draft) return null;
+
+  const activeCandidate = candidate;
+  const activeDraft = draft;
 
   function patchDraft(partial: Partial<CandidateReviewDraft>) {
     setDraft((current) => (current ? { ...current, ...partial } : current));
     setError("");
-    idempotencyKeyRef.current = null;
   }
 
   function changeKind(kind: InboxCandidate["kind"]) {
-    if (!draft) return;
     const nextMoneyKind = kind === "income" ? "income" : "expense";
     const nextCategory =
       kind === "transfer"
-        ? draft.categoryId
+        ? activeDraft.categoryId
         : categories.find((item) => item.kind === nextMoneyKind)?.id ?? "";
     patchDraft({ kind, categoryId: nextCategory });
   }
 
   async function handleApprove(event: FormEvent) {
     event.preventDefault();
-    if (!draft || !candidate) return;
-
     const amount = parseMoneyInput(amountText);
-    const nextDraft: CandidateReviewDraft = { ...draft, amount };
-    const key = idempotencyKeyRef.current ?? crypto.randomUUID();
-    idempotencyKeyRef.current = key;
-
-    const post = buildLedgerPost(nextDraft, accounts, categories, key);
+    const nextDraft: CandidateReviewDraft = { ...activeDraft, amount };
+    const post = buildLedgerPost(
+      nextDraft,
+      accounts,
+      categories,
+      approvalIdempotencyKey(activeCandidate.id),
+    );
     if (!post.ok) {
       setError(post.message);
       return;
@@ -144,7 +124,7 @@ export function InboxReviewPanel({
     setSubmitting(true);
     try {
       const result = await onApprove({
-        candidateId: candidate.id,
+        candidateId: activeCandidate.id,
         draft: nextDraft,
         post,
       });
@@ -158,248 +138,259 @@ export function InboxReviewPanel({
     }
   }
 
-  const isBusy = busy || submitting;
+  const parsedAmount = parseMoneyInput(amountText);
+  const displayAmount = Number.isSafeInteger(parsedAmount) && parsedAmount > 0
+    ? parsedAmount
+    : draft.amount;
+  const formId = `inbox-review-form-${candidate.id}`;
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="transaction-dialog inbox-review-dialog"
-      onClose={onClose}
-      aria-labelledby="inbox-review-title"
-    >
-      <div className="dialog-handle" aria-hidden="true" />
-      <div className="dialog-heading">
-        <div>
-          <p className="eyebrow">← Inbox</p>
-          <h2 id="inbox-review-title">Duyệt giao dịch</h2>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !isBusy) onClose();
+      }}
+      title="Duyệt giao dịch"
+      description="Kiểm tra mọi trường trước khi tạo một giao dịch thật trong sổ."
+      dismissible={!isBusy}
+      initialFocusRef={merchantRef}
+      className={styles.dialog}
+      contentClassName={styles.content}
+      footer={
+        <div className={styles.footer}>
+          <Button
+            type="button"
+            intent="secondary"
+            targetSize="important"
+            disabled={isBusy}
+            onClick={onClose}
+          >
+            Hủy
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            intent="primary"
+            targetSize="important"
+            pending={isBusy}
+            pendingLabel="Đang ghi sổ…"
+          >
+            Duyệt vào sổ
+          </Button>
         </div>
-        <button
-          type="button"
-          className="icon-button"
-          onClick={onClose}
-          aria-label="Đóng"
-          disabled={isBusy}
-        >
-          <Icon name="close" />
-        </button>
-      </div>
+      }
+    >
+      <form
+        id={formId}
+        className={styles.form}
+        onSubmit={handleApprove}
+        data-slot="inbox-review"
+        noValidate
+      >
+        <section className={styles.hero} aria-label="Tóm tắt ứng viên">
+          <MoneyValue
+            amount={displayAmount}
+            mode="kind"
+            kind={draft.kind}
+            label="Số tiền ứng viên"
+            emphasis="strong"
+            align="start"
+          />
+          <span className={`${styles.confidence} ${confidenceTone(candidate.confidence)}`}>
+            {CONFIDENCE_LABELS[candidate.confidence]} · {confidenceScoreLabel(candidate.confidence)}
+          </span>
+        </section>
 
-      {draft ? (
-        <form className="inbox-review-form" onSubmit={handleApprove}>
-          <div className="inbox-review-hero">
-            <strong className={`font-mono inbox-review-amount ${moneyClass(draft.kind)}`}>
-              {moneySign(draft.kind)}
-              {formatMoney(parseMoneyInput(amountText) || draft.amount)}
-            </strong>
-            <span
-              className={`preview-chip sm confidence-badge ${confidenceClass(candidate.confidence)}`}
-            >
-              {CONFIDENCE_LABELS[candidate.confidence]} ·{" "}
-              {confidenceScoreLabel(candidate.confidence)}
-            </span>
-          </div>
+        {candidate.confidence === "low" ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              Độ tin thấp. MoneyFlow không tự ghi; giao dịch chỉ được tạo sau khi bạn
+              kiểm tra và bấm “Duyệt vào sổ”.
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-          {candidate.confidence === "low" && (
-            <p className="inbox-review-low-warn" role="status">
-              Độ tin thấp — chỉ ghi sổ khi bạn bấm Duyệt (không tự đăng).
-            </p>
-          )}
+        <div className={styles.grid}>
+          <SelectField
+            label="Loại"
+            value={draft.kind}
+            onChange={(event) => changeKind(event.target.value as InboxCandidate["kind"])}
+            disabled={isBusy}
+            targetSize="important"
+          >
+            <option value="expense">Chi</option>
+            <option value="income">Thu</option>
+            <option value="transfer">Chuyển khoản</option>
+          </SelectField>
 
-          <label className="field">
-            <span>Loại</span>
-            <select
-              value={draft.kind}
-              onChange={(event) =>
-                changeKind(event.target.value as InboxCandidate["kind"])
-              }
-              disabled={isBusy}
-            >
-              <option value="expense">Chi</option>
-              <option value="income">Thu</option>
-              <option value="transfer">Chuyển khoản</option>
-            </select>
-          </label>
+          <TextField
+            label="Ngày"
+            type="date"
+            value={draft.occurredOn}
+            onChange={(event) => patchDraft({ occurredOn: event.target.value })}
+            disabled={isBusy}
+            required
+            targetSize="important"
+          />
 
-          <label className="field">
-            <span>Ngày</span>
-            <input
-              type="date"
-              value={draft.occurredOn}
-              onChange={(event) => patchDraft({ occurredOn: event.target.value })}
-              disabled={isBusy}
-              required
-            />
-          </label>
+          <TextField
+            ref={merchantRef}
+            label="Nơi giao dịch"
+            value={draft.merchant}
+            onChange={(event) => patchDraft({ merchant: event.target.value })}
+            disabled={isBusy}
+            placeholder="Tên cửa hàng hoặc đối tác"
+            maxLength={200}
+            description={
+              candidate.rawSnippet
+                ? `Nguồn đã che: “${maskSnippetForDisplay(candidate.rawSnippet)}”`
+                : undefined
+            }
+            targetSize="important"
+          />
 
-          <label className="field">
-            <span>Merchant</span>
-            <input
-              type="text"
-              value={draft.merchant}
-              onChange={(event) => patchDraft({ merchant: event.target.value })}
-              disabled={isBusy}
-              placeholder="Tên cửa hàng / đối tác"
-              maxLength={200}
-            />
-            {candidate.rawSnippet ? (
-              <small className="field-hint">
-                raw: “{maskSnippetForDisplay(candidate.rawSnippet)}”
-              </small>
-            ) : null}
-          </label>
-
-          <label className="field">
-            <span>Số tiền (₫)</span>
-            <input
-              className="font-mono"
-              inputMode="numeric"
-              value={amountText}
-              onChange={(event) => {
-                setAmountText(formatMoneyInput(event.target.value));
-                setError("");
-                idempotencyKeyRef.current = null;
-              }}
-              disabled={isBusy}
-              required
-            />
-          </label>
+          <TextField
+            label="Số tiền (₫)"
+            inputMode="numeric"
+            value={amountText}
+            onChange={(event) => {
+              setAmountText(formatMoneyInput(event.target.value));
+              setError("");
+            }}
+            disabled={isBusy}
+            required
+            targetSize="important"
+          />
 
           {draft.kind !== "transfer" ? (
-            <label className="field">
-              <span>Danh mục</span>
-              <select
-                value={
-                  availableCategories.some((item) => item.id === draft.categoryId)
-                    ? draft.categoryId
-                    : availableCategories[0]?.id ?? ""
-                }
-                onChange={(event) => patchDraft({ categoryId: event.target.value })}
-                disabled={isBusy || availableCategories.length === 0}
-                required
-              >
-                {availableCategories.length === 0 ? (
-                  <option value="">Chưa có danh mục</option>
-                ) : (
-                  availableCategories.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </label>
-          ) : null}
-
-          <label className="field">
-            <span>{draft.kind === "transfer" ? "Từ tài khoản" : "Tài khoản"}</span>
-            <select
+            <SelectField
+              label="Danh mục"
               value={
-                accounts.some((item) => item.id === draft.accountId)
-                  ? draft.accountId
-                  : accounts[0]?.id ?? ""
+                availableCategories.some((item) => item.id === draft.categoryId)
+                  ? draft.categoryId
+                  : availableCategories[0]?.id ?? ""
               }
-              onChange={(event) => patchDraft({ accountId: event.target.value })}
-              disabled={isBusy || accounts.length === 0}
+              onChange={(event) => patchDraft({ categoryId: event.target.value })}
+              disabled={isBusy || availableCategories.length === 0}
               required
+              targetSize="important"
             >
-              {accounts.length === 0 ? (
-                <option value="">Chưa có tài khoản</option>
+              {availableCategories.length === 0 ? (
+                <option value="">Chưa có danh mục</option>
               ) : (
-                accounts.map((item) => (
+                availableCategories.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
                   </option>
                 ))
               )}
-            </select>
-          </label>
+            </SelectField>
+          ) : null}
+
+          <SelectField
+            label={draft.kind === "transfer" ? "Từ tài khoản" : "Tài khoản"}
+            value={
+              accounts.some((item) => item.id === draft.accountId)
+                ? draft.accountId
+                : accounts[0]?.id ?? ""
+            }
+            onChange={(event) => patchDraft({ accountId: event.target.value })}
+            disabled={isBusy || accounts.length === 0}
+            required
+            targetSize="important"
+          >
+            {accounts.length === 0 ? (
+              <option value="">Chưa có tài khoản</option>
+            ) : (
+              accounts.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))
+            )}
+          </SelectField>
 
           {draft.kind === "transfer" ? (
-            <label className="field">
-              <span>Đến tài khoản</span>
-              <select
-                value={
-                  accounts.some((item) => item.id === draft.destinationAccountId)
-                    ? draft.destinationAccountId
-                    : accounts.find((item) => item.id !== draft.accountId)?.id ??
-                      accounts[0]?.id ??
-                      ""
-                }
-                onChange={(event) =>
-                  patchDraft({ destinationAccountId: event.target.value })
-                }
-                disabled={isBusy || accounts.length < 2}
-                required
-              >
-                {accounts.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectField
+              label="Đến tài khoản"
+              value={
+                accounts.some((item) => item.id === draft.destinationAccountId)
+                  ? draft.destinationAccountId
+                  : accounts.find((item) => item.id !== draft.accountId)?.id ??
+                    accounts[0]?.id ??
+                    ""
+              }
+              onChange={(event) => patchDraft({ destinationAccountId: event.target.value })}
+              disabled={isBusy || accounts.length < 2}
+              required
+              targetSize="important"
+            >
+              {accounts.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </SelectField>
           ) : null}
 
-          <label className="field">
-            <span>Ghi chú</span>
+          <TextField
+            label="Ghi chú"
+            value={draft.note}
+            onChange={(event) => patchDraft({ note: event.target.value })}
+            disabled={isBusy}
+            maxLength={500}
+            placeholder="Tùy chọn"
+            targetSize="important"
+            rootClassName={styles.wide}
+          />
+        </div>
+
+        {showDuplicateOverride ? (
+          <label className={styles.checkRow}>
             <input
-              type="text"
-              value={draft.note}
-              onChange={(event) => patchDraft({ note: event.target.value })}
+              type="checkbox"
+              checked={draft.allowHeuristicDuplicate}
+              onChange={(event) =>
+                patchDraft({ allowHeuristicDuplicate: event.target.checked })
+              }
               disabled={isBusy}
-              maxLength={500}
-              placeholder="Tuỳ chọn"
             />
+            <span>
+              <strong>Tôi đã kiểm tra giao dịch tương tự.</strong>
+              <small>Vẫn ghi sổ dù MoneyFlow phát hiện khả năng trùng.</small>
+            </span>
           </label>
+        ) : null}
 
-          {showDuplicateOverride ? (
-            <label className="field">
-              <span>Kiểm tra trùng</span>
-              <span>
-                <input
-                  type="checkbox"
-                  checked={draft.allowHeuristicDuplicate}
-                  onChange={(event) =>
-                    patchDraft({ allowHeuristicDuplicate: event.target.checked })
-                  }
-                  disabled={isBusy}
-                />{" "}
-                Tôi đã kiểm tra giao dịch tương tự và vẫn muốn ghi sổ.
-              </span>
-            </label>
-          ) : null}
+        <InboxExplainPanel candidate={candidate} />
 
-          <InboxExplainPanel candidate={candidate} />
+        {error ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
 
-          {error ? (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-
-          <div className="inbox-review-actions">
-            <button type="submit" className="primary-button" disabled={isBusy}>
-              {isBusy ? "Đang lưu…" : "Duyệt vào sổ"}
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={isBusy}
-              onClick={() => onReject(candidate.id)}
-            >
-              Từ chối
-            </button>
-            <button
-              type="button"
-              className="secondary-button"
-              disabled={isBusy}
-              onClick={() => onMarkDuplicate(candidate.id)}
-            >
-              Đánh dấu trùng
-            </button>
-          </div>
-        </form>
-      ) : null}
-    </dialog>
+        <div className={styles.secondaryActions}>
+          <Button
+            type="button"
+            intent="destructive"
+            targetSize="important"
+            disabled={isBusy}
+            onClick={() => onReject(candidate.id)}
+          >
+            Từ chối ứng viên
+          </Button>
+          <Button
+            type="button"
+            intent="quiet"
+            targetSize="important"
+            disabled={isBusy}
+            onClick={() => onMarkDuplicate(candidate.id)}
+          >
+            Đánh dấu có thể trùng
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }

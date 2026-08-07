@@ -1,0 +1,155 @@
+.loading {
+  display: grid;
+  gap: 0.625rem;
+  border: 1px solid var(--mf-border);
+  border-radius: 1rem;
+  background: var(--mf-surface);
+  padding: 1rem;
+}
+
+.loading span {
+  display: block;
+  height: 0.875rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mf-text-muted) 14%, transparent);
+}
+
+.loading span:nth-child(1) {
+  width: 72%;
+}
+
+.loading span:nth-child(2) {
+  width: 48%;
+}
+
+.loading span:nth-child(3) {
+  width: 60%;
+}
+
+.alertAction {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.mapList {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: 0.875rem;
+  overflow: hidden;
+}
+
+.mapList > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 0.4fr) minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+}
+
+.mapList > div + div {
+  border-top: 1px solid var(--mf-border);
+}
+
+.mapList dt {
+  color: var(--mf-text-muted);
+  font-weight: 700;
+}
+
+.mapList dd {
+  margin: 0;
+  color: var(--mf-text);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.tableScroll {
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--mf-border);
+  border-radius: 0.875rem;
+}
+
+.table {
+  width: 100%;
+  min-width: 38rem;
+  border-collapse: collapse;
+  background: var(--mf-surface);
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--mf-border);
+  padding: 0.75rem;
+  color: var(--mf-text);
+  text-align: start;
+  vertical-align: middle;
+}
+
+.table th {
+  background: var(--mf-canvas);
+  color: var(--mf-text-muted);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.readyStatus,
+.warningStatus {
+  display: inline-flex;
+  min-height: 1.65rem;
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.readyStatus {
+  color: var(--mf-income);
+}
+
+.warningStatus {
+  color: var(--mf-warning);
+}
+
+.hint {
+  margin: 0;
+  color: var(--mf-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.625rem;
+}
+
+@media (max-width: 620px) {
+  .alertAction {
+    display: grid;
+  }
+
+  .mapList > div {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .actions > * {
+    width: 100%;
+  }
+}

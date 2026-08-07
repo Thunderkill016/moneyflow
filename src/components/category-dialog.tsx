@@ -1,15 +1,45 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
-import { Icon } from "@/components/icons";
+import { FormEvent, useRef, useState } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Dialog } from "@/components/ui/dialog";
+import { SelectField } from "@/components/ui/select-field";
+import { TextField } from "@/components/ui/text-field";
 import {
   categoryKindLabels,
   CATEGORY_NAME_MAX,
+  defaultCategoryMeta,
   normalizeCategoryName,
   type CategorySummary,
   type SaveCategoryInput,
 } from "@/lib/categories";
 import type { TransactionKind } from "@/lib/sample-data";
+import styles from "./category-dialog.module.css";
+
+const ICON_OPTIONS = [
+  ["bowl", "Ăn uống"],
+  ["car", "Di chuyển"],
+  ["bag", "Mua sắm"],
+  ["home", "Nhà ở"],
+  ["receipt", "Hóa đơn"],
+  ["spark", "Linh hoạt"],
+  ["heart", "Sức khỏe"],
+  ["book", "Giáo dục"],
+  ["wallet", "Thu nhập"],
+  ["bank", "Tài chính"],
+] as const;
+
+const COLOR_OPTIONS = [
+  ["blue", "Xanh dương"],
+  ["green", "Xanh lá"],
+  ["violet", "Tím"],
+  ["amber", "Hổ phách"],
+  ["cyan", "Xanh ngọc"],
+  ["coral", "San hô"],
+  ["pink", "Hồng"],
+  ["red", "Đỏ"],
+] as const;
 
 export function CategoryDialog({
   open,
@@ -22,25 +52,35 @@ export function CategoryDialog({
   onClose: () => void;
   onSave: (input: SaveCategoryInput) => Promise<{ ok: boolean; message?: string }>;
 }) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const [kind, setKind] = useState<TransactionKind>(category?.kind ?? "expense");
-  const [error, setError] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
+  const initialKind = category?.kind ?? "expense";
+  const defaults = defaultCategoryMeta(initialKind);
+  const [name, setName] = useState(category?.name ?? "");
+  const [kind, setKind] = useState<TransactionKind>(initialKind);
+  const [icon, setIcon] = useState(category?.icon ?? defaults.icon);
+  const [color, setColor] = useState(category?.color ?? defaults.color);
+  const [nameError, setNameError] = useState("");
+  const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
-    if (!open && dialog.open) dialog.close();
-  }, [open]);
+  function handleKindChange(nextKind: TransactionKind) {
+    const nextDefaults = defaultCategoryMeta(nextKind);
+    setKind(nextKind);
+    setIcon(nextDefaults.icon);
+    setColor(nextDefaults.color);
+    setNameError("");
+    setFormError("");
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const name = normalizeCategoryName(String(formData.get("name") ?? ""));
-    if (!name || name.length > CATEGORY_NAME_MAX) {
-      setError(`Tên danh mục cần từ 1 đến ${CATEGORY_NAME_MAX} ký tự.`);
+    const normalizedName = normalizeCategoryName(name);
+    setNameError("");
+    setFormError("");
+
+    if (!normalizedName || normalizedName.length > CATEGORY_NAME_MAX) {
+      setNameError(`Tên danh mục cần từ 1 đến ${CATEGORY_NAME_MAX} ký tự.`);
+      nameRef.current?.focus();
       return;
     }
 
@@ -49,10 +89,10 @@ export function CategoryDialog({
     try {
       result = await onSave({
         id: category?.id,
-        name,
+        name: normalizedName,
         kind: category?.kind ?? kind,
-        icon: category?.icon,
-        color: category?.color,
+        icon,
+        color,
       });
     } catch {
       result = { ok: false, message: "Mất kết nối khi lưu danh mục." };
@@ -61,107 +101,118 @@ export function CategoryDialog({
     }
 
     if (!result.ok) {
-      setError(result.message || "Không thể lưu danh mục.");
-      return;
+      setFormError(result.message || "Không thể lưu danh mục.");
     }
-    setError("");
-    formRef.current?.reset();
   }
 
   return (
-    <dialog
-      ref={dialogRef}
-      className="account-dialog"
-      onCancel={(event) => {
-        event.preventDefault();
-        if (!submitting) onClose();
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !submitting) onClose();
       }}
-      onClose={onClose}
-      aria-labelledby="category-dialog-title"
-    >
-      <div className="dialog-heading">
-        <div>
-          <p className="eyebrow">Danh mục</p>
-          <h2 id="category-dialog-title">
-            {category ? "Đổi tên danh mục" : "Thêm danh mục"}
-          </h2>
-        </div>
-        <button
-          className="icon-button"
-          type="button"
-          onClick={onClose}
-          disabled={submitting}
-          aria-label="Đóng"
-        >
-          <Icon name="close" />
-        </button>
-      </div>
-
-      <form ref={formRef} className="account-form" onSubmit={handleSubmit}>
-        <label>
-          <span>Tên danh mục</span>
-          <input
-            name="name"
-            defaultValue={category?.name ?? ""}
-            placeholder="Ví dụ: Cafe"
-            maxLength={CATEGORY_NAME_MAX}
-            autoFocus
-            required
-          />
-        </label>
-        <label>
-          <span>Loại</span>
-          {category ? (
-            <input
-              value={categoryKindLabels[category.kind]}
-              readOnly
-              aria-readonly="true"
-            />
-          ) : (
-            <select
-              value={kind}
-              onChange={(event) => {
-                setKind(event.target.value as TransactionKind);
-                setError("");
-              }}
-            >
-              <option value="expense">{categoryKindLabels.expense}</option>
-              <option value="income">{categoryKindLabels.income}</option>
-            </select>
-          )}
-        </label>
-        <p className="account-form-hint">
-          Không có danh mục con. Tên phải khác các danh mục cùng loại (chi hoặc
-          thu).
-        </p>
-        {error && (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="dialog-footer-actions">
-          <button
-            className="secondary-button"
+      title={category ? "Sửa danh mục" : "Thêm danh mục"}
+      description={
+        category
+          ? "Cập nhật tên và dấu hiệu nhận diện. Loại thu hoặc chi không đổi sau khi tạo."
+          : "Tạo danh mục thu hoặc chi với tên, biểu tượng và màu nhận diện riêng."
+      }
+      dismissible={!submitting}
+      initialFocusRef={nameRef}
+      className={styles.dialog}
+      contentClassName={styles.content}
+      footer={
+        <div className={styles.footer}>
+          <Button
             type="button"
-            onClick={onClose}
+            intent="secondary"
+            targetSize="important"
             disabled={submitting}
+            onClick={onClose}
           >
             Hủy
-          </button>
-          <button
-            className="primary-button account-submit"
+          </Button>
+          <Button
             type="submit"
-            disabled={submitting}
+            form="category-form"
+            intent="primary"
+            targetSize="important"
+            pending={submitting}
+            pendingLabel="Đang lưu…"
           >
-            <Icon name="check" />
-            {submitting
-              ? "Đang lưu..."
-              : category
-                ? "Lưu thay đổi"
-                : "Thêm danh mục"}
-          </button>
+            {category ? "Lưu thay đổi" : "Thêm danh mục"}
+          </Button>
         </div>
+      }
+    >
+      <form id="category-form" className={styles.form} onSubmit={handleSubmit} noValidate>
+        <TextField
+          ref={nameRef}
+          label="Tên danh mục"
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            setNameError("");
+            setFormError("");
+          }}
+          placeholder="Ví dụ: Cà phê"
+          maxLength={CATEGORY_NAME_MAX}
+          autoComplete="off"
+          required
+          disabled={submitting}
+          error={nameError || undefined}
+          description="Tên phải khác các danh mục cùng loại."
+          targetSize="important"
+        />
+
+        <SelectField
+          label="Loại"
+          value={category?.kind ?? kind}
+          onChange={(event) => handleKindChange(event.target.value as TransactionKind)}
+          disabled={Boolean(category) || submitting}
+          description={category ? "Loại được giữ cố định để bảo toàn lịch sử." : undefined}
+          targetSize="important"
+        >
+          <option value="expense">{categoryKindLabels.expense}</option>
+          <option value="income">{categoryKindLabels.income}</option>
+        </SelectField>
+
+        <div className={styles.identityGrid}>
+          <SelectField
+            label="Biểu tượng"
+            value={icon}
+            onChange={(event) => setIcon(event.target.value)}
+            disabled={submitting}
+            targetSize="important"
+          >
+            {ICON_OPTIONS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </SelectField>
+          <SelectField
+            label="Màu nhận diện"
+            value={color}
+            onChange={(event) => setColor(event.target.value)}
+            disabled={submitting}
+            description="Màu chỉ hỗ trợ nhận diện; loại và trạng thái luôn có chữ."
+            targetSize="important"
+          >
+            {COLOR_OPTIONS.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+
+        {formError ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription>{formError}</AlertDescription>
+          </Alert>
+        ) : null}
       </form>
-    </dialog>
+    </Dialog>
   );
 }

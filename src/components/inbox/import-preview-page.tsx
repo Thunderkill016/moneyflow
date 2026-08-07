@@ -1,10 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import { MoneyValue } from "@/components/money-value";
+import {
+  SecondaryHeader,
+  SecondaryReviewDialog,
+  SecondarySection,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   addCandidatesForClient,
@@ -25,12 +34,9 @@ import {
   readImportDraft,
   removeImportDraft,
 } from "@/lib/inbox/import-draft-store";
-import {
-  toCsvCandidateInputs,
-  type ParsedCsvRow,
-} from "@/lib/inbox/parse-csv";
-import { formatMoney } from "@/lib/money";
+import { toCsvCandidateInputs, type ParsedCsvRow } from "@/lib/inbox/parse-csv";
 import { trackProductEvent } from "@/lib/safe-analytics";
+import styles from "./import-preview-page.module.css";
 
 const PREVIEW_LIMIT = 10;
 
@@ -38,39 +44,15 @@ type LoadState =
   | { phase: "loading" }
   | { phase: "empty" }
   | { phase: "error"; message: string }
-  | {
-      phase: "ready";
-      batch: ImportBatch;
-      rows: ParsedCsvRow[];
-    }
-  | {
-      phase: "done";
-      batch: ImportBatch;
-      kind: "committed" | "cancelled";
-    };
-
-function moneySign(kind: ParsedCsvRow["kind"]): string {
-  if (kind === "income") return "+";
-  if (kind === "transfer") return "↔ ";
-  return "−";
-}
-
-function moneyClass(kind: ParsedCsvRow["kind"]): string {
-  if (kind === "income") return "positive";
-  if (kind === "transfer") return "transfer";
-  return "negative";
-}
+  | { phase: "ready"; batch: ImportBatch; rows: ParsedCsvRow[] }
+  | { phase: "done"; batch: ImportBatch; kind: "committed" | "cancelled" };
 
 function amountColumnLabel(batch: ImportBatch): string {
   const { columnMap, headers } = batch;
-  if (columnMap.amount !== null) {
-    return columnHeaderLabel(headers, columnMap.amount);
-  }
+  if (columnMap.amount !== null) return columnHeaderLabel(headers, columnMap.amount);
   const debit = columnHeaderLabel(headers, columnMap.debit);
   const credit = columnHeaderLabel(headers, columnMap.credit);
-  if (columnMap.debit !== null && columnMap.credit !== null) {
-    return `${debit} / ${credit}`;
-  }
+  if (columnMap.debit !== null && columnMap.credit !== null) return `${debit} / ${credit}`;
   if (columnMap.debit !== null) return debit;
   if (columnMap.credit !== null) return credit;
   return "—";
@@ -90,6 +72,8 @@ export function ImportPreviewPage({
   const [committing, setCommitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [commitReview, setCommitReview] = useState(false);
+  const [cancelReview, setCancelReview] = useState(false);
 
   const reload = useCallback(async () => {
     setActionError("");
@@ -104,7 +88,6 @@ export function ImportPreviewPage({
           return;
         }
         batch = listed.batches.find((item) => item.id === batchId) ?? null;
-        // Fresh upload may still only be in local until first list; fall back.
         if (!batch) batch = getStoredImportBatch(batchId);
       }
 
@@ -112,7 +95,6 @@ export function ImportPreviewPage({
         setState({ phase: "empty" });
         return;
       }
-
       if (batch.status === "committed") {
         setState({ phase: "done", batch, kind: "committed" });
         return;
@@ -127,17 +109,13 @@ export function ImportPreviewPage({
         setState({
           phase: "error",
           message:
-            "Không còn dữ liệu preview cho lô này. Tải lại file CSV/Excel từ Capture → Upload.",
+            "Không còn dữ liệu preview cho batch này. Tải lại file từ Capture → Tải lên.",
         });
         return;
       }
-
       setState({ phase: "ready", batch, rows: draft.rows });
     } catch {
-      setState({
-        phase: "error",
-        message: "Không đọc được lô import trên máy này.",
-      });
+      setState({ phase: "error", message: "Không đọc được batch import trên thiết bị này." });
     }
   }, [batchId, viewer.isDemo]);
 
@@ -159,11 +137,10 @@ export function ImportPreviewPage({
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  const previewRows = useMemo(() => {
-    if (state.phase !== "ready") return [];
-    return previewDraftRows(state.rows, PREVIEW_LIMIT);
-  }, [state]);
-
+  const previewRows = useMemo(
+    () => (state.phase === "ready" ? previewDraftRows(state.rows, PREVIEW_LIMIT) : []),
+    [state],
+  );
   const summary =
     state.phase === "ready"
       ? formatImportPreviewSummary({
@@ -172,14 +149,14 @@ export function ImportPreviewPage({
           skippedRows: state.batch.skippedRows,
         })
       : "";
-
   const mapPct =
     state.phase === "ready" || state.phase === "done"
       ? Math.round(state.batch.mapConfidence * 100)
       : 0;
+  const busy = committing || cancelling;
 
   async function commitToInbox() {
-    if (state.phase !== "ready" || committing || cancelling) return;
+    if (state.phase !== "ready" || busy) return;
     setCommitting(true);
     setActionError("");
     try {
@@ -189,29 +166,24 @@ export function ImportPreviewPage({
           : state.batch.source === "pdf"
             ? ("pdf" as const)
             : ("csv" as const);
-      const inputs = toCsvCandidateInputs(
-        state.rows,
-        state.batch.id,
-        source,
-      );
+      const inputs = toCsvCandidateInputs(state.rows, state.batch.id, source);
       const addResult = await addCandidatesForClient(viewer.isDemo, inputs);
       if (!addResult.ok) {
         setActionError(addResult.message);
+        setCommitReview(false);
         setCommitting(false);
         return;
       }
-      const markResult = await markBatchCommittedForClient(
-        viewer.isDemo,
-        state.batch.id,
-      );
+      const markResult = await markBatchCommittedForClient(viewer.isDemo, state.batch.id);
       if (!markResult.ok) {
-        setActionError(markResult.message);
+        setActionError(
+          `${markResult.message} Ứng viên có thể đã được thêm; mở Inbox trước khi thử lại để tránh thao tác lặp.`,
+        );
+        setCommitReview(false);
         setCommitting(false);
         return;
       }
       removeImportDraft(state.batch.id);
-
-      // Counts + source enum only — never fileName / row bodies / raw_snippet.
       trackProductEvent("import_batch_committed", {
         candidate_count: inputs.length,
         row_count: state.batch.rowCount,
@@ -220,30 +192,25 @@ export function ImportPreviewPage({
         skipped_rows: state.batch.skippedRows,
         map_confidence: state.batch.mapConfidence,
       });
-
-      const pending = await getPendingCountForClient(viewer.isDemo);
-      setInboxCount(pending);
-      setNotice(
-        `Đã đưa ${inputs.length} mục từ ${state.batch.fileName} vào Inbox — chưa ghi sổ.`,
-      );
+      setInboxCount(await getPendingCountForClient(viewer.isDemo));
+      setNotice(`Đã đưa ${inputs.length} ứng viên vào Inbox — chưa ghi sổ.`);
       router.push("/inbox");
     } catch {
-      setActionError("Không lưu được vào Inbox. Thử lại.");
+      setActionError("Không lưu được vào Inbox. Hãy mở Inbox kiểm tra trước khi thử lại.");
+      setCommitReview(false);
       setCommitting(false);
     }
   }
 
   async function cancelImport() {
-    if (state.phase !== "ready" || committing || cancelling) return;
+    if (state.phase !== "ready" || busy) return;
     setCancelling(true);
     setActionError("");
     try {
-      const markResult = await markBatchCancelledForClient(
-        viewer.isDemo,
-        state.batch.id,
-      );
+      const markResult = await markBatchCancelledForClient(viewer.isDemo, state.batch.id);
       if (!markResult.ok) {
         setActionError(markResult.message);
+        setCancelReview(false);
         setCancelling(false);
         return;
       }
@@ -260,7 +227,8 @@ export function ImportPreviewPage({
       setNotice(`Đã hủy import ${state.batch.fileName}.`);
       router.push("/capture/upload");
     } catch {
-      setActionError("Không hủy được lô import. Thử lại.");
+      setActionError("Không hủy được batch import. Thử lại.");
+      setCancelReview(false);
       setCancelling(false);
     }
   }
@@ -269,259 +237,172 @@ export function ImportPreviewPage({
     <AppShell
       viewer={viewer}
       inboxCount={inboxCount}
-      primaryAction={{
-        label: "Inbox",
-        href: "/inbox",
-        icon: "inbox",
-      }}
+      primaryAction={{ label: "Inbox", href: "/inbox", icon: "inbox" }}
       notice={notice}
     >
-      <main className="dashboard import-preview-workspace">
-        <section className="transactions-title-row capture-title-row">
-          <div>
-            <p className="eyebrow">
-              <Link className="capture-paste-back" href="/capture/upload">
-                ← Upload
-              </Link>
-            </p>
-            <h1>
-              Import
-              {(state.phase === "ready" || state.phase === "done") && (
-                <>
-                  {" · "}
-                  <span className="font-mono import-preview-filename">
-                    {state.batch.fileName}
-                  </span>
-                </>
-              )}
-            </h1>
+      <SecondaryWorkspace slot="import-preview-workspace">
+        <SecondaryHeader
+          section="Capture · Cổng chất lượng"
+          title={
+            state.phase === "ready" || state.phase === "done"
+              ? `Import · ${state.batch.fileName}`
+              : "Xem trước import"
+          }
+          description={
             <p>
-              Cổng chất lượng — xem map cột và preview trước khi đưa hàng loạt
-              vào Inbox. Không ghi thẳng vào sổ.
+              Kiểm tra map cột và các dòng cảnh báo trước khi tạo ứng viên trong
+              Inbox. Preview này không ghi thẳng vào sổ.
             </p>
-          </div>
-          <div className="page-heading-actions">
-            <Link className="secondary-button" href="/inbox">
-              <Icon name="inbox" />
-              Về Inbox
-            </Link>
-          </div>
-        </section>
+          }
+          actions={
+            <>
+              <LinkButton
+                href="/capture/upload"
+                intent="secondary"
+                targetSize="important"
+              >
+                Tải file khác
+              </LinkButton>
+              <LinkButton href="/inbox" intent="secondary" targetSize="important">
+                Inbox
+              </LinkButton>
+            </>
+          }
+        />
 
-        {state.phase === "loading" && (
-          <section
-            className="panel import-preview-panel"
-            aria-busy="true"
-            aria-label="Đang tải preview import"
-          >
-            <div className="import-preview-skeleton">
-              <div className="loading-line wide" />
-              <div className="loading-line" />
-              <div className="loading-line short" />
-              <div className="loading-line import-preview-skel-table" />
-            </div>
+        {state.phase === "loading" ? (
+          <section className={styles.loading} aria-busy="true" aria-label="Đang tải preview">
+            <span />
+            <span />
+            <span />
           </section>
-        )}
+        ) : null}
 
-        {state.phase === "empty" && (
-          <section className="panel import-preview-panel import-preview-empty">
-            <h2>Không tìm thấy lô import</h2>
-            <p>
-              Lô <span className="font-mono">{batchId}</span> không có trên máy
-              này (đã xóa hoặc mở trên trình duyệt khác).
-            </p>
-            <div className="capture-paste-actions">
-              <Link className="primary-button" href="/capture/upload">
+        {state.phase === "empty" ? (
+          <EmptyState
+            icon={<Icon name="imports" />}
+            title="Không tìm thấy batch import"
+            description={`Batch ${batchId} đã bị xóa, hết draft hoặc được mở trên trình duyệt khác.`}
+            primaryAction={
+              <LinkButton
+                href="/capture/upload"
+                intent="primary"
+                targetSize="important"
+              >
                 Tải sao kê mới
-              </Link>
-              <Link className="secondary-button" href="/inbox">
+              </LinkButton>
+            }
+            secondaryAction={
+              <LinkButton href="/inbox" intent="secondary" targetSize="important">
                 Về Inbox
-              </Link>
-            </div>
-          </section>
-        )}
+              </LinkButton>
+            }
+          />
+        ) : null}
 
-        {state.phase === "error" && (
-          <section
-            className="panel import-preview-panel"
-            role="alert"
-          >
-            <h2>Không mở được preview</h2>
-            <p className="capture-paste-error">{state.message}</p>
-            <div className="capture-paste-actions">
-              <Link className="primary-button" href="/capture/upload">
-                Tải lại file
-              </Link>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={reload}
-              >
+        {state.phase === "error" ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertAction}>
+              <span>{state.message}</span>
+              <Button type="button" intent="secondary" targetSize="important" onClick={() => void reload()}>
                 Thử lại
-              </button>
-            </div>
-          </section>
-        )}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        {state.phase === "done" && (
-          <section className="panel import-preview-panel">
-            <div className="import-preview-status-row">
-              <span className="import-preview-status-label">Trạng thái</span>
-              <span
-                className={`preview-chip sm ${state.kind === "committed" ? "ok" : "warning"}`}
-              >
-                {importBatchStatusLabel(state.batch.status)}
-              </span>
-            </div>
-            <p>
-              {state.kind === "committed"
-                ? "Lô này đã đưa vào Inbox. Duyệt từng dòng trước khi ghi sổ."
-                : "Lô này đã hủy. Bạn có thể tải file khác."}
-            </p>
-            <div className="capture-paste-actions">
-              {state.kind === "committed" ? (
-                <Link className="primary-button" href="/inbox">
-                  Mở Inbox
-                </Link>
-              ) : (
-                <Link className="primary-button" href="/capture/upload">
-                  Tải sao kê
-                </Link>
-              )}
-              <Link className="secondary-button" href="/capture">
-                Capture
-              </Link>
-            </div>
-          </section>
-        )}
-
-        {state.phase === "ready" && (
-          <section
-            className="panel import-preview-panel"
-            aria-labelledby="import-preview-heading"
+        {state.phase === "done" ? (
+          <SecondarySection
+            title={importBatchStatusLabel(state.batch.status)}
+            description={
+              <p>
+                {state.kind === "committed"
+                  ? "Batch đã tạo ứng viên trong Inbox. Mỗi ứng viên vẫn cần được duyệt trước khi vào sổ."
+                  : "Batch đã bị hủy và draft preview đã được xóa."}
+              </p>
+            }
+            contained
+            slot="import-preview-result"
           >
-            <div className="import-preview-header">
-              <h2 id="import-preview-heading" className="sr-only">
-                Xem trước import
-              </h2>
-              <div className="import-preview-status-row">
-                <span className="import-preview-status-label">Trạng thái</span>
-                <span className="preview-chip sm warning">
-                  {importBatchStatusLabel(state.batch.status)}
-                </span>
-              </div>
+            <div className={styles.actions}>
+              <LinkButton
+                href={state.kind === "committed" ? "/inbox" : "/capture/upload"}
+                intent="primary"
+                targetSize="important"
+              >
+                {state.kind === "committed" ? "Mở Inbox" : "Tải sao kê"}
+              </LinkButton>
+              <LinkButton href="/capture" intent="secondary" targetSize="important">
+                Capture
+              </LinkButton>
             </div>
+          </SecondarySection>
+        ) : null}
 
-            <div className="import-preview-template">
-              <p className="import-preview-template-title">
-                Template gợi ý: Generic CSV (cột tự map {mapPct}%)
-              </p>
-              <p className="import-preview-template-hint">
-                Map cột tự động từ tiêu đề. Map thủ công sẽ có ở bản sau — kiểm
-                tra preview bên dưới trước khi xác nhận.
-              </p>
-            </div>
-
-            <div className="import-preview-map" aria-label="Map cột">
-              <h3 className="import-preview-section-title">Map</h3>
-              <dl className="import-preview-map-list">
-                <div className="import-preview-map-row">
+        {state.phase === "ready" ? (
+          <>
+            <SecondarySection
+              title="Map cột"
+              description={
+                <p>
+                  Generic import tự map {mapPct}%. Kiểm tra ba trường chính trước khi
+                  xác nhận.
+                </p>
+              }
+              contained
+              slot="import-preview-map"
+            >
+              <dl className={styles.mapList}>
+                <div>
                   <dt>Ngày</dt>
-                  <dd>
-                    <span className="import-preview-map-arrow" aria-hidden>
-                      →
-                    </span>
-                    <span className="font-mono import-preview-map-col">
-                      {columnHeaderLabel(
-                        state.batch.headers,
-                        state.batch.columnMap.date,
-                      )}
-                    </span>
-                  </dd>
+                  <dd>{columnHeaderLabel(state.batch.headers, state.batch.columnMap.date)}</dd>
                 </div>
-                <div className="import-preview-map-row">
+                <div>
                   <dt>Số tiền</dt>
-                  <dd>
-                    <span className="import-preview-map-arrow" aria-hidden>
-                      →
-                    </span>
-                    <span className="font-mono import-preview-map-col">
-                      {amountColumnLabel(state.batch)}
-                    </span>
-                  </dd>
+                  <dd>{amountColumnLabel(state.batch)}</dd>
                 </div>
-                <div className="import-preview-map-row">
+                <div>
                   <dt>Mô tả</dt>
-                  <dd>
-                    <span className="import-preview-map-arrow" aria-hidden>
-                      →
-                    </span>
-                    <span className="font-mono import-preview-map-col">
-                      {columnHeaderLabel(
-                        state.batch.headers,
-                        state.batch.columnMap.desc,
-                      )}
-                    </span>
-                  </dd>
+                  <dd>{columnHeaderLabel(state.batch.headers, state.batch.columnMap.desc)}</dd>
                 </div>
               </dl>
-            </div>
+            </SecondarySection>
 
-            <div className="import-preview-table-wrap">
-              <h3 className="import-preview-section-title">
-                Preview {Math.min(PREVIEW_LIMIT, state.rows.length)} dòng đầu
-              </h3>
-              <div className="import-preview-table-scroll">
-                <table className="import-preview-table">
+            <SecondarySection
+              title={`Preview ${Math.min(PREVIEW_LIMIT, state.rows.length)} dòng đầu`}
+              description={<p>{summary}</p>}
+              contained
+              slot="import-preview-table"
+            >
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
                   <thead>
                     <tr>
                       <th scope="col">Ngày</th>
                       <th scope="col">Mô tả</th>
                       <th scope="col">Số tiền</th>
-                      <th scope="col">
-                        <span className="sr-only">Cảnh báo</span>
-                        <span aria-hidden>⚠</span>
-                      </th>
+                      <th scope="col">Đánh giá</th>
                     </tr>
                   </thead>
                   <tbody>
                     {previewRows.map((row) => {
-                      const warn =
-                        row.uncertainFields.length > 0 ||
-                        row.confidence === "low";
+                      const warn = row.uncertainFields.length > 0 || row.confidence === "low";
                       return (
-                        <tr
-                          key={`${row.rowIndex}-${row.rawSnippet}`}
-                          className={warn ? "is-warn" : undefined}
-                        >
-                          <td className="font-mono">{row.occurredOn}</td>
+                        <tr key={`${row.rowIndex}-${row.rawSnippet}`}>
+                          <td>{row.occurredOn}</td>
+                          <td>{row.merchant}</td>
                           <td>
-                            <span className="import-preview-merchant">
-                              {row.merchant}
+                            <MoneyValue
+                              amount={row.amount}
+                              mode="kind"
+                              kind={row.kind}
+                              label={`Dòng ${row.rowIndex}`}
+                            />
+                          </td>
+                          <td>
+                            <span className={warn ? styles.warningStatus : styles.readyStatus}>
+                              {warn ? "Cần xem trong Inbox" : "Sẵn sàng tạo ứng viên"}
                             </span>
-                          </td>
-                          <td
-                            className={`font-mono import-preview-amount ${moneyClass(row.kind)}`}
-                          >
-                            {moneySign(row.kind)}
-                            {formatMoney(row.amount)}
-                          </td>
-                          <td className="import-preview-warn-cell">
-                            {warn ? (
-                              <span
-                                className="import-preview-warn"
-                                title={
-                                  row.explanations[0] ??
-                                  "Cần xem khi duyệt trong Inbox"
-                                }
-                              >
-                                ⚠
-                              </span>
-                            ) : (
-                              <span className="import-preview-ok" aria-hidden>
-                                ·
-                              </span>
-                            )}
                           </td>
                         </tr>
                       );
@@ -529,53 +410,92 @@ export function ImportPreviewPage({
                   </tbody>
                 </table>
               </div>
-              {state.rows.length > PREVIEW_LIMIT && (
-                <p className="import-preview-more">
-                  … và {state.rows.length - PREVIEW_LIMIT} dòng nữa sẽ vào Inbox
-                  khi xác nhận.
+              {state.rows.length > PREVIEW_LIMIT ? (
+                <p className={styles.hint}>
+                  Còn {state.rows.length - PREVIEW_LIMIT} dòng sẽ tạo ứng viên khi xác nhận.
                 </p>
-              )}
-            </div>
+              ) : null}
 
-            <p className="import-preview-summary" role="status">
-              Tóm tắt: {summary}
-            </p>
+              {actionError ? (
+                <Alert tone="error" live="assertive">
+                  <AlertDescription>{actionError}</AlertDescription>
+                </Alert>
+              ) : null}
 
-            {actionError && (
-              <p className="capture-paste-error" role="alert">
-                {actionError}
-              </p>
-            )}
+              <div className={styles.actions}>
+                <Button
+                  type="button"
+                  intent="primary"
+                  targetSize="important"
+                  disabled={busy}
+                  onClick={() => setCommitReview(true)}
+                >
+                  Xem lại đưa vào Inbox
+                </Button>
+                <Button
+                  type="button"
+                  intent="destructive"
+                  targetSize="important"
+                  disabled={busy}
+                  onClick={() => setCancelReview(true)}
+                >
+                  Hủy import
+                </Button>
+              </div>
+            </SecondarySection>
+          </>
+        ) : null}
+      </SecondaryWorkspace>
 
-            <div className="capture-paste-actions">
-              <button
-                type="button"
-                className="primary-button"
-                onClick={commitToInbox}
-                disabled={committing || cancelling}
-              >
-                {committing ? "Đang lưu…" : "Đưa vào Inbox"}
-              </button>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={cancelImport}
-                disabled={committing || cancelling}
-              >
-                {cancelling ? "Đang hủy…" : "Hủy import"}
-              </button>
-            </div>
+      <SecondaryReviewDialog
+        open={commitReview}
+        onOpenChange={(open) => {
+          if (!open && !busy) setCommitReview(false);
+        }}
+        title="Đưa batch vào Inbox?"
+        description="Batch sẽ tạo ứng viên chờ duyệt, chưa tạo giao dịch trong sổ."
+        details={
+          state.phase === "ready"
+            ? [
+                { label: "File", value: state.batch.fileName },
+                { label: "Ứng viên", value: `${state.rows.length} mục` },
+                { label: "Cảnh báo", value: `${state.batch.warningCount} dòng` },
+                { label: "Sổ giao dịch", value: "Chưa thay đổi" },
+              ]
+            : []
+        }
+        consequence="Ứng viên sẽ xuất hiện trong Inbox và vẫn phải được kiểm tra. Nếu bước cập nhật trạng thái batch lỗi sau khi thêm ứng viên, hãy mở Inbox trước khi thử lại."
+        confirmLabel="Đưa vào Inbox"
+        confirmIntent="primary"
+        pending={committing}
+        onConfirm={commitToInbox}
+        slot="import-preview-commit-review"
+      />
 
-            <p className="capture-paste-trust">
-              <Icon name="lock" />
-              <span>
-                Chỉ meta + draft parse trên máy bạn · không tự duyệt vào sổ ·
-                Inbox vẫn là bước kiểm tra.
-              </span>
-            </p>
-          </section>
-        )}
-      </main>
+      <SecondaryReviewDialog
+        open={cancelReview}
+        onOpenChange={(open) => {
+          if (!open && !busy) setCancelReview(false);
+        }}
+        title="Hủy batch import?"
+        description="Batch và draft preview sẽ bị đánh dấu hủy."
+        details={
+          state.phase === "ready"
+            ? [
+                { label: "File", value: state.batch.fileName },
+                { label: "Dòng preview", value: `${state.rows.length}` },
+                { label: "Ứng viên Inbox", value: "Chưa tạo" },
+                { label: "Sổ giao dịch", value: "Không thay đổi" },
+              ]
+            : []
+        }
+        consequence="Draft parse sẽ bị xóa khỏi thiết bị. Vì batch chưa commit, không có ứng viên hoặc giao dịch nào bị xóa."
+        confirmLabel="Hủy import"
+        confirmIntent="destructive"
+        pending={cancelling}
+        onConfirm={cancelImport}
+        slot="import-preview-cancel-review"
+      />
     </AppShell>
   );
 }

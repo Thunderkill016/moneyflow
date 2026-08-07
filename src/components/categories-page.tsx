@@ -1,16 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { CategoryDialog } from "@/components/category-dialog";
+import { Icon, type IconName } from "@/components/icons";
+import { AppShell } from "@/components/layout/app-shell";
+import {
+  SecondaryHeader,
+  SecondaryReviewDialog,
+  SecondarySection,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import type { ViewerSummary } from "@/components/user-chip";
 import {
   saveCategoryAction,
   setCategoryArchivedAction,
 } from "@/app/actions/categories";
-import { CategoryDialog } from "@/components/category-dialog";
-import { EmptyState } from "@/components/empty-state";
-import { Icon, type IconName } from "@/components/icons";
-import { AppShell } from "@/components/layout/app-shell";
-import type { ViewerSummary } from "@/components/user-chip";
 import {
   categoryKindLabels,
   validateSaveCategory,
@@ -22,23 +29,29 @@ import {
   PAGE_EMPTY_CATEGORY_FILTER,
 } from "@/lib/planning-pages";
 import type { TransactionKind } from "@/lib/sample-data";
+import styles from "./categories-page.module.css";
+
+const KNOWN_ICONS: IconName[] = [
+  "bowl",
+  "car",
+  "bag",
+  "home",
+  "receipt",
+  "spark",
+  "heart",
+  "book",
+  "wallet",
+  "bank",
+  "arrows",
+];
 
 function categoryIcon(name: string | null): IconName {
-  const known: IconName[] = [
-    "bowl",
-    "car",
-    "bag",
-    "home",
-    "receipt",
-    "spark",
-    "heart",
-    "book",
-    "wallet",
-    "plus",
-    "arrows",
-  ];
-  if (name && (known as string[]).includes(name)) return name as IconName;
-  return "spark";
+  return name && (KNOWN_ICONS as string[]).includes(name) ? (name as IconName) : "spark";
+}
+
+function categoryTone(color: string | null) {
+  const key = color && color in styles ? color : "violet";
+  return styles[key as keyof typeof styles] ?? styles.violet;
 }
 
 function CategorySection({
@@ -48,6 +61,7 @@ function CategorySection({
   busyId,
   onEdit,
   onToggleArchive,
+  slot,
 }: {
   title: string;
   description: string;
@@ -55,67 +69,66 @@ function CategorySection({
   busyId: string | null;
   onEdit: (item: CategorySummary) => void;
   onToggleArchive: (item: CategorySummary) => void;
+  slot: string;
 }) {
   if (items.length === 0) return null;
+
   return (
-    <section className="accounts-section">
-      <div className="section-heading">
-        <div>
-          <h2>{title}</h2>
-          <p>{description}</p>
-        </div>
-      </div>
-      <div className="account-grid category-grid">
+    <SecondarySection title={title} description={<p>{description}</p>} slot={slot}>
+      <div className={styles.grid} data-slot="category-list">
         {items.map((item) => (
           <article
-            className={`account-card category-card${item.isArchived ? " is-archived" : ""}`}
+            className={item.isArchived ? `${styles.card} ${styles.archived}` : styles.card}
             key={item.id}
+            data-slot="category-card"
           >
-            <div className={`account-kind-icon category-kind-${item.kind}`}>
+            <span
+              className={`${styles.icon} ${categoryTone(item.color)}`}
+              aria-hidden="true"
+            >
               <Icon name={categoryIcon(item.icon)} />
-            </div>
-            <div className="account-card-title">
-              <div>
+            </span>
+            <div className={styles.body}>
+              <div className={styles.titleRow}>
                 <h3>{item.name}</h3>
-                <p>
-                  {categoryKindLabels[item.kind]}
-                  {item.isDefault ? " · Mặc định" : ""}
-                  {item.isArchived ? " · Đã ẩn" : ""}
-                </p>
+                <span className={styles.kind}>{categoryKindLabels[item.kind]}</span>
               </div>
+              <p className={styles.meta}>
+                {item.isDefault ? "Danh mục mặc định" : "Danh mục tự tạo"}
+                {item.isArchived ? " · Đã ẩn khỏi giao dịch mới" : " · Đang hoạt động"}
+              </p>
             </div>
-            <div className="account-card-foot">
-              <span>{item.isDefault ? "Có sẵn" : "Tự tạo"}</span>
-              <div>
-                {!item.isArchived && (
-                  <button
-                    type="button"
-                    onClick={() => onEdit(item)}
-                    aria-label={`Đổi tên ${item.name}`}
-                  >
-                    <Icon name="edit" />
-                    Đổi tên
-                  </button>
-                )}
-                <button
+            <div className={styles.actions}>
+              {!item.isArchived ? (
+                <Button
                   type="button"
-                  onClick={() => onToggleArchive(item)}
-                  disabled={busyId === item.id}
-                  aria-label={
-                    item.isArchived
-                      ? `Hiện lại ${item.name}`
-                      : `Ẩn ${item.name}`
-                  }
+                  intent="quiet"
+                  targetSize="important"
+                  onClick={() => onEdit(item)}
+                  aria-label={`Sửa ${item.name}`}
                 >
-                  <Icon name={item.isArchived ? "restore" : "archive"} />
-                  {item.isArchived ? "Hiện lại" : "Ẩn"}
-                </button>
-              </div>
+                  <Icon name="edit" />
+                  Sửa
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                intent={item.isArchived ? "secondary" : "quiet"}
+                targetSize="important"
+                onClick={() => onToggleArchive(item)}
+                disabled={busyId === item.id}
+                pending={busyId === item.id}
+                pendingLabel="Đang xử lý…"
+                aria-label={item.isArchived ? `Hiện lại ${item.name}` : `Ẩn ${item.name}`}
+              >
+                <Icon name={item.isArchived ? "restore" : "archive"} />
+                {item.isArchived ? "Hiện lại" : "Ẩn"}
+              </Button>
             </div>
           </article>
         ))}
       </div>
-    </section>
+    </SecondarySection>
   );
 }
 
@@ -135,6 +148,7 @@ export function CategoriesPage({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [kindFilter, setKindFilter] = useState<"all" | TransactionKind>("all");
+  const [archiveReview, setArchiveReview] = useState<CategorySummary | null>(null);
 
   const visible = useMemo(() => {
     if (kindFilter === "all") return categories;
@@ -166,18 +180,17 @@ export function CategoriesPage({
     if (!validated.ok) return { ok: false, message: validated.message };
 
     if (viewer.isDemo) {
+      const previous = input.id
+        ? categories.find((item) => item.id === input.id)
+        : undefined;
       const next: CategorySummary = {
         id: input.id ?? crypto.randomUUID(),
         name: validated.name,
         kind: validated.kind,
-        icon: input.icon ?? (validated.kind === "income" ? "wallet" : "spark"),
-        color: input.color ?? (validated.kind === "income" ? "green" : "violet"),
-        isDefault: input.id
-          ? Boolean(categories.find((item) => item.id === input.id)?.isDefault)
-          : false,
-        isArchived: input.id
-          ? Boolean(categories.find((item) => item.id === input.id)?.isArchived)
-          : false,
+        icon: input.icon ?? previous?.icon ?? (validated.kind === "income" ? "wallet" : "spark"),
+        color: input.color ?? previous?.color ?? (validated.kind === "income" ? "green" : "violet"),
+        isDefault: Boolean(previous?.isDefault),
+        isArchived: Boolean(previous?.isArchived),
       };
       setCategories((current) =>
         input.id
@@ -185,7 +198,7 @@ export function CategoriesPage({
           : [...current, next],
       );
       setDialogOpen(false);
-      setNotice(input.id ? "Đã đổi tên danh mục demo." : "Đã thêm danh mục demo.");
+      setNotice(input.id ? "Đã cập nhật danh mục demo." : "Đã thêm danh mục demo.");
       return { ok: true };
     }
 
@@ -208,29 +221,20 @@ export function CategoriesPage({
     return result;
   }
 
-  async function toggleArchived(category: CategorySummary) {
-    const archivedNext = !category.isArchived;
-    if (
-      archivedNext &&
-      !window.confirm(
-        `Ẩn danh mục “${category.name}”? Danh mục sẽ không hiện khi ghi giao dịch mới. Lịch sử cũ vẫn giữ.`,
-      )
-    ) {
-      return;
-    }
+  async function applyArchived(category: CategorySummary, archivedNext: boolean) {
     setBusyId(category.id);
     if (viewer.isDemo) {
       setCategories((current) =>
         current.map((item) =>
-          item.id === category.id
-            ? { ...item, isArchived: archivedNext }
-            : item,
+          item.id === category.id ? { ...item, isArchived: archivedNext } : item,
         ),
       );
       setBusyId(null);
+      setArchiveReview(null);
       setNotice(archivedNext ? "Đã ẩn danh mục." : "Đã hiện lại danh mục.");
       return;
     }
+
     const result = await setCategoryArchivedAction(category.id, archivedNext);
     setBusyId(null);
     if (!result.ok) {
@@ -244,7 +248,16 @@ export function CategoriesPage({
           : item,
       ),
     );
+    setArchiveReview(null);
     setNotice(archivedNext ? "Đã ẩn danh mục." : "Đã hiện lại danh mục.");
+  }
+
+  function toggleArchived(category: CategorySummary) {
+    if (category.isArchived) {
+      void applyArchived(category, false);
+      return;
+    }
+    setArchiveReview(category);
   }
 
   const isEmpty = categories.length === 0 && !dataError;
@@ -264,34 +277,36 @@ export function CategoriesPage({
       }}
       notice={notice}
     >
-      <main className="dashboard accounts-workspace categories-workspace">
-        {dataError && (
-          <div className="data-alert" role="alert">
-            <Icon name="bell" />
-            <span>{dataError}</span>
-          </div>
-        )}
+      <SecondaryWorkspace slot="categories-workspace">
+        {dataError ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertContent}>
+              <Icon name="bell" />
+              <span>{dataError}</span>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        <section className="accounts-heading">
-          <div>
-            <p className="eyebrow">Phân loại thu chi</p>
-            <h1>Danh mục</h1>
+        <SecondaryHeader
+          section="Phân loại thu chi"
+          title="Danh mục"
+          description={
             <p>
-              Thêm, đổi tên hoặc ẩn danh mục chi tiêu và thu nhập. Không có danh
-              mục con. Danh mục mặc định vẫn được seed khi đăng ký.
+              Thêm, sửa hoặc ẩn danh mục thu và chi. Màu cùng biểu tượng hỗ trợ nhận
+              diện; loại và trạng thái luôn được ghi bằng chữ.
             </p>
-          </div>
-          <div className="page-heading-actions">
-            <Link className="secondary-button" href="/settings">
+          }
+          actions={
+            <LinkButton href="/settings" intent="secondary" targetSize="important">
               <Icon name="settings" />
               Cài đặt
-            </Link>
-          </div>
-        </section>
+            </LinkButton>
+          }
+        />
 
-        {!isEmpty && !dataError && (
+        {!isEmpty && !dataError ? (
           <div
-            className="segmented-control categories-kind-filter"
+            className={styles.filter}
             role="group"
             aria-label="Lọc loại danh mục"
           >
@@ -302,73 +317,85 @@ export function CategoriesPage({
                 ["income", "Thu nhập"],
               ] as const
             ).map(([value, label]) => (
-              <button
+              <Button
                 key={value}
                 type="button"
-                className={kindFilter === value ? "active" : undefined}
+                intent={kindFilter === value ? "primary" : "secondary"}
+                targetSize="important"
                 aria-pressed={kindFilter === value}
                 onClick={() => setKindFilter(value)}
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
-        )}
+        ) : null}
 
         {isEmpty ? (
           <EmptyState
-            icon={PAGE_EMPTY_CATEGORY.icon}
+            icon={<Icon name={PAGE_EMPTY_CATEGORY.icon as IconName} />}
             title={PAGE_EMPTY_CATEGORY.title}
             description={PAGE_EMPTY_CATEGORY.description}
-            actionLabel={PAGE_EMPTY_CATEGORY.actionLabel}
-            onAction={() => openCategory(null)}
+            primaryAction={
+              <Button
+                type="button"
+                intent="primary"
+                targetSize="important"
+                onClick={() => openCategory(null)}
+              >
+                {PAGE_EMPTY_CATEGORY.actionLabel}
+              </Button>
+            }
           />
         ) : null}
 
-        {!isEmpty && !dataError && (
+        {!isEmpty && !dataError ? (
           <>
-            {(kindFilter === "all" || kindFilter === "expense") && (
+            {(kindFilter === "all" || kindFilter === "expense") ? (
               <CategorySection
                 title="Chi tiêu đang dùng"
-                description="Hiện khi ghi chi tiêu mới."
+                description="Có thể chọn khi ghi khoản chi mới."
                 items={activeExpense}
                 busyId={busyId}
                 onEdit={openCategory}
                 onToggleArchive={toggleArchived}
+                slot="category-expense-list"
               />
-            )}
-            {(kindFilter === "all" || kindFilter === "income") && (
+            ) : null}
+            {(kindFilter === "all" || kindFilter === "income") ? (
               <CategorySection
                 title="Thu nhập đang dùng"
-                description="Hiện khi ghi thu nhập mới."
+                description="Có thể chọn khi ghi khoản thu mới."
                 items={activeIncome}
                 busyId={busyId}
                 onEdit={openCategory}
                 onToggleArchive={toggleArchived}
+                slot="category-income-list"
               />
-            )}
-            {archived.length > 0 && (
+            ) : null}
+            {archived.length > 0 ? (
               <CategorySection
                 title="Đã ẩn"
-                description="Vẫn giữ lịch sử; có thể hiện lại bất cứ lúc nào."
+                description="Không còn trong picker mới; lịch sử cũ vẫn được giữ và có thể hiện lại."
                 items={archived}
                 busyId={busyId}
                 onEdit={openCategory}
                 onToggleArchive={toggleArchived}
+                slot="category-archived-list"
               />
-            )}
+            ) : null}
             {activeExpense.length === 0 &&
-              activeIncome.length === 0 &&
-              archived.length === 0 && (
-                <EmptyState
-                  icon={PAGE_EMPTY_CATEGORY_FILTER.icon}
-                  title={PAGE_EMPTY_CATEGORY_FILTER.title}
-                  description={PAGE_EMPTY_CATEGORY_FILTER.description}
-                />
-              )}
+            activeIncome.length === 0 &&
+            archived.length === 0 ? (
+              <EmptyState
+                icon={<Icon name={PAGE_EMPTY_CATEGORY_FILTER.icon as IconName} />}
+                title={PAGE_EMPTY_CATEGORY_FILTER.title}
+                description={PAGE_EMPTY_CATEGORY_FILTER.description}
+              />
+            ) : null}
           </>
-        )}
-      </main>
+        ) : null}
+      </SecondaryWorkspace>
 
       <CategoryDialog
         key={`${editing?.id ?? "new"}-${dialogVersion}`}
@@ -376,6 +403,26 @@ export function CategoriesPage({
         category={editing}
         onClose={() => setDialogOpen(false)}
         onSave={saveCategory}
+      />
+
+      <SecondaryReviewDialog
+        open={Boolean(archiveReview)}
+        onOpenChange={(open) => {
+          if (!open && !busyId) setArchiveReview(null);
+        }}
+        title="Ẩn danh mục?"
+        description="Kiểm tra ảnh hưởng trước khi ẩn khỏi các giao dịch mới."
+        details={archiveReview ? [
+          { label: "Danh mục", value: archiveReview.name },
+          { label: "Loại", value: categoryKindLabels[archiveReview.kind] },
+          { label: "Lịch sử", value: "Được giữ nguyên" },
+        ] : []}
+        consequence="Danh mục sẽ biến mất khỏi picker khi ghi giao dịch mới. Giao dịch, ngân sách và lịch sử cũ không bị xóa; bạn có thể hiện lại sau."
+        confirmLabel="Ẩn danh mục"
+        confirmIntent="destructive"
+        pending={Boolean(archiveReview && busyId === archiveReview.id)}
+        onConfirm={() => archiveReview ? applyArchived(archiveReview, true) : undefined}
+        slot="category-review"
       />
     </AppShell>
   );

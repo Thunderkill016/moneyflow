@@ -1,10 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { EmptyState } from "@/components/empty-state";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import {
+  SecondaryHeader,
+  SecondaryReviewDialog,
+  SecondarySection,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   deleteImportBatchForClient,
@@ -19,11 +26,14 @@ import {
   type ImportBatch,
 } from "@/lib/inbox/import-batch-store";
 import { removeImportDraft } from "@/lib/inbox/import-draft-store";
+import styles from "./imports-page.module.css";
 
-/**
- * Import history (wireframes-inbox §15).
- * Lists batches (local demo or server when authed); preview; delete raw meta.
- */
+function statusTone(status: ImportBatch["status"]) {
+  if (status === "committed") return styles.statusCommitted;
+  if (status === "cancelled") return styles.statusCancelled;
+  return styles.statusParsed;
+}
+
 export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +41,7 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ImportBatch | null>(null);
 
   async function reload() {
     try {
@@ -63,16 +74,12 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(""), 3200);
+    const timer = window.setTimeout(() => setNotice(""), 3600);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
-  async function deleteRaw(batch: ImportBatch) {
+  async function deleteMetadata(batch: ImportBatch) {
     if (deletingId) return;
-    const ok = window.confirm(
-      `Xóa meta import “${batch.fileName}”? Bản nháp raw (nếu còn) cũng bị xóa. Ứng viên đã vào Inbox không bị xóa.`,
-    );
-    if (!ok) return;
     setDeletingId(batch.id);
     try {
       removeImportDraft(batch.id);
@@ -82,9 +89,10 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
         return;
       }
       await reload();
-      setNotice("Đã xóa meta import.");
+      setDeleteTarget(null);
+      setNotice("Đã xóa metadata và bản nháp import còn lại.");
     } catch {
-      setError("Không xóa được meta import. Thử lại.");
+      setError("Không xóa được metadata import. Thử lại.");
     } finally {
       setDeletingId(null);
     }
@@ -96,145 +104,192 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
       inboxCount={inboxCount}
       notice={notice}
       primaryAction={{
-        label: "Tải lên",
+        label: "Tải sao kê",
         href: "/capture/upload",
         icon: "upload",
       }}
     >
-      <main className="dashboard imports-workspace">
-        <section className="transactions-title-row">
-          <div>
-            <p className="eyebrow">Sao kê &amp; file</p>
-            <h1>Lịch sử import</h1>
+      <SecondaryWorkspace slot="imports-workspace">
+        <SecondaryHeader
+          section="Sao kê và file"
+          title="Lịch sử import"
+          description={
             <p>
               {viewer.isDemo
-                ? "Các lượt tải lên / dán đã lưu trên thiết bị này."
-                : "Các lượt tải lên / dán đã đồng bộ theo tài khoản (RLS)."}{" "}
-              Xóa meta không xóa giao dịch đã duyệt trong sổ. Power-user: import
-              CSV thẳng vào sổ (bỏ Inbox).
+                ? "Bản demo giữ batch, ứng viên và draft trên trình duyệt này."
+                : "Tài khoản đăng nhập đồng bộ batch cùng ứng viên qua máy chủ theo quyền sở hữu; draft tạm vẫn có thể nằm trên trình duyệt."}{" "}
+              Xóa metadata không xóa giao dịch đã được duyệt vào sổ.
             </p>
-          </div>
-          <div className="page-heading-actions">
-            <Link className="primary-button" href="/capture/upload">
-              <Icon name="upload" />
-              Tải lên
-            </Link>
-            <Link className="secondary-button" href="/imports/direct">
-              <Icon name="imports" />
-              CSV → sổ
-            </Link>
-            <Link className="secondary-button" href="/inbox">
-              <Icon name="inbox" />
-              Inbox
-            </Link>
-          </div>
-        </section>
+          }
+          actions={
+            <>
+              <LinkButton href="/inbox" intent="secondary" targetSize="important">
+                <Icon name="inbox" />
+                Inbox
+              </LinkButton>
+              <LinkButton
+                href="/imports/direct"
+                intent="quiet"
+                targetSize="important"
+              >
+                CSV → sổ (nâng cao)
+              </LinkButton>
+            </>
+          }
+        />
 
-        {!ready && (
+        <Alert tone="info" live="polite">
+          <AlertDescription>
+            Luồng mặc định là <strong>parse → xem trước → Inbox → duyệt → sổ</strong>.
+            Import thẳng vào sổ là công cụ nâng cao và phải hiển thị dry-run, chống
+            trùng cùng kết quả thêm/bỏ qua/lỗi trước khi được dùng.
+          </AlertDescription>
+        </Alert>
+
+        {!ready ? (
           <section
-            className="panel imports-loading"
+            className={styles.loading}
             aria-busy="true"
             aria-label="Đang tải lịch sử import"
           >
-            <div className="loading-line wide" />
-            <div className="loading-line" />
-            <div className="loading-line" />
+            <span />
+            <span />
+            <span />
           </section>
-        )}
+        ) : null}
 
-        {ready && error && (
-          <section className="panel imports-error" role="alert">
-            <p>{error}</p>
-            <button type="button" className="secondary-button" onClick={reload}>
-              Thử lại
-            </button>
-          </section>
-        )}
+        {ready && error ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertAction}>
+              <span>{error}</span>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                onClick={() => void reload()}
+              >
+                Thử lại
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        {ready && !error && batches.length === 0 && (
+        {ready && !error && batches.length === 0 ? (
           <EmptyState
-            icon="imports"
+            icon={<Icon name="imports" />}
             title="Chưa có lượt import"
-            description="Tải CSV sao kê vào Inbox, hoặc import CSV thẳng vào sổ (power-user, có dedupe)."
-            actionLabel="Tải sao kê"
-            actionHref="/capture/upload"
-            secondaryLabel="CSV → sổ"
-            secondaryHref="/imports/direct"
+            description="Tải hoặc dán sao kê để tạo ứng viên trong Inbox trước khi ghi vào sổ."
+            primaryAction={
+              <LinkButton
+                href="/capture/upload"
+                intent="primary"
+                targetSize="important"
+              >
+                Tải sao kê
+              </LinkButton>
+            }
+            secondaryAction={
+              <LinkButton
+                href="/capture/paste"
+                intent="secondary"
+                targetSize="important"
+              >
+                Dán nội dung
+              </LinkButton>
+            }
           />
-        )}
+        ) : null}
 
-        {ready && !error && batches.length > 0 && (
-          <section
-            className="panel imports-list-panel"
-            aria-labelledby="imports-list-heading"
+        {ready && !error && batches.length > 0 ? (
+          <SecondarySection
+            title="Các lượt gần đây"
+            description={<p>{batches.length} batch import được tìm thấy.</p>}
+            slot="import-batch-list"
           >
-            <div className="imports-list-header">
-              <h2 id="imports-list-heading">Các lượt gần đây</h2>
-              <p className="imports-list-count">{batches.length} lượt</p>
-            </div>
-            <ul className="imports-list">
+            <ol className={styles.list}>
               {batches.map((batch) => (
-                <li key={batch.id} className="imports-list-item">
-                  <div className="imports-list-main">
-                    <time
-                      className="imports-list-date font-mono"
-                      dateTime={batch.createdAt}
-                    >
-                      {formatImportBatchDateShort(batch.createdAt)}
-                    </time>
-                    <div className="imports-list-body">
-                      <p className="imports-list-name" title={batch.fileName}>
-                        {batch.fileName}
-                      </p>
-                      <p className="imports-list-meta">
-                        <span className="preview-chip sm">
-                          {importBatchSourceLabel(batch.source)}
-                        </span>
-                        <span className="imports-list-stats font-mono">
-                          {formatImportBatchStats(batch)}
-                        </span>
-                        <span
-                          className={`preview-chip sm imports-status-${batch.status}`}
-                        >
-                          {importBatchStatusLabel(batch.status)}
-                        </span>
+                <li key={batch.id} className={styles.item}>
+                  <div className={styles.identity}>
+                    <span className={styles.sourceIcon} aria-hidden="true">
+                      <Icon name="imports" />
+                    </span>
+                    <div className={styles.body}>
+                      <strong title={batch.fileName}>{batch.fileName}</strong>
+                      <p>
+                        <time dateTime={batch.createdAt}>
+                          {formatImportBatchDateShort(batch.createdAt)}
+                        </time>
+                        <span aria-hidden="true"> · </span>
+                        <span>{importBatchSourceLabel(batch.source)}</span>
                       </p>
                     </div>
                   </div>
-                  <div className="imports-list-actions">
+                  <div className={styles.stats}>
+                    <span>{formatImportBatchStats(batch)}</span>
+                    <span className={`${styles.status} ${statusTone(batch.status)}`}>
+                      {importBatchStatusLabel(batch.status)}
+                    </span>
+                  </div>
+                  <div className={styles.actions}>
                     {batch.status === "committed" ? (
-                      <Link className="secondary-button" href="/inbox">
-                        Xem Inbox
-                      </Link>
-                    ) : (
-                      <Link
-                        className="secondary-button"
-                        href={`/imports/${encodeURIComponent(batch.id)}/preview`}
+                      <LinkButton
+                        href="/inbox"
+                        intent="secondary"
+                        targetSize="important"
                       >
-                        {batch.status === "cancelled" ? "Chi tiết" : "Xem"}
-                      </Link>
+                        Xem Inbox
+                      </LinkButton>
+                    ) : (
+                      <LinkButton
+                        href={`/imports/${encodeURIComponent(batch.id)}/preview`}
+                        intent="secondary"
+                        targetSize="important"
+                      >
+                        {batch.status === "cancelled" ? "Chi tiết" : "Xem trước"}
+                      </LinkButton>
                     )}
-                    <button
+                    <Button
                       type="button"
-                      className="secondary-button imports-delete"
-                      onClick={() => deleteRaw(batch)}
+                      intent="destructive"
+                      targetSize="important"
+                      onClick={() => setDeleteTarget(batch)}
                       disabled={deletingId === batch.id}
-                      aria-label={`Xóa meta import ${batch.fileName}`}
+                      aria-label={`Xóa metadata import ${batch.fileName}`}
                     >
-                      {deletingId === batch.id ? "Đang xóa…" : "Xóa raw"}
-                    </button>
+                      Xóa metadata
+                    </Button>
                   </div>
                 </li>
               ))}
-            </ul>
-            <p className="imports-list-hint">
-              Money Flow không giữ file gốc trên máy chủ ở bản local-first này —
-              chỉ meta lượt import trên trình duyệt. Xóa raw = xóa meta (+ draft
-              chờ xác nhận).
-            </p>
-          </section>
-        )}
-      </main>
+            </ol>
+          </SecondarySection>
+        ) : null}
+      </SecondaryWorkspace>
+
+      <SecondaryReviewDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) setDeleteTarget(null);
+        }}
+        title="Xóa metadata import?"
+        description="Kiểm tra chính xác dữ liệu bị xóa và dữ liệu được giữ."
+        details={
+          deleteTarget
+            ? [
+                { label: "Batch", value: deleteTarget.fileName },
+                { label: "Trạng thái", value: importBatchStatusLabel(deleteTarget.status) },
+                { label: "Ứng viên Inbox", value: "Được giữ" },
+                { label: "Giao dịch đã duyệt", value: "Được giữ" },
+              ]
+            : []
+        }
+        consequence="Metadata batch và bản nháp parse còn trên thiết bị sẽ bị xóa. Ứng viên đã tạo trong Inbox cùng giao dịch đã duyệt vào sổ không bị xóa."
+        confirmLabel="Xóa metadata"
+        confirmIntent="destructive"
+        pending={Boolean(deleteTarget && deletingId === deleteTarget.id)}
+        onConfirm={() => (deleteTarget ? deleteMetadata(deleteTarget) : undefined)}
+        slot="import-delete-review"
+      />
     </AppShell>
   );
 }

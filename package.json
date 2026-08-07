@@ -10,6 +10,8 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test src/lib/*.test.ts src/lib/*/*.test.ts",
+    "verify:fast": "npm run check:knowledge && npm run check:architecture && npm run lint && npm run typecheck && npm test",
+    "verify:prepush": "npm run verify:fast && npm run build",
     "test:load:contracts": "node --experimental-strip-types --test src/lib/performance-budgets.test.ts",
     "test:load:public": "k6 run tests/load/public-smoke.js",
     "test:load:dashboard": "k6 run tests/load/authenticated-dashboard.js",

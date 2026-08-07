@@ -1,9 +1,15 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useId, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
+import {
+  SecondaryHeader,
+  SecondarySection,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button, LinkButton } from "@/components/ui/button";
 import type { ViewerSummary } from "@/components/user-chip";
 import {
   countPending,
@@ -26,13 +32,16 @@ import {
   type PushDaysAhead,
   type PushPrefs,
 } from "@/lib/push-prefs";
+import styles from "./settings/settings-surfaces.module.css";
 
-/**
- * TASK-130 — Opt-in web notifications for due commitments.
- * Privacy-first: default off; bodies never include amounts.
- */
+function permissionLabel(permission: NotificationPermission | "unsupported") {
+  if (permission === "granted") return "Đã cho phép";
+  if (permission === "denied") return "Bị trình duyệt chặn";
+  if (permission === "unsupported") return "Không được hỗ trợ";
+  return "Chưa yêu cầu";
+}
+
 export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) {
-  const formId = useId();
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [inboxCount, setInboxCount] = useState(0);
@@ -62,7 +71,7 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
       setDirty(false);
       setError(null);
     } catch {
-      setError("Không đọc được tùy chọn thông báo từ trình duyệt. Thử tải lại trang.");
+      setError("Không đọc được tùy chọn thông báo trên trình duyệt. Thử lại.");
     }
   }
 
@@ -82,7 +91,7 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || !dirty) return;
     setSaving(true);
     try {
       let nextEnabled = enabled;
@@ -94,18 +103,17 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
           return;
         }
         await registerPushServiceWorker();
-        const perm = await requestNotificationPermission();
-        setPermission(perm);
-        if (perm !== "granted") {
+        const nextPermission = await requestNotificationPermission();
+        setPermission(nextPermission);
+        if (nextPermission !== "granted") {
           nextEnabled = false;
           setEnabled(false);
           statusNotice =
-            perm === "denied"
-              ? "Trình duyệt chặn thông báo — đã giữ tắt opt-in."
-              : "Chưa được cấp quyền thông báo — đã giữ tắt opt-in.";
+            nextPermission === "denied"
+              ? "Trình duyệt chặn thông báo — opt-in vẫn tắt."
+              : "Chưa được cấp quyền thông báo — opt-in vẫn tắt.";
         } else {
-          statusNotice =
-            "Đã bật nhắc cam kết đến hạn (opt-in). Không gửi số tiền.";
+          statusNotice = "Đã bật nhắc cam kết. Nội dung không có số tiền.";
         }
       }
 
@@ -141,21 +149,21 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
         return;
       }
       await registerPushServiceWorker();
-      const perm = await requestNotificationPermission();
-      setPermission(perm);
-      if (perm !== "granted") {
+      const nextPermission = await requestNotificationPermission();
+      setPermission(nextPermission);
+      if (nextPermission !== "granted") {
         setNotice(notifyResultMessage("denied"));
         return;
       }
       const result = await showDueNotification({
         title: "Cam kết đến hạn",
-        body: "Đây là thông báo thử. Money Flow không hiện số tiền trong nhắc nhở.",
+        body: "Đây là thông báo thử. MoneyFlow không hiện số tiền trong nhắc nhở.",
         tag: "moneyflow-commitment-test",
         url: "/commitments",
       });
       setNotice(
         result === "shown"
-          ? "Đã gửi thông báo thử (không có số tiền)."
+          ? "Đã gửi thông báo thử không có số tiền."
           : notifyResultMessage(result),
       );
     } catch {
@@ -172,137 +180,126 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
       notice={notice}
       primaryAction={{
         label: saving ? "Đang lưu…" : "Lưu",
-        onClick: () => {
-          const form = document.getElementById(formId) as HTMLFormElement | null;
-          form?.requestSubmit();
-        },
+        onClick: () =>
+          (document.getElementById("notification-settings-form") as HTMLFormElement | null)?.requestSubmit(),
         disabled: saving || !ready || Boolean(error) || !dirty,
         icon: "check",
       }}
     >
-      <main className="dashboard privacy-workspace notification-settings-workspace">
-        <section className="transactions-title-row">
-          <div>
-            <p className="eyebrow">Cài đặt</p>
-            <h1>Thông báo cam kết</h1>
+      <SecondaryWorkspace slot="settings-notifications-workspace">
+        <SecondaryHeader
+          section="Cài đặt"
+          title="Thông báo cam kết"
+          description={
             <p>
-              Nhắc khi khoản định kỳ đến hạn. Mặc định tắt. Nội dung không gồm
-              số tiền hay số tài khoản — chỉ số lượng (hoặc tên nếu bạn bật).
+              Thông báo mặc định tắt và chỉ được bật sau khi bạn lưu cùng quyền của
+              trình duyệt. Nội dung không bao gồm số tiền hoặc số tài khoản.
             </p>
-          </div>
-          <div className="page-heading-actions">
-            <Link className="secondary-button" href="/settings">
-              <Icon name="settings" />
-              Cài đặt
-            </Link>
-            <Link className="secondary-button" href="/commitments">
-              <Icon name="calendar" />
-              Cam kết
-            </Link>
-          </div>
-        </section>
+          }
+          actions={
+            <>
+              <LinkButton href="/settings" intent="secondary" targetSize="important">
+                Cài đặt
+              </LinkButton>
+              <LinkButton
+                href="/commitments"
+                intent="secondary"
+                targetSize="important"
+              >
+                Cam kết
+              </LinkButton>
+            </>
+          }
+        />
 
-        {!ready && (
-          <section
-            className="panel privacy-loading"
-            aria-busy="true"
-            aria-label="Đang tải tùy chọn thông báo"
-          >
-            <div className="loading-line wide" />
-            <div className="loading-line" />
-            <div className="loading-line" />
+        {!ready ? (
+          <section className={styles.loading} aria-busy="true" aria-label="Đang tải thông báo">
+            <span />
+            <span />
+            <span />
           </section>
-        )}
+        ) : null}
 
-        {ready && error && (
-          <section className="panel privacy-error" role="alert">
-            <p>{error}</p>
-            <button type="button" className="secondary-button" onClick={reload}>
-              Thử lại
-            </button>
-          </section>
-        )}
+        {ready && error ? (
+          <Alert tone="error" live="assertive">
+            <AlertDescription className={styles.alertAction}>
+              <span>{error}</span>
+              <Button type="button" intent="secondary" targetSize="important" onClick={reload}>
+                Thử lại
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
-        {ready && !error && (
-          <form id={formId} className="privacy-form" onSubmit={onSubmit} noValidate>
-            {!supported && (
-              <section className="panel privacy-panel" role="status">
+        {ready && !error && !supported ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              Trình duyệt này không hỗ trợ Notification + Service Worker. Cam kết
+              vẫn xem được trong ứng dụng nhưng không thể bật thông báo web.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {ready && !error ? (
+          <form id="notification-settings-form" className={styles.form} onSubmit={onSubmit} noValidate>
+            <SecondarySection
+              title="Opt-in nhắc nhở"
+              description={
                 <p>
-                  Trình duyệt hiện tại không hỗ trợ thông báo web (Service Worker
-                  + Notification). Bạn vẫn có thể theo dõi cam kết trên trang{" "}
-                  <Link href="/commitments">Cam kết</Link>.
+                  MoneyFlow chỉ yêu cầu quyền khi bạn bật và lưu. Tối đa một nhắc mỗi
+                  ngày khi có cam kết trong cửa sổ đến hạn.
                 </p>
-              </section>
-            )}
-
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-opt-in-heading`}
+              }
+              contained
+              slot="settings-section"
             >
-              <h2 id={`${formId}-opt-in-heading`}>Opt-in nhắc nhở</h2>
-              <p className="privacy-panel-lead">
-                Money Flow không tự bật thông báo. Nhắc chạy trên thiết bị này
-                khi bạn mở app (và qua service worker khi được hỗ trợ). Không
-                gửi số dư hay số tiền ra ngoài.
-              </p>
-              <label className="privacy-check-row" htmlFor={`${formId}-enabled`}>
+              <label className={styles.checkRow}>
                 <input
-                  id={`${formId}-enabled`}
                   type="checkbox"
                   checked={enabled}
-                  onChange={(e) => {
-                    setEnabled(e.target.checked);
+                  onChange={(event) => {
+                    setEnabled(event.target.checked);
                     setDirty(true);
                   }}
                   disabled={saving || !supported}
                 />
-                <span>
-                  <span className="privacy-check-title">
-                    Bật nhắc khoản định kỳ đến hạn
-                  </span>
-                  <span className="privacy-check-desc">
-                    Quyền trình duyệt:{" "}
-                    {permission === "granted"
-                      ? "đã cho phép"
-                      : permission === "denied"
-                        ? "bị chặn"
-                        : permission === "unsupported"
-                          ? "không hỗ trợ"
-                          : "chưa hỏi"}
-                    . Tối đa một nhắc mỗi ngày khi có khoản đến hạn.
+                <span className={styles.checkBody}>
+                  <span className={styles.checkTitle}>Bật nhắc khoản định kỳ đến hạn</span>
+                  <span className={styles.checkDescription}>
+                    Quyền trình duyệt: {permissionLabel(permission)}. Không tự bật và
+                    không gửi số tiền trong nội dung.
                   </span>
                 </span>
               </label>
-            </section>
+            </SecondarySection>
 
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-window-heading`}
-            >
-              <h2 id={`${formId}-window-heading`}>Cửa sổ nhắc</h2>
-              {!enabled && (
-                <p className="privacy-panel-lead">
-                  Bật &quot;Bật nhắc khoản định kỳ đến hạn&quot; ở trên để áp dụng cửa sổ nhắc.
+            <SecondarySection
+              title="Cửa sổ nhắc"
+              description={
+                <p>
+                  {enabled
+                    ? "Chọn thời điểm bắt đầu coi cam kết là sắp đến hạn."
+                    : "Bật opt-in trước để cửa sổ này có hiệu lực."}
                 </p>
-              )}
-              <fieldset className="privacy-fieldset" disabled={!enabled}>
+              }
+              contained
+              slot="settings-section"
+            >
+              <fieldset disabled={!enabled || saving}>
                 <legend className="sr-only">Số ngày trước hạn</legend>
-                <div
-                  className="privacy-radio-list"
-                  role="radiogroup"
-                  aria-label="Cửa sổ nhắc cam kết"
-                >
+                <div className={styles.radioList}>
                   {PUSH_DAYS_AHEAD_OPTIONS.map((option) => {
-                    const inputId = `${formId}-days-${option.value}`;
                     const selected = daysAhead === option.value;
                     return (
                       <label
                         key={option.value}
-                        htmlFor={inputId}
-                        className={`privacy-radio-card${selected ? " is-selected" : ""}${!enabled ? " is-disabled" : ""}`}
+                        className={
+                          selected
+                            ? `${styles.radioCard} ${styles.radioSelected}`
+                            : styles.radioCard
+                        }
                       >
                         <input
-                          id={inputId}
                           type="radio"
                           name="daysAhead"
                           value={option.value}
@@ -311,108 +308,107 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
                             setDaysAhead(option.value);
                             setDirty(true);
                           }}
-                          disabled={saving || !enabled}
                         />
-                        <span className="privacy-radio-body">
-                          <span className="privacy-radio-label">{option.label}</span>
-                          <span className="privacy-radio-desc">
-                            {option.description}
-                          </span>
+                        <span className={styles.radioBody}>
+                          <span className={styles.radioLabel}>{option.label}</span>
+                          <span className={styles.radioDescription}>{option.description}</span>
                         </span>
                       </label>
                     );
                   })}
                 </div>
               </fieldset>
-            </section>
+            </SecondarySection>
 
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-privacy-heading`}
+            <SecondarySection
+              title="Nội dung thông báo"
+              description={<p>Số tiền luôn bị loại khỏi nội dung notification.</p>}
+              contained
+              slot="settings-section"
             >
-              <h2 id={`${formId}-privacy-heading`}>Quyền riêng tư nội dung</h2>
-              <label
-                className="privacy-check-row"
-                htmlFor={`${formId}-names`}
-              >
+              <label className={styles.checkRow}>
                 <input
-                  id={`${formId}-names`}
                   type="checkbox"
                   checked={includeNames}
-                  onChange={(e) => {
-                    setIncludeNames(e.target.checked);
+                  onChange={(event) => {
+                    setIncludeNames(event.target.checked);
                     setDirty(true);
                   }}
                   disabled={saving}
                 />
-                <span>
-                  <span className="privacy-check-title">
-                    Hiện tên khoản (không hiện số tiền)
-                  </span>
-                  <span className="privacy-check-desc">
-                    Tắt mặc định: chỉ “Bạn có N khoản…”. Bật để hiện vài tên như
-                    “Tiền nhà, Netflix” — vẫn không gồm số tiền.
+                <span className={styles.checkBody}>
+                  <span className={styles.checkTitle}>Hiện tên cam kết</span>
+                  <span className={styles.checkDescription}>
+                    Tắt: chỉ hiện số lượng. Bật: có thể hiện vài tên như “Tiền nhà,
+                    Netflix”; vẫn không hiện số tiền.
                   </span>
                 </span>
               </label>
-            </section>
+            </SecondarySection>
 
-            <section
-              className="panel privacy-panel"
-              aria-labelledby={`${formId}-log-heading`}
+            <SecondarySection
+              title="Trạng thái"
+              description={<p>Nhật ký này được lưu trên thiết bị hiện tại.</p>}
+              contained
+              slot="settings-section"
             >
-              <h2 id={`${formId}-log-heading`}>Trạng thái</h2>
-              <ul className="privacy-activity-list">
+              <ul className={styles.activityList}>
                 <li>
-                  <span className="privacy-activity-label">Opt-in</span>
-                  <span className="privacy-activity-value">
-                    {prefs.enabled ? "Đang bật" : "Tắt"}
-                  </span>
+                  <span className={styles.activityLabel}>Opt-in đã lưu</span>
+                  <span className={styles.activityValue}>{prefs.enabled ? "Đang bật" : "Tắt"}</span>
                 </li>
                 <li>
-                  <span className="privacy-activity-label">Nhắc gần nhất</span>
-                  <span className="privacy-activity-value font-mono">
+                  <span className={styles.activityLabel}>Nhắc gần nhất</span>
+                  <span className={styles.activityValue}>
                     {prefs.lastNotifiedOn ?? "Chưa có"}
-                    {prefs.lastNotifiedCount > 0
-                      ? ` · ${prefs.lastNotifiedCount} khoản`
-                      : ""}
+                    {prefs.lastNotifiedCount > 0 ? ` · ${prefs.lastNotifiedCount} khoản` : ""}
                   </span>
                 </li>
                 <li>
-                  <span className="privacy-activity-label">Cập nhật tùy chọn</span>
-                  <time
-                    className="privacy-activity-value font-mono"
-                    dateTime={prefs.updatedAt ?? undefined}
-                  >
+                  <span className={styles.activityLabel}>Cập nhật tùy chọn</span>
+                  <time className={styles.activityValue} dateTime={prefs.updatedAt ?? undefined}>
                     {formatPushActivityAt(prefs.updatedAt, "Chưa lưu")}
                   </time>
                 </li>
               </ul>
-              <div className="notification-settings-actions">
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={onTest}
-                  disabled={testing || !supported}
-                >
-                  <Icon name="bell" />
-                  {testing ? "Đang gửi…" : "Gửi thông báo thử"}
-                </button>
-                {dirty && (
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={onReset}
-                    disabled={saving}
-                  >
-                    Hủy thay đổi
-                  </button>
-                )}
-              </div>
-            </section>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                pending={testing}
+                pendingLabel="Đang gửi…"
+                onClick={onTest}
+                disabled={testing || !supported}
+              >
+                <Icon name="bell" />
+                Gửi thông báo thử
+              </Button>
+            </SecondarySection>
+
+            <div className={styles.formActions}>
+              <Button
+                type="submit"
+                intent="primary"
+                targetSize="important"
+                pending={saving}
+                pendingLabel="Đang lưu…"
+                disabled={!dirty}
+              >
+                Lưu
+              </Button>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                disabled={saving || !dirty}
+                onClick={onReset}
+              >
+                Hủy thay đổi
+              </Button>
+            </div>
           </form>
-        )}
-      </main>
+        ) : null}
+      </SecondaryWorkspace>
     </AppShell>
   );
 }

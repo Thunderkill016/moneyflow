@@ -342,25 +342,46 @@ test.describe("Phase B safety and review states", () => {
       page.getByRole("heading", { level: 1, name: "Xóa tài khoản" }),
     ).toBeVisible();
 
-    const form = page.locator("form.delete-account-form");
     const confirmation = page.getByLabel(/Gõ XÓA để xác nhận/);
-    const destructiveSubmit = form.getByRole("button", {
-      name: "Xóa vĩnh viễn",
+    const form = page.locator("form").filter({ has: confirmation });
+    const reviewSubmit = form.getByRole("button", {
+      name: "Xem lại xóa",
       exact: true,
     });
+    const before = await readDemoMutationState(page);
 
     await confirmation.fill("XOA");
     await expect(confirmation).toHaveAttribute("aria-invalid", "true");
     await expect(page.getByText(/Chưa khớp.*XÓA/)).toBeVisible();
-    await expect(destructiveSubmit).toBeDisabled();
+    await expect(reviewSubmit).toBeDisabled();
     await auditCurrentState(page, testInfo, "delete-confirmation-invalid");
 
-    await confirmation.fill("XÓA");
-    await expect(confirmation).toHaveAttribute("aria-invalid", "false");
+    await fillHydratedControlledInput(confirmation, reviewSubmit, "XÓA");
+    await expect(confirmation).not.toHaveAttribute("aria-invalid", "true");
     await expect(page.getByText(/Xác nhận hợp lệ/)).toBeVisible();
-    await expect(destructiveSubmit).toBeEnabled();
-    await auditCurrentState(page, testInfo, "delete-confirmation-valid");
+    await expect(reviewSubmit).toBeEnabled();
+    await reviewSubmit.click();
 
+    const reviewDialog = page.getByRole("dialog", {
+      name: "Xóa vĩnh viễn tài khoản và dữ liệu?",
+    });
+    await expect(reviewDialog).toBeVisible();
+    await expect(
+      reviewDialog.getByRole("button", {
+        name: "Xóa vĩnh viễn",
+        exact: true,
+      }),
+    ).toBeEnabled();
+    await auditCurrentState(page, testInfo, "delete-confirmation-valid", {
+      requireDialog: true,
+    });
+
+    const afterReview = await readDemoMutationState(page);
+    expect(afterReview).toEqual(before);
+    await reviewDialog
+      .getByRole("button", { name: "Hủy", exact: true })
+      .click();
+    await expect(reviewDialog).toBeHidden();
     await expect(page).toHaveURL(/\/settings\/delete-account$/);
   });
 });
