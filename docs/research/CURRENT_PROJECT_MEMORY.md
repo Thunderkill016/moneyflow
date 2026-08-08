@@ -5,12 +5,13 @@
 - **Current main audited:** `a65f6f59167b894f9e538e5840e989e27250fdd4`
 - **Owner direction:** MoneyFlow is released as a functional MVP; validation is required inside each workstream but is not a global feature freeze; public-beta gates remain separate
 - **UI-system migration:** parent plan PR #296; Phases 0–10 are merged on `main`; Phase 11 final acceptance is the only current UI-migration execution boundary
+- **P11 candidate state:** PR #321 fixes a first-paint AppShell reserve gap; intermediate candidate `ea5756ccee62ba5b6ab56f7a9983a0061289a8ed` passed protected CI/security with 94/94 browser smoke and a 554-case cross-device matrix with 0 failed/0 flaky; selective visual baselines are reviewed zero-diff; physical Android/iOS and exact deployed-build production acceptance remain open
 - **UI lifecycle reconciliation:** `docs/research/UI_MIGRATION_PHASES_5_10_RECONCILIATION_2026-08-08.md` supersedes stale pre-merge status headers in dedicated P5–P10 packets for lifecycle status
 - **History model:** current truth here; task routing in `docs/context/README.md`; bounded PR provenance under `docs/research/pr-memory/YYYY/QN/`
 - **Memory size target:** target: **150–250 lines**
 - **Memory hard failure:** hard failure: above **500 lines** or **64 KiB**
-- **Current production:** Vercel deployment `dpl_5m5ihzL1zNCPoxLAHFCweDQDYAkf` is `READY` for current main/P10
-- **Current merged UI gap:** Phase 11 physical-device/final acceptance; automated emulation is not physical-device evidence
+- **Current production:** Vercel deployment `dpl_5m5ihzL1zNCPoxLAHFCweDQDYAkf` is `READY` for current main/P10; no PR #321 preview deployment was observed
+- **Current merged UI gap:** Phase 11 physical-device/final acceptance; automated emulation and branch-only evidence are not physical/merged product evidence
 - **Other current product gaps:** provider-backed recent authentication for destructive account deletion and a complete versioned archive/restore remain outside current merged capability
 - **Detailed MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Release acceptance:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
@@ -103,7 +104,7 @@ MoneyFlow is functional-MVP complete. Competitive depth and public-beta hardenin
 | Rules | Merged deterministic candidate-only rules with preview/order/version evidence, P8 review ownership and mobile-reachable add flow | broader conditions/actions and auto-posting remain out of current scope |
 | Privacy/deletion | Merged privacy/export/delete baseline, server-first deletion, P8 final review and cleanup receipt | provider-backed recent-auth and deeper destructive acceptance remain separate boundaries |
 | Onboarding/navigation | Merged privacy → wallet → first expense/dashboard and Core/Lab navigation | release-journey acceptance remains evidence-specific |
-| Responsive/accessibility | Broad automated Chromium/WebKit, phone/tablet/desktop, dark, 200% text and keyboard coverage through P10 | P11 physical Android/iOS acceptance remains open |
+| Responsive/accessibility | Broad merged automated Chromium/WebKit, phone/tablet/desktop, dark, 200% text and keyboard coverage through P10; P11 candidate removes the final observed first-paint flake | physical Android/iOS acceptance remains open |
 | CI/security | Risk-selected CI, CodeQL, secret scan, database/browser harnesses and exact-head evidence | hosted-runner success is not production/device proof |
 
 ## 6. UI-system migration truth
@@ -153,9 +154,13 @@ P10 retired migrated authenticated legacy layers and `MinimumTargetSizeContract`
 
 ### P11 — final acceptance
 
-P11 is **not accepted**. The P10 final cross-device artifact scheduled 554 tests and ended 426 passed / 127 skipped / 1 flaky. The flaky WebKit/iPhone shell-geometry test failed first because mobile navigation was visible while shell bottom reserve was still zero; retry passed. Source inspection found the shell geometry custom properties depended on a client `useEffect` marker.
+P11 is **active and unmerged**. P10's final UI artifact contained one WebKit/iPhone flaky first-attempt shell-geometry failure: fixed mobile navigation was visible while shell reserve was still zero; retry passed. Source inspection found layout-critical shell variables depended on a client-mounted document marker.
 
-Candidate branch `agent/ui-phase-11-final-acceptance` owns remediation and final evidence. Branch-only changes are not current product behavior until merged. Physical Android/iOS evidence remains mandatory according to the parent P11 boundary; emulation does not satisfy it.
+PR #321 candidate fixes the ownership by making those variables available on the server-rendered `.shell` while retaining the mounted marker for document scroll padding. Intermediate exact candidate `ea5756ccee62ba5b6ab56f7a9983a0061289a8ed` passed CI #2032, CodeQL #1138 and secret-history #1138. Browser smoke was 94 passed; cross-device audit was 554 scheduled / 427 passed / 127 intentional skips / **0 failed / 0 flaky**.
+
+Selective P11 visual review compares eight P10↔P11 screenshots across Dashboard, Landing, Quick Capture and Transactions on Chromium/WebKit desktop/mobile. All eight pairs are byte-identical with zero pixel diff, so the candidate changes first-paint timing/ownership rather than settled visual output.
+
+P11 still cannot be accepted: no physical Android or physical iOS/Safari evidence exists, no #321 preview deployment was observed, and current production is the pre-P11 P10 build. The exact P11 implementation must reach an owner-approved READY deployment before physical checks can validate it. Issue #72 remains open.
 
 ## 7. Verification and evidence boundaries
 
@@ -164,9 +169,11 @@ Candidate branch `agent/ui-phase-11-final-acceptance` owns remediation and final
 - Provider changes require before/after evidence, rollback and production smoke.
 - Automated browser success does not prove physical-device acceptance or visual quality by itself.
 - Retry-success is a flaky signal, not equivalent to a first-attempt pass.
+- Branch-only exact-head evidence is not merged product behavior.
 - A successful job shell is not evidence when selected analysis/shards were skipped.
 - Merge to `main` can trigger Vercel, but merge alone does not prove `READY` or production behavior.
-- P11 production journey follows the physical-device gates defined by the parent plan.
+- P11 physical checks must target an exact deployed P11 build, not current P10 production.
+- P11 production verification follows the physical-device gates defined by the parent plan.
 
 ## 8. Reconciled issue status
 
@@ -176,7 +183,7 @@ Candidate branch `agent/ui-phase-11-final-acceptance` owns remediation and final
 | #53 reconciliation | Merged account-leg/session contract and UI; no automatic matching/bank feed claim |
 | #53 authenticated rules | Persisted deterministic rules exist where the server feature contract is available; broader automation remains absent |
 | #53 audit/performance | Strong repository tooling exists; provider capacity claims remain evidence-specific |
-| #72 UI audit | Automated coverage exists through P10; remains open for P11 physical Android/iOS and final acceptance; emulation must not be called physical readiness |
+| #72 UI audit | Automated candidate evidence is clean through P11 PR #321; remains open for exact deployed-build physical Android/iOS and final production acceptance |
 | #172 product assessment | market-validation warnings remain useful; old global feature-freeze framing is superseded |
 | #174 provider controls | repository readiness/runbook merged; private provider execution is not inferred |
 
@@ -186,7 +193,7 @@ Open PRs are not product truth and must be refreshed against current `main` befo
 
 | PR | Interpretation |
 |---|---|
-| P11 branch/PR pending | final UI migration acceptance candidate; currently branch-only |
+| #321 | P11 final UI migration acceptance remediation; automated/visual candidate evidence green, physical/deployed-build gates open |
 | #316 | recent-auth account-deletion candidate; exact-head verified but unmerged and not current security behavior |
 | #314 | CI recovery tooling candidate; separate from UI migration |
 | #315 | task-start/work-packet hardening candidate; separate from UI migration |
@@ -202,12 +209,12 @@ PRs #295–#309, #318 and #319 are merged product history where stated above and
 
 ### P11 / public-beta hardening
 
-- rerun the corrected exact-head cross-device matrix with zero flaky/failed tests;
-- review critical visual artifact with zero knowingly unreviewed visual diffs;
-- execute physical Android Chrome smoke;
-- execute physical iOS Safari smoke, or use only the explicit parent-plan owner waiver path with documented limitations;
-- after those device gates, execute the dependency-ordered production journey and close/archive the UI migration program;
-- reconcile issue #72 and final project memory after acceptance.
+- final protected exact-head rerun for the latest evidence-only #321 documentation head;
+- owner merge/deployment checkpoint so the exact P11 fix exists in a testable Vercel environment;
+- physical Android Chrome acceptance on that exact deployed P11 commit;
+- physical iOS/Safari acceptance on that exact deployed P11 commit;
+- after both device gates, affected production-route verification and runtime-error inspection;
+- reconcile issue #72 and final project memory, then archive the UI migration program after owner acceptance.
 
 ### Security/portability depth
 
@@ -240,6 +247,7 @@ PRs #295–#309, #318 and #319 are merged product history where stated above and
 - #309: Phase 8 secondary/safety.
 - #318: Phase 9 public/Auth cleanup.
 - #319: Phase 10 legacy retirement.
+- #321: verified-unmerged P11 candidate only; do not treat as merged product truth before owner acceptance.
 
 ## 12. Superseded-status register
 
@@ -258,6 +266,7 @@ Do not repeat these as current facts:
 - Export only supports current-month CSV or depends on a retired route.
 - P5, P6, P7, P8, P9 or P10 remain unmerged candidate-only work.
 - P11 is complete because Chromium/WebKit emulation passed.
+- Physical iOS/Safari acceptance can be silently waived without a parent-plan change.
 - A retrying browser test is equivalent to a first-attempt pass.
 - Transaction/Inbox export is a complete restorable account backup.
 - The parser-improvement preference proves remote samples are being processed.
