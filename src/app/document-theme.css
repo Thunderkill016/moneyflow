@@ -217,25 +217,25 @@ html[data-theme="light"],
 html[data-theme="light"] body,
 html[data-theme="dark"],
 html[data-theme="dark"] body {
-  background: var(--mf-canvas) !important;
+  background: var(--mf-canvas);
 }
 
 body {
-  padding: 0 !important;
+  padding: 0;
   font-family: var(--mf-font-sans);
 }
 
 /* Loaded after globals.css, so this is the final ambient product canvas. */
-body::before {
+html[data-theme="light"] body::before {
   background:
     radial-gradient(circle at 78% -18%, rgb(14 165 233 / 10%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(6 182 212 / 5%), transparent 28rem) !important;
+    radial-gradient(circle at -12% 30%, rgb(6 182 212 / 5%), transparent 28rem);
 }
 
 html[data-theme="dark"] body::before {
   background:
     radial-gradient(circle at 78% -18%, rgb(56 189 248 / 12%), transparent 35rem),
-    radial-gradient(circle at -12% 30%, rgb(6 182 212 / 7%), transparent 28rem) !important;
+    radial-gradient(circle at -12% 30%, rgb(6 182 212 / 7%), transparent 28rem);
 }
 
 :focus-visible {
@@ -248,12 +248,12 @@ html[data-theme="dark"] body::before {
     scroll-behavior: auto;
   }
 
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  html[data-theme][data-theme] body *,
+  html[data-theme][data-theme] body *::before,
+  html[data-theme][data-theme] body *::after {
+    scroll-behavior: auto;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
   }
 }

@@ -21,10 +21,6 @@ const accountsPage = readFileSync(
   join(root, "src/components/accounts/accounts-workspace.tsx"),
   "utf8",
 );
-const guardrails = readFileSync(
-  join(root, "src/app/ai-uiux-guardrails.css"),
-  "utf8",
-);
 const transactionForm = readFileSync(
   join(root, "src/components/transactions/transaction-form.module.css"),
   "utf8",
@@ -103,12 +99,10 @@ test("Phase 5 retires the MobileShellContract transaction remainder", () => {
   assert.match(transactionForm, /100dvh/u);
 });
 
-test("signed-in logo guardrail is removed after direct BrandLockup adoption", () => {
-  assert.doesNotMatch(
-    guardrails,
-    /a\[aria-label="MoneyFlow, về Tổng quan"\]/u,
-  );
-  assert.doesNotMatch(guardrails, /url\("\/icon\.svg"\)/u);
+test("signed-in logo guardrail generation stays retired after direct BrandLockup adoption", () => {
+  assert.equal(existsSync(join(root, "src/app/ai-uiux-guardrails.css")), false);
+  assert.match(appShell, /<BrandLockup[\s\S]*ariaLabel="MoneyFlow, về Tổng quan"/u);
+  assert.doesNotMatch(appShell, /url\("\/icon\.svg"\)/u);
 });
 
 test("ToastRegion accepts shell-owned positioning without duplicating live policy", () => {

@@ -161,10 +161,10 @@ test("transactions workspace code-splits dialogs for smaller first paint", () =>
   assert.match(source, /ssr:\s*false/);
 });
 
-test("CSS reserves stable space for guided product evidence and money KPIs", () => {
+test("local owners reserve stable space for guided evidence and Dashboard money", () => {
   const landingCss = read("src/components/landing-page.module.css");
   const landingSource = read("src/components/landing-page.tsx");
-  const globals = read("src/app/globals.css");
+  const statement = read("src/components/dashboard/statement.module.css");
   assert.match(landingCss, /\.hero\b/);
   assert.match(
     landingCss,
@@ -175,6 +175,7 @@ test("CSS reserves stable space for guided product evidence and money KPIs", () 
   assert.match(landingCss, /\.storyFigure img[\s\S]*height:\s*auto/);
   assert.match(landingSource, /width=\{step\.width\}/);
   assert.match(landingSource, /height=\{step\.height\}/);
-  assert.match(globals, /\.insights-kpi strong/);
-  assert.match(globals, /font-variant-numeric:\s*tabular-nums/);
+  assert.match(statement, /\.figure\s*\{[\s\S]*font-family:\s*var\(--mf-font-money\)/);
+  assert.match(statement, /\.figure\s*\{[\s\S]*font-variant-numeric:\s*tabular-nums/);
+  assert.match(statement, /\.legendValue\s*\{[\s\S]*white-space:\s*nowrap/);
 });

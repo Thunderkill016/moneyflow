@@ -8,14 +8,7 @@ const documentOwner = "src/app/document-theme.css";
 const legacyEntry = "src/app/legacy.css";
 
 const expectedRootImports = ["./legacy.css", "./document-theme.css"];
-const expectedLegacyImports = [
-  "./globals.css",
-  "./ui-refresh.css",
-  "./benchmark-ux.css",
-  "./cross-device-stabilization.css",
-  "./ai-uiux-refresh.css",
-  "./ai-uiux-guardrails.css",
-];
+const expectedLegacyImports = ["./globals.css"];
 
 const retiredPublicLegacyFiles = [
   "src/app/landing-refresh.css",
@@ -23,20 +16,22 @@ const retiredPublicLegacyFiles = [
   "src/app/auth-refresh.css",
 ];
 
-// Existing document-selector debt is isolated here until each legacy route is
-// migrated. Adding another file to this list requires a reviewed architecture
-// change; normal feature work must not expand it. Retired files leave this set
-// in the same PR that removes their legacy import.
-const legacyDocumentAllowlist = new Set([
-  "src/app/globals.css",
+const retiredAuthenticatedLegacyFiles = [
   "src/app/ui-refresh.css",
   "src/app/benchmark-ux.css",
   "src/app/cross-device-stabilization.css",
   "src/app/ai-uiux-refresh.css",
   "src/app/ai-uiux-guardrails.css",
-]);
+];
 
-const maxImportantDeclarations = 1200;
+// Phase 10 leaves only the site-wide foundation as a temporary document-level
+// compatibility owner. Route and component presentation must stay in CSS
+// Modules; retired generations must not be restored to make a route green.
+const legacyDocumentAllowlist = new Set(["src/app/globals.css"]);
+
+// Phase 10 end-state invariant: escalation through !important is no longer part
+// of the product cascade. Specificity and source ownership must express intent.
+const maxImportantDeclarations = 0;
 const ignoredDirectories = new Set([
   ".git",
   ".next",
@@ -117,13 +112,13 @@ const legacyPath = path.join(root, legacyEntry);
 const actualLegacyImports = cssImports(read(legacyPath));
 if (!equalArrays(actualLegacyImports, expectedLegacyImports)) {
   fail(
-    `${legacyEntry} is a frozen compatibility boundary. Expected ${JSON.stringify(expectedLegacyImports)}; received ${JSON.stringify(actualLegacyImports)}`,
+    `${legacyEntry} is the Phase 10 compatibility boundary. Expected ${JSON.stringify(expectedLegacyImports)}; received ${JSON.stringify(actualLegacyImports)}`,
   );
 }
 
-for (const retired of retiredPublicLegacyFiles) {
+for (const retired of [...retiredPublicLegacyFiles, ...retiredAuthenticatedLegacyFiles]) {
   if (fs.existsSync(path.join(root, retired))) {
-    fail(`${retired} is a retired public generation and must not be restored; use the current local Landing/Auth owners instead.`);
+    fail(`${retired} is a retired presentation generation and must not be restored; use the current local route/component owners instead.`);
   }
 }
 
@@ -137,12 +132,15 @@ for (const required of [":root", "html[data-theme=\"dark\"]", "html,", "body {"]
 
 const cssFiles = walk(path.join(root, "src")).filter((file) => file.endsWith(".css"));
 let importantDeclarations = 0;
+const importantByFile = [];
 const unauthorizedDocumentSelectors = [];
 
 for (const file of cssFiles) {
   const name = relative(file);
   const source = read(file);
-  importantDeclarations += [...source.matchAll(/!important\b/g)].length;
+  const importantCount = [...source.matchAll(/!important\b/g)].length;
+  importantDeclarations += importantCount;
+  if (importantCount > 0) importantByFile.push({ file: name, count: importantCount });
 
   if (name === documentOwner || legacyDocumentAllowlist.has(name)) continue;
   for (const selector of selectors(source)) {
@@ -162,15 +160,8 @@ if (unauthorizedDocumentSelectors.length > 0) {
 
 if (importantDeclarations > maxImportantDeclarations) {
   fail(
-    `!important debt increased to ${importantDeclarations}; budget is ${maxImportantDeclarations}. Remove legacy declarations before adding new ones.`,
+    `!important debt is ${importantDeclarations}; Phase 10 requires zero. Remove owning declarations instead of adding exceptions.`,
   );
-}
-
-const unexpectedRootGlobalFiles = actualRootImports.filter(
-  (item) => !expectedRootImports.includes(item),
-);
-if (unexpectedRootGlobalFiles.length > 0) {
-  fail(`unexpected root global CSS owner(s): ${unexpectedRootGlobalFiles.join(", ")}`);
 }
 
 console.log(
@@ -182,8 +173,10 @@ console.log(
       documentOwner,
       legacyDocumentAllowlist: [...legacyDocumentAllowlist].sort(),
       retiredPublicLegacyFiles,
+      retiredAuthenticatedLegacyFiles,
       importantDeclarations,
       importantBudget: maxImportantDeclarations,
+      importantByFile,
       unauthorizedDocumentSelectors: unauthorizedDocumentSelectors.length,
     },
     null,

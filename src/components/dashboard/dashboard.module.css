@@ -119,7 +119,7 @@
 }
 
 .dashboard :global(.attention-chip) {
-  min-height: 36px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -295,7 +295,7 @@
 }
 
 .dashboard :global(.section-link) {
-  min-height: 34px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 5px;

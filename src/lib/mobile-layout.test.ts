@@ -5,37 +5,30 @@ import test from "node:test";
 import { PRIMARY_NAV } from "./nav-ia.ts";
 
 /**
- * TASK-112 — Mobile responsive contracts for core chrome.
- * Guards against regressions that reintroduce horizontal overflow,
- * FAB covering list ends, or non-full-width dialogs on small viewports.
+ * TASK-112 — Mobile responsive contracts for current chrome.
+ * Source assertions stay on local owners; runtime geometry is blocked by the
+ * cross-device and minimum-target Playwright audits.
  */
 
-const CSS_PATH = join(process.cwd(), "src/app/globals.css");
-const SHELL_PATH = join(
-  process.cwd(),
-  "src/components/layout/app-shell.tsx",
+const ROOT = process.cwd();
+const SHELL_PATH = join(ROOT, "src/components/layout/app-shell.tsx");
+const SHELL_CSS_PATH = join(ROOT, "src/components/layout/app-shell.module.css");
+const SHEET_PATH = join(ROOT, "src/components/ui/sheet.tsx");
+const RESPONSIVE_AUDIT_PATH = join(ROOT, "e2e/audit/responsive-audit.ts");
+const TARGET_AUDIT_PATH = join(
+  ROOT,
+  "e2e/audit/minimum-target-size.responsive.audit.spec.ts",
 );
 
-function css(): string {
-  return readFileSync(CSS_PATH, "utf8");
+function read(path: string): string {
+  return readFileSync(path, "utf8");
 }
 
-function shell(): string {
-  return readFileSync(SHELL_PATH, "utf8");
-}
-
-/**
- * Slice the TASK-112 app-shell mobile block (not smaller 760px snippets for
- * dialog footer / theme toggle / date headers).
- */
-function mobileBlock(source: string): string {
-  const anchor = "/* Bottom nav + FAB clearance";
-  const anchorIdx = source.indexOf(anchor);
-  assert.ok(anchorIdx >= 0, "expected TASK-112 mobile chrome comment in globals.css");
-  const start = source.lastIndexOf("@media (max-width: 760px)", anchorIdx);
-  assert.ok(start >= 0, "expected @media (max-width: 760px) wrapping shell chrome");
-  // Full shell media block is large (insights/tx/accounts + chrome).
-  return source.slice(start, Math.min(source.length, start + 28000));
+function mobileCss(): string {
+  const source = read(SHELL_CSS_PATH);
+  const start = source.indexOf("@media (max-width: 760px)");
+  assert.ok(start >= 0, "expected App Shell mobile breakpoint");
+  return source.slice(start);
 }
 
 test("mobile tabs = 5 (4 primary + Thêm)", () => {
@@ -44,95 +37,62 @@ test("mobile tabs = 5 (4 primary + Thêm)", () => {
   );
   assert.equal(mobilePrimary.length, 4);
 
-  const source = shell();
+  const source = read(SHELL_PATH);
   assert.match(source, /label:\s*"Thêm"/);
   assert.match(source, /className=\{styles\.mobileNav\}/);
-  // Capture is the center nav item (styles.mobileCapture), not a separate FAB —
-  // the Calm Ledger redesign removed the duplicate floating action button.
-  assert.match(source, /styles\.mobileNavItem,\s*\n\s*styles\.mobileCapture,/);
-
-  // Exactly five children pattern: filter primary tabs + More entry.
+  assert.match(source, /styles\.mobileNavItem,[\s\S]*styles\.mobileCapture,/u);
   assert.match(
     source,
     /const mobileTabs: NavItem\[] = \[\s*\.\.\.PRIMARY_NAV\.filter/,
   );
 });
 
-test("CSS: bottom nav is 5 equal columns + safe-area", () => {
-  const block = mobileBlock(css());
+test("App Shell owns five-column bottom navigation and safe-area reserve", () => {
+  const block = mobileCss();
   assert.match(
     block,
-    /grid-template-columns:\s*repeat\(\s*5\s*,\s*minmax\(0,\s*1fr\)\s*\)/,
+    /\.mobileNav\s*\{[\s\S]*?position:\s*fixed[\s\S]*?bottom:\s*0[\s\S]*?grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/u,
   );
-  assert.match(block, /safe-area-inset-bottom/);
-  assert.match(block, /\.mobile-nav\s*\{/);
-});
-
-test("CSS: FAB sits above nav and content end clears FAB", () => {
-  const source = css();
-  assert.match(source, /--mobile-content-end:/);
-  assert.match(source, /--mobile-fab-clearance:/);
-  assert.match(source, /--mobile-nav-height:/);
-  assert.match(source, /--mobile-fab-gap:/);
-
-  const block = mobileBlock(source);
-  assert.match(block, /padding-bottom:\s*var\(--mobile-content-end\)/);
-  assert.match(block, /\.mobile-fab\s*\{/);
-  // Multiline calc is OK — assert token presence near FAB.
-  const fabIdx = block.indexOf(".mobile-fab {");
-  assert.ok(fabIdx >= 0, "expected .mobile-fab rule in mobile block");
-  const fabSlice = block.slice(fabIdx, fabIdx + 600);
-  assert.match(fabSlice, /--mobile-nav-height/);
-  assert.match(fabSlice, /--mobile-fab-gap/);
-  assert.match(fabSlice, /safe-area-inset-bottom/);
-});
-
-test("CSS: dialogs full-width bottom sheets on mobile", () => {
-  const block = mobileBlock(css());
-  // Selector list (not the earlier comment that mentions the class name).
-  const dialogRule = /\.transaction-dialog\s*,\s*\n?\s*\.account-dialog\s*\{[\s\S]{0,400}?\}/;
-  const match = block.match(dialogRule);
-  assert.ok(match, "expected .transaction-dialog, .account-dialog mobile rule");
-  const dialogSlice = match[0];
-  // Full bleed sheet (not centered card with side margins).
-  assert.match(dialogSlice, /width:\s*100%/);
-  assert.match(dialogSlice, /max-width:\s*none/);
-  assert.match(dialogSlice, /margin:\s*auto 0 0/);
-  assert.match(dialogSlice, /border-radius:\s*24px 24px 0 0/);
-});
-
-test("CSS: tables / manager lists scroll horizontally instead of page overflow", () => {
-  const source = css();
-  assert.match(source, /\.table-scroll\s*\{/);
-  assert.match(source, /overflow-x:\s*auto/);
-  assert.match(source, /\.manager-list\s*\{/);
-  assert.match(source, /\.import-preview-table-scroll/);
-
-  const block = mobileBlock(source);
-  assert.match(block, /overflow-x:\s*clip/);
-  assert.match(block, /\.insights-dashboard/);
-  assert.match(block, /\.transactions-workspace/);
-  assert.match(block, /\.accounts-workspace/);
-});
-
-test("CSS: touch-visible row actions on mobile (no hover-only opacity)", () => {
-  const block = mobileBlock(css());
-  assert.match(block, /\.delete-button/);
-  assert.match(block, /opacity:\s*1/);
-});
-
-test("CSS: modal centring cannot outrank bottom-sheet layouts", () => {
-  const source = css();
-
-  // Issue #145 fix. `:where()` contributes zero specificity, so every bottom-sheet
-  // rule still wins: the phone override in this file at (0,1,0), and the capture
-  // chooser's own CSS Module class, also (0,1,0). A bare `dialog:modal` would be
-  // (0,1,1) and would flatten all of them into floating cards — which is exactly
-  // what happened on the first attempt at this fix.
-  assert.match(source, /:where\(dialog:modal\)\s*\{[^}]*margin:\s*auto/);
-  assert.doesNotMatch(
-    source,
-    /(^|\n)\s*dialog:modal\s*\{/,
-    "dialog:modal must stay wrapped in :where() so sheet rules keep winning",
+  assert.match(block, /safe-area-inset-bottom/u);
+  assert.match(
+    block,
+    /\.shell\s*\{[\s\S]*?padding-bottom:\s*var\(--mf-shell-mobile-nav-reserve\)/u,
   );
+});
+
+test("capture is a nav item, not a second floating FAB", () => {
+  const shell = read(SHELL_PATH);
+  const styles = read(SHELL_CSS_PATH);
+  assert.match(shell, /styles\.mobileCapture/u);
+  assert.match(styles, /\.mobileCapture\s*\{/u);
+  assert.doesNotMatch(shell, /mobile-fab/iu);
+  assert.doesNotMatch(styles, /\.mobile-fab/iu);
+});
+
+test("Sheet primitive owns edge geometry without legacy dialog selectors", () => {
+  const source = read(SHEET_PATH);
+  assert.match(source, /bottom:\s*\n?\s*"fixed inset-x-0 bottom-0/u);
+  assert.match(source, /w-full max-w-none/u);
+  assert.match(source, /right:\s*\n?\s*"fixed inset-y-0 right-0/u);
+  assert.match(source, /h-dvh max-h-dvh/u);
+  assert.doesNotMatch(source, /transaction-dialog/u);
+  assert.doesNotMatch(source, /account-dialog/u);
+});
+
+test("runtime audit blocks document overflow, clipped dialogs and offscreen controls", () => {
+  const source = read(RESPONSIVE_AUDIT_PATH);
+  assert.match(source, /document-horizontal-overflow/u);
+  assert.match(source, /interactive-outside-viewport/u);
+  assert.match(source, /dialog-clipped-without-scroll/u);
+  assert.match(source, /financial-value-wrapped/u);
+  assert.match(source, /toEqual\(\[\]\)/u);
+});
+
+test("minimum target audit keeps core routes at the 44px product floor", () => {
+  const source = read(TARGET_AUDIT_PATH);
+  assert.match(source, /const MINIMUM_TARGET_SIZE = 44/u);
+  assert.match(source, /new Set\(\[320, 390, 1_366\]\)/u);
+  assert.match(source, /settings-notifications/u);
+  assert.match(source, /settings-privacy/u);
+  assert.match(source, /toEqual\(\[\]\)/u);
 });
