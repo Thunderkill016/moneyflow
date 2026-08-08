@@ -10,7 +10,7 @@
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
-**Canonical short name:** MoneyFlow Trust  
+**Canonical short name:** MoneyFlow Trust
 **Original planning path:** `docs/plans/active/public-beta-trust.md`
 
 The owner approved this program after UI migration P0–P11 was archived. The stable path is retained to avoid backlink churn; the program name is **MoneyFlow Trust**.
@@ -234,7 +234,7 @@ Next allowed sequence:
 4. immediately recheck production pre-state/locks before any write;
 5. apply only the approved migrations in repository order through standard Supabase migration tooling;
 6. stop on first error; never mark an unapplied migration as applied;
-7. verify remote history/catalog/RLS/grants/functions/indexes/advisors and safe app reads/RPCs;
+7. verify remote history/catalog/RLS/grants/functions/indexes/advisors and safe app/RPC reads;
 8. return to owner for explicit current Edge deployment approval;
 9. deploy/read back current `delete-account` with `verify_jwt=true` and shared recent-auth helper;
 10. run production-safe password/Google step-up acceptance without confirmed destructive deletion;
