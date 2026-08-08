@@ -35,6 +35,22 @@ test("stable verify check summarizes retryable verification shards", () => {
   assert.doesNotMatch(verify, /npm ci|npm run lint|npm run typecheck|npm run test|npm run build/);
 });
 
+test("stable database check summarizes the conditional database executor", () => {
+  const databaseChecks = jobBlock("database_checks");
+  const database = jobBlock("database");
+
+  assert.match(databaseChecks, /needs\.classify\.outputs\.database == 'true'/);
+  assert.match(databaseChecks, /supabase\/setup-cli/);
+  assert.match(databaseChecks, /supabase db reset --local/);
+  assert.match(database, /if: always\(\)/);
+  assert.match(database, /needs: \[classify, database_checks\]/);
+  assert.match(database, /needs\.database_checks\.result/);
+  assert.doesNotMatch(
+    database,
+    /actions\/checkout|supabase\/setup-cli|supabase db|upload-artifact/,
+  );
+});
+
 test("stable e2e check summarizes independently retryable browser shards", () => {
   const browserSmoke = jobBlock("browser_smoke");
   const uiAudit = jobBlock("ui_audit");
@@ -45,6 +61,14 @@ test("stable e2e check summarizes independently retryable browser shards", () =>
   assert.match(e2e, /if: always\(\)/);
   assert.match(e2e, /needs: \[classify, verify, browser_smoke, ui_audit\]/);
   assert.doesNotMatch(e2e, /playwright install|npm run test:e2e|npm run test:ui-audit:pr/);
+});
+
+test("read-only workflow checkouts do not persist repository credentials", () => {
+  const checkoutCount = (workflow.match(/uses: actions\/checkout@/g) ?? []).length;
+  const noCredentialCount = (workflow.match(/persist-credentials: false/g) ?? []).length;
+
+  assert.equal(checkoutCount, 8);
+  assert.equal(noCredentialCount, checkoutCount);
 });
 
 test("retry artifacts are unique per workflow attempt", () => {
