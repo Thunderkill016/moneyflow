@@ -232,7 +232,12 @@ export function OnboardingFlow({
               ))}
             </ul>
             <div className="onboarding-actions">
-              <Button type="button" className="onboarding-primary" onClick={goNextFromTrust}>
+              <Button
+                type="button"
+                targetSize="important"
+                className="onboarding-primary"
+                onClick={goNextFromTrust}
+              >
                 Tiếp
                 <Icon name="arrowRight" />
               </Button>
@@ -295,11 +300,18 @@ export function OnboardingFlow({
             )}
 
             <div className="onboarding-actions">
-              <Button type="button" variant="secondary" onClick={() => setStep(1)} disabled={saving}>
+              <Button
+                type="button"
+                variant="secondary"
+                targetSize="important"
+                onClick={() => setStep(1)}
+                disabled={saving}
+              >
                 Quay lại
               </Button>
               <Button
                 type="button"
+                targetSize="important"
                 className="onboarding-primary"
                 onClick={() => void confirmWallet()}
                 disabled={saving}
@@ -335,24 +347,46 @@ export function OnboardingFlow({
             )}
 
             <div className="onboarding-actions">
-              <Button type="button" variant="secondary" onClick={finishToInsights}>
+              <Button
+                type="button"
+                variant="secondary"
+                targetSize="important"
+                onClick={finishToInsights}
+              >
                 {ONBOARDING_SECONDARY_CTA}
               </Button>
-              <Button type="button" className="onboarding-primary" onClick={goQuickExpense}>
+              <Button
+                type="button"
+                targetSize="important"
+                className="onboarding-primary"
+                onClick={goQuickExpense}
+              >
                 {ONBOARDING_PRIMARY_CTA}
                 <Icon name="arrowRight" />
               </Button>
             </div>
-            <button type="button" className="onboarding-skip onboarding-skip-inline" onClick={() => setStep(2)}>
+            <Button
+              unstyled
+              targetSize="important"
+              type="button"
+              className="onboarding-skip onboarding-skip-inline"
+              onClick={() => setStep(2)}
+            >
               Quay lại chỉnh ví
-            </button>
+            </Button>
           </section>
         )}
 
         {step !== 3 && (
-          <button type="button" className="onboarding-skip" onClick={skipToInsights}>
+          <Button
+            unstyled
+            targetSize="important"
+            type="button"
+            className="onboarding-skip"
+            onClick={skipToInsights}
+          >
             Để sau — vào Tổng quan
-          </button>
+          </Button>
         )}
       </div>
     </main>

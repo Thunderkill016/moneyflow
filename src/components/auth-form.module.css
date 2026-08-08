@@ -137,7 +137,7 @@
 
 .demoNotice a {
   width: fit-content;
-  min-height: 32px;
+  min-height: 44px;
   margin-top: 2px;
   display: inline-flex;
   align-items: center;
@@ -217,7 +217,7 @@
 }
 
 .fieldLabelRow a {
-  min-height: 30px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   color: var(--auth-accent);
@@ -295,6 +295,13 @@
 .switchLink a {
   color: var(--auth-accent);
   font-weight: 740;
+}
+
+.switchLink a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .captchaBlock {

@@ -1,18 +1,9 @@
 /*
- * Temporary compatibility layer for pre-Calm-Ledger global styling.
+ * Phase 10 validation boundary.
  *
- * Ownership rule:
- * - Do not add another import here.
- * - Do not create another root-level refresh/guardrail/override stylesheet.
- * - Move selectors out when their route or component receives a real owner.
- *
- * The order below is intentionally identical to the previous root-layout
- * import order so Phase 0–1 changes architecture without silently restyling
- * the product.
+ * Route and component presentation migrated in P4-P9 is owned by CSS Modules.
+ * This compatibility entry keeps only the site-wide foundation active while
+ * exact-head browser evidence proves the legacy presentation generations are
+ * no longer load-bearing.
  */
 @import "./globals.css";
-@import "./ui-refresh.css";
-@import "./benchmark-ux.css";
-@import "./cross-device-stabilization.css";
-@import "./ai-uiux-refresh.css";
-@import "./ai-uiux-guardrails.css";

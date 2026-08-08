@@ -246,6 +246,18 @@
   min-width: 0;
 }
 
+.formGrid > [data-slot="text-field"],
+.formGrid [data-slot="text-field-control"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.formGrid [data-slot="text-field-input"] {
+  width: 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
 .spanFull {
   grid-column: 1 / -1;
 }

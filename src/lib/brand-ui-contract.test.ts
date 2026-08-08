@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -24,10 +24,6 @@ const publicTheme = readFileSync(
 );
 const documentTheme = readFileSync(
   join(root, "src/app/document-theme.css"),
-  "utf8",
-);
-const guardrails = readFileSync(
-  join(root, "src/app/ai-uiux-guardrails.css"),
   "utf8",
 );
 const manifest = readFileSync(join(root, "src/app/manifest.ts"), "utf8");
@@ -191,12 +187,8 @@ test("auth proof rail copy is specific to each auth mode", () => {
   assert.doesNotMatch(auth, /Đăng nhập để tiếp tục từ dữ liệu của chính bạn\./u);
 });
 
-test("signed-in compatibility logo bridge is retired", () => {
-  assert.doesNotMatch(
-    guardrails,
-    /a\[aria-label="MoneyFlow, về Tổng quan"\] > span:first-child/u,
-  );
-  assert.doesNotMatch(guardrails, /url\("\/icon\.svg"\)/u);
-  assert.doesNotMatch(guardrails, /aria-label\^=/u);
-  assert.doesNotMatch(guardrails, /clip-path:\s*polygon/u);
+test("signed-in compatibility logo generation stays retired", () => {
+  assert.equal(existsSync(join(root, "src/app/ai-uiux-guardrails.css")), false);
+  assert.match(appShell, /<BrandLockup[\s\S]*ariaLabel="MoneyFlow, về Tổng quan"/u);
+  assert.doesNotMatch(appShell, /url\("\/icon\.svg"\)/u);
 });

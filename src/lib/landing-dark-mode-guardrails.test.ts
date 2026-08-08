@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
@@ -18,7 +18,13 @@ const rejectedDirection = readFileSync(
   "utf8",
 );
 
-test("document theme authority loads after the frozen legacy entry", () => {
+const retiredThemeGenerations = [
+  "src/app/landing-dark-mode-guardrails.css",
+  "src/app/ai-uiux-guardrails.css",
+  "src/app/ai-uiux-refresh.css",
+];
+
+test("document theme authority loads after the Phase 10 foundation entry", () => {
   const legacyImport = 'import "./legacy.css"';
   const themeImport = 'import "./document-theme.css"';
 
@@ -26,9 +32,10 @@ test("document theme authority loads after the frozen legacy entry", () => {
   assert.match(rootLayout, /import "\.\/document-theme\.css"/);
   assert.ok(
     rootLayout.indexOf(themeImport) > rootLayout.indexOf(legacyImport),
-    "document-theme.css must load after legacy compatibility styles",
+    "document-theme.css must load after the temporary foundation entry",
   );
-  assert.match(legacy, /@import "\.\/ai-uiux-guardrails\.css"/);
+  assert.match(legacy, /^@import "\.\/globals\.css";\s*$/mu);
+  for (const file of retiredThemeGenerations) assert.equal(existsSync(file), false, file);
 });
 
 test("workspace dark mode keeps Fresh Blue semantic product tokens", () => {
@@ -48,6 +55,7 @@ test("workspace dark mode keeps Fresh Blue semantic product tokens", () => {
   assert.match(documentTheme, /--mf-transfer:\s*#818cf8/);
   assert.match(documentTheme, /--mf-info:\s*#60a5fa/);
   assert.match(documentTheme, /--mf-focus-ring:\s*rgb\(56 189 248 \/ 24%\)/);
+  assert.doesNotMatch(documentTheme, /!important/u);
 });
 
 test("public entry routes stay light while workspace routes restore the saved theme", () => {

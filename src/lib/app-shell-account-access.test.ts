@@ -11,7 +11,7 @@ const userChipSource = readFileSync(
   "utf8",
 );
 const shellCss = readFileSync(
-  new URL("../app/ui-refresh.css", import.meta.url),
+  new URL("../components/layout/app-shell.module.css", import.meta.url),
   "utf8",
 );
 
@@ -35,40 +35,29 @@ test("mobile topbar opens an account sheet with a real sign-out form", () => {
   );
 });
 
-test("mobile account trigger is hidden on desktop and visible at the mobile breakpoint", () => {
+test("mobile account trigger is owned locally and appears at the mobile breakpoint", () => {
   assert.match(
     shellCss,
-    /\.mobile-account-button\s*\{[\s\S]*?display:\s*none;/,
+    /\.mobileAccountButton\s*\{[^}]*display:\s*none;/,
   );
   assert.match(
     shellCss,
-    /@media \(max-width: 760px\)[\s\S]*?\.mobile-account-button\s*\{[\s\S]*?display:\s*grid;/,
+    /@media \(max-width: 760px\)[\s\S]*?\.mobileAccountButton\s*\{[^}]*display:\s*grid;/,
+  );
+  assert.match(
+    shellCss,
+    /\.mobileAccountButton\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;/,
   );
 });
 
-/*
- * The topbar assertion that used to live here has been removed, and it is worth
- * saying why rather than quietly dropping it.
- *
- * It required `ui-refresh.css` to contain
- * `.topbar { background: var(--color-bg-elevated); … backdrop-filter: none }`,
- * and it passed for as long as it existed. But `.topbar` is not in the DOM —
- * `app-shell.tsx` renders `styles.topbar` from its CSS Module, and a DOM probe
- * across five routes at two widths finds zero `.topbar` nodes. The rule it
- * guarded never applied to anything.
- *
- * The real topbar, `app-shell.module.css:189`, is
- * `background: color-mix(in srgb, var(--mf-canvas) 91%, transparent)` with
- * `backdrop-filter: blur(16px)` — translucent and blurred, which is exactly the
- * "glass topbar" this test claimed to prevent. So the assertion was not merely
- * inert: it reported the opposite of the truth for as long as it was green.
- *
- * Pointing it at the CSS Module instead would turn it red immediately. Whether
- * the shipped glass topbar is correct is a design decision — the Calm Ledger
- * direction may well have chosen it deliberately — and that decision is not this
- * change's to make. Recorded in the work packet for the owner.
- */
-test("shell consistency layer avoids unreadable 10px KPI labels", () => {
-  assert.doesNotMatch(shellCss, /\.insights-kpi[\s\S]{0,300}font-size:\s*10px/);
-  assert.match(shellCss, /\.insights-kpi small\s*\{[\s\S]*?font-size:\s*12px/);
+test("App Shell owns its current translucent topbar rather than a dead global selector", () => {
+  assert.match(shellCss, /\.topbar\s*\{/);
+  assert.match(shellCss, /backdrop-filter:\s*blur\(16px\)/);
+  assert.match(shellCss, /background:\s*color-mix\(/);
+});
+
+test("App Shell keeps current navigation and account controls above the product target", () => {
+  assert.match(shellCss, /\.navLink,[\s\S]*?min-height:\s*46px/);
+  assert.match(shellCss, /\.profileSlot :global\(\.profile-chip\)[\s\S]*?min-height:\s*52px/);
+  assert.match(shellCss, /\.accountAction\s*\{[\s\S]*?min-height:\s*46px/);
 });

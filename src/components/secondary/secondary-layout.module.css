@@ -36,6 +36,9 @@
 }
 
 .breadcrumb {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   color: var(--mf-brand-text);
   text-decoration: none;
 }

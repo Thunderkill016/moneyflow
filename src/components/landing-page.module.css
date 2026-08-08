@@ -30,6 +30,9 @@
   z-index: 100;
   top: 12px;
   left: 12px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   translate: 0 -160%;
   border-radius: 10px;
   background: var(--public-ink);
@@ -548,6 +551,12 @@
   align-items: center;
   gap: 20px;
   font-weight: 680;
+}
+
+.footer > div a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .footer a:hover {

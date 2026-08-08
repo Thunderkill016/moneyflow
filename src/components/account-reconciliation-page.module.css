@@ -256,21 +256,21 @@
   color: var(--mf-text-muted);
   line-height: 1.45;
 }
-.differenceCard {
-  border-style: solid !important;
-  background: var(--mf-surface) !important;
+.summaryGrid .differenceCard {
+  border-style: solid;
+  background: var(--mf-surface);
 }
-.differenceCard:has([data-money-tone="income"]) {
-  border-color: var(--mf-income-border) !important;
-  background: var(--mf-income-subtle) !important;
+.summaryGrid .differenceCard:has([data-money-tone="income"]) {
+  border-color: var(--mf-income-border);
+  background: var(--mf-income-subtle);
 }
-.differenceCard:has([data-money-tone="expense"]) {
-  border-color: var(--mf-expense-border) !important;
-  background: var(--mf-expense-subtle) !important;
+.summaryGrid .differenceCard:has([data-money-tone="expense"]) {
+  border-color: var(--mf-expense-border);
+  background: var(--mf-expense-subtle);
 }
-.zeroCard {
-  border-color: var(--mf-income-border) !important;
-  background: var(--mf-income-subtle) !important;
+.summaryGrid .zeroCard {
+  border-color: var(--mf-income-border);
+  background: var(--mf-income-subtle);
 }
 .zeroCard [data-money-value="true"] { color: var(--mf-income); }
 .countLine {
