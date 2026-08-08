@@ -10,10 +10,10 @@
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
-**Parent packet:** `docs/plans/active/public-beta-trust.md`  
-**Provider prerequisite:** `docs/plans/active/moneyflow-trust-provider-sync.md`  
-**Merged PR:** #324  
-**Merge commit:** `fd984a18201f1663d3d8c622d51c41dfd650c816`  
+**Parent packet:** `docs/plans/active/public-beta-trust.md`
+**Provider prerequisite:** `docs/plans/active/moneyflow-trust-provider-sync.md`
+**Merged PR:** #324
+**Merge commit:** `fd984a18201f1663d3d8c622d51c41dfd650c816`
 **Next.js production deployment:** `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9` (`READY`)
 
 Phase 1 implementation is merged, but it is **not deployed end-to-end**. Read-only Supabase inspection after the merge found that production `delete-account` remains Edge Function version 5 and does not contain the current-main recent-auth gate. Production database migration history is also behind several merged MoneyFlow schema migrations required by the current tenant inventory. The task therefore moved backward from the initially inferred `deployed` state to truthful `merged` state under the operating model.
