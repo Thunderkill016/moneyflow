@@ -11,6 +11,7 @@
 - **Provider Sync evidence:** exact 10-file drift proven; full current migration chain replays in CI #2070; 25 pgTAP files / 478 tests pass; per-migration risk review complete; actual linked union-history CLI dry-run remains pending
 - **Recent-auth state:** #324 is merged and its Next.js side is live on Vercel, but P1 Secure remains **merged, not deployed end-to-end** until Supabase DB/Edge alignment and provider acceptance complete
 - **UI migration:** P0–P11 is merged and archived; physical Android/iOS were not executed and remain explicit limitations
+- **History model:** current truth here; task routing lives in `docs/context/README.md`; bounded PR provenance lives under `docs/research/pr-memory/YYYY/QN/`
 - **Primary public-beta blockers:** Provider Sync dry-run → owner-approved DB alignment → owner-approved current Edge deployment → password/Google step-up acceptance → versioned archive/restore
 - **MVP release:** `main@8e08a8a748a632b07bb42c27bf14539758b28824`; functional MVP release does not imply public-beta readiness
 
