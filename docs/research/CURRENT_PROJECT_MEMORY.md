@@ -16,6 +16,7 @@
 - **Recent-auth state:** #324 is merged and its Next.js side is live on Vercel, but P1 Secure is not deployed/accepted end-to-end until the Supabase provider contract and Edge rollout are verified
 - **UI migration:** P0–P11 is merged and archived; physical Android/iOS were not executed and remain explicit limitations
 - **Primary public-beta blockers now:** audit least-privilege hardening → current Edge deployment → safe password/Google recent-auth acceptance → complete versioned archive/restore
+- **History model:** current truth lives here; task routing lives in `docs/context/README.md`; bounded PR provenance lives under `docs/research/pr-memory/YYYY/QN/`
 - **MVP release:** `main@8e08a8a748a632b07bb42c27bf14539758b28824`; functional MVP release does not imply public-beta readiness
 
 ## 1. Purpose and authority
@@ -157,17 +158,7 @@ A new reviewed forward migration/spec plus explicit owner provider-write approva
 - #321 merged as `bfdab8b...` and its exact Vercel deployment was verified READY.
 - Physical Android Chrome/iOS Safari were not executed. Issue #72 is closed `not_planned`; this is an accepted limitation, not pass evidence.
 
-## 8. Evidence boundaries
-
-- provider behavior requires provider evidence;
-- provider schema/function/privilege writes require explicit owner approval;
-- Vercel does not deploy Supabase migrations or Edge Functions;
-- the local union-history dry-run is not an actual linked-production dry-run;
-- clean-reset pgTAP and live production effective privileges can differ; both matter;
-- automated browser success does not prove physical-device acceptance;
-- retry-pass is not equivalent to first-attempt pass.
-
-## 9. Reconciled issue/PR status
+## 8. Reconciled issue status
 
 | Item | Current status |
 |---|---|
@@ -183,7 +174,19 @@ A new reviewed forward migration/spec plus explicit owner provider-write approva
 | #326 | closed unmerged; zero-cost local union-history dry-run evidence only |
 | #327 | evidence/current-memory reconciliation for ten-file production execution and audit ACL finding |
 
-Fresh-query GitHub before acting on unrelated historical PRs.
+### Evidence boundaries
+
+- provider behavior requires provider evidence;
+- provider schema/function/privilege writes require explicit owner approval;
+- Vercel does not deploy Supabase migrations or Edge Functions;
+- the local union-history dry-run is not an actual linked-production dry-run;
+- clean-reset pgTAP and live production effective privileges can differ; both matter;
+- automated browser success does not prove physical-device acceptance;
+- retry-pass is not equivalent to first-attempt pass.
+
+## 9. Open pull-request memory
+
+Fresh-query GitHub before acting on unrelated historical PRs. Open PRs remain candidate evidence until merged. For bounded provenance, use the relevant record under `docs/research/pr-memory/YYYY/QN/` rather than treating old PR descriptions as current truth.
 
 ## 10. True gaps after this audit
 
