@@ -1,9 +1,9 @@
 # MoneyFlow UI-system Phase 11 — final acceptance
 
-**Status:** implementing
-**Execution state:** implementing
-**Active role:** implementer
-**Permission scope:** branch_write
+**Status:** active
+**Execution state:** evaluating
+**Active role:** human_owner
+**Permission scope:** owner_merge_checkpoint
 **Owner:** Thunderkill016
 **Parent packet:** `docs/plans/active/ui-system-migration.md`
 **Base main:** `a65f6f59167b894f9e538e5840e989e27250fdd4`
@@ -11,11 +11,11 @@
 **Issue/PR:** issue #72 / PR #321
 **Last updated:** 2026-08-08
 
-The owner instructed **“làm đi”** after a truth audit found that Phases 0–10 are implemented on `main`, while Phase 5–10 lifecycle records are stale and the parent program cannot truthfully close until Phase 11 acceptance is complete. This instruction authorizes bounded Phase 11 branch work and verification. It does not authorize merge, provider writes, production-data access, destructive production mutations, branch/ruleset changes or fabricated physical-device evidence.
+The owner instructed **“làm đi”** after a truth audit found that Phases 0–10 are implemented on `main`, while Phase 5–10 lifecycle records were stale and the parent program could not truthfully close until Phase 11 acceptance completed. This instruction authorizes bounded Phase 11 branch work and verification. It does not authorize merge, provider writes, production-data access, destructive production mutations, branch/ruleset changes or fabricated physical-device evidence.
 
 ## Outcome
 
-Close the UI-system migration only after the current post-P10 product has clean exact-head automated browser evidence, no knowingly unreviewed visual regression, post-merge production evidence, and the physical-device evidence required by the parent plan. Reconcile stale Phase 5–10 records to their actual merged state without claiming Phase 11 complete before its physical-device gates are satisfied.
+Close the UI-system migration only after the post-P10 product has clean exact-head automated browser evidence, reviewed selective visual baselines, physical Android and physical iOS/Safari evidence, affected production verification and owner acceptance. Reconcile stale Phase 5–10 records to their actual merged state without claiming Phase 11 complete before its physical-device gates are satisfied.
 
 ## Repository reconnaissance
 
@@ -24,35 +24,43 @@ Close the UI-system migration only after the current post-P10 product has clean 
 - Phases 0–10 are merged on `main`; Phase 9 merged as `10a11d3492af02cf303ff1ee6981e734676c15fd` and Phase 10 as `a65f6f59167b894f9e538e5840e989e27250fdd4`.
 - P10 replay head `9912dc621306c73f14407e175eb1a468b90ea933` passed CI #2025, CodeQL #1132 and secret-history #1132 before merge.
 - The P10 cross-device job scheduled 554 tests and finished with 426 passed, 127 skipped and **1 flaky WebKit/iPhone test**. The first attempt observed mobile navigation already visible while the shell still had `padding-bottom: 0`; the retry passed.
-- `AppShell` defined mobile-nav reserve custom properties only under `html[data-moneyflow-shell="mounted"]`, while the attribute is added in a client `useEffect`. This left a real first-paint interval in which fixed mobile navigation could render before the shell reserve variables existed.
-- Latest Vercel production deployment for P10 is `dpl_5m5ihzL1zNCPoxLAHFCweDQDYAkf`, state `READY`, target `production`, commit `a65f6f59167b894f9e538e5840e989e27250fdd4`.
+- `AppShell` defined layout-critical mobile-nav reserve custom properties only under `html[data-moneyflow-shell="mounted"]`, while the attribute is added in a client `useEffect`. This left a real first-paint interval in which fixed mobile navigation could render before the shell reserve variables existed.
+- P11 moves the same AppShell-owned layout variables onto `.shell`, keeps the document marker for document-level scroll padding and locks the first-paint geometry with source/browser contracts.
+- Intermediate P11 candidate `ea5756ccee62ba5b6ab56f7a9983a0061289a8ed` passed CI #2032, CodeQL #1138 and secret-history #1138. Browser smoke was 94/94 pass; cross-device was 554 total / 427 pass / 127 intentional skips / **0 failed / 0 flaky**.
+- Eight selected P10↔P11 baseline screenshots across Dashboard, Landing, Quick Capture and Transactions on Chromium/WebKit desktop/mobile were byte-identical with zero pixel diff. Review is recorded in `docs/research/UI_PHASE_11_VISUAL_BASELINE_REVIEW_2026-08-08.md`.
+- Latest Vercel production deployment remains the P10 build `dpl_5m5ihzL1zNCPoxLAHFCweDQDYAkf`, state `READY`, commit `a65f6f59167b894f9e538e5840e989e27250fdd4`.
+- Vercel did not create a PR preview deployment for #321, so current production cannot validate the P11 fix on physical devices.
 - Current production reads return HTTP 200 for `/` and `/login`; unauthenticated `/dashboard` reaches the expected login boundary. No runtime-error cluster was found in the inspected one-hour window.
 - Issue #72 remains open and explicitly forbids claiming physical-device readiness from emulation.
-- Phase 5–10 packets and the prior `CURRENT_PROJECT_MEMORY.md` snapshot were stale relative to merged truth.
+- Phase 5–10 lifecycle truth is reconciled in `docs/research/UI_MIGRATION_PHASES_5_10_RECONCILIATION_2026-08-08.md`.
 
 ### Relevant repository areas
 
 | Area | Why it matters | Reuse/change/avoid |
 |---|---|---|
-| `src/components/layout/app-shell.module.css` | Owns mobile navigation reserve, safe-area geometry and first-paint layout | change narrowly |
-| `src/components/layout/app-shell.tsx` | Adds the document-level shell marker after hydration | preserve marker for document-level behavior |
-| `e2e/audit/critical-browser.audit.spec.ts` | Contains the mobile-shell geometry evidence | strengthen without retry-only masking |
-| `docs/research/UI_MIGRATION_PHASES_5_10_RECONCILIATION_2026-08-08.md` | Reconciles stale P5–P10 lifecycle headers with merge/CI/production truth | current branch record |
-| `docs/research/CURRENT_PROJECT_MEMORY.md` | Current project-status authority | update to P0–P10 merged, P11 active |
+| `src/components/layout/app-shell.module.css` | Owns mobile navigation reserve, safe-area geometry and first-paint layout | changed narrowly |
+| `src/components/layout/app-shell.tsx` | Adds the document-level shell marker after hydration | preserved marker for document behavior |
+| `e2e/audit/critical-browser.audit.spec.ts` | Owns first-paint and mounted-document shell evidence | strengthened |
+| `src/lib/app-shell-phase3-contract.test.ts` | Locks server-rendered AppShell geometry ownership | strengthened |
+| `docs/research/UI_PHASE_11_VISUAL_BASELINE_REVIEW_2026-08-08.md` | Reviewed selective P11 visual baseline evidence | current branch evidence |
+| `docs/research/UI_PHASE_11_PHYSICAL_DEVICE_ACCEPTANCE_2026-08-08.md` | Exact physical Android/iOS checklist and sequencing | blocked until deployed P11 build/device access |
 | issue #72 | Physical-device acceptance tracker | keep open until real-device evidence exists |
 
 ### Existing tests and constraints
 
 - Exact-head UI changes require policy, lint, typecheck, complete unit/static tests, production build, browser smoke and selected cross-device audit.
 - WebKit/iPhone emulation is browser-engine/device-parameter evidence, not physical iPhone evidence.
-- Parent P11 requires physical Android smoke; iOS Safari requires a device, owner-provided evidence, or an explicit owner waiver with limitations.
-- Parent P11 production journey depends on the physical-device gates and cannot be marked complete early.
+- Parent P11 requires physical Android acceptance and physical iOS/Safari acceptance. No waiver is assumed by this packet.
+- Parent P11 production verification follows those physical-device gates and cannot be marked complete early.
+- Because #321 has no Vercel preview, physical acceptance must target a deployed commit containing the P11 fix; testing current P10 production would test the wrong build.
 
 ### Open questions
 
-- [x] Is the WebKit retry merely a harmless assertion race? **No.** Repository source showed the underlying safe-area/nav reserve variables were created only after `useEffect`, so first-paint overlap was possible.
-- [x] Is a physical Android device connected to the current execution environment? **No usable device/ADB boundary is available in the current execution environment.**
-- [ ] Is physical iOS Safari evidence available, or will the owner explicitly waive it with documented limits?
+- [x] Is the P10 WebKit retry merely a harmless assertion race? **No.** Repository source showed the safe-area/nav reserve variables were created only after `useEffect`, so first-paint overlap was possible.
+- [x] Does the P11 candidate remove that automated signal? **Yes on intermediate head `ea5756...`: 554 scheduled / 427 passed / 127 skipped / 0 flaky / 0 failed.**
+- [x] Does the settled UI change visually? **No in the eight reviewed selective baseline pairs: byte-identical and zero pixel diff.**
+- [x] Is a physical Android device connected to the current execution environment? **No usable physical-device boundary is available.**
+- [x] Is physical iOS Safari evidence available in the current execution environment? **No.**
 
 ## Research
 
@@ -78,11 +86,11 @@ Close the UI-system migration only after the current post-P10 product has clean 
 | Ignore the retry because CI is green | no code change | hides a real first-paint geometry gap; violates final-acceptance intent | reject |
 | Change only the test to retry/poll geometry | removes timing flake | can mask real initial overlap | reject as sole fix |
 | Make shell reserve variables available on first paint, then wait only for document-level mounted state | fixes product ownership and keeps evidence deterministic | narrow shell CSS/test change | selected |
-| Add a new browser/device cloud provider | could add device coverage | new cost/secrets/provider boundary; not needed for current source fix | reject for P11 branch |
+| Add a new browser/device cloud provider | could add device coverage | new cost/secrets/provider boundary; not required to fix current source issue | reject for this packet |
 
 ### Research decision
 
-Fix the product ownership first: mobile-nav reserve variables must not depend on a post-hydration effect. Keep the root marker only for document-level behavior that truly requires mounted-shell lifecycle. The browser test must assert shell reserve immediately after the mobile navigation is visible, then separately wait for the mounted document marker before checking document scroll padding. Physical-device acceptance remains a separate gate and is never inferred from browser emulation.
+Fix the product ownership first: mobile-nav reserve variables must not depend on a post-hydration effect. Keep the root marker only for document-level behavior that truly requires mounted-shell lifecycle. The browser test asserts shell reserve immediately after the mobile navigation is visible, then separately waits for the mounted document marker before checking document scroll padding. Physical-device acceptance remains a separate parent-plan gate and is never inferred from browser emulation.
 
 ### Adoption review
 
@@ -92,28 +100,30 @@ Not applicable. No new dependency, provider, service, framework or architecture 
 
 ### Problem
 
-The migration implementation is merged through P10, but the final browser artifact contains one genuine first-attempt WebKit failure and repository lifecycle records lag merged truth. Calling the program complete now would overstate both browser cleanliness and physical-device acceptance.
+The migration implementation is merged through P10, but the final P10 browser artifact contained one genuine first-attempt WebKit failure and repository lifecycle records lagged merged truth. Calling the program complete would overstate browser cleanliness and physical-device acceptance.
 
 ### User stories
 
 - As a mobile MoneyFlow user, fixed bottom navigation never overlays the page because shell reserve geometry exists from first paint.
 - As the project owner, I can distinguish implemented/merged phases from the still-open physical-device acceptance boundary.
-- As a future agent, I can read repository memory and see P0–P10 merged, P11 active, and the exact remaining evidence instead of reopening completed work.
+- As a future agent, I can read repository memory and see P0–P10 merged, P11 candidate evidence, and the exact remaining gates instead of reopening completed work.
 
 ### Acceptance criteria
 
-- [ ] **P11-AC1:** mobile shell navigation reserve and focus/feedback geometry are valid from first paint at supported mobile widths; no hydration-only variable dependency can produce zero shell reserve while mobile navigation is visible.
-- [ ] **P11-AC2:** the exact-head Chromium/WebKit matrix completes with zero failed and zero flaky tests; any intentional skips remain explained by the existing matrix.
-- [ ] **P11-AC3:** selective critical visual evidence is reviewed with zero knowingly unreviewed visual diffs.
-- [ ] **P11-AC4:** physical Android Chrome smoke is executed on a maintained physical Android device and evidence is recorded.
-- [ ] **P11-AC5:** physical iOS Safari smoke is recorded when available; otherwise only explicit owner-provided evidence or an explicit owner waiver may satisfy the parent-plan exception, with limitations recorded.
-- [ ] **P11-AC6:** after physical gates, production journey evidence covers landing → auth boundary → onboarding/authenticated workspace path → Dashboard → transaction add/edit/delete/recovery → Accounts → Reports → Settings without destructive real-user experimentation.
-- [ ] **P11-AC7:** Phase 5–10 lifecycle reconciliation and current project memory reflect actual merges/deployments and do not mark P11/program acceptance before AC1–AC6 are satisfied.
-- [ ] **P11-AC8:** parent UI migration program is archived/completed only after all non-waived P11 acceptance criteria pass and owner approves merge/closure.
+- [x] **P11-AC1:** mobile shell navigation reserve and focus/feedback geometry are owned from first paint at supported mobile widths; candidate source/browser contracts prove no hydration-only dependency is required for shell reserve.
+- [x] **P11-AC2:** candidate Chromium/WebKit matrix completes with zero failed and zero flaky tests; intermediate exact head `ea5756...` recorded 427 passed and 127 intentional skips.
+- [x] **P11-AC3:** selective critical visual evidence is reviewed with zero knowingly unreviewed visual diffs; eight selected P10↔P11 screenshot pairs are byte-identical with zero pixel diff.
+- [ ] **P11-AC4:** physical Android Chrome acceptance is executed on the exact deployed P11 commit and evidence is recorded.
+- [ ] **P11-AC5:** physical iOS/Safari acceptance is executed on the exact deployed P11 commit and evidence is recorded.
+- [ ] **P11-AC6:** after physical gates, affected production-route evidence covers the parent P11 production boundary without destructive real-user experimentation.
+- [x] **P11-AC7:** Phase 5–10 lifecycle reconciliation and candidate current project memory reflect actual merges/deployments while keeping P11/program acceptance open.
+- [ ] **P11-AC8:** parent UI migration program is archived/completed only after P11-AC4 through P11-AC6 pass and owner accepts final closure.
+
+The checked candidate criteria above are **branch acceptance evidence**, not merged product truth. This final documentation head still requires protected exact-head reruns before the PR can reach the owner merge checkpoint.
 
 ### Required states
 
-- Loading/first paint: fixed mobile nav must already have matching content reserve.
+- Loading/first paint: fixed mobile nav already has matching content reserve.
 - Mobile/tablet/desktop: preserve existing supported matrix and safe-area behavior.
 - Accessibility: preserve focus clearance, keyboard path, 200% text and target-size evidence.
 - Recovery: no retry-only masking; a first-attempt browser failure is investigated.
@@ -135,17 +145,18 @@ The migration implementation is merged through P10, but the final browser artifa
 
 ### Architecture fit
 
-`AppShell` already owns mobile navigation geometry. The fix stays in that owner: define layout-critical custom properties where `.shell` can consume them on server-rendered first paint, while retaining the mounted root marker for document-level scroll/focus behavior. Browser evidence remains in the existing critical audit rather than adding a parallel harness.
+`AppShell` already owns mobile navigation geometry. The fix stays in that owner: layout-critical custom properties are available where `.shell` consumes them on server-rendered first paint, while the mounted root marker remains for document-level scroll/focus behavior. Browser evidence stays in the existing critical audit rather than adding a parallel harness.
 
-### Planned changes
+### Implemented changes
 
 | File/area | Change | Reason |
 |---|---|---|
-| `src/components/layout/app-shell.module.css` | make first-paint nav reserve/layer/focus/feedback variables available on `.shell`; preserve document marker rules | eliminate hydration gap |
+| `src/components/layout/app-shell.module.css` | first-paint nav reserve/layer/focus/feedback variables available on `.shell`; document marker rules preserved | eliminate hydration gap |
 | `e2e/audit/critical-browser.audit.spec.ts` | assert shell reserve before mounted marker; wait for marker only before document scroll-padding assertion | deterministic evidence without hiding first paint |
 | `src/lib/app-shell-phase3-contract.test.ts` | lock server-rendered shell ownership of critical variables | prevent regression |
-| P5–P10 reconciliation/current memory | record delivered merge/CI/production truth | remove false active-work interpretation |
-| issue #72 | record exact P11 automated and physical-device state | keep physical gate explicit |
+| `UI_MIGRATION_PHASES_5_10_RECONCILIATION_2026-08-08.md` + current memory | record delivered merge/CI/production truth | remove false active-work interpretation |
+| `UI_PHASE_11_VISUAL_BASELINE_REVIEW_2026-08-08.md` | compare/review eight selected P10↔P11 snapshots | satisfy P11 selective visual review |
+| `UI_PHASE_11_PHYSICAL_DEVICE_ACCEPTANCE_2026-08-08.md` | define exact deployed-build Android/iOS and post-device production checklists | prevent emulation from being misreported as physical acceptance |
 
 ### Data and migration impact
 
@@ -158,46 +169,49 @@ The migration implementation is merged through P10, but the final browser artifa
 
 | Risk/counterexample | Prevention or test |
 |---|---|
-| CSS variable move changes desktop | retain existing values and full browser matrix |
+| CSS variable move changes desktop/settled visuals | full matrix plus eight zero-diff selected visual baselines |
 | Test waits hide a first-paint product defect | shell reserve is measured before waiting for mounted marker |
-| Records say program complete although physical gates are missing | P11 remains implementing/blocked and issue #72 stays open |
-| Emulation is mistaken for physical device | explicit AC4/AC5 and owner boundary |
+| Records say program complete although physical gates are missing | P11 remains active; issue #72 and physical checklist stay open |
+| Emulation is mistaken for physical device | explicit P11-AC4/AC5 and physical checklist |
+| Physical device test uses wrong P10 build | checklist requires exact P11 deployed SHA/Vercel ID before any device row passes |
 
 ### Verification plan
 
 - Static: policy, knowledge, CSS ownership, architecture, lint, typecheck.
 - Unit/domain: complete unit/static-RLS suite; no financial behavior change.
-- Database: should classify not required.
-- Browser: browser smoke and complete P11 Chromium/WebKit matrix; require zero flaky.
-- Responsive/visual: inspect generated cross-device artifact, especially WebKit iPhone and mobile shell.
-- Production/manual: provider read-only evidence now; full P11 production journey only after physical gates.
+- Database: correctly classified not required on intermediate candidate.
+- Browser: browser smoke and complete P11 Chromium/WebKit matrix with zero flaky.
+- Responsive/visual: reviewed selective cross-device P10↔P11 snapshot report.
+- Physical: Android Chrome + iOS/Safari on exact deployed P11 build.
+- Production: affected routes only after physical gates.
 
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| P11-T1 | Fix first-paint mobile shell reserve and lock deterministic browser invariant | P10 merge | source diff + focused/full browser evidence | implementing |
-| P11-T2 | Complete exact-head Chromium/WebKit matrix and review selective visual artifact | P11-T1 | CI artifact, zero flaky/failed | todo |
-| P11-T3 | Execute physical Android Chrome smoke | P11-T2 | physical-device evidence + checklist | blocked: no device boundary available |
-| P11-T4 | Execute physical iOS Safari smoke or record explicit owner waiver | P11-T2 | device evidence or owner waiver | blocked |
-| P11-T5 | Execute dependency-ordered post-physical production journey | P11-T3/P11-T4 | production evidence | blocked |
-| P11-T6 | Reconcile P5–P10 lifecycle records and current memory | verified merge/deploy truth | reconciliation + current-memory diff | implemented on branch; exact-head verification pending |
-| P11-T7 | Close/archive P11 and parent program | P11-T5/P11-T6 + owner merge/acceptance | completed packet + current memory | blocked |
+| P11-T1 | Full static/unit/build/browser/responsive matrix and first-paint remediation | P10 merge | CI #2032 on `ea5756...`, 94 browser pass, 554 matrix / 0 flaky | candidate complete; final-doc head rerun pending |
+| P11-T2 | Selective visual baselines and reviewed snapshot report | P11-T1 | `UI_PHASE_11_VISUAL_BASELINE_REVIEW_2026-08-08.md`, eight zero-diff pairs | candidate complete |
+| P11-T3 | Execute physical Android Chrome acceptance | deployed P11 build | physical-device checklist | blocked: no deployed P11 build/device boundary |
+| P11-T4 | Execute physical iOS/Safari acceptance | deployed P11 build | physical-device checklist | blocked: no deployed P11 build/device boundary |
+| P11-T5 | Verify affected production routes after T1–T4 | P11-T3/P11-T4 | production evidence | blocked |
+| P11-T6 | Record remaining limitations, lifecycle reconciliation and maintenance ownership | verified merge/deploy truth | reconciliation/current memory/physical checklist | candidate complete; final merge pending |
+| P11-T7 | Owner accepts program, archives packet and closes superseded UI plans/issues | P11-T5/P11-T6 | completed packet + current memory + issue disposition | blocked |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-08 | owner | researcher/evaluator | discovery | owner instruction + merged P0–P10 truth | P11 evidence incomplete | inspect exact artifacts and production |
-| 2026-08-08 | evaluator | implementer | implementing | CI #2025 artifact, source root cause, official Playwright guidance | physical devices unavailable/unproven | fix first-paint ownership, then exact-head verify |
-| 2026-08-08 | implementer | ci_or_production | evaluating | PR #321 branch changes | physical gates remain blocked | run exact-head policy/static/browser/security gates |
+| 2026-08-08 | evaluator | implementer | implementing | CI #2025 artifact, source root cause, official Playwright guidance | physical devices unavailable/unproven | fix first-paint ownership |
+| 2026-08-08 | implementer | evaluator | evaluating | `ea5756...`: CI #2032 / CodeQL #1138 / secret #1138; 554 matrix 0 flaky; visual report zero diff | final docs head needs exact rerun | consolidate final records |
+| 2026-08-08 | evaluator | human_owner | owner_merge_checkpoint | PR #321 candidate implementation + automated/visual evidence | no PR preview; physical gates require deployed P11 build | after final exact-head green, owner decides merge/deployment |
 
 ### Current permission boundary
 
 - Granted scope: P11 branch implementation, tests, documentation reconciliation, read-only CI/production inspection.
 - Exact repositories/providers/resources: `Thunderkill016/moneyflow`; MoneyFlow Vercel project read-only evidence.
 - Forbidden writes: `main`, merge, deployment trigger, provider configuration, database/Auth/RLS, production data, branch/ruleset changes.
-- Human approval required before: merge; iOS waiver; any relaxation of physical-device requirement.
+- Human approval required before: merge/deploying the P11 candidate; any parent-plan acceptance relaxation.
 - Rollback or stop condition: any financial/auth behavior change, unexplained visual diff, or browser regression moves the packet back to specification/evaluation.
 
 ## Evaluation
@@ -206,41 +220,58 @@ The migration implementation is merged through P10, but the final browser artifa
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| P11-AC1 | first-paint owner fix + source/browser contracts on PR #321; exact-head run pending | pending |
-| P11-AC2 | P10 baseline: 426 pass / 127 skip / 1 flaky; P11 rerun pending | fail baseline / pending fix |
-| P11-AC3 | P10 artifact reviewed for failure provenance; P11 post-fix visual review pending | pending |
-| P11-AC4 | no physical Android evidence in current environment | blocked |
-| P11-AC5 | no physical iOS evidence/waiver supplied | blocked |
-| P11-AC6 | public production read-only smoke green; dependency-ordered full journey not yet allowed | pending |
-| P11-AC7 | reconciliation/current-memory changes implemented on PR #321 | pending exact-head verification/merge |
-| P11-AC8 | P11 not accepted | blocked |
+| P11-AC1 | AppShell first-paint ownership + source/browser contracts; intermediate exact head `ea5756...` green | candidate pass |
+| P11-AC2 | CI #2032: browser 94/94; UI audit 554 total / 427 pass / 127 skip / 0 flaky / 0 failed | candidate pass |
+| P11-AC3 | eight selected stable P10↔P11 screenshots byte-identical / zero pixel diff; reviewed snapshot report | candidate pass |
+| P11-AC4 | no physical Android evidence and no deployed P11 build | blocked |
+| P11-AC5 | no physical iOS/Safari evidence and no deployed P11 build | blocked |
+| P11-AC6 | P10 public production smoke exists; exact P11 production verification must follow physical gates | blocked |
+| P11-AC7 | P5–P10 reconciliation/current-memory/physical-checklist records implemented on #321 | candidate pass |
+| P11-AC8 | physical + production acceptance and owner closure remain incomplete | blocked |
+
+### Automated evidence on intermediate candidate
+
+Head `ea5756ccee62ba5b6ab56f7a9983a0061289a8ed`:
+
+- CI #2032 / run `31244036703`: success.
+- Browser smoke artifact `9017964741`, digest `sha256:4811fcd625132b32d259de9682c1234ed0dfc58a49845aee946dee789bb25806`: 94 passed, 0 failed/flaky.
+- Cross-device artifact `9018027242`, digest `sha256:4263d05ed8022be90616623cb5853db14a5fe96fbc032be46305c82e40987fd7`: 554 scheduled, 427 passed, 127 intentional skips, 0 failed, 0 flaky.
+- CodeQL #1138 / `31244036704`: success.
+- Secret-history #1138 / `31244036708`: success.
+- Database checks: not required for this presentation/test/docs change.
+
+These results predate the final evidence-only documentation commits. The final current head must rerun the protected gates before owner review.
 
 ### Research and adoption evidence
 
-- Official Playwright assertions/retries/emulation/Android guidance remains applicable to the final test boundary.
+- Official Playwright assertions/retries/emulation/Android guidance remains applicable to the test/evidence boundary.
 - No new tool/dependency/provider was adopted.
 - Emulation remains explicitly separated from physical-device acceptance.
 
 ### Review findings
 
-- Correctness: root cause is first-paint CSS ownership, not financial/domain logic.
+- Correctness: root cause was first-paint CSS ownership, not financial/domain logic.
 - Security/ownership: no Auth/RLS/provider boundary changed.
-- UI/UX/accessibility: preserve existing safe-area/focus/target-size semantics; exact matrix pending.
+- UI/UX/accessibility: selected stable screenshots are unchanged; matrix covers supported device/browser/text/keyboard projects.
 - Maintainability/duplication: values remain in AppShell ownership rather than a new global compatibility layer.
-- Scope compliance: six P11 files only before exact-head follow-up edits.
+- Scope compliance: P11 changes remain limited to AppShell geometry, contracts and evidence/lifecycle records.
 
 ### Remaining limitations
 
 - Browser emulation does not satisfy the physical-device gate.
-- Current execution environment has no usable physical Android device boundary.
-- No iOS physical evidence or owner waiver has been supplied.
+- Current execution environment has no usable physical Android or iOS/Safari device boundary.
+- PR #321 has no Vercel preview deployment; physical checks cannot validate the fix until an owner-approved deployed P11 commit exists.
+- The P0–P11 program therefore remains open.
 
 ## Delivery record
 
 - Branch: `agent/ui-phase-11-final-acceptance`
 - PR: #321
-- Squash commit: pending owner decision
-- CI run: new exact-head run required after packet-hygiene correction
-- Production deployment: current pre-P11 main `dpl_5m5ihzL1zNCPoxLAHFCweDQDYAkf` READY
-- Production flow verified: public landing/login and unauthenticated dashboard boundary only; full P11 flow pending
+- Squash/merge commit: pending owner decision
+- Intermediate exact evidence: `ea5756ccee62ba5b6ab56f7a9983a0061289a8ed` — CI #2032 / CodeQL #1138 / secret #1138 success
+- Final documentation head protected rerun: pending
+- Current production deployment: pre-P11 `main@a65f6f59167b894f9e538e5840e989e27250fdd4`, `dpl_5m5ihzL1zNCPoxLAHFCweDQDYAkf` READY
+- P11 preview deployment: none observed
+- Physical-device acceptance: blocked
+- Post-device P11 production verification: blocked
 - Work packet moved to `docs/plans/completed/`: no
