@@ -1,0 +1,125 @@
+name: Provider Sync Free Dry Run
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  simulate-provider-history:
+    if: github.event.pull_request.head.ref == 'agent/provider-sync-free-dry-run' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+        with:
+          version: 2.111.0
+
+      - name: Simulate production migration history and dry-run
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          production_tail="20260802022923"
+          expected_moneyflow=(
+            20260802060004
+            20260803090000
+            20260803142000
+            20260803144500
+            20260803153000
+            20260804110000
+            20260804160000
+            20260804160100
+            20260804160200
+            20260804160300
+          )
+          remote_only_atoryn=(
+            20260804171954_create_atoryn_design_agent_bridge
+            20260804184225_atoryn_design_cloud_v07
+            20260804184624_atoryn_design_cloud_lockdown
+            20260805050340_atoryn_native_editor_direct_control_v1
+            20260805050355_atoryn_native_editor_project_metadata_v1
+            20260805050413_atoryn_native_editor_activity_metadata_v1
+            20260805050429_atoryn_native_editor_list_commands_v1
+          )
+
+          cleanup() {
+            supabase stop --no-backup >/dev/null 2>&1 || true
+            for migration in "${remote_only_atoryn[@]}"; do
+              rm -f "supabase/migrations/${migration}.sql"
+            done
+          }
+          trap cleanup EXIT
+
+          echo "Supabase CLI: $(supabase --version)"
+          echo "Simulated production MoneyFlow tail: ${production_tail}"
+
+          for migration in "${remote_only_atoryn[@]}"; do
+            path="supabase/migrations/${migration}.sql"
+            if [[ -e "$path" ]]; then
+              echo "::error::Expected remote-only Atoryn migration to be absent locally: $path"
+              exit 1
+            fi
+            printf '%s\n' '-- Remote-only history placeholder for branch-local selection simulation.' > "$path"
+          done
+
+          supabase db start
+          supabase db reset --local --version "$production_tail" --no-seed
+
+          atoryn_versions=()
+          for migration in "${remote_only_atoryn[@]}"; do
+            atoryn_versions+=("${migration%%_*}")
+          done
+          supabase migration repair "${atoryn_versions[@]}" --status applied --local
+
+          echo "=== Simulated union migration history ==="
+          supabase migration list --local | tee provider-sync-migration-list.log
+
+          echo "=== Supabase CLI dry-run ==="
+          supabase db push --local --include-all --dry-run 2>&1 | tee provider-sync-dry-run.log
+
+          mapfile -t pending_versions < <(
+            awk -F '│' '
+              /^[[:space:]]*[0-9]{14}[[:space:]]*│[[:space:]]*│/ {
+                gsub(/[[:space:]]/, "", $1);
+                print $1;
+              }
+            ' provider-sync-migration-list.log
+          )
+
+          if [[ "${#pending_versions[@]}" -ne "${#expected_moneyflow[@]}" ]]; then
+            echo "::error::Expected ${#expected_moneyflow[@]} pending MoneyFlow migrations, found ${#pending_versions[@]}"
+            printf 'Pending: %s\n' "${pending_versions[*]:-<none>}"
+            exit 1
+          fi
+
+          for index in "${!expected_moneyflow[@]}"; do
+            if [[ "${pending_versions[$index]}" != "${expected_moneyflow[$index]}" ]]; then
+              echo "::error::Pending migration mismatch at index $index: expected ${expected_moneyflow[$index]}, found ${pending_versions[$index]}"
+              exit 1
+            fi
+          done
+
+          for version in "${expected_moneyflow[@]}"; do
+            if ! grep -q "$version" provider-sync-dry-run.log; then
+              echo "::error::Dry-run output did not mention expected migration version $version"
+              exit 1
+            fi
+          done
+
+          for migration in "${remote_only_atoryn[@]}"; do
+            version="${migration%%_*}"
+            if grep -q "$version" provider-sync-dry-run.log; then
+              echo "::error::Dry-run attempted already-applied Atoryn migration version $version"
+              exit 1
+            fi
+          done
+
+          echo "Provider Sync free dry-run selected exactly the 10 reviewed MoneyFlow migrations."
