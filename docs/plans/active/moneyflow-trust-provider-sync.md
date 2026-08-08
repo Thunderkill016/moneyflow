@@ -1,330 +1,247 @@
 # MoneyFlow Trust — Provider Sync
 
-**Status:** planned
-**Execution state:** planned
-**Active role:** planner
-**Permission scope:** provider_read
+**Status:** active
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
-**Issue/PR:** #325 reconciliation; provider write requires later explicit owner approval
+**Issue/PR:** #325 reconciliation; #326 free dry-run evidence; #327 production DB evidence
 **Last updated:** 2026-08-08
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
 **Parent:** `docs/plans/active/public-beta-trust.md`
-**Current main audited:** `fd984a18201f1663d3d8c622d51c41dfd650c816`
+**Current main audited:** `8d0070b3d039fc80647e888aa1bd89f18b4de0b4`
 **Supabase project:** MoneyFlow / `fwpldsdkpzhswpuctbke`
 
 ## Outcome
 
-Align production Supabase database history/schema and the `delete-account` Edge Function with accepted current `main` before Phase 1 Secure can advance from `merged` to `deployed/accepted` and before Phase 2 Recover implementation begins.
+Align production Supabase with accepted MoneyFlow repository contracts before Phase 1 Secure can be accepted and before Phase 2 Recover begins.
 
-This packet is planned at a read-only boundary. It does **not** authorize or execute production DDL, migration-history repair, Edge deployment, provider configuration changes, production-data mutation or destructive account deletion.
+The exact ten reviewed MoneyFlow migrations were applied to production on 2026-08-08 and their original repository versions now exist in remote migration history. Review/reconciliation/rules schema is present and structurally verified. Provider Sync is **not fully aligned yet** because:
+
+1. production `financial_mutation_audit_events` currently gives `service_role` effective `INSERT`, `UPDATE` and `DELETE`, while the merged pgTAP contract requires those privileges to be denied; and
+2. production `delete-account` remains Edge Function v5 without the merged recent-auth/current-tenant implementation.
+
+No new ACL migration, Edge deployment or destructive real-user deletion is authorized by this evidence PR.
 
 ## Repository reconnaissance
 
-### Production Edge drift
+### Exact migration execution
 
-Read-only production inspection on 2026-08-08 shows `delete-account`:
+The reviewed source set, applied in dependency order from exact `main@8d0070b3d039fc80647e888aa1bd89f18b4de0b4`, was:
 
-- active version **5**;
-- `verify_jwt=true`;
-- authenticates bearer user with `getUser()` and then calls `purge_user_tenant_data`;
-- has no `evaluateAccountDeletionRecentAuth` import;
-- has no verified AMR recent-auth gate;
-- has a tenant inventory older than current provenance/rules/reconciliation/audit ownership.
+1. `20260802060004_cover_foreign_key_indexes.sql`
+2. `20260803090000_transaction_review_bulk_correction.sql`
+3. `20260803142000_account_reconciliation_current_main.sql`
+4. `20260803144500_account_reconciliation_ci_hardening.sql`
+5. `20260803153000_account_reconciliation_workspace_read_model.sql`
+6. `20260804110000_authenticated_deterministic_rules.sql`
+7. `20260804160000_financial_mutation_audit.sql`
+8. `20260804160100_financial_read_plan_indexes.sql`
+9. `20260804160200_financial_audit_service_role_inspection.sql`
+10. `20260804160300_financial_audit_request_id_token.sql`
 
-Current `main` differs materially:
+Seven legitimate Atoryn migration-history rows in the same Supabase project were preserved unchanged.
 
-- verifies JWT claims and evaluates AMR before tenant purge;
-- allows only current `password`/`oauth` recency evidence;
-- returns `recent_auth_required` before destructive authority when evidence is stale/unsupported;
-- current tenant inventory includes `transaction_import_provenance`, `inbox_rules`, `account_reconciliations`, `account_reconciliation_events` and `financial_mutation_audit_events`.
+The connected Supabase migration endpoint generated current-time history versions while applying SQL. After each successful tracked application, only that unique successful row's `version` field was guarded-normalized to the original repository timestamp. No failed or unapplied SQL was marked applied and no Atoryn history row was rewritten.
 
-Vercel `READY` for #324 therefore proves the Next.js deployment only.
+### Production catalog and data state
 
-### Exact database migration drift
+Post-write production verification found:
 
-Production MoneyFlow migration history reaches `20260802022923_dashboard_read_bundle`. The same Supabase project also contains seven newer legitimate Atoryn design/editor migration-history rows that must be preserved.
+- all ten original MoneyFlow versions present exactly once;
+- no temporary provider-generated rollout version remaining;
+- **27/27** checked target indexes present and valid/ready;
+- **10/10** checked target constraints validated;
+- baseline affected data preserved: 47 financial transactions, 47 transaction entries, 6 Inbox candidates, 3 accounts, 33 categories, 0 monthly budgets and 0 import-provenance rows;
+- `financial_transactions.review_status`: 0 null rows;
+- `transaction_entries.reconciliation_state`: 0 null rows;
+- `transaction_review_feed`: 45 active rows;
+- `account_reconciliation_entry_feed`: 45 active logical account-leg rows;
+- reconciliation/rules/audit tables have RLS enabled;
+- reconciliation companion views are `security_invoker=true`;
+- final database activity check found 0 other active sessions.
 
-Exact-head CI #2070 fresh-reset logs plus direct production version checks prove the exact **10-file current-main MoneyFlow missing set**:
+### Audit least-privilege mismatch
 
-| Order | Migration | Provenance | Main effect |
-|---:|---|---|---|
-| 1 | `20260802060004_cover_foreign_key_indexes.sql` | #236 | FK-supporting indexes |
-| 2 | `20260803090000_transaction_review_bulk_correction.sql` | #255 | transaction review enum/column/index/view/RPCs |
-| 3 | `20260803142000_account_reconciliation_current_main.sql` | #261 | reconciliation domain/tables/entry state/RPCs/triggers |
-| 4 | `20260803144500_account_reconciliation_ci_hardening.sql` | #261 | reconciliation FK indexes/function hardening |
-| 5 | `20260803153000_account_reconciliation_workspace_read_model.sql` | #263 | reconciliation read model |
-| 6 | `20260804110000_authenticated_deterministic_rules.sql` | #265 | `inbox_rules`, RLS/triggers/RPCs + rule evidence |
-| 7 | `20260804160000_financial_mutation_audit.sql` | #270 | financial audit domain/triggers/current tenant purge |
-| 8 | `20260804160100_financial_read_plan_indexes.sql` | #270 | financial read-plan index |
-| 9 | `20260804160200_financial_audit_service_role_inspection.sql` | #270 | service-role audit inspection boundary |
-| 10 | `20260804160300_financial_audit_request_id_token.sql` | #270 | bounded request-correlation contract |
+The merged database test `supabase/tests/database/financial_audit_atomicity_and_service_role.test.sql` requires:
 
-All ten versions are absent from production migration history.
+- `service_role` can `SELECT` `public.financial_mutation_audit_events`; and
+- `service_role` **cannot** `INSERT`, `UPDATE` or `DELETE` that table.
 
-Exact-head CI #2070:
+Live production ACL inspection instead shows broad direct `service_role` table privileges, including DML. This appears consistent with an older project-wide Supabase default-grant pattern also visible on established tables, but repository tests are the accepted MoneyFlow contract and therefore outrank that platform-history explanation.
 
-- fresh local reset applied the complete current migration chain including all ten in this order;
-- `supabase test db` ran **25 pgTAP files / 478 tests / all successful**.
+Result: the audit table/triggers/history are deployed, but the effective provider least-privilege boundary is **partial**, not aligned. It requires a new reviewed forward migration/spec; it must not be patched ad hoc inside #327.
 
-### Production catalog/preflight state
+### Current Edge drift
 
-Read-only catalog checks confirm the expected pre-migration state:
-
-- missing types: `transaction_review_status`, `entry_reconciliation_state`, `financial_audit_action`;
-- missing columns: `financial_transactions.review_status`; reconciliation fields on `transaction_entries`; rule-evidence fields on `inbox_candidates`;
-- missing tables: `account_reconciliations`, `account_reconciliation_events`, `inbox_rules`, `financial_mutation_audit_events`;
-- checked target index names are absent, so no known same-name collision exists.
-
-Affected row counts at inspection:
-
-- financial transactions: 47;
-- transaction entries: 47;
-- Inbox candidates: 6;
-- accounts: 3;
-- categories: 33;
-- monthly budgets: 0;
-- transaction-import provenance: 0.
-
-Small tables lower expected lock duration but do not relax production safety requirements.
-
-### Account-deletion stale-purge finding
-
-Production contains `transaction_import_provenance`, while deployed Edge v5 and current production purge logic predate that ownership.
-
-Relevant provenance FKs:
-
-- Inbox candidate: `ON DELETE RESTRICT`;
-- financial transaction: `ON DELETE RESTRICT`;
-- Auth user: `ON DELETE CASCADE`.
-
-At inspection time provenance has zero rows, so this specific failure shape is not active. The destructive runtime is still structurally stale. No destructive production request was executed.
-
-### Per-migration rollout review
-
-| Group | Risk | Decision |
-|---|---|---|
-| FK/read-plan indexes | ordinary `CREATE INDEX` can block writes during build | low at current size; apply in bounded window |
-| transaction review | enum + constant-default `NOT NULL` column + index/view/RPCs; `ALTER TABLE` lock | low/moderate |
-| reconciliation foundation | largest schema-lock/constraint surface on `transaction_entries` plus new domain tables | moderate; apply only after preflight |
-| reconciliation hardening/read model | supporting indexes/functions/view | low after foundation |
-| authenticated rules | new RLS table + nullable candidate evidence columns/triggers/RPCs | low/moderate |
-| financial audit | new append-only audit table + mutation triggers + complete purge replacement | moderate/high operational importance |
-| audit service-role inspection | privilege change | low, but least-privilege sensitive |
-| audit request-id token | constraint/helper on new audit table | low if applied immediately after audit |
-
-PostgreSQL 17 behavior used in this risk review:
-
-- `ALTER TABLE` generally needs strong locking;
-- non-volatile constant defaults do not require a full table rewrite for existing rows;
-- ordinary `CREATE INDEX` permits reads but blocks writes while building.
-
-### Dependency order
-
-Do not reorder the files:
-
-1. review precedes reconciliation/audit because later code references `review_status`;
-2. reconciliation foundation precedes hardening/read model/audit;
-3. rules precede current purge because current purge references `inbox_rules`;
-4. financial audit precedes its index/grant/request-id follow-ups;
-5. DB alignment precedes current Edge deployment because current Edge tenant verification references new provider-owned tables.
+Production `delete-account` remains v5 with `verify_jwt=true`, but without #324's merged AMR recent-auth evaluator/current tenant inventory. Vercel `READY` proves only the Next.js deployment and does not deploy Supabase Edge Functions.
 
 ## Research
 
-### Official migration/deployment mechanics
+### Replay and migration-selection evidence
 
-Current Supabase CLI documentation establishes:
+Exact-head CI #2070 replayed the complete current migration chain and passed **25 pgTAP files / 478 tests**.
 
-- local migration files and remote `supabase_migrations.schema_migrations` are separate histories;
-- `migration list` compares migration versions;
-- `migration fetch` fetches remote migration files;
-- `db push --dry-run` previews without applying;
-- `db push --include-all` includes local migrations absent from remote history, including older local versions;
-- `migration repair` changes tracking state and is not a substitute for applying SQL;
-- Edge Functions require explicit Supabase deployment; Vercel deployment is unrelated.
+PR #326 at exact head `0662ef8690ad204b145d91da0c9d29576e2abfc7` reconstructed the live union-history shape in an ephemeral local Supabase database and ran:
 
-### Shared remote history decision
+`supabase db push --local --include-all --dry-run`
 
-Seven legitimate Atoryn migration-history rows exist in the same Supabase project and contain statement payloads. Do **not** use `migration repair --status reverted` to erase them.
+GitHub Actions run `31259696558` selected exactly the ten MoneyFlow migrations above and no Atoryn migration. Fresh live production history immediately before the write matched the simulated history shape.
 
-Candidate read-only execution path:
+**Accepted limitation:** an actual linked-production CLI dry-run was not executed. The owner explicitly said **“Go”** after this limitation and the exact DB write boundary were stated, accepting the free local union-history simulation plus fresh live provider preflight for that one DB checkpoint. This does not retroactively make the linked dry-run criterion pass.
 
-1. use an ephemeral provider-sync working copy at exact MoneyFlow `main`;
-2. materialize the legitimate remote-only Atoryn migration history in that ephemeral copy using read-only migration fetch/history data;
-3. do not commit fetched Atoryn migrations into MoneyFlow by default;
-4. run `supabase migration list --linked`;
-5. run `supabase db push --linked --include-all --dry-run`;
-6. require the dry-run to list **exactly the ten MoneyFlow migrations above and nothing else**.
+### Provider findings after execution
 
-If the current CLI still reports an irreconcilable remote/local mismatch, stop. Do not mutate remote history automatically.
+Post-write advisors/logs were inspected. Newly created/low-traffic indexes appearing as `unused_index` INFO do not by themselves invalidate rollout correctness. Existing/generic provider findings remain separate hardening inputs.
 
-### Alternatives considered
-
-| Option | Decision |
-|---|---|
-| continue Recover while provider state differs from Git | reject |
-| call #324 fully deployed based on Vercel only | reject |
-| deploy current Edge before DB alignment | reject |
-| apply ad-hoc DDL via SQL | reject; bypasses migration ownership/history |
-| repair away legitimate Atoryn history | reject |
-| create replacement migration versions for the historical 10 | reject; loses accepted version identity |
-| ephemeral union history + exact dry-run + owner-approved standard push | selected candidate |
+The audit ACL mismatch is different: it directly contradicts a merged pgTAP invariant and therefore remains a Provider Sync blocker.
 
 ### Adoption review
 
-No new dependency/service/provider is adopted. This aligns the existing Supabase provider with already-merged repository contracts.
+No new dependency, provider, service, framework or runtime architecture is adopted by #327. Any ACL correction requires a new reviewed migration rather than a console-only or ad-hoc production change.
 
 ## Specification
 
 ### Problem
 
-Git and production Supabase are materially split. Security-sensitive deletion code is newer in Git than the production Edge Function, while ten merged DB migrations are absent from production. Schema-skew fallbacks may hide some missing capabilities but cannot establish public-beta trust.
+The ten-file migration-history/schema drift is resolved, but production still differs from the merged MoneyFlow contract at two trust boundaries: audit-table `service_role` DML privilege and the stale destructive Edge Function.
 
-### User stories
+### Safety constraints
 
-- As a user, production deletion is protected by the current merged recent-auth policy.
-- As a user, merged reconciliation/rules/audit capabilities are backed by their intended schema.
-- As the owner, production migration/function state is traceable to exact repository contracts before public beta.
+- No fabricated financial rows, balance repair or destructive real-user test.
+- Preserve integer money, transfer neutrality, split exactness, RLS and tenant ownership.
+- Preserve legitimate Atoryn migration history.
+- Never copy provider credentials or secrets into repository evidence.
+- Do not deploy current Edge or change production ACLs without a new explicit owner checkpoint.
+- Do not alter the historical ten migration files in place.
 
 ### Acceptance criteria
 
-- [x] PS-AC1: remote migration history and Edge source/version captured read-only.
-- [x] PS-AC2: current-main/provider drift recorded without writes.
-- [x] PS-AC3: exact missing MoneyFlow set proven as ten files.
-- [x] PS-AC4: current migration chain including all ten replays and 478 pgTAP assertions pass.
-- [x] PS-AC5: per-migration dependency/lock/data/privilege risks and production preflight recorded.
-- [ ] PS-AC6: actual linked union-history CLI dry-run lists exactly the ten reviewed MoneyFlow migrations and no unrelated write.
-- [ ] PS-AC7: owner explicitly approves exact production DB write boundary.
-- [ ] PS-AC8: approved migrations are applied in order and remote history/catalog matches current main.
-- [ ] PS-AC9: post-migration RLS/grants/functions/indexes/advisors and core DB invariants are verified.
-- [ ] PS-AC10: owner explicitly approves current `delete-account` Edge deployment.
-- [ ] PS-AC11: production Edge read-back proves recent-auth/current tenant inventory/`verify_jwt=true`.
-- [ ] PS-AC12: safe stale-auth/password/Google step-up evidence is recorded without destructive real-user deletion.
-- [ ] PS-AC13: no affected provider/runtime error cluster appears during verification.
-- [ ] PS-AC14: P1/current memory advances only after provider evidence exists.
-
-### Financial and security constraints
-
-- No fabricated rows, data repair or destructive real-user test.
-- Preserve integer money, transfer neutrality, split exactness, RLS and tenant ownership.
-- Do not deploy current Edge before required DB objects exist.
-- Do not edit migration history as a shortcut for unapplied SQL.
-- Preserve legitimate Atoryn remote migration history.
-- Never copy service-role credentials/secrets into repository evidence.
-
-### Out of scope
-
-- Recover implementation.
-- New product features/UI redesign.
-- Atoryn schema cleanup unrelated to this MoneyFlow rollout.
-- Destructive production account deletion.
+- [x] PS-AC1: remote migration history and Edge source/version captured.
+- [x] PS-AC2: current-main/provider drift recorded.
+- [x] PS-AC3: exact MoneyFlow migration set proven as ten files.
+- [x] PS-AC4: complete current migration chain replays; 478 pgTAP assertions pass.
+- [x] PS-AC5: migration dependency/lock/data/privilege risks and production preflight recorded.
+- [ ] PS-AC6: actual linked-production union-history CLI dry-run lists exactly the reviewed MoneyFlow write set. **Not executed; accepted limitation for the consumed DB checkpoint.**
+- [x] PS-AC7: owner approved the exact ten-migration production DB write with “Go”.
+- [x] PS-AC8: ten source migrations applied in order; original remote versions/catalog objects exist and Atoryn history is preserved.
+- [ ] PS-AC9: post-migration provider invariants fully match merged RLS/grant/function/index contracts. **Blocked by effective `service_role` DML on `financial_mutation_audit_events`.**
+- [ ] PS-AC10: owner approves a reviewed forward audit-ACL hardening migration.
+- [ ] PS-AC11: production audit effective privileges satisfy the merged pgTAP contract after hardening.
+- [ ] PS-AC12: owner separately approves current `delete-account` Edge deployment after DB contract alignment.
+- [ ] PS-AC13: production Edge read-back proves current recent-auth/current tenant inventory and `verify_jwt=true`.
+- [ ] PS-AC14: safe stale/fresh password and supported OAuth/Google step-up evidence is recorded without destructive real-user deletion.
+- [ ] PS-AC15: no affected provider/runtime error cluster appears during the post-deployment verification window.
+- [ ] PS-AC16: P1/current memory advances only after provider evidence exists.
 
 ## Implementation plan
 
-### Database write candidate
+### Completed ten-file DB rollout
 
-After PS-AC6 and explicit owner approval:
+| Order | Exact version | Result | Key verification |
+|---:|---|---|---|
+| 1 | `20260802060004` | applied | 14/14 FK-supporting indexes |
+| 2 | `20260803090000` | applied | review type/column/view + RPCs |
+| 3 | `20260803142000` | applied | reconciliation domain/tables/entry state/RPCs |
+| 4 | `20260803144500` | applied | supporting reconciliation indexes |
+| 5 | `20260803153000` | applied | security-invoker reconciliation entry view |
+| 6 | `20260804110000` | applied | rules table/RLS/evidence/RPCs |
+| 7 | `20260804160000` | applied | audit table/RLS/triggers/current tenant purge |
+| 8 | `20260804160100` | applied | financial read-plan index |
+| 9 | `20260804160200` | applied | explicit audit inspection grant |
+| 10 | `20260804160300` | applied | request-id token constraint/helper boundary |
 
-1. recapture remote pre-state immediately before write;
-2. check for unexpected long-running/locking transactions on affected tables;
-3. use standard Supabase migration push from the exact reviewed ephemeral union-history working copy with `--include-all` and no seed/role flags;
-4. stop on the first error and never manually mark unapplied SQL as applied;
-5. verify all ten original MoneyFlow versions in remote history;
-6. verify expected types/columns/tables/indexes/functions/RLS/grants;
-7. run read-only integrity checks/advisors and safe app/RPC reads;
-8. only then consider Edge deployment.
+### Next required database action
+
+Create a new bounded specification/migration that makes the **effective production** privileges on `public.financial_mutation_audit_events` satisfy the merged test contract:
+
+- `service_role`: SELECT yes;
+- `service_role`: INSERT/UPDATE/DELETE no.
+
+The migration must account for project-level/default privilege behavior rather than assuming one table-level `REVOKE` is sufficient. It requires fresh replay/pgTAP evidence and a separate owner provider-write approval before production execution.
 
 ### Edge deployment candidate
 
-After DB verification and explicit owner approval:
+Only after the audit privilege contract is aligned and separately approved:
 
-1. capture current production Edge v5 metadata/hash;
+1. recapture current production Edge v5 metadata/source;
 2. deploy current `delete-account` bundle including `_shared/account-deletion-recent-auth.ts`;
 3. preserve `verify_jwt=true`;
 4. read back deployed version/source/hash;
 5. prove recent-auth gate and current tenant inventory exist;
-6. exercise ordinary/stale/fresh provider flows without confirmed destructive deletion;
-7. inspect provider/runtime errors;
-8. reconcile Secure lifecycle.
+6. exercise safe stale/fresh password and supported OAuth/Google paths without confirmed destructive deletion;
+7. inspect Auth/Edge/API/Postgres runtime errors;
+8. reconcile P1 Secure and parent Trust state from evidence.
 
 ### Rollback / forward-fix
 
-The ten migrations are additive/behavioral history already expected by current application code; blind rollback is not the default.
-
-- If a migration fails transactionally, stop and inspect actual schema/history before repair.
-- Never mark a failed migration applied.
-- Index failures should be forward-fixed after inspecting partial/invalid indexes.
-- If audit triggers break valid financial mutation after migration, prefer a forward fix under an explicit emergency owner boundary.
-- Edge rollback to v5 would reintroduce a known security gap, so prefer a forward fix unless the new deployment itself is unsafe.
-
-### Verification plan
-
-- Pre-write: actual linked CLI dry-run, existing replay evidence, refreshed provider pre-state/lock checks.
-- Post-DB: migration history, catalog, RLS/grants, functions/indexes, advisors and safe app/RPC reads.
-- Post-Edge: version/source/hash + `verify_jwt=true` read-back.
-- Product: safe password/OAuth step-up; no destructive delete.
-- Observability: affected Supabase DB/Auth/Edge and Vercel error windows.
+The historical ten migrations are now production history and are not rollback targets. Any newly discovered provider-contract mismatch should be corrected through a new reviewed forward migration. Edge rollback to v5 after a future Edge rollout would restore a known recent-auth gap and therefore requires explicit owner approval if ever needed.
 
 ## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
 | PS-T1 | capture production migration/function baseline | live provider reads | complete |
-| PS-T2 | prove exact ten-file MoneyFlow missing set | CI sequence + remote version checks | complete |
-| PS-T3 | review SQL/dependencies/lock/data risks | source + production preflight | complete |
+| PS-T2 | prove exact ten-file MoneyFlow set | CI sequence + remote checks | complete |
+| PS-T3 | review migration dependencies/production risks | source + provider preflight | complete |
 | PS-T4 | prove full migration replay | CI #2070: 25 pgTAP files / 478 pass | complete |
-| PS-T5 | run actual union-history linked `--include-all --dry-run` | CLI read-only output | todo |
-| PS-T6 | owner DB provider-write checkpoint | explicit approval | blocked by PS-T5 |
-| PS-T7 | apply/verify approved ten migrations | remote history/catalog/integrity evidence | blocked |
-| PS-T8 | owner Edge provider-write checkpoint | explicit approval | blocked by PS-T7 |
-| PS-T9 | deploy/read back current `delete-account` | version/source/hash | blocked |
-| PS-T10 | production-safe recent-auth provider acceptance | password/Google evidence | blocked |
-| PS-T11 | reconcile P1/parent/current memory | accepted provider evidence | blocked |
+| PS-T5 | actual linked-production dry-run | not executed; #326 local union-history simulation used for consumed DB checkpoint | accepted limitation |
+| PS-T6 | owner approve exact ten-file DB write | explicit “Go” | complete |
+| PS-T7 | apply exact ten migrations and verify schema/history | live production evidence | complete |
+| PS-T8 | reconcile effective audit-table least privilege | merged pgTAP contract vs live ACL | todo |
+| PS-T9 | owner approve reviewed ACL hardening write | explicit owner checkpoint | blocked by PS-T8 plan/review |
+| PS-T10 | apply/verify ACL hardening migration | pgTAP + live privilege evidence | blocked by PS-T9 |
+| PS-T11 | owner approve current Edge deployment | separate explicit checkpoint | blocked by PS-T10 |
+| PS-T12 | deploy/read back current `delete-account` | version/source/hash | blocked by PS-T11 |
+| PS-T13 | production-safe recent-auth acceptance | stale/fresh password/Google evidence | blocked by PS-T12 |
+| PS-T14 | reconcile P1/parent/current memory | accepted provider evidence | in progress |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open boundary | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-08 | researcher | planner | specified | provider migration/catalog/Edge reads | exact set/replay/risk review incomplete | continue read-only |
-| 2026-08-08 | planner | evaluator | planned | exact 10-file diff; CI #2070 replay/478 pgTAP; per-file risk review | actual linked CLI dry-run not available through current connector | capture real dry-run in a linked CLI environment; no provider writes |
+| 2026-08-08 | researcher | planner | `specified` | provider migration/catalog/Edge reads | exact rollout evidence incomplete | plan provider sync |
+| 2026-08-08 | planner | evaluator | `planned` | exact ten-file set; CI #2070; risk review | linked dry-run unavailable | run non-writing simulation |
+| 2026-08-08 | evaluator | human owner | `evaluating` | #326 simulation + fresh live preflight | linked-production dry-run absent | owner DB decision |
+| 2026-08-08 | human owner | CI/production | `implementing` | explicit “Go” | exact ten-file write only | apply and verify ten migrations |
+| 2026-08-08 | CI/production | evaluator | `evaluating` | ten exact versions; catalog/invariants/advisors; live ACL check | audit least-privilege mismatch + Edge v5 | document finding; no new provider write |
 
 ### Current permission boundary
 
-- Allowed: GitHub branch/docs work; GitHub/Vercel/Supabase read-only inspection; official research; local/ephemeral CLI dry-run that does not mutate provider state.
-- Current provider scope: `provider_read`.
-- Forbidden: production DDL, actual `db push`, migration repair, Edge deployment, provider configuration change, production-data mutation and real-account deletion.
-- DB write approval can be requested only after the exact dry-run exists.
-- Edge write approval can be requested only after DB alignment evidence exists.
+The owner-approved ten-migration DB authorization has been consumed and completed. Current provider scope is read-only. Allowed now: branch/PR evidence work and read-only GitHub/Vercel/Supabase verification.
+
+Forbidden without a new explicit owner checkpoint: ACL/DDL changes, Edge deployment, provider configuration change, production-data mutation and destructive account deletion.
 
 ## Evaluation
 
 ### Acceptance evidence
 
-- production Edge v5 lacks current recent-auth: **drift confirmed**;
-- production DB lacks exact 10 merged MoneyFlow migrations: **drift confirmed**;
-- exact current migration chain replays all ten and passes 478 pgTAP assertions: **pass**;
-- per-file dependency/lock/data/privilege review: **pass**;
-- production catalog/row-count preflight: **pass for planning**, not a write guarantee;
-- legitimate Atoryn remote history preserved by plan: **pass**;
-- no provider write performed: **pass**;
-- actual linked CLI union-history dry-run: **pending**.
+- exact ten-file current migration chain + 478 pgTAP assertions: **pass in clean replay**;
+- free local union-history CLI dry-run selected exactly ten MoneyFlow migrations: **pass as simulation**;
+- actual linked-production CLI dry-run: **not executed / accepted limitation for the consumed DB checkpoint**;
+- ten migrations applied under original repository versions: **pass**;
+- seven legitimate Atoryn history rows preserved: **pass**;
+- target indexes/constraints/RLS/views and data-shape invariants: **verified**;
+- effective production audit `service_role` DML denial: **fail / open blocker**;
+- production Edge current recent-auth/current-tenant alignment: **pending**;
+- post-Edge safe recent-auth acceptance: **pending**;
+- destructive real-user deletion: **not performed and not required as evidence**.
 
-### Review finding
+### Current review finding
 
-**Provider Sync is the highest-priority MoneyFlow Trust blocker.** Recover implementation must not start until production Supabase DB and destructive Edge runtime align with current `main` and Secure provider acceptance completes.
-
-### Remaining limitations
-
-- actual linked CLI `db push --include-all --dry-run` evidence is not captured;
-- production migrations remain unapplied;
-- production Edge remains v5;
-- live provider step-up is unverified.
+**Provider Sync remains evaluating.** The ten-file migration drift is closed, but MoneyFlow must not call the database provider-aligned until the audit-table effective least-privilege invariant is restored. After that, the remaining destructive-runtime blocker is production `delete-account` v5 plus safe recent-auth provider acceptance.
 
 ## Delivery record
 
-- Discovery/reconciliation branch: `agent/moneyflow-trust-reconcile-p1`.
-- PR: #325.
-- Provider writes: none.
-- Production data writes: none.
-- Current state: `planned` at the read-only CLI dry-run boundary.
+- Discovery/reconciliation PR: #325.
+- Free dry-run probe: #326, closed unmerged.
+- Evidence/reconciliation PR: #327.
+- Database source baseline: exact `main@8d0070b3d039fc80647e888aa1bd89f18b4de0b4`.
+- Production ten-file migration execution: complete on 2026-08-08.
+- Atoryn shared history: preserved.
+- Audit effective least-privilege: **not aligned**.
+- Edge writes after DB execution: none.
+- Destructive production-data tests: none.
+- Current state: `evaluating`; next provider write requires a new explicit owner checkpoint.
