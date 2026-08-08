@@ -75,6 +75,11 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     return () => window.cancelAnimationFrame(frame);
   }, [isDemo]);
 
+  function commitDemoTransactions(next: Transaction[]) {
+    writeStoredTransactions(next);
+    setTransactions(next);
+  }
+
   async function addTransaction(input: CreateTransactionInput): Promise<TransactionActionResult> {
     if (isDemo) {
       const account = accounts.find((item) => item.id === input.accountId);
@@ -97,11 +102,12 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         relativeDate: "Vừa xong",
         reviewStatus: "reviewed",
       };
-      setTransactions((current) => {
-        const next = [transaction, ...current];
-        writeStoredTransactions(next);
-        return next;
-      });
+      const current = readStoredTransactions();
+      const next = [
+        transaction,
+        ...current.filter((item) => item.id !== transaction.id),
+      ];
+      commitDemoTransactions(next);
       return { ok: true, transaction };
     }
 
@@ -167,11 +173,10 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
 
   async function deleteTransaction(id: string): Promise<TransactionActionResult> {
     if (isDemo) {
-      setTransactions((current) => {
-        const next = current.filter((transaction) => transaction.id !== id);
-        writeStoredTransactions(next);
-        return next;
-      });
+      const next = readStoredTransactions().filter(
+        (transaction) => transaction.id !== id,
+      );
+      commitDemoTransactions(next);
       return { ok: true };
     }
 
@@ -192,11 +197,11 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
   /** Undo soft-delete: demo re-inserts snapshot; server clears deleted_at via RPC. */
   async function restoreTransaction(transaction: Transaction): Promise<TransactionActionResult> {
     if (isDemo) {
-      setTransactions((current) => {
-        const next = restoreTransactionInList(current, transaction);
-        writeStoredTransactions(next);
-        return next;
-      });
+      const next = restoreTransactionInList(
+        readStoredTransactions(),
+        transaction,
+      );
+      commitDemoTransactions(next);
       return { ok: true, transaction: withReviewStatus(transaction) };
     }
 
@@ -251,14 +256,14 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       const result = await executeTransferMutation({ input, accounts, isDemo });
       if (result.ok) {
         const reviewed = withReviewStatus(result.transaction);
-        setTransactions((current) => {
-          const next = [
+        if (isDemo) {
+          setTransactions(readStoredTransactions());
+        } else {
+          setTransactions((current) => [
             reviewed,
             ...current.filter((item) => item.id !== reviewed.id),
-          ];
-          if (isDemo) writeStoredTransactions(next);
-          return next;
-        });
+          ]);
+        }
       }
       return result;
     } finally {
@@ -279,11 +284,12 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
       });
       if (!built.ok) return { ok: false, message: built.message };
       const reviewed = withReviewStatus(built.transaction);
-      setTransactions((current) => {
-        const next = [reviewed, ...current];
-        writeStoredTransactions(next);
-        return next;
-      });
+      const current = readStoredTransactions();
+      const next = [
+        reviewed,
+        ...current.filter((item) => item.id !== reviewed.id),
+      ];
+      commitDemoTransactions(next);
       return { ok: true, transaction: reviewed };
     }
 
@@ -311,7 +317,8 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     input: UpdateMoneyTransactionInput | UpdateTransferInput,
   ): Promise<TransactionActionResult> {
     if (isDemo) {
-      const existing = transactions.find((item) => item.id === input.id);
+      const current = readStoredTransactions();
+      const existing = current.find((item) => item.id === input.id);
       if (!existing || existing.isRecurringPayment) {
         return { ok: false, message: "Giao dịch này không thể sửa tại đây." };
       }
@@ -357,13 +364,10 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
           relativeDate: "Vừa sửa",
         };
       }
-      setTransactions((current) => {
-        const next = current.map((item) =>
-          item.id === transaction.id ? transaction : item,
-        );
-        writeStoredTransactions(next);
-        return next;
-      });
+      const next = current.map((item) =>
+        item.id === transaction.id ? transaction : item,
+      );
+      commitDemoTransactions(next);
       return { ok: true, transaction };
     }
     setIsMutating(true);
@@ -397,16 +401,18 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
   async function bulkSetReviewStatus(
     input: BulkTransactionReviewInput,
   ): Promise<BulkTransactionActionResult> {
+    const sourceTransactions = isDemo
+      ? readStoredTransactions()
+      : transactions;
     const applied = applyBulkReviewStatus(
-      transactions,
+      sourceTransactions,
       input.ids,
       input.reviewStatus,
     );
     if (!applied.ok) return applied;
 
     if (isDemo) {
-      setTransactions(applied.transactions);
-      writeStoredTransactions(applied.transactions);
+      commitDemoTransactions(applied.transactions);
       return { ok: true, updatedIds: applied.updatedIds };
     }
 
@@ -438,16 +444,18 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
     if (!category) {
       return { ok: false, message: "Danh mục không còn tồn tại." };
     }
+    const sourceTransactions = isDemo
+      ? readStoredTransactions()
+      : transactions;
     const applied = applyBulkCategoryCorrection(
-      transactions,
+      sourceTransactions,
       input.ids,
       category,
     );
     if (!applied.ok) return applied;
 
     if (isDemo) {
-      setTransactions(applied.transactions);
-      writeStoredTransactions(applied.transactions);
+      commitDemoTransactions(applied.transactions);
       return { ok: true, updatedIds: applied.updatedIds };
     }
 
