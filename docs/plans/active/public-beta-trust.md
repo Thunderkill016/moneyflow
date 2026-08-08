@@ -1,243 +1,304 @@
-# MoneyFlow Public Beta Trust
+# MoneyFlow Trust
 
-**Status:** planned
-**Execution state:** planned
+**Status:** active
+**Execution state:** implementing
 **Active role:** planner
-**Permission scope:** branch_write
+**Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
-**Issue/PR:** #323
+**Issue/PR:** #323 parent program; #324 Secure implementation; #325 provider reconciliation
 **Last updated:** 2026-08-08
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. The owner explicitly approved this program after the UI-system migration P0–P11 was archived. This program does not reopen UI migration. It moves MoneyFlow from a released functional MVP toward a trustworthy public-beta boundary by closing security, portability and daily-use evidence gaps before adding speculative breadth.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
+
+**Canonical short name:** MoneyFlow Trust
+**Original planning path:** `docs/plans/active/public-beta-trust.md`
+
+The owner approved this program after UI migration P0–P11 was archived. The stable path is retained to avoid backlink churn; the program name is **MoneyFlow Trust**.
+
+MoneyFlow Trust does not reopen UI migration. It moves MoneyFlow from a released functional MVP toward a trustworthy public-beta boundary by closing provider alignment, security, recoverability/portability and real-use evidence gaps before speculative breadth.
 
 ## Outcome
 
-MoneyFlow is ready for a bounded public beta when a user can trust the daily ledger, recover from mistakes, prove recent identity before destructive account deletion, export and restore a versioned complete archive, and complete a real seven-day self-use cycle without data loss or manual database repair.
+MoneyFlow is ready for a bounded public beta only when repository state, production providers and user-visible behavior agree; destructive operations are protected by current security policy; user-owned state is recoverable; and the daily ledger survives real use without data loss or manual database repair.
+
+Program memory phrase:
+
+> **Secure → Recover → Prove → Improve → Release**
+
+Live provider inspection inserted a prerequisite inside Secure:
+
+> **Provider Sync → Secure acceptance → Recover → Prove → Improve → Release**
 
 ## Repository reconnaissance
 
 ### Current behavior
 
 - Functional MVP is released.
-- UI-system migration P0–P11 is archived; P11 is merged and production evidenced.
-- Current production P11 deployment is `READY`.
-- Physical Android/iOS UI acceptance was explicitly closed as a limitation of the UI program and is not represented as pass evidence.
-- Current true public-beta gaps include provider-backed recent authentication for destructive account deletion and complete versioned archive/restore.
-- PR #316 contains a verified-unmerged recent-auth candidate, but it diverges from current `main`: 26 commits ahead and 4 commits behind, with merge base `8b97566...`; it must be refreshed rather than merged unchanged.
-- Current product principles prioritize data correctness, core-flow completion, mobile usability, recovery and trust depth before visual polish or speculative breadth.
+- UI migration P0–P11 is archived; physical Android/iOS remain accepted limitations, not fabricated pass evidence.
+- #323 created MoneyFlow Trust.
+- #324 merged the current recent-auth implementation as `fd984a18201f1663d3d8c622d51c41dfd650c816`.
+- Vercel `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9` is `READY` for the exact #324 Next.js commit.
+- Public and ordinary unauthenticated delete-account/login return-path routing is live on that Vercel deployment.
+- Production Supabase `delete-account` remains active **version 5** and does not contain the merged recent-auth AMR gate.
+- Production Supabase database history is behind current MoneyFlow `main`.
+- The exact missing current-main MoneyFlow set is **10 migrations**, proven by exact-head CI reset sequence plus direct remote version checks.
+- Exact-head CI #2070 replayed the full migration chain including all 10 missing files and then passed **25 pgTAP files / 478 tests**.
+- Production catalog preflight confirms expected review/reconciliation/rules/audit objects are still absent and checked target index names do not collide.
+- PR #316 is closed as superseded historical evidence; #324 is current repository implementation truth.
+- Current transaction/Inbox CSV/JSON export remains scoped user-readable export, **not** a complete restorable archive.
+- P2 Recover implementation is blocked until Provider Sync and P1 Secure provider acceptance complete.
 
-### Relevant repository areas
+### Active prerequisite
 
-| Area | Why it matters | Reuse/change/avoid |
-|---|---|---|
-| `docs/research/CURRENT_PROJECT_MEMORY.md` | current capability/security truth | authoritative status input |
-| `docs/product/PRINCIPLES.md` | prioritization and daily-use readiness | preserve trust-before-breadth order |
-| `docs/product/MONEYFLOW_PRODUCT_VISION.md` | long-term wave sequence | reuse Ledger Trust first |
-| `docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md` | dependency and domain boundaries | preserve ledger/planning separation |
-| PR #316 | recent-auth implementation evidence | refresh onto current `main`; do not merge stale branch |
-| export/import/account deletion paths | public-beta trust surface | bounded future phases |
+`docs/plans/active/moneyflow-trust-provider-sync.md`
 
-### Existing tests and constraints
+Provider Sync is now **planned**. Completed read-only evidence:
 
-- UI/shared-component changes require policy, lint, typecheck, tests, build and browser evidence when selected.
-- Financial/data changes require migration replay, pgTAP/invariants, ownership/RLS and browser evidence where applicable.
-- Provider behavior must be verified separately from repository tests.
-- Integer money, split exactness, transfer neutrality, ownership isolation and soft-delete/recovery remain invariants.
+- live Supabase migration/catalog/function baseline;
+- exact 10-file missing MoneyFlow migration set;
+- full fresh-reset replay + 478 pgTAP pass;
+- per-migration dependency/lock/data/privilege risk review;
+- current production row-count/preflight checks;
+- shared-project Atoryn migration-history analysis.
+
+The only remaining pre-write execution gate is an **actual linked Supabase CLI dry-run** from an ephemeral union-history working copy. It must show exactly the reviewed 10 MoneyFlow migrations and no unrelated write before owner database-write approval is requested.
+
+No production DDL, migration repair, Edge deployment, provider configuration change, production-data mutation or destructive deletion has been performed.
+
+### Relevant repository/provider areas
+
+| Area | Role |
+|---|---|
+| `docs/research/CURRENT_PROJECT_MEMORY.md` | current merged/provider truth |
+| `docs/plans/active/account-deletion-recent-auth.md` | P1 Secure lifecycle/evidence |
+| `docs/plans/active/moneyflow-trust-provider-sync.md` | highest-priority provider alignment packet |
+| `supabase/migrations/` | Git-owned MoneyFlow schema history |
+| `supabase/functions/delete-account/index.ts` | current merged destructive authority |
+| `supabase/functions/_shared/account-deletion-recent-auth.ts` | current recent-auth policy helper |
+| production `supabase_migrations.schema_migrations` | applied provider migration authority |
+| production `delete-account` version/source | actual destructive runtime authority |
+| current export/domain owners | future Recover input |
+
+### Existing constraints
+
+- Financial/data changes require migration replay, pgTAP/invariants and ownership/RLS evidence.
+- Provider behavior requires provider evidence; repository/browser tests cannot manufacture it.
+- Integer money, split exactness, transfer neutrality and tenant ownership remain invariants.
+- Provider/production-data writes require explicit owner approval and rollback scope.
+- Vercel deployment does not deploy Supabase migrations or Edge Functions.
 - Physical-device claims require physical-device evidence; emulation is not equivalent.
-
-### Similar implementation and recent history
-
-- PR #321 closed the UI migration implementation and production evidence.
-- PR #322 archived that program with physical-device limitations recorded explicitly.
-- PR #316 already proved a strong recent-auth design on an older baseline and should be reused as evidence rather than discarded or merged unchanged.
-- Existing CSV/JSON export is user-readable portability, but current memory explicitly says it is not a complete versioned backup/restore archive.
 
 ### Open questions
 
-- [x] Continue UI migration? No; it is archived.
-- [x] Merge PR #316 unchanged? No; it diverges from current `main` and touches Auth/UI ownership changed after its merge base.
-- [x] Treat CSV/JSON export as restore? No; backup/restore is a separate trust capability.
-- [x] Build speculative breadth before trust gates? No.
-- [ ] Which exact domains belong in backup/restore v1? Resolve in Phase 2 specification before implementation.
-- [ ] Which physical phone/browser will own seven-day acceptance evidence? Resolve before Phase 3 execution.
+- [x] Continue UI migration? No; archived.
+- [x] Merge #316 unchanged? No; superseded and closed.
+- [x] Treat current CSV/JSON export as restore? No.
+- [x] Is P1 fully deployed because Vercel is READY? No.
+- [x] Does production `delete-account` contain recent-auth? No; v5 is stale.
+- [x] Is production DB aligned with current MoneyFlow `main`? No.
+- [x] What is the exact missing MoneyFlow migration set? Ten files, recorded in Provider Sync.
+- [x] Does the full current migration chain replay cleanly? Yes; 25 pgTAP files / 478 tests pass in CI #2070.
+- [x] Have migration dependencies and production lock/data risks been reviewed? Yes.
+- [ ] Does an actual linked `db push --include-all --dry-run` from union history list exactly those ten MoneyFlow migrations and nothing else?
+- [ ] After that dry-run, does the owner approve the exact production DB write boundary?
+- [ ] After DB alignment, does the owner approve deployment of current `delete-account`?
+- [ ] Do live password + Google step-up flows pass after the current Edge Function is actually deployed?
 
 ## Research
 
 ### Research scope and source selection
 
-- Decision question: what is the smallest dependency-ordered program that moves MoneyFlow from functional MVP to trustworthy public beta without reopening UI work or adding speculative breadth?
-- Reference maps: repository product/architecture/current-memory documents first; focused external sources only for auth and portability decisions.
-- Source budget: four focused sources.
-- Expected decision: recent-auth authority, export-versus-restore distinction and acceptance sequence.
+Research is dependency-driven and begins with repository/provider truth.
 
-### Questions researched
+- P1 used official Supabase JWT/Auth documentation plus OWASP reauthentication guidance.
+- Provider Sync uses live Supabase migration/catalog/function reads, exact-head CI migration replay and official Supabase/PostgreSQL deployment/locking documentation.
+- P2 Recover research must start from the aligned MoneyFlow schema and current export behavior; it must not design against the known drifting provider state.
 
-1. What server-verifiable Supabase claim can distinguish interactive authentication from token refresh?
-2. What do established security guidelines require for highly sensitive operations?
-3. Should `aal` and recent authentication be treated as the same concept?
-4. What does a maintained finance product expose when it supports true backup/restore rather than readable export only?
+### Key decisions
+
+1. Recent-auth authority uses verified `amr` method/timestamp, not access-token issuance time.
+2. AAL and recent authentication are separate concepts.
+3. Vercel deployment, Supabase database migration and Supabase Edge deployment are separate lifecycles.
+4. Current CSV/JSON export is not a complete restorable archive.
+5. Legitimate Atoryn remote migration history must be preserved; do not use `migration repair` to make the MoneyFlow repository appear falsely linear.
+6. For historical Provider Sync, use an ephemeral union-history working copy and require a real `--include-all --dry-run` before any production write.
 
 ### Sources
 
-| Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
-|---|---|---|---|---|
-| Supabase JWT Claims Reference | official | 2026-08-08 | `amr` may contain authentication method and timestamp in signed Supabase JWT claims | MoneyFlow still chooses accepted methods and freshness window |
-| Supabase MFA/Auth docs | official | 2026-08-08 | `aal` expresses authentication assurance; it is not by itself a recent-login timestamp | does not mandate MFA for MoneyFlow deletion |
-| OWASP Authentication Cheat Sheet | authoritative security guidance | 2026-08-08 | sensitive operations should require reauthentication at a trusted boundary | exact provider UX/freshness interval is product-specific |
-| Actual Budget backup/restore + API docs | maintained product reference | 2026-08-08 | complete exports can be imported/restored as a separate capability from CSV-style interchange | MoneyFlow must design its own versioned archive and invariants |
-
-### Alternatives considered
-
-| Option | Advantages | Risks | Decision |
-|---|---|---|---|
-| start another UI program | visible progress | optimizes polish before trust gaps | reject |
-| merge PR #316 unchanged | fast | stale Auth/UI baseline and conflict risk | reject |
-| treat CSV/JSON as backup | no new work | cannot prove complete reconstruction | reject |
-| build one trust program in dependency order | bounded, evidence-driven | slower feature breadth | selected |
-
-### Research decision
-
-Use a five-phase trust program: reconcile baseline; refresh recent-auth; build versioned backup/restore; run physical/seven-day daily-use acceptance; add only evidence-selected ledger trust depth; then make an explicit owner public-beta decision. Recent-auth uses verified server claims, not browser timers. Backup/restore is a complete reconstruction contract, not a relabeling of CSV/JSON export.
+| Source | Authority/type | What it establishes |
+|---|---|---|
+| live MoneyFlow Supabase migration/catalog/function state | production truth | actual provider drift |
+| current MoneyFlow `main` + merged PRs | repository truth | intended accepted provider contract |
+| exact-head CI #2070 database job | executable repository evidence | all current migrations replay; 478 pgTAP pass |
+| Supabase JWT/Auth docs | official | AMR method/timestamp and AAL distinction |
+| Supabase Database Migrations docs | official | migration list/fetch/dry-run/include-all/repair semantics |
+| Supabase Edge Function deploy docs | official | Edge deployment is explicit and separate from Vercel |
+| PostgreSQL 17 ALTER TABLE / CREATE INDEX docs | official | lock and constant-default/index build behavior |
+| OWASP Authentication Cheat Sheet | authoritative guidance | sensitive actions should reauthenticate |
+| current MoneyFlow export code/UI | repository truth | scoped export is not full backup |
+| Actual Budget backup/restore docs | maintained product reference | true restore is distinct from interchange export |
 
 ### Adoption review
 
-Not applicable at parent-plan level. No dependency, provider, service, framework or runtime architecture is adopted by this planning PR. Each implementation phase performs its own adoption review if it introduces one.
+No new dependency, provider, service, framework or runtime architecture is adopted. Provider Sync aligns the existing Supabase provider with already-merged contracts.
 
 ## Specification
 
 ### Problem
 
-MoneyFlow is functional-MVP complete and UI-migration complete, but public-beta trust is not yet proven. Permanent deletion still lacks merged provider-evidenced recent authentication, user-owned data does not yet have a complete versioned restore path, and real daily-use evidence has not proven the core ledger can survive seven consecutive days without data loss or manual repair.
+MoneyFlow Git/Vercel state and live Supabase state are split. Recent-auth code is merged and the Next.js side is live, while the destructive Supabase runtime remains stale. Ten merged MoneyFlow migrations are not applied in production. Public-beta trust cannot be claimed across that split boundary, and Recover must not be implemented against a provider schema known to be behind `main`.
 
 ### User stories
 
-- As a user, an old authenticated session alone cannot permanently delete my account.
-- As a user, I can export a complete versioned archive and restore it without corrupting money semantics.
-- As a user, the daily ledger works reliably on a physical phone.
-- As the owner, I can distinguish repository, provider, physical-device and self-use evidence before declaring public beta.
+- As a user, production account deletion is protected by the same recent-auth policy current `main` claims.
+- As a user, merged reconciliation/rules/audit capabilities are backed by their intended production schema rather than silently degraded fallbacks.
+- As a user, future complete archive/restore operates against one known provider schema.
+- As the owner, repository, Vercel, Supabase DB, Supabase Edge, physical-device and self-use evidence remain distinguishable.
 
 ### Acceptance criteria
 
-- [ ] PBT-AC1: current public-beta baseline is reconciled and stale candidate claims are removed.
-- [ ] PBT-AC2: destructive account deletion requires verified recent interactive authentication on merged current `main` and deployed production.
-- [ ] PBT-AC3: provider-backed password and supported OAuth step-up are exercised on production-safe flows with identity continuity preserved.
-- [ ] PBT-AC4: a versioned complete archive can be exported, validated and restored into a clean boundary with financial invariants intact.
-- [ ] PBT-AC5: restore never silently accepts unsupported/corrupt archives or partial financial state.
-- [ ] PBT-AC6: core transaction/edit/delete/restore/transfer/split behavior is exercised on a physical phone.
-- [ ] PBT-AC7: MoneyFlow completes a seven-consecutive-day owner self-use run without data loss or manual DB repair.
-- [ ] PBT-AC8: no unresolved P0/P1 defect blocks the daily ledger loop at final decision.
-- [ ] PBT-AC9: current memory, work packets and production evidence are reconciled before archive.
-- [ ] PBT-AC10: owner records the final public-beta decision and accepted limitations.
+Provider baseline/alignment:
 
-### Required states
+- [x] PBT-AC1: repository/Vercel/Supabase baseline is reconciled and stale #316 status is removed.
+- [x] PBT-AC2: exact current-main-vs-production MoneyFlow migration drift is enumerated as 10 files and replay-verified with 478 pgTAP assertions.
+- [ ] PBT-AC3: real linked CLI dry-run proves the production write set is exactly the reviewed ten migrations.
+- [ ] PBT-AC4: owner-approved production migrations are applied and remote schema/history matches the accepted contract.
+- [ ] PBT-AC5: current `delete-account` Edge source is explicitly deployed/read back only after schema prerequisites exist.
 
-- Baseline: current main/production/open PR truth is reconciled.
-- Security: fresh/stale/failed/mismatched reauthentication paths are explicit.
-- Portability: valid, corrupt, unsupported-version and partial archives fail or restore deterministically.
-- Daily-use: core flow, error/recovery and physical-mobile paths are recorded without sensitive financial details.
-- Final decision: public-beta or not-yet, with limitations named explicitly.
+Secure:
+
+- [x] PBT-AC6: destructive account deletion requires verified recent interactive authentication in merged current-main source.
+- [ ] PBT-AC7: the same recent-auth gate exists in the actual production Supabase Edge Function.
+- [ ] PBT-AC8: provider-backed password and supported OAuth step-up are exercised on production-safe authenticated flows with identity continuity preserved.
+
+Recover/Prove/Release:
+
+- [ ] PBT-AC9: a versioned complete archive can be exported, validated and restored with financial invariants intact.
+- [ ] PBT-AC10: restore fails safely on unsupported/corrupt/partial archives.
+- [ ] PBT-AC11: core ledger behavior is exercised on a physical phone.
+- [ ] PBT-AC12: MoneyFlow completes seven consecutive days of sanitized owner self-use without data loss or manual DB repair.
+- [ ] PBT-AC13: no unresolved P0/P1 defect blocks the daily-ledger loop at final decision.
+- [ ] PBT-AC14: current memory/evidence are reconciled and the owner records the final public-beta decision and accepted limitations.
 
 ### Financial and security constraints
 
-- Never infer or alter balances to make restore succeed.
-- Preserve integer VND/minor-unit money, transfer neutrality and split exactness.
-- Preserve tenant isolation/RLS and viewer-derived mutation authority.
-- Recent-auth evidence must be server-verifiable; client state cannot authorize deletion.
-- Backup archives must exclude passwords, JWTs, provider credentials, secrets and private infrastructure metadata.
-- No destructive real-user deletion test is required for provider acceptance.
+- Never infer or alter balances to make migration/restore succeed.
+- Preserve integer money, transfer neutrality, split exactness and tenant ownership.
+- Do not deploy current Edge tenant inventory before required provider tables exist.
+- Do not edit migration history as a shortcut for unapplied SQL.
+- Preserve legitimate Atoryn remote migration history.
+- Backup archives must exclude credentials, JWTs, secrets and private infrastructure metadata.
+- No destructive real-user deletion is required for provider acceptance.
 
 ### Out of scope
 
-- UI redesign or reopening P0–P11.
+- UI redesign/reopening P0–P11.
 - Bank sync/Open Banking.
-- Probabilistic/generative AI.
-- Household/collaboration.
-- Investments/wealth accounting.
-- Native rewrite.
-- Full envelope budgeting.
-- Microservices/event-sourcing rewrite.
+- Generative financial advice.
+- Household/collaboration, investments/wealth, native rewrite, full envelope budgeting.
 - Automatic unreviewed ledger posting.
 
 ## Implementation plan
 
 ### Architecture fit
 
-Keep the current modular monolith. Phase 1 stays inside the existing Supabase Auth/login/callback/Edge deletion authority. Phase 2 introduces a versioned public archive contract around existing user-owned domain data without exposing internal tables directly. Phase 3 is evidence/acceptance work. Phase 4 touches Ledger Core only when an observed trust problem justifies a bounded slice.
+Keep the modular monolith. Provider Sync aligns the existing Supabase DB/Edge runtime with Git-owned migration/function contracts. P1 stays inside existing Auth/login/callback/Edge authority. P2 introduces a versioned public archive contract only after provider state is aligned and Secure is accepted.
 
-### Planned changes
+### Current phase map
 
-| Phase | Change | Reason |
+| Phase/checkpoint | Short name | Current state |
 |---|---|---|
-| P0 | reconcile main/production/candidates and evidence vocabulary | prevent stale roadmap work |
-| P1 | refresh PR #316 onto current main; exact-head + provider evidence | close destructive-action auth gap |
-| P2 | versioned complete archive, validation, isolated restore and rollback | close data ownership/portability gap |
-| P3 | physical-phone + seven-day daily-use acceptance | prove real product trust |
-| P4 | split correction/mutation audit or other observed trust slice only | deepen Ledger Core from evidence |
-| P5 | reconcile evidence and record owner beta decision | explicit release boundary |
+| P0 | Baseline | provider drift discovered and reconciled |
+| P0/P1 prerequisite | **Provider Sync** | **planned; actual linked union-history dry-run pending** |
+| P1 | **Secure** | merged; Vercel side live; Supabase backend not current |
+| P2 | **Recover** | implementation blocked by Provider Sync + P1 acceptance |
+| P3 | **Prove** | blocked by P2 |
+| P4 | **Improve** | blocked by P3 evidence |
+| P5 | **Release** | blocked by prior phases |
 
-### Data and migration impact
+### Provider Sync rollout design
 
-- Parent-plan PR: none.
-- Phase 1: expected no schema migration; auth/Edge/runtime code only unless refreshed design proves otherwise.
-- Phase 2: schema/RPC/archive additions may be required; must be specified with replay/backfill/rollback before implementation.
-- Phase 3: no intentional schema change; sanitized acceptance evidence only.
-- Compatibility: current export remains available; archive format is new and versioned.
-- Rollback: each implementation phase uses a focused PR and its own rollback plan.
+Completed read-only preparation:
 
-### Risks and counterexamples
+1. captured remote migration/function baseline;
+2. proved exact 10-file MoneyFlow drift;
+3. replayed the full current migration chain and 478 pgTAP assertions;
+4. reviewed all ten migration dependencies, lock/data/privilege behavior and current production preflight state;
+5. confirmed seven legitimate newer Atoryn migration-history rows must be preserved.
 
-| Risk/counterexample | Prevention or test |
-|---|---|
-| stale #316 overwrites newer Auth/UI | port selectively onto current main, then exact-head browser/security checks |
-| refresh token mistaken for reauth | verify accepted interactive `amr` timestamps |
-| OAuth step-up switches account | expected-user continuity guard and mismatch rejection |
-| archive is readable but not restorable | clean-user restore acceptance |
-| corrupt archive partially mutates data | validate before commit; atomic/recoverable restore design |
-| archive leaks secrets | explicit data allowlist and negative tests |
-| emulation is reported as physical evidence | device/browser/version required for physical claims |
-| seven-day evidence leaks finances | record outcomes/defects only, no values/notes |
-| program grows into feature breadth | Phase 4 requires observed friction or trust gap |
+Next allowed sequence:
+
+1. create an ephemeral union-history working copy and capture real linked `migration list` + `db push --include-all --dry-run` output;
+2. require that dry-run to name exactly the ten reviewed MoneyFlow migrations and no unrelated write;
+3. return to owner for explicit DB provider-write approval;
+4. immediately recheck production pre-state/locks before any write;
+5. apply only the approved migrations in repository order through standard Supabase migration tooling;
+6. stop on first error; never mark an unapplied migration as applied;
+7. verify remote history/catalog/RLS/grants/functions/indexes/advisors and safe app/RPC reads;
+8. return to owner for explicit current Edge deployment approval;
+9. deploy/read back current `delete-account` with `verify_jwt=true` and shared recent-auth helper;
+10. run production-safe password/Google step-up acceptance without confirmed destructive deletion;
+11. reconcile P1 and parent memory; only then unlock Recover implementation.
+
+### Rollback / forward-fix principle
+
+These are additive/behavioral historical migrations already expected by current application code. Blind database rollback is not the default. If a migration fails, inspect actual transactional/history state and forward-fix from observed truth. Edge rollback to v5 would reintroduce a known security gap, so any rollback requires explicit owner approval and should be used only when the new deployment itself is unsafe.
 
 ### Verification plan
 
-- Static: project knowledge, CI policy, lint/typecheck/architecture as selected.
-- Unit/domain: recent-auth policy, archive schema/validation, financial invariants.
-- Database: migration replay, pgTAP, tenant isolation and restore counterexamples where Phase 2 changes DB boundaries.
-- Browser flow: password/OAuth step-up, export/restore review, core daily ledger journey.
-- Responsive/visual: only affected flows; physical phone for claimed Phase 3 evidence.
-- Production/manual: bounded provider-backed reauth smoke, clean restore boundary and seven-day sanitized self-use log.
+- Pre-write: real CLI dry-run, fresh replay evidence, provider pre-state/lock checks.
+- Post-DB: remote migration history, expected schema objects, RLS/grants, functions/indexes, advisors, safe app/RPC reads.
+- Post-Edge: version/source/hash read-back and `verify_jwt=true`.
+- Secure acceptance: ordinary/stale/fresh password/OAuth paths, no destructive real-user deletion.
+- Recover later: archive validation/restore/invariant tests.
+- Prove later: physical phone + seven-day sanitized owner run.
 
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| P0-T1 | reconcile current main, production and open trust candidates | parent plan | current-truth table | todo |
-| P0-T2 | classify #316 and other relevant PRs keep/refresh/supersede | P0-T1 | disposition record | todo |
-| P1-T1 | refresh recent-auth design/code onto current main | P0-T2 | focused branch diff | blocked |
-| P1-T2 | exact-head auth/security/database/browser verification | P1-T1 | CI/CodeQL/secret/browser evidence | blocked |
-| P1-T3 | after owner merge, provider-backed production-safe step-up verification | P1-T2 + owner merge | provider/deployment evidence | blocked |
-| P2-T1 | specify archive manifest/domain/version/restore contract | P1-T3 | accepted Phase 2 packet | blocked |
-| P2-T2 | implement export/validate/restore with invariant tests | P2-T1 | exact-head DB/browser evidence | blocked |
-| P3-T1 | execute physical-phone core ledger checklist | P2-T2 | device/browser evidence | blocked |
-| P3-T2 | execute seven-consecutive-day sanitized self-use run | P3-T1 | daily outcome log | blocked |
-| P4-T1 | select one observed Ledger Trust depth slice if justified | P3-T2 | observed problem + accepted spec | blocked |
-| P5-T1 | reconcile all evidence and owner public-beta decision | prior selected phases | final decision record | blocked |
+| P0-T1 | reconcile repository/Vercel/open candidates | parent | #324/#316 + Vercel evidence | complete |
+| P0-T2 | inspect live Supabase DB + Edge | P0-T1 | provider-read evidence | complete; drift found |
+| PS-T1 | record Provider Sync packet | P0-T2 | active packet | complete |
+| PS-T2 | prove exact 10-file migration diff | P0-T2 | CI reset sequence + remote version checks | complete |
+| PS-T3 | review migrations/dependencies/production risks | PS-T2 | source + production preflight | complete |
+| PS-T4 | prove full fresh replay | PS-T2 | CI #2070: 25 pgTAP files / 478 pass | complete |
+| PS-T5 | capture actual union-history linked `--include-all --dry-run` | PS-T2–T4 | CLI read-only output | todo |
+| PS-T6 | owner approve exact DB provider write | PS-T5 | explicit approval | blocked |
+| PS-T7 | apply/verify approved DB alignment | PS-T6 | remote history/catalog evidence | blocked |
+| PS-T8 | owner approve current Edge deployment | PS-T7 | explicit approval | blocked |
+| PS-T9 | deploy/read back current `delete-account` | PS-T8 | version/source/hash | blocked |
+| P1-T1 | recent-auth implementation | P0 | #324 | complete |
+| P1-T2 | exact-head security/database/browser verification | P1-T1 | CI #2070 / CodeQL/Secret #1173 + clean rerun | complete |
+| P1-T3 | owner merge + Vercel deployment | P1-T2 | `fd984a...`, `dpl_8Eak...` | complete |
+| P1-T4 | live password + Google provider acceptance | PS-T9 | provider evidence | blocked |
+| P1-T5 | mark/archive Secure accepted | P1-T4 | lifecycle record | blocked |
+| P2-T1 | accept archive contract | P1 accepted | accepted Recover packet | blocked |
+| P2-T2 | implement export/validate/restore | P2-T1 | DB/browser/invariant evidence | blocked |
+| P3-T1 | physical-phone core ledger checklist | P2 accepted | device evidence | blocked |
+| P3-T2 | seven-day sanitized self-use | P3-T1 | daily outcome log | blocked |
+| P4-T1 | select one observed trust-depth slice | P3-T2 | observed problem | blocked |
+| P5-T1 | owner public-beta decision | prior phases | final decision | blocked |
 
 ## Handoff record
 
-| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
+| Date | From | To | State | Evidence | Open boundary | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-08 | owner | planner | planned | owner approval in conversation; current memory/product/architecture review; focused external research | parent plan not merged | exact-head plan verification |
-| 2026-08-08 | planner | evaluator | evaluating | PR #323 | CI/project-knowledge checks pending | repair only plan-contract findings |
+| 2026-08-08 | owner | planner | planned | #323 + owner approval | #316 stale | execute trust sequence |
+| 2026-08-08 | evaluator | human_owner | ready_for_review | #324 exact-head evidence | owner merge | owner decides |
+| 2026-08-08 | human_owner | CI/production | merged | #324 → `fd984a...` | provider deployment truth | inspect each provider separately |
+| 2026-08-08 | researcher | planner | provider drift found | Vercel READY + live Supabase v5/migration/catalog reads | provider split | specify sync; no writes |
+| 2026-08-08 | planner | evaluator | planned | exact 10-file diff; CI #2070 replay/478 pgTAP; per-file risk review | actual linked CLI dry-run unavailable in current connector | capture dry-run in an environment with linked Supabase CLI; no writes |
 
 ### Current permission boundary
 
-- Granted scope: create this parent program and bounded branch/PR work toward its dependency sequence.
+- Allowed: bounded branch/PR work; GitHub/Vercel/Supabase read-only inspection; official research; local/ephemeral CLI dry-run that does not mutate provider state.
 - Exact repository: `Thunderkill016/moneyflow`.
-- Provider access in this packet: research/read-only only.
-- Forbidden writes without a later explicit boundary: production provider config, production data, destructive account deletion, branch/ruleset changes.
-- Human approval required before: feature merges, provider writes, destructive production operations, acceptance-criteria relaxation and final public-beta launch decision.
-- Stop condition: any phase discovers a requirement that changes financial semantics, ownership, provider policy or program scope; update specification and return to owner checkpoint.
+- Current provider scope: `provider_read` only.
+- Forbidden without explicit owner approval: actual production `db push`, migration repair, DDL, Edge deployment, provider config writes, production financial-data mutation and destructive deletion.
+- DB write approval may be requested only after PS-T5 dry-run exists.
+- Edge write approval may be requested only after DB alignment evidence exists.
+- P2 implementation remains blocked until Provider Sync + P1 acceptance.
 
 ## Evaluation
 
@@ -245,39 +306,38 @@ Keep the current modular monolith. Phase 1 stays inside the existing Supabase Au
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| parent packet follows repository work-packet contract | project knowledge CI | pending |
-| research is focused and source limitations are recorded | packet review | pass |
-| no runtime/product/provider change | PR changed-file list | pass |
-| PR #316 is not represented as merge-ready current truth | current-main compare + packet | pass |
-
-### Research and adoption evidence
-
-- Supabase docs support `amr` method/timestamp and distinguish `aal` assurance from simple session existence.
-- OWASP supports reauthentication for sensitive operations but does not prescribe MoneyFlow's exact freshness window.
-- Actual Budget demonstrates a maintained product distinction between complete restorable archive and ordinary interchange/export.
-- No external architecture or file format is adopted wholesale.
+| canonical MoneyFlow Trust direction retained | parent/current memory | pass on #325 branch |
+| stale #316 removed | #316 closed superseded | pass |
+| #324 repository/security gates | CI #2070 / CodeQL/Secret #1173 + raw browser/cross-device | pass |
+| exact Next.js deployment READY | `dpl_8Eak...` → `fd984a...` | pass |
+| production Supabase recent-auth Edge current | live source/version | **fail: v5 stale** |
+| exact production DB drift known | ten remote version checks + CI migration sequence | pass |
+| full current migration replay | CI #2070 database job, 478 pgTAP | pass |
+| per-migration rollout risk reviewed | source + production preflight | pass |
+| real linked union-history CLI dry-run | CLI output | **pending** |
+| provider writes avoided during discovery | provider action record | pass |
+| current export distinguished from full archive | merged export UI/current memory | pass |
 
 ### Review findings
 
-- Correctness: dependency order matches current gaps and product principles.
-- Security/ownership: destructive recent-auth remains server-authoritative; restore cannot bypass ownership rules.
-- UI/UX/accessibility: no redesign scope; affected auth/restore flows must reuse current UI ownership.
-- Maintainability/duplication: existing #316 evidence is reused selectively instead of rebuilt from zero.
-- Scope compliance: public-beta trust only; speculative breadth excluded.
+- **Highest-priority blocker:** production Supabase schema and destructive Edge runtime do not match current `main`.
+- The initial Vercel-only `deployed` interpretation was corrected before #325 could become project memory.
+- Exact migration drift/replay/risk analysis is complete; the remaining pre-write gate is a real linked CLI dry-run.
+- Recover implementation must remain blocked until provider sync and Secure acceptance complete.
 
 ### Remaining limitations
 
-- Parent plan is candidate until PR #323 passes exact-head checks and is merged by owner authorization.
-- Provider-backed recent-auth is not current product truth yet.
-- Complete backup/restore is not implemented yet.
-- Physical/seven-day daily-use evidence is not yet collected.
+- Actual linked union-history `db push --include-all --dry-run` evidence is not yet captured.
+- Production migrations remain unapplied.
+- Production `delete-account` remains v5 without recent-auth.
+- Live password/Google step-up is not yet acceptance evidence.
+- Complete backup/restore and physical/seven-day evidence remain future phases.
 
 ## Delivery record
 
-- Branch: `agent/public-beta-trust-plan`
-- PR: #323
-- Squash commit: pending
-- CI run: pending exact head after contract repair
-- Production deployment: not applicable for planning-only PR
-- Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: no; active until program acceptance
+- Parent PR #323 merged as `538768401bd5c0aa66523aba2a52e3601f3fadd4`.
+- Secure PR #324 merged as `fd984a18201f1663d3d8c622d51c41dfd650c816`.
+- Vercel Next.js production `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9` is READY.
+- Supabase production provider drift is confirmed.
+- Reconciliation PR #325 is active and performs no provider writes.
+- Current next action: **capture the real read-only union-history CLI dry-run; then, and only then, return to the owner DB provider-write checkpoint**.
