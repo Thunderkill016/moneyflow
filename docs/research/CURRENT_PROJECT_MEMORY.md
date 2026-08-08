@@ -2,17 +2,19 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-08
-- **Current main audited:** `fd984a18201f1663d3d8c622d51c41dfd650c816`
+- **Current main audited:** `8d0070b3d039fc80647e888aa1bd89f18b4de0b4`
 - **Owner direction:** MoneyFlow is a released functional MVP; the active hardening program is **MoneyFlow Trust**
 - **Active trust program:** `docs/plans/active/public-beta-trust.md`
 - **Active provider blocker:** `docs/plans/active/moneyflow-trust-provider-sync.md`
-- **Current Vercel production:** `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9` is `READY` for Next.js `main@fd984a18201f1663d3d8c622d51c41dfd650c816`
-- **Supabase production:** not aligned with current main; `delete-account` is still Edge Function v5 without merged recent-auth; exactly 10 current-main MoneyFlow migrations are absent from remote history
-- **Provider Sync evidence:** exact 10-file drift proven; full current migration chain replays in CI #2070; 25 pgTAP files / 478 tests pass; per-migration risk review complete; actual linked union-history CLI dry-run remains pending
-- **Recent-auth state:** #324 is merged and its Next.js side is live on Vercel, but P1 Secure remains **merged, not deployed end-to-end** until Supabase DB/Edge alignment and provider acceptance complete
+- **Current Vercel production:** `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9` is `READY` for the #324 Next.js recent-auth implementation; Vercel does not deploy Supabase migrations or Edge Functions
+- **Supabase production DB:** **aligned to the exact ten reviewed MoneyFlow migrations through `20260804160300` on 2026-08-08**; all seven legitimate shared Atoryn history rows were preserved
+- **Supabase production Edge:** `delete-account` remains **v5** and does not yet contain the merged recent-auth/current-tenant contract
+- **Provider Sync evidence:** CI #2070 full replay/478 pgTAP pass; PR #326 free local union-history CLI dry-run selected exactly the ten MoneyFlow migrations; owner explicitly approved the production DB checkpoint with “Go”; 10/10 migrations applied and post-write catalog/invariants/advisors verified
+- **Provider Sync limitation:** actual linked-production CLI dry-run was not executed; the owner accepted the free-simulation + fresh-live-history substitution for the DB checkpoint only
+- **Recent-auth state:** #324 is merged and its Next.js side is live on Vercel, but P1 Secure remains **merged, not deployed end-to-end** until the Supabase Edge rollout and safe provider acceptance complete
 - **UI migration:** P0–P11 is merged and archived; physical Android/iOS were not executed and remain explicit limitations
 - **History model:** current truth here; task routing lives in `docs/context/README.md`; bounded PR provenance lives under `docs/research/pr-memory/YYYY/QN/`
-- **Primary public-beta blockers:** Provider Sync dry-run → owner-approved DB alignment → owner-approved current Edge deployment → password/Google step-up acceptance → versioned archive/restore
+- **Primary public-beta blockers now:** owner-approved current Edge deployment → safe password/Google recent-auth acceptance → versioned archive/restore
 - **MVP release:** `main@8e08a8a748a632b07bb42c27bf14539758b28824`; functional MVP release does not imply public-beta readiness
 
 ## 1. Purpose and authority
@@ -43,7 +45,7 @@ A Git merge is not a Supabase migration or Edge deployment. Vercel `READY` prove
 | **Partial** | Useful merged behavior exists but lacks provider/product/acceptance depth |
 | **Candidate only** | Exists only in an open PR/branch |
 | **Historical/superseded** | Preserved for provenance, not current direction |
-| **Accepted limitation** | Closed without claiming unexecuted evidence passed |
+| **Accepted limitation** | Closed or advanced without claiming unexecuted evidence passed |
 
 ## 3. Product identity and non-goals
 
@@ -57,7 +59,7 @@ Core jobs:
 - correct and recover records;
 - plan with budgets, recurring items and goals;
 - import controlled data and export user-owned records;
-- reconcile an account register against a statement when provider-backed capability exists.
+- reconcile an account register against a statement.
 
 Non-goals without a new owner-approved specification: bank sync, AI financial advice, household finance, investments/crypto/credit score, full FX accounting, native rewrite, full envelope budgeting, local-first/CRDT and ERP scope.
 
@@ -81,24 +83,25 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 
 ## 5. Current capability inventory
 
-MoneyFlow is functional-MVP complete in repository terms. Provider alignment and public-beta depth remain separate.
+MoneyFlow is functional-MVP complete in repository terms. The database-backed review/reconciliation/rules/audit capabilities are now provider-aligned; destructive Edge recent-auth acceptance remains separate.
 
 | Capability | Current truth | Remaining distinction |
 |---|---|---|
-| Authentication/demo | email/password, OAuth, recovery/reset, demo, CAPTCHA and #324 deletion step-up are merged | production Supabase delete Edge is stale; provider acceptance remains open |
-| Accounts | CRUD/archive/restore, totals, transfer, register/detail merged | richer closing lifecycle is later depth |
-| Reconciliation | domain/UI merged through #261/#263 | production reconciliation migrations/tables absent |
-| Categories | lifecycle + P8 presentation/hide review merged | nested/merge/tag depth remains |
-| Transactions | ledger/capture/review merged | audit provider schema behind main; split-line correction later |
+| Authentication/demo | email/password, OAuth, recovery/reset, demo, CAPTCHA and #324 deletion step-up are merged | production Supabase delete Edge is still v5; provider acceptance open |
+| Accounts | CRUD/archive/restore, totals, transfer, register/detail merged | richer closing lifecycle later |
+| Reconciliation | domain/UI merged through #261/#263; production schema now aligned | live user acceptance/deeper matching later |
+| Categories | lifecycle + P8 presentation/hide review merged | nested/merge/tag depth later |
+| Transactions | ledger/capture/review merged; review schema now production-aligned | split-line correction later |
 | Dashboard | deterministic period/range/planning/activity behavior merged | richer attention/drill-down later |
 | Budgets | limits/history/previous-month comparison/drill-down merged | rollover/flex later |
 | Recurring | expense/income templates + occurrence linkage merged | broader history/schedule/matching later |
 | Goals | target/earmark/deadline/pace/archive merged | contribution/account-backed funding absent |
 | Reports | comparisons/totals/category/trend/custom ranges merged | account/type dimensions later |
 | Export | transaction/Inbox CSV/JSON with scope/date range merged | **not a complete versioned backup/restore archive** |
-| Import/Inbox | CSV/XLSX/PDF staging, provenance, dry-run, atomic approval merged | later rules/audit provider schema behind main |
-| Rules | authenticated deterministic rules merged through #265 | production `inbox_rules` absent until Provider Sync |
-| Privacy/deletion | current-main #324 recent-auth/same-account/fail-closed OAuth contract | production Edge v5 lacks it and tenant inventory is stale |
+| Import/Inbox | CSV/XLSX/PDF staging, provenance, dry-run, atomic approval merged | broader rules/actions later |
+| Rules | authenticated deterministic rules merged and production schema aligned | broader conditions/actions later; no unreviewed auto-posting |
+| Audit | structural financial mutation audit schema/triggers now production-aligned | service-role legacy default ACL is a forward-hardening candidate |
+| Privacy/deletion | current-main #324 recent-auth/same-account/fail-closed OAuth contract | production Edge v5 lacks current code/tenant inventory |
 | Responsive/accessibility | broad automated coverage through P11/#324 | physical Android/iOS P11 acceptance not executed |
 | CI/security | risk-selected CI, CodeQL, secret scan, DB/browser harnesses | hosted-runner success is not provider deployment proof |
 
@@ -110,43 +113,45 @@ Conceptual sequence:
 
 > **Secure → Recover → Prove → Improve → Release**
 
-Operational sequence after live provider discovery:
+Operational sequence after provider discovery:
 
 > **Provider Sync → Secure acceptance → Recover → Prove → Improve → Release**
 
 | Phase/checkpoint | Current state |
 |---|---|
 | P0 Baseline | repository/Vercel/Supabase truth reconciled; provider drift identified |
-| Provider Sync | **planned / highest-priority blocker**; exact 10-file drift + 478-pgTAP replay + risk review complete; real linked CLI dry-run pending |
-| P1 Secure | #324 merged as `fd984a...`; Vercel side READY; Supabase backend not current |
-| P2 Recover | implementation blocked until Provider Sync + P1 acceptance |
+| Provider Sync | **DB half aligned; Edge half pending** |
+| P1 Secure | #324 merged; Vercel side READY; production Supabase Edge still v5 |
+| P2 Recover | implementation blocked until Provider Sync + P1 provider acceptance |
 | P3 Prove | blocked by P2; physical-phone core ledger + seven-day sanitized self-use |
 | P4 Improve | evidence-selected Ledger Trust depth only after P3 |
 | P5 Release | final owner public-beta decision with explicit limitations |
 
-Provider Sync exact missing migration set:
+Production DB alignment evidence on 2026-08-08:
 
-1. `20260802060004_cover_foreign_key_indexes.sql`
-2. `20260803090000_transaction_review_bulk_correction.sql`
-3. `20260803142000_account_reconciliation_current_main.sql`
-4. `20260803144500_account_reconciliation_ci_hardening.sql`
-5. `20260803153000_account_reconciliation_workspace_read_model.sql`
-6. `20260804110000_authenticated_deterministic_rules.sql`
-7. `20260804160000_financial_mutation_audit.sql`
-8. `20260804160100_financial_read_plan_indexes.sql`
-9. `20260804160200_financial_audit_service_role_inspection.sql`
-10. `20260804160300_financial_audit_request_id_token.sql`
+- exact source baseline: `main@8d0070b3d039fc80647e888aa1bd89f18b4de0b4`;
+- free probe #326 exact head `0662ef8690ad204b145d91da0c9d29576e2abfc7`;
+- Provider Sync Free Dry Run `31259696558`: local union history selected exactly ten MoneyFlow migrations and zero Atoryn migrations;
+- actual linked-production CLI dry-run: **not executed / accepted limitation**;
+- owner explicitly said **“Go”** for the production DB checkpoint after the limitation was known;
+- 10/10 reviewed MoneyFlow SQL migrations applied in order and tracked under their original repository versions;
+- all seven legitimate Atoryn migration-history rows preserved;
+- no temporary provider-generated rollout version remains;
+- checked catalog: **27 target indexes / 0 invalid-or-unready; 10 target constraints / 0 unvalidated**;
+- baseline affected data counts preserved: 47 transactions, 47 entries, 6 Inbox candidates, 3 accounts, 33 categories;
+- new defaulted review/reconciliation columns have 0 null drift;
+- RLS/security-invoker/RPC boundaries and advisors inspected.
 
-Evidence:
+Provider Sync forward finding:
 
-- all ten are absent from production migration history;
-- exact-head CI #2070 fresh reset applies all ten in order;
-- `supabase test db`: **25 files / 478 tests / PASS**;
-- production catalog matches expected pre-migration state;
-- seven legitimate newer Atoryn remote migrations must be preserved;
-- remaining pre-write gate: actual linked ephemeral union-history `supabase db push --include-all --dry-run` listing exactly these ten MoneyFlow migrations.
+- `financial_mutation_audit_events` has the older project's broad direct `service_role` table ACL despite the migration's read-inspection intent; existing tables show the same historical Supabase default pattern. Do not patch ad hoc. Tightening requires a new reviewed migration/spec.
 
-Only after that dry-run may owner DB provider-write approval be requested.
+Remaining Provider Sync boundary:
+
+1. separate owner approval for current `delete-account` Edge deployment;
+2. deploy/read back current Edge while preserving `verify_jwt=true`;
+3. safe stale/fresh password + Google/OAuth recent-auth acceptance without destructive real-user deletion;
+4. observe a post-deploy provider/runtime window before closing Secure/Provider Sync.
 
 ## 7. UI-system migration closure truth
 
@@ -160,9 +165,9 @@ Only after that dry-run may owner DB provider-write approval be requested.
 Evidence boundaries that remain load-bearing:
 
 - provider behavior requires provider evidence;
-- provider schema/function writes require explicit owner approval;
+- new provider schema/function writes require explicit owner approval;
 - Vercel does not deploy Supabase migrations/Edge Functions;
-- actual linked CLI dry-run is not equivalent to a manually computed set;
+- the local union-history dry-run is not an actual linked-production dry-run;
 - automated browser success does not prove physical-device acceptance;
 - retry-pass is not equivalent to first-attempt pass.
 
@@ -170,50 +175,44 @@ Evidence boundaries that remain load-bearing:
 
 | Item | Current status |
 |---|---|
-| #53 DB/import | provenance/dry-run/atomic approval merged; later reconciliation/rules/audit provider schema behind main |
-| #53 reconciliation | merged repository contract/UI; production DDL absent as of provider inspection |
-| #53 authenticated rules | merged repository implementation; production `inbox_rules` absent |
+| #53 DB/import | provenance/dry-run/atomic approval merged; review/reconciliation/rules/audit schema now production-aligned |
+| #53 reconciliation | merged repository contract/UI + production DB schema aligned |
+| #53 authenticated rules | merged + production `inbox_rules` schema aligned |
 | #72 UI audit | closed `not_planned`; physical Android/iOS not executed and not claimed |
 | #172 product assessment | market-validation warnings useful; old global feature-freeze framing superseded |
 | #174 provider controls | repository readiness/runbook merged; provider execution remains evidence-specific |
 | #316 | closed/superseded historical recent-auth candidate; replaced by #324 |
-| #324 | merged recent-auth implementation; Vercel side READY; Supabase backend alignment open |
-| #325 | active docs/provider-read reconciliation; no provider writes |
+| #324 | merged recent-auth implementation; Vercel side READY; Supabase Edge alignment open |
+| #325 | merged provider-drift reconciliation that established the Provider Sync packet |
+| #326 | closed unmerged; zero-cost local union-history dry-run evidence only |
 
 ## 9. Open pull-request memory
 
-| PR | Interpretation |
-|---|---|
-| #325 | MoneyFlow Trust provider-drift/current-memory reconciliation |
-| #314 | CI recovery tooling candidate |
-| #315 | task-start/work-packet hardening candidate |
-| #317 | stacked acceptance-traceability candidate; depends on #315 |
-| #304 | older CI hardening candidate |
-| #293/#294 | older UI/recovery candidates superseded unless re-specified |
-| #170/#171 | historical CSS cleanup evidence; do not merge wholesale |
-| #119 | old visual/logo candidate requiring current evidence + owner approval |
+Provider Sync does not assume stale status for unrelated historical PRs. Fresh-query GitHub before acting on #304/#314/#315/#317 or any older UI/recovery candidate.
 
-#316 is closed historical evidence. #321/#322/#323/#324 are merged history.
+This evidence update must use its own bounded PR-memory record under `docs/research/pr-memory/2026/Q3/` and must not be merged without the owner's normal merge decision.
 
 ## 10. True gaps after this audit
 
 ### Provider alignment
 
-- actual linked union-history Supabase CLI dry-run is missing;
-- production DB lacks the exact 10 reviewed current-main migrations;
-- production `delete-account` Edge v5 lacks merged recent-auth/current tenant inventory;
-- DB and Edge writes require explicit owner checkpoints;
-- live password + Google step-up acceptance follows current Edge deployment.
+- production DB: **aligned for the reviewed ten-file MoneyFlow set**;
+- actual linked-production CLI dry-run: not executed; accepted limitation for the completed DB checkpoint;
+- production `delete-account` Edge v5 still lacks merged recent-auth/current tenant inventory;
+- separate owner Edge-write approval is required;
+- safe password + Google/OAuth step-up acceptance remains open;
+- post-Edge runtime observation remains open;
+- service-role audit-table ACL tightening is a new forward-hardening candidate, not part of the historical ten-file rollout.
 
 ### Public-beta portability
 
 - complete versioned archive/restore is absent;
-- P2 implementation is blocked until Provider Sync + P1 acceptance.
+- P2 implementation remains blocked until Provider Sync + P1 acceptance.
 
 ### Product depth
 
 - richer account closing/reconciliation matching;
-- split-line correction and mutation-audit depth after provider alignment;
+- split-line correction and mutation-audit depth;
 - budget rollover/flex, recurring history/matching, Goal funding history;
 - report account/type dimensions/deeper drill-down;
 - broader deterministic rule conditions/actions without unreviewed auto-posting.
@@ -225,24 +224,35 @@ Evidence boundaries that remain load-bearing:
 
 ## 11. Load-bearing merged and provider truth
 
-- #183/#184: atomic Inbox approval/provenance merged and production migrated; `transaction_import_provenance` exists in production.
+- #183/#184: atomic Inbox approval/provenance merged and production migrated.
 - #206/#207: Dashboard one-RPC hardening/schema-skew fallback.
 - #228/#229: account register/detail and deployment/auth-routing evidence.
-- #236: FK-index migration merged but absent remote.
-- #255: transaction-review migration merged but absent remote.
-- #261/#263: reconciliation contract/workspace merged; migrations absent remote.
-- #265: authenticated rules merged; `inbox_rules` absent production.
-- #270: financial mutation audit merged; audit migrations/table absent production.
+- #236: FK-index migration merged **and now production aligned**.
+- #255: transaction-review migration merged **and now production aligned**.
+- #261/#263: reconciliation contract/workspace merged **and now production aligned**.
+- #265: authenticated rules merged **and now production aligned**.
+- #270: financial mutation audit set merged **and now production aligned**.
 - #289: custom report date ranges.
 - #295: secret-history gate restored.
 - #296–#322: completed UI migration program/archive.
 - #323: MoneyFlow Trust parent program.
-- #324: recent-auth merged in Git + Vercel Next.js deployment; **not Supabase Edge deployment**.
+- #324: recent-auth merged in Git + Vercel Next.js deployment; **not yet Supabase Edge deployment**.
+- #325: merged Provider Sync reconciliation/spec.
+- #326: closed unmerged free migration-selection simulation evidence.
 
 ## 12. Superseded-status register
 
 Do not repeat these as current facts:
 
+- Production DB still lacks the ten reviewed MoneyFlow migrations.
+- Reconciliation/rules/audit are absent from production schema.
+- The ten-file migration set still needs discovery.
+- Actual linked-production dry-run was executed or passed.
+- The free local union-history dry-run is equivalent to an actual linked-production dry-run.
+- #324 recent-auth is fully deployed because Vercel is READY.
+- Production `delete-account` Edge contains the merged recent-auth gate.
+- A Git merge alone proves provider readiness.
+- Service-role access to the audit table is proven read-only at effective PostgreSQL privilege level.
 - Reports lack previous-period comparison, trends or custom ranges.
 - CSV/XLSX/PDF staging is absent.
 - Rules are entirely absent from repository implementation.
@@ -256,11 +266,3 @@ Do not repeat these as current facts:
 - P5–P11 UI migration remain unmerged candidate work.
 - Physical Android/iOS acceptance was performed or passed.
 - Retry-pass is equivalent to first-attempt pass.
-- #316 is current recent-auth direction.
-- #324 recent-auth is fully deployed because Vercel is READY.
-- Production Supabase schema matches `main` because migrations are merged.
-- Reconciliation/rules/audit are provider-aligned because their PRs merged.
-- The 10-file migration set still needs discovery; it is already proven.
-- A manually computed version set is equivalent to actual linked CLI dry-run.
-- Vercel deployment proves Supabase Edge deployment.
-- A merge proves provider readiness without provider-specific evidence.
