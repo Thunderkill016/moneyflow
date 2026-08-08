@@ -136,10 +136,10 @@ test("Goals use planning-earmark truth instead of cash-locking claims", () => {
   );
 });
 
-test("Phase 7 packet records the financial-model boundary", () => {
-  assert.match(files.packet, /tracking-budget model/);
-  assert.match(files.packet, /goal allocation is a planning earmark/);
-  assert.match(files.packet, /separate Class 3 product work/);
-  assert.match(files.packet, /Merge remains an owner decision/);
-  assert.match(files.packet, /Vercel production deployment automatically/);
+test("Phase 7 completed packet records accepted delivery and planning truth", () => {
+  assert.match(files.packet, /Status:\*\* accepted/);
+  assert.match(files.packet, /Implementation PR:\*\* #308/);
+  assert.match(files.packet, /Production:\*\* `dpl_4tr8rU45ZvixXt31WUVSNuUKQu6G` READY/);
+  assert.match(files.packet, /Goal allocation is a planning earmark/);
+  assert.match(files.packet, /Current program closure/);
 });
