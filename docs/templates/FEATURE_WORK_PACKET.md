@@ -14,6 +14,34 @@ Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe eviden
 
 Describe the user-visible or system outcome in one paragraph. Do not describe implementation yet.
 
+## Control contract
+
+Answer these before implementation. They externalize what the model cannot reliably inspect in itself. The repository gate requires every field in a changed active packet to be resolved.
+
+### State
+
+- Location: <where the authoritative state lives>
+- Writer/owner: <who or what may change it>
+- Propagation: <how the rest of the system learns that it changed>
+
+### Feedback
+
+- Expected failing signal: <test/check/observation that must fail before the change when applicable>
+- Success signal: <deterministic command, exit code or artifact that proves the mechanism works>
+- Semantic evidence: <real user/system outcome beyond uptime, 200 OK or a green build>
+
+### Removal impact
+
+- What breaks if removed: <owned behavior, dependency or invariant that would fail>
+- Rollback: <bounded undo path and the signal used to verify recovery>
+
+### Action safety
+
+- Permissions: <exact read/write/provider/production scope>
+- Reversibility: <how writes are undone or why they are intentionally irreversible>
+- Escalation: <condition that stops the agent and requires a human decision>
+- Failure containment: <maximum affected boundary if the change or tool fails>
+
 ## Repository reconnaissance
 
 ### Current behavior
@@ -171,6 +199,8 @@ Rules:
 - New discoveries update the specification/plan before implementation scope changes.
 - Research is complete when it supports a decision, not when every related repository has been read.
 - A task may advance only when the current execution state's evidence exists.
+- A green mechanism check is not semantic evidence; record the real path or user outcome separately.
+- For a bug fix or new behavior, record the expected failing signal before accepting a green result, unless the packet explains why a red-first check is impossible.
 
 ## Handoff record
 
