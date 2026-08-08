@@ -2,22 +2,25 @@
 
 - **Reviewed:** 2026-08-08
 - **Baseline:** P10 exact head `9912dc621306c73f14407e175eb1a468b90ea933`
-- **Candidate:** P11 exact head before this report `ea5756ccee62ba5b6ab56f7a9983a0061289a8ed`
+- **Latest reviewed source candidate:** `59490eaf7d739ec5838eca53d046590a4302ef92`
 - **P10 UI artifact:** `9017516431`, `ui-audit-evidence-31242364910-1`, `sha256:24e4b9fc354fdd03497f31d767c351f139ffd49f13b40fc2762b6c132f8f3805`
-- **P11 UI artifact:** `9018027242`, `ui-audit-evidence-31244036703-1`, `sha256:4263d05ed8022be90616623cb5853db14a5fe96fbc032be46305c82e40987fd7`
+- **P11 UI artifact:** `9018358358`, `ui-audit-evidence-31245158440-1`, `sha256:de29f06b58593a81dcc4ca733f49bfa5f9c9e2fd2fd2c9cf7559a2167b035978`
 - **P10 Playwright summary:** 554 total / 426 passed / 127 skipped / 1 flaky / 0 unexpected
 - **P11 Playwright summary:** 554 total / 427 passed / 127 skipped / **0 flaky / 0 unexpected**
 - **Review result:** **PASS — no stable visual diff in the selected critical baseline set**
 
 ## Purpose
 
-Phase 11 requires selective visual baselines and review of every intentional diff rather than treating automated interaction checks as visual acceptance. The P11 code change repairs a first-paint AppShell reserve race; it is not intended to redesign stable rendered surfaces. This review therefore compares the same deterministic full-page screenshots from the final P10 artifact and the P11 candidate artifact.
+Phase 11 requires selective visual baselines and review of every intentional diff rather than treating automated interaction checks as visual acceptance. The P11 candidate repairs two timing/ownership defects discovered only by reading raw retry evidence:
 
-The P10 flaky browser signal is reviewed separately from stable screenshot output: the first attempt caught transient zero shell reserve before the mounted marker, while the settled screenshot was already visually stable. The P11 source/test fix removes that first-paint race and the full matrix returns zero flaky tests.
+1. AppShell mobile reserve was unavailable until the client mounted marker appeared;
+2. demo transaction persistence could return success and navigate before a queued React state updater executed the localStorage side effect.
+
+Neither change is intended to redesign settled UI. This review therefore compares the same deterministic full-page screenshots from the final P10 artifact and the latest P11 source candidate artifact.
 
 ## Selected baseline set
 
-The review intentionally covers the changed AppShell boundary plus public control surfaces across light/dark, desktop/mobile and Chromium/WebKit evidence.
+The review intentionally covers the changed AppShell boundary plus public and transaction surfaces across light/dark, desktop/mobile and Chromium/WebKit evidence.
 
 | Screenshot | Dimensions | P10 SHA-256 | P11 SHA-256 | Pixel diff | Review |
 |---|---:|---|---|---:|---|
@@ -30,41 +33,42 @@ The review intentionally covers the changed AppShell boundary plus public contro
 | `transactions-chromium-desktop-dark.png` | 1366×993 | `c72f6a6a035490d16252e44a8f950aae81cd6db650c2875bf1a59c38f06a27cf` | same | 0.000000 | unchanged |
 | `transactions-webkit-iphone.png` | 390×1773 | `5cd44e456e954ef7f1d79fff8606b75661bd00e693b4fe9fafadf312ca138503` | same | 0.000000 | unchanged |
 
-All eight P10/P11 PNG pairs are **byte-identical**. Their RGB pixel-diff ratio, mean absolute RGB difference and maximum channel difference are all exactly zero.
+All eight selected P10/P11 PNG hashes are present unchanged in the latest source-candidate artifact. Their RGB pixel-diff ratio, mean absolute RGB difference and maximum channel difference remain exactly zero.
 
 ## Manual review notes
 
-The selected contact set was visually reviewed after the hash/pixel comparison.
-
 - Dashboard desktop dark: sidebar, topbar, cards, planning rows and action hierarchy remain intact.
 - Dashboard phone dark: fixed bottom navigation remains visually separated from content; no stable clipping or overlap is introduced.
-- Dashboard WebKit iPhone: light workspace layout and bottom navigation remain stable after the first-paint ownership fix.
-- Landing desktop/iPhone: public Guided Story composition remains unchanged; P11 AppShell work does not leak into public presentation.
-- Quick Capture WebKit iPhone: compact form, field stack and fixed navigation remain readable with no settled-state geometry shift.
+- Dashboard WebKit iPhone: workspace layout and bottom navigation remain stable after first-paint ownership repair.
+- Landing desktop/iPhone: Guided Story composition remains unchanged; AppShell work does not leak into public presentation.
+- Quick Capture WebKit iPhone: compact form, field stack and fixed navigation remain readable; synchronous demo persistence does not alter settled presentation.
 - Transactions desktop dark/WebKit iPhone: filters, totals, empty ledger surface and mobile navigation remain stable.
 
-There is therefore **no intentional settled visual diff to approve**. P11 changes only when the layout-critical AppShell custom properties become available: they now exist on the server-rendered shell before hydration instead of appearing only after the client mounted marker.
+There is therefore **no intentional settled visual diff to approve**. P11 changes state/geometry availability timing and demo mutation commit ordering, not stable visual design.
 
-## Automated acceptance context
+## Latest source-candidate automated context
 
-P11 candidate head `ea5756ccee62ba5b6ab56f7a9983a0061289a8ed` produced:
+Head `59490eaf7d739ec5838eca53d046590a4302ef92` produced:
 
-- CI #2032 / run `31244036703`: success;
-- Browser smoke: 94 passed, 0 failed/flaky;
-- Cross-device UI audit: 554 scheduled, 427 passed, 127 intentional skips, 0 failed, **0 flaky**;
-- CodeQL #1138 / `31244036704`: success;
-- Secret-history #1138 / `31244036708`: success;
-- database checks: correctly classified not required for this presentation/test/docs change.
+- CI #2039 / run `31245158440`: success;
+- policy, project knowledge, static quality, lint/typecheck, production build and database classification: success;
+- complete unit/static-RLS suite: **785 passed / 0 failed**;
+- Browser smoke: **94 passed / 0 failed / 0 flaky**;
+- Browser artifact `9018297784`, digest `sha256:62bf778b664e596920ba9f0ee96edcc26a3cb177a95791ab70eee941781919ae`;
+- Cross-device UI audit: **554 total / 427 passed / 127 intentional skips / 0 failed / 0 flaky**;
+- UI audit artifact `9018358358`, digest `sha256:de29f06b58593a81dcc4ca733f49bfa5f9c9e2fd2fd2c9cf7559a2167b035978`;
+- CodeQL #1145 / run `31245158435`: success;
+- Secret-history #1145 / run `31245158458`: success.
 
-The candidate head changes after this documentation report is committed, so these results are intermediate evidence only. Protected exact-head checks must rerun on the final documentation head before owner review.
+The branch head will move once this evidence report and the remaining current records are updated. Protected exact-head checks must therefore rerun one final time on the resulting documentation head before owner review.
 
 ## Acceptance boundary
 
-This report satisfies the **candidate visual-review portion** of P11-T2. It does not satisfy:
+This report satisfies the **candidate visual-review portion** of P11-T2 for the latest source candidate. It does not satisfy:
 
 - physical Android Chrome acceptance;
 - physical iOS/Safari acceptance;
-- production verification of the exact P11 code, because Vercel does not currently create a PR preview deployment for #321;
+- production verification of the exact P11 code, because Vercel has not created a PR #321 preview deployment;
 - final owner merge/program archival.
 
-The actual P11 fix must first reach an owner-approved deployed commit before physical-device checks can validate that implementation.
+The actual P11 candidate must reach an owner-approved deployed commit before physical-device checks can validate that implementation.
