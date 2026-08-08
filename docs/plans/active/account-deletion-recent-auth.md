@@ -1,9 +1,9 @@
-# Public Beta Trust Phase 1 — recent authentication for permanent deletion
+# MoneyFlow Trust Phase 1 — Secure: recent authentication for permanent deletion
 
-**Status:** ready_for_review
-**Execution state:** ready_for_review
+**Status:** deployed
+**Execution state:** deployed
 **Active role:** human_owner
-**Permission scope:** owner_merge_checkpoint
+**Permission scope:** provider_read
 **Owner:** Thunderkill016
 **Issue/PR:** #324, replacing stale PR #316
 **Last updated:** 2026-08-08
@@ -11,70 +11,84 @@
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
 **Parent packet:** `docs/plans/active/public-beta-trust.md`
-**Base main:** `538768401bd5c0aa66523aba2a52e3601f3fadd4`
-**Branch:** `agent/public-beta-trust-phase-1-recent-auth`
+**Merged PR:** #324
+**Merge commit:** `fd984a18201f1663d3d8c622d51c41dfd650c816`
+**Production deployment:** `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9`
 
-The owner approved the Public Beta Trust program on 2026-08-08. Phase 1 refreshes the useful security design and tests from PR #316 onto current `main`; it does not merge the stale PR unchanged or overwrite P9–P11 UI ownership and post-#316 account-deletion cleanup changes.
+Phase 1 is no longer at an owner merge checkpoint. The implementation is merged and the exact commit is deployed to production. The remaining transition is `deployed → accepted`, which requires provider-backed production-safe password + Google step-up evidence on an authenticated account. No destructive real-account deletion is required or claimed.
 
 ## Outcome
 
-An old valid MoneyFlow session is no longer enough to permanently delete authenticated account data. The delete-account Edge Function requires verified recent interactive authentication through a currently supported MoneyFlow method before any tenant purge. A stale-but-valid session uses same-account step-up; a fully expired session uses ordinary login and then requires the destructive confirmation again.
+An old valid MoneyFlow session is no longer sufficient to permanently delete authenticated account data. The delete-account Edge Function requires verified recent interactive authentication through a currently supported MoneyFlow method before tenant purge. A stale-but-valid session uses same-account step-up; a fully expired session uses ordinary login and then requires destructive confirmation again.
+
+Current truth:
+
+- #324 is merged on current `main`;
+- the exact merge commit is `READY` on Vercel production;
+- ordinary unauthenticated deletion/login routing is production-evidenced;
+- live authenticated password + Google provider step-up remains unexecuted in inspected evidence;
+- P1 therefore remains active at `deployed`, not `accepted`.
 
 ## Repository reconnaissance
 
 ### Current behavior
 
-- Current `main` has the P8 deletion flow, P9–P11 UI ownership and a newer tenant cleanup list than stale PR #316.
-- Current deletion purges tenant rows transactionally and verifies zero remaining rows before deleting the Auth identity.
-- `financial_mutation_audit_events` is now a tenant table and remains in account cleanup.
-- PR #316 passed full CI/database/browser/security evidence on its old exact head but diverged from current main.
-- Auth UI source remained compatible with bounded #316 interaction changes, so the refresh reused those contracts selectively.
+- Current `main` includes the P8 deletion flow, P9–P11 UI ownership and the newest tenant cleanup list.
+- `financial_mutation_audit_events` remains in account cleanup.
+- #324 refreshed useful #316 design/tests onto current main rather than merging #316 unchanged.
+- #316 is now closed as superseded historical evidence.
+- The merged deletion path verifies recent interactive AMR before tenant purge.
+- Password and Google step-up preserve same-account continuity.
+- OAuth callbacks fail closed when expected-user continuity is absent, and mismatches recover through ordinary login rather than a dead-end reauth mode.
 
 ### Relevant repository areas
 
-| Area | Decision |
+| Area | Current responsibility |
 |---|---|
-| `supabase/functions/delete-account/index.ts` | patch current file; never replace with stale #316 snapshot |
-| `supabase/functions/_shared/account-deletion-recent-auth.ts` | pure recency and supported-method authority |
+| `supabase/functions/delete-account/index.ts` | destructive authority; verifies claims and recent-auth before tenant purge |
+| `supabase/functions/_shared/account-deletion-recent-auth.ts` | pure recency and supported-method policy |
 | `src/app/(auth)/actions.ts` | password/Google step-up and typed failure owner |
-| `src/app/auth/callback/route.ts` | Google expected-user continuity owner |
-| login/AuthForm/proxy | narrowly expose deletion step-up without weakening normal redirects |
-| delete-account page | clear `XÓA` and choose normal login vs same-account step-up |
-| #316 tests | reuse only where still valid on current main |
+| `src/app/auth/callback/route.ts` | Google expected-user continuity + fail-closed callback owner |
+| login/AuthForm/proxy | bounded deletion step-up reachability |
+| delete-account page | clears `XÓA`; separates expired login from stale-session step-up |
 
 ### Existing tests and constraints
 
 - Deletion target remains the bearer-token user; no client user ID is accepted.
 - Tenant purge remains before Auth identity deletion.
 - CAPTCHA remains part of the existing login flow when configured.
-- `XÓA` does not cross any authentication boundary.
-- Exact-head CI, database, browser/cross-device, CodeQL and secret-history evidence are required.
+- `XÓA` never crosses an authentication boundary.
+- Exact-head CI, database, browser/cross-device, CodeQL and secret-history evidence were required before merge.
+- Provider behavior still requires provider evidence after deployment.
 
 ### Similar implementation and recent history
 
 - PR #309 recorded recent-auth as a remaining deletion hardening boundary.
-- PR #316 designed and verified the first recent-auth candidate on the P8 baseline.
+- PR #316 was the first verified candidate on an older baseline and is now closed superseded.
+- PR #324 is the current merged implementation.
 - PR #321/#322 completed and archived UI migration; this phase does not reopen it.
-- UI archive #322 intentionally moved P5/P6/P7 packets to completed records; source acceptance fixed three stale unit-test references/assertions exposed by the first current-main verification attempts.
 
 ### Open questions
 
 - [x] Use access-token `iat` as recent-auth proof? No.
 - [x] Use verified Supabase `amr` method/timestamp? Yes.
 - [x] Which AMR methods authorize deletion now? Only `password` and `oauth`.
-- [x] If the session is valid but AMR is stale? Same-account step-up.
-- [x] If the session has expired completely? Ordinary login, then re-enter deletion confirmation.
-- [x] Require provider/dashboard changes? No for repository implementation; provider acceptance is post-merge.
+- [x] Valid session but stale AMR? Same-account step-up.
+- [x] Session expired completely? Ordinary login, then restart deletion confirmation.
+- [x] Merge current implementation? Yes, #324 merged.
+- [x] Exact merged deployment READY? Yes.
+- [ ] Live password step-up works on the production provider boundary without destructive deletion.
+- [ ] Live Google step-up preserves same-account continuity on the production provider boundary without destructive deletion.
 
 ## Research
 
 ### Research scope and source selection
 
-Repository/current-main inspection came first. Current Supabase JWT/Auth documentation and OWASP reauthentication guidance were then used to refresh the old #316 policy.
+Repository/current-main inspection came first. Current Supabase JWT/Auth documentation and OWASP reauthentication guidance were used to refresh the old #316 policy.
 
 ### Questions researched
 
-1. Does current Supabase still expose AMR method plus timestamp?
+1. Does current Supabase expose AMR method plus timestamp?
 2. Can JWT issuance time substitute for interactive authentication time?
 3. Which AMR values are currently documented?
 4. Is AAL the same concept as recent authentication?
@@ -83,19 +97,19 @@ Repository/current-main inspection came first. Current Supabase JWT/Auth documen
 
 | Source | Authority | Applied decision | Limitation |
 |---|---|---|---|
-| Supabase JWT Claims Reference | official | `amr` contains method/timestamp; documented vocabulary is broader than MoneyFlow | MoneyFlow chooses its own deletion allowlist |
-| Supabase JWT guide | official | Supabase continuously issues JWTs; use `getClaims()` to verify Supabase JWTs | `iat` therefore does not prove interactive reauth |
+| Supabase JWT Claims Reference | official | `amr` contains method/timestamp; provider vocabulary is broader than MoneyFlow | MoneyFlow chooses its own deletion allowlist |
+| Supabase JWT guide | official | Supabase continuously issues JWTs; use verified claims | `iat` does not prove interactive reauth |
 | Supabase MFA docs | official | `aal` represents assurance level | not a recency timestamp |
-| OWASP Authentication Cheat Sheet | authoritative guidance | sensitive operations should require reauthentication | does not prescribe the ten-minute interval |
+| OWASP Authentication Cheat Sheet | authoritative guidance | sensitive operations should require reauthentication | does not prescribe MoneyFlow's ten-minute interval |
 
 ### Alternatives considered
 
 | Option | Risk | Decision |
 |---|---|---|
-| merge #316 unchanged | stale tenant cleanup/current-main ancestry | reject |
-| use JWT `iat` | refresh can create a new token without new identity proof | reject |
-| accept every Supabase AMR method | silently authorizes flows not reviewed by MoneyFlow | reject |
-| accept only current password + Google OAuth | later methods require explicit review | selected |
+| merge #316 unchanged | stale tenant cleanup/current-main ancestry | rejected; #324 refreshed it |
+| use JWT `iat` | token refresh can look recent without new identity proof | reject |
+| accept every Supabase AMR method | silently authorizes unreviewed flows | reject |
+| accept only current password + Google OAuth | future methods require explicit review | selected |
 
 ### Research decision
 
@@ -103,13 +117,13 @@ Use verified JWT `amr` timestamps and a narrow `password`/`oauth` allowlist. Rej
 
 ### Adoption review
 
-Not applicable. No dependency, provider, service or framework is added.
+Not applicable. No dependency, provider, service or framework was added.
 
 ## Specification
 
 ### Problem
 
-A valid but old authenticated session can reach an irreversible deletion after typed confirmation without proving recent identity. The old #316 candidate also treated a fully expired session as same-account step-up, even though same-account continuity requires a current identity to compare against.
+A valid but old authenticated session previously could reach irreversible deletion after typed confirmation without proving recent identity. The stale #316 candidate also had recovery/continuity gaps that #324 corrected before merge.
 
 ### User stories
 
@@ -129,26 +143,33 @@ A valid but old authenticated session can reach an irreversible deletion after t
 - [x] P1-AC6: Google uses `max_age=0` plus expected-user callback continuity.
 - [x] P1-AC7: reauth mode requires both `reauth=1` and sanitized deletion `next`.
 - [x] P1-AC8: `XÓA` is cleared across ordinary login and same-account step-up.
-- [x] P1-AC9: expired session routes to ordinary login, not an impossible continuity step-up.
+- [x] P1-AC9: expired session routes to ordinary login, not impossible continuity step-up.
 - [x] P1-AC10: current cleanup including `financial_mutation_audit_events` remains intact.
-- [x] P1-AC11: source candidate CI/database/browser/cross-device/CodeQL/secret-history gates are clean with no hidden flaky retry found in inspected raw browser evidence.
-- [ ] P1-AC12: after owner merge and READY deployment, production-safe password + Google step-up evidence is recorded without destructive real-user deletion.
+- [x] P1-AC11: exact-head CI/database/browser/cross-device/CodeQL/secret-history gates are clean; final Browser rerun was first-pass clean.
+- [x] P1-AC12a: owner merge completed and exact merge commit is Vercel `READY` production.
+- [x] P1-AC12b: unauthenticated production delete-account boundary reaches ordinary login with deletion return path and does not pretend reauth continuity exists.
+- [ ] P1-AC12c: production-safe authenticated password step-up evidence is recorded without destructive deletion.
+- [ ] P1-AC12d: production-safe authenticated Google step-up/identity-continuity evidence is recorded without destructive deletion.
+
+P1 is accepted only after the final two provider criteria are evidenced or the owner explicitly accepts them as limitations. Neither has been inferred from repository tests.
 
 ### Required states
 
-- Fresh password/OAuth: deletion may proceed to the existing destructive authority.
+- Fresh password/OAuth: deletion may proceed to existing destructive authority.
 - Stale valid session: return `recent_auth_required` before purge and enter same-account step-up.
 - Expired session: return `requiresLogin`, use normal login and restart confirmation.
-- Account mismatch: reject and clear continuity state.
-- Provider/callback failure: clear expected-user cookie and remain non-destructive.
+- Missing OAuth reauth continuity: fail closed, sign out and use ordinary login recovery.
+- Account mismatch: reject, clear continuity state and recover through ordinary login.
+- Provider/callback failure: remain non-destructive.
 - Demo: unchanged browser-local behavior.
 
 ### Financial and security constraints
 
-- No financial formula, schema, RLS, grant or provider configuration changes.
+- No financial formula, schema, RLS, grant or provider configuration change in #324.
 - No token/password/provider secret or private claim set is persisted in product data or logs.
 - Expected-user cookie is short-lived, HttpOnly and callback-scoped; it is a continuity guard, not deletion authority.
-- Ten minutes is an explicit MoneyFlow policy, not a universal external standard.
+- Ten minutes is explicit MoneyFlow policy, not a universal external standard.
+- Production acceptance must not delete a real account merely to prove step-up behavior.
 
 ### Out of scope
 
@@ -156,7 +177,7 @@ A valid but old authenticated session can reach an irreversible deletion after t
 - New login provider.
 - Provider configuration writes.
 - Destructive production account test.
-- Backup/restore Phase 2.
+- Backup/restore Phase 2 implementation.
 - UI redesign.
 
 ## Implementation plan
@@ -170,119 +191,127 @@ Supabase Auth remains identity authority; existing login/callback routes own ste
 | Area | Change | Reason |
 |---|---|---|
 | AMR helper | ten-minute password/oauth-only policy | least privilege for current product |
-| Edge deletion | `getClaims()` + recent-auth gate before purge | server enforcement |
+| Edge deletion | verified claims + recent-auth gate before purge | server enforcement |
 | Auth actions/callback | same-account password/Google step-up | identity continuity |
+| OAuth callback | explicit reauth marker; missing continuity/mismatch fail closed to ordinary login | eliminate cross-account and dead-end recovery findings |
 | login/AuthForm/proxy | exact deletion reauth mode | safe reachability |
 | delete page | separate expired login vs stale step-up; clear confirmation | correct recovery state |
-| tests | recency, cleanup preservation, continuity and browser presentation | regression evidence |
-| three historical UI contract tests | point to completed packets and assert closure truth | repair archive-induced baseline regression, test-only |
+| tests | recency, cleanup preservation, callback continuity, browser presentation | regression evidence |
 
 ### Data and migration impact
 
 - Schema/migration/backfill: none.
 - Provider setting: none.
-- Rollback: revert this focused PR; no data migration rollback needed.
+- Rollback: revert #324; no data migration rollback required.
 
 ### Risks and counterexamples
 
 | Risk | Control |
 |---|---|
-| stale #316 Edge loses new cleanup table | current-main patch + source regression |
+| stale #316 Edge loses newer cleanup | #324 patched current main and preserved cleanup |
 | fresh token refresh looks like reauth | `token_refresh` excluded and tested |
 | unsupported Auth method grants deletion | password/oauth-only allowlist |
 | password account switch | current email + resulting user ID checks |
 | Google account switch | callback expected-user guard |
-| expired session dead-ends in step-up | separate ordinary-login path + browser/source tests |
-| raw query activates step-up elsewhere | require exact deletion `next` in page/actions/proxy |
+| missing continuity cookie | explicit reauth callback marker + fail closed |
+| mismatch dead-end | ordinary-login recovery |
+| expired session dead-end | separate ordinary-login path |
+| raw query activates step-up elsewhere | exact deletion `next` required |
 
 ### Verification plan
 
-- Static: project knowledge, CI policy, CSS/architecture, lint, typecheck.
-- Unit: recent-auth policy and source/continuity contracts.
-- Database: fresh reset + pgTAP selected because this is Class 3 destructive-boundary work.
-- Browser: focused recent-auth presentation plus standard smoke.
-- Responsive: selected Chromium/WebKit matrix.
-- Security: CodeQL + secret-history.
-- Production: owner-controlled post-merge provider-safe step-up smoke.
+- Static/unit/database/browser/security: complete before merge on exact #324 head.
+- Production deployment identity/routing/runtime error check: complete after merge.
+- Provider acceptance: pending authenticated password and Google production-safe step-up.
+- No destructive account deletion is necessary for acceptance.
 
 ## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
 | P1-T1 | reconcile #316/current main/current Supabase | compare + research | complete |
-| P1-T2 | port bounded Auth/UI/tests | PR #324 diff | complete |
+| P1-T2 | port bounded Auth/UI/tests | #324 diff | complete |
 | P1-T3 | patch current Edge and narrow AMR policy | source + unit contract | complete |
-| P1-T4 | fix expired-session vs stale-session recovery | source/browser contracts | complete |
-| P1-T5 | source-candidate full Class 3 gates | CI #2065 + raw browser evidence | complete |
-| P1-T6 | independent security/current-main review | diff review + cleanup/comment preservation | complete |
-| P1-T7 | owner merge checkpoint | explicit owner decision | ready |
-| P1-T8 | production/provider-safe acceptance | exact READY deployment | blocked |
-| P1-T9 | parent/current-memory/archive reconciliation | lifecycle record | blocked |
+| P1-T4 | fix expired-session and OAuth continuity/recovery findings | source/browser contracts | complete |
+| P1-T5 | exact-head Class 3 gates | CI #2070 + CodeQL/Secret #1173 + raw browser/cross-device evidence | complete |
+| P1-T6 | owner merge | #324 → `fd984a18201f1663d3d8c622d51c41dfd650c816` | complete |
+| P1-T7 | exact merged deployment + ordinary-login production boundary | `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9` READY + route smoke | complete |
+| P1-T8 | authenticated production password + Google step-up acceptance | provider evidence | blocked by explicit owner/provider boundary |
+| P1-T9 | final P1 archive + parent acceptance reconciliation | accepted P1 evidence | blocked by P1-T8 |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open boundary | Next action |
 |---|---|---|---|---|---|---|
-| 2026-08-08 | owner | planner | planned | Public Beta Trust approval + PR #323 | #316 stale | reconcile |
-| 2026-08-08 | planner | implementer | implementing | current main + official research | provider evidence unavailable | port |
-| 2026-08-08 | implementer | evaluator | evaluating | PR #324; expired-session finding fixed | exact-head gates | evaluate |
-| 2026-08-08 | evaluator | human_owner | owner_merge_checkpoint | source candidate `867495cb538ea1e2f8c7fb8eedaba583c53e60c3`; CI #2065, CodeQL/Secret #1168 green | final evidence-doc head rerun; provider post-merge | owner decides after final docs checks |
+| 2026-08-08 | owner | planner | planned | MoneyFlow Trust approval + #323 | #316 stale | reconcile |
+| 2026-08-08 | implementer | evaluator | evaluating | #324 source + fixes | protected exact-head gates | evaluate |
+| 2026-08-08 | evaluator | human_owner | ready_for_review | exact-head CI #2070, CodeQL/Secret #1173, clean Browser rerun, clean cross-device | owner merge | owner decides |
+| 2026-08-08 | human_owner | CI/production | merged | #324 merged as `fd984a...` | exact deployment | verify deployment |
+| 2026-08-08 | CI/production | human_owner | deployed | Vercel `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9` READY; public/ordinary-login smoke; no runtime errors in explicit 1h inspection | authenticated provider step-up not executed | owner may authorize production-safe password/Google step-up evidence |
 
 ### Current permission boundary
 
-- Granted: branch code/test/docs and exact-head verification.
-- Repository: `Thunderkill016/moneyflow`.
-- Provider access before merge: research/read only.
-- Forbidden without later explicit owner action: direct main, provider config writes, destructive production deletion, branch/ruleset changes.
-- Human approval required before: feature merge and provider/production mutation.
-- Stop condition: unexplained flaky/retry, identity-continuity ambiguity or unexpected financial/schema/provider change.
+- Repository/product implementation is merged.
+- Current provider scope for agent work: `provider_read` only.
+- Forbidden without a later explicit owner action: provider configuration writes, creating/mutating a production account for acceptance, destructive production deletion, production financial-data mutation, branch/ruleset changes.
+- Human approval required before any provider/production write.
+- Stop condition: identity-continuity ambiguity, provider state requiring mutation, or any temptation to infer live provider acceptance from repository/browser evidence.
 
 ## Evaluation
 
-### Source-candidate acceptance evidence
+### Exact-head acceptance evidence
 
-Source candidate `867495cb538ea1e2f8c7fb8eedaba583c53e60c3`:
+Final source head `8add8663d118e5f85717af101480354403cef2f1`:
 
-- CI #2065 / run `31250521721`: success.
-- Policy contracts, static quality, production build, unit/static RLS and aggregate verify: success.
-- Fresh local Supabase reset + pgTAP database job: success.
-- Browser smoke: 100 passed / 0 failed; inspected raw log showed no retry marker. Artifact `9019911829`, digest `sha256:f0a8fd84d1ccbe8ae70816668a758d74b216a0ed3a13b7603b2cb3d6576e6bd6`.
-- Cross-device audit: 563 total / 436 passed / 127 intentional skips / 0 failed / 0 flaky; inspected raw log showed no retry marker. Artifact `9019943837`, digest `sha256:ece0226bebffe080aca54856b44629574ec964dceb91450eabac02693341a4f2`.
-- Aggregate `e2e`: success.
-- CodeQL #1168 / run `31250521724`: success.
-- Secret history #1168 / run `31250521723`: success.
+- CI #2070 / run `31253706324`: success.
+- CodeQL #1173 / run `31253706317`: success.
+- Secret history #1173 / run `31253706318`: success.
+- Policy/static quality/production build/unit + static RLS/fresh Supabase reset + pgTAP: success.
+- Cross-device audit: 427 pass + 127 intentional skips, 0 failed/0 flaky.
+- First Browser job shell was green but raw evidence contained one unrelated retry-pass; it was not accepted.
+- Browser job rerun on the same exact head: **100/100 passed, 0 retry/flaky**, artifact `9020908708`, digest `sha256:d94f7080a1788c430458c342ed52016f2a10008eccfc7d981e850046721ccf81`.
+- Aggregate `e2e`: success after clean Browser rerun.
 
-This evidence-doc update moves the PR head again. The new final documentation head must pass protected checks before the owner checkpoint is considered exact-head clean; no source/runtime change is introduced by this record.
+### Production evidence
+
+Merged commit `fd984a18201f1663d3d8c622d51c41dfd650c816`:
+
+- Vercel deployment `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9`: `READY`, target `production`.
+- `mfvn.vercel.app` aliases this deployment.
+- `/` returned 200.
+- ordinary `/login?next=/settings/delete-account` returned 200 with `reauth=0` when no authenticated continuity exists.
+- unauthenticated `/settings/delete-account` reached the ordinary login boundary with the deletion return path.
+- explicit Vercel runtime-error inspection for the prior hour returned no runtime errors.
+
+This does **not** prove the authenticated password or Google provider step-up path. That evidence remains P1-T8.
 
 ### Research and adoption evidence
 
 - Current Supabase documentation supports verified AMR method/timestamp evidence and distinguishes `iat`, `aal` and `amr`.
-- The MoneyFlow allowlist is deliberately narrower than the provider vocabulary.
+- MoneyFlow allowlist is deliberately narrower than provider vocabulary.
 - No external code or new dependency was adopted.
 
 ### Review findings
 
-- Correctness: initial refresh exposed and fixed the expired-session dead-end before acceptance.
-- Security/ownership: Edge remains destructive authority and bearer identity remains target authority.
-- Current-main preservation: newest tenant cleanup is retained and port-induced comment churn was restored.
-- Verification baseline: archive-induced P5/P6/P7 stale packet contracts were repaired as test-only prerequisites and unit/static RLS is green.
-- UI/UX/accessibility: existing Auth/Delete owners are reused; no redesign introduced.
-- Scope: recent-auth only; backup/restore remains Phase 2.
+- Correctness: expired-session dead-end fixed before initial acceptance.
+- Security: missing OAuth continuity fails closed; cross-account mismatch cannot inherit deletion authority.
+- Recovery: mismatch returns to ordinary login instead of a broken reauth mode.
+- Current-main preservation: newest tenant cleanup retained.
+- Flake policy: first Browser retry-pass was rejected and rerun cleanly on the same head.
+- Scope: recent-auth only; backup/restore implementation remains Phase 2 and is dependency-blocked.
 
 ### Remaining limitations
 
-- PR #324 remains candidate until owner-approved merge.
-- Provider-backed production password/Google step-up is not evidenced until the exact merged deployment exists.
+- Live authenticated production password step-up has not been exercised in inspected evidence.
+- Live Google-provider step-up/identity continuity has not been exercised in inspected evidence.
 - No destructive real-user production deletion is required or claimed.
 
 ## Delivery record
 
-- Branch: `agent/public-beta-trust-phase-1-recent-auth`
-- PR: #324
-- Source candidate: `867495cb538ea1e2f8c7fb8eedaba583c53e60c3`
-- CI: #2065 success; CodeQL/Secret #1168 success
-- Final evidence-doc exact head: pending this commit and its protected rerun
-- Squash commit: pending owner decision
-- Production deployment: pending owner merge
-- Production flow verified: pending
-- Work packet moved to `docs/plans/completed/`: no
+- PR: #324 — merged.
+- Merge commit: `fd984a18201f1663d3d8c622d51c41dfd650c816`.
+- Exact-head CI: #2070 success; CodeQL/Secret #1173 success.
+- Production deployment: `dpl_8Eak3CqtjepuqY4mnq5UTLHwfeq9` READY.
+- Production routing/runtime smoke: complete for non-authenticated boundary.
+- Provider-backed authenticated step-up: pending.
+- Work packet moved to `docs/plans/completed/`: **no**; remain active until P1 is accepted.
