@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/components/auth-form";
+import { ACCOUNT_DELETION_PATH } from "@/lib/account-deletion-reauth";
 import { safeNextPath } from "@/lib/auth-redirect";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -9,8 +10,20 @@ export const metadata: Metadata = {
   alternates: { canonical: "/login" },
 };
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ next?: string }> }) {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string; reauth?: string }>;
+}) {
   const params = await searchParams;
   const next = safeNextPath(params.next);
-  return <AuthForm mode="login" next={next} demoMode={!isSupabaseConfigured()} />;
+  const reauth = params.reauth === "1" && next === ACCOUNT_DELETION_PATH;
+  return (
+    <AuthForm
+      mode="login"
+      next={next}
+      demoMode={!isSupabaseConfigured()}
+      reauth={reauth}
+    />
+  );
 }

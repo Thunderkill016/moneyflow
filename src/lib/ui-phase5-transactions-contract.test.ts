@@ -42,7 +42,7 @@ const transferDialog = readFileSync(
   "utf8",
 );
 const packet = readFileSync(
-  "docs/plans/active/ui-phase-5-transactions-capture.md",
+  "docs/plans/completed/2026-08-08-ui-phase-5-transactions-capture.md",
   "utf8",
 );
 
@@ -206,8 +206,9 @@ test("local ledger owner defines narrow reflow and forced-colors behavior", () =
   assert.match(workspaceCss, /@media \(forced-colors: active\)/);
 });
 
-test("Phase 5 packet records explicit authorization without merge permission", () => {
-  assert.match(packet, /[`“]tiếp tục p5[`”]/);
-  assert.match(packet, /Permission scope:\*\* branch_write/);
-  assert.match(packet, /Merge (?:and|\/) deployment remain(?:s)? owner decision/);
+test("Phase 5 completed packet records accepted delivery and production evidence", () => {
+  assert.match(packet, /Status:\*\* accepted/);
+  assert.match(packet, /Implementation PR:\*\* #306/);
+  assert.match(packet, /Production:\*\* `dpl_GCYtqTVBnRuKLrEd3k7G7TnTkbbt` READY/);
+  assert.match(packet, /Current program closure/);
 });

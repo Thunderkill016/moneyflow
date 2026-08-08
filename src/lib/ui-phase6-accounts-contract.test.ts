@@ -29,7 +29,7 @@ const transferCss = readFileSync(
   "utf8",
 );
 const packet = readFileSync(
-  "docs/plans/active/ui-phase-6-accounts-transfer.md",
+  "docs/plans/completed/2026-08-08-ui-phase-6-accounts-transfer.md",
   "utf8",
 );
 
@@ -127,10 +127,9 @@ test("Transfer has a dedicated presentation owner and preserves domain mutation 
   assert.doesNotMatch(transferCss, /:global\s*\(|!important/);
 });
 
-test("Phase 6 packet records bounded authorization and Class 3 archive boundary", () => {
-  assert.match(packet, /[`“]Làm đi[`”]/);
-  assert.match(packet, /Permission scope:\*\* branch_write/);
-  assert.match(packet, /future zero-balance or balancing-transfer rule/);
-  assert.match(packet, /separate owner-approved Class 3 packet/);
-  assert.match(packet, /Merge and deployment remain owner decisions/);
+test("Phase 6 completed packet records accepted delivery and separate closing depth", () => {
+  assert.match(packet, /Status:\*\* accepted/);
+  assert.match(packet, /Implementation PR:\*\* #307/);
+  assert.match(packet, /Production:\*\* `dpl_GD5hVfLXh66rmrJnZiiADN8f4HK9` READY/);
+  assert.match(packet, /separate product\/financial specification/);
 });
