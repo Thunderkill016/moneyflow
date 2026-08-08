@@ -69,6 +69,16 @@ const copy = {
   },
 } satisfies Record<Mode, ModeCopy>;
 
+const reauthCopy: ModeCopy = {
+  eyebrow: "Xác thực lại trước thao tác vĩnh viễn",
+  title: "Xác nhận đây là bạn",
+  description:
+    "Đăng nhập lại để mở quyền xóa tài khoản trong thời gian ngắn. Sau đó bạn sẽ quay lại bước xác nhận xóa.",
+  submit: "Xác thực lại",
+  proofEyebrow: "Bảo vệ thao tác không thể hoàn tác",
+  proofTitle: "Phiên đang đăng nhập chưa đủ cho việc xóa vĩnh viễn.",
+};
+
 const proofPoints = [
   {
     icon: ArrowRightLeft,
@@ -102,10 +112,12 @@ export function AuthForm({
   mode,
   next = POST_AUTH_REDIRECT,
   demoMode = false,
+  reauth = false,
 }: {
   mode: Mode;
   next?: string;
   demoMode?: boolean;
+  reauth?: boolean;
 }) {
   const action =
     mode === "login"
@@ -123,7 +135,8 @@ export function AuthForm({
   const captchaEnabled = captchaApplies && captchaConfig.enabled;
   const captchaBlocked =
     captchaEnabled && (!captchaConfig.ready || !captchaToken);
-  const content = copy[mode];
+  const isReauth = reauth && mode === "login";
+  const content = isReauth ? reauthCopy : copy[mode];
   const baseId = useId();
   const titleId = `${baseId}-title`;
   const fullNameErrorId = `${baseId}-fullName-error`;
@@ -141,8 +154,8 @@ export function AuthForm({
             ariaLabel="MoneyFlow, trang chủ"
             size="standard"
           />
-          <Link href="/" className={styles.homeLink}>
-            ← Trang chủ
+          <Link href={isReauth ? next : "/"} className={styles.homeLink}>
+            {isReauth ? "← Quay lại xóa tài khoản" : "← Trang chủ"}
           </Link>
         </header>
 
@@ -154,7 +167,7 @@ export function AuthForm({
               <p className={styles.description}>{content.description}</p>
             </header>
 
-            {demoMode && mode === "login" && (
+            {demoMode && mode === "login" && !isReauth && (
               <div className={styles.demoNotice} role="status">
                 <strong>Đang ở chế độ demo</strong>
                 <span>Dữ liệu demo chỉ được lưu trong trình duyệt này.</span>
@@ -165,6 +178,7 @@ export function AuthForm({
             {(mode === "login" || mode === "register") && (
               <form action={signInWithGoogle}>
                 <input type="hidden" name="next" value={next} />
+                <input type="hidden" name="reauth" value={isReauth ? "1" : "0"} />
                 <button
                   className={styles.googleButton}
                   type="submit"
@@ -193,7 +207,7 @@ export function AuthForm({
                       d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.3A9 9 0 0 0 .95 4.98l3.02 2.32C4.68 5.16 6.66 3.58 9 3.58z"
                     />
                   </svg>
-                  Tiếp tục với Google
+                  {isReauth ? "Xác thực lại với Google" : "Tiếp tục với Google"}
                 </button>
               </form>
             )}
@@ -206,6 +220,7 @@ export function AuthForm({
 
             <form className={styles.form} action={formAction} noValidate>
               <input type="hidden" name="next" value={next} />
+              <input type="hidden" name="reauth" value={isReauth ? "1" : "0"} />
 
               {mode === "register" && (
                 <label>
@@ -251,7 +266,7 @@ export function AuthForm({
                 <label>
                   <span className={styles.fieldLabelRow}>
                     <span>Mật khẩu</span>
-                    {mode === "login" && (
+                    {mode === "login" && !isReauth && (
                       <Link href="/forgot-password">Quên mật khẩu?</Link>
                     )}
                   </span>
@@ -345,7 +360,12 @@ export function AuthForm({
               </button>
             </form>
 
-            {mode === "login" && (
+            {mode === "login" && isReauth && (
+              <p className={styles.switchLink}>
+                <Link href={next}>← Hủy và quay lại xóa tài khoản</Link>
+              </p>
+            )}
+            {mode === "login" && !isReauth && (
               <p className={styles.switchLink}>
                 Chưa có tài khoản? <Link href="/register">Đăng ký</Link>
               </p>
@@ -381,7 +401,9 @@ export function AuthForm({
 
         <p className={styles.securityNote}>
           <ShieldCheck size={15} aria-hidden="true" />
-          MoneyFlow không yêu cầu mật khẩu ngân hàng.
+          {isReauth
+            ? "MoneyFlow yêu cầu xác thực lại trước thao tác xóa vĩnh viễn."
+            : "MoneyFlow không yêu cầu mật khẩu ngân hàng."}
         </p>
       </div>
     </main>

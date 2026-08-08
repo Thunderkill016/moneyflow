@@ -3,7 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { FunctionsHttpError } from "@supabase/supabase-js";
 import { z } from "zod";
+import {
+  ACCOUNT_DELETION_PATH,
+  ACCOUNT_DELETION_REAUTH_COOKIE_MAX_AGE_SECONDS,
+  ACCOUNT_DELETION_REAUTH_USER_COOKIE,
+  REAUTH_ACCOUNT_MISMATCH_MESSAGE,
+} from "@/lib/account-deletion-reauth";
 import {
   CAPTCHA_TOKEN_FIELD,
   captchaTokenRequiredButMissing,
@@ -81,6 +88,29 @@ function isCaptchaError(error: { code?: string } | null): boolean {
   return error?.code === "captcha_failed";
 }
 
+async function setExpectedDeletionReauthUser(userId: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(ACCOUNT_DELETION_REAUTH_USER_COOKIE, userId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/auth/callback",
+    maxAge: ACCOUNT_DELETION_REAUTH_COOKIE_MAX_AGE_SECONDS,
+  });
+}
+
+async function clearExpectedDeletionReauthUser() {
+  const cookieStore = await cookies();
+  cookieStore.set(ACCOUNT_DELETION_REAUTH_USER_COOKIE, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/auth/callback",
+    maxAge: 0,
+    expires: new Date(0),
+  });
+}
+
 export async function login(
   _: AuthState,
   formData: FormData,
@@ -96,16 +126,47 @@ export async function login(
 
   const supabase = await createClient();
   if (!supabase) return configurationError();
-  const { error } = await supabase.auth.signInWithPassword({
+
+  const nextPath = safeNextPath(
+    String(formData.get("next") ?? ""),
+    POST_AUTH_REDIRECT,
+  );
+  const reauth =
+    formData.get("reauth") === "1" && nextPath === ACCOUNT_DELETION_PATH;
+  let expectedReauthUserId: string | null = null;
+  if (reauth) {
+    const {
+      data: { user: currentUser },
+      error: currentUserError,
+    } = await supabase.auth.getUser();
+    if (currentUserError || !currentUser) {
+      return {
+        message:
+          "Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục, sau đó mở lại bước xóa tài khoản.",
+      };
+    }
+    if (
+      !currentUser.email ||
+      currentUser.email.trim().toLowerCase() !== parsed.data.email
+    ) {
+      return { message: REAUTH_ACCOUNT_MISMATCH_MESSAGE };
+    }
+    expectedReauthUserId = currentUser.id;
+  }
+
+  const { data, error } = await supabase.auth.signInWithPassword({
     ...parsed.data,
     options: captcha.token ? { captchaToken: captcha.token } : undefined,
   });
   if (isCaptchaError(error)) return captchaFailure();
   if (error) return { message: "Email hoặc mật khẩu không đúng." };
 
-  redirect(
-    safeNextPath(String(formData.get("next") ?? ""), POST_AUTH_REDIRECT),
-  );
+  if (expectedReauthUserId && data.user?.id !== expectedReauthUserId) {
+    await supabase.auth.signOut({ scope: "local" });
+    return { message: REAUTH_ACCOUNT_MISMATCH_MESSAGE };
+  }
+
+  redirect(nextPath);
 }
 
 export async function register(
@@ -140,15 +201,12 @@ export async function register(
   });
   if (isCaptchaError(error)) return captchaFailure();
   if (error) {
-    // Do not expose whether this address already exists. Provider logs retain
-    // the exact error for operators; the public response stays neutral.
     return {
       message:
         "Không thể tạo tài khoản lúc này. Kiểm tra thông tin hoặc thử lại sau.",
     };
   }
 
-  // Immediate session (email confirm off) → onboarding for first capture.
   if (data.session) redirect(nextPath);
 
   return {
@@ -162,15 +220,33 @@ export async function signInWithGoogle(formData?: FormData) {
     formData ? String(formData.get("next") ?? "") : "",
     POST_AUTH_REDIRECT,
   );
+  const reauth =
+    formData?.get("reauth") === "1" && nextPath === ACCOUNT_DELETION_PATH;
   const supabase = await createClient();
   if (!supabase) redirect("/login?error=config");
+
+  if (reauth) {
+    const {
+      data: { user: currentUser },
+      error: currentUserError,
+    } = await supabase.auth.getUser();
+    if (currentUserError || !currentUser) {
+      redirect(`/login?next=${encodeURIComponent(nextPath)}&error=reauth-session`);
+    }
+    await setExpectedDeletionReauthUser(currentUser.id);
+  }
+
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: `${getSiteOrigin()}/auth/callback?next=${encodeURIComponent(nextPath)}`,
+      ...(reauth ? { queryParams: { max_age: "0" } } : {}),
     },
   });
-  if (error || !data.url) redirect("/login?error=oauth");
+  if (error || !data.url) {
+    if (reauth) await clearExpectedDeletionReauthUser();
+    redirect("/login?error=oauth");
+  }
   redirect(data.url);
 }
 
@@ -198,7 +274,6 @@ export async function requestPasswordReset(
   });
   if (isCaptchaError(error)) return captchaFailure();
 
-  // Keep the response identical whether the email exists or not.
   return {
     success: true,
     message:
@@ -255,12 +330,25 @@ export async function signOut() {
 
 export type AccountDeletionResult =
   | { ok: true; cleanupVerified: boolean }
-  | { ok: false; message: string };
+  | {
+      ok: false;
+      message: string;
+      requiresReauthentication?: false;
+    }
+  | {
+      ok: false;
+      message: string;
+      requiresReauthentication: true;
+    };
 
 type DeleteAccountFunctionResponse = {
   ok?: unknown;
   cleanupVerified?: unknown;
   tenantRowsRemaining?: unknown;
+};
+
+type DeleteAccountFunctionError = {
+  code?: unknown;
 };
 
 /** Permanently delete only the currently authenticated user and their tenant rows. */
@@ -292,6 +380,7 @@ export async function finalizeAccountDeletion(
       ok: false,
       message:
         "Phiên đăng nhập đã hết hạn. Đăng nhập lại trước khi xóa tài khoản.",
+      requiresReauthentication: true,
     };
   }
 
@@ -300,6 +389,30 @@ export async function finalizeAccountDeletion(
       "delete-account",
       { body: { confirm: DELETE_CONFIRM_TEXT } },
     );
+
+  if (deleteError instanceof FunctionsHttpError) {
+    try {
+      const body = (await deleteError.context.json()) as DeleteAccountFunctionError;
+      if (body?.code === "recent_auth_required") {
+        return {
+          ok: false,
+          requiresReauthentication: true,
+          message:
+            "Để bảo vệ thao tác xóa vĩnh viễn, hãy xác thực lại tài khoản rồi quay lại bước xác nhận.",
+        };
+      }
+      if (body?.code === "recent_auth_unavailable") {
+        return {
+          ok: false,
+          message:
+            "Chưa kiểm tra được trạng thái xác thực gần đây. Dữ liệu chưa bị xóa; hãy thử lại sau.",
+        };
+      }
+    } catch {
+      // Fall through to the bounded generic server-deletion failure below.
+    }
+  }
+
   if (deleteError || !data || data.ok !== true) {
     return {
       ok: false,
@@ -311,7 +424,6 @@ export async function finalizeAccountDeletion(
   const cleanupVerified =
     data.cleanupVerified === true && data.tenantRowsRemaining === 0;
 
-  // Best effort: remove the local SSR session cookie after the Auth user is gone.
   await supabase.auth.signOut({ scope: "local" });
   return { ok: true, cleanupVerified };
 }
