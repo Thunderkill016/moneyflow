@@ -140,36 +140,38 @@ test.describe("critical browser compatibility audit", () => {
         mobileNavigation.getByRole("button", { name: "Ghi chi tiêu" }),
       ).toBeVisible();
 
-      const metrics = await mobileNavigation.evaluate((navigation) => {
+      const firstPaintMetrics = await mobileNavigation.evaluate((navigation) => {
         if (!(navigation.parentElement instanceof HTMLElement)) {
           throw new Error("App shell is missing");
         }
-        const navigationHeight = navigation.getBoundingClientRect().height;
-        const shellPaddingBottom = Number.parseFloat(
-          getComputedStyle(navigation.parentElement).paddingBottom,
-        );
-        const scrollPaddingBottom = Number.parseFloat(
-          getComputedStyle(document.documentElement).scrollPaddingBottom,
-        );
         return {
           itemCount: navigation.children.length,
-          navigationHeight,
-          shellPaddingBottom,
-          scrollPaddingBottom,
+          navigationHeight: navigation.getBoundingClientRect().height,
+          shellPaddingBottom: Number.parseFloat(
+            getComputedStyle(navigation.parentElement).paddingBottom,
+          ),
           documentOverflow:
             document.documentElement.scrollWidth -
             document.documentElement.clientWidth,
         };
       });
 
-      expect(metrics.itemCount).toBe(5);
-      expect(metrics.shellPaddingBottom).toBeGreaterThanOrEqual(
-        metrics.navigationHeight - 2,
+      expect(firstPaintMetrics.itemCount).toBe(5);
+      expect(firstPaintMetrics.shellPaddingBottom).toBeGreaterThanOrEqual(
+        firstPaintMetrics.navigationHeight - 2,
       );
-      expect(metrics.scrollPaddingBottom).toBeGreaterThanOrEqual(
-        metrics.navigationHeight - 2,
+      expect(firstPaintMetrics.documentOverflow).toBeLessThanOrEqual(1);
+
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-moneyflow-shell",
+        "mounted",
       );
-      expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
+      const scrollPaddingBottom = await page.locator("html").evaluate((element) =>
+        Number.parseFloat(getComputedStyle(element).scrollPaddingBottom),
+      );
+      expect(scrollPaddingBottom).toBeGreaterThanOrEqual(
+        firstPaintMetrics.navigationHeight - 2,
+      );
     } else {
       await expect(desktopNavigation).toBeVisible();
       await expect(mobileNavigation).toBeHidden();
@@ -185,6 +187,10 @@ test.describe("critical browser compatibility audit", () => {
       const topbarHeight = await page
         .getByRole("banner")
         .evaluate((element) => element.getBoundingClientRect().height);
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-moneyflow-shell",
+        "mounted",
+      );
       const scrollPaddingTop = await page.locator("html").evaluate((element) =>
         Number.parseFloat(getComputedStyle(element).scrollPaddingTop),
       );
