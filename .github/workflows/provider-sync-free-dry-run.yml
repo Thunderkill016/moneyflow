@@ -29,16 +29,16 @@ jobs:
 
           production_tail="20260802022923"
           expected_moneyflow=(
-            20260802060004
-            20260803090000
-            20260803142000
-            20260803144500
-            20260803153000
-            20260804110000
-            20260804160000
-            20260804160100
-            20260804160200
-            20260804160300
+            20260802060004_cover_foreign_key_indexes.sql
+            20260803090000_transaction_review_bulk_correction.sql
+            20260803142000_account_reconciliation_current_main.sql
+            20260803144500_account_reconciliation_ci_hardening.sql
+            20260803153000_account_reconciliation_workspace_read_model.sql
+            20260804110000_authenticated_deterministic_rules.sql
+            20260804160000_financial_mutation_audit.sql
+            20260804160100_financial_read_plan_indexes.sql
+            20260804160200_financial_audit_service_role_inspection.sql
+            20260804160300_financial_audit_request_id_token.sql
           )
           remote_only_atoryn=(
             20260804171954_create_atoryn_design_agent_bridge
@@ -85,31 +85,19 @@ jobs:
           echo "=== Supabase CLI dry-run ==="
           supabase db push --local --include-all --dry-run 2>&1 | tee provider-sync-dry-run.log
 
-          mapfile -t pending_versions < <(
-            awk -F '│' '
-              /^[[:space:]]*[0-9]{14}[[:space:]]*│[[:space:]]*│/ {
-                gsub(/[[:space:]]/, "", $1);
-                print $1;
-              }
-            ' provider-sync-migration-list.log
+          mapfile -t dry_run_migrations < <(
+            grep -oE '20[0-9]{12}_[a-z0-9_]+\.sql' provider-sync-dry-run.log || true
           )
 
-          if [[ "${#pending_versions[@]}" -ne "${#expected_moneyflow[@]}" ]]; then
-            echo "::error::Expected ${#expected_moneyflow[@]} pending MoneyFlow migrations, found ${#pending_versions[@]}"
-            printf 'Pending: %s\n' "${pending_versions[*]:-<none>}"
+          if [[ "${#dry_run_migrations[@]}" -ne "${#expected_moneyflow[@]}" ]]; then
+            echo "::error::Expected ${#expected_moneyflow[@]} dry-run migrations, found ${#dry_run_migrations[@]}"
+            printf 'Dry-run: %s\n' "${dry_run_migrations[*]:-<none>}"
             exit 1
           fi
 
           for index in "${!expected_moneyflow[@]}"; do
-            if [[ "${pending_versions[$index]}" != "${expected_moneyflow[$index]}" ]]; then
-              echo "::error::Pending migration mismatch at index $index: expected ${expected_moneyflow[$index]}, found ${pending_versions[$index]}"
-              exit 1
-            fi
-          done
-
-          for version in "${expected_moneyflow[@]}"; do
-            if ! grep -q "$version" provider-sync-dry-run.log; then
-              echo "::error::Dry-run output did not mention expected migration version $version"
+            if [[ "${dry_run_migrations[$index]}" != "${expected_moneyflow[$index]}" ]]; then
+              echo "::error::Dry-run migration mismatch at index $index: expected ${expected_moneyflow[$index]}, found ${dry_run_migrations[$index]}"
               exit 1
             fi
           done
