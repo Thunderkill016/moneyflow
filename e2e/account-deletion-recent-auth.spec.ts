@@ -27,6 +27,21 @@ test.describe("Account deletion recent authentication", () => {
     await expect(page.getByPlaceholder("XÓA")).toHaveCount(0);
   });
 
+  test("ordinary login can return an expired session to deletion without claiming step-up continuity", async ({
+    page,
+  }) => {
+    await page.goto("/login?next=%2Fsettings%2Fdelete-account");
+
+    await expect(
+      page.getByRole("heading", { name: "Đăng nhập vào MoneyFlow" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Tiếp tục với Google" }),
+    ).toBeVisible();
+    await expect(page.locator('input[name="reauth"]').first()).toHaveValue("0");
+    await expect(page.getByPlaceholder("XÓA")).toHaveCount(0);
+  });
+
   test("ignores reauth presentation for unrelated internal next paths", async ({ page }) => {
     await page.goto("/login?reauth=1&next=%2Fdashboard");
 

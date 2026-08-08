@@ -15,7 +15,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { TextField } from "@/components/ui/text-field";
 import type { ViewerSummary } from "@/components/user-chip";
-import { accountDeletionReauthUrl } from "@/lib/account-deletion-reauth";
+import {
+  accountDeletionLoginUrl,
+  accountDeletionReauthUrl,
+} from "@/lib/account-deletion-reauth";
 import {
   clearLocalMoneyFlowStores,
   DELETE_CONFIRM_TEXT,
@@ -101,6 +104,17 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
 
       const result = await finalizeAccountDeletion(confirmText);
       if (!result.ok) {
+        if (result.requiresLogin) {
+          // The old session is gone, so there is no identity to continue as a
+          // same-account step-up. Start a normal login, return to deletion, and
+          // require destructive confirmation again under the newly verified user.
+          setConfirmText("");
+          setReviewOpen(false);
+          setDeleting(false);
+          router.push(accountDeletionLoginUrl());
+          return;
+        }
+
         if (result.requiresReauthentication) {
           // Destructive confirmation never crosses the authentication boundary.
           // Returning from step-up requires the user to type XÓA again.
@@ -250,10 +264,11 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
               {!viewer.isDemo ? (
                 <Alert tone="warning" live="polite">
                   <AlertDescription>
-                    Máy chủ yêu cầu một lần xác thực tương tác trong 10 phút gần
-                    nhất trước khi xóa. Nếu phiên quá cũ, MoneyFlow đưa bạn qua
-                    bước đăng nhập lại rồi quay lại đây; dữ liệu chưa bị xóa trong
-                    bước xác thực lại.
+                    Máy chủ yêu cầu một lần xác thực bằng mật khẩu hoặc Google trong
+                    10 phút gần nhất trước khi xóa. Nếu phiên đăng nhập còn hợp lệ
+                    nhưng xác thực đã cũ, MoneyFlow yêu cầu xác thực lại đúng tài
+                    khoản. Nếu phiên đã hết hẳn, bạn đăng nhập bình thường rồi quay
+                    lại đây; không có dữ liệu nào bị xóa trong bước đăng nhập.
                   </AlertDescription>
                 </Alert>
               ) : null}
@@ -335,7 +350,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
         description="Đây là bước xác nhận cuối. Không thể hoàn tác sau khi máy chủ hoàn tất."
         details={[
           { label: "Chế độ", value: viewer.isDemo ? "Demo trên thiết bị" : "Tài khoản đăng nhập" },
-          { label: "Xác thực", value: viewer.isDemo ? "Không áp dụng" : "Máy chủ yêu cầu xác thực tương tác gần đây" },
+          { label: "Xác thực", value: viewer.isDemo ? "Không áp dụng" : "Máy chủ yêu cầu mật khẩu/Google gần đây" },
           { label: "Máy chủ", value: viewer.isDemo ? "Không có tài khoản máy chủ" : "Xóa tài khoản và tenant data trước" },
           { label: "Thiết bị", value: "Dọn local stores sau kết quả máy chủ" },
           { label: "Export", value: "Không tự tạo; cần tải trước khi xác nhận" },
@@ -343,7 +358,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
         consequence={
           viewer.isDemo
             ? "Dữ liệu demo trên browser hiện tại sẽ bị xóa. Giao diện theme được giữ theo contract hiện tại."
-            : "Nếu cần xác thực lại hoặc máy chủ thất bại, dữ liệu local chưa bị xóa. Nếu máy chủ thành công nhưng cleanup không xác minh đầy đủ, trang đăng nhập nhận trạng thái verified/unverified và complete/partial để hiển thị hoặc hỗ trợ tiếp theo."
+            : "Nếu cần đăng nhập/xác thực lại hoặc máy chủ thất bại, dữ liệu local chưa bị xóa. Nếu máy chủ thành công nhưng cleanup không xác minh đầy đủ, trang đăng nhập nhận trạng thái verified/unverified và complete/partial để hiển thị hoặc hỗ trợ tiếp theo."
         }
         confirmLabel="Xóa vĩnh viễn"
         confirmIntent="destructive"

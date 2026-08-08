@@ -142,7 +142,7 @@ export async function login(
     if (currentUserError || !currentUser) {
       return {
         message:
-          "Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục, sau đó mở lại bước xóa tài khoản.",
+          "Phiên đăng nhập đã hết hạn. Hãy đăng nhập bình thường rồi mở lại bước xóa tài khoản.",
       };
     }
     if (
@@ -334,11 +334,19 @@ export type AccountDeletionResult =
       ok: false;
       message: string;
       requiresReauthentication?: false;
+      requiresLogin?: false;
     }
   | {
       ok: false;
       message: string;
       requiresReauthentication: true;
+      requiresLogin?: false;
+    }
+  | {
+      ok: false;
+      message: string;
+      requiresReauthentication?: false;
+      requiresLogin: true;
     };
 
 type DeleteAccountFunctionResponse = {
@@ -380,7 +388,7 @@ export async function finalizeAccountDeletion(
       ok: false,
       message:
         "Phiên đăng nhập đã hết hạn. Đăng nhập lại trước khi xóa tài khoản.",
-      requiresReauthentication: true,
+      requiresLogin: true,
     };
   }
 

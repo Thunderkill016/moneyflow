@@ -38,7 +38,14 @@ test("Edge verifies recent-auth claims before any tenant purge", () => {
   assert.doesNotMatch(edge, /payload[^\n]*(?:recent|auth).*timestamp/i);
 });
 
-test("server action exposes a typed reauthentication-required result", () => {
+test("current-main tenant cleanup additions survive the recent-auth refresh", () => {
+  assert.match(edge, /financial_mutation_audit_events/);
+  assert.match(edge, /transaction_import_provenance/);
+  assert.match(edge, /account_reconciliation_events/);
+});
+
+test("server action distinguishes expired login from stale recent-auth", () => {
+  assert.match(actions, /requiresLogin:\s*true/);
   assert.match(actions, /requiresReauthentication:\s*true/);
   assert.match(actions, /recent_auth_required/);
   assert.match(actions, /deleteError[\s\S]*context[\s\S]*json\(\)/);
@@ -59,8 +66,13 @@ test("Google step-up requests fresh provider authentication and preserves safe n
   assert.match(authForm, /name="reauth"/);
 });
 
-test("deletion UI routes stale authenticated users through step-up and re-entry", () => {
+test("deletion UI separates expired-session login from same-account step-up and clears confirmation", () => {
+  assert.match(deletePage, /requiresLogin/);
+  assert.match(deletePage, /accountDeletionLoginUrl\(\)/);
   assert.match(deletePage, /requiresReauthentication/);
   assert.match(deletePage, /accountDeletionReauthUrl\(\)/);
-  assert.match(deletePage, /setConfirmText\(""\)/);
+  assert.ok(
+    (deletePage.match(/setConfirmText\(""\)/g) ?? []).length >= 2,
+    "both authentication boundaries must clear destructive confirmation",
+  );
 });

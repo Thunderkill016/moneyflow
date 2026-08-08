@@ -19,6 +19,12 @@ test("step-up actions require both the reauth flag and deletion return path", ()
   assert.match(actions, /nextPath === ACCOUNT_DELETION_PATH/);
 });
 
+test("expired sessions are sent through ordinary login instead of impossible same-account step-up", () => {
+  assert.match(actions, /requiresLogin:\s*true/);
+  assert.match(reauthPolicy, /accountDeletionLoginUrl/);
+  assert.match(reauthPolicy, /new URLSearchParams\(\{ next: ACCOUNT_DELETION_PATH \}\)/);
+});
+
 test("password step-up refuses credentials for a different current identity", () => {
   assert.match(actions, /auth\.getUser\(\)/);
   assert.match(actions, /currentUser\.email/);
@@ -42,8 +48,9 @@ test("OAuth callback compares the new session identity before returning to delet
   assert.match(callback, /reauth-account-mismatch/);
 });
 
-test("shared reauth policy owns route and short-lived continuity cookie names", () => {
+test("shared policy owns deletion route and short-lived continuity cookie", () => {
   assert.match(reauthPolicy, /ACCOUNT_DELETION_PATH/);
   assert.match(reauthPolicy, /ACCOUNT_DELETION_REAUTH_USER_COOKIE/);
   assert.match(reauthPolicy, /ACCOUNT_DELETION_REAUTH_COOKIE_MAX_AGE_SECONDS = 10 \* 60/);
+  assert.match(reauthPolicy, /accountDeletionReauthUrl/);
 });
