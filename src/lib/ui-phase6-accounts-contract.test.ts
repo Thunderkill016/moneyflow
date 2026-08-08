@@ -29,7 +29,7 @@ const transferCss = readFileSync(
   "utf8",
 );
 const packet = readFileSync(
-  "docs/plans/active/ui-phase-6-accounts-transfer.md",
+  "docs/plans/completed/2026-08-08-ui-phase-6-accounts-transfer.md",
   "utf8",
 );
 
