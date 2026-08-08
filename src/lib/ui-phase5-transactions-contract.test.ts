@@ -42,7 +42,7 @@ const transferDialog = readFileSync(
   "utf8",
 );
 const packet = readFileSync(
-  "docs/plans/active/ui-phase-5-transactions-capture.md",
+  "docs/plans/completed/2026-08-08-ui-phase-5-transactions-capture.md",
   "utf8",
 );
 
