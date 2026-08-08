@@ -75,6 +75,14 @@ test("viewport and safe-area geometry are explicit and single-owner", () => {
   assert.doesNotMatch(appShellStyles, /calc\(104px/u);
 });
 
+test("server-rendered shell owns mobile reserve before the mounted document marker", () => {
+  const shellOwner = appShellStyles.match(/\.shell\s*\{([^}]*)\}/u)?.[1] ?? "";
+  assert.match(shellOwner, /--mf-shell-mobile-nav-height:\s*74px/u);
+  assert.match(shellOwner, /--mf-shell-mobile-nav-reserve:\s*calc\(/u);
+  assert.match(shellOwner, /--mf-shell-layer-mobile-nav:\s*50/u);
+  assert.match(shellOwner, /--mf-shell-layer-feedback:\s*60/u);
+});
+
 test("normal shell layers are separate from modal top-layer behavior", () => {
   assert.match(appShellStyles, /--mf-shell-layer-topbar/u);
   assert.match(appShellStyles, /--mf-shell-layer-sidebar/u);
