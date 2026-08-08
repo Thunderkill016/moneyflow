@@ -39,7 +39,10 @@ const files = {
     "src/components/planning/goal-dialogs.tsx",
     "utf8",
   ),
-  packet: readFileSync("docs/plans/active/ui-phase-7-planning.md", "utf8"),
+  packet: readFileSync(
+    "docs/plans/completed/2026-08-08-ui-phase-7-planning.md",
+    "utf8",
+  ),
 };
 
 const pages = [files.budgets, files.commitments, files.income, files.goals];
