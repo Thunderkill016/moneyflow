@@ -201,12 +201,15 @@ export async function register(
   });
   if (isCaptchaError(error)) return captchaFailure();
   if (error) {
+    // Do not expose whether this address already exists. Provider logs retain
+    // the exact error for operators; the public response stays neutral.
     return {
       message:
         "Không thể tạo tài khoản lúc này. Kiểm tra thông tin hoặc thử lại sau.",
     };
   }
 
+  // Immediate session (email confirm off) → onboarding for first capture.
   if (data.session) redirect(nextPath);
 
   return {
@@ -274,6 +277,7 @@ export async function requestPasswordReset(
   });
   if (isCaptchaError(error)) return captchaFailure();
 
+  // Keep the response identical whether the email exists or not.
   return {
     success: true,
     message:
@@ -432,6 +436,7 @@ export async function finalizeAccountDeletion(
   const cleanupVerified =
     data.cleanupVerified === true && data.tenantRowsRemaining === 0;
 
+  // Best effort: remove the local SSR session cookie after the Auth user is gone.
   await supabase.auth.signOut({ scope: "local" });
   return { ok: true, cleanupVerified };
 }
