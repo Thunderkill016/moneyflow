@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
 const rootLayout = readFileSync("src/app/layout.tsx", "utf8");
@@ -18,6 +18,12 @@ const rejectedDirection = readFileSync(
   "utf8",
 );
 
+const retiredPublicGenerations = [
+  "src/app/landing-refresh.css",
+  "src/app/landing-dark-mode-guardrails.css",
+  "src/app/auth-refresh.css",
+];
+
 test("public UI uses semantic theme infrastructure without a named doctrine", () => {
   assert.match(rootLayout, /import "\.\/document-theme\.css"/);
   assert.doesNotMatch(rootLayout, /landing-refresh\.css/);
@@ -29,8 +35,15 @@ test("public UI uses semantic theme infrastructure without a named doctrine", ()
   assert.match(rejectedDirection, /historical material only/);
 });
 
+test("retired public generations cannot become a second visual authority", () => {
+  for (const path of retiredPublicGenerations) {
+    assert.equal(existsSync(path), false, `${path} must remain deleted`);
+  }
+});
+
 test("landing keeps a real conversion path and guided product evidence", () => {
   assert.match(landingPage, /href="\/register"/);
+  assert.match(landingPage, /href="\/login"/);
   assert.match(landingPage, /href="#cach-hoat-dong"/);
   assert.doesNotMatch(landingPage, /Thử demo không cần tài khoản/);
   assert.doesNotMatch(landingPage, /href="\/dashboard"/);
@@ -49,7 +62,20 @@ test("landing is responsive, public-light and motion accessible", () => {
   );
   assert.match(landingStyles, /@media \(max-width: 980px\)/);
   assert.match(landingStyles, /@media \(max-width: 680px\)/);
+  assert.match(landingStyles, /@media \(max-width: 360px\)/);
   assert.match(landingStyles, /min-height:\s*44px/);
+  assert.doesNotMatch(
+    landingStyles,
+    /\.loginLink\s*\{[^}]*display:\s*none/i,
+  );
+  assert.match(
+    landingStyles,
+    /@media \(max-width: 680px\)[\s\S]*?\.loginLink\s*\{[\s\S]*?min-height:\s*44px/,
+  );
+  assert.match(
+    landingStyles,
+    /@media \(max-width: 680px\)[\s\S]*?\.navCta\s*\{[\s\S]*?min-height:\s*44px/,
+  );
   assert.match(landingStyles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.doesNotMatch(landingStyles, /html\[data-theme="dark"\]/);
   assert.match(publicTheme, /color-scheme:\s*light/);

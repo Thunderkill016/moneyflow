@@ -73,33 +73,41 @@
   letter-spacing: -0.025em;
 }
 
-.navLinks {
+.navLinks,
+.navActions {
   display: flex;
   align-items: center;
+}
+
+.navLinks {
   gap: 28px;
+}
+
+.navActions {
+  margin-left: auto;
+  gap: 8px;
+}
+
+.navLinks a,
+.loginLink,
+.navCta {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 660;
 }
 
 .navLinks a,
 .loginLink {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  border-radius: 10px;
   color: var(--public-muted);
-  font-size: 14px;
-  font-weight: 660;
 }
 
 .navLinks a:hover,
 .loginLink:hover {
   color: var(--public-ink);
-}
-
-.navActions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .loginLink {
@@ -128,10 +136,7 @@
 }
 
 .navCta {
-  min-height: 44px;
-  border-radius: 11px;
   padding: 0 16px;
-  font-size: 14px;
 }
 
 .navCta:hover,
@@ -253,8 +258,9 @@
   gap: 7px;
 }
 
-.trustRow svg {
-  flex: 0 0 auto;
+.trustRow svg,
+.stepTopline,
+.controlGrid svg {
   color: var(--public-accent);
 }
 
@@ -333,7 +339,8 @@
   order: 1;
 }
 
-.storyCopy {
+.storyCopy,
+.storyFigure {
   min-width: 0;
 }
 
@@ -342,7 +349,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--public-accent);
 }
 
 .stepTopline span {
@@ -380,7 +386,6 @@
 }
 
 .storyFigure {
-  min-width: 0;
   overflow: hidden;
   border: 1px solid var(--public-line);
   border-radius: 24px;
@@ -479,10 +484,6 @@
   background: var(--public-surface-soft);
 }
 
-.controlGrid svg {
-  color: var(--public-accent);
-}
-
 .controlGrid h3 {
   font-size: 15px;
   font-weight: 760;
@@ -577,10 +578,6 @@
     max-height: none;
   }
 
-  .controlGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .finalCta {
     grid-template-columns: 1fr;
   }
@@ -592,20 +589,29 @@
 
 @media (max-width: 680px) {
   .nav {
+    width: min(calc(100% - 24px), var(--mf-content));
     min-height: 66px;
-    gap: 12px;
+    gap: 10px;
   }
 
   .brand {
     font-size: 17px;
   }
 
+  .navActions {
+    gap: 4px;
+  }
+
   .loginLink {
-    display: none;
+    min-height: 44px;
+    padding: 0 8px;
+    font-size: 13px;
   }
 
   .navCta {
-    min-height: 42px;
+    min-height: 44px;
+    padding: 0 11px;
+    font-size: 13px;
   }
 
   .hero {
@@ -702,6 +708,24 @@
 
   .footer > p {
     text-align: left;
+  }
+}
+
+@media (max-width: 360px) {
+  .brand > span {
+    display: none;
+  }
+
+  .nav {
+    gap: 6px;
+  }
+
+  .loginLink {
+    padding-inline: 7px;
+  }
+
+  .navCta {
+    padding-inline: 9px;
   }
 }
 
