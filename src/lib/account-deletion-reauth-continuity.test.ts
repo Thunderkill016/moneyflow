@@ -39,6 +39,25 @@ test("Google step-up stores server-owned expected identity before OAuth", () => 
   assert.match(actions, /maxAge:\s*ACCOUNT_DELETION_REAUTH_COOKIE_MAX_AGE_SECONDS/);
 });
 
+test("Google step-up marks its callback explicitly instead of trusting the return path alone", () => {
+  assert.match(
+    actions,
+    /redirectTo:[\s\S]*reauth \? "&reauth=1" : ""/,
+  );
+  assert.match(callback, /url\.searchParams\.get\("reauth"\) === "1"/);
+  assert.match(callback, /isDeletionReauthCallback/);
+});
+
+test("OAuth callback fails closed when reauth continuity evidence is missing", () => {
+  assert.match(
+    callback,
+    /isDeletionReauthCallback && !expectedUserId/,
+  );
+  assert.match(callback, /reauth-continuity-expired/);
+  assert.match(callback, /auth\.signOut\(\{ scope: "local" \}\)/);
+  assert.match(callback, /accountDeletionLoginUrl/);
+});
+
 test("OAuth callback compares the new session identity before returning to deletion", () => {
   assert.match(callback, /ACCOUNT_DELETION_REAUTH_USER_COOKIE/);
   assert.match(callback, /expectedUserId/);
@@ -46,6 +65,15 @@ test("OAuth callback compares the new session identity before returning to delet
   assert.match(callback, /user\.id !== expectedUserId/);
   assert.match(callback, /auth\.signOut\(\{ scope: "local" \}\)/);
   assert.match(callback, /reauth-account-mismatch/);
+});
+
+test("OAuth account mismatch recovers through ordinary login rather than impossible reauth mode", () => {
+  assert.match(callback, /reauthRecoveryUrl/);
+  assert.match(callback, /accountDeletionLoginUrl/);
+  assert.doesNotMatch(
+    callback,
+    /reauthErrorUrl\(url\.origin, "reauth-account-mismatch"\)/,
+  );
 });
 
 test("shared policy owns deletion route and short-lived continuity cookie", () => {
