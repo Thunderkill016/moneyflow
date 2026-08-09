@@ -41,6 +41,12 @@ function normalize(sql: string): string {
   return sql.toLowerCase();
 }
 
+function stripSqlComments(sql: string): string {
+  return sql
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/--[^\r\n]*/g, " ");
+}
+
 function publicTables(sqlLc: string): string[] {
   const found = new Set<string>();
   const re = /create\s+table\s+public\.([a-z0-9_]+)/g;
@@ -68,11 +74,30 @@ function hasPolicyOn(sqlLc: string, table: string): boolean {
 }
 
 function securityDefinerWindows(sqlLc: string): string[] {
-  const flat = sqlLc.replace(/\s+/g, " ");
+  // Comments can describe SECURITY DEFINER helpers without declaring one. Strip
+  // them before the static scan so explanatory migration prose cannot become a
+  // false-positive RPC that appears to lack SET search_path.
+  const flat = stripSqlComments(sqlLc).replace(/\s+/g, " ");
   const parts = flat.split("security definer");
-  // Skip text before first match
+  // Skip text before first executable match.
   return parts.slice(1).map((chunk) => chunk.slice(0, 160));
 }
+
+test("rls migrations: SECURITY DEFINER scanner ignores SQL comments", () => {
+  const sql = normalize(`
+    -- Financial writes remain SECURITY DEFINER owned.
+    /* Another SECURITY DEFINER explanation. */
+    create function public.real_rpc()
+    returns void
+    language plpgsql
+    security definer
+    set search_path = ''
+    as $$ begin null; end; $$;
+  `);
+  const windows = securityDefinerWindows(sql);
+  assert.equal(windows.length, 1);
+  assert.ok(windows[0].includes("set search_path"));
+});
 
 test("rls migrations: every public table enables RLS", () => {
   const sqlLc = normalize(loadMigrationsSql());
