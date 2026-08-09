@@ -22,6 +22,7 @@ function packet({
   gateTask = "T1",
   actionKind = "implement",
   nextAction = "implement the bounded change",
+  nextActionContinuation = "",
   token = "Go",
   covers = "AC1",
   evidence = "node test",
@@ -34,12 +35,13 @@ function packet({
   duplicateGate = false,
   includeGate = role === "execution",
 } = {}) {
+  const continuation = nextActionContinuation ? `\n  ${nextActionContinuation}` : "";
   const gateSection = `## Current decision gate
 
 - Gate ID: ${gate}
 - Gate task: ${gateTask}
 - Action kind: ${actionKind}
-- Next allowed action: ${nextAction}
+- Next allowed action: ${nextAction}${continuation}
 - Approval token: \`${token}\`
 - Consumes approval: yes
 - After action: return to evaluating and record evidence
@@ -123,11 +125,23 @@ test("generic approval token is fixed to Go", () => {
   assert.ok(errors.some((error) => error.includes("Approval token must be Go")));
 });
 
-test("compound next action fails closed", () => {
+test("compound next action with then fails closed", () => {
   const errors = validatePacket(
     packet({ nextAction: "obtain independent review then address findings" }),
   );
   assert.ok(errors.some((error) => error.includes("appears compound")));
+});
+
+test("compound next action with comma verb chaining fails closed", () => {
+  const errors = validatePacket(packet({ nextAction: "review PR #331, fix blockers" }));
+  assert.ok(errors.some((error) => error.includes("appears compound")));
+});
+
+test("compound next action cannot hide in a continuation line", () => {
+  const errors = validatePacket(
+    packet({ nextAction: "review PR #331", nextActionContinuation: "then fix blockers" }),
+  );
+  assert.ok(errors.some((error) => error.includes("continuation lines are not allowed")));
 });
 
 test("gate task must reference one known task", () => {
@@ -171,6 +185,22 @@ test("Class 3 ready_for_review rejects blocked and pending-prefixed review field
   assert.ok(errors.some((error) => error.includes("independent evaluator is unresolved")));
   assert.ok(errors.some((error) => error.includes("review artifact is unresolved")));
   assert.ok(errors.some((error) => error.includes("evaluation inputs are unresolved")));
+});
+
+test("Class 3 ready_for_review rejects sentinel review placeholders", () => {
+  for (const sentinel of ["none", "N/A", "not applicable", "missing", "unavailable"]) {
+    const evaluatorErrors = validatePacket(independentPacket({ evaluator: sentinel }));
+    assert.ok(
+      evaluatorErrors.some((error) => error.includes("independent evaluator is unresolved")),
+      `expected evaluator sentinel ${sentinel} to fail`,
+    );
+
+    const artifactErrors = validatePacket(independentPacket({ reviewArtifact: sentinel }));
+    assert.ok(
+      artifactErrors.some((error) => error.includes("review artifact is unresolved")),
+      `expected artifact sentinel ${sentinel} to fail`,
+    );
+  }
 });
 
 test("Class 3 ready_for_review rejects evaluator equal to implementer", () => {
