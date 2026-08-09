@@ -5,7 +5,7 @@
 - **Current main audited:** `cfbff67171421d5f2ee70460b5e81edc59e8a6b1`
 - **Owner direction:** MoneyFlow is a released functional MVP; the active hardening program is **MoneyFlow Trust**
 - **Active trust program:** `docs/plans/active/public-beta-trust.md`
-- **Active provider packet:** `docs/plans/active/moneyflow-trust-provider-sync.md`
+- **Execution routing:** this snapshot does not own generic `Go` or task routing; active workstreams resolve one execution packet per session/handoff under the delivery contract
 - **Supabase production migration/schema:** reviewed MoneyFlow migrations plus `20260809010648_financial_audit_service_role_read_only` are applied under repository versions; legitimate shared Atoryn history remains preserved
 - **Supabase production audit boundary:** provider aligned for the reviewed invariant — RLS enabled; `authenticated` SELECT retained; `service_role` SELECT-only for the checked table privileges
 - **Supabase production Edge:** `delete-account` is now **v6 ACTIVE**, `verify_jwt=true`, with the current recent-auth helper and tenant cleanup inventory read back from the provider
@@ -14,12 +14,12 @@
 - **Provider Sync limitation:** the earlier ten-file DB checkpoint did not execute an actual linked-production CLI dry-run; owner accepted the free local union-history simulation + fresh live history substitution for that consumed DB checkpoint only
 - **UI migration:** P0–P11 is merged and archived; physical Android/iOS were not executed and remain explicit limitations
 - **Primary public-beta blockers now:** provider-backed password/Google recent-auth acceptance → complete versioned archive/restore → physical/seven-day proof
-- **History model:** task routing lives in `docs/context/README.md`; bounded PR provenance lives under `docs/research/pr-memory/YYYY/QN/`
+- **History model:** workstream/context discovery lives in `docs/context/README.md`; current task execution state lives in the uniquely resolved execution packet; bounded PR provenance lives under `docs/research/pr-memory/YYYY/QN/`
 - **MVP release:** `main@8e08a8a748a632b07bb42c27bf14539758b28824`; functional MVP release does not imply public-beta readiness
 
 ## 1. Purpose and authority
 
-This snapshot records merged implementation truth, live provider evidence, current gaps and accepted limitations. It is not a changelog.
+This snapshot records merged implementation truth, live provider evidence, current gaps and accepted limitations. It is not a changelog and does not choose the current execution packet for a chat/session.
 
 Authority order:
 
