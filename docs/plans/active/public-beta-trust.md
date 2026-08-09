@@ -2,7 +2,7 @@
 
 **Status:** active
 **Execution state:** evaluating
-**Active role:** planner
+**Active role:** evaluator
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
 **Issue/PR:** #323 parent; #324 Secure implementation; #325 Provider Sync reconciliation; #327 DB evidence; #328/#329 audit ACL hardening/evidence
