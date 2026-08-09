@@ -5,7 +5,7 @@
 **Active role:** planner
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
-**Issue/PR:** #323 parent; #324 Secure implementation; #325 Provider Sync reconciliation; #327 DB evidence; #328 audit ACL hardening
+**Issue/PR:** #323 parent; #324 Secure implementation; #325 Provider Sync reconciliation; #327 DB evidence; #328/#329 audit ACL hardening/evidence
 **Last updated:** 2026-08-09
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
@@ -29,43 +29,45 @@ Program sequence:
 
 - Functional MVP is released.
 - UI migration P0–P11 is archived; physical Android/iOS remain accepted limitations, not fabricated pass evidence.
-- #324 merged the current recent-auth implementation; the Next.js side has production Vercel evidence.
-- The previously missing ten reviewed MoneyFlow migrations are applied in production under repository versions; legitimate shared Atoryn history rows were preserved.
-- Review/reconciliation/rules/audit schema is present in production.
-- #328 merged `20260809010648_financial_audit_service_role_read_only.sql` and the owner explicitly approved its scoped production application with `go`.
-- Production audit ACL now matches the reviewed invariant: RLS remains enabled; `authenticated` retains SELECT; `service_role` has SELECT only and no checked non-read table privilege.
-- Production Supabase `delete-account` remains **v5** and does not contain the merged recent-auth/current-tenant implementation.
+- #324 merged the recent-auth implementation; its Next.js side has production Vercel evidence.
+- The reviewed MoneyFlow database migration/schema set is production-aligned and legitimate shared Atoryn migration history is preserved.
+- #328/#329 closed the audit-table service-role ACL drift; production now exposes the reviewed SELECT-only boundary.
+- On 2026-08-09 the owner separately approved the Edge provider-write checkpoint with `Gô`.
+- Production `delete-account` was upgraded from v5 to **v6 ACTIVE** with `verify_jwt=true`.
+- Provider read-back contains the current `delete-account/index.ts`, shared recent-auth helper, ten-minute `password|oauth` AMR policy and current tenant cleanup inventory.
+- No destructive real-user deletion or financial-row mutation was used to verify the Edge rollout.
+- Provider-backed password and supported OAuth/Google step-up/continuity acceptance remains unexecuted.
 - Current transaction/Inbox CSV/JSON export remains scoped user-readable export, **not** a complete restorable archive.
-- P2 Recover remains blocked until Provider Sync and P1 Secure provider acceptance complete.
+- P2 Recover remains blocked until P1 Secure provider acceptance completes.
 
 ### Active prerequisite
 
 `docs/plans/active/moneyflow-trust-provider-sync.md`
 
-Provider Sync is currently `evaluating`.
+Provider Sync is currently `evaluating`: known Git/Supabase database/ACL/Edge source drift is closed; the final acceptance boundary is provider-backed recent-auth behavior.
 
 Completed provider evidence:
 
-- live migration/catalog/function/ACL baseline;
-- exact ten-file historical MoneyFlow migration set and complete fresh replay;
-- CI #2070: 478 pgTAP pass for the ten-file rollout baseline;
-- PR #326 free local union-history dry-run selecting exactly ten MoneyFlow migrations;
-- owner-approved 10/10 production migration application with original repository versions preserved;
-- #328 exact-head CI #2113, CodeQL #1212, Secret #1212 and **26 files / 481 pgTAP tests PASS**;
-- owner-approved production audit ACL application;
-- exact history read-back at `20260809010648` with no stray same-name generated row;
-- live audit effective privilege read-back: SELECT-only for `service_role`, authenticated SELECT preserved, RLS preserved;
-- immediate provider log/advisor inspection with no new ACL-specific permission-error cluster.
+- exact reviewed MoneyFlow migrations applied under repository versions;
+- legitimate shared Atoryn history preserved;
+- #326 free local union-history dry-run evidence for the earlier ten-file set;
+- #328/#329 audit ACL hardening and live privilege read-back;
+- current `main@cfbff67171421d5f2ee70460b5e81edc59e8a6b1` Edge source reconciled against live v5 before write;
+- separate owner Edge approval with `Gô`;
+- production `delete-account` **v6 ACTIVE**, `verify_jwt=true`;
+- provider bundle SHA-256 `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80`;
+- provider read-back shows both current function files and current tenant cleanup inventory.
 
-Accepted limitation:
+Accepted limitation retained from the earlier DB checkpoint:
 
-- an actual linked-production CLI dry-run was not executed for the earlier ten-file checkpoint; the owner accepted the free local union-history simulation plus fresh live preflight for that consumed DB checkpoint only.
+- an actual linked-production CLI dry-run was not executed; owner accepted the free local union-history simulation plus fresh live preflight for that consumed DB checkpoint only.
 
 Current blockers:
 
-1. production `delete-account` remains Edge v5;
-2. safe password + supported OAuth/Google recent-auth provider acceptance remains unexecuted;
-3. complete versioned archive/restore remains absent after Secure acceptance.
+1. safe password recent-auth provider acceptance;
+2. safe supported OAuth/Google recent-auth + expected-user continuity acceptance;
+3. post-acceptance provider log review;
+4. complete versioned archive/restore after Secure acceptance.
 
 ### Relevant repository/provider areas
 
@@ -74,17 +76,15 @@ Current blockers:
 | `docs/research/CURRENT_PROJECT_MEMORY.md` | current merged/provider truth |
 | `docs/plans/active/account-deletion-recent-auth.md` | P1 Secure lifecycle/evidence |
 | `docs/plans/active/moneyflow-trust-provider-sync.md` | provider alignment packet |
-| `supabase/migrations/20260809010648_financial_audit_service_role_read_only.sql` | aligned audit ACL contract |
-| `supabase/functions/delete-account/index.ts` | current merged destructive authority |
-| `supabase/functions/_shared/account-deletion-recent-auth.ts` | current recent-auth policy helper |
+| `supabase/functions/delete-account/index.ts` | merged destructive authority |
+| `supabase/functions/_shared/account-deletion-recent-auth.ts` | recent-auth policy helper |
 | production migration history/catalog/effective privileges | database provider authority |
 | production `delete-account` version/source | destructive runtime authority |
 
 ### Existing constraints
 
-- Financial/data changes require migration replay, pgTAP/invariants and ownership/RLS evidence.
-- Code/migrations/tests outrank prose; live provider evidence outranks assumptions about deployment.
-- Provider behavior requires provider evidence; repository/browser tests cannot manufacture it.
+- Code/migrations/tests outrank prose; live provider evidence outranks deployment assumptions.
+- Provider behavior requires provider evidence; source read-back does not prove authenticated flow behavior.
 - Integer money, split exactness, transfer neutrality and tenant ownership remain invariants.
 - Provider writes require explicit owner approval and rollback/forward-fix scope.
 - Vercel deployment does not deploy Supabase migrations or Edge Functions.
@@ -94,12 +94,10 @@ Current blockers:
 
 - [x] Continue UI migration? No; archived.
 - [x] Treat current CSV/JSON export as restore? No.
-- [x] Is P1 fully deployed because Vercel is READY? No.
-- [x] Was the exact ten-file MoneyFlow migration set applied? Yes.
-- [x] Was an actual linked-production dry-run executed? No; accepted limitation for the consumed ten-file checkpoint.
-- [x] Does production audit-table effective privilege match the reviewed SELECT-only contract? **Yes; live-verified after #328 production application.**
-- [ ] Does the owner separately approve deployment of current `delete-account` Edge source?
-- [ ] Do safe live password + supported OAuth/Google step-up flows pass after current Edge deployment?
+- [x] Does production audit-table effective privilege match the reviewed SELECT-only contract? Yes.
+- [x] Did the owner separately approve deployment of current `delete-account` Edge source? Yes, with `Gô`.
+- [x] Is current Edge source now live/read back? Yes: v6 ACTIVE, `verify_jwt=true`.
+- [ ] Do safe live password and supported OAuth/Google step-up flows pass with identity continuity preserved?
 
 ## Research
 
@@ -108,55 +106,55 @@ Current blockers:
 Research is dependency-driven and begins with repository/provider truth.
 
 - P1 used official Supabase JWT/Auth documentation plus OWASP reauthentication guidance.
-- Provider Sync uses live Supabase migration/catalog/function/privilege reads, exact-head CI migration replay and official Supabase/PostgreSQL privilege/deployment semantics.
-- P2 Recover research/implementation begins only after Provider Sync and Secure acceptance unblock it.
+- Provider Sync uses live Supabase migration/catalog/function/privilege reads and official Supabase/PostgreSQL deployment/security semantics.
+- Before the v6 rollout, current Supabase changelog and Edge deployment/auth documentation were reviewed; no hosted Edge breaking change required altering MoneyFlow's current deployment contract.
+- P2 Recover research/implementation begins only after Secure acceptance unblocks it.
 
 ### Key decisions
 
-1. Recent-auth authority uses verified `amr` method/timestamp, not token issuance time.
+1. Recent-auth authority uses verified JWT `amr` method/timestamp, not token issuance time.
 2. AAL and recent authentication are separate concepts.
 3. Vercel deployment, Supabase database migration and Supabase Edge deployment are separate lifecycles.
-4. Current CSV/JSON export is not a complete restorable archive.
-5. Legitimate shared Atoryn migration history must be preserved.
-6. The free local union-history dry-run is not an actual linked-production dry-run.
-7. Provider ACL parity requires live effective privilege read-back; migration application alone is not enough.
-8. Existing-object ACL drift is corrected through reviewed forward migrations, not ad-hoc console patches.
+4. `delete-account` keeps `verify_jwt=true`; recent-auth remains an additional server-side policy inside the function.
+5. Current CSV/JSON export is not a complete restorable archive.
+6. Provider source alignment is not equivalent to password/Google behavioral acceptance.
+7. No destructive real-user deletion is required for provider acceptance.
 
 ### Adoption review
 
-No new dependency, provider, service, framework or runtime architecture is adopted by Provider Sync.
+No new dependency, provider, service, framework or runtime architecture was adopted by Provider Sync or the v6 rollout.
 
 ## Specification
 
 ### Problem
 
-Database migration/schema/ACL drift is now closed for the reviewed MoneyFlow Provider Sync set. The remaining provider split is the destructive Supabase Edge runtime: Git contains the recent-auth/current-tenant implementation, while production still runs v5.
+The known Git/provider source drift is closed: database/schema/ACL state is aligned and production `delete-account` now runs the current v6 bundle. The remaining security question is whether real provider-backed password and supported OAuth/Google step-up flows produce and preserve the expected recent-auth/identity-continuity behavior without destructive deletion.
 
-Recover must not advance while Provider Sync and Secure acceptance remain incomplete.
+Recover must not advance while Secure acceptance remains incomplete.
 
 ### User stories
 
 - As a user, production account deletion is protected by the same recent-auth policy current `main` claims.
-- As a user, financial audit storage cannot be directly mutated by the cleanup service role outside trigger-owned paths.
-- As a user, future complete archive/restore operates against one known provider contract.
-- As the owner, Git/Vercel/Supabase DB/Supabase Edge/device/self-use evidence remain distinguishable.
+- As a user, a stale or missing recent-auth state fails closed before tenant deletion authority.
+- As a user, Google/OAuth reauthentication cannot silently switch the account being deleted.
+- As the owner, source deployment evidence remains distinct from authenticated-flow acceptance evidence.
 
 ### Acceptance criteria
 
 Provider baseline/alignment:
 
 - [x] PBT-AC1: repository/Vercel/Supabase baseline reconciled.
-- [x] PBT-AC2: exact ten-file historical migration drift replay-verified.
-- [ ] PBT-AC3: actual linked-production dry-run proves the earlier ten-file write set. **Not executed; accepted limitation for consumed DB checkpoint.**
-- [x] PBT-AC4: owner-approved ten-file migration set applied; original history/catalog objects exist and shared Atoryn history is preserved.
-- [x] PBT-AC5: effective production audit privileges satisfy the reviewed SELECT-only least-privilege contract.
-- [ ] PBT-AC6: current `delete-account` Edge source is explicitly deployed and read back after separate owner approval.
+- [x] PBT-AC2: reviewed database migration/schema/ACL contract is production-aligned.
+- [x] PBT-AC3: current `delete-account` Edge source is explicitly owner-approved, deployed and read back as v6 ACTIVE with `verify_jwt=true`.
+- [x] PBT-AC4: provider read-back contains current recent-auth helper/evaluator and current tenant cleanup inventory.
 
 Secure:
 
-- [x] PBT-AC7: destructive account deletion requires verified recent interactive authentication in merged current-main source.
-- [ ] PBT-AC8: the same recent-auth gate exists in actual production Supabase Edge runtime.
-- [ ] PBT-AC9: provider-backed password and supported OAuth/Google step-up are exercised on production-safe authenticated flows with identity continuity preserved.
+- [x] PBT-AC5: destructive account deletion requires verified recent interactive authentication in merged source and live Edge source.
+- [ ] PBT-AC6: production-safe password step-up is exercised with expected recent AMR behavior.
+- [ ] PBT-AC7: production-safe supported OAuth/Google step-up preserves same-account continuity.
+- [ ] PBT-AC8: stale/missing continuity paths fail closed/recover as designed in provider-backed authenticated flows.
+- [ ] PBT-AC9: relevant Edge/Auth/API/Postgres logs show no new acceptance-blocking error cluster.
 
 Recover/Prove/Release:
 
@@ -165,16 +163,15 @@ Recover/Prove/Release:
 - [ ] PBT-AC12: core ledger behavior is exercised on a physical phone.
 - [ ] PBT-AC13: seven consecutive days of sanitized owner self-use complete without data loss/manual DB repair.
 - [ ] PBT-AC14: no unresolved P0/P1 defect blocks the daily-ledger loop at final decision.
-- [ ] PBT-AC15: current memory/evidence are reconciled and the owner records the final public-beta decision/accepted limitations.
+- [ ] PBT-AC15: current memory/evidence are reconciled and owner records the final public-beta decision/accepted limitations.
 
 ### Financial and security constraints
 
 - Never infer or alter balances to make migration/restore succeed.
 - Preserve integer money, transfer neutrality, split exactness and tenant ownership.
-- Do not deploy Edge without explicit owner approval.
-- Do not alter historical migration files in place.
+- Do not perform destructive real-user deletion for acceptance proof.
+- Do not change provider secrets/configuration without a new explicit owner checkpoint.
 - Backup archives must exclude credentials, JWTs, secrets and private infrastructure metadata.
-- No destructive real-user deletion is required for provider acceptance.
 
 ### Out of scope
 
@@ -188,50 +185,46 @@ Recover/Prove/Release:
 
 ### Architecture fit
 
-Keep the modular monolith. Provider Sync aligns the existing Supabase DB/Edge runtime with Git-owned migrations/tests/functions. P2 introduces a versioned public archive contract only after provider state and Secure are accepted.
+Keep the modular monolith. Provider Sync aligned the existing Supabase DB/Edge runtime with Git-owned migrations/tests/functions. P2 introduces a versioned public archive contract only after Secure acceptance.
 
 ### Current phase map
 
 | Phase/checkpoint | Short name | Current state |
 |---|---|---|
 | P0 | Baseline | provider drift reconciled |
-| P0/P1 prerequisite | **Provider Sync** | **evaluating; DB/schema/ACL aligned, Edge v5 pending** |
-| P1 | **Secure** | merged; Next.js side production-evidenced; Supabase Edge/provider acceptance incomplete |
-| P2 | **Recover** | blocked by Provider Sync + P1 acceptance |
+| P0/P1 prerequisite | **Provider Sync** | source/schema/ACL/Edge drift closed; authenticated acceptance remains |
+| P1 | **Secure** | implementation + Edge v6 live; password/Google acceptance open |
+| P2 | **Recover** | blocked by P1 acceptance |
 | P3 | **Prove** | blocked by P2 |
 | P4 | **Improve** | blocked by P3 evidence |
 | P5 | **Release** | blocked by prior phases |
 
-### Provider Sync next sequence
+### Secure acceptance next sequence
 
-1. fresh-read current `main` Edge source/helper and live production Edge v5 source/version;
-2. verify current tenant cleanup inventory still matches live DB schema and SELECT-only audit verification path;
-3. prepare exact Edge rollout and rollback/read-back plan;
-4. return to owner for a **separate explicit Edge provider-write approval**;
-5. deploy/read back current `delete-account` with `verify_jwt=true` and recent-auth helper;
-6. run production-safe password + supported OAuth/Google step-up acceptance without destructive real-user deletion;
-7. inspect Edge/Auth/API/Postgres logs;
-8. reconcile P1/current memory and only then unlock Recover implementation.
+1. exercise a production-safe password reauthentication flow without submitting a destructive account deletion;
+2. exercise supported OAuth/Google step-up with expected-user continuity;
+3. verify stale/missing-continuity recovery remains fail-closed;
+4. inspect Edge/Auth/API/Postgres logs around those exact flows;
+5. reconcile `docs/plans/active/account-deletion-recent-auth.md`, Provider Sync, parent memory and `CURRENT_PROJECT_MEMORY.md`;
+6. mark/archive Secure accepted only if the evidence supports it;
+7. unlock P2 Recover specification/implementation.
 
 ### Rollback / forward-fix principle
 
-Historical migrations are production history and are not edited in place. Audit ACL broad re-grant would recreate a closed security defect and is not the default rollback. Edge rollback after a future rollout would reintroduce a known recent-auth gap and therefore requires explicit owner approval if ever needed.
+Rolling Edge back to v5 would reintroduce a known recent-auth security gap and is not the default rollback. If v6 reveals a runtime regression, prefer a reviewed narrow forward fix; any rollback requires explicit owner approval with the security regression recorded.
 
 ## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
 | PS-T1 | reconcile provider baseline | #325 + live provider | complete |
-| PS-T2 | prove/apply ten-file historical migration set | CI #2070 + #326 + live history | complete |
-| PS-T3 | review/merge audit ACL hardening | #328 + 481 pgTAP | complete |
-| PS-T4 | owner approve/apply audit ACL production write | explicit `go` + live ACL/history | complete |
-| PS-T5 | persist audit ACL production evidence | follow-up docs PR | in progress |
-| PS-T6 | prepare current Edge rollout/read-back plan | exact current source + live v5 | blocked by PS-T5 handoff |
-| PS-T7 | owner approve Edge deployment | explicit approval | blocked by PS-T6 |
-| PS-T8 | deploy/read back current `delete-account` | provider evidence | blocked by PS-T7 |
+| PS-T2 | align reviewed DB/schema/ACL | #326–#329 + live provider | complete |
+| PS-T3 | fresh-read and deploy current Edge | current main + live v5/v6 | complete |
+| PS-T4 | persist Edge v6 provider evidence | docs PR | in progress |
 | P1-T1 | recent-auth implementation + merge | #324 | complete |
-| P1-T2 | live password + Google/OAuth provider acceptance | PS-T8 | blocked |
-| P1-T3 | mark/archive Secure accepted | P1-T2 | blocked |
+| P1-T2 | password provider acceptance | safe authenticated flow | todo |
+| P1-T3 | Google/OAuth continuity acceptance | safe authenticated flow | todo |
+| P1-T4 | post-flow provider logs + Secure decision | provider evidence | blocked by P1-T2/T3 |
 | P2-T1 | accept archive contract | P1 accepted | blocked |
 | P2-T2 | implement export/validate/restore | P2-T1 | blocked |
 | P3-T1 | physical-phone core ledger checklist | P2 accepted | blocked |
@@ -244,18 +237,14 @@ Historical migrations are production history and are not edited in place. Audit 
 | Date | From | To | State | Evidence | Open boundary | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-08 | owner | planner | `planned` | #323 | provider/Secure gaps | execute trust sequence |
-| 2026-08-08 | human owner | CI/production | `implementing` | explicit ten-file `Go` | DB write | apply/verify migrations |
-| 2026-08-08 | CI/production | evaluator | `evaluating` | #327 | audit ACL + Edge v5 | harden ACL |
-| 2026-08-09 | evaluator | human owner | `ready_for_review` | #328 exact-head gates | merge | owner decision |
-| 2026-08-09 | human owner | production/evaluator | `evaluating` | #328 merged + explicit ACL `go`; exact live ACL/history | Edge v5 | persist evidence, prepare separate Edge checkpoint |
+| 2026-08-09 | human owner | production/evaluator | `evaluating` | #328/#329 + ACL approval | Edge v5 | prepare Edge checkpoint |
+| 2026-08-09 | human owner | production/evaluator | `evaluating` | explicit `Gô`; v6 ACTIVE/read-back | password/Google provider acceptance | run safe authenticated flows |
 
 ### Current permission boundary
 
-- Allowed: bounded branch/PR work; GitHub/Vercel/Supabase read-only inspection; focused research.
-- Exact repository: `Thunderkill016/moneyflow`.
-- Current provider scope after consumed ACL approval: `provider_read` only.
-- Forbidden without a new explicit owner approval: Edge deployment, provider config writes, production financial-data mutation and destructive deletion.
-- P2 implementation remains blocked until Provider Sync + P1 acceptance.
+- Allowed: bounded branch/PR work; read-only GitHub/Vercel/Supabase inspection; focused research.
+- The Edge deployment authorization has been consumed.
+- Destructive account deletion, production financial-data mutation, provider secret/config changes and P2 implementation remain outside the consumed approval.
 
 ## Evaluation
 
@@ -263,31 +252,33 @@ Historical migrations are production history and are not edited in place. Audit 
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| canonical MoneyFlow Trust direction | parent/current memory | pass |
-| exact ten-file production execution | live migration history/catalog | pass |
-| shared Atoryn history preserved | live migration history | pass |
-| actual linked-production dry-run for earlier ten-file rollout | not executed | **accepted limitation** |
-| audit service-role SELECT-only boundary | #328 + exact live effective privilege read-back | **pass** |
-| production Supabase recent-auth Edge current | live source/version | **fail: v5 stale** |
+| reviewed DB/schema/ACL provider alignment | live migration/catalog/ACL | pass |
+| production current Edge source/version | provider v6 read-back | pass |
+| `verify_jwt=true` retained | provider read-back | pass |
+| current recent-auth helper/evaluator present | provider read-back | pass |
+| current tenant cleanup inventory present | provider read-back | pass |
+| destructive real-user deletion used for proof | none | correctly not executed |
+| password provider acceptance | not yet executed | open |
+| Google/OAuth continuity acceptance | not yet executed | open |
 | current export distinguished from full archive | code/UI/current memory | pass |
 
 ### Review findings
 
-- Database migration/schema/ACL Provider Sync is aligned for the reviewed MoneyFlow set.
-- Production `delete-account` v5 is now the remaining provider-runtime blocker before P1 acceptance.
-- Recover implementation remains blocked until Edge rollout and safe provider-backed recent-auth acceptance complete.
+- Known Git/provider database/ACL/Edge source drift is closed.
+- P1 Secure remains incomplete only because provider-backed authenticated behavior has not yet been exercised and observed.
+- Recover remains blocked until that acceptance closes.
 
 ### Remaining limitations
 
-- Actual linked-production dry-run was not captured for the earlier ten-file rollout.
-- Production `delete-account` remains v5 without current recent-auth.
-- Live password/Google step-up is not yet acceptance evidence.
+- Earlier ten-file rollout lacks actual linked-production CLI dry-run evidence; accepted limitation retained.
+- Provider-backed password/Google recent-auth acceptance is not yet captured.
 - Complete backup/restore and physical/seven-day evidence remain future phases.
 
 ## Delivery record
 
 - Parent PR #323 merged as `538768401bd5c0aa66523aba2a52e3601f3fadd4`.
 - Secure PR #324 merged as `fd984a18201f1663d3d8c622d51c41dfd650c816`.
-- PR #325 established Provider Sync; #326 captured free dry-run simulation evidence; #327 recorded ten-file production execution.
-- PR #328 merged as `1618f817c6a96810160f6261029dd038eb8b41ea` and its audit ACL migration `20260809010648` is now live/provider-aligned.
-- Current next action after evidence reconciliation: **prepare the separate current Edge deployment checkpoint; no Edge write without new explicit owner approval**.
+- #325–#329 reconciled and aligned the reviewed database/schema/ACL provider boundary.
+- `main@cfbff67171421d5f2ee70460b5e81edc59e8a6b1` was the fresh source authority for the v6 Edge rollout.
+- Production `delete-account` is now v6 ACTIVE with provider bundle SHA-256 `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80` and `verify_jwt=true`.
+- Current next action: production-safe password + supported OAuth/Google recent-auth acceptance; do not delete a real account for proof.
