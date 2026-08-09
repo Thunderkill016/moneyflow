@@ -2,9 +2,9 @@
 
 **Status:** active engineering policy
 **Owner:** `docs/engineering/AI_DELIVERY_WORKFLOW.md`
-**Last reviewed:** 2026-08-02
+**Last reviewed:** 2026-08-09
 
-MoneyFlow protects financial correctness, tenant ownership and production data without applying every expensive application gate to every change. Each diff receives the smallest useful verification set, except where a provider-side repository rule requires a real analysis for every pull request.
+MoneyFlow protects financial correctness, tenant ownership and production data without applying every expensive application gate or planning ceremony to every change. Each diff receives the smallest useful planning, evaluation and verification set, except where a provider-side repository rule requires a real analysis for every pull request.
 
 ## Principles
 
@@ -14,7 +14,9 @@ MoneyFlow protects financial correctness, tenant ownership and production data w
 4. **Main and manual runs fail safe.** They run the complete regression suite.
 5. **High-risk boundaries remain strict.** Financial semantics, RLS, auth, destructive paths, secrets, deployment and CI/security policy receive deep checks and owner review.
 6. **Evidence matches the layer.** Build does not prove RLS; database tests do not prove responsive UI.
-7. **Small changes stay small.** Do not add unrelated runtime work merely to satisfy process.
+7. **Small changes stay small.** Do not add unrelated runtime work or paperwork merely to satisfy process.
+8. **Author confidence is not independent evaluation.** Class 2/3 author-owned changes need an independent semantic review signal before `ready_for_review`.
+9. **Process cost is evidence-driven.** A full packet is required only by the decision test below; historical packets are not mass rewritten to satisfy a new template.
 
 ## Change classes
 
@@ -46,6 +48,8 @@ Repository-rule exception:
 
 Planning artifact: inline plan or clear PR description unless the documentation changes architecture, product scope or high-risk operating policy.
 
+Evaluation budget: author self-check plus deterministic policy checks is normally sufficient. Independent semantic review is optional unless the documentation changes product/security/operating authority.
+
 ### Class 1 — bounded code change
 
 Examples:
@@ -71,6 +75,8 @@ Not required by default:
 
 Planning artifact: concise PR plan when one subsystem changes and rollback is straightforward.
 
+Evaluation budget: author self-review plus machine evidence is normally sufficient; request independent review when the code is unfamiliar, rollback is less obvious than expected, or tests do not directly exercise the changed behavior.
+
 ### Class 2 — user-interface or user-flow change
 
 Examples:
@@ -84,9 +90,12 @@ Required:
 - applicable Class 1 checks;
 - browser smoke for affected flows;
 - responsive/cross-browser audit for layout, styling, shared components or audit-contract changes;
-- human review of relevant browser evidence.
+- human review of relevant browser evidence where product judgment is material;
+- an independent semantic review signal when the primary AI authored the change.
 
-Planning artifact: concise plan for a bounded screen; full packet for multi-flow redesign or unresolved product research.
+Planning artifact: concise plan for a bounded screen; full packet for multi-flow redesign, cross-cutting ownership or unresolved product research.
+
+Evaluation budget: the evaluator reads the specification/plan, actual diff and browser evidence. Repeating the implementer's summary does not count as independent evaluation.
 
 ### Class 3 — financial, data, security or operational boundary
 
@@ -107,11 +116,14 @@ Required:
 - responsive audit only when a visual surface changes;
 - real CodeQL analysis and secret controls;
 - rollback plan and owner review;
+- independent semantic evaluation separate from the author-only self-review;
 - exact affected production verification after merge when production behavior changes.
 
 A pure migration/index/pgTAP change may omit unrelated application installation and build work when no application contract changes.
 
-Planning artifact: full work packet with state, permissions, risks, verification and rollback.
+Planning artifact: full work packet with state, permissions, risks, verification, rollback and one current decision gate.
+
+Evaluation budget: machine evidence must match each affected layer, an independent evaluator must inspect the actual diff against the packet, and the human owner retains merge/product-risk/provider-write authority.
 
 ## CI selection contract
 
@@ -154,7 +166,7 @@ Changing provider-side branch protection, rulesets, workflow permissions or `COD
 Create a full work packet when any answer is yes:
 
 - Does the change alter financial meaning, ownership, RLS, auth, schema or production data?
-- Does it alter CI policy, required-check behavior or security scanning?
+- Does it alter CI policy, required-check behavior, delivery governance or security scanning?
 - Does it require provider or production write permission?
 - Does it cross multiple architectural ownership areas?
 - Does it depend on unresolved research?
@@ -163,21 +175,31 @@ Create a full work packet when any answer is yes:
 
 Otherwise use an inline/PR plan with scope, affected files, verification and rollback.
 
+A full packet is not a quality badge. If a Class 0/1 task can be completely described and verified without one, do not create it. If a Class 3 task needs one, do not avoid it to save tokens.
+
 ## Review and merge policy
 
 - Keep branches focused and short-lived.
 - Review actual failure modes and the actual diff.
 - Do not block on unrelated perfection.
-- Owner review is mandatory for Class 3 and product-direction changes.
+- A single AI may research, plan and implement sequentially, but its own author self-review is not the sole Class 2/3 acceptance signal.
+- Class 2 independent evaluation may be human, independent AI PR review, or a fresh-context evaluator that reads the plan/spec + diff + evidence rather than the author summary.
+- Class 3 requires the same independent evaluation plus human owner review.
+- Required review conversations must be resolved or explicitly dispositioned before merge.
+- Required status/security evidence must correspond to the current reviewed head/merge candidate; stale earlier-green evidence is not substituted after a material head change.
 - Never treat a skipped heavy step as if it ran.
+- Merge, provider writes and production-data writes remain separate owner decisions when policy says so.
 
 ## Measurement and rollback
 
-Track:
+Track whether the operating system is earning its cost:
 
+- median time from task start to reviewable PR;
 - median time from push to mergeable CI;
-- reruns caused by unrelated or flaky gates;
+- reruns caused by unrelated/flaky/process-only failures;
+- independent review findings that change the diff or project truth;
 - escaped defects by class;
-- time spent repairing CI rather than product behavior.
+- time spent repairing workflow/docs rather than product behavior;
+- number of stale-state contradictions caught after a state transition.
 
-Rollback for this CodeQL alignment is one focused commit restoring conditional analysis, but only after the provider code-scanning rule is intentionally changed. Restoring conditional analysis while the rule remains active recreates the merge deadlock.
+If the new decision-gate or authority rules become ceremonial without catching real routing/evidence defects, simplify them in a dedicated governance change. Rollback is a focused Git revert; no runtime/provider/data migration is involved.
