@@ -15,263 +15,256 @@ Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
 ## Outcome
 
-Make one primary AI effective as MoneyFlow's technical project manager + implementer without giving it sole acceptance authority. Reduce duplicated project state, keep process proportional to risk, and make generic `Go` authorize exactly one action in one uniquely resolved execution packet.
+Make one primary AI effective as MoneyFlow's technical project manager + implementer without giving it sole Class 2/3 acceptance authority. Keep project state repository-backed, process proportional to risk, and generic `Go` scoped to exactly one action in one uniquely resolved execution packet.
 
 ## Authority references
 
 - Current merged/provider truth: `docs/research/CURRENT_PROJECT_MEMORY.md`
 - Delivery authority: `docs/engineering/AGENT_OPERATING_MODEL.md`
 - Risk policy: `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`
-- Independent review artifact: `docs/research/pr-memory/2026/Q3/PR-331.md`, section `Independent review — 2026-08-09`
-- Historical candidates studied: PR #315 and PR #317; neither is current authority.
+- Independent review history: `docs/research/pr-memory/2026/Q3/PR-331.md`
+- Historical candidate sources: PR #315 and PR #317 only; neither is current authority.
 
 ## Current decision gate
 
-- Gate ID: G4
-- Gate task: T7
+- Gate ID: G6
+- Gate task: T9
 - Action kind: review
-- Next allowed action: obtain one fresh-context follow-up review of the remediated PR #331 diff
+- Next allowed action: obtain one fresh-context review limited to the three round-2 remediations on PR #331
 - Approval token: `Go`
 - Consumes approval: yes
-- After action: remain `evaluating`; resolve any new blocker under a new gate or establish a separate final verification/owner merge gate if the review passes
+- After action: remain evaluating; if the review passes, establish a separate verification gate before mark-ready or merge
 
 ## Repository reconnaissance
 
 ### Current behavior
 
-- MoneyFlow already has a deterministic lifecycle, role boundaries, permission scopes, repository-backed memory and risk-selected CI.
-- One primary AI may research, plan and implement sequentially, but Class 2/3 author-owned work needs an independent semantic acceptance signal.
-- MoneyFlow legitimately has concurrent active workstreams. The invalid assumption was one active packet globally, not concurrency itself.
-- Provider Sync and recent-auth are both active evidence documents for the Secure workstream; they previously had no machine-readable distinction between execution authority and supporting evidence.
-- PR #315 and #317 contain useful control-contract and AC→task→evidence ideas but are stale against current MoneyFlow Trust and are not being merged wholesale.
-- The first #331 implementation reached machine-green state, then an independent fresh-context review requested changes on four safety properties.
+- MoneyFlow already has deterministic delivery states, permission scopes, risk-selected CI and repo-backed memory.
+- One primary AI may research, plan and implement sequentially, but author self-review is not sole Class 2/3 acceptance.
+- MoneyFlow legitimately has concurrent workstreams; the execution authority is one `Packet role: execution` per workstream/session, while supporting/program packets may coexist without generic `Go` authority.
+- Secure workstream migration now has Provider Sync and recent-auth as supporting packets and `moneyflow-trust-secure-acceptance.md` as the sole Secure execution packet.
+- Two fresh-context reviews of #331 have returned REQUEST CHANGES. Round 1 found four blockers; round 2 confirmed the architecture remediation and narrowed remaining issues to three structural/lexer defects.
 
 ### Relevant repository areas
 
-| Area | Why it matters | Decision |
+| Area | Why it matters | Current decision |
 |---|---|---|
-| `AGENTS.md` | hot-memory router | resolve generic `Go` to one execution packet/workstream |
-| `docs/engineering/AGENT_OPERATING_MODEL.md` | roles/state/permissions | define execution/supporting packet authority and independent proof |
-| `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` | planning/review cost | keep ceremony proportional to Class 0–3 |
-| `docs/templates/FEATURE_WORK_PACKET.md` | full-packet contract | add workstream, packet role, gate task/action kind and review identity/artifact |
-| `scripts/agent-delivery-contract.mjs` | deterministic structure gate | enforce obvious compound gates, review separation and execution-packet uniqueness |
-| `src/lib/rls-migrations.test.ts` | existing static security scanner | replace unsafe regex stripping with quote-aware lexical sanitization |
-| Secure active packets | real concurrency case | Provider Sync/recent-auth become supporting; one Secure execution packet owns `Go` |
+| `AGENTS.md` | hot-memory router | route terse approvals through unique execution packet/workstream |
+| `docs/engineering/AGENT_OPERATING_MODEL.md` | responsibility/authority contract | keep author and independent evaluator distinct |
+| `docs/templates/FEATURE_WORK_PACKET.md` | canonical packet shape | workstream, packet role, gate task/action kind, independent review fields |
+| `scripts/agent-delivery-contract.mjs` | deterministic policy checker | reject gate/review structural bypasses |
+| `scripts/agent-delivery-contract.test.mjs` | regression fixtures | prove bypasses fail closed |
+| `src/lib/rls-migrations.test.ts` | static SECURITY DEFINER scan | preserve PostgreSQL lexical semantics before keyword folding |
+| Trust Secure active packets | real concurrent-workstream case | one execution authority, supporting evidence separated |
 
 ### Existing tests and constraints
 
-- `npm run test:ci-policy` is the existing delivery-policy test surface.
-- Protected CodeQL and secret-history checks remain independent machine evidence.
-- No new service, dependency, runtime agent framework, provider or hidden memory layer is introduced.
-- Owner merge/provider/production-write authority remains unchanged.
-- PostgreSQL lexical rules distinguish comments from quoted and dollar-quoted string content; security scanning must not remove executable SQL because comment markers occur inside a literal.
+- `npm run test:ci-policy` is the delivery-policy surface.
+- Static RLS tests run under the existing unit/static shard.
+- CodeQL and secret-history remain independent protected checks.
+- Draft PR CI may classify successfully while skipping full Class-3 shards; skipped work is not final evidence.
+- No runtime app, database schema, provider configuration or production-data behavior changes are in scope.
 
 ### Open questions
 
-- [x] Can one primary AI manage + implement? Yes, with responsibility transitions and independent Class 2/3 evaluation.
-- [x] Should `Go` mean finish everything? No; one uniquely resolved execution-packet gate only.
-- [x] Can multiple workstreams remain active? Yes; at most one execution packet per workstream/session.
-- [x] Should supporting/provider/history packets also be `Go` targets? No.
-- [x] Merge #315/#317 unchanged? No; port only useful concepts onto current main.
-- [x] Did an independent review occur? Yes; fresh-context review requested changes and is recorded in PR memory.
-- [ ] Does a follow-up independent review accept the remediated diff?
+- [x] Can multiple workstreams remain active? Yes.
+- [x] Can supporting packets expose bare `Go`? No.
+- [x] Did round-1 workstream ambiguity resolve? Yes.
+- [x] Did round-2 identify remaining concrete blockers? Yes: mixed-case dollar tags, review sentinels, and gate continuation/comma chaining.
+- [ ] Does a third fresh-context review accept those three remediations without finding a new blocker?
 
 ## Research
 
 ### Research scope and source selection
 
-Decision question: how should one primary coding AI retain autonomy while repository context, review independence and merge evidence remain trustworthy, and how should the static PostgreSQL security scan distinguish executable SQL from comments/literals?
+Decision question: how should the repository enforce terse approval scope, independent review evidence and PostgreSQL-aware static scanning without adding a new orchestration framework or parser dependency?
 
 ### Sources
 
 | Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
 |---|---|---|---|---|
-| OpenAI — Harness engineering | first-party engineering practice | 2026-08-09 | short `AGENTS.md` as map, structured repository docs as system of record, mechanically checkable knowledge | not MoneyFlow product authority |
-| OpenAI — How OpenAI uses Codex | first-party workflow guidance | 2026-08-09 | issue-like tasks, persistent repo instructions, lightweight task routing | not MoneyFlow risk policy |
-| GitHub Docs — pull-request reviews/status checks | first-party platform docs | 2026-08-09 | semantic review is distinct from current-commit machine checks | live repo policy still controls |
-| PostgreSQL current docs — Lexical Structure | first-party database docs | 2026-08-09 | `--`, nested `/* */`, single strings and dollar-quoted strings have distinct lexical rules | narrow static scanner still is not a full SQL parser |
+| OpenAI — Harness engineering | first-party engineering practice | 2026-08-09 | short agent instructions + structured repository system of record | not MoneyFlow product authority |
+| GitHub Docs — PR reviews/status checks | first-party platform docs | 2026-08-09 | semantic review and current-commit machine evidence are distinct | repository policy still controls merge |
+| PostgreSQL current docs — Lexical Structure | first-party database docs | 2026-08-09 | comments, quoted strings and dollar-quoted strings are lexical constructs; dollar tags are case-sensitive | narrow scanner is not a complete SQL parser |
 
 ### Alternatives considered
 
 | Option | Advantages | Risks | Decision |
 |---|---|---|---|
-| one global active packet | simple slogan | false for real concurrent workstreams; bare `Go` ambiguity | reject |
-| workstream-scoped execution packet | concurrency + unique terse approval target | requires explicit packet role | select |
-| author self-acceptance | cheapest | correlated blind spots | reject |
-| free-form independent-review prose only | flexible | placeholder/overlap bypass | reject |
-| explicit review identity + artifact + overlap | machine-checkable structural evidence | cannot prove honesty/semantic quality alone | select |
-| regex SQL comment stripping | tiny | quote/dollar false negatives | reject |
-| narrow lexical sanitizer | handles relevant PostgreSQL lexical states without dependency | still not a full SQL parser | select |
-| external SQL parser dependency | more complete | dependency/maintenance cost for a narrow static test | defer |
+| one global active packet | simple | false under concurrent workstreams | reject |
+| one execution packet per workstream/session | unique terse-approval authority | requires explicit metadata | select |
+| free-form reviewer prose only | flexible | sentinel/self-review bypasses | reject |
+| explicit implementer/evaluator/artifact/overlap | deterministic structure | cannot prove honesty alone | select |
+| regex SQL stripping | tiny | literal/comment false negatives | reject |
+| raw-case lexical sanitizer then keyword folding | preserves dollar-tag semantics | narrow, test-only lexer | select |
+| external SQL parser | broader coverage | dependency/maintenance cost | defer |
 
 ### Research decision
 
-Use one execution packet per workstream/session, not one active packet globally. Generic `Go` is invalid until workstream + execution packet are uniquely resolved. Class 2/3 final packets must record distinct implementer/evaluator identities, no overlap and a concrete review artifact. The SQL security scan uses a narrow lexical state machine aligned to PostgreSQL comment/string/dollar-quote rules rather than regex deletion.
+Keep the repo-native model. Generic `Go` must resolve to one execution packet and one task/action kind. Class 2/3 final acceptance needs a distinct evaluator and concrete review artifact. For SECURITY DEFINER static scanning, lex raw PostgreSQL text first and lower-case only the remaining executable SQL because dollar-quote tags are case-sensitive.
 
 ### Adoption review
 
-No external dependency/service/framework is adopted. New executable code remains Node/TypeScript standard-library test/policy tooling only, with zero shipped runtime/provider cost and Git-revert rollback.
+No external dependency, provider, service or runtime framework is added. All changes are repository policy/test tooling with Git-revert rollback.
 
 ## Specification
 
 ### Problem
 
-The initial #331 direction was sound but its first implementation could still let a compound `Go` chain review→remediation, let unresolved/self-evaluation prose structurally pass, misrepresent concurrent active work as one global packet, and hide executable SQL in the static security scan when comment markers appeared inside literals.
+The original single-agent workflow direction was sound, but deterministic enforcement had bypasses. Round 1 exposed compound approvals, review identity gaps, global packet ambiguity and unsafe SQL regex stripping. Round 2 confirmed the first remediation but found three remaining bypasses: mixed-case dollar-tag corruption caused by lowercasing before lexing, unresolved review sentinels such as `N/A`, and compound gate actions hidden after commas or continuation lines.
 
 ### User stories
 
-- As owner, bare `Go` maps to one action in one uniquely resolved execution packet.
-- As primary AI, I can manage + implement without chat-only memory or global-workstream serialization.
-- As evaluator, independent review has a distinct identity/provenance and durable artifact.
-- As a future session, I can distinguish current product/provider truth, execution authority, supporting evidence and historical PR provenance.
-- As security reviewer, comment-like text inside SQL literals cannot hide executable `SECURITY DEFINER` declarations from the static scan.
+- As owner, bare `Go` cannot silently authorize multiple actions.
+- As evaluator, unresolved or self-authored review evidence cannot structurally pass as independent acceptance.
+- As a concurrent workstream, my execution packet is unique without forcing unrelated workstreams to close.
+- As security reviewer, PostgreSQL lexical case and literal boundaries cannot hide a real SECURITY DEFINER declaration.
 
 ### Acceptance criteria
 
-- [ ] AC1: policy supports sequential single-agent roles but prevents author-only Class 2/3 acceptance with distinct evaluator identity/provenance and durable review artifact.
-- [ ] AC2: current memory, execution packet, supporting/parent packets and PR memory have non-overlapping authority; multiple workstreams may coexist with at most one execution packet per workstream.
-- [x] AC3: Class 0–3 planning/evaluation cost stays risk-proportional.
-- [ ] AC4: canonical execution packet has exactly one scoped `Go` gate bound to one task/action kind; obvious compound actions fail closed and bare `Go` requires unique workstream/packet resolution.
-- [ ] AC5: deterministic tests validate gate structure, AC→task coverage, evidence targets, execution-packet uniqueness and Class 2/3 independent-evaluation identity/artifact/overlap before review readiness.
-- [ ] AC6: no runtime, financial, database, provider or production behavior changes; the static-RLS remediation does not create lexical false negatives for comment markers inside strings/dollar bodies.
-- [x] AC7: #315/#317 remain historical candidate sources rather than a second current workflow.
+- [ ] AC1: single-agent policy allows sequential responsibilities but final Class 2/3 acceptance requires distinct implementer/evaluator identity, no overlap and durable review evidence.
+- [ ] AC2: current memory, execution packets, supporting/parent packets and PR memory have non-overlapping authority; at most one execution packet exists per workstream/session.
+- [x] AC3: Class 0–3 planning/evaluation cost remains risk-proportional.
+- [ ] AC4: an execution packet has one scoped `Go` gate bound to one task/action kind; comma chaining, continuation-line hiding and other obvious compound actions fail closed.
+- [ ] AC5: deterministic tests cover gate structure, AC→task evidence, execution uniqueness, review sentinels, evaluator separation, overlap and concrete review artifacts.
+- [ ] AC6: no runtime/financial/database/provider/production behavior changes; SECURITY DEFINER scanning preserves raw PostgreSQL dollar-tag case before keyword folding and has mixed-case regression coverage.
+- [x] AC7: #315/#317 remain historical candidates only.
 
 ### Required states
 
-No product UI state changes. Delivery failures are fail-closed CI-policy errors with exact malformed gate/task/criterion/review identity. Semantic acceptance remains independent-review/human responsibility.
+No product UI state changes. Policy violations fail closed with exact checker errors. Draft CI skips are recorded as not-final rather than pass evidence.
 
 ### Financial and security constraints
 
-No financial/RLS/Auth/provider behavior changes. A packet edit cannot grant itself owner-only merge/provider/production permissions. SQL static-scan changes affect tests only and must not edit historical migrations.
+- No financial or tenant-ownership behavior changes.
+- No historical migration edits.
+- No provider/production writes.
+- Packet edits cannot grant merge/provider/production permissions.
+- Static scanner remains test-only and must not be described as a full SQL parser.
 
 ### Out of scope
 
-Runtime AI, agent swarms, automatic merge/deploy/provider writes, automatic product prioritization, mass historical packet rewrites and adoption of a general SQL parser dependency.
+Runtime AI orchestration, agent swarms, automatic merge/deploy, provider mutation, mass historical packet rewrites and a general SQL parser dependency.
 
 ## Implementation plan
 
 ### Architecture fit
 
-Extend existing repository policy, packet metadata and CI-policy ownership. Reclassify only currently relevant Trust packets needed to prove concurrent workstream semantics; do not create a second orchestration/memory service.
+Extend existing repository governance and tests. Do not add a second project-management layer. Treat current memory as merged/provider truth, execution packets as workstream task authority, supporting packets as evidence, and PR memory as provenance.
 
 ### Planned changes
 
 | File/area | Change | Reason |
 |---|---|---|
-| `AGENTS.md` | execution packet per workstream/session; bare-`Go` resolution | remove global active-packet ambiguity |
-| `AGENT_OPERATING_MODEL.md` | execution/supporting roles, review identity/artifact, gate task/action kind | core contract |
-| `FEATURE_WORK_PACKET.md` | canonical fields for new contract | durable task authority |
-| `agent-delivery-contract.mjs` + tests | enforce structural invariants and negative cases | close reviewed bypasses |
-| `rls-migrations.test.ts` | PostgreSQL-aware lexical sanitizer | avoid regex false negatives |
-| Provider Sync + recent-auth packets | mark supporting under `moneyflow-trust-secure` | remove duplicate terse-approval authority |
-| `moneyflow-trust-secure-acceptance.md` | unique Secure execution packet | real concurrent-workstream proof |
-| PR memory/this packet | persist independent findings/remediation | resumable evidence |
+| `AGENTS.md` / operating model | workstream-scoped execution authority | remove global packet ambiguity |
+| packet template | gate task/action kind + review identity/artifact | canonical authority fields |
+| delivery checker/tests | reject compound/continuation/sentinel/identity bypasses | deterministic fail-closed enforcement |
+| static RLS scanner/tests | lex raw case, then fold executable SQL | preserve case-sensitive dollar tags |
+| Trust Secure packets | execution/supporting classification | prove concurrency model on real active work |
+| packet + PR memory | persist two review rounds/remediation | resumable evidence |
 
 ### Data and migration impact
 
-None. No schema, migration, provider config, runtime application or production-data behavior changes.
+None.
 
 ### Risks and counterexamples
 
-| Risk/counterexample | Prevention or test |
+| Risk/counterexample | Prevention/test |
 |---|---|
-| `review then fix` under one `Go` | compound-action negative test + separate gates |
-| `blocked — reviewer unavailable` passes placeholder check | prefixed-placeholder negative test |
-| evaluator equals implementer | identity comparison negative test |
-| overlap claims same author/session | overlap must equal `none` |
-| review exists only in chat summary | concrete review-artifact field + PR memory artifact |
-| two execution packets in same workstream | repository-wide uniqueness validation |
-| supporting packet exposes generic `Go` | supporting-gate negative test |
-| `--` inside SQL string hides later declaration | lexical regression test |
-| fake `SECURITY DEFINER` in dollar body creates match | dollar-body regression test |
-| checker becomes semantic judge | structural/chaining heuristics only; follow-up evaluator owns semantics |
+| `review then fix` | compound-action negative test |
+| `review PR, fix blockers` | comma verb-chain negative test |
+| continuation line adds second action | continuation lines rejected in gate section |
+| evaluator/review artifact says `N/A`/`none` | sentinel placeholder negative tests |
+| evaluator equals implementer | normalized identity comparison |
+| duplicate execution packet in workstream | repo-wide active execution uniqueness check |
+| `$TAG$` becomes `$tag$` before lexing | raw lexer + mixed-case regression fixture |
+| literal contains `--` or `/* */` | quote-aware lexical fixtures |
 
 ### Verification plan
 
-- `npm run check:knowledge`
-- `npm run check:agent-delivery`
-- `npm run test:ci-policy`
-- lint + typecheck + unit/static RLS + production build selected by Class 3 CI
-- browser smoke selected by current CI classifier
-- exact-head CodeQL + secret-history
-- follow-up fresh-context independent semantic review before `ready_for_review`
+1. fresh-context round-3 review of only the three round-2 remediations;
+2. if accepted, mark PR ready to trigger full Class-3 CI;
+3. require exact-head policy/unit/static/build/browser + CodeQL + secret-history evidence;
+4. reconcile final packet/PR memory;
+5. only then establish a separate owner merge gate.
 
 ## Tasks
 
 | ID | Task | Covers | Dependency | Evidence | Status |
 |---|---|---|---|---|---|
-| T1 | reconcile current policy and #315/#317 | AC7 | none | current-main docs + PR evidence | done |
-| T2 | focused first-party research | AC1, AC2, AC3 | T1 | OpenAI + GitHub docs | done |
-| T3 | implement initial policy/template/checker | AC1, AC2, AC3, AC4, AC5 | T2 | pre-review #331 diff | done |
-| T4 | obtain initial machine evidence | AC6 | T3 | `97b176...`; CI #2134 / CodeQL #1230 / Secret #1230 | done |
-| T5 | obtain independent fresh-context semantic review | AC1, AC2, AC4, AC5, AC6 | T4 | PR memory independent-review section | done |
-| T6 | apply four accepted review remediations | AC1, AC2, AC4, AC5, AC6 | T5 | remediated policy/checker/SQL scanner + Secure packet migration | done |
-| T7 | obtain follow-up independent review of remediated diff | AC1, AC2, AC4, AC5, AC6 | T6 | fresh-context review artifact + verdict | todo |
-| T8 | prove final exact-head gates | AC1, AC2, AC3, AC4, AC5, AC6, AC7 | T6 | CI/CodeQL/Secret + selected shards | in_progress |
+| T1 | reconcile current governance and #315/#317 | AC7 | none | current-main docs + history | done |
+| T2 | focused first-party research | AC1, AC2, AC3, AC6 | T1 | OpenAI/GitHub/PostgreSQL docs | done |
+| T3 | implement initial governance/checker | AC1, AC2, AC4, AC5 | T2 | pre-review #331 diff | done |
+| T4 | capture initial full machine evidence | AC6 | T3 | head `97b176...`, CI #2134, CodeQL/Secret #1230 | done |
+| T5 | independent review round 1 | AC1, AC2, AC4, AC5, AC6 | T4 | PR memory round-1 artifact | done |
+| T6 | apply round-1 remediation | AC1, AC2, AC4, AC5, AC6 | T5 | workstream/review/lexer changes | done |
+| T7 | independent review round 2 | AC1, AC2, AC4, AC5, AC6 | T6 | PR memory round-2 artifact | done |
+| T8 | apply three round-2 remediations | AC4, AC5, AC6 | T7 | raw-case lexer + sentinel + gate parser tests | done |
+| T9 | independent review round 3 limited to T8 | AC4, AC5, AC6 | T8 | fresh-context review artifact | todo |
+| T10 | full exact-head Class-3 verification | AC1, AC2, AC3, AC4, AC5, AC6, AC7 | T9 | protected CI/CodeQL/Secret + selected shards | blocked |
 
 ## Handoff record
 
-| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
+| Date | From | To | State | Artifacts/evidence | Open risks | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-09 | researcher | planner | specified | repo policy + #315/#317 + first-party sources | exact contract not implemented | select smallest current-main design |
-| 2026-08-09 | planner | implementer | planned | packet + AC/task plan | implementation unverified | implement bounded diff |
-| 2026-08-09 | implementer | evaluator | evaluating | `97b176...`; CI #2134 / CodeQL/Secret #1230 green | independent review missing | obtain fresh-context review only |
-| 2026-08-09 | independent evaluator | implementer | implementing | PR memory: REQUEST CHANGES with four blockers | remediations unverified | apply reviewed remediation scope |
-| 2026-08-09 | implementer | evaluator | evaluating | remediated branch diff | follow-up review + final exact-head evidence pending | obtain follow-up independent review only |
+| 2026-08-09 | implementer | independent evaluator | evaluating | initial diff + full machine evidence | semantic review missing | review only |
+| 2026-08-09 | evaluator round 1 | implementer | implementing | REQUEST CHANGES, four blockers | remediation required | fix four blockers |
+| 2026-08-09 | implementer | evaluator round 2 | evaluating | remediated diff | follow-up review required | review only |
+| 2026-08-09 | evaluator round 2 | implementer | implementing | REQUEST CHANGES, three blockers | remediation required | fix three blockers |
+| 2026-08-09 | implementer | evaluator round 3 | evaluating | T8 branch remediation + PR memory | round-3 verdict absent | review only |
 
 ### Current permission boundary
 
-- Granted scope: branch writes on `agent/single-agent-delivery-system` and read-only GitHub/web evidence.
-- Exact repository: `Thunderkill016/moneyflow`.
-- Forbidden writes: `main`, provider/production, branch protection/rulesets, secrets, financial/user data.
-- Human approval required before: merge and any provider/production action.
-- Stop condition: do not move to `ready_for_review` without follow-up independent semantic acceptance and final exact-head evidence.
+- Allowed: branch writes on `agent/single-agent-delivery-system`, PR/docs updates, read-only GitHub/web evidence.
+- Forbidden: `main`, merge, provider/production writes, branch protection/rulesets, secrets, user/financial data.
+- Human approval remains required for merge and every provider/production checkpoint.
+- Stop condition: do not mark ready until T9 independent review passes.
 
 ## Evaluation
 
 ### Independent evaluation
 
-- Implementer: primary MoneyFlow #331 implementation session
-- Evaluator: fresh-context ChatGPT review session supplied by owner on 2026-08-09
+- Implementer: primary MoneyFlow PR #331 implementation session
+- Evaluator: fresh-context ChatGPT round-2 reviewer supplied by owner
 - Implementer overlap: none
-- Review artifact: `docs/research/pr-memory/2026/Q3/PR-331.md` — `Independent review — 2026-08-09`
-- Inputs reviewed: specification + actual PR #331 diff + exact-head CI evidence
+- Review artifact: `docs/research/pr-memory/2026/Q3/PR-331.md` — Independent review round 2
+- Inputs reviewed: specification + actual PR #331 diff + exact evidence
 - Author summary treated as authority: no
 
-The recorded review verdict is REQUEST CHANGES, not acceptance. A follow-up review of the remediated diff is still required before `ready_for_review`.
+Latest verdict is REQUEST CHANGES. T8 addresses the three round-2 blockers; a new independent round-3 verdict is required before ready-for-review.
 
 ### Acceptance evidence
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| AC1 | explicit implementer/evaluator/artifact/overlap contract + negative tests | pending follow-up review |
-| AC2 | workstream-scoped execution/supporting model + migrated Secure packets | pending follow-up review |
-| AC3 | risk-proportional Class 0–3 policy retained | pass |
-| AC4 | gate task/action kind + compound-action rejection + unique target policy | pending exact-head/follow-up review |
-| AC5 | expanded delivery-contract negative tests + repo-wide execution uniqueness | pending exact-head/follow-up review |
-| AC6 | quote-aware PostgreSQL lexical sanitizer + regression tests; no runtime/provider diff | pending exact-head/follow-up review |
-| AC7 | #315/#317 remain historical candidate sources | pass |
+| AC1 | independent identity/artifact/overlap policy + tests | pending final review/CI |
+| AC2 | execution/supporting model + Secure migration | pending final review/CI |
+| AC3 | risk policy unchanged | pass |
+| AC4 | continuation rejection + comma/then/arrow/action-kind gates | pending round-3 review |
+| AC5 | sentinel/identity/artifact/uniqueness negative tests | pending round-3 review |
+| AC6 | raw-case PostgreSQL lexer + mixed-case dollar-tag regression | pending round-3 review |
+| AC7 | #315/#317 historical only | pass |
 
 ### Research and adoption evidence
 
-Selected first-party sources support repo-native context, independent review/current-commit checks and PostgreSQL lexical distinctions. No external architecture, parser dependency or paid reviewer was adopted.
+PostgreSQL current lexical documentation explicitly requires the same case-sensitive dollar tag to close a dollar-quoted string. That supports lexing raw SQL before any keyword case-folding. No new dependency is adopted.
 
 ### Review findings
 
-Initial fresh-context review found four blockers: compound `Go`, independent-evaluation structural bypass, global active-packet ambiguity, and regex SQL stripping false-negative risk. All four have bounded branch remediations; follow-up review is pending.
+- Round 1: four blockers; remediated.
+- Round 2: workstream architecture accepted; three remaining blockers found in dollar-tag case handling, review sentinels and compound gate parsing.
+- Round 2 remediations are implemented on branch and await focused round-3 review.
 
 ### Remaining limitations
 
-Structural checks cannot prove honest identity claims or semantic judgment. Independent evaluator/human review remains required. The SQL lexical sanitizer is intentionally narrow and is not represented as a full PostgreSQL parser.
+Structural tooling cannot prove honesty or semantic judgment. The SQL sanitizer is deliberately narrow. Full Class-3 machine evidence must be rerun after mark-ready because draft CI skips do not count as final verification.
 
 ## Delivery record
 
 - Branch: `agent/single-agent-delivery-system`
-- PR: #331, draft
-- Pre-remediation reviewed head: `97b176943655a111d8fd2619e56c6ba4e8419eab`
-- Pre-remediation CI: #2134 success; CodeQL #1230 success; Secret history #1230 success
-- Remediation exact head: pending final branch read-back after evidence updates
-- Final CI/CodeQL/Secret: pending current remediation head
+- PR: #331, open + draft
+- Last fully verified pre-remediation head: `97b176943655a111d8fd2619e56c6ba4e8419eab`
+- Initial full evidence: CI #2134, CodeQL #1230, Secret history #1230
+- Current remediation head: resolve fresh from PR before round-3 review
 - Production deployment: not applicable
-- Production flow verified: not applicable
-- Merge: forbidden until follow-up independent review + final exact-head evidence + owner decision
+- Merge: not authorized
