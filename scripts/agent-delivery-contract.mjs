@@ -41,7 +41,14 @@ const TASK_ID_SOURCE = "(?:[A-Z][A-Z0-9]*-)*T\\d+";
 const AC_ID_RE = new RegExp(`^${AC_ID_SOURCE}$`);
 const TASK_ID_RE = new RegExp(`^${TASK_ID_SOURCE}$`);
 const AC_REF_RE = new RegExp(AC_ID_SOURCE, "g");
-const COMPOUND_ACTION_RE = /\bthen\b|→|->|;|\band\s+(?:address|fix|implement|merge|deploy|apply|verify|reconcile|run|update|publish|push)\b/i;
+const ACTION_VERBS =
+  "address|fix|implement|merge|deploy|apply|verify|reconcile|run|update|publish|push|review|research|decide|remediate|resolve";
+const COMPOUND_ACTION_RE = new RegExp(
+  `\\bthen\\b|→|->|;|\\band\\s+(?:${ACTION_VERBS})\\b|(?:,|\\+)\\s*(?:${ACTION_VERBS})\\b`,
+  "i",
+);
+const PLACEHOLDER_RE =
+  /^(?:todo|tbd|pending|unknown|blocked|none|n\/?a|not applicable|missing|unavailable|not available)(?:\b|\s*[-—:])/i;
 
 function stripTicks(value) {
   const trimmed = value.trim();
@@ -57,11 +64,7 @@ function normalizeIdentity(value) {
 
 function isPlaceholder(value) {
   const normalized = stripTicks(value).trim();
-  return (
-    normalized.length === 0 ||
-    /^<.*>$/.test(normalized) ||
-    /^(todo|tbd|pending|unknown|blocked)(?:\b|\s*[-—:])/i.test(normalized)
-  );
+  return normalized.length === 0 || /^<.*>$/.test(normalized) || PLACEHOLDER_RE.test(normalized);
 }
 
 function headingSections(markdown, level, heading) {
@@ -110,6 +113,17 @@ function parseBullets(section) {
     fields.set(key, values);
   }
   return fields;
+}
+
+function gateContinuationLines(section) {
+  return section
+    .split("\n")
+    .filter(
+      (line) =>
+        line.trim().length > 0 &&
+        /^\s+/.test(line) &&
+        !/^\s*-\s+[^:]+:\s*/.test(line),
+    );
 }
 
 export function validateTemplateStructure(markdown) {
@@ -286,6 +300,12 @@ export function validatePacket(markdown, file = "packet") {
     if (gateSections.length !== 1) {
       errors.push(`${file}: execution packet expected exactly one Current decision gate; found ${gateSections.length}`);
     } else {
+      const continuations = gateContinuationLines(gateSections[0]);
+      if (continuations.length > 0) {
+        errors.push(
+          `${file}: decision gate must use single-line fields; continuation lines are not allowed`,
+        );
+      }
       gateFields = parseBullets(gateSections[0]);
       const required = [
         "Gate ID",
@@ -401,7 +421,11 @@ export function validatePacket(markdown, file = "packet") {
 
       if (isPlaceholder(implementer)) errors.push(`${file}: implementer identity is unresolved`);
       if (isPlaceholder(evaluator)) errors.push(`${file}: independent evaluator is unresolved`);
-      if (!isPlaceholder(implementer) && !isPlaceholder(evaluator) && normalizeIdentity(implementer) === normalizeIdentity(evaluator)) {
+      if (
+        !isPlaceholder(implementer) &&
+        !isPlaceholder(evaluator) &&
+        normalizeIdentity(implementer) === normalizeIdentity(evaluator)
+      ) {
         errors.push(`${file}: independent evaluator must differ from implementer`);
       }
       if (overlap !== "none") {
