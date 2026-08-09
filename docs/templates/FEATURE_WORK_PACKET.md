@@ -1,18 +1,42 @@
 # <Feature or fix name>
 
-**Status:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted  
-**Execution state:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted  
-**Active role:** human_owner | researcher | planner | implementer | evaluator | ci_or_production  
-**Permission scope:** read_only | branch_write | provider_read | provider_write_approved | production_data_write_approved  
-**Owner:** <human or agent>  
-**Issue/PR:** <links or numbers>  
+**Status:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted
+**Execution state:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted
+**Risk class:** 0 | 1 | 2 | 3
+**Active role:** human_owner | researcher | planner | implementer | evaluator | ci_or_production
+**Permission scope:** read_only | branch_write | provider_read | provider_write_approved | production_data_write_approved
+**Owner:** <human or agent>
+**Issue/PR:** <links or numbers>
 **Last updated:** YYYY-MM-DD
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete. Use this full packet only when `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` requires it.
 
 ## Outcome
 
 Describe the user-visible or system outcome in one paragraph. Do not describe implementation yet.
+
+## Authority references
+
+Link to current truth rather than copying it into this packet.
+
+- Current merged/provider truth: `docs/research/CURRENT_PROJECT_MEMORY.md`
+- Parent/program plan, when applicable: <path or not applicable>
+- Feature-specific specification, when applicable: <path or not applicable>
+- Historical PR memory needed for provenance: <specific record or not required>
+
+Record only the task-relevant delta below. Do not turn the packet into a second project encyclopedia.
+
+## Current decision gate
+
+This is the **only** generic `Go` target for the packet. `Go` authorizes the one action below and is consumed when that action is performed. Afterward, establish the next gate before another privileged action.
+
+- Gate ID: G1
+- Next allowed action: <one bounded action>
+- Approval token: `Go`
+- Consumes approval: yes
+- After action: <state/role to return to and what must be recorded before another action>
+
+Explicit owner commands such as `merge`, `deploy Edge`, or `apply migration` authorize only the named action. They do not chain into later provider/deployment actions.
 
 ## Repository reconnaissance
 
@@ -56,7 +80,7 @@ Complete this section when external behavior, current technology, standards, sec
 
 ### Questions researched
 
-1. 
+1.
 
 ### Sources
 
@@ -100,8 +124,10 @@ Who is affected, what fails today and why it matters.
 
 ### Acceptance criteria
 
-- [ ] Observable outcome.
-- [ ] Observable outcome.
+Use stable IDs for a full packet so planning and evaluation can refer to the same requirement.
+
+- [ ] AC1: Observable outcome.
+- [ ] AC2: Observable outcome.
 
 ### Required states
 
@@ -122,7 +148,7 @@ Who is affected, what fails today and why it matters.
 
 ### Out of scope
 
-- 
+-
 
 ## Implementation plan
 
@@ -160,13 +186,16 @@ Explain which existing boundary owns the behavior and why. A repository or frame
 
 ## Tasks
 
-| ID | Task | Dependency | Evidence | Status |
-|---|---|---|---|---|
-| T1 | | | | todo |
+| ID | Task | Covers | Dependency | Evidence | Status |
+|---|---|---|---|---|---|
+| T1 | | AC1 | | | todo |
 
 Rules:
 
 - One task should produce a reviewable result.
+- `Covers` names one or more known acceptance-criterion IDs, or `internal: <reason>` for engineering work that does not directly satisfy a product criterion.
+- Every acceptance criterion should have a covering task before implementation is called planned.
+- Every task names the evidence that will prove its result.
 - Parallel tasks must not edit overlapping ownership areas.
 - New discoveries update the specification/plan before implementation scope changes.
 - Research is complete when it supports a decision, not when every related repository has been read.
@@ -190,11 +219,23 @@ Add one entry whenever responsibility changes or the task moves to another execu
 
 ## Evaluation
 
+### Independent evaluation
+
+Required before `ready_for_review` for Class 2/3 author-owned changes.
+
+- Evaluator: <human / independent PR reviewer / fresh-context evaluator / not required for Class 0/1>
+- Implementer overlap: <none | same primary agent with fresh-context restriction | not applicable>
+- Inputs reviewed: <specification/plan + actual diff + exact evidence>
+- Author summary treated as authority: no
+
+A self-review may be recorded separately, but must not be relabeled as the sole independent Class 2/3 acceptance signal.
+
 ### Acceptance evidence
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| | | pass/fail |
+| AC1 | | pass/fail/pending |
+| AC2 | | pass/fail/pending |
 
 ### Research and adoption evidence
 
@@ -212,7 +253,7 @@ Add one entry whenever responsibility changes or the task moves to another execu
 
 ### Remaining limitations
 
-- 
+-
 
 ## Delivery record
 
