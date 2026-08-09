@@ -72,7 +72,8 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - Destructive ledger actions use soft delete/recovery where supported.
 - Account archive is reversible; archived history remains stored while active totals exclude archived accounts.
 - Budgets are monthly category limits, not envelope cash.
-- Unpaid recurring items and goal allocation remain planning facts until explicit ledger posting.
+- Unpaid recurring items remain planning facts until explicitly posted to the ledger.
+- Goal allocations are planning earmarks only; they do not post, transfer or lock account money.
 - Authenticated and demo failures never silently mix.
 - Missing financial facts are never invented.
 - Build/lint/typecheck do not prove RLS, provider state, effective privileges or production correctness.
