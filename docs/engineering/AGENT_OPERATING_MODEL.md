@@ -93,12 +93,13 @@ MoneyFlow may use one primary AI to act as technical project manager, researcher
 
 Rules:
 
-1. The same agent may move through researcher → planner → implementer → evaluator sequentially, but each transition must use repository artifacts rather than hidden chat memory.
+1. The same agent may move through researcher → planner → implementer sequentially, but each transition must use repository artifacts rather than hidden chat memory.
 2. A self-review is useful as a defect-finding pass but is **not the sole acceptance signal for Class 2 or Class 3 work authored by that agent**.
-3. Before a Class 2/3 author-owned change reaches `ready_for_review`, obtain an independent evaluation signal that reads the specification, actual diff and relevant evidence. Acceptable signals include a separate human reviewer, an independent PR-review agent/model, or a deliberately fresh-context evaluator that is not allowed to rely on the author's summary.
-4. Class 3 still requires the human owner for merge/product-risk decisions and every provider/production write checkpoint required by policy.
-5. CI, CodeQL, database tests, browser evidence and provider read-back are independent machine evidence, but machine-green evidence does not replace semantic/product judgment.
-6. If no independent evaluator is available, the packet must remain `evaluating` and record that limitation; do not relabel self-review as independent acceptance.
+3. Before a Class 2/3 author-owned change reaches `ready_for_review`, obtain an independent evaluation signal that reads the specification, actual diff and relevant evidence. Acceptable signals include a separate human reviewer, an independent PR-review agent/model, or a deliberately fresh-context review session whose review artifact identifies the independent session and does not reuse the implementation session as evaluator.
+4. The final packet must record the implementation author/session identity, evaluator identity/provenance, a concrete review artifact, and `Implementer overlap: none`. The evaluator identity must differ from the recorded implementer identity.
+5. Class 3 still requires the human owner for merge/product-risk decisions and every provider/production write checkpoint required by policy.
+6. CI, CodeQL, database tests, browser evidence and provider read-back are independent machine evidence, but machine-green evidence does not replace semantic/product judgment.
+7. If no independent evaluator is available, the packet must remain `evaluating` and record that limitation; do not relabel self-review as independent acceptance.
 
 The goal is to let one strong agent do most of the work without letting correlated author blind spots become project truth.
 
@@ -110,25 +111,43 @@ Project memory is split by responsibility so the same status narrative is not co
 |---|---|---|
 | `AGENTS.md` | short procedural hot memory and routing | project encyclopedia or task log |
 | `docs/research/CURRENT_PROJECT_MEMORY.md` | current **merged/provider** product, architecture, security and operational truth | open-PR task diary or duplicated phase plan |
-| one active packet under `docs/plans/active/` | current task execution state, scope, permissions, risks, evidence gaps and next allowed action | full copy of global product/provider history |
+| one **execution packet per workstream/session** under `docs/plans/active/` | current task execution state, scope, permissions, risks, evidence gaps and next allowed action | full copy of global product/provider history or a second execution packet for the same workstream |
+| supporting/parent packet under `docs/plans/active/` | phase evidence, dependencies, program ordering or shared context | generic `Go` authority |
 | `docs/research/pr-memory/YYYY/QN/PR-<n>.md` | bounded historical provenance for one PR | current authority or active backlog |
-| parent/program plan | phase ordering, gates and links to active packets | repeated provider logs or full child-packet narrative |
+| parent/program plan | phase ordering, gates and links to execution/supporting packets | repeated provider logs or full child-packet narrative |
+
+Multiple workstreams may be active at the same time. That is not an error. The safety invariant is narrower: a workstream/session may have at most one packet marked as its current **execution** packet, and only that packet may expose a generic `Go` target.
 
 When truth changes, update the narrowest owning artifact first. Current memory changes only when merged/provider truth materially changes. A child packet should link to global truth and record only the task-relevant delta.
 
+## Execution-packet resolution
+
+Every full packet records a stable `Workstream` and `Packet role`.
+
+- `Packet role: execution` means the packet owns the current task state and may expose one generic `Go` gate.
+- `Packet role: supporting` means the packet remains useful evidence/context but is not a generic-approval target and must not expose `## Current decision gate`.
+- Program/parent plans may remain active without becoming execution packets.
+- Two packets marked `execution` for the same workstream are invalid.
+- A bare `Go` is invalid unless the current interaction or repository handoff uniquely identifies one workstream and one execution packet. If two workstreams are plausible, resolve the target before acting.
+- An explicit owner command naming the action and target packet/workstream is not a bare `Go`; it authorizes only the named action subject to the permission model.
+
+This lets MoneyFlow run Provider Sync, delivery-governance work and other independent streams concurrently without pretending there is only one active document in the whole repository.
+
 ## Current decision gate and terse approvals
 
-Every full work packet exposes exactly one `## Current decision gate`.
+Every **execution** work packet exposes exactly one `## Current decision gate`. Supporting packets expose none.
 
-- `Next allowed action` names the single bounded action currently eligible.
-- `Approval token: Go` means the owner authorizes **that action only**.
+- `Gate task` references exactly one task row in the same packet.
+- `Action kind` names one action class such as `review`, `implement`, `verify`, `merge`, `deploy` or `provider_write`.
+- `Next allowed action` names one bounded action currently eligible. It must not chain a second action with `then`, `→`, `->` or another step separator.
+- `Approval token: Go` means the owner authorizes **that action only** when the execution packet has been uniquely resolved.
 - The approval is consumed when that action is performed.
-- After the action, the packet must establish the next gate before another privileged action can occur.
-- `Go` never implicitly means “merge, deploy, mutate the provider and continue until done.”
+- After the action, the packet must establish the next gate before another gated action can occur.
+- `Go` never implicitly means “review and fix”, “merge and deploy”, “mutate the provider and continue”, or “continue until done”.
 - An explicit owner command such as `merge`, `deploy Edge`, or `apply migration` authorizes only the named action and does not chain into later actions.
 - No packet edit can grant the agent permissions that still require human approval under the permission model.
 
-If multiple materially different actions are simultaneously described as “next”, the gate is ambiguous and must be corrected before `Go` is consumed.
+If multiple materially different actions are simultaneously described as “next”, the gate is ambiguous and must be corrected before `Go` is consumed. The deterministic checker catches obvious structural/chaining violations; semantic ambiguity remains an evaluator responsibility.
 
 ## Handoff contract
 
@@ -166,7 +185,8 @@ MoneyFlow uses repository artifacts as durable memory:
 
 - permanent constraints: `AGENTS.md`, product principles and architecture;
 - current merged/provider truth: `docs/research/CURRENT_PROJECT_MEMORY.md`;
-- task state: one active work packet;
+- task state: the uniquely resolved execution packet for the current workstream/session;
+- supporting phase/program evidence: supporting/parent packets that carry no generic `Go` authority;
 - decisions: ADR/spec/research documents where needed;
 - implementation: branch and pull request;
 - evidence: tests, CI artifacts, screenshots and deployment records;
@@ -180,6 +200,8 @@ Stop implementation and return to the appropriate earlier state when:
 
 - the product requirement is ambiguous or conflicts with a source of truth;
 - repository reconnaissance contradicts the work packet;
+- the current workstream/execution packet cannot be uniquely resolved for a bare `Go`;
+- more than one execution packet exists for the same workstream;
 - the required change crosses an unapproved architecture or provider boundary;
 - a financial invariant cannot be proven;
 - a tool requires broader permissions than the task justifies;
@@ -187,7 +209,7 @@ Stop implementation and return to the appropriate earlier state when:
 - a migration or provider action lacks rollback;
 - the current branch/base no longer matches the reviewed plan;
 - external research is stale, secondary-only or materially conflicting;
-- a Class 2/3 author-owned change has no independent evaluation path;
+- a Class 2/3 author-owned change has no independent evaluation path or review artifact;
 - the current decision gate contains more than one materially different next action.
 
 ## Runtime operations adoption decisions
@@ -235,6 +257,7 @@ This model succeeds only when it makes delivery clearer and safer:
 - independent evaluation finds missing evidence before merge;
 - external tools are adopted only after a measured trigger;
 - document ownership reduces stale duplicated status;
+- concurrent workstreams do not make terse approvals ambiguous;
 - small tasks stay lightweight while high-risk tasks remain strict;
 - terse owner approvals map to one bounded action;
 - the product remains simpler than the orchestration systems used to build it.
