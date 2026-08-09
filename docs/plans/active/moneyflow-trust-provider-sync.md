@@ -5,209 +5,206 @@
 **Active role:** evaluator
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
-**Issue/PR:** #325 reconciliation; #326 free dry-run evidence; #327 ten-file production DB evidence; #328 audit ACL hardening merged and applied
+**Issue/PR:** #325 reconciliation; #326 free dry-run evidence; #327 ten-file production DB evidence; #328 audit ACL hardening; #329 audit ACL production evidence
 **Last updated:** 2026-08-09
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
 **Parent:** `docs/plans/active/public-beta-trust.md`
-**Current main audited:** `1618f817c6a96810160f6261029dd038eb8b41ea`
+**Current main audited:** `cfbff67171421d5f2ee70460b5e81edc59e8a6b1`
 **Supabase project:** MoneyFlow / `fwpldsdkpzhswpuctbke`
 
 ## Outcome
 
-Align production Supabase with accepted MoneyFlow repository contracts before Phase 1 Secure can be accepted and before Phase 2 Recover begins.
+Align the production Supabase database and destructive Edge runtime with the reviewed MoneyFlow repository contract before Phase 1 Secure can be accepted and before Phase 2 Recover begins.
 
-The database side of Provider Sync is now aligned for the reviewed MoneyFlow migrations and the audit-table least-privilege boundary. The remaining live Provider Sync blocker is the stale production `delete-account` Edge Function v5, which does not contain #324's merged recent-auth/current-tenant implementation.
+The reviewed database migration/schema/ACL drift is closed. On 2026-08-09 the owner explicitly approved the separate Edge provider-write checkpoint with `Gô`; production `delete-account` was deployed from current `main` and read back as **v6 ACTIVE with `verify_jwt=true`**.
 
-The production audit ACL migration was explicitly owner-approved with `go` after PR #328 merged. Edge deployment remains a separate provider-write checkpoint and was not authorized or performed by that approval.
+Provider Sync no longer has a known Git/Supabase DB/Edge source drift. The remaining boundary is **provider-backed recent-auth acceptance**: safe password and supported OAuth/Google step-up must still be exercised without deleting a real account.
 
 ## Repository reconnaissance
 
 ### Accepted repository contract
 
-`public.financial_mutation_audit_events` is append-only structural metadata. Audit writes are trigger-owned through `SECURITY DEFINER` helpers. The destructive-account backend needs only SELECT on this table to verify tenant cleanup.
+Current `main@cfbff67171421d5f2ee70460b5e81edc59e8a6b1` contains:
 
-The merged migration `20260809010648_financial_audit_service_role_read_only.sql` therefore:
+- `supabase/functions/delete-account/index.ts`;
+- `supabase/functions/_shared/account-deletion-recent-auth.ts`;
+- a ten-minute recent-auth policy accepting only interactive AMR methods `password` and `oauth`;
+- `auth.getUser()` plus verified `auth.getClaims()` before destructive authority;
+- fail-closed `recent_auth_required` behavior before tenant purge;
+- the current tenant cleanup inventory including `financial_mutation_audit_events`, `transaction_import_provenance`, `inbox_rules`, `account_reconciliations` and `account_reconciliation_events`;
+- `purge_user_tenant_data` followed by zero-row verification and only then Auth identity deletion.
 
-```sql
-revoke all privileges
-on table public.financial_mutation_audit_events
-from service_role;
+The reviewed database contract is also live:
 
-grant select
-on table public.financial_mutation_audit_events
-to service_role;
-```
+- the previously missing ten MoneyFlow migrations are present under repository versions;
+- legitimate shared Atoryn migration history is preserved;
+- `20260809010648_financial_audit_service_role_read_only` is present exactly once;
+- `financial_mutation_audit_events` keeps RLS and authenticated SELECT;
+- effective `service_role` access to that table is SELECT-only for the reviewed table privileges.
 
-The merged pgTAP contract requires `service_role` SELECT and denies INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER and MAINTAIN.
+### Production Edge pre-write state
 
-### Production pre-write state
+Immediately before the approved Edge write, production `delete-account` was:
 
-Immediately before the 2026-08-09 production write:
+- version **5**;
+- status `ACTIVE`;
+- `verify_jwt=true`;
+- bundle SHA-256 `b17fff6fa6b3f7234c42bf4eedf46b4a4a9befecb83cd5ff26c1434451e09d91`;
+- missing the recent-auth helper/import/evaluation;
+- missing the current audit/provenance/rules/reconciliation cleanup inventory.
 
-- exact repository migration version `20260809010648`: absent;
-- RLS: enabled;
-- direct ACL: `service_role=arwdDxtm/postgres`, `authenticated=r/postgres`;
-- effective `service_role`: SELECT plus every checked non-read table privilege;
-- `authenticated` SELECT: true;
-- other active database sessions: 0.
+### Production Edge post-write state
 
-### Production post-write state
+The approved deployment uploaded only the two Git-owned function files required by the current source:
 
-The exact merged SQL was applied through the Supabase migration endpoint. That endpoint generated a provider-time history version, so the single successful row was guarded-normalized to the repository version `20260809010648` only after SQL application succeeded and after proving the target version did not already exist.
+- `delete-account/index.ts`;
+- `_shared/account-deletion-recent-auth.ts`.
 
-Final live read-back:
+Live read-back after deployment:
 
-- exact history row `20260809010648 / financial_audit_service_role_read_only`: **1**;
-- stray history rows for the same migration name: **0**;
-- direct ACL: `postgres=arwdDxtm/postgres, authenticated=r/postgres, service_role=r/postgres`;
-- `service_role` SELECT: **true**;
-- `service_role` INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER/MAINTAIN: **false**;
-- RLS remains enabled;
-- `authenticated` SELECT remains true;
-- other active database sessions after verification: 0.
+- slug: `delete-account`;
+- version: **6**;
+- status: `ACTIVE`;
+- `verify_jwt=true`;
+- provider bundle SHA-256: `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80`;
+- entrypoint: `delete-account/index.ts`;
+- both uploaded files are present in provider read-back;
+- read-back source contains the ten-minute AMR evaluator and the current tenant cleanup inventory.
 
-No real financial row or audit row was created, updated or deleted by this migration. The provider write changed table privileges plus the migration-history identity only.
+The Edge log query returned no runtime events immediately after deployment. That is evidence of **no observed runtime traffic/error in that window**, not evidence that password/Google step-up passed.
 
-### Current Edge drift
-
-Production `delete-account` remains **v5** with `verify_jwt=true`, without #324's merged AMR recent-auth evaluator/current tenant inventory. Vercel deployment does not deploy this Supabase Edge Function.
+No real account deletion, financial-row mutation, provider secret change or provider configuration change was performed as part of the rollout.
 
 ## Research
 
-### Supabase platform behavior
+### Supabase Edge deployment semantics
 
-Official Supabase guidance explains the observed legacy/new-project difference: older projects may carry broad Data API grants through default privileges, while newer defaults are more opt-in. Changing default privileges affects future objects; existing objects require explicit grant/revoke correction.
+Current official Supabase documentation states that Edge Functions deploy independently from Vercel, individual functions can be deployed to a remote project, function configuration such as JWT verification belongs to the function deployment/config boundary, and signed-in user functions should keep JWT verification enabled.
 
 Applicability:
 
-- explains why production had broad direct `service_role` table grants while current local reset did not;
-- supports the table-local forward migration used by #328;
-- does not justify a project-wide default-privilege change in this slice.
+- supports treating Vercel and Supabase Edge as separate lifecycles;
+- supports preserving `verify_jwt=true` for `delete-account`;
+- supports deployment/read-back as provider evidence;
+- does **not** make an unexecuted authenticated flow a pass.
 
-### PostgreSQL privilege semantics
-
-PostgreSQL effective access is the union of direct, PUBLIC and inherited-role grants. Production inspection found the audit-table grant directly on `service_role` and no alternate membership path that would restore the removed non-read privileges.
+The 2026 Supabase breaking-change changelog was reviewed before rollout. No hosted Edge Function breaking change found there required changing this deployment contract.
 
 ### Adoption review
 
-No dependency, provider, framework or runtime architecture was added. This is a PostgreSQL privilege correction inside the existing Supabase boundary.
+No new dependency, provider, service, framework or runtime architecture was adopted. The rollout used the existing Supabase Edge Function and its already reviewed pinned `@supabase/supabase-js@2.110.3` dependency.
 
 ## Specification
 
 ### Problem
 
-MoneyFlow requires the destructive-account backend to inspect financial audit rows without having direct table-level authority to mutate or administratively alter them. Legacy production grants violated that invariant.
+Before this rollout, Git/Vercel/database state and the destructive Supabase runtime disagreed: current `main` required recent interactive authentication, while production Edge v5 did not.
+
+The source drift is now closed. The remaining question is behavioral: do production password and supported OAuth/Google step-up flows produce the expected verified AMR and preserve same-account continuity without destructive deletion?
 
 ### Acceptance criteria
 
-- [x] ACL-AC1: repository migrations/tests/config and live production privilege truth reconciled.
-- [x] ACL-AC2: official Supabase/PostgreSQL behavior reviewed and applicable.
-- [x] ACL-AC3: focused forward migration merged in #328.
-- [x] ACL-AC4: pgTAP covers SELECT plus denial of every checked PostgreSQL 17 non-read table privilege.
-- [x] ACL-AC5: fresh reset + pgTAP passed: **26 files / 481 tests**.
-- [x] ACL-AC6: final exact-head CI #2113, CodeQL #1212 and Secret history #1212 passed.
-- [x] ACL-AC7: independent diff review found no regression to authenticated own-row reads, trigger-owned audit writes or cleanup inspection.
-- [x] ACL-AC8: owner merged #328; squash merge `1618f817c6a96810160f6261029dd038eb8b41ea`.
-- [x] ACL-AC9: owner explicitly approved the scoped production ACL write with `go`.
-- [x] ACL-AC10: production history/read-back proves exact migration identity and SELECT-only effective `service_role` access.
-- [x] ACL-AC11: immediate Postgres/provider inspection shows the migration committed cleanly and no new ACL-specific permission-error cluster. The API log had no relevant post-write destructive-flow traffic, so this is not evidence that the still-stale Edge flow passed.
-- [x] ACL-AC12: the audit ACL slice may return to Provider Sync evaluation; the next boundary is a separately approved Edge deployment.
+- [x] EDGE-AC1: fresh current-main Edge source/helper and live v5 source/version reconciled before write.
+- [x] EDGE-AC2: current tenant cleanup inventory reconciled with the production-aligned MoneyFlow schema.
+- [x] EDGE-AC3: owner separately approved the production Edge deployment after the database/ACL checkpoint was closed.
+- [x] EDGE-AC4: deployment preserves `verify_jwt=true`.
+- [x] EDGE-AC5: provider read-back proves `delete-account` is v6 ACTIVE and contains the current recent-auth helper/import/evaluator.
+- [x] EDGE-AC6: provider read-back proves the current tenant cleanup inventory is present.
+- [x] EDGE-AC7: no real account deletion or financial-row mutation was used as deployment verification.
+- [ ] EDGE-AC8: production-safe password step-up is exercised and produces the expected recent interactive AMR/continuity behavior.
+- [ ] EDGE-AC9: production-safe supported OAuth/Google step-up is exercised and preserves expected-user continuity.
+- [ ] EDGE-AC10: stale/missing continuity paths fail closed/recover as designed in a provider-backed authenticated flow.
+- [ ] EDGE-AC11: post-acceptance Edge/Auth/API/Postgres logs show no new relevant error cluster.
 
 ### Financial/security constraints
 
-- No real financial-row mutation for ACL verification.
-- Preserve authenticated own-row SELECT and RLS.
-- Preserve trigger-owned audit writes.
-- Do not alter project-wide default privileges in this slice.
-- Do not deploy Edge under the ACL production approval.
-- Do not perform destructive real-user deletion for smoke verification.
+- Never delete a real user merely to prove the rollout.
+- Never alter balances or financial rows for smoke evidence.
+- Keep `verify_jwt=true`.
+- Recent-auth authority remains server-verifiable JWT AMR, not token issuance time or client state.
+- Only `password` and `oauth` AMR are accepted by the current MoneyFlow deletion policy.
+- Provider behavior requires provider evidence; source read-back alone does not prove password/Google behavior.
 
 ### Out of scope
 
-- Edge v5 replacement/recent-auth rollout.
-- Global Data API default-privilege cleanup.
-- Least-privilege review for unrelated shared Atoryn tables.
-- Archive/restore implementation.
-- Product/UI changes.
+- Full backup/restore implementation.
+- UI redesign/reopening P0–P11.
+- Project-wide auth/provider redesign.
+- Destructive production-account acceptance testing.
 
 ## Implementation plan
 
-### Completed ACL rollout
+### Completed Provider Sync rollout
 
-1. Merge the focused forward migration and pgTAP contract.
-2. Re-read production migration history, live ACL, RLS and session activity.
-3. Apply only the merged ACL SQL after explicit owner approval.
-4. Normalize the migration history to the exact repository timestamp only after guarded verification of the single successful provider-generated row.
-5. Re-read exact migration identity and every required effective table privilege.
-6. Inspect security advisor and Postgres/API logs.
-7. Persist provider truth in repository memory.
+1. Reconcile Git, Vercel and Supabase database/function truth.
+2. Apply and verify the reviewed ten-file historical migration set.
+3. Harden and verify the audit-table service-role ACL through the reviewed forward migration.
+4. Fresh-read current Edge source/helper and live v5 source/version.
+5. Obtain separate explicit owner approval for the Edge provider write.
+6. Deploy only current Git-owned `delete-account` source plus its shared recent-auth helper with `verify_jwt=true`.
+7. Read back the provider bundle and verify v6/source/inventory.
+8. Persist the provider truth without claiming unexecuted authenticated acceptance.
 
-### Next Edge checkpoint
+### Next Secure acceptance sequence
 
-A later explicit owner provider-write approval is required before deploying `supabase/functions/delete-account`.
-
-Before that write:
-
-1. fresh-read current `main` Edge source and production function source/version;
-2. verify DB cleanup inventory still matches current schema;
-3. confirm `verify_jwt=true` and recent-auth evaluator contract;
-4. define non-destructive provider smoke for stale/fresh password and supported OAuth/Google paths;
-5. identify rollback to the previous Edge version/source.
-
-After deployment:
-
-1. read back exact production function source/version;
-2. verify recent-auth and tenant-cleanup inventory are present;
-3. perform safe provider-backed step-up checks without deleting a real account;
-4. inspect Edge/Auth/API/Postgres logs;
-5. only then advance P1 Secure provider status.
+1. exercise a production-safe password reauthentication flow on the existing same account without confirming destructive deletion;
+2. exercise supported OAuth/Google step-up with expected-user continuity;
+3. verify stale/missing-continuity recovery paths remain fail-closed;
+4. inspect Edge/Auth/API/Postgres logs around those flows;
+5. reconcile `docs/plans/active/account-deletion-recent-auth.md`, this packet, parent MoneyFlow Trust and current memory;
+6. only then mark P1 Secure accepted and unlock P2 Recover specification/implementation.
 
 ### Rollback / forward-fix
 
-The ACL migration intentionally removes an unsafe direct mutation path. Re-granting broad `service_role` privileges would recreate the defect and is not the default rollback. If the current Edge implementation later proves it requires more than SELECT, stop and create a reviewed narrow forward fix from the observed requirement.
+Rolling production back to v5 would reintroduce a known recent-auth security gap and is therefore not the default rollback. If v6 shows a runtime regression, stop destructive use and create a reviewed narrow forward fix or explicitly owner-authorized rollback with the security regression recorded.
 
 ## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
-| ACL-T1 | reconcile repo/local/production ACL truth | repo + live ACL | complete |
-| ACL-T2 | focused official research | Supabase + PostgreSQL | complete |
-| ACL-T3 | merge focused migration/test | PR #328 | complete |
-| ACL-T4 | exact-head Class 3 verification | CI #2113 / CodeQL #1212 / Secret #1212 / 481 pgTAP | complete |
-| ACL-T5 | owner production approval | explicit `go` | complete |
-| ACL-T6 | apply exact ACL migration | Supabase migration endpoint | complete |
-| ACL-T7 | normalize exact migration identity | guarded single-row history update | complete |
-| ACL-T8 | production ACL/RLS read-back | exact history + effective privileges | complete |
-| ACL-T9 | initial provider logs/advisor inspection | provider evidence | complete |
-| ACL-T10 | persist production evidence | follow-up docs PR | in progress |
-| EDGE-T1 | prepare exact current Edge deployment checkpoint | repo + provider read | blocked by ACL-T10 repository handoff |
-| EDGE-T2 | owner Edge write decision | explicit owner approval | blocked by EDGE-T1 |
-| EDGE-T3 | deploy/read back current Edge + safe provider smoke | provider evidence | blocked by EDGE-T2 |
+| PS-T1 | reconcile provider baseline | #325 + live provider | complete |
+| PS-T2 | prove/apply ten-file historical migration set | CI #2070 + #326 + live history | complete |
+| PS-T3 | merge/apply audit ACL hardening | #328/#329 + live ACL/history | complete |
+| EDGE-T1 | fresh-read current Edge source and live v5 | Git + provider read-back | complete |
+| EDGE-T2 | owner approve Edge write | explicit `Gô` | complete |
+| EDGE-T3 | deploy current Edge with JWT verification | provider v6 | complete |
+| EDGE-T4 | read back exact current bundle/inventory | provider v6 files | complete |
+| EDGE-T5 | production-safe password/Google provider acceptance | authenticated provider evidence | todo |
+| EDGE-T6 | post-acceptance log inspection | Edge/Auth/API/Postgres logs | blocked by EDGE-T5 |
+| P1-T1 | recent-auth implementation + merge | #324 | complete |
+| P1-T2 | mark/archive Secure accepted | EDGE-T5/T6 | blocked |
+| P2-T1 | accept archive contract | P1 accepted | blocked |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open boundary | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-08 | CI/production | evaluator | `evaluating` | #327 live ACL finding | audit ACL + Edge v5 | specify ACL fix |
-| 2026-08-09 | evaluator | implementer | `implementing` | official research + live ACL | production writes forbidden | implement #328 |
-| 2026-08-09 | implementer | evaluator | `evaluating` | #328 + 481 pgTAP | exact-head review | prepare owner merge checkpoint |
-| 2026-08-09 | evaluator | human owner | `ready_for_review` | CI #2113 / CodeQL #1212 / Secret #1212 | merge decision | owner merge |
-| 2026-08-09 | human owner | production/evaluator | `evaluating` | #328 merged + explicit `go`; live ACL/history read-back | Edge v5 | persist evidence, then prepare separate Edge checkpoint |
+| 2026-08-08 | researcher | planner | `specified` | #325 provider drift | DB/Edge mismatch | execute Provider Sync |
+| 2026-08-08 | human owner | production/evaluator | `implementing` | ten-file `Go` | DB write | apply/verify migrations |
+| 2026-08-09 | human owner | production/evaluator | `evaluating` | #328/#329 + ACL `go` | Edge v5 | prepare Edge checkpoint |
+| 2026-08-09 | human owner | production/evaluator | `evaluating` | explicit `Gô`; v6 ACTIVE/read-back | provider-backed auth acceptance | exercise safe password/Google flows |
 
 ### Current permission boundary
 
-Allowed now: branch/PR documentation updates plus read-only GitHub/Vercel/Supabase inspection.
+Allowed now: branch/PR documentation updates and read-only GitHub/Vercel/Supabase inspection.
 
-Not authorized by the consumed ACL `go`: Edge deployment, provider configuration changes, real financial-data mutation, destructive account deletion or Phase 2 implementation.
+The Edge deployment authorization has been consumed. It did **not** authorize destructive account deletion, production financial-data mutation, provider config/secrets changes, or Phase 2 implementation.
 
 ## Evaluation
 
 ### Result
 
-The audit-table least-privilege mismatch is closed in production. `service_role` now has exactly the table permission MoneyFlow intended for cleanup verification: SELECT only. Repository migration identity and live provider history are aligned at `20260809010648`.
+The known Provider Sync source drift is closed: reviewed MoneyFlow database/schema/ACL state is live, and production `delete-account` is now **v6 ACTIVE with `verify_jwt=true`** and the current recent-auth/current-tenant source bundle.
 
-### Remaining Provider Sync boundary
+### Remaining boundary
 
-The database migration/schema/ACL side is aligned for this program. Production `delete-account` Edge v5 remains stale. Provider Sync therefore stays active in `evaluating` until a separately approved Edge rollout and safe provider-backed recent-auth verification are complete.
+P1 Secure is **not yet accepted**. Live password and supported OAuth/Google step-up/continuity behavior has not yet been exercised through a production-safe authenticated flow, and no destructive real-user test is required or permitted for that proof.
+
+### Remaining limitations
+
+- The earlier ten-file rollout did not capture an actual linked-production CLI dry-run; that consumed checkpoint retains its accepted limitation.
+- No provider-backed password/Google recent-auth acceptance has yet been captured for v6.
+- The immediate Edge log window had no runtime events and therefore cannot stand in for authenticated-flow evidence.
+- Complete backup/restore and physical/seven-day evidence remain future phases.
