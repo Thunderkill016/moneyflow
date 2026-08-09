@@ -1,12 +1,12 @@
 # Agent operating model
 
-**Status:** active engineering contract  
-**Last reviewed:** 2026-08-01  
+**Status:** active engineering contract
+**Last reviewed:** 2026-08-09
 **Owner:** `docs/engineering/AI_DELIVERY_WORKFLOW.md`
 
 ## Purpose
 
-This document converts the useful patterns from the owner-selected AI and operations repositories into MoneyFlow's actual delivery model. It is a contract for how agents work on the repository. It is not a runtime AI architecture for the personal-finance product.
+This document converts useful AI and operations patterns into MoneyFlow's actual delivery model. It is a contract for how agents work on the repository. It is not a runtime AI architecture for the personal-finance product.
 
 MoneyFlow does **not** install or embed Ruflo, CrewAI, Swarm, OpenHands, LangGraph or AutoGen. The repository keeps its existing Next.js/Supabase modular monolith and applies only the smallest patterns that improve correctness, isolation, review and recovery.
 
@@ -87,6 +87,49 @@ Roles are responsibility boundaries. One agent may perform more than one role se
 
 An evaluator must read the specification and the diff. Reviewing only the implementer's summary is not evaluation.
 
+## Single-agent operating mode
+
+MoneyFlow may use one primary AI to act as technical project manager, researcher, planner and implementer when that is cheaper or operationally simpler. This does **not** collapse the responsibility boundaries above.
+
+Rules:
+
+1. The same agent may move through researcher → planner → implementer → evaluator sequentially, but each transition must use repository artifacts rather than hidden chat memory.
+2. A self-review is useful as a defect-finding pass but is **not the sole acceptance signal for Class 2 or Class 3 work authored by that agent**.
+3. Before a Class 2/3 author-owned change reaches `ready_for_review`, obtain an independent evaluation signal that reads the specification, actual diff and relevant evidence. Acceptable signals include a separate human reviewer, an independent PR-review agent/model, or a deliberately fresh-context evaluator that is not allowed to rely on the author's summary.
+4. Class 3 still requires the human owner for merge/product-risk decisions and every provider/production write checkpoint required by policy.
+5. CI, CodeQL, database tests, browser evidence and provider read-back are independent machine evidence, but machine-green evidence does not replace semantic/product judgment.
+6. If no independent evaluator is available, the packet must remain `evaluating` and record that limitation; do not relabel self-review as independent acceptance.
+
+The goal is to let one strong agent do most of the work without letting correlated author blind spots become project truth.
+
+## Durable authority ownership
+
+Project memory is split by responsibility so the same status narrative is not copied into every document.
+
+| Artifact | Owns | Must not become |
+|---|---|---|
+| `AGENTS.md` | short procedural hot memory and routing | project encyclopedia or task log |
+| `docs/research/CURRENT_PROJECT_MEMORY.md` | current **merged/provider** product, architecture, security and operational truth | open-PR task diary or duplicated phase plan |
+| one active packet under `docs/plans/active/` | current task execution state, scope, permissions, risks, evidence gaps and next allowed action | full copy of global product/provider history |
+| `docs/research/pr-memory/YYYY/QN/PR-<n>.md` | bounded historical provenance for one PR | current authority or active backlog |
+| parent/program plan | phase ordering, gates and links to active packets | repeated provider logs or full child-packet narrative |
+
+When truth changes, update the narrowest owning artifact first. Current memory changes only when merged/provider truth materially changes. A child packet should link to global truth and record only the task-relevant delta.
+
+## Current decision gate and terse approvals
+
+Every full work packet exposes exactly one `## Current decision gate`.
+
+- `Next allowed action` names the single bounded action currently eligible.
+- `Approval token: Go` means the owner authorizes **that action only**.
+- The approval is consumed when that action is performed.
+- After the action, the packet must establish the next gate before another privileged action can occur.
+- `Go` never implicitly means “merge, deploy, mutate the provider and continue until done.”
+- An explicit owner command such as `merge`, `deploy Edge`, or `apply migration` authorizes only the named action and does not chain into later actions.
+- No packet edit can grant the agent permissions that still require human approval under the permission model.
+
+If multiple materially different actions are simultaneously described as “next”, the gate is ambiguous and must be corrected before `Go` is consumed.
+
 ## Handoff contract
 
 A handoff is valid only when the receiving role can continue without reconstructing hidden chat context.
@@ -122,11 +165,12 @@ Provider or production-data writes require an explicit human decision and rollba
 MoneyFlow uses repository artifacts as durable memory:
 
 - permanent constraints: `AGENTS.md`, product principles and architecture;
-- task state: active work packet;
+- current merged/provider truth: `docs/research/CURRENT_PROJECT_MEMORY.md`;
+- task state: one active work packet;
 - decisions: ADR/spec/research documents where needed;
 - implementation: branch and pull request;
 - evidence: tests, CI artifacts, screenshots and deployment records;
-- completed learning: completed packet and current source-of-truth updates.
+- completed learning: completed packet and bounded PR memory.
 
 Do not create a hidden vector-memory system or copy private conversation history into the repository. Sensitive financial content, credentials, tokens and provider secrets never belong in agent memory artifacts.
 
@@ -142,7 +186,9 @@ Stop implementation and return to the appropriate earlier state when:
 - tests are green but do not exercise the real owner/DOM/database path;
 - a migration or provider action lacks rollback;
 - the current branch/base no longer matches the reviewed plan;
-- external research is stale, secondary-only or materially conflicting.
+- external research is stale, secondary-only or materially conflicting;
+- a Class 2/3 author-owned change has no independent evaluation path;
+- the current decision gate contains more than one materially different next action.
 
 ## Runtime operations adoption decisions
 
@@ -186,8 +232,11 @@ This model succeeds only when it makes delivery clearer and safer:
 - fewer scope changes after implementation begins;
 - handoffs continue from artifacts rather than chat reconstruction;
 - permission boundaries prevent accidental production changes;
-- evaluation finds missing evidence before merge;
+- independent evaluation finds missing evidence before merge;
 - external tools are adopted only after a measured trigger;
+- document ownership reduces stale duplicated status;
+- small tasks stay lightweight while high-risk tasks remain strict;
+- terse owner approvals map to one bounded action;
 - the product remains simpler than the orchestration systems used to build it.
 
 More agents, more documents or more automation are not success metrics.
