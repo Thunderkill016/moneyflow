@@ -41,10 +41,159 @@ function normalize(sql: string): string {
   return sql.toLowerCase();
 }
 
-function stripSqlComments(sql: string): string {
-  return sql
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/--[^\r\n]*/g, " ");
+function blankChar(char: string): string {
+  return char === "\n" || char === "\r" ? char : " ";
+}
+
+/**
+ * Return only lexically executable SQL for the lightweight SECURITY DEFINER
+ * scan. PostgreSQL comments are removed, but comment-looking text inside string
+ * constants, quoted identifiers and dollar-quoted bodies is consumed as part of
+ * that literal rather than changing parser state. Block comments may nest.
+ *
+ * This is deliberately a narrow lexer, not a SQL parser. Its only job is to
+ * prevent prose/literal contents from creating or hiding SECURITY DEFINER
+ * tokens in the static scan.
+ */
+function executableSqlForStaticScan(sql: string): string {
+  let output = "";
+  let i = 0;
+  let state:
+    | "normal"
+    | "line_comment"
+    | "block_comment"
+    | "single_quote"
+    | "double_quote"
+    | "dollar_quote" = "normal";
+  let blockDepth = 0;
+  let dollarDelimiter = "";
+  let escapeString = false;
+
+  while (i < sql.length) {
+    const char = sql[i];
+    const next = sql[i + 1] ?? "";
+
+    if (state === "normal") {
+      if (char === "-" && next === "-") {
+        output += "  ";
+        i += 2;
+        state = "line_comment";
+        continue;
+      }
+      if (char === "/" && next === "*") {
+        output += "  ";
+        i += 2;
+        state = "block_comment";
+        blockDepth = 1;
+        continue;
+      }
+      if (char === "'") {
+        const prefix = sql[i - 1] ?? "";
+        const beforePrefix = sql[i - 2] ?? "";
+        escapeString =
+          (prefix === "e" || prefix === "E") &&
+          (i < 2 || !/[a-zA-Z0-9_$]/.test(beforePrefix));
+        output += " ";
+        i += 1;
+        state = "single_quote";
+        continue;
+      }
+      if (char === '"') {
+        output += " ";
+        i += 1;
+        state = "double_quote";
+        continue;
+      }
+      if (char === "$") {
+        const match = sql
+          .slice(i)
+          .match(/^(?:\$\$|\$[A-Za-z_][A-Za-z0-9_]*\$)/);
+        if (match) {
+          dollarDelimiter = match[0];
+          output += " ".repeat(dollarDelimiter.length);
+          i += dollarDelimiter.length;
+          state = "dollar_quote";
+          continue;
+        }
+      }
+
+      output += char;
+      i += 1;
+      continue;
+    }
+
+    if (state === "line_comment") {
+      output += blankChar(char);
+      i += 1;
+      if (char === "\n" || char === "\r") state = "normal";
+      continue;
+    }
+
+    if (state === "block_comment") {
+      if (char === "/" && next === "*") {
+        output += "  ";
+        i += 2;
+        blockDepth += 1;
+        continue;
+      }
+      if (char === "*" && next === "/") {
+        output += "  ";
+        i += 2;
+        blockDepth -= 1;
+        if (blockDepth === 0) state = "normal";
+        continue;
+      }
+      output += blankChar(char);
+      i += 1;
+      continue;
+    }
+
+    if (state === "single_quote") {
+      if (char === "'" && next === "'") {
+        output += "  ";
+        i += 2;
+        continue;
+      }
+      if (escapeString && char === "\\" && next) {
+        output += `${blankChar(char)}${blankChar(next)}`;
+        i += 2;
+        continue;
+      }
+      output += blankChar(char);
+      i += 1;
+      if (char === "'") {
+        state = "normal";
+        escapeString = false;
+      }
+      continue;
+    }
+
+    if (state === "double_quote") {
+      if (char === '"' && next === '"') {
+        output += "  ";
+        i += 2;
+        continue;
+      }
+      output += blankChar(char);
+      i += 1;
+      if (char === '"') state = "normal";
+      continue;
+    }
+
+    if (state === "dollar_quote") {
+      if (sql.startsWith(dollarDelimiter, i)) {
+        output += " ".repeat(dollarDelimiter.length);
+        i += dollarDelimiter.length;
+        state = "normal";
+        dollarDelimiter = "";
+        continue;
+      }
+      output += blankChar(char);
+      i += 1;
+    }
+  }
+
+  return output;
 }
 
 function publicTables(sqlLc: string): string[] {
@@ -74,25 +223,59 @@ function hasPolicyOn(sqlLc: string, table: string): boolean {
 }
 
 function securityDefinerWindows(sqlLc: string): string[] {
-  // Comments can describe SECURITY DEFINER helpers without declaring one. Strip
-  // them before the static scan so explanatory migration prose cannot become a
-  // false-positive RPC that appears to lack SET search_path.
-  const flat = stripSqlComments(sqlLc).replace(/\s+/g, " ");
+  const flat = executableSqlForStaticScan(sqlLc).replace(/\s+/g, " ");
   const parts = flat.split("security definer");
-  // Skip text before first executable match.
   return parts.slice(1).map((chunk) => chunk.slice(0, 160));
 }
 
 test("rls migrations: SECURITY DEFINER scanner ignores SQL comments", () => {
   const sql = normalize(`
     -- Financial writes remain SECURITY DEFINER owned.
-    /* Another SECURITY DEFINER explanation. */
+    /* outer SECURITY DEFINER comment
+       /* nested SECURITY DEFINER comment */
+    */
     create function public.real_rpc()
     returns void
     language plpgsql
     security definer
     set search_path = ''
     as $$ begin null; end; $$;
+  `);
+  const windows = securityDefinerWindows(sql);
+  assert.equal(windows.length, 1);
+  assert.ok(windows[0].includes("set search_path"));
+});
+
+test("rls migrations: comment markers inside SQL strings do not hide executable declarations", () => {
+  const sql = normalize(`
+    select '-- literal, not a comment';
+    select '/* literal, not a comment */';
+    select E'escaped quote: \\' -- still literal';
+    create function public.real_rpc()
+    returns void
+    language plpgsql
+    security definer
+    set search_path = ''
+    as $$ begin null; end; $$;
+  `);
+  const windows = securityDefinerWindows(sql);
+  assert.equal(windows.length, 1);
+  assert.ok(windows[0].includes("set search_path"));
+});
+
+test("rls migrations: dollar-quoted bodies cannot manufacture SECURITY DEFINER matches", () => {
+  const sql = normalize(`
+    create function public.real_rpc()
+    returns void
+    language plpgsql
+    security definer
+    set search_path = ''
+    as $function$
+    begin
+      perform '-- SECURITY DEFINER in body';
+      perform '/* SECURITY DEFINER in body */';
+    end;
+    $function$;
   `);
   const windows = securityDefinerWindows(sql);
   assert.equal(windows.length, 1);
