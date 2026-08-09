@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
@@ -127,4 +128,13 @@ test("Class 3 ready_for_review passes with independent review and AC evidence", 
     ),
     [],
   );
+});
+
+test("repository changed active packets satisfy the delivery contract", () => {
+  const output = execFileSync(
+    process.execPath,
+    [path.join(ROOT, "scripts/agent-delivery-contract.mjs")],
+    { cwd: ROOT, encoding: "utf8" },
+  );
+  assert.match(output, /Agent delivery contract passed/);
 });
