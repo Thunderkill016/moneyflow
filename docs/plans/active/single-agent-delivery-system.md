@@ -1,12 +1,12 @@
 # Single-agent AI delivery system
 
-**Status:** implementing
-**Execution state:** implementing
+**Status:** evaluating
+**Execution state:** evaluating
 **Risk class:** 3
-**Active role:** implementer
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** pending
+**Issue/PR:** #331
 **Last updated:** 2026-08-09
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
@@ -22,69 +22,49 @@ Make one primary AI effective as MoneyFlow's technical project manager + impleme
 - Risk policy: `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`
 - Historical candidates studied: PR #315 and PR #317; neither is current authority.
 
-## Control contract
-
-### State
-
-- `CURRENT_PROJECT_MEMORY.md` owns merged/provider truth.
-- This packet owns only this task's state, permissions, evidence gaps and next action.
-- PR memory will own bounded historical provenance after the PR exists.
-
-### Feedback
-
-- Expected failure: delivery-contract tests reject ambiguous/missing gates, broken AC coverage or missing Class 2/3 independent evidence.
-- Deterministic success: focused tests + `npm run test:ci-policy` + protected exact-head checks.
-- Semantic success: a new session can continue from repo artifacts and `Go` cannot silently chain merge/deploy/provider writes.
-
-### Removal impact
-
-Removing the change restores author/self-review correlation, duplicated-state ambiguity and unscoped terse approvals. Rollback is one Git revert; no runtime/provider/data migration exists.
-
-### Action safety
-
-Branch-only policy/tooling work. No `main`, provider, production, user-data, branch-rule or secret write is authorized.
-
 ## Current decision gate
 
-- Gate ID: G1
-- Next allowed action: complete the bounded policy/tooling implementation, independently evaluate the actual diff, and open one focused PR for owner review
+- Gate ID: G2
+- Next allowed action: obtain one independent fresh-context semantic review of PR #331 against this packet, the actual diff and exact-head evidence, then address any findings without merging
 - Approval token: `Go`
 - Consumes approval: yes
-- After action: return to `evaluating`; establish a new gate before any merge, provider or deployment action
+- After action: remain `evaluating` until review findings are resolved and a final exact-head run supports a separate owner merge gate
 
 ## Repository reconnaissance
 
 ### Current behavior
 
-- MoneyFlow already has a state machine, role boundaries, permission scopes, repo-backed memory and risk-selected CI.
-- `AGENT_OPERATING_MODEL.md` already permits one agent to perform multiple roles sequentially.
-- Recent PRs proved independent review still catches author-blind contract errors after self-review.
-- Current truth is repeated across current memory, parent/child packets and PR memories more than necessary.
-- PR #315 prototypes task bootstrap/control contracts; PR #317 prototypes AC→task→evidence. They are stale relative to current MoneyFlow Trust and should not be merged wholesale.
+- MoneyFlow already had a deterministic lifecycle, role boundaries, permission scopes, repository-backed memory and risk-selected CI.
+- `AGENT_OPERATING_MODEL.md` already allowed one agent to perform multiple roles sequentially, but did not make author/self-review correlation explicit enough for the user's one-AI operating mode.
+- Project truth was repeated across current memory, parent plans, active packets and PR memories more than necessary.
+- Recent PRs showed independent review catching author-blind wording/handoff defects after self-review.
+- PR #315 and #317 contain useful control-contract and AC→task→evidence ideas but are stale against current MoneyFlow Trust and are not being merged wholesale.
 
 ### Relevant repository areas
 
 | Area | Why it matters | Decision |
 |---|---|---|
-| `AGENTS.md` | hot-memory router | keep concise, point to durable rules |
-| `docs/engineering/AGENT_OPERATING_MODEL.md` | roles/state/permissions | add single-agent and authority rules |
-| `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` | process budget | align planning + independent review by class |
-| `docs/templates/FEATURE_WORK_PACKET.md` | full-packet contract | add risk, gate and traceability surfaces |
-| `scripts/agent-delivery-contract.mjs` | deterministic structure gate | small Node stdlib checker only |
-| `package.json` | CI policy entrypoint | register focused checker/tests |
+| `AGENTS.md` | hot-memory router | keep below the existing line budget and point to durable rules |
+| `docs/engineering/AGENT_OPERATING_MODEL.md` | roles/state/permissions | add single-agent mode, authority ownership and scoped approvals |
+| `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` | planning/review cost | make ceremony and independent review proportional to Class 0–3 risk |
+| `docs/templates/FEATURE_WORK_PACKET.md` | full-packet contract | add risk, one decision gate, AC/task/evidence and evaluator fields |
+| `scripts/agent-delivery-contract.mjs` | deterministic structure gate | Node standard library only; structure, not semantic judgment |
+| `src/lib/rls-migrations.test.ts` | existing static security scanner | remove a proven SQL-comment false positive exposed by full verification |
 
 ### Existing tests and constraints
 
-- `npm run test:ci-policy` is the existing deterministic delivery-policy surface.
-- Protected CodeQL/secret history remain separate evidence.
-- No new service, dependency, runtime agent framework or hidden memory layer.
+- `npm run test:ci-policy` is the existing delivery-policy test surface.
+- Protected CodeQL and secret-history checks remain independent machine evidence.
+- No new service, dependency, runtime agent framework, provider or hidden memory layer is introduced.
+- Owner merge/provider/production-write authority remains unchanged.
 
 ### Open questions
 
-- [x] Can one AI manage + implement? Yes, with role transitions and independent Class 2/3 evaluation.
+- [x] Can one primary AI manage + implement? Yes, with explicit role transitions and independent Class 2/3 evaluation.
 - [x] Should `Go` mean finish everything? No; one current gate only.
 - [x] Should Class 0/1 inherit Class 3 ceremony? No.
-- [x] Merge #315/#317 unchanged? No; port only proven concepts onto current main.
+- [x] Merge #315/#317 unchanged? No; port only useful concepts onto current main.
+- [ ] Independent semantic review of the final #331 diff is still missing because the configured Codex review bot hit its usage limit.
 
 ## Research
 
@@ -96,28 +76,28 @@ Decision question: how should one primary coding AI retain autonomy while reposi
 
 | Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
 |---|---|---|---|---|
-| OpenAI — Harness engineering | first-party engineering practice | 2026-08-09 | short `AGENTS.md` as map; structured repo docs as system of record; mechanically checkable knowledge | not MoneyFlow product authority |
-| OpenAI — How OpenAI uses Codex | first-party workflow guidance | 2026-08-09 | issue-like tasks, persistent repo instructions, lightweight backlog | not MoneyFlow risk policy |
+| OpenAI — Harness engineering | first-party engineering practice | 2026-08-09 | short `AGENTS.md` as a map, structured repository docs as system of record, mechanically checkable knowledge | not MoneyFlow product authority |
+| OpenAI — How OpenAI uses Codex | first-party workflow guidance | 2026-08-09 | issue-like tasks, persistent repo instructions, lightweight task routing | not MoneyFlow risk policy |
 | GitHub Docs — pull-request reviews/protected branches | first-party platform docs | 2026-08-09 | review/conversation resolution is separable from author work | live repo rules still control |
-| GitHub Docs — status checks | first-party platform docs | 2026-08-09 | machine evidence attaches to current commits/checks | green checks do not prove semantics |
+| GitHub Docs — status checks | first-party platform docs | 2026-08-09 | machine evidence attaches to a concrete commit/check state | green checks do not prove semantics |
 
 ### Alternatives considered
 
 | Option | Advantages | Risks | Decision |
 |---|---|---|---|
-| agent swarm/orchestrator | explicit roles | cost/context/process overhead | reject |
-| one AI self-accepts | cheapest | correlated blind spots | reject |
-| duplicate status everywhere | local convenience | stale contradictions | reject |
-| repo-native single-agent + independent evidence | cheap, resumable, auditable | requires disciplined gates | select |
-| merge #315/#317 unchanged | existing candidate code | stale/bundled process | reject |
+| agent swarm/orchestrator | explicit roles | extra cost, context duplication, maintenance | reject |
+| one AI authors and self-accepts | cheapest | correlated blind spots | reject |
+| duplicate status narratives everywhere | local convenience | stale contradictions and review churn | reject |
+| repo-native single-agent mode + independent evidence | low cost, resumable, auditable | requires disciplined gates | select |
+| merge #315/#317 unchanged | candidate implementation exists | stale baseline and too much bundled process | reject |
 
 ### Research decision
 
-One primary AI may research/plan/implement and self-review, but Class 2/3 acceptance needs an independent semantic signal. Repo artifacts, not chat, are durable state. Current product truth, task truth and historical provenance have separate owners. Generic `Go` consumes one packet gate.
+One primary AI may research, plan, implement and self-review, but Class 2/3 author-owned work needs an independent semantic signal before `ready_for_review`. Repository artifacts, not chat, are durable state. Current product/provider truth, active task truth and historical PR provenance have separate owners. Generic `Go` consumes one packet gate.
 
 ### Adoption review
 
-No external dependency/service/framework is adopted. New code is Node standard-library CI tooling only; zero shipped runtime/provider cost and Git-revert rollback.
+No external dependency/service/framework is adopted. New executable code is Node standard-library CI tooling only, with zero shipped runtime/provider cost and Git-revert rollback.
 
 ## Specification
 
@@ -129,8 +109,8 @@ The current workflow is safe but can waste time through duplicated status update
 
 - As owner, `Go` maps to one visible action.
 - As primary AI, I can manage + implement without chat-only memory.
-- As evaluator, I inspect spec + actual diff + evidence rather than the author summary.
-- As a new session, I can locate global truth, active task truth and PR history without loading everything.
+- As evaluator, I inspect specification + actual diff + evidence rather than an author summary.
+- As a future session, I can locate global truth, active task truth and PR history without loading everything.
 
 ### Acceptance criteria
 
@@ -144,55 +124,58 @@ The current workflow is safe but can waste time through duplicated status update
 
 ### Required states
 
-Not applicable to product UI. Delivery failure state is fail-closed CI-policy output with exact field/task/criterion errors.
+No product UI state changes. Delivery failures are fail-closed CI-policy errors with the exact malformed gate/task/criterion, while semantic acceptance remains reviewer/human responsibility.
 
 ### Financial and security constraints
 
-No financial/RLS/Auth/provider behavior changes. A packet cannot grant itself owner-only permissions.
+No financial/RLS/Auth/provider behavior changes. A packet edit cannot grant itself owner-only merge/provider/production permissions.
 
 ### Out of scope
 
-Runtime AI, swarms, automatic merge/deploy/provider writes, global product prioritization, and historical packet rewrites.
+Runtime AI, agent swarms, automatic merge/deploy/provider writes, automatic product prioritization, and historical packet rewrites.
 
 ## Implementation plan
 
 ### Architecture fit
 
-Extend existing `AGENTS.md`, operating-model, risk-policy, packet-template and CI-policy ownership. Do not introduce a new management service or runtime layer.
+Extend existing `AGENTS.md`, operating-model, risk-policy, work-packet template and CI-policy ownership. Do not add a second orchestration or memory service.
 
 ### Planned changes
 
 | File/area | Change | Reason |
 |---|---|---|
-| `AGENTS.md` | route single-agent/gate/memory rules | fresh sessions need hot guidance |
-| `docs/engineering/AGENT_OPERATING_MODEL.md` | role independence + authority ownership + `Go` semantics | core contract |
-| `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` | process/review budget by class | reduce ceremony safely |
-| `docs/templates/FEATURE_WORK_PACKET.md` | risk/gate/AC/task/evaluator fields | canonical task state |
-| `scripts/agent-delivery-contract.mjs` + test | structural fail-closed validation | machine-verifiable contract |
-| `package.json` | add checker/test to existing CI policy | no new workflow topology |
+| `AGENTS.md` | route single-agent/gate/memory rules within hot-memory budget | fresh sessions need concise entry guidance |
+| `docs/engineering/AGENT_OPERATING_MODEL.md` | single-agent mode + authority ownership + `Go` semantics | core responsibility contract |
+| `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` | planning/evaluation budget by class | reduce ceremony without weakening Class 2/3 review |
+| `docs/templates/FEATURE_WORK_PACKET.md` | risk/gate/AC/task/evaluator fields | canonical full-task state |
+| `scripts/agent-delivery-contract.mjs` + test | structural fail-closed validation | machine-verifiable routing/evidence contract |
+| `package.json` | register checker/tests in existing CI policy | no new workflow topology |
+| `src/lib/rls-migrations.test.ts` | strip SQL comments before SECURITY DEFINER static scan | remove proven comment-only false positive |
 
 ### Data and migration impact
 
-None. Historical/completed packets are grandfathered; checker targets the canonical template and changed active packets.
+None. Historical/completed packets are grandfathered; the checker validates the canonical template and active packets changed by the current diff.
 
 ### Risks and counterexamples
 
 | Risk/counterexample | Prevention or test |
 |---|---|
-| self-review relabeled independent | Class 2/3 readiness fields + policy |
-| `Go` chains merge→deploy | one gate, consumed approval |
+| self-review relabeled independent | Class 2/3 readiness fields + operating policy |
+| `Go` chains merge → deploy → provider write | exactly one consumed decision gate |
 | stale duplicated truth | artifact authority table |
-| tiny task gets full packet | explicit Class 0/1 budget |
-| checker becomes semantic judge | structure only; reviewer/human owns meaning |
+| tiny task gets a full packet | explicit Class 0/1 process budget |
+| structural checker becomes semantic AI judge | checker validates shape only; independent reviewer/human owns meaning |
+| comments mentioning SECURITY DEFINER break static test | SQL comments stripped before executable scan + regression fixture |
 
 ### Verification plan
 
-- `node --check scripts/agent-delivery-contract.mjs`
-- focused Node tests
+- `npm run check:knowledge`
 - `npm run check:agent-delivery`
 - `npm run test:ci-policy`
-- exact-head CI/CodeQL/secret history
-- independent PR review of actual diff
+- lint + typecheck + unit/static RLS + production build selected by Class 3 CI
+- browser smoke selected by the current CI classifier
+- exact-head CodeQL + secret-history
+- independent semantic PR review before a merge gate
 
 ## Tasks
 
@@ -201,63 +184,67 @@ None. Historical/completed packets are grandfathered; checker targets the canoni
 | T1 | reconcile current policy and #315/#317 | AC7 | none | current-main docs + PR evidence | done |
 | T2 | focused first-party research | AC1, AC2, AC3 | T1 | OpenAI + GitHub docs | done |
 | T3 | update policy/template authority model | AC1, AC2, AC3, AC4 | T2 | changed policy/template diff | done |
-| T4 | implement structural checker and fixtures | AC4, AC5, AC6 | T3 | checker + focused Node tests | in_progress |
-| T5 | independent review + exact-head gates | AC1, AC2, AC3, AC4, AC5, AC6, AC7 | T4 | PR review + CI/CodeQL/secret history | todo |
+| T4 | implement structural checker, fixtures and false-positive regression | AC4, AC5, AC6 | T3 | #2132 policy/unit/static/build/browser evidence | done |
+| T5 | obtain independent semantic review and resolve findings | AC1, AC2, AC3, AC4, AC5, AC6, AC7 | T4 | independent review artifact + final exact-head rerun | blocked |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-09 | researcher | planner | specified | repo policy + #315/#317 + first-party sources | exact contract not implemented | select smallest current-main design |
-| 2026-08-09 | planner | implementer | planned | this packet + AC/task plan | tests not run | implement + test bounded diff |
+| 2026-08-09 | planner | implementer | planned | this packet + AC/task plan | implementation unverified | implement bounded diff |
+| 2026-08-09 | implementer | evaluator | evaluating | PR #331 head `4090b07e...`; CI #2132 / CodeQL #1228 / Secret #1228 green; 41/41 policy tests | Codex independent review unavailable due usage limit | obtain fresh-context independent review; no merge |
 
 ### Current permission boundary
 
-- Granted scope: branch_write on `agent/single-agent-delivery-system`.
-- Exact repository: `Thunderkill016/moneyflow`.
+- Granted scope: branch writes on `agent/single-agent-delivery-system` and read-only GitHub/web evidence.
 - Forbidden writes: `main`, provider/production, branch protection/rulesets, secrets, financial/user data.
 - Human approval required before: merge and any provider/production action.
-- Stop condition: new service/framework, weakened owner authority, broad historical rewrite or inability to validate deterministically.
+- Stop condition: do not move to `ready_for_review` without an independent semantic evaluation artifact.
 
 ## Evaluation
 
 ### Independent evaluation
 
-- Evaluator: pending independent PR review
-- Implementer overlap: none preferred; fresh-context evaluator acceptable under policy
-- Inputs reviewed: pending specification + actual diff + exact evidence
+- Evaluator: blocked — configured Codex PR reviewer reported usage limit exhausted; a fresh-context independent reviewer is still required
+- Implementer overlap: none preferred; same primary AI may not relabel this conversation's self-review as independent
+- Inputs reviewed: pending — must include this specification, actual PR #331 diff and exact-head evidence
 - Author summary treated as authority: no
 
 ### Acceptance evidence
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| AC1 | policy diff | pending |
-| AC2 | authority-ownership diff | pending |
-| AC3 | risk-policy diff | pending |
-| AC4 | template + checker | pending |
-| AC5 | focused + CI-policy tests | pending |
-| AC6 | changed-file review/classifier | pending |
-| AC7 | PR history comparison | pending |
+| AC1 | operating-model single-agent + independent-evaluation rules | provisional pass; independent review pending |
+| AC2 | durable authority ownership table + AGENTS routing | provisional pass; independent review pending |
+| AC3 | risk-proportional Class 0–3 planning/evaluation budget | provisional pass; independent review pending |
+| AC4 | canonical template + checker fixtures | pass |
+| AC5 | CI #2132: `test:ci-policy` 41/41 pass, including 10 agent-delivery tests | pass |
+| AC6 | PR file set/classification; no app migration/provider code; DB gate not applicable | pass |
+| AC7 | packet/PR memory explicitly preserve #315/#317 as historical candidate sources | provisional pass; independent review pending |
 
 ### Research and adoption evidence
 
-Selected first-party sources support repo-native context, issue-like tasks, independent review/checks and current-head machine evidence; no external architecture was adopted.
+Selected first-party sources support repo-native context, issue-like tasks, independent review/checks and current-commit machine evidence. No external architecture or paid reviewer was adopted.
 
 ### Review findings
 
-Pending implementation completion and independent review.
+- Implementation self-evaluation found and fixed a terminal-section parser bug in the new checker.
+- Full CI exposed an unrelated existing static-RLS false positive caused by a migration comment containing `SECURITY DEFINER`; the scanner now strips SQL comments and has a regression fixture instead of editing production history.
+- The configured Codex PR reviewer could not provide semantic review because its usage limit is exhausted. This is an explicit blocker, not a pass.
 
 ### Remaining limitations
 
-Structural checks cannot prove product judgment or semantic correctness; that is intentionally left to independent evaluation and the human owner.
+Structural checks cannot prove product/process judgment. A fresh-context independent semantic review is still required before owner merge consideration.
 
 ## Delivery record
 
 - Branch: `agent/single-agent-delivery-system`
-- PR: pending
-- Squash commit: pending owner decision
-- CI run: pending
+- PR: #331
+- Current exact source head: `4090b07e1f9a8dbee109a83ede4d576d9cf1c708` before this evidence update
+- CI: #2132 success on that source head; policy suite 41/41; static/build/unit/browser success; DB checks not applicable
+- CodeQL: #1228 success
+- Secret history: #1228 success
 - Production deployment: not applicable
 - Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: pending acceptance
+- Merge: forbidden until independent review + final exact-head evidence + owner decision
