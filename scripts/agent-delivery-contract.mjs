@@ -14,6 +14,15 @@ const STATES_REQUIRING_FINAL_EVIDENCE = new Set([
   "deployed",
   "accepted",
 ]);
+const PLANNED_OR_LATER = new Set([
+  "planned",
+  "implementing",
+  "evaluating",
+  "ready_for_review",
+  "merged",
+  "deployed",
+  "accepted",
+]);
 
 function stripTicks(value) {
   const trimmed = value.trim();
@@ -32,22 +41,31 @@ function isPlaceholder(value) {
   );
 }
 
+function headingSections(markdown, level, heading) {
+  const lines = markdown.split("\n");
+  const marker = `${"#".repeat(level)} ${heading}`;
+  const stop = new RegExp(`^#{1,${level}}\\s+`);
+  const sections = [];
+
+  for (let i = 0; i < lines.length; i += 1) {
+    if (lines[i].trim() !== marker) continue;
+    const body = [];
+    for (let j = i + 1; j < lines.length; j += 1) {
+      if (stop.test(lines[j])) break;
+      body.push(lines[j]);
+    }
+    sections.push(body.join("\n"));
+  }
+
+  return sections;
+}
+
 function extractSection(markdown, heading) {
-  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const matches = [
-    ...markdown.matchAll(
-      new RegExp(`^## ${escaped}\\s*$([\\s\\S]*?)(?=^## |\\Z)`, "gm"),
-    ),
-  ];
-  return matches.map((match) => match[1]);
+  return headingSections(markdown, 2, heading);
 }
 
 function extractSubsection(markdown, heading) {
-  const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = markdown.match(
-    new RegExp(`^### ${escaped}\\s*$([\\s\\S]*?)(?=^### |^## |\\Z)`, "m"),
-  );
-  return match?.[1] ?? null;
+  return headingSections(markdown, 3, heading)[0] ?? null;
 }
 
 function extractMetadata(markdown, label) {
@@ -216,14 +234,14 @@ export function validatePacket(markdown, file = "packet") {
   if (duplicates.length > 0) {
     errors.push(`${file}: duplicate acceptance criteria: ${duplicates.join(", ")}`);
   }
-  if (["planned", "implementing", "evaluating", "ready_for_review", "merged", "deployed", "accepted"].includes(state) && acIds.length === 0) {
+  if (PLANNED_OR_LATER.has(state) && acIds.length === 0) {
     errors.push(`${file}: planned-or-later packet must define stable AC IDs`);
   }
 
   const known = new Set(acIds);
   const covered = new Set();
   const tasks = taskRows(markdown);
-  if (["planned", "implementing", "evaluating", "ready_for_review", "merged", "deployed", "accepted"].includes(state) && tasks.length === 0) {
+  if (PLANNED_OR_LATER.has(state) && tasks.length === 0) {
     errors.push(`${file}: planned-or-later packet must define task rows`);
   }
   for (const task of tasks) {
