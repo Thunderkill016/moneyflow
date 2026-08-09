@@ -3,6 +3,8 @@
 **Status:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted
 **Execution state:** discovery | specified | planned | implementing | evaluating | ready_for_review | merged | deployed | accepted
 **Risk class:** 0 | 1 | 2 | 3
+**Workstream:** <stable workstream identifier>
+**Packet role:** execution
 **Active role:** human_owner | researcher | planner | implementer | evaluator | ci_or_production
 **Permission scope:** read_only | branch_write | provider_read | provider_write_approved | production_data_write_approved
 **Owner:** <human or agent>
@@ -28,15 +30,17 @@ Record only the task-relevant delta below. Do not turn the packet into a second 
 
 ## Current decision gate
 
-This is the **only** generic `Go` target for the packet. `Go` authorizes the one action below and is consumed when that action is performed. Afterward, establish the next gate before another privileged action.
+This is the **only** generic `Go` target for an execution packet. `Go` is valid only after the workstream/execution packet is uniquely resolved, authorizes the one action below and is consumed when that action is performed. Afterward, establish the next gate before another gated action.
 
 - Gate ID: G1
-- Next allowed action: <one bounded action>
+- Gate task: T1
+- Action kind: <research | review | implement | verify | merge | deploy | provider_write | production_data_write | decision>
+- Next allowed action: <one bounded action; no chained second step>
 - Approval token: `Go`
 - Consumes approval: yes
 - After action: <state/role to return to and what must be recorded before another action>
 
-Explicit owner commands such as `merge`, `deploy Edge`, or `apply migration` authorize only the named action. They do not chain into later provider/deployment actions.
+Do not write “review then fix”, “merge → deploy”, or similar compound instructions. Supporting packets carry no `## Current decision gate`. Explicit owner commands such as `merge`, `deploy Edge`, or `apply migration` authorize only the named action. They do not chain into later provider/deployment actions.
 
 ## Repository reconnaissance
 
@@ -223,12 +227,14 @@ Add one entry whenever responsibility changes or the task moves to another execu
 
 Required before `ready_for_review` for Class 2/3 author-owned changes.
 
-- Evaluator: <human / independent PR reviewer / fresh-context evaluator / not required for Class 0/1>
-- Implementer overlap: <none | same primary agent with fresh-context restriction | not applicable>
+- Implementer: <implementation author/session identity>
+- Evaluator: <human / independent PR reviewer / fresh-context review session identity>
+- Implementer overlap: none
+- Review artifact: <PR review/comment/file that records the independent findings/verdict>
 - Inputs reviewed: <specification/plan + actual diff + exact evidence>
 - Author summary treated as authority: no
 
-A self-review may be recorded separately, but must not be relabeled as the sole independent Class 2/3 acceptance signal.
+For Class 2/3, `Evaluator` must differ from `Implementer`, overlap must be exactly `none`, and a concrete review artifact must exist. A self-review may be recorded separately but cannot satisfy this block.
 
 ### Acceptance evidence
 
