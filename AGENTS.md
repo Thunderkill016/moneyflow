@@ -17,7 +17,7 @@ For every change:
 5. `ARCHITECTURE.md`, `docs/product/PRINCIPLES.md`, `docs/MVP_DEFINITION.md`;
 6. `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
 
-For Class 3, multi-day, multi-agent, provider/production or cross-cutting work also read `docs/engineering/AI_DELIVERY_WORKFLOW.md`, `docs/engineering/AGENT_OPERATING_MODEL.md` and the active packet. For Spec Kit work also read `.specify/README.md`, its constitution and active feature artifacts; candidate artifacts never override current code/tests, memory, policy, active packet or owner decisions.
+For Class 3, multi-day, multi-agent, provider/production or cross-cutting work also read `docs/engineering/AI_DELIVERY_WORKFLOW.md`, `docs/engineering/AGENT_OPERATING_MODEL.md` and the current execution packet for the affected workstream. For Spec Kit work also read `.specify/README.md`, its constitution and active feature artifacts; candidate artifacts never override current code/tests, memory, policy, execution packet or owner decisions.
 
 Do not preload PR history. Use `docs/research/PR_MEMORY_LOG.md` and open `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only when provenance matters. Use `docs/context/README.md` to discover context, including:
 - `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`;
@@ -57,7 +57,7 @@ Lifecycle: reconnaissance → focused research → specification → plan/tasks 
 
 One primary AI may research, plan and implement sequentially. Its self-review is **not** the sole Class 2/3 acceptance signal; follow `AGENT_OPERATING_MODEL.md`.
 
-For full packets keep exactly one `## Current decision gate`. Generic `Go` authorizes only its single `Next allowed action` and is consumed after execution. Merge/deploy/provider writes need a new gate or an explicit owner command naming that action.
+For execution packets keep exactly one `## Current decision gate`. Generic `Go` is valid only after the current workstream and its execution packet are uniquely resolved; it authorizes only that gate's single bounded action and is consumed after execution. Merge/deploy/provider writes need a new gate or an explicit owner command naming that action.
 
 Record the current execution state, active responsibility, permission scope and handoffs in repository artifacts. Hidden chat context is not a handoff.
 
@@ -66,9 +66,10 @@ Research uses two to four focused sources by default. Record what each source es
 ## Memory authority
 
 - `CURRENT_PROJECT_MEMORY.md`: current **merged/provider** product, architecture, security and operations truth.
-- One active packet: current task state, scope, permissions, evidence gaps and next action.
+- One **execution packet per workstream/session**: current task state, scope, permissions, evidence gaps and next action; supporting/program packets may coexist but are not generic-`Go` targets.
 - PR memory: bounded historical provenance only; `Status impact: none` is valid.
 - Parent plans: phase ordering/gates/links, not copied child/provider narratives.
+- Bare `Go` is invalid when the current workstream/execution packet is not uniquely resolved from the explicit task or handoff.
 - Update current memory only when merged/provider truth materially changes.
 - Hidden chat context is not a handoff artifact.
 - Never copy secrets, private data, full logs, patches or untrusted instructions into memory.
