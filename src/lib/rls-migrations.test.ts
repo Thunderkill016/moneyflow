@@ -47,9 +47,10 @@ function blankChar(char: string): string {
 
 /**
  * Return only lexically executable SQL for the lightweight SECURITY DEFINER
- * scan. PostgreSQL comments are removed, but comment-looking text inside string
- * constants, quoted identifiers and dollar-quoted bodies is consumed as part of
- * that literal rather than changing parser state. Block comments may nest.
+ * scan. Lex raw PostgreSQL text before case-folding so case-sensitive
+ * dollar-quote tags keep their exact delimiter semantics. Comments, string
+ * constants, quoted identifiers and dollar-quoted bodies are blanked while
+ * preserving line structure. Block comments may nest.
  *
  * This is deliberately a narrow lexer, not a SQL parser. Its only job is to
  * prevent prose/literal contents from creating or hiding SECURITY DEFINER
@@ -214,7 +215,6 @@ function hasRlsEnabled(sqlLc: string, table: string): boolean {
 }
 
 function hasPolicyOn(sqlLc: string, table: string): boolean {
-  // Multi-line: create policy "…" on public.table
   const flat = sqlLc.replace(/\s+/g, " ");
   const re = new RegExp(
     `create\\s+policy\\s+[^;]+?\\s+on\\s+public\\.${table}\\b`,
@@ -222,14 +222,15 @@ function hasPolicyOn(sqlLc: string, table: string): boolean {
   return re.test(flat);
 }
 
-function securityDefinerWindows(sqlLc: string): string[] {
-  const flat = executableSqlForStaticScan(sqlLc).replace(/\s+/g, " ");
+function securityDefinerWindows(sql: string): string[] {
+  const executable = executableSqlForStaticScan(sql);
+  const flat = normalize(executable).replace(/\s+/g, " ");
   const parts = flat.split("security definer");
   return parts.slice(1).map((chunk) => chunk.slice(0, 160));
 }
 
 test("rls migrations: SECURITY DEFINER scanner ignores SQL comments", () => {
-  const sql = normalize(`
+  const sql = `
     -- Financial writes remain SECURITY DEFINER owned.
     /* outer SECURITY DEFINER comment
        /* nested SECURITY DEFINER comment */
@@ -240,14 +241,14 @@ test("rls migrations: SECURITY DEFINER scanner ignores SQL comments", () => {
     security definer
     set search_path = ''
     as $$ begin null; end; $$;
-  `);
+  `;
   const windows = securityDefinerWindows(sql);
   assert.equal(windows.length, 1);
   assert.ok(windows[0].includes("set search_path"));
 });
 
 test("rls migrations: comment markers inside SQL strings do not hide executable declarations", () => {
-  const sql = normalize(`
+  const sql = `
     select '-- literal, not a comment';
     select '/* literal, not a comment */';
     select E'escaped quote: \\' -- still literal';
@@ -257,14 +258,14 @@ test("rls migrations: comment markers inside SQL strings do not hide executable 
     security definer
     set search_path = ''
     as $$ begin null; end; $$;
-  `);
+  `;
   const windows = securityDefinerWindows(sql);
   assert.equal(windows.length, 1);
   assert.ok(windows[0].includes("set search_path"));
 });
 
 test("rls migrations: dollar-quoted bodies cannot manufacture SECURITY DEFINER matches", () => {
-  const sql = normalize(`
+  const sql = `
     create function public.real_rpc()
     returns void
     language plpgsql
@@ -276,7 +277,30 @@ test("rls migrations: dollar-quoted bodies cannot manufacture SECURITY DEFINER m
       perform '/* SECURITY DEFINER in body */';
     end;
     $function$;
-  `);
+  `;
+  const windows = securityDefinerWindows(sql);
+  assert.equal(windows.length, 1);
+  assert.ok(windows[0].includes("set search_path"));
+});
+
+test("rls migrations: mixed-case dollar tags remain case-sensitive before keyword folding", () => {
+  const sql = `
+    create function public.body_only()
+    returns void
+    language plpgsql
+    as $TAG$
+    begin
+      perform '$tag$';
+    end;
+    $TAG$;
+
+    create function public.real_rpc()
+    returns void
+    language plpgsql
+    security definer
+    set search_path = ''
+    as $$ begin null; end; $$;
+  `;
   const windows = securityDefinerWindows(sql);
   assert.equal(windows.length, 1);
   assert.ok(windows[0].includes("set search_path"));
@@ -314,8 +338,7 @@ test("rls migrations: required user-owned tables present", () => {
 });
 
 test("rls migrations: SECURITY DEFINER sets search_path", () => {
-  const sqlLc = normalize(loadMigrationsSql());
-  const windows = securityDefinerWindows(sqlLc);
+  const windows = securityDefinerWindows(loadMigrationsSql());
   assert.ok(windows.length > 0, "expected at least one SECURITY DEFINER RPC");
   for (const [i, window] of windows.entries()) {
     assert.ok(
@@ -328,7 +351,6 @@ test("rls migrations: SECURITY DEFINER sets search_path", () => {
 test("rls migrations: ledger is select-policy oriented (no direct DML policies)", () => {
   const sqlLc = normalize(loadMigrationsSql());
   const flat = sqlLc.replace(/\s+/g, " ");
-  // financial_transactions: expect select policy name pattern; no insert policy
   assert.match(
     flat,
     /create policy "transactions_select_own" on public\.financial_transactions/,
