@@ -2,6 +2,9 @@
 
 **Status:** active
 **Execution state:** evaluating
+**Risk class:** 3
+**Workstream:** moneyflow-trust-secure
+**Packet role:** supporting
 **Active role:** evaluator
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
@@ -11,6 +14,7 @@
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
 **Parent:** `docs/plans/active/public-beta-trust.md`
+**Current execution packet:** `docs/plans/active/moneyflow-trust-secure-acceptance.md`
 **Current main audited:** `cfbff67171421d5f2ee70460b5e81edc59e8a6b1`
 **Supabase project:** MoneyFlow / `fwpldsdkpzhswpuctbke`
 
@@ -21,6 +25,8 @@ Align the production Supabase database and destructive Edge runtime with the rev
 The reviewed database migration/schema/ACL drift is closed. On 2026-08-09 the owner explicitly approved the separate Edge provider-write checkpoint with `Gô`; production `delete-account` was deployed from current `main` and read back as **v6 ACTIVE with `verify_jwt=true`**.
 
 Provider Sync no longer has a known Git/Supabase DB/Edge source drift. The remaining boundary is **provider-backed recent-auth acceptance**: safe password and supported OAuth/Google step-up must still be exercised without deleting a real account.
+
+This packet now serves as supporting provider evidence for the Secure workstream. It is not a generic-`Go` target; current execution authority is in `moneyflow-trust-secure-acceptance.md`.
 
 ## Repository reconnaissance
 
@@ -66,7 +72,7 @@ Live read-back after deployment:
 
 - slug: `delete-account`;
 - version: **6**;
-- status: `ACTIVE`;
+- status `ACTIVE`;
 - `verify_jwt=true`;
 - provider bundle SHA-256: `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80`;
 - entrypoint: `delete-account/index.ts`;
