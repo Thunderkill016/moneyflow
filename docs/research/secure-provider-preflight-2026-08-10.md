@@ -37,6 +37,8 @@ Capture the fresh read-only production preflight required by the merged MoneyFlo
 ### Auth / API / Postgres baseline
 
 - Current Auth/API logs show normal production session/JWKS/data activity during 2026-08-10; no password/OAuth deletion-reauth event was present in the inspected snapshot, so no such event is claimed as acceptance evidence.
+- A PII-free aggregate query of `auth.users` reports **3 total users and 0 users with a non-empty password credential**. No password hash, email, user ID, identity payload, token, or cookie was read into this evidence record.
+- Therefore the password acceptance precondition in the current roadmap has no existing production test subject. Creating a password identity solely for acceptance would be a new production Auth write and remains outside the current read-only provider permission.
 - Postgres logs in the inspected 24-hour window were dominated by ordinary checkpoint activity; no P0/P1 deletion/auth-related database error cluster was identified in this preflight.
 - Vercel likewise showed no runtime-error cluster in the inspected 24-hour window.
 
@@ -61,7 +63,7 @@ The current Google-provider enabled flag could not be read directly through the 
 
 The next required evidence is user-authenticated and cannot be manufactured from source, CI, provider read-back, or anonymous HTTP requests:
 
-1. **Password:** use an existing production-safe same-account stale session, enter the user's current password, verify the same identity and fresh `password` AMR, confirm the destructive `XÓA` confirmation is cleared, and stop before deletion.
+1. **Password:** the live tenant currently has **zero password-capable users**, so P1-AC16 cannot be exercised under the existing production-read-only boundary. A separate explicit owner decision is required before creating or adding a safe password credential solely for acceptance. If such a test subject is authorized, use a stale same-account session, enter the current password, verify the same identity and fresh `password` AMR, confirm the destructive `XÓA` confirmation is cleared, and stop before deletion.
 2. **Google/OAuth:** use the supported same-account Google step-up, verify expected-user continuity and fresh `oauth` AMR, exercise missing-continuity fail-closed behavior, and stop before deletion.
 3. Inspect Edge/Auth/API/Postgres/Vercel logs for the exact acceptance window.
 
