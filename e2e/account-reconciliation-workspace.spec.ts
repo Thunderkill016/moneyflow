@@ -94,6 +94,38 @@ test.describe("Account reconciliation workspace", () => {
     ).toBeVisible();
   });
 
+  test("suggests an exact-difference row without clearing it automatically", async ({ page }) => {
+    await page.goto("/accounts/demo-account-mb/reconcile");
+    await fillStatementForm(page, "2026-07-14", "15.777.000");
+    await page.getByRole("button", { name: "Mở kỳ đối soát" }).click();
+
+    await page.getByRole("button", { name: "Đánh dấu đã khớp Cơm trưa" }).click();
+    await page
+      .getByRole("button", { name: "Đánh dấu đã khớp Lương tháng 7" })
+      .click();
+
+    const hint = page.locator('[data-exact-difference-candidate="true"]');
+    await expect(hint).toHaveCount(1);
+    await expect(hint).toContainText("Kiểm tra giao dịch này");
+    const hintedRow = page.locator("article").filter({ has: hint });
+    await expect(hintedRow).toContainText("Đồ dùng cá nhân");
+    await expect(
+      page.getByRole("button", { name: "Đánh dấu đã khớp Đồ dùng cá nhân" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Hoàn tất đối soát" }),
+    ).toBeDisabled();
+
+    await page
+      .getByRole("button", { name: "Đánh dấu đã khớp Đồ dùng cá nhân" })
+      .click();
+
+    await expect(hint).toHaveCount(0);
+    await expect(
+      page.getByText("Đã khớp chính xác. Có thể hoàn tất."),
+    ).toBeVisible();
+  });
+
   test("does not enable completion while the statement difference is nonzero", async ({ page }) => {
     await page.goto("/accounts/demo-account-mb/reconcile");
     await fillStatementForm(page, "2026-07-14", "15.777.000");
