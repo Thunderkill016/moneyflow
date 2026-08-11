@@ -14,7 +14,9 @@
  */
 
 .content {
-  z-index: var(--mf-shell-layer-overlay, 100);
+  /* Portalled to <body>, so the shell's own layer tokens are out of scope here.
+     --z-overlay (globals.css) sits above the mobile nav and feedback layers. */
+  z-index: var(--z-overlay);
   min-width: 13rem;
   max-width: min(20rem, calc(100vw - 1.5rem));
   padding: 6px;

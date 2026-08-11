@@ -21,6 +21,11 @@ async function openAccountMenu(page: Page) {
   await trigger.click();
   const menu = page.getByRole("menu");
   await expect(menu).toBeVisible();
+  // The menu animates in; measuring geometry before it settles is flaky.
+  await expect(menu).toHaveAttribute("data-state", "open");
+  await menu.evaluate((element) =>
+    Promise.all(element.getAnimations({ subtree: true }).map((animation) => animation.finished)),
+  );
   return { trigger, menu };
 }
 
