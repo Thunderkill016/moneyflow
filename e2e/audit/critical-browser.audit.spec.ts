@@ -293,6 +293,12 @@ test.describe("critical browser compatibility audit", () => {
       await expect(
         page.getByRole("banner").getByRole("button", { name: route.action, exact: true }),
       ).toBeVisible();
+
+      // Label and behaviour must agree: tapping must reach capture, never the
+      // route's own create dialog. Asserting the name alone would still pass if
+      // a route re-pointed the tab while keeping the global label.
+      await captureTab.click();
+      await expect(page).toHaveURL(/\/capture(\/|$)/);
     });
   }
 });

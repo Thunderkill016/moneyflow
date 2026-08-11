@@ -40,11 +40,12 @@ export default defineConfig({
     video: "off",
   },
   projects: [
-    {
-      name: "authenticated-desktop",
-      testIgnore: /\.mobile\.auth\.spec\.ts$/,
-      use: { browserName: "chromium", viewport: { width: 1_280, height: 900 } },
-    },
+    /*
+     * Phone only, for now. The shell's pending-Inbox badge is painted by the
+     * mobile navigation, so that viewport is where Inbox ownership is
+     * observable. A desktop project would currently match no spec, and an
+     * empty project reads as coverage that does not exist.
+     */
     {
       name: "authenticated-phone",
       use: {
