@@ -44,6 +44,17 @@ const served = [];
 /** Seeded tenant state. Replaced wholesale by POST /__control/seed. */
 let state = emptyState();
 
+/**
+ * Access tokens this double actually issued.
+ *
+ * Real Supabase Auth rejects a token it did not sign. Without that boundary,
+ * `/auth/v1/user` would authenticate any bearer string and every positive test
+ * in this suite would pass for the wrong reason — the permissive-mock failure
+ * mode. This is the smallest reproduction of that boundary: identity of an
+ * issued token plus expiry. It is not a JWT verifier and not an Auth emulator.
+ */
+const issuedTokens = new Set();
+
 function emptyState() {
   return {
     user: {
@@ -90,7 +101,28 @@ function accessToken(user) {
       user_metadata: { full_name: user.full_name },
     }),
   );
-  return `${header}.${payload}.${base64url("harness-double-not-verified")}`;
+  const token = `${header}.${payload}.${base64url("harness-double-not-verified")}`;
+  issuedTokens.add(token);
+  return token;
+}
+
+/** Bearer token from an Authorization header, if present. */
+function bearer(req) {
+  const raw = req.headers.authorization ?? "";
+  return raw.toLowerCase().startsWith("bearer ") ? raw.slice(7).trim() : null;
+}
+
+/** True only for a token this double issued and that has not expired. */
+function tokenIsValid(token) {
+  if (!token || !issuedTokens.has(token)) return false;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64url").toString("utf8"),
+    );
+    return typeof payload.exp === "number" && payload.exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
 }
 
 function userPayload(user) {
@@ -238,6 +270,13 @@ const server = createServer(async (req, res) => {
     return;
   }
   if (path === "/auth/v1/user") {
+    const token = bearer(req);
+    if (!tokenIsValid(token)) {
+      // Matches how Supabase Auth answers an unknown or expired token, so a
+      // session-less browser can never be promoted to an authenticated one.
+      json(res, 401, { code: 401, msg: "invalid claim: missing sub claim" });
+      return;
+    }
     served.push(path);
     json(res, 200, userPayload(state.user));
     return;
