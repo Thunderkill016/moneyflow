@@ -301,4 +301,41 @@ test.describe("critical browser compatibility audit", () => {
       await expect(page).toHaveURL(/\/capture(\/|$)/);
     });
   }
+
+  /*
+   * Same contract for the reconciliation workspace, which needs a real account
+   * id so it cannot join the static list above. Its action is a session verb
+   * rather than an "add", and it can legitimately be disabled — the contract is
+   * that it lives in the topbar and never re-points the capture tab.
+   */
+  test("reconciliation keeps the mobile capture tab on Ghi chi tiêu", async ({
+    page,
+  }) => {
+    const viewportWidth = page.viewportSize()?.width ?? 1_440;
+    test.skip(viewportWidth > 760, "mobile shell contract");
+
+    await page.goto("/accounts", { waitUntil: "domcontentloaded" });
+    const accountHref = await page
+      .locator('a[href^="/accounts/"]')
+      .first()
+      .getAttribute("href");
+    expect(accountHref, "the audit seed must expose at least one account").toBeTruthy();
+
+    await page.goto(`${accountHref}/reconcile`, { waitUntil: "domcontentloaded" });
+
+    const captureTab = page
+      .getByRole("navigation", { name: "Điều hướng di động" })
+      .getByRole("button", { name: "Ghi chi tiêu", exact: true });
+    await expect(captureTab).toBeVisible();
+    await expect(captureTab).toBeEnabled();
+    await expect(captureTab).toContainText("Ghi");
+
+    // The reconciliation action stays its own mobile-visible primary action.
+    await expect(
+      page.getByRole("banner").getByRole("button", { name: /đối soát$/ }),
+    ).toBeVisible();
+
+    await captureTab.click();
+    await expect(page).toHaveURL(/\/capture(\/|$)/);
+  });
 });
