@@ -9,7 +9,29 @@ export const HARNESS_USER = {
 };
 
 const ACCOUNT_ID = "00000000-0000-4000-8000-0000000000a1";
+const BANK_ACCOUNT_ID = "00000000-0000-4000-8000-0000000000a2";
 const CATEGORY_ID = "00000000-0000-4000-8000-0000000000c1";
+const INCOME_CATEGORY_ID = "00000000-0000-4000-8000-0000000000c2";
+
+type HarnessAccountRow = {
+  id: string;
+  name: string;
+  currency_code: string;
+};
+
+type HarnessCategoryRow = {
+  id: string;
+  name: string;
+  kind: "income" | "expense";
+  icon: string | null;
+  color: string | null;
+};
+
+type HarnessBalanceRow = {
+  account_id: string;
+  balance_minor: number;
+  currency_code: string;
+};
 
 /** A pending Inbox candidate as `inbox_candidates` returns it. */
 export function serverCandidate(overrides: Record<string, unknown> = {}) {
@@ -74,17 +96,103 @@ export function serverTransaction(overrides: Record<string, unknown> = {}) {
   };
 }
 
-const ACCOUNTS = [{ id: ACCOUNT_ID, name: "Tiền mặt", currency_code: "VND" }];
-const CATEGORIES = [
+const ACCOUNTS: HarnessAccountRow[] = [
+  { id: ACCOUNT_ID, name: "Tiền mặt", currency_code: "VND" },
+];
+const CATEGORIES: HarnessCategoryRow[] = [
   { id: CATEGORY_ID, name: "Ăn uống", kind: "expense", icon: null, color: null },
 ];
-const BALANCES = [
+const BALANCES: HarnessBalanceRow[] = [
   { account_id: ACCOUNT_ID, balance_minor: 925_000, currency_code: "VND" },
+];
+
+/**
+ * Independent expected outcomes for the mixed-ledger browser scenario.
+ *
+ * Keep these literal: the point of this contract is to grade the rendered
+ * authenticated outcome without importing the production finance summarizer
+ * that is under test.
+ */
+export const FINANCIAL_TRUTH_EXPECTED = {
+  balance: 2_700_000,
+  income: 2_000_000,
+  expense: 300_000,
+  net: 1_700_000,
+  transfer: 500_000,
+} as const;
+
+const FINANCIAL_TRUTH_ACCOUNTS: HarnessAccountRow[] = [
+  { id: ACCOUNT_ID, name: "Tiền mặt", currency_code: "VND" },
+  { id: BANK_ACCOUNT_ID, name: "Ngân hàng", currency_code: "VND" },
+];
+
+const FINANCIAL_TRUTH_CATEGORIES: HarnessCategoryRow[] = [
+  { id: CATEGORY_ID, name: "Ăn uống", kind: "expense", icon: null, color: null },
+  {
+    id: INCOME_CATEGORY_ID,
+    name: "Lương",
+    kind: "income",
+    icon: null,
+    color: null,
+  },
+];
+
+const FINANCIAL_TRUTH_BALANCES: HarnessBalanceRow[] = [
+  { account_id: ACCOUNT_ID, balance_minor: 1_200_000, currency_code: "VND" },
+  {
+    account_id: BANK_ACCOUNT_ID,
+    balance_minor: 1_500_000,
+    currency_code: "VND",
+  },
+];
+
+const FINANCIAL_TRUTH_TRANSACTIONS = [
+  serverTransaction({
+    id: "00000000-0000-4000-8000-0000000000d2",
+    kind: "income",
+    note: "HARNESS-INCOME",
+    occurred_on: "2026-08-05",
+    created_at: "2026-08-05T02:00:00.000Z",
+    amount_minor: FINANCIAL_TRUTH_EXPECTED.income,
+    account_id: BANK_ACCOUNT_ID,
+    account_name: "Ngân hàng",
+    category_id: INCOME_CATEGORY_ID,
+    category_name: "Lương",
+  }),
+  serverTransaction({
+    id: "00000000-0000-4000-8000-0000000000d3",
+    kind: "expense",
+    note: "HARNESS-EXPENSE",
+    occurred_on: "2026-08-06",
+    created_at: "2026-08-06T02:00:00.000Z",
+    amount_minor: -FINANCIAL_TRUTH_EXPECTED.expense,
+    account_id: ACCOUNT_ID,
+    account_name: "Tiền mặt",
+    category_id: CATEGORY_ID,
+    category_name: "Ăn uống",
+  }),
+  serverTransaction({
+    id: "00000000-0000-4000-8000-0000000000d4",
+    kind: "transfer",
+    note: "HARNESS-TRANSFER",
+    occurred_on: "2026-08-07",
+    created_at: "2026-08-07T02:00:00.000Z",
+    amount_minor: -FINANCIAL_TRUTH_EXPECTED.transfer,
+    account_id: BANK_ACCOUNT_ID,
+    account_name: "Ngân hàng",
+    category_id: null,
+    category_name: null,
+    destination_account_id: ACCOUNT_ID,
+    destination_account_name: "Tiền mặt",
+  }),
 ];
 
 export type SeedInput = {
   candidates?: ReturnType<typeof serverCandidate>[];
   transactions?: ReturnType<typeof serverTransaction>[];
+  accounts?: HarnessAccountRow[];
+  categories?: HarnessCategoryRow[];
+  balances?: HarnessBalanceRow[];
 };
 
 /**
@@ -94,6 +202,9 @@ export type SeedInput = {
 export async function seedServer(input: SeedInput = {}) {
   const candidates = input.candidates ?? [];
   const transactions = input.transactions ?? [];
+  const accounts = input.accounts ?? ACCOUNTS;
+  const categories = input.categories ?? CATEGORIES;
+  const balances = input.balances ?? BALANCES;
 
   const response = await fetch(`${DOUBLE}/__control/seed`, {
     method: "POST",
@@ -104,14 +215,14 @@ export async function seedServer(input: SeedInput = {}) {
       import_batches: [],
       transaction_feed: transactions,
       transaction_review_feed: [],
-      accounts: ACCOUNTS,
-      categories: CATEGORIES,
-      account_balances: BALANCES,
+      accounts,
+      categories,
+      account_balances: balances,
       dashboard_bundle: {
         transactions,
-        accounts: ACCOUNTS,
-        categories: CATEGORIES,
-        balances: BALANCES,
+        accounts,
+        categories,
+        balances,
         budgets: [],
         commitments: [],
         commitment_occurrences: [],
@@ -123,6 +234,21 @@ export async function seedServer(input: SeedInput = {}) {
     }),
   });
   expect(response.ok, "seeding the Supabase double must succeed").toBe(true);
+}
+
+/**
+ * Seed a fixed mixed ledger for outcome-level financial assertions.
+ *
+ * The fixture contains a real internal transfer row so a green dashboard must
+ * both render the movement and keep it out of income/expense/net.
+ */
+export async function seedFinancialTruthScenario() {
+  await seedServer({
+    transactions: FINANCIAL_TRUTH_TRANSACTIONS,
+    accounts: FINANCIAL_TRUTH_ACCOUNTS,
+    categories: FINANCIAL_TRUTH_CATEGORIES,
+    balances: FINANCIAL_TRUTH_BALANCES,
+  });
 }
 
 /**
