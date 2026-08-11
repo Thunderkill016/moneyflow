@@ -1,11 +1,11 @@
 # Shadcn semantic theme ownership
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** evaluator  
+**Status:** ready_for_review  
+**Execution state:** ready_for_review  
+**Active role:** human_owner  
 **Permission scope:** branch_write  
 **Owner:** Thunderkill016  
-**Issue/PR:** PR [#339](https://github.com/Thunderkill016/moneyflow/pull/339), draft, stacked on `fix/presentation-ownership-onboarding` (#337)  
+**Issue/PR:** PR [#339](https://github.com/Thunderkill016/moneyflow/pull/339), rebased onto `main` after #337 merged  
 **Last updated:** 2026-08-11
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
@@ -343,10 +343,16 @@ instead, and no claim is made about their rendered appearance.
 
 ## Delivery record
 
-- Base: `fix/presentation-ownership-onboarding` @ `86c3eae` (PR #337, **open, not
-  merged**). `main` is `ebc98e4`.
-- PR #339 stays **draft**. Retargeting it at `main` would mean carrying #337's
-  entire diff, and running "exact-head" CI on this stack would produce evidence
-  for a tree that cannot merge as-is. Neither was done.
-- Next allowed action: merge #337, then rebase this branch onto `main` so its
-  diff is the theme slice alone, and only then run the full exact-head matrix.
+- #337 merged as `46ede0e`. This branch was replayed onto it with
+  `git rebase --onto origin/main 86c3eae`, so the diff is the theme slice alone:
+  `globals.css`, the baseline, and these two documents. Verified no #337 file is
+  duplicated — the gate, its library, the onboarding module, the audit spec, the
+  CI workflow and `package.json` are all absent from the diff.
+- The bootstrap exception retired itself exactly as designed. With the baseline
+  now on `main`, the gate reports `baselineMode: merge-base`, `baselineRef:
+  46ede0e`, `baselineApproved: 346` — no flag was removed and none remained.
+- Measured after the rebase, not assumed: **346 → 319**, `baselineAdded: 0`,
+  `staleAllowances: 0`, `newUnowned: 0`, 27 removed. Byte-identical in `demo` and
+  `authenticated` builds.
+- The layered-reset commit is retained. The measured contrast evidence
+  (2.99:1 / 2.05:1 without it, 5.93:1 / 6.48:1 with it) is why.
