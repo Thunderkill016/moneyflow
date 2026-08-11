@@ -34,6 +34,10 @@
 .DS_Store
 *.pem
 
+# scripts/verify-archive-producer.sh writes the exported archive here. It holds a
+# whole tenant's ledger, so it must never be committed.
+/.tmp/
+
 # agent / local runtime logs (never commit)
 /logs/
 

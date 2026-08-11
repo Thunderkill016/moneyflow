@@ -1,7 +1,7 @@
 # MoneyFlow Trust P2 — Recover (complete versioned archive and restore)
 
 **Status:** implementing
-**Execution state:** R5 complete; R6 next
+**Execution state:** R5 and R6 complete; R7 next
 **Active role:** evaluator
 **Permission scope:** branch_write (repository code and tests; no provider, production or database write)
 **Owner:** agent (implementer/evaluator) → human_owner (merge decision)
@@ -519,6 +519,107 @@ accounts with equal `currency_code`.
   exactly `statement_balance_minor - calculated_balance_minor`, so restore
   recomputes it rather than serializing a number JavaScript cannot represent.
 
+## R6 implementation truth
+
+### Architecture: SECURITY INVOKER, not SECURITY DEFINER
+
+`public.export_user_archive()` takes **no arguments**, derives identity from
+`auth.uid()`, and raises `authentication_required` when there is none.
+
+It is deliberately **SECURITY INVOKER**. All nineteen tenant tables have RLS
+enabled with a permissive owner-based SELECT policy for `authenticated` and a
+plain SELECT grant, so running as the invoker makes tenant isolation
+*structural*: RLS filters every row to the caller no matter what the function's
+own predicates say, and a projection bug cannot leak another tenant's ledger.
+`SECURITY DEFINER` would move that guarantee into this function's correctness and
+would grow the repository's reviewed privileged inventory — which
+`security_definer_contract.test.sql` pins at 34 — for no benefit. The explicit
+`user_id` predicates are defence in depth, not the isolation mechanism.
+
+Tenant spoofing is impossible by API shape: there is no parameter to spoof.
+
+### Volatility: deliberately VOLATILE
+
+`get_dashboard_bundle` is `stable`; this producer is not. Each call mints a fresh
+`archive_id` and `produced_at`, so labelling it `stable` would promise the planner
+something untrue and permit result reuse. Volatility is an optimiser contract,
+not a write permission, so this does not weaken read-only behaviour — which is
+proven by a pgTAP assertion that every tenant row count is unchanged across a
+call, and by a drift test asserting the body contains no DML, rather than by a
+label.
+
+### Two functions, one migration
+
+| Object | Role |
+|---|---|
+| `public.archive_timestamp(timestamptz)` | immutable ISO 8601 / microsecond / explicit-UTC formatter, null-safe |
+| `public.export_user_archive()` | the producer |
+
+Timestamps are formatted explicitly because the implicit timestamptz-to-jsonb
+cast follows the session `DateStyle`; the contract pins the shape, so the
+producer pins it too.
+
+### Coverage: 19 of 19
+
+Eighteen restorable collections plus sanitized `auditHistory`. Every array
+`coalesce`s to `'[]'::jsonb`, so the contract never sees null. `profile` is
+emitted in the source-neutral shape — five preference fields, and **no `id`**,
+because `profiles.id` *is* the auth user id.
+
+`tenant_row_counts` is derived from the serialized payload itself via
+`jsonb_each` + `jsonb_array_length`, never from separate `COUNT(*)` queries that
+could disagree with what was actually emitted.
+
+Omitted on purpose: `user_id` everywhere; `profiles.id`; audit `actor_user_id`,
+`request_id` and `idempotency_key`; and
+`account_reconciliation_events.difference_minor`, which the schema permits up to
+twice the JavaScript safe-integer bound and which restore recomputes.
+
+### Deterministic ordering
+
+Every collection declares an explicit `ORDER BY` ending in the primary key, so no
+output depends on physical row order or planner choice. A drift test fails any
+collection that lacks one. Two consecutive exports of the same tenant produce an
+identical `tables` payload (pgTAP asserts this); only `archive_id` and
+`produced_at` differ by design.
+
+### Round-trip evidence — the acceptance proof
+
+`scripts/verify-archive-producer.sh` runs against the freshly reset local
+database in CI:
+
+```
+real tenant state → export_user_archive() → psql → JSON.parse → validateMoneyFlowArchive
+```
+
+The producer's output is piped **unmodified** into the R5 validator. Nothing
+reshapes, fills in or repairs it, so an archive that only validates after a
+fix-up cannot pass. The fixture deliberately populates **all eighteen array
+collections**, and the verifier asserts each is non-empty — a producer that
+quietly stopped emitting one table would fail rather than look fine against a
+thin fixture.
+
+### Drift evidence
+
+`archive-producer-contract.test.ts` parses the migration (test-only, one file)
+and asserts the SQL projects **every** field of every `ARCHIVE_ROW_SPECS` entry,
+and **no** field the contract does not declare. Both directions were proven with
+negative fixtures: deleting one projected field and adding one undeclared field
+each turn the gate red. Adding a field to the contract without touching the SQL
+now fails a test instead of silently truncating real archives.
+
+Separately, all **192** projected column references were verified to exist on
+their tables in the current schema.
+
+### Known interaction, recorded rather than silently handled
+
+`import_batches.headers` and `column_map` pass through as opaque JSON, and the
+validator's defence-in-depth scan rejects forbidden key names at any depth. A
+bank statement whose column header was literally named e.g. `password` would
+therefore produce an archive the validator refuses. Stripping such a key would
+lose user data silently, so the producer does not; the interaction is recorded
+here as a bounded limitation for the file-ingress slice to surface properly.
+
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
@@ -528,8 +629,8 @@ accounts with equal `currency_code`.
 | R3 | Owner decisions on the three open questions | R2 | D1/D2/D3 recorded above | done |
 | R4 | Accept the archive contract | R3 | this packet, contract now executable | done |
 | R5 | Envelope types and pure validators + unit tests | R4 | 92 assertions across 3 modules; see below | done |
-| R6 | `export_user_archive` + inventory drift test | R5 | drift test landed in R5; producer still absent | not started |
-| R7 | `restore_user_archive` + pgTAP atomicity/ownership | R6 | — | not started |
+| R6 | `export_user_archive` + producer drift test | R5 | 40 pgTAP assertions + real DB round trip into the R5 validator; see below | done |
+| R7 | `restore_user_archive` + `restore_batch_id` + pgTAP atomicity/ownership | R6 | — | next |
 | R8 | Settings surface with required states | R7 | — | not started |
 | R9 | Round-trip and rejection acceptance evidence | R7, R8 | — | not started |
 
@@ -541,6 +642,8 @@ accounts with equal `currency_code`.
 | 2026-08-11 | planner | human_owner | specifying | inventory, ordering, invariant findings, two sources, P2-AC1–14 | three open questions in R3; nothing implemented | Owner answers R3 and accepts or amends the contract |
 | 2026-08-11 | human_owner | implementer | implementing | D1/D2/D3 decided | contract not yet executable | Implement R5 envelope, types and pure validators |
 | 2026-08-11 | implementer | evaluator | evaluating | 3 modules, 92 assertions; 938/938 repo unit tests | no producer, no restore, no pgTAP | Attack the validator, then open the PR |
+| 2026-08-12 | human_owner | implementer | implementing | R5 merged as `bc26a6f` | producer absent | Build the authenticated archive producer |
+| 2026-08-12 | implementer | evaluator | evaluating | producer RPC, 40 pgTAP assertions, DB→validator round trip, drift gate proven by negative fixtures | restore absent; migration not applied to production | Adversarial review, then merge under the standing rule |
 
 ### Current permission boundary
 
@@ -560,7 +663,7 @@ accounts with equal `currency_code`.
 | Criterion | R5 status | Evidence |
 |---|---|---|
 | P2-AC1 envelope versioned/self-describing | **contract done** | `archive_version`, `archive_id`, `produced_at`, `schema_generation`, `tenant_row_counts`; unsupported version/generation rejected |
-| P2-AC2 inventory anchored to purge | **executable** | drift test parses `purge_user_tenant_data` (test-only) and asserts set equality on nineteen tables |
+| P2-AC2 inventory anchored to purge | **executable** | drift test parses `purge_user_tenant_data` (test-only) and asserts set equality on nineteen tables; R6 adds a producer-vs-contract field drift gate proven with negative fixtures |
 | P2-AC3 no secrets | **executable** | strict schemas plus recursive forbidden-key scan; nested secrets inside opaque `column_map` JSON rejected; legitimate field names proven not to trip it |
 | P2-AC4 integer money | **executable** | boundary values ±9007199254740991 accepted, ±1 beyond rejected, fractional/NaN/Infinity/stringified rejected, never coerced |
 | P2-AC5 validate before mutation | **pure part done** | every structural, reference and CHECK-mirroring rule rejects before any write path exists |
@@ -574,8 +677,27 @@ accounts with equal `currency_code`.
 | P2-AC13 archived-category rule | **executable** | accepted with evidence; restore-time trigger consequence recorded for R7 |
 | P2-AC14 restore batch identity | not started | needs the DB slice |
 
-P2 is **not accepted**. Export does not exist, restore does not exist, and no
-pgTAP ran in this slice.
+P2 is **not accepted**. Restore does not exist. As of R6 the exporter does exist
+and is proven against a real database, but the archive cannot yet be restored, so
+the Recover capability is still absent end to end.
+
+### R6 acceptance evidence
+
+| Criterion | R6 status | Evidence |
+|---|---|---|
+| complete archive produced for the authenticated tenant | **done** | 19/19 dispositions; all 18 arrays non-empty in the fixture and asserted so |
+| raw producer output satisfies the R5 contract | **done** | `verify-archive-producer.sh`: psql → `JSON.parse` → `validateMoneyFlowArchive`, unmodified |
+| auth boundary | **done** | anon holds no EXECUTE; a cleared subject claim raises `authentication_required`; an identity with no tenant raises `archive_profile_missing` |
+| tenant isolation | **done** | SECURITY INVOKER + RLS; pgTAP asserts neither tenant's archive contains the other's rows |
+| ownership never serialized | **done** | no `user_id`/`actor_user_id` anywhere; profile carries no `id` |
+| sanitized audit history | **done** | no `request_id`, no `idempotency_key`; seven fields only |
+| empty collections are `[]` | **done** | bootstrap-only tenant emits 16 empty arrays, zero nulls |
+| counts match the payload | **done** | derived from the payload; asserted per collection in pgTAP and in the verifier |
+| archived and soft-deleted state survives | **done** | asserted in pgTAP and the verifier |
+| exact integer money | **done** | 9007199254740991 round-trips exactly; every entry asserted safe-integer |
+| deterministic ordering | **done** | explicit `ORDER BY` per collection; two exports byte-identical |
+| read-only | **done** | row counts unchanged across a call; no DML in the body |
+| restore | **not started** | R7 |
 
 ### Independent evaluator findings on R5
 

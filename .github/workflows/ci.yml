@@ -260,6 +260,14 @@ jobs:
       - name: Database checks not required
         if: needs.classify.outputs.database != 'true'
         run: echo "No database, migration, RLS, or database-CI contract changed."
+      # The archive round-trip step below runs the R5 validator, which is
+      # TypeScript executed through Node's type stripping. No npm install is
+      # needed: it imports only repository modules.
+      - name: Setup Node
+        if: needs.classify.outputs.database == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
       - name: Setup Supabase CLI
         if: needs.classify.outputs.database == 'true'
         uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
@@ -286,6 +294,15 @@ jobs:
           path: database-test-output.log
           if-no-files-found: error
           retention-days: 1
+      # R6 acceptance proof: real tenant state through the archive producer and
+      # into the R5 validator, with no reshaping in between. pgTAP proves the
+      # database boundary; this proves the producer satisfies the archive
+      # contract that lives in TypeScript.
+      - name: Archive producer round trip
+        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
+        id: archive-round-trip
+        shell: bash
+        run: npm run verify:archive-producer
       - name: Stop local Supabase
         if: always() && needs.classify.outputs.database == 'true'
         run: supabase stop --no-backup || true
