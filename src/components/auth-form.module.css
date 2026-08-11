@@ -589,9 +589,15 @@
   align-items: center;
 }
 
-.passwordInput {
+/*
+ * Specificity is deliberate, not decorative. The base control rule is
+ * `.form input:not([type="checkbox"])` and it sets the `padding` *shorthand*,
+ * which both out-specifies a bare class and resets padding-inline-end. Without
+ * matching that shape, a long or revealed password scrolls underneath the
+ * reveal button.
+ */
+.form input.passwordInput:not([type="checkbox"]) {
   width: 100%;
-  /* Room for the toggle so a long password never runs underneath it. */
   padding-inline-end: 4.25rem;
 }
 

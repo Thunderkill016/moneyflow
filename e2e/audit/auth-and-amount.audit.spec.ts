@@ -80,6 +80,24 @@ test.describe("auth password reveal", () => {
       await expect(password).toHaveValue("correct horse battery staple");
 
       // The accessible name follows the state.
+      /*
+       * The reveal button is absolutely positioned over the field, so the input
+       * must reserve room for it. The base control rule sets the `padding`
+       * shorthand and out-specifies a bare class, so this is easy to lose.
+       */
+      const clearance = await password.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const toggle = element.parentElement?.querySelector("button");
+        return {
+          paddingEnd: Number.parseFloat(style.paddingInlineEnd),
+          toggleWidth: toggle ? toggle.getBoundingClientRect().width : 0,
+        };
+      });
+      expect(
+        clearance.paddingEnd,
+        "the input must reserve room for the reveal button",
+      ).toBeGreaterThanOrEqual(clearance.toggleWidth);
+
       const hide = page.getByRole("button", { name: "Ẩn mật khẩu" }).first();
       await expect(hide).toBeVisible();
       await hide.click();

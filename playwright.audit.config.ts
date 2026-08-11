@@ -14,7 +14,7 @@ const authAmountSpec = /auth-and-amount\.audit\.spec\.ts/;
 const keyboardSpec = /keyboard\.audit\.spec\.ts/;
 
 const responsiveWithSafety = [responsiveSpec, safetyReviewSpec, onboardingSpec, authAmountSpec];
-const criticalWithSafety = [criticalBrowserSpec, safetyReviewSpec, onboardingSpec];
+const criticalWithSafety = [criticalBrowserSpec, safetyReviewSpec, onboardingSpec, authAmountSpec];
 
 const commonUse = {
   baseURL,
