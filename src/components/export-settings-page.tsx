@@ -72,10 +72,33 @@ export function ExportSettingsPage({
   const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState("");
 
+  /**
+   * Build the whole warning sentence here rather than appending a fixed tail in
+   * the markup. Only demo can fall back to device candidates; telling an
+   * authenticated user their Inbox is still exportable from this device would
+   * repeat the promise this page was fixed to stop making.
+   */
+  function exportWarning(): string | null {
+    const parts: string[] = [];
+    if (workspace.dataError) {
+      parts.push(
+        viewer.isDemo
+          ? `${workspace.dataError} Bạn vẫn có thể xuất ứng viên Inbox lưu trên thiết bị này.`
+          : workspace.dataError,
+      );
+    }
+    if (!viewer.isDemo && serverInbox?.error) {
+      parts.push(
+        `${serverInbox.error} Bản tải xuống này chưa gồm Inbox — đừng dùng nó làm bản sao lưu trước khi xóa tài khoản.`,
+      );
+    }
+    return parts.length > 0 ? parts.join(" ") : null;
+  }
+
   function reload() {
     try {
       setError(null);
-      setLedgerWarning(workspace.dataError ?? (viewer.isDemo ? null : serverInbox?.error ?? null));
+      setLedgerWarning(exportWarning());
       /* Demo keeps its ledger and Inbox on the device; an authenticated
          workspace owns both on the server. Reading local candidates while
          signed in exports an empty Inbox — see the delete-account copy that
@@ -232,7 +255,7 @@ export function ExportSettingsPage({
         {ready && !error && ledgerWarning ? (
           <Alert tone="warning" live="polite">
             <AlertDescription>
-              {ledgerWarning} Bạn vẫn có thể xuất ứng viên Inbox lưu trên thiết bị này.
+              {ledgerWarning}
             </AlertDescription>
           </Alert>
         ) : null}
