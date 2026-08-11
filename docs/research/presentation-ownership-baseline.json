@@ -19,9 +19,12 @@
     "",
     "onboarding-flow.module.css removed 27, leaving 346.",
     "",
-    "Bootstrap for main@ebc98e4 was 373. Onboarding's CSS Module removed 27.",
     "Registering the shadcn semantic theme namespace removed a further 27,",
-    "leaving 319."
+    "leaving 319.",
+    "",
+    "Bootstrap for main@ebc98e4 was 373. Onboarding's CSS Module removed 27,",
+    "the shadcn theme namespace removed a further 27, and giving the shared",
+    "DropdownMenu a CSS Module owner removed 6 more, leaving 313."
   ],
   "entries": [
     {
@@ -1981,20 +1984,6 @@
       "status": "debt"
     },
     {
-      "class": "profile-menu",
-      "owner": "src/components/user-chip.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "profile-menu-logout-form",
-      "owner": "src/components/user-chip.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "purple",
       "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
       "alsoEmittedBy": [],
@@ -2401,34 +2390,6 @@
         "src/components/ui/text-field.tsx"
       ],
       "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "ui-dropdown-content",
-      "owner": "src/components/ui/dropdown-menu.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "ui-dropdown-item",
-      "owner": "src/components/ui/dropdown-menu.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "ui-dropdown-label",
-      "owner": "src/components/ui/dropdown-menu.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "ui-dropdown-separator",
-      "owner": "src/components/ui/dropdown-menu.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
     },
     {

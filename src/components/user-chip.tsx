@@ -75,7 +75,6 @@ export function UserChip({ viewer }: { viewer: ViewerSummary }) {
         side="right"
         align="end"
         sideOffset={12}
-        className="profile-menu"
       >
         <DropdownMenuLabel>
           <span>Tài khoản đang dùng</span>
@@ -89,13 +88,11 @@ export function UserChip({ viewer }: { viewer: ViewerSummary }) {
             <span>Cài đặt tài khoản</span>
           </Link>
         </DropdownMenuItem>
-        <form
-          ref={logoutFormRef}
-          action={signOut}
-          className="profile-menu-logout-form"
-        >
+        {/* The form only needs to exist so the item can submit it; the menu
+            owns the item's own layout, so it must not become a flex parent. */}
+        <form ref={logoutFormRef} action={signOut} style={{ display: "contents" }}>
           <DropdownMenuItem
-            className="danger"
+            danger
             onSelect={(event) => {
               event.preventDefault();
               logoutFormRef.current?.requestSubmit();

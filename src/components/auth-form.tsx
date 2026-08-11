@@ -16,6 +16,7 @@ import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon } from "@/components/icons";
 import { getPublicAuthCaptchaConfig } from "@/lib/auth-captcha";
 import { POST_AUTH_REDIRECT } from "@/lib/auth-redirect";
+import { AuthPasswordField } from "./auth-password-field";
 import styles from "./auth-form.module.css";
 import themeStyles from "./public-brand-theme.module.css";
 
@@ -142,6 +143,7 @@ export function AuthForm({
   const fullNameErrorId = `${baseId}-fullName-error`;
   const emailErrorId = `${baseId}-email-error`;
   const passwordErrorId = `${baseId}-password-error`;
+  const confirmPasswordErrorId = `${baseId}-confirm-password-error`;
   const privacyErrorId = `${baseId}-privacy-error`;
 
   return (
@@ -263,32 +265,52 @@ export function AuthForm({
               )}
 
               {(mode === "login" || mode === "register" || mode === "update") && (
-                <label>
-                  <span className={styles.fieldLabelRow}>
-                    <span>Mật khẩu</span>
-                    {mode === "login" && !isReauth && (
+                <AuthPasswordField
+                  id={`${baseId}-password`}
+                  name="password"
+                  label="Mật khẩu"
+                  /* Proving an existing password on login and re-auth; setting a
+                     new one on registration and update. */
+                  autoComplete={
+                    mode === "login" ? "current-password" : "new-password"
+                  }
+                  placeholder="Ít nhất 12 ký tự"
+                  invalid={Boolean(state.errors?.password)}
+                  describedBy={
+                    state.errors?.password ? passwordErrorId : undefined
+                  }
+                  disabled={pending}
+                  labelAccessory={
+                    mode === "login" && !isReauth ? (
                       <Link href="/forgot-password">Quên mật khẩu?</Link>
-                    )}
-                  </span>
-                  <input
-                    id={`${baseId}-password`}
-                    name="password"
-                    type="password"
-                    autoComplete={
-                      mode === "login" ? "current-password" : "new-password"
-                    }
-                    placeholder="Ít nhất 12 ký tự"
-                    aria-invalid={Boolean(state.errors?.password)}
-                    aria-describedby={
-                      state.errors?.password ? passwordErrorId : undefined
-                    }
-                    disabled={pending}
-                  />
+                    ) : null
+                  }
+                >
                   <FieldError
                     id={passwordErrorId}
                     messages={state.errors?.password}
                   />
-                </label>
+                </AuthPasswordField>
+              )}
+
+              {mode === "register" && (
+                <AuthPasswordField
+                  id={`${baseId}-confirm-password`}
+                  name="confirmPassword"
+                  label="Nhập lại mật khẩu"
+                  autoComplete="new-password"
+                  placeholder="Nhập lại đúng mật khẩu ở trên"
+                  invalid={Boolean(state.errors?.confirmPassword)}
+                  describedBy={
+                    state.errors?.confirmPassword ? confirmPasswordErrorId : undefined
+                  }
+                  disabled={pending}
+                >
+                  <FieldError
+                    id={confirmPasswordErrorId}
+                    messages={state.errors?.confirmPassword}
+                  />
+                </AuthPasswordField>
               )}
 
               {mode === "register" && (

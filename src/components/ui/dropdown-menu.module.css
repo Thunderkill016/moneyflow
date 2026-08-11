@@ -1,0 +1,106 @@
+/*
+ * Presentation owner for the shared dropdown menu.
+ *
+ * The markup emitted `ui-dropdown-content`, `ui-dropdown-label`,
+ * `ui-dropdown-item` and `ui-dropdown-separator` long after the global
+ * generation that styled them was retired, so the authenticated account menu
+ * rendered as raw text beside the avatar. Same failure family as onboarding in
+ * #337: live markup, retired owner.
+ *
+ * Values come from the current --mf-* tokens; light/dark is inherited from
+ * html[data-theme] rather than re-declared here. Radix owns behaviour —
+ * keyboard, focus return, Escape, portal placement — and nothing below
+ * interferes with it.
+ */
+
+.content {
+  /* Portalled to <body>, so the shell's own layer tokens are out of scope here.
+     --z-overlay (globals.css) sits above the mobile nav and feedback layers. */
+  z-index: var(--z-overlay);
+  min-width: 13rem;
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--mf-border);
+  border-radius: 14px;
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  box-shadow: var(--mf-shadow-lg);
+  font-family: var(--mf-font-sans);
+  /* Radix measures available space; keep long menus scrollable rather than clipped. */
+  max-height: var(--radix-dropdown-menu-content-available-height, none);
+  overflow-y: auto;
+}
+
+.label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px 6px;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Pointer target parity with the rest of the shell. */
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  color: var(--mf-text);
+  font-size: 14px;
+  font-weight: 550;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+}
+
+/* Radix drives this attribute for both pointer and keyboard, so hover and
+   keyboard navigation land on the same visual state. */
+.item[data-highlighted] {
+  background: var(--mf-surface-muted);
+  color: var(--mf-text);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--mf-focus);
+  outline-offset: -2px;
+}
+
+.item[data-disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.itemDanger {
+  color: var(--mf-danger-text);
+}
+
+.itemDanger[data-highlighted] {
+  background: var(--mf-danger-soft);
+  color: var(--mf-danger-text);
+}
+
+.separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--mf-border);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .content[data-state="open"] {
+    animation: dropdownIn 120ms var(--mf-ease, ease-out);
+  }
+}
+
+@keyframes dropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}

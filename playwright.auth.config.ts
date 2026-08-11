@@ -41,6 +41,15 @@ export default defineConfig({
   },
   projects: [
     /*
+     * Desktop is where the account dropdown lives: UserChip only renders a menu
+     * for a non-demo viewer, so it is unreachable from the demo suites.
+     */
+    {
+      name: "authenticated-desktop",
+      testMatch: /\.desktop\.auth\.spec\.ts$/,
+      use: { browserName: "chromium", viewport: { width: 1_280, height: 900 } },
+    },
+    /*
      * Phone only, for now. The shell's pending-Inbox badge is painted by the
      * mobile navigation, so that viewport is where Inbox ownership is
      * observable. A desktop project would currently match no spec, and an
@@ -48,6 +57,7 @@ export default defineConfig({
      */
     {
       name: "authenticated-phone",
+      testIgnore: /\.desktop\.auth\.spec\.ts$/,
       use: {
         browserName: "chromium",
         viewport: { width: 390, height: 844 },
