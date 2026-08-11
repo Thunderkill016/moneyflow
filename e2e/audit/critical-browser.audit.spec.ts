@@ -253,4 +253,46 @@ test.describe("critical browser compatibility audit", () => {
     expect(box).not.toBeNull();
     expect(box!.height).toBeGreaterThanOrEqual(44);
   });
+
+  /*
+   * Regression: route "add" actions used to be passed as `fabAction`, which
+   * re-targets the mobile capture tab while its visible text stays "Ghi". The
+   * tab then read "Ghi" but opened "Thêm ngân sách" / "Thêm mục tiêu" and
+   * announced that name to assistive tech — a WCAG 2.5.3 label-in-name break,
+   * and the only capture entry point in the mobile shell was gone.
+   *
+   * Routes with their own add action expose it in the topbar via
+   * `showPrimaryActionOnMobile`, exactly like /accounts above.
+   */
+  const ROUTES_WITH_OWN_ADD_ACTION = [
+    { path: "/budgets", action: "Thêm ngân sách" },
+    { path: "/goals", action: "Thêm mục tiêu" },
+    { path: "/categories", action: "Thêm danh mục" },
+    { path: "/commitments", action: "Thêm khoản định kỳ" },
+    { path: "/income-templates", action: "Thêm khoản thu định kỳ" },
+  ] as const;
+
+  for (const route of ROUTES_WITH_OWN_ADD_ACTION) {
+    test(`${route.path} keeps the mobile capture tab on Ghi chi tiêu`, async ({
+      page,
+    }) => {
+      const viewportWidth = page.viewportSize()?.width ?? 1_440;
+      test.skip(viewportWidth > 760, "mobile shell contract");
+
+      await page.goto(route.path, { waitUntil: "domcontentloaded" });
+
+      const captureTab = page
+        .getByRole("navigation", { name: "Điều hướng di động" })
+        .getByRole("button", { name: "Ghi chi tiêu", exact: true });
+      await expect(captureTab).toBeVisible();
+
+      // The visible text must be contained in the accessible name (WCAG 2.5.3).
+      await expect(captureTab).toContainText("Ghi");
+
+      // The route's own action stays reachable, in the topbar.
+      await expect(
+        page.getByRole("banner").getByRole("button", { name: route.action, exact: true }),
+      ).toBeVisible();
+    });
+  }
 });

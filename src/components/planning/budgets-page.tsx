@@ -213,11 +213,7 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
         onClick: () => openDialog(null),
         disabled: Boolean(workspace.dataError) || !availableCategories.length,
       }}
-      fabAction={{
-        label: "Thêm ngân sách",
-        onClick: () => openDialog(null),
-        disabled: Boolean(workspace.dataError) || !availableCategories.length,
-      }}
+      showPrimaryActionOnMobile
       notice={notice}
     >
       <PlanningWorkspace>

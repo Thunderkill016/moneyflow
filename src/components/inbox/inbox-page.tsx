@@ -584,7 +584,7 @@ export function InboxPage({
       inboxCount={pendingCount}
       notice={notice}
       primaryAction={{ label: "Capture", href: "/capture", icon: "plus" }}
-      fabAction={{ label: "Capture", href: "/capture", icon: "plus" }}
+      showPrimaryActionOnMobile
     >
       <SecondaryWorkspace slot="inbox-workspace">
         <SecondaryHeader

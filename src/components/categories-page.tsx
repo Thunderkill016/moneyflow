@@ -270,11 +270,7 @@ export function CategoriesPage({
         onClick: () => openCategory(null),
         disabled: Boolean(dataError),
       }}
-      fabAction={{
-        label: "Thêm danh mục",
-        onClick: () => openCategory(null),
-        disabled: Boolean(dataError),
-      }}
+      showPrimaryActionOnMobile
       notice={notice}
     >
       <SecondaryWorkspace slot="categories-workspace">

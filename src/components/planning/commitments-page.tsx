@@ -289,7 +289,7 @@ export function CommitmentsPage({
     <AppShell
       viewer={viewer}
       primaryAction={{ label: "Thêm khoản định kỳ", onClick: () => open(null), disabled: !canAdd }}
-      fabAction={{ label: "Thêm khoản định kỳ", onClick: () => open(null), disabled: !canAdd }}
+      showPrimaryActionOnMobile
       notice={notice}
     >
       <PlanningWorkspace>
