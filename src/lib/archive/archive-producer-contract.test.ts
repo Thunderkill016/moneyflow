@@ -30,19 +30,27 @@ const MIGRATION_PATH = new URL(
 const migration = readFileSync(MIGRATION_PATH, "utf8");
 
 /**
+ * The tenant-state payload only. The envelope that follows it is built with the
+ * same 4-space indentation, so without this bound the last collection's block
+ * would run to end of file and swallow `archive_id`, `produced_at` and the rest
+ * as if they were audit fields.
+ */
+const payloadRegion = migration.slice(0, migration.indexOf("return jsonb_build_object("));
+
+/**
  * Slice the SQL for one collection: from its `'collection', coalesce((` opener
  * (or the profile's `jsonb_build_object`) to the start of the next collection.
  */
 function collectionBlock(collection: string): string {
   if (collection === "profile") {
-    const start = migration.indexOf("into v_profile");
-    const opener = migration.lastIndexOf("select jsonb_build_object(", start);
+    const start = payloadRegion.indexOf("into v_profile");
+    const opener = payloadRegion.lastIndexOf("select jsonb_build_object(", start);
     assert.ok(opener > 0, "the profile projection must exist");
-    return migration.slice(opener, start);
+    return payloadRegion.slice(opener, start);
   }
-  const opener = migration.indexOf(`'${collection}', coalesce((`);
+  const opener = payloadRegion.indexOf(`'${collection}', coalesce((`);
   assert.ok(opener > 0, `the ${collection} projection must exist in the migration`);
-  const rest = migration.slice(opener + 1);
+  const rest = payloadRegion.slice(opener + 1);
   const nextOffsets = ALL_ARCHIVE_COLLECTIONS.filter((other) => other !== collection)
     .map((other) => rest.indexOf(`'${other}', coalesce((`))
     .filter((offset) => offset > 0);
@@ -80,7 +88,9 @@ test("the producer emits no field the contract does not declare", () => {
   for (const [collection, spec] of Object.entries(ARCHIVE_ROW_SPECS)) {
     const block = collectionBlock(collection);
     // Keys of jsonb_build_object are the single-quoted names at line starts.
-    for (const match of block.matchAll(/^\s{8,}'([a-z_]+)',/gmu)) {
+    // Four, not eight: the profile projection is indented 4 spaces, and an
+    // 8-space floor silently exempted it from this check altogether.
+    for (const match of block.matchAll(/^\s{4,}'([a-z_]+)',/gmu)) {
       const field = match[1];
       if (!(field in spec.fields)) unexpected.push(`${collection}.${field}`);
     }
@@ -129,9 +139,17 @@ test("every collection projection has an explicit deterministic ordering", () =>
   for (const collection of ALL_ARCHIVE_COLLECTIONS) {
     if (collection === "profile") continue;
     const block = collectionBlock(collection);
+    const ordering = /order by\s+([^)]*?)\s*\)\s*\n/u.exec(block)?.[1] ?? "";
     assert.ok(
-      /order by\s+\w+\./u.test(block),
+      ordering !== "",
       `${collection} must declare an explicit order by — physical row order is not a contract`,
+    );
+    // Ending on a unique column is what makes the order total. An ordering on a
+    // tie-prone key alone would still leave equal rows in planner order.
+    const idField = ARCHIVE_ROW_SPECS[collection]?.idField;
+    assert.ok(
+      idField !== null && idField !== undefined && ordering.trim().endsWith(`.${idField}`),
+      `${collection} must order by a unique column last (expected ...${idField}), got "${ordering.trim()}"`,
     );
   }
 });
@@ -180,8 +198,13 @@ test("the producer accepts no caller-supplied tenant argument", () => {
 
 test("the producer performs no write", () => {
   const body = migration.slice(migration.indexOf("function public.export_user_archive"));
-  for (const dml of ["insert into", "update ", "delete from", "truncate"]) {
-    assert.ok(!body.includes(dml), `the producer must contain no ${dml.trim()} statement`);
+  // Case- and whitespace-insensitive: `UPDATE` or `update\n` would otherwise slip
+  // past a plain substring check.
+  for (const dml of ["insert\\s+into", "update\\s", "delete\\s+from", "truncate\\s"]) {
+    assert.ok(
+      !new RegExp(dml, "iu").test(body),
+      `the producer must contain no ${dml.replace(/\\s\+?/gu, " ").trim()} statement`,
+    );
   }
 });
 

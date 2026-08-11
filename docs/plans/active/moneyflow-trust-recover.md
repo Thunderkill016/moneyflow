@@ -611,6 +611,63 @@ now fails a test instead of silently truncating real archives.
 Separately, all **192** projected column references were verified to exist on
 their tables in the current schema.
 
+### Review findings on #344
+
+CI found the first one before the reviewer did; both agreed on it.
+
+1. **`supabase test db` ran the round-trip fixture as a pgTAP test (P1).** The
+   CLI globs every `.sql` under `supabase/tests/` with `pg_prove --ext .sql -r`,
+   so a fixture with no `plan()` failed the database job with "No plan found in
+   TAP output" — even though all 40 assertions in `export_user_archive.test.sql`
+   passed. Worse, because the pgTAP step is `continue-on-error`, its *conclusion*
+   read `success` while its *outcome* was `failure`, and the round-trip step
+   correctly skipped, so the visible symptom looked like a pgTAP regression
+   rather than a misplaced file. The fixture moved to `supabase/fixtures/` and its
+   header now records why, so the placement is not undone later.
+2. **The fixture wrote three tables as the owner on a false premise (P2).** The
+   comment claimed they were SELECT-only for `authenticated`; in fact
+   `import_batches`, `inbox_candidates` and `inbox_rules` all hold full DML
+   grants and owner-based RLS policies. It worked only because
+   `request.jwt.claim.sub` is transaction-local and survives `reset role` —
+   `inbox_rules` has a BEFORE INSERT trigger raising `rule_tenant_mismatch`
+   unless `auth.uid()` matches. Those three are now written as the authenticated
+   caller, removing the hidden dependency; only
+   `transaction_import_provenance`, which genuinely has no INSERT policy or
+   grant, is still written as the owner, and the comment says so.
+3. **The verifier scripts selected no CI gate (P2).** Editing only
+   `verify-archive-producer.{sh,mjs}` ran nothing that executes them. Both are
+   now in `databaseMatchers`, with a classifier test.
+4. **The extra-field drift check silently exempted the profile (P3).** Its
+   matcher required eight leading spaces while the profile projection is indented
+   four, so an undeclared profile field would have passed the gate. Fixed to four
+   — which immediately exposed that the last collection's block ran to end of
+   file and swallowed the envelope keys, now bounded at the payload region.
+5. **The ordering guard did not check uniqueness (P3).** `order by rule.priority`
+   alone satisfied it. It now requires the ordering to end on the collection's
+   primary key, so a regression to a tie-prone key fails.
+6. **The no-write guard was case- and whitespace-sensitive (P3).** `UPDATE` or
+   `update\n` slipped past a plain substring check; it is now a regex.
+7. **`archive_timestamp` was labelled IMMUTABLE (P3).** `to_char(timestamp, text)`
+   reads `DateStyle`/`lc_time` and is only STABLE. The numeric-only template means
+   the output does not in fact vary, but IMMUTABLE was a false promise that could
+   permit constant folding or index use. Now `stable`.
+8. **Seven date fields relied on an implicit cast (P3).** `to_char(date, text)`
+   does not exist; resolution prefers `timestamptz`, which reads the session
+   `TimeZone` — precisely the dependency the migration header claims to avoid.
+   All seven now cast to `timestamp` explicitly.
+
+Findings 4, 5 and 6 were each re-proven with a negative fixture after fixing, so
+none of the three guards can pass vacuously again.
+
+**Accepted trade-off, not a defect.** Granting `authenticated` EXECUTE on
+`archive_timestamp` exposes `/rest/v1/rpc/archive_timestamp`, a new browser-callable
+endpoint, which the least-privilege posture otherwise works to shrink. It is
+required by the SECURITY INVOKER design; making the helper SECURITY DEFINER would
+break the pinned inventory of 34. The endpoint takes a timestamp and returns a
+string, reaching no tenant data and holding no state, and one shared formatter is
+worth more than forty inlined copies of a format string that could diverge. The
+reasoning is recorded in the migration header.
+
 ### Known interaction, recorded rather than silently handled
 
 `import_batches.headers` and `column_map` pass through as opaque JSON, and the

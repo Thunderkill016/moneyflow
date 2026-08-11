@@ -192,11 +192,12 @@ insert into archive_ctx values
     current_date, 250000
   ));
 
-reset role;
-
--- Import, provenance and rule state. These tables are SELECT-only for
--- `authenticated`, so the fixture writes them as the owner; the export path
--- under test still reads them as the authenticated caller through RLS.
+-- Import, rule and candidate state, written as the authenticated user because
+-- all three tables hold full DML grants and owner-based RLS policies. Writing
+-- them as the owner would work only because `request.jwt.claim.sub` is
+-- transaction-local and survives `reset role` — `inbox_rules` carries a BEFORE
+-- INSERT trigger that raises `rule_tenant_mismatch` unless `auth.uid()` matches
+-- `new.user_id`. Doing it as the caller removes that hidden dependency.
 insert into public.import_batches (
   id, user_id, file_name, source, status, row_count, warning_count,
   skipped_rows, map_confidence, headers, column_map, local_id,
@@ -255,6 +256,11 @@ where id = '00000000-0000-4000-8000-00000000a203';
 update public.inbox_candidates
 set transfer_pair_id = '00000000-0000-4000-8000-00000000a203'
 where id = '00000000-0000-4000-8000-00000000a204';
+
+-- `transaction_import_provenance` is genuinely SELECT-only for `authenticated`
+-- (it has no INSERT policy and no INSERT grant), so this row is written as the
+-- owner. The export path still reads it as the authenticated caller under RLS.
+reset role;
 
 insert into public.transaction_import_provenance (
   transaction_id, user_id, candidate_id, import_batch_id, source,

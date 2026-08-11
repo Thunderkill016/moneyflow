@@ -28,16 +28,30 @@
 -- Timestamps are formatted explicitly rather than relying on the implicit
 -- timestamptz-to-json cast, whose output follows the session `DateStyle`. The
 -- archive contract pins an ISO 8601 shape, so the format is pinned here too.
+-- Date columns are cast to `timestamp` before formatting for the same reason:
+-- `to_char(date, text)` does not exist, and the implicit resolution prefers
+-- `timestamptz`, which would quietly read the session `TimeZone`.
 
 -- The archive contract pins timestamps to an ISO 8601 shape with an explicit
 -- UTC designator. The implicit timestamptz-to-jsonb cast follows the session
 -- `DateStyle` and would emit `+00:00` (or worse, a non-ISO style) depending on
 -- who calls it, so every archive timestamp goes through this one formatter.
 -- Null in, null out: nullable columns such as `deleted_at` stay null.
+--
+-- STABLE, not IMMUTABLE: `to_char(timestamp, text)` reads `DateStyle`/`lc_time`,
+-- so it is itself only stable. The template here is numeric-only, so the output
+-- does not actually vary — but claiming IMMUTABLE would be a false promise that
+-- could let the expression be folded at plan time or used in an index.
+--
+-- Granting EXECUTE to `authenticated` is required by the SECURITY INVOKER design
+-- and does expose `/rest/v1/rpc/archive_timestamp`. That is a deliberate trade:
+-- the endpoint takes a timestamp and returns a formatted string, reaching no
+-- tenant data and holding no state, and one shared formatter is worth more than
+-- forty inlined copies of a format string that could silently diverge.
 create or replace function public.archive_timestamp(p_value timestamptz)
 returns text
 language sql
-immutable
+stable
 set search_path = ''
 as $$
   select to_char(p_value at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"');
@@ -160,7 +174,7 @@ begin
           'name', goal.name,
           'target_minor', goal.target_minor,
           'allocated_minor', goal.allocated_minor,
-          'deadline', to_char(goal.deadline, 'YYYY-MM-DD'),
+          'deadline', to_char(goal.deadline::timestamp, 'YYYY-MM-DD'),
           'is_archived', goal.is_archived,
           'created_at', public.archive_timestamp(goal.created_at),
           'updated_at', public.archive_timestamp(goal.updated_at)
@@ -214,7 +228,7 @@ begin
         jsonb_build_object(
           'id', budget.id,
           'category_id', budget.category_id,
-          'month_start', to_char(budget.month_start, 'YYYY-MM-DD'),
+          'month_start', to_char(budget.month_start::timestamp, 'YYYY-MM-DD'),
           'limit_minor', budget.limit_minor,
           'created_at', public.archive_timestamp(budget.created_at),
           'updated_at', public.archive_timestamp(budget.updated_at)
@@ -251,7 +265,7 @@ begin
         jsonb_build_object(
           'id', reconciliation.id,
           'account_id', reconciliation.account_id,
-          'statement_date', to_char(reconciliation.statement_date, 'YYYY-MM-DD'),
+          'statement_date', to_char(reconciliation.statement_date::timestamp, 'YYYY-MM-DD'),
           'statement_balance_minor', reconciliation.statement_balance_minor,
           'status', reconciliation.status,
           'calculated_balance_minor', reconciliation.calculated_balance_minor,
@@ -279,7 +293,7 @@ begin
           'id', transaction.id,
           'kind', transaction.kind,
           'note', transaction.note,
-          'occurred_on', to_char(transaction.occurred_on, 'YYYY-MM-DD'),
+          'occurred_on', to_char(transaction.occurred_on::timestamp, 'YYYY-MM-DD'),
           'idempotency_key', transaction.idempotency_key,
           'review_status', transaction.review_status,
           'created_at', public.archive_timestamp(transaction.created_at),
@@ -300,7 +314,7 @@ begin
           'amount_minor', candidate.amount_minor,
           'merchant', candidate.merchant,
           'note', candidate.note,
-          'occurred_on', to_char(candidate.occurred_on, 'YYYY-MM-DD'),
+          'occurred_on', to_char(candidate.occurred_on::timestamp, 'YYYY-MM-DD'),
           'source', candidate.source,
           'confidence', candidate.confidence,
           'status', candidate.status,
@@ -355,7 +369,7 @@ begin
         jsonb_build_object(
           'id', occurrence.id,
           'template_id', occurrence.template_id,
-          'month_start', to_char(occurrence.month_start, 'YYYY-MM-DD'),
+          'month_start', to_char(occurrence.month_start::timestamp, 'YYYY-MM-DD'),
           'transaction_id', occurrence.transaction_id,
           'received_at', public.archive_timestamp(occurrence.received_at)
         )
@@ -370,7 +384,7 @@ begin
         jsonb_build_object(
           'id', occurrence.id,
           'commitment_id', occurrence.commitment_id,
-          'month_start', to_char(occurrence.month_start, 'YYYY-MM-DD'),
+          'month_start', to_char(occurrence.month_start::timestamp, 'YYYY-MM-DD'),
           'transaction_id', occurrence.transaction_id,
           'paid_at', public.archive_timestamp(occurrence.paid_at)
         )

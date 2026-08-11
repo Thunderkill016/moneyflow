@@ -32,6 +32,11 @@ const workflowOrPolicyMatchers = [
 const databaseMatchers = [
   startsWith("supabase/"),
   equals("scripts/check-rls-migrations.sh"),
+  // The archive round-trip proof runs inside the database job, so editing it
+  // must select that job. Without these, a PR touching only the verifier would
+  // run no gate that executes it.
+  equals("scripts/verify-archive-producer.sh"),
+  equals("scripts/verify-archive-producer.mjs"),
   equals(".github/workflows/ci.yml"),
   equals("scripts/classify-ci-changes.mjs"),
   equals("scripts/classify-ci-changes.test.mjs"),
