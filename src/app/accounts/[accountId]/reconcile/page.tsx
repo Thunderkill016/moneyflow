@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AccountReconciliationPageGate } from "@/components/account-reconciliation-page-gate";
 import { buildAccountRegister } from "@/lib/account-register";
+import { emptyReconciliationImportEvidence } from "@/lib/reconciliation-import-evidence";
+import type { AccountReconciliationStateData } from "@/lib/reconciliation";
 import { getAccountsWorkspace } from "@/server/accounts";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
+import { getReconciliationImportEvidence } from "@/server/reconciliation-import-evidence";
 import { getAccountReconciliationState } from "@/server/reconciliation";
 
 export const metadata: Metadata = {
@@ -32,14 +35,22 @@ export default async function Page({
   const entries = account
     ? buildAccountRegister(financeWorkspace.transactions, account.id)
     : [];
-  const reconciliationState = account
-    ? await getAccountReconciliationState(account.id, entries)
-    : {
-        featureAvailable: false,
-        rows: [],
-        sessions: [],
-        dataError: null,
-      };
+  const unavailableState: AccountReconciliationStateData = {
+    featureAvailable: false,
+    rows: [],
+    sessions: [],
+    dataError: null,
+  };
+  const [reconciliationState, importEvidence] = await Promise.all([
+    account
+      ? getAccountReconciliationState(account.id, entries)
+      : Promise.resolve(unavailableState),
+    account
+      ? getReconciliationImportEvidence(
+          entries.map((entry) => entry.transaction.id),
+        )
+      : Promise.resolve(emptyReconciliationImportEvidence()),
+  ]);
 
   return (
     <AccountReconciliationPageGate
@@ -51,6 +62,7 @@ export default async function Page({
       account={account}
       registerEntries={entries}
       initialState={reconciliationState}
+      importEvidence={importEvidence}
       today={financeWorkspace.today}
       dataError={dataError}
     />

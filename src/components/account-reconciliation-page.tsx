@@ -13,6 +13,7 @@ import {
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
+import { ReconciliationEntryEvidence } from "@/components/reconciliation-entry-evidence";
 import type { ViewerSummary } from "@/components/user-chip";
 import type { AccountRegisterEntry } from "@/lib/account-register";
 import { accountKindLabels, type AccountSummary } from "@/lib/accounts";
@@ -21,6 +22,10 @@ import {
   readDemoReconciliationState,
   writeDemoReconciliationState,
 } from "@/lib/demo-reconciliation-store";
+import {
+  findExactDifferenceCandidates,
+  type ReconciliationImportEvidenceData,
+} from "@/lib/reconciliation-import-evidence";
 import {
   canReopenSession,
   completeDemoAccountReconciliation,
@@ -91,6 +96,7 @@ export function AccountReconciliationPage({
   account,
   registerEntries,
   initialState,
+  importEvidence,
   today,
   dataError,
 }: {
@@ -98,6 +104,7 @@ export function AccountReconciliationPage({
   account: AccountSummary | null;
   registerEntries: AccountRegisterEntry[];
   initialState: AccountReconciliationStateData;
+  importEvidence: ReconciliationImportEvidenceData;
   today: string;
   dataError: string | null;
 }) {
@@ -140,6 +147,19 @@ export function AccountReconciliationPage({
         isEntryEligibleForSession(entry, openSession.statementDate),
       )
     : [];
+  const exactDifferenceCandidateIds = useMemo(
+    () =>
+      new Set(
+        openSession
+          ? findExactDifferenceCandidates(
+              workspace.entries,
+              openSession.statementDate,
+              openSession.difference,
+            ).map((entry) => entry.entryId)
+          : [],
+      ),
+    [openSession, workspace.entries],
+  );
   const laterEntryCount = openSession
     ? workspace.entries.length - eligibleEntries.length
     : 0;
@@ -391,6 +411,12 @@ export function AccountReconciliationPage({
             <span>{stateData.dataError}</span>
           </div>
         ) : null}
+        {importEvidence.dataError ? (
+          <div className="data-alert" role="status">
+            <Icon name="bell" />
+            <span>{importEvidence.dataError}</span>
+          </div>
+        ) : null}
         {error ? (
           <div className={styles.errorNotice} role="alert">
             <Icon name="bell" />
@@ -585,6 +611,10 @@ export function AccountReconciliationPage({
                           {eligibleEntries.map((entry) => {
                             const locked = entry.state === "reconciled";
                             const nextState = entry.state === "cleared" ? "pending" : "cleared";
+                            const sourceEvidence =
+                              importEvidence.byTransactionId[entry.transaction.id] ?? null;
+                            const exactDifferenceCandidate =
+                              exactDifferenceCandidateIds.has(entry.entryId);
                             return (
                               <article className={styles.entryRow} key={entry.entryId}>
                                 <span className={styles.entryIcon}>
@@ -596,6 +626,11 @@ export function AccountReconciliationPage({
                                   <time dateTime={entry.transaction.occurredAt}>
                                     {displayDate(entry.transaction.occurredOn)}
                                   </time>
+                                  <ReconciliationEntryEvidence
+                                    evidence={sourceEvidence}
+                                    currentNote={entry.transaction.note}
+                                    exactDifferenceCandidate={exactDifferenceCandidate}
+                                  />
                                 </div>
                                 <MoneyValue
                                   amount={entry.impact}
