@@ -6,6 +6,7 @@ import {
   ARCHIVE_MONEY_MAX,
   ARCHIVE_MONEY_MIN,
   ARCHIVE_RESTORE_ORDER,
+  ARCHIVE_ROW_SPECS,
   ARCHIVE_SCHEMA_GENERATION,
   ARCHIVE_TABLE_INVENTORY,
   ARCHIVE_VERSION,
@@ -690,6 +691,8 @@ function candidate(id: string, overrides: Record<string, unknown> = {}) {
     match_status: null,
     match_reason: null,
     match_confidence: null,
+    applied_rule_id: null,
+    applied_rule_version: null,
     transfer_pair_id: null,
     approved_transaction_id: null,
     approved_at: null,
@@ -958,6 +961,8 @@ test("secrets hidden inside opaque JSON payloads are still rejected", () => {
       warning_count: 0,
       skipped_rows: 0,
       map_confidence: 0,
+      parser_version: null,
+      mapping_version: null,
       headers: [],
       // The strict schema accepts column_map as opaque JSON, so the recursive
       // scan is the only thing standing between a nested secret and the archive.
@@ -1001,6 +1006,172 @@ test("legitimate MoneyFlow field names are not mistaken for secrets", () => {
   archive.tenant_row_counts = countsFor(archive.tables as Record<string, unknown>);
   assertAccepts(archive);
 });
+
+// --- L. review findings on #343 ------------------------------------------------
+
+test("an impossible calendar timestamp is rejected, not normalized", () => {
+  // Date.parse("2026-02-30T10:00:00Z") returns a valid time for 2 March rather
+  // than NaN, so Date.parse alone would let an impossible date reach a
+  // timestamptz INSERT.
+  assert.ok(!Number.isNaN(Date.parse("2026-02-30T10:00:00Z")), "premise: Date.parse normalizes");
+  assertRejects({ ...buildArchive(), produced_at: "2026-02-30T10:00:00Z" }, "produced_at_malformed");
+  assertRejects(
+    buildArchive((tables) => {
+      (tables.categories as Record<string, unknown>[])[0].created_at = "2026-02-30T10:00:00Z";
+    }),
+    "field_not_timestamp",
+  );
+  assertRejects(
+    buildArchive((tables) => {
+      (tables.categories as Record<string, unknown>[])[0].created_at = "2026-08-11T99:99:99Z";
+    }),
+    "field_not_timestamp",
+  );
+  assertAccepts(
+    buildArchive((tables) => {
+      (tables.categories as Record<string, unknown>[])[0].created_at = "2028-02-29T23:59:59Z";
+    }),
+  );
+});
+
+test("uuids differing only by hex case are one row, as PostgreSQL sees them", () => {
+  const archive = buildArchive((tables) => {
+    (tables.categories as unknown[]).push({
+      ...category(CATEGORY_EXPENSE.toUpperCase(), "expense"),
+    });
+  });
+  archive.tenant_row_counts = countsFor(archive.tables as Record<string, unknown>);
+  assertRejects(archive, "duplicate_row_id");
+});
+
+test("a reference resolves across uuid letter casing", () => {
+  const archive = buildArchive((tables) => {
+    (tables.transactionEntries as Record<string, unknown>[])[1].category_id =
+      CATEGORY_EXPENSE.toUpperCase();
+  });
+  assertAccepts(archive);
+});
+
+test("entry reconciliation shape follows its CHECK constraint", () => {
+  const pendingButCleared = buildArchive((tables) => {
+    (tables.transactionEntries as Record<string, unknown>[])[1].cleared_at = TIMESTAMP;
+  });
+  assertRejects(pendingButCleared, "entry_reconciliation_shape_invalid");
+
+  const clearedProperly = buildArchive((tables) => {
+    const row = (tables.transactionEntries as Record<string, unknown>[])[1];
+    row.reconciliation_state = "cleared";
+    row.cleared_at = TIMESTAMP;
+  });
+  assertAccepts(clearedProperly);
+
+  const reconciledWithoutLink = buildArchive((tables) => {
+    const row = (tables.transactionEntries as Record<string, unknown>[])[1];
+    row.reconciliation_state = "reconciled";
+    row.cleared_at = TIMESTAMP;
+  });
+  assertRejects(reconciledWithoutLink, "entry_reconciliation_shape_invalid");
+});
+
+test("reconciliation status shape follows its CHECK constraint", () => {
+  const openWithCompletion = buildArchive((tables) => {
+    (tables.accountReconciliations as unknown[]).push(reconciliation({ completed_at: TIMESTAMP }));
+  });
+  openWithCompletion.tenant_row_counts = countsFor(
+    openWithCompletion.tables as Record<string, unknown>,
+  );
+  assertRejects(openWithCompletion, "reconciliation_status_shape_invalid");
+
+  const completedMissingFields = buildArchive((tables) => {
+    (tables.accountReconciliations as unknown[]).push(reconciliation({ status: "completed" }));
+  });
+  completedMissingFields.tenant_row_counts = countsFor(
+    completedMissingFields.tables as Record<string, unknown>,
+  );
+  assertRejects(completedMissingFields, "reconciliation_status_shape_invalid");
+
+  const validOpen = buildArchive((tables) => {
+    (tables.accountReconciliations as unknown[]).push(reconciliation());
+  });
+  validOpen.tenant_row_counts = countsFor(validOpen.tables as Record<string, unknown>);
+  assertAccepts(validOpen);
+});
+
+test("candidate approval and applied-rule pairs follow their CHECK constraints", () => {
+  const approvalWithoutStatus = buildArchive((tables) => {
+    (tables.inboxCandidates as unknown[]).push(
+      candidate(uuid(120), { approved_transaction_id: TX_EXPENSE }),
+    );
+  });
+  approvalWithoutStatus.tenant_row_counts = countsFor(
+    approvalWithoutStatus.tables as Record<string, unknown>,
+  );
+  assertRejects(approvalWithoutStatus, "candidate_approval_shape_invalid");
+
+  const halfRulePair = buildArchive((tables) => {
+    (tables.inboxCandidates as unknown[]).push(candidate(uuid(121), { applied_rule_id: uuid(81) }));
+  });
+  halfRulePair.tenant_row_counts = countsFor(halfRulePair.tables as Record<string, unknown>);
+  assertRejects(halfRulePair, "candidate_applied_rule_pair_invalid");
+
+  const validPair = buildArchive((tables) => {
+    (tables.inboxCandidates as unknown[]).push(
+      candidate(uuid(122), {
+        // No FK exists on applied_rule_id, so a since-deleted rule must not be
+        // rejected merely because the rule row is absent from the archive.
+        applied_rule_id: uuid(999),
+        applied_rule_version: 3,
+        status: "approved",
+        approved_at: TIMESTAMP,
+        approved_transaction_id: TX_EXPENSE,
+      }),
+    );
+  });
+  validPair.tenant_row_counts = countsFor(validPair.tables as Record<string, unknown>);
+  assertAccepts(validPair);
+});
+
+test("import and provenance columns the schema persists are part of the contract", () => {
+  // Unknown fields are rejected, so an omitted column is unpreservable: the
+  // producer could not carry it without failing validation.
+  const specs = ARCHIVE_ROW_SPECS;
+  for (const field of ["parser_version", "mapping_version"]) {
+    assert.ok(field in specs.importBatches.fields, `importBatches must carry ${field}`);
+  }
+  for (const field of ["match_confidence", "created_at"]) {
+    assert.ok(
+      field in specs.transactionImportProvenance.fields,
+      `transactionImportProvenance must carry ${field}`,
+    );
+  }
+  for (const field of ["applied_rule_id", "applied_rule_version"]) {
+    assert.ok(field in specs.inboxCandidates.fields, `inboxCandidates must carry ${field}`);
+  }
+  // Deliberate exclusions, asserted so a future reader sees they are decisions.
+  assert.ok(!("idempotency_key" in specs.auditHistory.fields));
+  assert.ok(!("user_id" in specs.transactions.fields));
+  assert.ok(!("id" in specs.profile.fields));
+});
+
+function reconciliation(overrides: Record<string, unknown> = {}) {
+  return {
+    id: uuid(130),
+    account_id: ACCOUNT_A,
+    statement_date: DATE,
+    statement_balance_minor: 1_000_000,
+    status: "open",
+    calculated_balance_minor: null,
+    pending_account_leg_count: null,
+    cleared_account_leg_count: null,
+    reconciled_account_leg_count: null,
+    started_at: TIMESTAMP,
+    completed_at: null,
+    last_reopened_at: null,
+    created_at: TIMESTAMP,
+    updated_at: TIMESTAMP,
+    ...overrides,
+  };
+}
 
 // --- K. purity and determinism -------------------------------------------------
 

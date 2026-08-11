@@ -527,7 +527,7 @@ accounts with equal `currency_code`.
 | R2 | Research transaction boundary and plpgsql semantics | R1 | two primary sources | done |
 | R3 | Owner decisions on the three open questions | R2 | D1/D2/D3 recorded above | done |
 | R4 | Accept the archive contract | R3 | this packet, contract now executable | done |
-| R5 | Envelope types and pure validators + unit tests | R4 | 85 assertions across 3 modules; see below | done |
+| R5 | Envelope types and pure validators + unit tests | R4 | 92 assertions across 3 modules; see below | done |
 | R6 | `export_user_archive` + inventory drift test | R5 | drift test landed in R5; producer still absent | not started |
 | R7 | `restore_user_archive` + pgTAP atomicity/ownership | R6 | — | not started |
 | R8 | Settings surface with required states | R7 | — | not started |
@@ -540,7 +540,7 @@ accounts with equal `currency_code`.
 | 2026-08-11 | human_owner | planner | planned | P1 accepted; `main@a6aaa7d` | no archive or restore exists | Map tenant truth, then specify |
 | 2026-08-11 | planner | human_owner | specifying | inventory, ordering, invariant findings, two sources, P2-AC1–14 | three open questions in R3; nothing implemented | Owner answers R3 and accepts or amends the contract |
 | 2026-08-11 | human_owner | implementer | implementing | D1/D2/D3 decided | contract not yet executable | Implement R5 envelope, types and pure validators |
-| 2026-08-11 | implementer | evaluator | evaluating | 3 modules, 85 assertions; 931/931 repo unit tests | no producer, no restore, no pgTAP | Attack the validator, then open the PR |
+| 2026-08-11 | implementer | evaluator | evaluating | 3 modules, 92 assertions; 938/938 repo unit tests | no producer, no restore, no pgTAP | Attack the validator, then open the PR |
 
 ### Current permission boundary
 
@@ -596,6 +596,40 @@ Four real findings, all fixed before the PR:
 One self-inflicted test defect was also fixed: the purity check scanned the
 module's prose and tripped on its own documentation naming `process.env` as
 something it avoids. It now strips comments and scans executable code.
+
+### Review findings on #343
+
+Four more, all verified against source before accepting, all fixed:
+
+1. **Persisted columns were missing from the contract (P1).** `import_batches.parser_version`
+   and `mapping_version`, `transaction_import_provenance.match_confidence` and
+   `created_at`, and `inbox_candidates.applied_rule_id` and `applied_rule_version`
+   were absent. Because unknown fields are rejected, a producer could not have
+   preserved them without failing validation — so faithful round trip was
+   impossible for any tenant using imports or deterministic rules. All six added.
+   `applied_rule_id` is modelled as a plain uuid, **not** a reference, because the
+   schema gives it no foreign key: the rule it names may since have been deleted,
+   and requiring its presence would reject valid archives.
+   `financial_mutation_audit_events.idempotency_key` stays excluded, now
+   explicitly: it deduplicates live writes, and this history is never replayed.
+2. **Cross-field CHECKs beyond `savingsGoals` were unenforced (P2).** A `pending`
+   entry with a non-null `cleared_at`, an `open` reconciliation carrying
+   completion fields, a candidate with an approval link but no approved status,
+   and a half-populated applied-rule pair all passed. Each now mirrors its named
+   constraint: `transaction_entries_reconciliation_shape_check`,
+   `account_reconciliations_status_shape_check`,
+   `inbox_candidates_approval_link_check` and
+   `inbox_candidates_applied_rule_pair_check`.
+3. **`Date.parse` normalizes impossible dates (P2).**
+   `Date.parse("2026-02-30T10:00:00Z")` returns a valid time for 2 March rather
+   than `NaN`, so an impossible calendar timestamp would have reached a
+   `timestamptz` INSERT. Timestamps now validate the date part as strictly as
+   dates do, and range-check the clock, since the regex alone accepted `99:99:99`.
+4. **UUID letter casing split identity (P2).** The uuid pattern is
+   case-insensitive but rows were indexed by raw string, so two ids differing only
+   in hex case were two rows here and one row in PostgreSQL — missing
+   `duplicate_row_id` and failing later on the primary key. Identity and reference
+   lookups are now canonicalized to lower case.
 
 ### Remaining limitations
 

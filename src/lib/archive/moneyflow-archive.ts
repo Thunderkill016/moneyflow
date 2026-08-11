@@ -424,6 +424,8 @@ export const ARCHIVE_ROW_SPECS: Readonly<Record<string, ArchiveRowSpec>> = {
       map_confidence: { kind: "unitNumber" },
       headers: { kind: "jsonArray" },
       column_map: { kind: "jsonObject" },
+      parser_version: { kind: "text", nullable: true, minLength: 1, maxLength: 80 },
+      mapping_version: { kind: "integer", nullable: true, min: 1 },
       local_id: { kind: "text", nullable: true, maxLength: 80 },
       created_at: TIMESTAMP,
       committed_at: NULLABLE_TIMESTAMP,
@@ -561,6 +563,8 @@ export const ARCHIVE_ROW_SPECS: Readonly<Record<string, ArchiveRowSpec>> = {
       match_status: { kind: "enum", values: IMPORT_MATCH_STATUSES, nullable: true },
       match_reason: { kind: "text", nullable: true, maxLength: 500 },
       match_confidence: { kind: "unitNumber", nullable: true },
+      applied_rule_id: { kind: "uuid", nullable: true },
+      applied_rule_version: { kind: "integer", nullable: true, min: 1 },
       transfer_pair_id: { kind: "ref", collection: "inboxCandidates", nullable: true },
       approved_transaction_id: { kind: "ref", collection: "transactions", nullable: true },
       approved_at: NULLABLE_TIMESTAMP,
@@ -613,6 +617,8 @@ export const ARCHIVE_ROW_SPECS: Readonly<Record<string, ArchiveRowSpec>> = {
       mapping_version: { kind: "integer", nullable: true, min: 1 },
       match_status: { kind: "enum", values: IMPORT_MATCH_STATUSES },
       match_reason: { kind: "text", nullable: true, maxLength: 500 },
+      match_confidence: { kind: "unitNumber", nullable: true },
+      created_at: TIMESTAMP,
     },
   },
   transactionEntries: {
@@ -648,6 +654,10 @@ export const ARCHIVE_ROW_SPECS: Readonly<Record<string, ArchiveRowSpec>> = {
    * when it is `'system'`, so `actor_kind` already carries every bit of
    * information those columns held. `request_id` is transport metadata with no
    * user recovery value and is excluded.
+   *
+   * `idempotency_key` is excluded deliberately, not overlooked: it exists to
+   * deduplicate live writes, and these events are never replayed, so it would
+   * carry no user recovery value into the target tenant.
    */
   auditHistory: {
     idField: "id",

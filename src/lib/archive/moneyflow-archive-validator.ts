@@ -82,6 +82,10 @@ export type ArchiveRejectionCode =
   | "field_not_date"
   | "month_start_not_first_of_month"
   | "allocated_exceeds_target"
+  | "entry_reconciliation_shape_invalid"
+  | "reconciliation_status_shape_invalid"
+  | "candidate_approval_shape_invalid"
+  | "candidate_applied_rule_pair_invalid"
   | "field_not_timestamp"
   | "field_not_enum_value"
   | "field_not_json_array"
@@ -131,8 +135,30 @@ function isRealDate(value: string): boolean {
   );
 }
 
+/**
+ * `Date.parse` is not strict enough on its own: `Date.parse("2026-02-30T10:00:00Z")`
+ * silently normalizes to 2 March instead of returning NaN, so an impossible
+ * calendar date would reach a `timestamptz` INSERT and fail there. The date part
+ * is therefore checked as strictly as `isRealDate`, and the clock components are
+ * range-checked because the regex alone would accept `99:99:99`.
+ */
 function isRealTimestamp(value: string): boolean {
-  return TIMESTAMP_RE.test(value) && !Number.isNaN(Date.parse(value));
+  if (!TIMESTAMP_RE.test(value)) return false;
+  if (!isRealDate(value.slice(0, 10))) return false;
+  const hours = Number.parseInt(value.slice(11, 13), 10);
+  const minutes = Number.parseInt(value.slice(14, 16), 10);
+  const seconds = Number.parseInt(value.slice(17, 19), 10);
+  if (hours > 23 || minutes > 59 || seconds > 59) return false;
+  return !Number.isNaN(Date.parse(value));
+}
+
+/**
+ * PostgreSQL canonicalizes `uuid` values, so two archive ids differing only in
+ * hex letter case are the *same* row to the database. Indexing raw strings would
+ * miss the duplicate here and fail on the primary key mid-restore instead.
+ */
+function canonicalUuid(value: string): string {
+  return value.toLowerCase();
 }
 
 function normalizeKey(key: string): string {
@@ -331,20 +357,87 @@ function validateRow(
     validateField(row[field], fieldSpec, `${path}.${field}`, errors);
   }
 
-  // Cross-field CHECK that no single field spec can express:
-  // `allocated_minor >= 0 and allocated_minor <= target_minor`.
-  if (collection === "savingsGoals") {
-    const allocated = row.allocated_minor;
-    const target = row.target_minor;
-    if (
-      typeof allocated === "number" &&
-      typeof target === "number" &&
-      Number.isSafeInteger(allocated) &&
-      Number.isSafeInteger(target) &&
-      allocated > target
-    ) {
-      errors.push({ code: "allocated_exceeds_target", path: `${path}.allocated_minor` });
+  validateRowShapeChecks(row, collection, path, errors);
+}
+
+/**
+ * Cross-field CHECK constraints, which no single field spec can express. Without
+ * these the validator would report `ok` and let a restore begin writing, only to
+ * fail on an INSERT — exactly the "validate before mutation" promise it makes.
+ *
+ * Each rule mirrors a named constraint in the migrations.
+ */
+function validateRowShapeChecks(
+  row: Record<string, unknown>,
+  collection: string,
+  path: string,
+  errors: ArchiveRejection[],
+): void {
+  const isNull = (value: unknown) => value === null || value === undefined;
+
+  switch (collection) {
+    // `allocated_minor >= 0 and allocated_minor <= target_minor`
+    case "savingsGoals": {
+      const allocated = row.allocated_minor;
+      const target = row.target_minor;
+      if (
+        typeof allocated === "number" &&
+        typeof target === "number" &&
+        Number.isSafeInteger(allocated) &&
+        Number.isSafeInteger(target) &&
+        allocated > target
+      ) {
+        errors.push({ code: "allocated_exceeds_target", path: `${path}.allocated_minor` });
+      }
+      return;
     }
+    // `transaction_entries_reconciliation_shape_check`
+    case "transactionEntries": {
+      const state = row.reconciliation_state;
+      const cleared = !isNull(row.cleared_at);
+      const linked = !isNull(row.reconciliation_id);
+      const valid =
+        (state === "pending" && !cleared && !linked) ||
+        (state === "cleared" && cleared && !linked) ||
+        (state === "reconciled" && cleared && linked);
+      if (!valid) {
+        errors.push({ code: "entry_reconciliation_shape_invalid", path });
+      }
+      return;
+    }
+    // `account_reconciliations_status_shape_check`
+    case "accountReconciliations": {
+      const status = row.status;
+      const completionFields = [
+        row.completed_at,
+        row.calculated_balance_minor,
+        row.pending_account_leg_count,
+        row.cleared_account_leg_count,
+        row.reconciled_account_leg_count,
+      ];
+      const allNull = completionFields.every(isNull);
+      const noneNull = completionFields.every((value) => !isNull(value));
+      if ((status === "open" && !allNull) || (status === "completed" && !noneNull)) {
+        errors.push({ code: "reconciliation_status_shape_invalid", path });
+      }
+      return;
+    }
+    case "inboxCandidates": {
+      // `inbox_candidates_approval_link_check`
+      if (
+        !isNull(row.approved_transaction_id) &&
+        !(row.status === "approved" && !isNull(row.approved_at))
+      ) {
+        errors.push({ code: "candidate_approval_shape_invalid", path });
+      }
+      // `inbox_candidates_applied_rule_pair_check`
+      if (isNull(row.applied_rule_id) !== isNull(row.applied_rule_version)) {
+        errors.push({ code: "candidate_applied_rule_pair_invalid", path });
+      }
+      return;
+    }
+    default:
+      return;
   }
 }
 
@@ -363,8 +456,9 @@ function buildRowIndex(
     const byId = new Map<string, Record<string, unknown>>();
     rows.forEach((row, position) => {
       if (!isPlainObject(row)) return;
-      const id = row[spec.idField as string];
-      if (typeof id !== "string") return;
+      const rawId = row[spec.idField as string];
+      if (typeof rawId !== "string") return;
+      const id = canonicalUuid(rawId);
       if (byId.has(id)) {
         errors.push({ code: "duplicate_row_id", path: `tables.${collection}[${position}]` });
         return;
@@ -391,8 +485,9 @@ function validateReferences(
       if (!isPlainObject(row)) return;
       for (const [field, fieldSpec] of Object.entries(spec.fields)) {
         if (fieldSpec.kind !== "ref") continue;
-        const value = row[field];
-        if (value === null || value === undefined || typeof value !== "string") continue;
+        const rawValue = row[field];
+        if (rawValue === null || rawValue === undefined || typeof rawValue !== "string") continue;
+        const value = canonicalUuid(rawValue);
         const target = index.get(fieldSpec.collection);
         const path = `tables.${collection}[${position}].${field}`;
         if (!target?.has(value)) {
@@ -401,7 +496,12 @@ function validateReferences(
         }
         // A self-reference must point at a *different* row. `transfer_pair_id`
         // pairs two candidates; a candidate paired with itself is malformed.
-        if (fieldSpec.collection === collection && spec.idField && row[spec.idField] === value) {
+        const ownId = spec.idField ? row[spec.idField] : undefined;
+        if (
+          fieldSpec.collection === collection &&
+          typeof ownId === "string" &&
+          canonicalUuid(ownId) === value
+        ) {
           errors.push({ code: "self_reference_to_own_row", path });
         }
       }
