@@ -1,11 +1,11 @@
 # Shadcn semantic theme ownership
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
+**Status:** evaluating  
+**Execution state:** evaluating  
+**Active role:** evaluator  
 **Permission scope:** branch_write  
 **Owner:** Thunderkill016  
-**Issue/PR:** stacked follow-up to #337; PR pending  
+**Issue/PR:** PR [#339](https://github.com/Thunderkill016/moneyflow/pull/339), draft, stacked on `fix/presentation-ownership-onboarding` (#337)  
 **Last updated:** 2026-08-11
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
@@ -199,43 +199,154 @@ The active CSS entry owns Tailwind theme registration; `globals.css`/`document-t
 - Forbidden writes: `main`, merge, force-push shared history, Vercel/Supabase/provider settings, production data, branch protection/rulesets.
 - Human approval required before: merge or any deployment/provider write.
 - Rollback or stop condition: stop and return to planning if the bridge requires changing product palette semantics, component behavior, or any data/provider boundary.
-
 ## Evaluation
+
+### What the delivered candidate actually did: nothing
+
+The first implementation put `@theme inline` in `src/app/legacy.css`. Measured
+against a clean production bundle it registered **nothing**:
+
+- not one semantic utility was generated — `bg-background`, `bg-primary`,
+  `bg-muted`, `text-foreground`, `border-border`, `ring-ring` all absent;
+- `--color-background` never appeared in the output;
+- the ownership inventory was byte-identical to #337 —
+  `ownedUnconditional: 115`, `staleAllowances: 0`, `confirmedUnowned: 227`.
+
+Cause: `legacy.css` has no `@import "tailwindcss"`, so Tailwind never processed
+the block. This is the "`@theme` placement/import ordering" counterexample the
+rework brief anticipated, and it would have shipped as a no-op with a convincing
+commit message.
+
+Moving the block into `globals.css` — the file that owns Tailwind's context and
+already holds the aliases it references — makes it work.
+
+### Ownership delta, verified entry by entry before touching the baseline
+
+| | Before | After |
+|---|---|---|
+| `ownedUnconditional` | 115 | 134 |
+| `ownedUtility` | 21 | 25 |
+| `tailwindVariantPrefix` | 16 | 20 |
+| `confirmedUnowned` | 227 | 203 |
+| `unknown` | 50 | 50 |
+| `contextualUnproven` | 66 | 66 |
+| **baseline** | **346** | **319** |
+
+All 27 removals were checked individually against the bundle first:
+
+- **23** gained a genuine unconditional owner (`.bg-background`,
+  `.text-foreground`, `.accent-primary`, `.ring-destructive`, …);
+- **4** are variant prefixes whose guarded utility now exists: `dark`
+  (`dark:border-input`), `aria-expanded` (`aria-expanded:bg-muted`),
+  `placeholder` (`placeholder:text-muted-foreground`) and `after`
+  (`after:border-ring`, which needs `--color-ring`).
+
+No entry was added. `baselineAdded: 0`, and the gate still resolves its approved
+set from git history in bootstrap mode against #337's `e42b4fe`.
+
+### `muted` decision (option B, on evidence)
+
+`--color-muted: var(--mf-surface-muted)`.
+
+Not `var(--muted)`: that is a backward-compatible alias for a **text** colour
+(`--color-text-secondary`, line 161 of `globals.css`) and would paint mid-grey
+text as a background. It is consumed by no CSS today.
+
+Not `var(--secondary)` as the first candidate had it: `--secondary` and muted are
+distinct roles that happen to share `--mf-surface-muted` right now, so borrowing
+it would silently move every `bg-muted` if secondary were ever retuned.
+
+`--mf-surface-muted` is the canonical muted surface and is defined in both
+themes (`#f8fafc` / `#1d2939`). Confirmed in the bundle as
+`.bg-muted{background-color:var(--mf-surface-muted)}`.
+
+### The bridge alone was a regression — second defect found and fixed
+
+`globals.css` carried `button { color: inherit }` and `a { color: inherit }`
+**unlayered**. Unlayered CSS outranks any `@layer`, so those resets beat every
+Tailwind `text-*` utility on a button or link. Invisible while the semantic
+utilities generated nothing; a real contrast defect once they did.
+
+Identified from the browser's own cascade via `CSS.getMatchedStylesForNode`:
+`.text-primary-foreground` sits in `@layer utilities` and lost to an unlayered
+`button` rule.
+
+Measured on the real "Lưu" primary button at 390px, ratios computed from the
+measured rgb rather than assumed from the palette:
+
+| | light | dark |
+|---|---|---|
+| before the bridge | transparent bg, ambient near-black text | same — **dark mode did not resolve** |
+| bridge alone | `#0369a1` + `#101828` → **2.99:1** | `#38bdf8` + `#f8fafc` → **2.05:1** |
+| bridge + layered resets | `#0369a1` + `#ffffff` → **5.93:1** | `#38bdf8` + `#082f49` → **6.48:1** |
+
+Both final ratios clear 4.5:1; neither earlier state did. `text-destructive` also
+starts resolving to real red (`#dc2626` / `#f87171`) instead of ambient
+near-black.
+
+### Measured computed-style delta on real components
+
+390px, `html[data-theme]` toggled, first visible element carrying each class:
+
+| class | property | before | after (light / dark) |
+|---|---|---|---|
+| `bg-background` | background | `rgba(0,0,0,0)` both | `#f8fafc` / `#0c111d` |
+| `bg-primary` | background | `rgba(0,0,0,0)` both | `#0369a1` / `#38bdf8` |
+| `border-border` | border | `rgb(0,0,0)` both | `#d0d5dd` / `#344054` |
+| `border-input` | border | `rgb(0,0,0)` both | `#98a2b3` / `#475467` |
+| `text-foreground` | color | `rgb(0,0,0)` both | `#101828` / `#f8fafc` |
+| `text-muted-foreground` | color | `rgb(0,0,0)` both | `#475467` / `#d0d5dd` |
+| `text-primary-foreground` | color | `rgb(0,0,0)` both | `#ffffff` / `#082f49` |
+| `text-destructive` | color | ambient near-black | `#dc2626` / `#f87171` |
+
+The honest reading: before this change those elements were on **unstyled
+defaults** — transparent backgrounds, pure-black borders and text, identical in
+light and dark. So this is not only ownership correctness; dark mode genuinely
+did not resolve on them. The delta is real and user-visible.
+
+`bg-card`, `bg-muted` and `bg-destructive` were **not** reachable on the probed
+routes: they exist only as hover/aria states (`hover:bg-muted`) or with opacity
+(`bg-destructive/10`). Their generated declarations were verified in the bundle
+instead, and no claim is made about their rendered appearance.
 
 ### Acceptance evidence
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| SHADCN-AC1 | pending clean build | pending |
-| SHADCN-AC2 | pending gate/baseline shrink | pending |
-| SHADCN-AC3 | bridge source maps to existing semantic aliases | pending implementation |
-| SHADCN-AC4 | pending browser evidence | pending |
-| SHADCN-AC5 | pending stacked verification | pending |
-
-### Research and adoption evidence
-
-- Selected sources still support the final implementation: pending final diff review.
-- Important source limitations remain respected: official examples do not define MoneyFlow colors.
-- New tool/dependency/pattern passed the adoption review, or not applicable: not applicable.
-
-### Review findings
-
-- Correctness: pending.
-- Security/ownership: no data/auth scope intended; pending diff review.
-- UI/UX/accessibility: pending browser evidence.
-- Maintainability/duplication: bridge must contain references only, no palette literals.
-- Scope compliance: pending.
+| Semantic utilities generated | verified present in the production bundle | pass |
+| References only, no second palette | diff contains no hex/oklch; every value is `var(--…)` | pass |
+| `--mf-*` remains authority | bridge references aliases that resolve to `--mf-*` | pass |
+| Theme-aware in dark | measured, table above | pass |
+| No new baseline entries | `baselineAdded: 0` | pass |
+| Every removal justified | 23 unconditional + 4 variant prefixes, itemised | pass |
+| No contrast regression | 5.93:1 / 6.48:1 measured, up from 2.99 / 2.05 | pass |
+| No layout/target-size regression | overflow 0; 0 of 84 targets under 44px | pass |
+| Static gates | knowledge, architecture, css-ownership, dead-css, code-css-ownership, ci-policy, lint, typecheck | pass |
+| Unit | 840/840 | pass |
+| Cross-device audit | 101 passed, 1 skipped (phone light + dark) | pass |
+| Demo e2e | 49 passed | pass |
 
 ### Remaining limitations
 
-- All presentation debt outside semantic shadcn theme registration remains intentionally open.
+- `bg-card`, `bg-muted`, `bg-destructive` proven by generated declaration, not by
+  rendered appearance — they need an interaction or an opacity modifier to reach.
+- Toast, Sheet and Dialog were not opened in the probe; Card, Accordion,
+  RadioGroup and CheckboxField have **zero importers** and so were not
+  exercised at all.
+- No WCAG claim beyond the two measured button states.
+- The layered-reset change alters cascade precedence for every `button` and `a`
+  in the app. It was verified by the audit and e2e suites and by the measured
+  table above, but it is broader than the bridge itself and is the main thing a
+  reviewer should scrutinise.
+- Exact-head protected CI cannot be produced while #339 is stacked on an
+  unmerged #337; see the delivery record.
 
 ## Delivery record
 
-- Branch: `fix/shadcn-theme-ownership` stacked on #337 head `86c3eaeeff97526df25b3c978617fe19f6a48109`.
-- PR: pending.
-- Squash commit: pending.
-- CI run: pending.
-- Production deployment: none.
-- Production flow verified: not applicable before merge/deploy.
-- Work packet moved to `docs/plans/completed/`: no.
+- Base: `fix/presentation-ownership-onboarding` @ `86c3eae` (PR #337, **open, not
+  merged**). `main` is `ebc98e4`.
+- PR #339 stays **draft**. Retargeting it at `main` would mean carrying #337's
+  entire diff, and running "exact-head" CI on this stack would produce evidence
+  for a tree that cannot merge as-is. Neither was done.
+- Next allowed action: merge #337, then rebase this branch onto `main` so its
+  diff is the theme slice alone, and only then run the full exact-head matrix.
