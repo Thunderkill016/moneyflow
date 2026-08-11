@@ -334,8 +334,21 @@ body::before {
 
 button, input, select { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
-button { color: inherit; }
-a { color: inherit; text-decoration: none; }
+
+/*
+ * These two are element resets, so they belong in `base`. Left unlayered they
+ * outrank every Tailwind utility — unlayered CSS beats any @layer — which meant
+ * `text-primary-foreground` and friends never applied to a <button> or <a>.
+ * That was invisible while the semantic colour utilities generated nothing;
+ * registering them exposed it as a real contrast defect on the primary button
+ * (measured 2.99:1 in light, 2.05:1 in dark, blue background under ambient
+ * near-black text). Layering the reset lets the utility win while unstyled
+ * buttons still inherit.
+ */
+@layer base {
+  button { color: inherit; }
+  a { color: inherit; text-decoration: none; }
+}
 
 button:focus-visible,
 a:focus-visible,
