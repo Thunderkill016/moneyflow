@@ -338,4 +338,68 @@ test.describe("critical browser compatibility audit", () => {
     await captureTab.click();
     await expect(page).toHaveURL(/\/capture(\/|$)/);
   });
+
+  /*
+   * The mirror image of the contracts above.
+   *
+   * The planning and reconciliation routes each own a distinct operation, so
+   * their action belongs in the topbar alongside the global capture tab. Inbox's
+   * action *is* capture, which the tab already owns — surfacing both would put
+   * the same primary action on one mobile viewport twice. One primary action per
+   * viewport, so mobile keeps only the tab.
+   */
+  test("Inbox exposes the global Ghi tab as its only mobile capture action", async ({
+    page,
+  }) => {
+    const viewportWidth = page.viewportSize()?.width ?? 1_440;
+    test.skip(viewportWidth > 760, "mobile shell contract");
+
+    await page.goto("/inbox", { waitUntil: "domcontentloaded" });
+
+    const captureTab = page
+      .getByRole("navigation", { name: "Điều hướng di động" })
+      .getByRole("button", { name: "Ghi chi tiêu", exact: true });
+    await expect(captureTab).toBeVisible();
+    await expect(captureTab).toContainText("Ghi");
+
+    // No second capture affordance in the topbar at this width.
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "Capture", exact: true }),
+    ).toBeHidden();
+
+    /*
+     * Scoped to the shell chrome — the topbar and the mobile tab bar. The
+     * "one primary action per viewport" rule is about the shell's primary
+     * action, not about every in-page link. The Capture sheet's own options and
+     * the empty-state links legitimately point at /capture and are page
+     * content, so counting them would be measuring the wrong contract.
+     */
+    const shellCaptureActions = await page.evaluate(() => {
+      const chrome = [
+        document.querySelector("header"),
+        document.querySelector('nav[aria-label="Điều hướng di động"]'),
+      ].filter((node): node is HTMLElement => node instanceof HTMLElement);
+
+      const isVisible = (element: Element) => {
+        const style = getComputedStyle(element);
+        return style.display !== "none" && style.visibility !== "hidden";
+      };
+
+      return chrome
+        .flatMap((root) => Array.from(root.querySelectorAll("a, button")))
+        .filter(isVisible)
+        .map((element) =>
+          (element.getAttribute("aria-label") || element.textContent || "").trim(),
+        )
+        .filter((name) => /^(Capture|Ghi chi tiêu)$/u.test(name));
+    });
+
+    expect(
+      shellCaptureActions,
+      "the Inbox shell must present exactly one primary capture action on mobile",
+    ).toEqual(["Ghi chi tiêu"]);
+
+    await captureTab.click();
+    await expect(page).toHaveURL(/\/capture(\/|$)/);
+  });
 });
