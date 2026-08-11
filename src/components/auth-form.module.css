@@ -576,3 +576,55 @@
     transition: none;
   }
 }
+/*
+ * Password entry with a reveal control.
+ *
+ * The toggle sits inside the control box rather than beside it so the field
+ * keeps one focus ring and one hit area boundary, and so the 44px target does
+ * not push the input narrower on a 320px phone.
+ */
+.passwordControl {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordInput {
+  width: 100%;
+  /* Room for the toggle so a long password never runs underneath it. */
+  padding-inline-end: 4.25rem;
+}
+
+.passwordToggle {
+  position: absolute;
+  inset-inline-end: 2px;
+  /* The shell's pointer-target contract is 44x44; the audit enforces it. */
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--auth-muted, var(--mf-text-muted));
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.passwordToggle:hover {
+  color: var(--auth-ink, var(--mf-text));
+}
+
+.passwordToggle:focus-visible {
+  outline: 2px solid var(--mf-focus);
+  outline-offset: 2px;
+}
+
+.passwordToggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

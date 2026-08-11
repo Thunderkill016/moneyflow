@@ -22,6 +22,10 @@ import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
 } from "@/lib/auth-password-policy";
+import {
+  PASSWORD_MISMATCH_MESSAGE,
+  passwordConfirmationMatches,
+} from "@/lib/auth-password-confirmation";
 import { DELETE_CONFIRM_TEXT, isDeleteConfirmValid } from "@/lib/delete-account";
 import { ONBOARDING_PATH } from "@/lib/onboarding";
 import { getSiteOrigin } from "@/lib/site-url";
@@ -44,16 +48,27 @@ const passwordSchema = z
     PASSWORD_MAX_LENGTH,
     `Mật khẩu không được dài quá ${PASSWORD_MAX_LENGTH} ký tự.`,
   );
-const registerSchema = z.object({
-  fullName: z.string().trim().min(2, "Tên cần ít nhất 2 ký tự.").max(80),
-  email: emailSchema,
-  password: passwordSchema,
-  privacyAccepted: z
-    .string()
-    .refine((value) => value === "1" || value === "on" || value === "true", {
-      message: "Bạn cần đồng ý với chính sách quyền riêng tư.",
-    }),
-});
+const registerSchema = z
+  .object({
+    fullName: z.string().trim().min(2, "Tên cần ít nhất 2 ký tự.").max(80),
+    email: emailSchema,
+    password: passwordSchema,
+    confirmPassword: z.string(),
+    privacyAccepted: z
+      .string()
+      .refine((value) => value === "1" || value === "on" || value === "true", {
+        message: "Bạn cần đồng ý với chính sách quyền riêng tư.",
+      }),
+  })
+  /*
+   * The server is the authority on the confirmation match. The form checks it
+   * too, but a client check alone would let a mistyped password reach Supabase
+   * signUp and create an account nobody can sign in to.
+   */
+  .refine(
+    (value) => passwordConfirmationMatches(value.password, value.confirmPassword),
+    { path: ["confirmPassword"], message: PASSWORD_MISMATCH_MESSAGE },
+  );
 const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Nhập mật khẩu."),
@@ -177,6 +192,7 @@ export async function register(
     fullName: formData.get("fullName"),
     email: formData.get("email"),
     password: formData.get("password"),
+    confirmPassword: formData.get("confirmPassword") ?? "",
     privacyAccepted: formData.get("privacyAccepted") ?? "",
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors };
