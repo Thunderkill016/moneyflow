@@ -5,7 +5,7 @@
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** agent (implementer/evaluator) → human_owner (merge decision)
-**Issue/PR:** supersedes the #334 handoff; PR pending
+**Issue/PR:** PR [#340](https://github.com/Thunderkill016/moneyflow/pull/340); supersedes the #334 handoff
 **Last updated:** 2026-08-11
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
