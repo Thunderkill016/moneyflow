@@ -1,0 +1,337 @@
+/*
+ * Presentation owner for the first-run onboarding flow.
+ *
+ * These class names were emitted by `onboarding-flow.tsx` long after the global
+ * generation that styled them was retired in Phase 4-10, so the whole screen
+ * rendered as unstyled HTML: a transparent, zero-padding, full-bleed 1280px form
+ * on desktop. This module restores the presentation the markup already assumed.
+ * It is a repair, not a redesign — every value comes from the current --mf-*
+ * token set, and light/dark switching is inherited from html[data-theme] rather
+ * than re-declared here.
+ */
+
+.page {
+  min-height: 100svh;
+  display: grid;
+  place-items: start center;
+  background: var(--mf-canvas);
+  color: var(--mf-text);
+  padding: clamp(20px, 5vw, 48px) clamp(16px, 4vw, 24px);
+  font-family: var(--mf-font-sans);
+}
+
+.page :where(p, h1, h2, h3, ul, ol) {
+  margin: 0;
+}
+
+.page :where(ul, ol) {
+  padding: 0;
+  list-style: none;
+}
+
+/* Bounded content: onboarding is a reading-and-deciding surface, so it must not
+   become an uncontrolled full-bleed form on a wide viewport. */
+.card {
+  width: min(100%, 34rem);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: clamp(20px, 4vw, 32px);
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-lg, 16px);
+  background: var(--mf-surface);
+  box-shadow: var(--mf-shadow-sm);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: var(--mf-text);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+  align-self: flex-start;
+}
+
+.brandMark {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--mf-brand);
+}
+
+.brandMark > span {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--mf-on-brand);
+}
+
+/* ---------------------------------------------------------------- progress */
+
+.progressHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progressFraction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.progressCount {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mf-brand-text);
+}
+
+.progressTitle {
+  font-size: 14px;
+  color: var(--mf-text-muted);
+}
+
+.progress {
+  display: flex;
+  gap: 8px;
+}
+
+.progress > li {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--mf-text-soft);
+}
+
+.progressDot {
+  display: block;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--mf-border);
+}
+
+.progress > li.isDone .progressDot,
+.progress > li.isActive .progressDot {
+  background: var(--mf-brand);
+}
+
+.progress > li.isActive {
+  color: var(--mf-text);
+  font-weight: 650;
+}
+
+.progressStepLabel {
+  display: inline-flex;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The step name is the first thing to drop on a narrow phone; the numeric
+   fraction beside it keeps the progress readable. */
+@media (max-width: 27rem) {
+  .progressStepName {
+    display: none;
+  }
+}
+
+/* -------------------------------------------------------------------- step */
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.step h1 {
+  font-size: clamp(22px, 4.5vw, 27px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.lead {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--mf-text-muted);
+  max-width: 46ch;
+}
+
+.promises {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.promises > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.check {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--mf-income-subtle);
+  color: var(--mf-income-text);
+}
+
+.check svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ------------------------------------------------------------------ fields */
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mf-text-muted);
+}
+
+.field input {
+  min-height: 44px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--mf-border-strong);
+  border-radius: 10px;
+  background: var(--mf-surface);
+  color: var(--mf-text);
+  font: inherit;
+  font-weight: 500;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--mf-focus);
+  outline-offset: 1px;
+}
+
+.currencyHint {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mf-text-soft);
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--mf-border);
+  border-radius: 12px;
+  background: var(--mf-surface-muted);
+  font-size: 14px;
+}
+
+.error {
+  padding: 10px 12px;
+  border: 1px solid var(--mf-danger-border);
+  border-radius: 10px;
+  background: var(--mf-danger-soft);
+  color: var(--mf-danger-text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* ----------------------------------------------------------------- actions */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.primary {
+  min-height: 44px;
+}
+
+.skip {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: none;
+  border: 0;
+  color: var(--mf-text-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.skip:hover {
+  color: var(--mf-text);
+}
+
+.skip:focus-visible {
+  outline: 2px solid var(--mf-focus);
+  outline-offset: 2px;
+}
+
+.skipInline {
+  margin-left: auto;
+}
+
+/* Skeleton shown while the device-local completion flag is read. */
+.loadingLine,
+.loadingCard {
+  border-radius: 10px;
+  background: var(--mf-surface-muted);
+}
+
+.loadingLine {
+  height: 14px;
+}
+
+.loadingLine.wide {
+  width: 70%;
+}
+
+.loadingCard {
+  height: 180px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .loadingLine,
+  .loadingCard {
+    animation: onboardingPulse 1.4s var(--mf-ease, ease-in-out) infinite;
+  }
+}
+
+@keyframes onboardingPulse {
+  50% {
+    opacity: 0.55;
+  }
+}

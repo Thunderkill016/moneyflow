@@ -1,0 +1,2803 @@
+{
+  "note": [
+    "Reviewed presentation-ownership debt. Produced by check:code-css-ownership,",
+    "but NOT a regenerate-to-pass artifact. The gate fails on any new unowned class,",
+    "on any entry that no longer describes real debt, AND on any entry added",
+    "relative to approved git history. The list may only shrink.",
+    "",
+    "'class' is the literal class name product code emits with no proven owner in",
+    "the production bundle. 'owner' is the file that emits it. 'reason' says whether",
+    "nothing styles it, only a contextual selector styles it (an ancestor that is",
+    "not proven at the emission site), or its intent cannot be determined without",
+    "reading the call site.",
+    "",
+    "Ownership requires an UNCONDITIONAL owner: a selector that can match the class",
+    "without requiring another application class. A class styled only beneath",
+    "someone else's hashed ancestor is debt, not owned.",
+    "",
+    "Wildcards are deliberately impossible.",
+    "",
+    "Bootstrap for main@ebc98e4 was 373. Migrating onboarding to",
+    "onboarding-flow.module.css removed 27, leaving 346."
+  ],
+  "entries": [
+    {
+      "class": "_5",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "_a",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "_p",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "_svg",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "accent-primary",
+      "owner": "src/components/ui/checkbox-field.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/radio-group.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "accordion-trigger",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "accordion-trigger-icon",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "account-card",
+      "owner": "src/app/categories/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "account-grid",
+      "owner": "src/app/accounts/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/categories/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "accounts-heading",
+      "owner": "src/app/accounts/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/categories/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "accounts-summary",
+      "owner": "src/app/accounts/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "accounts-workspace",
+      "owner": "src/app/accounts/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/categories/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "achieved",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "after",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "amber",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .transaction-icon.amber)",
+      "status": "debt"
+    },
+    {
+      "class": "amount",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [
+        "src/components/dashboard/dashboard-planning-sections.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .insights-category-labels .amount)",
+      "status": "debt"
+    },
+    {
+      "class": "app-shell",
+      "owner": "src/app/goals/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "aria-expanded",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "attention-chip",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .attention-chip)",
+      "status": "debt"
+    },
+    {
+      "class": "attention-strip",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .attention-strip)",
+      "status": "debt"
+    },
+    {
+      "class": "attention-strip-label",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .attention-strip-label)",
+      "status": "debt"
+    },
+    {
+      "class": "attention-strip-list",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .attention-strip-list)",
+      "status": "debt"
+    },
+    {
+      "class": "audit",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "auto_auto",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "avatar",
+      "owner": "src/components/user-chip.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.app-shell-module__E5J3NG__profileSlot .avatar,.app-shell-module__E5J3NG__mobileAccountButton .app-shell-module__E5J3NG__avatar,.app-shell-module__E5J3NG__accountSummary .app-shell-module__E5J3NG__avatar))",
+      "status": "debt"
+    },
+    {
+      "class": "bg-",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "bg-background",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/dialog.tsx",
+        "src/components/ui/select-field.tsx",
+        "src/components/ui/sheet.tsx",
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "bg-border",
+      "owner": "src/components/ui/separator.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "bg-card",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "bg-destructive",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "bg-input",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "bg-muted",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/card.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "bg-primary",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "bg-secondary",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "blue",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.blue,.dashboard-module___vDUZq__dashboard .transaction-icon.cyan))",
+      "status": "debt"
+    },
+    {
+      "class": "border-border",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/dialog.tsx",
+        "src/components/ui/empty-state.tsx",
+        "src/components/ui/sheet.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "border-color",
+      "owner": "src/components/ui/select-field.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "border-destructive",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/select-field.tsx",
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "border-input",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/select-field.tsx",
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "border-ring",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/button.tsx",
+        "src/components/ui/select-field.tsx",
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "box-shadow",
+      "owner": "src/components/ui/select-field.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "brand",
+      "owner": "src/components/onboarding-flow.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "brand-mark",
+      "owner": "src/components/onboarding-flow.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "budget-foot",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .weekly-summary-kpis span,.dashboard-module___vDUZq__dashboard .weekly-summary-top,.dashboard-module___vDUZq__dashboard .weekly-summary-compare,.dashboard-module___vDUZq__dashboard .budget-foot,.dashboard-module___vDUZq__dashboard .goal-dashboard-more,.dashboard-module___vDUZq__dashboard .insight-panel p))",
+      "status": "debt"
+    },
+    {
+      "class": "budget-number",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .budget-number)",
+      "status": "debt"
+    },
+    {
+      "class": "budget-overview",
+      "owner": "src/app/commitments/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/income-templates/loading.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .budgets-workspace .budget-overview)",
+      "status": "debt"
+    },
+    {
+      "class": "budget-panel",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "budget-panel-near",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .budget-panel-near)",
+      "status": "debt"
+    },
+    {
+      "class": "budget-panel-over",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .budget-panel-over)",
+      "status": "debt"
+    },
+    {
+      "class": "budget-track",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .budgets-workspace .budget-track)",
+      "status": "debt"
+    },
+    {
+      "class": "budgets-heading",
+      "owner": "src/app/budgets/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/commitments/loading.tsx",
+        "src/app/income-templates/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "budgets-workspace",
+      "owner": "src/app/budgets/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .budgets-workspace .budget-overview)",
+      "status": "debt"
+    },
+    {
+      "class": "button",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "button-group",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "calc",
+      "owner": "src/components/ui/dialog.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/toast.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "capture-menu",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-menu-actions",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-menu-heading",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-menu-lead",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-menu-option",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-menu-option-icon",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-menu-option-text",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-menu-trust",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-actions",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-apply-rules",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-back",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-date",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-error",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-explanations",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-hint",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-label",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-panel",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-preview",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-preview-amount",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-preview-lead",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-preview-list",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-preview-main",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-preview-merchant",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-preview-meta",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-preview-row",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-raw",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-rules-link",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-skel-area",
+      "owner": "src/app/capture/paste/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-skeleton",
+      "owner": "src/app/capture/paste/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-source",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-source-option",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-source-options",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-summary",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-share-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-textarea",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-trust",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-uncertain-tag",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-paste-workspace",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-quick-skel-amount",
+      "owner": "src/app/capture/quick/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-quick-skeleton",
+      "owner": "src/app/capture/quick/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-route-loading",
+      "owner": "src/app/capture/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/capture/paste/loading.tsx",
+        "src/app/capture/quick/loading.tsx",
+        "src/app/capture/share/loading.tsx",
+        "src/app/capture/share/page.tsx",
+        "src/app/capture/upload/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-share-error-list",
+      "owner": "src/components/inbox/capture-share-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-share-lead",
+      "owner": "src/components/inbox/capture-share-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-share-panel",
+      "owner": "src/components/inbox/capture-share-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-share-state",
+      "owner": "src/components/inbox/capture-share-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-share-warning-list",
+      "owner": "src/components/inbox/capture-share-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-share-workspace",
+      "owner": "src/components/inbox/capture-share-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-skel-desc",
+      "owner": "src/app/capture/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/capture/share/loading.tsx",
+        "src/app/capture/share/page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-skel-icon",
+      "owner": "src/app/capture/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-skel-label",
+      "owner": "src/app/capture/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/capture/share/loading.tsx",
+        "src/app/capture/share/page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-skeleton-block",
+      "owner": "src/app/capture/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/capture/share/loading.tsx",
+        "src/app/capture/share/page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-skeleton-row",
+      "owner": "src/app/capture/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/capture/share/loading.tsx",
+        "src/app/capture/share/page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-title-row",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-paste-page.tsx",
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-drop-icon",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-drop-meta",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-drop-title",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-dropzone",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-file-meta",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-or",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-panel",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-pick",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-skel-drop",
+      "owner": "src/app/capture/upload/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-skeleton",
+      "owner": "src/app/capture/upload/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-trust-inline",
+      "owner": "src/components/inbox/capture-share-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-upload-workspace",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "capture-workspace",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-paste-page.tsx",
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "card",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "card-action",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "card-description",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "card-footer",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "card-header",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "categories-panel",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "categories-workspace",
+      "owner": "src/app/categories/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "category-badge",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "class",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "color-mix",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "commitment-overview",
+      "owner": "src/app/commitments/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/income-templates/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "commitments-workspace",
+      "owner": "src/app/commitments/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/income-templates/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "compact",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [
+        "src/components/dashboard/dashboard-planning-sections.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .panel-empty.compact)",
+      "status": "debt"
+    },
+    {
+      "class": "compat",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "confidence-badge",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "content-grid",
+      "owner": "src/app/insights/loading.tsx",
+      "alsoEmittedBy": [
+        "src/components/moneyflow-dashboard.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .content-grid.insights-main-grid)",
+      "status": "debt"
+    },
+    {
+      "class": "coral",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.coral,.dashboard-module___vDUZq__dashboard .transaction-icon.red,.dashboard-module___vDUZq__dashboard .transaction-icon.pink))",
+      "status": "debt"
+    },
+    {
+      "class": "cyan",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.blue,.dashboard-module___vDUZq__dashboard .transaction-icon.cyan))",
+      "status": "debt"
+    },
+    {
+      "class": "danger",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/user-chip.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "dark",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "dashboard",
+      "owner": "src/app/accounts/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/budgets/loading.tsx",
+        "src/app/categories/loading.tsx",
+        "src/app/commitments/loading.tsx",
+        "src/app/goals/loading.tsx",
+        "src/app/income-templates/loading.tsx",
+        "src/app/insights/loading.tsx",
+        "src/app/reports/loading.tsx",
+        "src/app/transactions/loading.tsx",
+        "src/components/inbox/capture-page.tsx",
+        "src/components/inbox/capture-paste-page.tsx",
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "data-",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/card.tsx"
+      ],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "data-alert",
+      "owner": "src/components/account-detail-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/account-reconciliation-page.tsx",
+        "src/components/moneyflow-dashboard.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .data-alert)",
+      "status": "debt"
+    },
+    {
+      "class": "default",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "empty-state",
+      "owner": "src/components/empty-state.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "empty-state-actions",
+      "owner": "src/components/empty-state.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "empty-state-description",
+      "owner": "src/components/empty-state.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "empty-state-icon",
+      "owner": "src/components/empty-state.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "empty-state-title",
+      "owner": "src/components/empty-state.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "eyebrow",
+      "owner": "src/components/account-detail-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/account-reconciliation-page.tsx",
+        "src/components/dashboard/dashboard-overview-sections.tsx",
+        "src/components/dashboard/dashboard-planning-sections.tsx",
+        "src/components/inbox/capture-page.tsx",
+        "src/components/inbox/capture-paste-page.tsx",
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx",
+        "src/components/route-error.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .eyebrow)",
+      "status": "debt"
+    },
+    {
+      "class": "first-child",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "font-heading",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "font-variant-numeric",
+      "owner": "src/components/ui/money-value.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "gap-",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "goal-dashboard-more",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .section-link,.dashboard-module___vDUZq__dashboard .goal-dashboard-more a,.dashboard-module___vDUZq__dashboard .insight-panel a))",
+      "status": "debt"
+    },
+    {
+      "class": "goal-dashboard-panel",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .panel,.dashboard-module___vDUZq__dashboard .insight-panel,.dashboard-module___vDUZq__dashboard .weekly-summary-panel,.dashboard-module___vDUZq__dashboard .goal-dashboard-panel))",
+      "status": "debt"
+    },
+    {
+      "class": "goals-workspace",
+      "owner": "src/app/goals/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .goals-workspace .goal-hero)",
+      "status": "debt"
+    },
+    {
+      "class": "green",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [
+        "src/components/dashboard/dashboard-planning-sections.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.green,.dashboard-module___vDUZq__dashboard .round-icon.green))",
+      "status": "debt"
+    },
+    {
+      "class": "grid-cols-",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "grid-rows-",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "group",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/button.tsx",
+        "src/components/ui/card.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "group-aria-expanded",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "group-data-",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "h-",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "has-",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "has-data-",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/card.tsx"
+      ],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "haspopup",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "icon",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "icon-button",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .icon-button)",
+      "status": "debt"
+    },
+    {
+      "class": "img",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "import-preview-route-loading",
+      "owner": "src/app/imports/[batchId]/preview/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "import-preview-skel-table",
+      "owner": "src/app/imports/[batchId]/preview/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "import-preview-skeleton",
+      "owner": "src/app/imports/[batchId]/preview/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "imports-route-loading",
+      "owner": "src/app/imports/direct/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/imports/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "imports-skel-body",
+      "owner": "src/app/imports/direct/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/imports/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "imports-skel-btn",
+      "owner": "src/app/imports/direct/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/imports/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "imports-skel-date",
+      "owner": "src/app/imports/direct/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/imports/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "imports-skeleton-block",
+      "owner": "src/app/imports/direct/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/imports/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "imports-skeleton-row",
+      "owner": "src/app/imports/direct/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/imports/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "in-data-",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "in_oklch",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-explain",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-explain-empty-raw",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-explain-kind",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-explain-list",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-explain-raw",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-explain-title",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-route-loading",
+      "owner": "src/app/inbox/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-skel-badge",
+      "owner": "src/app/inbox/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-skel-date",
+      "owner": "src/app/inbox/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-skel-merchant",
+      "owner": "src/app/inbox/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-skel-money",
+      "owner": "src/app/inbox/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-skeleton-block",
+      "owner": "src/app/inbox/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inbox-skeleton-row",
+      "owner": "src/app/inbox/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "income",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [
+        "src/components/dashboard/dashboard-planning-sections.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "inline-end",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "inline-start",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "insight-panel",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .panel,.dashboard-module___vDUZq__dashboard .insight-panel,.dashboard-module___vDUZq__dashboard .weekly-summary-panel,.dashboard-module___vDUZq__dashboard .goal-dashboard-panel))",
+      "status": "debt"
+    },
+    {
+      "class": "insights-category-bar",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .insights-category-bar,.dashboard-module___vDUZq__dashboard .budget-track))",
+      "status": "debt"
+    },
+    {
+      "class": "insights-category-labels",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .insights-category-labels)",
+      "status": "debt"
+    },
+    {
+      "class": "insights-category-list",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .insights-category-list,.dashboard-module___vDUZq__dashboard .transaction-list))",
+      "status": "debt"
+    },
+    {
+      "class": "insights-category-meta",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .insights-category-meta)",
+      "status": "debt"
+    },
+    {
+      "class": "insights-category-row",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .insights-category-row)",
+      "status": "debt"
+    },
+    {
+      "class": "insights-empty",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .insights-empty)",
+      "status": "debt"
+    },
+    {
+      "class": "insights-export-csv",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "insights-kpi",
+      "owner": "src/app/insights/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "insights-main-grid",
+      "owner": "src/app/insights/loading.tsx",
+      "alsoEmittedBy": [
+        "src/components/moneyflow-dashboard.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .content-grid.insights-main-grid)",
+      "status": "debt"
+    },
+    {
+      "class": "insights-main-stack",
+      "owner": "src/app/insights/loading.tsx",
+      "alsoEmittedBy": [
+        "src/components/dashboard/dashboard-overview-sections.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .insights-main-stack,.dashboard-module___vDUZq__dashboard .right-stack))",
+      "status": "debt"
+    },
+    {
+      "class": "insights-planning-label",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .insights-planning-label)",
+      "status": "debt"
+    },
+    {
+      "class": "insights-planning-link",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .insights-planning-link)",
+      "status": "debt"
+    },
+    {
+      "class": "insights-planning-nav",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .insights-planning-nav)",
+      "status": "debt"
+    },
+    {
+      "class": "is-dragover",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "is-error",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "is-loading",
+      "owner": "src/components/inbox/capture-upload-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "landing-eyebrow",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "landing-footer",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "landing-footer-inner",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "landing-footer-links",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "landing-link",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "landing-nav",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "landing-nav-actions",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "landing-nav-cta",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "landing-page",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "last-child",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/card.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "loading-card",
+      "owner": "src/app/accounts/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/budgets/loading.tsx",
+        "src/app/commitments/loading.tsx",
+        "src/app/goals/loading.tsx",
+        "src/app/income-templates/loading.tsx",
+        "src/app/insights/loading.tsx",
+        "src/app/reports/loading.tsx",
+        "src/app/timeline/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "loading-line",
+      "owner": "src/app/accounts/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/budgets/loading.tsx",
+        "src/app/capture/loading.tsx",
+        "src/app/capture/paste/loading.tsx",
+        "src/app/capture/quick/loading.tsx",
+        "src/app/capture/share/loading.tsx",
+        "src/app/capture/share/page.tsx",
+        "src/app/capture/upload/loading.tsx",
+        "src/app/categories/loading.tsx",
+        "src/app/commitments/loading.tsx",
+        "src/app/goals/loading.tsx",
+        "src/app/imports/[batchId]/preview/loading.tsx",
+        "src/app/imports/direct/loading.tsx",
+        "src/app/imports/loading.tsx",
+        "src/app/inbox/loading.tsx",
+        "src/app/income-templates/loading.tsx",
+        "src/app/insights/loading.tsx",
+        "src/app/loading.tsx",
+        "src/app/reports/loading.tsx",
+        "src/app/rules/loading.tsx",
+        "src/app/settings/appearance/loading.tsx",
+        "src/app/settings/delete-account/loading.tsx",
+        "src/app/settings/export/loading.tsx",
+        "src/app/settings/loading.tsx",
+        "src/app/settings/notifications/loading.tsx",
+        "src/app/settings/privacy/loading.tsx",
+        "src/app/timeline/loading.tsx",
+        "src/app/transactions/loading.tsx",
+        "src/components/inbox/capture-share-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "max-h-",
+      "owner": "src/components/ui/dialog.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "min",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/dialog.tsx",
+        "src/components/ui/toast.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "near",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "negative",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "not",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/button.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "not-aria-",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "ok",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-paste-page.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "over",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "p-",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "page-column",
+      "owner": "src/app/goals/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "page-heading-actions",
+      "owner": "src/components/inbox/capture-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-paste-page.tsx",
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "panel",
+      "owner": "src/app/settings/notifications/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/transactions/loading.tsx",
+        "src/components/dashboard/dashboard-overview-sections.tsx",
+        "src/components/dashboard/dashboard-planning-sections.tsx",
+        "src/components/inbox/capture-page.tsx",
+        "src/components/inbox/capture-paste-page.tsx",
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .panel,.dashboard-module___vDUZq__dashboard .insight-panel,.dashboard-module___vDUZq__dashboard .weekly-summary-panel,.dashboard-module___vDUZq__dashboard .goal-dashboard-panel))",
+      "status": "debt"
+    },
+    {
+      "class": "panel-empty",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .secondary-button,.dashboard-module___vDUZq__dashboard .panel-empty button))",
+      "status": "debt"
+    },
+    {
+      "class": "panel-inset",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "parser",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "pb-",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "pink",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.coral,.dashboard-module___vDUZq__dashboard .transaction-icon.red,.dashboard-module___vDUZq__dashboard .transaction-icon.pink))",
+      "status": "debt"
+    },
+    {
+      "class": "placeholder",
+      "owner": "src/components/ui/text-field.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "planning-card-empty",
+      "owner": "src/components/planning-card-empty.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .right-stack .planning-card-empty)",
+      "status": "debt"
+    },
+    {
+      "class": "planning-card-empty-cta",
+      "owner": "src/components/planning-card-empty.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .planning-card-empty-cta)",
+      "status": "debt"
+    },
+    {
+      "class": "planning-card-empty-inline",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .planning-card-empty-inline)",
+      "status": "debt"
+    },
+    {
+      "class": "positive",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "preview-chip",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "primary-button",
+      "owner": "src/components/empty-state.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-paste-page.tsx",
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx",
+        "src/components/privacy-policy-page.tsx",
+        "src/components/route-error.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-loading",
+      "owner": "src/app/settings/notifications/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-policy-back",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-policy-body",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-policy-header",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-policy-lead",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-policy-main",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-policy-page",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-policy-section",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-policy-updated",
+      "owner": "src/components/privacy-policy-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-route-loading",
+      "owner": "src/app/settings/appearance/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/settings/delete-account/loading.tsx",
+        "src/app/settings/export/loading.tsx",
+        "src/app/settings/loading.tsx",
+        "src/app/settings/notifications/loading.tsx",
+        "src/app/settings/privacy/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-skel-body",
+      "owner": "src/app/settings/appearance/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/settings/delete-account/loading.tsx",
+        "src/app/settings/export/loading.tsx",
+        "src/app/settings/privacy/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-skel-title",
+      "owner": "src/app/settings/appearance/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/settings/delete-account/loading.tsx",
+        "src/app/settings/export/loading.tsx",
+        "src/app/settings/privacy/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-skeleton-block",
+      "owner": "src/app/settings/appearance/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/settings/delete-account/loading.tsx",
+        "src/app/settings/export/loading.tsx",
+        "src/app/settings/privacy/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "privacy-skeleton-card",
+      "owner": "src/app/settings/appearance/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/settings/delete-account/loading.tsx",
+        "src/app/settings/export/loading.tsx",
+        "src/app/settings/privacy/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "profile-chip",
+      "owner": "src/components/user-chip.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .app-shell-module__E5J3NG__profileSlot .profile-chip)",
+      "status": "debt"
+    },
+    {
+      "class": "profile-chip-button",
+      "owner": "src/components/user-chip.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .app-shell-module__E5J3NG__profileSlot .profile-chip-button)",
+      "status": "debt"
+    },
+    {
+      "class": "profile-chip-copy",
+      "owner": "src/components/user-chip.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .app-shell-module__E5J3NG__profileSlot .profile-chip-copy)",
+      "status": "debt"
+    },
+    {
+      "class": "profile-menu",
+      "owner": "src/components/user-chip.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "profile-menu-logout-form",
+      "owner": "src/components/user-chip.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "purple",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.violet,.dashboard-module___vDUZq__dashboard .round-icon.purple))",
+      "status": "debt"
+    },
+    {
+      "class": "px-",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "py-",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "raw",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "red",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.coral,.dashboard-module___vDUZq__dashboard .transaction-icon.red,.dashboard-module___vDUZq__dashboard .transaction-icon.pink))",
+      "status": "debt"
+    },
+    {
+      "class": "report-periods",
+      "owner": "src/app/reports/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "reports-heading",
+      "owner": "src/app/reports/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "reports-workspace",
+      "owner": "src/app/reports/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "right-stack",
+      "owner": "src/app/insights/loading.tsx",
+      "alsoEmittedBy": [
+        "src/components/dashboard/dashboard-planning-sections.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .insights-main-stack,.dashboard-module___vDUZq__dashboard .right-stack))",
+      "status": "debt"
+    },
+    {
+      "class": "ring-destructive",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/select-field.tsx",
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "ring-foreground",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "ring-ring",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/button.tsx",
+        "src/components/ui/checkbox-field.tsx",
+        "src/components/ui/radio-group.tsx",
+        "src/components/ui/select-field.tsx",
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "round-icon",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon,.dashboard-module___vDUZq__dashboard .round-icon))",
+      "status": "debt"
+    },
+    {
+      "class": "rounded-",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "route-error",
+      "owner": "src/components/route-error.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "route-error-actions",
+      "owner": "src/components/route-error.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "route-error-code",
+      "owner": "src/components/route-error.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "route-error-lead",
+      "owner": "src/components/route-error.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "route-loading",
+      "owner": "src/app/accounts/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/budgets/loading.tsx",
+        "src/app/capture/loading.tsx",
+        "src/app/capture/paste/loading.tsx",
+        "src/app/capture/quick/loading.tsx",
+        "src/app/capture/share/loading.tsx",
+        "src/app/capture/share/page.tsx",
+        "src/app/capture/upload/loading.tsx",
+        "src/app/commitments/loading.tsx",
+        "src/app/imports/[batchId]/preview/loading.tsx",
+        "src/app/imports/direct/loading.tsx",
+        "src/app/imports/loading.tsx",
+        "src/app/inbox/loading.tsx",
+        "src/app/income-templates/loading.tsx",
+        "src/app/insights/loading.tsx",
+        "src/app/loading.tsx",
+        "src/app/reports/loading.tsx",
+        "src/app/rules/loading.tsx",
+        "src/app/settings/appearance/loading.tsx",
+        "src/app/settings/delete-account/loading.tsx",
+        "src/app/settings/export/loading.tsx",
+        "src/app/settings/loading.tsx",
+        "src/app/settings/notifications/loading.tsx",
+        "src/app/settings/privacy/loading.tsx",
+        "src/app/timeline/loading.tsx",
+        "src/app/transactions/loading.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "rule",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "rules-route-loading",
+      "owner": "src/app/rules/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "rules-skel-body",
+      "owner": "src/app/rules/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "rules-skel-btn",
+      "owner": "src/app/rules/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "rules-skel-pri",
+      "owner": "src/app/rules/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "rules-skeleton-block",
+      "owner": "src/app/rules/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "rules-skeleton-row",
+      "owner": "src/app/rules/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "secondary-button",
+      "owner": "src/components/account-detail-page.tsx",
+      "alsoEmittedBy": [
+        "src/components/account-reconciliation-page.tsx",
+        "src/components/dashboard/dashboard-overview-sections.tsx",
+        "src/components/empty-state.tsx",
+        "src/components/inbox/capture-page.tsx",
+        "src/components/inbox/capture-paste-page.tsx",
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx",
+        "src/components/route-error.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .secondary-button,.dashboard-module___vDUZq__dashboard .panel-empty button))",
+      "status": "debt"
+    },
+    {
+      "class": "section-heading",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [
+        "src/components/dashboard/dashboard-planning-sections.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .section-heading)",
+      "status": "debt"
+    },
+    {
+      "class": "section-link",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .section-link,.dashboard-module___vDUZq__dashboard .goal-dashboard-more a,.dashboard-module___vDUZq__dashboard .insight-panel a))",
+      "status": "debt"
+    },
+    {
+      "class": "settings-hub-skel-icon",
+      "owner": "src/app/settings/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "settings-hub-skel-row",
+      "owner": "src/app/settings/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "settings-hub-skel-text",
+      "owner": "src/app/settings/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "settings-hub-skeleton",
+      "owner": "src/app/settings/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "short",
+      "owner": "src/app/capture/paste/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/capture/quick/loading.tsx",
+        "src/app/capture/upload/loading.tsx",
+        "src/app/imports/[batchId]/preview/loading.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "size",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "size-",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "slot",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/button.tsx",
+        "src/components/ui/card.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "source",
+      "owner": "src/components/inbox/inbox-explain-panel.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "source-badge",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "tall",
+      "owner": "src/app/goals/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/timeline/loading.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "text-",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/money-value.tsx"
+      ],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "text-card-foreground",
+      "owner": "src/components/ui/card.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "text-destructive",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/checkbox-field.tsx",
+        "src/components/ui/radio-group.tsx",
+        "src/components/ui/select-field.tsx",
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "text-foreground",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/button.tsx",
+        "src/components/ui/checkbox-field.tsx",
+        "src/components/ui/dialog.tsx",
+        "src/components/ui/empty-state.tsx",
+        "src/components/ui/radio-group.tsx",
+        "src/components/ui/select-field.tsx",
+        "src/components/ui/sheet.tsx",
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "text-muted-foreground",
+      "owner": "src/components/ui/accordion.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/card.tsx",
+        "src/components/ui/checkbox-field.tsx",
+        "src/components/ui/dialog.tsx",
+        "src/components/ui/empty-state.tsx",
+        "src/components/ui/money-value.tsx",
+        "src/components/ui/radio-group.tsx",
+        "src/components/ui/select-field.tsx",
+        "src/components/ui/sheet.tsx",
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "text-primary",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "text-primary-foreground",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "text-secondary-foreground",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "transaction-detail",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.timeline-review-boundary-module__GxbAYG__boundary .manager-toolbar label:has(select[aria-label=\"L\u1ecdc theo tr\u1ea1ng th\u00e1i ki\u1ec3m tra\"]),.timeline-review-boundary-module__GxbAYG__boundary .filter-reset-button,.timeline-review-boundary-module__GxbAYG__boundary .filter-empty button,.timeline-review-boundary-module__GxbAYG__boundary [aria-label=\"Ch\u1ecdn giao d\u1ecbch\"],.timeline-review-boundary-module__GxbAYG__boundary [aria-label=\"Thao t\u00e1c h\u00e0ng lo\u1ea1t\"],.timeline-review-boundary-module__GxbAYG__boundary .transaction-detail>span:has(input[aria-label^=\"Ch\u1ecdn giao d\u1ecbch \"])))",
+      "status": "debt"
+    },
+    {
+      "class": "transaction-icon",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon,.dashboard-module___vDUZq__dashboard .round-icon))",
+      "status": "debt"
+    },
+    {
+      "class": "transaction-list",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .insights-category-list,.dashboard-module___vDUZq__dashboard .transaction-list))",
+      "status": "debt"
+    },
+    {
+      "class": "transaction-manager",
+      "owner": "src/app/transactions/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "transaction-row",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .transaction-row)",
+      "status": "debt"
+    },
+    {
+      "class": "transaction-summary",
+      "owner": "src/app/transactions/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "transaction-time",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-detail small,.dashboard-module___vDUZq__dashboard .transaction-time))",
+      "status": "debt"
+    },
+    {
+      "class": "transactions-panel",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "transactions-title-row",
+      "owner": "src/app/transactions/loading.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-page.tsx",
+        "src/components/inbox/capture-paste-page.tsx",
+        "src/components/inbox/capture-share-page.tsx",
+        "src/components/inbox/capture-upload-page.tsx"
+      ],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "transactions-workspace",
+      "owner": "src/app/transactions/loading.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "transfer",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [
+        "src/components/inbox/capture-paste-page.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "transition-",
+      "owner": "src/components/ui/select-field.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/text-field.tsx"
+      ],
+      "reason": "semantic class with no unconditional owner in the production bundle",
+      "status": "debt"
+    },
+    {
+      "class": "ui-dropdown-content",
+      "owner": "src/components/ui/dropdown-menu.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "ui-dropdown-item",
+      "owner": "src/components/ui/dropdown-menu.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "ui-dropdown-label",
+      "owner": "src/components/ui/dropdown-menu.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "ui-dropdown-separator",
+      "owner": "src/components/ui/dropdown-menu.tsx",
+      "alsoEmittedBy": [],
+      "reason": "semantic class with no active stylesheet owner",
+      "status": "debt"
+    },
+    {
+      "class": "var",
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/money-value.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "violet",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.violet,.dashboard-module___vDUZq__dashboard .round-icon.purple))",
+      "status": "debt"
+    },
+    {
+      "class": "w-",
+      "owner": "src/components/ui/dialog.tsx",
+      "alsoEmittedBy": [
+        "src/components/ui/toast.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "warning",
+      "owner": "src/components/inbox/capture-paste-page.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "watch",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "weekly-summary-compare",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .weekly-summary-kpis span,.dashboard-module___vDUZq__dashboard .weekly-summary-top,.dashboard-module___vDUZq__dashboard .weekly-summary-compare,.dashboard-module___vDUZq__dashboard .budget-foot,.dashboard-module___vDUZq__dashboard .goal-dashboard-more,.dashboard-module___vDUZq__dashboard .insight-panel p))",
+      "status": "debt"
+    },
+    {
+      "class": "weekly-summary-kpis",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .weekly-summary-kpis)",
+      "status": "debt"
+    },
+    {
+      "class": "weekly-summary-panel",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .panel,.dashboard-module___vDUZq__dashboard .insight-panel,.dashboard-module___vDUZq__dashboard .weekly-summary-panel,.dashboard-module___vDUZq__dashboard .goal-dashboard-panel))",
+      "status": "debt"
+    },
+    {
+      "class": "weekly-summary-top",
+      "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .weekly-summary-kpis span,.dashboard-module___vDUZq__dashboard .weekly-summary-top,.dashboard-module___vDUZq__dashboard .weekly-summary-compare,.dashboard-module___vDUZq__dashboard .budget-foot,.dashboard-module___vDUZq__dashboard .goal-dashboard-more,.dashboard-module___vDUZq__dashboard .insight-panel p))",
+      "status": "debt"
+    },
+    {
+      "class": "welcome-actions",
+      "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
+      "alsoEmittedBy": [],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .welcome-actions)",
+      "status": "debt"
+    },
+    {
+      "class": "welcome-row",
+      "owner": "src/app/insights/loading.tsx",
+      "alsoEmittedBy": [
+        "src/components/dashboard/dashboard-overview-sections.tsx"
+      ],
+      "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .welcome-row)",
+      "status": "debt"
+    },
+    {
+      "class": "wide",
+      "owner": "src/app/accounts/loading.tsx",
+      "alsoEmittedBy": [
+        "src/app/budgets/loading.tsx",
+        "src/app/capture/loading.tsx",
+        "src/app/capture/paste/loading.tsx",
+        "src/app/capture/quick/loading.tsx",
+        "src/app/capture/share/loading.tsx",
+        "src/app/capture/share/page.tsx",
+        "src/app/capture/upload/loading.tsx",
+        "src/app/categories/loading.tsx",
+        "src/app/commitments/loading.tsx",
+        "src/app/goals/loading.tsx",
+        "src/app/imports/[batchId]/preview/loading.tsx",
+        "src/app/imports/direct/loading.tsx",
+        "src/app/imports/loading.tsx",
+        "src/app/inbox/loading.tsx",
+        "src/app/income-templates/loading.tsx",
+        "src/app/insights/loading.tsx",
+        "src/app/loading.tsx",
+        "src/app/reports/loading.tsx",
+        "src/app/rules/loading.tsx",
+        "src/app/settings/appearance/loading.tsx",
+        "src/app/settings/delete-account/loading.tsx",
+        "src/app/settings/export/loading.tsx",
+        "src/app/settings/loading.tsx",
+        "src/app/settings/notifications/loading.tsx",
+        "src/app/settings/privacy/loading.tsx",
+        "src/app/timeline/loading.tsx",
+        "src/app/transactions/loading.tsx",
+        "src/components/inbox/capture-share-page.tsx"
+      ],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    },
+    {
+      "class": "z-",
+      "owner": "src/components/ui/toast.tsx",
+      "alsoEmittedBy": [],
+      "reason": "bare token, ownership not provable without reading the call site",
+      "status": "debt"
+    }
+  ]
+}
