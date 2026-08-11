@@ -9,8 +9,12 @@
 -- producer that quietly stops emitting one table fails here instead of looking
 -- fine against a thin fixture.
 --
+-- This file deliberately lives OUTSIDE supabase/tests/: `supabase test db` treats
+-- every .sql under that tree as a pgTAP test and fails a file that declares no
+-- plan ("No plan found in TAP output"). This is a fixture, not a test.
+--
 -- Everything runs inside a transaction that is rolled back. Run with:
---   psql -t -A -q -f supabase/tests/archive/export_archive_fixture.sql
+--   psql -t -A -q -f supabase/fixtures/export_archive_fixture.sql
 
 begin;
 

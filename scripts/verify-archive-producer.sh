@@ -20,7 +20,7 @@ mkdir -p "${OUT_DIR}"
 psql "${DB_URL}" \
   --no-psqlrc -t -A -q \
   -v ON_ERROR_STOP=1 \
-  -f supabase/tests/archive/export_archive_fixture.sql \
+  -f supabase/fixtures/export_archive_fixture.sql \
   > "${OUT_FILE}"
 
 node --experimental-strip-types scripts/verify-archive-producer.mjs "${OUT_FILE}"
