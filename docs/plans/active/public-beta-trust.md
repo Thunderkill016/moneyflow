@@ -26,7 +26,9 @@ Program sequence:
 
 Provider Sync and P1 Secure are now accepted. The program advances to **P2 Recover**.
 
-## Current truth
+## Repository reconnaissance
+
+### Current truth
 
 - Functional MVP is released.
 - UI migration P0–P11 is archived; physical Android/iOS remain accepted limitations, not fabricated pass evidence.
@@ -132,7 +134,9 @@ Recover/Prove/Release:
 - Household/collaboration, investments/wealth, native rewrite, full envelope budgeting.
 - Automatic unreviewed ledger posting.
 
-## Current phase map
+## Implementation plan
+
+### Current phase map
 
 | Phase/checkpoint | Current state |
 |---|---|
@@ -144,7 +148,7 @@ Recover/Prove/Release:
 | P4 Improve | blocked by P3 evidence |
 | P5 Release | blocked by prior phases |
 
-## Next sequence
+### Next sequence
 
 1. fresh-read the current export/import/schema boundaries and define the complete archive inventory;
 2. research current backup/archive contract and validation practices only after repository truth is mapped;
