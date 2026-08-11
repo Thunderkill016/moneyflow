@@ -8,11 +8,28 @@
  * Imports, routes, prose, comments and tests intentionally do not count merely
  * because they contain the same text as a CSS class.
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const root = process.cwd();
+
+/**
+ * This scanner is the repository's only accurate model of "which class names does
+ * product code actually emit". `check-code-css-ownership.mjs` asks the inverse
+ * question and needs the same answer, so the extraction is importable rather than
+ * duplicated. The CLI behaviour below runs only when invoked directly.
+ */
+const invokedDirectly = (() => {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+})();
 
 const STYLESHEETS = [
   "src/app/globals.css",
@@ -445,7 +462,7 @@ function collectHtmlClasses(source, referenced) {
   }
 }
 
-function collectSourceReferences(file, referenced, runtimePrefixes) {
+export function collectSourceReferences(file, referenced, runtimePrefixes) {
   const source = readFileSync(file, "utf8");
   if (extname(file) === ".html") {
     collectHtmlClasses(source, referenced);
@@ -530,7 +547,7 @@ function collectSourceReferences(file, referenced, runtimePrefixes) {
   visit(sourceFile);
 }
 
-function stripCssComments(source) {
+export function stripCssComments(source) {
   let output = "";
   let quote = null;
   let escaped = false;
@@ -598,7 +615,7 @@ function selectorClassNames(selector) {
   return names;
 }
 
-function classSelectors(css) {
+export function classSelectors(css) {
   const source = stripCssComments(css);
   const names = new Set();
   const stack = [];
@@ -661,7 +678,7 @@ function classSelectors(css) {
   return names;
 }
 
-function globalClassSelectors(css) {
+export function globalClassSelectors(css) {
   const source = stripCssComments(css);
   const names = new Set();
   let cursor = 0;
@@ -695,9 +712,44 @@ function globalClassSelectors(css) {
   return names;
 }
 
-const referenced = new Set();
-const runtimePrefixes = new Set();
-for (const file of productFiles) collectSourceReferences(file, referenced, runtimePrefixes);
+/**
+ * Every class token product code can emit, plus the finite runtime prefixes that
+ * stand in for class families the scanner can only resolve partially.
+ */
+export function collectEmittedClasses() {
+  const referenced = new Set();
+  const runtimePrefixes = new Set();
+  for (const file of productFiles) collectSourceReferences(file, referenced, runtimePrefixes);
+  return { referenced, runtimePrefixes, files: productFiles };
+}
+
+export function cssModuleFiles() {
+  const found = [];
+  const walk = (dir) => {
+    let entries;
+    try {
+      entries = readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const path = join(dir, entry);
+      if (statSync(path).isDirectory()) {
+        walk(path);
+        continue;
+      }
+      if (path.endsWith(".module.css")) found.push(path);
+    }
+  };
+  walk(join(root, "src"));
+  return found;
+}
+
+if (!invokedDirectly) {
+  // Imported for its extraction only; the CLI report below must not run.
+} else {
+
+const { referenced, runtimePrefixes } = collectEmittedClasses();
 
 const modules = [];
 const walkModules = (dir) => {
@@ -755,3 +807,5 @@ console.error(
   "routes, prose, comments and tests intentionally do not count as reachability.",
 );
 process.exit(1);
+
+}
