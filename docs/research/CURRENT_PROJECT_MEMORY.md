@@ -174,7 +174,7 @@ Historical accepted DB limitation remains: no actual linked-production CLI dry-r
 - Transaction amount readability regression was not reproduced after #339; browser regression evidence now covers light/dark.
 - Physical Android Chrome/iOS Safari P11 acceptance was not executed. This remains an accepted limitation, not pass evidence.
 
-## 8. Reconciled issue/PR status
+## 8. Reconciled issue status
 
 | Item | Current status |
 |---|---|
@@ -197,7 +197,13 @@ Historical accepted DB limitation remains: no actual linked-production CLI dry-r
 - retry-pass is not equivalent to first-attempt pass;
 - owner-accepted limitation is not equivalent to executed pass evidence.
 
-## 9. True gaps after this audit
+## 9. Open pull-request memory
+
+Fresh-query GitHub before acting on unrelated historical PRs. Open PRs remain candidate evidence until merged. For bounded provenance, use the relevant record under `docs/research/pr-memory/YYYY/QN/` rather than treating old PR descriptions as current truth.
+
+PR #341 is the current candidate documentation closure for the Secure/Provider Sync acceptance described in this snapshot; until it merges, current `main` remains `18836e2...` and this branch is candidate evidence only.
+
+## 10. True gaps after this audit
 
 ### P2 Recover / portability
 
@@ -221,7 +227,7 @@ Historical accepted DB limitation remains: no actual linked-production CLI dry-r
 - report account/type dimensions/deeper drill-down;
 - broader deterministic rule conditions/actions without unreviewed auto-posting.
 
-## 10. Next allowed action
+## 11. Next allowed action
 
 Open a dedicated **P2 Recover** work packet before implementation. Start from current repository/schema/export/import truth, enumerate the state required for a complete restorable archive, then research/archive-versioning practices only for unresolved design choices.
 
@@ -238,7 +244,7 @@ The P2 contract must define at least:
 
 Provider writes, destructive deletion and production financial-data mutation are not authorized merely because P2 is unblocked.
 
-## 11. Superseded-status register
+## 12. Superseded-status register
 
 Do not repeat these as current facts:
 
