@@ -232,14 +232,14 @@ Pre-migration (the bootstrap measurement):
 
 ```
 EMITTED=530
-OWNED_UNCONDITIONAL=115
-OWNED_UTILITY=15
+OWNED_UNCONDITIONAL=112
+OWNED_UTILITY=24
 TAILWIND_VARIANT_PREFIX=16
 CONTEXTUAL_UNPROVEN=66
 DYNAMIC=5
-CONFIRMED_UNOWNED=233
+CONFIRMED_UNOWNED=254
 UNKNOWN=53
-BASELINE_BOOTSTRAP=379
+BASELINE_BOOTSTRAP=373
 ```
 
 Post-migration (current HEAD):
@@ -247,7 +247,7 @@ Post-migration (current HEAD):
 ```
 EMITTED=503
 OWNED_UNCONDITIONAL=121
-OWNED_UTILITY=15
+OWNED_UTILITY=24
 CONTEXTUAL_UNPROVEN=66
 CONFIRMED_UNOWNED=227
 UNKNOWN=53
@@ -256,31 +256,35 @@ BASELINE_CURRENT=346
 
 ### Number reconciliation
 
-Earlier revisions of this PR reported 291 → 261, and those figures are wrong.
-They came from a gate that flattened the bundle into a set of class names, so a
-class styled only under someone else's hashed ancestor counted as owned.
+Four figures were reported during this work. Only the last pair is correct, and
+the earlier ones are corrected rather than quietly restated.
 
 | Figure | What it actually was |
 |---|---|
 | 288 | first observation, from an **interrupted** build — never valid |
-| 291 | first **complete**-build observation, but with **flattened** ownership |
-| 379 | true pre-migration debt: complete build **and** selector context preserved |
-| 346 | current debt after the onboarding slice |
-| 33 | entries removed in this PR |
-| 27 | of those, attributable to the onboarding migration |
-| 6 | `src/components/ui/*` Tailwind utilities that resolved as owned in this build but not the previous one — a classification difference between builds, **not** fixed by onboarding |
+| 291 | first complete-build observation, but ownership was **flattened**, so a class styled only under someone else's hashed ancestor counted as owned |
+| 379 / 346 | selector context fixed, but nine tokenizer fragments still resolved unstably |
+| 382 / 355 | same, measured in a different build mode while chasing that instability |
+| **373 → 346** | **final**: selector context preserved *and* utility fragments resolved deterministically |
 
-Correcting the selector semantics revealed **88 violations the flattened gate was
-hiding** (291 → 379 at the same pre-migration point).
+Correcting the selector semantics revealed **82 violations the flattened gate was
+hiding** (291 → 373 at the same pre-migration point).
+
+The 27 removed entries are exactly the onboarding classes that gained an owner.
+Nothing incidental, and nothing is claimed as "fixed by onboarding" that merely
+changed classification.
 
 ### Remaining limitations
 
 - The owner set is derived from a production build, so the gate is only correct
   against a complete one. An interrupted build silently under-reports ownership,
-  and even two complete builds can disagree on a handful of utilities (6 were
-  seen here). That variance can surface as a spurious stale-allowance failure.
-  It is why CI runs the gate immediately after the build step rather than in the
-  static shard, and it is a known rough edge rather than a solved problem.
+  which is why CI runs the gate immediately after the build step rather than in
+  the static shard.
+- Build-to-build instability was observed and traced, not tolerated: nine tokens
+  flapped because the shared source tokenizer splits `gap-0.5` and `bg-black/50`
+  on `.` and `/`, and the fragments were being resolved against whichever bare
+  rule happened to exist. They are now resolved against the utility they were
+  truncated from. Verified identical in both `demo` and `authenticated` builds.
 - `CONTEXTUAL_UNPROVEN` (66) is deliberately counted as debt. Some of those
   classes may genuinely always render under the required ancestor; proving it
   needs a component/route graph this PR does not build. False positives were
