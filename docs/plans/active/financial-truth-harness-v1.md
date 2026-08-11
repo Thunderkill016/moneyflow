@@ -119,7 +119,7 @@ Pure finance tests can remain green while a change to the authenticated read/com
 - Accessibility: assertions use semantic `MoneyValue` labels/data attributes, not geometry.
 - Database/RLS/provider/production correctness is explicitly out of scope for this browser harness.
 
-## Implementation
+## Implementation plan
 
 ### Changed files
 
