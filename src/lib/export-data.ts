@@ -135,6 +135,23 @@ export function candidatesToCsv(candidates: InboxCandidate[]): string {
   return rowsToCsv(header, rows);
 }
 
+/**
+ * Pick the canonical Inbox for an export.
+ *
+ * Demo keeps candidates in browser storage. An authenticated workspace keeps
+ * them in Supabase, and `clearLocalInboxAfterMigrate()` empties the local store
+ * once the browser has migrated — so reading local candidates while signed in
+ * exports an empty Inbox even though the account has pending ones.
+ */
+export function resolveExportCandidates(input: {
+  isDemo: boolean;
+  localCandidates: InboxCandidate[];
+  serverCandidates: InboxCandidate[] | null;
+}): InboxCandidate[] {
+  if (input.isDemo) return input.localCandidates;
+  return input.serverCandidates ?? [];
+}
+
 export function buildExportBundle(input: {
   transactions: Transaction[];
   candidates: InboxCandidate[];

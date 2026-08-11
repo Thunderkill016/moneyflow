@@ -9,6 +9,7 @@ import {
   exportFilename,
   filterByOccurredOnRange,
   reportCsvDownloadHref,
+  resolveExportCandidates,
   signedExportAmount,
 } from "./export-data.ts";
 import type { Transaction } from "./sample-data.ts";
@@ -133,4 +134,70 @@ test("export discoverability paths: Insights hub + Reports download", () => {
   assert.equal(reportCsvDownloadHref("week"), "/reports/export?period=week");
   assert.equal(reportCsvDownloadHref("year"), "/reports/export?period=year");
   assert.equal(reportCsvDownloadHref("nope"), "/reports/export?period=month");
+});
+
+/*
+ * Regression: an authenticated export must read the server Inbox.
+ *
+ * The Inbox for a signed-in workspace lives in Supabase, and the browser's
+ * local candidate store is emptied by `clearLocalInboxAfterMigrate()`. Reading
+ * local candidates while signed in produced an export with zero Inbox rows,
+ * even though the delete-account page tells people this download covers
+ * transactions and Inbox before permanent deletion.
+ */
+test("resolveExportCandidates reads the server Inbox for an authenticated viewer", () => {
+  const server = [cand({ id: "server-1" }), cand({ id: "server-2" })];
+
+  assert.deepEqual(
+    resolveExportCandidates({
+      isDemo: false,
+      localCandidates: [],
+      serverCandidates: server,
+    }).map((item) => item.id),
+    ["server-1", "server-2"],
+  );
+});
+
+test("resolveExportCandidates keeps demo on the device store", () => {
+  const local = [cand({ id: "local-1" })];
+
+  assert.deepEqual(
+    resolveExportCandidates({
+      isDemo: true,
+      localCandidates: local,
+      serverCandidates: [cand({ id: "server-1" })],
+    }).map((item) => item.id),
+    ["local-1"],
+  );
+});
+
+test("resolveExportCandidates never falls back to stale local data when signed in", () => {
+  // A browser that once ran demo mode still holds those candidates. They are
+  // not the account's Inbox, so an unavailable server read exports nothing
+  // rather than another context's rows.
+  assert.deepEqual(
+    resolveExportCandidates({
+      isDemo: false,
+      localCandidates: [cand({ id: "stale-demo" })],
+      serverCandidates: null,
+    }),
+    [],
+  );
+});
+
+test("an authenticated export bundle carries the server Inbox rows", () => {
+  const content = buildExportContent({
+    kind: "candidates",
+    format: "csv",
+    transactions: [],
+    candidates: resolveExportCandidates({
+      isDemo: false,
+      localCandidates: [],
+      serverCandidates: [cand({ id: "server-1", merchant: "Highlands" })],
+    }),
+    range: { from: "", to: "" },
+  });
+
+  assert.equal(content.count, 1);
+  assert.match(content.body, /Highlands/);
 });

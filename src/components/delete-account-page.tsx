@@ -25,10 +25,7 @@ import {
   isDeleteConfirmValid,
   SERVER_DELETE_READY_VI,
 } from "@/lib/delete-account";
-import {
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
+import { getPendingCountForClient } from "@/hooks/client-inbox";
 import styles from "./settings/settings-surfaces.module.css";
 
 export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
@@ -44,13 +41,15 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
 
   const confirmOk = isDeleteConfirmValid(confirmText);
 
+  /* The Inbox this page is about to destroy lives on the server once signed
+     in, so the shell badge must not be read from the cleared local store. */
   function reload() {
-    try {
-      setError(null);
-      setInboxCount(countPending(readStoredCandidates()));
-    } catch {
-      setError("Không đọc được dữ liệu trên thiết bị. Thử tải lại trang.");
-    }
+    setError(null);
+    getPendingCountForClient(viewer.isDemo)
+      .then(setInboxCount)
+      .catch(() =>
+        setError("Không đọc được dữ liệu trên thiết bị. Thử tải lại trang."),
+      );
   }
 
   useEffect(() => {
@@ -59,6 +58,7 @@ export function DeleteAccountPage({ viewer }: { viewer: ViewerSummary }) {
       setReady(true);
     });
     return () => window.cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per route load
   }, []);
 
   useEffect(() => {

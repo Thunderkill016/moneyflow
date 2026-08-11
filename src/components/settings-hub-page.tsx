@@ -12,10 +12,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import type { ViewerSummary } from "@/components/user-chip";
-import {
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
+import { getPendingCountForClient } from "@/hooks/client-inbox";
 import styles from "./settings/settings-surfaces.module.css";
 
 type SettingsLink = {
@@ -71,13 +68,16 @@ export function SettingsHubPage({ viewer }: { viewer: ViewerSummary }) {
   const [error, setError] = useState<string | null>(null);
   const [inboxCount, setInboxCount] = useState(0);
 
+  /* Demo keeps pending candidates on the device; an authenticated workspace
+     owns them on the server and its local store is cleared after migration.
+     getPendingCountForClient is the one reader that knows both. */
   function reload() {
-    try {
-      setInboxCount(countPending(readStoredCandidates()));
-      setError(null);
-    } catch {
-      setError("Không tải được dữ liệu cài đặt trên thiết bị. Hãy thử lại.");
-    }
+    setError(null);
+    getPendingCountForClient(viewer.isDemo)
+      .then(setInboxCount)
+      .catch(() =>
+        setError("Không tải được dữ liệu cài đặt trên thiết bị. Hãy thử lại."),
+      );
   }
 
   useEffect(() => {
@@ -86,6 +86,7 @@ export function SettingsHubPage({ viewer }: { viewer: ViewerSummary }) {
       setReady(true);
     });
     return () => window.cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hydrate once per route load
   }, []);
 
   return (

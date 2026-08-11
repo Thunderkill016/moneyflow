@@ -11,10 +11,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import type { ViewerSummary } from "@/components/user-chip";
-import {
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
+import { getPendingCountForClient } from "@/hooks/client-inbox";
 import {
   isNotificationSupported,
   notificationPermission,
@@ -65,7 +62,6 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
       setEnabled(stored.enabled);
       setDaysAhead(stored.daysAhead);
       setIncludeNames(stored.includeNames);
-      setInboxCount(countPending(readStoredCandidates()));
       setSupported(isNotificationSupported());
       setPermission(notificationPermission());
       setDirty(false);
@@ -74,6 +70,19 @@ export function NotificationSettingsPage({ viewer }: { viewer: ViewerSummary }) 
       setError("Không đọc được tùy chọn thông báo trên trình duyệt. Thử lại.");
     }
   }
+
+  /* Demo keeps pending candidates on the device; an authenticated workspace
+     owns them on the server and its local store is cleared after migration.
+     getPendingCountForClient is the one reader that knows both. */
+  useEffect(() => {
+    let cancelled = false;
+    void getPendingCountForClient(viewer.isDemo).then((count) => {
+      if (!cancelled) setInboxCount(count);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewer.isDemo]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
