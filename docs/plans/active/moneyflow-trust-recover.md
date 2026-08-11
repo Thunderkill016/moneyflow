@@ -61,7 +61,18 @@ checkable invariant.
 ### Restore ordering is derivable, not invented
 
 The purge deletes children before parents. The reverse of that sequence is a
-valid topological insert order, verified against every foreign key:
+valid topological insert order.
+
+**Correction of method.** The first version of this table was built by reading
+foreign keys out of `CREATE TABLE` bodies only, which missed constraints added
+later by `ALTER TABLE`. Review caught two of them. The graph below was rebuilt by
+extracting `ALTER TABLE` constraint blocks as well, which surfaced exactly two
+additional edges — `inbox_candidates.approved_transaction_id →
+financial_transactions(id, user_id)` and
+`transaction_entries.(reconciliation_id, user_id, account_id) →
+account_reconciliations(id, user_id, account_id)` — plus one self-reference
+treated separately below. Both additional edges are already satisfied by the
+existing order, so the order did not change; the dependency column did.
 
 | # | Table | Depends on |
 |---|---|---|
@@ -76,17 +87,27 @@ valid topological insert order, verified against every foreign key:
 | 9 | `inbox_rules` | categories |
 | 10 | `account_reconciliations` | accounts |
 | 11 | `financial_transactions` | — |
-| 12 | `inbox_candidates` | import_batches, accounts, categories |
+| 12 | `inbox_candidates` | import_batches, accounts, categories, financial_transactions (`approved_transaction_id`), **itself** (`transfer_pair_id`) |
 | 13 | `savings_goal_allocations` | savings_goals |
 | 14 | `income_template_occurrences` | templates, transactions |
 | 15 | `commitment_occurrences` | commitments, transactions |
 | 16 | `transaction_import_provenance` | transactions, candidates, batches |
-| 17 | `transaction_entries` | transactions, accounts, categories |
+| 17 | `transaction_entries` | transactions, accounts, categories, account_reconciliations (`reconciliation_id`) |
 | 18 | `account_reconciliation_events` | account_reconciliations |
 | 19 | `financial_mutation_audit_events` | — |
 
 Ordering is **mandatory**, not an optimisation: no foreign key in the schema is
 declared `DEFERRABLE`, so every FK is checked immediately on insert.
+
+**The self-reference needs a two-phase insert.** `inbox_candidates.transfer_pair_id`
+references `inbox_candidates (id, user_id)`, so no table ordering can satisfy it:
+two candidates in the same table can point at each other. Because the column is
+nullable and the constraint is `on delete set null`, restore inserts every
+candidate with `transfer_pair_id = NULL` in phase one, then applies the pair
+links in a single `UPDATE` in phase two, inside the same transaction. Validation
+must confirm each `transfer_pair_id` resolves to a candidate **present in the
+same archive** before either phase runs; a dangling pair link is a rejection, not
+a silently nulled field.
 
 ### Tenant isolation is mostly structural — with one exception
 
@@ -206,7 +227,9 @@ accounts or categories, which cannot reconstruct a ledger.
 - [ ] **P2-AC4** Integer money survives the round trip exactly: `amount_minor`
       is never parsed through a lossy float, and any value outside the
       IEEE-754 safe-integer range (±9007199254740991) is rejected rather than
-      silently rounded.
+      silently rounded. This matches an existing repository rule rather than
+      inventing one: `create_money_transaction` already raises
+      `amount_exceeds_safe_integer` at exactly that bound.
 - [ ] **P2-AC5** Restore validates the **entire** archive before its first
       write. Unsupported version, missing referenced entity, malformed
       structure, non-integer money, unbalanced transfer, inexact split and
@@ -216,6 +239,23 @@ accounts or categories, which cannot reconstruct a ledger.
 - [ ] **P2-AC7** Restore re-asserts financial invariants in the database:
       transfers balance to zero and stay neutral to income/expense, splits sum
       exactly to their parent, entries never have `amount_minor = 0`.
+- [ ] **P2-AC7a** Restore validates **per-kind entry shape**, which the
+      invariants above do not cover. An `expense` transaction whose entry is
+      positive, or an `income` transaction whose entry is negative, passes
+      transfer/split/non-zero checks and would still corrupt every balance and
+      report. `create_money_transaction` writes
+      `case when p_kind = 'income' then p_amount_minor else -p_amount_minor end`
+      and rejects `category_kind_mismatch`, so restore must assert, per
+      transaction kind: the expected entry **sign**, the expected entry
+      **count**, and that each entry's `categories.kind` matches the
+      transaction's `kind`. These rules exist only in the write RPCs and are
+      lost the moment rows are inserted directly.
+- [ ] **P2-AC7b** Archived categories are treated differently from live
+      creation. `create_money_transaction` raises `category_archived`, but a
+      faithful restore **must** accept a historical transaction whose category
+      was archived after the fact. Restore therefore validates category
+      ownership and kind but not archival state for historical rows, and the
+      distinction is written down rather than inherited by accident.
 - [ ] **P2-AC8** Tenant ownership is preserved: every restored row is owned by
       the authenticated caller. An archive naming another `user_id` is
       rejected; ownership isolation is proven under RLS.
@@ -230,7 +270,13 @@ accounts or categories, which cannot reconstruct a ledger.
 - [ ] **P2-AC13** `inbox_rules` whose category is archived are handled by a
       written rule, not by an unhandled `rule_category_not_available`.
 
-P2 may be marked accepted only when P2-AC1–13 are evidenced or explicitly
+- [ ] **P2-AC14** Every row a restore writes carries a `restore_batch_id`, and
+      removing a committed bad restore by that batch is a defined, tested
+      operation. A restore that commits malformed data must be identifiable and
+      reversible; an unidentifiable restored row is an accepted-defect, not a
+      completed feature.
+
+P2 may be marked accepted only when P2-AC1–14 are evidenced or explicitly
 recorded as owner-accepted limitations, without fabricating pass evidence.
 
 ### Required states
@@ -276,15 +322,39 @@ authority. The client check is a convenience; the database check is the contract
 
 ### Data and migration impact
 
-New functions only. No table alteration, no destructive migration. Restore
-writes tenant rows for the caller and nothing else. Rollback is dropping the
-functions; no data unwind.
+New functions plus one restore-batch marker. Restore writes tenant rows for the
+caller and nothing else.
+
+**Correction.** An earlier version of this packet claimed "rollback is dropping
+the functions; no data unwind". That is wrong, and review was right to reject it.
+Dropping the functions only prevents *future* calls. If a defective restore
+validates successfully and **commits**, the malformed rows are already in the
+ledger, and a functions-only design leaves no way to tell a restored row from one
+the user entered by hand — so there would be nothing to unwind *with*.
+
+Two consequences, both now part of the contract:
+
+- Restore records a **batch identity** (`restore_batch_id` plus `restored_at`)
+  that marks every row it writes, so a bad restore is identifiable after commit.
+  Whether this lives in a dedicated table or a column on restored rows is an
+  implementation decision for R7; the requirement is that no restored row is
+  anonymous.
+- Undoing a committed bad restore is a **defined operation**, specified and
+  tested before implementation ships — not an incident improvised later.
+
+Rollback of the *change itself* (before any user has restored) remains dropping
+the functions. Rollback *after* a restore is the batch-scoped removal above.
 
 ### Risks and counterexamples
 
 | Risk | Handling |
 |---|---|
 | Bulk insert bypasses RPC-level invariants | restore re-asserts them in SQL before commit (P2-AC7) |
+| Wrong-signed entry or mismatched category kind passes every other check | per-kind sign/count/category-kind assertions (P2-AC7a) |
+| Restore rejects legitimately archived historical categories | ownership and kind checked, archival state not (P2-AC7b) |
+| Self-referencing `transfer_pair_id` cannot be ordered | two-phase insert then update, dangling links rejected |
+| A committed bad restore is unidentifiable | `restore_batch_id` on every restored row, defined batch removal (P2-AC14) |
+| Dependency graph incomplete | rebuilt from `ALTER TABLE` blocks as well as `CREATE TABLE` |
 | `EXCEPTION` block silently commits a subtransaction | no per-row handlers; `RAISE` only |
 | bigint truncated by JSON parsing | safe-integer bound asserted both sides (P2-AC4) |
 | Half-restored ledger | single RPC, single transaction, pgTAP proof (P2-AC6) |
@@ -301,6 +371,21 @@ preservation; transfer neutrality; split exactness; ownership isolation;
 corrupted, partial, missing-reference and unsupported-version archives all
 rejected before mutation; duplicate restore; forced mid-restore failure rolls
 back; credential scan; inventory-versus-purge drift test.
+
+Added after review, each as an explicit negative case:
+
+- an `expense` transaction with a **positive** entry is rejected;
+- an `income` transaction whose entry points at an `expense`-kind category is
+  rejected;
+- a transaction whose entry count is wrong for its kind is rejected;
+- a historical transaction on an **archived** category is **accepted**;
+- a `transfer_pair_id` pointing outside the archive is rejected;
+- mutually paired candidates restore correctly through the two-phase insert;
+- a committed restore is fully removable by its `restore_batch_id`.
+
+A dependency-graph test asserts the restore order still satisfies every foreign
+key found in both `CREATE TABLE` and `ALTER TABLE` statements, so the omission
+review caught here cannot recur silently.
 
 Database and RLS gates are **required** for this work because it changes the
 database boundary. Note for honesty: a green `database` job can mean
@@ -326,7 +411,7 @@ reported as such.
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-11 | human_owner | planner | planned | P1 accepted; `main@a6aaa7d` | no archive or restore exists | Map tenant truth, then specify |
-| 2026-08-11 | planner | human_owner | specifying | inventory, ordering, invariant findings, two sources, P2-AC1–13 | three open questions in R3; nothing implemented | Owner answers R3 and accepts or amends the contract |
+| 2026-08-11 | planner | human_owner | specifying | inventory, ordering, invariant findings, two sources, P2-AC1–14 | three open questions in R3; nothing implemented | Owner answers R3 and accepts or amends the contract |
 
 ### Current permission boundary
 
@@ -342,7 +427,7 @@ reported as such.
 ## Evaluation
 
 Not yet evaluable — no implementation exists. Acceptance evidence will be
-recorded against P2-AC1–13 as R5–R9 complete.
+recorded against P2-AC1–14 as R5–R9 complete.
 
 ### Remaining limitations
 
