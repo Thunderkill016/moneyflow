@@ -17,8 +17,11 @@
     "",
     "Wildcards are deliberately impossible.",
     "",
-    "Bootstrap for main@ebc98e4 was 373. Migrating onboarding to",
-    "onboarding-flow.module.css removed 27, leaving 346."
+    "onboarding-flow.module.css removed 27, leaving 346.",
+    "",
+    "Bootstrap for main@ebc98e4 was 373. Onboarding's CSS Module removed 27.",
+    "Registering the shadcn semantic theme namespace removed a further 27,",
+    "leaving 319."
   ],
   "entries": [
     {
@@ -47,15 +50,6 @@
       "owner": "src/components/ui/button.tsx",
       "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "accent-primary",
-      "owner": "src/components/ui/checkbox-field.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/radio-group.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
     },
     {
@@ -121,13 +115,6 @@
       "status": "debt"
     },
     {
-      "class": "after",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
       "class": "amber",
       "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
       "alsoEmittedBy": [],
@@ -146,13 +133,6 @@
     {
       "class": "app-shell",
       "owner": "src/app/goals/loading.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "aria-expanded",
-      "owner": "src/components/ui/button.tsx",
       "alsoEmittedBy": [],
       "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
@@ -214,69 +194,6 @@
       "status": "debt"
     },
     {
-      "class": "bg-background",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/dialog.tsx",
-        "src/components/ui/select-field.tsx",
-        "src/components/ui/sheet.tsx",
-        "src/components/ui/text-field.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "bg-border",
-      "owner": "src/components/ui/separator.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "bg-card",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "bg-destructive",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "bg-input",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "bg-muted",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/card.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "bg-primary",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "bg-secondary",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "blue",
       "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
       "alsoEmittedBy": [],
@@ -284,51 +201,9 @@
       "status": "debt"
     },
     {
-      "class": "border-border",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/dialog.tsx",
-        "src/components/ui/empty-state.tsx",
-        "src/components/ui/sheet.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "border-color",
       "owner": "src/components/ui/select-field.tsx",
       "alsoEmittedBy": [
-        "src/components/ui/text-field.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "border-destructive",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/select-field.tsx",
-        "src/components/ui/text-field.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "border-input",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/select-field.tsx",
-        "src/components/ui/text-field.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "border-ring",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/button.tsx",
-        "src/components/ui/select-field.tsx",
         "src/components/ui/text-field.tsx"
       ],
       "reason": "semantic class with no active stylesheet owner",
@@ -1082,13 +957,6 @@
       "alsoEmittedBy": [
         "src/components/user-chip.tsx"
       ],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "dark",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
     },
@@ -1924,13 +1792,6 @@
       "status": "debt"
     },
     {
-      "class": "placeholder",
-      "owner": "src/components/ui/text-field.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
       "class": "planning-card-empty",
       "owner": "src/components/planning-card-empty.tsx",
       "alsoEmittedBy": [],
@@ -2199,36 +2060,6 @@
       "status": "debt"
     },
     {
-      "class": "ring-destructive",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/select-field.tsx",
-        "src/components/ui/text-field.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "ring-foreground",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "ring-ring",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/button.tsx",
-        "src/components/ui/checkbox-field.tsx",
-        "src/components/ui/radio-group.tsx",
-        "src/components/ui/select-field.tsx",
-        "src/components/ui/text-field.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "round-icon",
       "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
       "alsoEmittedBy": [],
@@ -2477,79 +2308,6 @@
         "src/components/ui/money-value.tsx"
       ],
       "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "text-card-foreground",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "text-destructive",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/checkbox-field.tsx",
-        "src/components/ui/radio-group.tsx",
-        "src/components/ui/select-field.tsx",
-        "src/components/ui/text-field.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "text-foreground",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/button.tsx",
-        "src/components/ui/checkbox-field.tsx",
-        "src/components/ui/dialog.tsx",
-        "src/components/ui/empty-state.tsx",
-        "src/components/ui/radio-group.tsx",
-        "src/components/ui/select-field.tsx",
-        "src/components/ui/sheet.tsx",
-        "src/components/ui/text-field.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "text-muted-foreground",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/card.tsx",
-        "src/components/ui/checkbox-field.tsx",
-        "src/components/ui/dialog.tsx",
-        "src/components/ui/empty-state.tsx",
-        "src/components/ui/money-value.tsx",
-        "src/components/ui/radio-group.tsx",
-        "src/components/ui/select-field.tsx",
-        "src/components/ui/sheet.tsx",
-        "src/components/ui/text-field.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "text-primary",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "text-primary-foreground",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "text-secondary-foreground",
-      "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
     },
     {
