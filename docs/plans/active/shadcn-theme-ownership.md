@@ -1,11 +1,11 @@
 # Shadcn semantic theme ownership
 
-**Status:** ready_for_review  
-**Execution state:** ready_for_review  
-**Active role:** human_owner  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Issue/PR:** PR [#339](https://github.com/Thunderkill016/moneyflow/pull/339), rebased onto `main` after #337 merged  
+**Status:** ready_for_review
+**Execution state:** ready_for_review
+**Active role:** human_owner
+**Permission scope:** branch_write
+**Owner:** Thunderkill016
+**Issue/PR:** PR [#339](https://github.com/Thunderkill016/moneyflow/pull/339), rebased onto `main` after #337 merged
 **Last updated:** 2026-08-11
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence and next allowed actions, not percentage complete.
