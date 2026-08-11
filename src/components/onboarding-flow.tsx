@@ -30,6 +30,7 @@ import {
   type OnboardingStep,
 } from "@/lib/onboarding";
 import { trackProductEvent } from "@/lib/safe-analytics";
+import styles from "./onboarding-flow.module.css";
 
 function subscribeOnboardingStorage(onStoreChange: () => void) {
   if (typeof window === "undefined") return () => {};
@@ -166,33 +167,33 @@ export function OnboardingFlow({
 
   if (alreadyDone) {
     return (
-      <main className="onboarding-page" aria-busy="true" aria-label="Đang chuyển hướng">
-        <div className="onboarding-card">
-          <div className="loading-line wide" />
-          <div className="loading-line" />
-          <div className="loading-card" />
+      <main className={styles.page} aria-busy="true" aria-label="Đang chuyển hướng">
+        <div className={styles.card}>
+          <div className={`${styles.loadingLine} ${styles.wide}`} />
+          <div className={styles.loadingLine} />
+          <div className={styles.loadingCard} />
         </div>
       </main>
     );
   }
 
   return (
-    <main className="onboarding-page">
-      <div className="onboarding-card">
-        <Link className="brand onboarding-brand" href="/">
-          <span className="brand-mark">
+    <main className={styles.page}>
+      <div className={styles.card}>
+        <Link className={styles.brand} href="/">
+          <span className={styles.brandMark}>
             <span />
           </span>
           <span>MoneyFlow</span>
         </Link>
 
-        <div className="onboarding-progress-header">
-          <p className="onboarding-progress-fraction" aria-live="polite">
-            <span className="onboarding-progress-count">{progressLabel}</span>
-            <span className="onboarding-progress-title">{stepMeta.title}</span>
+        <div className={styles.progressHeader}>
+          <p className={styles.progressFraction} aria-live="polite">
+            <span className={styles.progressCount}>{progressLabel}</span>
+            <span className={styles.progressTitle}>{stepMeta.title}</span>
           </p>
           <ol
-            className="onboarding-progress"
+            className={styles.progress}
             role="progressbar"
             aria-valuenow={step}
             aria-valuemin={1}
@@ -201,13 +202,13 @@ export function OnboardingFlow({
           >
             {ONBOARDING_STEPS.map((item) => {
               const state =
-                item.step < step ? "is-done" : item.step === step ? "is-active" : "is-todo";
+                item.step < step ? styles.isDone : item.step === step ? styles.isActive : "";
               return (
                 <li key={item.step} className={state}>
-                  <span className="onboarding-progress-dot" aria-hidden="true" />
-                  <span className="onboarding-progress-step-label">
+                  <span className={styles.progressDot} aria-hidden="true" />
+                  <span className={styles.progressStepLabel}>
                     {item.step}/{ONBOARDING_STEP_COUNT}
-                    <span className="onboarding-progress-step-name"> · {item.shortLabel}</span>
+                    <span className={styles.progressStepName}> · {item.shortLabel}</span>
                   </span>
                 </li>
               );
@@ -216,26 +217,26 @@ export function OnboardingFlow({
         </div>
 
         {step === 1 && (
-          <section className="onboarding-step" aria-labelledby={`${baseId}-step1-title`}>
+          <section className={styles.step} aria-labelledby={`${baseId}-step1-title`}>
             <h1 id={`${baseId}-step1-title`}>Bạn kiểm soát dữ liệu</h1>
-            <p className="onboarding-lead">
+            <p className={styles.lead}>
               MoneyFlow là sổ thu chi cá nhân — không kết nối ngân hàng, không lấy mật khẩu NH.
             </p>
-            <ul className="onboarding-promises">
+            <ul className={styles.promises}>
               {TRUST_PROMISES.map((text) => (
                 <li key={text}>
-                  <span className="onboarding-check" aria-hidden="true">
+                  <span className={styles.check} aria-hidden="true">
                     <Icon name="check" />
                   </span>
                   <span>{text}</span>
                 </li>
               ))}
             </ul>
-            <div className="onboarding-actions">
+            <div className={styles.actions}>
               <Button
                 type="button"
                 targetSize="important"
-                className="onboarding-primary"
+                className={styles.primary}
                 onClick={goNextFromTrust}
               >
                 Tiếp
@@ -246,16 +247,16 @@ export function OnboardingFlow({
         )}
 
         {step === 2 && (
-          <section className="onboarding-step" aria-labelledby={`${baseId}-step2-title`}>
+          <section className={styles.step} aria-labelledby={`${baseId}-step2-title`}>
             <h1 id={`${baseId}-step2-title`}>Xác nhận ví tiền mặt</h1>
-            <p className="onboarding-lead">
+            <p className={styles.lead}>
               {cashId
                 ? "Bạn đã có ví tiền mặt. Kiểm tra tên và số dư ban đầu (có thể sửa sau)."
                 : "Tạo ví tiền mặt để ghi chi tiêu nhanh. Thêm ngân hàng / ví điện tử sau trong Tài khoản."}
             </p>
 
-            <div className="onboarding-fields">
-              <label className="onboarding-field" htmlFor={`${baseId}-wallet-name`}>
+            <div className={styles.fields}>
+              <label className={styles.field} htmlFor={`${baseId}-wallet-name`}>
                 <span>Tên ví</span>
                 <input
                   id={`${baseId}-wallet-name`}
@@ -271,7 +272,7 @@ export function OnboardingFlow({
                   placeholder={DEFAULT_CASH_WALLET_NAME}
                 />
               </label>
-              <label className="onboarding-field" htmlFor={`${baseId}-wallet-balance`}>
+              <label className={styles.field} htmlFor={`${baseId}-wallet-balance`}>
                 <span>Số dư ban đầu ({DEFAULT_CASH_WALLET_CURRENCY} · ₫)</span>
                 <input
                   id={`${baseId}-wallet-balance`}
@@ -287,19 +288,19 @@ export function OnboardingFlow({
                   placeholder="0"
                 />
               </label>
-              <p className="onboarding-currency-hint" role="note">
+              <p className={styles.currencyHint} role="note">
                 Tiền tệ mặc định: <strong>{DEFAULT_CASH_WALLET_CURRENCY}</strong> (đồng Việt Nam). Đổi
                 loại ví khác sau trong Tài khoản.
               </p>
             </div>
 
             {error && (
-              <p className="onboarding-error" role="alert">
+              <p className={styles.error} role="alert">
                 {error}
               </p>
             )}
 
-            <div className="onboarding-actions">
+            <div className={styles.actions}>
               <Button
                 type="button"
                 variant="secondary"
@@ -312,7 +313,7 @@ export function OnboardingFlow({
               <Button
                 type="button"
                 targetSize="important"
-                className="onboarding-primary"
+                className={styles.primary}
                 onClick={() => void confirmWallet()}
                 disabled={saving}
               >
@@ -324,14 +325,14 @@ export function OnboardingFlow({
         )}
 
         {step === 3 && (
-          <section className="onboarding-step" aria-labelledby={`${baseId}-step3-title`}>
+          <section className={styles.step} aria-labelledby={`${baseId}-step3-title`}>
             <h1 id={`${baseId}-step3-title`}>Ghi chi tiêu đầu tiên?</h1>
-            <p className="onboarding-lead">
+            <p className={styles.lead}>
               Không bắt buộc. Bạn có thể ghi một khoản chi nhanh, hoặc vào Tổng quan ngay.
               {walletConfirmed ? " Ví tiền mặt đã sẵn sàng." : ""}
             </p>
 
-            <div className="onboarding-summary" role="status">
+            <div className={styles.summary} role="status">
               <strong>
                 Ví: {walletName.trim() || DEFAULT_CASH_WALLET_NAME} · {DEFAULT_CASH_WALLET_CURRENCY}
               </strong>
@@ -341,12 +342,12 @@ export function OnboardingFlow({
             </div>
 
             {error && (
-              <p className="onboarding-error" role="alert">
+              <p className={styles.error} role="alert">
                 {error}
               </p>
             )}
 
-            <div className="onboarding-actions">
+            <div className={styles.actions}>
               <Button
                 type="button"
                 variant="secondary"
@@ -358,7 +359,7 @@ export function OnboardingFlow({
               <Button
                 type="button"
                 targetSize="important"
-                className="onboarding-primary"
+                className={styles.primary}
                 onClick={goQuickExpense}
               >
                 {ONBOARDING_PRIMARY_CTA}
@@ -369,7 +370,7 @@ export function OnboardingFlow({
               unstyled
               targetSize="important"
               type="button"
-              className="onboarding-skip onboarding-skip-inline"
+              className={`${styles.skip} ${styles.skipInline}`}
               onClick={() => setStep(2)}
             >
               Quay lại chỉnh ví
@@ -382,7 +383,7 @@ export function OnboardingFlow({
             unstyled
             targetSize="important"
             type="button"
-            className="onboarding-skip"
+            className={styles.skip}
             onClick={skipToInsights}
           >
             Để sau — vào Tổng quan

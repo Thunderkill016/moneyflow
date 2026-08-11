@@ -17,7 +17,8 @@
     "",
     "Wildcards are deliberately impossible.",
     "",
-    "Bootstrap for main@ebc98e4: 373 entries."
+    "Bootstrap for main@ebc98e4 was 373. Migrating onboarding to",
+    "onboarding-flow.module.css removed 27, leaving 346."
   ],
   "entries": [
     {
@@ -345,18 +346,14 @@
     {
       "class": "brand",
       "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [
-        "src/components/privacy-policy-page.tsx"
-      ],
+      "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
     },
     {
       "class": "brand-mark",
       "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [
-        "src/components/privacy-policy-page.tsx"
-      ],
+      "alsoEmittedBy": [],
       "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
     },
@@ -1645,20 +1642,6 @@
       "status": "debt"
     },
     {
-      "class": "is-active",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "is-done",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
       "class": "is-dragover",
       "owner": "src/components/inbox/capture-upload-page.tsx",
       "alsoEmittedBy": [],
@@ -1677,13 +1660,6 @@
       "owner": "src/components/inbox/capture-upload-page.tsx",
       "alsoEmittedBy": [],
       "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "is-todo",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
       "status": "debt"
     },
     {
@@ -1768,8 +1744,7 @@
         "src/app/income-templates/loading.tsx",
         "src/app/insights/loading.tsx",
         "src/app/reports/loading.tsx",
-        "src/app/timeline/loading.tsx",
-        "src/components/onboarding-flow.tsx"
+        "src/app/timeline/loading.tsx"
       ],
       "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
@@ -1805,8 +1780,7 @@
         "src/app/settings/privacy/loading.tsx",
         "src/app/timeline/loading.tsx",
         "src/app/transactions/loading.tsx",
-        "src/components/inbox/capture-share-page.tsx",
-        "src/components/onboarding-flow.tsx"
+        "src/components/inbox/capture-share-page.tsx"
       ],
       "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
@@ -1865,174 +1839,6 @@
         "src/components/inbox/capture-paste-page.tsx"
       ],
       "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-actions",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-brand",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-card",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-check",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-currency-hint",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-error",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-field",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-fields",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-lead",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-page",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-primary",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-progress",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-progress-count",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-progress-dot",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-progress-fraction",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-progress-header",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-progress-step-label",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-progress-step-name",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-progress-title",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-promises",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-skip",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-skip-inline",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-step",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "onboarding-summary",
-      "owner": "src/components/onboarding-flow.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
       "status": "debt"
     },
     {
@@ -2981,8 +2787,7 @@
         "src/app/settings/privacy/loading.tsx",
         "src/app/timeline/loading.tsx",
         "src/app/transactions/loading.tsx",
-        "src/components/inbox/capture-share-page.tsx",
-        "src/components/onboarding-flow.tsx"
+        "src/components/inbox/capture-share-page.tsx"
       ],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"

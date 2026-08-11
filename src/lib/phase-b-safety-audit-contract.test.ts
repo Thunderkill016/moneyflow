@@ -17,13 +17,19 @@ test("safety review states are selected by the cross-device audit projects", () 
     auditConfig,
     /const safetyReviewSpec = \/safety-review-states\\\.audit\\\.spec\\\.ts\//,
   );
+  /*
+   * The contract is that the safety spec is selected by both project families,
+   * not that the arrays hold exactly two entries. Pinning the literal made this
+   * fail when the onboarding presentation spec joined the same projects, which
+   * is a test coupled to formatting rather than to the behaviour it guards.
+   */
   assert.match(
     auditConfig,
-    /const responsiveWithSafety = \[responsiveSpec, safetyReviewSpec\]/,
+    /const responsiveWithSafety = \[[^\]]*\bresponsiveSpec\b[^\]]*\bsafetyReviewSpec\b[^\]]*\]/,
   );
   assert.match(
     auditConfig,
-    /const criticalWithSafety = \[criticalBrowserSpec, safetyReviewSpec\]/,
+    /const criticalWithSafety = \[[^\]]*\bcriticalBrowserSpec\b[^\]]*\bsafetyReviewSpec\b[^\]]*\]/,
   );
   assert.equal(
     countMatches(auditConfig, /testMatch: responsiveWithSafety/g),
