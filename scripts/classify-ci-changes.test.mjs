@@ -26,6 +26,18 @@ test("database-only changes run database checks without browser work", () => {
   assert.equal(result.codeql, false);
 });
 
+test("the archive round-trip verifier selects the database job that runs it", () => {
+  // The verifier executes inside the database job. If editing it selected no
+  // gate, a change could break the archive acceptance proof with nothing red.
+  for (const file of [
+    "scripts/verify-archive-producer.sh",
+    "scripts/verify-archive-producer.mjs",
+  ]) {
+    const result = classifyChanges([file]);
+    assert.equal(result.database, true, `${file} must select the database job`);
+  }
+});
+
 test("domain runtime changes run verify and browser smoke but not visual audit", () => {
   const result = classifyChanges(["src/lib/reports/weekly-summary.ts"]);
   assert.equal(result.fullVerify, true);
