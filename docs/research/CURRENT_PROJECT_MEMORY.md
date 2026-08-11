@@ -7,7 +7,8 @@
 - **Active trust program:** `docs/plans/active/public-beta-trust.md`
 - **Completed Provider Sync packet:** `docs/plans/completed/2026-08-11-moneyflow-trust-provider-sync.md`
 - **Completed Secure packet:** `docs/plans/completed/2026-08-11-account-deletion-recent-auth.md`
-- **MoneyFlow Trust current phase:** Provider Sync + P1 Secure accepted; **P2 Recover is next and unblocked**
+- **MoneyFlow Trust current phase:** Provider Sync + P1 Secure accepted; **P2 Recover is in progress** — archive v1 contract and pure validator merged; exporter and restore function still absent
+- **Active Recover packet:** `docs/plans/active/moneyflow-trust-recover.md`
 - **Supabase production migration/schema:** reviewed MoneyFlow migrations plus `20260809010648_financial_audit_service_role_read_only` are applied under repository versions; legitimate shared Atoryn history remains preserved
 - **Supabase production audit boundary:** RLS enabled; `authenticated` SELECT retained; `service_role` SELECT-only for the reviewed table privileges
 - **Supabase production Edge:** `delete-account` v6 `ACTIVE`, `verify_jwt=true`, current recent-auth helper + tenant cleanup inventory read back; provider bundle SHA-256 `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80`
@@ -107,7 +108,7 @@ Canonical sequence:
 | P0 Baseline | repository/Vercel/Supabase truth reconciled |
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed** with explicit stale/mismatch provider-test limitation |
-| P2 Recover | **next — unblocked; complete archive/restore contract and implementation absent** |
+| P2 Recover | **in progress** — archive v1 contract, inventory and pure fail-closed validator exist and are tested; **no exporter and no restore function exist**, so no user can archive or recover yet |
 | P3 Prove | blocked by P2; physical-phone core ledger + seven-day sanitized self-use |
 | P4 Improve | evidence-selected Ledger Trust depth after P3 |
 | P5 Release | final owner public-beta decision with explicit limitations |
@@ -207,11 +208,15 @@ PR #341 merged on 2026-08-11 and closed the Secure/Provider Sync acceptance desc
 
 ### P2 Recover / portability
 
-- complete versioned archive inventory is not yet accepted;
-- no complete archive schema/version contract exists yet;
-- no validate-before-restore contract exists yet;
-- no end-to-end restore implementation/round-trip evidence exists yet;
-- restore ordering/idempotency/failure semantics must preserve financial and ownership invariants;
+- archive v1 contract exists in `src/lib/archive/`: nineteen-table inventory anchored to `purge_user_tenant_data`, source-neutral row shapes carrying no ownership, and a pure fail-closed validator with a test-enforced drift check;
+- owner decisions are settled: restore targets `auth.uid()` while archives stay portable across MoneyFlow account identity; restore v1 is empty-only with a measured signup-bootstrap exception; historical audit events are non-replayable;
+- **no archive producer exists** — the date-range CSV/JSON export remains a reporting artifact covering 2 of 19 tables, not a backup;
+- **no restore function exists**, so no end-to-end round-trip evidence exists;
+- restore must re-assert transfer balance, split exactness and per-kind entry sign/category-kind itself, because those live only in the write RPCs and a bulk insert bypasses them;
+- restore needs `restore_batch_id` so a committed bad restore is identifiable and removable;
+- duplicate-restore detection needs persistent metadata; the pure validator cannot prove it;
+- raw-file ingress (including duplicate JSON member names, which `JSON.parse` collapses before validation) is not yet implemented;
+- pgTAP has not run for any archive work and becomes mandatory once the restore slice changes the database boundary;
 - archive must exclude credentials, JWTs, secrets and private infrastructure metadata.
 
 ### P3 Prove
