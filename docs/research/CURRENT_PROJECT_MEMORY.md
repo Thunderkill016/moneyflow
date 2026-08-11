@@ -1,19 +1,24 @@
 # MoneyFlow — current project memory
 
 - **Status:** active implementation-status authority
-- **Audit date:** 2026-08-09
-- **Current main audited:** `cfbff67171421d5f2ee70460b5e81edc59e8a6b1`
+- **Audit date:** 2026-08-11
+- **Current main audited:** `18836e2ebdc63711113f248826b00cd541a0a530`
 - **Owner direction:** MoneyFlow is a released functional MVP; the active hardening program is **MoneyFlow Trust**
 - **Active trust program:** `docs/plans/active/public-beta-trust.md`
-- **Active provider packet:** `docs/plans/active/moneyflow-trust-provider-sync.md`
+- **Completed Provider Sync packet:** `docs/plans/completed/2026-08-11-moneyflow-trust-provider-sync.md`
+- **Completed Secure packet:** `docs/plans/completed/2026-08-11-account-deletion-recent-auth.md`
+- **MoneyFlow Trust current phase:** Provider Sync + P1 Secure accepted; **P2 Recover is next and unblocked**
 - **Supabase production migration/schema:** reviewed MoneyFlow migrations plus `20260809010648_financial_audit_service_role_read_only` are applied under repository versions; legitimate shared Atoryn history remains preserved
-- **Supabase production audit boundary:** provider aligned for the reviewed invariant — RLS enabled; `authenticated` SELECT retained; `service_role` SELECT-only for the checked table privileges
-- **Supabase production Edge:** `delete-account` is now **v6 ACTIVE**, `verify_jwt=true`, with the current recent-auth helper and tenant cleanup inventory read back from the provider
-- **Provider Sync current state:** source/schema/ACL drift is closed; remaining boundary is provider-backed password/Google recent-auth acceptance
-- **Recent-auth state:** #324 is merged; Next.js side has production Vercel evidence; Supabase Edge v6 now contains the merged gate, but P1 Secure is not accepted until safe authenticated provider flows prove password/OAuth step-up and same-account continuity
-- **Provider Sync limitation:** the earlier ten-file DB checkpoint did not execute an actual linked-production CLI dry-run; owner accepted the free local union-history simulation + fresh live history substitution for that consumed DB checkpoint only
-- **UI migration:** P0–P11 is merged and archived; physical Android/iOS were not executed and remain explicit limitations
-- **Primary public-beta blockers now:** provider-backed password/Google recent-auth acceptance → complete versioned archive/restore → physical/seven-day proof
+- **Supabase production audit boundary:** RLS enabled; `authenticated` SELECT retained; `service_role` SELECT-only for the reviewed table privileges
+- **Supabase production Edge:** `delete-account` v6 `ACTIVE`, `verify_jwt=true`, current recent-auth helper + tenant cleanup inventory read back; provider bundle SHA-256 `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80`
+- **Vercel production:** deployment `dpl_Ha9j2HWPx4PfrpjLc1jpfcPgFvNi` is `READY` and identifies exact Git SHA `18836e2ebdc63711113f248826b00cd541a0a530`
+- **Secure provider acceptance:** password PASS provider-backed; Google/OAuth same-account continuity PASS provider-backed; missing continuity PASS fail-closed; relevant Auth/API/Postgres/Edge/Vercel logs reviewed with no acceptance-blocking cluster for accepted flows
+- **Secure accepted limitation:** stale-AMR and real account-mismatch provider-level destructive/identity-risk probes were not executed; on 2026-08-11 the owner explicitly accepted deterministic fail-closed tests/source evidence for those two cases instead
+- **Secure deterministic evidence:** 35/35 recent-auth assertions pass on exact `main@18836e2`; only `password`/`oauth` count; `token_refresh` does not extend deletion authority; missing/malformed/unsupported/future/stale AMR fail closed before tenant purge
+- **Provider Sync historical limitation:** earlier ten-file DB checkpoint did not execute an actual linked-production CLI dry-run; owner accepted the free local union-history simulation + fresh live history substitution for that consumed checkpoint only
+- **Presentation ownership:** #337 introduced the code→CSS ownership gate and fixed onboarding; #339 registered semantic theme utilities and layered button/link resets; #340 fixed password UX + confirm registration + shared dropdown owner; shrink-only baseline is **313** with no additions from #340
+- **UI migration:** P0–P11 merged/archived; physical Android/iOS were not executed and remain explicit limitations
+- **Primary public-beta blockers now:** complete versioned archive/restore → physical-phone/seven-day proof → observed trust-depth improvements → final release decision
 - **History model:** task routing lives in `docs/context/README.md`; bounded PR provenance lives under `docs/research/pr-memory/YYYY/QN/`
 - **MVP release:** `main@8e08a8a748a632b07bb42c27bf14539758b28824`; functional MVP release does not imply public-beta readiness
 
@@ -32,7 +37,7 @@ Authority order:
 7. active work packets;
 8. historical research/completed packets/PR memory.
 
-A Git merge is not a provider deployment. Provider source read-back is not authenticated-flow acceptance. Local/browser tests do not manufacture production provider evidence.
+A Git merge is not a provider deployment. Provider source read-back is not authenticated-flow acceptance. Local/browser tests do not manufacture production provider evidence. Owner-accepted limitations are recorded as limitations, never rewritten as executed pass evidence.
 
 ## 2. Status vocabulary
 
@@ -40,7 +45,7 @@ A Git merge is not a provider deployment. Provider source read-back is not authe
 |---|---|
 | **Merged implementation** | Exists on current `main` with repository evidence |
 | **Provider aligned** | Required live provider state matches the reviewed repository contract for the named boundary |
-| **Implemented + production evidenced** | Merged path is verified through every required production/provider boundary |
+| **Implemented + production evidenced** | Merged path is verified through every required production/provider boundary for the named claim |
 | **Partial** | Useful live or merged behavior exists but one or more required contracts remain unmet |
 | **Candidate only** | Exists only in an open PR/branch |
 | **Historical/superseded** | Preserved for provenance, not current direction |
@@ -68,13 +73,13 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 - Goal allocations are planning earmarks only; they do not post, transfer or lock account money.
 - Authenticated and demo failures never silently mix.
 - Missing financial facts are never invented.
-- Current deletion source requires recent interactive `password` or `oauth` AMR before tenant purge; production Edge v6 now contains this source, but authenticated provider behavior is still awaiting acceptance evidence.
+- Account deletion requires recent interactive `password` or `oauth` AMR before tenant purge; token refresh does not extend deletion authority.
 
 ## 5. Current capability inventory
 
 | Capability | Current truth | Remaining distinction |
 |---|---|---|
-| Authentication/demo | email/password, OAuth, recovery/reset, demo, CAPTCHA and deletion step-up merged | provider-backed password/Google deletion-step-up acceptance open |
+| Authentication/demo | email/password, Google OAuth, recovery/reset, CAPTCHA and deletion step-up merged; password reveal/registration confirmation fixed in #340 | broader auth hardening only if new evidence requires it |
 | Accounts | CRUD/archive/restore, totals, transfer, register/detail merged | richer closing lifecycle later |
 | Reconciliation | domain/UI merged; production schema aligned | deeper matching/user acceptance later |
 | Transactions | ledger/capture/review merged; production review schema aligned | split-line correction later |
@@ -87,8 +92,8 @@ Non-goals without a new owner-approved specification: bank sync, AI financial ad
 | Import/Inbox | CSV/XLSX/PDF staging, provenance, dry-run, atomic approval merged | broader rules/actions later |
 | Rules | authenticated deterministic rules merged + production schema aligned | broader conditions/actions later; no unreviewed auto-posting |
 | Audit | schema/RLS/triggers + SELECT-only service-role boundary live | richer user-facing traceability later |
-| Privacy/deletion | #324 recent-auth/same-account/fail-closed contract merged and Edge v6 source-aligned | safe provider-backed password/Google acceptance pending |
-| Responsive/accessibility | broad automated coverage through P11/#324 | physical Android/iOS acceptance not executed |
+| Privacy/deletion | recent-auth/same-account/fail-closed contract merged, Edge v6 source-aligned, password + Google production acceptance completed | stale/mismatch provider probes retained as accepted limitation |
+| Responsive/accessibility | broad automated coverage through #340 | physical Android/iOS acceptance not executed |
 | CI/security | risk-selected CI, CodeQL, secret scan, DB/browser harnesses | hosted-runner success is not provider acceptance proof |
 
 ## 6. MoneyFlow Trust current truth
@@ -100,35 +105,74 @@ Canonical sequence:
 | Phase/checkpoint | Current state |
 |---|---|
 | P0 Baseline | repository/Vercel/Supabase truth reconciled |
-| Provider Sync | **evaluating** — database/schema/ACL and Edge source drift closed; provider-backed auth acceptance remains |
-| P1 Secure | implementation merged + Edge v6 source-aligned; password/Google provider acceptance open |
-| P2 Recover | blocked until P1 acceptance |
+| Provider Sync | **accepted/completed** |
+| P1 Secure | **accepted/completed** with explicit stale/mismatch provider-test limitation |
+| P2 Recover | **next — unblocked; complete archive/restore contract and implementation absent** |
 | P3 Prove | blocked by P2; physical-phone core ledger + seven-day sanitized self-use |
 | P4 Improve | evidence-selected Ledger Trust depth after P3 |
 | P5 Release | final owner public-beta decision with explicit limitations |
 
+### Secure/provider acceptance evidence
+
+Production-safe password flow on 2026-08-11:
+
+- ordinary password authentication succeeded;
+- deletion reauthentication performed a second successful password authentication;
+- both resolved to the same provider identity;
+- server-side user verification succeeded;
+- browser returned to `/settings/delete-account`;
+- no destructive `delete-account` Edge invocation was observed.
+
+Production-safe Google flow on 2026-08-11:
+
+- ordinary Google PKCE login succeeded;
+- deletion reauthentication initiated OAuth with `next=/settings/delete-account` and `reauth=1` continuity state;
+- second Google PKCE authentication succeeded;
+- ordinary login and reauthentication resolved to the same provider identity;
+- server-side user verification succeeded after callback;
+- browser returned to `/settings/delete-account`;
+- no destructive `delete-account` Edge invocation was observed.
+
+Fail-closed evidence:
+
+- missing continuity state returned to ordinary login/recovery rather than authorizing deletion;
+- invalid non-credential callback code followed the same safe recovery path;
+- `reauth=1` without the deletion next path did not activate the deletion continuity branch;
+- unauthenticated delete-account access preserved the intended login-next route;
+- 35/35 deterministic assertions on exact `18836e2` prove unsupported/refresh/missing/future/stale AMR cannot grant deletion authority.
+
+Accepted limitation:
+
+- stale-AMR through the potentially destructive server-action boundary and real account mismatch with a second identity were not executed in production;
+- owner explicitly accepted this limitation on 2026-08-11 instead of requiring destructive or identity-risk production testing.
+
+Logs:
+
+- Auth/API/Postgres/Edge/Vercel were inspected around the accepted flow windows;
+- no acceptance-blocking error cluster was found for those flows;
+- Supabase Edge logs contained no `delete-account` invocation during acceptance;
+- ordinary application POST traffic is not confused with destructive Edge execution.
+
 ### Provider Sync evidence
 
-- exact ten historical MoneyFlow migrations applied under repository versions; seven legitimate shared Atoryn history rows preserved;
-- PR #326 free local union-history dry-run selected exactly the ten MoneyFlow migrations; actual linked-production CLI dry-run was not executed and remains an accepted limitation for that consumed DB checkpoint;
-- audit ACL forward migration `20260809010648` is live exactly once and effective `service_role` access is SELECT-only for the reviewed privileges;
-- #329 reconciled the audit provider evidence on `main@cfbff67171421d5f2ee70460b5e81edc59e8a6b1`;
-- owner separately approved the Edge write with `Gô`;
-- pre-write production `delete-account` was v5 ACTIVE with `verify_jwt=true` and stale source;
-- post-write provider read-back shows **v6 ACTIVE**, `verify_jwt=true`, bundle SHA-256 `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80`;
-- provider read-back contains `delete-account/index.ts` plus `_shared/account-deletion-recent-auth.ts`, the ten-minute `password|oauth` AMR evaluator and current audit/provenance/rules/reconciliation cleanup inventory;
-- no real account deletion or financial-row mutation was used as rollout evidence;
-- immediate Edge log query contained no runtime events, so it cannot stand in for authenticated-flow acceptance.
+- exact reviewed MoneyFlow migrations applied under repository versions; legitimate shared Atoryn history preserved;
+- audit ACL forward migration `20260809010648` live exactly once and effective `service_role` access SELECT-only for reviewed privileges;
+- owner separately approved the Edge write;
+- production `delete-account` upgraded from stale v5 to current v6;
+- v6 read-back retains `verify_jwt=true` and current helper/inventory;
+- no real account deletion or financial-row mutation used as rollout/acceptance evidence.
 
-### Remaining Secure boundary
+Historical accepted DB limitation remains: no actual linked-production CLI dry-run for the earlier ten-file checkpoint.
 
-Do not say P1 Secure is accepted until production-safe password and supported OAuth/Google step-up/continuity paths are exercised and relevant provider logs are inspected. Source alignment is necessary but not sufficient.
+## 7. Presentation/UI ownership current truth
 
-## 7. UI-system migration closure truth
-
-- P0–P11 are delivered and archived; B3.2/Fresh Blue remains selected.
-- P11 exact head passed CI #2043, CodeQL/Secret #1149, 785 unit/static tests, Browser 94/94 and a 554-case cross-device matrix with 0 failed/0 flaky.
-- Physical Android Chrome/iOS Safari were not executed. Issue #72 is closed `not_planned`; this is an accepted limitation, not pass evidence.
+- P0–P11 UI migration is delivered and archived; B3.2/Fresh Blue remains selected.
+- #337 introduced `check:code-css-ownership`, gave onboarding a local CSS owner and made the baseline history-relative/shrink-only.
+- #339 registered the shadcn semantic theme namespace in the Tailwind-owned stylesheet and moved button/link color resets into `@layer base` so utilities can win; measured primary-button contrast recovered to 5.93:1 light / 6.48:1 dark.
+- #340 added shared password reveal controls, server-authoritative registration password confirmation and a shared DropdownMenu presentation owner.
+- #340 ownership baseline shrank 319 → **313**, `baselineAdded: 0`.
+- Transaction amount readability regression was not reproduced after #339; browser regression evidence now covers light/dark.
+- Physical Android Chrome/iOS Safari P11 acceptance was not executed. This remains an accepted limitation, not pass evidence.
 
 ## 8. Reconciled issue status
 
@@ -136,45 +180,46 @@ Do not say P1 Secure is accepted until production-safe password and supported OA
 |---|---|
 | #53 DB/import/reconciliation/rules | merged; relevant production schema aligned |
 | #72 UI audit | closed `not_planned`; physical Android/iOS not executed |
-| #172 product assessment | market-validation warnings useful; old global feature-freeze framing superseded |
-| #174 provider controls | repository readiness/runbook merged; provider execution remains evidence-specific |
 | #316 | closed/superseded historical recent-auth candidate; replaced by #324 |
-| #324 | merged recent-auth implementation; Next.js side production-evidenced; Edge v6 now source-aligned; provider acceptance open |
-| #325 | merged Provider Sync reconciliation/spec |
-| #326 | closed unmerged; zero-cost local union-history dry-run evidence only |
-| #327 | merged ten-file production execution evidence |
-| #328 | merged audit ACL hardening; production migration live |
-| #329 | merged audit ACL production evidence/current-memory reconciliation |
+| #323 | MoneyFlow Trust parent merged; active program continues |
+| #324 | merged recent-auth implementation; production/provider behavior now accepted under completed Secure packet |
+| #325–#329 | Provider Sync reconciliation/DB/ACL evidence completed and archived |
+| #337 | merged presentation ownership gate + onboarding owner |
+| #339 | merged semantic theme ownership/cascade fix |
+| #340 | merged Auth/shared-UI regression closure; deployed exact SHA `18836e2...` |
 
 ### Evidence boundaries
 
 - provider behavior requires provider evidence;
 - Vercel does not deploy Supabase migrations or Edge Functions;
-- provider source read-back does not prove password/Google behavior;
-- the free local union-history dry-run is not an actual linked-production dry-run;
+- provider source read-back does not by itself prove password/Google behavior;
 - automated browser success does not prove physical-device acceptance;
-- retry-pass is not equivalent to first-attempt pass.
+- retry-pass is not equivalent to first-attempt pass;
+- owner-accepted limitation is not equivalent to executed pass evidence.
 
 ## 9. Open pull-request memory
 
 Fresh-query GitHub before acting on unrelated historical PRs. Open PRs remain candidate evidence until merged. For bounded provenance, use the relevant record under `docs/research/pr-memory/YYYY/QN/` rather than treating old PR descriptions as current truth.
 
+PR #341 is the current candidate documentation closure for the Secure/Provider Sync acceptance described in this snapshot; until it merges, current `main` remains `18836e2...` and this branch is candidate evidence only.
+
 ## 10. True gaps after this audit
 
-### Secure/provider acceptance
+### P2 Recover / portability
 
-- production `delete-account` source/version drift: closed at v6;
-- safe password recent-auth provider acceptance: open;
-- safe supported OAuth/Google recent-auth + expected-user continuity: open;
-- stale/missing-continuity fail-closed provider evidence: open;
-- post-acceptance Edge/Auth/API/Postgres log review: open.
+- complete versioned archive inventory is not yet accepted;
+- no complete archive schema/version contract exists yet;
+- no validate-before-restore contract exists yet;
+- no end-to-end restore implementation/round-trip evidence exists yet;
+- restore ordering/idempotency/failure semantics must preserve financial and ownership invariants;
+- archive must exclude credentials, JWTs, secrets and private infrastructure metadata.
 
-### Public-beta portability
+### P3 Prove
 
-- complete versioned archive/restore is absent;
-- P2 implementation remains blocked until P1 Secure acceptance.
+- no physical-phone core-ledger acceptance under the Trust program;
+- no seven consecutive days of sanitized owner self-use accepted yet.
 
-### Product depth
+### Product depth after Trust evidence
 
 - richer account closing/reconciliation matching;
 - split-line correction and user-facing mutation-audit depth;
@@ -182,24 +227,22 @@ Fresh-query GitHub before acting on unrelated historical PRs. Open PRs remain ca
 - report account/type dimensions/deeper drill-down;
 - broader deterministic rule conditions/actions without unreviewed auto-posting.
 
-### Accepted UI limitation
+## 11. Next allowed action
 
-- no physical Android Chrome P11 acceptance;
-- no physical iOS/Safari P11 acceptance.
+Open a dedicated **P2 Recover** work packet before implementation. Start from current repository/schema/export/import truth, enumerate the state required for a complete restorable archive, then research/archive-versioning practices only for unresolved design choices.
 
-## 11. Load-bearing merged and provider truth
+The P2 contract must define at least:
 
-- #183/#184: atomic Inbox approval/provenance merged and production migrated.
-- #206/#207: Dashboard one-RPC hardening/schema-skew fallback.
-- #228/#229: account register/detail and deployment/auth-routing evidence.
-- #236/#255/#261/#263/#265/#270: FK indexes, review, reconciliation, rules and financial-audit domains merged and production schema applied.
-- #296–#322: completed UI migration program/archive.
-- #323: MoneyFlow Trust parent program.
-- #324: recent-auth merged; Next.js side production-evidenced; production Edge now v6 with current source, acceptance still open.
-- #325: Provider Sync reconciliation/spec.
-- #326: closed unmerged migration-selection simulation evidence.
-- #327: ten-file production database evidence.
-- #328/#329: audit service-role read-only migration + production evidence.
+- archive version and compatibility rules;
+- complete tenant-data inventory and explicit exclusions;
+- referential ordering/identity mapping;
+- validation before mutation;
+- integer-money/transfer/split invariants;
+- idempotency/retry/rollback/failure behavior;
+- corruption/partial/unsupported-version failure semantics;
+- test strategy for export → validate → restore round trip.
+
+Provider writes, destructive deletion and production financial-data mutation are not authorized merely because P2 is unblocked.
 
 ## 12. Superseded-status register
 
@@ -209,9 +252,10 @@ Do not repeat these as current facts:
 - Audit `service_role` still has broad non-read table privileges.
 - Production `delete-account` is still v5.
 - Production `delete-account` lacks the merged recent-auth helper/current tenant inventory.
-- P1 Secure is accepted merely because Edge v6 is ACTIVE.
+- P1 Secure remains blocked on password provider acceptance.
+- P1 Secure remains blocked on Google/OAuth same-account continuity.
+- Supabase logs are unavailable because the local CLI lacks a `logs` command.
+- Production Vercel SHA for #340 is unverifiable.
+- Stale-AMR/account-mismatch production probes passed; they were not executed and are accepted limitations.
 - Actual linked-production dry-run was executed or passed for the earlier ten-file rollout.
-- The free local union-history dry-run is equivalent to an actual linked-production dry-run.
-- A Git merge alone proves provider readiness.
 - Physical Android/iOS acceptance was performed or passed.
-- Retry-pass is equivalent to first-attempt pass.
