@@ -1,7 +1,7 @@
 # Authenticated financial-truth harness v1
 
-**Status:** evaluating
-**Execution state:** evaluating
+**Status:** ready for review
+**Execution state:** ready_for_review
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** human owner
@@ -24,7 +24,7 @@ Extend MoneyFlow's existing strict authenticated Playwright harness with one det
 - `src/lib/finance.ts` already has pure tests for safe-integer totals, transfer-neutral total assets, period income/expense, split exactness and balance reconciliation.
 - `src/server/dashboard.ts` uses `get_dashboard_bundle` as the healthy authenticated read path, maps the bundle through schemas/domain mappers and only falls back to focused loaders when the bundle is unavailable or invalid.
 - `/dashboard` passes the authenticated server workspace through `MoneyFlowDashboard`, which derives the rendered statement from the mapped ledger facts.
-- Existing authenticated browser tests primarily prove ownership/source selection. Before this PR they did not prove a mixed income/expense/transfer server ledger reaches the rendered dashboard with the same financial truth as the domain contract.
+- Existing authenticated browser tests primarily proved ownership/source selection. This PR adds the missing mixed income/expense/transfer outcome contract on the rendered authenticated dashboard.
 
 ### Relevant repository areas
 
@@ -108,7 +108,7 @@ Pure finance tests can remain green while a change to the authenticated read/com
 - [x] Test proves authenticated mode, requires the healthy `get_dashboard_bundle` path and fails on any unimplemented Supabase-double request.
 - [x] Expected totals are independent fixture constants; the test imports neither the production dashboard summarizer nor production money formatter.
 - [x] No new dependency, runtime, CLI, schema, migration, provider write or production-data operation was introduced.
-- [ ] Exact selected CI and authenticated browser execution pass on the final PR head/merge ref.
+- [x] Selected CI and authenticated browser execution passed on PR head `d1579613d6b020ea61d90a47a7656d18b1dcda9b` through merge ref `d2b2707043332b8007b0c5fd32739e0618fad5b0` in CI run `31518814384`.
 
 ### Required states and boundaries
 
@@ -155,7 +155,7 @@ Pure finance tests can remain green while a change to the authenticated read/com
 - Unit: existing repo unit suite.
 - Build: production build + code→CSS ownership gate.
 - Browser: ordinary e2e plus `npm run test:e2e:auth` selected by the classifier.
-- Database: classifier selected `database=false`; a successful database job here means checks-not-required, not pgTAP execution.
+- Database: classifier selected `database=false`; the successful database job means checks-not-required, not pgTAP execution.
 - UI audit: classifier selected `uiAudit=false`; no presentation code changed.
 
 ## Tasks
@@ -165,7 +165,7 @@ Pure finance tests can remain green while a change to the authenticated read/com
 | T1 | Extend authenticated seed helper without changing defaults | focused diff | done |
 | T2 | Add canonical financial-truth authenticated browser spec | focused diff | done |
 | T3 | Open PR #345 and add PR memory record | PR + memory file | done |
-| T4 | Evaluate exact diff and CI evidence | CI run + final review | in progress |
+| T4 | Evaluate exact diff and CI evidence | CI run 31518814384 + browser logs | done |
 
 ## Handoff record
 
@@ -173,7 +173,9 @@ Pure finance tests can remain green while a change to the authenticated read/com
 |---|---|---|---|---|---|---|
 | 2026-08-12 | researcher | planner | specified | repo reconnaissance + four focused sources | browser proof not yet implemented | bounded plan |
 | 2026-08-12 | planner | implementer | implementing | branch `agent/financial-truth-harness-v1` | CI not yet run | T1–T3 |
-| 2026-08-12 | implementer | evaluator | evaluating | PR #345 at head `577393ceaf6daaca75577c025db836a4f742837d`; classifier selected full verify + browser smoke | first ready-for-review run failed `git diff --check` on packet trailing whitespace before browser evidence | fix hygiene, rerun selected gates, then evaluate |
+| 2026-08-12 | implementer | evaluator | evaluating | PR #345; first ready-for-review run | initial packet failed `git diff --check` on Markdown trailing whitespace | fix hygiene, do not bypass |
+| 2026-08-12 | evaluator | implementer | evaluating | second run passed diff hygiene but `check:knowledge` required exact `## Implementation plan` heading | bounded docs contract defect | restore required heading |
+| 2026-08-12 | evaluator | human owner | ready_for_review | head `d1579613d6b020ea61d90a47a7656d18b1dcda9b`; merge ref `d2b2707043332b8007b0c5fd32739e0618fad5b0`; CI 31518814384; 938 unit, 102 normal browser, 19 authenticated browser all pass | browser double is not DB/RLS/provider evidence; final evidence-doc commit must rerun CI | review PR; merge only by owner after final head stays green |
 
 ### Current permission boundary
 
@@ -184,32 +186,43 @@ Pure finance tests can remain green while a change to the authenticated read/com
 
 ## Evaluation
 
-### Evidence so far
+### Acceptance evidence
 
-- Source review: implementation touches only authenticated test harness/docs; no production application code.
-- Classifier on ready-for-review run 31518356981 selected `fullVerify=true`, `browserSmoke=true`, `database=false`, `uiAudit=false`, `codeql=true`.
-- First full run correctly failed policy hygiene before browser verification because the initial packet used Markdown trailing spaces. That failure is being fixed rather than bypassed.
-- Final static/unit/build/browser evidence: pending rerun after hygiene fix.
+| Criterion | Evidence | Result |
+|---|---|---|
+| Financial scenario exercises authenticated healthy bundle path | authenticated test requires `/auth/v1/user`, `/rest/v1/rpc/get_dashboard_bundle` and zero misses | PASS |
+| Balance/income/expense/net facts survive server-to-render composition | `financial-truth.mobile.auth.spec.ts` passed as authenticated-phone test #6 | PASS |
+| Internal transfer remains visible and transfer-neutral | same test asserts visible `HARNESS-TRANSFER`, transfer semantic label and independent period totals | PASS |
+| Existing automated contract remains intact | CI run 31518814384: policy, static, production build, code→CSS ownership and verify all successful | PASS |
+| Unit regression suite | CI log: 938 tests, 938 pass, 0 fail | PASS |
+| Ordinary browser suite | CI log: 102 passed, no retries/flakes reported | PASS |
+| Authenticated browser suite | CI log: 19 passed, including the new financial-truth test | PASS |
+| Security scans | CodeQL run 31518814382 and Secret history scan 31518814455 | PASS |
+| Database/RLS | classifier selected database=false; pgTAP did not run | NOT REQUIRED / NOT CLAIMED |
+| Cross-device UI audit | classifier selected uiAudit=false; audit did not run | NOT REQUIRED / NOT CLAIMED |
 
-### Review findings so far
+### Review findings
 
-- Correctness: design preserves independent expected values and healthy-path assertion; executable proof pending CI.
-- Security/ownership: synthetic data only; strict authenticated boundary preserved; DB/provider claims explicitly excluded.
-- UI/UX/accessibility: no UI change; semantic money labels are observed.
-- Maintainability/duplication: extends existing harness owner; no new framework/dependency.
-- Scope compliance: no production/domain/recovery change observed.
+- Correctness: expected money outcomes are independent literals; the test exercises the healthy bundled dashboard path and fails closed on unknown double requests.
+- Security/ownership: synthetic data only; authenticated session is created through the real login boundary; no DB/provider claims are inferred.
+- UI/UX/accessibility: no UI change; assertions observe semantic money labels and transfer tone rather than layout geometry.
+- Maintainability/duplication: existing harness owner is extended; no new framework, CLI, dependency or runtime was introduced.
+- Scope compliance: no production/domain/recovery code, migration or provider state was changed.
 
 ### Remaining limitations
 
 - Authenticated HTTP double is a browser/server-composition harness, not a PostgreSQL/RLS emulator.
 - One canonical scenario is a regression contract, not exhaustive financial property-based testing.
+- Evidence recorded above belongs to head `d157961...`; this documentation update itself must pass the final PR checks before owner merge.
 
 ## Delivery record
 
 - Branch: `agent/financial-truth-harness-v1`
 - PR: #345
-- Current state: evaluating; do not merge yet
-- CI: full selected gates pending clean rerun
+- Evaluated implementation head: `d1579613d6b020ea61d90a47a7656d18b1dcda9b`
+- Evaluated merge ref: `d2b2707043332b8007b0c5fd32739e0618fad5b0`
+- CI: run `31518814384` successful; CodeQL and secret-history scans successful
+- Current state: `ready_for_review`; do not merge automatically
 - Production deployment: not applicable
 - Production flow verified: not applicable
-- Work packet move to completed: only after final acceptance evidence
+- Work packet move to completed: only after owner acceptance/merge according to the repository state machine
