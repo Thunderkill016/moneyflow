@@ -583,8 +583,13 @@ export function InboxPage({
       viewer={viewer}
       inboxCount={pendingCount}
       notice={notice}
+      /* No showPrimaryActionOnMobile here, unlike the planning routes. Their
+         topbar action is a distinct operation (add a budget, a goal, a
+         category); Inbox's is capture, which the global middle tab already
+         owns. Exposing both would put the same primary action on one mobile
+         viewport twice. Desktop keeps it: the topbar is the only place it
+         appears there. */
       primaryAction={{ label: "Capture", href: "/capture", icon: "plus" }}
-      fabAction={{ label: "Capture", href: "/capture", icon: "plus" }}
     >
       <SecondaryWorkspace slot="inbox-workspace">
         <SecondaryHeader

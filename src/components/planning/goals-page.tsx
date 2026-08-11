@@ -202,11 +202,7 @@ export function GoalsPage({
         onClick: () => openGoal(null),
         disabled: Boolean(dataError),
       }}
-      fabAction={{
-        label: "Thêm mục tiêu",
-        onClick: () => openGoal(null),
-        disabled: Boolean(dataError),
-      }}
+      showPrimaryActionOnMobile
       notice={notice}
     >
       <PlanningWorkspace>

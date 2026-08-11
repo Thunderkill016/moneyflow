@@ -388,7 +388,7 @@ export function AccountReconciliationPage({
     <AppShell
       viewer={viewer}
       primaryAction={primaryAction}
-      fabAction={primaryAction}
+      showPrimaryActionOnMobile
       notice={notice}
     >
       <main className={styles.workspace}>

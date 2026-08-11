@@ -4,13 +4,18 @@ import { defineConfig, devices } from "@playwright/test";
  * E2E smoke — TASK-116 (expense path) + product specs under ./e2e.
  * The cross-device audit has its own config and must not run inside this
  * baseline suite; otherwise the two web servers and state contracts interfere.
+ *
+ * The same applies to ./e2e/auth: this suite boots demo mode, so authenticated
+ * specs would run against a workspace that has no server behind it and fail on
+ * a contract they were never meant to assert here. They belong to
+ * playwright.auth.config.ts.
  */
 const PORT = Number(process.env.E2E_PORT || 3100);
 const baseURL = process.env.E2E_BASE_URL || `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
-  testIgnore: ["**/audit/**"],
+  testIgnore: ["**/audit/**", "**/auth/**"],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

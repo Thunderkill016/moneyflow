@@ -16,6 +16,7 @@ import {
   downloadTextFile,
   EXPORT_KIND_OPTIONS,
   exportFilename,
+  resolveExportCandidates,
   type ExportDataKind,
   type ExportFormat,
 } from "@/lib/export-data";
@@ -35,18 +36,34 @@ type ExportWorkspace = {
   dataError: string | null;
 };
 
+/** Canonical Inbox for an authenticated viewer; `null` in demo mode. */
+type ServerInbox = {
+  candidates: InboxCandidate[];
+  error: string | null;
+};
+
 export function ExportSettingsPage({
   viewer,
   workspace,
+  serverInbox = null,
 }: {
   viewer: ViewerSummary;
   workspace: ExportWorkspace;
+  serverInbox?: ServerInbox | null;
 }) {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ledgerWarning, setLedgerWarning] = useState<string | null>(workspace.dataError);
-  const [inboxCount, setInboxCount] = useState(0);
-  const [candidates, setCandidates] = useState<InboxCandidate[]>([]);
+  const [inboxCount, setInboxCount] = useState(
+    viewer.isDemo ? 0 : countPending(serverInbox?.candidates ?? []),
+  );
+  const [candidates, setCandidates] = useState<InboxCandidate[]>(
+    resolveExportCandidates({
+      isDemo: viewer.isDemo,
+      localCandidates: [],
+      serverCandidates: serverInbox?.candidates ?? null,
+    }),
+  );
   const [transactions, setTransactions] = useState<Transaction[]>(workspace.transactions);
   const [kind, setKind] = useState<ExportDataKind>("transactions");
   const [format, setFormat] = useState<ExportFormat>("csv");
@@ -55,13 +72,44 @@ export function ExportSettingsPage({
   const [exporting, setExporting] = useState(false);
   const [notice, setNotice] = useState("");
 
+  /**
+   * Build the whole warning sentence here rather than appending a fixed tail in
+   * the markup. Only demo can fall back to device candidates; telling an
+   * authenticated user their Inbox is still exportable from this device would
+   * repeat the promise this page was fixed to stop making.
+   */
+  function exportWarning(): string | null {
+    const parts: string[] = [];
+    if (workspace.dataError) {
+      parts.push(
+        viewer.isDemo
+          ? `${workspace.dataError} Bạn vẫn có thể xuất ứng viên Inbox lưu trên thiết bị này.`
+          : workspace.dataError,
+      );
+    }
+    if (!viewer.isDemo && serverInbox?.error) {
+      parts.push(
+        `${serverInbox.error} Bản tải xuống này chưa gồm Inbox — đừng dùng nó làm bản sao lưu trước khi xóa tài khoản.`,
+      );
+    }
+    return parts.length > 0 ? parts.join(" ") : null;
+  }
+
   function reload() {
     try {
       setError(null);
-      setLedgerWarning(workspace.dataError);
-      const storedCandidates = readStoredCandidates();
-      setCandidates(storedCandidates);
-      setInboxCount(countPending(storedCandidates));
+      setLedgerWarning(exportWarning());
+      /* Demo keeps its ledger and Inbox on the device; an authenticated
+         workspace owns both on the server. Reading local candidates while
+         signed in exports an empty Inbox — see the delete-account copy that
+         tells people this download covers transactions and Inbox. */
+      const exportCandidates = resolveExportCandidates({
+        isDemo: viewer.isDemo,
+        localCandidates: viewer.isDemo ? readStoredCandidates() : [],
+        serverCandidates: serverInbox?.candidates ?? null,
+      });
+      setCandidates(exportCandidates);
+      setInboxCount(countPending(exportCandidates));
       setTransactions(viewer.isDemo ? readStoredTransactions() : workspace.transactions);
     } catch {
       setError("Không đọc được dữ liệu xuất từ trình duyệt. Thử tải lại trang.");
@@ -207,7 +255,7 @@ export function ExportSettingsPage({
         {ready && !error && ledgerWarning ? (
           <Alert tone="warning" live="polite">
             <AlertDescription>
-              {ledgerWarning} Bạn vẫn có thể xuất ứng viên Inbox lưu trên thiết bị này.
+              {ledgerWarning}
             </AlertDescription>
           </Alert>
         ) : null}

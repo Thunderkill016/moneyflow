@@ -11,10 +11,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import type { ViewerSummary } from "@/components/user-chip";
-import {
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
+import { getPendingCountForClient } from "@/hooks/client-inbox";
 import {
   PARSER_IMPROVEMENT_AVAILABLE,
   RAW_RETENTION_OPTIONS,
@@ -42,13 +39,25 @@ export function PrivacySettingsPage({ viewer }: { viewer: ViewerSummary }) {
       const stored = readPrivacyPrefs();
       setPrefs(stored);
       setRawRetention(stored.rawRetention);
-      setInboxCount(countPending(readStoredCandidates()));
       setDirty(false);
       setError(null);
     } catch {
       setError("Không đọc được tùy chọn quyền riêng tư trên trình duyệt. Thử lại.");
     }
   }
+
+  /* Demo keeps pending candidates on the device; an authenticated workspace
+     owns them on the server and its local store is cleared after migration.
+     getPendingCountForClient is the one reader that knows both. */
+  useEffect(() => {
+    let cancelled = false;
+    void getPendingCountForClient(viewer.isDemo).then((count) => {
+      if (!cancelled) setInboxCount(count);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [viewer.isDemo]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {

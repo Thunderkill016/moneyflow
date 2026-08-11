@@ -253,4 +253,153 @@ test.describe("critical browser compatibility audit", () => {
     expect(box).not.toBeNull();
     expect(box!.height).toBeGreaterThanOrEqual(44);
   });
+
+  /*
+   * Regression: route "add" actions used to be passed as `fabAction`, which
+   * re-targets the mobile capture tab while its visible text stays "Ghi". The
+   * tab then read "Ghi" but opened "Thêm ngân sách" / "Thêm mục tiêu" and
+   * announced that name to assistive tech — a WCAG 2.5.3 label-in-name break,
+   * and the only capture entry point in the mobile shell was gone.
+   *
+   * Routes with their own add action expose it in the topbar via
+   * `showPrimaryActionOnMobile`, exactly like /accounts above.
+   */
+  const ROUTES_WITH_OWN_ADD_ACTION = [
+    { path: "/budgets", action: "Thêm ngân sách" },
+    { path: "/goals", action: "Thêm mục tiêu" },
+    { path: "/categories", action: "Thêm danh mục" },
+    { path: "/commitments", action: "Thêm khoản định kỳ" },
+    { path: "/income-templates", action: "Thêm khoản thu định kỳ" },
+  ] as const;
+
+  for (const route of ROUTES_WITH_OWN_ADD_ACTION) {
+    test(`${route.path} keeps the mobile capture tab on Ghi chi tiêu`, async ({
+      page,
+    }) => {
+      const viewportWidth = page.viewportSize()?.width ?? 1_440;
+      test.skip(viewportWidth > 760, "mobile shell contract");
+
+      await page.goto(route.path, { waitUntil: "domcontentloaded" });
+
+      const captureTab = page
+        .getByRole("navigation", { name: "Điều hướng di động" })
+        .getByRole("button", { name: "Ghi chi tiêu", exact: true });
+      await expect(captureTab).toBeVisible();
+
+      // The visible text must be contained in the accessible name (WCAG 2.5.3).
+      await expect(captureTab).toContainText("Ghi");
+
+      // The route's own action stays reachable, in the topbar.
+      await expect(
+        page.getByRole("banner").getByRole("button", { name: route.action, exact: true }),
+      ).toBeVisible();
+
+      // Label and behaviour must agree: tapping must reach capture, never the
+      // route's own create dialog. Asserting the name alone would still pass if
+      // a route re-pointed the tab while keeping the global label.
+      await captureTab.click();
+      await expect(page).toHaveURL(/\/capture(\/|$)/);
+    });
+  }
+
+  /*
+   * Same contract for the reconciliation workspace, which needs a real account
+   * id so it cannot join the static list above. Its action is a session verb
+   * rather than an "add", and it can legitimately be disabled — the contract is
+   * that it lives in the topbar and never re-points the capture tab.
+   */
+  test("reconciliation keeps the mobile capture tab on Ghi chi tiêu", async ({
+    page,
+  }) => {
+    const viewportWidth = page.viewportSize()?.width ?? 1_440;
+    test.skip(viewportWidth > 760, "mobile shell contract");
+
+    await page.goto("/accounts", { waitUntil: "domcontentloaded" });
+    const accountHref = await page
+      .locator('a[href^="/accounts/"]')
+      .first()
+      .getAttribute("href");
+    expect(accountHref, "the audit seed must expose at least one account").toBeTruthy();
+
+    await page.goto(`${accountHref}/reconcile`, { waitUntil: "domcontentloaded" });
+
+    const captureTab = page
+      .getByRole("navigation", { name: "Điều hướng di động" })
+      .getByRole("button", { name: "Ghi chi tiêu", exact: true });
+    await expect(captureTab).toBeVisible();
+    await expect(captureTab).toBeEnabled();
+    await expect(captureTab).toContainText("Ghi");
+
+    // The reconciliation action stays its own mobile-visible primary action.
+    await expect(
+      page.getByRole("banner").getByRole("button", { name: /đối soát$/ }),
+    ).toBeVisible();
+
+    await captureTab.click();
+    await expect(page).toHaveURL(/\/capture(\/|$)/);
+  });
+
+  /*
+   * The mirror image of the contracts above.
+   *
+   * The planning and reconciliation routes each own a distinct operation, so
+   * their action belongs in the topbar alongside the global capture tab. Inbox's
+   * action *is* capture, which the tab already owns — surfacing both would put
+   * the same primary action on one mobile viewport twice. One primary action per
+   * viewport, so mobile keeps only the tab.
+   */
+  test("Inbox exposes the global Ghi tab as its only mobile capture action", async ({
+    page,
+  }) => {
+    const viewportWidth = page.viewportSize()?.width ?? 1_440;
+    test.skip(viewportWidth > 760, "mobile shell contract");
+
+    await page.goto("/inbox", { waitUntil: "domcontentloaded" });
+
+    const captureTab = page
+      .getByRole("navigation", { name: "Điều hướng di động" })
+      .getByRole("button", { name: "Ghi chi tiêu", exact: true });
+    await expect(captureTab).toBeVisible();
+    await expect(captureTab).toContainText("Ghi");
+
+    // No second capture affordance in the topbar at this width.
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "Capture", exact: true }),
+    ).toBeHidden();
+
+    /*
+     * Scoped to the shell chrome — the topbar and the mobile tab bar. The
+     * "one primary action per viewport" rule is about the shell's primary
+     * action, not about every in-page link. The Capture sheet's own options and
+     * the empty-state links legitimately point at /capture and are page
+     * content, so counting them would be measuring the wrong contract.
+     */
+    const shellCaptureActions = await page.evaluate(() => {
+      const chrome = [
+        document.querySelector("header"),
+        document.querySelector('nav[aria-label="Điều hướng di động"]'),
+      ].filter((node): node is HTMLElement => node instanceof HTMLElement);
+
+      const isVisible = (element: Element) => {
+        const style = getComputedStyle(element);
+        return style.display !== "none" && style.visibility !== "hidden";
+      };
+
+      return chrome
+        .flatMap((root) => Array.from(root.querySelectorAll("a, button")))
+        .filter(isVisible)
+        .map((element) =>
+          (element.getAttribute("aria-label") || element.textContent || "").trim(),
+        )
+        .filter((name) => /^(Capture|Ghi chi tiêu)$/u.test(name));
+    });
+
+    expect(
+      shellCaptureActions,
+      "the Inbox shell must present exactly one primary capture action on mobile",
+    ).toEqual(["Ghi chi tiêu"]);
+
+    await captureTab.click();
+    await expect(page).toHaveURL(/\/capture(\/|$)/);
+  });
 });

@@ -305,7 +305,7 @@ export function IncomeTemplatesPage({
     <AppShell
       viewer={viewer}
       primaryAction={{ label: "Thêm khoản thu định kỳ", onClick: () => open(null), disabled: !canAdd }}
-      fabAction={{ label: "Thêm khoản thu định kỳ", onClick: () => open(null), disabled: !canAdd }}
+      showPrimaryActionOnMobile
       notice={notice}
     >
       <PlanningWorkspace>
