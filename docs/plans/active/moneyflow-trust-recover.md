@@ -1,11 +1,11 @@
 # MoneyFlow Trust P2 — Recover (complete versioned archive and restore)
 
-**Status:** specifying
-**Execution state:** specifying
-**Active role:** planner
-**Permission scope:** branch_write (documentation/specification only in this packet)
-**Owner:** agent (planner) → human_owner (contract acceptance)
-**Issue/PR:** parent #323; P2 contract PR pending
+**Status:** implementing
+**Execution state:** R5 complete; R6 next
+**Active role:** evaluator
+**Permission scope:** branch_write (repository code and tests; no provider, production or database write)
+**Owner:** agent (implementer/evaluator) → human_owner (merge decision)
+**Issue/PR:** parent #323; #342 contract; R5 PR pending
 **Last updated:** 2026-08-11
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. State labels describe evidence
@@ -160,15 +160,47 @@ violation surfaces at commit time and rolls the whole restore back.
 - `financial_transactions` has `unique (user_id, idempotency_key)` — a ready-made
   idempotency handle for restore.
 
-### Open questions
+### Owner decisions — resolved 2026-08-11
 
-1. Does restore target the **current** authenticated tenant only, or may an
-   archive be restored into a different account the owner also controls?
-2. Is restore permitted into a **non-empty** ledger, or only an empty one?
-3. Must `financial_mutation_audit_events` be restorable, or is it append-only
-   history that a restore should re-derive rather than replay?
+The three questions recorded in #342 are closed. These are decisions, not
+inferences, and the R5 code implements them.
 
-These are owner decisions and are recorded as blocking the contract, not guessed.
+**D1 — target tenant.** Restore always targets the **current authenticated
+tenant**, and the eventual restore authority is `auth.uid()` alone — never a
+caller-supplied `target_user_id`, never a `user_id` carried in the archive, never
+the source account identity.
+
+An archive **may** be restored into a *different* MoneyFlow account. The
+legitimate lifecycle is: export from the old account → the old account is gone or
+a new one is created → restore into the newly authenticated account. Archive
+portability is therefore **source-account independent, current-authenticated
+target**.
+
+Consequently owner fields are not serialized at all: no row carries `user_id`,
+and `profiles` carries no `id`, because `profiles.id` *is* the auth user id and
+must never overwrite the target's. An unexpected owner-authority field in a
+record is **rejected**, not trusted and not silently dropped.
+
+**D2 — target must be empty.** Restore v1 is **empty-only**: no merge, no
+deduplication, no row replacement, no best-effort, no silently skipped conflicts.
+
+The exact bootstrap exception is measured, not assumed. `handle_new_user` fires on
+`auth.users` insert and creates, in one trigger: one `profiles` row, one
+`accounts` row (`Tiền mặt`, `cash`, `VND`) and **eleven** `categories` rows with
+`is_default = true`. A freshly created account is therefore never literally
+empty, and an all-zero precondition would lock out exactly the user who most
+needs to recover. Nothing beyond those three is allowed, and one financial
+transaction — or one user-made category, or one row in any other tenant table —
+makes the target ineligible.
+
+**D3 — financial audit history is non-replayable.** Historical
+`financial_mutation_audit_events` are **never** inserted into the live audit
+table: they describe mutations from the source lifecycle, and replaying them
+would fabricate live provenance in the target tenant. They are preserved as
+sanitized, clearly non-replayable history for the user's own evidence. The
+eventual restore must create **new** restore-time provenance tied to
+`restore_batch_id`, and that new provenance is not to be described as
+"re-derived historical audit". No audit schema changed in R5.
 
 ## Research
 
@@ -392,16 +424,111 @@ database boundary. Note for honesty: a green `database` job can mean
 "Database checks not required"; that is not pgTAP execution and must never be
 reported as such.
 
+## R5 implementation truth
+
+Three modules under `src/lib/archive/`, no dependency added, no migration, no
+database access:
+
+| File | Role |
+|---|---|
+| `moneyflow-archive.ts` | canonical inventory, dispositions, restore order, enum vocabularies, row field specs, envelope type |
+| `moneyflow-archive-validator.ts` | `validateMoneyFlowArchive(input: unknown)` — pure, fail-closed |
+| `restore-target-state.ts` | `evaluateRestoreTargetState(snapshot)` — pure empty-target policy |
+
+The nineteen table names live in `ARCHIVE_TABLE_INVENTORY` only. Restore order,
+collection names and the drift test all derive from it, so no future file copies
+the list.
+
+### Disposition matrix
+
+Eighteen tables are `restorable`; `financial_mutation_audit_events` is `history`;
+none is `excluded`. Every non-restorable disposition must carry a written reason,
+asserted by a test.
+
+### What the validator enforces beyond the #342 contract
+
+Four rules were added because the evaluator pass found that validation would
+otherwise have passed an archive that then failed *mid-restore* — which would
+break the promise that a rejection means nothing was written:
+
+- **Positive-money CHECKs.** `savings_goals.target_minor > 0`,
+  `monthly_budgets.limit_minor > 0`, commitment and template
+  `amount_minor > 0`, `inbox_candidates.amount_minor > 0`,
+  `accounts.credit_limit_minor >= 0`, and the non-zero rules on
+  `transaction_entries.amount_minor` and `savings_goal_allocations.amount_minor`.
+- **`allocated_minor <= target_minor`** — a cross-field CHECK no single field
+  spec can express.
+- **`month_start` must be the first of its month** — all three of
+  `monthly_budgets`, `commitment_occurrences` and
+  `income_template_occurrences` carry
+  `check (month_start = date_trunc('month', month_start)::date)`.
+- **`currency_code ~ '^[A-Z]{3}$'`** and trimmed minimum lengths on names.
+
+### Transaction shapes, read from the write RPCs
+
+Every entry-producing path in the schema was enumerated
+(`create_money_transaction`, `create_split_expense`, `create_account_transfer`,
+`pay_recurring_commitment`, `record_recurring_income_template`,
+`approve_inbox_candidate`), and they agree:
+
+| Kind | Entries | Sign | Category |
+|---|---|---|---|
+| `income` | exactly 1 | positive | non-null, `kind = 'income'` |
+| `expense` | 1–12 | all negative | non-null, `kind = 'expense'` |
+| `transfer` | exactly 2 | one negative, one positive, summing to 0 | both NULL |
+
+A split expense is stored as `kind = 'expense'` with 2–12 entries — so the
+expense entry count is a **range**, not one. Multi-entry expenses must share one
+account and use distinct categories, and transfers must be between two different
+accounts with equal `currency_code`.
+
+### Historical-state exceptions, evidenced
+
+- A transaction whose category was archived **after** the fact is **accepted**,
+  even though `create_money_transaction` raises `category_archived` at creation
+  time. Archival state is deliberately not checked for historical rows; ownership
+  and category *kind* still are.
+- An `inbox_rules` row whose category was archived later is **accepted**, and
+  this is evidenced rather than assumed: `inbox_rules_validate_category` fires
+  only `before insert or update of user_id, category_id, contains_text,
+  merchant_name, enabled`, and no migration cascades from archiving a category to
+  its rules — so real tenants reach this state simply by archiving a category a
+  rule points at.
+
+  The restore-time consequence is recorded for R7 and deliberately not solved
+  here: the trigger *does* fire on INSERT and always requires an active category
+  there, so restoring such a rule will raise `rule_category_not_available`. That
+  is an insertion-order problem for the restore implementation.
+
+### Evidence boundaries — no false claims
+
+- **Parsed objects only.** The validator receives an already-parsed value.
+  RFC 8259 §4 notes duplicate object member names are not interoperable, and
+  `JSON.parse` keeps the last and discards the rest *before* the validator runs.
+  So R5 does **not** protect against duplicate raw JSON keys, and no hand-written
+  JSON parser was added to pretend otherwise. A test records the limitation as
+  executable evidence. Raw-text ingress belongs to the later file slice.
+- **Duplicate restore.** `archive_id` shape is validated, but a pure function
+  cannot know whether that archive was already restored — that needs persistent
+  restore metadata, so same-archive detection belongs to the database slice.
+- **`accounts` has no `is_default` column**, unlike `categories`. The bootstrap
+  account allowance is therefore count-based (at most one) rather than
+  structurally identified. Named limitation.
+- **`difference_minor` is omitted, not carried.** The schema allows
+  ±18014398509481982 — twice the JavaScript safe-integer bound — and it is
+  exactly `statement_balance_minor - calculated_balance_minor`, so restore
+  recomputes it rather than serializing a number JavaScript cannot represent.
+
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
 | R1 | Map tenant inventory, ordering, invariants | — | this reconnaissance | done |
 | R2 | Research transaction boundary and plpgsql semantics | R1 | two primary sources | done |
-| R3 | Owner decisions on the three open questions | R2 | — | blocked on owner |
-| R4 | Accept the archive contract | R3 | this packet reviewed | pending |
-| R5 | Envelope types and pure validators + unit tests | R4 | — | not started |
-| R6 | `export_user_archive` + inventory drift test | R4 | — | not started |
+| R3 | Owner decisions on the three open questions | R2 | D1/D2/D3 recorded above | done |
+| R4 | Accept the archive contract | R3 | this packet, contract now executable | done |
+| R5 | Envelope types and pure validators + unit tests | R4 | 92 assertions across 3 modules; see below | done |
+| R6 | `export_user_archive` + inventory drift test | R5 | drift test landed in R5; producer still absent | not started |
 | R7 | `restore_user_archive` + pgTAP atomicity/ownership | R6 | — | not started |
 | R8 | Settings surface with required states | R7 | — | not started |
 | R9 | Round-trip and rejection acceptance evidence | R7, R8 | — | not started |
@@ -412,6 +539,8 @@ reported as such.
 |---|---|---|---|---|---|---|
 | 2026-08-11 | human_owner | planner | planned | P1 accepted; `main@a6aaa7d` | no archive or restore exists | Map tenant truth, then specify |
 | 2026-08-11 | planner | human_owner | specifying | inventory, ordering, invariant findings, two sources, P2-AC1–14 | three open questions in R3; nothing implemented | Owner answers R3 and accepts or amends the contract |
+| 2026-08-11 | human_owner | implementer | implementing | D1/D2/D3 decided | contract not yet executable | Implement R5 envelope, types and pure validators |
+| 2026-08-11 | implementer | evaluator | evaluating | 3 modules, 92 assertions; 938/938 repo unit tests | no producer, no restore, no pgTAP | Attack the validator, then open the PR |
 
 ### Current permission boundary
 
@@ -426,8 +555,81 @@ reported as such.
 
 ## Evaluation
 
-Not yet evaluable — no implementation exists. Acceptance evidence will be
-recorded against P2-AC1–14 as R5–R9 complete.
+### R5 acceptance evidence
+
+| Criterion | R5 status | Evidence |
+|---|---|---|
+| P2-AC1 envelope versioned/self-describing | **contract done** | `archive_version`, `archive_id`, `produced_at`, `schema_generation`, `tenant_row_counts`; unsupported version/generation rejected |
+| P2-AC2 inventory anchored to purge | **executable** | drift test parses `purge_user_tenant_data` (test-only) and asserts set equality on nineteen tables |
+| P2-AC3 no secrets | **executable** | strict schemas plus recursive forbidden-key scan; nested secrets inside opaque `column_map` JSON rejected; legitimate field names proven not to trip it |
+| P2-AC4 integer money | **executable** | boundary values ±9007199254740991 accepted, ±1 beyond rejected, fractional/NaN/Infinity/stringified rejected, never coerced |
+| P2-AC5 validate before mutation | **pure part done** | every structural, reference and CHECK-mirroring rule rejects before any write path exists |
+| P2-AC6 atomicity | not started | needs the restore RPC and pgTAP |
+| P2-AC7/7a/7b invariants and entry shape | **executable** | per-kind sign, count and category-kind rules from the write RPCs; archived-category historical acceptance |
+| P2-AC8 ownership isolation | **pure part done** | no `user_id` serialized; owner-authority fields rejected; RLS proof needs the DB slice |
+| P2-AC9 duplicate restore | **semantics pinned** | `archive_id` validated; persistent detection deferred with the reason recorded |
+| P2-AC10 empty-only conflict policy | **executable** | `evaluateRestoreTargetState`; bootstrap exception measured from `handle_new_user` |
+| P2-AC11 soft-delete/archived fidelity | **executable** | `deleted_at` and `is_archived` round-trip asserted |
+| P2-AC12 unsupported version rejected | **executable** | version and schema-generation rejections; Vietnamese UI wording is a later UI concern, codes are stable for it |
+| P2-AC13 archived-category rule | **executable** | accepted with evidence; restore-time trigger consequence recorded for R7 |
+| P2-AC14 restore batch identity | not started | needs the DB slice |
+
+P2 is **not accepted**. Export does not exist, restore does not exist, and no
+pgTAP ran in this slice.
+
+### Independent evaluator findings on R5
+
+Four real findings, all fixed before the PR:
+
+1. **CHECK constraints were not mirrored.** Money that was a safe integer but
+   violated the owning table's CHECK (`target_minor = -5`, `limit_minor = 0`,
+   a zero goal allocation, a negative credit limit) passed validation and would
+   have failed at INSERT — defeating validate-before-mutation. Now rejected.
+2. **`allocated_minor <= target_minor` was unenforced** — a cross-field CHECK.
+   Added.
+3. **`month_start` was validated only as a date**, though three tables require
+   the first of the month. Added as its own field kind.
+4. **`currency_code` was length-checked but not pattern-checked**, so `"vnd"`
+   would have passed and then failed the `^[A-Z]{3}$` CHECK. Added, along with
+   trimmed minimum lengths so `"   "` is not a valid name.
+
+One self-inflicted test defect was also fixed: the purity check scanned the
+module's prose and tripped on its own documentation naming `process.env` as
+something it avoids. It now strips comments and scans executable code.
+
+### Review findings on #343
+
+Four more, all verified against source before accepting, all fixed:
+
+1. **Persisted columns were missing from the contract (P1).** `import_batches.parser_version`
+   and `mapping_version`, `transaction_import_provenance.match_confidence` and
+   `created_at`, and `inbox_candidates.applied_rule_id` and `applied_rule_version`
+   were absent. Because unknown fields are rejected, a producer could not have
+   preserved them without failing validation — so faithful round trip was
+   impossible for any tenant using imports or deterministic rules. All six added.
+   `applied_rule_id` is modelled as a plain uuid, **not** a reference, because the
+   schema gives it no foreign key: the rule it names may since have been deleted,
+   and requiring its presence would reject valid archives.
+   `financial_mutation_audit_events.idempotency_key` stays excluded, now
+   explicitly: it deduplicates live writes, and this history is never replayed.
+2. **Cross-field CHECKs beyond `savingsGoals` were unenforced (P2).** A `pending`
+   entry with a non-null `cleared_at`, an `open` reconciliation carrying
+   completion fields, a candidate with an approval link but no approved status,
+   and a half-populated applied-rule pair all passed. Each now mirrors its named
+   constraint: `transaction_entries_reconciliation_shape_check`,
+   `account_reconciliations_status_shape_check`,
+   `inbox_candidates_approval_link_check` and
+   `inbox_candidates_applied_rule_pair_check`.
+3. **`Date.parse` normalizes impossible dates (P2).**
+   `Date.parse("2026-02-30T10:00:00Z")` returns a valid time for 2 March rather
+   than `NaN`, so an impossible calendar timestamp would have reached a
+   `timestamptz` INSERT. Timestamps now validate the date part as strictly as
+   dates do, and range-check the clock, since the regex alone accepted `99:99:99`.
+4. **UUID letter casing split identity (P2).** The uuid pattern is
+   case-insensitive but rows were indexed by raw string, so two ids differing only
+   in hex case were two rows here and one row in PostgreSQL — missing
+   `duplicate_row_id` and failing later on the primary key. Identity and reference
+   lookups are now canonicalized to lower case.
 
 ### Remaining limitations
 
@@ -435,5 +637,11 @@ recorded against P2-AC1–14 as R5–R9 complete.
   `a6aaa7d`. That anchor is only as complete as the purge function; if a future
   table is added to neither, both stay wrong together. The drift test catches
   divergence between them, not a table absent from both.
-- Restore correctness for `financial_mutation_audit_events` depends on the R3
-  answer about whether audit history is replayable at all.
+- `financial_mutation_audit_events` is settled by D3: preserved as
+  non-replayable history, never inserted into the live audit table.
+- R5 validates parsed objects only; duplicate raw JSON keys are outside its
+  reach and outside its claims.
+- The bootstrap account allowance is count-based because `accounts` has no
+  `is_default` column.
+- No pgTAP ran in R5 and none was required. Real pgTAP becomes mandatory for the
+  restore slice, which changes the database boundary.
