@@ -169,7 +169,7 @@ Recover/Prove/Release:
 | P1-T2 | password provider acceptance | 2026-08-11 provider evidence | complete |
 | P1-T3 | Google/OAuth continuity acceptance | 2026-08-11 provider evidence | complete |
 | P1-T4 | fail-closed/log review + owner limitation decision | production probes + 35/35 deterministic + owner decision | complete |
-| P2-T1 | create/accept Recover archive contract | P1 accepted | next |
+| P2-T1 | create/accept Recover archive contract | P1 accepted | specifying — `docs/plans/active/moneyflow-trust-recover.md`; awaiting owner answers on three open questions |
 | P2-T2 | implement export/validate/restore | P2-T1 | blocked by P2-T1 |
 | P3-T1 | physical-phone core ledger checklist | P2 accepted | blocked |
 | P3-T2 | seven-day sanitized self-use | P3-T1 | blocked |

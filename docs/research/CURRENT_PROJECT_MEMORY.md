@@ -201,7 +201,7 @@ Historical accepted DB limitation remains: no actual linked-production CLI dry-r
 
 Fresh-query GitHub before acting on unrelated historical PRs. Open PRs remain candidate evidence until merged. For bounded provenance, use the relevant record under `docs/research/pr-memory/YYYY/QN/` rather than treating old PR descriptions as current truth.
 
-PR #341 is the current candidate documentation closure for the Secure/Provider Sync acceptance described in this snapshot; until it merges, current `main` remains `18836e2...` and this branch is candidate evidence only.
+PR #341 merged on 2026-08-11 and closed the Secure/Provider Sync acceptance described in this snapshot; current `main` is `a6aaa7d832f518e9ce7d2eafbfa4b64ec2728f8f`. Its required CodeQL check had stalled as `in_progress` after the workflow itself reported success; re-running the same run for the same head produced a fresh check-run that finalized `success`, so no ruleset or protection was bypassed.
 
 ## 10. True gaps after this audit
 
