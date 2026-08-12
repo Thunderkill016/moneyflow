@@ -4,7 +4,7 @@ This document is the shortest reliable map of the current system. It explains bo
 
 ## System purpose
 
-MoneyFlow is a Vietnamese personal-finance ledger for manually recording income, expenses and transfers across multiple accounts. It prioritizes trustworthy balances, fast capture, understandable monthly reporting and user-owned export.
+MoneyFlow is a Vietnamese personal-finance ledger for manually recording income, expenses and transfers across multiple accounts. It prioritizes trustworthy balances, fast capture, understandable monthly reporting, and user-owned data: both a date-range report export and a complete versioned archive that can be validated and restored.
 
 ## Architecture style
 

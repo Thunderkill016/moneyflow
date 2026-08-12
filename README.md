@@ -1,6 +1,6 @@
 # MoneyFlow
 
-**MoneyFlow** is a Vietnamese personal income-and-expense web ledger: multiple accounts, fast manual capture, clear balances and period reporting, with user-owned export. Calm, factual and non-judgmental.
+**MoneyFlow** is a Vietnamese personal income-and-expense web ledger: multiple accounts, fast manual capture, clear balances and period reporting, with user-owned export and a complete restorable account archive. Calm, factual and non-judgmental.
 
 Core jobs:
 
@@ -131,6 +131,7 @@ A capability appearing in the global atlas or long-term vision is not permission
 - Category budgets, recurring commitments, recurring income and savings goals.
 - Weekly, monthly and yearly reports.
 - CSV export and controlled import tooling.
+- Complete versioned account archive with backup and restore at `/settings/backup`, separate from the date-range report export.
 - Responsive light/dark web UI.
 - PostgreSQL ledger with RLS and pgTAP coverage.
 

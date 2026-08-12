@@ -1,12 +1,12 @@
 # MoneyFlow Trust
 
 **Status:** active
-**Execution state:** planned
+**Execution state:** P3 Prove planned; P0/Provider Sync/P1/P2 accepted
 **Active role:** planner
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
-**Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness
-**Last updated:** 2026-08-11
+**Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure
+**Last updated:** 2026-08-12
 **Current main audited:** `18836e2ebdc63711113f248826b00cd541a0a530`
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
@@ -24,7 +24,7 @@ Program sequence:
 
 > **Provider Sync → Secure acceptance → Recover → Prove → Improve → Release**
 
-Provider Sync and P1 Secure are now accepted. The program advances to **P2 Recover**.
+Provider Sync, P1 Secure and **P2 Recover** are now accepted. The program advances to **P3 Prove**.
 
 ## Repository reconnaissance
 
@@ -35,14 +35,14 @@ Provider Sync and P1 Secure are now accepted. The program advances to **P2 Recov
 - PR #324 merged the recent-auth implementation.
 - PR #340 repaired password-entry/shared-dropdown regressions that blocked safe production acceptance and is deployed in production.
 - Vercel production deployment `dpl_Ha9j2HWPx4PfrpjLc1jpfcPgFvNi` is `READY` and identifies exact Git SHA `18836e2ebdc63711113f248826b00cd541a0a530`.
-- Reviewed MoneyFlow database migration/schema/ACL state is production-aligned while legitimate shared Atoryn history is preserved.
+- Reviewed MoneyFlow database migration/schema/ACL state is production-aligned. The Supabase project is now MoneyFlow-only: the Atoryn subsystem and its Edge Functions were removed on 2026-08-12 and migration history is fully aligned.
 - Production `delete-account` is v6 `ACTIVE`, `verify_jwt=true`, with the current recent-auth helper and tenant cleanup inventory read back from the provider.
 - Production-safe password deletion reauthentication passed with same-account provider evidence and no destructive deletion.
 - Production-safe Google/OAuth deletion reauthentication passed with same-account callback continuity and no destructive deletion.
 - Missing-continuity production behavior failed closed.
 - Stale-AMR and real account-mismatch production probes were deliberately not executed; on 2026-08-11 the owner accepted that named limitation and accepted the 35/35 deterministic fail-closed assertions/source evidence instead of destructive/identity-risk production testing.
 - Correlated Auth/API/Postgres/Edge/Vercel review found no acceptance-blocking error cluster for the accepted interactive flows; no `delete-account` Edge invocation was observed.
-- Current transaction/Inbox CSV/JSON export is scoped user-readable export, **not** a complete versioned restorable archive.
+- Current transaction/Inbox CSV/JSON export is scoped user-readable export, **not** a complete versioned restorable archive. The complete archive is a separate shipped capability at `/settings/backup`; the report export deliberately still says it is not a full backup.
 
 Completed Trust packets:
 
@@ -82,7 +82,9 @@ Provider and repository evidence remain claim-specific:
 
 ### Current problem
 
-P1 security no longer blocks the program. The next public-beta trust gap is portability/recovery: current CSV/JSON exports do not form a complete versioned archive that can be validated and restored while preserving ledger invariants and tenant ownership.
+P1 Secure and P2 Recover no longer block the program. A complete versioned archive can be exported, validated and restored with invariants intact, and the Recover schema is live in production — with the venues kept distinct: **export** is accepted against a real hosted production artifact, while **restore** is proven deterministically by pgTAP against a real PostgreSQL and has never been executed against a live hosted account. That gap is the named P2 limitation, not a claimed pass.
+
+The next public-beta trust gap is **P3 Prove**: no physical-phone acceptance of the core ledger loop, and no seven consecutive days of sanitized owner self-use without data loss or manual database repair.
 
 ### P2 Recover user stories
 
@@ -110,8 +112,8 @@ Secure:
 
 Recover/Prove/Release:
 
-- [ ] PBT-AC10 versioned complete archive can be exported, validated and restored with financial invariants intact.
-- [ ] PBT-AC11 restore fails safely on unsupported/corrupt/partial archives.
+- [x] PBT-AC10 versioned complete archive can be exported, validated and restored with financial invariants intact — deterministic full round trip proven by pgTAP on every CI run that touches the database boundary and on every push to `main` (`classify-ci-changes.mjs` selects the pgTAP job by changed path, and non-pull-request events force the full gate set — so a docs-only PR such as this closure does not re-run it); hosted export accepted on a real production artifact; hosted restore is an owner-accepted named limitation (id-preservation refuses a restore while the source account is live).
+- [x] PBT-AC11 restore fails safely on unsupported/corrupt/partial archives — each rejection writes zero rows, proven in pgTAP.
 - [ ] PBT-AC12 core ledger behavior is exercised on a physical phone.
 - [ ] PBT-AC13 seven consecutive days of sanitized owner self-use complete without data loss/manual DB repair.
 - [ ] PBT-AC14 no unresolved P0/P1 defect blocks the daily-ledger loop at final decision.
@@ -143,20 +145,22 @@ Recover/Prove/Release:
 | P0 Baseline | repository/Vercel/Supabase truth reconciled |
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed**, with named stale/mismatch provider-test limitation |
-| P2 Recover | **next — unblocked; specification/implementation pending** |
-| P3 Prove | blocked by P2 |
+| P2 Recover | **accepted/completed** — specified, implemented, deployed; hosted restore is a named limitation |
+| P3 Prove | active |
 | P4 Improve | blocked by P3 evidence |
 | P5 Release | blocked by prior phases |
 
 ### Next sequence
 
-1. fresh-read the current export/import/schema boundaries and define the complete archive inventory;
-2. research current backup/archive contract and validation practices only after repository truth is mapped;
-3. open a dedicated P2 Recover work packet before implementation;
-4. specify archive versioning, validation, restore ordering, idempotency/failure behavior and rollback;
-5. implement the smallest coherent export → validate → restore round-trip slice;
-6. verify financial/ownership invariants through repository-selected exact-head database/domain/browser gates;
-7. only after P2 acceptance proceed to physical-phone/seven-day P3 Prove.
+Steps 1–6 of the former P2 sequence are complete: the archive inventory, contract,
+packet, specification, export → validate → restore slice and invariant gates all
+landed and are accepted. What remains is P3:
+
+1. define the physical-phone core-ledger acceptance checklist;
+2. run it on a real device and record the evidence;
+3. complete seven consecutive days of sanitized owner self-use without data loss or
+   manual database repair;
+4. reconcile memory/evidence and take the owner public-beta decision.
 
 ## Tasks
 
@@ -169,9 +173,9 @@ Recover/Prove/Release:
 | P1-T2 | password provider acceptance | 2026-08-11 provider evidence | complete |
 | P1-T3 | Google/OAuth continuity acceptance | 2026-08-11 provider evidence | complete |
 | P1-T4 | fail-closed/log review + owner limitation decision | production probes + 35/35 deterministic + owner decision | complete |
-| P2-T1 | create/accept Recover archive contract | P1 accepted | specifying — `docs/plans/active/moneyflow-trust-recover.md`; awaiting owner answers on three open questions |
-| P2-T2 | implement export/validate/restore | P2-T1 | blocked by P2-T1 |
-| P3-T1 | physical-phone core ledger checklist | P2 accepted | blocked |
+| P2-T1 | create/accept Recover archive contract | P1 accepted | complete — `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md` |
+| P2-T2 | implement export/validate/restore | P2-T1 | complete — deployed to production; hosted export accepted, hosted restore an accepted limitation |
+| P3-T1 | physical-phone core ledger checklist | P2 accepted | next |
 | P3-T2 | seven-day sanitized self-use | P3-T1 | blocked |
 | P4-T1 | select observed trust-depth slice | P3 evidence | blocked |
 | P5-T1 | owner public-beta decision | prior phases | blocked |
@@ -182,12 +186,21 @@ Recover/Prove/Release:
 |---|---|---|---|---|---|---|
 | 2026-08-09 | human owner | provider evaluator | evaluating | Edge v6 ACTIVE/read-back | provider-backed auth acceptance | run safe password/Google flows |
 | 2026-08-11 | human owner + evaluator | planner | accepted | password + Google provider evidence; missing-continuity pass; logs; explicit stale/mismatch limitation acceptance | complete archive/restore absent | open P2 Recover packet/specification |
+| 2026-08-12 | human owner | planner | accepted | deterministic pgTAP round trip; hosted export accepted on a real production artifact; explicit hosted-restore limitation acceptance | hosted restore unproven; P3 evidence absent | define the P3 physical-phone checklist |
 
 ### Current permission boundary
 
-Allowed now: bounded branch/PR planning/documentation, repository implementation under an accepted P2 packet, focused research, and read-only GitHub/Vercel/Supabase inspection.
+Allowed now: bounded branch/PR planning/documentation, repository implementation under an accepted packet, focused research, and read-only GitHub/Vercel/Supabase inspection.
 
-Not authorized by the Secure acceptance decision: destructive account deletion, production financial-data mutation, provider secret/config writes, production DB/Edge writes, or any other provider mutation. Those still require their own scoped approval if P2 later needs them.
+Not authorized standing: destructive account deletion, production financial-data mutation, provider secret/config writes, production DB/Edge writes, or any other provider mutation. Each needs its own scoped owner approval.
+
+Consumed during P2, each under a separate explicit owner approval and not a standing grant:
+
+- 2026-08-12 — deletion of five named Atoryn Edge Functions (forward-fix only; not revertible).
+- 2026-08-12 — one `supabase migration repair` to realign migration history.
+- 2026-08-12 — Approval A: production application of exactly `20260812000000_export_user_archive.sql` then `20260812010000_restore_user_archive.sql`.
+
+Approval B — one hosted restore into a disposable test account — was granted and **not consumed**; no restore was executed. It does not carry forward.
 
 ## Evaluation
 
@@ -206,4 +219,4 @@ Not authorized by the Secure acceptance decision: destructive account deletion, 
 
 ### Decision
 
-Provider Sync and P1 Secure are complete and archived. P2 Recover is now the active dependency in the MoneyFlow Trust sequence.
+Provider Sync, P1 Secure and P2 Recover are complete and archived. P3 Prove — physical-phone core-ledger acceptance and seven consecutive days of sanitized owner self-use — is now the active dependency in the MoneyFlow Trust sequence.
