@@ -11,7 +11,7 @@ const edgeFunction = readFileSync(
 const originalPurgeMigration = readFileSync(
   join(
     root,
-    "supabase/migrations/20260726000100_harden_tenant_deletion.sql",
+    "supabase/migrations/20260726004445_harden_tenant_deletion.sql",
   ),
   "utf8",
 );

@@ -9,7 +9,9 @@
 - **Completed Secure packet:** `docs/plans/completed/2026-08-11-account-deletion-recent-auth.md`
 - **MoneyFlow Trust current phase:** Provider Sync + P1 Secure accepted; **P2 Recover is in progress** — contract, validator, producer and atomic restore merged with a full round-trip proof; implementation complete; two migrations await a production checkpoint before the feature works for real users
 - **Active Recover packet:** `docs/plans/active/moneyflow-trust-recover.md`
-- **Supabase production migration/schema:** reviewed MoneyFlow migrations plus `20260809010648_financial_audit_service_role_read_only` are applied under repository versions; legitimate shared Atoryn history remains preserved
+- **Supabase production is now MoneyFlow-only:** the Atoryn subsystem was removed by production migration `20260812043219_remove_atoryn_from_moneyflow_project` (7 `atoryn_*` tables, 11 `atoryn_cloud_*` functions, and its own history rows), and the five Atoryn Edge Functions were deleted on 2026-08-12. Only `delete-account` remains. That cleanup migration stays in history as evidence of removal, not as an active Atoryn subsystem
+- **Supabase production migration/schema:** reviewed MoneyFlow migrations are applied; five had been retimestamped in the repository relative to production and were restored to the production canonical versions (`20260726004445`, `20260726011134`, `20260801084523`, `20260801084534`, `20260801084604`) — proven byte-identical after normalization, so the rename changed no behaviour
+- **Migration authority rule:** a migration's version is its identity once production has run it. `check:migrations` pins every version, filename and normalized content hash, so a retimestamp, a post-hoc edit or a duplicate logical migration fails a gate instead of forking history
 - **Supabase production audit boundary:** RLS enabled; `authenticated` SELECT retained; `service_role` SELECT-only for the reviewed table privileges
 - **Supabase production Edge:** `delete-account` v6 `ACTIVE`, `verify_jwt=true`, current recent-auth helper + tenant cleanup inventory read back; provider bundle SHA-256 `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80`
 - **Vercel production:** deployment `dpl_Ha9j2HWPx4PfrpjLc1jpfcPgFvNi` is `READY` and identifies exact Git SHA `18836e2ebdc63711113f248826b00cd541a0a530`
@@ -156,7 +158,7 @@ Logs:
 
 ### Provider Sync evidence
 
-- exact reviewed MoneyFlow migrations applied under repository versions; legitimate shared Atoryn history preserved;
+- exact reviewed MoneyFlow migrations applied under repository versions; the Atoryn subsystem has since been removed and the project is MoneyFlow-only;
 - audit ACL forward migration `20260809010648` live exactly once and effective `service_role` access SELECT-only for reviewed privileges;
 - owner separately approved the Edge write;
 - production `delete-account` upgraded from stale v5 to current v6;

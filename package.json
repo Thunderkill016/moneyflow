@@ -15,6 +15,7 @@
     "test:load:contracts": "node --experimental-strip-types --test src/lib/performance-budgets.test.ts",
     "test:load:public": "k6 run tests/load/public-smoke.js",
     "test:load:dashboard": "k6 run tests/load/authenticated-dashboard.js",
+    "check:migrations": "node scripts/check-migration-identity.mjs",
     "check:knowledge": "node scripts/check-project-knowledge.mjs",
     "check:deployment-env": "node scripts/check-deployment-env.mjs --force",
     "check:css-ownership": "node scripts/check-css-ownership.mjs",

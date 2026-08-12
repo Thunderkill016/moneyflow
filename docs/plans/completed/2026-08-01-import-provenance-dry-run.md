@@ -80,9 +80,9 @@ Earlier red runs exposed temporary codemod residue and a pgTAP plan mismatch. In
 
 The following merged migrations were applied to production in order:
 
-1. `20260801043000_import_provenance_and_atomic_approval.sql`;
-2. `20260801043100_secure_inbox_fingerprint_trigger.sql`;
-3. `20260801043200_guard_invalid_inbox_approval.sql`.
+1. `20260801084523_import_provenance_and_atomic_approval.sql`;
+2. `20260801084534_secure_inbox_fingerprint_trigger.sql`;
+3. `20260801084604_guard_invalid_inbox_approval.sql`.
 
 Production schema inspection confirmed the new candidate fields, provenance table and RPC authorities. The fingerprint trigger helper remains unavailable for direct browser execution; authenticated users call only the intended planning and approval RPC boundaries.
 
