@@ -1,7 +1,7 @@
 # MoneyFlow Trust P2 — Recover (complete versioned archive and restore)
 
-**Status:** implementing
-**Execution state:** R5–R9 complete; P2 acceptance can now be evaluated
+**Status:** accepted/completed
+**Execution state:** accepted 2026-08-12 with one named limitation; ready to archive
 **Active role:** evaluator
 **Permission scope:** branch_write (repository code and tests; no provider, production or database write)
 **Owner:** agent (implementer/evaluator) → human_owner (merge decision)
@@ -248,30 +248,30 @@ accounts or categories, which cannot reconstruct a ledger.
 
 ### Acceptance criteria
 
-- [ ] **P2-AC1** Archive envelope is versioned and self-describing:
+- [x] **P2-AC1** Archive envelope is versioned and self-describing:
       `archive_version`, `produced_at`, `app_schema_generation`, `tenant_row_counts`.
-- [ ] **P2-AC2** Archive inventory covers every table `purge_user_tenant_data`
+- [x] **P2-AC2** Archive inventory covers every table `purge_user_tenant_data`
       deletes, or names the exclusion reason. A test fails if the two drift.
-- [ ] **P2-AC3** Archive contains **no** secret: no password hash, JWT, access or
+- [x] **P2-AC3** Archive contains **no** secret: no password hash, JWT, access or
       refresh token, OAuth or CAPTCHA secret, service-role key, provider
       configuration or private infrastructure metadata. Asserted by a
       key/value scan over a populated archive, not by inspection.
-- [ ] **P2-AC4** Integer money survives the round trip exactly: `amount_minor`
+- [x] **P2-AC4** Integer money survives the round trip exactly: `amount_minor`
       is never parsed through a lossy float, and any value outside the
       IEEE-754 safe-integer range (±9007199254740991) is rejected rather than
       silently rounded. This matches an existing repository rule rather than
       inventing one: `create_money_transaction` already raises
       `amount_exceeds_safe_integer` at exactly that bound.
-- [ ] **P2-AC5** Restore validates the **entire** archive before its first
+- [x] **P2-AC5** Restore validates the **entire** archive before its first
       write. Unsupported version, missing referenced entity, malformed
       structure, non-integer money, unbalanced transfer, inexact split and
       foreign-tenant identifiers all fail with no row written.
-- [ ] **P2-AC6** Restore is atomic: a failure at any point leaves the ledger
+- [x] **P2-AC6** Restore is atomic: a failure at any point leaves the ledger
       exactly as it was. Proven by pgTAP, not asserted.
-- [ ] **P2-AC7** Restore re-asserts financial invariants in the database:
+- [x] **P2-AC7** Restore re-asserts financial invariants in the database:
       transfers balance to zero and stay neutral to income/expense, splits sum
       exactly to their parent, entries never have `amount_minor = 0`.
-- [ ] **P2-AC7a** Restore validates **per-kind entry shape**, which the
+- [x] **P2-AC7a** Restore validates **per-kind entry shape**, which the
       invariants above do not cover. An `expense` transaction whose entry is
       positive, or an `income` transaction whose entry is negative, passes
       transfer/split/non-zero checks and would still corrupt every balance and
@@ -282,27 +282,27 @@ accounts or categories, which cannot reconstruct a ledger.
       **count**, and that each entry's `categories.kind` matches the
       transaction's `kind`. These rules exist only in the write RPCs and are
       lost the moment rows are inserted directly.
-- [ ] **P2-AC7b** Archived categories are treated differently from live
+- [x] **P2-AC7b** Archived categories are treated differently from live
       creation. `create_money_transaction` raises `category_archived`, but a
       faithful restore **must** accept a historical transaction whose category
       was archived after the fact. Restore therefore validates category
       ownership and kind but not archival state for historical rows, and the
       distinction is written down rather than inherited by accident.
-- [ ] **P2-AC8** Tenant ownership is preserved: every restored row is owned by
+- [x] **P2-AC8** Tenant ownership is preserved: every restored row is owned by
       the authenticated caller. An archive naming another `user_id` is
       rejected; ownership isolation is proven under RLS.
-- [ ] **P2-AC9** Duplicate restore of the same archive is defined and tested —
+- [x] **P2-AC9** Duplicate restore of the same archive is defined and tested —
       no duplicated ledger, no partial second copy.
-- [ ] **P2-AC10** Conflict policy for empty vs non-empty target is explicit,
+- [x] **P2-AC10** Conflict policy for empty vs non-empty target is explicit,
       documented and tested. No silent merge.
-- [ ] **P2-AC11** Soft-deleted and archived rows round-trip as soft-deleted and
+- [x] **P2-AC11** Soft-deleted and archived rows round-trip as soft-deleted and
       archived — restore does not resurrect deleted history.
-- [ ] **P2-AC12** Archives from an unsupported future or retired version are
+- [x] **P2-AC12** Archives from an unsupported future or retired version are
       rejected with an actionable Vietnamese message.
-- [ ] **P2-AC13** `inbox_rules` whose category is archived are handled by a
+- [x] **P2-AC13** `inbox_rules` whose category is archived are handled by a
       written rule, not by an unhandled `rule_category_not_available`.
 
-- [ ] **P2-AC14** Every row a restore writes carries a `restore_batch_id`, and
+- [x] **P2-AC14** Every row a restore writes carries a `restore_batch_id`, and
       removing a committed bad restore by that batch is a defined, tested
       operation. A restore that commits malformed data must be identifiable and
       reversible; an unidentifiable restored row is an accepted-defect, not a
@@ -310,6 +310,9 @@ accounts or categories, which cannot reconstruct a ledger.
 
 P2 may be marked accepted only when P2-AC1–14 are evidenced or explicitly
 recorded as owner-accepted limitations, without fabricating pass evidence.
+
+**All fourteen are now evidenced (2026-08-12), with one owner-accepted
+limitation on hosted restore recorded below.**
 
 ### Required states
 
@@ -1078,6 +1081,63 @@ differently. Any normalizer that is not SQL-aware has that class of hole, and an
 SQL parser is far too much machinery for one guard — so it hashes raw bytes. The
 cost is that even a comment edit now needs a deliberate `--write`, which for a
 migration the database has already run is the right amount of friction.
+
+## P2 Recover acceptance decision (2026-08-12)
+
+**P2 Recover is ACCEPTED**, with one explicit owner-accepted limitation.
+
+### Verdicts
+
+| Criterion | Verdict | Evidence |
+|---|---|---|
+| P2-AC1 versioned self-describing envelope | **PASS** | real production archive validated through shipped R8→R5 |
+| P2-AC2 inventory anchored to `purge_user_tenant_data` | **PASS** | drift test; 19 dispositions in the production artifact |
+| P2-AC3 no secret in archive | **PASS** | R5 structured scan + key sweep on the production artifact: none |
+| P2-AC4 exact integer money | **PASS** | R5 safe-integer rules; pgTAP round trip preserves 9007199254740991 |
+| P2-AC5 validate before first write | **PASS** | three independent layers; pgTAP proves refusal writes zero rows |
+| P2-AC6 atomicity | **PASS (deterministic)** | pgTAP: one transaction, no per-row recovery, `SET CONSTRAINTS ALL IMMEDIATE` |
+| P2-AC7 / 7a / 7b invariants, entry shape, archived categories | **PASS** | pgTAP + R5, rules read from every entry-producing RPC |
+| P2-AC8 tenant ownership | **PASS** | no `user_id` serialized; ownership from `auth.uid()`; pgTAP cross-tenant isolation |
+| P2-AC9 duplicate restore | **PASS** | partial unique index; pgTAP proves refusal then retry-after-removal |
+| P2-AC10 empty-vs-non-empty policy | **PASS** | pgTAP refuses a populated tenant before mutation |
+| P2-AC11 soft-deleted/archived round-trip | **PASS** | pgTAP semantic round trip |
+| P2-AC12 unsupported version rejected | **PASS** | R5 + database validator |
+| P2-AC13 archived-category rules | **PASS** | pgTAP: rule survives its category being archived |
+| P2-AC14 restore batch attribution and removal | **PASS** | `archive_restore_rows` with content digests; pgTAP pristine-only removal |
+| PBT-AC10 export→validate→restore with invariants intact | **PASS (deterministic) / hosted limitation** | pgTAP full round trip on a real Postgres; hosted half proven for export only |
+| PBT-AC11 restore fails safely on bad archives | **PASS** | pgTAP: unsupported version, unsafe money, owner-authority field, missing field — each writes zero rows |
+
+### Hosted evidence
+
+- **Hosted backup: PASS.** A real production archive downloaded from
+  `/settings/backup` passed the shipped `ingestArchiveBytes` → `validateMoneyFlowArchive`
+  path on its exact raw bytes (Mission 17D).
+- **Hosted restore: NOT EXECUTED — owner-accepted limitation.**
+
+### The accepted limitation, stated precisely
+
+R7 preserves archived row ids, which is what makes the round-trip proof
+identity-exact rather than merely shape-equal. Ids are globally unique, so a
+restore is refused with `restore_archive_id_conflict` while the source account's
+rows are still live — the documented lifecycle assumes the source account is gone.
+
+The only production archive available came from the owner's **primary account,
+which still exists**, so a hosted restore of it would have been refused by that
+guard before writing anything. Proving the hosted path would have required either
+purging a live account or building a third disposable account and purging it —
+neither justified for acceptance. On 2026-08-12 the owner accepted this as a named
+limitation rather than manufacture a destructive probe.
+
+What stands in its place is not weaker in kind, only in venue: pgTAP executes the
+**complete** `source → archive → restore into a different fresh tenant → re-export
+→ semantic comparison` chain against a real PostgreSQL on every CI run, comparing
+sixteen collections as identical and rules/candidates identical apart from the
+documented trigger-owned fields. The restore code path proven there is the same
+code path production now runs.
+
+**Not claimed:** no hosted restore was executed, so no production ledger has been
+reconstructed by restore. That remains true until a future mission runs it against
+a disposable source.
 
 ## Tasks
 

@@ -6,8 +6,9 @@
 - **Owner direction:** MoneyFlow is a released functional MVP; the active hardening program is **MoneyFlow Trust**
 - **Active trust program:** `docs/plans/active/public-beta-trust.md`
 - **Completed Provider Sync packet:** `docs/plans/completed/2026-08-11-moneyflow-trust-provider-sync.md`
+- **Completed Recover packet:** `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md`
 - **Completed Secure packet:** `docs/plans/completed/2026-08-11-account-deletion-recent-auth.md`
-- **MoneyFlow Trust current phase:** Provider Sync + P1 Secure accepted; **P2 Recover is in progress** — contract, validator, producer and atomic restore merged with a full round-trip proof; implementation complete and **the two migrations are deployed to production**; the remaining gap is hosted **restore** acceptance; hosted backup acceptance passed
+- **MoneyFlow Trust current phase:** Provider Sync, P1 Secure and **P2 Recover accepted**; **P3 Prove is next**. Previously: **P2 Recover is in progress** — contract, validator, producer and atomic restore merged with a full round-trip proof; implementation complete and **the two migrations are deployed to production**; P2 is accepted; hosted backup acceptance passed and hosted restore is a named limitation
 - **Active Recover packet:** `docs/plans/active/moneyflow-trust-recover.md`
 - **Supabase production is now MoneyFlow-only:** the Atoryn subsystem was removed by production migration `20260812043219_remove_atoryn_from_moneyflow_project` (7 `atoryn_*` tables, 11 `atoryn_cloud_*` functions, and its own history rows), and the five Atoryn Edge Functions were deleted on 2026-08-12. Only `delete-account` remains. That cleanup migration stays in history as evidence of removal, not as an active Atoryn subsystem
 - **Supabase production migration/schema:** reviewed MoneyFlow migrations are applied; five had been retimestamped in the repository relative to production and were restored to the production canonical versions (`20260726004445`, `20260726011134`, `20260801084523`, `20260801084534`, `20260801084604`) — proven byte-identical after normalization, so the rename changed no behaviour
@@ -30,7 +31,7 @@
 - **Provider Sync historical limitation:** earlier ten-file DB checkpoint did not execute an actual linked-production CLI dry-run; owner accepted the free local union-history simulation + fresh live history substitution for that consumed checkpoint only
 - **Presentation ownership:** #337 introduced the code→CSS ownership gate and fixed onboarding; #339 registered semantic theme utilities and layered button/link resets; #340 fixed password UX + confirm registration + shared dropdown owner; shrink-only baseline is **313** with no additions from #340
 - **UI migration:** P0–P11 merged/archived; physical Android/iOS were not executed and remain explicit limitations
-- **Primary public-beta blockers now:** complete versioned archive/restore → physical-phone/seven-day proof → observed trust-depth improvements → final release decision
+- **Primary public-beta blockers now:** physical-phone/seven-day proof → observed trust-depth improvements → final release decision
 - **History model:** task routing lives in `docs/context/README.md`; bounded PR provenance lives under `docs/research/pr-memory/YYYY/QN/`
 - **MVP release:** `main@8e08a8a748a632b07bb42c27bf14539758b28824`; functional MVP release does not imply public-beta readiness
 
@@ -119,7 +120,7 @@ Canonical sequence:
 | P0 Baseline | repository/Vercel/Supabase truth reconciled |
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed** with explicit stale/mismatch provider-test limitation |
-| P2 Recover | **backup accepted, restore acceptance open** — schema live, and hosted **backup** acceptance passed on a real production artifact through the shipped R8/R5 path; **hosted restore acceptance has not run**, so P2 is not accepted |
+| P2 Recover | **accepted/completed** (2026-08-12) with a named hosted-restore limitation: id preservation refuses a restore while the source account is live, so the hosted half is proven for export only and the full round trip rests on pgTAP against a real Postgres |
 | P3 Prove | blocked by P2; physical-phone core ledger + seven-day sanitized self-use |
 | P4 Improve | evidence-selected Ledger Trust depth after P3 |
 | P5 Release | final owner public-beta decision with explicit limitations |

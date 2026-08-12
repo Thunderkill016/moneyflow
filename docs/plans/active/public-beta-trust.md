@@ -24,7 +24,7 @@ Program sequence:
 
 > **Provider Sync → Secure acceptance → Recover → Prove → Improve → Release**
 
-Provider Sync and P1 Secure are now accepted. The program advances to **P2 Recover**.
+Provider Sync, P1 Secure and **P2 Recover** are now accepted. The program advances to **P3 Prove**.
 
 ## Repository reconnaissance
 
@@ -35,7 +35,7 @@ Provider Sync and P1 Secure are now accepted. The program advances to **P2 Recov
 - PR #324 merged the recent-auth implementation.
 - PR #340 repaired password-entry/shared-dropdown regressions that blocked safe production acceptance and is deployed in production.
 - Vercel production deployment `dpl_Ha9j2HWPx4PfrpjLc1jpfcPgFvNi` is `READY` and identifies exact Git SHA `18836e2ebdc63711113f248826b00cd541a0a530`.
-- Reviewed MoneyFlow database migration/schema/ACL state is production-aligned while legitimate shared Atoryn history is preserved.
+- Reviewed MoneyFlow database migration/schema/ACL state is production-aligned. The Supabase project is now MoneyFlow-only: the Atoryn subsystem and its Edge Functions were removed on 2026-08-12 and migration history is fully aligned.
 - Production `delete-account` is v6 `ACTIVE`, `verify_jwt=true`, with the current recent-auth helper and tenant cleanup inventory read back from the provider.
 - Production-safe password deletion reauthentication passed with same-account provider evidence and no destructive deletion.
 - Production-safe Google/OAuth deletion reauthentication passed with same-account callback continuity and no destructive deletion.
@@ -82,7 +82,9 @@ Provider and repository evidence remain claim-specific:
 
 ### Current problem
 
-P1 security no longer blocks the program. The next public-beta trust gap is portability/recovery: current CSV/JSON exports do not form a complete versioned archive that can be validated and restored while preserving ledger invariants and tenant ownership.
+P1 Secure and P2 Recover no longer block the program. A complete versioned archive can be exported, validated and restored with invariants intact, and the Recover schema is live in production.
+
+The next public-beta trust gap is **P3 Prove**: no physical-phone acceptance of the core ledger loop, and no seven consecutive days of sanitized owner self-use without data loss or manual database repair.
 
 ### P2 Recover user stories
 
@@ -110,8 +112,8 @@ Secure:
 
 Recover/Prove/Release:
 
-- [ ] PBT-AC10 versioned complete archive can be exported, validated and restored with financial invariants intact.
-- [ ] PBT-AC11 restore fails safely on unsupported/corrupt/partial archives.
+- [x] PBT-AC10 versioned complete archive can be exported, validated and restored with financial invariants intact — deterministic full round trip proven by pgTAP on every CI run; hosted export accepted on a real production artifact; hosted restore is an owner-accepted named limitation (id-preservation refuses a restore while the source account is live).
+- [x] PBT-AC11 restore fails safely on unsupported/corrupt/partial archives — each rejection writes zero rows, proven in pgTAP.
 - [ ] PBT-AC12 core ledger behavior is exercised on a physical phone.
 - [ ] PBT-AC13 seven consecutive days of sanitized owner self-use complete without data loss/manual DB repair.
 - [ ] PBT-AC14 no unresolved P0/P1 defect blocks the daily-ledger loop at final decision.
@@ -143,7 +145,7 @@ Recover/Prove/Release:
 | P0 Baseline | repository/Vercel/Supabase truth reconciled |
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed**, with named stale/mismatch provider-test limitation |
-| P2 Recover | **next — unblocked; specification/implementation pending** |
+| P2 Recover | **accepted/completed** — see note; specification/implementation pending** |
 | P3 Prove | blocked by P2 |
 | P4 Improve | blocked by P3 evidence |
 | P5 Release | blocked by prior phases |
@@ -169,9 +171,9 @@ Recover/Prove/Release:
 | P1-T2 | password provider acceptance | 2026-08-11 provider evidence | complete |
 | P1-T3 | Google/OAuth continuity acceptance | 2026-08-11 provider evidence | complete |
 | P1-T4 | fail-closed/log review + owner limitation decision | production probes + 35/35 deterministic + owner decision | complete |
-| P2-T1 | create/accept Recover archive contract | P1 accepted | specifying — `docs/plans/active/moneyflow-trust-recover.md`; awaiting owner answers on three open questions |
-| P2-T2 | implement export/validate/restore | P2-T1 | blocked by P2-T1 |
-| P3-T1 | physical-phone core ledger checklist | P2 accepted | blocked |
+| P2-T1 | create/accept Recover archive contract | P1 accepted | complete — `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md` |
+| P2-T2 | implement export/validate/restore | P2-T1 | complete — deployed to production; hosted export accepted, hosted restore an accepted limitation |
+| P3-T1 | physical-phone core ledger checklist | P2 accepted | next |
 | P3-T2 | seven-day sanitized self-use | P3-T1 | blocked |
 | P4-T1 | select observed trust-depth slice | P3 evidence | blocked |
 | P5-T1 | owner public-beta decision | prior phases | blocked |
