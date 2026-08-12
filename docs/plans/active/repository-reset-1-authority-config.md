@@ -1,11 +1,11 @@
 # Repository Reset 1 — knowledge, authority and configuration
 
-**Status:** implementing
-**Execution state:** implementing
-**Active role:** implementer
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** forthcoming focused PR
+**Issue/PR:** #360
 **Last updated:** 2026-08-12
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is the active handoff for the bounded Repository Reset 1; it does not authorize Reset 2 source deletion, product/UI work, provider writes or production changes.
@@ -122,15 +122,16 @@ None. No schema, database, provider or deployment mutation.
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
 | RR1-T1 | inventory authority, config and agent surfaces | packet | paths, references and code/config audit | complete |
-| RR1-T2 | route/compact current authority and archive stale packets safely | RR1-T1 | default-path review and reference scan | in progress |
-| RR1-T3 | add focused authority/lifecycle guard | RR1-T2 | focused test + policy checks | todo |
-| RR1-T4 | fresh-context evaluation and PR delivery | RR1-T3 | evaluator matrix, exact-head checks, PR memory | todo |
+| RR1-T2 | route/compact current authority and archive stale packets safely | RR1-T1 | default-path review and reference scan | complete |
+| RR1-T3 | add focused authority/lifecycle guard | RR1-T2 | focused test + policy checks | complete |
+| RR1-T4 | fresh-context evaluation and PR delivery | RR1-T3 | evaluator matrix, exact-head checks, PR memory | in progress |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-12 | planner | implementer | implementing | this packet; `npm run agent:doctor`; baseline `main@4283129` | stale packet and config-reference audit in progress | complete scoped authority/config edits |
+| 2026-08-12 | implementer | evaluator | evaluating | #360; `check:migrations`, `check:knowledge`, `test:ci-policy`, typecheck; fresh evaluator | local Next build runner did not reach completion; exact-head provider checks pending | push PR-memory update and request exact-head CI |
 
 ### Current permission boundary
 
@@ -140,13 +141,20 @@ None. No schema, database, provider or deployment mutation.
 
 ## Evaluation
 
-To be completed by a fresh-context evaluator after implementation.
+| Criterion | Evidence | Result |
+|---|---|---|
+| default route answers the five questions | `README.md`, `AGENTS.md`, context authority table and compact current memory | pass — fresh evaluator |
+| single current state and next execution route | current-memory route, active registry, Trust parent sequence | pass — stale P3/P4 and old roadmap claims corrected |
+| active lifecycle is safe | 37 historical packets archived; registry/current-reference guard + tests | pass |
+| adapters/config remain coherent | hooks, Spec Kit bridge and configuration executable surfaces inspected; no tool/config deletion | pass |
+| historical UI failure evidence remains available | UI research ledger and completed UI packets routed to future A0 | pass |
+| exact-head delivery gates | provider checks | pending |
 
 ## Delivery record
 
 - Branch: `reset/repository-authority-config`
-- PR: pending
+- PR: #360 draft
 - Squash commit: pending
-- CI run: pending
+- CI run: pending exact-head provider checks
 - Production deployment: not applicable
 - Work packet moved to `docs/plans/completed/`: pending merge/acceptance
