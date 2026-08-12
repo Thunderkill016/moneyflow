@@ -307,7 +307,13 @@ test("PP-12: the scroll box is constrained by its dialog, not by the viewport", 
    * the footer left the visible area.
    */
   const css = read("src/components/ui/dialog.module.css");
-  assert.match(css, /\.content \{[\s\S]*?max-height: 100%/u);
+  /**
+   * The cap must stay *definite*. `max-height: 100%` alone resolved to `none`
+   * against the auto-height `<dialog>`, so the section grew past its dialog and a
+   * footer submit button became unclickable at every viewport — caught by the
+   * browser suite, not by any source-string check.
+   */
+  assert.match(css, /\.content \{[\s\S]*?max-height: min\(100%, calc\(100svh - 2rem\)\)/u);
   assert.match(css, /\.content \{[\s\S]*?min-height: 0/u);
   assert.match(css, /\.body \{[\s\S]*?overflow-y: auto/u);
   const dialog = stripComments(read("src/components/ui/dialog.tsx"));
