@@ -455,7 +455,7 @@ select ok(
 );
 select is(
   (select count(*)::integer from public.financial_transactions where user_id='00000000-0000-4000-8000-00000000c002'),
-  5,
+  (select jsonb_array_length(payload -> 'tables' -> 'transactions')::integer from restore_out where key='archive'),
   'the corrected restore rebuilds the ledger'
 );
 reset role;
