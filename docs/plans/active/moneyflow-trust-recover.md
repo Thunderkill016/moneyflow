@@ -971,9 +971,26 @@ Live read-back confirmed all five new functions exist and deny the anon key
 (`42501`, versus `PGRST202` for a function that does not exist), and both new
 tables deny anon SELECT and INSERT.
 
-**P2 Recover is still not accepted.** No hosted backup or restore acceptance has
-run. Hosted backup needs an authenticated owner session; hosted restore mutates a
-ledger and needs a separate Approval B.
+**Hosted backup acceptance passed (Mission 17D, 2026-08-12).** The owner
+downloaded a backup from hosted `/settings/backup` after the R6 deployment. Its
+exact raw bytes went into the shipped `ingestArchiveBytes`, which ran the shipped
+`validateMoneyFlowArchive`: **R8 PASS, R5 PASS with zero contract violations.** No
+`JSON.parse` first, no normalization, no reconstruction, no synthetic fixture.
+
+Safe evidence: artifact `sha256 f2fb8228…`, 63216 bytes, `produced_at
+2026-08-12T07:40:43Z`, version 1, 19 dispositions (18 restorable + 1
+non-replayable history), 189 archived rows, credential/authority keys none,
+profile carries no source id.
+
+The brief quoted an earlier download (`c339dc2b…`); the supplied file hashed
+`f2fb8228…` at the identical byte length, which is exactly what a second export of
+an unchanged ledger produces, since `archive_id` and `produced_at` are fixed-width.
+The owner confirmed it supersedes. The archive was handled only outside the
+repository and never committed.
+
+**P2 Recover is still not accepted.** Hosted **restore** acceptance has not run;
+it mutates a ledger and needs a separate Approval B plus a designated
+bootstrap-only throwaway account.
 
 The Recover migrations are still **unapplied**. Preflight found the deployment
 path itself was broken, and fixing that came first.
@@ -1093,7 +1110,7 @@ migration the database has already run is the right amount of friction.
 | 2026-08-12 | human_owner | implementer | provider_write_approved | scoped approval: `migration repair --status applied` for `20260715001400`, `20260715001500` | history-table write only; must not execute their SQL | Repair, then verify independently |
 | 2026-08-12 | implementer | human_owner | complete | linked CLI verified: 39 aligned, zero remote-only, dry-run proposes exactly the two Recover migrations; post-write checks showed table counts and live function definitions unchanged | Recover migrations still unapplied at that point; no hosted acceptance | Mission 17B closed; next is scoped approval to deploy the two Recover migrations |
 | 2026-08-12 | human_owner | implementer | provider_write_approved | Approval A: apply exactly the two Recover migrations | must apply nothing else; no seed, roles or repair | Push with `--include-all`, then read back |
-| 2026-08-12 | implementer | human_owner | schema_deployed | applied 06:41:39–06:41:43Z; history 41/41 aligned; dry-run "Remote database is up to date"; 228 rows before and after; all five functions live and anon-denied against a PGRST202 control | live catalog posture not directly readable (no psql/DB password); hosted acceptance not run | Hosted backup acceptance needs an owner session; hosted restore needs Approval B |
+| 2026-08-12 | implementer | human_owner | backup_accepted | applied 06:41:39–06:41:43Z; history 41/41 aligned; dry-run "Remote database is up to date"; 228 rows before and after; all five functions live and anon-denied against a PGRST202 control | live catalog posture not directly readable (no psql/DB password); hosted acceptance not run | Hosted backup acceptance passed on a real production artifact; hosted restore needs Approval B and a throwaway account |
 
 ### Current permission boundary
 
