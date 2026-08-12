@@ -159,8 +159,9 @@ test("the batch model supports attribution and a defined removal", () => {
   assert.ok(migration.includes("create table if not exists public.archive_restore_batches"));
   assert.ok(migration.includes("create table if not exists public.archive_restore_rows"));
   assert.ok(
-    migration.includes("unique (user_id, archive_id)"),
-    "the same archive must not be restorable twice into one tenant",
+    migration.includes("on public.archive_restore_batches (user_id, archive_id)")
+      && migration.includes("where status = 'restored'"),
+    "at most one live restore per (tenant, archive), while allowing a retry after removal",
   );
   assert.ok(migration.includes("raise exception 'archive_already_restored'"));
   assert.ok(migration.includes("raise exception 'restore_target_not_empty'"));

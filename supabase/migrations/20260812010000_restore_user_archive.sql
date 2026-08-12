@@ -88,10 +88,17 @@ create table if not exists public.archive_restore_batches (
     (status = 'restored' and removed_at is null)
     or (status = 'removed' and removed_at is not null)
   ),
-  -- Duplicate policy: the same archive can be restored into a given tenant at
-  -- most once, so replaying a file cannot double the ledger.
-  unique (user_id, archive_id)
+  -- Duplicate policy is enforced by a partial unique index below: at most one
+  -- *live* restore per (tenant, archive), so replaying a file cannot double the
+  -- ledger while still allowing a corrected retry after a removal.
+  check (true)
 );
+
+-- Only live restores block a repeat. A removed batch must not permanently deny
+-- the account a second attempt at the same archive.
+create unique index if not exists archive_restore_batches_live_archive_key
+  on public.archive_restore_batches (user_id, archive_id)
+  where status = 'restored';
 
 -- Exact attribution without adding a column to eighteen domain tables. Restore
 -- is empty-target only, so every row present afterwards belongs to the batch;

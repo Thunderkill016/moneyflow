@@ -1,5 +1,5 @@
 begin;
-select plan(41);
+select plan(42);
 
 -- R7 — restore must reconstruct a tenant faithfully in one transaction, or leave
 -- the target exactly as it was. Every identity and row here is transaction-scoped
@@ -447,10 +447,16 @@ select is(
 -- account out of a corrected restore.
 set local role authenticated;
 do $$ begin perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000c002', true); end; $$;
+insert into restore_out values ('second_result',
+  public.restore_user_archive((select payload from restore_out where key = 'archive')));
+select ok(
+  (select (payload ->> 'restore_batch_id')::uuid is not null from restore_out where key='second_result'),
+  'after removal the same archive can be restored again, so a bad restore is recoverable'
+);
 select is(
-  pg_temp.restore_error('select public.restore_user_archive((select payload from restore_out where key = ''archive''))'),
-  'archive_already_restored',
-  'after removal the target is eligible again, and only the duplicate policy stops this archive'
+  (select count(*)::integer from public.financial_transactions where user_id='00000000-0000-4000-8000-00000000c002'),
+  5,
+  'the corrected restore rebuilds the ledger'
 );
 reset role;
 
