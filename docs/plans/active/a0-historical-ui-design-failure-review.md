@@ -168,6 +168,7 @@ None.
 
 - Branch: `review/a0-historical-ui-design-failures`
 - PR: [#364](https://github.com/Thunderkill016/moneyflow/pull/364) (draft)
-- CI run: pending exact PR head
+- CI run: dynamic exact-head provider status belongs to PR #364; it is required before
+  acceptance, while owner review and merge remain separate boundaries
 - Work packet moved to `docs/plans/completed/`: no — A0 remains active until owner
   acceptance after merge
