@@ -95,6 +95,8 @@ jobs:
           else
             git show --check --oneline --no-renames HEAD >/dev/null
           fi
+      - name: Migration identity contract
+        run: npm run check:migrations
       - name: Project knowledge contract
         run: npm run check:knowledge
       - name: CI classification and retry contract

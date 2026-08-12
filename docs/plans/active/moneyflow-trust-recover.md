@@ -951,6 +951,91 @@ Told the truth and given inert controls: complete backup/restore is a
 server-account feature, and both actions refuse a demo viewer before reaching an
 RPC. The report export still works there.
 
+## Production rollout preflight (2026-08-12)
+
+The Recover migrations are still **unapplied**. Preflight found the deployment
+path itself was broken, and fixing that came first.
+
+### The Supabase project is now MoneyFlow-only
+
+It had been shared with another product ("Atoryn"). That subsystem was removed by
+production migration `20260812043219_remove_atoryn_from_moneyflow_project`
+(7 `atoryn_*` tables, 11 `atoryn_cloud_*` functions, plus its own history rows),
+and the five Atoryn Edge Functions were deleted under explicit owner
+authorization. Only `delete-account` remains — v6, `verify_jwt=true`, bundle SHA
+`56bdec4f7b0d5a97…`, unchanged.
+
+That cleanup migration is mirrored into the repository as history. It is kept
+despite its name because it is *evidence of removal*, not an active subsystem.
+
+**Data safety:** `table-stats` captured immediately before and after the Edge
+deletion — 19 relations both times, zero Atoryn relations, **zero row-count drift**
+across every table, 224 rows total both times.
+
+### Why deployment was blocked, and what was actually wrong
+
+`supabase db push` refused to run at all: 12 remote versions had no local file.
+The CLI's suggested remedy (`migration repair --status reverted`) would have
+falsified another product's record of its own database.
+
+Worse, had it been forced, the push would have applied **seven** unrelated
+MoneyFlow migrations, not two — and
+`20260801043000_import_provenance_and_atomic_approval` contains six
+non-idempotent statements, so it would have failed partway through.
+
+### Migration concordance
+
+Five migrations were the **same migration retimestamped**, proven byte-identical
+after normalizing comments and the `;;` the history table appends:
+
+| Repository (was) | Production (canonical) | Verdict |
+|---|---|---|
+| `20260726000100` | `20260726004445` | SAME_MIGRATION_RETIMESTAMPED |
+| `20260726011000` | `20260726011134` | SAME_MIGRATION_RETIMESTAMPED |
+| `20260801043000` | `20260801084523` | SAME_MIGRATION_RETIMESTAMPED |
+| `20260801043100` | `20260801084534` | SAME_MIGRATION_RETIMESTAMPED |
+| `20260801043200` | `20260801084604` | SAME_MIGRATION_RETIMESTAMPED |
+
+Each was renamed to the production version keeping the reviewed local content —
+git recorded pure renames, so no behaviour changed.
+
+The migration history table stores SQL with **comments stripped** and a trailing
+`;;`, so a fetched copy is a lossy normalization. All 31 files the fetch
+overwrote were reverted to the reviewed originals; only genuinely new files were
+kept.
+
+### The two remaining migrations — ALREADY_LIVE_HISTORY_MISSING
+
+`20260715001400_split_expense` and `20260715001500_account_currency_on_create`
+have no production history entry. They are **superseded**:
+`20260725035128_restore_split_feed_and_account_currency` — which *is* applied —
+redefines exactly the same three objects, and nothing between them depends on
+those functions.
+
+So their effects are live, but pushing them now would run them *after* `035128`
+and **downgrade two live functions to older definitions**. They must never be
+applied to this database.
+
+Resolution needs one narrowly-scoped production write
+(`migration repair --status applied` for exactly those two versions), which is
+**not yet authorized** and is the outstanding owner checkpoint.
+
+### Recurrence prevention
+
+`check:migrations` pins every migration's version, filename and a **raw content
+hash**. It fails on a retimestamp, a post-hoc edit of an applied migration, or two
+byte-identical versions — each proven with a negative fixture. It is offline by
+design: no database call in normal CI.
+
+Review caught a real hole in the first version, which normalized comments,
+whitespace and case before hashing: lowercasing the whole file also lowercases
+*string literals*, so changing a default note from `'Chuyển tiền'` to
+`'CHUYỂN TIỀN'` hashed identically while a fresh database would genuinely behave
+differently. Any normalizer that is not SQL-aware has that class of hole, and an
+SQL parser is far too much machinery for one guard — so it hashes raw bytes. The
+cost is that even a comment edit now needs a deliberate `--write`, which for a
+migration the database has already run is the right amount of friction.
+
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
