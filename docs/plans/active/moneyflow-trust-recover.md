@@ -1,7 +1,7 @@
 # MoneyFlow Trust P2 — Recover (complete versioned archive and restore)
 
 **Status:** implementing
-**Execution state:** R5–R8 complete; UI is the last slice before P2 acceptance
+**Execution state:** R5–R9 complete; P2 acceptance can now be evaluated
 **Active role:** evaluator
 **Permission scope:** branch_write (repository code and tests; no provider, production or database write)
 **Owner:** agent (implementer/evaluator) → human_owner (merge decision)
@@ -865,6 +865,79 @@ through this boundary instead of calling `JSON.parse` itself, so both CI round
 trips prove the full chain — `database → archive → file ingress → validated
 archive` — with no test-only reshaping anywhere in it.
 
+## R9 implementation truth
+
+### Surface: a separate route, not a repurposed export
+
+`/settings/backup` — "Bản sao lưu MoneyFlow" — is its own destination beside the
+existing `/settings/export`, which stays "Xuất giao dịch và Inbox" and keeps its
+own wording that it is *chưa phải bản sao lưu đầy đủ*. Folding the archive into
+the CSV page would let someone reach for the export they already know and believe
+they held a recoverable backup.
+
+### Transport: server actions, and the ceiling that creates
+
+The first implementation called Supabase from the browser, reasoning that the
+RPCs were designed for it. `check:architecture` rejected that outright:
+`src/components` may not import Supabase, and no hook in this codebase talks to
+it either — every client data path goes through a server action. The repository
+contract won.
+
+That has a measured cost, and it is stated rather than hidden. Server action
+requests cap at **1 MB** by default (Next's own bundled documentation), which at
+~786 B per transaction breaks at roughly 1,300 transactions. `bodySizeLimit` is
+raised to **4 MB** — as far as it is worth raising, because the hosting platform
+caps serverless request bodies near 4.5 MB — giving about 5,000 transactions. The
+surface refuses a larger archive **before** upload with a clear Vietnamese
+message instead of letting the platform fail mid-flight with an opaque 413.
+
+R8's 64 MiB bound is unchanged and still correct: that is a *parser* limit. This
+is *transport*, and lifting it needs a different upload path (direct object
+storage or a chunked endpoint) — its own slice, not something to fake here.
+
+### Backend not yet live
+
+Both archive migrations are merged but unapplied, so the UI can ship before the
+capability exists. PostgREST reports an absent function as `PGRST202`, which is
+classified as `capability_missing` and shown as *"Chức năng … chưa sẵn sàng trên
+máy chủ"* — an honest deployment state, not a user error and not a retry loop.
+When the migrations are applied the surface becomes usable with no code change.
+
+### Restore state machine
+
+`idle → validating → rejected` (nothing written), or
+`idle → validating → confirming → restoring → restored`, or
+`restoring → failed`. Validation and mutation are never the same press: the RPC
+is reachable only from `confirming`, and a `useRef` guard refuses a second submit
+before React can re-render.
+
+### Confirmation
+
+A dialog showing **counts only** — produced-at, accounts, categories,
+transactions, budgets, goals. No merchant, note or imported snippet is previewed
+to prove the file was read, because the wrong file would put a stranger's history
+on screen. It states plainly that restore does not merge, needs a fresh account,
+replaces bootstrap state, and rolls back atomically on failure.
+
+### Validation happens three times, deliberately
+
+The browser runs R8 ingress on the raw bytes; the server action re-validates
+because a server action is a public entrypoint and the browser's word is not
+evidence; the database validates again before its first write. Nothing normalizes
+the archive between any of them.
+
+### Post-restore state
+
+`revalidatePath("/", "layout")` in the action plus `router.refresh()` and a
+navigation to `/dashboard`. Every route reads the server, so stale pre-restore
+numbers cannot survive.
+
+### Demo mode
+
+Told the truth and given inert controls: complete backup/restore is a
+server-account feature, and both actions refuse a demo viewer before reaching an
+RPC. The report export still works there.
+
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
@@ -877,7 +950,7 @@ archive` — with no test-only reshaping anywhere in it.
 | R6 | `export_user_archive` + producer drift test | R5 | 40 pgTAP assertions + real DB round trip into the R5 validator; see below | done |
 | R7 | `restore_user_archive` + restore batch + pgTAP atomicity/ownership | R6 | 38 pgTAP assertions; full archive→restore→archive round trip | done |
 | R8 | Strict archive file ingress | R7 | 32 attack assertions; producer bytes routed through ingress in CI | done |
-| R9 | Settings surface with required states | R8 | — | next |
+| R9 | Backup & Restore settings surface | R8 | separate `/settings/backup` route; 21 surface assertions; browser evidence in CI | done |
 | R9 | Round-trip and rejection acceptance evidence | R7, R8 | — | not started |
 
 ## Handoff record
