@@ -113,8 +113,9 @@ because the copies can disagree silently.
       context stops being a real pull-request job, and a second guard fails when
       the prose list and the policy data disagree.
 - [x] **AHP-AC7** The five approval boundaries are distinguishable by tooling and
-      **none** is granted. `granted` is a frozen `false`; a strict-mode write
-      throws; no passing gate can change the answer.
+      **none** is granted. The whole emitted decision is deep-frozen, not merely
+      the catalogue, so `granted` cannot be flipped in the object a consumer
+      holds; no passing gate can change the answer.
 - [x] **AHP-AC8** Editing a migration requires no approval; deploying it does. The
       model reports `requiredForThisDiff: none` alongside
       `ownerApprovalRequiredBeforeDeployment: true`.
@@ -144,12 +145,40 @@ product behavior, because nothing here is consumed by `ci.yml`.
 - `npm run check:knowledge`, `npm run check:migrations`, `npm run lint`,
   `npm run typecheck`, `npm test`.
 - `npm run agent:doctor` and `-- --json` exercised by hand on five diff shapes.
+- Temp-directory workflow mutations prove the drift guard catches a rename, a
+  deleted job, an unhooked workflow, a nested `pull_request` key, a job-level
+  event condition and a decoy workflow.
 - `npm run agent:doctor -- --verify-provider-checks` reconciled the declared
   contexts against live ruleset `20189870`: all five match.
 
 Not applicable and not claimed: no pgTAP (no database truth change), no browser or
 responsive evidence (no runtime surface change), no production verification (no
 production behavior change, and this mission carries no provider-write authority).
+
+## Accepted limitations
+
+Named rather than smoothed over, because each is a real edge of what this slice
+proves:
+
+- **Requiredness cannot be proven offline.** Which contexts the branch ruleset
+  demands is owner-controlled provider state. The offline guard proves only that
+  each declared context is still a real pull-request job. The opt-in
+  `--verify-provider-checks` closes this on demand and reports `checked: false`
+  rather than agreement when the lookup fails.
+- **The workflow reader is a line scanner, not a YAML parser.** It resolves job
+  identities the way GitHub does for the shapes this repository uses. Unusual
+  shapes — quoted job keys, `name:` nested deeper than a job's direct children —
+  fail closed and report a problem rather than guessing.
+- **Job-condition analysis is conservative, not an expression evaluator.** A
+  condition that reasons about `github.event_name` without naming `pull_request`
+  is treated as gating the job away. That can over-report; it will not
+  under-report.
+- **`paths-ignore` and branch filters are invisible** to the guard, so a check
+  that exists but is filtered out for a given diff still reports as required.
+- **Tenant-mutation inference is a floor.** Filename stems plus a `delete from` /
+  `truncate` body scan catch the cases this repository actually contains; a
+  migration that mutates tenant rows through a function call under a neutral name
+  would still be reported only as `production_schema_write`.
 
 ## Permission boundary
 
@@ -183,12 +212,35 @@ ruleset read is read-only and opt-in.
 
 ## Evaluation
 
-Independent fresh-context evaluation ran against the final diff, attacking:
-accidental second policy source, hard-coded drift, local-green-equals-complete,
-approval modelling that accidentally grants, docs-only work becoming heavy,
-provider-write work becoming under-gated, secret exposure, framework
-proliferation, and conflict with current P3 project state. Findings and fixes are
-recorded in the pull request and in this packet's PR memory record.
+An independent fresh-context evaluation ran against the diff on 2026-08-12,
+attacking ten vectors: accidental second policy source, hard-coded drift,
+local-green-equals-complete, approval modelling that accidentally grants,
+docs-only work becoming heavy, provider-write work becoming under-gated, secret
+exposure, framework proliferation, conflict with current P3 project state, and
+plain correctness bugs. It found real defects in seven of the ten and they are
+fixed in this branch. The material ones, kept as a record because each was a
+failure of the thing this slice claims to provide:
+
+| Defect | Fix |
+|---|---|
+| All three single-source guards were defeatable — a third policy module plus a concatenated `import("./classify-ci" + "-changes.mjs")` passed every test while two live gate tables disagreed | the guards now sweep every non-test script for every owned command and provider context, forbid a computed module specifier, and assert exactly one static classifier importer |
+| `granted: false` was frozen on the catalogue but the *emitted* `approval` object was a plain literal — the report a consumer reads could be set to `granted: true` | `buildPolicyDecision` deep-freezes what it returns; the test now asserts the value survives a non-strict write attempt rather than asserting a decorative `"use strict"` throw |
+| `pull_request:` was matched at any depth under `on:`, so a `workflow_call` input *named* `pull_request` counted as a trigger | only a direct child of `on:` counts, with inline-array form handled |
+| A job-level `if: github.event_name == 'push'` could silence a required check while the doctor kept advertising it | job conditions that reason about the event but never name `pull_request` mark the job as gated away |
+| Identity, ownership and PR-triggering were three independent `.some()` calls, so a decoy workflow could supply an identity for an unhooked job | the conjunction is per-job |
+| `supabase/functions/_shared/**` — the recent-auth guard that decides whether a caller may destroy an Auth identity — implied **no** boundary while `delete-account/index.ts` implied one | the whole Edge deployment unit implies `auth_identity_mutation` |
+| `.github/CODEOWNERS` was Class 1 with no boundary, though `AGENTS.md` forbids touching it in feature work | `.github/**` except documentation templates is Class 3 and implies provider read-back |
+| `harden_tenant_deletion.sql` escaped the tenant boundary because `"deletion"` does not contain `"delete"` | broadened stems plus optional SQL-body inspection, so a neutrally named migration containing `delete from` is caught |
+| `roles.sql` and `config.toml` were Class 3 with no implied write | both imply `production_schema_write` |
+| `src/lib/supabase/**` and `src/app/api/**/route.ts` were Class 1 while `src/app/actions/` was Class 3 | both are Class 3; the harness files are now symmetric too |
+| `deriveRiskClass` defaulted an absent file list to `[]`, silently skipping Class 3 detection and returning "Class 1" — and a test locked that in as intended | it throws rather than guess |
+| `--files a.md --base-ref origin/main` treated `origin/main` as a changed file | collection stops at the next flag instead of filtering flags out |
+| `--json` carried the absolute checkout path, i.e. the OS username | only the basename ships |
+| Two duplicated matchers and two disagreeing definitions of "CI policy script" | the classifier exports `isRequestBoundary`, `databaseMatchers` and `workflowOrPolicyMatchers`; the policy imports them |
+
+Judged clean by the evaluator: docs-only weight (byte-identical to before this
+slice), secret handling, packet justification, and consistency with current P3
+project state.
 
 Evidence honesty: this slice changes no product behavior, no database truth and no
 provider state. Its verification is therefore contract, unit and hand-exercised CLI

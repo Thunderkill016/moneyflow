@@ -6,7 +6,7 @@ import { runUiMigrationDiffCheck } from "./check-ui-migration-diff.mjs";
 
 const normalize = (value) => value.trim().replaceAll("\\", "/").replace(/^\.\//, "");
 
-const isDocumentationOnlyPath = (file) =>
+export const isDocumentationOnlyPath = (file) =>
   file.endsWith(".md") ||
   file.startsWith("docs/") ||
   file.startsWith(".github/ISSUE_TEMPLATE/") ||
@@ -16,12 +16,21 @@ const isDocumentationOnlyPath = (file) =>
 
 const isJavaScriptOrTypeScript = (file) => /\.(?:[cm]?[jt]sx?)$/.test(file);
 
-const matchesAny = (file, matchers) => matchers.some((matcher) => matcher(file));
+export const matchesAny = (file, matchers) => matchers.some((matcher) => matcher(file));
 const startsWith = (prefix) => (file) => file.startsWith(prefix);
 const equals = (expected) => (file) => file === expected;
 const matches = (pattern) => (file) => pattern.test(file);
 
-const workflowOrPolicyMatchers = [
+/**
+ * The application's own request boundary.
+ *
+ * Exported because it is one fact two questions need: it selects browser gates
+ * here, and it raises the risk class in `agent-policy.mjs`. A second copy of the
+ * pattern would be a second definition of "request boundary".
+ */
+export const isRequestBoundary = (file) => /^(?:middleware|proxy)\.[cm]?[jt]s$/.test(file);
+
+export const workflowOrPolicyMatchers = [
   startsWith(".github/workflows/"),
   equals("scripts/classify-ci-changes.mjs"),
   equals("scripts/classify-ci-changes.test.mjs"),
@@ -29,7 +38,7 @@ const workflowOrPolicyMatchers = [
   equals("scripts/check-ui-migration-diff.test.mjs"),
 ];
 
-const databaseMatchers = [
+export const databaseMatchers = [
   startsWith("supabase/"),
   equals("scripts/check-rls-migrations.sh"),
   // The archive round-trip proof runs inside the database job, so editing it
@@ -56,7 +65,7 @@ const browserSmokeMatchers = [
   startsWith("tests/"),
   matches(/^playwright(?:\..+)?\.config\.[cm]?[jt]s$/),
   matches(/^next\.config\.[cm]?[jt]s$/),
-  matches(/^(?:middleware|proxy)\.[cm]?[jt]s$/),
+  isRequestBoundary,
   equals("package.json"),
   equals("package-lock.json"),
   equals(".github/workflows/ci.yml"),

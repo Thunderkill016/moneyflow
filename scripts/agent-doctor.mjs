@@ -74,7 +74,12 @@ function gitValue(args) {
 export function collectChangedFiles({ baseRef = "origin/main", argv = process.argv } = {}) {
   const explicit = argv.indexOf("--files");
   if (explicit >= 0) {
-    return argv.slice(explicit + 1).filter((value) => !value.startsWith("--"));
+    // Stop at the next flag rather than filtering flags out: filtering kept the
+    // *operand* of a following flag, so `--files a.md --base-ref origin/main`
+    // treated `origin/main` as a changed file and skewed the risk class.
+    const rest = argv.slice(explicit + 1);
+    const nextFlag = rest.findIndex((value) => value.startsWith("--"));
+    return nextFlag >= 0 ? rest.slice(0, nextFlag) : rest;
   }
 
   const files = new Set();
@@ -91,8 +96,12 @@ export function collectChangedFiles({ baseRef = "origin/main", argv = process.ar
 }
 
 function repoState() {
+  // The absolute path is deliberately absent: it carries the OS username, and a
+  // report meant to be pasted into an issue should not disclose it. The basename
+  // is all a reader needs to know which checkout produced this.
+  const root = gitValue(["rev-parse", "--show-toplevel"]);
   return {
-    root: gitValue(["rev-parse", "--show-toplevel"]),
+    rootName: root ? root.split("/").filter(Boolean).at(-1) ?? null : null,
     head: gitValue(["rev-parse", "HEAD"]),
     branch: gitValue(["branch", "--show-current"]) || "detached",
     clean: (gitLines(["status", "--porcelain"]) ?? ["unknown"]).length === 0,
@@ -163,7 +172,18 @@ export function readLiveRequiredChecks({ repo } = {}) {
 export function buildDoctorReport({ argv = process.argv, env = process.env } = {}) {
   const baseRef = parseArgValue("--base-ref", argv, "origin/main");
   const changedFiles = collectChangedFiles({ baseRef, argv });
-  const policy = buildPolicyDecision(changedFiles);
+  const policy = buildPolicyDecision(changedFiles, {
+    // Lets the tenant-mutation boundary read a migration body, so a neutrally
+    // named migration containing `delete from` is still caught. Missing or
+    // unreadable files simply fall back to path-only inference.
+    readFile: (file) => {
+      try {
+        return fs.readFileSync(file, "utf8");
+      } catch {
+        return null;
+      }
+    },
+  });
   const available = capabilities();
   const needed = policy.requiredCapabilities;
   const missingRequiredCapabilities = Object.entries(needed)
@@ -211,6 +231,29 @@ export function buildDoctorReport({ argv = process.argv, env = process.env } = {
     missingRequiredCapabilities.length === 0 &&
     identityGuard.ok &&
     (report.providerCheckDrift ? report.providerCheckDrift.ok : true);
+
+  /**
+   * What `ready` means, spelled out for whatever reads the JSON.
+   *
+   * `ready` says this machine can run the selected gates and that the policy is
+   * not visibly stale. It says nothing about whether the gates were run, passed,
+   * or whether the pull request is finished — and a consumer that treated it as
+   * completion would be wrong in the most expensive direction.
+   */
+  report.readyMeans = {
+    scope: "environment-and-policy-freshness",
+    includes: [
+      "required repository files present",
+      "required local capabilities available",
+      "declared provider check identities still real",
+    ],
+    excludes: [
+      "the local gates were run",
+      "the local gates passed",
+      "the provider checks are green on the exact head",
+      "the pull request is complete or mergeable",
+    ],
+  };
 
   return report;
 }

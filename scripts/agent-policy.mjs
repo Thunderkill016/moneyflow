@@ -24,7 +24,28 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { classifyChanges } from "./classify-ci-changes.mjs";
+import {
+  classifyChanges,
+  databaseMatchers,
+  isRequestBoundary,
+  matchesAny,
+  workflowOrPolicyMatchers,
+} from "./classify-ci-changes.mjs";
+
+/**
+ * Freeze what leaves this module, not merely the constant tables.
+ *
+ * A consumer reads `decision.approval.granted`. Freezing only the boundary
+ * catalogue left the *emitted* object a plain literal, so anything holding the
+ * report could set `granted: true` and every downstream reader would believe it.
+ * The tables were never the attack surface; the report is.
+ */
+function deepFreeze(value) {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) return value;
+  Object.freeze(value);
+  for (const entry of Object.values(value)) deepFreeze(entry);
+  return value;
+}
 
 export const POLICY_SCHEMA_VERSION = 2;
 
@@ -72,13 +93,46 @@ export const RISK_CLASSES = Object.freeze({
  * much human ceremony the change needs.
  */
 const CLASS_3_MATCHERS = Object.freeze([
-  { id: "database-truth", test: (file) => file.startsWith("supabase/") },
-  { id: "ci-security-policy", test: (file) => file.startsWith(".github/workflows/") },
+  // Imported, not restated: the classifier owns what counts as database truth
+  // and as CI/workflow policy. Duplicating either pattern here would create the
+  // second definition this module exists to prevent.
+  { id: "database-truth", test: (file) => matchesAny(file, databaseMatchers) },
+  { id: "ci-security-policy", test: (file) => matchesAny(file, workflowOrPolicyMatchers) },
+  { id: "request-boundary", test: isRequestBoundary },
+  /**
+   * Provider-side repository state the owner controls.
+   *
+   * `RISK_PROPORTIONAL_DELIVERY.md` names branch protection, rulesets, workflow
+   * permissions and CODEOWNERS as explicit owner operations, and `AGENTS.md`
+   * forbids changing them inside feature work. Anything under `.github/` that is
+   * not a documentation template is therefore a boundary, not a bounded change.
+   */
   {
-    id: "ci-policy-scripts",
-    test: (file) => /^scripts\/(?:classify-ci-changes|check-ui-migration-diff|check-migration-identity|check-rls-migrations|agent-policy)\b/.test(file),
+    id: "repository-governance",
+    test: (file) =>
+      file.startsWith(".github/") &&
+      !/^\.github\/(?:ISSUE_TEMPLATE|PULL_REQUEST_TEMPLATE|DISCUSSION_TEMPLATE)\//.test(file),
+  },
+  /**
+   * The agent harness policy itself.
+   *
+   * Deliberately its own reason rather than folded into `ci-security-policy`:
+   * these files cannot change which gates CI selects, so the classifier is right
+   * not to force every gate for them. They *can* change what an agent believes
+   * the rules are, which is why understating them would be the worse error. The
+   * asymmetry is intentional and symmetric across both harness files — an earlier
+   * version made the policy Class 3 and its consumer Class 1, which was just a
+   * gap.
+   */
+  {
+    id: "harness-policy",
+    test: (file) => /^scripts\/agent-(?:policy|doctor)(?:\.test)?\.mjs$/.test(file),
   },
   { id: "server-mutation", test: (file) => file.startsWith("src/app/actions/") },
+  // Route handlers are server request entry points exactly as server actions are.
+  { id: "server-route", test: (file) => /^src\/app\/api\/.*\/route\.[cm]?[jt]s$/.test(file) },
+  // The authenticated client the server-mutation paths go through.
+  { id: "supabase-client", test: (file) => file.startsWith("src/lib/supabase/") },
   { id: "archive-portability", test: (file) => file.startsWith("src/lib/archive/") },
   {
     id: "auth-and-account-deletion",
@@ -91,7 +145,6 @@ const CLASS_3_MATCHERS = Object.freeze([
         file,
       ),
   },
-  { id: "request-boundary", test: (file) => /^(?:middleware|proxy)\.[cm]?[jt]s$/.test(file) },
   { id: "deployment-config", test: (file) => /^(?:vercel\.json|\.env\.example)$/.test(file) },
 ]);
 
@@ -111,8 +164,15 @@ function class3Reasons(files) {
  * Order matters: a change is judged by its most sensitive part, never averaged.
  * A docs PR that also touches a migration is Class 3.
  */
-export function deriveRiskClass(classification, { files = classification.files ?? [] } = {}) {
-  const reasons = class3Reasons(files);
+export function deriveRiskClass(classification, { files } = {}) {
+  // No silent default: an absent file list previously skipped the entire Class 3
+  // sensitivity check and answered "Class 1", which is the one wrong answer that
+  // looks like a real one.
+  const subject = files ?? classification.files;
+  if (!Array.isArray(subject)) {
+    throw new TypeError("deriveRiskClass requires the changed file list; refusing to guess");
+  }
+  const reasons = class3Reasons(subject);
   if (reasons.length > 0) {
     return { class: 3, reasons, ...RISK_CLASSES[3] };
   }
@@ -249,34 +309,66 @@ export function deriveWorkflowJobs({ root = process.cwd() } = {}) {
     if (!/\.ya?ml$/.test(file)) continue;
     const workflow = `${WORKFLOW_DIR}/${file}`;
     const lines = fs.readFileSync(path.join(dir, file), "utf8").split(/\r?\n/);
+    const triggersPullRequest = workflowTriggersPullRequest(lines);
     const jobsAt = lines.findIndex((line) => /^jobs:\s*$/.test(line));
     if (jobsAt < 0) continue;
-    // `on:` block text is enough to know whether pull requests trigger it; the
-    // block ends at the next top-level key.
-    const onAt = lines.findIndex((line) => /^on:\s*$/.test(line));
-    let triggersPullRequest = false;
-    if (onAt >= 0) {
-      for (let i = onAt + 1; i < lines.length && /^\s/.test(lines[i]); i += 1) {
-        if (/^\s+pull_request:/.test(lines[i])) triggersPullRequest = true;
-      }
-    } else {
-      triggersPullRequest = /^on:.*pull_request/.test(lines.find((l) => /^on:/.test(l)) ?? "");
-    }
     for (let i = jobsAt + 1; i < lines.length; i += 1) {
       const start = /^ {2}([A-Za-z0-9_-]+):\s*$/.exec(lines[i]);
       if (!start) continue;
       let name = null;
+      let eventGated = false;
       for (let j = i + 1; j < lines.length && /^ {4}\S/.test(lines[j]); j += 1) {
         const found = /^ {4}name:\s*(.+?)\s*$/.exec(lines[j]);
-        if (found) {
-          name = found[1].replace(/^['"]|['"]$/g, "");
-          break;
+        if (found && name === null) name = found[1].replace(/^['"]|['"]$/g, "");
+        /**
+         * A job-level `if:` can silence a check on pull requests even when its
+         * workflow triggers on them, and `ci.yml` already gates every required
+         * job this way — so ignoring job conditions would let a one-line edit
+         * stop a required check from ever reporting while the doctor kept
+         * advertising it.
+         *
+         * The rule is deliberately conservative rather than a GitHub expression
+         * evaluator: if the condition reasons about `github.event_name` but never
+         * mentions `pull_request`, this job cannot be shown to run on one. The
+         * real conditions here all name `pull_request` explicitly, so they pass;
+         * `if: github.event_name == 'push'` does not.
+         */
+        if (/^ {4}if:/.test(lines[j]) && /github\.event_name/.test(lines[j])) {
+          eventGated = !/pull_request/.test(lines[j]);
         }
       }
-      jobs.push({ id: start[1], context: name ?? start[1], workflow, triggersPullRequest });
+      jobs.push({
+        id: start[1],
+        context: name ?? start[1],
+        workflow,
+        triggersPullRequest: triggersPullRequest && !eventGated,
+        eventGatedAwayFromPullRequest: eventGated,
+      });
     }
   }
   return jobs;
+}
+
+/**
+ * Does this workflow run on pull requests?
+ *
+ * Depth matters. An earlier version matched `pull_request:` at any indentation
+ * inside the `on:` block, so a `workflow_call` input *named* `pull_request`
+ * counted as a trigger — a workflow that never runs on a PR reported as if it
+ * did. Only a direct child of `on:` is a trigger.
+ */
+function workflowTriggersPullRequest(lines) {
+  const inline = lines.find((line) => /^on:\s*\S/.test(line));
+  if (inline) return /\bpull_request\b/.test(inline);
+  const onAt = lines.findIndex((line) => /^on:\s*$/.test(line));
+  if (onAt < 0) return false;
+  for (let i = onAt + 1; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (line.trim() === "") continue;
+    if (!/^\s/.test(line)) break; // next top-level key ends the block
+    if (/^ {2}pull_request:/.test(line) || /^ {2}pull_request\s*$/.test(line)) return true;
+  }
+  return false;
 }
 
 /**
@@ -299,16 +391,23 @@ export function verifyProviderCheckIdentities({ root = process.cwd() } = {}) {
       });
       continue;
     }
-    if (!matches.some((job) => job.triggersPullRequest)) {
-      problems.push({
-        context: declared.context,
-        problem: "job exists but no longer runs on pull_request",
-      });
-    }
-    if (!matches.some((job) => job.workflow === declared.workflow)) {
+    // One job must satisfy every condition. Testing the conditions independently
+    // let a decoy workflow provide the identity while the real job was unhooked.
+    const owning = matches.filter((job) => job.workflow === declared.workflow);
+    if (owning.length === 0) {
       problems.push({
         context: declared.context,
         problem: `declared workflow ${declared.workflow} no longer owns this job`,
+      });
+      continue;
+    }
+    if (!owning.some((job) => job.triggersPullRequest)) {
+      const gated = owning.some((job) => job.eventGatedAwayFromPullRequest);
+      problems.push({
+        context: declared.context,
+        problem: gated
+          ? "job is gated away from pull_request by a job-level event condition"
+          : "job exists but its workflow no longer triggers on pull_request",
       });
     }
   }
@@ -388,23 +487,42 @@ export const APPROVAL_BOUNDARIES = Object.freeze({
 const BOUNDARY_IMPLICATIONS = Object.freeze([
   {
     boundary: "production_schema_write",
-    test: (file) => file.startsWith("supabase/migrations/"),
-    why: "a new or edited migration only takes effect once someone applies it to production",
+    // Not just `migrations/`: `roles.sql` and `config.toml` are provider state
+    // that likewise only takes effect once someone applies it.
+    test: (file) =>
+      file.startsWith("supabase/migrations/") ||
+      /^supabase\/(?:roles\.sql|seed\.sql|config\.toml)$/.test(file),
+    why: "a new or edited migration, role grant or project setting only takes effect once someone applies it to production",
   },
   {
     boundary: "tenant_ledger_mutation",
-    test: (file) => /^supabase\/migrations\/.*(?:purge|delete|restore)/.test(file),
+    /**
+     * Does this migration define a path that writes or removes tenant rows?
+     *
+     * Filename stems are a floor, not a ceiling. `harden_tenant_deletion`
+     * contains "delet" but not "delete", and a neutrally-named migration can
+     * still carry a `delete from`, so the SQL body is read when a reader is
+     * available and the stems only catch what a path alone can.
+     */
+    test: (file, body) =>
+      (file.startsWith("supabase/migrations/") &&
+        /(?:purge|delet|restore|truncate|cascade|drop_)/i.test(file)) ||
+      (typeof body === "string" &&
+        /\b(?:delete\s+from|truncate\s+table|truncate\s+public\.)/i.test(body)),
     why: "the migration defines a path that writes or removes tenant rows",
   },
   {
     boundary: "auth_identity_mutation",
-    test: (file) => file.startsWith("supabase/functions/delete-account/"),
-    why: "the deployed Edge function acts on Auth identities",
+    // The whole Edge deployment unit, not one directory: `delete-account`
+    // imports its recent-auth guard from `_shared/`, and that helper is what
+    // decides whether a caller may destroy an Auth identity.
+    test: (file) => file.startsWith("supabase/functions/"),
+    why: "the deployed Edge function and its shared helpers act on Auth identities",
   },
   {
     boundary: "provider_read",
-    test: (file) => file.startsWith(".github/workflows/"),
-    why: "verifying the effect needs provider-side check identities read back",
+    test: (file) => file.startsWith(".github/"),
+    why: "verifying the effect needs provider-side check identities or ruleset state read back",
   },
 ]);
 
@@ -417,11 +535,20 @@ const BOUNDARY_IMPLICATIONS = Object.freeze([
  * a future deployment step, and `requiredForThisDiff` stays `none` for any diff
  * that only changes files.
  */
-export function deriveApprovalBoundary(files = []) {
+export function deriveApprovalBoundary(files = [], { readFile } = {}) {
   const implied = new Map();
   for (const file of files) {
+    // Read lazily and only for the files a body rule could apply to: the pure
+    // default stays path-only so this function remains testable without a disk.
+    let body;
+    const bodyOf = () => {
+      if (body === undefined) {
+        body = readFile && file.startsWith("supabase/migrations/") ? (readFile(file) ?? null) : null;
+      }
+      return body;
+    };
     for (const rule of BOUNDARY_IMPLICATIONS) {
-      if (rule.test(file)) {
+      if (rule.test(file, bodyOf())) {
         if (!implied.has(rule.boundary)) implied.set(rule.boundary, { ...APPROVAL_BOUNDARIES[rule.boundary], why: rule.why });
       }
     }
@@ -484,11 +611,11 @@ export function deriveEvidenceRequirements(classification, riskClass, approval) 
  * failure this repository already documents: a build does not prove RLS, and a
  * passing working tree is not a merged, provider-verified pull request.
  */
-export function buildPolicyDecision(files, { forceFull = false } = {}) {
+export function buildPolicyDecision(files, { forceFull = false, readFile } = {}) {
   const classification = classifyChanges(files, { forceFull });
   const riskClass = deriveRiskClass(classification, { files: classification.files });
-  const approval = deriveApprovalBoundary(classification.files);
-  return {
+  const approval = deriveApprovalBoundary(classification.files, { readFile });
+  return deepFreeze({
     policySchemaVersion: POLICY_SCHEMA_VERSION,
     policySources: POLICY_SOURCES,
     classification,
@@ -503,5 +630,5 @@ export function buildPolicyDecision(files, { forceFull = false } = {}) {
       statement:
         "Local gates green means the selected local evidence passed. It is not a merged pull request: the required provider checks must be green on the exact head, review findings resolved, and the PR memory record written. Merging and deployment remain owner decisions.",
     }),
-  };
+  });
 }

@@ -27,10 +27,21 @@ test("the doctor derives policy from the policy module rather than hard-coding i
     !executable.includes("classify-ci-changes.mjs"),
     "the doctor must go through agent-policy.mjs, not around it",
   );
-  // No risk-class or gate table may live here.
-  assert.ok(!/GATE_COMMANDS\s*=/.test(executable));
-  assert.ok(!/RISK_CLASSES\s*=/.test(executable));
-  assert.ok(!/PROVIDER_CHECK/.test(executable.replace(/PROVIDER_CHECKS?\b(?=\s*[,)])/gu, "")));
+  /**
+   * Forbidding the identifier names `GATE_COMMANDS` and `RISK_CLASSES` only
+   * forbade two spellings — `FALLBACK_GATES = {...}` sailed through. What
+   * actually matters is that no policy *value* is written here, whatever the
+   * variable is called.
+   */
+  assert.ok(
+    !executable.includes("npm run "),
+    "the doctor must not name a gate command; agent-policy.mjs owns the table",
+  );
+  for (const context of ["Gitleaks all refs", "Analyze JavaScript and TypeScript"]) {
+    assert.ok(!executable.includes(context), `the doctor must not declare the ${context} context`);
+  }
+  // Nor a risk-class label, which would be a second answer to "how heavy is this".
+  assert.ok(!executable.includes("full work packet under"));
 });
 
 test("--files drives the report, so task shapes are reproducible", () => {
@@ -61,10 +72,20 @@ test("a database task reports the heavier plan and the approval boundary", () =>
 });
 
 test("collectChangedFiles honours an explicit --files list and stops at the next flag", () => {
-  const files = collectChangedFiles({
-    argv: ["node", "x", "--files", "a.md", "b.ts", "--json"],
-  });
-  assert.deepEqual(files, ["a.md", "b.ts"]);
+  assert.deepEqual(
+    collectChangedFiles({ argv: ["node", "x", "--files", "a.md", "b.ts", "--json"] }),
+    ["a.md", "b.ts"],
+  );
+  /**
+   * Filtering flags out instead of stopping at one kept the *operand* of the
+   * following flag, so `origin/main` became a changed file and skewed the risk
+   * class of every run that passed --base-ref after --files.
+   */
+  assert.deepEqual(
+    collectChangedFiles({ argv: ["node", "x", "--files", "a.md", "--base-ref", "origin/main"] }),
+    ["a.md"],
+  );
+  assert.deepEqual(collectChangedFiles({ argv: ["node", "x", "--files", "--json"] }), []);
 });
 
 test("the report never carries an environment value, only presence", () => {
@@ -81,6 +102,9 @@ test("the report never carries an environment value, only presence", () => {
   });
   const serialized = JSON.stringify(report);
   assert.ok(!serialized.includes(secret), "no environment value may reach the report");
+  // The absolute checkout path carries the OS username; only the basename ships.
+  assert.ok(!("root" in report.repo), "the absolute path must not be reported");
+  assert.ok(!serialized.includes("/home/"), "no absolute home path may reach the report");
   assert.equal(report.environment.supabaseUrl.state, "present");
   assert.equal(report.environment.supabasePublishableKey.state, "present");
   // The variable *name* is useful and safe; the value is not.
@@ -101,10 +125,25 @@ test("the report states that local green is not a finished pull request", () => 
   });
   assert.equal(report.completion.localGreenIsCompletion, false);
   assert.match(report.completion.statement, /not a merged pull request/u);
-  // `ready` is about the environment, so it must never be presented as the
-  // task being complete.
-  assert.ok("ready" in report);
   assert.ok(report.evidenceRequired.some((entry) => entry.id === "provider_exact_head"));
+
+  /**
+   * `ready` is the field most likely to be misread as "done", so the report has
+   * to say what it covers. Asserting `"ready" in report` proved nothing; this
+   * asserts the disambiguation exists and names the four things it excludes.
+   */
+  assert.equal(report.readyMeans.scope, "environment-and-policy-freshness");
+  for (const excluded of [
+    "the local gates were run",
+    "the local gates passed",
+    "the provider checks are green on the exact head",
+    "the pull request is complete or mergeable",
+  ]) {
+    assert.ok(
+      report.readyMeans.excludes.includes(excluded),
+      `readyMeans must exclude "${excluded}"`,
+    );
+  }
 });
 
 test("provider checks are listed with what they prove, and separately from local gates", () => {
@@ -121,14 +160,35 @@ test("provider checks are listed with what they prove, and separately from local
   assert.equal(report.providerCheckIdentityGuard.ok, true);
 });
 
-test("provider check identity drift makes the doctor not-ready", () => {
-  // The guard runs against the real repository in the happy path; here we prove
-  // the report's readiness actually depends on it rather than ignoring it.
+test("readiness depends on every term, not only the two that pass here", () => {
+  // An earlier version re-derived `ready` from two of its five terms and passed
+  // on this machine by accident. Recompute the whole conjunction instead.
   const report = buildDoctorReport({
     argv: ["node", "agent-doctor.mjs", "--files", "docs/example.md"],
     env: {},
   });
-  assert.equal(report.ready, report.missingRepoFiles.length === 0 && report.providerCheckIdentityGuard.ok);
+  const expected =
+    report.missingRepoFiles.length === 0 &&
+    Boolean(report.capabilities.node && report.capabilities.npm && report.capabilities.git) &&
+    report.missingRequiredCapabilities.length === 0 &&
+    report.providerCheckIdentityGuard.ok &&
+    (report.providerCheckDrift ? report.providerCheckDrift.ok : true);
+  assert.equal(report.ready, expected);
+});
+
+test("a missing local capability makes a heavier task not-ready", () => {
+  // A database task needs supabase and docker; whichever is absent here must
+  // surface rather than being quietly dropped.
+  const report = buildDoctorReport({
+    argv: ["node", "agent-doctor.mjs", "--files", "supabase/migrations/20260812100000_x.sql"],
+    env: {},
+  });
+  assert.equal(report.requiredCapabilities.supabase, true);
+  assert.equal(report.requiredCapabilities.docker, true);
+  for (const name of report.missingRequiredCapabilities) {
+    assert.equal(report.capabilities[name], null, `${name} must actually be absent`);
+  }
+  if (report.missingRequiredCapabilities.length > 0) assert.equal(report.ready, false);
 });
 
 test("the live ruleset comparison is opt-in and absent by default", () => {
