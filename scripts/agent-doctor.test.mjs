@@ -37,6 +37,7 @@ test("provider checks remain separate from local commands", () => {
     "verify",
     "database",
     "e2e",
+    "Gitleaks all refs",
     "Analyze JavaScript and TypeScript",
   ]);
 });
