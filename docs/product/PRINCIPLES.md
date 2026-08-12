@@ -141,7 +141,7 @@ physical-phone run, and **nothing replaces it** — no shorter count, no substit
 streak. Real daily use is still how defects get found, and the physical-phone run is
 the evidence of that; it is simply no longer counted in days. This document is
 higher precedence than any work packet, so the withdrawal is recorded here rather
-than only in `docs/plans/active/moneyflow-trust-prove.md`.
+than only in `docs/plans/completed/2026-08-12-moneyflow-trust-prove.md`.
 
 Daily-use evidence remains necessary while broader modules are developed. Adding feature breadth does not substitute for trust and retention evidence.
 

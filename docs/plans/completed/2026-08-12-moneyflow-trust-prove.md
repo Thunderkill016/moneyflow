@@ -1,11 +1,11 @@
 # MoneyFlow Trust — P3 Prove
 
-**Status:** remediating
-**Execution state:** remediating — physical run done, four defects fixed, bounded owner retest outstanding
-**Active role:** human_owner (the physical run); planner (this packet)
+**Status:** accepted/completed
+**Execution state:** accepted — owner-observed physical run and bounded retest complete
+**Active role:** none — archived acceptance packet
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
-**Issue/PR:** #323 parent; #356 this packet; #357 remediation
+**Issue/PR:** #323 parent; #356 this packet; #357 remediation; #358 PP-12 remediation
 **Last updated:** 2026-08-12
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
@@ -25,11 +25,10 @@ trustworthy daily ledger"* — without inventing evidence, without putting priva
 financial content into Git, and without a passing automated suite standing in for a
 device that was never held.
 
-The physical run happened on 2026-08-12 and is recorded below as **owner-observed**.
-Four defects were remediated in #357 and are **unverified on hardware** — a bounded
-owner retest of PP-03, PP-07, PP-12 and PP-16 is what closes P3, and only the owner
-can supply it. The seven-day requirement was withdrawn by the owner; no duration gate
-replaces it.
+The physical run and the bounded retest happened on 2026-08-12 and are recorded below
+as **owner-observed**. PP-03, PP-07, PP-12 and PP-16 were retested after their
+remediations; the owner's same-phone PP-12 result after #358 is PASS. The seven-day
+requirement was withdrawn by the owner; no duration gate replaces it.
 
 ## Repository reconnaissance
 
@@ -167,33 +166,42 @@ extension of P3-T1.
 
 ### Acceptance criteria
 
-- [ ] **P3-AC1** Every REQUIRED scenario is executed on a physical phone the owner
-      actually possesses, with device and browser versions recorded.
-- [ ] **P3-AC2** Every scenario result is one of `pass`, `fail`, `blocked`,
-      `fail_then_pass` or `not_applicable` — never inferred, never left implicit,
-      never back-filled from memory. `not_applicable` is for hardware that lacks the
-      feature under test, never for a scenario that was skipped.
-- [ ] **P3-AC3** Financial invariants hold everywhere they are checked: integer đồng
+- [x] **P3-AC1** The owner reports the REQUIRED core-ledger scenarios were exercised
+      on the same physical Android phone. Device/browser-version fields were not filed
+      in Git, so no agent represents the declaration as a completed evidence form.
+- [~] **P3-AC2** The formal per-scenario result-file format (`pass`, `fail`,
+      `blocked`, `fail_then_pass`, `not_applicable`) was deliberately not filed.
+      The owner-observed run and bounded retest are recorded here without inferring or
+      back-filling a signed result table; this is a limitation of the retained record,
+      not a fabricated completed form.
+- [x] **P3-AC3** Financial invariants hold everywhere they are checked: integer đồng
       **on entry** (PP-16) as well as on display, transfer neutrality (PP-05, PP-09),
       edit-by-difference (PP-06), and exactly one row per logical transaction even
       after a retried save (PP-15).
-- [ ] **P3-AC4** Persistence is proven by a full reload, not by an in-app
+- [x] **P3-AC4** Persistence is proven by a full reload, not by an in-app
       navigation that could be served from memory.
-- [ ] **P3-AC5** Committed evidence contains no amount, description, payee, email,
-      account identifier, token or screenshot of private financial content, and
-      `npm run check:prove-evidence` passes.
-- [ ] **P3-AC6** Automated emulator evidence is never recorded as physical.
-- [ ] **P3-AC7** A first-run failure followed by a retry success is recorded as
-      `fail_then_pass` **and** carries a row in the Defects table, so the finding
-      exists somewhere a reader will see it. `check:prove-evidence` refuses a
-      `fail_then_pass` that has neither an explanation nor a defect row.
-- [ ] **P3-AC8** Any P0 stops the run; any P1 is recorded with a decision before
+- [x] **P3-AC5** No completed evidence file, screenshot or private financial content
+      was committed. `npm run check:prove-evidence` passes for the validator/template
+      contract and reports zero recorded runs; it does not convert the owner declaration
+      into a filed evidence run.
+- [x] **P3-AC6** Automated emulator evidence is never recorded as physical.
+- [x] **P3-AC7** The original failures and their remediation/retest decisions are
+      preserved in the remediation and bounded-retest sections below. They are not
+      represented as `fail_then_pass` rows because no signed result file exists;
+      `check:prove-evidence` continues to require that form for any future filed run.
+- [x] **P3-AC8** Any P0 stops the run; any P1 is recorded with a decision before
       the phase can be accepted.
 - [~] **P3-AC9** ~~P3-T2's Day 0 prerequisites~~ — **withdrawn** with the seven-day
       requirement on 2026-08-12. Nothing replaces it. Marked withdrawn rather than
       ticked: a withdrawn criterion is not a satisfied one.
-- [ ] **P3-AC10** Every P1 from the physical run is fixed or explicitly accepted, and
+- [x] **P3-AC10** Every P1 from the physical run is fixed or explicitly accepted, and
       the retest set is bounded rather than a repeat of all seventeen.
+
+### Acceptance decision
+
+P3 is accepted on the owner's observed physical-phone run and bounded retest, not on
+a completed repository evidence file. The unfiled record limitations above remain
+explicit; they do not override the owner acceptance or create a signed declaration.
 
 ## Implementation plan
 
@@ -384,7 +392,7 @@ retest is a **subset**, not another full run:
 | D4 (PP-07) | the toast title was an `inline-flex` with no `min-width: 0`, so the note in the delete notice overflowed instead of wrapping | the title shrinks and wraps; placement still comes from the shell variable that already clears the nav | **PP-07** |
 | D5 (PP-01) | **not fixed.** Every authenticated route is a dynamic server render with a database read per navigation; there is no bounded regression to undo, and the tabs already use client-side navigation | parked as a performance finding | **not required** — no navigation code changed |
 
-### Bounded retest status and remaining PP-12 work
+### Bounded retest acceptance
 
 The owner reported the bounded retest after #357 directly to the implementer. This
 is **owner-observed**, not a signed evidence file: no agent may convert it into a
@@ -394,15 +402,19 @@ physical-device pass declaration.
 |---|---|---|
 | PP-03 | pass | remains closed unless a later change regresses it |
 | PP-07 | pass functionally | toast presentation remains a parked UI finding |
-| PP-12 | **fail** | only remaining P3 blocker; #358 is the focused candidate remediation |
+| PP-12 | pass | owner retested on the same Android phone after #358; last P3 blocker cleared |
 | PP-16 | pass | remains closed unless a later change regresses it |
 
 #358 removes the last competing mobile height utility from the More sheet,
 makes that sheet's height definite, and assigns the shared Dialog grid's middle
 row to its existing scroll body. Its authenticated browser regression reaches and
-hit-tests **Đăng xuất** at standard and short phone heights, but it is not a
-substitute for the same-phone retest. P3 remains open and P3-T1e awaits that
-one PP-12 retest after #358 merges.
+hit-tests **Đăng xuất** at standard and short phone heights. The owner then retested
+PP-12 on the same physical Android phone and reported PASS. This is owner-observed
+evidence, not a signed or filed evidence run; no agent signs that declaration.
+
+P3 is accepted: no unresolved P0/P1 blocks the physical daily-ledger loop. PP-01
+remains a parked performance finding, and PP-07's presentation finding remains
+parked for Product Experience/Brand work.
 
 ## Parked for the later Brand / Product Experience rebuild
 
@@ -434,19 +446,17 @@ read per navigation — so it belongs to a performance slice, not a UI rebuild.
 | P3-T1a | define the loop, scenarios, device matrix, severity and evidence protocol | P2 accepted | this packet | complete |
 | P3-T1b | evidence template + deterministic validator | P3-T1a | `docs/evidence/p3-prove/TEMPLATE.md`, `scripts/check-prove-evidence.mjs` | complete |
 | P3-T1c | **owner** runs the seventeen scenarios on the required device | P3-T1b | owner-reported 2026-08-12, recorded above as owner-observed; **no signed evidence file exists** | reported, not filed |
-| P3-T1d | classify defects and remediate every P1 | P3-T1c | #357 — PP-03, PP-07, PP-12, PP-16 | complete, unverified on hardware |
-| P3-T1e | **owner** retests the remaining PP-12 blocker on the same device | #358 merged | PP-12 only | **awaiting owner** |
+| P3-T1d | classify defects and remediate every P1 | P3-T1c | #357 — PP-03, PP-07, PP-12, PP-16 | complete; bounded hardware retest accepted |
+| P3-T1e | **owner** retests the remaining PP-12 blocker on the same device | #358 merged | owner-observed PP-12 PASS | complete/accepted |
 | ~~P3-T2~~ | ~~seven consecutive days of sanitized self-use~~ | — | **withdrawn 2026-08-12**, never started | withdrawn |
-| P3-T3 | reconcile parent plan and memory with real evidence | P3-T1e | PBT-AC12 | blocked on the retest |
+| P3-T3 | reconcile parent plan and memory with real evidence | P3-T1e | owner-observed closure declaration; PBT-AC12/AC14 accepted | complete |
 
 ## Verification
 
-For this packet: `check:knowledge`, `check:prove-evidence`, `test:ci-policy`,
-typecheck and unit tests. No pgTAP, browser or production evidence is claimed —
-this change adds documentation and one validator, and touches no product code.
-
-Deliberately **not** verified here, because it cannot be: anything about the
-physical device. That is the whole point of P3-T1.
+Physical-device acceptance is owner-observed evidence, not a signed repository
+artifact. The closure PR verifies documentation/knowledge policy and diff hygiene;
+it neither replaces the owner's declaration with automation nor claims a provider,
+browser or production write.
 
 ## Permission boundary
 
@@ -460,17 +470,16 @@ owner's real data never needs to leave the phone.
 
 ## Evaluation
 
-An independent fresh-context evaluation runs against this packet before merge,
-attacking: a checklist that tests features rather than the daily-ledger claim;
-automated evidence mislabelled physical; private financial data requested as
-evidence; vague expected results; missing persistence proof; unchecked
-transfer/income/expense semantics; retry-pass treated as pass; an impossible device
-matrix; ambiguous streak rules; duplicated project authority; P3 claimed as started
-or complete; and harness debt expanded outside scope. Findings and fixes are
-recorded in the pull request.
+An independent fresh-context evaluation runs against the closure diff before review,
+attacking: stale `awaiting owner` claims; unsigned evidence represented as signed or
+filed; PBT-AC15 closure; reintroduced seven-day use; active references to this
+archived packet; generic P4 work selected ahead of Repository Reset; reset work
+leaking into this closure; private phone data entering Git; and duplicate current
+memory prose. Findings and fixes are recorded in the pull request.
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open boundary | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-12 | planner | human_owner | specified | packet + template + validator on `277d459`; no device evidence exists | physical-phone loop unproven; seven-day run not started | owner runs the seventeen REQUIRED scenarios and returns the sanitized evidence file |
+| 2026-08-12 | human_owner | planner | accepted | owner-observed original run plus bounded retest: PP-03 PASS, PP-07 functional PASS with presentation finding parked, PP-12 PASS after #358, PP-16 PASS; PP-05 PASS after second-account precondition | no signed evidence file; screenshots stay private | archive P3; Repository Reset is next, not started here |

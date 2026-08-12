@@ -1,13 +1,13 @@
 # MoneyFlow Trust
 
 **Status:** active
-**Execution state:** P3 Prove planned; P0/Provider Sync/P1/P2 accepted
-**Active role:** planner
+**Execution state:** P3 Prove accepted; bounded Repository Reset is next; public-beta decision remains open
+**Active role:** planner for the next bounded Repository Reset only after this closure merges
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
-**Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure; #356 P3 Prove packet
+**Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure; #356 P3 Prove packet; #358 PP-12 remediation
 **Last updated:** 2026-08-12
-**Current main audited:** `18836e2ebdc63711113f248826b00cd541a0a530`
+**Current main audited:** `c97400cf5e07879e529bddc258d31ce7ddab4e51`
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
@@ -24,7 +24,9 @@ Program sequence:
 
 > **Provider Sync → Secure acceptance → Recover → Prove → Improve → Release**
 
-Provider Sync, P1 Secure and **P2 Recover** are now accepted. The program advances to **P3 Prove**.
+Provider Sync, P1 Secure, P2 Recover and **P3 Prove** are accepted. The immediate
+next execution state is a bounded **Repository Reset**, followed by the Brand/Product
+Experience rebuild A0→J, final physical/device visual QA, and then the owner public-beta decision.
 
 ## Repository reconnaissance
 
@@ -44,8 +46,8 @@ Provider Sync, P1 Secure and **P2 Recover** are now accepted. The program advanc
 - Correlated Auth/API/Postgres/Edge/Vercel review found no acceptance-blocking error cluster for the accepted interactive flows; no `delete-account` Edge invocation was observed.
 - Current transaction/Inbox CSV/JSON export is scoped user-readable export, **not** a complete versioned restorable archive. The complete archive is a separate shipped capability at `/settings/backup`; the report export deliberately still says it is not a full backup.
 
-Active P3 packet: `docs/plans/active/moneyflow-trust-prove.md` — owns P3 execution
-detail only; this plan remains the program authority.
+Accepted P3 packet: `docs/plans/completed/2026-08-12-moneyflow-trust-prove.md` —
+records owner-observed physical-phone acceptance without inventing a signed evidence file.
 
 Completed Trust packets:
 
@@ -87,7 +89,9 @@ Provider and repository evidence remain claim-specific:
 
 P1 Secure and P2 Recover no longer block the program. A complete versioned archive can be exported, validated and restored with invariants intact, and the Recover schema is live in production — with the venues kept distinct: **export** is accepted against a real hosted production artifact, while **restore** is proven deterministically by pgTAP against a real PostgreSQL and has never been executed against a live hosted account. That gap is the named P2 limitation, not a claimed pass.
 
-The next public-beta trust gap is **P3 Prove**: physical-phone acceptance of the core ledger loop.
+P3 Prove is accepted from the owner's physical-phone run and bounded retest. The
+remaining program decision is not a generic P4 implementation: Repository Reset is
+the next bounded operational cleanup, while the public-beta decision remains open.
 
 On 2026-08-12 the owner **removed the seven-day self-use requirement** from the active program after running the physical checklist. P3 Prove is now physical-phone core-ledger acceptance only. No replacement duration gate is introduced. The historical seven-day records in `docs/REAL_USE_READINESS_CONTRACT.md` (R7, 2026-07-29) stay as historical truth and are not re-opened.
 
@@ -119,9 +123,9 @@ Recover/Prove/Release:
 
 - [x] PBT-AC10 versioned complete archive can be exported, validated and restored with financial invariants intact — deterministic full round trip proven by pgTAP on every CI run that touches the database boundary and on every push to `main` (`classify-ci-changes.mjs` selects the pgTAP job by changed path, and non-pull-request events force the full gate set — so a docs-only PR such as this closure does not re-run it); hosted export accepted on a real production artifact; hosted restore is an owner-accepted named limitation (id-preservation refuses a restore while the source account is live).
 - [x] PBT-AC11 restore fails safely on unsupported/corrupt/partial archives — each rejection writes zero rows, proven in pgTAP.
-- [ ] PBT-AC12 core ledger behavior is exercised on a physical phone.
+- [x] PBT-AC12 core ledger behavior was exercised on the owner's physical phone.
 - [~] PBT-AC13 **withdrawn as a duration gate** by owner decision on 2026-08-12. Real daily use continues to inform defect discovery, but no consecutive-day count is required for public beta and none replaces it.
-- [ ] PBT-AC14 no unresolved P0/P1 defect blocks the daily-ledger loop at final decision.
+- [x] PBT-AC14 no unresolved P0/P1 defect blocks the daily-ledger loop: PP-03 and PP-16 pass; PP-07 passes functionally with its presentation finding parked; PP-12 passes after #358; PP-01 remains a parked performance finding; PP-05 passes after the second-account precondition was satisfied.
 - [ ] PBT-AC15 current memory/evidence are reconciled and owner records the final public-beta decision/accepted limitations.
 
 ## Financial and security constraints
@@ -151,21 +155,22 @@ Recover/Prove/Release:
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed**, with named stale/mismatch provider-test limitation |
 | P2 Recover | **accepted/completed** — specified, implemented, deployed; hosted restore is a named limitation |
-| P3 Prove | active — checklist specified, device run outstanding |
-| P4 Improve | blocked by P3 evidence |
-| P5 Release | blocked by prior phases |
+| P3 Prove | **accepted/completed** — owner-observed physical-phone core ledger and bounded retest; no signed/filed evidence run was fabricated |
+| Repository Reset | **next/planned** — bounded operational cleanup only; not implemented by this closure |
+| P4 Improve | not next; Product Experience/Brand work follows Repository Reset |
+| P5 Release | owner public-beta decision remains open (PBT-AC15) |
 
 ### Next sequence
 
-Steps 1–6 of the former P2 sequence are complete: the archive inventory, contract,
-packet, specification, export → validate → restore slice and invariant gates all
-landed and are accepted. What remains is P3:
+P3 is accepted. The mandatory execution order is:
 
-1. define the physical-phone core-ledger acceptance checklist — **done**, in
-   `docs/plans/active/moneyflow-trust-prove.md`, which owns P3 execution detail;
-2. run it on a real device and record the evidence;
-3. remediate the defects the run finds, then take the bounded owner retest;
-4. reconcile memory/evidence and take the owner public-beta decision.
+1. bounded **Repository Reset**;
+2. Brand/Product Experience rebuild A0→J;
+3. final physical/device visual QA;
+4. owner public-beta decision (PBT-AC15).
+
+This closure does not begin Repository Reset, delete/move source, rename folders,
+rebuild UI, or make the final public-beta decision.
 
 ## Tasks
 
@@ -180,9 +185,10 @@ landed and are accepted. What remains is P3:
 | P1-T4 | fail-closed/log review + owner limitation decision | production probes + 35/35 deterministic + owner decision | complete |
 | P2-T1 | create/accept Recover archive contract | P1 accepted | complete — `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md` |
 | P2-T2 | implement export/validate/restore | P2-T1 | complete — deployed to production; hosted export accepted, hosted restore an accepted limitation |
-| P3-T1 | physical-phone core ledger checklist | P2 accepted | **specified** — `docs/plans/active/moneyflow-trust-prove.md`; 17 scenarios awaiting the owner's device run |
+| P3-T1 | physical-phone core ledger checklist | P2 accepted | complete/accepted — owner-observed run and bounded retest; archived at `docs/plans/completed/2026-08-12-moneyflow-trust-prove.md` |
 | P3-T2 | ~~seven-day sanitized self-use~~ | — | **withdrawn 2026-08-12 by owner decision**; never started, and not replaced |
-| P4-T1 | select observed trust-depth slice | P3 evidence | blocked |
+| RR-T1 | bounded Repository Reset | P3 accepted | next/planned; no skeleton or implementation in this closure |
+| P4-T1 | select observed trust-depth slice | Repository Reset + Product Experience work | not next |
 | P5-T1 | owner public-beta decision | prior phases | blocked |
 
 ## Handoff record
@@ -194,6 +200,7 @@ landed and are accepted. What remains is P3:
 | 2026-08-12 | human owner | planner | accepted | deterministic pgTAP round trip; hosted export accepted on a real production artifact; explicit hosted-restore limitation acceptance | hosted restore unproven; P3 evidence absent | define the P3 physical-phone checklist |
 | 2026-08-12 | planner | human_owner | specified | P3 packet, evidence template and `check:prove-evidence` on `277d459`; **no device evidence exists** | physical-phone loop unproven; seven-day run not started | owner runs the 17 REQUIRED scenarios and returns the sanitized evidence file |
 | 2026-08-12 | human_owner | implementer | remediating | owner-reported physical run on a real phone: PP-12 and PP-16 failed, PP-03 and PP-07 passed with defects, PP-01 slow; seven-day requirement withdrawn | four defects fixed in #357 but unverified on hardware | owner retests PP-03, PP-07, PP-12, PP-16 |
+| 2026-08-12 | human_owner | planner | accepted | owner-observed PP-12 PASS on the same Android phone after #358; PP-03/PP-16 PASS; PP-07 functional PASS with presentation finding parked; PP-05 precondition satisfied; no unresolved P0/P1 in the daily loop | PBT-AC15 remains owner decision | archive P3; begin bounded Repository Reset only in its own task |
 
 ### Current permission boundary
 
@@ -226,4 +233,6 @@ Approval B — one hosted restore into a disposable test account — was granted
 
 ### Decision
 
-Provider Sync, P1 Secure and P2 Recover are complete and archived. P3 Prove — physical-phone core-ledger acceptance — is now the active dependency in the MoneyFlow Trust sequence. Its seven-day component was withdrawn by the owner on 2026-08-12.
+Provider Sync, P1 Secure, P2 Recover and P3 Prove are complete; P3 is archived after
+owner-observed physical-phone acceptance. PBT-AC13 remains withdrawn, PBT-AC15 remains
+open, and the program is not yet public-beta ready. Repository Reset is next.
