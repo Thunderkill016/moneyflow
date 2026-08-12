@@ -1,5 +1,11 @@
 # Money Flow — Nghiên cứu UX tham khảo & Thiết kế lại (Inbox-first)
 
+> **Status:** historical research and postmortem input. Retain its competitor,
+> state-model and accessibility lessons, but do not treat Inbox-first identity,
+> fixed IA or linked `PRODUCT.md` as current authority. Use
+> `docs/research/UI_UX_RESEARCH_LEDGER.md` for classification and
+> `docs/context/README.md` for current routing.
+
 **Ngày:** 2026-07-14  
 **Phiên bản:** 1.0  
 **Định vị thiết kế:** *Universal Financial Inbox* — thu thập, chuẩn hóa, duyệt giao dịch; dashboard là phụ.  
@@ -9,7 +15,7 @@
 - [UX_PRINCIPLES.md](./UX_PRINCIPLES.md)  
 - [design-system.md](./design-system.md)  
 - [wireframes-inbox.md](./wireframes-inbox.md)  
-- [PRODUCT.md](./PRODUCT.md)
+- [Product principles](./product/PRINCIPLES.md)
 
 ---
 

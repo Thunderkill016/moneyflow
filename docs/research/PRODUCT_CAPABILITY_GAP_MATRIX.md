@@ -1,14 +1,16 @@
 # MoneyFlow — competitive capability gap matrix
 
-- **Status:** active capability roadmap
+- **Status:** historical capability audit and reusable research index
 - **Audit date:** 2026-08-03
-- **Owner direction:** treat the 16-capability functional MVP as implemented; reconcile release evidence before expanding competitive scope
+- **Current-routing note:** this 2026-08-03 audit does not define current state or
+  next work; use `docs/research/CURRENT_PROJECT_MEMORY.md` and
+  `docs/plans/active/README.md`
 - **Code baseline:** `main@3e3cb30e56d2d6325662a047fee35959a5811e12`
 - **Implementation authority:** `docs/research/CURRENT_PROJECT_MEMORY.md`
 - **MVP audit:** `docs/research/MVP_TRUTH_AUDIT_2026-08-03.md`
 - **Competitive evidence:** `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`
 
-## 1. Decision boundary
+## 1. Historical decision boundary
 
 MoneyFlow has all 16 capabilities required by the locked MVP definition. The remaining roadmap is a mixture of release-evidence reconciliation and optional competitive depth.
 
@@ -21,7 +23,7 @@ Do not convert any of these into the same status:
 
 “Competitive depth” means entry, review, correction, history, reporting and export connect coherently. It does not mean every competitive-depth improvement blocks MVP release.
 
-## 2. Corrected current position
+## 2. Historical audit position (2026-08-03)
 
 ### Functional MVP
 
@@ -53,7 +55,7 @@ PR #222 defined a substantial reconciliation database/domain contract and passed
 
 The owner reported on 2026-08-03 that multiple items previously described as pending had already been completed. Exact details were not supplied in this conversation. Those areas are **not reconciled**, not marked absent.
 
-## 3. Capability matrix
+## 3. Historical capability matrix
 
 | Capability | Audited status | Merged behavior now | Real remaining decision/depth | Priority |
 |---|---|---|---|---:|

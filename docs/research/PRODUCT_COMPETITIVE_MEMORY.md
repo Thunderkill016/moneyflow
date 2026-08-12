@@ -1,14 +1,18 @@
 # MoneyFlow — product competitive memory
 
-- **Status:** active product and roadmap synthesis
+- **Status:** historical product/competitive synthesis and reusable research index
 - **Snapshot date:** 2026-08-02
 - **Repository baseline:** `main@05e923a17e579470ddcdb16108f0834ce17dc456`
-- **Scope:** current MoneyFlow capability, representative competitors and substitutes, cumulative research reconciliation, durable product decisions and next-development priorities
+- **Scope:** dated MoneyFlow capability/competitor evidence, cumulative reconciliation
+  and historical product hypotheses; not current execution state or next work
 - **Owner rule:** evidence accumulates; binding product truth and explicit owner decisions win
 
 ## 1. Purpose
 
-This document is the durable product memory for MoneyFlow. It combines the repository's existing product, competitor, open-source, UX, architecture, issue and rollout evidence into one current synthesis.
+This document preserves a dated product/competitor synthesis. It is useful when a
+future decision needs its evidence, but current product status lives in
+`docs/research/CURRENT_PROJECT_MEMORY.md` and the execution route lives in
+`docs/plans/active/README.md`.
 
 Use it to answer:
 
@@ -16,7 +20,7 @@ Use it to answer:
 2. How does it compare with representative Vietnamese, commercial and open-source products?
 3. Which patterns should MoneyFlow adopt, adapt or reject?
 4. Which earlier research conclusions are stale or contradicted by current code?
-5. What should be developed next, and what must remain deferred?
+5. Which historical development hypotheses should remain deferred or be reconsidered?
 
 This document is not:
 
@@ -534,7 +538,7 @@ Across local apps, premium consumer products and open-source ledgers, the strong
 
 **Resolution:** visual quality remains important, but no full redesign outranks transaction correctness, physical mobile flow and reconciliation.
 
-## 9. Current product phase
+## 9. Historical product-phase snapshot (2026-08-02)
 
 The best description is:
 
@@ -557,7 +561,7 @@ These scores are directional, not scientific percentages:
 
 Do not quote these scores as external market facts. They are an internal prioritization snapshot.
 
-### 9.2 Exit from the current phase
+### 9.2 Historical exit hypothesis
 
 MoneyFlow exits owner beta only when:
 
@@ -569,9 +573,14 @@ MoneyFlow exits owner beta only when:
 - the owner uses the product for seven consecutive days without data loss or manual database repair;
 - at least a small external test group completes core tasks without live guidance.
 
-## 10. Prioritized roadmap
+## 10. Historical prioritization snapshot — not current next work
 
-### Priority 0 — prove the daily ledger
+Repository Reset, Brand/Product Experience A0→J, device QA and the public-beta
+decision are the current ordered sequence. The following material is retained for
+future product research only; it does not authorize reconciliation, provider, UI or
+seven-day work now.
+
+### Historical Priority 0 — prove the daily ledger
 
 Before another broad feature or redesign:
 
@@ -593,9 +602,9 @@ Measure:
 - export success;
 - user confidence in balances.
 
-### Priority 1 — account reconciliation MVP
+### Historical candidate — account reconciliation MVP
 
-The next major capability should be a focused account-reconciliation vertical slice:
+One future candidate was a focused account-reconciliation vertical slice:
 
 1. Choose an account and statement date.
 2. Enter the external statement/current balance.
@@ -615,7 +624,7 @@ Explicit non-scope:
 - no direct balance overwrite;
 - no AI discrepancy explanation.
 
-### Priority 1 — finish public-beta controls
+### Historical candidate — public-beta controls
 
 In parallel with daily-use work:
 
@@ -627,7 +636,7 @@ In parallel with daily-use work:
 - add conservative route/method-scoped edge controls;
 - verify legitimate share/import flows after each reversible change.
 
-### Priority 2 — transaction correction and review
+### Historical candidate — transaction correction and review
 
 Only after real use identifies the exact need:
 
@@ -639,7 +648,7 @@ Only after real use identifies the exact need:
 
 Do not implement a broad Copilot/Monarch clone.
 
-### Priority 2 — authenticated deterministic rules
+### Historical candidate — authenticated deterministic rules
 
 After reconciliation and provenance are stable:
 
@@ -650,14 +659,14 @@ After reconciliation and provenance are stable:
 - record rule version on approved provenance;
 - never auto-post low-confidence candidates.
 
-### Priority 2 — audit and performance correctness
+### Historical candidate — audit and performance correctness
 
 - append non-sensitive financial mutation metadata: actor, action, entity, timestamp and request/idempotency ID;
 - benchmark real transaction feed, dashboard, budgets and reports at realistic row counts;
 - add caching only after measurement and pair it with invalidation tests;
 - finish approved staging load acceptance before throughput claims.
 
-### Priority 3 — market validation
+### Historical candidate — market validation
 
 After the trusted daily loop is stable:
 
@@ -680,8 +689,8 @@ Pricing, public marketing claims and feature expansion remain hypotheses until t
 | Internal transfers never count as income or expense | **Binding** | Structural ledger invariant |
 | Advanced import/Inbox/rules are secondary capture tools | **Binding** | Prevents identity drift |
 | Safe-to-spend/free-to-spend is withdrawn without a complete planning contract | **Binding** | Missing data must not become confident advice |
-| Account reconciliation is the next major product capability | **Active roadmap decision** | Largest gap between calculated balances and trusted balances |
-| Seven-day owner self-use and physical-phone evidence precede broad feature expansion | **Active roadmap decision** | Current uncertainty is daily use, not feature coverage |
+| Account reconciliation is a future candidate after the current ordered sequence | **Historical hypothesis** | Earlier gap analysis; not an active roadmap decision |
+| Seven-day owner self-use and physical-phone evidence precede broad feature expansion | **Superseded** | The duration gate was withdrawn; P3 physical evidence is accepted |
 | Authenticated deterministic rules come after provenance and reconciliation | **Deferred** | Automation must be explainable and auditable |
 | Bank sync, AI advice, OCR, family finance, investments and native apps remain out of scope | **Deferred / non-goal** | High operational cost and weak current evidence |
 | Current modular monolith remains the architecture | **Binding** | No independent runtime, team or scaling boundary justifies extraction |

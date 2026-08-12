@@ -1,6 +1,10 @@
 # MoneyFlow — MVP “chuẩn” definition (agent exit)
 
-**Authority:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` (G5)  
+**Status:** released-MVP capability/exit reference, not current project-state or next-work authority.
+**Provenance:** `docs/research/05_PRODUCT_AND_ARCHITECTURE.md` (G5), dated 2026-07-15.
+**Current routing:** product identity is `docs/product/PRINCIPLES.md`; current state
+and execution order are `docs/research/CURRENT_PROJECT_MEMORY.md` and
+`docs/plans/active/README.md`.
 **Backlog:** tracked in GitHub Issues, not in a Markdown file.
 **Current acceptance ledger:** `docs/release/MVP_RELEASE_ACCEPTANCE_2026-08-03.md`
 
@@ -50,7 +54,7 @@ Bank sync · AI advisor · family · invest/crypto · OCR · full YNAB envelope 
 
 Inbox / paste / upload / rules / CSV direct import — **Nâng cao** only. Bugs OK to fix; no new inbox marketing.
 
-## Priority order for agents
+## Historical MVP priority order
 
 1. **STAB** money correctness + e2e + build  
 2. **CORE UX** daily loop + empty + export discoverability  

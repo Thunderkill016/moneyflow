@@ -53,9 +53,9 @@ Example:
 ## Size and retention
 
 - PR record hard limit: **140 lines** and **12 KiB**.
-- Snapshot target: **150–250 lines**.
-- Snapshot soft warning: above **300 lines** or **32 KiB**.
-- Snapshot hard failure: above **500 lines** or **64 KiB**.
+- Snapshot budget is owned by `PROJECT_KNOWLEDGE_CONTRACT.json`: target **80–150
+  lines**, soft warning above **180 lines** or **16 KiB**, hard failure above **240
+  lines** or **24 KiB**.
 - Do not copy CI logs, patches, screenshots or issue bodies into memory.
 - Compaction removes superseded prose and repeated evidence; per-PR records remain unchanged.
 

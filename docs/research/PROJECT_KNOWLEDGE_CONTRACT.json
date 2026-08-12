@@ -15,12 +15,12 @@
       "docs/research/pr-memory/YYYY/QN/"
     ],
     "budget": {
-      "targetMinLines": 150,
-      "targetMaxLines": 250,
-      "softMaxLines": 300,
-      "softMaxBytes": 32768,
-      "hardMaxLines": 500,
-      "hardMaxBytes": 65536
+      "targetMinLines": 80,
+      "targetMaxLines": 150,
+      "softMaxLines": 180,
+      "softMaxBytes": 16384,
+      "hardMaxLines": 240,
+      "hardMaxBytes": 24576
     }
   },
   "statusAssertions": {

@@ -1,5 +1,10 @@
 # Configuration contract
 
+**Authority scope:** this document owns the application environment-variable and
+provider-setting contract. `docs/deployment.md` owns branch/deployment workflow;
+`.env.example`, `vercel.json` and `scripts/check-deployment-env.mjs` are the supporting
+executable surfaces. Do not create a second variable contract in setup/runbook docs.
+
 MoneyFlow follows a configuration-first deployment model:
 
 - source code defines behavior and validation;

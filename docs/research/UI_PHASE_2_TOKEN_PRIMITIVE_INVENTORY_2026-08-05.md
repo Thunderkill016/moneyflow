@@ -1,8 +1,8 @@
 # MoneyFlow Phase 2 token and primitive inventory — 2026-08-05
 
 **Status:** completed for Phase 2
-**Program:** `docs/plans/active/ui-system-migration.md`
-**Phase packet:** `docs/plans/active/ui-phase-2-primitives.md`
+**Program provenance:** `docs/plans/completed/2026-08-08-ui-system-migration.md`
+**Phase packet provenance:** `docs/plans/completed/2026-08-08-ui-phase-2-primitives.md`
 **Branch:** `agent/ui-phase-2-primitives`
 **PR:** #299
 **Starting main:** `8688d95160579eacb908f0162994edba4901fc0c`

@@ -1,5 +1,9 @@
 # MoneyFlow deployment workflow
 
+**Authority scope:** this document owns Git branch-to-deployment behavior. The
+environment-variable/provider-setting contract is `docs/configuration.md`; this file
+does not redefine those values.
+
 ## Rules
 
 1. Never commit product changes directly to `main`.

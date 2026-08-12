@@ -1,5 +1,9 @@
 # MoneyFlow — Wireframes
 
+> **Status:** historical/reusable wireframe input. It does not define current
+> information architecture or the next visual direction without an owner-approved
+> packet; see `docs/research/UI_UX_RESEARCH_LEDGER.md` for classification.
+
 > Giai đoạn 3: UX Flows & Wireframes.
 > Không màu sắc. Không styling. Chỉ tập trung vào cấu trúc và usability.
 > Mỗi wireframe thể hiện **information architecture**, **interaction flow**, và **state variations**.

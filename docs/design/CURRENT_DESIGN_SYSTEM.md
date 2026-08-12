@@ -1,7 +1,7 @@
 # MoneyFlow current design-system authority
 
 **Status:** current and owner-approved
-**Program:** `docs/plans/active/ui-system-migration.md`
+**Program provenance:** `docs/plans/completed/2026-08-08-ui-system-migration.md`
 **Phase:** 0 — authority, inventory and baseline
 **Baseline ref:** `main@9f31aa02a64bcff30705c187fceb09cf5fa61ded`
 **Last reviewed:** 2026-08-05
