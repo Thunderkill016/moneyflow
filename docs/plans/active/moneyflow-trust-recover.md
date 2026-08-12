@@ -1076,17 +1076,37 @@ migration the database has already run is the right amount of friction.
 | 2026-08-11 | implementer | evaluator | evaluating | 3 modules, 92 assertions; 938/938 repo unit tests | no producer, no restore, no pgTAP | Attack the validator, then open the PR |
 | 2026-08-12 | human_owner | implementer | implementing | R5 merged as `bc26a6f` | producer absent | Build the authenticated archive producer |
 | 2026-08-12 | implementer | evaluator | evaluating | producer RPC, 40 pgTAP assertions, DB→validator round trip, drift gate proven by negative fixtures | restore absent; migration not applied to production | Adversarial review, then merge under the standing rule |
+| 2026-08-12 | implementer | human_owner | blocked | rollout preflight: `db push` refused (12 remote-only versions) and would have applied 7 unrelated migrations | required pre-write evidence (production DEFINER inventory, row baseline, grants) unobtainable — no arbitrary read-only SQL, no credential | Owner decides how to reconcile shared history |
+| 2026-08-12 | human_owner | implementer | provider_write_approved | scoped approval: delete five named Atoryn Edge Functions | `delete-account` must survive untouched | Delete one named function at a time, then read back |
+| 2026-08-12 | implementer | evaluator | evaluating | Edge 6→1; `table-stats` pre/post identical (19 relations, zero drift, 224 rows); 5 retimestamps reconciled as pure renames; identity guard proven by negative fixtures | two superseded migrations still pending; repair blocked by permission guard | Merge #349, then request the scoped repair |
+| 2026-08-12 | human_owner | implementer | provider_write_approved | scoped approval: `migration repair --status applied` for `20260715001400`, `20260715001500` | history-table write only; must not execute their SQL | Repair, then verify independently |
+| 2026-08-12 | implementer | human_owner | complete | linked CLI verified: 39 aligned, zero remote-only, dry-run proposes exactly the two Recover migrations; post-write checks showed table counts and live function definitions unchanged | Recover migrations still unapplied; no hosted acceptance | Mission 17B closed; next is scoped approval to deploy the two Recover migrations |
 
 ### Current permission boundary
 
-- **Granted scope:** `branch_write` for documentation and specification.
-- **Forbidden writes:** production DB mutation, production financial-data
-  creation or change, destructive account deletion, Supabase provider config or
-  secrets, Auth identity mutation, Edge deployment or config write.
-- **Human approval required before:** any implementation commit under this
-  contract, and any provider or production write.
-- **Rollback or stop condition:** documentation only in this packet; revert the
-  commit. Nothing to unwind on a provider.
+- **Granted scope:** `branch_write`, plus two **consumed** scoped production
+  approvals recorded below. The provider scope is not standing: it was granted
+  per action and is spent.
+- **Consumed production approvals (2026-08-12):**
+  1. *Delete five named Atoryn Edge Functions.* Owner-authorized explicitly by
+     name. Executed one function at a time, no wildcards. `delete-account` was
+     out of scope and verified unchanged afterwards (v6, `verify_jwt=true`,
+     bundle SHA `56bdec4f7b0d5a97…`).
+  2. *`migration repair --status applied` for `20260715001400` and
+     `20260715001500`.* Owner-approved after the need was proven: both are
+     superseded by the applied `20260725035128`, and pushing them would have
+     downgraded two live functions. It wrote the history table only and did not
+     execute their SQL.
+- **Still forbidden without a new scoped approval:** applying the Recover
+  migrations, any schema or tenant-data mutation, destructive account deletion,
+  Supabase provider/Auth config or secrets, further Edge deployment or deletion.
+- **Human approval required before:** any further provider or production write.
+  A Git merge authorization is never a provider authorization.
+- **Rollback or stop condition:** the Edge deletions are forward-fix only — the
+  five functions would have to be redeployed from their own source, which does
+  not live in this repository. The history repair is reversible with
+  `migration repair --status reverted` for exactly those two versions.
+  Everything else in this packet is documentation; revert the commit.
 
 ## Evaluation
 
