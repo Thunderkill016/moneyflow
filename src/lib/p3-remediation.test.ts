@@ -365,17 +365,25 @@ test("PP-12: exactly one rule owns shell sheet height", () => {
   const shellClass = /const APP_SHELL_SHEET_CLASS = \[([\s\S]*?)\]\.join/u.exec(shell)?.[1] ?? "";
   assert.ok(shellClass.length > 0, "the shell sheet class list must exist");
   assert.ok(
-    !/max-h-/u.test(shellClass),
-    "height belongs to .shellSheet alone; the utility must not compete with it",
+    !/(?:max-h-|\bh-)/u.test(shellClass),
+    "height belongs to .shellSheet alone; no utility may compete with it",
   );
   const css = read("src/components/layout/app-shell.module.css");
-  assert.match(css, /\.shellSheet \{[\s\S]*?max-height: min\(86svh, 760px\)/u);
+  assert.match(css, /\.shellSheet \{[\s\S]*?height: min\(86svh, 760px\)/u);
   // And the outer box must not carry bottom padding that shrinks the content
   // area without protecting the footer.
-  const mobileShellSheet = /\.shellSheet \{\s*max-height: min\(88svh, 760px\);([\s\S]*?)\}/u.exec(css)?.[1] ?? "";
+  const mobileShellSheet = /\.shellSheet \{\s*height: min\(88svh, 760px\);([\s\S]*?)\}/u.exec(css)?.[1] ?? "";
   assert.ok(
     !mobileShellSheet.includes("padding-bottom"),
     "the primitive owns bottom safe-area padding",
+  );
+});
+
+test("PP-12: the shared dialog grid gives the body its only flexible scroll row", () => {
+  const css = read("src/components/ui/dialog.module.css");
+  assert.match(
+    css,
+    /\.content \{[\s\S]*?grid-template-rows: auto minmax\(0, 1fr\) auto/u,
   );
 });
 
