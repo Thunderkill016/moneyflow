@@ -5,7 +5,7 @@
 **Active role:** independent evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** to be opened from `review/a0-historical-ui-design-failures`
+**Issue/PR:** PR [#364](https://github.com/Thunderkill016/moneyflow/pull/364)
 **Last updated:** 2026-08-13
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. A0 is a bounded retrospective:
@@ -167,7 +167,7 @@ None.
 ## Delivery record
 
 - Branch: `review/a0-historical-ui-design-failures`
-- PR: pending
+- PR: [#364](https://github.com/Thunderkill016/moneyflow/pull/364) (draft)
 - CI run: pending exact PR head
 - Work packet moved to `docs/plans/completed/`: no — A0 remains active until owner
   acceptance after merge
