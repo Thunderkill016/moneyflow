@@ -297,16 +297,17 @@ begin
 
   -- Duplicate identity inside one archive.
   if exists (
-    select collection.key
+    select 1
     from jsonb_each(v_tables) as collection
-    where jsonb_typeof(collection.value) = 'array'
-    group by collection.key
-    having count(*) <> 0 and exists (
-      select 1
-      from jsonb_array_elements(collection.value) as row_value
-      group by row_value ->> 'id'
-      having count(*) > 1 and (row_value ->> 'id') is not null
-    )
+    cross join lateral jsonb_array_elements(
+      case
+        when jsonb_typeof(collection.value) = 'array' then collection.value
+        else '[]'::jsonb
+      end
+    ) as row_value
+    where row_value ->> 'id' is not null
+    group by collection.key, row_value ->> 'id'
+    having count(*) > 1
   ) then
     raise exception 'duplicate_row_id';
   end if;
