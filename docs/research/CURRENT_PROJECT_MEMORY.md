@@ -2,7 +2,7 @@
 
 **Status:** the single current implementation-status authority
 **Last reconciled:** 2026-08-12
-**Pre-#360 main audit baseline:** `4283129bbe8378f04de17b96bffaeb4c45474147` (`#359` merged)
+**Current main baseline:** `8fcf8e2a8b195d5d8ad7de1fb745662abe776ab3` (`#360` merged)
 **Routing:** use `docs/context/README.md`; open
 `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only for a named provenance need.
 
@@ -17,13 +17,13 @@ The repository is **not public-beta ready**. MoneyFlow Trust Provider Sync, P1 S
 P2 Recover and P3 Prove are accepted. P3 is based on owner-observed physical-phone
 acceptance, not a signed/filed evidence run. The exact program order is:
 
-> Repository Reset 2 → Brand/Product Experience rebuild A0→J → final physical/device
+> Complete Repository Reset 2 → Brand/Product Experience rebuild A0→J → final physical/device
 > visual QA → owner public-beta decision.
 
 `docs/plans/active/public-beta-trust.md` owns that program order. The active-packet
-registry intentionally lists only the parent program: Repository Reset 1 is
-accepted/completed by #360's post-merge record; Repository Reset 2 is immediate next,
-not started and has no active packet.
+registry lists the Trust parent and the deliberately started Reset 2 child packet:
+Repository Reset 1 is accepted/completed by merged #360; Reset 2 is an evidence-led
+source/assets ownership audit. Brand/Product Experience A0 has not started.
 
 ## 2. Current runtime and trust boundaries
 
@@ -96,8 +96,8 @@ current design authority.
 ## 8. Reconciled issue status
 
 - P3 Prove is accepted and archived; do not reopen it from old seven-day/P4 wording.
-- Repository Reset 1 is accepted/completed. Repository Reset 2 is immediate next,
-  is not started, and may consider source/assets only when separately initiated.
+- Repository Reset 1 is accepted/completed. Repository Reset 2 is active only for
+  evidence-led source/assets retirement; it does not authorize Brand/UI work.
 - Brand/Product Experience A0→J follows Reset 2. It is not a current UI redesign.
 - The owner public-beta decision is blocked on the ordered work above and remains
   the only PBT-AC15 closure authority.
@@ -111,17 +111,16 @@ candidate evidence, never current truth.
 
 ## 10. True gaps after this audit
 
-1. Start and complete bounded Repository Reset 2 only after it is deliberately opened.
+1. Complete bounded Repository Reset 2: retire only source/assets proven unowned.
 2. Execute the separately specified Brand/Product Experience A0→J rebuild.
 3. Perform final physical/device visual QA on that rebuilt experience.
 4. Obtain the owner’s public-beta decision and record accepted limitations.
 
 ## 11. Next allowed action
 
-After #360 merges, Repository Reset 2 is the immediate next bounded task, but it is
-not started and has no packet. Do not begin source/assets work, Brand/Product
-Experience work, provider actions or production changes until a separate Reset 2 task
-is deliberately opened.
+Complete the active Repository Reset 2 packet only: audit and retire only source/assets
+with full ownership evidence. Do not begin Brand/Product Experience work, provider
+actions or production changes.
 
 ## 12. Superseded-status register
 
@@ -129,7 +128,7 @@ is deliberately opened.
   Repository Reset 1 is accepted and Repository Reset 2 precedes Brand/Product
   Experience.
 - “Repository Reset 1 is the current task” is superseded by #360's completed packet;
-  Reset 2 is next but not started.
+  Reset 2 is active for its bounded audit, while A0 is not started.
 - The prior seven-day self-use gate is withdrawn; no duration substitute exists.
 - Historical packets in `docs/plans/archived/` are not active work and never imply
   acceptance. Historical UI evidence remains available for A0 review.
