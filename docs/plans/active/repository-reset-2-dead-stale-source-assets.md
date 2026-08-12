@@ -5,7 +5,7 @@
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** to be opened from `reset/dead-stale-source-assets`
+**Issue/PR:** #362 (draft)
 **Last updated:** 2026-08-13
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is the bounded,
@@ -151,7 +151,7 @@ None. No data, schema, provider or deployment mutation.
 | RR2-T1 | inventory source/assets and ownership channels | packet | candidate classification table | complete |
 | RR2-T2 | retire independently proven-dead slices | RR2-T1 | reference proof + affected gates | complete — pending final gates |
 | RR2-T3 | fresh-context evaluation | RR2-T2 | evaluator findings/fixes | in_progress |
-| RR2-T4 | complete lifecycle and exact-head delivery | RR2-T3 | completed packet, PR memory, CI | todo |
+| RR2-T4 | complete lifecycle and exact-head delivery | RR2-T3 | completed packet, PR memory, CI | in_progress — #362 exact-head checks pending |
 
 ## Handoff record
 
@@ -160,6 +160,7 @@ None. No data, schema, provider or deployment mutation.
 | 2026-08-13 | human_owner | implementer | discovery | `main@8fcf8e2`; doctor; registered packet | candidates not yet audited; no deletion evidence | inventory ownership channels |
 | 2026-08-13 | implementer | evaluator | evaluating | 13 DEAD candidates removed; reference scans; focused contracts; typecheck; architecture/CSS ownership; direct browser routes | selected full local suites and exact-head delivery remain pending | attack missed owners and scope drift |
 | 2026-08-13 | fresh evaluator | implementer | rechecked | no missed runtime/barrel/dynamic/Next/public owner; sole `ui-refresh.test.ts` textual reference is a negative assertion | doctor-selected full build/browser suites and exact-head CI remain pending | obtain delivery evidence before completing lifecycle |
+| 2026-08-13 | implementer | provider CI | delivery | #362 draft opened; `PR-362.md` records scope and limits | exact-head checks and lifecycle completion pending | wait for checks; do not merge |
 
 ### Current permission boundary
 
@@ -221,7 +222,7 @@ allowance.
 ## Delivery record
 
 - Branch: `reset/dead-stale-source-assets`
-- PR: pending
+- PR: #362 (draft)
 - Squash commit: pending owner merge
 - CI run: pending exact head
 - Production deployment: not applicable
