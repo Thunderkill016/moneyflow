@@ -1,14 +1,17 @@
 # Repository Reset 1 — knowledge, authority and configuration
 
-**Status:** ready_for_review
-**Execution state:** ready_for_review
-**Active role:** evaluator
+**Status:** accepted
+**Execution state:** accepted
+**Active role:** human_owner — merge is the final repository transition
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** #360
 **Last updated:** 2026-08-12
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is the active handoff for the bounded Repository Reset 1; it does not authorize Reset 2 source deletion, product/UI work, provider writes or production changes.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This completed packet records
+the post-merge accepted state of bounded Repository Reset 1. Owner merge of #360 is
+the final repository transition; this record does not authorize Reset 2 source
+deletion, product/UI work, provider writes or production changes.
 
 ## Outcome
 
@@ -43,7 +46,7 @@ A fresh agent entering through `AGENTS.md` can identify MoneyFlow, current truth
 ### Similar implementation and recent history
 
 - P3 is accepted and archived by `#359` at `4283129`.
-- `docs/plans/active/public-beta-trust.md` states the mandatory next sequence: Repository Reset → Brand/Product Experience A0→J → device visual QA → owner public-beta decision.
+- `docs/plans/active/public-beta-trust.md` states the mandatory next sequence: Repository Reset 2 → Brand/Product Experience A0→J → device visual QA → owner public-beta decision.
 
 ### Open questions
 
@@ -71,13 +74,17 @@ Current knowledge surfaces make an agent reconstruct status from verbose memory 
 
 ### Acceptance criteria
 
-- [ ] The default entry route answers the five mission questions from current sources.
-- [ ] Exactly one document owns current implementation/project status and one active execution route names Repository Reset as immediate next work.
-- [ ] Completed/superseded packets are not discovered as active execution work, and no retained route targets a missing packet.
-- [ ] Agent adapters retain only current tool functions and defer to the same repository authority.
-- [ ] Configuration/deployment/gate documentation has one route per concern and matches shipped configuration without changing provider semantics.
-- [ ] Deterministic guards prevent each concrete authority-routing regression found.
-- [ ] Historical brand/UI failure evidence remains discoverable for future A0 review.
+- [x] The default entry route answers the five mission questions from current sources.
+- [x] Exactly one document owns current implementation/project status; post-merge,
+  the parent program names Repository Reset 2 as immediate next work.
+- [x] Completed/superseded packets are not discovered as active execution work, and
+  no retained route targets a missing packet.
+- [x] Agent adapters retain only current tool functions and defer to the same
+  repository authority.
+- [x] Configuration/deployment/gate documentation has one route per concern and
+  matches shipped configuration without changing provider semantics.
+- [x] Deterministic guards prevent each concrete authority-routing regression found.
+- [x] Historical brand/UI failure evidence remains discoverable for future A0 review.
 
 ### Out of scope
 
@@ -134,6 +141,7 @@ None. No schema, database, provider or deployment mutation.
 | 2026-08-12 | implementer | evaluator | evaluating | #360; `check:migrations`, `check:knowledge`, `test:ci-policy`, typecheck; fresh evaluator | local Next build runner did not reach completion; exact-head provider checks pending | push PR-memory update and request exact-head CI |
 | 2026-08-12 | evaluator | implementer | implementing | exact-head CI failure artifact | README lost the required MVP-definition link during compaction | restore the routed released-MVP reference and rerun gates |
 | 2026-08-12 | implementer | evaluator | ready_for_review | #360 exact-head CI: verify, database, e2e, Gitleaks and CodeQL pass; browser/UI skips classified | owner review/merge only; no production boundary applies | await owner review; do not merge autonomously |
+| 2026-08-12 | evaluator | human_owner | accepted | fresh-context post-merge authority audit clean; final lifecycle amendment; exact-head CI required again on amended head | owner merge remains required before this accepted record becomes `main` truth | merge #360 when owner approves; then begin no Reset 2 work until separately started |
 
 ### Current permission boundary
 
@@ -145,18 +153,19 @@ None. No schema, database, provider or deployment mutation.
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| default route answers the five questions | `README.md`, `AGENTS.md`, context authority table and compact current memory | pass — fresh evaluator |
+| default route answers the five questions | `README.md`, `AGENTS.md`, context authority table and compact current memory | pass — fresh-context post-merge evaluator clean |
 | single current state and next execution route | current-memory route, active registry, Trust parent sequence | pass — stale P3/P4 and old roadmap claims corrected |
 | active lifecycle is safe | 37 historical packets archived; registry/current-reference guard + tests | pass |
 | adapters/config remain coherent | hooks, Spec Kit bridge and configuration executable surfaces inspected; no tool/config deletion | pass |
 | historical UI failure evidence remains available | UI research ledger and completed UI packets routed to future A0 | pass |
-| exact-head delivery gates | #360 head CI | pass — verify, database, e2e, Gitleaks and CodeQL; browser/UI audit correctly skipped |
+| exact-head delivery gates | #360 amended head CI | pending rerun on this final lifecycle amendment |
 
 ## Delivery record
 
 - Branch: `reset/repository-authority-config`
 - PR: #360 ready for review
-- Squash commit: pending
-- CI run: exact head checks green
+- Squash commit: pending owner merge
+- CI run: pending exact-head rerun on lifecycle amendment
 - Production deployment: not applicable
-- Work packet moved to `docs/plans/completed/`: pending merge/acceptance
+- Work packet moved to `docs/plans/completed/`: yes — accepted post-merge record;
+  owner merge remains the boundary that makes it authoritative on `main`
