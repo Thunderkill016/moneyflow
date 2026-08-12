@@ -1,5 +1,5 @@
 begin;
-select plan(37);
+select plan(38);
 
 -- R7 — restore must reconstruct a tenant faithfully in one transaction, or leave
 -- the target exactly as it was. Every identity and row here is transaction-scoped
@@ -166,9 +166,24 @@ select is(
   'a refused restore records no batch'
 );
 
+-- Ids are preserved, so an archive cannot be restored while its source tenant is
+-- still present in the database. That is refused explicitly, not as a primary
+-- key violation half-way through.
+select is(
+  pg_temp.restore_error('select public.restore_user_archive((select payload from restore_out where key = ''archive''))'),
+  'restore_archive_id_conflict',
+  'restoring beside a still-live source tenant is refused'
+);
+
 -- ---------------------------------------------------------------------------
--- The restore itself
+-- The restore itself, following the documented lifecycle: the source account is
+-- gone by the time its archive is restored.
 -- ---------------------------------------------------------------------------
+reset role;
+select public.purge_user_tenant_data('00000000-0000-4000-8000-00000000c001');
+set local role authenticated;
+do $$ begin perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000c002', true); end; $$;
+
 insert into restore_out values ('result', public.restore_user_archive((select payload from restore_out where key = 'archive')));
 
 select ok(
@@ -262,9 +277,9 @@ select is(
   'profile preferences restore onto the target identity'
 );
 select is(
-  (select count(*)::integer from public.profiles where id='00000000-0000-4000-8000-00000000c001'),
-  1,
-  'the source profile is untouched'
+  (select count(*)::integer from public.financial_transactions where user_id='00000000-0000-4000-8000-00000000c001'),
+  0,
+  'the source tenant was purged before the restore, as the lifecycle intends'
 );
 select is(
   (select count(*)::integer from public.categories where user_id='00000000-0000-4000-8000-00000000c002' and is_archived),
@@ -384,8 +399,8 @@ select is(
   'removing the batch removes the restored ledger'
 );
 select is(
-  (select count(*)::integer from public.financial_transactions where user_id='00000000-0000-4000-8000-00000000c001'),
-  5,
+  (select count(*)::integer from public.financial_transactions where user_id='00000000-0000-4000-8000-00000000c003'),
+  1,
   'removal touched only the target tenant'
 );
 select is(

@@ -293,7 +293,12 @@ end;
 $$;
 insert into roundtrip_archive select public.export_user_archive();
 
--- Restore into the other tenant, then export that tenant.
+-- Ids are preserved, so the source tenant must be gone before its archive is
+-- restored — exactly the lifecycle this feature exists for.
+reset role;
+select public.purge_user_tenant_data('00000000-0000-4000-8000-00000000e001');
+
+set local role authenticated;
 do $$
 begin
   perform set_config(

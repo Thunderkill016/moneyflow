@@ -552,6 +552,48 @@ begin
     raise exception 'restore_target_not_empty';
   end if;
 
+  -- Archived ids are preserved rather than remapped, which gives the strongest
+  -- possible fidelity: a restored ledger is identical to the archived one, down
+  -- to every identifier and foreign key. Row ids are globally unique though, so
+  -- that is only possible while none of them is still present in the database —
+  -- the documented lifecycle, where the source account is gone by the time its
+  -- archive is restored. Restoring alongside a still-live source is refused here
+  -- with a clear reason instead of surfacing as a primary key violation
+  -- part-way through.
+  if exists (
+    select 1
+    from (
+      select (row_value ->> 'id')::uuid as id
+      from jsonb_each(v_tables) as collection
+      cross join lateral jsonb_array_elements(
+        case when jsonb_typeof(collection.value) = 'array' then collection.value else '[]'::jsonb end
+      ) as row_value
+      where row_value ->> 'id' is not null
+      union all
+      select (row_value ->> 'transaction_id')::uuid
+      from jsonb_array_elements(v_tables -> 'transactionImportProvenance') as row_value
+    ) as archived
+    where exists (select 1 from public.categories where id = archived.id)
+       or exists (select 1 from public.accounts where id = archived.id)
+       or exists (select 1 from public.import_batches where id = archived.id)
+       or exists (select 1 from public.savings_goals where id = archived.id)
+       or exists (select 1 from public.savings_goal_allocations where id = archived.id)
+       or exists (select 1 from public.recurring_income_templates where id = archived.id)
+       or exists (select 1 from public.income_template_occurrences where id = archived.id)
+       or exists (select 1 from public.recurring_commitments where id = archived.id)
+       or exists (select 1 from public.commitment_occurrences where id = archived.id)
+       or exists (select 1 from public.monthly_budgets where id = archived.id)
+       or exists (select 1 from public.inbox_rules where id = archived.id)
+       or exists (select 1 from public.account_reconciliations where id = archived.id)
+       or exists (select 1 from public.account_reconciliation_events where id = archived.id)
+       or exists (select 1 from public.financial_transactions where id = archived.id)
+       or exists (select 1 from public.transaction_entries where id = archived.id)
+       or exists (select 1 from public.inbox_candidates where id = archived.id)
+       or exists (select 1 from public.transaction_import_provenance where transaction_id = archived.id)
+  ) then
+    raise exception 'restore_archive_id_conflict';
+  end if;
+
   -- Bootstrap replacement: the seeded account and default categories are removed
   -- so archive state is reconstructed rather than merged with defaults. This
   -- happens inside the same transaction as the reconstruction below.
