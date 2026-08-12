@@ -5,7 +5,7 @@
 **Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** #354 harness phase 1 (agent doctor); this slice is harness phase 2
+**Issue/PR:** #354 harness phase 1 (agent doctor); #355 harness phase 2 (this packet)
 **Last updated:** 2026-08-12
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
