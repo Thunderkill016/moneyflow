@@ -81,6 +81,9 @@ create table if not exists public.archive_restore_batches (
     check (status in ('restored', 'removed')),
   removed_at timestamptz,
   row_counts jsonb not null,
+  -- The target profile is overwritten, not created, so removal needs its prior
+  -- values to revert it.
+  previous_profile jsonb,
   constraint archive_restore_batches_removed_shape_check check (
     (status = 'restored' and removed_at is null)
     or (status = 'removed' and removed_at is not null)
@@ -98,6 +101,9 @@ create table if not exists public.archive_restore_rows (
   user_id uuid not null references auth.users(id) on delete cascade,
   table_name text not null,
   row_id uuid not null,
+  -- Content digest at restore time. Comparing ids alone would call a batch
+  -- pristine after the user had edited every restored row.
+  row_hash text not null,
   primary key (batch_id, table_name, row_id)
 );
 
@@ -159,6 +165,31 @@ declare
     'accountReconciliationEvents', 'auditHistory'
   ];
   v_money_max bigint := 9007199254740991;
+  -- Exact key set per collection, mirroring ARCHIVE_ROW_SPECS. Without this a
+  -- row that simply omits `deleted_at` would restore a soft-deleted transaction
+  -- as live, because jsonb_to_recordset supplies NULL for absent fields.
+  -- `archive-restore-contract.test.ts` asserts this map matches the contract.
+  v_expected_keys jsonb := jsonb_build_object(
+    'profile', to_jsonb(array['avatar_url', 'currency_code', 'full_name', 'locale', 'timezone']),
+    'categories', to_jsonb(array['color', 'created_at', 'icon', 'id', 'is_archived', 'is_default', 'kind', 'name']),
+    'accounts', to_jsonb(array['color', 'created_at', 'credit_limit_minor', 'currency_code', 'icon', 'id', 'initial_balance_minor', 'is_archived', 'kind', 'name', 'updated_at']),
+    'importBatches', to_jsonb(array['column_map', 'committed_at', 'created_at', 'file_name', 'headers', 'id', 'local_id', 'map_confidence', 'mapping_version', 'parser_version', 'row_count', 'skipped_rows', 'source', 'status', 'updated_at', 'warning_count']),
+    'savingsGoals', to_jsonb(array['allocated_minor', 'created_at', 'deadline', 'id', 'is_archived', 'name', 'target_minor', 'updated_at']),
+    'recurringIncomeTemplates', to_jsonb(array['account_id', 'amount_minor', 'category_id', 'created_at', 'due_day', 'id', 'is_archived', 'name', 'updated_at']),
+    'recurringCommitments', to_jsonb(array['account_id', 'amount_minor', 'category_id', 'created_at', 'due_day', 'id', 'is_archived', 'name', 'updated_at']),
+    'monthlyBudgets', to_jsonb(array['category_id', 'created_at', 'id', 'limit_minor', 'month_start', 'updated_at']),
+    'inboxRules', to_jsonb(array['category_id', 'contains_text', 'created_at', 'enabled', 'id', 'match_field', 'merchant_name', 'priority', 'stage', 'updated_at', 'version']),
+    'accountReconciliations', to_jsonb(array['account_id', 'calculated_balance_minor', 'cleared_account_leg_count', 'completed_at', 'created_at', 'id', 'last_reopened_at', 'pending_account_leg_count', 'reconciled_account_leg_count', 'started_at', 'statement_balance_minor', 'statement_date', 'status', 'updated_at']),
+    'transactions', to_jsonb(array['created_at', 'deleted_at', 'id', 'idempotency_key', 'kind', 'note', 'occurred_on', 'review_status', 'updated_at']),
+    'inboxCandidates', to_jsonb(array['account_id', 'account_name', 'amount_minor', 'applied_rule_id', 'applied_rule_version', 'approved_at', 'approved_transaction_id', 'category_id', 'category_name', 'confidence', 'created_at', 'fingerprint', 'fingerprint_version', 'id', 'import_batch_id', 'kind', 'local_id', 'mapping_version', 'match_confidence', 'match_reason', 'match_status', 'merchant', 'note', 'occurred_on', 'parser_version', 'possible_duplicate', 'possible_transfer', 'raw_snippet', 'source', 'source_external_id', 'source_row_index', 'status', 'transfer_pair_id', 'updated_at']),
+    'savingsGoalAllocations', to_jsonb(array['amount_minor', 'created_at', 'goal_id', 'id']),
+    'incomeTemplateOccurrences', to_jsonb(array['id', 'month_start', 'received_at', 'template_id', 'transaction_id']),
+    'commitmentOccurrences', to_jsonb(array['commitment_id', 'id', 'month_start', 'paid_at', 'transaction_id']),
+    'transactionImportProvenance', to_jsonb(array['candidate_id', 'created_at', 'fingerprint', 'fingerprint_version', 'import_batch_id', 'mapping_version', 'match_confidence', 'match_reason', 'match_status', 'original_description', 'parser_version', 'source', 'source_external_id', 'source_row_index', 'transaction_id']),
+    'transactionEntries', to_jsonb(array['account_id', 'amount_minor', 'category_id', 'cleared_at', 'created_at', 'id', 'reconciliation_id', 'reconciliation_state', 'transaction_id']),
+    'accountReconciliationEvents', to_jsonb(array['account_id', 'calculated_balance_minor', 'id', 'kind', 'occurred_at', 'reconciliation_id', 'statement_balance_minor']),
+    'auditHistory', to_jsonb(array['action', 'actor_kind', 'entity_id', 'entity_type', 'id', 'occurred_at', 'related_transaction_id'])
+  );
 begin
   if p_archive is null or jsonb_typeof(p_archive) <> 'object' then
     raise exception 'archive_not_object';
@@ -211,6 +242,35 @@ begin
   end if;
   if (v_tables -> 'profile') ? 'id' then
     raise exception 'owner_authority_field_present';
+  end if;
+
+  -- Every row must carry exactly the contract's fields — no missing key that
+  -- would silently become NULL, and no unknown key.
+  if exists (
+    select 1
+    from jsonb_each(v_tables) as collection
+    cross join lateral jsonb_array_elements(
+      case when jsonb_typeof(collection.value) = 'array' then collection.value else '[]'::jsonb end
+    ) as row_value
+    where (
+      select array_agg(field.key order by field.key)
+      from jsonb_object_keys(row_value) as field(key)
+    ) is distinct from (
+      select array_agg(expected.value #>> '{}' order by expected.value #>> '{}')
+      from jsonb_array_elements(v_expected_keys -> collection.key) as expected
+    )
+  ) then
+    raise exception 'row_shape_invalid';
+  end if;
+
+  if (
+    select array_agg(field.key order by field.key)
+    from jsonb_object_keys(v_tables -> 'profile') as field(key)
+  ) is distinct from (
+    select array_agg(expected.value #>> '{}' order by expected.value #>> '{}')
+    from jsonb_array_elements(v_expected_keys -> 'profile') as expected
+  ) then
+    raise exception 'row_shape_invalid';
   end if;
 
   -- Money must be an exact integer inside the safe range everywhere it appears.
@@ -500,6 +560,7 @@ declare
   v_archive_id uuid;
   v_batch_id uuid;
   v_counts jsonb;
+  v_previous_profile jsonb;
 begin
   if v_user_id is null then
     raise exception 'authentication_required';
@@ -547,7 +608,19 @@ begin
      or (select count(*) from public.account_reconciliations where user_id = v_user_id) > 0
      or (select count(*) from public.account_reconciliation_events where user_id = v_user_id) > 0
      or (select count(*) from public.transaction_import_provenance where user_id = v_user_id) > 0
-     or (select count(*) from public.financial_mutation_audit_events where user_id = v_user_id) > 0
+     -- Audit events are history and survive a batch removal by design, so only
+     -- events that are NOT attributable to a previous restore count as activity.
+     -- Otherwise removing a bad restore would permanently lock the account out
+     -- of recovery.
+     or (
+       select count(*) from public.financial_mutation_audit_events as event
+       where event.user_id = v_user_id
+         and not exists (
+           select 1 from public.archive_restore_rows as attributed
+           where attributed.user_id = event.user_id
+             and attributed.row_id = event.entity_id
+         )
+     ) > 0
   then
     raise exception 'restore_target_not_empty';
   end if;
@@ -599,6 +672,13 @@ begin
   -- happens inside the same transaction as the reconstruction below.
   delete from public.accounts where user_id = v_user_id;
   delete from public.categories where user_id = v_user_id;
+
+  select jsonb_build_object(
+    'full_name', full_name, 'avatar_url', avatar_url, 'currency_code', currency_code,
+    'locale', locale, 'timezone', timezone
+  )
+  into v_previous_profile
+  from public.profiles where id = v_user_id;
 
   -- The profile row belongs to the target user and is updated, never replaced:
   -- `profiles.id` is the auth user id and must stay the target's.
@@ -897,34 +977,54 @@ begin
   where jsonb_typeof(collection.value) = 'array';
 
   insert into public.archive_restore_batches (
-    user_id, archive_id, archive_version, schema_generation, produced_at, row_counts
+    user_id, archive_id, archive_version, schema_generation, produced_at,
+    row_counts, previous_profile
   )
   values (
     v_user_id, v_archive_id, (p_archive ->> 'archive_version')::integer,
     p_archive ->> 'schema_generation', (p_archive ->> 'produced_at')::timestamptz,
-    coalesce(v_counts, '{}'::jsonb)
+    coalesce(v_counts, '{}'::jsonb), v_previous_profile
   )
   returning id into v_batch_id;
 
-  insert into public.archive_restore_rows (batch_id, user_id, table_name, row_id)
-  select v_batch_id, v_user_id, 'profiles', v_user_id
-  union all select v_batch_id, v_user_id, 'categories', id from public.categories where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'accounts', id from public.accounts where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'import_batches', id from public.import_batches where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'savings_goals', id from public.savings_goals where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'recurring_income_templates', id from public.recurring_income_templates where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'recurring_commitments', id from public.recurring_commitments where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'monthly_budgets', id from public.monthly_budgets where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'inbox_rules', id from public.inbox_rules where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'account_reconciliations', id from public.account_reconciliations where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'financial_transactions', id from public.financial_transactions where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'inbox_candidates', id from public.inbox_candidates where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'savings_goal_allocations', id from public.savings_goal_allocations where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'income_template_occurrences', id from public.income_template_occurrences where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'commitment_occurrences', id from public.commitment_occurrences where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'transaction_import_provenance', transaction_id from public.transaction_import_provenance where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'transaction_entries', id from public.transaction_entries where user_id = v_user_id
-  union all select v_batch_id, v_user_id, 'account_reconciliation_events', id from public.account_reconciliation_events where user_id = v_user_id;
+  insert into public.archive_restore_rows (batch_id, user_id, table_name, row_id, row_hash)
+  select v_batch_id, v_user_id, 'profiles', v_user_id,
+         md5(to_jsonb(t.*)::text) from public.profiles as t where t.id = v_user_id
+  union all select v_batch_id, v_user_id, 'categories', t.id, md5(to_jsonb(t.*)::text)
+    from public.categories as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'accounts', t.id, md5(to_jsonb(t.*)::text)
+    from public.accounts as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'import_batches', t.id, md5(to_jsonb(t.*)::text)
+    from public.import_batches as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'savings_goals', t.id, md5(to_jsonb(t.*)::text)
+    from public.savings_goals as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'recurring_income_templates', t.id, md5(to_jsonb(t.*)::text)
+    from public.recurring_income_templates as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'recurring_commitments', t.id, md5(to_jsonb(t.*)::text)
+    from public.recurring_commitments as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'monthly_budgets', t.id, md5(to_jsonb(t.*)::text)
+    from public.monthly_budgets as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'inbox_rules', t.id, md5(to_jsonb(t.*)::text)
+    from public.inbox_rules as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'account_reconciliations', t.id, md5(to_jsonb(t.*)::text)
+    from public.account_reconciliations as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'financial_transactions', t.id, md5(to_jsonb(t.*)::text)
+    from public.financial_transactions as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'inbox_candidates', t.id, md5(to_jsonb(t.*)::text)
+    from public.inbox_candidates as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'savings_goal_allocations', t.id, md5(to_jsonb(t.*)::text)
+    from public.savings_goal_allocations as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'income_template_occurrences', t.id, md5(to_jsonb(t.*)::text)
+    from public.income_template_occurrences as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'commitment_occurrences', t.id, md5(to_jsonb(t.*)::text)
+    from public.commitment_occurrences as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'transaction_import_provenance', t.transaction_id, md5(to_jsonb(t.*)::text)
+    from public.transaction_import_provenance as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'transaction_entries', t.id, md5(to_jsonb(t.*)::text)
+    from public.transaction_entries as t where t.user_id = v_user_id
+  union all select v_batch_id, v_user_id, 'account_reconciliation_events', t.id, md5(to_jsonb(t.*)::text)
+    from public.account_reconciliation_events as t where t.user_id = v_user_id
+;
 
   return jsonb_build_object(
     'restore_batch_id', v_batch_id,
@@ -984,33 +1084,48 @@ begin
     raise exception 'restore_batch_already_removed';
   end if;
 
-  -- Pristine check: every current tenant row must be attributable to this batch,
-  -- and the batch must still account for every row that exists.
+  -- Pristine check. Comparing ids alone would let an edited row pass, so the
+  -- content digest recorded at restore time is compared too, and the comparison
+  -- runs both ways: a row the user deleted is as much a change as one they added.
   if exists (
-    select 1 from (
-      select 'categories' as table_name, id from public.categories where user_id = v_user_id
-      union all select 'accounts', id from public.accounts where user_id = v_user_id
-      union all select 'import_batches', id from public.import_batches where user_id = v_user_id
-      union all select 'savings_goals', id from public.savings_goals where user_id = v_user_id
-      union all select 'recurring_income_templates', id from public.recurring_income_templates where user_id = v_user_id
-      union all select 'recurring_commitments', id from public.recurring_commitments where user_id = v_user_id
-      union all select 'monthly_budgets', id from public.monthly_budgets where user_id = v_user_id
-      union all select 'inbox_rules', id from public.inbox_rules where user_id = v_user_id
-      union all select 'account_reconciliations', id from public.account_reconciliations where user_id = v_user_id
-      union all select 'financial_transactions', id from public.financial_transactions where user_id = v_user_id
-      union all select 'inbox_candidates', id from public.inbox_candidates where user_id = v_user_id
-      union all select 'savings_goal_allocations', id from public.savings_goal_allocations where user_id = v_user_id
-      union all select 'income_template_occurrences', id from public.income_template_occurrences where user_id = v_user_id
-      union all select 'commitment_occurrences', id from public.commitment_occurrences where user_id = v_user_id
-      union all select 'transaction_import_provenance', transaction_id from public.transaction_import_provenance where user_id = v_user_id
-      union all select 'transaction_entries', id from public.transaction_entries where user_id = v_user_id
-      union all select 'account_reconciliation_events', id from public.account_reconciliation_events where user_id = v_user_id
-    ) as live
+    with live as (
+               select 'categories' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.categories as t where t.user_id = v_user_id
+      union all select 'accounts' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.accounts as t where t.user_id = v_user_id
+      union all select 'import_batches' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.import_batches as t where t.user_id = v_user_id
+      union all select 'savings_goals' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.savings_goals as t where t.user_id = v_user_id
+      union all select 'recurring_income_templates' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.recurring_income_templates as t where t.user_id = v_user_id
+      union all select 'recurring_commitments' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.recurring_commitments as t where t.user_id = v_user_id
+      union all select 'monthly_budgets' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.monthly_budgets as t where t.user_id = v_user_id
+      union all select 'inbox_rules' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.inbox_rules as t where t.user_id = v_user_id
+      union all select 'account_reconciliations' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.account_reconciliations as t where t.user_id = v_user_id
+      union all select 'financial_transactions' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.financial_transactions as t where t.user_id = v_user_id
+      union all select 'inbox_candidates' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.inbox_candidates as t where t.user_id = v_user_id
+      union all select 'savings_goal_allocations' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.savings_goal_allocations as t where t.user_id = v_user_id
+      union all select 'income_template_occurrences' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.income_template_occurrences as t where t.user_id = v_user_id
+      union all select 'commitment_occurrences' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.commitment_occurrences as t where t.user_id = v_user_id
+      union all select 'transaction_import_provenance' as table_name, t.transaction_id as id, md5(to_jsonb(t.*)::text) as row_hash from public.transaction_import_provenance as t where t.user_id = v_user_id
+      union all select 'transaction_entries' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.transaction_entries as t where t.user_id = v_user_id
+      union all select 'account_reconciliation_events' as table_name, t.id as id, md5(to_jsonb(t.*)::text) as row_hash from public.account_reconciliation_events as t where t.user_id = v_user_id
+      union all select 'profiles', t.id, md5(to_jsonb(t.*)::text) from public.profiles as t where t.id = v_user_id
+    ),
+    attributed as (
+      select table_name, row_id as id, row_hash
+      from public.archive_restore_rows where batch_id = p_batch_id
+    )
+    select 1 from live
     where not exists (
-      select 1 from public.archive_restore_rows as attributed
-      where attributed.batch_id = p_batch_id
-        and attributed.table_name = live.table_name
-        and attributed.row_id = live.id
+      select 1 from attributed
+      where attributed.table_name = live.table_name
+        and attributed.id = live.id
+        and attributed.row_hash = live.row_hash
+    )
+    union all
+    select 1 from attributed
+    where not exists (
+      select 1 from live
+      where live.table_name = attributed.table_name
+        and live.id = attributed.id
+        and live.row_hash = attributed.row_hash
     )
   ) then
     raise exception 'restore_batch_not_pristine';
@@ -1104,6 +1219,20 @@ begin
   where user_id = v_user_id and id in (
     select row_id from public.archive_restore_rows
     where batch_id = p_batch_id and table_name = 'categories');
+
+  -- Revert the profile the restore overwrote, using the snapshot taken then.
+  if v_batch.previous_profile is not null then
+    update public.profiles as target set
+      full_name = source.full_name,
+      avatar_url = source.avatar_url,
+      currency_code = source.currency_code,
+      locale = source.locale,
+      timezone = source.timezone
+    from jsonb_to_record(v_batch.previous_profile) as source(
+      full_name text, avatar_url text, currency_code text, locale text, timezone text
+    )
+    where target.id = v_user_id;
+  end if;
 
   select count(*)::integer into v_removed
   from public.archive_restore_rows where batch_id = p_batch_id;

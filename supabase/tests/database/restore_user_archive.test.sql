@@ -1,5 +1,5 @@
 begin;
-select plan(38);
+select plan(41);
 
 -- R7 — restore must reconstruct a tenant faithfully in one transaction, or leave
 -- the target exactly as it was. Every identity and row here is transaction-scoped
@@ -153,6 +153,17 @@ select is(
     '{tables,profile,user_id}', '"00000000-0000-4000-8000-00000000c001"'::jsonb))$$),
   'owner_authority_field_present',
   'a source ownership field is refused'
+);
+-- A row missing a contract field would become NULL through jsonb_to_recordset,
+-- silently restoring a soft-deleted transaction as live.
+select is(
+  pg_temp.restore_error($$select public.restore_user_archive(
+    jsonb_set((select payload from restore_out where key = 'archive'), '{tables,transactions}',
+      (select jsonb_agg(transaction - 'deleted_at')
+       from restore_out, jsonb_array_elements(payload -> 'tables' -> 'transactions') as transaction
+       where key = 'archive')))$$),
+  'row_shape_invalid',
+  'a row missing a contract field is refused'
 );
 select is(
   (select count(*)::integer from public.categories where user_id='00000000-0000-4000-8000-00000000c002' and is_default = false)
@@ -376,18 +387,31 @@ select is(
 -- A pristine restore can be removed; a modified one cannot.
 do $$ begin perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000c002', true); end; $$;
 reset role;
-insert into public.categories (id, user_id, name, kind, is_default)
-values ('00000000-0000-4000-8000-00000000c299','00000000-0000-4000-8000-00000000c002','Người dùng thêm','expense', false);
+-- Editing a restored row keeps its id, so an id-only pristine check would miss
+-- it and hard-delete the user's own work.
+update public.categories set name = 'Người dùng đổi tên'
+where user_id='00000000-0000-4000-8000-00000000c002'
+  and id = (select row_id from public.archive_restore_rows
+            where table_name='categories'
+              and batch_id=(select (payload ->> 'restore_batch_id')::uuid from restore_out where key='result')
+            limit 1);
 set local role authenticated;
 do $$ begin perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000c002', true); end; $$;
 select is(
   pg_temp.restore_error(format('select public.remove_archive_restore_batch(%L)',
     (select (payload ->> 'restore_batch_id')::uuid from restore_out where key='result'))),
   'restore_batch_not_pristine',
-  'removal is refused once the user has added their own data'
+  'removal is refused once the user has edited a restored row'
 );
 reset role;
-delete from public.categories where id='00000000-0000-4000-8000-00000000c299';
+insert into restore_out values ('edited_name', jsonb_build_object('n', (
+  select name from public.categories where user_id='00000000-0000-4000-8000-00000000c002'
+    and name = 'Người dùng đổi tên')));
+update public.categories as target set name = (
+  select source ->> 'name' from jsonb_array_elements(
+    (select payload -> 'tables' -> 'categories' from restore_out where key='archive')) as source
+  where (source ->> 'id')::uuid = target.id)
+where target.user_id='00000000-0000-4000-8000-00000000c002' and target.name='Người dùng đổi tên';
 
 set local role authenticated;
 do $$ begin perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000c002', true); end; $$;
@@ -414,6 +438,21 @@ select ok(
   (select count(*) from public.financial_mutation_audit_events where user_id='00000000-0000-4000-8000-00000000c002') > 0,
   'removal does not fabricate a past in which the restore never happened'
 );
+select is(
+  (select full_name from public.profiles where id='00000000-0000-4000-8000-00000000c002'),
+  'Restore Target',
+  'removal reverts the profile the restore overwrote'
+);
+-- Audit events survive removal by design, so they must not permanently lock the
+-- account out of a corrected restore.
+set local role authenticated;
+do $$ begin perform set_config('request.jwt.claim.sub','00000000-0000-4000-8000-00000000c002', true); end; $$;
+select is(
+  pg_temp.restore_error('select public.restore_user_archive((select payload from restore_out where key = ''archive''))'),
+  'archive_already_restored',
+  'after removal the target is eligible again, and only the duplicate policy stops this archive'
+);
+reset role;
 
 select * from finish();
 rollback;

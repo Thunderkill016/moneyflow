@@ -228,6 +228,43 @@ test("the pgTAP suite covers the restore boundary", () => {
   }
 });
 
+test("the SQL required-key map matches ARCHIVE_ROW_SPECS exactly", () => {
+  // Without this the SQL could omit a field, jsonb_to_recordset would supply
+  // NULL, and a soft-deleted transaction could restore as live.
+  for (const [collection, spec] of Object.entries(ARCHIVE_ROW_SPECS)) {
+    const entry = new RegExp(`'${collection}', to_jsonb\\(array\\[([^\\]]*)\\]\\)`, "u").exec(migration);
+    assert.ok(entry, `the SQL key map must cover ${collection}`);
+    const sqlKeys = entry[1].split(",").map((k) => k.trim().replace(/'/gu, "")).sort();
+    assert.deepEqual(
+      sqlKeys,
+      Object.keys(spec.fields).sort(),
+      `${collection}: the SQL key map has drifted from the contract`,
+    );
+  }
+  assert.ok(migration.includes("raise exception 'row_shape_invalid'"));
+});
+
+test("removal detects edits and reverts the profile", () => {
+  assert.ok(migration.includes("row_hash text not null"), "attribution must record a content digest");
+  assert.ok(migration.includes("md5(to_jsonb(t.*)::text)"), "the digest must be computed from row content");
+  assert.ok(migration.includes("previous_profile jsonb"), "the pre-restore profile must be snapshotted");
+  assert.ok(
+    /update public\.profiles as target set[\s\S]{0,400}v_batch\.previous_profile|v_batch\.previous_profile[\s\S]{0,400}update public\.profiles/u.test(migration),
+    "removal must revert the profile it overwrote",
+  );
+});
+
+test("a removed batch's audit events do not block a corrected restore", () => {
+  const eligibility = restoreBody.slice(
+    restoreBody.indexOf("-- Empty/bootstrap-only eligibility"),
+    restoreBody.indexOf("raise exception 'restore_target_not_empty'"),
+  );
+  assert.ok(
+    eligibility.includes("archive_restore_rows"),
+    "audit events attributable to a previous restore must not count as tenant activity",
+  );
+});
+
 test("the contract still declares nineteen dispositions", () => {
   assert.equal(ALL_ARCHIVE_COLLECTIONS.length, 19);
   assert.equal(Object.keys(ARCHIVE_ROW_SPECS).length, 19);
