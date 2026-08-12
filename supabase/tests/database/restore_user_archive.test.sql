@@ -307,9 +307,11 @@ select is(
   1,
   'bootstrap is replaced, not merged: exactly the archived cash account remains'
 );
+-- Compared against the archive, not the source tenant: the source was purged
+-- before the restore, which is the lifecycle this feature is for.
 select is(
   (select count(*)::integer from public.categories where user_id='00000000-0000-4000-8000-00000000c002'),
-  (select count(*)::integer from public.categories where user_id='00000000-0000-4000-8000-00000000c001'),
+  (select jsonb_array_length(payload -> 'tables' -> 'categories')::integer from restore_out where key='archive'),
   'no duplicate default categories survive the bootstrap replacement'
 );
 
