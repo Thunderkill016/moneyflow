@@ -23,6 +23,13 @@ const GATE_COMMANDS = {
   uiAudit: "npm run test:ui-audit:pr",
 };
 
+const PROVIDER_CHECKS = [
+  "verify",
+  "database",
+  "e2e",
+  "Analyze JavaScript and TypeScript",
+];
+
 function run(command, args = []) {
   return spawnSync(command, args, {
     encoding: "utf8",
@@ -61,6 +68,10 @@ export function buildGatePlan(classification) {
   if (classification.browserSmoke) commands.push(GATE_COMMANDS.browserSmoke);
   if (classification.uiAudit) commands.push(GATE_COMMANDS.uiAudit);
   return [...new Set(commands)];
+}
+
+export function requiredProviderChecks() {
+  return [...PROVIDER_CHECKS];
 }
 
 export function requiredCapabilities(classification) {
@@ -142,7 +153,8 @@ export function buildDoctorReport() {
     baseRef,
     changedFiles,
     classification,
-    gatePlan: buildGatePlan(classification),
+    localGatePlan: buildGatePlan(classification),
+    providerChecks: requiredProviderChecks(),
     capabilities: available,
     requiredCapabilities: needed,
     missingRequiredCapabilities,
@@ -169,8 +181,10 @@ function printHuman(report) {
   console.log(`worktree: ${report.repo.clean ? "clean" : "dirty"}`);
   console.log(`classification: ${report.classification.reason}`);
   console.log(`changed files: ${report.changedFiles.length}`);
-  console.log("gate plan:");
-  for (const command of report.gatePlan) console.log(`- ${command}`);
+  console.log("local gate plan:");
+  for (const command of report.localGatePlan) console.log(`- ${command}`);
+  console.log("provider checks still required on the exact PR head:");
+  for (const check of report.providerChecks) console.log(`- ${check}`);
 
   if (report.missingRequiredCapabilities.length > 0) {
     console.log(`missing required capabilities: ${report.missingRequiredCapabilities.join(", ")}`);
