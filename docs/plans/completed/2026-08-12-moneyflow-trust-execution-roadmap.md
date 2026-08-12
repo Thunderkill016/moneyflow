@@ -1,13 +1,19 @@
 # MoneyFlow Trust — execution roadmap to bounded public beta
 
-**Status:** active plan candidate
-**Execution state:** planned
-**Active role:** planner
+**Status:** superseded/archived
+**Execution state:** historical planning baseline — do not execute
+**Active role:** none
 **Permission scope:** branch_write
-**Current main baseline:** `4caefac67d9da2dd312fdeae40616fa4efb17517`
+**Current main baseline:** historical `4caefac67d9da2dd312fdeae40616fa4efb17517`; current status lives in the parent plan
 **Parent:** `docs/plans/active/public-beta-trust.md`
 **Owner:** Thunderkill016
-**Last updated:** 2026-08-09
+**Last updated:** 2026-08-12
+
+> **Superseded.** Secure, Recover and Prove have since been accepted. The current
+> authority is `docs/plans/active/public-beta-trust.md`: bounded **Repository Reset**
+> is next, then Brand/Product Experience A0→J, final physical/device visual QA and
+> the owner public-beta decision. Do not execute S1–S4, R1–R5, P1–P3, I1–I2 or L1–L2
+> from this historical plan.
 
 ## Outcome
 
@@ -17,7 +23,8 @@ The execution order is fixed unless new P0/P1 evidence forces a return to an ear
 
 > **Secure → Recover → Prove → Improve → Release**
 
-This file owns the practical execution sequence. The parent MoneyFlow Trust plan remains the program-level source for phase intent and existing acceptance criteria.
+This historical file no longer owns execution. The parent MoneyFlow Trust plan is the
+current program authority.
 
 ## Repository reconnaissance
 

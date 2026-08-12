@@ -24,7 +24,9 @@ import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
-export const PACKET_PATH = "docs/plans/active/moneyflow-trust-prove.md";
+// The P3 packet remains the single scenario source after acceptance; archival moves
+// its lifecycle state, not the evidence schema that validates historical/optional runs.
+export const PACKET_PATH = "docs/plans/completed/2026-08-12-moneyflow-trust-prove.md";
 export const EVIDENCE_DIR = "docs/evidence/p3-prove";
 export const TEMPLATE_NAME = "TEMPLATE.md";
 

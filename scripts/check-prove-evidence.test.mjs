@@ -4,6 +4,7 @@ import test from "node:test";
 
 import {
   EVIDENCE_DIR,
+  PACKET_PATH,
   packetScenarioIds,
   parseDefects,
   parseResults,
@@ -22,7 +23,7 @@ import {
 
 const scenarioIds = packetScenarioIds();
 const template = readFileSync(`${EVIDENCE_DIR}/TEMPLATE.md`, "utf8");
-const packet = readFileSync("docs/plans/active/moneyflow-trust-prove.md", "utf8");
+const packet = readFileSync(PACKET_PATH, "utf8");
 
 function evidence(rows = {}, overrides = {}) {
   const resultRows = scenarioIds
@@ -442,12 +443,13 @@ test("an emulator named as the platform is refused", () => {
   );
 });
 
-test("the packet and template both state that an emulator is not physical", () => {
+test("the accepted packet and template both keep emulation distinct from owner evidence", () => {
   assert.match(packet, /\bnot\b[\s*]+a physical-phone pass/iu);
   assert.match(template, /not\s+physical evidence/iu);
-  // The packet must never imply hardware verification it does not have.
-  assert.match(packet, /unverified on hardware/u);
-  assert.ok(!/P3 (?:is )?accepted/u.test(packet), "only the owner's retest can close P3");
+  // Acceptance is the owner's declared physical result, never an emulator or a
+  // signed/filed evidence artifact invented by an agent.
+  assert.match(packet, /P3 is accepted/iu);
+  assert.match(packet, /owner-observed\s+evidence, not a signed or filed evidence run/iu);
 });
 
 // --- Packet consistency --------------------------------------------------------

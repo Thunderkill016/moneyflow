@@ -530,11 +530,10 @@ test("the withdrawn seven-day gate is retired in the document that outranks the 
   assert.match(principles, /Withdrawn 2026-08-12/u);
   assert.match(principles, /nothing replaces it/iu);
 
-  // And no active packet may still require it.
+  // Active packets cannot require it; the accepted P3 packet retains its withdrawn
+  // row as historical decision evidence after archival.
   for (const file of [
     "docs/plans/active/public-beta-trust.md",
-    "docs/plans/active/moneyflow-trust-prove.md",
-    "docs/plans/active/moneyflow-trust-execution-roadmap.md",
   ]) {
     const text = read(file);
     assert.ok(

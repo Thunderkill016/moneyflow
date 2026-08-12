@@ -2,13 +2,13 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-12
-- **Current main audited:** `5d53a3f40a36e76a3807e32ce85c0cefb408333c` for repository code; the 2026-08-12 production deployment, hosted backup acceptance and P2 acceptance recorded below post-date that head and were evidenced directly against the provider and the closure PR, not by re-auditing main
+- **Current main audited:** `c97400cf5e07879e529bddc258d31ce7ddab4e51` (#358 merged); prior production deployment, hosted backup acceptance and P2 acceptance were evidenced directly against their provider/closure sources rather than inferred from this code audit
 - **Owner direction:** MoneyFlow is a released functional MVP; the active hardening program is **MoneyFlow Trust**
 - **Active trust program:** `docs/plans/active/public-beta-trust.md`
 - **Completed Provider Sync packet:** `docs/plans/completed/2026-08-11-moneyflow-trust-provider-sync.md`
 - **Completed Recover packet:** `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md`
 - **Completed Secure packet:** `docs/plans/completed/2026-08-11-account-deletion-recent-auth.md`
-- **MoneyFlow Trust current phase:** Provider Sync, P1 Secure and **P2 Recover are accepted**; **P3 Prove is the active phase**. P2 shipped the contract, validator, producer, atomic restore, file ingress and the `/settings/backup` surface; both migrations are deployed to production; hosted backup acceptance passed and hosted restore is an owner-accepted named limitation
+- **MoneyFlow Trust current phase:** Provider Sync, P1 Secure, P2 Recover and **P3 Prove are accepted**. P3 acceptance is owner-observed physical-phone evidence, not a signed/filed run. The immediate next execution state is bounded **Repository Reset**; then Brand/Product Experience A0→J, final physical/device visual QA, and the owner public-beta decision. P2 shipped the contract, validator, producer, atomic restore, file ingress and the `/settings/backup` surface; both migrations are deployed to production; hosted backup acceptance passed and hosted restore is an owner-accepted named limitation
 - **Supabase production is now MoneyFlow-only:** the Atoryn subsystem was removed by production migration `20260812043219_remove_atoryn_from_moneyflow_project` (7 `atoryn_*` tables, 11 `atoryn_cloud_*` functions, and its own history rows), and the five Atoryn Edge Functions were deleted on 2026-08-12. Only `delete-account` remains. That cleanup migration stays in history as evidence of removal, not as an active Atoryn subsystem
 - **Supabase production migration/schema:** reviewed MoneyFlow migrations are applied; five had been retimestamped in the repository relative to production and were restored to the production canonical versions (`20260726004445`, `20260726011134`, `20260801084523`, `20260801084534`, `20260801084604`) — proven byte-identical after normalization, so the rename changed no behaviour
 - **Migration history is fully aligned:** the owner-approved repair recorded `20260715001400_split_expense` and `20260715001500_account_currency_on_create` as applied. It touched the history table only — it did **not** execute those migrations' SQL bodies, and independent post-write checks confirmed the 19 MoneyFlow table counts, the live `create_split_expense` and `create_financial_account` definitions and `transaction_feed` were all unchanged
@@ -32,7 +32,7 @@
 - **Provider Sync historical limitation:** earlier ten-file DB checkpoint did not execute an actual linked-production CLI dry-run; owner accepted the free local union-history simulation + fresh live history substitution for that consumed checkpoint only
 - **Presentation ownership:** #337 introduced the code→CSS ownership gate and fixed onboarding; #339 registered semantic theme utilities and layered button/link resets; #340 fixed password UX + confirm registration + shared dropdown owner; shrink-only baseline is **313** with no additions from #340
 - **UI migration:** P0–P11 merged/archived; physical Android/iOS were not executed and remain explicit limitations
-- **Primary public-beta blocker now:** **PP-12** must be re-tested on the same physical Android phone after the focused #358 candidate fix; PP-03 and PP-16 passed the bounded owner retest, and PP-07 passed functionally with its toast left as a parked UI finding. P3 remains open. The seven-day requirement was **withdrawn by the owner on 2026-08-12** and is not replaced
+- **P3 closure / parked findings:** the owner retested **PP-12 PASS** on the same Android phone after #358. PP-03 and PP-16 PASS; PP-07 PASS functionally with presentation parked; PP-05 PASS after its second-account precondition was satisfied. PP-01 remains a parked performance finding; other physical UI findings are parked for Product Experience/Brand work. No unresolved P0/P1 blocks the physical daily-ledger loop. The seven-day requirement was **withdrawn by the owner on 2026-08-12** and is not replaced; this does not make MoneyFlow public-beta ready.
 - **History model:** task routing lives in `docs/context/README.md`; bounded PR provenance lives under `docs/research/pr-memory/YYYY/QN/`
 - **MVP release:** `main@8e08a8a748a632b07bb42c27bf14539758b28824`; functional MVP release does not imply public-beta readiness
 
@@ -122,9 +122,10 @@ Canonical sequence:
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed** with explicit stale/mismatch provider-test limitation |
 | P2 Recover | **accepted/completed** (2026-08-12) with a named hosted-restore limitation: id preservation refuses a restore while the source account is live, so the hosted half is proven for export only and the full round trip rests on pgTAP against a real Postgres |
-| P3 Prove | **active** — physical-phone core ledger only; run done 2026-08-12, four defects fixed in #357, bounded owner retest outstanding |
-| P4 Improve | evidence-selected Ledger Trust depth after P3 |
-| P5 Release | final owner public-beta decision with explicit limitations |
+| P3 Prove | **accepted/completed** — owner-observed physical-phone core ledger and bounded retest; no signed/filed run was fabricated |
+| Repository Reset | **next/planned** — bounded operational cleanup; not started by P3 closure |
+| P4 Improve | not next; Product Experience/Brand work follows Repository Reset |
+| P5 Release | final owner public-beta decision with explicit limitations; still open |
 
 ### Secure/provider acceptance evidence
 
@@ -238,9 +239,9 @@ PR #341 merged on 2026-08-11 and closed the Secure/Provider Sync acceptance desc
 
 ### P3 Prove
 
-- **active phase.** The owner ran the 17-scenario checklist on a real phone on 2026-08-12. PP-12 and PP-16 failed; PP-03 and PP-07 passed functionally with defects; PP-01 is slow. No P0. In the bounded owner retest after #357, PP-03 and PP-16 passed, and PP-07 passed functionally with its toast remaining a parked UI finding; PP-12 still failed. Results are **owner-observed**, not a signed evidence file — an agent may not sign the owner's declaration;
+- **accepted/completed.** The owner ran the 17-scenario checklist on a real phone on 2026-08-12. PP-12 and PP-16 initially failed; PP-03 and PP-07 passed functionally with defects; PP-01 is slow. No P0. In the bounded retest, PP-03 and PP-16 passed, PP-07 passed functionally with its toast presentation parked, and the owner reported **PP-12 PASS** on the same Android phone after #358. PP-05 is PASS after its second-account precondition was satisfied. Results are **owner-observed**, not a signed evidence file — an agent may not sign the owner's declaration;
 - **seven-day self-use is withdrawn** (owner decision, 2026-08-12). P3 Prove is physical-phone acceptance only, PBT-AC13 is marked withdrawn rather than deleted, and **no duration gate replaces it**. The seven-day validator and its template were removed with the requirement;
-- #357 remediated the four original defects at the shared-primitive level. PP-03, PP-07 and PP-16 no longer block the bounded retest; PP-12 remains the only open P3 blocker. #358 is a focused candidate that gives the More sheet a definite single-owned height and the shared Dialog body the flexible scroll row; it still requires the owner's physical-phone retest before it can change P3 status;
+- #357 remediated the original shared-primitive defects. #358 gave the More sheet a definite single-owned height and the shared Dialog body the flexible scroll row; the owner then passed PP-12 on the same phone. No unresolved P0/P1 blocks P3's physical daily-ledger loop; PP-01 performance and PP-07/other physical UI findings remain parked for later work;
 - `npm run check:prove-evidence` validates an evidence file's completeness and scans it for money amounts, emails, identifiers and tokens before they can enter Git; it cannot inspect a screenshot, and the owner remains the last check on one;
 - older `docs/REAL_USE_READINESS_CONTRACT.md` R6/R7 mark a mobile path and seven-day use as accepted (2026-07-27/29). They record what was accepted **then**, on an emulated viewport and a pre-log build; they remain historical truth and are not reused as current evidence;
 - **money entry is whole đồng, enforced:** grouping separators are accepted, a fraction tail (`12,5`) is **rejected** rather than reinterpreted as `125`, every money field requests a numeric keypad, and rejection is signalled with `NaN` so the guard also holds where `0` is legitimate. Eight UI findings from the run are parked in the P3 packet for the later Brand rebuild.
@@ -255,24 +256,15 @@ PR #341 merged on 2026-08-11 and closed the Secure/Provider Sync acceptance desc
 
 ## 11. Next allowed action
 
-Begin **P3 Prove**. P2 Recover is accepted and archived at
-`docs/plans/completed/2026-08-12-moneyflow-trust-recover.md`; do not reopen it and
-do not re-specify the archive contract.
+Begin a bounded **Repository Reset** in its own task: one current authority/state,
+knowledge/config/agent-directory audit, retirement of stale/competing active truth,
+and later evidence-led dead-source/assets/imports audit while preserving the harness.
+Do not mass-move folders or begin Brand/UI work as part of the reset.
 
-P3 needs, in order:
-
-- a physical-phone core-ledger acceptance checklist covering record, balances and
-  where-money-went on a real device;
-- that checklist executed with recorded evidence;
-- the bounded owner retest of PP-03, PP-07, PP-12 and PP-16 on the same physical
-  device (the seven-day requirement is withdrawn and not replaced);
-- reconciled memory/evidence and the owner's public-beta decision with its
-  explicit accepted limitations.
-
-Carried into P3 as a known gap, not a task to redo: hosted restore has never been
-executed against a live account. Proving it needs a disposable source account whose
-rows can be purged, because id preservation refuses a restore while the source is
-live. That is an optional future exercise, not a P3 blocker.
+Mandatory order: Repository Reset → Brand/Product Experience A0→J → final
+physical/device visual QA → owner public-beta decision. P3 is archived at
+`docs/plans/completed/2026-08-12-moneyflow-trust-prove.md`; PBT-AC15 is still open,
+so no public-beta-ready claim is authorized here.
 
 Provider writes, destructive deletion and production financial-data mutation are
 not authorized merely because P2 is accepted. Approval B (one hosted restore into a
@@ -304,4 +296,4 @@ Do not repeat these as current facts:
 - A hosted restore was executed, or Approval B was consumed.
 - Seven consecutive days of self-use are required for public beta, or P3-T2 is pending — withdrawn by the owner on 2026-08-12 and not replaced.
 - `parseMoneyInput` yields an integer for any digits it can find — a fraction tail is now rejected, and an old test asserted the defect as an invariant.
-- Sheets and dialogs are sized in `dvh`, or the P3 physical run is still outstanding.
+- Sheets and dialogs are sized in `dvh`, P3 is awaiting an owner retest, or P3 remains active.
