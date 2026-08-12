@@ -895,10 +895,11 @@ R8's 64 MiB bound is unchanged and still correct: that is a *parser* limit. This
 is *transport*, and lifting it needs a different upload path (direct object
 storage or a chunked endpoint) — its own slice, not something to fake here.
 
-### Backend not yet live
+### Backend deployment safety (capability gap handling)
 
-Both archive migrations are merged but unapplied, so the UI can ship before the
-capability exists. PostgREST reports an absent function as `PGRST202`, which is
+Both archive migrations were merged before they were deployed, so the UI shipped
+ahead of the capability — and as of Mission 17C they are live in production. The
+fail-closed path below remains for any future capability gap. PostgREST reports an absent function as `PGRST202`, which is
 classified as `capability_missing` and shown as *"Chức năng … chưa sẵn sàng trên
 máy chủ"* — an honest deployment state, not a user error and not a retry loop.
 When the migrations are applied the surface becomes usable with no code change.
@@ -1090,7 +1091,9 @@ migration the database has already run is the right amount of friction.
 | 2026-08-12 | human_owner | implementer | provider_write_approved | scoped approval: delete five named Atoryn Edge Functions | `delete-account` must survive untouched | Delete one named function at a time, then read back |
 | 2026-08-12 | implementer | evaluator | evaluating | Edge 6→1; `table-stats` pre/post identical (19 relations, zero drift, 224 rows); 5 retimestamps reconciled as pure renames; identity guard proven by negative fixtures | two superseded migrations still pending; repair blocked by permission guard | Merge #349, then request the scoped repair |
 | 2026-08-12 | human_owner | implementer | provider_write_approved | scoped approval: `migration repair --status applied` for `20260715001400`, `20260715001500` | history-table write only; must not execute their SQL | Repair, then verify independently |
-| 2026-08-12 | implementer | human_owner | complete | linked CLI verified: 39 aligned, zero remote-only, dry-run proposes exactly the two Recover migrations; post-write checks showed table counts and live function definitions unchanged | Recover migrations still unapplied; no hosted acceptance | Mission 17B closed; next is scoped approval to deploy the two Recover migrations |
+| 2026-08-12 | implementer | human_owner | complete | linked CLI verified: 39 aligned, zero remote-only, dry-run proposes exactly the two Recover migrations; post-write checks showed table counts and live function definitions unchanged | Recover migrations still unapplied at that point; no hosted acceptance | Mission 17B closed; next is scoped approval to deploy the two Recover migrations |
+| 2026-08-12 | human_owner | implementer | provider_write_approved | Approval A: apply exactly the two Recover migrations | must apply nothing else; no seed, roles or repair | Push with `--include-all`, then read back |
+| 2026-08-12 | implementer | human_owner | schema_deployed | applied 06:41:39–06:41:43Z; history 41/41 aligned; dry-run "Remote database is up to date"; 228 rows before and after; all five functions live and anon-denied against a PGRST202 control | live catalog posture not directly readable (no psql/DB password); hosted acceptance not run | Hosted backup acceptance needs an owner session; hosted restore needs Approval B |
 
 ### Current permission boundary
 
