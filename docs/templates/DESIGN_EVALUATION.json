@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 2,
+  "task": "Describe the UI task being evaluated",
+  "generatedBy": "generator-session-id",
+  "evaluatedBy": "evaluator-session-id",
+  "routes": ["/dashboard"],
+  "viewports": ["phone", "desktop"],
+  "interactions": [
+    {
+      "name": "Open and close the primary capture flow",
+      "result": "pass"
+    }
+  ],
+  "scores": {
+    "designQuality": 8,
+    "originality": 7,
+    "craft": 8,
+    "functionality": 9
+  },
+  "gates": {
+    "responsive": true,
+    "accessibility": true,
+    "financialSemantics": true,
+    "moneyflowConsistency": true
+  },
+  "evidence": [
+    "output/design-harness/screenshots/dashboard-phone.png",
+    "output/design-harness/screenshots/dashboard-desktop.png"
+  ],
+  "findings": [],
+  "decision": "pass",
+  "verdict": "pass"
+}
