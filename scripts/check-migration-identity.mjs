@@ -25,21 +25,21 @@ const MIGRATIONS_DIR = "supabase/migrations";
 const BASELINE_PATH = "supabase/migration-identity.json";
 
 /**
- * Hash semantics, not formatting: comments and whitespace differences must not
- * look like a behaviour change, because the migration history table itself
- * stores SQL with comments stripped.
+ * Hash the raw file, byte for byte.
+ *
+ * An earlier version normalized comments, whitespace and case before hashing, so
+ * that cosmetic edits would not trip the gate. That was wrong in a way that
+ * mattered: lowercasing the whole file also lowercases *string literals*, so
+ * changing a default note from 'Chuyển tiền' to 'CHUYỂN TIỀN' produced an
+ * identical hash while a fresh database would genuinely behave differently.
+ *
+ * Any normalizer that is not SQL-aware has this class of hole, and an SQL parser
+ * is far too much machinery for one guard. Raw bytes have no holes: the cost is
+ * that even a comment edit needs a deliberate `--write`, which for a migration
+ * the database has already run is the right amount of friction.
  */
-function normalize(sql) {
-  return sql
-    .replace(/\/\*[\s\S]*?\*\//gu, "")
-    .replace(/--.*$/gmu, "")
-    .replace(/\s+/gu, " ")
-    .trim()
-    .toLowerCase();
-}
-
 function fingerprint(sql) {
-  return createHash("sha256").update(normalize(sql)).digest("hex").slice(0, 32);
+  return createHash("sha256").update(sql).digest("hex").slice(0, 32);
 }
 
 function readMigrations() {
@@ -108,7 +108,7 @@ for (const entry of current) {
   const seen = byHash.get(entry.hash);
   if (seen) {
     failures.push(
-      `migrations ${seen.version} and ${entry.version} have identical SQL — the same migration must not exist under two versions.`,
+      `migrations ${seen.version} and ${entry.version} are byte-identical — the same migration must not exist under two versions.`,
     );
   } else {
     byHash.set(entry.hash, entry);

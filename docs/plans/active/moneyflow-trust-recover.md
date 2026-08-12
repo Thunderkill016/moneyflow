@@ -1022,10 +1022,19 @@ Resolution needs one narrowly-scoped production write
 
 ### Recurrence prevention
 
-`check:migrations` pins every migration's version, filename and normalized
-content hash. It fails on a retimestamp, a post-hoc edit of an applied migration,
-or two versions with identical SQL — each proven with a negative fixture. It is
-offline by design: no database call in normal CI.
+`check:migrations` pins every migration's version, filename and a **raw content
+hash**. It fails on a retimestamp, a post-hoc edit of an applied migration, or two
+byte-identical versions — each proven with a negative fixture. It is offline by
+design: no database call in normal CI.
+
+Review caught a real hole in the first version, which normalized comments,
+whitespace and case before hashing: lowercasing the whole file also lowercases
+*string literals*, so changing a default note from `'Chuyển tiền'` to
+`'CHUYỂN TIỀN'` hashed identically while a fresh database would genuinely behave
+differently. Any normalizer that is not SQL-aware has that class of hole, and an
+SQL parser is far too much machinery for one guard — so it hashes raw bytes. The
+cost is that even a comment edit now needs a deliberate `--write`, which for a
+migration the database has already run is the right amount of friction.
 
 ## Tasks
 
