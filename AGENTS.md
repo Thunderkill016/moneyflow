@@ -56,9 +56,7 @@ Task references remain discoverable through the router, including:
 
 ## Delivery workflow
 
-Before implementation, run `npm run agent:doctor`. It reads repository state and the existing CI classifier to report the risk-selected gate plan plus missing local capabilities. Treat it as executable diagnostics derived from current policy, not as a second policy authority. Never weaken required evidence merely because a local capability is missing.
-
-Classify first:
+Before implementation, run `npm run agent:doctor`; it derives local gates from the existing CI classifier, reports missing capabilities and lists exact-head provider checks separately. Treat it as diagnostics, never as a second policy authority or a reason to weaken required evidence. Classify first:
 
 - **Class 0:** docs/mechanical; inline plan or clear PR description.
 - **Class 1:** bounded code in one subsystem with straightforward rollback.
