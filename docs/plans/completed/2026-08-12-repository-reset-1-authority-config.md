@@ -141,7 +141,7 @@ None. No schema, database, provider or deployment mutation.
 | 2026-08-12 | implementer | evaluator | evaluating | #360; `check:migrations`, `check:knowledge`, `test:ci-policy`, typecheck; fresh evaluator | local Next build runner did not reach completion; exact-head provider checks pending | push PR-memory update and request exact-head CI |
 | 2026-08-12 | evaluator | implementer | implementing | exact-head CI failure artifact | README lost the required MVP-definition link during compaction | restore the routed released-MVP reference and rerun gates |
 | 2026-08-12 | implementer | evaluator | ready_for_review | #360 exact-head CI: verify, database, e2e, Gitleaks and CodeQL pass; browser/UI skips classified | owner review/merge only; no production boundary applies | await owner review; do not merge autonomously |
-| 2026-08-12 | evaluator | human_owner | accepted | fresh-context post-merge authority audit clean; final lifecycle amendment; exact-head CI required again on amended head | owner merge remains required before this accepted record becomes `main` truth | merge #360 when owner approves; then begin no Reset 2 work until separately started |
+| 2026-08-12 | evaluator | human_owner | accepted | fresh-context post-merge authority audit clean; exact-head CI green for the final lifecycle amendment | owner merge remains required before this accepted record becomes `main` truth | merge #360 when owner approves; then begin no Reset 2 work until separately started |
 
 ### Current permission boundary
 
@@ -158,14 +158,15 @@ None. No schema, database, provider or deployment mutation.
 | active lifecycle is safe | 37 historical packets archived; registry/current-reference guard + tests | pass |
 | adapters/config remain coherent | hooks, Spec Kit bridge and configuration executable surfaces inspected; no tool/config deletion | pass |
 | historical UI failure evidence remains available | UI research ledger and completed UI packets routed to future A0 | pass |
-| exact-head delivery gates | #360 amended head CI | pending rerun on this final lifecycle amendment |
+| exact-head delivery gates | #360 final lifecycle head CI | pass — `verify`, `database`, `e2e`, Gitleaks and CodeQL green; browser/UI checks correctly skipped by classifier |
 
 ## Delivery record
 
 - Branch: `reset/repository-authority-config`
 - PR: #360 ready for review
 - Squash commit: pending owner merge
-- CI run: pending exact-head rerun on lifecycle amendment
+- CI run: exact final lifecycle head checks green — `verify`, `database`, `e2e`,
+  Gitleaks and CodeQL; browser/UI checks correctly skipped by classifier
 - Production deployment: not applicable
 - Work packet moved to `docs/plans/completed/`: yes — accepted post-merge record;
   owner merge remains the boundary that makes it authoritative on `main`
