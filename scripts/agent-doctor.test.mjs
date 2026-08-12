@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildGatePlan, requiredCapabilities } from "./agent-doctor.mjs";
+import {
+  buildGatePlan,
+  requiredCapabilities,
+  requiredProviderChecks,
+} from "./agent-doctor.mjs";
 
 const base = {
   fullVerify: false,
@@ -16,7 +20,7 @@ const always = [
   "npm run test:ci-policy",
 ];
 
-test("docs-only gate plan stays lightweight but preserves policy contracts", () => {
+test("docs-only local gate plan stays lightweight but preserves policy contracts", () => {
   assert.deepEqual(buildGatePlan(base), always);
   assert.deepEqual(requiredCapabilities(base), {
     node: true,
@@ -28,6 +32,15 @@ test("docs-only gate plan stays lightweight but preserves policy contracts", () 
   });
 });
 
+test("provider checks remain separate from local commands", () => {
+  assert.deepEqual(requiredProviderChecks(), [
+    "verify",
+    "database",
+    "e2e",
+    "Analyze JavaScript and TypeScript",
+  ]);
+});
+
 test("database changes require database capabilities and gate", () => {
   const classification = { ...base, database: true };
   assert.deepEqual(buildGatePlan(classification), [...always, "npm run test:db"]);
@@ -35,7 +48,7 @@ test("database changes require database capabilities and gate", () => {
   assert.equal(requiredCapabilities(classification).docker, true);
 });
 
-test("runtime and UI changes produce one deduplicated gate plan", () => {
+test("runtime and UI changes produce one deduplicated local gate plan", () => {
   const classification = {
     ...base,
     fullVerify: true,
