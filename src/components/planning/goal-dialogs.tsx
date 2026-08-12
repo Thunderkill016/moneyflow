@@ -136,7 +136,7 @@ export function GoalDialog({
             inputRef={targetRef}
             label="Số tiền muốn đạt"
             value={target}
-            inputMode="decimal"
+            inputMode="numeric"
             autoComplete="off"
             placeholder="0"
             suffix="₫"
@@ -283,7 +283,7 @@ export function GoalAllocationDialog({
           inputRef={amountRef}
           label="Số tiền kế hoạch"
           value={amount}
-          inputMode="decimal"
+          inputMode="numeric"
           autoComplete="off"
           placeholder="0"
           suffix="₫"

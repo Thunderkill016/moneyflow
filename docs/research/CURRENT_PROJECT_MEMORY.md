@@ -32,7 +32,7 @@
 - **Provider Sync historical limitation:** earlier ten-file DB checkpoint did not execute an actual linked-production CLI dry-run; owner accepted the free local union-history simulation + fresh live history substitution for that consumed checkpoint only
 - **Presentation ownership:** #337 introduced the code→CSS ownership gate and fixed onboarding; #339 registered semantic theme utilities and layered button/link resets; #340 fixed password UX + confirm registration + shared dropdown owner; shrink-only baseline is **313** with no additions from #340
 - **UI migration:** P0–P11 merged/archived; physical Android/iOS were not executed and remain explicit limitations
-- **Primary public-beta blockers now:** physical-phone/seven-day proof → observed trust-depth improvements → final release decision
+- **Primary public-beta blockers now:** the bounded physical-phone retest (PP-03, PP-07, PP-12, PP-16) → observed trust-depth improvements → final release decision. The seven-day requirement was **withdrawn by the owner on 2026-08-12** and is not replaced
 - **History model:** task routing lives in `docs/context/README.md`; bounded PR provenance lives under `docs/research/pr-memory/YYYY/QN/`
 - **MVP release:** `main@8e08a8a748a632b07bb42c27bf14539758b28824`; functional MVP release does not imply public-beta readiness
 
@@ -122,7 +122,7 @@ Canonical sequence:
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed** with explicit stale/mismatch provider-test limitation |
 | P2 Recover | **accepted/completed** (2026-08-12) with a named hosted-restore limitation: id preservation refuses a restore while the source account is live, so the hosted half is proven for export only and the full round trip rests on pgTAP against a real Postgres |
-| P3 Prove | **active** — physical-phone core ledger + seven-day sanitized self-use |
+| P3 Prove | **active** — physical-phone core ledger only; run done 2026-08-12, four defects fixed in #357, bounded owner retest outstanding |
 | P4 Improve | evidence-selected Ledger Trust depth after P3 |
 | P5 Release | final owner public-beta decision with explicit limitations |
 
@@ -238,10 +238,12 @@ PR #341 merged on 2026-08-11 and closed the Secure/Provider Sync acceptance desc
 
 ### P3 Prove
 
-- **active phase.** No physical-phone core-ledger acceptance under the Trust program and no seven consecutive days of sanitized owner self-use accepted;
-- the checklist now exists: `docs/plans/active/moneyflow-trust-prove.md` specifies 17 scenarios (PP-01–PP-17), a three-tier device matrix, P0/P1/finding severity with a retry rule, and the seven-day Day-0 rules. It is **preparation, not evidence** — no scenario has been run and day 1 does not exist;
+- **active phase.** The owner ran the 17-scenario checklist on a real phone on 2026-08-12. PP-12 and PP-16 failed; PP-03 and PP-07 passed functionally with defects; PP-01 is slow. No P0. Results are recorded as **owner-observed** in the P3 packet, not as a signed evidence file — an agent may not sign the owner's declaration;
+- **seven-day self-use is withdrawn** (owner decision, 2026-08-12). P3 Prove is physical-phone acceptance only, PBT-AC13 is marked withdrawn rather than deleted, and **no duration gate replaces it**. The seven-day validator and its template were removed with the requirement;
+- four defects were remediated in #357 at the shared-primitive level and are **unverified on hardware**: the optimistic double-count behind PP-03, the sheet/viewport cascade behind PP-12, the money-entry contract behind PP-16, and the toast wrapping behind PP-07. Closing P3 needs the owner's bounded retest of exactly those four;
 - `npm run check:prove-evidence` validates an evidence file's completeness and scans it for money amounts, emails, identifiers and tokens before they can enter Git; it cannot inspect a screenshot, and the owner remains the last check on one;
-- older `docs/REAL_USE_READINESS_CONTRACT.md` R6/R7 mark a mobile path and a seven-day waiver as accepted (2026-07-27/29). Those record what was accepted **then**, on an emulated viewport and a pre-log build; they do **not** satisfy PBT-AC12/AC13. The P3 packet records the reconciliation.
+- older `docs/REAL_USE_READINESS_CONTRACT.md` R6/R7 mark a mobile path and seven-day use as accepted (2026-07-27/29). They record what was accepted **then**, on an emulated viewport and a pre-log build; they remain historical truth and are not reused as current evidence;
+- **money entry is whole đồng, enforced:** grouping separators are accepted, a fraction tail (`12,5`) is **rejected** rather than reinterpreted as `125`, every money field requests a numeric keypad, and rejection is signalled with `NaN` so the guard also holds where `0` is legitimate. Eight UI findings from the run are parked in the P3 packet for the later Brand rebuild.
 
 ### Product depth after Trust evidence
 
@@ -262,8 +264,8 @@ P3 needs, in order:
 - a physical-phone core-ledger acceptance checklist covering record, balances and
   where-money-went on a real device;
 - that checklist executed with recorded evidence;
-- seven consecutive days of sanitized owner self-use with no data loss and no
-  manual database repair;
+- the bounded owner retest of PP-03, PP-07, PP-12 and PP-16 on the same physical
+  device (the seven-day requirement is withdrawn and not replaced);
 - reconciled memory/evidence and the owner's public-beta decision with its
   explicit accepted limitations.
 
@@ -300,3 +302,6 @@ Do not repeat these as current facts:
 - The Supabase project is shared with Atoryn.
 - Hosted restore acceptance is the one gap blocking P2 — P2 is accepted with that limitation named.
 - A hosted restore was executed, or Approval B was consumed.
+- Seven consecutive days of self-use are required for public beta, or P3-T2 is pending — withdrawn by the owner on 2026-08-12 and not replaced.
+- `parseMoneyInput` yields an integer for any digits it can find — a fraction tail is now rejected, and an old test asserted the defect as an invariant.
+- Sheets and dialogs are sized in `dvh`, or the P3 physical run is still outstanding.

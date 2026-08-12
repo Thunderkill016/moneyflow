@@ -1,11 +1,11 @@
 # MoneyFlow Trust — P3 Prove
 
-**Status:** specified
-**Execution state:** specified — awaiting owner execution of P3-T1
+**Status:** remediating
+**Execution state:** remediating — physical run done, four defects fixed, bounded owner retest outstanding
 **Active role:** human_owner (the physical run); planner (this packet)
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
-**Issue/PR:** #323 parent; #356 this packet
+**Issue/PR:** #323 parent; #356 this packet; #357 remediation
 **Last updated:** 2026-08-12
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
@@ -25,8 +25,11 @@ trustworthy daily ledger"* — without inventing evidence, without putting priva
 financial content into Git, and without a passing automated suite standing in for a
 device that was never held.
 
-**This packet prepares the acceptance. It is not evidence.** No scenario below has
-been executed. P3-T2's seven-day run has **not** started; day 1 does not exist.
+The physical run happened on 2026-08-12 and is recorded below as **owner-observed**.
+Four defects were remediated in #357 and are **unverified on hardware** — a bounded
+owner retest of PP-03, PP-07, PP-12 and PP-16 is what closes P3, and only the owner
+can supply it. The seven-day requirement was withdrawn by the owner; no duration gate
+replaces it.
 
 ## Repository reconnaissance
 
@@ -184,8 +187,10 @@ extension of P3-T1.
       `fail_then_pass` that has neither an explanation nor a defect row.
 - [ ] **P3-AC8** Any P0 stops the run; any P1 is recorded with a decision before
       the phase can be accepted.
-- [ ] **P3-AC9** P3-T2's Day 0 prerequisites are met and recorded before day 1 is
-      claimed.
+- [x] **P3-AC9** ~~P3-T2's Day 0 prerequisites~~ — **withdrawn** with the seven-day
+      requirement on 2026-08-12. Nothing replaces it.
+- [ ] **P3-AC10** Every P1 from the physical run is fixed or explicitly accepted, and
+      the retest set is bounded rather than a repeat of all seventeen.
 
 ## Implementation plan
 
@@ -194,8 +199,8 @@ extension of P3-T1.
    completeness and the privacy rule mechanically;
 3. hand off to the owner for the physical run of P3-T1;
 4. on return, record sanitized results and classify any defect;
-5. only then open P3-T2's seven-day window;
-6. reconcile the parent plan and memory when real evidence exists — not before.
+5. remediate every P1, then take the bounded owner retest;
+6. reconcile the parent plan and memory when retest evidence exists — not before.
 
 ## The physical-phone checklist (P3-T1)
 
@@ -305,84 +310,99 @@ patterns. It is a guard, not a promise: the owner remains the last check on a
 screenshot's contents, and the validator says so rather than implying it can see
 inside an image.
 
-## Seven-day handoff (P3-T2 — prepared, NOT started)
+## Seven-day self-use — withdrawn by the owner
 
-**Day 1 has not begun.** Nothing below may be recorded until P3-T1 passes.
+On **2026-08-12**, after running the physical checklist, the owner **removed the
+seven-day self-use requirement** from the active program.
 
-### Day 0 prerequisites
+- P3 Prove is now **physical-phone core-ledger acceptance only**.
+- P3-T2 was never started. No day 1 exists, so nothing is lost by withdrawing it.
+- **No replacement duration gate is introduced.** Not "three days", not "a week of
+  spot checks" — the requirement is gone, not renamed.
+- `PBT-AC13` is marked withdrawn in the parent plan rather than deleted, so the
+  decision stays visible instead of looking like an oversight.
+- The historical seven-day records in `docs/REAL_USE_READINESS_CONTRACT.md` (R7,
+  2026-07-29) remain **historical truth** and are not re-opened, re-ticked or reused
+  as current evidence.
 
-1. P3-T1 complete on the required device with no open P0.
-2. Every P1 from P3-T1 has an explicit owner decision recorded (fixed, accepted, or
-   deferred with a reason).
-3. The device and build under test are recorded: device row plus the production
-   commit SHA the owner is actually using.
-4. `docs/evidence/p3-prove/seven-day-<YYYY-MM-DD>.md` created from
-   `docs/evidence/p3-prove/SEVEN-DAY-TEMPLATE.md` — a per-day log, which is a
-   different shape from the scenario template and has its own file.
+Real daily use continues to be how defects get found — this run is the proof of that
+— but it is no longer a counted gate.
 
-### What counts as a completed day
+## Owner-reported physical run (2026-08-12)
 
-**Which calendar.** The day is the **ledger's** day (Asia/Ho_Chi_Minh) — the same day
-the app uses when it defaults a new transaction's date. Using the ledger's calendar
-rather than the phone's means crossing a timezone cannot invent or erase a day.
+**Provenance:** reported by the owner in the remediation mission brief, not through a
+signed evidence file. It is recorded here as **owner-observed** and deliberately
+**not** written into `docs/evidence/p3-prove/` as a completed run: that file requires
+the owner's own declaration that each result was observed on the device, and no agent
+may sign it on their behalf. The blank working copy on the owner's machine was left
+untracked and uncommitted.
 
-**Recorded, not occurred.** A day counts by when the owner *recorded* activity, not
-by the date on the transaction. Recording yesterday's expense today counts toward
-**today** and does not retroactively complete yesterday; a day already missed stays
-missed. Back-dating is normal ledger use and is neither rewarded nor penalised.
+No amounts, descriptions, payees, account names, identifiers, tokens or screenshots
+were transferred into this repository. The owner's screenshots contain real financial
+amounts and stay outside Git.
 
-A day counts when the owner has, on that ledger day, **used MoneyFlow as their
-actual ledger** — at minimum one real transaction recorded on the phone — and
-recorded, sanitized:
+| ID | Owner-observed | Note |
+|---|---|---|
+| PP-01 | pass, with a performance finding | navigation and tab transitions often exceed one second |
+| PP-02 | pass | |
+| PP-03 | pass functionally, **defect** | a financial aggregate briefly showed a wrong intermediate value before settling |
+| PP-04 | pass | |
+| PP-05 | pass | transfer was disabled with one account and enabled after a second was created — the precondition working, **not** a defect |
+| PP-06 | pass | |
+| PP-07 | pass functionally, **defect** | the `Hoàn tác` feedback presentation was defective on the phone |
+| PP-08 – PP-11 | pass | |
+| PP-12 | **fail** | mobile sheet/viewport behavior, observed in "Thêm & tài khoản" |
+| PP-13 – PP-15 | pass | |
+| PP-16 | **fail** | separator input could silently change the amount's magnitude |
+| PP-17 | pass | |
 
-- the date;
-- a count of transactions recorded;
-- whether balances looked correct at the end of the day (`yes`/`no`);
-- whether any manual database repair was needed (`no` is required);
-- any defect reference.
+### Severity applied
 
-A day with genuinely no money movement counts **only** if the owner opened the app,
-confirmed balances still looked correct, and recorded `transactions: 0` with that
-confirmation. Silence is not a completed day.
+| Ref | Scenario | Severity | Why |
+|---|---|---|---|
+| D1 | PP-16 | **P1** | a wrong amount can be saved with no visible sign, and the daily loop has no safe workaround beyond avoiding a key on the keypad |
+| D2 | PP-03 | **P1** | a financial figure that flashes a wrong number undermines the trust the ledger claim depends on |
+| D3 | PP-12 | **P1** | the shared sheet is on the daily path; unusable positioning blocks ordinary use |
+| D4 | PP-07 | finding | recovery worked; its presentation was defective |
+| D5 | PP-01 | finding | latency, with no data or correctness impact |
 
-### What resets the streak
+No P0 was reported: no data loss, no cross-tenant exposure, no balance corruption.
 
-- **Data loss or a P0** — the attempt **ends and resets to zero**. A new attempt
-  starts at day 1 once the defect is fixed and P3-T1's affected scenarios have been
-  re-run. There is no "pause and resume" for a P0: a ledger that lost data has not
-  been trustworthy for the days already counted.
-- **Manual database repair** to keep the ledger usable — resets, because the claim
-  is explicitly "without manual database repair".
-- **A missed ledger day** — the days must be consecutive; a gap ends that attempt
-  and a new attempt starts at day 1.
-- **A production deploy that changes the daily loop mid-run** — the remaining days
-  would be evidence about a different build, so the attempt ends and a new one starts
-  at day 1 on the new SHA. Days already completed stay recorded as a partial attempt
-  on the earlier SHA.
-  **Exception:** the deploy that *fixes* the P0 or P1 which ended the previous
-  attempt does not itself end anything — it is the remediation the reset already
-  requires, and the new attempt simply starts on the fixed build. Without this
-  exception the two rules above would feed each other and no attempt could ever
-  complete.
+### Remediation and the bounded retest
 
-### What does NOT reset the streak
+Fixes landed in #357. Each is a root-cause change in a shared primitive, so the
+retest is a **subset**, not another full run:
 
-- A `finding` or a P1 with a safe workaround, recorded with its reference.
-- A deploy that does not touch the daily-ledger loop.
-- Low usage on a quiet day, provided the day is recorded as above.
-- Travel, a different network, or a temporary offline period, as long as the app
-  was used and nothing was lost.
-- A deploy the owner judges not to touch the daily loop. **The owner adjudicates**
-  this, records the SHA and the judgement in the log's Interruptions table, and the
-  judgement is reviewable — an agent must not make this call, and P4 Improve work is
-  by definition a daily-loop change.
+| Ref | Root cause | Fix | Retest |
+|---|---|---|---|
+| D2 (PP-03) | the confirmed row arrives with a server id, so the pending row's id filter never removed it; both existed inside the transition and every aggregate counted the amount twice | both rows carry the idempotency key, and the optimistic layer retires the pending row when its confirmation lands | **PP-03** |
+| D3 (PP-12) | four competing `max-height` declarations on one element (utility vs CSS module, equal specificity), an inner scroll box constrained to its own `100dvh` rather than its parent, `dvh` resizing with browser chrome, and safe-area padding on the outer box instead of the footer | one height owner, `svh` throughout, the scroll box bounded by its dialog, safe-area on the edges that touch the device, and `interactiveWidget: "resizes-content"` so the keyboard resizes the layout | **PP-12** |
+| D1 (PP-16) | `parseMoneyInput` stripped every non-digit, so `12,5` became `125` while the field advertised a decimal keypad | entry is whole đồng: grouping separators are accepted, a fraction tail is rejected with a message, and every money field asks for a numeric keypad | **PP-16** |
+| D4 (PP-07) | the toast title was an `inline-flex` with no `min-width: 0`, so the note in the delete notice overflowed instead of wrapping | the title shrinks and wraps; placement still comes from the shell variable that already clears the nav | **PP-07** |
+| D5 (PP-01) | **not fixed.** Every authenticated route is a dynamic server render with a database read per navigation; there is no bounded regression to undo, and the tabs already use client-side navigation | parked as a performance finding | **not required** — no navigation code changed |
 
-### When a P0 or P1 pauses the run
+## Parked for the later Brand / Product Experience rebuild
 
-A **P0 ends the attempt immediately** and resets it to zero — "pause" would imply the
-counted days survive, and they do not. A **P1 does not end** the run, but must be
-recorded on the day it is found; PBT-AC14 blocks acceptance until the owner decides
-on it.
+Real findings from the same physical run, recorded **once** here so they are not
+lost, and deliberately **not** acted on in this mission. None blocks the
+daily-ledger claim, and fixing them piecemeal would be the start of the broad UI
+redesign this phase must not begin. Whichever mission opens the Brand / Product
+Experience rebuild should adopt this list as input.
+
+| Ref | Finding | Why it is parked rather than fixed now |
+|---|---|---|
+| UX-1 | Tapping the MoneyFlow logo while already on Dashboard does not visibly refresh | navigation semantics, not a functional defect; the answer depends on what the logo should mean, which is a design decision |
+| UX-2 | Dashboard Planning shortcuts are compressed horizontally and their labels clip | layout of a planning surface, outside the core loop |
+| UX-3 | Budget and planning mobile pages have poor hierarchy, truncation and density | a redesign of those screens, not a primitive defect |
+| UX-4 | A focused input can show overlapping double cyan focus borders | focus treatment belongs to the design system; changing it carelessly risks accessibility, and the run confirmed focus is visible today |
+| UX-5 | Cancel/Confirm ordering and visual hierarchy differ across transaction, account and budget dialogs | needs one decision applied everywhere, which is a system change rather than a fix |
+| UX-6 | The transaction summary 2×2 block mixes count and money metrics, uses too much mobile space, and "Còn lại" can be read as an account balance | information design; "Còn lại" wording in particular needs a product decision, and the sums themselves are correct |
+| UX-7 | "Chia khoản chi" purpose and discoverability are unclear | discoverability of an advanced capture tool, explicitly not core product identity |
+| UX-8 | The owner's physical screenshots contain real financial amounts | **never copy or commit them.** They stay outside Git; this row exists so the constraint survives with the findings |
+
+PP-01's navigation latency is recorded above as D5 and is also parked: the cause is
+architectural — every authenticated route is a dynamic server render with a database
+read per navigation — so it belongs to a performance slice, not a UI rebuild.
 
 ## Tasks
 
@@ -390,10 +410,11 @@ on it.
 |---|---|---|---|---|
 | P3-T1a | define the loop, scenarios, device matrix, severity and evidence protocol | P2 accepted | this packet | complete |
 | P3-T1b | evidence template + deterministic validator | P3-T1a | `docs/evidence/p3-prove/TEMPLATE.md`, `scripts/check-prove-evidence.mjs` | complete |
-| P3-T1c | **owner** runs the seventeen scenarios on the required device | P3-T1b | sanitized evidence file | **awaiting owner** |
-| P3-T1d | classify defects; report any P0/P1 as its own bounded mission | P3-T1c | issue/PR references | blocked |
-| P3-T2 | seven consecutive days of sanitized self-use | P3-T1 accepted | seven-day evidence file | **not started** |
-| P3-T3 | reconcile parent plan and memory with real evidence | P3-T2 | PBT-AC12/AC13 | blocked |
+| P3-T1c | **owner** runs the seventeen scenarios on the required device | P3-T1b | owner-reported 2026-08-12, recorded above | complete |
+| P3-T1d | classify defects and remediate every P1 | P3-T1c | #357 — PP-03, PP-07, PP-12, PP-16 | complete, unverified on hardware |
+| P3-T1e | **owner** retests the bounded subset on the same device | P3-T1d | PP-03, PP-07, PP-12, PP-16 | **awaiting owner** |
+| ~~P3-T2~~ | ~~seven consecutive days of sanitized self-use~~ | — | **withdrawn 2026-08-12**, never started | withdrawn |
+| P3-T3 | reconcile parent plan and memory with real evidence | P3-T1e | PBT-AC12 | blocked on the retest |
 
 ## Verification
 

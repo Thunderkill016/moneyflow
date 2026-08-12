@@ -269,7 +269,7 @@ export function SplitExpenseDialog({
                 <TextField
                   inputRef={index === 0 ? firstAmountRef : undefined}
                   label={`Số tiền dòng ${index + 1}`}
-                  inputMode="decimal"
+                  inputMode="numeric"
                   autoComplete="off"
                   placeholder="0"
                   value={line.amount}

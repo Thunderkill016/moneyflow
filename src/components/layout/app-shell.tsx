@@ -44,13 +44,20 @@ import styles from "./app-shell.module.css";
 
 const INBOX_BADGE_COUNT = 0;
 
+/**
+ * Position only — height belongs to `.shellSheet` alone.
+ *
+ * A `max-[760px]:max-h-[88svh]` utility here competed with `.shellSheet`'s own
+ * `max-height`, and because a CSS-module class and a utility class carry the same
+ * specificity the winner came down to stylesheet order rather than intent. On a
+ * real phone that read as the sheet sizing itself unpredictably. One owner now.
+ */
 const APP_SHELL_SHEET_CLASS = [
   "w-[min(32rem,100%)]",
   "max-[760px]:inset-x-0",
   "max-[760px]:top-auto",
   "max-[760px]:bottom-0",
   "max-[760px]:h-auto",
-  "max-[760px]:max-h-[88svh]",
   "max-[760px]:w-full",
   "max-[760px]:max-w-none",
   "max-[760px]:rounded-t-3xl",

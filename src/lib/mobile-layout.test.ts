@@ -70,11 +70,24 @@ test("capture is a nav item, not a second floating FAB", () => {
 });
 
 test("Sheet primitive owns edge geometry without legacy dialog selectors", () => {
-  const source = read(SHEET_PATH);
+  // Comments stripped: the primitive documents *why* `dvh` is wrong by naming it,
+  // and prose must never decide a check about executable code.
+  const source = read(SHEET_PATH)
+    .replace(/\/\*[\s\S]*?\*\//gu, "")
+    .replace(/\/\/.*$/gmu, "");
   assert.match(source, /bottom:\s*\n?\s*"fixed inset-x-0 bottom-0/u);
   assert.match(source, /w-full max-w-none/u);
   assert.match(source, /right:\s*\n?\s*"fixed inset-y-0 right-0/u);
-  assert.match(source, /h-dvh max-h-dvh/u);
+  assert.match(source, /h-svh max-h-svh/u);
+  /**
+   * `dvh` is forbidden here on purpose.
+   *
+   * The dynamic viewport unit tracks mobile browser chrome, so a sheet sized in
+   * it grows and shrinks under the user's thumb as the address bar hides and
+   * returns. The owner's physical run reported exactly that as unstable sheet
+   * positioning, so `svh` — the smallest viewport state — is the contract.
+   */
+  assert.doesNotMatch(source, /dvh/u);
   assert.doesNotMatch(source, /transaction-dialog/u);
   assert.doesNotMatch(source, /account-dialog/u);
 });

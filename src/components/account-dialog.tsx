@@ -209,7 +209,7 @@ export function AccountDialog({
             inputRef={amountRef}
             label={kind === "credit_card" ? "Dư nợ hiện tại" : "Số dư ban đầu"}
             value={amount}
-            inputMode="decimal"
+            inputMode="numeric"
             autoComplete="off"
             placeholder="0"
             suffix={symbol}

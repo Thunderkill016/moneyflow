@@ -33,6 +33,7 @@ export function buildOptimisticTransaction(
     ok: true,
     transaction: {
       id: `${OPTIMISTIC_TRANSACTION_ID_PREFIX}${input.idempotencyKey}`,
+      pendingKey: input.idempotencyKey,
       kind: input.kind,
       categoryId: category.id,
       category: category.name,
@@ -47,10 +48,29 @@ export function buildOptimisticTransaction(
   };
 }
 
-/** Adds one pending transaction while keeping the newest canonical list. */
+/**
+ * Adds one pending transaction while keeping the newest canonical list.
+ *
+ * The id filter alone was not enough. A confirmed row arrives with a
+ * server-generated id, so filtering by the *pending* id never removed it, and
+ * during the transition both rows were present — every balance and total counted
+ * the amount twice, then corrected itself when the transition ended. A financial
+ * figure that flashes a wrong number and settles is a trust defect, not a
+ * cosmetic one.
+ *
+ * So supersession is matched on the idempotency key both rows carry: once the
+ * canonical list holds the confirmation, the pending row is dropped rather than
+ * stacked on top of it.
+ */
 export function reduceOptimisticTransactions(
   current: Transaction[],
   transaction: Transaction,
 ): Transaction[] {
+  const superseded =
+    transaction.pendingKey !== undefined &&
+    current.some(
+      (item) => item.id !== transaction.id && item.pendingKey === transaction.pendingKey,
+    );
+  if (superseded) return current;
   return [transaction, ...current.filter((item) => item.id !== transaction.id)];
 }

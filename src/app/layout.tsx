@@ -58,6 +58,16 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  /**
+   * The virtual keyboard resizes the layout instead of floating over it.
+   *
+   * With the default (`resizes-visual`) the layout viewport keeps its full height
+   * when the keyboard opens, so a sheet's own footer — the save control — can end
+   * up underneath the keyboard with no way to scroll to it. `resizes-content`
+   * shrinks the layout viewport, so `svh`-sized sheets and their footers stay
+   * reachable while typing.
+   */
+  interactiveWidget: "resizes-content",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#F8FAFC" },
     { media: "(prefers-color-scheme: dark)", color: "#0C111D" },
