@@ -49,6 +49,12 @@ const SETTINGS_LINKS: SettingsLink[] = [
     icon: "arrowDown",
   },
   {
+    href: "/settings/backup",
+    title: "Bản sao lưu MoneyFlow",
+    description: "Tải bản sao lưu đầy đủ có thể khôi phục, hoặc khôi phục vào tài khoản mới.",
+    icon: "archive",
+  },
+  {
     href: "/settings/appearance",
     title: "Giao diện",
     description: "Chế độ sáng, tối hoặc theo hệ thống cho workspace đăng nhập.",
