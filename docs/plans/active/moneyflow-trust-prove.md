@@ -110,15 +110,17 @@ accepts nor rejects them — the reconciliation above is the safeguard, not the 
   including the 8-second undo constant (`src/lib/ui-phase5-transactions-contract.test.ts:139`).
 - Product law: VND is integer đồng; transfers are never income or expense; money
   must not rely on colour alone.
-- **No product change is expected from this packet.** If the run finds a real
-  defect, it is reported and fixed in its own bounded mission — never repaired
-  inside a preparation or evidence PR.
+- **No product change came from the preparation PR (#356).** Defects the run found
+  were remediated in a separate bounded mission (#357), which is where the runtime
+  fixes and this packet's status update live together. What remains forbidden is
+  repairing product behavior inside an *evidence* PR — the file that records what a
+  device did must not also change what the device would do.
 
 ## Research
 
 No external research. Every scenario below is derived from code read in this
 repository at `277d459`; the only genuinely unknown input is the owner's hardware,
-which is recorded at Day 0 rather than assumed.
+which is recorded with the run rather than assumed.
 
 | Source | What it established | What it does not cover |
 |---|---|---|
@@ -187,8 +189,9 @@ extension of P3-T1.
       `fail_then_pass` that has neither an explanation nor a defect row.
 - [ ] **P3-AC8** Any P0 stops the run; any P1 is recorded with a decision before
       the phase can be accepted.
-- [x] **P3-AC9** ~~P3-T2's Day 0 prerequisites~~ — **withdrawn** with the seven-day
-      requirement on 2026-08-12. Nothing replaces it.
+- [~] **P3-AC9** ~~P3-T2's Day 0 prerequisites~~ — **withdrawn** with the seven-day
+      requirement on 2026-08-12. Nothing replaces it. Marked withdrawn rather than
+      ticked: a withdrawn criterion is not a satisfied one.
 - [ ] **P3-AC10** Every P1 from the physical run is fixed or explicitly accepted, and
       the retest set is bounded rather than a repeat of all seventeen.
 
@@ -214,7 +217,7 @@ interpretation.
 
 | Tier | What | Rule |
 |---|---|---|
-| **REQUIRED** | the owner's own primary phone | Record platform, OS version, browser and browser version at Day 0. All seventeen scenarios run here. This is the only tier that can satisfy PBT-AC12. |
+| **REQUIRED** | the owner's own primary phone | Record platform, OS version, browser and browser version with the run. All seventeen scenarios run here. This is the only tier that can satisfy PBT-AC12. |
 | **OPTIONAL** | a second platform (whichever of Android/iOS the required device is not), **only if the owner already owns one** | If the owner does not own one, record `not_possessed`. That is a named limitation, exactly like P1's stale-AMR probes — **never** a failure, and never a reason to buy hardware or fabricate a result. |
 | **AUTOMATED (context only)** | the existing Playwright audit viewports and browser shards | Already runs in CI. Recorded as `emulated`. It may support a finding; it can never convert a missing physical run into a pass. |
 
@@ -270,7 +273,7 @@ two scenarios cover the same behavior.
 
 | Severity | Definition | Effect |
 |---|---|---|
-| **P0** | Data loss; cross-tenant exposure; balance or financial-invariant corruption; or the core ledger cannot be used safely | **Stop the run.** Record and report immediately. P3 cannot be accepted, and a seven-day run must not start or continue. |
+| **P0** | Data loss; cross-tenant exposure; balance or financial-invariant corruption; or the core ledger cannot be used safely | **Stop the run.** Record and report immediately. P3 cannot be accepted until it is fixed and the affected scenarios are re-run. |
 | **P1** | A reproducible blocker, or materially wrong behavior, in the normal daily loop with no reasonable safe workaround | Record with reproduction steps. Finish the remaining scenarios if it is safe to do so. PBT-AC14 requires an explicit owner decision on every P1 before acceptance. |
 | **finding** | Anything else worth recording: friction, unclear wording, a slow response, a cosmetic defect | Recorded; does not block acceptance by itself. |
 
@@ -410,7 +413,7 @@ read per navigation — so it belongs to a performance slice, not a UI rebuild.
 |---|---|---|---|---|
 | P3-T1a | define the loop, scenarios, device matrix, severity and evidence protocol | P2 accepted | this packet | complete |
 | P3-T1b | evidence template + deterministic validator | P3-T1a | `docs/evidence/p3-prove/TEMPLATE.md`, `scripts/check-prove-evidence.mjs` | complete |
-| P3-T1c | **owner** runs the seventeen scenarios on the required device | P3-T1b | owner-reported 2026-08-12, recorded above | complete |
+| P3-T1c | **owner** runs the seventeen scenarios on the required device | P3-T1b | owner-reported 2026-08-12, recorded above as owner-observed; **no signed evidence file exists** | reported, not filed |
 | P3-T1d | classify defects and remediate every P1 | P3-T1c | #357 — PP-03, PP-07, PP-12, PP-16 | complete, unverified on hardware |
 | P3-T1e | **owner** retests the bounded subset on the same device | P3-T1d | PP-03, PP-07, PP-12, PP-16 | **awaiting owner** |
 | ~~P3-T2~~ | ~~seven consecutive days of sanitized self-use~~ | — | **withdrawn 2026-08-12**, never started | withdrawn |

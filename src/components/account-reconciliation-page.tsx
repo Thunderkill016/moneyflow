@@ -41,7 +41,7 @@ import {
   type AccountReconciliationStateData,
   type EntryReconciliationState,
 } from "@/lib/reconciliation";
-import { formatMoney, formatMoneyInput } from "@/lib/money";
+import { formatMoney, formatMoneyInput, parseMoneyInput } from "@/lib/money";
 import styles from "./account-reconciliation-page.module.css";
 
 function formatSignedMoneyInput(value: string) {
@@ -50,12 +50,21 @@ function formatSignedMoneyInput(value: string) {
   return negative ? `-${formatted}` : formatted;
 }
 
+/**
+ * Signed statement balance, routed through the shared money-entry contract.
+ *
+ * This function used to strip non-digits itself, which meant a typed `12,5`
+ * became 125 here no matter what the shared parser decided. That was the same
+ * defect the physical run found in the transaction fields, in a field that feeds a
+ * reconciliation difference — and once the input stopped being visibly rewritten,
+ * the mismatch would have become invisible instead of merely wrong.
+ */
 function parseSignedMoneyInput(value: string) {
   const trimmed = value.trim();
   if (!trimmed || trimmed === "-") return Number.NaN;
   const negative = trimmed.startsWith("-");
-  const digits = value.replace(/\D/g, "");
-  const amount = digits ? Number(digits) : Number.NaN;
+  const amount = parseMoneyInput(trimmed.replace(/^-/u, ""));
+  if (!Number.isSafeInteger(amount)) return Number.NaN;
   const signed = negative ? -amount : amount;
   return Number.isSafeInteger(signed) ? signed : Number.NaN;
 }

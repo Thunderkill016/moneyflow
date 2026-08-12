@@ -6,6 +6,7 @@ import { X } from "lucide-react"
 import { IconButton } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import styles from "./dialog.module.css"
 
 type SheetSide = "center" | "left" | "right" | "top" | "bottom"
 
@@ -123,11 +124,9 @@ function Sheet({
           </IconButton>
         ) : null}
       </header>
-      <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-4">{children}</div>
+      <div className={styles.body}>{children}</div>
       {footer ? (
-        <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-4 [padding-bottom:max(1rem,env(safe-area-inset-bottom,0px))]">
-          {footer}
-        </footer>
+        <footer className={styles.footer}>{footer}</footer>
       ) : null}
     </aside>
   )

@@ -11,7 +11,6 @@ import {
   formatMoneyInput,
   isFractionAttempt,
   MONEY_FRACTION_ENTRY_MESSAGE,
-  moneyEntryInputMode,
   parseMoneyInput,
   parseMoneyInputToMinor,
 } from "./money.ts";
@@ -31,6 +30,22 @@ import type { AccountOption, CategoryOption, Transaction } from "./transactions/
 
 const read = (path: string) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
+
+/** Every component that reads or formats a typed money amount. */
+const MONEY_ENTRY_CONSUMERS = [
+  "src/components/add-transaction-dialog.tsx",
+  "src/components/edit-transaction-dialog.tsx",
+  "src/components/transfer-dialog.tsx",
+  "src/components/account-dialog.tsx",
+  "src/components/account-reconciliation-page.tsx",
+  "src/components/split-expense-dialog.tsx",
+  "src/components/planning/budget-dialog.tsx",
+  "src/components/planning/commitment-dialog.tsx",
+  "src/components/planning/goal-dialogs.tsx",
+  "src/components/planning/income-template-dialog.tsx",
+  "src/components/inbox/inbox-review-panel.tsx",
+  "src/components/onboarding-flow.tsx",
+];
 
 const stripComments = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//gu, "").replace(/\/\/.*$/gmu, "");
@@ -222,21 +237,7 @@ test("PP-16: every money field requests an integer keypad", () => {
    * cannot honour. That mismatch is the defect's origin, so no money field may
    * ask for one.
    */
-  assert.equal(moneyEntryInputMode(), "numeric");
-  const moneyEntryFiles = [
-    "src/components/add-transaction-dialog.tsx",
-    "src/components/edit-transaction-dialog.tsx",
-    "src/components/transfer-dialog.tsx",
-    "src/components/account-dialog.tsx",
-    "src/components/split-expense-dialog.tsx",
-    "src/components/planning/budget-dialog.tsx",
-    "src/components/planning/commitment-dialog.tsx",
-    "src/components/planning/goal-dialogs.tsx",
-    "src/components/planning/income-template-dialog.tsx",
-    "src/components/inbox/inbox-review-panel.tsx",
-    "src/components/onboarding-flow.tsx",
-  ];
-  for (const file of moneyEntryFiles) {
+  for (const file of MONEY_ENTRY_CONSUMERS) {
     const source = stripComments(read(file));
     assert.ok(
       !source.includes('inputMode="decimal"'),
@@ -245,19 +246,24 @@ test("PP-16: every money field requests an integer keypad", () => {
   }
 });
 
-test("PP-16: the shared parser is the single owner of the entry rule", () => {
-  // A consumer stripping digits itself would reintroduce the defect locally.
-  for (const file of [
-    "src/components/add-transaction-dialog.tsx",
-    "src/components/transfer-dialog.tsx",
-    "src/components/planning/budget-dialog.tsx",
-  ]) {
+test("PP-16: no money-entry consumer strips digits behind the contract's back", () => {
+  /**
+   * The first version of this test named three files and missed
+   * `account-reconciliation-page.tsx`, which had its own `\D` strip feeding a
+   * statement balance. Worse, once the shared formatter stopped rewriting the
+   * field, that bypass became *invisible* rather than merely wrong. So the guard
+   * now sweeps every component that touches money entry.
+   */
+  const offenders: string[] = [];
+  for (const file of MONEY_ENTRY_CONSUMERS) {
     const source = stripComments(read(file));
-    assert.ok(
-      !/replace\(\/\\D\/g/u.test(source),
-      `${file} must not strip non-digits itself; money.ts owns the contract`,
-    );
+    if (/replace\(\s*\/\[?\^?\\D/u.test(source)) offenders.push(file);
   }
+  assert.deepEqual(
+    offenders,
+    [],
+    "money.ts owns the entry contract; a local digit strip reintroduces the defect",
+  );
 });
 
 test("PP-16: a rejected entry explains itself where the user is looking", () => {
@@ -296,22 +302,51 @@ test("PP-12: the scroll box is constrained by its dialog, not by the viewport", 
   /**
    * The observed defect: content and footer positioned badly on a real phone.
    * The inner box carried its own `100dvh` max-height, so whenever a caller made
-   * the dialog shorter — a bottom sheet at 88svh — the scroll box could be taller
-   * than the dialog containing it and the footer left the visible area.
+   * the dialog shorter — a bottom sheet, or a consumer module setting its own
+   * max-height — the scroll box could be taller than the dialog containing it and
+   * the footer left the visible area.
    */
+  const css = read("src/components/ui/dialog.module.css");
+  assert.match(css, /\.content \{[\s\S]*?max-height: 100%/u);
+  assert.match(css, /\.content \{[\s\S]*?min-height: 0/u);
+  assert.match(css, /\.body \{[\s\S]*?overflow-y: auto/u);
   const dialog = stripComments(read("src/components/ui/dialog.tsx"));
-  assert.match(dialog, /data-slot="dialog-content"[\s\S]{0,200}max-h-full/u);
-  assert.match(dialog, /min-h-0 overflow-y-auto/u);
+  assert.match(dialog, /styles\.content/u);
+  assert.match(dialog, /styles\.body/u);
 });
 
 test("PP-12: safe-area padding sits on the edges that touch the device", () => {
-  const dialog = stripComments(read("src/components/ui/dialog.tsx"));
-  const sheet = stripComments(read("src/components/ui/sheet.tsx"));
-  assert.match(dialog, /env\(safe-area-inset-bottom/u);
-  assert.match(sheet, /env\(safe-area-inset-bottom/u);
+  const css = read("src/components/ui/dialog.module.css");
+  // The scroll body clears the home indicator, and hands that job to the footer
+  // when one follows it.
+  assert.match(css, /\.body \{[\s\S]*?env\(safe-area-inset-bottom/u);
+  assert.match(css, /\.footer \{[\s\S]*?env\(safe-area-inset-bottom/u);
+  assert.match(css, /\.body:has\(\+ \.footer\) \{[\s\S]*?padding-bottom: 1rem/u);
   // A scroll gesture must stay inside the sheet rather than chaining to the page.
-  assert.match(dialog, /overscroll-contain/u);
-  assert.match(sheet, /overscroll-contain/u);
+  assert.match(css, /overscroll-behavior: contain/u);
+  // Both primitives use the same owned rules rather than restating them.
+  assert.match(stripComments(read("src/components/ui/sheet.tsx")), /styles\.body/u);
+});
+
+test("PP-12: no dialog surface is sized in the dynamic viewport unit", () => {
+  /**
+   * The primitive alone was not enough. Four consumer modules set their own
+   * `max-height` with `.dialog.dialog` — specificity (0,2,0) against the
+   * primitive's (0,1,0) — so add/edit transaction, transfer, account and the
+   * planning dialogs stayed on `dvh` while the primitive looked fixed. The
+   * surfaces the owner actually used were among them.
+   */
+  const surfaces = [
+    "src/components/ui/dialog.module.css",
+    "src/components/transactions/transaction-form.module.css",
+    "src/components/transfers/transfer-dialog.module.css",
+    "src/components/accounts/account-dialog.module.css",
+    "src/components/planning/planning-dialog.module.css",
+  ];
+  for (const file of surfaces) {
+    const css = read(file).replace(/\/\*[\s\S]*?\*\//gu, "");
+    assert.ok(!/dvh/u.test(css), `${file} must not size a dialog in dvh`);
+  }
 });
 
 test("PP-12: exactly one rule owns shell sheet height", () => {
@@ -357,10 +392,21 @@ test("PP-07: a long note wraps instead of overflowing the toast", () => {
   const rule = /\.toastTitle \{([\s\S]*?)\}/u.exec(css)?.[1] ?? "";
   assert.match(rule, /min-width: 0/u);
   assert.ok(!/inline-flex/u.test(rule), "inline-flex cannot shrink below its content");
-  assert.match(css, /\.toastTitle > span \{[\s\S]*?overflow-wrap: anywhere/u);
 
+  /**
+   * `break-word`, never `anywhere`. The same notice can carry a formatted money
+   * value, and `anywhere` permits a break inside the digits — which the
+   * `financial-value-wrapped` audit rule would not catch here, because the toast
+   * title is neither `.font-mono` nor `[data-money]`.
+   */
+  assert.match(css, /\.toastTitle > span \{[\s\S]*?overflow-wrap: break-word/u);
+  assert.ok(
+    !/overflow-wrap: anywhere/u.test(css),
+    "a money value must not be breakable mid-digits",
+  );
   const toast = stripComments(read("src/components/ui/toast.tsx"));
   assert.match(toast, /min-w-0 font-semibold/u);
+  assert.ok(!/anywhere/u.test(toast));
 });
 
 test("PP-07: the toast keeps the position the shell already owns", () => {
@@ -401,4 +447,85 @@ test("PP-15: a retried save still cannot create a second row", () => {
 
   const dialog = stripComments(read("src/components/add-transaction-dialog.tsx"));
   assert.match(dialog, /idempotencyKeyRef/u, "the key must survive a failed attempt");
+});
+
+test("PP-16: a trailing currency mark or unit cannot smuggle a fraction through", () => {
+  /**
+   * `FRACTION_TAIL` was anchored on `$`, so any trailing non-digit defeated the
+   * whole fix — and this repository already treats `"45.000 ₫"` as realistic pasted
+   * input.
+   */
+  for (const pasted of ["12,5₫", "12.5 VND", "1.234,56 ₫", "12,5 dong", "１２，５"]) {
+    assert.ok(isFractionAttempt(pasted), `${pasted} must be seen as a fraction`);
+    assert.ok(Number.isNaN(parseMoneyInput(pasted)), `${pasted} must be rejected`);
+  }
+  // Fullwidth digits must not be stripped into an empty amount either.
+  assert.ok(Number.isNaN(parseMoneyInput("１２，５")));
+  assert.equal(parseMoneyInput("１２３"), 123);
+});
+
+test("PP-16: a mid-typing trailing separator is not treated as a fraction", () => {
+  // `12.` is on its way to `12.500`; rejecting it would fight the user's typing.
+  assert.equal(isFractionAttempt("12."), false);
+  assert.equal(parseMoneyInput("12."), 12);
+  assert.equal(isFractionAttempt("12"), false);
+});
+
+test("PP-16: the reconciliation statement balance goes through the shared contract", () => {
+  /**
+   * This field kept its own `\D` strip, so `12,5` still read as 125 there. Once the
+   * shared formatter stopped rewriting the input, that made the mismatch invisible
+   * rather than merely wrong — in a field that drives a reconciliation difference.
+   */
+  const page = stripComments(read("src/components/account-reconciliation-page.tsx"));
+  assert.match(page, /parseMoneyInput\(/u);
+  assert.ok(
+    !/replace\(\s*\/\[?\^?\\D/u.test(page),
+    "the page must not strip digits behind the contract's back",
+  );
+});
+
+test("PP-16: filter inputs are formatted by the filter module that parses them", () => {
+  // The register's amount filters have their own digits-only parser, so formatting
+  // them with the money-entry formatter made the shown value and the applied
+  // filter disagree.
+  const workspace = stripComments(read("src/components/transactions/transactions-workspace.tsx"));
+  assert.match(workspace, /normalizeTransactionAmountInput\(event\.target\.value\)/u);
+  assert.ok(
+    !/setM(?:in|ax)AmountInput\(formatMoneyInput/u.test(workspace),
+    "one owner formats and parses the filter text",
+  );
+});
+
+test("PP-16: the rejection message does not name a currency it may not be", () => {
+  // The same dialogs handle non-VND accounts, so the message cannot say "đồng".
+  assert.ok(!/đồng/u.test(MONEY_FRACTION_ENTRY_MESSAGE));
+});
+
+test("the withdrawn seven-day gate is retired in the document that outranks the packet", () => {
+  /**
+   * `docs/product/PRINCIPLES.md` sits above a work packet in the repository's own
+   * source precedence, so a packet cannot withdraw a condition stated there. Left
+   * alone, the requirement would have survived as the authoritative one.
+   */
+  const principles = read("docs/product/PRINCIPLES.md");
+  assert.ok(
+    !/- the product is used for seven consecutive days/u.test(principles),
+    "the live seven-consecutive-days condition must be retired",
+  );
+  assert.match(principles, /Withdrawn 2026-08-12/u);
+  assert.match(principles, /nothing replaces it/iu);
+
+  // And no active packet may still require it.
+  for (const file of [
+    "docs/plans/active/public-beta-trust.md",
+    "docs/plans/active/moneyflow-trust-prove.md",
+    "docs/plans/active/moneyflow-trust-execution-roadmap.md",
+  ]) {
+    const text = read(file);
+    assert.ok(
+      !/^- \[ \].*seven consecutive days/mu.test(text),
+      `${file} must not carry an open seven-day criterion`,
+    );
+  }
 });

@@ -39,7 +39,7 @@ Current `main` head at planning time is `4caefac67d9da2dd312fdeae40616fa4efb1751
 1. provider-backed recent-auth behavioral acceptance;
 2. complete versioned user archive/export + safe restore;
 3. physical-phone core-ledger proof;
-4. seven consecutive days of sanitized self-use without data loss/manual database repair;
+4. ~~seven consecutive days of sanitized self-use~~ — **withdrawn by the owner on 2026-08-12** and not replaced;
 5. evidence-selected fixes for any P0/P1 or repeated high-friction issue;
 6. final owner public-beta decision.
 
@@ -143,7 +143,7 @@ Only P0/P1 are automatic public-beta blockers.
 - [ ] ROAD-AC5: archive validation and restore are tenant-safe, atomic, versioned and fail with zero writes on corrupt/unsupported input.
 - [ ] ROAD-AC6: export→restore round trip preserves normalized financial state and invariants.
 - [ ] ROAD-AC7: production core ledger is exercised on a physical phone.
-- [ ] ROAD-AC8: seven consecutive days of sanitized self-use complete without data loss/manual DB repair.
+- [~] ROAD-AC8: ~~seven consecutive days of sanitized self-use~~ — **withdrawn 2026-08-12** by owner decision. No duration gate replaces it; real daily use still surfaces defects, as the physical-phone run did.
 - [ ] ROAD-AC9: no unresolved P0/P1 defect blocks the daily-ledger loop.
 - [ ] ROAD-AC10: final production truth, recovery layers, limitations and owner beta decision are recorded.
 
@@ -435,9 +435,11 @@ Core checklist:
 
 Physical Android Chrome is the minimum target for this roadmap. If physical iOS/Safari is unavailable, record it as an explicit beta limitation instead of claiming coverage.
 
-#### P3.2 Seven-consecutive-day sanitized self-use
+#### P3.2 ~~Seven-consecutive-day sanitized self-use~~ — withdrawn 2026-08-12
 
-For seven consecutive calendar days:
+The owner removed this duration gate after the physical-phone run. It never started,
+nothing replaces it, and the paragraphs below are retained only as a record of what
+was once planned:
 
 - use production MoneyFlow as the primary sanitized ledger for the chosen evidence scope;
 - perform real daily-loop actions rather than synthetic button clicking;
@@ -600,7 +602,7 @@ Minimum evidence:
 - Secure acceptance;
 - Recover round-trip;
 - physical-phone checklist;
-- seven-day self-use summary;
+- ~~seven-day self-use summary~~ — withdrawn 2026-08-12;
 - zero unresolved P0/P1;
 - exact production identities;
 - accepted limitations;
@@ -675,7 +677,7 @@ This roadmap is complete only when the repository records:
 - production Auth/Edge recent-auth behavior proven;
 - complete user archive/restore proven by round trip;
 - physical mobile proof;
-- seven-day self-use proof;
+- ~~seven-day self-use proof~~ — withdrawn 2026-08-12;
 - no unresolved P0/P1 core blocker;
 - exact production state and accepted limitations;
 - final owner GO/NO-GO decision.

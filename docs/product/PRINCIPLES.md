@@ -133,7 +133,15 @@ MoneyFlow is ready for real self-use only when:
 - balances, income, expense and transfers reconcile correctly;
 - export opens safely in common spreadsheet tools;
 - no open P0/P1 defect blocks a core flow;
-- the product is used for seven consecutive days without data loss or manual repair.
+- real daily use surfaces no data loss and needs no manual repair.
+
+**Withdrawn 2026-08-12:** the earlier form of the last condition required *seven
+consecutive days* of use. The owner removed that duration gate after the
+physical-phone run, and **nothing replaces it** — no shorter count, no substitute
+streak. Real daily use is still how defects get found, and the physical-phone run is
+the evidence of that; it is simply no longer counted in days. This document is
+higher precedence than any work packet, so the withdrawal is recorded here rather
+than only in `docs/plans/active/moneyflow-trust-prove.md`.
 
 Daily-use evidence remains necessary while broader modules are developed. Adding feature breadth does not substitute for trust and retention evidence.
 

@@ -7,7 +7,13 @@ import { Button, IconButton } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
-import { formatMoney, formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import {
+  MONEY_FRACTION_ENTRY_MESSAGE,
+  formatMoney,
+  formatMoneyInput,
+  isFractionAttempt,
+  parseMoneyInput,
+} from "@/lib/money";
 import type {
   AccountOption,
   CategoryOption,
@@ -122,6 +128,13 @@ export function SplitExpenseDialog({
       categoryId: line.categoryId,
       amount: parseMoneyInput(line.amount),
     }));
+    // A rejected fraction would otherwise surface as a shape error about the
+    // split, which tells the user nothing about the key they pressed.
+    if (resolvedLines.some((line) => isFractionAttempt(line.amount))) {
+      setError(MONEY_FRACTION_ENTRY_MESSAGE);
+      firstAmountRef.current?.focus();
+      return;
+    }
     const validated = validateSplitLines(payloadLines);
     if (!validated.ok) {
       setError(splitValidationMessage(validated.error));

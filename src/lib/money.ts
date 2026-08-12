@@ -92,10 +92,26 @@ export function formatMoneyWithKind(
  * next to the input rather than in a detached alert.
  */
 export const MONEY_FRACTION_ENTRY_MESSAGE =
-  "Nhập số tiền nguyên theo đồng, không dùng dấu thập phân.";
+  "Nhập số tiền nguyên, không dùng dấu thập phân.";
 
-/** A separator followed by one or two trailing digits cannot be grouping. */
-const FRACTION_TAIL = /[.,\s](\d{1,2})$/u;
+/**
+ * A separator followed by one or two digits, at the end of the number.
+ *
+ * Anchoring on `$` alone was defeated by any trailing non-digit — `12,5₫` and a
+ * pasted `12.5 VND` both slipped through, and this repository already treats
+ * `"45.000 ₫"` as realistic pasted input. The number is therefore located first
+ * and the tail checked within it.
+ */
+const FRACTION_TAIL = /[.,\u00a0\s](\d{1,2})$/u;
+
+/** Digits and separators only: strips currency marks, signs and stray letters. */
+function numericPortion(value: string): string {
+  return value
+    .normalize("NFKC")
+    .replace(/[^\d.,\u00a0\s]/gu, "")
+    .trim()
+    .replace(/[.,\u00a0\s]+$/u, "");
+}
 
 /**
  * Does this text try to express a fraction?
@@ -106,13 +122,11 @@ const FRACTION_TAIL = /[.,\s](\d{1,2})$/u;
  * of how many minor digits the currency has.
  */
 export function isFractionAttempt(value: string): boolean {
-  const trimmed = value.trim();
-  if (!trimmed) return false;
-  if (!FRACTION_TAIL.test(trimmed)) return false;
-  // A single group of exactly three digits is grouping, not a fraction, and is
-  // already excluded by the pattern above. Two-digit tails such as `12.50`
-  // remain a fraction attempt.
-  return true;
+  const numeric = numericPortion(value);
+  if (!numeric) return false;
+  // A trailing separator is mid-typing, not yet a fraction: `12.` is on its way to
+  // `12.500`, and rejecting it would fight the user as they type.
+  return FRACTION_TAIL.test(numeric);
 }
 
 /**
@@ -123,7 +137,9 @@ export function isFractionAttempt(value: string): boolean {
  */
 export function parseMoneyInput(value: string) {
   if (isFractionAttempt(value)) return Number.NaN;
-  const digits = value.replace(/\D/g, "");
+  // NFKC first: fullwidth digits would otherwise be stripped as non-digits and
+  // silently read as an empty amount.
+  const digits = value.normalize("NFKC").replace(/\D/gu, "");
   return digits ? Number(digits) : 0;
 }
 
@@ -137,16 +153,6 @@ export function parseMoneyInputToMinor(value: string, currencyCode = "VND") {
   return Number.isSafeInteger(minor) ? minor : Number.NaN;
 }
 
-/**
- * The input mode a money field should request.
- *
- * `numeric` rather than `decimal` for every currency, because entry is whole
- * major units: a decimal keypad advertises a separator key that this contract
- * cannot honour, which is what produced the original defect on a real phone.
- */
-export function moneyEntryInputMode(): "numeric" {
-  return "numeric";
-}
 
 /** Minor units → digit string for money inputs (whole major units). */
 export function formatMoneyInputFromMinor(amount: number, currencyCode = "VND") {
@@ -163,7 +169,7 @@ export function formatMoneyInputFromMinor(amount: number, currencyCode = "VND") 
  * it into a grouped integer was the silent rewrite this function must not do.
  */
 export function formatMoneyInput(value: string) {
-  if (isFractionAttempt(value)) return value.replace(/[^\d.,\s]/gu, "").trim();
+  if (isFractionAttempt(value)) return numericPortion(value);
   const amount = parseMoneyInput(value);
   return Number.isSafeInteger(amount) && amount
     ? new Intl.NumberFormat("vi-VN").format(amount)

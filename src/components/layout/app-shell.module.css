@@ -528,17 +528,22 @@
 
 .toastTitle > span {
   min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.toastTitle svg {
-  margin-top: 2px;
+  /**
+   * `overflow-wrap: break-word` and not `anywhere`.
+   *
+   * The delete notice can also carry a formatted money value, and `anywhere`
+   * permits a break inside the digits. `break-word` wraps long words without
+   * splitting a number that has somewhere better to break.
+   */
+  overflow-wrap: break-word;
 }
 
 .toastTitle svg {
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
+  /* Keeps the icon on the first line once the text wraps. */
+  margin-top: 2px;
 }
 
 @media (max-width: 1100px) {
