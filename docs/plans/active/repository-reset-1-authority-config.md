@@ -1,8 +1,8 @@
 # Repository Reset 1 — knowledge, authority and configuration
 
-**Status:** evaluating
-**Execution state:** evaluating
-**Active role:** evaluator
+**Status:** implementing
+**Execution state:** implementing
+**Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** #360
@@ -132,6 +132,7 @@ None. No schema, database, provider or deployment mutation.
 |---|---|---|---|---|---|---|
 | 2026-08-12 | planner | implementer | implementing | this packet; `npm run agent:doctor`; baseline `main@4283129` | stale packet and config-reference audit in progress | complete scoped authority/config edits |
 | 2026-08-12 | implementer | evaluator | evaluating | #360; `check:migrations`, `check:knowledge`, `test:ci-policy`, typecheck; fresh evaluator | local Next build runner did not reach completion; exact-head provider checks pending | push PR-memory update and request exact-head CI |
+| 2026-08-12 | evaluator | implementer | implementing | exact-head CI failure artifact | README lost the required MVP-definition link during compaction | restore the routed released-MVP reference and rerun gates |
 
 ### Current permission boundary
 

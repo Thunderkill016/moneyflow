@@ -21,6 +21,7 @@ question at hand:
 | Question | Authority |
 |---|---|
 | Product identity and principles | [Product principles](docs/product/PRINCIPLES.md) |
+| Released MVP capability/exit reference | [MVP definition](docs/MVP_DEFINITION.md) |
 | Current project state | [Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md) |
 | Immediate execution | [Active work-packet registry](docs/plans/active/README.md) |
 | Architecture | [Architecture map](ARCHITECTURE.md) |
