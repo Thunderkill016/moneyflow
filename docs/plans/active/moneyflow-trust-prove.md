@@ -384,6 +384,26 @@ retest is a **subset**, not another full run:
 | D4 (PP-07) | the toast title was an `inline-flex` with no `min-width: 0`, so the note in the delete notice overflowed instead of wrapping | the title shrinks and wraps; placement still comes from the shell variable that already clears the nav | **PP-07** |
 | D5 (PP-01) | **not fixed.** Every authenticated route is a dynamic server render with a database read per navigation; there is no bounded regression to undo, and the tabs already use client-side navigation | parked as a performance finding | **not required** — no navigation code changed |
 
+### Bounded retest status and remaining PP-12 work
+
+The owner reported the bounded retest after #357 directly to the implementer. This
+is **owner-observed**, not a signed evidence file: no agent may convert it into a
+physical-device pass declaration.
+
+| Scenario | Current status | Scope decision |
+|---|---|---|
+| PP-03 | pass | remains closed unless a later change regresses it |
+| PP-07 | pass functionally | toast presentation remains a parked UI finding |
+| PP-12 | **fail** | only remaining P3 blocker; #358 is the focused candidate remediation |
+| PP-16 | pass | remains closed unless a later change regresses it |
+
+#358 removes the last competing mobile height utility from the More sheet,
+makes that sheet's height definite, and assigns the shared Dialog grid's middle
+row to its existing scroll body. Its authenticated browser regression reaches and
+hit-tests **Đăng xuất** at standard and short phone heights, but it is not a
+substitute for the same-phone retest. P3 remains open and P3-T1e awaits that
+one PP-12 retest after #358 merges.
+
 ## Parked for the later Brand / Product Experience rebuild
 
 Real findings from the same physical run, recorded **once** here so they are not
@@ -415,7 +435,7 @@ read per navigation — so it belongs to a performance slice, not a UI rebuild.
 | P3-T1b | evidence template + deterministic validator | P3-T1a | `docs/evidence/p3-prove/TEMPLATE.md`, `scripts/check-prove-evidence.mjs` | complete |
 | P3-T1c | **owner** runs the seventeen scenarios on the required device | P3-T1b | owner-reported 2026-08-12, recorded above as owner-observed; **no signed evidence file exists** | reported, not filed |
 | P3-T1d | classify defects and remediate every P1 | P3-T1c | #357 — PP-03, PP-07, PP-12, PP-16 | complete, unverified on hardware |
-| P3-T1e | **owner** retests the bounded subset on the same device | P3-T1d | PP-03, PP-07, PP-12, PP-16 | **awaiting owner** |
+| P3-T1e | **owner** retests the remaining PP-12 blocker on the same device | #358 merged | PP-12 only | **awaiting owner** |
 | ~~P3-T2~~ | ~~seven consecutive days of sanitized self-use~~ | — | **withdrawn 2026-08-12**, never started | withdrawn |
 | P3-T3 | reconcile parent plan and memory with real evidence | P3-T1e | PBT-AC12 | blocked on the retest |
 
