@@ -1,15 +1,14 @@
 # MoneyFlow — current project memory
 
 - **Status:** active implementation-status authority
-- **Audit date:** 2026-08-11
-- **Current main audited:** `5d53a3f40a36e76a3807e32ce85c0cefb408333c`
+- **Audit date:** 2026-08-12
+- **Current main audited:** `5d53a3f40a36e76a3807e32ce85c0cefb408333c` for repository code; the 2026-08-12 production deployment, hosted backup acceptance and P2 acceptance recorded below post-date that head and were evidenced directly against the provider and the closure PR, not by re-auditing main
 - **Owner direction:** MoneyFlow is a released functional MVP; the active hardening program is **MoneyFlow Trust**
 - **Active trust program:** `docs/plans/active/public-beta-trust.md`
 - **Completed Provider Sync packet:** `docs/plans/completed/2026-08-11-moneyflow-trust-provider-sync.md`
 - **Completed Recover packet:** `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md`
 - **Completed Secure packet:** `docs/plans/completed/2026-08-11-account-deletion-recent-auth.md`
-- **MoneyFlow Trust current phase:** Provider Sync, P1 Secure and **P2 Recover accepted**; **P3 Prove is next**. Previously: **P2 Recover is in progress** — contract, validator, producer and atomic restore merged with a full round-trip proof; implementation complete and **the two migrations are deployed to production**; P2 is accepted; hosted backup acceptance passed and hosted restore is a named limitation
-- **Active Recover packet:** `docs/plans/active/moneyflow-trust-recover.md`
+- **MoneyFlow Trust current phase:** Provider Sync, P1 Secure and **P2 Recover are accepted**; **P3 Prove is the active phase**. P2 shipped the contract, validator, producer, atomic restore, file ingress and the `/settings/backup` surface; both migrations are deployed to production; hosted backup acceptance passed and hosted restore is an owner-accepted named limitation
 - **Supabase production is now MoneyFlow-only:** the Atoryn subsystem was removed by production migration `20260812043219_remove_atoryn_from_moneyflow_project` (7 `atoryn_*` tables, 11 `atoryn_cloud_*` functions, and its own history rows), and the five Atoryn Edge Functions were deleted on 2026-08-12. Only `delete-account` remains. That cleanup migration stays in history as evidence of removal, not as an active Atoryn subsystem
 - **Supabase production migration/schema:** reviewed MoneyFlow migrations are applied; five had been retimestamped in the repository relative to production and were restored to the production canonical versions (`20260726004445`, `20260726011134`, `20260801084523`, `20260801084534`, `20260801084604`) — proven byte-identical after normalization, so the rename changed no behaviour
 - **Migration history is fully aligned:** the owner-approved repair recorded `20260715001400_split_expense` and `20260715001500_account_currency_on_create` as applied. It touched the history table only — it did **not** execute those migrations' SQL bodies, and independent post-write checks confirmed the 19 MoneyFlow table counts, the live `create_split_expense` and `create_financial_account` definitions and `transaction_feed` were all unchanged
@@ -18,9 +17,10 @@
 - **Live production read-back:** `export_user_archive`, `restore_user_archive`, `remove_archive_restore_batch`, `archive_timestamp` and `validate_archive_for_restore` all exist and return `42501 permission denied` to the anon key (a non-existent function returns `PGRST202`, confirming the probe distinguishes). `archive_restore_batches` and `archive_restore_rows` deny anon SELECT and INSERT, matching `financial_transactions`
 - **Hosted backup acceptance PASSED (Mission 17D, 2026-08-12):** the owner downloaded a backup from hosted `/settings/backup` after the R6 deployment, and its exact raw bytes were fed to the shipped `ingestArchiveBytes` (R8) which ran the shipped `validateMoneyFlowArchive` (R5): **R8 PASS, R5 PASS with zero contract violations**. Artifact `sha256 f2fb8228…`, 63216 bytes, `produced_at 2026-08-12T07:40:43Z`, archive version 1, 19 dispositions (18 restorable + 1 non-replayable history), 189 archived rows. No credential or tenant-authority key was present and the profile carried no source id. `capability_missing` is therefore gone in production
 - **Backup acceptance artifact note:** the mission brief quoted an earlier download (`c339dc2b…`); the file supplied hashed `f2fb8228…` at the identical 63216 bytes. That is the expected signature of a *second* export — `archive_id` is a fixed-width uuid and `produced_at` a fixed-format timestamp, so an unchanged ledger re-exports to the same length with different bytes. The owner confirmed the newer artifact supersedes. The private archive was never committed and was handled only outside the repository
+- **Hosted RESTORE was never executed (Mission 17E, 2026-08-12):** P2 was accepted with this as a named limitation. Two archives were handled; the blocker was the *source*, not the target. The only populated archive (`f2fb8228…`, from the owner's still-live primary account) was securely deleted at the end of 17D under the privacy boundary and would have been refused anyway by `restore_archive_id_conflict`, since ids are preserved and are globally unique. The designated *target* — a disposable bootstrap account, `sha256 749cb4fb…` inner / `570d0e26…` ZIP, 3560 bytes, 13 rows — was verified eligible read-only through the shipped R8/R5 path (R8 PASS, R5 PASS, bootstrap-only: profile 1, categories 11, accounts 1, all other collections 0). The target was **never** substituted as the source. Proving the hosted path needs a disposable source account that can be purged after export
 - **Read-back limitation:** there is no arbitrary read-only SQL path from this environment (no `psql`, no stored DB password), so SECURITY DEFINER/INVOKER posture, `search_path` settings, RLS policy bodies, indexes and constraints were **not** read from the live catalog. They are evidenced by CI pgTAP running these exact migrations against a real Postgres, not by production introspection. Supabase Postgres logs also remain unreachable from this CLI version
-- **Missions 17B, 17C and 17D are complete:** 17C deployed the Recover schema and 17D passed hosted **backup** acceptance; only hosted **restore** acceptance remains.
-- **Mission 17B is complete:** the Supabase project is MoneyFlow-only, Atoryn Edge Functions and database subsystem are removed, the cleanup migration is mirrored, retimestamps are reconciled and history is aligned. **P2 Recover is still not accepted** — the migrations were deployed later by Mission 17C and hosted backup acceptance passed in 17D; only hosted **restore** acceptance remains
+- **Missions 17B–17E are complete:** 17C deployed the Recover schema, 17D passed hosted **backup** acceptance, and 17E closed P2 with hosted **restore** recorded as an owner-accepted limitation rather than a pass. No hosted restore has ever been executed
+- **Mission 17B is complete:** the Supabase project is MoneyFlow-only, Atoryn Edge Functions and database subsystem are removed, the cleanup migration is mirrored, retimestamps are reconciled and history is aligned. at the time 17B closed, P2 Recover was not yet accepted; the migrations were deployed later by 17C, hosted backup acceptance passed in 17D, and 17E accepted the phase with the hosted-restore limitation
 - **Migration authority rule:** a migration's version is its identity once production has run it. `check:migrations` pins every version, filename and a **raw-byte SHA-256 content hash**, so a retimestamp, a post-hoc edit or a byte-identical duplicate fails a gate instead of forking history. Raw bytes rather than a normalization: lowercasing or comment-stripping before hashing would also fold string literals, hiding a real behaviour change
 - **Supabase production audit boundary:** RLS enabled; `authenticated` SELECT retained; `service_role` SELECT-only for the reviewed table privileges
 - **Supabase production Edge:** `delete-account` v6 `ACTIVE`, `verify_jwt=true`, current recent-auth helper + tenant cleanup inventory read back; provider bundle SHA-256 `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80`
@@ -223,21 +223,22 @@ PR #341 merged on 2026-08-11 and closed the Secure/Provider Sync acceptance desc
 - archive v1 contract exists in `src/lib/archive/`: nineteen-table inventory anchored to `purge_user_tenant_data`, source-neutral row shapes carrying no ownership, and a pure fail-closed validator with a test-enforced drift check;
 - owner decisions are settled: restore targets `auth.uid()` while archives stay portable across MoneyFlow account identity; restore v1 is empty-only with a measured signup-bootstrap exception; historical audit events are non-replayable;
 - an authenticated archive producer exists — `public.export_user_archive()`, SECURITY INVOKER so RLS enforces tenant isolation, covering 19/19 dispositions and proven by 40 pgTAP assertions plus a database→archive→validator round trip; the date-range CSV/JSON export remains a separate reporting artifact covering 2 of 19 tables, not a backup;
-- **two migrations are merged but not applied to production Supabase**: `20260812000000_export_user_archive.sql` then `20260812010000_restore_user_archive.sql`, in that order;
+- both archive migrations — `20260812000000_export_user_archive.sql` then `20260812010000_restore_user_archive.sql` — are **applied to production Supabase** (2026-08-12, Approval A);
 - an atomic restore exists — `restore_user_archive()`, SECURITY DEFINER because fifteen tenant tables deny INSERT to authenticated, empty/bootstrap-only, advisory-locked per tenant, with batch attribution and a pristine-only removal;
 - a strict archive file-ingress boundary exists — size-bounded, fatal UTF-8, duplicate-member-safe before `JSON.parse`, then the R5 validator — and the CI round trips run the producer's raw bytes through it;
 - a Backup & Restore surface exists at `/settings/backup`, separate from the `/settings/export` report; both archive calls go through server actions, and the transport ceiling is ~4 MB (~5,000 transactions) because of the server-action and platform request caps;
 - the surface is **live** now that both archive migrations are deployed; before deployment an absent function was reported as a capability gap rather than an error, and that fail-closed path remains for any future capability gap;
 - restore must re-assert transfer balance, split exactness and per-kind entry sign/category-kind itself, because those live only in the write RPCs and a bulk insert bypasses them;
-- restore needs `restore_batch_id` so a committed bad restore is identifiable and removable;
-- duplicate-restore detection needs persistent metadata; the pure validator cannot prove it;
+- restore attribution is built, but as a side table rather than a column on tenant rows: `archive_restore_batches` plus `archive_restore_rows (batch_id, table_name, row_id, row_hash)`, with `remove_archive_restore_batch` removing only rows still byte-identical to what the restore wrote. There is no `restore_batch_id` column on any tenant table — do not go looking for one;
+- duplicate-restore detection is built on that persistent metadata and raises `archive_already_restored`; the pure validator still cannot prove it alone;
 - raw-file ingress is implemented, including the duplicate-member-name protection R5 could not claim;
 - pgTAP now covers the archive producer boundary and remains mandatory for the restore slice;
 - archive must exclude credentials, JWTs, secrets and private infrastructure metadata.
 
 ### P3 Prove
 
-- no physical-phone core-ledger acceptance under the Trust program;
+- **active phase.** No physical-phone core-ledger acceptance under the Trust program;
+- no seven consecutive days of sanitized owner self-use without data loss or manual database repair;
 - no seven consecutive days of sanitized owner self-use accepted yet.
 
 ### Product depth after Trust evidence
@@ -250,20 +251,29 @@ PR #341 merged on 2026-08-11 and closed the Secure/Provider Sync acceptance desc
 
 ## 11. Next allowed action
 
-Open a dedicated **P2 Recover** work packet before implementation. Start from current repository/schema/export/import truth, enumerate the state required for a complete restorable archive, then research/archive-versioning practices only for unresolved design choices.
+Begin **P3 Prove**. P2 Recover is accepted and archived at
+`docs/plans/completed/2026-08-12-moneyflow-trust-recover.md`; do not reopen it and
+do not re-specify the archive contract.
 
-The P2 contract must define at least:
+P3 needs, in order:
 
-- archive version and compatibility rules;
-- complete tenant-data inventory and explicit exclusions;
-- referential ordering/identity mapping;
-- validation before mutation;
-- integer-money/transfer/split invariants;
-- idempotency/retry/rollback/failure behavior;
-- corruption/partial/unsupported-version failure semantics;
-- test strategy for export → validate → restore round trip.
+- a physical-phone core-ledger acceptance checklist covering record, balances and
+  where-money-went on a real device;
+- that checklist executed with recorded evidence;
+- seven consecutive days of sanitized owner self-use with no data loss and no
+  manual database repair;
+- reconciled memory/evidence and the owner's public-beta decision with its
+  explicit accepted limitations.
 
-Provider writes, destructive deletion and production financial-data mutation are not authorized merely because P2 is unblocked.
+Carried into P3 as a known gap, not a task to redo: hosted restore has never been
+executed against a live account. Proving it needs a disposable source account whose
+rows can be purged, because id preservation refuses a restore while the source is
+live. That is an optional future exercise, not a P3 blocker.
+
+Provider writes, destructive deletion and production financial-data mutation are
+not authorized merely because P2 is accepted. Approval B (one hosted restore into a
+disposable test account) was granted in Mission 17E and **not consumed**; it does
+not carry forward.
 
 ## 12. Superseded-status register
 
@@ -280,3 +290,11 @@ Do not repeat these as current facts:
 - Stale-AMR/account-mismatch production probes passed; they were not executed and are accepted limitations.
 - Actual linked-production dry-run was executed or passed for the earlier ten-file rollout.
 - Physical Android/iOS acceptance was performed or passed.
+- P2 Recover is open, in progress, unaccepted, or the next phase to start.
+- The Recover packet is active at `docs/plans/active/moneyflow-trust-recover.md`.
+- The two archive migrations are merged but not applied to production.
+- A complete restorable archive does not exist, or MoneyFlow's only export is the date-range CSV/JSON report.
+- Restore lacks batch identity, or a `restore_batch_id` column exists on tenant tables.
+- The Supabase project is shared with Atoryn.
+- Hosted restore acceptance is the one gap blocking P2 — P2 is accepted with that limitation named.
+- A hosted restore was executed, or Approval B was consumed.

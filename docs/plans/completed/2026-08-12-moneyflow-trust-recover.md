@@ -249,7 +249,10 @@ accounts or categories, which cannot reconstruct a ledger.
 ### Acceptance criteria
 
 - [x] **P2-AC1** Archive envelope is versioned and self-describing:
-      `archive_version`, `produced_at`, `app_schema_generation`, `tenant_row_counts`.
+      `archive_version`, `produced_at`, `schema_generation`, `tenant_row_counts`.
+      (Specified as `app_schema_generation`; the shipped envelope names the field
+      `schema_generation`. Same fact, shorter name — recorded rather than silently
+      renamed.)
 - [x] **P2-AC2** Archive inventory covers every table `purge_user_tenant_data`
       deletes, or names the exclusion reason. A test fails if the two drift.
 - [x] **P2-AC3** Archive contains **no** secret: no password hash, JWT, access or
@@ -267,7 +270,12 @@ accounts or categories, which cannot reconstruct a ledger.
       structure, non-integer money, unbalanced transfer, inexact split and
       foreign-tenant identifiers all fail with no row written.
 - [x] **P2-AC6** Restore is atomic: a failure at any point leaves the ledger
-      exactly as it was. Proven by pgTAP, not asserted.
+      exactly as it was. Two different strengths of evidence, kept apart:
+      every refusal pgTAP exercises fires during pre-write validation and is
+      **measured** to write zero rows; a failure *after* writing has begun is not
+      injected by any test and rests on the structural argument that the whole
+      restore is one statement in one transaction with `SET CONSTRAINTS ALL
+      IMMEDIATE`. Accepted on that basis, not on a measured mid-write abort.
 - [x] **P2-AC7** Restore re-asserts financial invariants in the database:
       transfers balance to zero and stay neutral to income/expense, splits sum
       exactly to their parent, entries never have `amount_minor = 0`.
@@ -298,13 +306,26 @@ accounts or categories, which cannot reconstruct a ledger.
 - [x] **P2-AC11** Soft-deleted and archived rows round-trip as soft-deleted and
       archived — restore does not resurrect deleted history.
 - [x] **P2-AC12** Archives from an unsupported future or retired version are
-      rejected with an actionable Vietnamese message.
+      rejected with an actionable Vietnamese message — with the message's
+      *specificity* named as a limitation. The rejection itself is proven at every
+      layer (`archive_version_unsupported` in the database, a distinct validator
+      code, refusal before any write). The user-facing text is the generic
+      "Đây không phải bản sao lưu MoneyFlow hợp lệ. Không có dữ liệu nào bị thay
+      đổi.", because ingress collapses every validator rejection into
+      `archive_invalid`. Actionable and truthful, but it does not tell the user
+      *that the version is the problem*. A version-specific message is deferred
+      work, not a shipped claim.
 - [x] **P2-AC13** `inbox_rules` whose category is archived are handled by a
       written rule, not by an unhandled `rule_category_not_available`.
 
-- [x] **P2-AC14** Every row a restore writes carries a `restore_batch_id`, and
-      removing a committed bad restore by that batch is a defined, tested
-      operation. A restore that commits malformed data must be identifiable and
+- [x] **P2-AC14** Every row a restore writes is attributable to a restore batch,
+      and removing a committed bad restore by that batch is a defined, tested
+      operation. Attribution is a **side table**, not a column: no tenant table
+      gained a `restore_batch_id`; `archive_restore_rows (batch_id, table_name,
+      row_id, row_hash)` records what was written, and
+      `remove_archive_restore_batch` removes only rows still byte-identical to
+      the recorded hash, so a row the user edited after the restore is left
+      alone. A restore that commits malformed data must be identifiable and
       reversible; an unidentifiable restored row is an accepted-defect, not a
       completed feature.
 
@@ -1121,16 +1142,25 @@ identity-exact rather than merely shape-equal. Ids are globally unique, so a
 restore is refused with `restore_archive_id_conflict` while the source account's
 rows are still live — the documented lifecycle assumes the source account is gone.
 
-The only production archive available came from the owner's **primary account,
-which still exists**, so a hosted restore of it would have been refused by that
-guard before writing anything. Proving the hosted path would have required either
-purging a live account or building a third disposable account and purging it —
-neither justified for acceptance. On 2026-08-12 the owner accepted this as a named
-limitation rather than manufacture a destructive probe.
+Two production archives were handled across Missions 17D and 17E, and the blocker
+was the **source**, not the target:
+
+| Archive | Origin | Role | Status in 17E |
+|---|---|---|---|
+| `sha256 f2fb8228…`, 63216 bytes, 189 rows | owner's **primary account, which still exists** | the only populated archive, i.e. the only usable restore *source* | **not available** — securely deleted at the end of 17D under the privacy boundary, and it would have been refused by the id-conflict guard anyway |
+| `sha256 749cb4fb…` inner / `570d0e26…` ZIP, 3560 bytes, 13 rows | the designated disposable test account | the restore *target*, verified eligible | available; R8 PASS, R5 PASS, bootstrap-only confirmed (profile 1, categories 11, accounts 1, every other collection 0) |
+
+So the target was genuinely eligible and was verified read-only through the shipped
+R8/R5 path. What was missing was a source archive whose rows are not still live.
+Producing one would have required either purging the owner's real account or
+building a third account, populating it, exporting, then purging it — neither
+justified for acceptance. On 2026-08-12 the owner accepted this as a named
+limitation rather than manufacture a destructive probe. The target archive was
+**never** substituted as the source.
 
 What stands in its place is not weaker in kind, only in venue: pgTAP executes the
 **complete** `source → archive → restore into a different fresh tenant → re-export
-→ semantic comparison` chain against a real PostgreSQL on every CI run, comparing
+→ semantic comparison` chain against a real PostgreSQL on every CI run that touches the database boundary and on every push to `main` (`classify-ci-changes.mjs` selects the pgTAP job by changed path, and non-pull-request events force the full gate set — so a docs-only PR such as this closure does not re-run it), comparing
 sixteen collections as identical and rules/candidates identical apart from the
 documented trigger-owned fields. The restore code path proven there is the same
 code path production now runs.
@@ -1221,9 +1251,11 @@ a disposable source.
 | P2-AC13 archived-category rule | **executable** | accepted with evidence; restore-time trigger consequence recorded for R7 |
 | P2-AC14 restore batch identity | not started | needs the DB slice |
 
-P2 is **not accepted**. Restore does not exist. As of R6 the exporter does exist
-and is proven against a real database, but the archive cannot yet be restored, so
-the Recover capability is still absent end to end.
+**As of R6** — this paragraph is a historical stage record, superseded by the
+acceptance decision at the end of this packet — P2 was not accepted and restore did
+not exist. The exporter existed and was proven against a real database, but the
+archive could not yet be restored, so the Recover capability was still absent end to
+end. Restore shipped in R7 (#346) and the phase was accepted on 2026-08-12.
 
 ### R6 acceptance evidence
 
