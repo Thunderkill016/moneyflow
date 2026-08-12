@@ -10,7 +10,7 @@
  * different one locally, which blocked deployment until it was reconciled by hand.
  *
  * This gate makes that impossible to do by accident. It pins every migration's
- * version, filename and a normalized content hash. Any rename, retimestamp or
+ * version, filename and a raw-byte SHA-256 content hash. Any rename, retimestamp or
  * post-hoc edit fails until the baseline is updated deliberately.
  *
  * Deliberately offline: no database connection, no network. It compares the

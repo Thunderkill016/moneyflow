@@ -2,7 +2,7 @@
 
 - **Status:** active implementation-status authority
 - **Audit date:** 2026-08-11
-- **Current main audited:** `18836e2ebdc63711113f248826b00cd541a0a530`
+- **Current main audited:** `5d53a3f40a36e76a3807e32ce85c0cefb408333c`
 - **Owner direction:** MoneyFlow is a released functional MVP; the active hardening program is **MoneyFlow Trust**
 - **Active trust program:** `docs/plans/active/public-beta-trust.md`
 - **Completed Provider Sync packet:** `docs/plans/completed/2026-08-11-moneyflow-trust-provider-sync.md`
@@ -11,7 +11,10 @@
 - **Active Recover packet:** `docs/plans/active/moneyflow-trust-recover.md`
 - **Supabase production is now MoneyFlow-only:** the Atoryn subsystem was removed by production migration `20260812043219_remove_atoryn_from_moneyflow_project` (7 `atoryn_*` tables, 11 `atoryn_cloud_*` functions, and its own history rows), and the five Atoryn Edge Functions were deleted on 2026-08-12. Only `delete-account` remains. That cleanup migration stays in history as evidence of removal, not as an active Atoryn subsystem
 - **Supabase production migration/schema:** reviewed MoneyFlow migrations are applied; five had been retimestamped in the repository relative to production and were restored to the production canonical versions (`20260726004445`, `20260726011134`, `20260801084523`, `20260801084534`, `20260801084604`) — proven byte-identical after normalization, so the rename changed no behaviour
-- **Migration authority rule:** a migration's version is its identity once production has run it. `check:migrations` pins every version, filename and normalized content hash, so a retimestamp, a post-hoc edit or a duplicate logical migration fails a gate instead of forking history
+- **Migration history is fully aligned:** the owner-approved repair recorded `20260715001400_split_expense` and `20260715001500_account_currency_on_create` as applied. It touched the history table only — it did **not** execute those migrations' SQL bodies, and independent post-write checks confirmed the 19 MoneyFlow table counts, the live `create_split_expense` and `create_financial_account` definitions and `transaction_feed` were all unchanged
+- **Linked dry-run is clean:** `supabase db push --linked --dry-run` proposes exactly `20260812000000_export_user_archive` and `20260812010000_restore_user_archive`, nothing else. Because the cleanup migration `20260812043219` carries a later timestamp, the eventual real deployment will need `--include-all`
+- **Mission 17B is complete:** the Supabase project is MoneyFlow-only, Atoryn Edge Functions and database subsystem are removed, the cleanup migration is mirrored, retimestamps are reconciled and history is aligned. **P2 Recover is still not accepted** — the Recover migrations remain unapplied and hosted acceptance has not run
+- **Migration authority rule:** a migration's version is its identity once production has run it. `check:migrations` pins every version, filename and a **raw-byte SHA-256 content hash**, so a retimestamp, a post-hoc edit or a byte-identical duplicate fails a gate instead of forking history. Raw bytes rather than a normalization: lowercasing or comment-stripping before hashing would also fold string literals, hiding a real behaviour change
 - **Supabase production audit boundary:** RLS enabled; `authenticated` SELECT retained; `service_role` SELECT-only for the reviewed table privileges
 - **Supabase production Edge:** `delete-account` v6 `ACTIVE`, `verify_jwt=true`, current recent-auth helper + tenant cleanup inventory read back; provider bundle SHA-256 `56bdec4f7b0d5a97b077fed18ad00fc5c97d0e0fd2d4ff4df764368ac21bdb80`
 - **Vercel production:** deployment `dpl_Ha9j2HWPx4PfrpjLc1jpfcPgFvNi` is `READY` and identifies exact Git SHA `18836e2ebdc63711113f248826b00cd541a0a530`
