@@ -22,9 +22,14 @@ where n.nspname = 'public'
   and p.prosecdef
   and has_function_privilege('authenticated', p.oid, 'EXECUTE');
 
+-- 34 before R7. `restore_user_archive` and `remove_archive_restore_batch` are the
+-- two deliberate additions: fifteen tenant tables deny INSERT to `authenticated`
+-- so restore cannot be SECURITY INVOKER, and the elevated right is confined to
+-- these reviewed functions rather than granted to the role. The R6 producer and
+-- `archive_timestamp` are NOT here — they are SECURITY INVOKER by design.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  34,
+  36,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 

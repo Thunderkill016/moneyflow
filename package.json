@@ -27,6 +27,7 @@
     "check:rls": "bash scripts/check-rls-migrations.sh",
     "test:db": "SUPABASE_TELEMETRY_DISABLED=1 npx supabase test db",
     "verify:archive-producer": "bash scripts/verify-archive-producer.sh",
+    "verify:archive-round-trip": "bash scripts/verify-archive-producer.sh supabase/fixtures/restore_round_trip_fixture.sql",
     "test:e2e": "playwright test",
     "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
     "test:e2e:install": "playwright install chromium webkit",
