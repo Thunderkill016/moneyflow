@@ -1,18 +1,18 @@
 # Repository Reset 2 — dead/stale source, assets and import evidence
 
-**Status:** evaluating
-**Execution state:** evaluating
-**Active role:** evaluator
+**Status:** ready_for_review
+**Execution state:** final exact-head verification pending
+**Active role:** evaluator — owner merge is the final repository transition
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** #362 (draft)
+**Issue/PR:** #362
 **Last updated:** 2026-08-13
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is the bounded,
-evidence-led source/assets ownership audit that follows accepted Reset 1. It permits
-retiring only files proven to have no current owner; it does not begin Brand/Product
-Experience A0 or authorize provider, production, database, schema, Auth, financial or
-UI redesign work.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is prepared for the
+post-merge accepted state of bounded Repository Reset 2. Its final lifecycle amendment
+still requires exact-head verification; owner merge of #362 is then the final
+repository transition. This record does not begin Brand/Product Experience A0 or
+authorize provider, production, database, schema, Auth, financial or UI redesign work.
 
 ## Outcome
 
@@ -27,8 +27,8 @@ financial/security/recovery boundaries and historical A0 evidence remain intact.
 - MoneyFlow is a Next.js App Router application; source can be owned by imports,
   route/convention discovery, CSS composition, metadata, generated URL strings, tests
   or tooling.
-- Reset 1 is accepted on `main@8fcf8e2`; this packet is now the registered active
-  child under `public-beta-trust.md`.
+- Reset 1 is accepted on `main@8fcf8e2`; this packet was the registered active child
+  under `public-beta-trust.md` during Reset 2 execution.
 
 ### Relevant repository areas
 
@@ -88,15 +88,15 @@ breaking routes, conventions, security or legacy presentation.
   FUTURE-REPLACEMENT DEBT or UNCERTAIN with concise ownership evidence.
 - [x] Every deletion is proven against imports, re-exports, dynamic/convention,
   string/asset, CSS and test/tool/config ownership channels.
-- [ ] Removed source/assets have no remaining references and affected app flows still
-  build and run through the risk-selected gates.
-- [ ] Financial/security/recovery code, migrations, harness/CI tooling and historical
+- [~] Removed source/assets have no remaining owner and affected app flows build and
+  run through the risk-selected gates — source head passed; final lifecycle head pending.
+- [x] Financial/security/recovery code, migrations, harness/CI tooling and historical
   A0 evidence remain untouched unless incontrovertibly dead and allowed.
-- [ ] Fresh evaluation finds no missed ownership channel or premature live-legacy
+- [x] Fresh evaluation finds no missed ownership channel or premature live-legacy
   retirement.
-- [ ] On acceptance this packet moves to `docs/plans/completed/`; the registry returns
+- [~] On acceptance this packet moves to `docs/plans/completed/`; the registry returns
   to the Trust parent only, current memory names Reset 2 complete and A0 next/not
-  started.
+  started — final lifecycle head pending, then owner merge.
 
 ### Financial and security constraints
 
@@ -149,9 +149,9 @@ None. No data, schema, provider or deployment mutation.
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
 | RR2-T1 | inventory source/assets and ownership channels | packet | candidate classification table | complete |
-| RR2-T2 | retire independently proven-dead slices | RR2-T1 | reference proof + affected gates | complete — pending final gates |
-| RR2-T3 | fresh-context evaluation | RR2-T2 | evaluator findings/fixes | in_progress |
-| RR2-T4 | complete lifecycle and exact-head delivery | RR2-T3 | completed packet, PR memory, CI | in_progress — #362 exact-head checks pending |
+| RR2-T2 | retire independently proven-dead slices | RR2-T1 | reference proof + affected gates | complete |
+| RR2-T3 | fresh-context evaluation | RR2-T2 | evaluator findings/fixes | complete — clean after negative-assertion wording fix |
+| RR2-T4 | complete lifecycle and exact-head delivery | RR2-T3 | completed packet, PR memory, CI | in_progress — final lifecycle head pending; owner merge then required |
 
 ## Handoff record
 
@@ -161,6 +161,8 @@ None. No data, schema, provider or deployment mutation.
 | 2026-08-13 | implementer | evaluator | evaluating | 13 DEAD candidates removed; reference scans; focused contracts; typecheck; architecture/CSS ownership; direct browser routes | selected full local suites and exact-head delivery remain pending | attack missed owners and scope drift |
 | 2026-08-13 | fresh evaluator | implementer | rechecked | no missed runtime/barrel/dynamic/Next/public owner; sole `ui-refresh.test.ts` textual reference is a negative assertion | doctor-selected full build/browser suites and exact-head CI remain pending | obtain delivery evidence before completing lifecycle |
 | 2026-08-13 | implementer | provider CI | delivery | #362 draft opened; `PR-362.md` records scope and limits | exact-head checks and lifecycle completion pending | wait for checks; do not merge |
+| 2026-08-13 | provider CI | evaluator | verified | #362 source head `843c5fa`: build, browser smoke, cross-device audit, policy/static/unit, database, CodeQL and Gitleaks pass | final lifecycle amendment has a new exact head | run exact-head checks; do not merge autonomously |
+| 2026-08-13 | evaluator | human_owner | ready_for_review | parent-only registry and current-memory post-merge route prepared | final lifecycle head and owner merge remain required before this becomes `main` truth | wait for checks, then merge #362 when approved; do not start A0 |
 
 ### Current permission boundary
 
@@ -208,22 +210,24 @@ allowance.
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| candidate classification | pending inventory | pending |
-| safe removal | reference audit; typecheck; architecture; production build; CSS reachability and ownership; direct desktop/mobile browser routes | pending final complete suite |
-| lifecycle coherence | pending completion audit | pending |
+| candidate classification | compact candidate inventory | pass |
+| safe removal | reference audit; focused contracts; architecture/CSS ownership; source-head production build, browser smoke and cross-device audit | pass on `843c5fa`; final lifecycle head pending |
+| lifecycle coherence | fresh evaluator recheck; completed packet; parent-only registry/current-memory route | pending final exact-head verification and owner merge |
 
 ### Remaining limitations
 
-- The full browser runners were interrupted by the local execution watchdog after
-  starting; direct Playwright CLI checks still loaded dashboard, transactions,
-  accounts and backup routes in demo mode on desktop/mobile. Exact-head provider CI
-  remains the final authoritative suite.
+- The local execution watchdog interrupted full browser runners after they started;
+  direct Playwright CLI checks still loaded dashboard, transactions, accounts and
+  backup routes in demo mode on desktop/mobile. Exact-head provider CI subsequently
+  passed the selected browser smoke and cross-device audit.
 
 ## Delivery record
 
 - Branch: `reset/dead-stale-source-assets`
-- PR: #362 (draft)
+- PR: #362 ready for review
 - Squash commit: pending owner merge
-- CI run: pending exact head
+- CI run: source head `843c5fa` green — `verify`, `database`, `e2e`, browser smoke,
+  cross-device audit, Gitleaks and CodeQL; final lifecycle head pending
 - Production deployment: not applicable
-- Work packet moved to `docs/plans/completed/`: pending acceptance
+- Work packet moved to `docs/plans/completed/`: prepared post-merge record; final
+  lifecycle exact-head verification and owner merge remain the acceptance boundary

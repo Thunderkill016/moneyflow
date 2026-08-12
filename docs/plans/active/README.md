@@ -7,12 +7,12 @@ pull requests remain the dynamic status source.
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `public-beta-trust.md` | active parent program | ordered program state and public-beta decision gate |
-| `repository-reset-2-dead-stale-source-assets.md` | active child packet | evidence-led audit and retirement of demonstrably unowned source/assets |
 
 Each packet must use `docs/templates/FEATURE_WORK_PACKET.md` and stay current enough
 that another agent can continue without hidden chat context. Do not add a candidate or
 closed packet here. Completed accepted work moves to `../completed/`; superseded,
 abandoned or unaccepted work moves to `../archived/`, which never implies acceptance.
 
-Repository Reset 2 is deliberately started under its registered child packet. It does
-not authorize Brand/Product Experience A0 work.
+Repository Reset 2's post-merge record is prepared in #362, which awaits owner merge.
+After that merge, Brand/Product Experience A0 becomes the immediate next work but is
+not started and has no active packet.
