@@ -303,6 +303,13 @@ jobs:
         id: archive-round-trip
         shell: bash
         run: npm run verify:archive-producer
+      # R7 acceptance proof: the restored tenant's own archive must satisfy the
+      # same contract, so the whole chain is verified end to end.
+      - name: Archive restore round trip
+        if: needs.classify.outputs.database == 'true' && steps.database-tests.outcome == 'success'
+        id: archive-restore-round-trip
+        shell: bash
+        run: npm run verify:archive-round-trip
       - name: Stop local Supabase
         if: always() && needs.classify.outputs.database == 'true'
         run: supabase stop --no-backup || true
