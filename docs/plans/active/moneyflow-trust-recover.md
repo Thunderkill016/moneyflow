@@ -932,6 +932,19 @@ the archive between any of them.
 navigation to `/dashboard`. Every route reads the server, so stale pre-restore
 numbers cannot survive.
 
+### Review findings on #348
+
+Two, both real:
+
+1. **The route rendered outside the app shell.** It was a bare `<div>` under the
+   root layout, so it lost the navigation, workspace sizing and the way back to
+   Settings that every other settings surface has. Now wrapped in
+   `AppShell` + `SecondaryWorkspace`/`SecondaryHeader` like its siblings.
+2. **A failed restore left the file input populated.** Re-selecting the same
+   backup does not fire `onChange`, so after a transient server failure the user
+   could not retry without picking a different file or reloading. The input is
+   now cleared on every failed outcome.
+
 ### Demo mode
 
 Told the truth and given inert controls: complete backup/restore is a

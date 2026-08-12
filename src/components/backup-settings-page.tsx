@@ -6,9 +6,15 @@ import {
   restoreArchiveAction,
 } from "@/app/actions/archive";
 import { useId, useRef, useState } from "react";
+import { AppShell } from "@/components/layout/app-shell";
+import {
+  SecondaryHeader,
+  SecondaryWorkspace,
+} from "@/components/secondary/secondary-layout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import type { ViewerSummary } from "@/components/user-chip";
 import {
   ARCHIVE_MAX_RESTORE_BYTES,
   backupFileName,
@@ -83,7 +89,7 @@ function formatProducedAt(value: string): string {
 export function BackupSettingsPage({
   viewer,
 }: {
-  viewer: { isDemo: boolean };
+  viewer: ViewerSummary;
 }) {
   const router = useRouter();
   const fileInputId = useId();
@@ -138,11 +144,15 @@ export function BackupSettingsPage({
       if (bytes.byteLength > ARCHIVE_MAX_RESTORE_BYTES) {
         // Refused before upload: the platform would otherwise reject the request
         // mid-flight with an error no user could act on.
+        clearFileInput();
         setRestore({ kind: "rejected", message: describeTransportLimit() });
         return;
       }
       const result = ingestArchiveBytes(bytes);
       if (!result.ok) {
+        // Clear the input: re-picking the same file would not fire onChange, so
+        // a user could not retry after fixing anything without reloading.
+        clearFileInput();
         setRestore({ kind: "rejected", message: describeIngressRejection(result.code) });
         return;
       }
@@ -152,6 +162,7 @@ export function BackupSettingsPage({
         summary: summarizeArchive(result.archive),
       });
     } catch {
+      clearFileInput();
       setRestore({
         kind: "rejected",
         message: "Không đọc được tệp. Không có dữ liệu nào bị thay đổi.",
@@ -171,6 +182,9 @@ export function BackupSettingsPage({
       // added, renumbered or coerced between validation and the database.
       const result = await restoreArchiveAction(archive);
       if (!result.ok) {
+        // A server failure is often transient, so the same backup must be
+        // re-selectable without a page reload.
+        clearFileInput();
         setRestore({
           kind: "failed",
           message:
@@ -187,27 +201,42 @@ export function BackupSettingsPage({
       router.refresh();
       router.push("/dashboard");
     } catch {
+      clearFileInput();
       setRestore({ kind: "failed", message: describeRestoreFailure("unexpected") });
     } finally {
       busy.current = false;
     }
   }
 
-  function resetRestore() {
-    setRestore({ kind: "idle" });
+  /** Re-picking the same file only fires onChange if the value is cleared. */
+  function clearFileInput() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
+  function resetRestore() {
+    setRestore({ kind: "idle" });
+    clearFileInput();
+  }
+
   return (
-    <div>
-      <header>
-        <h1>Bản sao lưu MoneyFlow</h1>
-        <p className={styles.panelLead}>
-          Bản sao lưu chứa toàn bộ dữ liệu tài khoản của bạn và có thể khôi phục lại được. Khác
-          với mục <strong>Xuất giao dịch và Inbox</strong>, vốn chỉ là bản xuất báo cáo theo
-          khoảng ngày.
-        </p>
-      </header>
+    <AppShell viewer={viewer}>
+      <SecondaryWorkspace slot="settings-backup-workspace">
+        <SecondaryHeader
+          section="Cài đặt"
+          title="Bản sao lưu MoneyFlow"
+          description={
+            <p>
+              Bản sao lưu chứa toàn bộ dữ liệu tài khoản của bạn và có thể khôi phục lại được.
+              Khác với mục <strong>Xuất giao dịch và Inbox</strong>, vốn chỉ là bản xuất báo cáo
+              theo khoảng ngày.
+            </p>
+          }
+          actions={
+            <LinkButton href="/settings" intent="secondary" targetSize="important">
+              Cài đặt
+            </LinkButton>
+          }
+        />
 
       {demo ? (
         <Alert tone="info">
@@ -371,6 +400,7 @@ export function BackupSettingsPage({
           </div>
         ) : null}
       </Dialog>
-    </div>
+      </SecondaryWorkspace>
+    </AppShell>
   );
 }
