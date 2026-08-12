@@ -2,7 +2,7 @@
 
 **Status:** Phase 0 accepted recommendation — no unrelated PR or issue mutation authorized
 **Baseline:** `main@9f31aa02a64bcff30705c187fceb09cf5fa61ded`
-**Parent program:** `docs/plans/active/ui-system-migration.md`
+**Parent program provenance:** `docs/plans/completed/2026-08-08-ui-system-migration.md`
 
 This table separates current project truth from candidate branches. It records the recommended next decision but does not close, retarget, merge or modify unrelated PRs or issues.
 

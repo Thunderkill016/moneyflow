@@ -9,6 +9,10 @@ import {
   validateCurrentProjectMemory,
   validateProjectKnowledgeContract,
 } from "./project-knowledge-contract.mjs";
+import {
+  validateActivePacketRegistry,
+  validateAuthorityPacketReferences,
+} from "./active-packet-registry.mjs";
 
 function validContract() {
   return {
@@ -142,4 +146,60 @@ test("rejects malformed or contradictory contract values", () => {
   assert.ok(failures.some((failure) => failure.includes("targetMinLines")));
   assert.ok(failures.some((failure) => failure.includes("globalFeatureFreeze")));
   assert.ok(failures.some((failure) => failure.includes("duplicates")));
+});
+
+function withActivePacketFixture(files, run) {
+  const root = mkdtempSync(join(tmpdir(), "moneyflow-active-packets-"));
+  try {
+    for (const [path, content] of Object.entries(files)) {
+      const target = join(root, path);
+      mkdirSync(join(target, ".."), { recursive: true });
+      writeFileSync(target, content);
+    }
+    return run(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+test("requires the active-packet registry to match its directory exactly", () => {
+  const files = {
+    "docs/plans/active/README.md": [
+      "# Active work packets",
+      "| Packet | Role |",
+      "|---|---|",
+      "| `current.md` | current |",
+      "",
+    ].join("\n"),
+    "docs/plans/active/current.md": "# Current\n",
+  };
+
+  withActivePacketFixture(files, (root) => {
+    assert.deepEqual(validateActivePacketRegistry(root), []);
+  });
+  withActivePacketFixture(
+    { ...files, "docs/plans/active/stale.md": "# Stale\n" },
+    (root) => {
+      assert.ok(
+        validateActivePacketRegistry(root).some((failure) =>
+          failure.includes("stale.md is active but absent"),
+        ),
+      );
+    },
+  );
+});
+
+test("rejects a default authority route to an archived or missing active packet", () => {
+  withActivePacketFixture(
+    {
+      "docs/plans/active/README.md": "| `current.md` | current |\n",
+      "docs/plans/active/current.md": "# Current\n",
+      "README.md": "See docs/plans/active/retired.md.\n",
+    },
+    (root) => {
+      assert.deepEqual(validateAuthorityPacketReferences(root, ["README.md"]), [
+        "README.md references missing active packet: retired.md",
+      ]);
+    },
+  );
 });

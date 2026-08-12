@@ -1,10 +1,12 @@
 # MoneyFlow — Design System
 
-> **Current redesign authority (2026):** [Calm Ledger v2](./design/CALM_LEDGER_V2.md). The v2 contract overrides conflicting v1 values below while routes migrate. Product and financial truth remains in [product principles](./product/PRINCIPLES.md).
+> **Status (2026):** mixed implementation reference. Current shipped design-system
+> authority is [CURRENT_DESIGN_SYSTEM.md](./design/CURRENT_DESIGN_SYSTEM.md); [Calm
+> Ledger v2](./design/CALM_LEDGER_V2.md) is historical implementation context. Product
+> and financial truth remains in [product principles](./product/PRINCIPLES.md).
 
-> Tài liệu này là **luật** cho toàn bộ giao diện MoneyFlow.
-> Mọi component, màu sắc, khoảng cách, animation đều phải tuân theo specs trong file này.
-> Không có ngoại lệ. Nếu cần thay đổi, cập nhật file này trước, rồi mới sửa code.
+> Tài liệu này giữ lại token, component, spacing và accessibility lessons đã có. Nó
+> không khóa future Brand/Product Experience work vào các giá trị hoặc concept cũ.
 
 **Companion doc**: [UX_PRINCIPLES.md](./UX_PRINCIPLES.md) — triết lý và nguyên tắc UX.
 

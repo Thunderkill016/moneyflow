@@ -13,6 +13,24 @@ Always start with:
 
 Then choose only the relevant row below. Two to four focused references are normally enough.
 
+## Authority route
+
+Use one owner for each question; the router links to depth but is not a competing
+source of truth.
+
+| Question | Current authority | Routed detail or evidence |
+|---|---|---|
+| What is MoneyFlow? | `README.md` and `docs/product/PRINCIPLES.md` | `docs/MVP_DEFINITION.md`, product vision and capability research |
+| What is true now? | `docs/research/CURRENT_PROJECT_MEMORY.md` | current code/tests and a named PR record only when provenance is needed |
+| What executes next? | `docs/plans/active/README.md` | the registered active packet; `public-beta-trust.md` owns program order |
+| How is it built? | `ARCHITECTURE.md` | affected code, tests and migrations |
+| Which delivery/permission rules apply? | `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` and `docs/engineering/AGENT_OPERATING_MODEL.md` | `npm run agent:doctor` projects the existing policy; it grants no permission |
+| How do I research or recover history? | `docs/research/REPOSITORY_REFERENCE_MAP.md` and `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` | `docs/research/PR_MEMORY_LOG.md`, `docs/plans/completed/` and `docs/plans/archived/` |
+| Where is configuration authority? | `docs/configuration.md` | `docs/deployment.md`, `docs/supabase-setup.md`, `.env.example`, `vercel.json` and deployment validator |
+
+Do not read archived packets or PR memory to determine current state unless this route
+identifies a provenance question.
+
 ## Domain routes
 
 | Task boundary | Load next | Verify against |
@@ -27,7 +45,7 @@ Then choose only the relevant row below. Two to four focused references are norm
 | UI/mobile/accessibility | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` | owning CSS layer, responsive/browser evidence, physical-device claims |
 | Architecture/dependency/tooling | `ARCHITECTURE.md`, `docs/engineering/AI_DELIVERY_WORKFLOW.md`, focused repository reference maps | license, security, privacy, ownership, operations and rollback |
 | CI/deployment/performance | `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`, CI classifier/workflows, load contracts | exact-head selected gates; no claim for skipped boundaries |
-| Brand/landing | brand guidelines, logo docs, UI/UX research ledger and current design PR | owner judgment; candidate design is not product truth |
+| Brand/landing | brand guidelines, logo docs, `docs/research/UI_UX_RESEARCH_LEDGER.md` and historical UI packets | owner judgment; candidate design is not product truth; A0 must retain prior failure lessons |
 
 ## Cold-memory retrieval
 

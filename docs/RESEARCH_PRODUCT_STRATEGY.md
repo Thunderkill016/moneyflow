@@ -1,5 +1,9 @@
 # Money Flow — Báo cáo nghiên cứu sản phẩm & chiến lược phát triển
 
+> **Status:** historical strategy research. It is reusable evidence for future
+> research questions, not current product scope, architecture, execution state or a
+> permission source. Route current decisions through `docs/context/README.md`.
+
 **Ngày nghiên cứu:** 2026-07-14  
 **Phiên bản:** 1.0  
 **Ngôn ngữ:** Tiếng Việt  

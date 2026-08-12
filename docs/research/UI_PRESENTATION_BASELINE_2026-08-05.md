@@ -1,7 +1,7 @@
 # MoneyFlow UI presentation baseline — 2026-08-05
 
 **Status:** Phase 0 evidence, owner-accepted
-**Program:** `docs/plans/active/ui-system-migration.md`
+**Program provenance:** `docs/plans/completed/2026-08-08-ui-system-migration.md`
 **Baseline main ref:** `9f31aa02a64bcff30705c187fceb09cf5fa61ded`
 **Evidence merge candidate:** PR #291 merge candidate `45a6689e2a913f74d8b41475c649f8fdb93663c4`, exact head `7ccaae55b910a5f0ec5132dee51ef3e3c9a91784`
 

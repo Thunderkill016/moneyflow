@@ -6,6 +6,10 @@ import {
   PROJECT_KNOWLEDGE_CONTRACT_PATH,
   validateCurrentProjectMemory,
 } from "./project-knowledge-contract.mjs";
+import {
+  validateActivePacketRegistry,
+  validateAuthorityPacketReferences,
+} from "./active-packet-registry.mjs";
 
 const root = process.cwd();
 const failures = [];
@@ -31,6 +35,7 @@ const requiredFiles = [
   "docs/templates/FEATURE_WORK_PACKET.md",
   "docs/plans/README.md",
   "docs/plans/active/README.md",
+  "docs/plans/archived/README.md",
   "docs/plans/completed/README.md",
   ".github/pull_request_template.md",
   ".github/workflows/ci.yml",
@@ -232,10 +237,11 @@ const requiredReadmeLinks = [
   "docs/product/PRINCIPLES.md",
   "docs/research/CURRENT_PROJECT_MEMORY.md",
   "docs/research/PR_MEMORY_LOG.md",
-  "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
-  "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
+  "docs/plans/active/README.md",
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
-  "docs/engineering/AI_DELIVERY_WORKFLOW.md",
+  "docs/engineering/AGENT_OPERATING_MODEL.md",
+  "docs/context/README.md",
+  "docs/configuration.md",
 ];
 
 try {
@@ -267,6 +273,7 @@ requireMarkers("docs/research/README.md", [
   "PRODUCT_COMPETITIVE_MEMORY.md",
   "REPOSITORY_REFERENCE_MAP.md",
   "ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md",
+  "Snapshot budget is executable in `PROJECT_KNOWLEDGE_CONTRACT.json`",
 ]);
 
 requireMarkers("docs/research/PR_MEMORY_LOG.md", [
@@ -275,14 +282,16 @@ requireMarkers("docs/research/PR_MEMORY_LOG.md", [
   "Status impact: none",
   "CURRENT_PROJECT_MEMORY.md",
   "140 lines",
-  "64 KiB",
+  "PROJECT_KNOWLEDGE_CONTRACT.json",
   "untrusted evidence",
 ]);
 
 requireMarkers("docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md", [
   "# MoneyFlow — competitive capability gap matrix",
-  "## 2. Corrected current position",
-  "## 3. Capability matrix",
+  "**Status:** historical capability audit",
+  "not define current state or",
+  "## 2. Historical audit position",
+  "## 3. Historical capability matrix",
   "## 6. Delivery waves",
   "## 8. Superseded claims",
   "Reports | **Implemented, moderate depth**",
@@ -291,14 +300,35 @@ requireMarkers("docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md", [
 
 requireMarkers("docs/research/PRODUCT_COMPETITIVE_MEMORY.md", [
   "# MoneyFlow — product competitive memory",
+  "**Status:** historical product/competitive synthesis",
   "# 4. MoneyFlow current capability snapshot",
   "# 6. Capability comparison",
   "# 8. Cumulative synthesis",
-  "# 10. Prioritized roadmap",
+  "# 10. Historical prioritization snapshot",
   "# 11. Durable decision register",
-  "Account reconciliation is the next major product capability",
+  "Account reconciliation is a future candidate",
   "External products are pattern references, not acceptance authorities",
 ]);
+
+for (const path of [
+  "docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md",
+  "docs/research/PRODUCT_COMPETITIVE_MEMORY.md",
+]) {
+  try {
+    const content = read(path);
+    for (const pattern of [
+      /\*\*Status:\*\* active capability roadmap/iu,
+      /\*\*Status:\*\* active product and roadmap synthesis/iu,
+      /Account reconciliation is the next major product capability/iu,
+    ]) {
+      if (pattern.test(content)) {
+        failures.push(`${path} contains an obsolete competing next-work claim`);
+      }
+    }
+  } catch {
+    // Missing file is already reported by the required-file contract.
+  }
+}
 
 requireMarkers("AGENTS.md", [
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
@@ -419,6 +449,18 @@ try {
 } catch {
   failures.push("docs/plans/active must exist");
 }
+
+failures.push(...validateActivePacketRegistry(root));
+failures.push(
+  ...validateAuthorityPacketReferences(root, [
+    "AGENTS.md",
+    "README.md",
+    "CLAUDE.md",
+    ".specify/README.md",
+    "docs/context/README.md",
+    "docs/research/CURRENT_PROJECT_MEMORY.md",
+  ]),
+);
 
 for (const warning of warnings) {
   console.warn(`Project knowledge warning: ${warning}`);

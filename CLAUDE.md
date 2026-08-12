@@ -2,13 +2,18 @@
 
 # Claude Code orientation
 
-This file is a lightweight session entrypoint. It does not replace `AGENTS.md`, the active work packet, current code, tests or merged GitHub history.
+This file is a Claude Code adapter. It does not replace `AGENTS.md`, the active
+packet registry, current-project memory, current code/tests or merged GitHub history.
+`.claude/settings.json` is retained because it invokes the current session and
+pre-tool safety hooks; `.claude/agents/evaluator.md` is supplemental evaluator
+guidance, not an authority source.
 
 ## Before editing
 
 1. Run `git status -sb`, `git branch --show-current` and `git log -5 --oneline`.
 2. Follow the read order in `AGENTS.md`.
-3. Find the controlling file under `docs/plans/active/` and the relevant issue or pull request.
+3. Read `docs/plans/active/README.md`; then open only its registered controlling
+   packet and any relevant issue or pull request.
 4. Check whether another open PR changes the same files or source of truth.
 5. Separate observed facts, inference, stale documentation and unresolved questions.
 6. For non-trivial work, finish reconnaissance, specification, plan, tasks and verification criteria before editing runtime code.
@@ -34,13 +39,15 @@ This file is a lightweight session entrypoint. It does not replace `AGENTS.md`, 
 When sources conflict, use this order:
 
 1. Explicit human decisions for the current task.
-2. `docs/product/PRINCIPLES.md`.
-3. The reviewed controlling work packet.
-4. `ARCHITECTURE.md`.
-5. Current code, tests, migrations and merged PR history.
-6. Historical research and old draft PRs as evidence only.
+2. Current code, tests, migrations and merged PR history.
+3. `docs/product/PRINCIPLES.md` and the reviewed controlling work packet.
+4. `ARCHITECTURE.md` and current-project memory.
+5. Historical research and old draft PRs as evidence only.
 
 Record conflicts instead of silently choosing a convenient source.
+
+For the complete question-to-authority route, use `docs/context/README.md`. Do not
+use `.claude/skills/` as product, project-state or permission authority.
 
 ## Delivery guardrails
 

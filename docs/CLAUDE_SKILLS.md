@@ -1,4 +1,7 @@
-# Claude Agent Skills — nguồn chính thức + dùng cho MoneyFlow
+# Claude Agent Skills — vendor support for MoneyFlow
+
+These are vendor/tool-support materials, not MoneyFlow product, project-state,
+execution or permission authority. Use `AGENTS.md` and `docs/context/README.md` first.
 
 ## Trang / repo Claude (official)
 
@@ -39,7 +42,10 @@
 
 ## Đã cài vào project này
 
-- `.claude/skills/` — path Claude Code chuẩn  
-- `.agents/skills/` — mirror  
+- `.claude/skills/` — Claude Code’s current load path
+- `.agents/skills/` — Codex/Spec Kit-compatible mirror; retained because
+  `.specify/README.md` pins its generated command location there
 
-Plus project skills: ship-feature, TDD, verification, security-pass, frontend-qa, supabase-rls.
+Plus `.agents/`-only project skills: ship-feature, TDD, verification, security-pass,
+frontend-qa and supabase-rls. The duplicated vendor skills are intentionally retained
+for the two different tool paths; their contents are not a parallel instruction system.

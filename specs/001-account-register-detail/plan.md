@@ -3,7 +3,7 @@
 - **Spec:** `specs/001-account-register-detail/spec.md`
 - **Branch:** `feat/account-register-detail-main`
 - **Change class:** Class 2 bounded UI/read-flow
-- **Work packet:** `docs/plans/active/account-register-detail.md`
+- **Work-packet status:** none — this unmerged Spec Kit artifact is historical candidate guidance and does not represent active execution.
 - **Status:** implementing
 - **Last updated:** 2026-08-02
 

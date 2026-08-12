@@ -1,5 +1,8 @@
 # Money Flow — Wireframes (Inbox-first)
 
+> **Status:** historical Inbox-first wireframe input. Retain capture/review and state
+> lessons, but do not treat its route hierarchy or product identity as current.
+
 > Low-fidelity · **không màu · không style brand đối thủ** · chỉ cấu trúc & ưu tiên.  
 > Reference: [UX_RESEARCH_AND_REDESIGN.md](./UX_RESEARCH_AND_REDESIGN.md)
 

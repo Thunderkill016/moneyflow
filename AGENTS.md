@@ -8,6 +8,11 @@ This version has breaking changes. Before using unfamiliar App Router APIs, read
 
 `AGENTS.md` is procedural hot memory, not the project encyclopedia. Load only the context needed for the affected boundary.
 
+## Authority route
+
+Start with `README.md`, current-project memory and the active registry;
+`docs/context/README.md` maps every other authority. Historical packets never reopen work.
+
 ## Read order
 
 For every change:
@@ -21,20 +26,16 @@ For every change:
 
 For Spec Kit features, also read `.specify/README.md`, `.specify/memory/constitution.md` and the active `specs/<feature>/` artifacts. They remain candidate guidance and never override current code/tests, project memory, MoneyFlow policy, an active packet or owner decisions.
 
-For Class 3, multi-day, multi-agent, provider/production or cross-cutting work also read:
-
-- `docs/engineering/AI_DELIVERY_WORKFLOW.md`;
-- `docs/engineering/AGENT_OPERATING_MODEL.md`;
-- the active packet under `docs/plans/active/`.
+For Class 3, multi-day, multi-agent, provider/production or cross-cutting work also
+read `docs/engineering/AI_DELIVERY_WORKFLOW.md`,
+`docs/engineering/AGENT_OPERATING_MODEL.md` and the registered active packet.
 
 Do not preload PR history. `docs/research/PR_MEMORY_LOG.md` defines the policy; open `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only when provenance is needed.
 
-Task references remain discoverable through the router, including:
-
-- `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`;
-- `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`;
-- `docs/research/REPOSITORY_REFERENCE_MAP.md`;
-- `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md`.
+The router also indexes `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`,
+`docs/research/PRODUCT_COMPETITIVE_MEMORY.md`,
+`docs/research/REPOSITORY_REFERENCE_MAP.md` and
+`docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md`.
 
 ## Product law
 

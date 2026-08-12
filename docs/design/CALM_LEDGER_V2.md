@@ -1,9 +1,13 @@
 # Calm Ledger v2
 
-This is the controlling visual and interaction contract for MoneyFlow's 2026
-system redesign. `docs/product/PRINCIPLES.md` remains the authority for product
-truth and financial safety. Older design-system sections are migration
-reference where they conflict with this file.
+> **Status:** historical implementation contract. It records prior token, contrast,
+> interaction and failure-prevention lessons; it is not the default direction for the
+> future Brand/Product Experience rebuild. Current shipped ownership is indexed in
+> `docs/design/CURRENT_DESIGN_SYSTEM.md` and future selection follows
+> `docs/AI_UIUX_WORKFLOW.md` plus owner approval.
+
+This previously controlled the 2026 system redesign. `docs/product/PRINCIPLES.md`
+remains the authority for product truth and financial safety.
 
 ## Product posture
 

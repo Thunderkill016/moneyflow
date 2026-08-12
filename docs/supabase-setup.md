@@ -1,6 +1,6 @@
 # Supabase setup
 
-MoneyFlow uses an explicit runtime mode. `NEXT_PUBLIC_APP_MODE=demo` runs the browser-only demo; `NEXT_PUBLIC_APP_MODE=authenticated` enables real accounts and the protected database. Deployment-specific values never belong in source control; see [configuration.md](./configuration.md).
+MoneyFlow uses an explicit runtime mode. `NEXT_PUBLIC_APP_MODE=demo` runs the browser-only demo; `NEXT_PUBLIC_APP_MODE=authenticated` enables real accounts and the protected database. The authoritative environment-variable and provider-setting contract is [configuration.md](./configuration.md); this setup guide only provides local onboarding steps.
 
 ## 1. Create a project
 
@@ -14,7 +14,8 @@ Never use the secret/service-role key in browser code.
 cp .env.example .env.local
 ```
 
-The example starts in demo mode:
+The example starts in demo mode. Refer to the configuration contract for the complete
+variable semantics and hosted requirements:
 
 ```text
 NEXT_PUBLIC_APP_MODE=demo
@@ -33,9 +34,9 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
-For production, configure the same variable names in **Vercel Project Settings → Environment Variables**. Production must use `NEXT_PUBLIC_APP_MODE=authenticated`, and `NEXT_PUBLIC_SITE_URL` must be the exact HTTPS production origin. Do not put production values in `vercel.json` or TypeScript constants.
-
-`LEGACY_SITE_HOSTS` is optional and contains comma-separated retired hostnames during a deliberate domain migration. Remove entries after the migration window.
+For production, configure the values in **Vercel Project Settings → Environment
+Variables** according to [configuration.md](./configuration.md). Do not put
+production values in `vercel.json` or TypeScript constants.
 
 ## 3. Configure Auth redirects
 

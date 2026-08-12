@@ -1,6 +1,6 @@
 # MF SAFE-UX Phase 0 — evidence baseline
 
-**Plan:** `docs/plans/active/mf-safe-ux.md`  
+**Plan provenance:** `docs/plans/completed/2026-07-30-mf-control-01.md`
 **Master issue:** #134  
 **Phase:** SAFE-T0 / evidence lock and reproducible baseline  
 **Captured:** 2026-07-29

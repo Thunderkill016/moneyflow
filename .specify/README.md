@@ -1,6 +1,8 @@
 # MoneyFlow Spec Kit adapter
 
-MoneyFlow adopts GitHub Spec Kit as a **feature-artifact interface**, not as a second project-management or governance system.
+MoneyFlow adopts GitHub Spec Kit as a **feature-artifact interface**, not as a second
+project-management or governance system. It is an adapter: its current authority
+route is `AGENTS.md` → `docs/context/README.md` → the registered active packet.
 
 Spec Kit may generate and maintain feature specifications, implementation plans, task lists, checklists and consistency analysis. MoneyFlow's existing repository law remains authoritative for product scope, architecture, permissions, verification, PR memory and owner acceptance.
 

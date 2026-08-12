@@ -1,10 +1,15 @@
 # MoneyFlow — UX Principles
 
-> **Current product note (2026):** MoneyFlow is a manual-first ledger. The signed-in home is Tổng quan (`/dashboard`; `/insights` is a legacy redirect kept for old bookmarks); Hộp thư is an import-review queue. Safe-to-spend and daily spending advice are withdrawn. [Calm Ledger v2](./design/CALM_LEDGER_V2.md) controls the active redesign where older research below conflicts.
+> **Status (2026):** reusable UX principles and historical implementation reference.
+> MoneyFlow is a manual-first ledger; `/dashboard` is the signed-in home and
+> `/insights` is a compatibility redirect. Safe-to-spend and daily spending advice
+> are withdrawn. [Calm Ledger v2](./design/CALM_LEDGER_V2.md) is historical context,
+> not a future redesign authority; inspect `docs/design/CURRENT_DESIGN_SYSTEM.md` for
+> shipped implementation authority and `docs/AI_UIUX_WORKFLOW.md` for future process.
 
-> This document defines the UX philosophy, design principles, and interaction patterns for MoneyFlow.
-> Every design and implementation decision must be traceable to a principle in this document.
-> This is the **law** — not a suggestion.
+> This document preserves UX philosophy, interaction patterns and state checklists.
+> It does not select a future layout, palette or information architecture without an
+> owner-approved work packet.
 
 ---
 

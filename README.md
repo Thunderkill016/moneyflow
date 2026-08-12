@@ -13,42 +13,26 @@ MoneyFlow is not currently a bank aggregator, AI financial adviser, business-acc
 
 The released MVP is the first product baseline, not the final ceiling. The owner-approved long-term direction is a comprehensive personal-finance platform delivered as optional, dependency-ordered modules while the simple daily ledger remains the default.
 
-## Sources of truth
+## Authority route
 
-Start here before bounded or high-risk work:
+Start with [AGENTS.md](AGENTS.md), then use exactly one current owner for the
+question at hand:
 
-- [Agent entrypoint](AGENTS.md)
-- [Architecture map](ARCHITECTURE.md)
-- [Product principles](docs/product/PRINCIPLES.md)
-- [Long-term product vision](docs/product/MONEYFLOW_PRODUCT_VISION.md)
-- [Global personal-finance capability atlas](docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md)
-- [Target architecture roadmap](docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md)
-- [MVP definition and readiness gates](docs/MVP_DEFINITION.md)
-- [Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md)
-- [Pull-request memory log](docs/research/PR_MEMORY_LOG.md)
-- [Current capability gap matrix](docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md)
-- [Product competitive memory](docs/research/PRODUCT_COMPETITIVE_MEMORY.md)
-- [Risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md)
-- [AI delivery workflow](docs/engineering/AI_DELIVERY_WORKFLOW.md)
-- [Feature work-packet template](docs/templates/FEATURE_WORK_PACKET.md)
-- [Active/completed plan lifecycle](docs/plans/README.md)
-- [Spec Kit adapter and authority rules](.specify/README.md)
-- [Spec Kit constitution](.specify/memory/constitution.md)
+| Question | Authority |
+|---|---|
+| Product identity and principles | [Product principles](docs/product/PRINCIPLES.md) |
+| Current project state | [Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md) |
+| Immediate execution | [Active work-packet registry](docs/plans/active/README.md) |
+| Architecture | [Architecture map](ARCHITECTURE.md) |
+| Delivery gates and permissions | [Risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md) and [agent operating model](docs/engineering/AGENT_OPERATING_MODEL.md) |
+| Research routing | [Task context router](docs/context/README.md) and its two reference maps |
+| Historical provenance | [PR memory log](docs/research/PR_MEMORY_LOG.md), [completed packets](docs/plans/completed/) and [archived packets](docs/plans/archived/) |
+| App/deployment configuration | [Configuration contract](docs/configuration.md) |
 
-UI, brand and infrastructure references:
-
-- [MoneyFlow brand guidelines](docs/brand/MONEYFLOW_BRAND_GUIDELINES.md)
-- [Canonical logo identity](docs/design/MONEYFLOW_LOGO.md)
-- [AI-assisted UI/UX workflow](docs/AI_UIUX_WORKFLOW.md)
-- [UX principles](docs/UX_PRINCIPLES.md)
-- [Design system](docs/design-system.md)
-- [Configuration contract](docs/configuration.md)
-- [Supabase setup](docs/supabase-setup.md)
-- [RLS verification](docs/security-rls-check.md)
-
-Historical research remains useful as evidence but does not override current code, the current-project memory or accepted owner decisions. Every pull request targeting `main` must append one truthful entry to the pull-request memory log. A PR that changes implementation status must also update the affected row or section in the current-project memory.
-
-Spec Kit feature artifacts under `specs/` are accepted as structured requirements, planning, tasks, checklists and consistency inputs. They do not replace the risk classifier, a required MoneyFlow work packet, permission/handoff records, PR memory or human owner decisions.
+Historical research, completed packets and Spec Kit feature artifacts are evidence,
+not current authority. The context router selects them only when their provenance is
+needed. Every pull request targeting `main` adds one truthful PR-memory record; a
+change to current truth also updates the current-project memory.
 
 ## Runtime modes
 

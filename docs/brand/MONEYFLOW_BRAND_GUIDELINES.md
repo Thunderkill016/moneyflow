@@ -1,11 +1,11 @@
 # MoneyFlow Brand Guidelines
 
 **Version:** 1.1  
-**Status:** active brand foundation; canonical logo v1 approved; marketing/SEO section added  
+**Status:** reusable brand foundation; canonical identity is logo v2 in `docs/design/MONEYFLOW_LOGO.md`
 **Owner:** MoneyFlow  
 **Last updated:** 2026-07-28
 
-Tài liệu này định nghĩa nền tảng thương hiệu, ngôn ngữ, hệ thống hình ảnh và quy tắc ứng dụng của MoneyFlow.
+Tài liệu này định nghĩa nền tảng thương hiệu, ngôn ngữ, hệ thống hình ảnh và quy tắc ứng dụng của MoneyFlow. It does not select the next Brand/Product Experience layout or palette beyond explicit owner decisions.
 
 ## Authority
 

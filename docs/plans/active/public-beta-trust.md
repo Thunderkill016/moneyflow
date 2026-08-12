@@ -2,12 +2,12 @@
 
 **Status:** active
 **Execution state:** P3 Prove accepted; bounded Repository Reset is next; public-beta decision remains open
-**Active role:** planner for the next bounded Repository Reset only after this closure merges
+**Active role:** parent-program planner; Repository Reset 1 child packet is implementing
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
 **Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure; #356 P3 Prove packet; #358 PP-12 remediation
 **Last updated:** 2026-08-12
-**Current main audited:** `c97400cf5e07879e529bddc258d31ce7ddab4e51`
+**Current main audited:** `4283129bbe8378f04de17b96bffaeb4c45474147`
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
@@ -20,13 +20,13 @@ MoneyFlow Trust moves the released functional MVP toward a trustworthy bounded p
 
 MoneyFlow is ready for a bounded public beta only when repository state, production providers and user-visible behavior agree; destructive operations are protected by current security policy; user-owned state is recoverable; and the daily ledger survives real use without data loss or manual database repair.
 
-Program sequence:
+Current program sequence:
 
-> **Provider Sync → Secure acceptance → Recover → Prove → Improve → Release**
+> **Repository Reset → Brand/Product Experience rebuild A0→J → final
+> physical/device visual QA → owner public-beta decision**
 
-Provider Sync, P1 Secure, P2 Recover and **P3 Prove** are accepted. The immediate
-next execution state is a bounded **Repository Reset**, followed by the Brand/Product
-Experience rebuild A0→J, final physical/device visual QA, and then the owner public-beta decision.
+Provider Sync, P1 Secure, P2 Recover and **P3 Prove** are accepted historical
+checkpoints. Generic P4 Improve is not an active or implied next implementation.
 
 ## Repository reconnaissance
 
