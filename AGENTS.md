@@ -56,7 +56,7 @@ Task references remain discoverable through the router, including:
 
 ## Delivery workflow
 
-Before implementation, run `npm run agent:doctor`; it derives local gates from the existing CI classifier, reports missing capabilities and lists exact-head provider checks separately. Treat it as diagnostics, never as a second policy authority or a reason to weaken required evidence. Classify first:
+Before implementation, run `npm run agent:doctor` (`--json` for tooling). It answers the questions below from the rules already written here and in `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`: risk class, local gate plan, required capabilities, exact-head provider checks, whether an owner approval boundary is in play, and which evidence types completion needs. `scripts/agent-policy.mjs` is the machine-readable projection of that policy and `scripts/classify-ci-changes.mjs` remains the sole authority for path → gate selection; the doctor consumes both and adds no policy of its own. It is diagnostics: it grants no permission, and local green is not a completed pull request. Classify first:
 
 - **Class 0:** docs/mechanical; inline plan or clear PR description.
 - **Class 1:** bounded code in one subsystem with straightforward rollback.
