@@ -14,7 +14,7 @@ import {
   ALL_ARCHIVE_COLLECTIONS,
   ARCHIVE_ROW_SPECS,
 } from "../src/lib/archive/moneyflow-archive.ts";
-import { validateMoneyFlowArchive } from "../src/lib/archive/moneyflow-archive-validator.ts";
+import { ingestArchiveBytes } from "../src/lib/archive/archive-ingress.ts";
 
 const failures = [];
 
@@ -28,27 +28,27 @@ if (!path) {
   process.exit(2);
 }
 
-const raw = readFileSync(path, "utf8").trim();
-if (raw === "") {
+// The producer's bytes are fed through the R8 file-ingress boundary exactly as a
+// downloaded archive would be — strict UTF-8, duplicate-member scan, JSON parse,
+// then the R5 validator. Nothing reshapes the file in between, so this proves the
+// whole chain: database -> archive -> file ingress -> validated archive.
+const rawBytes = readFileSync(path);
+if (rawBytes.byteLength === 0) {
   console.error(`${path} is empty — the producer emitted nothing.`);
   process.exit(1);
 }
 
-let archive;
-try {
-  archive = JSON.parse(raw);
-} catch (error) {
-  console.error(`${path} is not valid JSON: ${error instanceof Error ? error.message : error}`);
+const ingress = ingestArchiveBytes(
+  new Uint8Array(rawBytes.buffer, rawBytes.byteOffset, rawBytes.byteLength),
+);
+if (!ingress.ok) {
+  console.error(`Archive ingress rejected the producer output: ${ingress.code}`);
+  for (const rejection of ingress.errors ?? []) {
+    console.error(`  - ${rejection.code} at ${rejection.path || "<root>"}`);
+  }
   process.exit(1);
 }
-
-// 1. The acceptance proof: raw producer output must satisfy the R5 contract.
-const result = validateMoneyFlowArchive(archive);
-if (!result.ok) {
-  for (const rejection of result.errors) {
-    failures.push(`validator rejected ${rejection.code} at ${rejection.path || "<root>"}`);
-  }
-}
+const archive = ingress.archive;
 
 const tables = archive?.tables ?? {};
 
@@ -165,6 +165,6 @@ if (failures.length > 0) {
 const counts = ALL_ARCHIVE_COLLECTIONS.map(
   (collection) => `${collection}=${archive.tenant_row_counts[collection]}`,
 ).join(" ");
-console.log("Archive producer verification passed.");
+console.log("Archive producer verification passed (through the R8 file-ingress boundary).");
 console.log(`  archive_version=${archive.archive_version} schema_generation=${archive.schema_generation}`);
 console.log(`  ${counts}`);

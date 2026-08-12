@@ -1,7 +1,7 @@
 # MoneyFlow Trust P2 — Recover (complete versioned archive and restore)
 
 **Status:** implementing
-**Execution state:** R5, R6 and R7 complete; file ingress and UI next
+**Execution state:** R5–R8 complete; UI is the last slice before P2 acceptance
 **Active role:** evaluator
 **Permission scope:** branch_write (repository code and tests; no provider, production or database write)
 **Owner:** agent (implementer/evaluator) → human_owner (merge decision)
@@ -751,6 +751,89 @@ identical; rules and candidates compare identical minus exactly the named fields
 3. A test compared restored categories against a source tenant the lifecycle now
    purges first; it compares against the archive instead.
 
+## R8 implementation truth
+
+`src/lib/archive/archive-ingress.ts` is the single boundary between an untrusted
+file and an R5-validated archive:
+
+```
+bytes → size bound → strict UTF-8 → structural scan → JSON.parse → R5 validator
+```
+
+Nothing repairs, normalizes or fills in an archive; R5 remains the only judge of
+domain validity. Pure — its only imports are the contract and the validator.
+
+### Duplicate member names — the reason this layer exists
+
+R5 recorded that it *could not* claim duplicate-key protection, because
+`JSON.parse` keeps the last member and discards the rest before a validator ever
+runs. `scanJsonStructure` reads the raw text first and rejects a duplicate at any
+depth.
+
+It is deliberately **not** a JSON parser: it builds no values and decides no
+types, only tracking object scopes well enough to know which strings are member
+names. `JSON.parse` remains the syntax authority, and any structural
+disagreement is reported as a syntax error for it to confirm.
+
+Two properties matter and are attacked in tests:
+
+- comparison uses the **decoded** name, so `"\u0061rchive_id"` collides with
+  `"archive_id"`; raw-spelling comparison would miss it;
+- scopes are separate, so the same name in sibling objects stays valid.
+
+A regex over `"key":` was rejected outright — tests include strings that contain
+`\"id\": 1`, braces, escaped quotes and backslashes, all of which such a regex
+would fire on.
+
+### No dependency
+
+None was added. The scanner is ~120 bounded lines against a well-specified grammar,
+and it needs only name-and-scope tracking rather than value construction, so a
+third-party parser would have been more supply-chain surface for less fit. A test
+asserts no JSON-parsing dependency appears in the manifest.
+
+### UTF-8 and BOM
+
+Decoding uses `TextDecoder("utf-8", { fatal: true })`. `fatal` is the point: the
+default decoder rewrites malformed bytes to U+FFFD, silently turning a corrupt
+file into a parseable one. A test proves the lenient decoder would have accepted
+the same bytes.
+
+A leading UTF-8 BOM is tolerated and stripped, because editors and spreadsheet
+tools add one and it is unambiguous. Nothing else is: no encoding sniffing, no
+legacy encodings, no UTF-16.
+
+### Bounds, derived not invented
+
+- **64 MiB.** Measured from the real contract shapes: a serialized transaction is
+  ~334 B and an entry ~348 B, so a transaction with its typical 1.3 entries costs
+  ~786 B. The cap holds roughly 85,000 transactions — about 23 years at ten a day,
+  or eleven at twenty. Checked before any decoding, and oversized input is
+  rejected outright: half an archive is not a smaller archive.
+- **Depth 24.** A real archive nests five deep. The exact value is deliberate:
+  R5's forbidden-key scan stops descending past depth 24, so capping ingress at
+  the same bound guarantees the validator inspects every level of what it
+  accepts. Without it, a secret buried at depth 30 would pass that scan
+  unexamined. A test asserts the two bounds stay aligned.
+
+### Error contract
+
+Stable codes for a later Vietnamese UI: `file_empty`, `file_too_large`,
+`invalid_utf8`, `invalid_json_syntax`, `duplicate_member_name`,
+`max_depth_exceeded`, `archive_invalid`.
+
+Rejections carry a byte offset and depth, never a member name and never a value —
+`column_map` keys are user-derived statement headers, so even a key name can be
+private. `JSON.parse`'s own message is discarded for the same reason: it quotes
+the offending source text.
+
+### Integration proof
+
+`scripts/verify-archive-producer.mjs` now feeds the producer's **raw bytes**
+through this boundary instead of calling `JSON.parse` itself, so both CI round
+trips prove the full chain — `database → archive → file ingress → validated
+archive` — with no test-only reshaping anywhere in it.
+
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
@@ -762,7 +845,8 @@ identical; rules and candidates compare identical minus exactly the named fields
 | R5 | Envelope types and pure validators + unit tests | R4 | 92 assertions across 3 modules; see below | done |
 | R6 | `export_user_archive` + producer drift test | R5 | 40 pgTAP assertions + real DB round trip into the R5 validator; see below | done |
 | R7 | `restore_user_archive` + restore batch + pgTAP atomicity/ownership | R6 | 38 pgTAP assertions; full archive→restore→archive round trip | done |
-| R8 | Settings surface with required states | R7 | — | not started |
+| R8 | Strict archive file ingress | R7 | 32 attack assertions; producer bytes routed through ingress in CI | done |
+| R9 | Settings surface with required states | R8 | — | next |
 | R9 | Round-trip and rejection acceptance evidence | R7, R8 | — | not started |
 
 ## Handoff record
@@ -892,8 +976,9 @@ Four more, all verified against source before accepting, all fixed:
   divergence between them, not a table absent from both.
 - `financial_mutation_audit_events` is settled by D3: preserved as
   non-replayable history, never inserted into the live audit table.
-- R5 validates parsed objects only; duplicate raw JSON keys are outside its
-  reach and outside its claims.
+- R5 still validates parsed objects only; duplicate raw JSON member names are
+  now caught upstream by the R8 ingress boundary, which is where that claim
+  legitimately lives.
 - The bootstrap account allowance is count-based because `accounts` has no
   `is_default` column.
 - No pgTAP ran in R5 and none was required. Real pgTAP becomes mandatory for the
