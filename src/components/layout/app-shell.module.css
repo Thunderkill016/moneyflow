@@ -353,7 +353,7 @@
  * indicator.
  */
 .shellSheet {
-  max-height: min(86svh, 760px);
+  height: min(86svh, 760px);
   overscroll-behavior-y: contain;
 }
 
@@ -768,7 +768,7 @@
   }
 
   .shellSheet {
-    max-height: min(88svh, 760px);
+    height: min(88svh, 760px);
     padding-right: env(safe-area-inset-right, 0px);
     padding-left: env(safe-area-inset-left, 0px);
   }
