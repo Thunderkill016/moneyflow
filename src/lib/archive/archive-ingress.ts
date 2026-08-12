@@ -23,7 +23,12 @@
  * and rejects a duplicate member name at any depth.
  */
 
-import type { MoneyFlowArchive } from "./moneyflow-archive.ts";
+import {
+  ALL_ARCHIVE_COLLECTIONS,
+  ARCHIVE_ENVELOPE_KEYS,
+  ARCHIVE_ROW_SPECS,
+  type MoneyFlowArchive,
+} from "./moneyflow-archive.ts";
 import {
   validateMoneyFlowArchive,
   type ArchiveRejection,
@@ -86,7 +91,13 @@ export type ArchiveIngressResult =
       readonly code: ArchiveIngressRejectionCode;
       readonly byteOffset?: number;
       readonly depth?: number;
-      /** Present only for `archive_invalid`: R5's own rejections, already value-free. */
+      /**
+       * Present only for `archive_invalid`. R5's rejections carry no values, but
+       * their `path` is built from real object keys — and inside an opaque
+       * `headers`/`column_map` payload those keys are the user's own imported
+       * column headers. Any segment outside the known contract is redacted
+       * before it leaves this boundary.
+       */
       readonly errors?: readonly ArchiveRejection[];
     };
 
@@ -101,6 +112,42 @@ type ScanFailure = {
 
 const WHITESPACE = new Set([" ", "\t", "\n", "\r"]);
 
+/**
+ * Every path segment the contract itself defines: envelope keys, collection
+ * names and declared row fields. Anything else in a validator path came from the
+ * archive's own data and must not be echoed.
+ */
+const CONTRACT_PATH_SEGMENTS: ReadonlySet<string> = new Set<string>([
+  "tables",
+  "tenant_row_counts",
+  ...ARCHIVE_ENVELOPE_KEYS,
+  ...ALL_ARCHIVE_COLLECTIONS,
+  ...Object.values(ARCHIVE_ROW_SPECS).flatMap((spec) => Object.keys(spec.fields)),
+]);
+
+const REDACTED_SEGMENT = "<redacted>";
+
+/**
+ * Redact the parts of a validator path that came from archive data.
+ *
+ * `tables.importBatches[0].column_map.My Bank Login` keeps its structure but
+ * loses the private header, becoming
+ * `tables.importBatches[0].column_map.<redacted>`.
+ */
+export function redactValidatorPath(path: string): string {
+  if (path === "") return path;
+  return path
+    .split(".")
+    .map((segment) => {
+      // Array indices are structural, e.g. `transactions[3]`.
+      const name = segment.replace(/\[\d+\]$/u, "");
+      const suffix = segment.slice(name.length);
+      if (name === "" || CONTRACT_PATH_SEGMENTS.has(name)) return segment;
+      return `${REDACTED_SEGMENT}${suffix}`;
+    })
+    .join(".");
+}
+
 /** Frame state for the object currently being scanned. */
 type Frame = {
   readonly isObject: boolean;
@@ -111,6 +158,39 @@ type Frame = {
 
 function isHexDigit(character: string): boolean {
   return /^[0-9a-fA-F]$/u.test(character);
+}
+
+/**
+ * Step over one JSON string without building its decoded value.
+ *
+ * Used for string *values*, which are the overwhelming majority of an archive's
+ * bytes and whose contents this scanner never needs. Decoding them would build a
+ * multi-megabyte JavaScript string one character at a time and could exhaust the
+ * heap on input well under the byte cap — a boundary that exists to bound
+ * untrusted work must not itself be the thing that runs out of memory.
+ */
+function skipString(text: string, start: number): { next: number } | { error: number } {
+  let index = start + 1;
+  while (index < text.length) {
+    const character = text[index];
+    if (character === '"') return { next: index + 1 };
+    if (character === "\\") {
+      const escape = text[index + 1];
+      if (escape === undefined) return { error: index };
+      if (escape === "u") {
+        const hex = text.slice(index + 2, index + 6);
+        if (hex.length < 4 || ![...hex].every(isHexDigit)) return { error: index };
+        index += 6;
+        continue;
+      }
+      if (!'"\\/bfnrt'.includes(escape)) return { error: index };
+      index += 2;
+      continue;
+    }
+    if (character < " ") return { error: index };
+    index += 1;
+  }
+  return { error: index };
 }
 
 /**
@@ -251,9 +331,21 @@ export function scanJsonStructure(text: string): ScanFailure | null {
     }
 
     if (character === '"') {
+      const frame = stack[stack.length - 1];
+      const isMemberName = Boolean(frame?.isObject && frame.expectingName);
+      // Only a member name is worth decoding; a value's contents are irrelevant
+      // here and decoding them is what makes large archives expensive.
+      if (!isMemberName) {
+        const skipped = skipString(text, index);
+        if ("error" in skipped) {
+          return { code: "invalid_json_syntax", byteOffset: skipped.error };
+        }
+        index = skipped.next;
+        if (stack.length === 0) seenValue = true;
+        continue;
+      }
       const read = readString(text, index);
       if ("error" in read) return { code: "invalid_json_syntax", byteOffset: read.error };
-      const frame = stack[stack.length - 1];
       if (frame?.isObject && frame.expectingName) {
         if (frame.names?.has(read.value)) {
           // Deliberately reports position only — a member name can itself be
@@ -303,10 +395,10 @@ export function scanJsonStructure(text: string): ScanFailure | null {
  */
 function decodeUtf8(bytes: Uint8Array): string | null {
   try {
-    const text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes);
-    // ignoreBOM: false already strips a leading U+FEFF, but a BOM appearing
-    // after decoding of a non-BOM stream would still be a stray character.
-    return text;
+    // `ignoreBOM: false` strips a leading U+FEFF. A BOM anywhere else stays in
+    // the text and is rejected as a syntax error by the scanner, which is the
+    // correct outcome — it is not a valid JSON character.
+    return new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes);
   } catch {
     return null;
   }
@@ -338,7 +430,13 @@ export function ingestArchiveBytes(bytes: Uint8Array): ArchiveIngressResult {
  * by decoding first.
  */
 export function ingestArchiveText(text: string, knownBytes?: number): ArchiveIngressResult {
-  const bytes = knownBytes ?? new TextEncoder().encode(text).byteLength;
+  // A UTF-8 encoding is at least one byte per code unit, so this rejects an
+  // oversized input before `TextEncoder` allocates a buffer for it.
+  if (text.length > ARCHIVE_MAX_BYTES) return { ok: false, code: "file_too_large" };
+  // `knownBytes` is an optimisation, never a permission: the measured length
+  // still applies, so a caller cannot shrink its way past the bound.
+  const measured = new TextEncoder().encode(text).byteLength;
+  const bytes = Math.max(measured, knownBytes ?? 0);
   if (bytes === 0) return { ok: false, code: "file_empty" };
   if (bytes > ARCHIVE_MAX_BYTES) return { ok: false, code: "file_too_large" };
   if (text.trim() === "") return { ok: false, code: "file_empty" };
@@ -366,7 +464,14 @@ export function ingestArchiveText(text: string, knownBytes?: number): ArchiveIng
   // malformed archive reaches the validator exactly as it was written.
   const result = validateMoneyFlowArchive(parsed);
   if (!result.ok) {
-    return { ok: false, code: "archive_invalid", errors: result.errors };
+    return {
+      ok: false,
+      code: "archive_invalid",
+      errors: result.errors.map((rejection) => ({
+        code: rejection.code,
+        path: redactValidatorPath(rejection.path),
+      })),
+    };
   }
 
   return { ok: true, archive: result.archive, bytes };

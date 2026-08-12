@@ -43,8 +43,10 @@ const ingress = ingestArchiveBytes(
 );
 if (!ingress.ok) {
   console.error(`Archive ingress rejected the producer output: ${ingress.code}`);
+  // Codes only. Validator paths are redacted at the boundary, but CI logs are a
+  // durable surface and an archive is a whole financial history.
   for (const rejection of ingress.errors ?? []) {
-    console.error(`  - ${rejection.code} at ${rejection.path || "<root>"}`);
+    console.error(`  - ${rejection.code}`);
   }
   process.exit(1);
 }

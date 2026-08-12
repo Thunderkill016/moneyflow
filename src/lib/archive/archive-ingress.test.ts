@@ -6,6 +6,7 @@ import {
   ARCHIVE_MAX_DEPTH,
   ingestArchiveBytes,
   ingestArchiveText,
+  redactValidatorPath,
   scanJsonStructure,
   type ArchiveIngressRejectionCode,
 } from "./archive-ingress.ts";
@@ -350,6 +351,66 @@ test("rejections never contain archive content", () => {
   for (const error of result.errors ?? []) {
     assert.deepEqual(Object.keys(error).sort(), ["code", "path"]);
   }
+});
+
+test("a huge string value is scanned cheaply instead of exhausting the heap", () => {
+  // The scanner used to decode every string, including values, building a
+  // multi-megabyte JS string one character at a time. A 40 MiB value — well
+  // under the 64 MiB cap — aborted the process with an out-of-memory fatal.
+  const text = `{"note":"${"b".repeat(24 * 1024 * 1024)}"}`;
+  const started = Date.now();
+  const scan = scanJsonStructure(text);
+  const elapsed = Date.now() - started;
+  assert.equal(scan, null, "a large but valid string value must scan clean");
+  assert.ok(elapsed < 5000, `scanning a large value must stay cheap, took ${elapsed}ms`);
+});
+
+test("duplicate detection still works alongside a huge string value", () => {
+  const filler = "b".repeat(1024 * 1024);
+  expectReject(`{"note":"${filler}","id":1,"id":2}`, "duplicate_member_name");
+});
+
+test("a caller-supplied byte count cannot shrink past the size bound", () => {
+  const archive = JSON.stringify(minimalArchive());
+  const honest = ingestArchiveText(archive);
+  assert.ok(honest.ok);
+  // Understating the size must not change the measured bytes.
+  const understated = ingestArchiveText(archive, 5);
+  assert.ok(understated.ok);
+  assert.equal(understated.bytes, honest.bytes, "the measured length always applies");
+});
+
+test("validator paths are redacted before leaving the boundary", () => {
+  // column_map keys are the user's own imported statement headers.
+  const archive = minimalArchive();
+  (archive.tables as Record<string, unknown>).importBatches = [
+    { column_map: { "My Bank Password Hint": "x" } },
+  ];
+  (archive.tenant_row_counts as Record<string, number>).importBatches = 1;
+  const result = ingestArchiveText(JSON.stringify(archive));
+  assert.ok(!result.ok);
+  assert.equal(result.code, "archive_invalid");
+  const serialized = JSON.stringify(result);
+  assert.ok(
+    !serialized.includes("My Bank Password Hint"),
+    "a user-derived key must never appear in a rejection path",
+  );
+  assert.ok(serialized.includes("<redacted>"), "the structure is kept, the private part is not");
+  // Contract structure survives so the message stays useful.
+  assert.ok(serialized.includes("importBatches"));
+});
+
+test("redaction keeps contract segments and array indices intact", () => {
+  assert.equal(
+    redactValidatorPath("tables.transactions[3].amount_minor"),
+    "tables.transactions[3].amount_minor",
+  );
+  assert.equal(
+    redactValidatorPath("tables.importBatches[0].column_map.Số tiền"),
+    "tables.importBatches[0].column_map.<redacted>",
+  );
+  assert.equal(redactValidatorPath("archive_id"), "archive_id");
+  assert.equal(redactValidatorPath(""), "");
 });
 
 test("the ingress module imports no runtime, database or provider code", () => {
