@@ -2,7 +2,7 @@
 
 **Status:** the single current implementation-status authority
 **Last reconciled:** 2026-08-12
-**Pre-#360 main audit baseline:** `4283129bbe8378f04de17b96bffaeb4c45474147` (`#359` merged)
+**Current main baseline:** `8fcf8e2a8b195d5d8ad7de1fb745662abe776ab3` (`#360` merged)
 **Routing:** use `docs/context/README.md`; open
 `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only for a named provenance need.
 
@@ -17,13 +17,14 @@ The repository is **not public-beta ready**. MoneyFlow Trust Provider Sync, P1 S
 P2 Recover and P3 Prove are accepted. P3 is based on owner-observed physical-phone
 acceptance, not a signed/filed evidence run. The exact program order is:
 
-> Repository Reset 2 → Brand/Product Experience rebuild A0→J → final physical/device
+> Merge Repository Reset 2 #362 → Brand/Product Experience rebuild A0→J → final physical/device
 > visual QA → owner public-beta decision.
 
 `docs/plans/active/public-beta-trust.md` owns that program order. The active-packet
-registry intentionally lists only the parent program: Repository Reset 1 is
-accepted/completed by #360's post-merge record; Repository Reset 2 is immediate next,
-not started and has no active packet.
+registry lists only the Trust parent: Repository Reset 1 is accepted/completed by #360;
+Repository Reset 2's completed post-merge record is prepared in #362 and awaits owner
+merge. Brand/Product Experience A0 follows that merge; it has not started and has no
+active packet.
 
 ## 2. Current runtime and trust boundaries
 
@@ -96,9 +97,11 @@ current design authority.
 ## 8. Reconciled issue status
 
 - P3 Prove is accepted and archived; do not reopen it from old seven-day/P4 wording.
-- Repository Reset 1 is accepted/completed. Repository Reset 2 is immediate next,
-  is not started, and may consider source/assets only when separately initiated.
-- Brand/Product Experience A0→J follows Reset 2. It is not a current UI redesign.
+- Repository Reset 1 is accepted/completed. Reset 2 retired only 13 evidence-proven
+  unowned source/assets in #362, which awaits owner merge and did not authorize
+  Brand/UI work.
+- Brand/Product Experience A0→J follows #362's owner merge. It is not started and is
+  not a current UI redesign.
 - The owner public-beta decision is blocked on the ordered work above and remains
   the only PBT-AC15 closure authority.
 
@@ -111,25 +114,25 @@ candidate evidence, never current truth.
 
 ## 10. True gaps after this audit
 
-1. Start and complete bounded Repository Reset 2 only after it is deliberately opened.
-2. Execute the separately specified Brand/Product Experience A0→J rebuild.
+1. Owner merges #362 to make the Reset 2 post-merge record current.
+2. Separately start and execute Brand/Product Experience A0→J.
 3. Perform final physical/device visual QA on that rebuilt experience.
 4. Obtain the owner’s public-beta decision and record accepted limitations.
 
 ## 11. Next allowed action
 
-After #360 merges, Repository Reset 2 is the immediate next bounded task, but it is
-not started and has no packet. Do not begin source/assets work, Brand/Product
-Experience work, provider actions or production changes until a separate Reset 2 task
-is deliberately opened.
+#362 awaits owner merge. After it merges, Brand/Product Experience A0 is the immediate
+next work but is not started and has no packet. Do not begin it, provider actions or
+production changes until separately opened.
 
 ## 12. Superseded-status register
 
 - “P3 Prove is open” and “P4 Improve is next” are superseded. P3 is accepted;
   Repository Reset 1 is accepted and Repository Reset 2 precedes Brand/Product
   Experience.
-- “Repository Reset 1 is the current task” is superseded by #360's completed packet;
-  Reset 2 is next but not started.
+- “Repository Reset 1 is the current task” is superseded by #360's completed packet.
+  Reset 2 remains a delivery boundary until #362 merges; only then is A0 next/not
+  started.
 - The prior seven-day self-use gate is withdrawn; no duration substitute exists.
 - Historical packets in `docs/plans/archived/` are not active work and never imply
   acceptance. Historical UI evidence remains available for A0 review.

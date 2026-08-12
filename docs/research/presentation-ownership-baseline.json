@@ -35,38 +35,10 @@
       "status": "debt"
     },
     {
-      "class": "_a",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "_p",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
       "class": "_svg",
       "owner": "src/components/ui/button.tsx",
       "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "accordion-trigger",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "accordion-trigger-icon",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
       "status": "debt"
     },
     {
@@ -171,13 +143,6 @@
     {
       "class": "audit",
       "owner": "src/components/inbox/inbox-explain-panel.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "auto_auto",
-      "owner": "src/components/ui/card.tsx",
       "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
@@ -821,41 +786,6 @@
       "status": "debt"
     },
     {
-      "class": "card",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "card-action",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "card-description",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "card-footer",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "card-header",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "categories-panel",
       "owner": "src/components/dashboard/dashboard-overview-sections.tsx",
       "alsoEmittedBy": [],
@@ -984,15 +914,6 @@
       "status": "debt"
     },
     {
-      "class": "data-",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/card.tsx"
-      ],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
       "class": "data-alert",
       "owner": "src/components/account-detail-page.tsx",
       "alsoEmittedBy": [
@@ -1061,34 +982,6 @@
       "status": "debt"
     },
     {
-      "class": "first-child",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "font-heading",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "font-variant-numeric",
-      "owner": "src/components/ui/money-value.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "gap-",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
       "class": "goal-dashboard-more",
       "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
       "alsoEmittedBy": [],
@@ -1119,63 +1012,16 @@
       "status": "debt"
     },
     {
-      "class": "grid-cols-",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
-      "class": "grid-rows-",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "group",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/button.tsx",
-        "src/components/ui/card.tsx"
-      ],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "group-aria-expanded",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "group-data-",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
-      "status": "debt"
-    },
-    {
-      "class": "h-",
-      "owner": "src/components/ui/accordion.tsx",
+      "owner": "src/components/ui/button.tsx",
       "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "has-",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "semantic class with no unconditional owner in the production bundle",
       "status": "debt"
     },
     {
       "class": "has-data-",
       "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/card.tsx"
-      ],
+      "alsoEmittedBy": [],
       "reason": "semantic class with no unconditional owner in the production bundle",
       "status": "debt"
     },
@@ -1198,13 +1044,6 @@
       "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
       "alsoEmittedBy": [],
       "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. .dashboard-module___vDUZq__dashboard .icon-button)",
-      "status": "debt"
-    },
-    {
-      "class": "img",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
     },
     {
@@ -1597,15 +1436,6 @@
       "status": "debt"
     },
     {
-      "class": "last-child",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/card.tsx"
-      ],
-      "reason": "semantic class with no active stylesheet owner",
-      "status": "debt"
-    },
-    {
       "class": "loading-card",
       "owner": "src/app/accounts/loading.tsx",
       "alsoEmittedBy": [
@@ -1689,10 +1519,8 @@
     },
     {
       "class": "not",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/button.tsx"
-      ],
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
     },
@@ -1715,13 +1543,6 @@
     {
       "class": "over",
       "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "p-",
-      "owner": "src/components/ui/card.tsx",
       "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
@@ -1776,13 +1597,6 @@
     {
       "class": "parser",
       "owner": "src/components/inbox/inbox-explain-panel.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "pb-",
-      "owner": "src/components/ui/card.tsx",
       "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
@@ -1988,20 +1802,6 @@
       "owner": "src/components/dashboard/dashboard-planning-sections.tsx",
       "alsoEmittedBy": [],
       "reason": "styled only by a contextual selector, with no proven ancestor at the emission site (e.g. :is(.dashboard-module___vDUZq__dashboard .transaction-icon.violet,.dashboard-module___vDUZq__dashboard .round-icon.purple))",
-      "status": "debt"
-    },
-    {
-      "class": "px-",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
-      "class": "py-",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
     },
     {
@@ -2244,13 +2044,6 @@
       "status": "debt"
     },
     {
-      "class": "size",
-      "owner": "src/components/ui/card.tsx",
-      "alsoEmittedBy": [],
-      "reason": "bare token, ownership not provable without reading the call site",
-      "status": "debt"
-    },
-    {
       "class": "size-",
       "owner": "src/components/ui/button.tsx",
       "alsoEmittedBy": [],
@@ -2259,11 +2052,8 @@
     },
     {
       "class": "slot",
-      "owner": "src/components/ui/accordion.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/button.tsx",
-        "src/components/ui/card.tsx"
-      ],
+      "owner": "src/components/ui/button.tsx",
+      "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
     },
@@ -2293,9 +2083,7 @@
     {
       "class": "text-",
       "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/money-value.tsx"
-      ],
+      "alsoEmittedBy": [],
       "reason": "semantic class with no unconditional owner in the production bundle",
       "status": "debt"
     },
@@ -2395,9 +2183,7 @@
     {
       "class": "var",
       "owner": "src/components/ui/button.tsx",
-      "alsoEmittedBy": [
-        "src/components/ui/money-value.tsx"
-      ],
+      "alsoEmittedBy": [],
       "reason": "bare token, ownership not provable without reading the call site",
       "status": "debt"
     },
