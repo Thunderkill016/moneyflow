@@ -1,8 +1,8 @@
 # Repository Reset 1 — knowledge, authority and configuration
 
-**Status:** implementing
-**Execution state:** implementing
-**Active role:** implementer
+**Status:** ready_for_review
+**Execution state:** ready_for_review
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** #360
@@ -124,7 +124,7 @@ None. No schema, database, provider or deployment mutation.
 | RR1-T1 | inventory authority, config and agent surfaces | packet | paths, references and code/config audit | complete |
 | RR1-T2 | route/compact current authority and archive stale packets safely | RR1-T1 | default-path review and reference scan | complete |
 | RR1-T3 | add focused authority/lifecycle guard | RR1-T2 | focused test + policy checks | complete |
-| RR1-T4 | fresh-context evaluation and PR delivery | RR1-T3 | evaluator matrix, exact-head checks, PR memory | in progress |
+| RR1-T4 | fresh-context evaluation and PR delivery | RR1-T3 | evaluator matrix, exact-head checks, PR memory | complete |
 
 ## Handoff record
 
@@ -133,6 +133,7 @@ None. No schema, database, provider or deployment mutation.
 | 2026-08-12 | planner | implementer | implementing | this packet; `npm run agent:doctor`; baseline `main@4283129` | stale packet and config-reference audit in progress | complete scoped authority/config edits |
 | 2026-08-12 | implementer | evaluator | evaluating | #360; `check:migrations`, `check:knowledge`, `test:ci-policy`, typecheck; fresh evaluator | local Next build runner did not reach completion; exact-head provider checks pending | push PR-memory update and request exact-head CI |
 | 2026-08-12 | evaluator | implementer | implementing | exact-head CI failure artifact | README lost the required MVP-definition link during compaction | restore the routed released-MVP reference and rerun gates |
+| 2026-08-12 | implementer | evaluator | ready_for_review | #360 exact-head CI: verify, database, e2e, Gitleaks and CodeQL pass; browser/UI skips classified | owner review/merge only; no production boundary applies | await owner review; do not merge autonomously |
 
 ### Current permission boundary
 
@@ -149,13 +150,13 @@ None. No schema, database, provider or deployment mutation.
 | active lifecycle is safe | 37 historical packets archived; registry/current-reference guard + tests | pass |
 | adapters/config remain coherent | hooks, Spec Kit bridge and configuration executable surfaces inspected; no tool/config deletion | pass |
 | historical UI failure evidence remains available | UI research ledger and completed UI packets routed to future A0 | pass |
-| exact-head delivery gates | provider checks | pending |
+| exact-head delivery gates | #360 head CI | pass — verify, database, e2e, Gitleaks and CodeQL; browser/UI audit correctly skipped |
 
 ## Delivery record
 
 - Branch: `reset/repository-authority-config`
-- PR: #360 draft
+- PR: #360 ready for review
 - Squash commit: pending
-- CI run: pending exact-head provider checks
+- CI run: exact head checks green
 - Production deployment: not applicable
 - Work packet moved to `docs/plans/completed/`: pending merge/acceptance
