@@ -7,7 +7,7 @@
 - **Active trust program:** `docs/plans/active/public-beta-trust.md`
 - **Completed Provider Sync packet:** `docs/plans/completed/2026-08-11-moneyflow-trust-provider-sync.md`
 - **Completed Secure packet:** `docs/plans/completed/2026-08-11-account-deletion-recent-auth.md`
-- **MoneyFlow Trust current phase:** Provider Sync + P1 Secure accepted; **P2 Recover is in progress** — contract, validator, producer and atomic restore merged with a full round-trip proof; **file ingress and UI absent**, and two migrations await a production checkpoint
+- **MoneyFlow Trust current phase:** Provider Sync + P1 Secure accepted; **P2 Recover is in progress** — contract, validator, producer and atomic restore merged with a full round-trip proof; **UI absent**, and two migrations await a production checkpoint
 - **Active Recover packet:** `docs/plans/active/moneyflow-trust-recover.md`
 - **Supabase production migration/schema:** reviewed MoneyFlow migrations plus `20260809010648_financial_audit_service_role_read_only` are applied under repository versions; legitimate shared Atoryn history remains preserved
 - **Supabase production audit boundary:** RLS enabled; `authenticated` SELECT retained; `service_role` SELECT-only for the reviewed table privileges
@@ -108,7 +108,7 @@ Canonical sequence:
 | P0 Baseline | repository/Vercel/Supabase truth reconciled |
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed** with explicit stale/mismatch provider-test limitation |
-| P2 Recover | **in progress** — contract, validator, producer **and atomic restore** exist, proven by a full archive→restore→archive round trip in CI; **no file ingress and no UI**, so no user can yet reach the feature |
+| P2 Recover | **in progress** — contract, validator, producer, atomic restore **and strict file ingress** exist, proven end to end in CI; **no UI**, so no user can yet reach the feature |
 | P3 Prove | blocked by P2; physical-phone core ledger + seven-day sanitized self-use |
 | P4 Improve | evidence-selected Ledger Trust depth after P3 |
 | P5 Release | final owner public-beta decision with explicit limitations |
@@ -213,11 +213,12 @@ PR #341 merged on 2026-08-11 and closed the Secure/Provider Sync acceptance desc
 - an authenticated archive producer exists — `public.export_user_archive()`, SECURITY INVOKER so RLS enforces tenant isolation, covering 19/19 dispositions and proven by 40 pgTAP assertions plus a database→archive→validator round trip; the date-range CSV/JSON export remains a separate reporting artifact covering 2 of 19 tables, not a backup;
 - **two migrations are merged but not applied to production Supabase**: `20260812000000_export_user_archive.sql` then `20260812010000_restore_user_archive.sql`, in that order;
 - an atomic restore exists — `restore_user_archive()`, SECURITY DEFINER because fifteen tenant tables deny INSERT to authenticated, empty/bootstrap-only, advisory-locked per tenant, with batch attribution and a pristine-only removal;
-- **no raw-file ingress and no UI exist**, so a user cannot reach export or restore;
+- a strict archive file-ingress boundary exists — size-bounded, fatal UTF-8, duplicate-member-safe before `JSON.parse`, then the R5 validator — and the CI round trips run the producer's raw bytes through it;
+- **no UI exists**, so a user still cannot reach export or restore;
 - restore must re-assert transfer balance, split exactness and per-kind entry sign/category-kind itself, because those live only in the write RPCs and a bulk insert bypasses them;
 - restore needs `restore_batch_id` so a committed bad restore is identifiable and removable;
 - duplicate-restore detection needs persistent metadata; the pure validator cannot prove it;
-- raw-file ingress (including duplicate JSON member names, which `JSON.parse` collapses before validation) is not yet implemented;
+- raw-file ingress is implemented, including the duplicate-member-name protection R5 could not claim;
 - pgTAP now covers the archive producer boundary and remains mandatory for the restore slice;
 - archive must exclude credentials, JWTs, secrets and private infrastructure metadata.
 
