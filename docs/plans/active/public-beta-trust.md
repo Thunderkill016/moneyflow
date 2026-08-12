@@ -179,7 +179,7 @@ landed and are accepted. What remains is P3:
 | P1-T4 | fail-closed/log review + owner limitation decision | production probes + 35/35 deterministic + owner decision | complete |
 | P2-T1 | create/accept Recover archive contract | P1 accepted | complete — `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md` |
 | P2-T2 | implement export/validate/restore | P2-T1 | complete — deployed to production; hosted export accepted, hosted restore an accepted limitation |
-| P3-T1 | physical-phone core ledger checklist | P2 accepted | **specified** — `docs/plans/active/moneyflow-trust-prove.md`; 14 scenarios awaiting the owner's device run |
+| P3-T1 | physical-phone core ledger checklist | P2 accepted | **specified** — `docs/plans/active/moneyflow-trust-prove.md`; 17 scenarios awaiting the owner's device run |
 | P3-T2 | seven-day sanitized self-use | P3-T1 | blocked — Day 0 rules prepared in the P3 packet; **day 1 has not started** |
 | P4-T1 | select observed trust-depth slice | P3 evidence | blocked |
 | P5-T1 | owner public-beta decision | prior phases | blocked |
@@ -191,7 +191,7 @@ landed and are accepted. What remains is P3:
 | 2026-08-09 | human owner | provider evaluator | evaluating | Edge v6 ACTIVE/read-back | provider-backed auth acceptance | run safe password/Google flows |
 | 2026-08-11 | human owner + evaluator | planner | accepted | password + Google provider evidence; missing-continuity pass; logs; explicit stale/mismatch limitation acceptance | complete archive/restore absent | open P2 Recover packet/specification |
 | 2026-08-12 | human owner | planner | accepted | deterministic pgTAP round trip; hosted export accepted on a real production artifact; explicit hosted-restore limitation acceptance | hosted restore unproven; P3 evidence absent | define the P3 physical-phone checklist |
-| 2026-08-12 | planner | human_owner | specified | P3 packet, evidence template and `check:prove-evidence` on `277d459`; **no device evidence exists** | physical-phone loop unproven; seven-day run not started | owner runs the 14 REQUIRED scenarios and returns the sanitized evidence file |
+| 2026-08-12 | planner | human_owner | specified | P3 packet, evidence template and `check:prove-evidence` on `277d459`; **no device evidence exists** | physical-phone loop unproven; seven-day run not started | owner runs the 17 REQUIRED scenarios and returns the sanitized evidence file |
 
 ### Current permission boundary
 

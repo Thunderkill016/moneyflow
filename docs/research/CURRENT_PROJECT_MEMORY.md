@@ -239,7 +239,7 @@ PR #341 merged on 2026-08-11 and closed the Secure/Provider Sync acceptance desc
 ### P3 Prove
 
 - **active phase.** No physical-phone core-ledger acceptance under the Trust program and no seven consecutive days of sanitized owner self-use accepted;
-- the checklist now exists: `docs/plans/active/moneyflow-trust-prove.md` specifies 14 scenarios (PP-01–PP-14), a three-tier device matrix, P0/P1/finding severity with a retry rule, and the seven-day Day-0 rules. It is **preparation, not evidence** — no scenario has been run and day 1 does not exist;
+- the checklist now exists: `docs/plans/active/moneyflow-trust-prove.md` specifies 17 scenarios (PP-01–PP-17), a three-tier device matrix, P0/P1/finding severity with a retry rule, and the seven-day Day-0 rules. It is **preparation, not evidence** — no scenario has been run and day 1 does not exist;
 - `npm run check:prove-evidence` validates an evidence file's completeness and scans it for money amounts, emails, identifiers and tokens before they can enter Git; it cannot inspect a screenshot, and the owner remains the last check on one;
 - older `docs/REAL_USE_READINESS_CONTRACT.md` R6/R7 mark a mobile path and a seven-day waiver as accepted (2026-07-27/29). Those record what was accepted **then**, on an emulated viewport and a pre-log build; they do **not** satisfy PBT-AC12/AC13. The P3 packet records the reconciliation.
 

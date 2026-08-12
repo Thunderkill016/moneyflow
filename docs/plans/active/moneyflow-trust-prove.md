@@ -34,15 +34,19 @@ been executed. P3-T2's seven-day run has **not** started; day 1 does not exist.
 
 | Fact | Where | Why it shapes the checklist |
 |---|---|---|
-| Mobile tabs are **Tổng quan** `/dashboard`, **Giao dịch** `/transactions`, **Nhập nhanh** (action), **Tài khoản** `/accounts`, **Thêm** (`#more`) | `src/lib/nav-ia.ts:41-73`, `src/components/layout/app-shell.tsx:79-84` | the loop is reached through four tabs, so scenarios navigate the way a user does, not by typing routes |
+| There are **five** mobile tabs: **Tổng quan** `/dashboard`, **Giao dịch** `/transactions`, the capture action rendered with the visible label **`Ghi`**, **Tài khoản** `/accounts`, and **Thêm** (`#more`) | `src/lib/nav-ia.ts:43-72`, `src/components/layout/app-shell.tsx:79-84`, and the visible label at `app-shell.tsx:437` | the loop is reached through tabs, so scenarios navigate the way a user does. The tab reads `Ghi`; `Nhập nhanh` is the desktop sidebar label and survives on mobile only as the accessible name |
 | The primary action is `Ghi chi tiêu` → `/capture/quick`; pages may override it with a dialog while keeping the label | `src/lib/nav-ia.ts:84-87` | a scenario must accept **either** affordance rather than pinning one |
-| Expense and income are one dialog with a segmented control: `Khoản chi (−)` / `Khoản thu (+)` | `src/components/add-transaction-dialog.tsx:329-346` | one form covers two scenarios; the sign is user-visible and checkable |
+| Expense and income are one dialog with a segmented control: `Khoản chi (−)` at `:334` and `Khoản thu (+)` at `:346` | `src/components/add-transaction-dialog.tsx:323-347` | one form covers two scenarios; the sign is user-visible and checkable |
 | Category options are filtered to the selected kind | `src/components/add-transaction-dialog.tsx:85-87,202` | category/kind mismatch is prevented in the UI, so the scenario checks the filtering rather than trying to force a mismatch |
-| Transfer is a separate dialog reached from the register and Accounts | `src/components/transaction-form.module.css`, `src/components/transfer-dialog.tsx` | transfers need their own scenario and their own invariant |
+| Transfer is a separate dialog, opened by **`Chuyển tiền ví`** in the register and **`Chuyển tiền`** on Accounts | `src/components/transactions/transactions-workspace.tsx:685`, `src/components/accounts/accounts-workspace.tsx:263`, `src/components/transfer-dialog.tsx` | transfers need their own scenario and their own invariant, and the two entry points are labelled differently |
 | Delete uses native `window.confirm`, then an **8-second** undo through the shell notice action `Hoàn tác` | `src/components/transactions/transactions-workspace.tsx:78,483-532,623` | the undo window is time-boxed, so recovery is a genuinely load-bearing phone test — a slow tap loses it |
 | Amount inputs set `inputMode="decimal"` | `add-transaction-dialog.tsx:359`, `transfer-dialog.tsx:229`, `edit-transaction-dialog.tsx:244` | the numeric keypad is a claim that can only be confirmed on hardware |
 | The layout uses `viewportFit: "cover"` with `env(safe-area-inset-*)` throughout the shell | `src/app/layout.tsx:57-60`, `src/components/layout/app-shell.module.css` | notch/home-indicator behavior is real product code, not speculation, so it is worth one scenario |
-| Money renders with `tabular-nums` and an explicit sign | `src/components/ui/money-value.tsx:59` | legibility of the sign is checkable without relying on colour |
+| Money renders with `tabular-nums` (`src/components/money-value.module.css:13-15`), and a sign appears only in `mode="kind"` via `formatMoneyWithKind` (`src/lib/money.ts:51-55`) | `src/components/money-value.tsx` — note that `src/components/ui/money-value.tsx` has **zero importers** and is dead code; do not read it for shipped behavior | legibility of the sign is checkable without relying on colour, but only where the kind mode is used |
+| Amount entry is **digits-only**: `parseMoneyInput` strips every non-digit, so a keypad separator is silently swallowed — typing `12,5` yields **125 đồng** | `src/lib/money.ts:69-72` | the decimal keypad offers a separator the parser discards, which is exactly the kind of quiet wrongness a device run must catch (PP-16) |
+| A save carries an **idempotency key** created before the attempt and cleared only on success | `src/components/add-transaction-dialog.tsx:241-242,273` | product code that exists to stop a duplicate row on a retried save; retrying after a failure is therefore a real scenario (PP-15) |
+| A new transaction defaults to the Vietnam calendar day and the date is user-editable | `src/components/add-transaction-dialog.tsx:72` | a row landing on the wrong day is the most ordinary trust failure in a daily ledger (PP-17) |
+| Dashboard figures cover the **current month only**; the register's totals cover whatever is filtered, and no period filter is applied by default | `src/lib/finance.ts:152-158`, `src/components/transactions/transactions-workspace.tsx:176-177,339-347` | the two surfaces legitimately differ, so a scenario must not demand that they match |
 
 ### Existing automated coverage, and exactly what it does not prove
 
@@ -58,26 +62,32 @@ a physical-phone pass, and this packet never treats one as such.
 ### Conflicting older authority — reconciled here, deliberately
 
 `docs/REAL_USE_READINESS_CONTRACT.md` contains **R6 — Mobile daily path** and
-**R7 — Seven-day self-use and owner waiver**, in which R7's duration gate is marked
-accepted under an explicit owner waiver dated 2026-07-29 and R6 is ticked against a
-390×844 **Chromium viewport** with one owner-confirmed keyboard line dated
-2026-07-27.
+**R7 — Seven-day self-use and owner waiver**. R6 is ticked against a 390×844
+**Chromium viewport**, with one owner-confirmed real-keyboard line dated 2026-07-27.
+R7's duration gate was accepted on the owner's **statement** of 2026-07-29 that seven
+days of use had already happened; the explicit *waiver* there covers four separate
+exit-review checks (CSV comparison, timing, replacement rate), not the duration
+itself.
 
 A future reader must not conclude from that document that PBT-AC12 or PBT-AC13 are
 already satisfied. They are not, for three reasons:
 
-1. **Precedence.** `AGENTS.md` puts the reviewed controlling work packet above
-   historical documents. MoneyFlow Trust is the current program, and it records
-   physical-phone and seven-day proof as open.
+1. **Precedence.** `AGENTS.md` gives the active packet ownership of execution state,
+   and `docs/plans/active/public-beta-trust.md` is the current program: it records
+   PBT-AC12 and PBT-AC13 as open. Nothing in `AGENTS.md` ranks
+   `REAL_USE_READINESS_CONTRACT.md` above or below anything, so this reason rests on
+   the Trust plan being the live program rather than on a documented hierarchy.
 2. **Different bar.** R6's evidence is an emulated viewport plus a single owner
    statement. The Trust program asks for the loop exercised on hardware with
    per-scenario recorded results.
-3. **Different window.** R7's waiver covers use that happened *before* the log
+3. **Different window.** R7's acceptance rests on use that happened *before* the log
    existed, on a build three phases and several defect fixes old. The current
    production build is not the build that was used.
 
-R6/R7 remain a truthful record of what was accepted **then**. They are not
-substitutes for P3 now, and `check:prove-evidence` will not accept them as such.
+R6/R7 remain a truthful record of what was accepted **then**, and this packet does
+not edit or re-tick them. They are simply not substitutes for P3 now.
+`check:prove-evidence` only ever reads `docs/evidence/p3-prove/`, so it neither
+accepts nor rejects them — the reconciliation above is the safeguard, not the tool.
 
 ### Relevant repository areas
 
@@ -154,18 +164,24 @@ extension of P3-T1.
 
 - [ ] **P3-AC1** Every REQUIRED scenario is executed on a physical phone the owner
       actually possesses, with device and browser versions recorded.
-- [ ] **P3-AC2** Every scenario result is `pass`, `fail` or `blocked` — never
-      inferred, never left implicit, never back-filled from memory.
-- [ ] **P3-AC3** Financial invariants hold everywhere they are checked: integer
-      đồng, transfer neutrality, and balances that match the arithmetic.
+- [ ] **P3-AC2** Every scenario result is one of `pass`, `fail`, `blocked`,
+      `fail_then_pass` or `not_applicable` — never inferred, never left implicit,
+      never back-filled from memory. `not_applicable` is for hardware that lacks the
+      feature under test, never for a scenario that was skipped.
+- [ ] **P3-AC3** Financial invariants hold everywhere they are checked: integer đồng
+      **on entry** (PP-16) as well as on display, transfer neutrality (PP-05, PP-09),
+      edit-by-difference (PP-06), and exactly one row per logical transaction even
+      after a retried save (PP-15).
 - [ ] **P3-AC4** Persistence is proven by a full reload, not by an in-app
       navigation that could be served from memory.
 - [ ] **P3-AC5** Committed evidence contains no amount, description, payee, email,
       account identifier, token or screenshot of private financial content, and
       `npm run check:prove-evidence` passes.
 - [ ] **P3-AC6** Automated emulator evidence is never recorded as physical.
-- [ ] **P3-AC7** A first-run failure followed by a retry success is recorded as a
-      **finding**, not as a pass.
+- [ ] **P3-AC7** A first-run failure followed by a retry success is recorded as
+      `fail_then_pass` **and** carries a row in the Defects table, so the finding
+      exists somewhere a reader will see it. `check:prove-evidence` refuses a
+      `fail_then_pass` that has neither an explanation nor a defect row.
 - [ ] **P3-AC8** Any P0 stops the run; any P1 is recorded with a decision before
       the phase can be accepted.
 - [ ] **P3-AC9** P3-T2's Day 0 prerequisites are met and recorded before day 1 is
@@ -183,7 +199,7 @@ extension of P3-T1.
 
 ## The physical-phone checklist (P3-T1)
 
-Fourteen scenarios. Read the invariant column as strictly as the action column: a
+Seventeen scenarios. Read the invariant column as strictly as the action column: a
 scenario that "worked" but broke an invariant is a **fail**.
 
 Vietnamese UI strings are quoted exactly as shipped so the checklist needs no
@@ -193,7 +209,7 @@ interpretation.
 
 | Tier | What | Rule |
 |---|---|---|
-| **REQUIRED** | the owner's own primary phone | Record platform, OS version, browser and browser version at Day 0. All fourteen scenarios run here. This is the only tier that can satisfy PBT-AC12. |
+| **REQUIRED** | the owner's own primary phone | Record platform, OS version, browser and browser version at Day 0. All seventeen scenarios run here. This is the only tier that can satisfy PBT-AC12. |
 | **OPTIONAL** | a second platform (whichever of Android/iOS the required device is not), **only if the owner already owns one** | If the owner does not own one, record `not_possessed`. That is a named limitation, exactly like P1's stale-AMR probes — **never** a failure, and never a reason to buy hardware or fabricate a result. |
 | **AUTOMATED (context only)** | the existing Playwright audit viewports and browser shards | Already runs in CI. Recorded as `emulated`. It may support a finding; it can never convert a missing physical run into a pass. |
 
@@ -204,27 +220,46 @@ Any emulator, simulator, cloud device farm or resized desktop browser is
 
 | ID | Precondition | Exact action | Expected visible result | Invariant | Persistence | Evidence |
 |---|---|---|---|---|---|---|
-| **PP-01** | Signed out, production origin open in the phone browser | Sign in with the owner's normal method | The authenticated app opens on **Tổng quan**; the four tabs are visible and reachable one-handed; no horizontal scrolling | The session is a real authenticated session, **not** demo mode | — | `pass/fail`, platform + browser version |
-| **PP-02** | Signed in, at least two active accounts exist | Open **Tài khoản** | Each active account shows `Số dư hiện tại`; digits align and are legible at the phone's default text size | Balances are whole đồng — no decimal separator, no rounding artefact | — | `pass/fail`, count of accounts shown |
-| **PP-03** | On **Tổng quan** | Tap the primary `Ghi chi tiêu` action (FAB or tab — **not** a typed URL). Choose `Khoản chi (−)`, enter a small amount, pick a category, save | A success notice appears; the expense appears in **Giao dịch** immediately with a **minus** sign | Expense reduces the chosen account's balance by exactly the amount entered | Reappears after PP-11 | `pass/fail`, whether the keypad was numeric |
-| **PP-04** | As PP-03 | Same form, switch to `Khoản thu (+)`, save an income row | The income row appears with a **plus** sign; category options changed to income categories when the segment was switched | Income increases the balance by exactly the amount entered | Reappears after PP-11 | `pass/fail`, whether category options changed with the kind |
-| **PP-05** | Two accounts with non-zero balance | Open the transfer dialog from **Giao dịch** or **Tài khoản**, move an amount A→B, confirm | A transfer row appears; both account balances change | **Source −amount, destination +amount, net zero.** The register's income and expense totals are **unchanged** — a transfer is never income or expense | Both balances survive PP-11 | `pass/fail`, income/expense totals before and after (sanitized: "unchanged" / "changed") |
-| **PP-06** | The PP-03 expense exists | Open it in **Giao dịch**, change the amount and the category, save | The row shows the new amount and category; no duplicate row is created | The balance moves by exactly the **difference**, not by the new amount | New values survive PP-11 | `pass/fail` |
-| **PP-07** | A disposable expense row exists | Delete it, accept the native confirmation, then tap `Hoàn tác` **within 8 seconds** | The row disappears, then returns; the balance returns to its pre-delete value | Recovery is exact — same amount, same account, same category, same date | Restored row survives PP-11 | `pass/fail`, whether 8 seconds was comfortably enough on this device |
-| **PP-08** | Another disposable expense row exists | Delete it, accept the confirmation, and let the notice expire without tapping `Hoàn tác` | The row stays out of the register; the balance reflects the removal | No orphaned amount: balance change equals exactly the deleted amount | Still absent after PP-11 | `pass/fail` |
-| **PP-09** | In the capture form | Switch between `Khoản chi (−)` and `Khoản thu (+)`; inspect the account and category pickers | Category options always match the selected kind; both pickers are operable by touch and dismissible without a stray save | No expense category can be attached to an income row through the UI | — | `pass/fail` |
-| **PP-10** | PP-03 – PP-08 done | Return to **Tổng quan**, then **Giao dịch** | Dashboard figures and register totals reflect exactly the rows recorded, and agree with each other | Sum of income − sum of expense matches the reported net; transfers excluded from both | — | `pass/fail`, whether dashboard and register agreed |
-| **PP-11** | Rows recorded above | **Fully reload** the page (pull-to-refresh or reload, not tab switching), then reopen **Giao dịch** and **Tài khoản** | Every row and balance from PP-03 – PP-08 is still correct after the reload | Nothing lost, nothing duplicated, nothing silently re-created | this **is** the persistence proof | `pass/fail`, sanitized row count before and after |
-| **PP-12** | Capture form open | With the on-screen keyboard raised, reach the amount field and the save control; rotate to landscape and back; observe the top notch and bottom home indicator areas | The keyboard never covers the save control; no horizontal scrolling in either orientation; content is not clipped by the notch or home indicator; tap targets are hittable without zoom | — | — | `pass/fail`, orientation tested, whether the keypad was numeric |
-| **PP-13** | Capture form filled, network disabled (airplane mode) | Attempt to save, then re-enable the network and reload | A clear failure message appears; **no phantom row** is present after the reload, and no balance moved | A failed save changes nothing at all | verified by the reload | `pass/fail`, whether the message was understandable |
-| **PP-14** | The phone's own light/dark setting | View **Tài khoản** and **Giao dịch** in the theme the owner actually uses, then switch the OS theme once | Amounts and their signs stay legible in both themes; the sign is readable without depending on colour | Money is never distinguished by colour alone | — | `pass/fail`, which themes were checked |
+| **PP-01** | Signed out, production origin open in the phone browser | Sign in with the owner's normal method | The authenticated app opens on **Tổng quan**; all five bottom tabs are visible (`Tổng quan`, `Giao dịch`, `Ghi`, `Tài khoản`, `Thêm`) and each responds to a tap; the page does not scroll sideways | The session is a real authenticated session, **not** demo mode | — | `pass/fail`, platform + browser version |
+| **PP-02** | Signed in, at least two active accounts exist | Open **Tài khoản** | Each active account card shows a balance amount as visible text, with `Số dư ban đầu:` beneath it. Digits do not wrap or clip at the phone's default text size | The balance is a whole-đồng amount: **vi-VN uses `.` as the thousands separator**, so `120.000` is correct and a **`,` followed by 1–2 digits** would be wrong | — | `pass/fail`, count of accounts shown |
+| **PP-03** | On **Tổng quan** | Tap the capture action (the `Ghi` tab or the on-page primary button — **not** a typed URL). Choose `Khoản chi (−)`, type an amount **using only digits**, pick a category, save | A success notice appears; the expense appears in **Giao dịch** immediately, displayed with a **minus** sign | Expense reduces the chosen account's balance by exactly the amount entered | Reappears after PP-11 | `pass/fail`, whether the keypad was numeric |
+| **PP-04** | As PP-03 | In the same form, switch the segment to `Khoản thu (+)` and watch the category list, then save an income row | The category options **change** when the segment changes, so only income categories remain; the saved row appears with a **plus** sign. Both pickers open and close by touch without triggering a save | Income increases the balance by exactly the amount entered, and no expense category can be attached to an income row through the UI | Reappears after PP-11 | `pass/fail`, whether category options changed with the kind |
+| **PP-05** | Two accounts with non-zero balance | Open the transfer dialog — `Chuyển tiền ví` in **Giao dịch** or `Chuyển tiền` on **Tài khoản** — move an amount A→B, confirm | A transfer row appears; both account balances change | **Source −amount, destination +amount, net zero.** The register's `Khoản thu` and `Khoản chi` totals are **unchanged** — a transfer is never income or expense | Both balances survive PP-11 | `pass/fail`, totals recorded as `unchanged`/`changed` |
+| **PP-06** | The PP-03 expense exists | Open it in **Giao dịch**, change the amount and the category, save | The row shows the new amount and category; **no second row** is created | The balance moves by exactly the **difference**, not by the new amount | New values survive PP-11 | `pass/fail`, balance moved by difference only `yes/no` |
+| **PP-07** | A disposable expense row exists | Delete it, accept the native confirmation, then tap `Hoàn tác` **within 8 seconds** | The row disappears, then returns; the balance returns to its pre-delete value | Recovery is exact — same amount, account, category and date | Restored row survives PP-11 | `pass/fail`, whether 8 seconds was comfortably enough |
+| **PP-08** | Another disposable expense row exists | Delete it, accept the confirmation, and let the notice expire without tapping `Hoàn tác` | The row stays out of the register; the balance reflects the removal | Balance change equals exactly the deleted amount — no orphaned remainder | Still absent after PP-11 | `pass/fail` |
+| **PP-09** | The rows from PP-03 – PP-08 exist | In **Giao dịch**, tap the `Khoản chi`, `Khoản thu` and `Chuyển tiền` type filters in turn | Each filter shows only rows of that type; the transfer appears under `Chuyển tiền` and under **neither** of the other two | A transfer is not reachable as income or as expense | — | `pass/fail` |
+| **PP-10** | PP-03 – PP-08 done **today** | Open **Tổng quan**, then **Giao dịch** | Today's rows appear on both surfaces, and each surface's own income/expense figures account for exactly the rows it covers | **Do not compare the two surfaces' totals to each other.** Tổng quan covers the **current month**; the register covers everything unless filtered, so different numbers are correct behavior. What must hold is that the transfer from PP-05 is excluded from income and expense on **both** | — | `pass/fail`, whether the transfer was excluded on both |
+| **PP-11** | Rows recorded above | **Fully reload** the page (pull-to-refresh or the browser's reload — not tab switching), then reopen **Giao dịch** and **Tài khoản** | Every row and balance from PP-03 – PP-08 is still correct after the reload | Nothing lost, nothing duplicated, nothing silently re-created | this **is** the persistence proof | `pass/fail`, row count before and after |
+| **PP-12** | Capture form open | With the on-screen keyboard raised, reach the amount field and the save control; rotate to landscape and back; look at the top and bottom edges of the screen | The keyboard never covers the save control; neither orientation scrolls sideways; content is not clipped at the top or bottom edge; every control you need can be hit **without pinch-zooming** | — | — | `pass/fail`, orientations tested; `not_applicable` for the edge check if the device has no notch or home indicator |
+| **PP-13** | Capture form filled, network disabled (airplane mode) | Attempt to save. Do **not** retry yet. Re-enable the network and fully reload | The failure message `Mất kết nối khi lưu. Hãy thử lại.` appears; after the reload there is **no row** and no balance moved | A failed save changes nothing at all | verified by the reload | `pass/fail`, rows present after reload (must be 0 new) |
+| **PP-14** | The phone's own light/dark setting | View **Tài khoản** and **Giao dịch** in the theme the owner actually uses, then change the OS theme once and look again | Amounts stay legible in both themes, and an expense is still distinguishable from income **with colour ignored** (by its sign) | Money is never distinguished by colour alone | — | `pass/fail`, themes checked |
+| **PP-15** | Capture form filled, network disabled | Attempt to save and let it fail. Re-enable the network and tap save **again on the same form** | The row is created **once** | **Exactly one row** exists for one logical transaction, and the balance moved once. The product carries an idempotency key precisely for this path | Single row survives PP-11 | `pass/fail`, rows created by the retry (must be 1) |
+| **PP-16** | Capture form open | In the amount field, type a value using the keypad's **decimal separator** (for example `12,5` or `12.5`), then look at what the form and the saved row show | Whatever is saved matches what you believe you entered — if the separator is discarded, the amount is wrong and this is a **fail** | Money is integer đồng: a separator must not silently change the magnitude of the amount | — | `pass/fail`, amount matched what was typed `yes/no` |
+| **PP-17** | Capture form open, phone clock set to the owner's normal timezone | Save an expense without touching the date field, then find it in **Giao dịch** | The row is dated **today** in the app's own calendar, grouped under today | A row lands on the day the owner meant, not a neighbouring day | Date unchanged after PP-11 | `pass/fail`, date matched the intended day `yes/no` |
+
+**Why these seventeen and not others.**
 
 PP-14 is included because reading a balance correctly *is* the daily-ledger claim,
 the repository already forbids colour-only money, and the OS theme is outside the
 owner's control in-app. It is one bounded check, not a design review.
 
-PP-13 uses airplane mode deliberately: it reaches a real error state **without** a
-destructive probe, corrupted data or a forced server fault.
+PP-13 and PP-15 use airplane mode deliberately: they reach a real error state
+**without** a destructive probe, corrupted data or a forced server fault. They are
+split because they prove opposite things — PP-13 that a failure writes nothing, and
+PP-15 that *retrying* it writes exactly one row. PP-15 is the single highest-value
+scenario here: the product ships an idempotency key for that path, and a duplicated
+transaction is a silent balance error the owner would discover days later.
+
+PP-16 exists because the amount field advertises a decimal keypad while the parser
+discards separators, so the keypad offers a key that changes the amount by a factor
+of ten. That is only observable by typing on a real keyboard.
+
+PP-17 exists because a row on the wrong day is the most ordinary way a daily ledger
+loses trust, and the default depends on a timezone the phone controls.
+
+PP-09 tests the type filters rather than restating PP-04's category filtering, so no
+two scenarios cover the same behavior.
 
 ### Failure classification for P3
 
@@ -281,11 +316,22 @@ inside an image.
    deferred with a reason).
 3. The device and build under test are recorded: device row plus the production
    commit SHA the owner is actually using.
-4. `docs/evidence/p3-prove/seven-day-<YYYY-MM-DD>.md` created from the template.
+4. `docs/evidence/p3-prove/seven-day-<YYYY-MM-DD>.md` created from
+   `docs/evidence/p3-prove/SEVEN-DAY-TEMPLATE.md` — a per-day log, which is a
+   different shape from the scenario template and has its own file.
 
 ### What counts as a completed day
 
-A day counts when the owner has, on that calendar day, **used MoneyFlow as their
+**Which calendar.** The day is the **ledger's** day (Asia/Ho_Chi_Minh) — the same day
+the app uses when it defaults a new transaction's date. Using the ledger's calendar
+rather than the phone's means crossing a timezone cannot invent or erase a day.
+
+**Recorded, not occurred.** A day counts by when the owner *recorded* activity, not
+by the date on the transaction. Recording yesterday's expense today counts toward
+**today** and does not retroactively complete yesterday; a day already missed stays
+missed. Back-dating is normal ledger use and is neither rewarded nor penalised.
+
+A day counts when the owner has, on that ledger day, **used MoneyFlow as their
 actual ledger** — at minimum one real transaction recorded on the phone — and
 recorded, sanitized:
 
@@ -301,15 +347,23 @@ confirmation. Silence is not a completed day.
 
 ### What resets the streak
 
-- **Data loss or a P0** — the streak resets to zero, and the run cannot resume
-  until the defect is fixed and P3-T1's affected scenarios are re-run.
+- **Data loss or a P0** — the attempt **ends and resets to zero**. A new attempt
+  starts at day 1 once the defect is fixed and P3-T1's affected scenarios have been
+  re-run. There is no "pause and resume" for a P0: a ledger that lost data has not
+  been trustworthy for the days already counted.
 - **Manual database repair** to keep the ledger usable — resets, because the claim
   is explicitly "without manual database repair".
-- **A missed calendar day** — the days must be consecutive; a gap ends that attempt
+- **A missed ledger day** — the days must be consecutive; a gap ends that attempt
   and a new attempt starts at day 1.
 - **A production deploy that changes the daily loop mid-run** — the remaining days
-  would be evidence about a different build. Days already completed stay recorded
-  as a partial attempt on the earlier SHA.
+  would be evidence about a different build, so the attempt ends and a new one starts
+  at day 1 on the new SHA. Days already completed stay recorded as a partial attempt
+  on the earlier SHA.
+  **Exception:** the deploy that *fixes* the P0 or P1 which ended the previous
+  attempt does not itself end anything — it is the remediation the reset already
+  requires, and the new attempt simply starts on the fixed build. Without this
+  exception the two rules above would feed each other and no attempt could ever
+  complete.
 
 ### What does NOT reset the streak
 
@@ -318,12 +372,17 @@ confirmation. Silence is not a completed day.
 - Low usage on a quiet day, provided the day is recorded as above.
 - Travel, a different network, or a temporary offline period, as long as the app
   was used and nothing was lost.
+- A deploy the owner judges not to touch the daily loop. **The owner adjudicates**
+  this, records the SHA and the judgement in the log's Interruptions table, and the
+  judgement is reviewable — an agent must not make this call, and P4 Improve work is
+  by definition a daily-loop change.
 
 ### When a P0 or P1 pauses the run
 
-A **P0 pauses immediately** and resets. A **P1 does not pause** the run, but must be
-recorded the day it is found; PBT-AC14 blocks acceptance until the owner decides on
-it.
+A **P0 ends the attempt immediately** and resets it to zero — "pause" would imply the
+counted days survive, and they do not. A **P1 does not end** the run, but must be
+recorded on the day it is found; PBT-AC14 blocks acceptance until the owner decides
+on it.
 
 ## Tasks
 
@@ -331,7 +390,7 @@ it.
 |---|---|---|---|---|
 | P3-T1a | define the loop, scenarios, device matrix, severity and evidence protocol | P2 accepted | this packet | complete |
 | P3-T1b | evidence template + deterministic validator | P3-T1a | `docs/evidence/p3-prove/TEMPLATE.md`, `scripts/check-prove-evidence.mjs` | complete |
-| P3-T1c | **owner** runs the fourteen scenarios on the required device | P3-T1b | sanitized evidence file | **awaiting owner** |
+| P3-T1c | **owner** runs the seventeen scenarios on the required device | P3-T1b | sanitized evidence file | **awaiting owner** |
 | P3-T1d | classify defects; report any P0/P1 as its own bounded mission | P3-T1c | issue/PR references | blocked |
 | P3-T2 | seven consecutive days of sanitized self-use | P3-T1 accepted | seven-day evidence file | **not started** |
 | P3-T3 | reconcile parent plan and memory with real evidence | P3-T2 | PBT-AC12/AC13 | blocked |
@@ -370,4 +429,4 @@ recorded in the pull request.
 
 | Date | From | To | State | Evidence | Open boundary | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-12 | planner | human_owner | specified | packet + template + validator on `277d459`; no device evidence exists | physical-phone loop unproven; seven-day run not started | owner runs the fourteen REQUIRED scenarios and returns the sanitized evidence file |
+| 2026-08-12 | planner | human_owner | specified | packet + template + validator on `277d459`; no device evidence exists | physical-phone loop unproven; seven-day run not started | owner runs the seventeen REQUIRED scenarios and returns the sanitized evidence file |

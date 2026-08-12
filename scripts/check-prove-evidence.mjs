@@ -3,17 +3,20 @@
  *
  * Two jobs, both of which a human reviewer does badly by hand:
  *
- * 1. **Completeness** — every scenario present with a real result, `fail_then_pass`
- *    explained, the device row filled in, the declaration acknowledged.
- * 2. **Privacy** — no amount, description, email, account identifier or token in a
- *    file that is about to enter Git permanently.
+ * 1. **Completeness** — every scenario present with a real result, every failure
+ *    explained *and* carried into the defect table, the device row actually filled
+ *    in, the declaration acknowledged.
+ * 2. **Privacy** — no amount, description-shaped number, email, identifier or token
+ *    in a file that is about to enter Git permanently.
  *
  * It is deliberately narrow. It validates *evidence files*; it does not decide
- * whether the phase passes, and it cannot look inside a screenshot — the template
- * says so rather than implying otherwise.
+ * whether the phase passes. Two limits are stated rather than implied: it cannot
+ * look inside a screenshot, and it cannot recognise a payee or an institution name
+ * written as ordinary prose. The owner is the last check on both.
  *
- * The scenario list is derived from the packet, so a scenario added there without a
- * template row fails a gate instead of being silently skipped.
+ * A valid file is not an acceptance. A file recording every scenario as failed is a
+ * perfectly valid file, and the CLI says so loudly instead of printing "passed" and
+ * letting a reader infer the phase is done.
  */
 
 import fs from "node:fs";
@@ -24,53 +27,103 @@ import { pathToFileURL } from "node:url";
 export const PACKET_PATH = "docs/plans/active/moneyflow-trust-prove.md";
 export const EVIDENCE_DIR = "docs/evidence/p3-prove";
 export const TEMPLATE_NAME = "TEMPLATE.md";
+export const SEVEN_DAY_TEMPLATE_NAME = "SEVEN-DAY-TEMPLATE.md";
 
 export const VALID_RESULTS = Object.freeze([
   "pass",
   "fail",
   "blocked",
   "fail_then_pass",
+  // Hardware that simply lacks the feature under test — a notch, say — is not a
+  // defect and must not be recorded as one.
+  "not_applicable",
 ]);
+export const FAILING_RESULTS = Object.freeze(["fail", "blocked", "fail_then_pass"]);
 export const VALID_SEVERITIES = Object.freeze(["P0", "P1", "finding"]);
+export const VALID_TIERS = Object.freeze(["required", "optional"]);
+
+const REQUIRED_SECTIONS = Object.freeze(["## Run", "## Results", "## Defects", "## Declaration"]);
+
+/** Device fields that must be present *and* carry a value. */
+const REQUIRED_DEVICE_FIELDS = Object.freeze([
+  "Tier:",
+  "Platform:",
+  "OS version:",
+  "Browser:",
+  "Browser version:",
+]);
 
 /**
  * Scenario IDs read from the packet's own table, not restated here.
  *
- * One source: if the checklist grows a PP-15, the template must grow a row for it.
+ * Bold is optional: requiring `**PP-NN**` meant a scenario added without emphasis
+ * would silently never be required of any evidence file — the opposite of the
+ * single-source guarantee this function exists for.
  */
 export function packetScenarioIds(root = process.cwd()) {
   const file = path.join(root, PACKET_PATH);
   if (!fs.existsSync(file)) return [];
   const content = fs.readFileSync(file, "utf8");
   const ids = new Set();
-  for (const match of content.matchAll(/^\|\s*\*\*(PP-\d{2})\*\*\s*\|/gmu)) {
+  for (const match of content.matchAll(/^\|\s*\*{0,2}(PP-\d{2})\*{0,2}\s*\|/gmu)) {
     ids.add(match[1]);
   }
   return [...ids].sort();
 }
 
 /**
+ * Fold look-alike characters before scanning.
+ *
+ * `120․000₫` with a U+2024 ONE DOT LEADER is the same disclosure as `120.000₫`
+ * and previously walked straight past the grouped-number rule.
+ */
+function normalizeForScan(text) {
+  return text
+    .normalize("NFC")
+    .replaceAll("․", ".")
+    .replaceAll("·", ".")
+    .replaceAll("．", ".")
+    .replaceAll("ˌ", ",")
+    .replaceAll("，", ",")
+    .replaceAll(" ", " ");
+}
+
+/**
  * Content that must never enter Git.
  *
- * Tuned to what this evidence file legitimately contains. Bare counts are expected
- * ("rows: 14"), so a number alone cannot be the signal — a number attached to
- * currency, or thousands-separated the way đồng is written, is.
+ * Tuned to what this file legitimately contains. Scenario counts are small — how
+ * many accounts, how many rows — so a four-digit bare integer is money far more
+ * often than it is a count, and that is the rule that catches the notation an owner
+ * actually types (`250000`, `250k`, `1tr2`).
  */
 const FORBIDDEN_PATTERNS = [
   {
     id: "currency_amount",
-    // 12.000₫ / 12,000 VND / 500000 đồng — a money amount in any shipped notation.
-    pattern: /\d[\d.,\s]*\s*(?:₫|VND|vnd|đồng|dong)\b/u,
+    // No trailing \b after the symbol: `250₫` must match, and previously did not
+    // because \b required a following word character.
+    pattern: /\d[\d.,\s]*\s*(?:₫|đ\b|VND|VNĐ|vnd|đồng|dong)/iu,
     why: "a money amount",
   },
   {
+    id: "colloquial_amount",
+    // How Vietnamese money is actually written in a note: 250k, 1tr2, 12 triệu.
+    // No trailing \b: `1tr2` puts a digit after the unit, which a word boundary
+    // rejects. A following letter is excluded instead, so `1trong` does not match.
+    pattern: /\b\d+(?:[.,]\d+)?\s*(?:k|tr|củ|cu|triệu|trieu|nghìn|nghin|tỷ|ty)(?![\p{L}])/iu,
+    why: "a colloquial money amount",
+  },
+  {
     id: "thousands_grouped_number",
-    // Grouped digits are how this product writes money and essentially never how
-    // it writes a count.
     pattern: /\b\d{1,3}(?:[.,]\d{3}){1,}\b/u,
     why: "a grouped number that looks like a money amount",
   },
-  { id: "email", pattern: /[\w.+-]+@[\w-]+\.[\w.-]+/u, why: "an email address" },
+  {
+    id: "bare_large_number",
+    // Counts in this file are small. Four or more digits is an amount.
+    pattern: /\b\d{4,}\b/u,
+    why: "a number too large to be one of this file's counts",
+  },
+  { id: "email", pattern: /[\w.+-]+\s*(?:@|\[at\]|\(at\))\s*[\w-]+\.[\w.-]+/iu, why: "an email address" },
   {
     id: "uuid",
     pattern: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/iu,
@@ -82,39 +135,76 @@ const FORBIDDEN_PATTERNS = [
     pattern: /\b(?:sbp_|sb_secret_|service_role)\S*/u,
     why: "a provider key",
   },
-  {
-    id: "bearer",
-    pattern: /\bBearer\s+\S{12,}/u,
-    why: "an authorization header",
-  },
-  {
-    id: "long_digit_run",
-    // 12+ consecutive digits is a card or bank account shape, not a count. A
-    // commit SHA is hex and handled separately.
-    pattern: /\b\d{12,}\b/u,
-    why: "a bank or card account number",
-  },
+  { id: "bearer", pattern: /\bBearer\s+\S{12,}/u, why: "an authorization header" },
 ];
 
-/** Lines that legitimately contain hex or version-like values. */
-function isAllowedTechnicalLine(line) {
-  return /commit SHA|OS version|Browser version|^```/u.test(line);
+/**
+ * Lines allowed to carry a long technical value — and only for the rules that
+ * value would otherwise trip.
+ *
+ * An earlier version exempted a whole line from the *entire* scan whenever it
+ * merely contained "OS version", so a note mentioning a version number could smuggle
+ * an amount through. Exemptions are now per-field and per-rule.
+ */
+const FIELD_EXEMPTIONS = [
+  {
+    match: /^-?\s*Production commit SHA under test:/u,
+    allow: ["bare_large_number", "uuid", "thousands_grouped_number"],
+  },
+  { match: /^-?\s*Run date:/u, allow: ["bare_large_number"] },
+  { match: /^-?\s*OS version:/u, allow: ["bare_large_number"] },
+  { match: /^-?\s*Browser version:/u, allow: ["bare_large_number"] },
+  { match: /^-?\s*(?:Day|Date):/u, allow: ["bare_large_number"] },
+];
+
+function allowedRulesFor(line) {
+  const allowed = new Set();
+  for (const exemption of FIELD_EXEMPTIONS) {
+    if (exemption.match.test(line.trim())) {
+      for (const id of exemption.allow) allowed.add(id);
+    }
+  }
+  return allowed;
 }
 
-export function scanForbiddenContent(text) {
+export function scanForbiddenContent(text, { isTemplate = false } = {}) {
   const findings = [];
-  const lines = text.split(/\r?\n/);
-  for (const [index, line] of lines.entries()) {
-    if (isAllowedTechnicalLine(line)) continue;
-    // Template placeholders are instructions, not data.
-    const stripped = line.replace(/`<[^`]*>`/gu, "").replace(/`YYYY-MM-DD`/gu, "");
+  // ISO dates are legitimate anywhere in these files — a per-field exemption for
+  // them made every day row of the seven-day log trip the large-number rule.
+  const lines = normalizeForScan(text)
+    .replaceAll(/\b\d{4}-\d{2}-\d{2}\b/gu, "<date>")
+    .split(/\r?\n/);
+  let inFence = false;
+  for (const [index, raw] of lines.entries()) {
+    if (/^\s*```/u.test(raw)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    // Only a blank form may carry `<placeholder>` instructions; in a filled-in file
+    // stripping them would let real data hide inside angle brackets.
+    const line = isTemplate ? raw.replace(/`<[^`]*>`/gu, "").replace(/`YYYY-MM-DD`/gu, "") : raw;
+    const allowed = allowedRulesFor(line);
     for (const rule of FORBIDDEN_PATTERNS) {
-      if (rule.pattern.test(stripped)) {
+      if (allowed.has(rule.id)) continue;
+      if (rule.pattern.test(line)) {
         findings.push({ line: index + 1, id: rule.id, why: rule.why });
       }
     }
   }
   return findings;
+}
+
+/** Terms that mean the observation did not happen on hardware. */
+const EMULATED_TERMS =
+  /\b(?:emulat\w*|simulator|simulated|device farm|browserstack|saucelabs|lambdatest|genymotion|resized|devtools|responsive mode|viewport profile|desktop browser|chrome window)\b/iu;
+
+function sectionOf(text, heading) {
+  const start = text.indexOf(heading);
+  if (start < 0) return null;
+  const rest = text.slice(start + heading.length);
+  const end = rest.search(/^## /mu);
+  return end >= 0 ? rest.slice(0, end) : rest;
 }
 
 function parseRow(line) {
@@ -123,51 +213,101 @@ function parseRow(line) {
   return cells.length > 0 ? cells : null;
 }
 
-export function parseResults(text) {
-  const results = new Map();
-  for (const line of text.split(/\r?\n/)) {
+function tableRows(sectionText) {
+  const rows = [];
+  let inFence = false;
+  for (const line of (sectionText ?? "").split(/\r?\n/)) {
+    if (/^\s*```/u.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
     const cells = parseRow(line);
     if (!cells) continue;
-    const id = /^(?:\*\*)?(PP-\d{2})(?:\*\*)?$/u.exec(cells[0])?.[1];
-    if (!id) continue;
-    // The packet's own scenario table has many columns; an evidence row has three.
-    if (cells.length > 4) continue;
-    results.set(id, { result: cells[1] ?? "", notes: cells[2] ?? "" });
+    if (cells.every((cell) => /^:?-+:?$/u.test(cell) || cell === "")) continue;
+    rows.push(cells);
   }
-  return results;
+  return rows;
+}
+
+/**
+ * Results are read only from the `## Results` section.
+ *
+ * Scanning the whole file meant a table pasted under another heading counted, and a
+ * `Map` meant a later duplicate row silently overrode an earlier failing one.
+ * Duplicates are now an error rather than a last-write-wins override.
+ */
+export function parseResults(text) {
+  const results = new Map();
+  const duplicates = [];
+  const malformed = [];
+  for (const cells of tableRows(sectionOf(text, "## Results"))) {
+    const id = /^\*{0,2}(PP-\d{2})\*{0,2}$/u.exec(cells[0])?.[1];
+    if (!id) continue;
+    if (cells.length !== 3) {
+      malformed.push({ id, columns: cells.length });
+      continue;
+    }
+    if (results.has(id)) {
+      duplicates.push(id);
+      continue;
+    }
+    results.set(id, { result: cells[1], notes: cells[2] });
+  }
+  return { results, duplicates, malformed };
 }
 
 export function parseDefects(text) {
   const defects = [];
-  const start = text.indexOf("## Defects");
-  if (start < 0) return defects;
-  const section = text.slice(start, text.indexOf("## Declaration", start) + 1 || undefined);
-  for (const line of section.split(/\r?\n/)) {
-    const cells = parseRow(line);
-    if (!cells || cells.length < 5) continue;
-    if (/^-+$/u.test(cells[0]) || cells[0] === "Ref") continue;
-    defects.push({ ref: cells[0], scenario: cells[1], severity: cells[2], repro: cells[3], status: cells[4] });
+  for (const cells of tableRows(sectionOf(text, "## Defects"))) {
+    if (cells[0] === "Ref") continue;
+    if (cells.length < 5) continue;
+    defects.push({
+      ref: cells[0],
+      scenario: cells[1],
+      severity: cells[2],
+      repro: cells[3],
+      status: cells[4],
+    });
   }
   return defects;
 }
 
+function fieldValue(text, field) {
+  // Horizontal whitespace only: `\s*` consumed the newline and captured the *next*
+  // line, so a label written with nothing after it read as filled in.
+  const match = new RegExp(`^-?[ \t]*${field}[ \t]*(.*)$`, "mu").exec(text);
+  return match ? match[1].replace(/[`*]/gu, "").trim() : null;
+}
+
 /**
- * Validate one evidence file.
+ * Validate one physical-phone evidence file.
  *
- * `isTemplate` relaxes exactly two things — empty results and an unticked
- * declaration — because the template is the blank form. Everything else, including
- * the privacy scan and full scenario coverage, applies to it too: a template that
- * omits a scenario guarantees every future run omits it.
+ * `isTemplate` relaxes exactly three things — blank results, an unticked
+ * declaration, and placeholder stripping — because the template is the blank form.
+ * Everything else, including full scenario coverage and the privacy scan, applies to
+ * it too: a template that omits a scenario guarantees every future run omits it.
  */
 export function validateEvidenceFile({ name, text, scenarioIds, isTemplate = false }) {
   const problems = [];
   const add = (problem) => problems.push({ file: name, problem });
 
-  for (const finding of scanForbiddenContent(text)) {
+  for (const finding of scanForbiddenContent(text, { isTemplate })) {
     add(`line ${finding.line}: contains ${finding.why} (${finding.id})`);
   }
 
-  const results = parseResults(text);
+  // Sections must exist. `indexOf` returning -1 previously made a *missing*
+  // declaration section pass silently, removing the only physical attestation.
+  for (const heading of REQUIRED_SECTIONS) {
+    if (!text.includes(heading)) add(`missing the "${heading}" section`);
+  }
+
+  const { results, duplicates, malformed } = parseResults(text);
+  for (const id of duplicates) add(`${id} appears more than once; a later row must not override an earlier one`);
+  for (const entry of malformed) {
+    add(`${entry.id} row has ${entry.columns} columns; the results table takes exactly ID, Result, Notes`);
+  }
+
   for (const id of scenarioIds) {
     if (!results.has(id)) {
       add(`missing a result row for ${id}`);
@@ -182,52 +322,110 @@ export function validateEvidenceFile({ name, text, scenarioIds, isTemplate = fal
       add(`${id} result must be one of ${VALID_RESULTS.join(", ")} (found "${result}")`);
       continue;
     }
-    // A retry pass is a finding until explained; an unexplained one would quietly
-    // become a clean acceptance.
-    if (result === "fail_then_pass" && notes.trim().length < 10) {
-      add(`${id} is fail_then_pass and must carry an explanation, not a clean pass`);
+    if (result !== "pass" && notes.trim().length < 10) {
+      add(`${id} is "${result}" and must record what happened`);
     }
-    if (result === "fail" && notes.trim().length < 10) {
-      add(`${id} failed and must record what happened`);
-    }
-    if (result === "blocked" && notes.trim().length < 10) {
-      add(`${id} is blocked and must record why`);
+    // Emulated evidence cannot satisfy any physical scenario — checked on every
+    // note, not only the first scenario's.
+    if (EMULATED_TERMS.test(notes)) {
+      add(`${id} describes emulated or resized-browser evidence, which cannot satisfy a physical scenario`);
     }
   }
   for (const id of results.keys()) {
     if (!scenarioIds.includes(id)) add(`${id} is not a scenario in the packet`);
   }
 
-  const unknownIds = [...results.keys()].filter((id) => !scenarioIds.includes(id));
-  if (unknownIds.length > 0 && scenarioIds.length === 0) {
-    add("the packet's scenario table could not be read; refusing to validate blindly");
+  for (const field of REQUIRED_DEVICE_FIELDS) {
+    const value = fieldValue(text, field);
+    if (value === null) {
+      add(`missing the "${field}" device field`);
+    } else if (value === "" && !isTemplate) {
+      // Presence alone was checkable by writing the label and nothing after it.
+      add(`"${field}" is present but empty`);
+    }
   }
-
-  for (const field of ["Platform:", "OS version:", "Browser:", "Browser version:", "Tier:"]) {
-    if (!text.includes(field)) add(`missing the "${field}" device field`);
+  const tier = fieldValue(text, "Tier:");
+  if (tier && !VALID_TIERS.includes(tier) && !isTemplate) {
+    add(`Tier must be one of ${VALID_TIERS.join(", ")} (found "${tier}")`);
   }
   if (!/Session:\s*`?authenticated/u.test(text)) {
     add("the run must record an authenticated session, never demo");
   }
+  if (!isTemplate && EMULATED_TERMS.test(fieldValue(text, "Platform:") ?? "")) {
+    add("Platform names an emulator; the required tier means hardware");
+  }
 
-  for (const defect of parseDefects(text)) {
+  const defects = parseDefects(text);
+  const declared = new Set();
+  for (const defect of defects) {
     if (defect.ref === "" && defect.severity === "") continue; // blank template row
     if (defect.ref.toLowerCase() === "none") continue;
     if (!VALID_SEVERITIES.includes(defect.severity)) {
       add(`defect "${defect.ref}" severity must be one of ${VALID_SEVERITIES.join(", ")}`);
     }
+    for (const id of defect.scenario.matchAll(/PP-\d{2}/gu)) declared.add(id[0]);
   }
 
   if (!isTemplate) {
-    const declaration = text.slice(text.indexOf("## Declaration"));
-    if (/^- \[ \]/mu.test(declaration)) {
-      add("every declaration line must be acknowledged before this is committed");
+    /**
+     * A failure must reach the defect table.
+     *
+     * Otherwise a `fail_then_pass` with a ten-character note satisfied everything
+     * while the packet's "counts as a finding until explained" left no finding
+     * recorded anywhere.
+     */
+    for (const [id, entry] of results) {
+      if (FAILING_RESULTS.includes(entry.result) && !declared.has(id)) {
+        add(`${id} is "${entry.result}" and needs a matching row in the Defects table`);
+      }
     }
-    if (/\bemulat|simulator|device farm\b/iu.test(results.get(scenarioIds[0])?.notes ?? "")) {
-      add("emulated evidence cannot satisfy a required physical scenario");
+
+    const declaration = sectionOf(text, "## Declaration");
+    if (declaration !== null && /^- \[ \]/mu.test(declaration)) {
+      add("every declaration line must be acknowledged before this is committed");
     }
   }
 
+  return problems;
+}
+
+/** Seven-day log rules. Its own shape, and the same privacy scan. */
+export function validateSevenDayFile({ name, text, isTemplate = false }) {
+  const problems = [];
+  const add = (problem) => problems.push({ file: name, problem });
+
+  for (const finding of scanForbiddenContent(text, { isTemplate })) {
+    add(`line ${finding.line}: contains ${finding.why} (${finding.id})`);
+  }
+  for (const heading of ["## Run", "## Days", "## Declaration"]) {
+    if (!text.includes(heading)) add(`missing the "${heading}" section`);
+  }
+
+  const rows = tableRows(sectionOf(text, "## Days")).filter((cells) => cells[0] !== "Day");
+  const days = rows.filter((cells) => cells.length >= 5 && /^\d$/u.test(cells[0]));
+  if (isTemplate) {
+    if (days.some((cells) => cells.slice(1).some((cell) => cell !== ""))) {
+      add("the seven-day template must ship with no recorded day");
+    }
+    return problems;
+  }
+
+  for (const cells of days) {
+    const [day, date, count, balancesOk, repair] = cells;
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(date)) add(`day ${day} needs an ISO date`);
+    if (!/^\d{1,3}$/u.test(count)) add(`day ${day} needs a transaction count`);
+    if (!/^(?:yes|no)$/iu.test(balancesOk)) add(`day ${day} must record balances looked correct: yes or no`);
+    if (!/^no$/iu.test(repair)) {
+      // The claim is explicitly "without manual database repair".
+      add(`day ${day} records manual database repair; the streak is broken and cannot be recorded as complete`);
+    }
+    if (count === "0" && !/yes/iu.test(balancesOk)) {
+      add(`day ${day} has no transactions, so it counts only with a confirmed balance check`);
+    }
+  }
+  if (days.length > 0 && days.length < 7) {
+    add(`only ${days.length} of 7 days are recorded; the run is in progress, not complete`);
+  }
   return problems;
 }
 
@@ -241,6 +439,8 @@ export function runProveEvidenceCheck({ root = process.cwd() } = {}) {
       ok: false,
       scenarioIds,
       checked: [],
+      runs: [],
+      summary: null,
       problems: [{ file: PACKET_PATH, problem: "no PP-NN scenarios found in the packet" }],
     };
   }
@@ -249,37 +449,48 @@ export function runProveEvidenceCheck({ root = process.cwd() } = {}) {
       ok: false,
       scenarioIds,
       checked: [],
+      runs: [],
+      summary: null,
       problems: [{ file: EVIDENCE_DIR, problem: "the evidence directory is missing" }],
     };
   }
 
   const checked = [];
+  const runs = [];
+  const summary = { pass: 0, fail: 0, blocked: 0, fail_then_pass: 0, not_applicable: 0 };
   for (const entry of fs.readdirSync(dir).sort()) {
     if (!entry.endsWith(".md")) continue;
-    // The seven-day log is a different shape and is not validated here.
-    if (entry.startsWith("seven-day-")) continue;
     const text = fs.readFileSync(path.join(dir, entry), "utf8");
+    const name = `${EVIDENCE_DIR}/${entry}`;
     checked.push(entry);
-    problems.push(
-      ...validateEvidenceFile({
-        name: `${EVIDENCE_DIR}/${entry}`,
-        text,
-        scenarioIds,
-        isTemplate: entry === TEMPLATE_NAME,
-      }),
-    );
+
+    if (entry === SEVEN_DAY_TEMPLATE_NAME || entry.startsWith("seven-day-")) {
+      problems.push(
+        ...validateSevenDayFile({ name, text, isTemplate: entry === SEVEN_DAY_TEMPLATE_NAME }),
+      );
+      continue;
+    }
+
+    const isTemplate = entry === TEMPLATE_NAME;
+    problems.push(...validateEvidenceFile({ name, text, scenarioIds, isTemplate }));
+    if (isTemplate) continue;
+    runs.push(entry);
+    for (const { result } of parseResults(text).results.values()) {
+      if (result in summary) summary[result] += 1;
+    }
   }
 
-  if (!checked.includes(TEMPLATE_NAME)) {
-    problems.push({ file: EVIDENCE_DIR, problem: `${TEMPLATE_NAME} is missing` });
+  for (const required of [TEMPLATE_NAME, SEVEN_DAY_TEMPLATE_NAME]) {
+    if (!checked.includes(required)) {
+      problems.push({ file: EVIDENCE_DIR, problem: `${required} is missing` });
+    }
   }
 
-  return { ok: problems.length === 0, scenarioIds, checked, problems };
+  return { ok: problems.length === 0, scenarioIds, checked, runs, summary, problems };
 }
 
 function runCli() {
   const result = runProveEvidenceCheck();
-  const runs = result.checked.filter((name) => name !== TEMPLATE_NAME);
   if (!result.ok) {
     console.error("P3 Prove evidence contract failed:\n");
     for (const problem of result.problems) {
@@ -288,12 +499,37 @@ function runCli() {
     process.exitCode = 1;
     return;
   }
+
   console.log(
-    `P3 Prove evidence contract passed (${result.scenarioIds.length} scenarios; ${runs.length} recorded run${runs.length === 1 ? "" : "s"}).`,
+    `P3 Prove evidence contract passed (${result.scenarioIds.length} scenarios; ${result.runs.length} recorded run${result.runs.length === 1 ? "" : "s"}).`,
   );
-  if (runs.length === 0) {
-    // Said plainly, so a green gate is never mistaken for device evidence.
-    console.log("No physical-phone run is recorded yet; the template validates only its own shape.");
+  if (result.runs.length === 0) {
+    console.log(
+      "No physical-phone run is recorded yet; the templates validate only their own shape.",
+    );
+    return;
+  }
+
+  /**
+   * A valid file is not an acceptance.
+   *
+   * Recording every scenario as failed produces a perfectly valid file, so the outcome is
+   * reported separately from the file's validity — otherwise "contract passed" reads
+   * as "the phase passed".
+   */
+  const { summary } = result;
+  const unresolved = summary.fail + summary.blocked + summary.fail_then_pass;
+  console.log(
+    `results: ${summary.pass} pass, ${summary.fail} fail, ${summary.blocked} blocked, ${summary.fail_then_pass} fail_then_pass, ${summary.not_applicable} not_applicable`,
+  );
+  if (unresolved > 0) {
+    console.log(
+      `This file is well-formed, but ${unresolved} scenario(s) did not cleanly pass. P3 is NOT accepted while any remain unresolved; a fail_then_pass stays a finding until explained.`,
+    );
+  } else {
+    console.log(
+      "All scenarios pass. Acceptance is still the owner's decision, recorded in the packet — not something this check can grant.",
+    );
   }
 }
 
