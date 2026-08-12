@@ -27,6 +27,7 @@ const PROVIDER_CHECKS = [
   "verify",
   "database",
   "e2e",
+  "Gitleaks all refs",
   "Analyze JavaScript and TypeScript",
 ];
 
