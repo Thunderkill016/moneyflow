@@ -14,6 +14,7 @@ const REQUIRED_REPO_FILES = [
 ];
 
 const GATE_COMMANDS = {
+  migrationIdentity: "npm run check:migrations",
   knowledge: "npm run check:knowledge",
   ciPolicy: "npm run test:ci-policy",
   fullVerify: "npm run verify:prepush",
@@ -50,7 +51,11 @@ function gitValue(args) {
 }
 
 export function buildGatePlan(classification) {
-  const commands = [GATE_COMMANDS.knowledge, GATE_COMMANDS.ciPolicy];
+  const commands = [
+    GATE_COMMANDS.migrationIdentity,
+    GATE_COMMANDS.knowledge,
+    GATE_COMMANDS.ciPolicy,
+  ];
   if (classification.fullVerify) commands.push(GATE_COMMANDS.fullVerify);
   if (classification.database) commands.push(GATE_COMMANDS.database);
   if (classification.browserSmoke) commands.push(GATE_COMMANDS.browserSmoke);
