@@ -343,6 +343,15 @@
   font-weight: 800;
 }
 
+/**
+ * The single owner of shell sheet height.
+ *
+ * `svh` rather than `dvh` so the sheet does not resize while mobile browser
+ * chrome appears and disappears. The primitive applies safe-area padding to the
+ * footer and scroll body, so none is applied to this outer box: padding here
+ * would shrink the content area without protecting anything from the home
+ * indicator.
+ */
 .shellSheet {
   max-height: min(86svh, 760px);
   overscroll-behavior-y: contain;
@@ -501,16 +510,40 @@
   z-index: var(--mf-shell-layer-feedback);
 }
 
+/**
+ * The undo toast carries a transaction note, so this text can be long.
+ *
+ * `inline-flex` without `min-width: 0` refuses to shrink below its content, so a
+ * long note overflowed the toast on a phone instead of wrapping — and the
+ * `Hoàn tác` button beneath it is the recovery for a delete, on an eight-second
+ * timer. Alignment moves to the top so the icon stays beside the first line once
+ * the text wraps.
+ */
 .toastTitle {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
   gap: 8px;
+}
+
+.toastTitle > span {
+  min-width: 0;
+  /**
+   * `overflow-wrap: break-word` and not `anywhere`.
+   *
+   * The delete notice can also carry a formatted money value, and `anywhere`
+   * permits a break inside the digits. `break-word` wraps long words without
+   * splitting a number that has somewhere better to break.
+   */
+  overflow-wrap: break-word;
 }
 
 .toastTitle svg {
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
+  /* Keeps the icon on the first line once the text wraps. */
+  margin-top: 2px;
 }
 
 @media (max-width: 1100px) {
@@ -737,7 +770,6 @@
   .shellSheet {
     max-height: min(88svh, 760px);
     padding-right: env(safe-area-inset-right, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     padding-left: env(safe-area-inset-left, 0px);
   }
 }

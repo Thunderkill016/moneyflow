@@ -45,7 +45,10 @@ test("quick-capture amount field has a local dark and dynamic-viewport owner", (
   assert.match(transactionFormCss, /color:\s*var\(--mf-text\)/u);
   assert.match(transactionFormCss, /\.amountInput::placeholder/u);
   assert.match(transactionFormCss, /color:\s*var\(--mf-text-soft\)/u);
-  assert.match(transactionFormCss, /100dvh/u);
+  // `svh` replaced `dvh` after a physical-phone run: the dynamic unit resizes the
+  // dialog as mobile browser chrome hides and returns.
+  assert.match(transactionFormCss, /100svh/u);
+  assert.doesNotMatch(transactionFormCss, /dvh/u);
   assert.match(transactionFormCss, /@media \(max-width: 360px\)/u);
   assert.doesNotMatch(
     transactionFormCss,

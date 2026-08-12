@@ -356,7 +356,7 @@ MoneyFlow remains a single-deployment modular monolith. Another repository havin
 
 # Current research priority
 
-Until the seven-day self-use and MVP readiness gates are complete, use this order:
+Until the MVP readiness gates are complete, use this order (the seven-day self-use gate was withdrawn by the owner on 2026-08-12 and is not replaced):
 
 1. **Actual Budget:** reconciliation, pending/cleared behavior and import review.
 2. **Firefly III:** transfer and ledger invariants.

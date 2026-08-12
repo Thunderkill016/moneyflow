@@ -87,7 +87,9 @@ Provider and repository evidence remain claim-specific:
 
 P1 Secure and P2 Recover no longer block the program. A complete versioned archive can be exported, validated and restored with invariants intact, and the Recover schema is live in production — with the venues kept distinct: **export** is accepted against a real hosted production artifact, while **restore** is proven deterministically by pgTAP against a real PostgreSQL and has never been executed against a live hosted account. That gap is the named P2 limitation, not a claimed pass.
 
-The next public-beta trust gap is **P3 Prove**: no physical-phone acceptance of the core ledger loop, and no seven consecutive days of sanitized owner self-use without data loss or manual database repair.
+The next public-beta trust gap is **P3 Prove**: physical-phone acceptance of the core ledger loop.
+
+On 2026-08-12 the owner **removed the seven-day self-use requirement** from the active program after running the physical checklist. P3 Prove is now physical-phone core-ledger acceptance only. No replacement duration gate is introduced. The historical seven-day records in `docs/REAL_USE_READINESS_CONTRACT.md` (R7, 2026-07-29) stay as historical truth and are not re-opened.
 
 ### P2 Recover user stories
 
@@ -118,7 +120,7 @@ Recover/Prove/Release:
 - [x] PBT-AC10 versioned complete archive can be exported, validated and restored with financial invariants intact — deterministic full round trip proven by pgTAP on every CI run that touches the database boundary and on every push to `main` (`classify-ci-changes.mjs` selects the pgTAP job by changed path, and non-pull-request events force the full gate set — so a docs-only PR such as this closure does not re-run it); hosted export accepted on a real production artifact; hosted restore is an owner-accepted named limitation (id-preservation refuses a restore while the source account is live).
 - [x] PBT-AC11 restore fails safely on unsupported/corrupt/partial archives — each rejection writes zero rows, proven in pgTAP.
 - [ ] PBT-AC12 core ledger behavior is exercised on a physical phone.
-- [ ] PBT-AC13 seven consecutive days of sanitized owner self-use complete without data loss/manual DB repair.
+- [~] PBT-AC13 **withdrawn as a duration gate** by owner decision on 2026-08-12. Real daily use continues to inform defect discovery, but no consecutive-day count is required for public beta and none replaces it.
 - [ ] PBT-AC14 no unresolved P0/P1 defect blocks the daily-ledger loop at final decision.
 - [ ] PBT-AC15 current memory/evidence are reconciled and owner records the final public-beta decision/accepted limitations.
 
@@ -162,8 +164,7 @@ landed and are accepted. What remains is P3:
 1. define the physical-phone core-ledger acceptance checklist — **done**, in
    `docs/plans/active/moneyflow-trust-prove.md`, which owns P3 execution detail;
 2. run it on a real device and record the evidence;
-3. complete seven consecutive days of sanitized owner self-use without data loss or
-   manual database repair;
+3. remediate the defects the run finds, then take the bounded owner retest;
 4. reconcile memory/evidence and take the owner public-beta decision.
 
 ## Tasks
@@ -180,7 +181,7 @@ landed and are accepted. What remains is P3:
 | P2-T1 | create/accept Recover archive contract | P1 accepted | complete — `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md` |
 | P2-T2 | implement export/validate/restore | P2-T1 | complete — deployed to production; hosted export accepted, hosted restore an accepted limitation |
 | P3-T1 | physical-phone core ledger checklist | P2 accepted | **specified** — `docs/plans/active/moneyflow-trust-prove.md`; 17 scenarios awaiting the owner's device run |
-| P3-T2 | seven-day sanitized self-use | P3-T1 | blocked — Day 0 rules prepared in the P3 packet; **day 1 has not started** |
+| P3-T2 | ~~seven-day sanitized self-use~~ | — | **withdrawn 2026-08-12 by owner decision**; never started, and not replaced |
 | P4-T1 | select observed trust-depth slice | P3 evidence | blocked |
 | P5-T1 | owner public-beta decision | prior phases | blocked |
 
@@ -192,6 +193,7 @@ landed and are accepted. What remains is P3:
 | 2026-08-11 | human owner + evaluator | planner | accepted | password + Google provider evidence; missing-continuity pass; logs; explicit stale/mismatch limitation acceptance | complete archive/restore absent | open P2 Recover packet/specification |
 | 2026-08-12 | human owner | planner | accepted | deterministic pgTAP round trip; hosted export accepted on a real production artifact; explicit hosted-restore limitation acceptance | hosted restore unproven; P3 evidence absent | define the P3 physical-phone checklist |
 | 2026-08-12 | planner | human_owner | specified | P3 packet, evidence template and `check:prove-evidence` on `277d459`; **no device evidence exists** | physical-phone loop unproven; seven-day run not started | owner runs the 17 REQUIRED scenarios and returns the sanitized evidence file |
+| 2026-08-12 | human_owner | implementer | remediating | owner-reported physical run on a real phone: PP-12 and PP-16 failed, PP-03 and PP-07 passed with defects, PP-01 slow; seven-day requirement withdrawn | four defects fixed in #357 but unverified on hardware | owner retests PP-03, PP-07, PP-12, PP-16 |
 
 ### Current permission boundary
 
@@ -224,4 +226,4 @@ Approval B — one hosted restore into a disposable test account — was granted
 
 ### Decision
 
-Provider Sync, P1 Secure and P2 Recover are complete and archived. P3 Prove — physical-phone core-ledger acceptance and seven consecutive days of sanitized owner self-use — is now the active dependency in the MoneyFlow Trust sequence.
+Provider Sync, P1 Secure and P2 Recover are complete and archived. P3 Prove — physical-phone core-ledger acceptance — is now the active dependency in the MoneyFlow Trust sequence. Its seven-day component was withdrawn by the owner on 2026-08-12.

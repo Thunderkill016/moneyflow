@@ -14,7 +14,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
-import { formatMoney, formatMoneyInput } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
 import {
   categoryMeta,
   type AccountOption,
@@ -32,6 +32,7 @@ import { safeUserNotice } from "@/lib/safe-log";
 import { isSplitExpense } from "@/lib/splits";
 import {
   filterTransactions,
+  normalizeTransactionAmountInput,
   transactionFilterError,
   transactionFilterSearch,
   type TransactionFilterKind,
@@ -848,7 +849,7 @@ export function TransactionsWorkspace({
                   autoComplete="off"
                   value={minAmountInput}
                   onChange={(event) =>
-                    setMinAmountInput(formatMoneyInput(event.target.value))
+                    setMinAmountInput(normalizeTransactionAmountInput(event.target.value))
                   }
                   placeholder="Ví dụ: 100.000"
                   aria-label="Số tiền tối thiểu"
@@ -861,7 +862,7 @@ export function TransactionsWorkspace({
                   autoComplete="off"
                   value={maxAmountInput}
                   onChange={(event) =>
-                    setMaxAmountInput(formatMoneyInput(event.target.value))
+                    setMaxAmountInput(normalizeTransactionAmountInput(event.target.value))
                   }
                   placeholder="Ví dụ: 500.000"
                   aria-label="Số tiền tối đa"

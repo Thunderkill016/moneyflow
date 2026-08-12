@@ -14,7 +14,12 @@ import {
   normalizeCurrencyCode,
   transferCurrencyMismatchMessage,
 } from "@/lib/currency";
-import { formatMoneyInput, parseMoneyInputToMinor } from "@/lib/money";
+import {
+  MONEY_FRACTION_ENTRY_MESSAGE,
+  formatMoneyInput,
+  isFractionAttempt,
+  parseMoneyInputToMinor,
+} from "@/lib/money";
 import type { CreateTransferInput } from "@/lib/sample-data";
 import { TRANSFER_LIST_HINT } from "@/lib/transfers";
 import { todayInVietnam } from "@/lib/vietnam-date";
@@ -112,7 +117,11 @@ export function TransferDialog({
     event.preventDefault();
     const parsedAmount = parseMoneyInputToMinor(amount, sourceCurrency);
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
-      setError("Nhập số tiền lớn hơn 0.");
+      setError(
+        isFractionAttempt(amount)
+          ? MONEY_FRACTION_ENTRY_MESSAGE
+          : "Nhập số tiền lớn hơn 0.",
+      );
       amountRef.current?.focus();
       return;
     }
@@ -226,7 +235,7 @@ export function TransferDialog({
         <TextField
           inputRef={amountRef}
           label="Số tiền chuyển"
-          inputMode="decimal"
+          inputMode="numeric"
           autoComplete="off"
           placeholder="0"
           value={amount}

@@ -10,7 +10,6 @@ import {
   runProveEvidenceCheck,
   scanForbiddenContent,
   validateEvidenceFile,
-  validateSevenDayFile,
   VALID_RESULTS,
 } from "./check-prove-evidence.mjs";
 
@@ -23,7 +22,6 @@ import {
 
 const scenarioIds = packetScenarioIds();
 const template = readFileSync(`${EVIDENCE_DIR}/TEMPLATE.md`, "utf8");
-const sevenDayTemplate = readFileSync(`${EVIDENCE_DIR}/SEVEN-DAY-TEMPLATE.md`, "utf8");
 const packet = readFileSync("docs/plans/active/moneyflow-trust-prove.md", "utf8");
 
 function evidence(rows = {}, overrides = {}) {
@@ -91,7 +89,7 @@ test("the shipped repository state passes", () => {
   assert.equal(result.ok, true);
 });
 
-test("both templates ship blank and cover every scenario", () => {
+test("the template ships blank and covers every scenario", () => {
   /**
    * Deliberately an assertion about the *templates*, not about whether any run file
    * exists. An earlier version asserted the repository contained no recorded run,
@@ -103,7 +101,6 @@ test("both templates ship blank and cover every scenario", () => {
     assert.ok(results.has(id), `the template must have a row for ${id}`);
     assert.equal(results.get(id).result, "", `${id} must ship blank`);
   }
-  assert.deepEqual(validateSevenDayFile({ name: "s.md", text: sevenDayTemplate, isTemplate: true }), []);
 });
 
 test("a valid completed run passes", () => {
@@ -399,10 +396,9 @@ test("forbidden content is rejected inside a real evidence file, not only in iso
   assert.ok(problemsFor(text).some((problem) => /money amount/u.test(problem)));
 });
 
-test("both templates are privacy-scanned and clean", () => {
+test("the template is privacy-scanned and clean", () => {
   // A template carrying a sample amount would seed every future run with one.
   assert.deepEqual(scanForbiddenContent(template, { isTemplate: true }), []);
-  assert.deepEqual(scanForbiddenContent(sevenDayTemplate, { isTemplate: true }), []);
 });
 
 test("the template warns about what the scan cannot see", () => {
@@ -449,108 +445,31 @@ test("an emulator named as the platform is refused", () => {
 test("the packet and template both state that an emulator is not physical", () => {
   assert.match(packet, /\bnot\b[\s*]+a physical-phone pass/iu);
   assert.match(template, /not\s+physical evidence/iu);
-  assert.match(packet, /has \*\*not\*\* started|not been executed/u);
-});
-
-// --- Seven-day log -------------------------------------------------------------
-
-function sevenDay(rows) {
-  return [
-    "# seven day",
-    "",
-    "## Run",
-    "",
-    "- Day 1 date: 2026-08-21",
-    "- Session: authenticated",
-    "",
-    "## Days",
-    "",
-    "| Day | Date | Transactions | Balances OK | DB repair | Defect ref | Notes |",
-    "|---|---|---|---|---|---|---|",
-    rows.join("\n"),
-    "",
-    "## Declaration",
-    "",
-    "- [x] Recorded on the day.",
-    "",
-  ].join("\n");
-}
-
-const goodDays = Array.from(
-  { length: 7 },
-  (_, index) => `| ${index + 1} | 2026-08-${21 + index} | 2 | yes | no | | |`,
-);
-
-test("a complete seven-day log passes", () => {
-  assert.deepEqual(validateSevenDayFile({ name: "s.md", text: sevenDay(goodDays) }), []);
-});
-
-test("the seven-day log is privacy-scanned — it was previously skipped entirely", () => {
-  /**
-   * The exemption meant the file that accumulates seven days of real financial notes
-   * received no validation at all, while the packet claimed it did.
-   */
-  const leaky = sevenDay([
-    "| 1 | 2026-08-21 | 2 | yes | no | | spent 1.250.000 VND at the shop |",
-    ...goodDays.slice(1),
-  ]);
-  const problems = validateSevenDayFile({ name: "s.md", text: leaky }).map((entry) => entry.problem);
-  assert.ok(problems.some((problem) => /money amount/u.test(problem)));
-});
-
-test("manual database repair breaks the streak", () => {
-  const repaired = sevenDay([
-    "| 1 | 2026-08-21 | 2 | yes | yes | | |",
-    ...goodDays.slice(1),
-  ]);
-  assert.ok(
-    validateSevenDayFile({ name: "s.md", text: repaired }).some((entry) =>
-      /manual database repair/u.test(entry.problem),
-    ),
-  );
-});
-
-test("a zero-transaction day counts only with a confirmed balance check", () => {
-  const silent = sevenDay(["| 1 | 2026-08-21 | 0 | no | no | | |", ...goodDays.slice(1)]);
-  assert.ok(
-    validateSevenDayFile({ name: "s.md", text: silent }).some((entry) =>
-      /counts only with a confirmed balance check/u.test(entry.problem),
-    ),
-  );
-  const confirmed = sevenDay(["| 1 | 2026-08-21 | 0 | yes | no | | |", ...goodDays.slice(1)]);
-  assert.deepEqual(validateSevenDayFile({ name: "s.md", text: confirmed }), []);
-});
-
-test("a partial run is not reported as a complete one", () => {
-  const partial = sevenDay(goodDays.slice(0, 4));
-  assert.ok(
-    validateSevenDayFile({ name: "s.md", text: partial }).some((entry) =>
-      /only 4 of 7 days/u.test(entry.problem),
-    ),
-  );
-});
-
-test("the seven-day log needs its own sections and an ISO date", () => {
-  assert.ok(
-    validateSevenDayFile({ name: "s.md", text: sevenDay(goodDays).replace("## Days", "## Whatever") }).some(
-      (entry) => /missing the "## Days" section/u.test(entry.problem),
-    ),
-  );
-  const badDate = sevenDay(["| 1 | Aug 21 | 2 | yes | no | | |", ...goodDays.slice(1)]);
-  assert.ok(
-    validateSevenDayFile({ name: "s.md", text: badDate }).some((entry) =>
-      /needs an ISO date/u.test(entry.problem),
-    ),
-  );
+  // The packet must never imply hardware verification it does not have.
+  assert.match(packet, /unverified on hardware/u);
+  assert.ok(!/P3 (?:is )?accepted/u.test(packet), "only the owner's retest can close P3");
 });
 
 // --- Packet consistency --------------------------------------------------------
 
-test("the packet resolves the rules an owner would otherwise have to guess", () => {
-  // Each of these was an unresolved situation in the first draft.
-  assert.match(packet, /Asia\/Ho_Chi_Minh/u, "which calendar defines a day");
-  assert.match(packet, /Recorded, not occurred/u, "recording date versus transaction date");
-  assert.match(packet, /Exception:/u, "the remediation deploy must not reset the new attempt");
-  assert.match(packet, /The owner adjudicates/u, "who judges a daily-loop deploy");
+test("the withdrawn seven-day requirement leaves no live obligation behind", () => {
+  /**
+   * The owner removed seven-day self-use on 2026-08-12. The decision must be
+   * visible, and no duration gate may survive it under another name.
+   */
+  assert.match(packet, /withdrawn by the owner/iu);
+  assert.match(packet, /No replacement duration gate is introduced/u);
+  assert.ok(!/Day 0 prerequisites are met/u.test(packet), "Day-0 mechanics must be gone");
+  assert.ok(!/### What resets the streak/u.test(packet), "streak mechanics must be gone");
   assert.match(packet, /not_applicable/u, "hardware without the feature under test");
+});
+
+test("a blank copy of the template is treated as unstarted, not as a broken run", () => {
+  /**
+   * The owner copies the template before running, so a blank copy exists on their
+   * machine first. Failing the gate on it would break the check for the person it
+   * exists to help.
+   */
+  const blank = template.replace("# P3 Prove", "# P3 Prove copy");
+  assert.deepEqual(problemsFor(blank, true), []);
 });

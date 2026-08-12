@@ -5,6 +5,7 @@ import { X } from "lucide-react"
 
 import { IconButton } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import styles from "./dialog.module.css"
 
 type DialogProps = {
   open: boolean
@@ -71,8 +72,14 @@ function Dialog({
       data-slot="dialog"
       aria-labelledby={titleId}
       aria-describedby={descriptionId}
+      /**
+       * `svh`, not `dvh`. The dynamic viewport unit changes as mobile browser
+       * chrome shows and hides, so a dialog sized in `dvh` resizes and jumps
+       * while the user scrolls it. `svh` is the smallest viewport state, so the
+       * dialog fits with chrome visible and then stays put.
+       */
       className={cn(
-        "m-auto max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100%-2rem))] overflow-visible rounded-2xl border border-border bg-background p-0 text-foreground shadow-2xl backdrop:bg-black/50 open:grid",
+        "m-auto max-h-[calc(100svh-2rem)] w-[min(36rem,calc(100%-2rem))] overflow-visible rounded-2xl border border-border bg-background p-0 text-foreground shadow-2xl backdrop:bg-black/50 open:grid",
         className
       )}
       onCancel={(event) => {
@@ -92,7 +99,7 @@ function Dialog({
     >
       <section
         data-slot="dialog-content"
-        className={cn("grid max-h-[calc(100dvh-2rem)] overflow-hidden", contentClassName)}
+        className={cn(styles.content, contentClassName)}
       >
         <header className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
           <div className="grid gap-1">
@@ -117,11 +124,11 @@ function Dialog({
             </IconButton>
           ) : null}
         </header>
-        <div className="min-h-0 overflow-y-auto px-5 py-4">{children}</div>
+        <div data-slot="dialog-body" className={styles.body}>
+          {children}
+        </div>
         {footer ? (
-          <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-4">
-            {footer}
-          </footer>
+          <footer className={styles.footer}>{footer}</footer>
         ) : null}
       </section>
     </dialog>

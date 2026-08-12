@@ -7,7 +7,12 @@ import { Button, IconButton } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
-import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import {
+  MONEY_FRACTION_ENTRY_MESSAGE,
+  formatMoneyInput,
+  isFractionAttempt,
+  parseMoneyInput,
+} from "@/lib/money";
 import {
   categoryMeta,
   type AccountOption,
@@ -101,7 +106,11 @@ export function EditTransactionDialog({
     event.preventDefault();
     const parsedAmount = parseMoneyInput(amount);
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
-      setError("Nhập số tiền lớn hơn 0.");
+      setError(
+        isFractionAttempt(amount)
+          ? MONEY_FRACTION_ENTRY_MESSAGE
+          : "Nhập số tiền lớn hơn 0.",
+      );
       amountRef.current?.focus();
       return;
     }
@@ -241,7 +250,7 @@ export function EditTransactionDialog({
         <TextField
           inputRef={amountRef}
           label={isTransfer ? "Số tiền chuyển" : "Số tiền"}
-          inputMode="decimal"
+          inputMode="numeric"
           autoComplete="off"
           value={amount}
           suffix="₫"

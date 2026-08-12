@@ -23,6 +23,16 @@ export type Transaction = {
   reviewStatus?: TransactionReviewStatus;
   /** Two or more lines when an expense is split across categories. */
   splits?: TransactionSplitLine[];
+  /**
+   * Client-only correlation between an optimistic row and its confirmed row.
+   *
+   * The server assigns a fresh id, so an optimistic row cannot be matched to its
+   * confirmation by id. Carrying the idempotency key on both lets the optimistic
+   * layer drop the pending row the moment the real one lands, instead of showing
+   * both and briefly doubling every aggregate. Never persisted or sent to the
+   * server.
+   */
+  pendingKey?: string;
   amount: number;
   occurredOn: string;
   occurredAt: string;

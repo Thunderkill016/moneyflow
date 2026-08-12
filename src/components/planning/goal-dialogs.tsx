@@ -6,7 +6,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { TextField } from "@/components/ui/text-field";
-import { formatMoney, formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import {
+  MONEY_FRACTION_ENTRY_MESSAGE,
+  formatMoney,
+  formatMoneyInput,
+  isFractionAttempt,
+  parseMoneyInput,
+} from "@/lib/money";
 import type { SaveGoalInput, SavingsGoal } from "@/lib/planning/goals";
 import styles from "./planning-dialog.module.css";
 
@@ -52,7 +58,11 @@ export function GoalDialog({
       return;
     }
     if (!Number.isSafeInteger(parsedTarget) || parsedTarget <= 0) {
-      setTargetError("Số tiền mục tiêu cần lớn hơn 0.");
+      setTargetError(
+        isFractionAttempt(target)
+          ? MONEY_FRACTION_ENTRY_MESSAGE
+          : "Số tiền mục tiêu cần lớn hơn 0.",
+      );
       targetRef.current?.focus();
       return;
     }
@@ -136,7 +146,7 @@ export function GoalDialog({
             inputRef={targetRef}
             label="Số tiền muốn đạt"
             value={target}
-            inputMode="decimal"
+            inputMode="numeric"
             autoComplete="off"
             placeholder="0"
             suffix="₫"
@@ -201,7 +211,11 @@ export function GoalAllocationDialog({
     const parsedAmount = parseMoneyInput(amount);
     setError("");
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
-      setError("Số tiền cần lớn hơn 0.");
+      setError(
+        isFractionAttempt(amount)
+          ? MONEY_FRACTION_ENTRY_MESSAGE
+          : "Số tiền cần lớn hơn 0.",
+      );
       amountRef.current?.focus();
       return;
     }
@@ -283,7 +297,7 @@ export function GoalAllocationDialog({
           inputRef={amountRef}
           label="Số tiền kế hoạch"
           value={amount}
-          inputMode="decimal"
+          inputMode="numeric"
           autoComplete="off"
           placeholder="0"
           suffix="₫"

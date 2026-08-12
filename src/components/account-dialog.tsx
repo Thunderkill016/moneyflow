@@ -20,8 +20,10 @@ import {
   normalizeCurrencyCode,
 } from "@/lib/currency";
 import {
+  MONEY_FRACTION_ENTRY_MESSAGE,
   formatMoneyInput,
   formatMoneyInputFromMinor,
+  isFractionAttempt,
   parseMoneyInputToMinor,
 } from "@/lib/money";
 import styles from "./accounts/account-dialog.module.css";
@@ -73,7 +75,11 @@ export function AccountDialog({
       return;
     }
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount < 0) {
-      setAmountError("Số dư phải là số nguyên không âm.");
+      setAmountError(
+        isFractionAttempt(amount)
+          ? MONEY_FRACTION_ENTRY_MESSAGE
+          : "Số dư phải là số nguyên không âm.",
+      );
       amountRef.current?.focus();
       return;
     }
@@ -209,7 +215,7 @@ export function AccountDialog({
             inputRef={amountRef}
             label={kind === "credit_card" ? "Dư nợ hiện tại" : "Số dư ban đầu"}
             value={amount}
-            inputMode="decimal"
+            inputMode="numeric"
             autoComplete="off"
             placeholder="0"
             suffix={symbol}

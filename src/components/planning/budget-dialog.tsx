@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
-import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import {
+  MONEY_FRACTION_ENTRY_MESSAGE,
+  formatMoneyInput,
+  isFractionAttempt,
+  parseMoneyInput,
+} from "@/lib/money";
 import type { BudgetSummary, SaveBudgetInput } from "@/lib/planning/budgets";
 import type { CategoryOption } from "@/lib/sample-data";
 import styles from "./planning-dialog.module.css";
@@ -52,7 +57,11 @@ export function BudgetDialog({
       return;
     }
     if (!Number.isSafeInteger(parsedLimit) || parsedLimit <= 0) {
-      setLimitError("Hạn mức cần lớn hơn 0.");
+      setLimitError(
+        isFractionAttempt(limit)
+          ? MONEY_FRACTION_ENTRY_MESSAGE
+          : "Hạn mức cần lớn hơn 0.",
+      );
       limitRef.current?.focus();
       return;
     }
@@ -130,7 +139,7 @@ export function BudgetDialog({
             label="Hạn mức tháng"
             description="MoneyFlow so sánh hạn mức này với các giao dịch chi thuộc danh mục."
             value={limit}
-            inputMode="decimal"
+            inputMode="numeric"
             autoComplete="off"
             placeholder="0"
             suffix="₫"

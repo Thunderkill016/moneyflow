@@ -16,7 +16,13 @@ import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
 import { findMatchingRule, resolveCategoryIdForRuleMatch } from "@/lib/inbox/apply-rules";
 import { readStoredRules, type InboxRule } from "@/lib/inbox/rules-store";
-import { formatMoneyInput, moneyKindPrefix, parseMoneyInput } from "@/lib/money";
+import {
+  MONEY_FRACTION_ENTRY_MESSAGE,
+  formatMoneyInput,
+  isFractionAttempt,
+  moneyKindPrefix,
+  parseMoneyInput,
+} from "@/lib/money";
 import {
   isRecentCategoryId,
   orderCategoriesByRecent,
@@ -225,7 +231,11 @@ export function AddTransactionDialog({
     event.preventDefault();
     const parsedAmount = parseMoneyInput(amount);
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
-      setError("Nhập số tiền lớn hơn 0.");
+      setError(
+        isFractionAttempt(amount)
+          ? MONEY_FRACTION_ENTRY_MESSAGE
+          : "Nhập số tiền lớn hơn 0.",
+      );
       focusAmount(false);
       return;
     }
@@ -356,7 +366,7 @@ export function AddTransactionDialog({
             ? "Số tiền khoản chi, đơn vị đồng Việt Nam."
             : "Số tiền khoản thu, đơn vị đồng Việt Nam."
         }
-        inputMode="decimal"
+        inputMode="numeric"
         autoComplete="off"
         placeholder="0"
         value={amount}

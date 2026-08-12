@@ -1,0 +1,64 @@
+/**
+ * Geometry for the shared Dialog and Sheet primitives.
+ *
+ * These declarations were briefly written as arbitrary Tailwind properties
+ * (`[padding-bottom:max(...)]`, `[&:has(+footer)]:pb-4`). They belong in a module:
+ * the repository's CSS-ownership contract cannot prove an owner for an arbitrary
+ * property, and a `max()`/`env()` expression is far easier to read here than
+ * escaped inside a class string.
+ *
+ * Every rule is a single class, so a consumer module can still override it
+ * deliberately — but a consumer that wants different geometry must say so, rather
+ * than winning by accident.
+ */
+
+/**
+ * The scroll body.
+ *
+ * `overscroll-behavior: contain` keeps a scroll gesture inside the sheet instead
+ * of chaining to the page behind it, which on a phone reads as the page moving
+ * under the sheet. The bottom padding clears the home indicator, and is applied
+ * here rather than on the dialog box: padding the outer box shrinks the content
+ * area without protecting anything from the device edge.
+ */
+.body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1.25rem max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+/** When a footer follows, the footer owns the safe-area padding instead. */
+.body:has(+ .footer) {
+  padding-bottom: 1rem;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  border-top: 1px solid var(--mf-border, currentColor);
+  padding: 1rem 1.25rem max(1rem, env(safe-area-inset-bottom, 0px));
+}
+
+/**
+ * The inner box, capped so it can never exceed the viewport.
+ *
+ * `max-height: 100%` alone was wrong and CI caught it: the `<dialog>` has
+ * `height: auto`, and a percentage max-height against an indefinite parent resolves
+ * to `none`. The section then grew past the dialog and its footer landed outside the
+ * visible box — a submit button in an Inbox review dialog became unclickable at every
+ * viewport, desktop included.
+ *
+ * So the cap stays definite. `min()` keeps the parent constraint for the cases where
+ * it does resolve, while the viewport term guarantees a bound when it does not.
+ * `svh` rather than `dvh` so the box does not resize as mobile browser chrome hides
+ * and returns.
+ */
+.content {
+  display: grid;
+  max-height: min(100%, calc(100svh - 2rem));
+  min-height: 0;
+  overflow: hidden;
+}

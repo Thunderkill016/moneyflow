@@ -175,7 +175,10 @@ test("quick capture composes the embedded transaction form behind a local route 
   assert.match(quickCapture, /data-slot="capture-quick-workspace"/);
   assert.match(quickCapture, /<AddTransactionDialog[\s\S]*embedded/);
   assert.match(dialogSources[0].source, /data-slot="quick-capture-form"/);
-  assert.match(transactionFormCss, /max-height: calc\(100dvh - 24px\)/);
+  // `svh` replaced `dvh` after a physical-phone run: the dynamic unit resizes the
+  // dialog as mobile browser chrome hides and returns.
+  assert.match(transactionFormCss, /max-height: calc\(100svh - 24px\)/);
+  assert.doesNotMatch(transactionFormCss, /dvh/u);
   assert.match(transactionFormCss, /@media \(max-width: 360px\)/);
 });
 

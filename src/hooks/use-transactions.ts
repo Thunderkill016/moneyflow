@@ -151,7 +151,13 @@ export function useTransactions({ initialTransactions, accounts, categories, isD
         try {
           const result = await createTransactionAction(input);
           if (result.ok && result.transaction) {
-            const reviewed = withReviewStatus(result.transaction);
+            // Tag the confirmation with the same idempotency key the optimistic
+            // row carries, so the optimistic layer can retire the pending row
+            // instead of rendering both and double-counting the amount.
+            const reviewed = {
+              ...withReviewStatus(result.transaction),
+              pendingKey: input.idempotencyKey,
+            };
             setTransactions((current) => [
               reviewed,
               ...current.filter((item) => item.id !== reviewed.id),

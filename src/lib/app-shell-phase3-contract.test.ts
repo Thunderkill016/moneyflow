@@ -104,7 +104,10 @@ test("Phase 5 retires the MobileShellContract transaction remainder", () => {
   assert.match(transactionForm, /\.amountControl/u);
   assert.match(transactionForm, /background:\s*var\(--mf-surface\)/u);
   assert.match(transactionForm, /color:\s*var\(--mf-text\)/u);
-  assert.match(transactionForm, /100dvh/u);
+  // `svh` replaced `dvh` after a physical-phone run: the dynamic unit resizes the
+  // dialog as mobile browser chrome hides and returns.
+  assert.match(transactionForm, /100svh/u);
+  assert.doesNotMatch(transactionForm, /dvh/u);
 });
 
 test("signed-in logo guardrail generation stays retired after direct BrandLockup adoption", () => {

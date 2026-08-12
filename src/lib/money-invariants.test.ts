@@ -245,7 +245,14 @@ test("INVARIANT: transfer apply rejects float/negative; keeps integer balances",
 
 test("INVARIANT: parseMoneyInput yields integer major/minor units", () => {
   assert.equal(parseMoneyInput("45.000"), 45_000);
-  assert.equal(parseMoneyInput("45,5"), 455); // digits only → integer
+  /**
+   * `45,5` used to parse as `455`, and this invariant asserted it as correct
+   * ("digits only → integer"). A physical-phone run found what that means in
+   * practice: the field advertised a decimal keypad, the user typed a separator,
+   * and the saved amount was ten times what they entered — silently. Entry is
+   * whole đồng, so a fraction tail is now rejected rather than reinterpreted.
+   */
+  assert.ok(Number.isNaN(parseMoneyInput("45,5")));
   assert.equal(parseMoneyInputToMinor("150.000", "VND"), 150_000);
   assertSafeInt(parseMoneyInputToMinor("200", "USD"), "USD minor");
   assert.equal(Number.isInteger(parseMoneyInput("1.234.567")), true);

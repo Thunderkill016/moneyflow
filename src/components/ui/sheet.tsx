@@ -6,6 +6,7 @@ import { X } from "lucide-react"
 import { IconButton } from "@/components/ui/button"
 import { Dialog } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import styles from "./dialog.module.css"
 
 type SheetSide = "center" | "left" | "right" | "top" | "bottom"
 
@@ -23,23 +24,31 @@ type SheetProps = {
   className?: string
 }
 
+/**
+ * Every side is sized in `svh`.
+ *
+ * `dvh` tracks mobile browser chrome, so a sheet sized in it grows and shrinks
+ * under the user's thumb as the address bar hides and reappears — which is what
+ * "positioning is unstable on the real phone" was. `svh` is the smallest
+ * viewport state: the sheet fits with chrome visible and then holds still.
+ */
 const modalSideClass: Record<SheetSide, string> = {
-  center: "m-auto h-auto max-h-[calc(100dvh-2rem)]",
+  center: "m-auto h-auto max-h-[calc(100svh-2rem)]",
   left:
-    "fixed inset-y-0 left-0 right-auto m-0 h-dvh max-h-dvh w-[min(28rem,100%)] rounded-none border-y-0 border-l-0",
+    "fixed inset-y-0 left-0 right-auto m-0 h-svh max-h-svh w-[min(28rem,100%)] rounded-none border-y-0 border-l-0",
   right:
-    "fixed inset-y-0 right-0 left-auto m-0 h-dvh max-h-dvh w-[min(28rem,100%)] rounded-none border-y-0 border-r-0",
+    "fixed inset-y-0 right-0 left-auto m-0 h-svh max-h-svh w-[min(28rem,100%)] rounded-none border-y-0 border-r-0",
   top:
-    "fixed inset-x-0 top-0 bottom-auto m-0 h-auto max-h-[85dvh] w-full max-w-none rounded-none border-x-0 border-t-0",
+    "fixed inset-x-0 top-0 bottom-auto m-0 h-auto max-h-[85svh] w-full max-w-none rounded-none border-x-0 border-t-0",
   bottom:
-    "fixed inset-x-0 bottom-0 top-auto m-0 h-auto max-h-[85dvh] w-full max-w-none rounded-none border-x-0 border-b-0",
+    "fixed inset-x-0 bottom-0 top-auto m-0 h-auto max-h-[85svh] w-full max-w-none rounded-none border-x-0 border-b-0",
 }
 
 const nonModalSideClass: Record<Exclude<SheetSide, "center">, string> = {
-  left: "inset-y-0 left-0 h-dvh w-[min(28rem,100%)] border-r",
-  right: "inset-y-0 right-0 h-dvh w-[min(28rem,100%)] border-l",
-  top: "inset-x-0 top-0 max-h-[85dvh] w-full border-b",
-  bottom: "inset-x-0 bottom-0 max-h-[85dvh] w-full border-t",
+  left: "inset-y-0 left-0 h-svh w-[min(28rem,100%)] border-r",
+  right: "inset-y-0 right-0 h-svh w-[min(28rem,100%)] border-l",
+  top: "inset-x-0 top-0 max-h-[85svh] w-full border-b",
+  bottom: "inset-x-0 bottom-0 max-h-[85svh] w-full border-t",
 }
 
 function Sheet({
@@ -115,11 +124,9 @@ function Sheet({
           </IconButton>
         ) : null}
       </header>
-      <div className="min-h-0 overflow-y-auto px-5 py-4">{children}</div>
+      <div className={styles.body}>{children}</div>
       {footer ? (
-        <footer className="flex flex-wrap justify-end gap-2 border-t border-border px-5 py-4">
-          {footer}
-        </footer>
+        <footer className={styles.footer}>{footer}</footer>
       ) : null}
     </aside>
   )

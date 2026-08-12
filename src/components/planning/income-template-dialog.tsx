@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
-import { formatMoneyInput, parseMoneyInput } from "@/lib/money";
+import {
+  MONEY_FRACTION_ENTRY_MESSAGE,
+  formatMoneyInput,
+  isFractionAttempt,
+  parseMoneyInput,
+} from "@/lib/money";
 import type {
   RecurringIncomeTemplate,
   SaveIncomeTemplateInput,
@@ -71,7 +76,11 @@ export function IncomeTemplateDialog({
       return;
     }
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
-      setAmountError("Số tiền cần lớn hơn 0.");
+      setAmountError(
+        isFractionAttempt(amount)
+          ? MONEY_FRACTION_ENTRY_MESSAGE
+          : "Số tiền cần lớn hơn 0.",
+      );
       amountRef.current?.focus();
       return;
     }
@@ -166,7 +175,7 @@ export function IncomeTemplateDialog({
             inputRef={amountRef}
             label="Số tiền dự kiến"
             value={amount}
-            inputMode="decimal"
+            inputMode="numeric"
             autoComplete="off"
             placeholder="0"
             suffix="₫"

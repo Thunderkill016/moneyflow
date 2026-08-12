@@ -27,7 +27,6 @@ import { pathToFileURL } from "node:url";
 export const PACKET_PATH = "docs/plans/active/moneyflow-trust-prove.md";
 export const EVIDENCE_DIR = "docs/evidence/p3-prove";
 export const TEMPLATE_NAME = "TEMPLATE.md";
-export const SEVEN_DAY_TEMPLATE_NAME = "SEVEN-DAY-TEMPLATE.md";
 
 export const VALID_RESULTS = Object.freeze([
   "pass",
@@ -389,45 +388,13 @@ export function validateEvidenceFile({ name, text, scenarioIds, isTemplate = fal
   return problems;
 }
 
-/** Seven-day log rules. Its own shape, and the same privacy scan. */
-export function validateSevenDayFile({ name, text, isTemplate = false }) {
-  const problems = [];
-  const add = (problem) => problems.push({ file: name, problem });
-
-  for (const finding of scanForbiddenContent(text, { isTemplate })) {
-    add(`line ${finding.line}: contains ${finding.why} (${finding.id})`);
-  }
-  for (const heading of ["## Run", "## Days", "## Declaration"]) {
-    if (!text.includes(heading)) add(`missing the "${heading}" section`);
-  }
-
-  const rows = tableRows(sectionOf(text, "## Days")).filter((cells) => cells[0] !== "Day");
-  const days = rows.filter((cells) => cells.length >= 5 && /^\d$/u.test(cells[0]));
-  if (isTemplate) {
-    if (days.some((cells) => cells.slice(1).some((cell) => cell !== ""))) {
-      add("the seven-day template must ship with no recorded day");
-    }
-    return problems;
-  }
-
-  for (const cells of days) {
-    const [day, date, count, balancesOk, repair] = cells;
-    if (!/^\d{4}-\d{2}-\d{2}$/u.test(date)) add(`day ${day} needs an ISO date`);
-    if (!/^\d{1,3}$/u.test(count)) add(`day ${day} needs a transaction count`);
-    if (!/^(?:yes|no)$/iu.test(balancesOk)) add(`day ${day} must record balances looked correct: yes or no`);
-    if (!/^no$/iu.test(repair)) {
-      // The claim is explicitly "without manual database repair".
-      add(`day ${day} records manual database repair; the streak is broken and cannot be recorded as complete`);
-    }
-    if (count === "0" && !/yes/iu.test(balancesOk)) {
-      add(`day ${day} has no transactions, so it counts only with a confirmed balance check`);
-    }
-  }
-  if (days.length > 0 && days.length < 7) {
-    add(`only ${days.length} of 7 days are recorded; the run is in progress, not complete`);
-  }
-  return problems;
-}
+/**
+ * The seven-day log validator was removed with the requirement itself.
+ *
+ * The owner withdrew seven-day self-use on 2026-08-12, so there is no per-day log
+ * to validate and no template to keep in step. Historical seven-day records live in
+ * `docs/REAL_USE_READINESS_CONTRACT.md` and are not evidence files.
+ */
 
 export function runProveEvidenceCheck({ root = process.cwd() } = {}) {
   const scenarioIds = packetScenarioIds(root);
@@ -440,6 +407,7 @@ export function runProveEvidenceCheck({ root = process.cwd() } = {}) {
       scenarioIds,
       checked: [],
       runs: [],
+      unstarted: [],
       summary: null,
       problems: [{ file: PACKET_PATH, problem: "no PP-NN scenarios found in the packet" }],
     };
@@ -450,6 +418,7 @@ export function runProveEvidenceCheck({ root = process.cwd() } = {}) {
       scenarioIds,
       checked: [],
       runs: [],
+      unstarted: [],
       summary: null,
       problems: [{ file: EVIDENCE_DIR, problem: "the evidence directory is missing" }],
     };
@@ -457,6 +426,7 @@ export function runProveEvidenceCheck({ root = process.cwd() } = {}) {
 
   const checked = [];
   const runs = [];
+  const unstarted = [];
   const summary = { pass: 0, fail: 0, blocked: 0, fail_then_pass: 0, not_applicable: 0 };
   for (const entry of fs.readdirSync(dir).sort()) {
     if (!entry.endsWith(".md")) continue;
@@ -464,14 +434,24 @@ export function runProveEvidenceCheck({ root = process.cwd() } = {}) {
     const name = `${EVIDENCE_DIR}/${entry}`;
     checked.push(entry);
 
-    if (entry === SEVEN_DAY_TEMPLATE_NAME || entry.startsWith("seven-day-")) {
-      problems.push(
-        ...validateSevenDayFile({ name, text, isTemplate: entry === SEVEN_DAY_TEMPLATE_NAME }),
-      );
+    const isTemplate = entry === TEMPLATE_NAME;
+    /**
+     * A copy that has not been filled in yet is not a broken run.
+     *
+     * The owner copies the template and fills it in while running, so a blank copy
+     * exists on their machine before any result does. Failing the gate on it would
+     * make the check fail for the person it exists to help, so a copy with no
+     * results at all is validated as a blank form and reported as unstarted.
+     */
+    const untouched =
+      !isTemplate &&
+      scenarioIds.length > 0 &&
+      [...parseResults(text).results.values()].every((entry_) => entry_.result === "");
+    if (untouched) {
+      problems.push(...validateEvidenceFile({ name, text, scenarioIds, isTemplate: true }));
+      unstarted.push(entry);
       continue;
     }
-
-    const isTemplate = entry === TEMPLATE_NAME;
     problems.push(...validateEvidenceFile({ name, text, scenarioIds, isTemplate }));
     if (isTemplate) continue;
     runs.push(entry);
@@ -480,13 +460,11 @@ export function runProveEvidenceCheck({ root = process.cwd() } = {}) {
     }
   }
 
-  for (const required of [TEMPLATE_NAME, SEVEN_DAY_TEMPLATE_NAME]) {
-    if (!checked.includes(required)) {
-      problems.push({ file: EVIDENCE_DIR, problem: `${required} is missing` });
-    }
+  if (!checked.includes(TEMPLATE_NAME)) {
+    problems.push({ file: EVIDENCE_DIR, problem: `${TEMPLATE_NAME} is missing` });
   }
 
-  return { ok: problems.length === 0, scenarioIds, checked, runs, summary, problems };
+  return { ok: problems.length === 0, scenarioIds, checked, runs, unstarted, summary, problems };
 }
 
 function runCli() {
@@ -503,9 +481,14 @@ function runCli() {
   console.log(
     `P3 Prove evidence contract passed (${result.scenarioIds.length} scenarios; ${result.runs.length} recorded run${result.runs.length === 1 ? "" : "s"}).`,
   );
+  if (result.unstarted.length > 0) {
+    console.log(
+      `unstarted copies (blank, nothing claimed): ${result.unstarted.join(", ")}`,
+    );
+  }
   if (result.runs.length === 0) {
     console.log(
-      "No physical-phone run is recorded yet; the templates validate only their own shape.",
+      "No physical-phone run is recorded yet; the template validates only its own shape.",
     );
     return;
   }
