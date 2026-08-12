@@ -63,6 +63,18 @@ export const ARCHIVE_MAX_BYTES = 64 * 1024 * 1024;
  */
 export const ARCHIVE_MAX_DEPTH = 24;
 
+/**
+ * Maximum members in a single object.
+ *
+ * Scope frames are popped as objects close, so the memory the scanner holds is
+ * bounded by the *largest single object*, not by the file. A real archive's
+ * biggest objects are a row (34 members at most, from `ARCHIVE_ROW_SPECS`) and
+ * an imported statement's `column_map`, which is a handful of columns. 4096
+ * leaves enormous headroom for both while stopping a crafted object with
+ * millions of unique short names from growing an unbounded name set.
+ */
+export const ARCHIVE_MAX_OBJECT_MEMBERS = 4096;
+
 export type ArchiveIngressRejectionCode =
   | "file_empty"
   | "file_too_large"
@@ -70,6 +82,7 @@ export type ArchiveIngressRejectionCode =
   | "invalid_json_syntax"
   | "duplicate_member_name"
   | "max_depth_exceeded"
+  | "too_many_object_members"
   | "archive_invalid";
 
 /**
@@ -104,7 +117,10 @@ export type ArchiveIngressResult =
 type ScanFailure = {
   readonly code: Extract<
     ArchiveIngressRejectionCode,
-    "invalid_json_syntax" | "duplicate_member_name" | "max_depth_exceeded"
+    | "invalid_json_syntax"
+    | "duplicate_member_name"
+    | "max_depth_exceeded"
+    | "too_many_object_members"
   >;
   readonly byteOffset: number;
   readonly depth?: number;
@@ -126,6 +142,30 @@ const CONTRACT_PATH_SEGMENTS: ReadonlySet<string> = new Set<string>([
 ]);
 
 const REDACTED_SEGMENT = "<redacted>";
+
+/**
+ * Convert a UTF-16 code-unit index into the true UTF-8 byte offset.
+ *
+ * The scanner walks JavaScript string indices, but the field is documented as a
+ * byte offset into the original file — and a single Vietnamese `đ` already makes
+ * those two disagree. Counted without allocating, and only ever on the rejection
+ * path, so the cost is paid once for a file that is being refused anyway.
+ */
+function utf8ByteOffset(text: string, codeUnitIndex: number): number {
+  let bytes = 0;
+  for (let index = 0; index < codeUnitIndex && index < text.length; index += 1) {
+    const code = text.codePointAt(index) ?? 0;
+    if (code < 0x80) bytes += 1;
+    else if (code < 0x800) bytes += 2;
+    else if (code < 0x10000) bytes += 3;
+    else {
+      bytes += 4;
+      // A surrogate pair is two code units but one code point.
+      index += 1;
+    }
+  }
+  return bytes;
+}
 
 /**
  * Redact the parts of a validator path that came from archive data.
@@ -356,6 +396,13 @@ export function scanJsonStructure(text: string): ScanFailure | null {
             depth: stack.length,
           };
         }
+        if ((frame.names?.size ?? 0) >= ARCHIVE_MAX_OBJECT_MEMBERS) {
+          return {
+            code: "too_many_object_members",
+            byteOffset: index,
+            depth: stack.length,
+          };
+        }
         frame.names?.add(read.value);
         frame.expectingName = false;
       }
@@ -446,7 +493,7 @@ export function ingestArchiveText(text: string, knownBytes?: number): ArchiveIng
     return {
       ok: false,
       code: failure.code,
-      byteOffset: failure.byteOffset,
+      byteOffset: utf8ByteOffset(text, failure.byteOffset),
       ...(failure.depth === undefined ? {} : { depth: failure.depth }),
     };
   }

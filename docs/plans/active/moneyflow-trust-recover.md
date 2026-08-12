@@ -827,6 +827,37 @@ Rejections carry a byte offset and depth, never a member name and never a value 
 private. `JSON.parse`'s own message is discarded for the same reason: it quotes
 the offending source text.
 
+### Review findings on #347
+
+Six, all real, all fixed. Two were resource bugs in the very layer meant to bound
+untrusted work:
+
+1. **Out-of-memory on a legitimate-sized file (P1).** The scanner decoded *every*
+   string, including values it never inspects, building the text one character at
+   a time. A 40 MiB string value — well under the 64 MiB cap — aborted the process
+   with a fatal OOM, so the caller received no result at all. Values are now
+   skipped without accumulating; only a possible member name is decoded.
+2. **Unbounded member set in one object (P2).** Scope frames pop as objects
+   close, so the scanner's memory is bounded by the largest single object — which
+   a crafted object with millions of short unique names could still blow up.
+   Capped at 4096 members, against a widest real row of 34 fields.
+3. **Rejections leaked user-derived member names (P2).** R5 builds paths from
+   real object keys, and inside `column_map` those keys are the user's own
+   imported statement headers — so forwarding them verbatim contradicted this
+   module's own no-member-name guarantee. Segments outside the contract are now
+   redacted while the structure is kept.
+4. **`byteOffset` was not a byte offset (P2).** It was a UTF-16 code-unit index,
+   which a single Vietnamese `đ` already makes wrong. It is now converted to a
+   true UTF-8 offset, counted without allocating and only on the rejection path.
+5. **A caller-supplied byte count could understate the bound (P3).** The measured
+   length now always applies.
+6. **A comment described a BOM check that did not exist (P3).** Corrected; a
+   mid-stream BOM is rejected as a syntax error, which was already the behaviour.
+
+The evaluator also ran 600,000 differential fuzz cases against an independent
+reference parser and found **no** duplicate-detection false negative or false
+positive, and no depth-accounting hole.
+
 ### Integration proof
 
 `scripts/verify-archive-producer.mjs` now feeds the producer's **raw bytes**

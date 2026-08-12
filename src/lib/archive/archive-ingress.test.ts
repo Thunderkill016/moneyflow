@@ -4,13 +4,18 @@ import test from "node:test";
 import {
   ARCHIVE_MAX_BYTES,
   ARCHIVE_MAX_DEPTH,
+  ARCHIVE_MAX_OBJECT_MEMBERS,
   ingestArchiveBytes,
   ingestArchiveText,
   redactValidatorPath,
   scanJsonStructure,
   type ArchiveIngressRejectionCode,
 } from "./archive-ingress.ts";
-import { ALL_ARCHIVE_COLLECTIONS, ARCHIVE_SCHEMA_GENERATION } from "./moneyflow-archive.ts";
+import {
+  ALL_ARCHIVE_COLLECTIONS,
+  ARCHIVE_ROW_SPECS,
+  ARCHIVE_SCHEMA_GENERATION,
+} from "./moneyflow-archive.ts";
 
 /**
  * R8 — an untrusted file must cross exactly one boundary, and it must fail
@@ -411,6 +416,40 @@ test("redaction keeps contract segments and array indices intact", () => {
   );
   assert.equal(redactValidatorPath("archive_id"), "archive_id");
   assert.equal(redactValidatorPath(""), "");
+});
+
+test("a single object with unbounded members is rejected", () => {
+  // Scope frames pop as objects close, so the scanner's memory is bounded by the
+  // largest single object — which is exactly what this caps.
+  const members = Array.from(
+    { length: ARCHIVE_MAX_OBJECT_MEMBERS + 10 },
+    (_, index) => `"k${index}":1`,
+  ).join(",");
+  expectReject(`{${members}}`, "too_many_object_members");
+});
+
+test("a realistic archive stays far under the member cap", () => {
+  const widest = Math.max(
+    ...Object.values(ARCHIVE_ROW_SPECS).map((spec) => Object.keys(spec.fields).length),
+  );
+  assert.ok(
+    widest * 4 < ARCHIVE_MAX_OBJECT_MEMBERS,
+    `the widest contract row has ${widest} fields; the cap must not crowd it`,
+  );
+  assert.ok(ingestArchiveText(JSON.stringify(minimalArchive())).ok);
+});
+
+test("the reported offset is a real UTF-8 byte offset", () => {
+  // A Vietnamese đ is two bytes but one UTF-16 code unit, so a code-unit index
+  // would under-report the position in the original file.
+  const input = '{"note":"đđđ","id":1,"id":2}';
+  const result = ingestArchiveText(input);
+  assert.ok(!result.ok);
+  assert.equal(result.code, "duplicate_member_name");
+  const codeUnitIndex = input.lastIndexOf('"id"');
+  const expected = new TextEncoder().encode(input.slice(0, codeUnitIndex)).byteLength;
+  assert.equal(result.byteOffset, expected);
+  assert.ok(expected > codeUnitIndex, "the multibyte prefix must make the two differ");
 });
 
 test("the ingress module imports no runtime, database or provider code", () => {
