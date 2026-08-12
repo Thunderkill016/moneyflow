@@ -121,7 +121,7 @@ Canonical sequence:
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed** with explicit stale/mismatch provider-test limitation |
 | P2 Recover | **accepted/completed** (2026-08-12) with a named hosted-restore limitation: id preservation refuses a restore while the source account is live, so the hosted half is proven for export only and the full round trip rests on pgTAP against a real Postgres |
-| P3 Prove | blocked by P2; physical-phone core ledger + seven-day sanitized self-use |
+| P3 Prove | **active** — physical-phone core ledger + seven-day sanitized self-use |
 | P4 Improve | evidence-selected Ledger Trust depth after P3 |
 | P5 Release | final owner public-beta decision with explicit limitations |
 
