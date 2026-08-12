@@ -1,7 +1,7 @@
 # MoneyFlow Trust P2 — Recover (complete versioned archive and restore)
 
 **Status:** implementing
-**Execution state:** R5 and R6 complete; R7 next
+**Execution state:** R5, R6 and R7 complete; file ingress and UI next
 **Active role:** evaluator
 **Permission scope:** branch_write (repository code and tests; no provider, production or database write)
 **Owner:** agent (implementer/evaluator) → human_owner (merge decision)
@@ -677,6 +677,80 @@ therefore produce an archive the validator refuses. Stripping such a key would
 lose user data silently, so the producer does not; the interaction is recorded
 here as a bounded limitation for the file-ingress slice to surface properly.
 
+## R7 implementation truth
+
+### Privilege: SECURITY DEFINER, proven not inherited
+
+Fifteen of the nineteen tenant tables have **no INSERT grant and no INSERT
+policy** for `authenticated` — only `categories`, `import_batches`,
+`inbox_candidates` and `inbox_rules` do. That is deliberate: live financial
+writes must pass through the reviewed RPCs. SECURITY INVOKER would therefore
+require granting the browser direct INSERT on `financial_transactions` and
+`transaction_entries`, permanently bypassing every invariant those RPCs enforce.
+DEFINER confines the elevated right to two reviewed functions; the pinned
+inventory moved 34 → 36 with the reason recorded in the test.
+
+### Atomicity, concurrency, validation
+
+One RPC, one transaction; no `COMMIT` inside, no per-row `EXCEPTION` recovery,
+and `SET CONSTRAINTS ALL IMMEDIATE` so the deferred reconciliation-leg trigger
+fires inside the call. Concurrency is serialized by `pg_advisory_xact_lock` keyed
+by tenant; a test rejects session locks. Validation re-proves the contract in SQL
+before the first domain write, with a drift test keeping it aligned to the pure
+validator.
+
+### Restore batch and removal
+
+`archive_restore_batches` (unique `(user_id, archive_id)`) plus
+`archive_restore_rows` give exact attribution without adding a column to eighteen
+domain tables. Removal is deliberately bounded to a **pristine** batch: once the
+user edits restored rows or adds their own, `remove_archive_restore_batch`
+refuses rather than guessing which rows to destroy. It deletes in reverse
+dependency order and does not erase the audit events the restore created.
+
+### Named fidelity limitations
+
+Trigger-owned and unrepairable, because `version_inbox_rule` force-restores
+`created_at` from `old`:
+
+- `inbox_rules.version`, `created_at`, `updated_at` — restore-time values,
+  version 1; rule behaviour preserved exactly;
+- `inbox_candidates.fingerprint`, `fingerprint_version` — recomputed by trigger;
+- `applied_rule_version` — realigned to the restored rule, since the evidence
+  trigger demands an exact match and every restored rule is version 1.
+
+Archived ids are preserved, which gives the strongest possible fidelity, so a
+restore beside a **still-live source tenant** is refused as
+`restore_archive_id_conflict` rather than failing on a primary key part-way
+through. The documented lifecycle — old account gone, new account created — is
+what the tests exercise.
+
+### Audit
+
+Archived `auditHistory` is never replayed. The ordinary audit triggers fire; their
+events are true about the target tenant, and every entity they name is
+attributable to the batch, which pgTAP asserts alongside "no archived audit event
+id appears in the target" and "no historical `request_id` is replayed".
+
+### Evidence
+
+Real pgTAP: **28 files, 559 tests**, `restore_user_archive.test.sql ok` with 38
+assertions. Both CI round trips green, proving
+`database → archive → restore into a different fresh tenant → archive → R5
+validator` with the producer output unmodified. Sixteen collections compare
+identical; rules and candidates compare identical minus exactly the named fields.
+
+### Review findings on #346
+
+1. A duplicate-id check grouped by `collection.key` while its subquery referenced
+   `collection.value` — invalid SQL, caught by CI. It failed closed inside
+   validation, before any domain write, but masked every later assertion.
+2. Preserved ids collide with a still-live source tenant. Rather than remap ids
+   and weaken the round trip to "same shape, different identifiers", the
+   constraint is explicit and the lifecycle is what the tests follow.
+3. A test compared restored categories against a source tenant the lifecycle now
+   purges first; it compares against the archive instead.
+
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
@@ -687,7 +761,7 @@ here as a bounded limitation for the file-ingress slice to surface properly.
 | R4 | Accept the archive contract | R3 | this packet, contract now executable | done |
 | R5 | Envelope types and pure validators + unit tests | R4 | 92 assertions across 3 modules; see below | done |
 | R6 | `export_user_archive` + producer drift test | R5 | 40 pgTAP assertions + real DB round trip into the R5 validator; see below | done |
-| R7 | `restore_user_archive` + `restore_batch_id` + pgTAP atomicity/ownership | R6 | — | next |
+| R7 | `restore_user_archive` + restore batch + pgTAP atomicity/ownership | R6 | 38 pgTAP assertions; full archive→restore→archive round trip | done |
 | R8 | Settings surface with required states | R7 | — | not started |
 | R9 | Round-trip and rejection acceptance evidence | R7, R8 | — | not started |
 
