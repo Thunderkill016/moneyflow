@@ -1,13 +1,13 @@
 # MoneyFlow Trust
 
 **Status:** active
-**Execution state:** P3 Prove and Repository Reset 1 accepted; Repository Reset 2 awaits owner merge in #362; A0 follows only after merge and is not started; public-beta decision remains open
-**Active role:** parent-program planner; #362 is the pending Reset 2 delivery boundary
+**Execution state:** P3 Prove and Repository Resets 1–2 accepted; Brand/Product Experience A0 is next/not started; public-beta decision remains open
+**Active role:** parent-program planner; no active child packet until A0 is separately started
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
 **Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure; #356 P3 Prove packet; #358 PP-12 remediation; #360 Reset 1 closure; #362 Reset 2 closure
-**Last updated:** 2026-08-12
-**Current main baseline:** `8fcf8e2a8b195d5d8ad7de1fb745662abe776ab3` (#360 merged)
+**Last updated:** 2026-08-13
+**Current main baseline:** `13650f47c9d2a3ca9eb67326886fdf6a2db4fe00` (#362 merged)
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
@@ -22,7 +22,7 @@ MoneyFlow is ready for a bounded public beta only when repository state, product
 
 Current program sequence:
 
-> **Repository Reset 2 → Brand/Product Experience rebuild A0→J → final
+> **Brand/Product Experience rebuild A0→J → final
 > physical/device visual QA → owner public-beta decision**
 
 Provider Sync, P1 Secure, P2 Recover and **P3 Prove** are accepted historical
@@ -91,10 +91,10 @@ P1 Secure and P2 Recover no longer block the program. A complete versioned archi
 
 P3 Prove is accepted from the owner's physical-phone run and bounded retest.
 Repository Reset 1 is accepted by #360's merged lifecycle record. Repository Reset 2
-has a completed post-merge record in #362: only 13 proven-unowned leaves were retired,
-while legacy/live and protected boundaries were retained. #362 awaits owner merge, so
-**Brand/Product Experience A0** is not current work and has not started. It becomes
-the immediate next work only after that merge; the public-beta decision remains open.
+is accepted by merged #362 (`main@13650f4`): only 13 proven-unowned leaves were
+retired, while legacy/live and protected boundaries were retained. **Brand/Product
+Experience A0** is now the immediate next work, but is not started and has no active
+packet; the public-beta decision remains open.
 
 On 2026-08-12 the owner **removed the seven-day self-use requirement** from the active program after running the physical checklist. P3 Prove is now physical-phone core-ledger acceptance only. No replacement duration gate is introduced. The historical seven-day records in `docs/REAL_USE_READINESS_CONTRACT.md` (R7, 2026-07-29) stay as historical truth and are not re-opened.
 
@@ -160,22 +160,21 @@ Recover/Prove/Release:
 | P2 Recover | **accepted/completed** — specified, implemented, deployed; hosted restore is a named limitation |
 | P3 Prove | **accepted/completed** — owner-observed physical-phone core ledger and bounded retest; no signed/filed evidence run was fabricated |
 | Repository Reset 1 | **accepted/completed** — authority/configuration cleanup in merged #360 |
-| Repository Reset 2 | **delivery complete/awaiting owner merge** — #362 post-merge lifecycle record; only proven-unowned source/assets retired |
-| Brand/Product Experience A0 | follows owner merge of #362; not started — no active packet or UI implementation yet |
+| Repository Reset 2 | **accepted/completed** — merged #362; only 13 proven-unowned source/assets retired |
+| Brand/Product Experience A0 | immediate next/not started — no active packet or UI implementation yet |
 | P4 Improve | not an active generic workstream |
 | P5 Release | owner public-beta decision remains open (PBT-AC15) |
 
 ### Next sequence
 
-P3 and Repository Reset 1 are accepted. Repository Reset 2 awaits owner merge in
-#362. The mandatory execution order after that merge is:
+P3 and Repository Resets 1–2 are accepted. The mandatory execution order is:
 
 1. separately start Brand/Product Experience rebuild A0→J;
 2. final physical/device visual QA;
 3. owner public-beta decision (PBT-AC15).
 
-Until #362 merges, this record does not start Brand/Product Experience A0, rebuild UI,
-or make the final public-beta decision.
+This record does not start Brand/Product Experience A0, rebuild UI, or make the final
+public-beta decision.
 
 ## Tasks
 
@@ -193,8 +192,8 @@ or make the final public-beta decision.
 | P3-T1 | physical-phone core ledger checklist | P2 accepted | complete/accepted — owner-observed run and bounded retest; archived at `docs/plans/completed/2026-08-12-moneyflow-trust-prove.md` |
 | P3-T2 | ~~seven-day sanitized self-use~~ | — | **withdrawn 2026-08-12 by owner decision**; never started, and not replaced |
 | RR-T1 | bounded Repository Reset 1 | P3 accepted | accepted/completed — #360 post-merge lifecycle record |
-| RR-T2 | bounded Repository Reset 2 | RR-T1 accepted | delivery complete; #362 awaits owner merge |
-| P4-T1 | begin Brand/Product Experience A0 | Repository Reset 2 merge | follows #362 merge; not started and no packet exists |
+| RR-T2 | bounded Repository Reset 2 | RR-T1 accepted | accepted/completed — merged #362 |
+| P4-T1 | begin Brand/Product Experience A0 | Repository Reset 2 complete | immediate next; not started and no packet exists |
 | P5-T1 | owner public-beta decision | prior phases | blocked |
 
 ## Handoff record
@@ -208,7 +207,7 @@ or make the final public-beta decision.
 | 2026-08-12 | human_owner | implementer | remediating | owner-reported physical run on a real phone: PP-12 and PP-16 failed, PP-03 and PP-07 passed with defects, PP-01 slow; seven-day requirement withdrawn | four defects fixed in #357 but unverified on hardware | owner retests PP-03, PP-07, PP-12, PP-16 |
 | 2026-08-12 | human_owner | planner | accepted | owner-observed PP-12 PASS on the same Android phone after #358; PP-03/PP-16 PASS; PP-07 functional PASS with presentation finding parked; PP-05 precondition satisfied; no unresolved P0/P1 in the daily loop | PBT-AC15 remains owner decision | archive P3; begin bounded Repository Reset only in its own task |
 | 2026-08-12 | human_owner | implementer | discovery | merged #360 at `main@8fcf8e2`; Reset 2 active packet | source/assets have not yet been classified; A0 must not start | complete the evidence-led Reset 2 audit only |
-| 2026-08-13 | evaluator | human_owner | ready_for_review | #362: 13 unowned source/assets retired; fresh evaluator and exact source-head CI green | owner merge is required before this post-merge record becomes `main` truth | merge #362 when approved; only then separately open A0 |
+| 2026-08-13 | evaluator | human_owner | accepted | merged #362 at `main@13650f4`: 13 unowned source/assets retired; fresh evaluator and exact-head CI green | A0 remains not started | separately open A0 only when authorized |
 
 ### Current permission boundary
 
@@ -243,5 +242,6 @@ Approval B — one hosted restore into a disposable test account — was granted
 
 Provider Sync, P1 Secure, P2 Recover and P3 Prove are complete; P3 is archived after
 owner-observed physical-phone acceptance. PBT-AC13 remains withdrawn, PBT-AC15 remains
-open, and the program is not yet public-beta ready. Repository Reset 2 awaits owner
-merge in #362; Brand/Product Experience A0 follows that merge and has not started.
+open, and the program is not yet public-beta ready. Repository Reset 2 is
+accepted/completed in merged #362; Brand/Product Experience A0 is immediate next but
+has not started.

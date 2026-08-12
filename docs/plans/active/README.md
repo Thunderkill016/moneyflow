@@ -13,6 +13,5 @@ that another agent can continue without hidden chat context. Do not add a candid
 closed packet here. Completed accepted work moves to `../completed/`; superseded,
 abandoned or unaccepted work moves to `../archived/`, which never implies acceptance.
 
-Repository Reset 2's post-merge record is prepared in #362, which awaits owner merge.
-After that merge, Brand/Product Experience A0 becomes the immediate next work but is
-not started and has no active packet.
+Repository Reset 2 is accepted/completed in merged #362. Brand/Product Experience A0
+is the immediate next work, but is not started and has no active packet.
