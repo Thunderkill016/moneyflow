@@ -141,7 +141,10 @@ MoneyFlow keeps these stable check identities:
 - `verify`;
 - `database`;
 - `e2e`;
+- `Gitleaks all refs`;
 - `Analyze JavaScript and TypeScript`.
+
+This list is the prose half of one fact; `scripts/agent-policy.mjs` holds the machine-readable half, and `scripts/agent-policy.test.mjs` fails if the two disagree or if any listed identity stops being a real pull-request job. That guard is deliberately offline, so it cannot prove *requiredness* — which contexts the branch ruleset demands is owner-controlled provider state. `npm run agent:doctor -- --verify-provider-checks` performs that read-only comparison on demand, and a failed lookup reports as unchecked rather than as agreement.
 
 For `verify`, `database` and `e2e`, irrelevant heavy work may finish with an explicit not-applicable result while the job succeeds.
 

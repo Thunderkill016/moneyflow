@@ -1,9 +1,27 @@
+/**
+ * MoneyFlow agent doctor — environment diagnostics, not a policy authority.
+ *
+ * Everything this tool says about risk class, gates, provider checks, approval
+ * boundaries and evidence comes from `agent-policy.mjs`, which in turn defers to
+ * `classify-ci-changes.mjs` for path → gate selection. This file deliberately
+ * contains no policy constants: what it owns is *this machine* — which commands
+ * exist, whether the worktree is clean, which env vars are present.
+ *
+ * Re-deriving policy here would create the second source the harness exists to
+ * prevent, so a check for that is enforced by the tests.
+ */
+
 import fs from "node:fs";
 import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-import { classifyChanges } from "./classify-ci-changes.mjs";
+import {
+  buildPolicyDecision,
+  reconcileWithLiveRuleset,
+  requiredProviderChecks,
+  verifyProviderCheckIdentities,
+} from "./agent-policy.mjs";
 
 const REQUIRED_REPO_FILES = [
   "AGENTS.md",
@@ -13,23 +31,18 @@ const REQUIRED_REPO_FILES = [
   "docs/engineering/RISK_PROPORTIONAL_DELIVERY.md",
 ];
 
-const GATE_COMMANDS = {
-  migrationIdentity: "npm run check:migrations",
-  knowledge: "npm run check:knowledge",
-  ciPolicy: "npm run test:ci-policy",
-  fullVerify: "npm run verify:prepush",
-  database: "npm run test:db",
-  browserSmoke: "npm run test:e2e",
-  uiAudit: "npm run test:ui-audit:pr",
+/**
+ * Environment variables reported as present/missing only.
+ *
+ * Names, never values: a doctor report is pasted into issues and PR comments, so
+ * printing a value here would be a disclosure with no diagnostic gain — presence
+ * is the whole question.
+ */
+const ENVIRONMENT_KEYS = {
+  appMode: "NEXT_PUBLIC_APP_MODE",
+  supabaseUrl: "NEXT_PUBLIC_SUPABASE_URL",
+  supabasePublishableKey: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
 };
-
-const PROVIDER_CHECKS = [
-  "verify",
-  "database",
-  "e2e",
-  "Gitleaks all refs",
-  "Analyze JavaScript and TypeScript",
-];
 
 function run(command, args = []) {
   return spawnSync(command, args, {
@@ -58,40 +71,15 @@ function gitValue(args) {
   return lines?.[0] ?? null;
 }
 
-export function buildGatePlan(classification) {
-  const commands = [
-    GATE_COMMANDS.migrationIdentity,
-    GATE_COMMANDS.knowledge,
-    GATE_COMMANDS.ciPolicy,
-  ];
-  if (classification.fullVerify) commands.push(GATE_COMMANDS.fullVerify);
-  if (classification.database) commands.push(GATE_COMMANDS.database);
-  if (classification.browserSmoke) commands.push(GATE_COMMANDS.browserSmoke);
-  if (classification.uiAudit) commands.push(GATE_COMMANDS.uiAudit);
-  return [...new Set(commands)];
-}
-
-export function requiredProviderChecks() {
-  return [...PROVIDER_CHECKS];
-}
-
-export function requiredCapabilities(classification) {
-  return {
-    node: true,
-    npm: true,
-    git: true,
-    supabase: classification.database,
-    docker: classification.database,
-    playwright: classification.browserSmoke || classification.uiAudit,
-  };
-}
-
-export function collectChangedFiles({ baseRef = "origin/main" } = {}) {
-  const explicit = process.argv.indexOf("--files");
+export function collectChangedFiles({ baseRef = "origin/main", argv = process.argv } = {}) {
+  const explicit = argv.indexOf("--files");
   if (explicit >= 0) {
-    return process.argv
-      .slice(explicit + 1)
-      .filter((value) => !value.startsWith("--"));
+    // Stop at the next flag rather than filtering flags out: filtering kept the
+    // *operand* of a following flag, so `--files a.md --base-ref origin/main`
+    // treated `origin/main` as a changed file and skewed the risk class.
+    const rest = argv.slice(explicit + 1);
+    const nextFlag = rest.findIndex((value) => value.startsWith("--"));
+    return nextFlag >= 0 ? rest.slice(0, nextFlag) : rest;
   }
 
   const files = new Set();
@@ -108,8 +96,12 @@ export function collectChangedFiles({ baseRef = "origin/main" } = {}) {
 }
 
 function repoState() {
+  // The absolute path is deliberately absent: it carries the OS username, and a
+  // report meant to be pasted into an issue should not disclose it. The basename
+  // is all a reader needs to know which checkout produced this.
+  const root = gitValue(["rev-parse", "--show-toplevel"]);
   return {
-    root: gitValue(["rev-parse", "--show-toplevel"]),
+    rootName: root ? root.split("/").filter(Boolean).at(-1) ?? null : null,
     head: gitValue(["rev-parse", "HEAD"]),
     branch: gitValue(["branch", "--show-current"]) || "detached",
     clean: (gitLines(["status", "--porcelain"]) ?? ["unknown"]).length === 0,
@@ -131,48 +123,139 @@ function capabilities() {
   };
 }
 
-function parseBaseRef() {
-  const index = process.argv.indexOf("--base-ref");
-  return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : "origin/main";
+export function environmentPresence(env = process.env) {
+  const presence = {};
+  for (const [field, name] of Object.entries(ENVIRONMENT_KEYS)) {
+    presence[field] = { variable: name, state: env[name] ? "present" : "missing" };
+  }
+  return presence;
 }
 
-export function buildDoctorReport() {
-  const baseRef = parseBaseRef();
-  const changedFiles = collectChangedFiles({ baseRef });
-  const classification = classifyChanges(changedFiles);
+function parseArgValue(flag, argv, fallback) {
+  const index = argv.indexOf(flag);
+  return index >= 0 && argv[index + 1] && !argv[index + 1].startsWith("--")
+    ? argv[index + 1]
+    : fallback;
+}
+
+/**
+ * Read the live required contexts from the branch ruleset.
+ *
+ * Read-only and opt-in. Absent `gh`, network or permission this returns
+ * `checked: false` rather than an empty list — "I could not look" and "the
+ * ruleset requires nothing" must never collapse into the same answer, or a
+ * failed lookup would read as clean.
+ */
+export function readLiveRequiredChecks({ repo } = {}) {
+  const slug = repo ?? "Thunderkill016/moneyflow";
+  const listing = run("gh", ["api", `repos/${slug}/rulesets`, "--jq", ".[].id"]);
+  if (listing.status !== 0) {
+    return { checked: false, reason: "gh unavailable or not authorized for ruleset read" };
+  }
+  const contexts = new Set();
+  for (const id of listing.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)) {
+    const detail = run("gh", [
+      "api",
+      `repos/${slug}/rulesets/${id}`,
+      "--jq",
+      '.rules[]? | select(.type=="required_status_checks") | .parameters.required_status_checks[]?.context',
+    ]);
+    if (detail.status !== 0) continue;
+    for (const line of detail.stdout.split(/\r?\n/)) {
+      const context = line.trim();
+      if (context) contexts.add(context);
+    }
+  }
+  return { checked: true, contexts: [...contexts].sort() };
+}
+
+export function buildDoctorReport({ argv = process.argv, env = process.env } = {}) {
+  const baseRef = parseArgValue("--base-ref", argv, "origin/main");
+  const changedFiles = collectChangedFiles({ baseRef, argv });
+  const policy = buildPolicyDecision(changedFiles, {
+    // Lets the tenant-mutation boundary read a migration body, so a neutrally
+    // named migration containing `delete from` is still caught. Missing or
+    // unreadable files simply fall back to path-only inference.
+    readFile: (file) => {
+      try {
+        return fs.readFileSync(file, "utf8");
+      } catch {
+        return null;
+      }
+    },
+  });
   const available = capabilities();
-  const needed = requiredCapabilities(classification);
+  const needed = policy.requiredCapabilities;
   const missingRequiredCapabilities = Object.entries(needed)
     .filter(([name, required]) => required && !available[name])
     .map(([name]) => name);
   const files = fileChecks();
   const missingRepoFiles = files.filter((entry) => !entry.present).map((entry) => entry.path);
+  const identityGuard = verifyProviderCheckIdentities();
 
-  return {
-    schemaVersion: 1,
+  const report = {
+    schemaVersion: 2,
     repo: repoState(),
     baseRef,
     changedFiles,
-    classification,
-    localGatePlan: buildGatePlan(classification),
-    providerChecks: requiredProviderChecks(),
+    policySchemaVersion: policy.policySchemaVersion,
+    policySources: policy.policySources,
+    classification: policy.classification,
+    riskClass: policy.riskClass,
+    localGatePlan: policy.localGatePlan,
+    providerChecks: policy.providerChecks,
+    providerCheckIdentityGuard: identityGuard.ok
+      ? { ok: true }
+      : { ok: false, problems: identityGuard.problems },
+    approval: policy.approval,
+    evidenceRequired: policy.evidenceRequired,
+    completion: policy.completion,
     capabilities: available,
     requiredCapabilities: needed,
     missingRequiredCapabilities,
     repoFiles: files,
     missingRepoFiles,
-    environment: {
-      appMode: process.env.NEXT_PUBLIC_APP_MODE ? "present" : "missing",
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ? "present" : "missing",
-      supabasePublishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-        ? "present"
-        : "missing",
-    },
-    ready:
-      missingRepoFiles.length === 0 &&
-      Boolean(available.node && available.npm && available.git) &&
-      missingRequiredCapabilities.length === 0,
+    environment: environmentPresence(env),
   };
+
+  if (argv.includes("--verify-provider-checks")) {
+    const live = readLiveRequiredChecks({ repo: parseArgValue("--repo", argv, undefined) });
+    report.providerCheckDrift = live.checked
+      ? reconcileWithLiveRuleset(live.contexts)
+      : { ok: false, checked: false, reason: live.reason };
+  }
+
+  report.ready =
+    missingRepoFiles.length === 0 &&
+    Boolean(available.node && available.npm && available.git) &&
+    missingRequiredCapabilities.length === 0 &&
+    identityGuard.ok &&
+    (report.providerCheckDrift ? report.providerCheckDrift.ok : true);
+
+  /**
+   * What `ready` means, spelled out for whatever reads the JSON.
+   *
+   * `ready` says this machine can run the selected gates and that the policy is
+   * not visibly stale. It says nothing about whether the gates were run, passed,
+   * or whether the pull request is finished — and a consumer that treated it as
+   * completion would be wrong in the most expensive direction.
+   */
+  report.readyMeans = {
+    scope: "environment-and-policy-freshness",
+    includes: [
+      "required repository files present",
+      "required local capabilities available",
+      "declared provider check identities still real",
+    ],
+    excludes: [
+      "the local gates were run",
+      "the local gates passed",
+      "the provider checks are green on the exact head",
+      "the pull request is complete or mergeable",
+    ],
+  };
+
+  return report;
 }
 
 function printHuman(report) {
@@ -180,12 +263,55 @@ function printHuman(report) {
   console.log(`head: ${report.repo.head ?? "unknown"}`);
   console.log(`branch: ${report.repo.branch}`);
   console.log(`worktree: ${report.repo.clean ? "clean" : "dirty"}`);
-  console.log(`classification: ${report.classification.reason}`);
+  console.log(
+    `risk class: ${report.riskClass.class} — ${report.riskClass.label} (${report.riskClass.reasons.join(", ")})`,
+  );
+  console.log(`planning artifact: ${report.riskClass.planningArtifact}`);
+  console.log(`gate selection: ${report.classification.reason}`);
   console.log(`changed files: ${report.changedFiles.length}`);
+
   console.log("local gate plan:");
   for (const command of report.localGatePlan) console.log(`- ${command}`);
-  console.log("provider checks still required on the exact PR head:");
-  for (const check of report.providerChecks) console.log(`- ${check}`);
+
+  console.log("provider checks required on the exact PR head (not runnable locally):");
+  for (const check of report.providerChecks) {
+    console.log(`- ${check.context} — ${check.proves}`);
+  }
+  if (!report.providerCheckIdentityGuard.ok) {
+    console.log("provider check identity drift detected:");
+    for (const problem of report.providerCheckIdentityGuard.problems) {
+      console.log(`- ${problem.context}: ${problem.problem}`);
+    }
+  }
+  if (report.providerCheckDrift) {
+    if (!report.providerCheckDrift.checked) {
+      console.log(`live ruleset comparison: not performed — ${report.providerCheckDrift.reason}`);
+    } else if (report.providerCheckDrift.ok) {
+      console.log("live ruleset comparison: declared contexts match the branch ruleset");
+    } else {
+      console.log("live ruleset comparison: DRIFT");
+      for (const context of report.providerCheckDrift.missingLocally) {
+        console.log(`- required by the ruleset but not declared here: ${context}`);
+      }
+      for (const context of report.providerCheckDrift.staleLocally) {
+        console.log(`- declared here but not required by the ruleset: ${context}`);
+      }
+    }
+  }
+
+  console.log("evidence required before this is done:");
+  for (const entry of report.evidenceRequired) console.log(`- ${entry.id}: ${entry.means}`);
+
+  console.log(`owner approval — this diff: ${report.approval.requiredForThisDiff}`);
+  if (report.approval.impliedForDeployment.length > 0) {
+    console.log("boundaries implied by these paths, for a later deployment step:");
+    for (const entry of report.approval.impliedForDeployment) {
+      console.log(
+        `- ${entry.boundary}${entry.requiresOwnerApproval ? " (owner approval required)" : ""} — ${entry.why}`,
+      );
+    }
+  }
+  console.log(`approval granted by this tool: no — ${report.approval.note}`);
 
   if (report.missingRequiredCapabilities.length > 0) {
     console.log(`missing required capabilities: ${report.missingRequiredCapabilities.join(", ")}`);
@@ -193,8 +319,13 @@ function printHuman(report) {
   if (report.missingRepoFiles.length > 0) {
     console.log(`missing repo files: ${report.missingRepoFiles.join(", ")}`);
   }
+
   console.log("environment presence only (values are never printed):");
-  for (const [name, state] of Object.entries(report.environment)) console.log(`- ${name}: ${state}`);
+  for (const [field, entry] of Object.entries(report.environment)) {
+    console.log(`- ${field} (${entry.variable}): ${entry.state}`);
+  }
+
+  console.log(`completion: ${report.completion.statement}`);
 }
 
 function runCli() {
@@ -206,5 +337,7 @@ function runCli() {
   }
   process.exitCode = report.ready ? 0 : 1;
 }
+
+export { requiredProviderChecks };
 
 if (import.meta.url === pathToFileURL(process.argv[1] || "").href) runCli();
