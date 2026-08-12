@@ -5,7 +5,7 @@
 **Active role:** planner
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
-**Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure
+**Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure; #356 P3 Prove packet
 **Last updated:** 2026-08-12
 **Current main audited:** `18836e2ebdc63711113f248826b00cd541a0a530`
 
@@ -43,6 +43,9 @@ Provider Sync, P1 Secure and **P2 Recover** are now accepted. The program advanc
 - Stale-AMR and real account-mismatch production probes were deliberately not executed; on 2026-08-11 the owner accepted that named limitation and accepted the 35/35 deterministic fail-closed assertions/source evidence instead of destructive/identity-risk production testing.
 - Correlated Auth/API/Postgres/Edge/Vercel review found no acceptance-blocking error cluster for the accepted interactive flows; no `delete-account` Edge invocation was observed.
 - Current transaction/Inbox CSV/JSON export is scoped user-readable export, **not** a complete versioned restorable archive. The complete archive is a separate shipped capability at `/settings/backup`; the report export deliberately still says it is not a full backup.
+
+Active P3 packet: `docs/plans/active/moneyflow-trust-prove.md` — owns P3 execution
+detail only; this plan remains the program authority.
 
 Completed Trust packets:
 
@@ -146,7 +149,7 @@ Recover/Prove/Release:
 | Provider Sync | **accepted/completed** |
 | P1 Secure | **accepted/completed**, with named stale/mismatch provider-test limitation |
 | P2 Recover | **accepted/completed** — specified, implemented, deployed; hosted restore is a named limitation |
-| P3 Prove | active |
+| P3 Prove | active — checklist specified, device run outstanding |
 | P4 Improve | blocked by P3 evidence |
 | P5 Release | blocked by prior phases |
 
@@ -156,7 +159,8 @@ Steps 1–6 of the former P2 sequence are complete: the archive inventory, contr
 packet, specification, export → validate → restore slice and invariant gates all
 landed and are accepted. What remains is P3:
 
-1. define the physical-phone core-ledger acceptance checklist;
+1. define the physical-phone core-ledger acceptance checklist — **done**, in
+   `docs/plans/active/moneyflow-trust-prove.md`, which owns P3 execution detail;
 2. run it on a real device and record the evidence;
 3. complete seven consecutive days of sanitized owner self-use without data loss or
    manual database repair;
@@ -175,8 +179,8 @@ landed and are accepted. What remains is P3:
 | P1-T4 | fail-closed/log review + owner limitation decision | production probes + 35/35 deterministic + owner decision | complete |
 | P2-T1 | create/accept Recover archive contract | P1 accepted | complete — `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md` |
 | P2-T2 | implement export/validate/restore | P2-T1 | complete — deployed to production; hosted export accepted, hosted restore an accepted limitation |
-| P3-T1 | physical-phone core ledger checklist | P2 accepted | next |
-| P3-T2 | seven-day sanitized self-use | P3-T1 | blocked |
+| P3-T1 | physical-phone core ledger checklist | P2 accepted | **specified** — `docs/plans/active/moneyflow-trust-prove.md`; 14 scenarios awaiting the owner's device run |
+| P3-T2 | seven-day sanitized self-use | P3-T1 | blocked — Day 0 rules prepared in the P3 packet; **day 1 has not started** |
 | P4-T1 | select observed trust-depth slice | P3 evidence | blocked |
 | P5-T1 | owner public-beta decision | prior phases | blocked |
 
@@ -187,6 +191,7 @@ landed and are accepted. What remains is P3:
 | 2026-08-09 | human owner | provider evaluator | evaluating | Edge v6 ACTIVE/read-back | provider-backed auth acceptance | run safe password/Google flows |
 | 2026-08-11 | human owner + evaluator | planner | accepted | password + Google provider evidence; missing-continuity pass; logs; explicit stale/mismatch limitation acceptance | complete archive/restore absent | open P2 Recover packet/specification |
 | 2026-08-12 | human owner | planner | accepted | deterministic pgTAP round trip; hosted export accepted on a real production artifact; explicit hosted-restore limitation acceptance | hosted restore unproven; P3 evidence absent | define the P3 physical-phone checklist |
+| 2026-08-12 | planner | human_owner | specified | P3 packet, evidence template and `check:prove-evidence` on `277d459`; **no device evidence exists** | physical-phone loop unproven; seven-day run not started | owner runs the 14 REQUIRED scenarios and returns the sanitized evidence file |
 
 ### Current permission boundary
 
