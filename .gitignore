@@ -19,6 +19,8 @@
 /output/playwright-audit/
 # playwright.auth.config.ts writes here.
 /output/playwright-auth/
+# playwright.design.config.ts writes generated visual evidence here.
+/output/design-harness/
 /test-results/
 /playwright-report/
 /blob-report/
