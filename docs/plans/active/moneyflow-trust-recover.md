@@ -953,6 +953,17 @@ RPC. The report export still works there.
 
 ## Production rollout preflight (2026-08-12)
 
+**Mission 17B is complete.** The Supabase project is MoneyFlow-only, the Atoryn
+Edge Functions and database subsystem are removed, the cleanup migration is
+mirrored, the retimestamped migrations are reconciled, the two missing-history
+migrations are repaired, and the linked history is fully aligned — the dry-run
+now proposes exactly the two Recover migrations and nothing else.
+
+**P2 Recover is still not accepted.** Those two migrations remain unapplied in
+production, so no hosted backup or restore evidence exists yet. The next
+checkpoint is their deployment, which needs its own approval; a hosted restore
+test that mutates a ledger needs a further, separate one.
+
 The Recover migrations are still **unapplied**. Preflight found the deployment
 path itself was broken, and fixing that came first.
 
@@ -1016,9 +1027,13 @@ So their effects are live, but pushing them now would run them *after* `035128`
 and **downgrade two live functions to older definitions**. They must never be
 applied to this database.
 
-Resolution needs one narrowly-scoped production write
-(`migration repair --status applied` for exactly those two versions), which is
-**not yet authorized** and is the outstanding owner checkpoint.
+**Resolved.** The owner approved and completed a narrowly-scoped
+`migration repair --status applied` for exactly those two versions. It changed
+the history table only — it did not execute their SQL — and independent
+post-write checks confirmed the 19 MoneyFlow table counts and the live
+`create_split_expense`, `create_financial_account` and `transaction_feed`
+definitions were unchanged. Both are now aligned local/remote, and the linked
+dry-run proposes only the two Recover migrations.
 
 ### Recurrence prevention
 
