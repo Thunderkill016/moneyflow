@@ -895,10 +895,11 @@ R8's 64 MiB bound is unchanged and still correct: that is a *parser* limit. This
 is *transport*, and lifting it needs a different upload path (direct object
 storage or a chunked endpoint) — its own slice, not something to fake here.
 
-### Backend not yet live
+### Backend deployment safety (capability gap handling)
 
-Both archive migrations are merged but unapplied, so the UI can ship before the
-capability exists. PostgREST reports an absent function as `PGRST202`, which is
+Both archive migrations were merged before they were deployed, so the UI shipped
+ahead of the capability — and as of Mission 17C they are live in production. The
+fail-closed path below remains for any future capability gap. PostgREST reports an absent function as `PGRST202`, which is
 classified as `capability_missing` and shown as *"Chức năng … chưa sẵn sàng trên
 máy chủ"* — an honest deployment state, not a user error and not a retry loop.
 When the migrations are applied the surface becomes usable with no code change.
@@ -959,10 +960,20 @@ mirrored, the retimestamped migrations are reconciled, the two missing-history
 migrations are repaired, and the linked history is fully aligned — the dry-run
 now proposes exactly the two Recover migrations and nothing else.
 
-**P2 Recover is still not accepted.** Those two migrations remain unapplied in
-production, so no hosted backup or restore evidence exists yet. The next
-checkpoint is their deployment, which needs its own approval; a hosted restore
-test that mutates a ledger needs a further, separate one.
+**Recover schema is deployed (Mission 17C, 2026-08-12).** Approval A was consumed
+to apply exactly the two migrations with `supabase db push --linked --include-all`
+— `--include-all` was required because the cleanup migration carries a later
+timestamp. History is 41/41 aligned and the follow-up dry-run reports *"Remote
+database is up to date"*. Aggregate rows were 228 before and after across the same
+19 financial relations; the two new tables arrived empty.
+
+Live read-back confirmed all five new functions exist and deny the anon key
+(`42501`, versus `PGRST202` for a function that does not exist), and both new
+tables deny anon SELECT and INSERT.
+
+**P2 Recover is still not accepted.** No hosted backup or restore acceptance has
+run. Hosted backup needs an authenticated owner session; hosted restore mutates a
+ledger and needs a separate Approval B.
 
 The Recover migrations are still **unapplied**. Preflight found the deployment
 path itself was broken, and fixing that came first.
@@ -1080,7 +1091,9 @@ migration the database has already run is the right amount of friction.
 | 2026-08-12 | human_owner | implementer | provider_write_approved | scoped approval: delete five named Atoryn Edge Functions | `delete-account` must survive untouched | Delete one named function at a time, then read back |
 | 2026-08-12 | implementer | evaluator | evaluating | Edge 6→1; `table-stats` pre/post identical (19 relations, zero drift, 224 rows); 5 retimestamps reconciled as pure renames; identity guard proven by negative fixtures | two superseded migrations still pending; repair blocked by permission guard | Merge #349, then request the scoped repair |
 | 2026-08-12 | human_owner | implementer | provider_write_approved | scoped approval: `migration repair --status applied` for `20260715001400`, `20260715001500` | history-table write only; must not execute their SQL | Repair, then verify independently |
-| 2026-08-12 | implementer | human_owner | complete | linked CLI verified: 39 aligned, zero remote-only, dry-run proposes exactly the two Recover migrations; post-write checks showed table counts and live function definitions unchanged | Recover migrations still unapplied; no hosted acceptance | Mission 17B closed; next is scoped approval to deploy the two Recover migrations |
+| 2026-08-12 | implementer | human_owner | complete | linked CLI verified: 39 aligned, zero remote-only, dry-run proposes exactly the two Recover migrations; post-write checks showed table counts and live function definitions unchanged | Recover migrations still unapplied at that point; no hosted acceptance | Mission 17B closed; next is scoped approval to deploy the two Recover migrations |
+| 2026-08-12 | human_owner | implementer | provider_write_approved | Approval A: apply exactly the two Recover migrations | must apply nothing else; no seed, roles or repair | Push with `--include-all`, then read back |
+| 2026-08-12 | implementer | human_owner | schema_deployed | applied 06:41:39–06:41:43Z; history 41/41 aligned; dry-run "Remote database is up to date"; 228 rows before and after; all five functions live and anon-denied against a PGRST202 control | live catalog posture not directly readable (no psql/DB password); hosted acceptance not run | Hosted backup acceptance needs an owner session; hosted restore needs Approval B |
 
 ### Current permission boundary
 
@@ -1097,8 +1110,10 @@ migration the database has already run is the right amount of friction.
      superseded by the applied `20260725035128`, and pushing them would have
      downgraded two live functions. It wrote the history table only and did not
      execute their SQL.
-- **Still forbidden without a new scoped approval:** applying the Recover
-  migrations, any schema or tenant-data mutation, destructive account deletion,
+- **Consumed production approval (Mission 17C, 2026-08-12):** *Apply exactly the
+  two Recover migrations.* Executed with `--include-all`; nothing else was
+  applied and the follow-up dry-run reports zero pending.
+- **Still forbidden without a new scoped approval:** any hosted restore, any schema or tenant-data mutation, destructive account deletion,
   Supabase provider/Auth config or secrets, further Edge deployment or deletion.
 - **Human approval required before:** any further provider or production write.
   A Git merge authorization is never a provider authorization.
