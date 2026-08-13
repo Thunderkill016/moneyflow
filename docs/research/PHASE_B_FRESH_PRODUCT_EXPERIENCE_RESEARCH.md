@@ -12,8 +12,8 @@ style: it is a **short, reversible ledger loop**. Capture or import enters a rec
 record; the user can inspect/correct it in context; the product then offers explanation
 or planning only when the user asks for it. Copilot’s review queue, YNAB’s explicit
 transaction types and approval path, Monarch’s undoable hiding and rule preview, and
-Wallet’s dependency-aware account deletion each put a different guardrail around that
-loop. [Sources C1, Y1, M1, M3, W3]
+Wallet’s reversible archive-versus-analysis-scope distinction each put a different
+guardrail around that loop. [Sources C1, Y1, M1, M3, W3]
 
 For MoneyFlow, the durable learning is constrained by Phase A rather than by competitor
 feature lists. The current product is a Vietnamese, manual-first, integer-VND ledger
@@ -33,7 +33,7 @@ its data meaning, recovery path, mode boundary and named code owner can be prese
 
 | User problem | Observed mechanism (fact) | Phase B interpretation | MoneyFlow filter / do not copy | Confidence |
 |---|---|---|---|---|
-| 1. Fast manual capture | YNAB’s add flow makes transaction type explicit before optional payee/category/date/flag/memo fields; Wallet offers saved transaction templates; MISA and Money Lover publicly position manual recording. [Y1, W2, MI1, ML1] | Lead with the irreversible financial classification and defer enrichments that can be edited later. | Preserve MoneyFlow’s manual-first and integer-VND parsing; do not make linked-bank data or templates required. | High / medium / low |
+| 1. Fast manual capture | YNAB’s add flow makes transaction type explicit before optional payee/category/date/flag/memo fields; Wallet’s current manual-record guide orders type, amount, account and category before additional details; MISA and Money Lover publicly position manual recording. [Y1, W2, MI1, ML1] | Lead with the irreversible financial classification and defer enrichments that can be edited later. | Preserve MoneyFlow’s manual-first and integer-VND parsing; do not make linked-bank data required. | High / high / low |
 | 2. Current balances / position | YNAB supports an unlinked account with a user-entered current balance; Copilot exposes account detail and aggregate financial position. [Y7, C3] | A balance is more trustworthy when its account scope and provenance are visible. | Do not introduce wealth/net-worth identity or sync claims; keep manual account semantics. | High / high |
 | 3. Where money went | YNAB’s Spending Breakdown ranks categories, filters by account/date and permits moving into transaction detail; Copilot’s web summary filters spend, income and net. [Y3, C2] | Summary should answer a narrow question and retain a path to its ledger evidence. | Do not copy a dashboard layout or visualisation; reports are already a MoneyFlow capability. | High |
 | 4. Review/correct history | Copilot’s review queue keeps new activity editable before saving; YNAB supports editing/deleting a mistaken manual transaction; Monarch hides while retaining the record and offers undo. [C1, Y1, M1] | Review should be a bounded state/action, not a second hidden ledger; corrections should keep recovery/audit context. | Do not use irreversible silent cleanup; preserve recoverable destructive semantics. | High / high / medium |
@@ -43,7 +43,7 @@ its data meaning, recovery path, mode boundary and named code owner can be prese
 | 8. Advanced import/rules without identity takeover | Monarch rules show a preview before applying actions; Linear isolates incoming work in Triage before accepting it into the normal workflow. [M3, L1] | Automation/import belongs behind an inspectable review boundary and should not displace everyday capture. | MoneyFlow already owns import/inbox/rules; do not add AI classification or make the advanced queue the home surface. | Medium / high |
 | 9. Data ownership/export/backup/recovery | YNAB exports selected Reflection data in CSV/TSV; MISA advertises Excel/PDF export; MoneyFlow Phase A distinguishes scoped report export from the full versioned backup route. [Y4, MI1; Phase A §12] | Label export scope precisely and keep a complete backup/recovery path distinct from a report download. | Do not imply that a chart/export is a restorable archive. | High / medium / high |
 | 10. Mobile/constrained workflows | YNAB documents the same add/transfer/approval steps on mobile and web, with a bottom transaction action on mobile; Wise locates transfer status inside the specific activity item. [Y1, Y2, Y5, WI1] | A constrained surface should expose one primary action and make status/detail reachable from the relevant record. | No copied bottom-nav or screen design; retain AppShell, safe-area and PP-12 one-scroll-owner constraints. | High |
-| 11. Trust, destructive actions and recovery | Wallet blocks account deletion until dependent items are altered; Monarch’s hide keeps a record visible in the full list and can be reversed; Linear archive remains searchable/restorable. [W3, M1, L2] | Prevent destructive action when dependencies would make meaning ambiguous, and offer reversible state where possible. | Preserve MoneyFlow soft-delete/recovery/auth boundaries; do not treat hiding as financial deletion. | High / medium / high |
+| 11. Trust, destructive actions and recovery | Wallet distinguishes reversible account archiving from an active account excluded from statistics; Monarch’s hide keeps a record visible in the full list and can be reversed; Linear archive remains searchable/restorable. [W3, M1, L2] | Separate reversible presentation/analysis scope from a destructive financial mutation. | Preserve MoneyFlow soft-delete/recovery/auth boundaries; do not treat hiding or archival as financial deletion. | High / medium / high |
 | 12. Progressive disclosure | Copilot’s core review/summary precedes categories/recurrings/goals; Linear’s Triage is outside normal workflow until accepted; YNAB places optional advanced fields after transaction type. [C1, L1, Y1] | Keep the core loop comprehensible while keeping advanced operations reachable through named, scoped entry points. | Do not suppress necessary financial choices or bury recovery; no final nav decision is made here. | High |
 
 ## Evidence-reading limit
@@ -67,20 +67,22 @@ the finding is intentionally lower confidence.
   payee, category, account, flag, clearing and schedule detail; transfer/payment have
   different required semantics. It also states that a mistaken entry may be edited or
   deleted. [Y1]
-- **Fact from source:** Wallet’s current support describes reusable transaction
-  templates for manual accounts. [W2]
+- **Fact from source:** Wallet’s current manual-record guide orders record type,
+  amount, account and category before optional detail such as note, labels, payee,
+  date and status, on Android, iOS and web. [W2]
 - **Phase B interpretation:** classifying the money movement before optional metadata
-  keeps a fast path while protecting the ledger’s meaning; reusing a template can
-  remove repetition only after the user has already established a trustworthy pattern.
+  keeps a fast path while protecting the ledger’s meaning; later detail is available
+  without making every entry carry the full form.
 - **Tradeoff/failure mode:** an upfront type choice can be confusing where the domain
-  has too many account/debt types; a template can reproduce a stale amount/category.
+  has too many account/debt types; deferred detail can conceal a required field if the
+  financial contract is not explicit.
 - **Applicability:** candidate constraint for a later MoneyFlow capture evaluation:
   preserve existing explicit income/expense/transfer semantics, then evaluate which
   metadata can remain optional or defaulted without hiding VND meaning.
 - **Do not copy:** YNAB’s linked-account-first prompts, credit/debt model or its
-  envelope-planning language; Wallet’s bank-sync positioning.
-- **Confidence:** high for YNAB’s documented mechanics; medium for Wallet template
-  details because only the support description, not a live runtime, was observed.
+  envelope-planning language; Wallet’s bank-sync positioning and its exact field set.
+- **Confidence:** high for both documented manual-entry flows; neither source proves
+  user outcomes or MoneyFlow applicability by itself.
 
 ### PFM pattern P2 — a review state is useful only when it ends in a deliberate action
 
@@ -106,27 +108,31 @@ the finding is intentionally lower confidence.
 - **Confidence:** high for documented mechanics; no claim is made about completion
   rate or user satisfaction.
 
-### PFM pattern P3 — recoverability can be a first-class state, not merely an undo toast
+### PFM pattern P3 — retention, visibility and analysis scope are distinct reversible states
 
-- **Problem:** users need to reduce noise or reverse a mistake without losing trust in
-  the historical record.
+- **Problem:** users need to reduce noise or constrain analysis without losing trust in
+  the historical record or mistaking a presentation state for deletion.
 - **Fact from source:** Monarch’s help says hiding excludes a transaction from
   calculations while retaining it in the full list with an eye indicator; the action
   can be undone. [M1]
-- **Fact from source:** Wallet says account deletion is blocked where dependent records
-  remain and directs the user to alter those dependents first. [W3]
-- **Phase B interpretation:** hiding/recovery and dependency prevention are different
-  safeguards: the former changes presentation/calculation scope reversibly, the latter
-  prevents an ambiguous destructive mutation.
-- **Tradeoff/failure mode:** hiding can make totals surprising unless scope is exposed;
-  dependency blocks can feel obstructive without a clear next step.
+- **Fact from source:** Wallet’s June 2026 guide says archiving removes an unused
+  account from main account lists/selectors without deleting its history and permits
+  unarchiving; excluding an account from statistics instead keeps it active/visible
+  while excluding its balance and transactions from reports, cash flow and overall
+  balance. It warns that archive and exclude can affect historical reports differently.
+  [W3]
+- **Phase B interpretation:** hiding, retention and analysis scope are separate states;
+  a reversible control needs to make its effect on visibility and totals legible.
+- **Tradeoff/failure mode:** hiding or exclusion can make totals surprising unless the
+  scope is exposed; archive can reduce history visibility in reports even while records
+  are retained.
 - **Applicability:** MoneyFlow already treats destructive actions as recoverable and
-  has account/data ownership semantics. Later work may evaluate clarity of the existing
-  recovery path, never replace it with silent removal.
-- **Do not copy:** Monarch’s calculation-specific hide semantics without checking
-  MoneyFlow report/backup invariants; Wallet’s exact copy or bank-account assumptions.
-- **Confidence:** medium: Monarch pages were updated in 2024/2025; Wallet documentation
-  was updated in 2026. These are mechanism examples, not a current product audit.
+  has account/data ownership semantics. Later work may evaluate clarity of existing
+  history/scope/recovery states, never replace a financial mutation with silent removal.
+- **Do not copy:** Monarch’s calculation-specific hide semantics or Wallet’s exact
+  archive/exclude rules without checking MoneyFlow report/backup invariants.
+- **Confidence:** medium for Monarch’s 2024/2025 documentation; high for Wallet’s
+  current 2026 guide. These are mechanism examples, not a current product audit.
 
 ## Accounts, transfers and financial position
 
@@ -344,9 +350,9 @@ the finding is intentionally lower confidence.
    rules. [C1, Y5, L1, M3]
 3. **Financial movement has a scope.** Account selection, transfer pairing and report
    filters reveal what a number includes. [Y2, Y3, Y7]
-4. **Reversal and prevention address different risks.** Monarch hide/undo, Wallet’s
-   dependency block and Linear’s restoreable archive are not interchangeable. [M1, W3,
-   L2]
+4. **Retention, visibility and analysis scope are not interchangeable.** Monarch
+   hide/undo, Wallet archive/exclude and Linear’s restorable archive affect different
+   views or states and must declare their effect. [M1, W3, L2]
 5. **Planning and automation gain trust by being optional or inspectable.** Monarch and
    Copilot allow budgeting to be disabled; Monarch previews automation. [MO1, C1, M3]
 6. **Portable output must name its scope.** YNAB exports selected reporting views while
@@ -362,7 +368,7 @@ the finding is intentionally lower confidence.
 | AI/automation as default financial judgement | Linear’s Triage Intelligence is an opt-in/enterprise AI system; it is not financial evidence. [L3] | No AI financial advice or automatic unreviewed posting. |
 | Household, investment or wealth identity | MISA/Money Lover advertise broader budgeting/asset features; YNAB/Copilot show net-worth/debt views. [MI1, ML1, Y4, C3] | Outside the Vietnamese individual manual-ledger scope unless separately authorised. |
 | A summary with no provenance path | Trend/report interfaces can look explanatory while hiding account/date/category scope. [Y3, C2] | Later work must retain access to the current ledger evidence and VND scope. |
-| Destructive-looking cleanup with no recovery meaning | Hide, archive and delete have materially different effects in the evidence above. [M1, W3, L2] | Preserve current soft-delete/recovery, backup and recent-auth boundaries; never relabel a presentation filter as deletion. |
+| Destructive-looking cleanup with no recovery meaning | Hide, archive and analysis exclusion have materially different effects in the evidence above. [M1, W3, L2] | Preserve current soft-delete/recovery, backup and recent-auth boundaries; never relabel a presentation filter as deletion. |
 
 # MoneyFlow-specific product-experience principles
 
@@ -386,9 +392,9 @@ These are Phase B evaluation principles, not approved design or implementation t
    record, correct, understand or export money; no full-envelope doctrine is presumed.
    [MO1, C1; Phase A §2]
 6. **A corrective or destructive interaction must declare whether it hides, changes,
-   soft-deletes, permanently removes or archives data.** Its recovery and dependency
-   behaviour must continue to respect current ownership/auth/archive constraints. [M1,
-   W3, L2; Phase A §§7, 12]
+   soft-deletes, permanently removes, archives or changes analysis scope.** Its
+   recovery and financial meaning must continue to respect current ownership/auth/archive
+   constraints. [M1, W3, L2; Phase A §§7, 12]
 7. **Mobile/constrained presentation has one relevant primary action and no trapped
    content.** Any dialog/sheet change must preserve the shared one-scroll-owner,
    safe-area and keyboard/focus regimes; a popover is in scope only if it shares that
@@ -454,8 +460,8 @@ crawl date visible on the source, not independent verification of a product depl
 | M2 | [Monarch: Manual Import](https://help.monarchmoney.com/hc/en-us/articles/4409682789908-Import-data-manually-from-banks-or-other-finance-apps) | First-party help; updated 2025 | Import risk and small-file test; medium freshness. |
 | M3 | [Monarch: Transaction Rules](https://help.monarchmoney.com/hc/en-us/articles/360048393372-Transaction-rules) | First-party help; updated 2025 | Rule preview/application/order; medium freshness. |
 | W1 | [Wallet: What is Wallet?](https://support.budgetbakers.com/hc/en-us/articles/12212428113810-What-is-the-Wallet-app) | First-party help; updated 2026-04-01 | Manual entry alongside bank-sync capability; product scope. |
-| W2 | [Wallet: Transaction Templates](https://support.budgetbakers.com/hc/en-us/articles/7077050225042-Transaction-Templates) | First-party help; updated 2026-03-31 | Reusable manual-account template mechanics. |
-| W3 | [Wallet: Delete Account](https://support.budgetbakers.com/hc/en-us/articles/7151291934866-Delete-account) | First-party help; updated 2026-03-31 | Dependency-aware account deletion. |
+| W2 | [Wallet: Everything About Transactions](https://support.budgetbakers.com/hc/en-us/articles/7149271363090-Everything-About-Transactions-Add-edit-clone-split-duplicates) | First-party help; updated 2025-12-12 | Current manual-record field order and additional-detail availability. |
+| W3 | [Wallet: Archiving an account vs. Exclude from statistics](https://support.budgetbakers.com/hc/en-us/articles/36544201479186-Archiving-an-account-vs-Exclude-from-statistics-what-s-the-difference) | First-party help; updated 2026-06-19 | Reversible archive/history retention versus active analysis-scope exclusion. |
 | MI1 | [MISA Sổ Thu Chi](https://sothuchi.misa.vn/) | First-party Vietnamese product page; current 2026 crawl; marketing-level evidence | Manual records, categories, reports and Excel/PDF export capability only. |
 | MI2 | [MISA: voice recording guide](https://sothuchi.misa.vn/huong-dan-su-dung-tinh-nang-ghi-chep-thu-chi-bang-giong-noi-tren-so-thu-chi-misa/) | First-party help; published 2024-10-15 | Voice record limit/edit requirement; counterexample to automatic financial posting. |
 | ML1 | [Money Lover](https://moneylover.me/) | First-party product page; crawl recency not a feature verification | Broad manual-entry/report/recurring/asset positioning; counterexample/scope context only. |
