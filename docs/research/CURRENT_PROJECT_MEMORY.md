@@ -24,8 +24,9 @@ acceptance, not a signed/filed evidence run. The exact program order is:
 
 `docs/plans/active/public-beta-trust.md` owns that program order. Repository Resets
 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority
-Audit, Phase B product-experience research and **Phase C Product Experience
-Architecture** are accepted/completed in merged or staged-completed records. **Phase D
+Audit, Phase B product-experience research, **Phase C Product Experience
+Architecture** and **Phase D Brand Strategy** are accepted/completed in merged or
+staged-completed records. **Phase E
 Brand Strategy** is the immediate next phase, is not started and has no packet. The
 later Brand/Product Experience rebuild is not started.
 
@@ -52,7 +53,7 @@ later Brand/Product Experience rebuild is not started.
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
 | Ownership | complete versioned archive/export/validation/restore contract; hosted restore limitation remains |
-| Experience | responsive light/dark web UI; Phase C Product Experience Architecture is accepted/completed, while Phase D Brand Strategy is immediate next but not started/no packet and the later Brand/Product Experience rebuild is not started |
+| Experience | responsive light/dark web UI; Phase C Product Experience Architecture and Phase D Brand Strategy are accepted/completed, while Phase E Creative Territories is immediate next but not started/no packet, no territory is proposed or selected, and the later Brand/Product Experience rebuild is not started |
 
 ## 4. MoneyFlow Trust and physical-device truth
 
@@ -107,8 +108,21 @@ unless a future approved packet names them as current design authority.
   `docs/plans/completed/2026-08-13-phase-a-current-reality-authority-audit.md`.
 - Phase B product-experience research is accepted/completed in merged #366 at
   `main@60f91b7`. Phase C Product Experience Architecture is accepted/completed in
-  its staged completed record. Phase D Brand Strategy is immediate next, not started
-  and has no packet; implementation remains not started.
+  merged #367 at `main@4ba1864`.
+- **Phase D Brand Strategy is accepted/completed** in its staged completed record, with
+  the durable authority at `docs/research/PHASE_D_BRAND_STRATEGY.md`. It locks audience,
+  role, positioning, promise hierarchy, differentiation, trust builders/breakers,
+  personality, Vietnamese verbal principles, controlled vocabulary, anti-positioning and
+  proof architecture, and makes **no** visual decision. Earlier brand/design material is
+  input only: Signal Ledger v3 stays rejected, Calm Ledger v2 stays historical, Fresh
+  Blue is shipped-implementation truth rather than a future constraint, and only four
+  named elements of the brand guidelines are promoted.
+- **Brand claim ceiling:** the brand may claim a property the product enforces, never a
+  verification that has not happened. Two live caveats bind it — hosted restore has never
+  run against a live account, and the four physical-phone remediations are unverified on
+  hardware.
+- Phase E Creative Territories is immediate next, not started and has no packet; no
+  creative territory is proposed or selected; implementation remains not started.
 - The owner public-beta decision is blocked on the ordered work above and remains
   the only PBT-AC15 closure authority.
 
@@ -121,9 +135,10 @@ candidate evidence, never current truth.
 
 ## 10. True gaps after this audit
 
-1. Separately start Phase D Brand Strategy only after this exact Phase C delivery head
-   merges.
-2. Keep Phase D bounded to Brand Strategy; do not begin implementation.
+1. Separately start Phase E Creative Territories only after this exact Phase D delivery
+   head merges, and only when authorised.
+2. Keep Phase E bounded to producing three distinct territories for owner selection; do
+   not select one, and do not begin implementation.
 3. Execute Brand/Product Experience B→J only in later approved packets.
 4. Perform final physical/device visual QA on that rebuilt experience.
 5. Obtain the owner’s public-beta decision and record accepted limitations.

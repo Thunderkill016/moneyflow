@@ -1,7 +1,7 @@
 # MoneyFlow Trust
 
 **Status:** active
-**Execution state:** P3 Prove, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority Audit, Phase B and Phase C accepted/completed; Phase D is immediate next but not started; public-beta decision remains open
+**Execution state:** P3 Prove, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority Audit, Phase B, Phase C and Phase D accepted/completed; Phase E Creative Territories is immediate next but not started; public-beta decision remains open
 **Active role:** parent-program planner; no child packet is active
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
@@ -23,7 +23,8 @@ MoneyFlow is ready for a bounded public beta only when repository state, product
 Current program sequence:
 
 > **Phase A Current Reality / Authority Audit → Phase B product-experience research
-> → Phase C Product Experience Architecture → Brand/Product Experience rebuild B→J
+> → Phase C Product Experience Architecture → Phase D Brand Strategy
+> → Phase E Creative Territories → Brand/Product Experience rebuild B→J
 > → final
 > physical/device visual QA → owner public-beta decision**
 
@@ -101,9 +102,13 @@ Experience implementation. **Phase A Current Reality /
 Authority Audit** is accepted/completed in its completed record. **Phase B Fresh
 Product-Experience Research** is accepted/completed in merged #366
 (`main@60f91b7`). **Phase C Product Experience Architecture** is accepted/completed in
-its staged completed record. **Phase D Brand Strategy** is the immediate next phase,
-but is not started and has no packet; Brand/Product Experience implementation is not
-started and has no packet. The public-beta decision remains open.
+merged #367 (`main@4ba1864`). **Phase D Brand Strategy** is accepted/completed in its
+staged completed record, with the durable authority at
+`docs/research/PHASE_D_BRAND_STRATEGY.md`; it makes no visual decision. **Phase E
+Creative Territories** is the immediate next phase, but is not started and has no
+packet, and no creative territory has been proposed or selected; Brand/Product
+Experience implementation is not started and has no packet. The public-beta decision
+remains open.
 
 On 2026-08-12 the owner **removed the seven-day self-use requirement** from the active program after running the physical checklist. P3 Prove is now physical-phone core-ledger acceptance only. No replacement duration gate is introduced. The historical seven-day records in `docs/REAL_USE_READINESS_CONTRACT.md` (R7, 2026-07-29) stay as historical truth and are not re-opened.
 
@@ -174,7 +179,8 @@ Recover/Prove/Release:
 | Phase A Current Reality / Authority Audit | **accepted/completed** — durable code-first route/runtime/presentation/authority map; no design implementation |
 | Phase B Fresh Product-Experience Research | **accepted/completed** — durable first-party mechanism/tradeoff research; no design implementation |
 | Phase C Product Experience Architecture | **accepted/completed** — durable product-experience architecture; no brand/UI implementation |
-| Phase D Brand Strategy | immediate next after this exact Phase C delivery head merges; not started and no packet exists |
+| Phase D Brand Strategy | **accepted/completed** — durable brand strategy, positioning, promise, trust and verbal authority; no visual decision and no creative territory |
+| Phase E Creative Territories | immediate next after this exact Phase D delivery head merges; not started, no packet, no territory proposed or selected |
 | P4 Improve | not an active generic workstream |
 | P5 Release | owner public-beta decision remains open (PBT-AC15) |
 
