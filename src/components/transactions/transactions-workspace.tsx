@@ -280,6 +280,24 @@ export function TransactionsWorkspace({
     maxAmountInput,
   });
 
+  /**
+   * How many of the *secondary* filters are active.
+   *
+   * Search and kind stay primary and always visible, so they are excluded here.
+   * The count drives both the disclosure's open state and its summary, which is
+   * what keeps a query-string-restored filter from hiding behind a closed group.
+   */
+  const secondaryFilterCount = [
+    account !== "all",
+    category !== "all",
+    review !== "all",
+    fromDate !== "",
+    toDate !== "",
+    minAmountInput.trim() !== "",
+    maxAmountInput.trim() !== "",
+  ].filter(Boolean).length;
+  const hasSecondaryFilter = secondaryFilterCount > 0;
+
   const filtered = useMemo(
     () =>
       filterTransactions(transactions, {
@@ -770,6 +788,25 @@ export function TransactionsWorkspace({
               )}
             </div>
 
+            {/*
+              Secondary filters stay fully available but stop consuming the screen
+              before a single record is visible. On a phone the unopened toolbar was
+              777px tall — nearly two screens of controls ahead of the ledger.
+
+              This is a disclosure, not a removal: every control keeps its label, id
+              and behaviour, and the group opens automatically whenever any of these
+              filters is active, so a query-string-restored filter is never hidden.
+            */}
+            <details className={styles.moreFilters} open={hasSecondaryFilter}>
+              <summary className={styles.moreFiltersSummary}>
+                <span>Bộ lọc khác</span>
+                {secondaryFilterCount > 0 ? (
+                  <span className={styles.moreFiltersCount}>
+                    {secondaryFilterCount} đang bật
+                  </span>
+                ) : null}
+              </summary>
+              <div className={styles.moreFiltersBody}>
             <div className={styles.selectGrid}>
               <label className={styles.field}>
                 <span>Danh mục</span>
@@ -869,6 +906,8 @@ export function TransactionsWorkspace({
                 />
               </label>
             </div>
+              </div>
+            </details>
 
             {filterError ? (
               <Alert tone="error" live="assertive" className={styles.filterAlert}>

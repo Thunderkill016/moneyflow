@@ -30,7 +30,8 @@ test("the root no longer mounts a global target-size repair component", () => {
 test("current shell controls own important target geometry directly", () => {
   assert.match(shellCss, /\.primaryAction\s*\{[\s\S]*?min-height:\s*44px/);
   assert.match(shellCss, /\.mobileAccountButton\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px/);
-  assert.match(shellCss, /\.mobileNavItem\s*\{[\s\S]*?min-height:\s*56px/);
+  // 52px still clears the 44px product floor with room for the label line.
+  assert.match(shellCss, /\.mobileNavItem\s*\{[\s\S]*?min-height:\s*52px/);
   assert.match(shellCss, /\.accountAction\s*\{[\s\S]*?min-height:\s*46px/);
 });
 

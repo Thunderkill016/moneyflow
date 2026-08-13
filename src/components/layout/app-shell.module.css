@@ -1,7 +1,12 @@
 :global(html[data-moneyflow-shell="mounted"]) {
-  --mf-shell-mobile-nav-height: 74px;
+  --mf-shell-mobile-nav-height: 66px;
+  /* The bar now floats, so its outer inset is part of what content must clear.
+     Everything downstream — content padding, focus clearance, toast placement —
+     reads this one value, so the inset can never be forgotten in one of them. */
+  --mf-shell-mobile-nav-inset: 10px;
   --mf-shell-mobile-nav-reserve: calc(
-    var(--mf-shell-mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    var(--mf-shell-mobile-nav-height) + var(--mf-shell-mobile-nav-inset) +
+      env(safe-area-inset-bottom, 0px)
   );
   --mf-shell-focus-top-clearance: 84px;
   --mf-shell-focus-bottom-clearance: 24px;
@@ -15,9 +20,14 @@
 }
 
 .shell {
-  --mf-shell-mobile-nav-height: 74px;
+  --mf-shell-mobile-nav-height: 66px;
+  /* The bar now floats, so its outer inset is part of what content must clear.
+     Everything downstream — content padding, focus clearance, toast placement —
+     reads this one value, so the inset can never be forgotten in one of them. */
+  --mf-shell-mobile-nav-inset: 10px;
   --mf-shell-mobile-nav-reserve: calc(
-    var(--mf-shell-mobile-nav-height) + env(safe-area-inset-bottom, 0px)
+    var(--mf-shell-mobile-nav-height) + var(--mf-shell-mobile-nav-inset) +
+      env(safe-area-inset-bottom, 0px)
   );
   --mf-shell-focus-top-clearance: 84px;
   --mf-shell-focus-bottom-clearance: 24px;
@@ -28,7 +38,10 @@
   --mf-shell-layer-feedback: 60;
   min-height: 100svh;
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  /* 228px: the widest Vietnamese destination label still fits on one line at the
+     nav font size, and the 20px returned to the content column is where the
+     product actually lives. */
+  grid-template-columns: 228px minmax(0, 1fr);
   background: var(--mf-canvas);
   color: var(--mf-text);
   font-family: var(--mf-font-sans);
@@ -56,9 +69,11 @@
   height: 100svh;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--mf-border);
-  background: var(--mf-surface);
-  padding: 22px 16px 18px;
+  /* The sidebar shares the page canvas instead of sitting on its own surface, so
+     the content column reads as the foreground rather than as a second panel. */
+  border-right: 1px solid var(--mf-border-subtle);
+  background: transparent;
+  padding: 18px 14px 16px;
 }
 
 .brand {
@@ -80,19 +95,22 @@
 .navLink,
 .navButton,
 .settingsLink {
+  position: relative;
   width: 100%;
-  min-height: 46px;
+  /* 44px is the product's target floor; the rhythm tightened through padding and
+     gap rather than by shrinking the hit area. */
+  min-height: 44px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  border: 1px solid transparent;
+  gap: 11px;
+  border: 0;
   border-radius: var(--mf-radius-md);
   background: transparent;
   color: var(--mf-text-muted);
-  padding: 0 12px;
+  padding: 0 11px;
   font: inherit;
   font-size: 14px;
-  font-weight: 660;
+  font-weight: 620;
   text-align: left;
   cursor: pointer;
   transition:
@@ -108,17 +126,31 @@
   color: var(--mf-text);
 }
 
+/* Active is carried by tint, weight and a short leading marker rather than by a
+   bordered box: unmistakable at a glance, but it stops competing with content. */
 .navActive {
-  border-color: color-mix(in srgb, var(--mf-brand) 28%, var(--mf-border));
   background: var(--mf-brand-subtle);
   color: var(--mf-brand-text);
+  font-weight: 700;
+}
+
+.navActive::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 18px;
+  border-radius: 0 3px 3px 0;
+  background: var(--mf-brand);
+  transform: translateY(-50%);
 }
 
 .navLink svg,
 .navButton svg,
 .settingsLink svg {
-  width: 20px;
-  height: 20px;
+  width: 19px;
+  height: 19px;
   flex: 0 0 auto;
 }
 
@@ -200,15 +232,16 @@
   position: sticky;
   z-index: var(--mf-shell-layer-topbar);
   top: 0;
-  min-height: 72px;
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  border-bottom: 1px solid var(--mf-border);
-  background: color-mix(in srgb, var(--mf-canvas) 91%, transparent);
-  padding: 10px clamp(22px, 3vw, 42px);
-  backdrop-filter: blur(16px);
+  gap: 20px;
+  /* A hairline that reads as an edge, not a panel border, over the page canvas. */
+  border-bottom: 1px solid var(--mf-border-subtle);
+  background: color-mix(in srgb, var(--mf-canvas) 88%, transparent);
+  padding: 8px clamp(20px, 3vw, 40px);
+  backdrop-filter: blur(14px);
 }
 
 .mobileBrand {
@@ -225,15 +258,23 @@
   gap: 10px;
   border: 1px solid var(--mf-border);
   border-radius: var(--mf-radius-md);
-  background: var(--mf-surface);
+  background: var(--mf-surface-muted);
   color: var(--mf-text-soft);
   padding: 0 12px;
-  box-shadow: var(--mf-shadow-sm);
+  transition:
+    background var(--mf-fast) var(--mf-ease),
+    border-color var(--mf-fast) var(--mf-ease);
 }
 
-.search:focus-within,
+.search:hover,
 .searchLink:hover {
   border-color: var(--mf-border-strong);
+  background: var(--mf-surface);
+}
+
+.search:focus-within {
+  border-color: var(--mf-brand);
+  background: var(--mf-surface);
 }
 
 .search input {
@@ -281,13 +322,19 @@
   padding: 0 16px;
   font: inherit;
   font-size: 14px;
-  font-weight: 740;
+  font-weight: 720;
   cursor: pointer;
-  box-shadow: var(--mf-shadow-sm);
+  transition:
+    background var(--mf-fast) var(--mf-ease),
+    transform var(--mf-fast) var(--mf-ease);
 }
 
 .primaryAction:hover {
   background: var(--mf-brand-hover);
+}
+
+.primaryAction:active {
+  transform: translateY(1px);
 }
 
 .primaryAction:disabled {
@@ -686,43 +733,52 @@
     flex: 1;
   }
 
+  /* A floating control surface rather than a full-width band: it reads as a
+     precise object, returns edge pixels to content, and keeps all five
+     destinations at full width. The blur is modest and sits behind an opaque-enough
+     surface — this is not glass-over-content for its own sake. */
   .mobileNav {
     position: fixed;
     z-index: var(--mf-shell-layer-mobile-nav);
-    right: 0;
-    bottom: 0;
-    left: 0;
-    min-height: var(--mf-shell-mobile-nav-reserve);
+    right: max(var(--mf-shell-mobile-nav-inset), env(safe-area-inset-right, 0px));
+    bottom: calc(var(--mf-shell-mobile-nav-inset) + env(safe-area-inset-bottom, 0px));
+    left: max(var(--mf-shell-mobile-nav-inset), env(safe-area-inset-left, 0px));
+    min-height: var(--mf-shell-mobile-nav-height);
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    align-items: start;
-    border-top: 1px solid var(--mf-border);
-    background: color-mix(in srgb, var(--mf-surface) 96%, transparent);
-    padding-top: 6px;
-    padding-right: max(4px, env(safe-area-inset-right, 0px));
-    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-    padding-left: max(4px, env(safe-area-inset-left, 0px));
-    box-shadow: 0 -10px 30px rgb(0 0 0 / 8%);
-    backdrop-filter: blur(18px);
+    align-items: center;
+    border: 1px solid var(--mf-border-subtle);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--mf-surface) 92%, transparent);
+    padding: 5px 4px;
+    box-shadow:
+      0 1px 2px rgb(16 24 40 / 6%),
+      0 12px 28px rgb(16 24 40 / 12%);
+    backdrop-filter: blur(16px);
   }
 
   .mobileNavItem {
     position: relative;
     min-width: 0;
-    min-height: 56px;
+    /* 52px keeps every destination above the 44px product floor inside a shorter
+       bar; the bar's own height is what shrank, not the touch target. */
+    min-height: 52px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
     border: 0;
-    border-radius: 10px;
+    border-radius: 12px;
     background: transparent;
     color: var(--mf-text-soft);
-    padding: 5px 2px;
+    padding: 4px 2px;
     font: inherit;
     font-size: 10px;
-    font-weight: 670;
+    font-weight: 650;
+    transition:
+      background var(--mf-fast) var(--mf-ease),
+      color var(--mf-fast) var(--mf-ease);
   }
 
   .mobileNavItem svg {
@@ -733,6 +789,7 @@
   .mobileNavActive {
     background: var(--mf-brand-subtle);
     color: var(--mf-brand-text);
+    font-weight: 720;
   }
 
   .mobileCapture {
