@@ -13,5 +13,6 @@ that another agent can continue without hidden chat context. Do not add a candid
 closed packet here. Completed accepted work moves to `../completed/`; superseded,
 abandoned or unaccepted work moves to `../archived/`, which never implies acceptance.
 
-Repository Reset 2 is accepted/completed in merged #362. Brand/Product Experience A0
-is the immediate next work, but is not started and has no active packet.
+Repository Resets 1–2 and A0 Historical UI / Design Failure Review are
+accepted/completed. Phase A Current Reality / Authority Audit is the immediate next
+work, but is not started and has no active packet. PBT-AC15 remains open.

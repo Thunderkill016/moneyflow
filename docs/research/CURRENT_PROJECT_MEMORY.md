@@ -2,7 +2,9 @@
 
 **Status:** the single current implementation-status authority
 **Last reconciled:** 2026-08-13
-**Current main baseline:** `13650f47c9d2a3ca9eb67326886fdf6a2db4fe00` (`#362` merged)
+**Source main baseline:** `c248176b6ab60b8acf331b5f6e9a2c7908f724ac` (`#363` merged)
+**Post-merge authority:** #364's exact final PR head becomes `main` truth on owner
+merge; the merge commit SHA is intentionally not guessed before that event.
 **Routing:** use `docs/context/README.md`; open
 `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only for a named provenance need.
 
@@ -17,13 +19,15 @@ The repository is **not public-beta ready**. MoneyFlow Trust Provider Sync, P1 S
 P2 Recover and P3 Prove are accepted. P3 is based on owner-observed physical-phone
 acceptance, not a signed/filed evidence run. The exact program order is:
 
-> Brand/Product Experience rebuild A0→J → final physical/device
+> Phase A Current Reality / Authority Audit → Brand/Product Experience rebuild B→J
+> → final physical/device
 > visual QA → owner public-beta decision.
 
 `docs/plans/active/public-beta-trust.md` owns that program order. The active-packet
-registry lists only the Trust parent: Repository Resets 1–2 are accepted/completed by
-merged #360 and #362. Brand/Product Experience A0 is immediate next, but has not
-started and has no active packet.
+registry lists only the Trust parent: Repository Resets 1–2 and A0 Historical UI /
+Design Failure Review are accepted/completed. Phase A Current Reality / Authority
+Audit is immediate next, but is not started and has no packet; no Brand/Product
+Experience implementation has started.
 
 ## 2. Current runtime and trust boundaries
 
@@ -75,12 +79,10 @@ plan. The long-term vision is input, not permission to bypass the current sequen
 
 ## 6. Presentation and brand input
 
-The upcoming A0 Historical UI Failure Review must retain lessons from
-`docs/research/UI_UX_RESEARCH_LEDGER.md`,
-`docs/research/UI_OPEN_WORK_DISPOSITION_2026-08-05.md`, and the completed UI-system
-migration packets. Existing brand, UX, design-system and wireframe documents are
-reusable inputs or historical evidence unless a future approved packet names them as
-current design authority.
+The accepted A0 Historical UI / Design Failure Review retains lessons from
+`docs/research/A0_HISTORICAL_UI_DESIGN_FAILURE_REVIEW.md`. Existing brand, UX,
+design-system and wireframe documents remain reusable inputs or historical evidence
+unless a future approved packet names them as current design authority.
 
 ## 7. Configuration and delivery truth
 
@@ -99,8 +101,10 @@ current design authority.
 - Repository Resets 1–2 are accepted/completed. Reset 2 retired only 13
   evidence-proven unowned source/assets in merged #362 and did not authorize Brand/UI
   work.
-- Brand/Product Experience A0→J is immediate next. It is not started and is not a
-  current UI redesign.
+- A0 Historical UI / Design Failure Review is accepted/completed; its durable
+  guardrails are at `docs/research/A0_HISTORICAL_UI_DESIGN_FAILURE_REVIEW.md`.
+- Phase A Current Reality / Authority Audit is immediate next. It is not started and
+  has no packet.
 - The owner public-beta decision is blocked on the ordered work above and remains
   the only PBT-AC15 closure authority.
 
@@ -113,23 +117,25 @@ candidate evidence, never current truth.
 
 ## 10. True gaps after this audit
 
-1. Separately start and execute Brand/Product Experience A0→J.
-2. Perform final physical/device visual QA on that rebuilt experience.
-3. Obtain the owner’s public-beta decision and record accepted limitations.
+1. Separately start Phase A Current Reality / Authority Audit.
+2. Execute Brand/Product Experience B→J only in later approved packets.
+3. Perform final physical/device visual QA on that rebuilt experience.
+4. Obtain the owner’s public-beta decision and record accepted limitations.
 
 ## 11. Next allowed action
 
-Brand/Product Experience A0 is the immediate next work but is not started and has no
-packet. Do not begin it, provider actions or production changes until separately
-opened.
+Phase A Current Reality / Authority Audit is immediate next but deliberately not
+started and has no packet. Do not begin it, implement Brand/UI work, modify Design
+Harness, or make provider or production changes until separately authorized.
 
 ## 12. Superseded-status register
 
 - “P3 Prove is open” and “P4 Improve is next” are superseded. P3 is accepted;
   Repository Reset 1 is accepted and Repository Reset 2 precedes Brand/Product
   Experience.
-- “Repository Reset 1 or 2 is the current task” is superseded by #360/#362 completed
-  packets; A0 is next but not started.
+- “Repository Reset 1, Reset 2 or A0 is the current task” is superseded by completed
+  packets; Phase A is immediate next but not started, and implementation is not
+  started.
 - The prior seven-day self-use gate is withdrawn; no duration substitute exists.
 - Historical packets in `docs/plans/archived/` are not active work and never imply
   acceptance. Historical UI evidence remains available for A0 review.
