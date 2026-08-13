@@ -5,7 +5,7 @@
 **Completed role:** bounded research/evidence record
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** PR to be opened from `research/phase-b-product-experience`; exact final-head provider checks and owner merge required
+**Issue/PR:** #366; exact final-head provider checks and owner merge required
 **Last updated:** 2026-08-13
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. Phase B researches current,
