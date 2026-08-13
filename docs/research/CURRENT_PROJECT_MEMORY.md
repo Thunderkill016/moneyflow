@@ -26,9 +26,9 @@ acceptance, not a signed/filed evidence run. The exact program order is:
 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority
 Audit, Phase B product-experience research, **Phase C Product Experience
 Architecture** and **Phase D Brand Strategy** are accepted/completed in merged or
-staged-completed records. **Phase E Creative Territories
-Brand Strategy** is the immediate next phase, is not started and has no packet. The
-later Brand/Product Experience rebuild is not started.
+staged-completed records. **Phase E Creative Territories** is the immediate next
+phase, is not started and has no packet. The later Brand/Product Experience rebuild
+is not started.
 
 ## 2. Current runtime and trust boundaries
 
