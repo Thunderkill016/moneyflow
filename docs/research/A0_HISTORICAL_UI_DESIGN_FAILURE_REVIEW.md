@@ -1,11 +1,11 @@
 # A0 — Historical UI / Design Failure Review
 
-**Status:** active retrospective input — not a design direction or implementation plan
+**Status:** completed retrospective reference — not a design direction or implementation plan
 **Baseline reviewed:** `main@c248176b6ab60b8acf331b5f6e9a2c7908f724ac` (`#363` merged)
 **Scope:** repository-primary historical evidence and current executable ownership
 guards only
 **Authority:** A0 is governed by
-`docs/plans/active/a0-historical-ui-design-failure-review.md`; current product and
+`docs/plans/completed/2026-08-13-a0-historical-ui-design-failure-review.md`; current product and
 execution authority remain the active Trust packet, current memory, product
 principles, executable code and tests. This review does not replace any of them.
 

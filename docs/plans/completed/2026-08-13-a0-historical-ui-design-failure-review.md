@@ -1,14 +1,15 @@
 # A0 — Historical UI / Design Failure Review
 
-**Status:** evaluating
-**Execution state:** evaluating
-**Active role:** independent evaluator
+**Status:** accepted/completed
+**Execution state:** complete
+**Active role:** human_owner — #364 ready for owner merge; this is the completed record
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** PR [#364](https://github.com/Thunderkill016/moneyflow/pull/364)
 **Last updated:** 2026-08-13
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. A0 is a bounded retrospective:
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This completed record preserves
+A0, a bounded retrospective that:
 it turns repository-backed UI/design failure mechanisms into auditable guardrails for
 later Brand/Product Experience work. It does not authorize a redesign, CSS/token or
 component change, Design Harness V2.1 work, provider/production/database/Auth write,
@@ -22,10 +23,10 @@ failures, while preserving useful inputs for later replace-and-retire slices.
 
 ## Repository reconnaissance
 
-### Current behavior
+### Baseline reviewed
 
-- `main@c248176` records Repository Resets 1–2 accepted/completed; this is the
-  deliberately started A0 child packet.
+- Source `main@c248176` records Repository Resets 1–2 accepted/completed; #364
+  carries the accepted A0 review to its post-merge lifecycle endpoint.
 - The current product retains a controlled presentation compatibility boundary and
   Design Harness V2; neither is changed by this review.
 
@@ -51,11 +52,6 @@ failures, while preserving useful inputs for later replace-and-retire slices.
 - Reset 1 provides the active-packet/current-memory lifecycle; Reset 2 preserves
   historical UI evidence while retiring only unowned leaves.
 
-### Open questions
-
-- [ ] Which repository evidence supports or refutes each proposed failure class?
-- [ ] Which guardrails are auditable requirements rather than premature implementation?
-
 ## Research
 
 Not required externally. This retrospective relies on repository-primary historical
@@ -75,15 +71,16 @@ work needs causal guardrails, not a list of historical symptoms.
 
 ### Acceptance criteria
 
-- [ ] One durable review traces every material finding from observed symptom through
+- [x] One durable review traces every material finding from observed symptom through
   mechanism, evidence, missed verification, lesson and mandatory future guard.
-- [ ] The review distinguishes reusable inputs, historical evidence only, live legacy,
+- [x] The review distinguishes reusable inputs, historical evidence only, live legacy,
   candidate authority and later retire/replace items.
-- [ ] Any Design Harness V2.1 need is a requirement only, never implemented.
-- [ ] A fresh evaluator finds conclusions evidence-backed, no old design document
+- [x] Any Design Harness V2.1 need is a requirement only, never implemented.
+- [x] A fresh evaluator finds conclusions evidence-backed, no old design document
   promoted to authority, and no A0 implementation started.
-- [ ] Active registry/current memory/Trust parent truthfully show A0 active while
-  Phase A and implementation remain not started.
+- [x] The post-merge registry/current memory/Trust parent make A0 accepted/completed,
+  Phase A immediate next/not started/no packet, and Brand/Product Experience
+  implementation unstarted.
 
 ### Out of scope
 
@@ -103,7 +100,7 @@ it creates no parallel design or delivery system.
 | File/area | Change | Reason |
 |---|---|---|
 | durable A0 review | synthesize evidence-backed failure matrix and future guardrail requirements | preserve causal learning for later packets |
-| A0 packet/current-memory/active parent | maintain active retrospective state | durable, singular execution truth |
+| A0 packet/current-memory/Trust parent | record accepted retrospective state and Phase A next-state | durable, singular execution truth |
 
 ### Data and migration impact
 
@@ -131,15 +128,15 @@ None.
 |---|---|---|---|---|
 | A0-T1 | map historical UI/design evidence and guards | packet | named primary evidence map | complete |
 | A0-T2 | write durable causal failure review | A0-T1 | `docs/research/A0_HISTORICAL_UI_DESIGN_FAILURE_REVIEW.md` | complete |
-| A0-T3 | fresh-context evaluation and delivery | A0-T2 | evaluator findings, selected gates and PR memory | in_progress |
+| A0-T3 | fresh-context evaluation and delivery | A0-T2 | evaluator findings, selected gates and PR memory | complete — #364 ready for owner merge; exact final-head provider checks are required |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-13 | human_owner | researcher | discovery | `main@c248176`; active packet; required historical evidence list | failure mechanisms not yet synthesized; no implementation authority | inspect named repository evidence only |
-| 2026-08-13 | researcher | independent evaluator | evaluating | durable A0 review; active registry/current-memory/parent updates | fresh-context attack and final docs-only gates remain | evaluate conclusions and scope before PR delivery |
-| 2026-08-13 | independent evaluator | human_owner | evaluating | three evidence-scope findings corrected; fresh recheck clean; local Class 0 gates green | exact-head provider checks and owner review/merge remain | review the focused A0 documentation PR |
+| 2026-08-13 | researcher | independent evaluator | review | durable A0 review; active registry/current-memory/parent updates | fresh-context attack and final docs-only gates remain | evaluate conclusions and scope before PR delivery |
+| 2026-08-13 | independent evaluator | human_owner | accepted | fresh recheck clean; post-merge lifecycle state staged in #364 | exact final-head provider checks and owner merge are the remaining delivery boundaries | merge #364 only when its exact head is green; Phase A remains unopened |
 
 ### Current permission boundary
 
@@ -156,9 +153,9 @@ None.
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| historical causal review | durable review drafted from named repository-primary evidence; fresh evaluator clean after corrections | pass locally |
-| classification and guardrails | explicit reusable/historical/legacy/candidate classification and requirements; fresh evaluator clean | pass locally |
-| scope/lifecycle coherence | active child is registered; Phase A/implementation remain not started; no runtime/UI diff | pass locally |
+| historical causal review | durable review drafted from named repository-primary evidence; fresh evaluator clean after corrections | pass |
+| classification and guardrails | explicit reusable/historical/legacy/candidate classification and requirements; fresh evaluator clean | pass |
+| scope/lifecycle coherence | post-merge registry has Trust parent only; A0 completed; Phase A/implementation remain not started; no runtime/UI diff | pass |
 
 ### Remaining limitations
 
@@ -167,8 +164,8 @@ None.
 ## Delivery record
 
 - Branch: `review/a0-historical-ui-design-failures`
-- PR: [#364](https://github.com/Thunderkill016/moneyflow/pull/364) (draft)
-- CI run: dynamic exact-head provider status belongs to PR #364; it is required before
-  acceptance, while owner review and merge remain separate boundaries
-- Work packet moved to `docs/plans/completed/`: no — A0 remains active until owner
-  acceptance after merge
+- PR: [#364](https://github.com/Thunderkill016/moneyflow/pull/364) ready for owner merge
+- CI run: exact final PR head provider checks are required before owner merge; selected
+  Class 0 local gates are recorded in PR memory
+- Work packet moved to `docs/plans/completed/`: yes — accepted/completed record that
+  becomes authoritative on `main` when #364 merges
