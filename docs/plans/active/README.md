@@ -13,7 +13,8 @@ that another agent can continue without hidden chat context. Do not add a candid
 closed packet here. Completed accepted work moves to `../completed/`; superseded,
 abandoned or unaccepted work moves to `../archived/`, which never implies acceptance.
 
-Repository Resets 1–2 and A0 Historical UI / Design Failure Review are
-accepted/completed. Phase A Current Reality / Authority Audit is accepted/completed in
-its completed record. Phase B product-experience research is the immediate next phase;
-it is not started and has no packet. PBT-AC15 remains open.
+Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality
+/ Authority Audit and Phase B Fresh Product-Experience Research are
+accepted/completed in their completed records after this PR merges. **Phase C Product
+Experience Architecture** is the immediate next phase, deliberately not started and
+with no packet. PBT-AC15 remains open.
