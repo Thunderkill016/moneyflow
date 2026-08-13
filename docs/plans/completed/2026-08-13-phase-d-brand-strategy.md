@@ -34,8 +34,9 @@ as authority.
 - Existing brand and design material is extensive and of mixed status:
   `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md` (v1.1) holds a real brand foundation;
   `docs/design/CALM_LEDGER_V2.md` self-declares historical; `SIGNAL_LEDGER_V3.md` is a
-  rejected direction per `DESIGN_DIRECTION_STATUS.md`; Fresh Blue is a **live owner
-  colour decision** that Phase D neither promotes nor releases.
+  rejected direction per `DESIGN_DIRECTION_STATUS.md`; Fresh Blue is the **current
+  shipped colour implementation**, which the owner released as a Phase E exploration
+  constraint on 2026-08-13 while leaving it in force for shipped surfaces.
 - The physical-phone run is **accepted** (PBT-AC12): PP-03, PP-12 and PP-16 pass on a
   real device, PP-12 after #358, with PP-07 a functional pass and PP-01 parked.
 - What still bounds the brand: hosted restore has never run against a live account; no
@@ -71,8 +72,8 @@ offered — not for UX patterns or aesthetics. Sources and their exact findings 
 
 | Source | Establishes | Does not cover |
 |---|---|---|
-| Sổ Thu Chi MISA listing (first-party, VN) | the category promises effortlessness and quantified savings, and offers institutional scale as its trust proof | whether users believe it, or its internal quality |
-| Money Lover listing and site (first-party) | bank-linking breadth, automatic categorisation, budgets and reminders as headline mechanisms | the same |
+| Sổ Thu Chi MISA listing (first-party, VN) | sampled category messaging: effortlessness, quantified savings, institutional scale as trust proof | market rank, share or install base; whether users believe it; internal quality |
+| Money Lover listing and site (first-party) | sampled category messaging: bank-linking breadth, automatic categorisation, budgets, reminders | the same |
 
 The strategic consequence, recorded as a decision rather than a source fact: MoneyFlow
 can match neither automation nor institutional scale, so its trust must be
@@ -177,7 +178,7 @@ writes, and starting Phase E.
 |---|---|---|
 | strategy grounded in product truth | every claim in §13 mapped to executable proof and a limitation; an independent evaluation checked each against shipped code and two claims were corrected rather than kept | PASS |
 | no visual decision | artifact contains no palette, type, metaphor, icon or layout choice; §15 leaves all of them open | PASS |
-| historical material contained | explicit promotion list; Signal Ledger rejected, Calm Ledger historical, Fresh Blue shipped-only | PASS |
+| historical material contained | explicit promotion list; Signal Ledger rejected, Calm Ledger historical, Fresh Blue correctly treated as current shipped truth rather than history, with the owner's 2026-08-13 exploration release recorded | PASS |
 | audience honesty | behavioural only; abandonment story and demographics named unevidenced | PASS |
 | lifecycle reconciliation | staged completed packet, parent-only registry, current memory, Trust parent, `#367` wording retired | PASS pending exact final-head provider delivery evidence |
 | Class 0 local gates | `npm run check:migrations`; `npm run check:knowledge`; `npm run test:ci-policy`; `node scripts/active-packet-registry.mjs`; `git diff --check` | PASS |

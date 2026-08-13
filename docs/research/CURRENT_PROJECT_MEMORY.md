@@ -114,15 +114,22 @@ unless a future approved packet names them as current design authority.
   role, positioning, promise hierarchy, differentiation, trust builders/breakers,
   personality, Vietnamese verbal principles, controlled vocabulary, anti-positioning and
   proof architecture, and makes **no** visual decision. Earlier brand/design material is
-  input only: Signal Ledger v3 stays rejected, Calm Ledger v2 stays historical, Fresh
-  Blue is shipped-implementation truth rather than a future constraint, and only four
-  named elements of the brand guidelines are promoted.
-- **Brand claim ceiling:** the brand may claim a property the product enforces, never a
-  verification that has not happened. Three things bind it today — hosted restore has
-  never run against a live account; no aggregate yet links to the records behind it, so
-  traceability is a target rather than a shipped drill-down; and direct CSV import writes
-  approved rows without passing the Inbox review queue, so "every row was typed" is not
-  literally true. The physical-phone run itself **is** accepted (PBT-AC12).
+  input only: Signal Ledger v3 stays rejected, Calm Ledger v2 stays historical, and only
+  four named elements of the brand guidelines are promoted.
+- **Fresh Blue (owner decision, 2026-08-13):** released as a constraint on Phase E
+  exploration — territories need not preserve it — while remaining the **current shipped
+  colour implementation truth** until a later owner-selected territory and approved
+  migration supersede it. Selects no palette or territory; authorises no runtime, CSS,
+  token or UI change. Recorded in `docs/design/DESIGN_DIRECTION_STATUS.md`.
+- **Brand claim ceiling:** claim a property the product enforces, never a verification
+  that has not happened. Bounds today: hosted restore has never run against a live
+  account; no aggregate yet links to its records, so traceability is a target, not a
+  shipped drill-down; and direct CSV import writes approved rows without the Inbox
+  queue. Provenance contract: a record comes from deliberate user entry **or** data the
+  user supplied and accepted — manual capture is the default identity, direct CSV is
+  secondary. Traceability is claimed only for **ledger-derived** figures, never for
+  planning projections, demo samples or counts. The physical-phone run **is** accepted
+  (PBT-AC12).
 - Phase E Creative Territories is immediate next, not started and has no packet; no
   creative territory is proposed or selected; implementation remains not started.
 - The owner public-beta decision is blocked on the ordered work above and remains
