@@ -2,10 +2,10 @@
 
 **Status:** accepted/completed
 **Execution state:** complete
-**Active role:** human_owner — ready for owner merge; this is the completed record
+**Active role:** human_owner — PR #365 draft; exact final-head checks and owner merge required
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** PR to be opened from `audit/phase-a-current-reality-authority`
+**Issue/PR:** PR [#365](https://github.com/Thunderkill016/moneyflow/pull/365)
 **Last updated:** 2026-08-13
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. Phase A establishes the current
@@ -130,7 +130,7 @@ authority; it adds no runtime, CSS, design-system or provider boundary.
 | A-T1 | map executable routes, modes, navigation and ownership | baseline | code/test/config inventory | complete |
 | A-T2 | reconcile authority, presentation and live-legacy evidence | A-T1 | controlled docs + guards | complete |
 | A-T3 | write durable audit and Phase B assumptions | A-T1, A-T2 | `docs/research/PHASE_A_CURRENT_REALITY_AUTHORITY_AUDIT.md` | complete |
-| A-T4 | fresh evaluation, Class 0 gates and PR delivery | A-T3 | evaluator record, PR memory, exact-head checks | complete — ready for owner merge; exact final-head provider checks are required |
+| A-T4 | fresh evaluation, Class 0 gates and PR delivery | A-T3 | evaluator record, PR memory, exact-head checks | complete — PR #365 draft; exact final-head provider checks and owner merge are required |
 
 ## Delivery boundary
 
@@ -163,6 +163,7 @@ authority; it adds no runtime, CSS, design-system or provider boundary.
 ## Delivery record
 
 - Branch: `audit/phase-a-current-reality-authority`
-- PR: ready for owner merge; exact final-head provider checks are required
+- PR: [#365](https://github.com/Thunderkill016/moneyflow/pull/365) draft; exact
+  final-head provider checks and owner review/merge are required
 - Work packet moved to `docs/plans/completed/`: yes — accepted/completed record that
   becomes authoritative on `main` when the PR merges
