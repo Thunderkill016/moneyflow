@@ -26,9 +26,16 @@ acceptance, not a signed/filed evidence run. The exact program order is:
 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority
 Audit, Phase B product-experience research, **Phase C Product Experience
 Architecture** and **Phase D Brand Strategy** are accepted/completed in merged or
-staged-completed records. **Phase E Creative Territories** is the immediate next
-phase, is not started and has no packet. The later Brand/Product Experience rebuild
-is not started.
+staged-completed records. **Phase E candidate exploration is paused**: every proposed
+territory was rejected by the owner, **no territory is selected**, and that rejected
+exploration is **not visual authority**. **`current-ui-evolutionary-refresh.md` is the
+active UI work** — evolutionary refinement of the shipped product that keeps identity,
+destinations and financial semantics. **Phase F is not started.** PBT-AC15 remains
+open.
+
+*Historical, superseded:* Phase E was previously recorded as the immediate next phase
+with no packet. That wording no longer describes current state. The later Brand/Product
+Experience rebuild is not started.
 
 ## 2. Current runtime and trust boundaries
 
@@ -53,7 +60,7 @@ is not started.
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
 | Ownership | complete versioned archive/export/validation/restore contract; hosted restore limitation remains |
-| Experience | responsive light/dark web UI; Phase C Product Experience Architecture and Phase D Brand Strategy are accepted/completed, while Phase E Creative Territories is immediate next but not started/no packet, no territory is proposed or selected, and the later Brand/Product Experience rebuild is not started |
+| Experience | responsive light/dark web UI; Phase C and Phase D are accepted/completed; **Phase E is paused with all candidates rejected and no territory selected**; the active UI work is the evolutionary refresh of the shipped shell/Overview/Transactions, which keeps Fresh Blue and changes no destination or financial semantic |
 
 ## 4. MoneyFlow Trust and physical-device truth
 

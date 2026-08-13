@@ -1,6 +1,7 @@
 .workspace {
+  --mf-workspace-gap: 18px;
   display: grid;
-  gap: 20px;
+  gap: var(--mf-workspace-gap);
   width: min(100%, 1180px);
   min-width: 0;
   margin: 0 auto;
@@ -78,24 +79,31 @@
   gap: 10px;
 }
 
+/* Summary and ledger are one workspace, not two cards. The summary keeps its own
+   grid but shares the surface and the top corners with the manager below it, so
+   the eye reads a single object with a header band. */
 .summary {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   overflow: hidden;
   border: 1px solid var(--mf-border);
-  border-radius: 16px;
+  border-bottom: 0;
+  border-radius: 16px 16px 0 0;
   background: var(--mf-surface);
-  box-shadow: var(--mf-shadow-sm);
+  /* Summary and manager are grid siblings, so the workspace gap would otherwise
+     reopen the seam these two just closed and leave a card with no bottom edge.
+     The offset is tied to the gap variable so the two can never drift apart. */
+  margin-bottom: calc(var(--mf-workspace-gap) * -1);
 }
 
 .summaryItem {
   display: grid;
   align-content: center;
-  gap: 7px;
+  gap: 5px;
   min-width: 0;
-  min-height: 94px;
-  padding: 18px 20px;
-  border-left: 1px solid var(--mf-border);
+  min-height: 82px;
+  padding: 15px 18px;
+  border-left: 1px solid var(--mf-border-subtle);
 }
 
 .summaryItem:first-child {
@@ -128,19 +136,23 @@
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--mf-border);
-  border-radius: 16px;
+  border-radius: 0 0 16px 16px;
   background: var(--mf-surface);
-  box-shadow: var(--mf-shadow-sm);
 }
 
+/* Search and kind stay primary; the remaining filters sit on a quieter ground so
+   the records below them are what the eye lands on first. Nothing is hidden. */
 .toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) auto;
-  gap: 16px;
+  gap: 14px;
   min-width: 0;
-  padding: 18px 20px;
-  border-bottom: 1px solid var(--mf-border);
-  background: var(--mf-surface);
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--mf-border-subtle);
+  /* Canvas, not surface-muted: in dark, surface-muted is brighter than the manager
+     surface, so the filter band advanced instead of receding. Canvas is a step
+     *below* the card in both themes, which is what "quieter" has to mean. */
+  background: var(--mf-canvas);
 }
 
 .searchField,
@@ -157,6 +169,8 @@
   font-weight: 650;
 }
 
+/* Search stays primary: full-strength border on the raised surface, against the
+   toolbar's muted ground. */
 .searchControl {
   display: flex;
   align-items: center;
@@ -167,7 +181,9 @@
   border-radius: 10px;
   background: var(--mf-surface);
   padding: 0 12px;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition:
+    border-color var(--mf-fast) var(--mf-ease),
+    box-shadow var(--mf-fast) var(--mf-ease);
 }
 
 .searchControl:focus-within {
@@ -228,11 +244,72 @@
   box-shadow: var(--mf-shadow-sm);
 }
 
+/* The secondary-filter disclosure. Closed it is one quiet row; open it is exactly
+   the grid it always was, so nothing about the controls themselves changes. */
+.moreFilters {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.moreFiltersSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  width: fit-content;
+  border-radius: 8px;
+  color: var(--mf-text-muted);
+  padding: 0 8px 0 2px;
+  font-size: 13px;
+  font-weight: 640;
+  cursor: pointer;
+  list-style: none;
+  transition: color var(--mf-fast) var(--mf-ease);
+}
+
+.moreFiltersSummary::-webkit-details-marker {
+  display: none;
+}
+
+.moreFiltersSummary::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentcolor;
+  border-bottom: 1.5px solid currentcolor;
+  transform: rotate(-45deg);
+  transition: transform var(--mf-fast) var(--mf-ease);
+}
+
+.moreFilters[open] .moreFiltersSummary::before {
+  transform: rotate(45deg);
+}
+
+.moreFiltersSummary:hover {
+  color: var(--mf-text);
+}
+
+.moreFiltersCount {
+  border-radius: 999px;
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.moreFiltersBody {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding-top: 10px;
+}
+
 .selectGrid,
 .rangeFilters {
   grid-column: 1 / -1;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -244,17 +321,28 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
+/* Secondary filters keep the 44px target and full function; only their weight
+   drops, from a strong border on surface to a hairline on the toolbar ground. */
 .field input,
 .field select {
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  border: 1px solid var(--mf-border-strong);
+  border: 1px solid var(--mf-border);
   border-radius: 10px;
   background: var(--mf-surface);
   padding: 0 12px;
-  color: var(--mf-text);
+  color: var(--mf-text-muted);
   font: inherit;
+  transition:
+    border-color var(--mf-fast) var(--mf-ease),
+    color var(--mf-fast) var(--mf-ease);
+}
+
+.field input:hover,
+.field select:hover {
+  border-color: var(--mf-border-strong);
+  color: var(--mf-text);
 }
 
 .field input::placeholder {
@@ -669,9 +757,12 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* Two-up rather than a single stacked column: seven secondary filters in one
+     column made the opened panel taller than the always-open toolbar it replaced,
+     which would have made the filtered case worse than before. */
   .selectGrid,
   .rangeFilters {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .selectionToolbar,

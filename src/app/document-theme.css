@@ -54,6 +54,11 @@
   --mf-text-muted: #475467;
   --mf-text-soft: #667085;
   --mf-border: #d0d5dd;
+  /* A hairline for chrome that separates without framing — shell edges and
+   * in-workspace dividers. Structural borders keep --mf-border. Tuned per theme
+   * rather than derived, because a light-mode tint and a dark-mode tint that
+   * read as equally quiet are not the same colour. */
+  --mf-border-subtle: #dfe3e8;
   --mf-border-strong: #98a2b3;
 
   /* Brand and interaction roles. Identity stays vivid; action uses a darker
@@ -152,6 +157,7 @@ html[data-theme="dark"] {
   --mf-text-muted: #d0d5dd;
   --mf-text-soft: #98a2b3;
   --mf-border: #344054;
+  --mf-border-subtle: #263449;
   --mf-border-strong: #475467;
 
   --mf-brand-identity: #38bdf8;

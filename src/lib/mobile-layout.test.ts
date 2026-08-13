@@ -51,7 +51,7 @@ test("App Shell owns five-column bottom navigation and safe-area reserve", () =>
   const block = mobileCss();
   assert.match(
     block,
-    /\.mobileNav\s*\{[\s\S]*?position:\s*fixed[\s\S]*?bottom:\s*0[\s\S]*?grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/u,
+    /\.mobileNav\s*\{[\s\S]*?position:\s*fixed[\s\S]*?bottom:\s*calc\([\s\S]*?grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/u,
   );
   assert.match(block, /safe-area-inset-bottom/u);
   assert.match(

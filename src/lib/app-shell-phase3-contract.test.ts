@@ -63,7 +63,15 @@ test("active shell IA no longer contains the retired insights branch", () => {
 
 test("viewport and safe-area geometry are explicit and single-owner", () => {
   assert.match(layout, /viewportFit:\s*"cover"/u);
-  assert.match(appShellStyles, /--mf-shell-mobile-nav-height:\s*74px/u);
+  // Geometry updated by the evolutionary UI refresh: the bar floats, so its height
+  // shrank while the touch target stayed above the 44px product floor, and the reserve
+  // now includes the floating inset so content still clears it.
+  assert.match(appShellStyles, /--mf-shell-mobile-nav-height:\s*70px/u);
+  assert.match(appShellStyles, /--mf-shell-mobile-nav-inset:\s*10px/u);
+  assert.match(
+    appShellStyles,
+    /--mf-shell-mobile-nav-reserve:\s*calc\([\s\S]*?nav-height\)[\s\S]*?nav-inset\)[\s\S]*?safe-area-inset-bottom/u,
+  );
   assert.match(appShellStyles, /--mf-shell-mobile-nav-reserve:\s*calc\(/u);
   assert.match(appShellStyles, /safe-area-inset-bottom/u);
   assert.match(appShellStyles, /scroll-padding-top/u);
@@ -77,7 +85,8 @@ test("viewport and safe-area geometry are explicit and single-owner", () => {
 
 test("server-rendered shell owns mobile reserve before the mounted document marker", () => {
   const shellOwner = appShellStyles.match(/\.shell\s*\{([^}]*)\}/u)?.[1] ?? "";
-  assert.match(shellOwner, /--mf-shell-mobile-nav-height:\s*74px/u);
+  assert.match(shellOwner, /--mf-shell-mobile-nav-height:\s*70px/u);
+  assert.match(shellOwner, /--mf-shell-mobile-nav-inset:\s*10px/u);
   assert.match(shellOwner, /--mf-shell-mobile-nav-reserve:\s*calc\(/u);
   assert.match(shellOwner, /--mf-shell-layer-mobile-nav:\s*50/u);
   assert.match(shellOwner, /--mf-shell-layer-feedback:\s*60/u);

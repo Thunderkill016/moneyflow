@@ -94,6 +94,8 @@ test.describe("Transaction review and bounded bulk correction", () => {
       .click();
     await expect(page.getByText(/Đã chuyển 2 giao dịch/)).toBeVisible();
 
+    // Secondary filters now live behind a disclosure; open it the way a user would.
+    await page.getByText("Bộ lọc khác", { exact: false }).first().click();
     await page
       .getByLabel("Lọc theo trạng thái kiểm tra")
       .selectOption("needs_review");

@@ -106,6 +106,8 @@ test.describe("Transaction range filters", () => {
     page,
   }) => {
     await page.goto("/transactions");
+    // Secondary filters now live behind a disclosure; open it the way a user would.
+    await page.getByText("Bộ lọc khác", { exact: false }).first().click();
     await page.getByLabel("Số tiền tối thiểu").fill("500000");
     await page.getByLabel("Số tiền tối đa").fill("100000");
 

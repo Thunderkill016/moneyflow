@@ -54,10 +54,17 @@ export function DashboardHeaderSections({
 }) {
   return (
     <>
+      {/*
+        Order follows the product's own hierarchy: current financial position first,
+        then what needs attention, and planning last. The greeting still exists — it
+        is the page's h1 for structure — but it no longer outranks the money.
+      */}
       <section className="welcome-row">
         <div>
-          <p className="eyebrow">Tổng quan</p>
-          <h1>Chào {displayName}.</h1>
+          <h1>
+            <span className="eyebrow">Tổng quan</span>
+            <span>Chào {displayName}.</span>
+          </h1>
         </div>
         <div className="welcome-actions">
           <LinkButton
@@ -70,6 +77,12 @@ export function DashboardHeaderSections({
           </LinkButton>
         </div>
       </section>
+
+      <DashboardStatement
+        totals={totals}
+        today={today}
+        isEmptyLedger={isEmptyLedger}
+      />
 
       {attentionItems.length > 0 ? (
         <section className="attention-strip" aria-label="Cần chú ý">
@@ -90,12 +103,6 @@ export function DashboardHeaderSections({
           </ul>
         </section>
       ) : null}
-
-      <DashboardStatement
-        totals={totals}
-        today={today}
-        isEmptyLedger={isEmptyLedger}
-      />
 
       <nav className="insights-planning-nav" aria-label="Kế hoạch từ Tổng quan">
         <p className="insights-planning-label">Kế hoạch</p>
