@@ -25,7 +25,15 @@ MoneyFlow's brand rests on a single mechanism:
 > recovered.**
 
 That is the whole strategy. It is not a feeling, a tone or an aesthetic — it is a
-property the product either has or does not have, and today it largely has it.
+property the product either has or does not have.
+
+**Today it half has it.** The *correctable* half is shipped and verified: soft delete
+with undo, restore, edit-by-difference, rejected-not-reinterpreted amounts. The
+*traceable* half is only partly built — the arithmetic is honest and scope is stated,
+but no aggregate yet links to the records behind it, which Phase C already recorded as
+ADAPT LATER work. Phase D therefore states this as the brand's **target mechanism and
+the first thing later phases must finish**, not as a current boast. §13 marks the gap
+precisely; no phase may claim the drill-down before it exists.
 
 The Vietnamese category earns trust the opposite way. The two largest apps in this
 space promise *removal of effort* and back it with *institutional scale*:
@@ -173,8 +181,10 @@ Phase C deliberately left labels open and Phase D does not close them.
 
 ### Primary promise
 
-> **Con số nào cũng lần được về dòng bạn đã ghi — và nhầm thì sửa được.**
-> *(Every figure traces back to a record you wrote — and a mistake can be fixed.)*
+> **Con số nào cũng lần được về giao dịch bạn đã ghi — và nhầm thì sửa được.**
+> *(Every figure traces back to a transaction you recorded — and a mistake can be fixed.)*
+>
+> *Giao dịch*, not *dòng*: "dòng" is a calque of "row", and §11 fixes **giao dịch** as the term for one recorded financial fact. The promise must obey the vocabulary it sets.
 
 | | |
 |---|---|
@@ -227,8 +237,8 @@ category has these. Claiming them as advantages would read as thin.
 
 | # | Differentiator | Why it actually differentiates | Honest cost |
 |---|---|---|---|
-| D1 | **Provenance by construction** — every row exists because the user entered it | Removes the "is this classification right?" question that automated capture creates by design | The user types. This is real effort and must be paid back with genuinely fast entry |
-| D2 | **Traceable aggregates** — a total names its scope and leads to the records behind it | The category's totals are typically terminal; this one is a starting point | Requires discipline in every later surface; an untraceable total breaks the brand |
+| D1 | **Provenance by construction** — every row exists because the user entered it or supplied and accepted the file it came from; nothing arrives from a third party MoneyFlow talks to | Removes the "is this classification right?" question that automated capture creates by design | The user types. This is real effort and must be paid back with genuinely fast entry. The direct CSV path is the one route that writes rows without typing, and it is user-initiated on a user-supplied file |
+| D2 | **Traceable aggregates** — a total names its scope and leads to the records behind it | The category's totals are typically terminal; this one is meant to be a starting point | **Partly built.** Scope statement and honest arithmetic ship today; the link from a total to its records does not. This is a commitment later phases must deliver, not a claim that can be made now |
 | D3 | **Correction as a first-class path** — soft delete, undo, edit-by-difference, restore | Most apps treat a mistake as the user's problem; MoneyFlow treats it as an expected event | The undo window is time-boxed; not every action is reversible |
 | D4 | **Transfer neutrality** — moving your own money is never spending | A specific, checkable correctness property that users can and do get burned by elsewhere | Only meaningful if reports and overview both honour it |
 | D5 | **Complete backup ownership, distinct from export** | The category rarely distinguishes these; MoneyFlow does, in code | Restore has a real, named limitation today (§13) |
@@ -325,7 +335,7 @@ are deliberately absent; they cannot fail a test.
 ### 1. Exact
 
 - **Behaviour:** states the number, its scope and its basis; never approximates for comfort.
-- **Language:** "Chi trong tháng 8, chưa gồm chuyển tiền" rather than "Bạn đã chi khá nhiều".
+- **Language:** "Chi tháng 8, không gồm chuyển tiền nội bộ" rather than "Bạn đã chi khá nhiều". *Không*, not *chưa*: transfers are permanently excluded, and *chưa* would promise they arrive later. The shipped copy already gets this right.
 - **Product:** an aggregate declares period and account scope, and reaches its records.
 - **NOT:** pedantic or dense. Exactness is about being *checkable*, not about showing more digits.
 - **Test:** can the user tell what this number covers without opening anything else?
@@ -336,7 +346,7 @@ are deliberately absent; they cannot fail a test.
 - **Language:** no exclamation marks on financial outcomes; no "Nhanh lên", no "Đừng bỏ lỡ".
 - **Product:** no engagement mechanic; the only time pressure that exists is the undo window, which protects the user.
 - **NOT:** slow. Recording must be fast. Unhurried is about *pressure*, not speed.
-- **Test:** does anything here push the user to act sooner than their own money requires?
+- **Test:** does this element introduce a deadline, streak, countdown, badge or unread pressure that MoneyFlow created rather than the user's own money? A due-date reminder the user configured is theirs; an app-generated nudge to open MoneyFlow is not.
 
 ### 3. Accountable
 
@@ -352,15 +362,20 @@ are deliberately absent; they cannot fail a test.
 - **Language:** describes what happened, not what the user should do or feel; never "quá nhiều", "đáng lo".
 - **Product:** no scores, grades, ratings or automatic judgements of spending.
 - **NOT:** vague or unhelpful. Deference is about *authority*, not about withholding information.
-- **Test:** is there any evaluation of the user's choices here that they did not ask for?
+- **Test:** does this element attach a judgement word, warning tone or severity styling
+  to the *size or direction of a figure*, as opposed to a data problem? A red amount is
+  fine; "spending is up" styled as a warning is not.
+- **Known conflict:** `reports-page` styles a month-over-month expense increase with a
+  warning treatment. That is an unrequested evaluation and fails this test. It is
+  recorded here as a real conflict for a later phase, not silently blessed.
 
 ### 5. Legible
 
 - **Behaviour:** Vietnamese that a person who has never studied accounting can read, without inventing cute names for real financial concepts.
-- **Language:** "chuyển tiền giữa tài khoản của bạn", not "internal transfer" and not a coined metaphor.
+- **Language:** "chuyển tiền giữa hai tài khoản của bạn", not "internal transfer" and not a coined metaphor. *Giữa* needs two parties named.
 - **Product:** concepts are named consistently everywhere (§11).
 - **NOT:** dumbed down. A transfer is still a transfer.
-- **Test:** would a first-time user and a returning user read this term the same way?
+- **Test:** is the term the one already fixed in §11, used identically everywhere it appears, and free of coined metaphor? Consistency and the absence of invention are checkable without users; comprehension is not, and §2 forbids inventing user facts.
 
 ### Personality boundary
 
@@ -389,10 +404,10 @@ library — Phase C left labels open and Phase D does not close them.
 |---|---|---|---|
 | Sentence style | Short declaratives; one idea each | Marketing cadence, rhetorical questions | The domain is money |
 | Terminology | One term per concept, everywhere | Synonym variety for "freshness" | Consistency *is* legibility here |
-| A figure | Name period and scope: "Chi tháng 8 (chưa gồm chuyển tiền)" | A bare number, or "tổng chi tiêu của bạn" | Scope is the claim |
+| A figure | Name period and scope: "Chi tháng 8, không gồm chuyển tiền nội bộ" | A bare number, or "tổng chi tiêu của bạn" | Scope is the claim |
 | User agency | "Bạn có thể sửa hoặc xoá" | "Chúng tôi sẽ tối ưu giúp bạn" | Deference |
 | Errors | "Không lưu được. Chưa có gì thay đổi. Thử lại." | "Đã xảy ra lỗi", "Oops!" | The user needs the data state |
-| The user's mistake | "Số tiền cần là số nguyên đồng" | "Bạn đã nhập sai" | Correct the input, not the person |
+| The user's mistake | The shipped string: "Nhập số tiền nguyên, không dùng dấu thập phân." | "Bạn đã nhập sai" | Correct the input, not the person. The "Nhập số tiền" prefix is load-bearing: `src/lib/money.ts` documents that dialogs route an error starting with it to the amount field |
 | Confirmations | Name the exact object and effect | "Bạn có chắc không?" | A confirmation with no content is noise |
 | Destructive actions | State what is lost, what is recoverable, and for how long | "Hành động này không thể hoàn tác" when it can | Overstating danger is also dishonest |
 | Planning | Mark expectation and assumption: "dự kiến", "giả định" | Presenting a projection in the same voice as a posted fact | P4 |
@@ -405,8 +420,9 @@ library — Phase C left labels open and Phase D does not close them.
 
 Unless product truth changes: "AI", "thông minh", "tự động phân loại" as a promise,
 "an toàn tuyệt đối", "tối ưu tài chính", "có thể tiêu", "giàu", "miễn phí mãi mãi",
-and any quantified savings outcome. Note the category *does* make quantified-savings
-claims [S1]; MoneyFlow has no basis for one.
+and any quantified savings outcome. The category does make such a claim — S1 states
+"trung bình người dùng tiết kiệm thêm 1,5–2 triệu đồng/tháng" — and MoneyFlow has no
+basis for anything comparable.
 
 ---
 
@@ -430,9 +446,9 @@ choose different surface words provided the distinctions below survive.
 | **Hoàn tác** (undo) | Reversing the record just deleted, within its window | Restore |
 | **Kế hoạch** (planning) | Budgets, commitments, income templates, goals — expectations | Posted facts |
 | **Dự kiến / giả định** | A projection or an assumption | An amount that has happened |
-| **Inbox / nhập nâng cao** | Candidates awaiting review before becoming history | The ledger itself |
+| **Inbox / nhập nâng cao** | Candidates awaiting review before becoming history. Note the shipped direct CSV path writes approved rows without this queue; the vocabulary must not imply every import is reviewed | The ledger itself |
 | **Quy tắc** (rules) | Deterministic user-defined handling of candidates | Intelligence or learning |
-| **Chế độ dùng thử** (demo) | Sample data in the browser | The user's account |
+| **Chế độ demo** (demo) | Sample data in the browser. The shipped dominant term is "Chế độ demo"; "dùng thử" reads as *trial* and misdescribes it | The user's account |
 
 ### Two collisions to resolve deliberately
 
@@ -440,7 +456,7 @@ choose different surface words provided the distinctions below survive.
   This is a real ambiguity in a product that has both. Phase D flags it; the resolution
   belongs to whichever later phase owns labels, and it must be resolved rather than
   inherited.
-- **"Xoá"** applies to a transaction (recoverable), an account (archival), and the user
+- **"Xóa"** (shipped spelling; not *xoá*) applies to a transaction (recoverable), an account (archival), and the user
   account (destructive and permanent). These must not share undifferentiated wording.
 
 ---
@@ -461,11 +477,10 @@ MoneyFlow is **not**, and must not present itself as:
 | A8 | An accounting or bookkeeping tool | Explicitly no accounting terminology prerequisite |
 | A9 | A guarantee of data safety | Ownership tools are provided; absolute safety is not claimable |
 
-A1–A7 are the mission's list. **A8 and A9 are added** on product-truth grounds: the
-audience definition rules out an accounting prerequisite, and the trust strategy
-forbids an absolute-safety claim.
-
-Nothing is removed from the list.
+A1–A7 restate the anti-positions this repository's product law already implies.
+**A8 and A9 are added** on product-truth grounds: the audience definition rules out an
+accounting prerequisite, and the trust strategy forbids an absolute-safety claim.
+Nothing is removed.
 
 ---
 
@@ -477,23 +492,24 @@ quietly kept.**
 
 | Claim | Executable/product proof | User-visible proof | Limitation | Risk if product changes |
 |---|---|---|---|---|
-| Figures trace to records | Deterministic domain modules compute from ledger rows; report scope contracts | Aggregate names scope and drills into filtered records | Only covers what the user recorded | A new surface showing an unlinked total silently voids the primary promise |
+| Figures trace to records | Deterministic domain modules compute from ledger rows; report scope contracts; `/transactions` accepts `category`, `account`, `from` and `to` params | Reports name their period and state that transfers are excluded; the ledger is reachable and filterable | **Partly aspirational today.** No aggregate constructs a scoped drill-down link: report category rows are not links, and both Reports and Overview link to an unscoped `/transactions`. Phase C classifies this as ADAPT LATER — *"any aggregate needs source/scope/drill-down"* | A new surface showing an unlinked total makes the gap permanent instead of closing it |
 | Money keeps its meaning | Integer đồng throughout; fraction input rejected, not reinterpreted; safe-integer bounds | Rejected input stays visible with a stated reason | Correctness of the amount itself is the user's | Any future rounding or float path breaks P2 |
 | Transfers are neutral | Paired movement excluded from income/expense and category spend, in domain and reports | Transfer rows appear under their own type and in neither income nor expense totals | Only for accounts the user declared | A convenience aggregate that folds transfers in breaks D4 |
 | Mistakes are recoverable | Soft delete + restore; time-boxed undo; edit recomputes by difference | Undo action on the delete notice; edited row shows new values without duplicating | The undo window expires; account deletion is permanent | Removing the window without a replacement path breaks D3 |
 | The account is exportable and restorable | Versioned complete archive with strict validation; authenticated restore; separate scoped export | Backup surface distinct from report export, labelled | **Hosted restore has never been executed against a live account.** Id preservation refuses a restore while the source account is still live; the round trip is proven deterministically in CI, not on hosted infrastructure | Claiming proven restore before that limitation closes would be a false trust claim — the most damaging kind for this brand |
 | Demo never pretends | Explicit runtime mode; demo refuses archive actions | Demo state is labelled and archive actions are inert | — | Blurring the boundary breaks B6 |
-| Nothing is invented | No inference, no classifier, no advice in the product | Every row was typed by the user | Cash and unrecorded spending are invisible | Adding inference without changing the brand claim would make the brand dishonest |
+| Nothing is invented | No inference, no classifier, no advice in the product; imported candidates carry provenance | Every row was either typed by the user or accepted by them from a file they supplied | Cash and unrecorded spending are invisible. **Direct CSV import writes approved rows without passing the Inbox review queue** — still user-supplied and user-initiated, but not typed | Adding inference without changing the brand claim would make the brand dishonest |
 
 ### Two live caveats the brand must respect today
 
 1. **Hosted restore is unproven** (above). No brand expression may state or imply that
    restoring a real account has been demonstrated.
-2. **Four mobile defects were fixed but not yet re-verified on a physical device**
-   (a transient wrong aggregate, sheet/viewport behaviour, the amount-entry contract
-   and the undo toast). Until the owner's bounded retest passes, the brand may claim
-   the *properties* — which are enforced in code and tests — but no phase may cite
-   physical-device proof for them.
+2. **The physical-phone run is accepted.** PBT-AC12 is accepted: PP-03, PP-12 and
+   PP-16 pass on a real device (PP-12 after #358), and PP-07 passes functionally with
+   its presentation finding parked. PP-01 navigation latency remains a parked
+   performance finding, and eight UI observations are parked for a later rebuild.
+   Those parked items are the honest residue — the brand may not imply the mobile
+   experience is finished, only that its financial behaviour was checked on hardware.
 
 **The rule:** the brand may claim a property the product enforces. It may not claim a
 verification that has not happened.
@@ -556,23 +572,31 @@ satisfy the locked strategy. Phase E does not revisit strategy; it interprets it
 ### The brief in one paragraph
 
 MoneyFlow is the ledger a person keeps themselves, in Vietnamese, where every figure
-can be followed back to a record they wrote and every ordinary mistake can be undone.
-It competes against apps that remove the typing and ask for trust in return; it offers
-the opposite trade. Express a product that is exact without being cold, calm without
-being sleepy, and deferential without being empty.
+is meant to be followable back to a record they wrote and every ordinary mistake can be
+undone. It competes against apps that remove the typing and ask for trust in return; it
+offers the opposite trade.
+
+Phase E's job is to express the five personality traits in §9 and their five NOTs.
+**No mood adjective is supplied here on purpose** — "calm", "warm", "premium" and their
+relatives are exactly the unfalsifiable language §9 bans, and "calm" additionally names
+a historical direction that must not return as tone. Interpret the traits; do not
+inherit a feeling.
 
 ### Must be true of all three territories
 
-- Reads as a **personal ledger**, not a dashboard, bank, wallet, coach or assistant.
+- Reads as a **personal ledger** rather than a bank, wallet, coach or assistant. This
+  is about what the product *is*, not a ban on any layout archetype — Phase C keeps an
+  Overview surface and `/dashboard` remains the canonical route.
 - Expresses **provenance and traceability** — the idea that a number has a source.
 - Expresses **recoverable control** — mistakes are expected and survivable.
 - Supports **Vietnamese as the native language**, including diacritics at real UI sizes
   and Vietnamese-length strings.
 - Compatible with the personality's five NOTs — nothing urgent, judgemental,
   celebratory about balances, or all-knowing.
-- Honours financial semantics that already exist in product law: money must never rely
-  on colour alone; income, expense and transfer must remain distinguishable
-  non-chromatically.
+- Honours the existing non-chromatic money rule: money must never rely on colour alone,
+  and income, expense and transfer must stay distinguishable without it. **Source:
+  `docs/UX_PRINCIPLES.md` and `docs/design/CURRENT_DESIGN_SYSTEM.md`** — an accessibility
+  constraint carried forward, not a Phase D invention and not "product law".
 - Works for the **primary daily loop first** — record, position, history, period —
   with planning and advanced intake visibly secondary.
 
@@ -609,7 +633,7 @@ selection — the owner selects.
 
 | Ref | Source | Type | What it establishes |
 |---|---|---|---|
-| S1 | Sổ Thu Chi MISA App Store listing (VN, Vietnamese) — [apps.apple.com](https://apps.apple.com/vn/app/s%E1%BB%95-thu-chi-misa-qu%E1%BA%A3n-l%C3%BD-ti%E1%BB%81n/id865818973?l=vi) | First-party product description | Category promises effortlessness ("liên kết ngân hàng, mọi giao dịch tự cập nhật", "chụp hóa đơn — AI tự phân loại", "Biết tiền đi đâu — không cần tự nhớ"), quantified savings, glanceability, and institutional-scale trust ("30 năm kinh nghiệm… 3.000 nhân sự") |
+| S1 | Sổ Thu Chi MISA App Store listing (VN, Vietnamese) — [apps.apple.com](https://apps.apple.com/vn/app/s%E1%BB%95-thu-chi-misa-qu%E1%BA%A3n-l%C3%BD-ti%E1%BB%81n/id865818973?l=vi) | First-party product description | Category promises effortlessness ("liên kết ngân hàng, mọi giao dịch tự cập nhật", "chụp hóa đơn — AI tự phân loại", "Biết tiền đi đâu — không cần tự nhớ"), quantified savings ("trung bình người dùng tiết kiệm thêm 1,5–2 triệu đồng/tháng"), glanceability ("Nhìn 3 giây — hiểu tình hình tài chính cả tháng"), and institutional-scale trust ("30 năm kinh nghiệm công nghệ, 3.000 nhân sự") |
 | S2 | Money Lover App Store listing (VN) — [apps.apple.com](https://apps.apple.com/vn/app/money-lover-qu%E1%BA%A3n-l%C3%BD-chi-ti%C3%AAu/id486312413?l=vi) | First-party product description | Bank linking across many markets, automatic transaction recording and categorisation, budgets and spending reminders as headline mechanisms |
 | S3 | Money Lover site — [moneylover.me/vi](https://moneylover.me/vi/) | First-party | Category positioning as a financial-management application rather than a ledger |
 
@@ -624,6 +648,7 @@ Phase D asserts nothing about their internal product quality.
 |---|---|
 | `docs/product/PRINCIPLES.md`, `docs/MVP_DEFINITION.md` | Product law; the outer bound of every claim |
 | Phase A audit | What the product actually is today |
+| P3 acceptance record | Physical-device evidence for the financial behaviour the brand claims |
 | Phase B research | Product mechanisms and tradeoffs |
 | Phase C architecture | Locked jobs, surfaces, invariants and the aggregate contract |
 | A0 review | Failure guardrails informing trust breakers |
@@ -637,7 +662,8 @@ Phase D asserts nothing about their internal product quality.
 | `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md` | **Historical input, partially promoted.** Phase D promotes, on product-truth grounds: manual-first as a strategic choice; the claim boundaries; the non-judgemental stance; the personality boundary in §9. Phase D does **not** adopt its audience abandonment story, tagline, messaging set, colour system, typography or logo rules |
 | `docs/design/CALM_LEDGER_V2.md` | Historical only, as its own header states |
 | `docs/design/SIGNAL_LEDGER_V3.md` | Rejected direction; may not return as authority |
-| `docs/design/BRAND_COLOR_SYSTEM.md`, `DESIGN_DIRECTION_STATUS.md` (Fresh Blue), `MONEYFLOW_LOGO.md`, `CURRENT_DESIGN_SYSTEM.md` | Current *shipped* implementation truth. Not a Phase E constraint and not promoted by Phase D |
+| `docs/design/DESIGN_DIRECTION_STATUS.md` (Fresh Blue) | **Live owner decision** (`Status: active owner decision`). Phase D neither promotes nor releases it — a brand-strategy phase has no authority to free a later phase from a colour decision the owner made. Whether Phase E may explore outside it is an **owner question**, recorded in §15 |
+| `docs/design/BRAND_COLOR_SYSTEM.md`, `MONEYFLOW_LOGO.md`, `CURRENT_DESIGN_SYSTEM.md` | Current *shipped* implementation truth. Not promoted by Phase D, and not released by it either |
 
 **Promotion rule:** nothing in the historical set becomes current brand authority
 except the four elements named above. A later phase citing any other part of it is

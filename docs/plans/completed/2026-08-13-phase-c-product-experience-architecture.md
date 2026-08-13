@@ -48,8 +48,8 @@ current route tree as automatically optimal.
 - Documentation-only Class 0 local gates and active-registry validation are required.
 - No runtime/source/assets/UI/CSS/route/Design Harness/provider/production/database/Auth
   modification is in scope.
-- Phase D Brand Strategy is the immediate next phase after this record merges; it is
-  not started and has no packet.
+- Phase D Brand Strategy was the immediate next phase after this record merged. It has
+  since been authorised and completed; Phase E Creative Territories is now next.
 
 ## Specification
 
@@ -77,9 +77,9 @@ advanced-capture identity and financial-trust regressions.
 - [x] A fresh evaluator found no competitor-IA copying, demo/auth confusion,
   unsupported route restructuring, invariant breach, accidental brand/UI/Phase D work
   or generic-dashboard thinking after final lifecycle evidence was recorded.
-- [x] This PR stages post-merge lifecycle: Phase C accepted/completed, parent-only
-  registry, Phase D Brand Strategy immediate next/not started/no packet and PBT-AC15
-  open.
+- [x] This PR staged post-merge lifecycle: Phase C accepted/completed, parent-only
+  registry, Phase D Brand Strategy immediate next and PBT-AC15 open. Phase D has since
+  completed; the current next phase is recorded in `docs/plans/active/README.md`.
 
 ### Out of scope
 

@@ -34,11 +34,13 @@ as authority.
 - Existing brand and design material is extensive and of mixed status:
   `docs/brand/MONEYFLOW_BRAND_GUIDELINES.md` (v1.1) holds a real brand foundation;
   `docs/design/CALM_LEDGER_V2.md` self-declares historical; `SIGNAL_LEDGER_V3.md` is a
-  rejected direction per `DESIGN_DIRECTION_STATUS.md`; Fresh Blue is current *shipped*
-  implementation truth, not a future constraint.
-- Two live product caveats bound what the brand may claim: hosted restore has never
-  been executed against a live account, and four physical-phone defects are fixed but
-  not yet re-verified on hardware.
+  rejected direction per `DESIGN_DIRECTION_STATUS.md`; Fresh Blue is a **live owner
+  colour decision** that Phase D neither promotes nor releases.
+- The physical-phone run is **accepted** (PBT-AC12): PP-03, PP-12 and PP-16 pass on a
+  real device, PP-12 after #358, with PP-07 a functional pass and PP-01 parked.
+- What still bounds the brand: hosted restore has never run against a live account; no
+  aggregate yet links to the records behind it (Phase C: ADAPT LATER); and direct CSV
+  import writes approved rows without the Inbox review queue.
 
 ### Relevant repository areas
 
@@ -114,8 +116,9 @@ unevidenced audience story by default — the exact failure A0 exists to prevent
 - [x] **D-AC11** Controlled vocabulary distinguishes every concept the mission names,
       without closing Phase C's open labels.
 - [x] **D-AC12** Anti-positioning is explicit; additions are product-truth justified.
-- [x] **D-AC13** Every load-bearing claim has proof, limitation and change risk, and
-      the two live caveats are stated.
+- [x] **D-AC13** Every load-bearing claim has proof, limitation and change risk. An
+      independent evaluation checked each against shipped code; two overstatements —
+      aggregate drill-down and "every row was typed" — were corrected rather than kept.
 - [x] **D-AC14** Phase E brief locks strategy and leaves every visual question open.
 - [x] **D-AC15** No creative territory is named, proposed, implied or selected.
 - [x] **D-AC16** Lifecycle reconciled in this same delivery: baseline `4ba1864`, stale
@@ -172,7 +175,7 @@ writes, and starting Phase E.
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| strategy grounded in product truth | every claim in §13 mapped to executable proof and a limitation | PASS |
+| strategy grounded in product truth | every claim in §13 mapped to executable proof and a limitation; an independent evaluation checked each against shipped code and two claims were corrected rather than kept | PASS |
 | no visual decision | artifact contains no palette, type, metaphor, icon or layout choice; §15 leaves all of them open | PASS |
 | historical material contained | explicit promotion list; Signal Ledger rejected, Calm Ledger historical, Fresh Blue shipped-only | PASS |
 | audience honesty | behavioural only; abandonment story and demographics named unevidenced | PASS |
@@ -185,7 +188,9 @@ writes, and starting Phase E.
   feasibility; those need later evidence.
 - The audience definition rests on product law and architecture, not user research.
   It is a coherent target, not a measured population.
-- Two product caveats bound the brand today: hosted restore is unproven, and the four
-  physical-phone remediations are unverified on hardware.
+- Three product facts bound the brand today: hosted restore is unproven; no aggregate
+  yet links to its records, so the traceability half of the primary mechanism is a
+  target rather than a shipped behaviour; and direct CSV import writes approved rows
+  without the Inbox review queue. The physical-phone run itself is accepted.
 - Exact final-head provider checks and owner merge are required delivery boundaries;
   this record becomes current-main authority only when this exact PR head merges.
