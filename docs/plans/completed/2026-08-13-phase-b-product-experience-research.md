@@ -5,7 +5,7 @@
 **Completed role:** bounded research/evidence record
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** #366; exact final-head provider checks and owner merge required
+**Issue/PR:** merged #366 at `main@60f91b7da46622abdf78908b4cf186b27ca9571c`
 **Last updated:** 2026-08-13
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. Phase B researches current,
@@ -148,13 +148,13 @@ constraints; the new research record does not become implementation authority.
 | B-T1 | reconcile baseline and deliberately activate Phase B | `main@efaba75` | active packet/registry/current memory/Trust | complete |
 | B-T2 | collect current PFM and adjacent primary sources by user problem | B-T1 | source ledger | complete |
 | B-T3 | synthesize mechanism/tradeoff/applicability principles | B-T2 | durable Phase B research artifact | complete |
-| B-T4 | fresh evaluation, Class 0 gates and PR delivery | B-T3 | evaluator report, PR memory, exact-head checks | complete locally; exact final-head provider checks and owner merge remain delivery requirements |
+| B-T4 | fresh evaluation, Class 0 gates and PR delivery | B-T3 | evaluator report, PR memory and merged #366 delivery | complete — #366 merged at `main@60f91b7da46622abdf78908b4cf186b27ca9571c` |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-13 | human_owner | researcher | accepted/completed | `main@efaba75`; Phase A/A0 constraints and the durable Phase B research artifact | exact final-head provider checks and owner merge remain required; Phase C is deliberately unopened | after merge, deliberately open Phase C only when authorised |
+| 2026-08-13 | human_owner | researcher | accepted/completed | #366 merged at `main@60f91b7da46622abdf78908b4cf186b27ca9571c`; Phase A/A0 constraints and the durable Phase B research artifact | Phase C is deliberately unopened until separately authorised | deliberately open Phase C only when authorised |
 
 ### Current permission boundary
 
@@ -171,11 +171,11 @@ constraints; the new research record does not become implementation authority.
 | Criterion | Evidence | Result |
 |---|---|---|
 | source-led research artifact | `PHASE_B_FRESH_PRODUCT_EXPERIENCE_RESEARCH.md` covers all twelve problem areas with a source ledger and counterexamples | PASS |
-| lifecycle reconciliation | staged completed packet, parent-only registry, current memory and Trust parent | PASS pending exact final-head provider delivery evidence |
-| Class 0 local gates | `npm run check:migrations`, `npm run check:knowledge`, `npm run test:ci-policy` (8/8) and `node scripts/active-packet-registry.mjs` on 2026-08-13; fresh evaluator record | PASS locally; exact final-head provider delivery evidence remains required |
+| lifecycle reconciliation | completed packet, parent-only registry, current memory and Trust parent on merged #366 | PASS |
+| Class 0 local gates | `npm run check:migrations`, `npm run check:knowledge`, `npm run test:ci-policy` (8/8) and `node scripts/active-packet-registry.mjs` on 2026-08-13; fresh evaluator record | PASS |
 
 ### Remaining limitations
 
 - Research evidence cannot prove MoneyFlow user demand or select a final design.
-- Exact final-head provider checks and owner merge are required delivery boundaries;
-  this completed record becomes current authority only when this exact PR head merges.
+- #366 is historical merged delivery; subsequent work must use the current active
+  registry rather than reopening Phase B.

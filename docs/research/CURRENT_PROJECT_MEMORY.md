@@ -2,7 +2,7 @@
 
 **Status:** the single current implementation-status authority
 **Last reconciled:** 2026-08-13
-**Current main baseline:** `efaba75ddb55d9835c0a21bc6d578a7344db74f0` (`#365` merged)
+**Current main baseline:** `60f91b7da46622abdf78908b4cf186b27ca9571c` (`#366` merged)
 **Routing:** use `docs/context/README.md`; open
 `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only for a named provenance need.
 
@@ -22,12 +22,12 @@ acceptance, not a signed/filed evidence run. The exact program order is:
 > → final physical/device
 > visual QA → owner public-beta decision.
 
-`docs/plans/active/public-beta-trust.md` owns that program order. After this PR merges,
-the active-packet registry lists only its Trust parent: Repository Resets 1–2, A0
-Historical UI / Design Failure Review, Phase A Current Reality / Authority Audit and
-Phase B product-experience research are accepted/completed. **Phase C Product
-Experience Architecture** is immediate next, deliberately not started and has no
-packet; Brand/Product Experience implementation is also not started.
+`docs/plans/active/public-beta-trust.md` owns that program order. Repository Resets
+1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority
+Audit, Phase B product-experience research and **Phase C Product Experience
+Architecture** are accepted/completed in merged or staged-completed records. **Phase D
+Brand Strategy** is the immediate next phase, is not started and has no packet. The
+later Brand/Product Experience rebuild is not started.
 
 ## 2. Current runtime and trust boundaries
 
@@ -52,7 +52,7 @@ packet; Brand/Product Experience implementation is also not started.
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
 | Ownership | complete versioned archive/export/validation/restore contract; hosted restore limitation remains |
-| Experience | responsive light/dark web UI; Phase C Product Experience Architecture is immediate next, while the later Brand/Product Experience rebuild is not started |
+| Experience | responsive light/dark web UI; Phase C Product Experience Architecture is accepted/completed, while Phase D Brand Strategy is immediate next but not started/no packet and the later Brand/Product Experience rebuild is not started |
 
 ## 4. MoneyFlow Trust and physical-device truth
 
@@ -105,9 +105,10 @@ unless a future approved packet names them as current design authority.
   guardrails are at `docs/research/A0_HISTORICAL_UI_DESIGN_FAILURE_REVIEW.md`.
 - Phase A Current Reality / Authority Audit is accepted/completed in
   `docs/plans/completed/2026-08-13-phase-a-current-reality-authority-audit.md`.
-- Phase B product-experience research is accepted/completed in
-  `docs/plans/completed/2026-08-13-phase-b-product-experience-research.md` after this
-  PR merges. Phase C is immediate next, deliberately not started and has no packet.
+- Phase B product-experience research is accepted/completed in merged #366 at
+  `main@60f91b7`. Phase C Product Experience Architecture is accepted/completed in
+  its staged completed record. Phase D Brand Strategy is immediate next, not started
+  and has no packet; implementation remains not started.
 - The owner public-beta decision is blocked on the ordered work above and remains
   the only PBT-AC15 closure authority.
 
@@ -120,25 +121,27 @@ candidate evidence, never current truth.
 
 ## 10. True gaps after this audit
 
-1. Deliberately start Phase C Product Experience Architecture only when authorised.
-2. Execute Brand/Product Experience B→J only in later approved packets.
-3. Perform final physical/device visual QA on that rebuilt experience.
-4. Obtain the owner’s public-beta decision and record accepted limitations.
+1. Separately start Phase D Brand Strategy only after this exact Phase C delivery head
+   merges.
+2. Keep Phase D bounded to Brand Strategy; do not begin implementation.
+3. Execute Brand/Product Experience B→J only in later approved packets.
+4. Perform final physical/device visual QA on that rebuilt experience.
+5. Obtain the owner’s public-beta decision and record accepted limitations.
 
 ## 11. Next allowed action
 
-Phase C Product Experience Architecture is the immediate next phase but is deliberately
-not started and has no packet. Do not begin it, implement Brand/UI work, modify Design
-Harness, or make provider or production changes without a new bounded authorisation.
+After this exact Phase C delivery head merges, separately open Phase D Brand Strategy
+only when authorised. Do not begin implementation, modify Design Harness, or make
+provider or production changes without a new bounded authorisation.
 
 ## 12. Superseded-status register
 
 - “P3 Prove is open” and “P4 Improve is next” are superseded. P3 is accepted;
   Repository Reset 1 is accepted and Repository Reset 2 precedes Brand/Product
   Experience.
-- “Repository Reset 1, Reset 2, A0, Phase A or Phase B is the current task” is
-  superseded by completed packets; Phase C is immediate next but remains not started
-  and implementation remains not started.
+- “Repository Reset 1, Reset 2, A0, Phase A, Phase B or Phase C is the current task”
+  is superseded by completed packets; Phase D is immediate next but not started/no
+  packet, and implementation remains not started.
 - The prior seven-day self-use gate is withdrawn; no duration substitute exists.
 - Historical packets in `docs/plans/archived/` are not active work and never imply
   acceptance. Historical UI evidence remains available for A0 review.
