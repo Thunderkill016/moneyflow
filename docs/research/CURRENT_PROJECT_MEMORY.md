@@ -1,8 +1,8 @@
 # MoneyFlow — current project memory
 
 **Status:** the single current implementation-status authority
-**Last reconciled:** 2026-08-13
-**Current main baseline:** `4ba1864ccadfdd4d8363815ba2a9eafc1a373c88` (`#367` merged)
+**Last reconciled:** 2026-08-14
+**Current main baseline:** `75ade3bc4ce9d17a099a38df704c8c82542447ee` (`#370` merged)
 **Routing:** use `docs/context/README.md`; open
 `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only for a named provenance need.
 
@@ -28,14 +28,13 @@ Audit, Phase B product-experience research, **Phase C Product Experience
 Architecture** and **Phase D Brand Strategy** are accepted/completed in merged or
 staged-completed records. **Phase E candidate exploration is paused**: every proposed
 territory was rejected by the owner, **no territory is selected**, and that rejected
-exploration is **not visual authority**. **`current-ui-evolutionary-refresh.md` is the
-active UI work** — evolutionary refinement of the shipped product that keeps identity,
-destinations and financial semantics. **Phase F is not started.** PBT-AC15 remains
-open.
-
-*Historical, superseded:* Phase E was previously recorded as the immediate next phase
-with no packet. That wording no longer describes current state. The later Brand/Product
-Experience rebuild is not started.
+exploration is **not visual authority**. **UI evolutionary refresh Slice 1 is merged and
+accepted** (#370 at `main@75ade3b`), not active; packet archived at
+`docs/plans/completed/2026-08-14-current-ui-evolutionary-refresh-slice-1.md`. It refined
+shell, Overview and Transactions on Fresh Blue with no destination, route or
+financial-semantic change, and claimed **no physical-device validation**. **Phase F is not
+started** and the later Brand/Product Experience rebuild has not begun. PBT-AC15 remains
+open. *(Superseded wording: Phase E as "immediate next phase with no packet".)*
 
 ## 2. Current runtime and trust boundaries
 
@@ -60,7 +59,7 @@ Experience rebuild is not started.
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
 | Ownership | complete versioned archive/export/validation/restore contract; hosted restore limitation remains |
-| Experience | responsive light/dark web UI; Phase C and Phase D are accepted/completed; **Phase E is paused with all candidates rejected and no territory selected**; the active UI work is the evolutionary refresh of the shipped shell/Overview/Transactions, which keeps Fresh Blue and changes no destination or financial semantic |
+| Experience | responsive light/dark web UI; Phase C and Phase D accepted/completed; **Phase E paused with all candidates rejected and no territory selected**; **UI evolutionary refresh Slice 1 merged and accepted** (#370) — shell, Overview and Transactions refined on Fresh Blue with no destination or financial-semantic change; no UI slice is currently open |
 
 ## 4. MoneyFlow Trust and physical-device truth
 
@@ -172,10 +171,10 @@ provider or production changes without a new bounded authorisation.
 - “P3 Prove is open” and “P4 Improve is next” are superseded. P3 is accepted;
   Repository Reset 1 is accepted and Repository Reset 2 precedes Brand/Product
   Experience.
-- “Repository Reset 1, Reset 2, A0, Phase A, Phase B, Phase C or Phase D is the current
-  task” is superseded by completed packets; Phase E Creative Territories is immediate
-  next but not started/no packet, no territory is proposed or selected, and
-  implementation remains not started.
+- “Reset 1/2, A0, Phase A–D is the current task”, and “Phase E is the immediate next
+  phase”, are both superseded: those packets are complete and **Phase E exploration is
+  paused with every territory rejected and none selected**.
+- “The UI evolutionary refresh is active” is superseded: Slice 1 merged as #370.
 - “The four P3 physical-phone remediations are unverified on hardware” is superseded:
   PBT-AC12 is accepted, PP-12 passes after #358, and PP-01 plus the presentation
   findings remain parked.
