@@ -2,7 +2,7 @@
 
 **Status:** the single current implementation-status authority
 **Last reconciled:** 2026-08-13
-**Current main baseline:** `60f91b7da46622abdf78908b4cf186b27ca9571c` (`#366` merged)
+**Current main baseline:** `4ba1864ccadfdd4d8363815ba2a9eafc1a373c88` (`#367` merged)
 **Routing:** use `docs/context/README.md`; open
 `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only for a named provenance need.
 
@@ -24,10 +24,11 @@ acceptance, not a signed/filed evidence run. The exact program order is:
 
 `docs/plans/active/public-beta-trust.md` owns that program order. Repository Resets
 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority
-Audit, Phase B product-experience research and **Phase C Product Experience
-Architecture** are accepted/completed in merged or staged-completed records. **Phase D
-Brand Strategy** is the immediate next phase, is not started and has no packet. The
-later Brand/Product Experience rebuild is not started.
+Audit, Phase B product-experience research, **Phase C Product Experience
+Architecture** and **Phase D Brand Strategy** are accepted/completed in merged or
+staged-completed records. **Phase E Creative Territories** is the immediate next
+phase, is not started and has no packet. The later Brand/Product Experience rebuild
+is not started.
 
 ## 2. Current runtime and trust boundaries
 
@@ -52,7 +53,7 @@ later Brand/Product Experience rebuild is not started.
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
 | Ownership | complete versioned archive/export/validation/restore contract; hosted restore limitation remains |
-| Experience | responsive light/dark web UI; Phase C Product Experience Architecture is accepted/completed, while Phase D Brand Strategy is immediate next but not started/no packet and the later Brand/Product Experience rebuild is not started |
+| Experience | responsive light/dark web UI; Phase C Product Experience Architecture and Phase D Brand Strategy are accepted/completed, while Phase E Creative Territories is immediate next but not started/no packet, no territory is proposed or selected, and the later Brand/Product Experience rebuild is not started |
 
 ## 4. MoneyFlow Trust and physical-device truth
 
@@ -107,8 +108,30 @@ unless a future approved packet names them as current design authority.
   `docs/plans/completed/2026-08-13-phase-a-current-reality-authority-audit.md`.
 - Phase B product-experience research is accepted/completed in merged #366 at
   `main@60f91b7`. Phase C Product Experience Architecture is accepted/completed in
-  its staged completed record. Phase D Brand Strategy is immediate next, not started
-  and has no packet; implementation remains not started.
+  merged #367 at `main@4ba1864`.
+- **Phase D Brand Strategy is accepted/completed** in its staged completed record, with
+  the durable authority at `docs/research/PHASE_D_BRAND_STRATEGY.md`. It locks audience,
+  role, positioning, promise hierarchy, differentiation, trust builders/breakers,
+  personality, Vietnamese verbal principles, controlled vocabulary, anti-positioning and
+  proof architecture, and makes **no** visual decision. Earlier brand/design material is
+  input only: Signal Ledger v3 stays rejected, Calm Ledger v2 stays historical, and only
+  four named elements of the brand guidelines are promoted.
+- **Fresh Blue (owner decision, 2026-08-13):** released as a constraint on Phase E
+  exploration — territories need not preserve it — while remaining the **current shipped
+  colour implementation truth** until a later owner-selected territory and approved
+  migration supersede it. Selects no palette or territory; authorises no runtime, CSS,
+  token or UI change. Recorded in `docs/design/DESIGN_DIRECTION_STATUS.md`.
+- **Brand claim ceiling:** claim a property the product enforces, never a verification
+  that has not happened. Bounds today: hosted restore has never run against a live
+  account; no aggregate yet links to its records, so traceability is a target, not a
+  shipped drill-down; and direct CSV import writes approved rows without the Inbox
+  queue. Provenance contract: a record comes from deliberate user entry **or** data the
+  user supplied and accepted — manual capture is the default identity, direct CSV is
+  secondary. Traceability is claimed only for **ledger-derived** figures, never for
+  planning projections, demo samples or counts. The physical-phone run **is** accepted
+  (PBT-AC12).
+- Phase E Creative Territories is immediate next, not started and has no packet; no
+  creative territory is proposed or selected; implementation remains not started.
 - The owner public-beta decision is blocked on the ordered work above and remains
   the only PBT-AC15 closure authority.
 
@@ -121,17 +144,20 @@ candidate evidence, never current truth.
 
 ## 10. True gaps after this audit
 
-1. Separately start Phase D Brand Strategy only after this exact Phase C delivery head
-   merges.
-2. Keep Phase D bounded to Brand Strategy; do not begin implementation.
+1. Separately start Phase E Creative Territories only after this exact Phase D delivery
+   head merges, and only when authorised. Phase E produces three territories; it does
+   not select one.
+2. Keep Phase E bounded to producing three distinct territories for owner selection; do
+   not select one, and do not begin implementation.
 3. Execute Brand/Product Experience B→J only in later approved packets.
 4. Perform final physical/device visual QA on that rebuilt experience.
 5. Obtain the owner’s public-beta decision and record accepted limitations.
 
 ## 11. Next allowed action
 
-After this exact Phase C delivery head merges, separately open Phase D Brand Strategy
-only when authorised. Do not begin implementation, modify Design Harness, or make
+After this exact Phase D delivery head merges, separately open Phase E Creative
+Territories only when authorised, and only to produce three territories for owner
+selection. Do not begin implementation, modify Design Harness, or make
 provider or production changes without a new bounded authorisation.
 
 ## 12. Superseded-status register
@@ -139,9 +165,13 @@ provider or production changes without a new bounded authorisation.
 - “P3 Prove is open” and “P4 Improve is next” are superseded. P3 is accepted;
   Repository Reset 1 is accepted and Repository Reset 2 precedes Brand/Product
   Experience.
-- “Repository Reset 1, Reset 2, A0, Phase A, Phase B or Phase C is the current task”
-  is superseded by completed packets; Phase D is immediate next but not started/no
-  packet, and implementation remains not started.
+- “Repository Reset 1, Reset 2, A0, Phase A, Phase B, Phase C or Phase D is the current
+  task” is superseded by completed packets; Phase E Creative Territories is immediate
+  next but not started/no packet, no territory is proposed or selected, and
+  implementation remains not started.
+- “The four P3 physical-phone remediations are unverified on hardware” is superseded:
+  PBT-AC12 is accepted, PP-12 passes after #358, and PP-01 plus the presentation
+  findings remain parked.
 - The prior seven-day self-use gate is withdrawn; no duration substitute exists.
 - Historical packets in `docs/plans/archived/` are not active work and never imply
   acceptance. Historical UI evidence remains available for A0 review.

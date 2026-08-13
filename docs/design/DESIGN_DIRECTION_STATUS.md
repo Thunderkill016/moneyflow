@@ -2,7 +2,7 @@
 
 Status: active owner decision
 
-Last confirmed: 2026-08-04
+Last confirmed: 2026-08-04; Phase E exploration boundary amended 2026-08-13 by owner decision
 
 ## Rejected direction
 
@@ -36,6 +36,24 @@ Public routes are light-only. Light, Dark and System preferences are restored on
 The exact token contract and usage rules are recorded in `docs/design/BRAND_COLOR_SYSTEM.md` and the current implementation authority.
 
 This selection applies to color architecture only. It does not make a named layout, editorial style, card treatment or information structure permanent. Those remain task-specific and must follow cumulative research and owner review.
+
+## Owner decision — 2026-08-13: Phase E may explore outside Fresh Blue
+
+The owner has released Fresh Blue **as a constraint on Phase E candidate exploration**.
+Phase E creative territories are **not required to preserve Fresh Blue** and may propose
+a different colour direction.
+
+What this decision does **not** do:
+
+- it selects no new palette and no creative territory;
+- it authorises no runtime, CSS, token or UI change;
+- it does not retire the colour architecture above.
+
+**Fresh Blue remains the current shipped colour implementation truth** and stays in
+force until a later owner-selected territory and an approved migration supersede it.
+Until then, every shipped surface continues to follow the token contract in
+`docs/design/BRAND_COLOR_SYSTEM.md`. Brand-strategy context is in
+`docs/research/PHASE_D_BRAND_STRATEGY.md`, which makes no colour decision.
 
 ## Public experience process
 
