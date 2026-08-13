@@ -1,13 +1,13 @@
 # MoneyFlow Trust
 
 **Status:** active
-**Execution state:** P3 Prove, Repository Resets 1–2, A0 Historical UI / Design Failure Review and Phase A Current Reality / Authority Audit accepted/completed; Phase B is immediate next/not started; public-beta decision remains open
-**Active role:** parent-program planner; no active child packet until Phase B is separately started
+**Execution state:** P3 Prove, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority Audit and Phase B accepted/completed; Phase C is immediate next but not started; public-beta decision remains open
+**Active role:** parent-program planner; no active child packet
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
 **Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure; #356 P3 Prove packet; #358 PP-12 remediation; #360 Reset 1 closure; #362 Reset 2 closure
 **Last updated:** 2026-08-13
-**Current main baseline:** `157ba76795c4ddc1add726e6fb6d4dd82c881c04` (#364 merged)
+**Current main baseline:** `efaba75ddb55d9835c0a21bc6d578a7344db74f0` (#365 merged)
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
@@ -23,7 +23,7 @@ MoneyFlow is ready for a bounded public beta only when repository state, product
 Current program sequence:
 
 > **Phase A Current Reality / Authority Audit → Phase B product-experience research
-> → Brand/Product Experience rebuild B→J
+> → Phase C Product Experience Architecture → Brand/Product Experience rebuild B→J
 > → final
 > physical/device visual QA → owner public-beta decision**
 
@@ -98,10 +98,11 @@ retired, while legacy/live and protected boundaries were retained. **A0 Historic
 / Design Failure Review** is accepted/completed in merged #364
 (`main@157ba76795c4ddc1add726e6fb6d4dd82c881c04`). It did not begin Brand/Product
 Experience implementation. **Phase A Current Reality /
-Authority Audit** is accepted/completed in its completed record. Phase B
-product-experience research is immediate next, not started and has no packet; Brand/
-Product Experience implementation is not started and the public-beta decision remains
-open.
+Authority Audit** is accepted/completed in its completed record. **Phase B Fresh
+Product-Experience Research** is accepted/completed in its completed record after this
+PR merges. **Phase C Product Experience Architecture** is the immediate next phase,
+deliberately not started and with no packet. Brand/Product Experience implementation is
+also not started; the public-beta decision remains open.
 
 On 2026-08-12 the owner **removed the seven-day self-use requirement** from the active program after running the physical checklist. P3 Prove is now physical-phone core-ledger acceptance only. No replacement duration gate is introduced. The historical seven-day records in `docs/REAL_USE_READINESS_CONTRACT.md` (R7, 2026-07-29) stay as historical truth and are not re-opened.
 
@@ -170,16 +171,17 @@ Recover/Prove/Release:
 | Repository Reset 2 | **accepted/completed** — merged #362; only 13 proven-unowned source/assets retired |
 | A0 Historical UI / Design Failure Review | **accepted/completed** — durable retrospective guardrails; no UI implementation or Design Harness change |
 | Phase A Current Reality / Authority Audit | **accepted/completed** — durable code-first route/runtime/presentation/authority map; no design implementation |
-| Phase B product-experience research | **immediate next/not started** — no packet exists |
+| Phase B Fresh Product-Experience Research | **accepted/completed** — durable first-party mechanism/tradeoff research; no design implementation |
+| Phase C Product Experience Architecture | **immediate next** after accepted Phase B; deliberately not started and no packet exists |
 | P4 Improve | not an active generic workstream |
 | P5 Release | owner public-beta decision remains open (PBT-AC15) |
 
 ### Next sequence
 
-P3, Repository Resets 1–2 and A0 Historical UI / Design Failure Review are accepted.
-Phase A is accepted/completed. The mandatory execution order is:
+P3, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A and
+Phase B are accepted/completed. The mandatory execution order is:
 
-1. separately start Phase B product-experience research;
+1. separately and deliberately start Phase C Product Experience Architecture;
 2. Brand/Product Experience rebuild B→J;
 3. final physical/device visual QA;
 4. owner public-beta decision (PBT-AC15).
@@ -206,7 +208,8 @@ Design Harness, or make the final public-beta decision.
 | RR-T2 | bounded Repository Reset 2 | RR-T1 accepted | accepted/completed — merged #362 |
 | A0-T1 | historical UI/design failure review | Repository Reset 2 complete | accepted/completed — `docs/plans/completed/2026-08-13-a0-historical-ui-design-failure-review.md` |
 | A-T1 | current reality / authority audit | accepted A0 | accepted/completed — `docs/plans/completed/2026-08-13-phase-a-current-reality-authority-audit.md` |
-| B-T1 | begin Phase B product-experience research | accepted Phase A | immediate next; not started and no packet exists |
+| B-T1 | fresh product-experience research | accepted Phase A | accepted/completed — `docs/plans/completed/2026-08-13-phase-b-product-experience-research.md` |
+| C-T1 | begin Phase C Product Experience Architecture | accepted Phase B | immediate next; deliberately not started and no packet exists |
 | P5-T1 | owner public-beta decision | prior phases | blocked |
 
 ## Handoff record
@@ -225,6 +228,7 @@ Design Harness, or make the final public-beta decision.
 | 2026-08-13 | evaluator | human_owner | accepted | #364 staged post-merge A0 completion; durable guardrails; exact final head required | owner merge makes the completed record authoritative on `main` | after merge, Phase A is immediate next but remains unopened |
 | 2026-08-13 | human_owner | researcher | discovery | merged #364 at `main@157ba767`; Phase A child packet | current route/runtime/authority map not yet synthesized; no design work allowed | complete evidence-led Phase A audit only |
 | 2026-08-13 | evaluator | human_owner | accepted | Phase A audit completed; fresh evaluator clean; post-merge lifecycle staged | exact final-head provider checks and owner merge remain required | after merge, separately open Phase B research only |
+| 2026-08-13 | human_owner | researcher | accepted/completed | `main@efaba75`; durable Phase B research record and fresh evaluator | exact final-head provider checks and owner merge remain required; Phase C is deliberately unopened | after merge, separately open Phase C only when authorised |
 
 ### Current permission boundary
 
@@ -261,6 +265,7 @@ Provider Sync, P1 Secure, P2 Recover and P3 Prove are complete; P3 is archived a
 owner-observed physical-phone acceptance. PBT-AC13 remains withdrawn, PBT-AC15 remains
 open, and the program is not yet public-beta ready. Repository Reset 2 is
 accepted/completed in merged #362; A0 Historical UI / Design Failure Review is
-accepted/completed, and Phase A Current Reality / Authority Audit is accepted/completed.
-Phase B is immediate next but not started/no packet; Brand/Product Experience
-implementation has not started.
+accepted/completed, Phase A Current Reality / Authority Audit is accepted/completed,
+and Phase B Fresh Product-Experience Research is accepted/completed after this PR
+merges. Phase C is immediate next but deliberately not started and has no packet;
+Brand/Product Experience implementation has not started.
