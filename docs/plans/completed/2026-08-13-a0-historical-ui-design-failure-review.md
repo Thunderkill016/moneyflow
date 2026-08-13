@@ -2,7 +2,7 @@
 
 **Status:** accepted/completed
 **Execution state:** complete
-**Active role:** human_owner — #364 ready for owner merge; this is the completed record
+**Active role:** historical completed record — merged #364
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** PR [#364](https://github.com/Thunderkill016/moneyflow/pull/364)
@@ -25,8 +25,8 @@ failures, while preserving useful inputs for later replace-and-retire slices.
 
 ### Baseline reviewed
 
-- Source `main@c248176` records Repository Resets 1–2 accepted/completed; #364
-  carries the accepted A0 review to its post-merge lifecycle endpoint.
+- Source `main@c248176` was the A0 review baseline; merged #364 recorded the accepted
+  A0 lifecycle at `main@157ba76795c4ddc1add726e6fb6d4dd82c881c04`.
 - The current product retains a controlled presentation compatibility boundary and
   Design Harness V2; neither is changed by this review.
 
@@ -128,7 +128,7 @@ None.
 |---|---|---|---|---|
 | A0-T1 | map historical UI/design evidence and guards | packet | named primary evidence map | complete |
 | A0-T2 | write durable causal failure review | A0-T1 | `docs/research/A0_HISTORICAL_UI_DESIGN_FAILURE_REVIEW.md` | complete |
-| A0-T3 | fresh-context evaluation and delivery | A0-T2 | evaluator findings, selected gates and PR memory | complete — #364 ready for owner merge; exact final-head provider checks are required |
+| A0-T3 | fresh-context evaluation and delivery | A0-T2 | evaluator findings, selected gates and PR memory | complete — merged #364 |
 
 ## Handoff record
 
@@ -136,7 +136,7 @@ None.
 |---|---|---|---|---|---|---|
 | 2026-08-13 | human_owner | researcher | discovery | `main@c248176`; active packet; required historical evidence list | failure mechanisms not yet synthesized; no implementation authority | inspect named repository evidence only |
 | 2026-08-13 | researcher | independent evaluator | review | durable A0 review; active registry/current-memory/parent updates | fresh-context attack and final docs-only gates remain | evaluate conclusions and scope before PR delivery |
-| 2026-08-13 | independent evaluator | human_owner | accepted | fresh recheck clean; post-merge lifecycle state staged in #364 | exact final-head provider checks and owner merge are the remaining delivery boundaries | merge #364 only when its exact head is green; Phase A remains unopened |
+| 2026-08-13 | independent evaluator | human_owner | accepted | fresh recheck clean; #364 later merged at `main@157ba767` | dynamic exact-head provider detail remains PR provenance | Phase A was later opened only under its own packet |
 
 ### Current permission boundary
 
@@ -155,7 +155,7 @@ None.
 |---|---|---|
 | historical causal review | durable review drafted from named repository-primary evidence; fresh evaluator clean after corrections | pass |
 | classification and guardrails | explicit reusable/historical/legacy/candidate classification and requirements; fresh evaluator clean | pass |
-| scope/lifecycle coherence | post-merge registry has Trust parent only; A0 completed; Phase A/implementation remain not started; no runtime/UI diff | pass |
+| scope/lifecycle coherence | merged #364 made registry parent-only and A0 completed; Phase A/implementation remained not started at that point; no runtime/UI diff | pass |
 
 ### Remaining limitations
 
@@ -164,8 +164,8 @@ None.
 ## Delivery record
 
 - Branch: `review/a0-historical-ui-design-failures`
-- PR: [#364](https://github.com/Thunderkill016/moneyflow/pull/364) ready for owner merge
-- CI run: exact final PR head provider checks are required before owner merge; selected
+- PR: [#364](https://github.com/Thunderkill016/moneyflow/pull/364) merged
+- CI run: merge-time dynamic exact-head detail remains in PR provenance; selected
   Class 0 local gates are recorded in PR memory
-- Work packet moved to `docs/plans/completed/`: yes — accepted/completed record that
-  becomes authoritative on `main` when #364 merges
+- Work packet moved to `docs/plans/completed/`: yes — accepted/completed record made
+  authoritative on `main` by merged #364

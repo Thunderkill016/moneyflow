@@ -14,5 +14,6 @@ closed packet here. Completed accepted work moves to `../completed/`; superseded
 abandoned or unaccepted work moves to `../archived/`, which never implies acceptance.
 
 Repository Resets 1–2 and A0 Historical UI / Design Failure Review are
-accepted/completed. Phase A Current Reality / Authority Audit is the immediate next
-work, but is not started and has no active packet. PBT-AC15 remains open.
+accepted/completed. Phase A Current Reality / Authority Audit is accepted/completed in
+its completed record. Phase B product-experience research is the immediate next phase;
+it is not started and has no packet. PBT-AC15 remains open.
