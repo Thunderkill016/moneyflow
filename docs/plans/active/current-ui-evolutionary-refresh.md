@@ -160,9 +160,13 @@ Design System v3; Design Harness modification; territory selection.
 
 ### Acceptance evidence
 
-Recorded in the PR: doctor classification, Class 2 gate output, Design Harness V2
-artifacts for `/dashboard` and `/transactions` at 1440 / 390×844 / 390×568, and the
-independent evaluation with its fixes.
+Recorded in the PR: doctor classification, Class 2 gate output, and the independent
+evaluation with its fixes. Evidence types are kept distinct:
+
+- **Design Harness V2 artifacts:** `/dashboard` and `/transactions` at **1440×900** and
+  **390×844** — the only viewports the harness encodes.
+- **390×568:** targeted browser measurement only. It is **not** a Design Harness V2
+  artifact and **not** physical-device evidence.
 
 ### Measured outcomes, including where the trade is negative
 
