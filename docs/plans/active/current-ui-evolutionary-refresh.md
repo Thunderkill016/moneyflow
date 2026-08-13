@@ -104,8 +104,11 @@ fix must be presentation-only.
       `!important`.
 - [ ] **UI1-AC8** Dark mode receives equivalent treatment, not inversion.
 - [ ] **UI1-AC9** Motion is structural only; reduced motion remains valid.
-- [ ] **UI1-AC10** Design Harness V2 evidence exists for `/dashboard` and
-      `/transactions` at 1440, 390×844 and 390×568.
+- [x] **UI1-AC10** Design Harness V2 evidence exists for `/dashboard` and
+      `/transactions` at the two viewports the harness encodes — 1440×900 and
+      390×844. **The harness does not encode 390×568**, and this packet may not
+      modify it, so that viewport is covered by targeted browser measurement
+      instead. This is a named limitation, not a harness artifact.
 
 ### Out of scope
 
@@ -159,9 +162,38 @@ Recorded in the PR: doctor classification, Class 2 gate output, Design Harness V
 artifacts for `/dashboard` and `/transactions` at 1440 / 390×844 / 390×568, and the
 independent evaluation with its fixes.
 
+### Measured outcomes, including where the trade is negative
+
+| State | main | this slice |
+|---|---|---|
+| mobile toolbar, no filter | 777px | **271px** |
+| mobile toolbar, filter active | 777px | **641px** |
+| desktop toolbar, no filter | 261px | **155px** |
+| desktop toolbar, filter active | 261px | **369px** |
+
+Three of the four states improve; **desktop with a filter active is 108px worse**
+than main, because the disclosure opens and adds its own header above the same
+grids. That is stated here rather than quoting only the unfiltered win, which is what
+the first draft of this packet did.
+
+Summary and manager now share one edge (measured seam 0px desktop, −2px mobile from
+border overlap); previously an 18px canvas gap left the summary as a card with no
+bottom edge.
+
+The filter ground was changed from `--mf-surface-muted` to `--mf-canvas` because in
+dark mode surface-muted is *brighter* than the manager surface, so the band advanced
+instead of receding. Measured relative luminance now: light 0.954 vs 1.000, dark
+0.0057 vs 0.0092 — below the card in both themes.
+
 ### Remaining limitations
 
 - "Materially better" is an owner judgement; this packet cannot prove it.
+- Desktop-with-filter is a genuine regression against main on vertical space, traded
+  for a large unfiltered win at every viewport and a filtered win on phones.
+- "Reduce card soup" is honest but modest: the planning nav lost its container and
+  the Transactions seam closed. Below the statement, Overview is still a stacked set
+  of panels.
+- Harness evidence covers 1440 and 390×844; 390×568 is browser measurement only.
 - No physical-device run is claimed for this slice; harness evidence is emulated.
 - The refresh is evolutionary: it does not resolve the Phase E territory question, and
   the owner's rejection of all candidates stands.

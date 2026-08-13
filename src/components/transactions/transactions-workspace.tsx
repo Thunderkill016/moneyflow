@@ -298,6 +298,22 @@ export function TransactionsWorkspace({
   ].filter(Boolean).length;
   const hasSecondaryFilter = secondaryFilterCount > 0;
 
+  /**
+   * The disclosure latches open; it never closes itself.
+   *
+   * Deriving `open` straight from `hasSecondaryFilter` also auto-*closed* the panel:
+   * clearing a filter back to its neutral value collapsed the group under the user's
+   * hands, taking focus away from the control they were operating. Opening on demand
+   * is the useful half of that behaviour, so only the opening is automatic.
+   *
+   * The latch is seeded from the initial filter state and thereafter carried by
+   * `onToggle` rather than an effect. Seeding matters: the browser fires no toggle
+   * event for a panel that is already open on mount, so a query-string-restored
+   * filter would otherwise slam shut the moment it was cleared.
+   */
+  const [userOpenedFilters, setUserOpenedFilters] = useState(hasSecondaryFilter);
+  const filtersOpen = userOpenedFilters || hasSecondaryFilter;
+
   const filtered = useMemo(
     () =>
       filterTransactions(transactions, {
@@ -797,7 +813,15 @@ export function TransactionsWorkspace({
               and behaviour, and the group opens automatically whenever any of these
               filters is active, so a query-string-restored filter is never hidden.
             */}
-            <details className={styles.moreFilters} open={hasSecondaryFilter}>
+            <details
+              className={styles.moreFilters}
+              open={filtersOpen}
+              onToggle={(event) =>
+                setUserOpenedFilters(
+                  (event.currentTarget as HTMLDetailsElement).open,
+                )
+              }
+            >
               <summary className={styles.moreFiltersSummary}>
                 <span>Bộ lọc khác</span>
                 {secondaryFilterCount > 0 ? (

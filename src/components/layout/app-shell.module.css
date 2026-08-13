@@ -1,5 +1,8 @@
 :global(html[data-moneyflow-shell="mounted"]) {
-  --mf-shell-mobile-nav-height: 66px;
+  /* 70px is the bar's measured rendered height: the capture item is taller than a
+     plain destination, so the tallest child sets the bar. Keeping the variable equal
+     to what renders is the whole point of routing every clearance through it. */
+  --mf-shell-mobile-nav-height: 70px;
   /* The bar now floats, so its outer inset is part of what content must clear.
      Everything downstream — content padding, focus clearance, toast placement —
      reads this one value, so the inset can never be forgotten in one of them. */
@@ -20,7 +23,10 @@
 }
 
 .shell {
-  --mf-shell-mobile-nav-height: 66px;
+  /* 70px is the bar's measured rendered height: the capture item is taller than a
+     plain destination, so the tallest child sets the bar. Keeping the variable equal
+     to what renders is the whole point of routing every clearance through it. */
+  --mf-shell-mobile-nav-height: 70px;
   /* The bar now floats, so its outer inset is part of what content must clear.
      Everything downstream — content padding, focus clearance, toast placement —
      reads this one value, so the inset can never be forgotten in one of them. */

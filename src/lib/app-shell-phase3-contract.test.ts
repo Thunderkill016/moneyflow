@@ -66,7 +66,7 @@ test("viewport and safe-area geometry are explicit and single-owner", () => {
   // Geometry updated by the evolutionary UI refresh: the bar floats, so its height
   // shrank while the touch target stayed above the 44px product floor, and the reserve
   // now includes the floating inset so content still clears it.
-  assert.match(appShellStyles, /--mf-shell-mobile-nav-height:\s*66px/u);
+  assert.match(appShellStyles, /--mf-shell-mobile-nav-height:\s*70px/u);
   assert.match(appShellStyles, /--mf-shell-mobile-nav-inset:\s*10px/u);
   assert.match(
     appShellStyles,
@@ -85,7 +85,7 @@ test("viewport and safe-area geometry are explicit and single-owner", () => {
 
 test("server-rendered shell owns mobile reserve before the mounted document marker", () => {
   const shellOwner = appShellStyles.match(/\.shell\s*\{([^}]*)\}/u)?.[1] ?? "";
-  assert.match(shellOwner, /--mf-shell-mobile-nav-height:\s*66px/u);
+  assert.match(shellOwner, /--mf-shell-mobile-nav-height:\s*70px/u);
   assert.match(shellOwner, /--mf-shell-mobile-nav-inset:\s*10px/u);
   assert.match(shellOwner, /--mf-shell-mobile-nav-reserve:\s*calc\(/u);
   assert.match(shellOwner, /--mf-shell-layer-mobile-nav:\s*50/u);

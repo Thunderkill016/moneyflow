@@ -1,6 +1,7 @@
 .workspace {
+  --mf-workspace-gap: 18px;
   display: grid;
-  gap: 18px;
+  gap: var(--mf-workspace-gap);
   width: min(100%, 1180px);
   min-width: 0;
   margin: 0 auto;
@@ -89,6 +90,10 @@
   border-bottom: 0;
   border-radius: 16px 16px 0 0;
   background: var(--mf-surface);
+  /* Summary and manager are grid siblings, so the workspace gap would otherwise
+     reopen the seam these two just closed and leave a card with no bottom edge.
+     The offset is tied to the gap variable so the two can never drift apart. */
+  margin-bottom: calc(var(--mf-workspace-gap) * -1);
 }
 
 .summaryItem {
@@ -144,7 +149,10 @@
   min-width: 0;
   padding: 14px 18px;
   border-bottom: 1px solid var(--mf-border-subtle);
-  background: var(--mf-surface-muted);
+  /* Canvas, not surface-muted: in dark, surface-muted is brighter than the manager
+     surface, so the filter band advanced instead of receding. Canvas is a step
+     *below* the card in both themes, which is what "quieter" has to mean. */
+  background: var(--mf-canvas);
 }
 
 .searchField,
@@ -247,7 +255,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   width: fit-content;
   border-radius: 8px;
   color: var(--mf-text-muted);
@@ -292,16 +300,16 @@
 
 .moreFiltersBody {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
-  padding-top: 12px;
+  padding-top: 10px;
 }
 
 .selectGrid,
 .rangeFilters {
   grid-column: 1 / -1;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -749,9 +757,12 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  /* Two-up rather than a single stacked column: seven secondary filters in one
+     column made the opened panel taller than the always-open toolbar it replaced,
+     which would have made the filtered case worse than before. */
   .selectGrid,
   .rangeFilters {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .selectionToolbar,
