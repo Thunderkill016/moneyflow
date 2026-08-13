@@ -2,9 +2,7 @@
 
 **Status:** the single current implementation-status authority
 **Last reconciled:** 2026-08-13
-**Source main baseline:** `c248176b6ab60b8acf331b5f6e9a2c7908f724ac` (`#363` merged)
-**Post-merge authority:** #364's exact final PR head becomes `main` truth on owner
-merge; the merge commit SHA is intentionally not guessed before that event.
+**Current main baseline:** `157ba76795c4ddc1add726e6fb6d4dd82c881c04` (`#364` merged)
 **Routing:** use `docs/context/README.md`; open
 `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only for a named provenance need.
 
@@ -19,15 +17,16 @@ The repository is **not public-beta ready**. MoneyFlow Trust Provider Sync, P1 S
 P2 Recover and P3 Prove are accepted. P3 is based on owner-observed physical-phone
 acceptance, not a signed/filed evidence run. The exact program order is:
 
-> Phase A Current Reality / Authority Audit → Brand/Product Experience rebuild B→J
+> Phase A Current Reality / Authority Audit → Phase B product-experience research
+> → Brand/Product Experience rebuild B→J
 > → final physical/device
 > visual QA → owner public-beta decision.
 
 `docs/plans/active/public-beta-trust.md` owns that program order. The active-packet
-registry lists only the Trust parent: Repository Resets 1–2 and A0 Historical UI /
-Design Failure Review are accepted/completed. Phase A Current Reality / Authority
-Audit is immediate next, but is not started and has no packet; no Brand/Product
-Experience implementation has started.
+registry lists only the Trust parent: Repository Resets 1–2, A0 Historical UI / Design
+Failure Review and Phase A Current Reality / Authority Audit are accepted/completed.
+Phase B product-experience research is immediate next, not started and has no packet;
+Brand/Product Experience implementation is also not started.
 
 ## 2. Current runtime and trust boundaries
 
@@ -103,8 +102,10 @@ unless a future approved packet names them as current design authority.
   work.
 - A0 Historical UI / Design Failure Review is accepted/completed; its durable
   guardrails are at `docs/research/A0_HISTORICAL_UI_DESIGN_FAILURE_REVIEW.md`.
-- Phase A Current Reality / Authority Audit is immediate next. It is not started and
-  has no packet.
+- Phase A Current Reality / Authority Audit is accepted/completed in
+  `docs/plans/completed/2026-08-13-phase-a-current-reality-authority-audit.md`.
+- Phase B product-experience research is immediate next, not started and has no packet;
+  implementation remains not started.
 - The owner public-beta decision is blocked on the ordered work above and remains
   the only PBT-AC15 closure authority.
 
@@ -117,25 +118,25 @@ candidate evidence, never current truth.
 
 ## 10. True gaps after this audit
 
-1. Separately start Phase A Current Reality / Authority Audit.
+1. Separately start Phase B product-experience research.
 2. Execute Brand/Product Experience B→J only in later approved packets.
 3. Perform final physical/device visual QA on that rebuilt experience.
 4. Obtain the owner’s public-beta decision and record accepted limitations.
 
 ## 11. Next allowed action
 
-Phase A Current Reality / Authority Audit is immediate next but deliberately not
-started and has no packet. Do not begin it, implement Brand/UI work, modify Design
-Harness, or make provider or production changes until separately authorized.
+Phase B product-experience research is immediate next but deliberately not started and
+has no packet. Do not begin it, implement Brand/UI work, modify Design Harness, or make
+provider or production changes until separately authorized.
 
 ## 12. Superseded-status register
 
 - “P3 Prove is open” and “P4 Improve is next” are superseded. P3 is accepted;
   Repository Reset 1 is accepted and Repository Reset 2 precedes Brand/Product
   Experience.
-- “Repository Reset 1, Reset 2 or A0 is the current task” is superseded by completed
-  packets; Phase A is immediate next but not started, and implementation is not
-  started.
+- “Repository Reset 1, Reset 2, A0 or Phase A is the current task” is superseded by
+  completed packets; Phase B is immediate next but not started, and implementation is
+  not started.
 - The prior seven-day self-use gate is withdrawn; no duration substitute exists.
 - Historical packets in `docs/plans/archived/` are not active work and never imply
   acceptance. Historical UI evidence remains available for A0 review.
