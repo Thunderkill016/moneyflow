@@ -16,11 +16,11 @@ locked strategy. They are not one design in three accent colours; they disagree 
 what the product's visual language should treat as the hero, and therefore about
 composition, density, typography, motion and how money reads.
 
-| | **A — Sổ Cái** (The Register) | **B — Biên Nhận** (The Attested Record) | **C — Bản Ghi & Bản Sửa** (State and Amendment) |
+| | **A — Trang Sổ** (The Ruled Register) | **B — Biên Nhận** (The Attested Record) | **C — Bản Ghi & Bản Sửa** (State and Amendment) |
 |---|---|---|---|
 | Hero | the **collection** — the continuous register | the **object** — one record and where it came from | the **timeline** — the ledger's state and how it changed |
 | Traceability is… | **spatial**: a figure is a collapsed view of rows and expands into them | **attestational**: each record carries its own origin marks | **temporal**: any figure can be rewound to the records that produced it |
-| Correction reads as… | a new line in the register | a re-attested record | **the hero mechanism itself** |
+| Correction reads as… | an edit to the row that is wrong, undone or restored in place | a re-attested record | **the hero mechanism itself** |
 | Governing structure | rules, columns, running position | the bounded record object | the state marker and its amendments |
 
 All three are candidate names only. None is current authority.
@@ -59,6 +59,19 @@ regardless of how it looks.
 | Transfers | neutral; never income or expense |
 | Runtime | demo and authenticated visibly distinct |
 | Ownership | complete backup ≠ scoped report export |
+| Trust breakers B1–B9 | Phase D addresses these to this phase **by name**, as design constraints. The ones biting hardest here: a figure must never be wrong even briefly, a total must never be unreachable from its records, and an irreversible action must never look ordinary |
+| Emotional transformation | guesswork→evidence, opacity→traceability, fear→recoverable control — as mechanism, never as atmosphere |
+| Controlled vocabulary | Phase D §11's concept distinctions survive any labelling a territory implies |
+| Audience and positioning anchor | behavioural audience, no demographic invention; positioning anchors the unverifiable-total failure mode, **not a competitor** |
+| Proof discipline | a territory may express a property the product enforces, never a verification that has not happened |
+
+### The four reserved semantic hues
+
+Independently of Fresh Blue, the shipped system reserves **green** for income and
+success, **red** for expense, danger and destructive errors, **amber** for warning and
+attention, and **violet** for transfers and neutral money movement. A territory wanting a
+new chromatic dimension — provenance in B, state in C — may not take it from those four,
+or a new meaning collides with a financial one. This constrained C materially; see §6.
 
 ### Fresh Blue
 
@@ -85,7 +98,7 @@ what already exists.
 - Signal Ledger's thesis — a **warm paper canvas**, an **editorial** register, dark
   information stages, and a **"what needs attention next" decision system**.
 
-§17 of each territory records what it refuses to copy, and the attention-triage framing
+Element 17 of each territory records what it refuses to copy, and the attention-triage framing
 is refused by all three: it contradicts *Deferential*.
 
 ---
@@ -177,30 +190,32 @@ visual-trend survey.
 
 ---
 
-## 4. Territory A — **Sổ Cái** *(The Register)*
+## 4. Territory A — **Trang Sổ** *(The Ruled Register)*
 
 *Candidate name only. Not current authority.*
 
-**1. Core thesis.** A trusted ledger earns trust by being **one continuous, inspectable
+**1. Territory name.** **Trang Sổ** — *the ruled register*. A candidate name for this phase only; it is not current authority, not a product label, and not a route name.
+
+**2. Core thesis.** A trusted ledger earns trust by being **one continuous, inspectable
 register** in which every figure is visibly a collapsed view of the rows beneath it — so
 the interface's central object is the register itself, not a dashboard assembled from it.
 
-**2. Hero idea.** The **collection**. What is visually central is the run of records with
+**3. Hero idea.** The **collection**. What is visually central is the run of records with
 their running position: date, kind, account, amount, and the balance the row produced.
 An aggregate is a *heading over rows*, never a free-standing card.
 
-**3. Visual metaphor.** The **ruled register spread** — the bound account book and the
+**4. Visual metaphor.** The **ruled register spread** — the bound account book and the
 bank passbook, where ruled lines and fixed columns do the organising work. Concretely:
 horizontal rules that mean row boundaries, vertical alignment that means comparability,
 and a right-hand position reserved for money. Not paper texture, not warmth, not
 skeuomorphism — the *ruling system*, abstracted.
 
-**4. Composition philosophy.**
+**5. Composition philosophy.**
 - **Density:** high and deliberate. A phone screen shows many rows, not three cards.
 - **Hierarchy:** established by rule weight and alignment rather than by size jumps or
   colour. A section heading is a heavier rule; a subtotal is a rule plus a shifted baseline.
-- **Whitespace:** rhythmic rather than generous — consistent row height creates calm
-  through repetition, which is how a register feels unhurried without being sparse.
+- **Whitespace:** rhythmic rather than generous — consistent row height creates steadiness
+  through repetition, which is how a register reads as unhurried without being sparse.
 - **Grouping:** by time band and by account, expressed as rule-bounded regions. **No
   cards** — cards are Calm Ledger's device and they fragment a register.
 - **Information rhythm:** one scan direction (down the amount column), one comparison
@@ -209,10 +224,10 @@ skeuomorphism — the *ruling system*, abstracted.
   in place* into its contributing rows. Traceability is literally the act of opening
   something.
 
-**5. Colour direction.**
+**6. Colour direction.**
 - **Primary family:** ink — a deep desaturated blue-black for text and rules, with a
-  single mid-blue action colour. This is the one territory that stays近 the current
-  Fresh Blue action family, deliberately, so the owner has a low-migration option.
+  single mid-blue action colour. This is the one territory that stays close to the current
+  Fresh Blue action family; §9 states the cost consequence rather than arguing it here.
 - **Neutrals:** cool paper-white surfaces and a graduated rule scale (hairline, row,
   section, total). The neutral scale is the system.
 - **Semantic money:** income, expense and transfer are **not** hue-first. Hue is a
@@ -224,66 +239,91 @@ skeuomorphism — the *ruling system*, abstracted.
   non-text contrast minimums at every step of the scale, and must survive user
   zoom and forced-colours mode. This is the territory's single biggest risk.
 
-**6. Typography direction.**
+**7. Typography direction.**
 - **Characteristics:** one grotesque family with a true tabular lining figure set,
   a real small-caps or all-caps label style for column heads, and at least four weights
   so hierarchy can come from weight rather than size.
 - **Vietnamese:** the face must be *designed* for Vietnamese, with laterally offset tone
   marks; line-height budgeted for stacked marks at row density (R4). Row height is the
-  constraint — this territory is the most likely of the three to clip diacritics.
+  constraint — this territory is the most likely of the three to clip diacritics. A second,
+  less obvious risk sits on a channel element 11 depends on: **column heads set in caps or
+  small caps.** Vietnamese tone marks in capitals are where families most often lose
+  coverage or draw the marks poorly, and small-cap diacritic support is patchy even in
+  otherwise Vietnamese-capable faces. Because the kind label carries meaning here, it must
+  be verified in the exact case treatment A uses, not only at text size.
 - **Numerals:** tabular by default everywhere money appears, so columns align and digit
   changes do not reflow. Proportional figures only in prose.
 - **Hierarchy character:** quiet and structural; size range narrow.
 - **Why it fits:** *Exact* and *Legible* are carried by alignment and tabular figures;
   a narrow size range keeps it *Unhurried*.
 
-**7. Graphic language.** Rules are the entire vocabulary: hairline (row), medium
+**8. Graphic language.** Rules are the entire vocabulary: hairline (row), medium
 (group), heavy (total). Surfaces are flat; elevation is reserved for genuine overlays.
 Data marks are inline and small — a bar drawn *inside* a row rather than a separate
 chart. Provenance appears as a compact origin column, not a badge. No illustration; no
 photography.
 
-**8. Iconography.** Minimal and monoline, at one weight matching the rule scale. Icons
-are used for *actions*, never to carry financial meaning. Money kinds get glyphs
-(§11), not pictograms.
+**9. Iconography.** Deliberately the **thinnest icon vocabulary of the three**. Icons
+appear only where an action has no good Vietnamese label, drawn monoline at the weight of
+the rule scale so they read as part of the ruling system rather than as objects placed on
+it. Kind marks are typographic glyphs in the row grid, not pictograms. A's bet is that a
+register needs almost no icons at all.
 
-**9. Motion philosophy.** Motion communicates **expansion and lineage**: opening an
+**10. Motion philosophy.** Motion communicates **expansion and lineage**: opening an
 aggregate into its rows is the one animated idea, and the animation shows containment
 (rows emerge from under their heading). Never animate: a money value counting up, a
 balance changing, or a row's arrival at the top of the register. Reduced motion: the
 expansion becomes instantaneous, never a fade-in of numbers.
 
-**10. Money presentation.** Position + sign + glyph + weight, with hue last. See §11.
+**11. Money system — how kind survives without colour.** A carries a weakness the
+comparison must not hide: its single amount column means **column position cannot separate
+income from expense**. The honest channels are therefore (a) an explicit `+`/`−` on the
+amount, (b) a small directional glyph in a fixed kind cell that is part of the row grid,
+and (c) the column head naming the kind in Vietnamese. Transfers take **no sign**, are set
+at text weight so they recede from signed movement, and carry their own glyph. **Balance**
+is a running position in its own column and never takes a sign — so balance and transfer,
+both signless, are separated by *column*, not by sign. Hue confirms only. **Mobile
+consequence:** collapsing to a two-line row removes the column channel, so the kind cell
+and its glyph must survive the collapse — see element 13.
 
-**11. Product implications.** *Overview* becomes a short set of expandable headings over
-real rows rather than a card grid. *Transactions/history* is the flagship and needs the
-least change conceptually. *Manual capture* stays a fast overlay that returns you to the
+**12. Product implications.** **Recovery comes first, because Phase D requires every
+territory to express it.** The shipped mechanism is specific — a delete raises a time-boxed
+undo notice, and after it expires a restore path remains — and in A that reads as *staying
+in the register*: the row being corrected is edited in place, and the undo notice appears
+without displacing the rows around it, so the register never reorders under the user's hand
+while they are deciding. A deleted row leaves, but the notice holds the reading position it
+occupied. Correction here is deliberately undramatic, which is the trade: A is the least
+expressive of the three on recovery, and the matrix says so rather than hiding it.
+
+Across surfaces: *Overview* becomes a short set of expandable headings over real rows
+rather than a card grid. *Transactions/history* is the flagship and needs the least change
+conceptually. *Manual capture* stays a fast overlay that returns you to the
 register with the new row visible in place. *Accounts* becomes a register per account
 with running balance. *Reports* are register sections with a period heading and drill.
 *Plan* is visually the weakest here and must be given its own quieter rhythm so it does
 not read as ledger truth. *Advanced review* is a staging register, visually distinct
 from the ledger. *Ownership/settings* is plain and unstyled by comparison.
 
-**12. Mobile/desktop.** Mobile is the risk case: fixed columns must collapse to a
+**13. Mobile/desktop.** Mobile is the risk case: fixed columns must collapse to a
 two-line row that preserves the amount's right alignment. Desktop gains real columns and
 is where the territory is strongest. The same rule scale governs both.
 
-**13. Brand-strategy fit.** *Exact* — alignment and tabular figures make comparison
+**14. Brand-strategy fit.** *Exact* — alignment and tabular figures make comparison
 exact. *Unhurried* — repetition, not drama. *Accountable* — the correction path sits in
 the row that is wrong. *Deferential* — no triage, no verdicts, only records in order.
 *Legible* — one term per column head, consistent everywhere.
 
-**14. Deliberate risks.** It can read as a **spreadsheet**, which Phase D's personality
+**15. Deliberate risks.** It can read as a **spreadsheet**, which Phase D's personality
 boundary explicitly excludes. Dense rows plus Vietnamese diacritics is a genuine
 legibility risk. Hairline hierarchy is fragile in dark mode, at zoom and in
 forced-colours. It flatters history and position and is least flattering to planning.
 
-**15. Build/migration cost — LOW to MEDIUM.** The current product is already
+**16. Build/migration cost — LOW to MEDIUM.** The current product is already
 route/table-shaped, the action-colour family is close to what ships, and Phase C's target
 puts Transactions at the centre anyway. Cost concentrates in one place: building a real
 expandable aggregate-to-rows mechanism, which does not exist today.
 
-**16. Refuses to copy.** Calm Ledger's card grouping and single-accent identity.
+**17. Refuses to copy.** Calm Ledger's card grouping and single-accent identity.
 Enterprise GL terminology and density. Any dashboard-of-cards convention. The
 attention-triage framing.
 
@@ -293,22 +333,24 @@ attention-triage framing.
 
 *Candidate name only. Not current authority.*
 
-**1. Core thesis.** A trusted ledger earns trust **one record at a time** — each entry is
+**1. Territory name.** **Biên Nhận** — *the attested record*. A candidate name for this phase only; it is not current authority, not a product label, and not a route name.
+
+**2. Core thesis.** A trusted ledger earns trust **one record at a time** — each entry is
 a small attested object that carries where it came from, who accepted it and when, so
 provenance is visible on the record itself rather than reachable through navigation.
 
-**2. Hero idea.** The **object**. The single record, examinable in full: its amount, its
+**3. Hero idea.** The **object**. The single record, examinable in full: its amount, its
 account, its origin (typed by you / from a file you supplied), its amendment history, and
 its effect on the balance. The register exists, but it is a *list of objects*, and the
 object is where the design energy goes.
 
-**3. Visual metaphor.** The **countersigned slip** — a receipt or voucher whose
+**4. Visual metaphor.** The **countersigned slip** — a receipt or voucher whose
 authority comes from its marks: an origin stamp, a timestamp, a signature line. The
 transferable idea from R2 is that origin is a *property printed on the thing*. Not
 paper texture and not nostalgia; the **stamp-and-field structure** of an attested
 document.
 
-**4. Composition philosophy.**
+**5. Composition philosophy.**
 - **Density:** moderate in the list, low and generous inside a record. The product
   breathes at the point where trust is established.
 - **Hierarchy:** amount first, kind and account second, provenance marks third but always
@@ -322,7 +364,7 @@ document.
   produced it, and each of those states its own origin. Traceability is established at
   the leaf rather than along the path.
 
-**5. Colour direction.**
+**6. Colour direction.**
 - **Primary family:** a desaturated ink-teal, deliberately away from Fresh Blue, so the
   owner sees a genuinely different option. Action colour is a single saturated step of
   that family.
@@ -331,14 +373,14 @@ document.
 - **Provenance chroma:** a restrained secondary family reserved *only* for origin marks
   (typed / imported / restored). This is the territory's distinguishing colour idea and
   must never be reused for money.
-- **Semantic money:** as §11; hue is confirmation only.
+- **Semantic money:** as element 11; hue is confirmation only.
 - **Light/dark:** the two-plane system inverts cleanly. The provenance family must be
   re-picked for dark, not merely lightened.
 - **Accessibility risks:** two colour systems (money semantics and provenance) coexisting
   is the risk — they must never be confusable, and provenance must also be readable as
   text, never as colour alone.
 
-**6. Typography direction.**
+**7. Typography direction.**
 - **Characteristics:** a two-family pairing — a humanist text face for record fields and
   provenance notes, and a distinct numeric treatment for the attested amount. The amount
   should feel *inscribed* rather than merely set.
@@ -352,24 +394,33 @@ document.
 - **Why it fits:** *Accountable* is literally printed on the record; *Legible* benefits
   from generous text setting.
 
-**7. Graphic language.** Field rules and label/value pairs; a defined record edge; an
-origin mark set (a small typographic stamp, not an illustration). Data marks are rare —
-this territory does not want charts near a record. Provenance cues are the graphic
-system. No illustration; no photography.
+**8. Graphic language.** Field rules and label/value pairs; a defined record edge; an
+origin mark set (a small typographic stamp, not an illustration). Data marks are rare — this
+territory does not want a chart near a record. Provenance cues are the graphic system.
+Illustration is refused for a specific reason rather than by default: an illustrated
+receipt becomes a picture of a document instead of a document.
 
-**8. Iconography.** A small, deliberately restricted set: origin, amendment, recovery,
-attachment. Icons here carry *meaning* and therefore always ship with a text label — no
-icon-only provenance.
+**9. Iconography.** The opposite bet from A: icons here are **meaning-bearing marks
+rather than action affordances** — origin, amendment, recovery, attachment — drawn as small
+stamps with enough weight to read as attestation instead of UI chrome. Because they carry
+meaning they always ship with a text label; there is no icon-only provenance anywhere.
 
-**9. Motion philosophy.** Motion communicates **attestation and amendment**: a record
+**10. Motion philosophy.** Motion communicates **attestation and amendment**: a record
 committing, and a record being amended or restored. The list itself barely moves. Never
 animate: an amount, a balance, or the origin marks. Reduced motion: state changes are
 immediate; the record's new state is announced in text.
 
-**10. Money presentation.** See §11 — this territory has the strongest non-colour story
-because the record states its kind in words.
+**11. Money system — how kind survives without colour.** Inside a record B is the
+strongest of the three: the kind is a **named field in Vietnamese**, so nothing is
+inferred. The honest weakness is the **list**, where most money is actually read and where
+a compact attestation has far less room. B therefore requires a list row to carry (a) the
+sign, (b) the kind glyph and (c) a short kind word — not the field label counted twice,
+which would be one channel wearing two names. Transfers are signless and named.
+**Balance** appears only as an account position and never in the record stream, which is
+what separates it from a signless transfer. The provenance chroma must never be readable
+as a money hue.
 
-**11. Product implications.** *Overview* is the weakest fit and must resist becoming a
+**12. Product implications.** *Overview* is the weakest fit and must resist becoming a
 gallery of objects; it should stay a short summary that links into records. *Transactions*
 becomes a list of compact attestations that open into full objects. *Manual capture*
 gains the most: entry is the moment of attestation, so the capture form and the record
@@ -378,29 +429,34 @@ careful — aggregates are not attested objects and must not borrow the record's
 authority. *Plan* reads clearly as *not* a record, which is a strength. *Advanced review*
 is where provenance already exists and fits naturally. *Ownership/settings* is plain.
 
-**12. Mobile/desktop.** Strongest on mobile of the three — an object-per-screen model is
+**13. Mobile/desktop.** Strongest on mobile of the three — an object-per-screen model is
 natively phone-shaped. Desktop must avoid becoming a sparse list with a lot of empty
 space; it likely needs a list-plus-record two-pane arrangement.
 
-**13. Brand-strategy fit.** *Exact* — every field is named and shown. *Unhurried* — the
+**14. Brand-strategy fit.** *Exact* — every field is named and shown. *Unhurried* — the
 record is examined, not skimmed. *Accountable* — provenance and amendment are on the
 object. *Deferential* — the record states facts and offers no verdict. *Legible* — labels
 in Vietnamese, always paired with values.
 
-**14. Deliberate risks.** It can **over-ceremonialise routine entry**, which directly
+**15. Deliberate risks.** It can **over-ceremonialise routine entry**, which directly
 threatens fast capture — the daily loop must stay quick, and a territory about
 attestation can make a 5-second action feel weighty. Low list density weakens "know
 current position" and period scanning. Two colour systems risk confusion. Provenance
 marks on every row can become visual noise once most rows are simply "typed".
 
-**15. Build/migration cost — MEDIUM to HIGH.** A record-object surface does not exist
+**16. Build/migration cost — MEDIUM to HIGH.** A record-object surface does not exist
 today; provenance is currently a property of Inbox candidates rather than of ledger rows,
 so surfacing origin on every record is a data-presentation change with a real
 dependency. The colour direction is a full retoken.
 
-**16. Refuses to copy.** Signal Ledger's warm paper and editorial register. Receipt
+**17. Refuses to copy.** Signal Ledger's warm paper and editorial register. Receipt
 skeuomorphism — no torn edges, no perforations, no paper texture. Banking-app card
-metaphors. Immutability from R2.
+metaphors. Immutability from R2. And, most important for this territory, **Calm Ledger's
+card device**: Calm Ledger's actual thesis was border-defined one-idea groups with shadows
+reserved for overlays, which is uncomfortably close to what a record object could become by
+accident. B is distinguished by *what the boundary is for* — a Calm Ledger card grouped an
+idea; B's edge bounds an attested object whose fields and origin marks are the content. If
+a record ever reads as a styled card, this territory has failed.
 
 ---
 
@@ -408,23 +464,25 @@ metaphors. Immutability from R2.
 
 *Candidate name only. Not current authority.*
 
-**1. Core thesis.** A trusted ledger earns trust by being **honest about change** — the
+**1. Territory name.** **Bản Ghi & Bản Sửa** — *state and amendment*. A candidate name for this phase only; it is not current authority, not a product label, and not a route name.
+
+**2. Core thesis.** A trusted ledger earns trust by being **honest about change** — the
 current state is always clearly marked as current, every amendment is visible as an
 event rather than an erasure, and any figure can be understood as "the state produced by
 these records, as of now."
 
-**2. Hero idea.** The **timeline of the ledger's own state**. What is visually central is
+**3. Hero idea.** The **timeline of the ledger's own state**. What is visually central is
 the distinction between *what is true now* and *what changed to make it true*.
 Correction and recovery stop being a safety net and become the product's most
 characteristic behaviour.
 
-**3. Visual metaphor.** The **amended entry** — the struck-and-restated line and the
+**4. Visual metaphor.** The **amended entry** — the struck-and-restated line and the
 marginal correction, as used in a kept book where you may not erase. The transferable
 mechanism from R3 is that history is a sequence of states and a correction is an event in
 it. Concretely: a current-state layer and a superseded layer, visually distinct and both
 legible.
 
-**4. Composition philosophy.**
+**5. Composition philosophy.**
 - **Density:** medium, with a persistent structural distinction between current and
   prior state.
 - **Hierarchy:** current state is always dominant; superseded content is present but
@@ -437,11 +495,15 @@ legible.
   the only territory where the *history of a number*, not just its composition, is
   expressible.
 
-**5. Colour direction.**
-- **Primary family:** a neutral-forward system with a single restrained accent —
-  deliberately the least chromatic of the three, because chroma is spent on **state**,
-  not identity. A muted amber-adjacent family marks amendment; the accent is a cool
-  slate.
+**6. Colour direction.**
+- **Primary family:** a neutral-forward system with a single restrained accent — a cool
+  slate — and deliberately the least chromatic of the three.
+- **State is expressed without any new hue.** The obvious move, an amber-adjacent family
+  for amendment, is **refused**: amber is reserved for warning and attention, and
+  colouring routine corrections with the warning family would contradict this territory's
+  own rule that change is shown as record, never as alert. Green, red and violet are
+  likewise unavailable. State is therefore carried by weight, an explicit state rule and
+  the state word — which also removes the accessibility trap of state-by-chroma.
 - **Neutrals:** a wide, carefully stepped neutral ramp is the core asset — current,
   demoted and disabled must each be distinguishable *and* each meet contrast.
 - **Semantic money:** as §11, with the additional burden that a superseded amount must
@@ -452,7 +514,7 @@ legible.
   implementation and the wrong one — it fails contrast and forced-colours. Strikethrough
   as the sole signal fails for screen readers unless the state is also in text.
 
-**6. Typography direction.**
+**7. Typography direction.**
 - **Characteristics:** one family with a genuinely wide weight and width range, so
   current versus superseded can be expressed typographically rather than only
   chromatically. Italics must be well-drawn, since amendment notes want them.
@@ -464,25 +526,36 @@ legible.
 - **Hierarchy character:** hierarchy carries *state*, which is unusual and is the point.
 - **Why it fits:** *Accountable* becomes the typographic system itself.
 
-**7. Graphic language.** State markers, amendment rules, and a timeline spine. The
-struck-and-restated pattern is the signature mark. Data marks show change over time
-rather than composition. Provenance is present but secondary to amendment. No
-illustration; no photography.
+**8. Graphic language.** State markers, amendment rules, and a timeline spine. The
+struck-and-restated pattern is the signature mark. Data marks show change over time rather
+than composition — the one place any of the three genuinely wants a chart. Provenance is
+present but secondary to amendment. Illustration is refused as incompatible with a record
+of fact.
 
-**8. Iconography.** A small set concerned with time and change: amended, restored,
-current, superseded. As in B, these always carry text.
+**9. Iconography.** Icons here are **state markers**, organised by time rather than by
+object: amended, restored, current, superseded. They sit in the *margin* of a row rather
+than inside it, so state is scannable down one edge without competing with the amount —
+the opposite placement logic from B, where the mark belongs to the object. Each carries
+text.
 
-**9. Motion philosophy.** Motion communicates **supersession**: the old value moving to
+**10. Motion philosophy.** Motion communicates **supersession**: the old value moving to
 its demoted position while the new value takes the current slot. This is the only
 territory where motion is doing semantic work, which is also a risk. Never animate: a
 balance recalculating, or a deletion vanishing without leaving its state marker.
 Reduced motion: current and superseded simply appear in their final positions — the
 meaning must never live only in the transition.
 
-**10. Money presentation.** See §11, plus a state dimension: an amount is current or
-superseded, and that is never expressed by colour or opacity alone.
+**11. Money system — how kind survives without colour.** C carries a burden the other
+two do not: it must express **kind and state at once**, and its structural channels —
+slot, weight, state label — are spent on *state*. Kind cannot ride on them. C's honest
+channels for kind are (a) the sign, (b) the kind glyph and (c) a kind word retained on
+every row **even when the row is superseded**; the kind label may never be dropped to make
+room for the state label. Transfers, being signless, would otherwise resolve on glyph
+alone, which is insufficient — so the kind word is mandatory in C rather than optional.
+**Balance** is a stated position with an "as of", never a signed movement. State uses no
+reserved hue and no opacity: it is weight, an explicit state rule, and the word.
 
-**11. Product implications.** *Overview* gains an honest "as of" and loses any implication
+**12. Product implications.** *Overview* gains an honest "as of" and loses any implication
 of live truth. *Transactions* shows amendment history inline, which is a real change to
 how a row is composed. *Manual capture* is unremarkable here — a strength, since it stays
 fast. *Accounts* shows balance as a stated state. *Reports* can express "this period, as
@@ -491,29 +564,29 @@ expectation-versus-actual is already a state comparison. *Advanced review* fits 
 — candidates are pre-state. *Ownership/settings* is where restore lives and finally has a
 visual home consistent with the rest of the product.
 
-**12. Mobile/desktop.** Medium risk on mobile: showing two states in a narrow column
+**13. Mobile/desktop.** Medium risk on mobile: showing two states in a narrow column
 without doubling row height needs care, and the obvious answer (disclosure) hides the
 thing the territory is about. Desktop can show state side by side.
 
-**13. Brand-strategy fit.** *Exact* — every figure states its as-of. *Unhurried* — change
+**14. Brand-strategy fit.** *Exact* — every figure states its as-of. *Unhurried* — change
 is shown as record, never as alert. *Accountable* — the strongest of the three by a wide
 margin. *Deferential* — it reports what changed without judging it. *Legible* — depends
 entirely on getting the current/superseded vocabulary right in Vietnamese.
 
-**14. Deliberate risks.** It can make the product feel **preoccupied with mistakes**,
+**15. Deliberate risks.** It can make the product feel **preoccupied with mistakes**,
 which threatens *Unhurried* and could make a user anxious about a ledger that keeps
 showing them their corrections. It risks implying an immutability MoneyFlow does not
 have (R2's "what not to copy"). Accessibility is the hardest of the three. And for the
 many users who rarely correct anything, the hero mechanism is invisible in daily use —
 a territory whose central idea most users may seldom see.
 
-**15. Build/migration cost — HIGH.** Amendment history is not currently a presentable
+**16. Build/migration cost — HIGH.** Amendment history is not currently a presentable
 property of a transaction; there is a mutation-audit concept in the data model but no
 user-facing state history, so this territory depends on product capability that would
 have to be specified and built. It is the only one of the three whose full expression is
 blocked on more than presentation work.
 
-**16. Refuses to copy.** Version-control and developer-tool aesthetics — no diff gutters,
+**17. Refuses to copy.** Version-control and developer-tool aesthetics — no diff gutters,
 no monospace-by-default, no commit-log styling. Plain-text-accounting's file metaphor.
 Signal Ledger's attention triage, which would turn amendments into alerts.
 
@@ -524,19 +597,21 @@ Signal Ledger's attention triage, which would turn amendments into alerts.
 Assessments are relative to each other, not absolute scores. No ranking is implied and
 no winner is indicated.
 
-| Criterion | A — Sổ Cái | B — Biên Nhận | C — Bản Ghi & Bản Sửa |
+| Criterion | A — Trang Sổ | B — Biên Nhận | C — Bản Ghi & Bản Sửa |
 |---|---|---|---|
 | **Distinctness of stance** | collection / spatial | object / attestational | timeline / temporal |
 | **Phase D fit** | strong on Exact and Legible | strong on Accountable and Deferential | strongest on Accountable; most strain on Unhurried |
 | **Manual-first fit** | good — capture returns to the register | **strongest** — entry *is* attestation | neutral — capture is unremarkable |
-| **Traceability expression** | **strongest** — drill is the interface | strong at the leaf, weaker along the path | strong, and uniquely expresses a figure's *history* |
-| **Correction/recovery expression** | present, undramatic | good — re-attestation is visible | **strongest** — it is the hero |
+| **Traceability expression** | **strongest along the path** — drill is the interface; origin is reached, not displayed | **strongest at the leaf** — origin is on the record without navigating | strong, and the only one expressing a figure's *history* as well as its composition |
+| **Correction/recovery expression** | weakest — deliberately undramatic; expressed as editing in place with the undo notice holding its position | good — re-attestation is visible on the object | **strongest** — it is the hero mechanism |
 | **Vietnamese legibility** | **highest risk** — dense rows versus stacked tone marks | **safest** — generous text setting | risky in light/italic styles specifically |
 | **Financial density** | **highest** | lowest in list, deep per record | medium, doubled by state |
 | **Mobile robustness** | weakest — columns must collapse | **strongest** — object-per-screen is phone-shaped | medium — two states in a narrow column |
 | **Accessibility risk** | hairline-rule contrast; forced-colours | two colour systems coexisting | **highest** — demotion by opacity/strikethrough is the trap |
-| **Implementation cost** | **LOW–MEDIUM** | MEDIUM–HIGH | **HIGH** |
+| **Implementation cost** | LOW–MEDIUM | MEDIUM–HIGH | HIGH |
 | **Legacy-replacement difficulty** | lowest — closest to shipped structure and action colour | medium — full retoken, new record surface | highest — needs product capability, not just presentation |
+| **Demo/authenticated distinctness** | rule-level treatment can mark a whole register as sample data without restyling rows | the record can state its runtime on the object itself — clearest of the three | the state system already distinguishes kinds of truth, so sample data extends it naturally |
+| **Backup ≠ scoped export** | both live in a plainly styled ownership area; the distinction rests on wording, which is the weakest of the three | the attested-object language gives backup a natural weight a report export does not borrow | restore has a visual home consistent with the rest of the product, which is the strongest fit |
 | **Long-term system potential** | scales well to any tabular surface; may feel narrow if the product ever broadens | strong identity; scales poorly to dense analysis | most distinctive long-term idea; most expensive to hold to |
 
 ---
@@ -549,17 +624,30 @@ The non-chromatic rule is not satisfied by "we also use a minus sign". Each terr
 must distinguish **income, expense, transfer and balance** by at least two non-chromatic
 channels.
 
-| Channel | A — Sổ Cái | B — Biên Nhận | C — Bản Ghi & Bản Sửa |
+| Channel | A — Trang Sổ | B — Biên Nhận | C — Bản Ghi & Bản Sửa |
 |---|---|---|---|
-| Sign | explicit `+` / `−`; transfer neither | explicit on the attested amount | explicit, on both current and superseded values |
-| Position/structure | **column position** is the primary channel; transfers occupy a distinct column treatment | field label inside the record names the kind in Vietnamese | current/superseded slot, plus sign |
-| Glyph | small directional mark per kind, one weight | kind mark in the origin/kind field | kind mark plus state mark |
-| Typographic weight | totals heavier; transfers set at text weight to recede from income/expense | attested amount inscribed; transfer amount set plainly | current bolder than superseded — but never *only* that |
-| Text | column head names the kind | **the record states its kind in words** — strongest of the three | state stated in words: "đã sửa", "hiện tại" |
-| Hue | confirmation only, never the sole carrier | confirmation only; provenance chroma must never be mistaken for money | confirmation only; chroma is spent on state, not kind |
+| Sign | explicit `+` / `−`; transfer takes neither | explicit on the attested amount and on the list row | explicit, on both current and superseded values |
+| Kind word | column head names the kind | **the record names its kind in a Vietnamese field**, and the list row carries a short kind word | a kind word on every row, retained even when the row is superseded |
+| Glyph | a directional mark in a fixed kind cell in the row grid | kind glyph on the list row | kind glyph, distinct from the state mark |
+| Structure | the **kind cell** is a fixed part of the row grid — note that the single amount column cannot itself separate income from expense | the record's field grid; in the list, the kind word carries it | slot and weight are spent on **state**, so they cannot also carry kind |
+| Typographic weight | totals heavier; transfers at text weight so they recede from signed movement | attested amount inscribed; transfer set plainly | current heavier than superseded — a *state* channel, never a kind channel |
+| Hue | confirmation only | confirmation only; provenance chroma must never read as money | confirmation only; state takes **no reserved hue** and no opacity |
 
-**Balance** is distinguished in all three by being a *running or stated position* rather
-than a signed movement — it never takes a `+`/`−`, which is itself a non-chromatic signal.
+Each territory therefore has three non-chromatic kind channels — sign, kind word and
+glyph — and none of them relies on colour, opacity or position alone. Two corrections
+worth recording, because the first draft of this table overstated both:
+
+- **A's column position is not a kind channel.** A has one amount column, so position
+  distinguishes *balance* from *movement*, not income from expense. The kind cell does
+  that work.
+- **B must not count one channel twice.** "The field names the kind" and "the record
+  states its kind in words" are the same channel; B's list row needs its own kind word.
+
+**Balance versus transfer.** Both are signless, so absence of a sign cannot separate them
+and the first draft was wrong to imply it could. They are separated structurally instead:
+in A, balance occupies its own column; in B, balance never appears in the record stream at
+all; in C, balance is a stated position carrying an "as of". In all three, balance also
+carries no kind word, which is the second channel.
 
 ### Vietnamese
 
@@ -590,7 +678,7 @@ or mock that reads convincingly in English and clips in Vietnamese has proved no
 Cost is relative and covers presentation, tokens, components and any product capability
 a territory depends on. None of this is authorised by Phase E.
 
-| Dimension | A — Sổ Cái | B — Biên Nhận | C — Bản Ghi & Bản Sửa |
+| Dimension | A — Trang Sổ | B — Biên Nhận | C — Bản Ghi & Bản Sửa |
 |---|---|---|---|
 | Token change | small — neutral ramp and rule scale extend the current system; action family stays close to Fresh Blue | large — new primary family, plus a provenance family that does not exist | large — wide neutral ramp plus a state family |
 | Component change | medium — expandable aggregate rows are new | large — a record-object surface is new | large — inline amendment presentation is new |
@@ -608,11 +696,10 @@ change how the product is perceived.
 
 ## 10. Owner decision pack
 
-### A — Sổ Cái *(The Register)*
+### A — Trang Sổ *(The Ruled Register)*
 
 - **Strongest reason to choose:** it makes the brand's central promise *structural* —
-  traceability becomes the way you navigate, not a claim. It is also the cheapest to
-  reach and the closest to Phase C's target architecture.
+  traceability becomes the way you navigate rather than something asserted.
 - **Strongest reason not to choose:** it is the most likely to read as a spreadsheet,
   which Phase D explicitly excludes, and it carries the highest Vietnamese legibility
   risk at the density that makes it work.
@@ -632,9 +719,9 @@ change how the product is perceived.
 
 ### C — Bản Ghi & Bản Sửa *(State and Amendment)*
 
-- **Strongest reason to choose:** it is the most distinctive idea available and the
-  strongest possible expression of *Accountable* — a product that is visibly honest about
-  its own changes is very hard for a competitor to imitate.
+- **Strongest reason to choose:** it is the strongest possible expression of
+  *Accountable* — the product becomes visibly honest about its own changes, which is the
+  one trust property no amount of automation can substitute for.
 - **Strongest reason not to choose:** it is the most expensive, the hardest to make
   accessible, it depends on product capability that does not yet exist, and its hero
   mechanism is invisible to users who rarely correct anything.

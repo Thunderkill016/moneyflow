@@ -95,7 +95,7 @@ Delivery criteria are met; **acceptance of the phase itself requires the owner's
 selection** and is deliberately unticked.
 
 - [x] **E-AC1** Exactly three territories exist, each with all seventeen required
-      elements.
+      elements, element 1 being the candidate territory name.
 - [x] **E-AC2** They differ in interpretive stance — collection/spatial,
       object/attestational, timeline/temporal — not in accent colour.
 - [x] **E-AC3** Every territory preserves the Phase D locks in §2 of the artifact.
@@ -143,7 +143,7 @@ provider/production/database/Auth write.
 | E-T4 | define three territories | E-T2, E-T3 | §§4–6 | complete |
 | E-T5 | comparison, accessibility and migration analysis | E-T4 | §§7–9 | complete |
 | E-T6 | owner decision pack | E-T5 | §10 | complete |
-| E-T7 | fresh evaluation, Class 0 gates, PR delivery | E-T6 | evaluator; `check:migrations`, `check:knowledge`, `test:ci-policy`, registry guard, diff hygiene | complete locally — exact final-head provider checks and owner review remain delivery requirements |
+| E-T7 | fresh evaluation, Class 0 gates, PR memory, PR delivery | E-T6 | evaluator; `check:migrations`, `check:knowledge`, `test:ci-policy`, registry guard, diff hygiene; `docs/research/pr-memory/2026/Q3/PR-369.md` | complete locally — exact final-head provider checks and owner review remain delivery requirements |
 | E-T8 | **owner selects a territory** | E-T7 | owner decision | **awaiting owner** |
 
 ## Handoff record

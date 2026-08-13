@@ -1,13 +1,13 @@
 # MoneyFlow Trust
 
 **Status:** active
-**Execution state:** P3 Prove, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority Audit, Phase B, Phase C and Phase D accepted/completed; Phase E Creative Territories is immediate next but not started; public-beta decision remains open
-**Active role:** parent-program planner; no child packet is active
+**Execution state:** P3 Prove, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority Audit, Phase B, Phase C and Phase D accepted/completed; Phase E Creative Territories is active and awaiting owner territory selection; public-beta decision remains open
+**Active role:** parent-program planner; one child packet is active — `moneyflow-phase-e-creative-territories.md`, awaiting owner territory selection
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
 **Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure; #356 P3 Prove packet; #358 PP-12 remediation; #360 Reset 1 closure; #362 Reset 2 closure
 **Last updated:** 2026-08-13
-**Current main baseline:** `4ba1864ccadfdd4d8363815ba2a9eafc1a373c88` (#367 merged)
+**Current main baseline:** `55ee401f34bf1200dbdcab08aec13df1feddec1f` (#368 merged)
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
@@ -105,10 +105,11 @@ Product-Experience Research** is accepted/completed in merged #366
 merged #367 (`main@4ba1864`). **Phase D Brand Strategy** is accepted/completed in its
 staged completed record, with the durable authority at
 `docs/research/PHASE_D_BRAND_STRATEGY.md`; it makes no visual decision. **Phase E
-Creative Territories** is the immediate next phase, but is not started and has no
-packet, and no creative territory has been proposed or selected; Brand/Product
-Experience implementation is not started and has no packet. The public-beta decision
-remains open.
+Creative Territories is active and awaiting owner territory selection**: three candidate
+territories are delivered in `docs/research/PHASE_E_CREATIVE_TERRITORIES.md`, **none is
+selected**, and nothing shipped changes until an owner selection plus an approved
+migration. Phase F is not started and has no packet; Brand/Product Experience
+implementation is not started. The public-beta decision remains open.
 
 On 2026-08-12 the owner **removed the seven-day self-use requirement** from the active program after running the physical checklist. P3 Prove is now physical-phone core-ledger acceptance only. No replacement duration gate is introduced. The historical seven-day records in `docs/REAL_USE_READINESS_CONTRACT.md` (R7, 2026-07-29) stay as historical truth and are not re-opened.
 
@@ -180,7 +181,7 @@ Recover/Prove/Release:
 | Phase B Fresh Product-Experience Research | **accepted/completed** — durable first-party mechanism/tradeoff research; no design implementation |
 | Phase C Product Experience Architecture | **accepted/completed** — durable product-experience architecture; no brand/UI implementation |
 | Phase D Brand Strategy | **accepted/completed** — durable brand strategy, positioning, promise, trust and verbal authority; no visual decision and no creative territory |
-| Phase E Creative Territories | immediate next after this exact Phase D delivery head merges; not started, no packet, no territory proposed or selected |
+| Phase E Creative Territories | **active — awaiting owner territory selection**; three candidates delivered, none selected; `docs/plans/active/moneyflow-phase-e-creative-territories.md` |
 | P4 Improve | not an active generic workstream |
 | P5 Release | owner public-beta decision remains open (PBT-AC15) |
 
@@ -190,8 +191,8 @@ P3, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A a
 Phase B and Phase C are accepted/completed in merged or staged-completed records. The
 mandatory execution order is:
 
-1. separately and deliberately start Phase E Creative Territories only after this exact
-   Phase D delivery head merges, to produce three territories for owner selection;
+1. the owner selects one of the three delivered Phase E territories; no agent may select
+   one;
 2. Brand/Product Experience rebuild B→J;
 3. final physical/device visual QA;
 4. owner public-beta decision (PBT-AC15).
@@ -221,7 +222,7 @@ Design Harness, or make the final public-beta decision.
 | B-T1 | fresh product-experience research | accepted Phase A | accepted/completed — `docs/plans/completed/2026-08-13-phase-b-product-experience-research.md` |
 | C-T1 | Product Experience Architecture | accepted Phase B | accepted/completed — `docs/plans/completed/2026-08-13-phase-c-product-experience-architecture.md` |
 | D-T1 | Brand Strategy | accepted Phase C | accepted/completed — `docs/plans/completed/2026-08-13-phase-d-brand-strategy.md` |
-| E-T1 | begin Phase E Creative Territories | accepted Phase D | immediate next after exact Phase D delivery merge; not started, no packet, no territory proposed or selected |
+| E-T1 | Creative Territories | accepted Phase D | delivered, awaiting owner selection — `docs/plans/active/moneyflow-phase-e-creative-territories.md` |
 | P5-T1 | owner public-beta decision | prior phases | blocked |
 
 ## Handoff record
@@ -242,7 +243,8 @@ Design Harness, or make the final public-beta decision.
 | 2026-08-13 | evaluator | human_owner | accepted | Phase A audit completed; fresh evaluator clean; post-merge lifecycle staged | exact final-head provider checks and owner merge remain required | after merge, separately open Phase B research only |
 | 2026-08-13 | human_owner | researcher | accepted/completed | `main@efaba75`; durable Phase B research record and fresh evaluator | exact final-head provider checks and owner merge remain required; Phase C is deliberately unopened | after merge, separately open Phase C only when authorised |
 | 2026-08-13 | product-experience architect | human_owner | accepted/completed | merged #366 at `main@60f91b7`; durable Phase C architecture and staged completed packet | merged as #367 at `main@4ba1864` | Phase D authorised and completed |
-| 2026-08-13 | brand strategist | human_owner | accepted/completed | merged #367 at `main@4ba1864`; durable Phase D brand strategy and staged completed packet | exact final-head provider checks and owner merge remain required; Phase E remains unopened | after merge, separately open Phase E only when authorised |
+| 2026-08-13 | brand strategist | human_owner | accepted/completed | merged #367 at `main@4ba1864`; durable Phase D brand strategy and staged completed packet | merged as #368 at `main@55ee401` | Phase E authorised and delivered |
+| 2026-08-13 | creative strategist | human_owner | delivered, not accepted | merged #368 at `main@55ee401`; three candidate territories, comparison matrix and decision pack | no territory validated with users or rendered in Vietnamese; Territory C depends on product capability that does not exist | **owner selects one territory**, or asks for a recommendation |
 
 ### Current permission boundary
 
@@ -282,6 +284,6 @@ accepted/completed in merged #362; A0 Historical UI / Design Failure Review is
 accepted/completed, Phase A Current Reality / Authority Audit is accepted/completed,
 and Phase B Fresh Product-Experience Research is accepted/completed in merged #366.
 Phase C Product Experience Architecture is accepted/completed in merged #367, and Phase
-D Brand Strategy is accepted/completed in its staged completed record. Phase E Creative
-Territories is immediate next but not started/no packet, and no territory is proposed or
-selected; Brand/Product Experience implementation has not started.
+D Brand Strategy is accepted/completed in merged #368. **Phase E Creative Territories is
+active and awaiting owner territory selection**; three candidates are delivered and **none
+is selected**. Brand/Product Experience implementation has not started.
