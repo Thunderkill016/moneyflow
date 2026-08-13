@@ -26,13 +26,16 @@ acceptance, not a signed/filed evidence run. The exact program order is:
 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority
 Audit, Phase B product-experience research, **Phase C Product Experience
 Architecture** and **Phase D Brand Strategy** are accepted/completed in merged or
-staged-completed records. **Phase E is paused**: all candidates were rejected, no
-territory is selected, and that exploration is not visual authority.
-**`current-ui-evolutionary-refresh.md` is the active UI work** — evolutionary refinement
-of the shipped product, keeping identity, destinations and financial semantics. Phase F
-not started. Previously Phase E was the immediate next
-phase, is not started and has no packet. The later Brand/Product Experience rebuild
-is not started.
+staged-completed records. **Phase E candidate exploration is paused**: every proposed
+territory was rejected by the owner, **no territory is selected**, and that rejected
+exploration is **not visual authority**. **`current-ui-evolutionary-refresh.md` is the
+active UI work** — evolutionary refinement of the shipped product that keeps identity,
+destinations and financial semantics. **Phase F is not started.** PBT-AC15 remains
+open.
+
+*Historical, superseded:* Phase E was previously recorded as the immediate next phase
+with no packet. That wording no longer describes current state. The later Brand/Product
+Experience rebuild is not started.
 
 ## 2. Current runtime and trust boundaries
 

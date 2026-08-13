@@ -1,7 +1,7 @@
 # Current UI evolutionary refresh — Slice 1
 
-**Status:** active
-**Execution state:** implementing
+**Status:** active — owner-accepted for Slice 1, awaiting merge
+**Execution state:** accepted; remains active until merge and post-merge lifecycle reconciliation
 **Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
@@ -104,11 +104,12 @@ fix must be presentation-only.
       `!important`.
 - [ ] **UI1-AC8** Dark mode receives equivalent treatment, not inversion.
 - [ ] **UI1-AC9** Motion is structural only; reduced motion remains valid.
-- [x] **UI1-AC10** Design Harness V2 evidence exists for `/dashboard` and
-      `/transactions` at the two viewports the harness encodes — 1440×900 and
-      390×844. **The harness does not encode 390×568**, and this packet may not
-      modify it, so that viewport is covered by targeted browser measurement
-      instead. This is a named limitation, not a harness artifact.
+- [x] **UI1-AC10** Evidence types are stated separately and never merged:
+      **Design Harness V2 artifacts** cover `/dashboard` and `/transactions` at
+      **1440×900** and **390×844** — the only viewports the harness encodes.
+      **390×568 is targeted browser measurement only**: it is *not* a Design Harness
+      V2 artifact and *not* physical-device evidence. No physical-device validation is
+      claimed anywhere in this slice, and the harness itself is unmodified.
 
 ### Out of scope
 
@@ -136,13 +137,14 @@ Design System v3; Design Harness modification; territory selection.
 | UI1-T4 | Transactions workspace | UI1-T1 | transactions diff + harness | complete |
 | UI1-T5 | Class 2 gates and visual evidence | UI1-T2–T4 | gate output, harness artifacts | complete |
 | UI1-T6 | independent evaluation and fixes | UI1-T5 | evaluator findings | complete |
-| UI1-T7 | **owner answers the review question** | UI1-T6 | owner decision | **awaiting owner** |
+| UI1-T7 | owner answers the review question | UI1-T6 | owner review 2026-08-13 | **accepted** |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-13 | implementer | human_owner | delivered, not accepted | shell/Overview/Transactions refinement, Class 2 gates, harness evidence | judgement of "materially better" is the owner's; no user testing | owner answers the review question; iterate this slice if the answer is no |
+| 2026-08-13 | implementer | human_owner | delivered for review | shell/Overview/Transactions refinement, Class 2 gates, harness evidence | judgement of "materially better" is the owner's; no user testing | owner answers the review question |
+| 2026-08-13 | human_owner | implementer | **accepted for Slice 1** | owner visual review of the branch | none blocking; merge remains a separate owner decision | final cleanup, then owner merge |
 
 ### Current permission boundary
 
@@ -164,17 +166,19 @@ independent evaluation with its fixes.
 
 ### Measured outcomes, including where the trade is negative
 
-| State | main | this slice |
-|---|---|---|
-| mobile toolbar, no filter | 777px | **271px** |
-| mobile toolbar, filter active | 777px | **641px** |
-| desktop toolbar, no filter | 261px | **155px** |
-| desktop toolbar, filter active | 261px | **369px** |
+| Viewport and state | `main@55ee401` | this branch | delta |
+|---|---|---|---|
+| mobile 390 — no secondary filter | 791px | **271px** | −520px |
+| mobile 390 — secondary filter active/open | 851px | **641px** | −210px |
+| desktop 1440 — no secondary filter | 273px | **155px** | −118px |
+| desktop 1440 — secondary filter active/open | 333px | **369px** | **+36px (regression)** |
 
-Three of the four states improve; **desktop with a filter active is 108px worse**
-than main, because the disclosure opens and adds its own header above the same
-grids. That is stated here rather than quoting only the unfiltered win, which is what
-the first draft of this packet did.
+Toolbar height, `/transactions`, demo runtime, measured in Chromium on the exact
+implementation head against a dev server on both branches with the same data. The
+filtered state uses `?review=needs_review`. Three of the four states improve; the
+desktop filtered state is 36px worse than main because the disclosure adds its own
+44px summary row above the same grids. That regression is kept visible rather than
+omitted.
 
 Summary and manager now share one edge (measured seam 0px desktop, −2px mobile from
 border overlap); previously an 18px canvas gap left the summary as a card with no
@@ -185,6 +189,22 @@ dark mode surface-muted is *brighter* than the manager surface, so the band adva
 instead of receding. Measured relative luminance now: light 0.954 vs 1.000, dark
 0.0057 vs 0.0092 — below the card in both themes.
 
+### Owner acceptance — Slice 1
+
+Recorded from the owner's review on 2026-08-13:
+
+| Question | Answer |
+|---|---|
+| Materially better to use and look at than `main`? | **YES** |
+| MoneyFlow identity preserved? | **YES** |
+| Further redesign required for Slice 1? | **No** — the evolutionary direction is accepted; do not redesign this slice further |
+| Another creative territory? | **No** — Phase E stays paused, Phase F does not start |
+
+This accepts the **visual direction and implementation of Slice 1**. It is not a merge
+approval: **final merge remains a separate owner decision under repository policy**, and
+this packet stays **active** until merge and post-merge lifecycle reconciliation. It is
+not marked completed or archived.
+
 ### Remaining limitations
 
 - "Materially better" is an owner judgement; this packet cannot prove it.
@@ -193,7 +213,9 @@ instead of receding. Measured relative luminance now: light 0.954 vs 1.000, dark
 - "Reduce card soup" is honest but modest: the planning nav lost its container and
   the Transactions seam closed. Below the statement, Overview is still a stacked set
   of panels.
-- Harness evidence covers 1440 and 390×844; 390×568 is browser measurement only.
+- Evidence types: Design Harness V2 artifacts at 1440×900 and 390×844; 390×568 is
+  targeted browser measurement only — not a harness artifact and not a physical device.
+  No physical-device validation is claimed.
 - No physical-device run is claimed for this slice; harness evidence is emulated.
 - The refresh is evolutionary: it does not resolve the Phase E territory question, and
   the owner's rejection of all candidates stands.
