@@ -3,27 +3,90 @@ import test from "node:test";
 
 import { ghBoundaryViolation, gitBoundaryViolation } from "./command-guard.mjs";
 
-test("blocks direct main, merge, force-push, and PR-merge paths", () => {
-  assert.match(gitBoundaryViolation(["checkout", "main"]) ?? "", /main/u);
-  assert.match(gitBoundaryViolation(["merge", "feature/other"]) ?? "", /merge/u);
-  assert.match(gitBoundaryViolation(["push", "--force", "origin", "HEAD"]) ?? "", /force/u);
-  assert.match(gitBoundaryViolation(["push", "origin", "HEAD:refs/heads/main"]) ?? "", /main/u);
-  assert.match(ghBoundaryViolation(["pr", "merge", "384"]) ?? "", /merge/u);
-  assert.match(ghBoundaryViolation(["api", "repos/owner/repo/pulls/384/merge", "-X", "PUT"]) ?? "", /merge/u);
+test("Git wrapper allows ordinary isolated-branch delivery and read paths", () => {
+  assert.equal(gitBoundaryViolation(["status"]), null);
+  assert.equal(gitBoundaryViolation(["diff", "--stat"]), null);
+  assert.equal(gitBoundaryViolation(["add", "src/example.ts"]), null);
+  assert.equal(gitBoundaryViolation(["commit", "-m", "fix: bounded change"]), null);
+  assert.equal(gitBoundaryViolation(["push", "origin", "HEAD"]), null);
+  assert.equal(gitBoundaryViolation(["push", "-u", "origin", "HEAD"]), null);
+  assert.equal(gitBoundaryViolation(["fetch", "origin"]), null);
+  assert.equal(gitBoundaryViolation(["remote", "-v"]), null);
+  assert.equal(gitBoundaryViolation(["remote", "get-url", "origin"]), null);
+  assert.equal(gitBoundaryViolation(["remote", "show", "origin"]), null);
+  assert.equal(gitBoundaryViolation(["stash", "push"]), null);
+  assert.equal(gitBoundaryViolation(["stash", "pop"]), null);
 });
 
-test("blocks alias and GraphQL escape hatches while allowing normal branch delivery", () => {
-  assert.match(
-    gitBoundaryViolation(["-c", "alias.ship=!git push origin HEAD:main", "ship"]) ?? "",
-    /alias/u,
-  );
+test("Git wrapper blocks branch control, history integration, aliases and global escape options", () => {
+  assert.match(gitBoundaryViolation(["checkout", "main"]) ?? "", /allowlist/u);
+  assert.match(gitBoundaryViolation(["switch", "feature/other"]) ?? "", /allowlist/u);
+  assert.match(gitBoundaryViolation(["branch", "-D", "feature/other"]) ?? "", /allowlist/u);
+  assert.match(gitBoundaryViolation(["worktree", "add", "/tmp/other"]) ?? "", /allowlist/u);
+  assert.match(gitBoundaryViolation(["merge", "feature/other"]) ?? "", /merge/u);
+  assert.match(gitBoundaryViolation(["pull"]) ?? "", /merge/u);
+  assert.match(gitBoundaryViolation(["rebase", "main"]) ?? "", /merge/u);
   assert.match(gitBoundaryViolation(["ship"]) ?? "", /allowlist/u);
-  assert.match(ghBoundaryViolation(["alias", "set", "ship", "pr merge 384"]) ?? "", /allowlist/u);
-  assert.match(ghBoundaryViolation(["ship"]) ?? "", /allowlist/u);
-  assert.match(ghBoundaryViolation(["api", "graphql", "-f", "query=mutation { mergePullRequest }"]) ?? "", /GraphQL/u);
+  assert.match(gitBoundaryViolation(["-C", "/tmp/other", "status"]) ?? "", /global option/u);
+  assert.match(gitBoundaryViolation(["-c", "alias.ship=!git push origin HEAD", "ship"]) ?? "", /global option/u);
+  assert.match(gitBoundaryViolation(["--git-dir", "/tmp/repo/.git", "status"]) ?? "", /global option/u);
+});
 
-  assert.equal(gitBoundaryViolation(["status"]), null);
-  assert.equal(gitBoundaryViolation(["push", "origin", "HEAD:feature/safe-branch"]), null);
-  assert.equal(ghBoundaryViolation(["pr", "create", "--draft"]), null);
+test("Git push is limited to the current isolated branch on origin", () => {
+  assert.match(gitBoundaryViolation(["push", "--force", "origin", "HEAD"]) ?? "", /force/u);
+  assert.match(gitBoundaryViolation(["push", "--force-with-lease", "origin", "HEAD"]) ?? "", /force/u);
+  assert.match(gitBoundaryViolation(["push", "upstream", "HEAD"]) ?? "", /origin HEAD/u);
+  assert.match(gitBoundaryViolation(["push", "origin", "main"]) ?? "", /origin HEAD/u);
+  assert.match(gitBoundaryViolation(["push", "origin", "HEAD:main"]) ?? "", /origin HEAD/u);
+  assert.match(gitBoundaryViolation(["push", "origin", ":feature/delete-me"]) ?? "", /origin HEAD/u);
+  assert.match(gitBoundaryViolation(["push", "--delete", "origin", "feature/other"]) ?? "", /option/u);
+});
+
+test("Git fetch and remote commands cannot rewrite local refs or remotes", () => {
+  assert.match(
+    gitBoundaryViolation(["fetch", "origin", "+refs/heads/feature:refs/heads/main"]) ?? "",
+    /refspec destinations/u,
+  );
+  assert.match(gitBoundaryViolation(["fetch", "upstream"]) ?? "", /origin remote/u);
+  assert.match(gitBoundaryViolation(["remote", "add", "evil", "https://example.invalid/repo"]) ?? "", /mutation/u);
+  assert.match(gitBoundaryViolation(["remote", "set-url", "origin", "https://example.invalid/repo"]) ?? "", /mutation/u);
+  assert.match(gitBoundaryViolation(["remote", "remove", "origin"]) ?? "", /mutation/u);
+  assert.match(gitBoundaryViolation(["stash", "branch", "main"]) ?? "", /not permitted/u);
+});
+
+test("GitHub CLI wrapper permits read-only inspection plus draft PR creation only", () => {
+  assert.equal(ghBoundaryViolation(["auth", "status"]), null);
+  assert.equal(ghBoundaryViolation(["issue", "list"]), null);
+  assert.equal(ghBoundaryViolation(["issue", "view", "379"]), null);
+  assert.equal(ghBoundaryViolation(["pr", "checks", "384"]), null);
+  assert.equal(ghBoundaryViolation(["pr", "diff", "384"]), null);
+  assert.equal(ghBoundaryViolation(["pr", "list"]), null);
+  assert.equal(ghBoundaryViolation(["pr", "status"]), null);
   assert.equal(ghBoundaryViolation(["pr", "view", "384"]), null);
+  assert.equal(ghBoundaryViolation(["repo", "view"]), null);
+  assert.equal(ghBoundaryViolation(["run", "list"]), null);
+  assert.equal(ghBoundaryViolation(["run", "view", "123"]), null);
+  assert.equal(ghBoundaryViolation(["run", "watch", "123"]), null);
+  assert.equal(ghBoundaryViolation(["pr", "create", "--draft", "--title", "bounded"]), null);
+});
+
+test("GitHub CLI wrapper rejects token disclosure and non-draft or mutating operations", () => {
+  assert.match(ghBoundaryViolation(["auth", "status", "--show-token"]) ?? "", /tokens/u);
+  assert.match(ghBoundaryViolation(["issue", "close", "379"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["issue", "edit", "379", "--title", "changed"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["pr", "create", "--title", "not draft"]) ?? "", /draft/u);
+  assert.match(ghBoundaryViolation(["pr", "merge", "384"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["pr", "close", "384"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["pr", "edit", "384"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["pr", "ready", "384"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["pr", "review", "384", "--approve"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["repo", "sync"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["repo", "delete", "owner/repo"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["run", "cancel", "123"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["run", "rerun", "123"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["run", "delete", "123"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["api", "repos/owner/repo/issues/379", "-X", "PATCH"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["api", "graphql", "-f", "query=mutation { mergePullRequest }"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["alias", "set", "ship", "pr merge 384"]) ?? "", /allowlist/u);
+  assert.match(ghBoundaryViolation(["secret", "set", "TOKEN"]) ?? "", /allowlist/u);
 });
