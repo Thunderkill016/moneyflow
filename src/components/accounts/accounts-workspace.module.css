@@ -63,10 +63,9 @@
   align-items: center;
   gap: 32px;
   border: 1px solid var(--mf-border);
-  border-radius: 20px;
-  background: var(--mf-surface);
-  padding: 26px 28px;
-  box-shadow: var(--mf-shadow-sm);
+  border-radius: 16px;
+  background: var(--mf-canvas);
+  padding: 24px 26px;
 }
 
 .summaryTotals {
@@ -103,6 +102,21 @@
 .summaryNote {
   color: var(--mf-text-muted);
   line-height: 1.5;
+}
+
+.ledgerPending,
+.cardLedgerPending {
+  margin: 0;
+  color: var(--mf-text-muted);
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.cardLedgerPending {
+  flex: 0 1 auto;
+  max-width: 12rem;
+  text-align: end;
 }
 
 .currencyTotal small,
@@ -158,16 +172,15 @@
   grid-template-columns: 46px minmax(0, 1fr);
   gap: 14px;
   border: 1px solid var(--mf-border);
-  border-radius: 18px;
+  border-radius: 14px;
   background: var(--mf-surface);
-  padding: 20px;
-  box-shadow: var(--mf-shadow-sm);
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  padding: 18px;
+  transition: border-color 150ms ease, background 150ms ease;
 }
 
 .card:hover {
   border-color: var(--mf-border-strong);
-  box-shadow: var(--mf-shadow-md);
+  background: var(--mf-canvas);
 }
 
 .kindIcon {
@@ -239,6 +252,7 @@
 .cardBalance {
   flex: 0 0 auto;
   max-width: 100%;
+  font-size: 1.125rem;
 }
 
 .cardFoot {

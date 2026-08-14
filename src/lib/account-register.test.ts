@@ -4,6 +4,7 @@ import type { Transaction } from "./transactions/contracts.ts";
 import {
   accountTransactionImpact,
   buildAccountRegister,
+  reconcileAccountBalanceSnapshot,
   summarizeAccountRegister,
 } from "./account-register.ts";
 
@@ -166,5 +167,54 @@ test("invalid amounts and structurally invalid same-account transfers are ignore
       "account-a",
     ),
     null,
+  );
+});
+
+test("demo ledger reconciliation replaces a differing snapshot with exact income, expense, and transfer legs", () => {
+  const baselineTransactions = [
+    transaction({ id: "seed-income", kind: "income", amount: 100_000 }),
+  ];
+  const storedTransactions = [
+    ...baselineTransactions,
+      transaction({ id: "new-income", kind: "income", amount: 222_000 }),
+      transaction({ id: "new-expense", kind: "expense", amount: 111_000 }),
+      transaction({
+        id: "transfer-out",
+        kind: "transfer",
+        amount: 333_000,
+        destinationAccountId: "account-b",
+        destinationAccount: "Tài khoản B",
+      }),
+  ];
+  const sourceSnapshotEntries = buildAccountRegister(
+    baselineTransactions,
+    "account-a",
+  );
+  const sourceStoredEntries = buildAccountRegister(storedTransactions, "account-a");
+  const destinationSnapshotEntries = buildAccountRegister(
+    baselineTransactions,
+    "account-b",
+  );
+  const destinationStoredEntries = buildAccountRegister(
+    storedTransactions,
+    "account-b",
+  );
+
+  assert.notDeepEqual(sourceStoredEntries, sourceSnapshotEntries);
+  assert.equal(
+    reconcileAccountBalanceSnapshot(
+      500_000,
+      sourceSnapshotEntries,
+      sourceStoredEntries,
+    ),
+    278_000,
+  );
+  assert.equal(
+    reconcileAccountBalanceSnapshot(
+      900_000,
+      destinationSnapshotEntries,
+      destinationStoredEntries,
+    ),
+    1_233_000,
   );
 });

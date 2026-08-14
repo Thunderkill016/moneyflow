@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -12,11 +15,20 @@ import type {
   AccountRegisterEntry,
   AccountRegisterSummary,
 } from "@/lib/account-register";
+import {
+  buildAccountRegister,
+  reconcileAccountBalanceSnapshot,
+  summarizeAccountRegister,
+} from "@/lib/account-register";
 import { formatMoney } from "@/lib/money";
 import {
   GHI_CHI_TIEU_HREF,
   GHI_CHI_TIEU_LABEL,
 } from "@/lib/nav-ia";
+import {
+  readDemoTransactionBaseline,
+  readStoredTransactions,
+} from "@/lib/transaction-store";
 import styles from "./account-detail-page.module.css";
 
 function accountIcon(kind: AccountSummary["kind"]): IconName {
@@ -85,7 +97,49 @@ export function AccountDetailPage({
   summary: AccountRegisterSummary;
   dataError: string | null;
 }) {
-  const groups = groupEntries(entries);
+  const [demoDetail, setDemoDetail] = useState<{
+    account: AccountSummary | null;
+    entries: AccountRegisterEntry[];
+    summary: AccountRegisterSummary;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!viewer.isDemo || !account) return;
+    const frame = window.requestAnimationFrame(() => {
+      const liveEntries = buildAccountRegister(
+        readStoredTransactions(),
+        account.id,
+      );
+      const baselineEntries = buildAccountRegister(
+        readDemoTransactionBaseline(),
+        account.id,
+      );
+      setDemoDetail({
+        account: {
+          ...account,
+          balance: reconcileAccountBalanceSnapshot(
+            account.balance,
+            baselineEntries,
+            liveEntries,
+          ),
+        },
+        entries: liveEntries,
+        summary: summarizeAccountRegister(liveEntries),
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [account, entries, summary, viewer.isDemo]);
+
+  const matchingDemoDetail =
+    viewer.isDemo && account && demoDetail?.account?.id === account.id
+      ? demoDetail
+      : null;
+  const displayAccount = matchingDemoDetail?.account ?? account;
+  const displayEntries = matchingDemoDetail?.entries ?? entries;
+  const displaySummary = matchingDemoDetail?.summary ?? summary;
+  const demoLedgerPending =
+    viewer.isDemo && !dataError && Boolean(account) && !matchingDemoDetail;
+  const groups = groupEntries(displayEntries);
   const registerAvailable = !dataError;
 
   return (
@@ -119,7 +173,7 @@ export function AccountDetailPage({
           </div>
         ) : null}
 
-        {!account ? (
+        {!displayAccount ? (
           <section className={styles.errorPanel}>
             <p className="eyebrow">Sổ tài khoản</p>
             <h1>Chưa tải được tài khoản</h1>
@@ -133,26 +187,26 @@ export function AccountDetailPage({
             <section className={styles.heading}>
               <div className={styles.identity}>
                 <span className={styles.accountIcon}>
-                  <Icon name={accountIcon(account.kind)} />
+                  <Icon name={accountIcon(displayAccount.kind)} />
                 </span>
                 <div>
                   <p className="eyebrow">Sổ tài khoản</p>
                   <div className={styles.titleLine}>
-                    <h1>{account.name}</h1>
-                    {account.isArchived ? (
+                    <h1>{displayAccount.name}</h1>
+                    {displayAccount.isArchived ? (
                       <span className={styles.archivedBadge}>Đã lưu trữ</span>
                     ) : null}
                   </div>
                   <p>
-                    {accountKindLabels[account.kind]} · {account.currencyCode}
-                    {account.currencyCode !== "VND" ? " · chỉ theo dõi" : ""}
+                    {accountKindLabels[displayAccount.kind]} · {displayAccount.currencyCode}
+                    {displayAccount.currencyCode !== "VND" ? " · chỉ theo dõi" : ""}
                   </p>
                 </div>
               </div>
               <div className={styles.headingActions}>
                 <Link
                   className="secondary-button"
-                  href={`/accounts/${account.id}/reconcile`}
+                  href={`/accounts/${displayAccount.id}/reconcile`}
                 >
                   <Icon name="check" />
                   Đối soát
@@ -164,29 +218,45 @@ export function AccountDetailPage({
               </div>
             </section>
 
-            <section
-              className={`${styles.summaryGrid} ${
-                registerAvailable ? "" : styles.summaryGridSingle
-              }`}
-              aria-label="Tóm tắt tài khoản"
-            >
+            {demoLedgerPending ? (
+              <section
+                className={styles.ledgerPending}
+                role="status"
+                aria-live="polite"
+                aria-label="Đang đối soát sổ tài khoản"
+              >
+                <p className="eyebrow">Sổ tài khoản</p>
+                <h2>Đang đối soát giao dịch trên thiết bị</h2>
+                <p>
+                  Số dư, tổng biến động và lịch sử sẽ hiển thị sau khi sổ giao dịch demo
+                  được đọc xong.
+                </p>
+              </section>
+            ) : (
+              <>
+                <section
+                  className={`${styles.summaryGrid} ${
+                    registerAvailable ? "" : styles.summaryGridSingle
+                  }`}
+                  aria-label="Tóm tắt tài khoản"
+                >
               <article className={styles.summaryPrimary}>
                 <span>Số dư hiện tại</span>
                 <MoneyValue
-                  amount={account.balance}
+                  amount={displayAccount.balance}
                   mode="plain"
-                  currencyCode={account.currencyCode}
+                  currencyCode={displayAccount.currencyCode}
                   emphasis="strong"
                   align="start"
-                  label={`Số dư hiện tại ${account.name}`}
+                  label={`Số dư hiện tại ${displayAccount.name}`}
                 />
                 <small>
                   Số dư ban đầu:{" "}
                   <span className="font-mono">
                     {formatMoney(
-                      account.initialBalance,
+                      displayAccount.initialBalance,
                       false,
-                      account.currencyCode,
+                      displayAccount.currencyCode,
                     )}
                   </span>
                 </small>
@@ -196,10 +266,10 @@ export function AccountDetailPage({
                   <article>
                     <span>Thu nhập</span>
                     <MoneyValue
-                      amount={summary.income}
+                      amount={displaySummary.income}
                       mode="kind"
                       kind="income"
-                      currencyCode={account.currencyCode}
+                      currencyCode={displayAccount.currencyCode}
                       emphasis="strong"
                       align="start"
                       label="Thu nhập của tài khoản"
@@ -209,10 +279,10 @@ export function AccountDetailPage({
                   <article>
                     <span>Chi tiêu</span>
                     <MoneyValue
-                      amount={summary.expense}
+                      amount={displaySummary.expense}
                       mode="kind"
                       kind="expense"
-                      currencyCode={account.currencyCode}
+                      currencyCode={displayAccount.currencyCode}
                       emphasis="strong"
                       align="start"
                       label="Chi tiêu của tài khoản"
@@ -222,16 +292,16 @@ export function AccountDetailPage({
                   <article>
                     <span>Chuyển ròng</span>
                     <MoneyValue
-                      amount={summary.transferIn - summary.transferOut}
+                      amount={displaySummary.transferIn - displaySummary.transferOut}
                       mode="signed"
-                      currencyCode={account.currencyCode}
+                      currencyCode={displayAccount.currencyCode}
                       emphasis="strong"
                       align="start"
                       label="Chuyển ròng của tài khoản"
                     />
                     <small>
-                      Vào {formatMoney(summary.transferIn, false, account.currencyCode)} · Ra{" "}
-                      {formatMoney(summary.transferOut, false, account.currencyCode)}
+                      Vào {formatMoney(displaySummary.transferIn, false, displayAccount.currencyCode)} · Ra{" "}
+                      {formatMoney(displaySummary.transferOut, false, displayAccount.currencyCode)}
                     </small>
                   </article>
                 </>
@@ -245,11 +315,11 @@ export function AccountDetailPage({
                     <p className="eyebrow">Lịch sử số dư</p>
                     <h2 id="account-register-title">Biến động tài khoản</h2>
                     <p>
-                      {summary.transactionCount} giao dịch · Biến động ghi nhận{" "}
+                      {displaySummary.transactionCount} giao dịch · Biến động ghi nhận{" "}
                       <MoneyValue
-                        amount={summary.netMovement}
+                        amount={displaySummary.netMovement}
                         mode="signed"
-                        currencyCode={account.currencyCode}
+                        currencyCode={displayAccount.currencyCode}
                         label="Biến động ghi nhận"
                       />
                     </p>
@@ -267,7 +337,7 @@ export function AccountDetailPage({
                           <MoneyValue
                             amount={group.dailyImpact}
                             mode="signed"
-                            currencyCode={account.currencyCode}
+                            currencyCode={displayAccount.currencyCode}
                             label={`Biến động ngày ${displayDate(group.date)}`}
                           />
                         </header>
@@ -293,7 +363,7 @@ export function AccountDetailPage({
                               <MoneyValue
                                 amount={entry.impact}
                                 mode="signed"
-                                currencyCode={account.currencyCode}
+                                currencyCode={displayAccount.currencyCode}
                                 emphasis="strong"
                                 className={styles.rowAmount}
                                 label={`${entry.transaction.note}, tác động tài khoản`}
@@ -320,10 +390,12 @@ export function AccountDetailPage({
                 <p className="eyebrow">Lịch sử số dư</p>
                 <h2 id="register-unavailable-title">Chưa tải được biến động tài khoản</h2>
                 <p>MoneyFlow không hiển thị tổng thu, chi hoặc chuyển tiền khi dữ liệu lịch sử chưa xác thực.</p>
-                <Link className="secondary-button" href={`/accounts/${account.id}`}>
+                <Link className="secondary-button" href={`/accounts/${displayAccount.id}`}>
                   Thử tải lại
                 </Link>
               </section>
+                )}
+              </>
             )}
           </>
         )}

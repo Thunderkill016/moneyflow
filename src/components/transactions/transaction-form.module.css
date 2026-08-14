@@ -13,6 +13,32 @@
   min-width: 0;
 }
 
+.captureStep,
+.requiredChoices,
+.optionalDetails {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.stepLabel {
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  font-weight: 760;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.requiredChoices {
+  border-top: 1px solid var(--mf-border);
+  padding-top: 18px;
+}
+
+.optionalDetails {
+  border-top: 1px solid var(--mf-border);
+  padding-top: 18px;
+}
+
 .embedded {
   display: grid;
   gap: 18px;

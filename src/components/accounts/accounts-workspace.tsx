@@ -19,13 +19,20 @@ import {
   type SaveAccountInput,
 } from "@/lib/accounts";
 import {
+  buildAccountRegister,
+  reconcileAccountBalanceSnapshot,
+} from "@/lib/account-register";
+import {
   canTransferSameCurrency,
   normalizeCurrencyCode,
   totalsByCurrency,
 } from "@/lib/currency";
 import { formatMoney } from "@/lib/money";
 import type { CreateTransferInput } from "@/lib/sample-data";
-import { readStoredTransactions } from "@/lib/transaction-store";
+import {
+  readDemoTransactionBaseline,
+  readStoredTransactions,
+} from "@/lib/transaction-store";
 import { applyTransferBalances } from "@/lib/transfers";
 import styles from "./accounts-workspace.module.css";
 
@@ -69,6 +76,8 @@ export function AccountsWorkspace({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<AccountSummary | null>(null);
   const [notice, setNotice] = useState("");
+  const [reconciledDemoSource, setReconciledDemoSource] =
+    useState<AccountSummary[] | null>(viewer.isDemo ? null : initialAccounts);
 
   const activeAccounts = accounts.filter((item) => !item.isArchived);
   const archivedAccounts = accounts.filter((item) => item.isArchived);
@@ -90,25 +99,25 @@ export function AccountsWorkspace({
   useEffect(() => {
     if (!viewer.isDemo) return;
     const frame = window.requestAnimationFrame(() => {
-      const restored = readStoredTransactions()
-        .filter(
-          (transaction) =>
-            transaction.kind === "transfer" && transaction.destinationAccountId,
-        )
-        .reduce(
-          (current, transaction) =>
-            applyTransferBalances(
-              current,
-              transaction.accountId,
-              transaction.destinationAccountId!,
-              transaction.amount,
-            ),
-          initialAccounts,
-        );
-      setAccounts(restored);
+      const storedTransactions = readStoredTransactions();
+      const baselineTransactions = readDemoTransactionBaseline();
+      setAccounts(
+        initialAccounts.map((account) => ({
+          ...account,
+          balance: reconcileAccountBalanceSnapshot(
+            account.balance,
+            buildAccountRegister(baselineTransactions, account.id),
+            buildAccountRegister(storedTransactions, account.id),
+          ),
+        })),
+      );
+      setReconciledDemoSource(initialAccounts);
     });
     return () => window.cancelAnimationFrame(frame);
   }, [initialAccounts, viewer.isDemo]);
+
+  const demoLedgerPending =
+    viewer.isDemo && reconciledDemoSource !== initialAccounts;
 
   useEffect(() => {
     if (!notice) return;
@@ -261,7 +270,7 @@ export function AccountsWorkspace({
               intent="secondary"
               targetSize="important"
               onClick={() => setTransferOpen(true)}
-              disabled={Boolean(dataError) || !canOpenTransfer}
+              disabled={Boolean(dataError) || demoLedgerPending || !canOpenTransfer}
             >
               <Icon name="arrows" /> Chuyển tiền
             </Button>
@@ -279,7 +288,11 @@ export function AccountsWorkspace({
                 ? "Số dư tài khoản đang hoạt động theo loại tiền"
                 : "Tổng số dư tài khoản đang hoạt động"}
             </span>
-            {activeCurrencyTotals.length === 0 ? (
+            {demoLedgerPending ? (
+              <p className={styles.ledgerPending} role="status" aria-live="polite">
+                Đang đối soát số dư từ sổ giao dịch trên thiết bị…
+              </p>
+            ) : activeCurrencyTotals.length === 0 ? (
               <MoneyValue
                 amount={0}
                 mode="plain"
@@ -355,26 +368,38 @@ export function AccountsWorkspace({
                             : ""}
                         </p>
                       </div>
-                      <MoneyValue
-                        amount={account.balance}
-                        mode="plain"
-                        currencyCode={account.currencyCode}
-                        emphasis="strong"
-                        className={styles.cardBalance}
-                        label={`Số dư hiện tại ${account.name}`}
-                      />
-                    </div>
-                    <div className={styles.cardFoot}>
-                      <span className={styles.initialBalance}>
-                        Số dư ban đầu:{" "}
+                      {demoLedgerPending ? (
+                        <span className={styles.cardLedgerPending}>
+                          Đang đối soát số dư…
+                        </span>
+                      ) : (
                         <MoneyValue
-                          amount={account.initialBalance}
+                          amount={account.balance}
                           mode="plain"
                           currencyCode={account.currencyCode}
-                          align="start"
-                          label={`Số dư ban đầu ${account.name}`}
+                          emphasis="strong"
+                          className={styles.cardBalance}
+                          label={`Số dư hiện tại ${account.name}`}
                         />
-                      </span>
+                      )}
+                    </div>
+                    <div className={styles.cardFoot}>
+                      {demoLedgerPending ? (
+                        <span className={styles.initialBalance}>
+                          Số dư và sổ giao dịch sẽ hiển thị sau khi đối soát.
+                        </span>
+                      ) : (
+                        <span className={styles.initialBalance}>
+                          Số dư ban đầu:{" "}
+                          <MoneyValue
+                            amount={account.initialBalance}
+                            mode="plain"
+                            currencyCode={account.currencyCode}
+                            align="start"
+                            label={`Số dư ban đầu ${account.name}`}
+                          />
+                        </span>
+                      )}
                       <div className={styles.cardActions}>
                         <LinkButton
                           href={`/accounts/${account.id}`}
@@ -443,21 +468,27 @@ export function AccountsWorkspace({
                 </p>
               </div>
             </div>
-            <p className={styles.archivedTotals}>
-              {archivedCurrencyTotals.map((row, index) => (
-                <span key={row.currencyCode}>
-                  {index > 0 ? " · " : ""}
-                  {row.count} tài khoản {row.currencyCode}:{" "}
-                  <MoneyValue
-                    amount={row.total}
-                    mode="plain"
-                    currencyCode={row.currencyCode}
-                    align="start"
-                    label={`Tổng số dư đã lưu trữ ${row.currencyCode}`}
-                  />
-                </span>
-              ))}
-            </p>
+            {demoLedgerPending ? (
+              <p className={styles.archivedTotals}>
+                Đang đối soát số dư tài khoản đã lưu trữ từ sổ giao dịch trên thiết bị…
+              </p>
+            ) : (
+              <p className={styles.archivedTotals}>
+                {archivedCurrencyTotals.map((row, index) => (
+                  <span key={row.currencyCode}>
+                    {index > 0 ? " · " : ""}
+                    {row.count} tài khoản {row.currencyCode}:{" "}
+                    <MoneyValue
+                      amount={row.total}
+                      mode="plain"
+                      currencyCode={row.currencyCode}
+                      align="start"
+                      label={`Tổng số dư đã lưu trữ ${row.currencyCode}`}
+                    />
+                  </span>
+                ))}
+              </p>
+            )}
             <div data-slot="accounts-archived-list" className={styles.archivedList}>
               {archivedAccounts.map((account) => (
                 <article
@@ -477,14 +508,20 @@ export function AccountsWorkspace({
                       {accountKindLabels[account.kind]} · {account.currencyCode}
                     </small>
                   </div>
-                  <MoneyValue
-                    amount={account.balance}
-                    mode="plain"
-                    currencyCode={account.currencyCode}
-                    emphasis="strong"
-                    className={styles.archivedBalance}
-                    label={`Số dư đã lưu trữ ${account.name}`}
-                  />
+                  {demoLedgerPending ? (
+                    <span className={styles.cardLedgerPending}>
+                      Đang đối soát số dư…
+                    </span>
+                  ) : (
+                    <MoneyValue
+                      amount={account.balance}
+                      mode="plain"
+                      currencyCode={account.currencyCode}
+                      emphasis="strong"
+                      className={styles.archivedBalance}
+                      label={`Số dư đã lưu trữ ${account.name}`}
+                    />
+                  )}
                   <div className={styles.archivedActions}>
                     <LinkButton
                       href={`/accounts/${account.id}`}

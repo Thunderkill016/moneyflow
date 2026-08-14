@@ -2,7 +2,7 @@
 
 **Status:** the single current implementation-status authority
 **Last reconciled:** 2026-08-14
-**Current main baseline:** `bc062eeabeb02e215f73d8267bba13c809533751` (`#371` merged)
+**Current main baseline:** `dd735700731c9718f8d2ae8e62488e35df87d859` (`#377` merged)
 **Routing:** use `docs/context/README.md`; open
 `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only for a named provenance need.
 
@@ -32,11 +32,11 @@ exploration is **not visual authority**. **UI evolutionary refresh Slice 1 is me
 accepted** (#370 at `main@75ade3b`), not active; packet archived at
 `docs/plans/completed/2026-08-14-current-ui-evolutionary-refresh-slice-1.md`. It refined
 shell, Overview and Transactions on Fresh Blue with no destination, route or
-financial-semantic change, and claimed **no physical-device validation**. **Phase F is not
-started** and the later Brand/Product Experience rebuild has not begun. PBT-AC15 remains
-open. No substantive next work is implied by this sequence: it requires a new explicit
-owner-authorised packet. *(Superseded wording: Phase E as "immediate next phase with no
-packet".)*
+financial-semantic change, and claimed **no physical-device validation**. **UI evolutionary
+refresh Slice 2 is active under owner-authorised #374** for Manual Capture + Accounts only;
+it does not restart Phase E, select a territory or begin Phase F. **Phase F is not started**
+and the later Brand/Product Experience rebuild has not begun. PBT-AC15 remains open.
+*(Superseded wording: Phase E as "immediate next phase with no packet".)*
 
 ## 2. Current runtime and trust boundaries
 

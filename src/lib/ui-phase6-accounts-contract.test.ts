@@ -11,6 +11,10 @@ const workspaceCss = readFileSync(
   "src/components/accounts/accounts-workspace.module.css",
   "utf8",
 );
+const accountDetail = readFileSync(
+  "src/components/account-detail-page.tsx",
+  "utf8",
+);
 const accountDialog = readFileSync("src/components/account-dialog.tsx", "utf8");
 const accountDialogCss = readFileSync(
   "src/components/accounts/account-dialog.module.css",
@@ -62,6 +66,10 @@ test("Accounts workspace composes Phase 2 primitives and stable evidence slots",
   assert.match(workspace, /data-slot="accounts-archived-list"/);
   assert.match(workspace, /data-slot="archived-account-row"/);
   assert.match(workspace, /targetSize="important"/);
+  assert.match(
+    workspace,
+    /primaryAction=\{\{[\s\S]*label: "Thêm tài khoản"/,
+  );
 });
 
 test("active Accounts workspace does not register retired global presentation classes", () => {
@@ -80,6 +88,32 @@ test("active and archived totals remain explicit and currency-safe", () => {
   assert.match(workspace, /Tổng số dư tài khoản đang hoạt động/);
   assert.match(workspace, /không cộng gộp ngoại tệ/);
   assert.match(workspace, /Vẫn giữ lịch sử, số dư và có thể khôi phục/);
+});
+
+test("demo Accounts recomputes the account snapshot from the stored ledger", () => {
+  assert.match(workspace, /reconcileAccountBalanceSnapshot/);
+  assert.match(workspace, /buildAccountRegister\(storedTransactions, account\.id\)/);
+  assert.match(accountDetail, /readStoredTransactions/);
+  assert.match(accountDetail, /reconcileAccountBalanceSnapshot/);
+  assert.match(accountDetail, /summarizeAccountRegister\(liveEntries\)/);
+});
+
+test("demo first paint withholds stale financial snapshots until the browser ledger is reconciled", () => {
+  assert.match(workspace, /useState<AccountSummary\[\] \| null>\(viewer\.isDemo \? null : initialAccounts\)/);
+  assert.match(workspace, /const demoLedgerPending =\s*viewer\.isDemo && reconciledDemoSource !== initialAccounts/);
+  assert.match(workspace, /demoLedgerPending \? \(\s*<p className=\{styles\.ledgerPending\}/);
+  assert.match(workspace, /Đang đối soát số dư từ sổ giao dịch trên thiết bị/);
+  assert.match(workspace, /demoLedgerPending \? \(\s*<span className=\{styles\.cardLedgerPending\}/);
+  assert.match(accountDetail, /const matchingDemoDetail =/);
+  assert.match(accountDetail, /const demoLedgerPending =\s*viewer\.isDemo && !dataError/);
+  assert.match(accountDetail, /demoLedgerPending \? \(\s*<section\s*className=\{styles\.ledgerPending\}/);
+  assert.match(accountDetail, /Số dư, tổng biến động và lịch sử sẽ hiển thị sau khi/);
+});
+
+test("authenticated Accounts remains server-owned while only demo reads browser ledger", () => {
+  assert.match(workspace, /if \(!viewer\.isDemo\) return;/);
+  assert.match(accountDetail, /if \(!viewer\.isDemo \|\| !account\) return;/);
+  assert.match(accountDetail, /viewer\.isDemo && !dataError/);
 });
 
 test("account archive is a reviewable reversible dialog instead of window.confirm", () => {

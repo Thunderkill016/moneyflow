@@ -104,7 +104,8 @@
 }
 .summaryPrimary { background: var(--mf-surface-strong); }
 .registerPanel,
-.errorPanel {
+.errorPanel,
+.ledgerPending {
   min-width: 0;
   border: 1px solid var(--mf-border);
   border-radius: 20px;
@@ -112,6 +113,15 @@
   box-shadow: var(--mf-shadow-sm);
 }
 .registerPanel { overflow: hidden; }
+.ledgerPending {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 24px;
+}
+.ledgerPending h2,
+.ledgerPending p { margin: 0; }
+.ledgerPending p:last-child { color: var(--mf-text-muted); line-height: 1.5; }
 .registerHeading {
   display: flex;
   align-items: end;

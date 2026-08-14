@@ -330,122 +330,66 @@ export function AddTransactionDialog({
       onSubmit={handleSubmit}
       noValidate
     >
-      <div className={styles.segmented} role="group" aria-label="Loại giao dịch">
-        <Button
-          type="button"
-          unstyled
-          targetSize="important"
-          className={`${styles.segment}${
-            kind === "expense" ? ` ${styles.segmentActive}` : ""
-          }`}
-          onClick={() => changeKind("expense")}
-          aria-pressed={kind === "expense"}
-        >
-          Khoản chi (−)
-        </Button>
-        <Button
-          type="button"
-          unstyled
-          targetSize="important"
-          className={`${styles.segment}${
-            kind === "income" ? ` ${styles.segmentActive}` : ""
-          }`}
-          onClick={() => changeKind("income")}
-          aria-pressed={kind === "income"}
-        >
-          Khoản thu (+)
-        </Button>
-      </div>
-
-      <TextField
-        id="add-tx-amount"
-        inputRef={amountInputRef}
-        label={amountLabel}
-        description={
-          kind === "expense"
-            ? "Số tiền khoản chi, đơn vị đồng Việt Nam."
-            : "Số tiền khoản thu, đơn vị đồng Việt Nam."
-        }
-        inputMode="numeric"
-        autoComplete="off"
-        placeholder="0"
-        value={amount}
-        required
-        prefix={kindSign}
-        suffix="₫"
-        targetSize="important"
-        inputClassName={styles.amountInput}
-        error={error.startsWith("Nhập số tiền") ? error : undefined}
-        onChange={(event) => {
-          setAmount(formatMoneyInput(event.target.value));
-          markInputChanged();
-        }}
-      />
-
-      {error && !error.startsWith("Nhập số tiền") ? (
-        <Alert tone="error" live="assertive" className={styles.formAlert}>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-      {savedFlash && !error ? (
-        <Alert tone="success" live="polite" className={styles.formStatus}>
-          <AlertDescription>{savedFlash}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      <fieldset className={styles.categoryFieldset}>
-        <legend>
-          Danh mục
-          {autoRuleHint ? (
-            <span className={styles.legendHint}> · {autoRuleHint}</span>
-          ) : hasRecentForKind ? (
-            <span className={styles.legendHint}> · hay dùng trước lên trước</span>
-          ) : null}
-        </legend>
-        <div className={styles.categoryGrid}>
-          {availableCategories.map((item) => {
-            const meta =
-              categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
-            const recent = isRecentCategoryId(item.id, recentCategoryIds);
-            return (
-              <Button
-                type="button"
-                unstyled
-                targetSize="important"
-                key={item.id}
-                className={`${styles.categoryChoice}${
-                  selectedCategoryId === item.id
-                    ? ` ${styles.categorySelected}`
-                    : ""
-                }${recent ? ` ${styles.categoryRecent}` : ""}`}
-                onClick={() => {
-                  setCategoryId(item.id);
-                  categoryTouchedRef.current = true;
-                  setAutoRuleHint(null);
-                  markInputChanged();
-                  window.requestAnimationFrame(() => focusAmount(false));
-                }}
-                aria-pressed={selectedCategoryId === item.id}
-                data-recent={recent ? "true" : undefined}
-              >
-                <span className={styles.categoryIcon}>
-                  <Icon name={meta.icon as IconName} />
-                </span>
-                <span className={styles.categoryLabel}>
-                  {item.name}
-                  {recent ? (
-                    <span className={styles.recentBadge} aria-label="Gần đây">
-                      Gần đây
-                    </span>
-                  ) : null}
-                </span>
-              </Button>
-            );
-          })}
+      <section className={styles.captureStep} data-slot="capture-type-step">
+        <span className={styles.stepLabel}>1 · Điều gì vừa xảy ra?</span>
+        <div className={styles.segmented} role="group" aria-label="Loại giao dịch">
+          <Button
+            type="button"
+            unstyled
+            targetSize="important"
+            className={`${styles.segment}${
+              kind === "expense" ? ` ${styles.segmentActive}` : ""
+            }`}
+            onClick={() => changeKind("expense")}
+            aria-pressed={kind === "expense"}
+          >
+            Khoản chi (−)
+          </Button>
+          <Button
+            type="button"
+            unstyled
+            targetSize="important"
+            className={`${styles.segment}${
+              kind === "income" ? ` ${styles.segmentActive}` : ""
+            }`}
+            onClick={() => changeKind("income")}
+            aria-pressed={kind === "income"}
+          >
+            Khoản thu (+)
+          </Button>
         </div>
-      </fieldset>
+      </section>
 
-      <div className={styles.formGrid}>
+      <section className={styles.captureStep} data-slot="capture-amount-step">
+        <span className={styles.stepLabel}>2 · Bao nhiêu?</span>
+        <TextField
+          id="add-tx-amount"
+          inputRef={amountInputRef}
+          label={amountLabel}
+          description={
+            kind === "expense"
+              ? "Số tiền khoản chi, đơn vị đồng Việt Nam."
+              : "Số tiền khoản thu, đơn vị đồng Việt Nam."
+          }
+          inputMode="numeric"
+          autoComplete="off"
+          placeholder="0"
+          value={amount}
+          required
+          prefix={kindSign}
+          suffix="₫"
+          targetSize="important"
+          inputClassName={styles.amountInput}
+          error={error.startsWith("Nhập số tiền") ? error : undefined}
+          onChange={(event) => {
+            setAmount(formatMoneyInput(event.target.value));
+            markInputChanged();
+          }}
+        />
+      </section>
+
+      <section className={styles.requiredChoices} data-slot="capture-required-choices">
+        <span className={styles.stepLabel}>3 · Ghi vào đâu?</span>
         <SelectField
           label="Tài khoản"
           value={selectedAccountId}
@@ -462,28 +406,98 @@ export function AddTransactionDialog({
             </option>
           ))}
         </SelectField>
-        <TextField
-          label="Ngày"
-          type="date"
-          value={occurredOn}
-          targetSize="important"
-          disabled={submitting}
-          onChange={(event) => {
-            setOccurredOn(event.target.value);
-            markInputChanged();
-          }}
-        />
-        <TextField
-          label="Ghi chú"
-          rootClassName={styles.spanFull}
-          value={note}
-          targetSize="important"
-          disabled={submitting}
-          onChange={(event) => applyNoteChange(event.target.value)}
-          placeholder="Ví dụ: Cơm trưa"
-          maxLength={500}
-        />
-      </div>
+
+        <fieldset className={styles.categoryFieldset}>
+          <legend>
+            Danh mục
+            {autoRuleHint ? (
+              <span className={styles.legendHint}> · {autoRuleHint}</span>
+            ) : hasRecentForKind ? (
+              <span className={styles.legendHint}> · hay dùng trước lên trước</span>
+            ) : null}
+          </legend>
+          <div className={styles.categoryGrid}>
+            {availableCategories.map((item) => {
+              const meta =
+                categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+              const recent = isRecentCategoryId(item.id, recentCategoryIds);
+              return (
+                <Button
+                  type="button"
+                  unstyled
+                  targetSize="important"
+                  key={item.id}
+                  className={`${styles.categoryChoice}${
+                    selectedCategoryId === item.id
+                      ? ` ${styles.categorySelected}`
+                      : ""
+                  }${recent ? ` ${styles.categoryRecent}` : ""}`}
+                  onClick={() => {
+                    setCategoryId(item.id);
+                    categoryTouchedRef.current = true;
+                    setAutoRuleHint(null);
+                    markInputChanged();
+                    window.requestAnimationFrame(() => focusAmount(false));
+                  }}
+                  aria-pressed={selectedCategoryId === item.id}
+                  data-recent={recent ? "true" : undefined}
+                >
+                  <span className={styles.categoryIcon}>
+                    <Icon name={meta.icon as IconName} />
+                  </span>
+                  <span className={styles.categoryLabel}>
+                    {item.name}
+                    {recent ? (
+                      <span className={styles.recentBadge} aria-label="Gần đây">
+                        Gần đây
+                      </span>
+                    ) : null}
+                  </span>
+                </Button>
+              );
+            })}
+          </div>
+        </fieldset>
+      </section>
+
+      <section className={styles.optionalDetails} data-slot="capture-optional-details">
+        <span className={styles.stepLabel}>4 · Thêm chi tiết nếu cần</span>
+        <div className={styles.formGrid}>
+          <TextField
+            label="Ngày"
+            type="date"
+            value={occurredOn}
+            targetSize="important"
+            disabled={submitting}
+            onChange={(event) => {
+              setOccurredOn(event.target.value);
+              markInputChanged();
+            }}
+          />
+          <TextField
+            label="Ghi chú"
+            rootClassName={styles.spanFull}
+            value={note}
+            targetSize="important"
+            disabled={submitting}
+            onChange={(event) => applyNoteChange(event.target.value)}
+            placeholder="Ví dụ: Cơm trưa"
+            maxLength={500}
+          />
+        </div>
+      </section>
+
+      {error && !error.startsWith("Nhập số tiền") ? (
+        <Alert tone="error" live="assertive" className={styles.formAlert}>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      {savedFlash && !error ? (
+        <Alert tone="success" live="polite" className={styles.formStatus}>
+          <AlertDescription>{savedFlash}</AlertDescription>
+        </Alert>
+      ) : null}
+
 
       <label className={styles.keepOpenRow} htmlFor="add-tx-keep-open">
         <input
