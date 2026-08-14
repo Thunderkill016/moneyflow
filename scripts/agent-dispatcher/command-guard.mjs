@@ -5,6 +5,7 @@ import { basename, isAbsolute } from "node:path";
 import process from "node:process";
 
 const BLOCKED_GIT_OPERATIONS = new Set(["merge", "pull", "rebase"]);
+const BLOCKED_BRANCH_CONTROL_OPERATIONS = new Set(["branch", "checkout", "switch", "worktree"]);
 const ALLOWED_GIT_OPERATIONS = new Set([
   "add",
   "apply",
@@ -53,7 +54,6 @@ const ALLOWED_GIT_GLOBAL_FLAGS = new Set([
   "--noglob-pathspecs",
 ]);
 const FORCE_PUSH_FLAGS = new Set(["--force", "-f", "--force-with-lease"]);
-const MAIN_REFERENCE_PATTERN = /(?:^|[/:])(?:origin\/)?main(?:$|[/:])/u;
 const SAFE_PUSH_FLAGS = new Set(["-u", "--set-upstream"]);
 const SAFE_GH_SUBCOMMANDS = new Map([
   ["auth", new Set(["status"])],
@@ -63,12 +63,21 @@ const SAFE_GH_SUBCOMMANDS = new Map([
   ["run", new Set(["list", "view", "watch"])],
 ]);
 
+function firstNonOptionAfter(args, startIndex) {
+  for (let index = startIndex; index < args.length; index += 1) {
+    if (!args[index].startsWith("-")) return args[index];
+  }
+  return "";
+}
+
 function gitOperationContext(args) {
   let index = 0;
   while (index < args.length && args[index].startsWith("-")) {
     const option = args[index];
     if (!ALLOWED_GIT_GLOBAL_FLAGS.has(option)) {
-      return { violation: `Git global option '${option}' is not permitted` };
+      const laterOperation = firstNonOptionAfter(args, index + 1);
+      const mergePrefix = BLOCKED_GIT_OPERATIONS.has(laterOperation) ? "merge / " : "";
+      return { violation: `${mergePrefix}Git global option '${option}' is not permitted` };
     }
     index += 1;
   }
@@ -126,6 +135,14 @@ function stashViolation(tail) {
   return `Git stash subcommand '${subcommand}' is not permitted`;
 }
 
+function commitViolation(tail) {
+  if (tail.includes("--amend")) return "Git commit amend is not permitted in the dispatcher lane";
+  if (tail.includes("--no-verify") || tail.includes("-n")) {
+    return "Git commit may not bypass repository hooks";
+  }
+  return null;
+}
+
 export function gitBoundaryViolation(args) {
   const context = gitOperationContext(args);
   if (context.violation) return context.violation;
@@ -133,6 +150,9 @@ export function gitBoundaryViolation(args) {
   const { operation, tail } = context;
   if (!operation) return "Git operation is ambiguous";
   if (BLOCKED_GIT_OPERATIONS.has(operation)) return "merge operations are not permitted";
+  if (BLOCKED_BRANCH_CONTROL_OPERATIONS.has(operation)) {
+    return "main/branch-control operations are not permitted from the dispatcher child";
+  }
   if (!ALLOWED_GIT_OPERATIONS.has(operation)) {
     return `Git operation '${operation}' is not in the dispatcher allowlist`;
   }
@@ -140,6 +160,34 @@ export function gitBoundaryViolation(args) {
   if (operation === "fetch") return fetchViolation(tail);
   if (operation === "remote") return remoteViolation(tail);
   if (operation === "stash") return stashViolation(tail);
+  if (operation === "commit") return commitViolation(tail);
+  return null;
+}
+
+function flagValue(args, longName, shortName) {
+  for (let index = 0; index < args.length; index += 1) {
+    const value = args[index];
+    if (value === longName || value === shortName) return args[index + 1] ?? "";
+    if (value.startsWith(`${longName}=`)) return value.slice(longName.length + 1);
+  }
+  return "";
+}
+
+function prCreateViolation(args) {
+  if (!args.includes("--draft") && !args.includes("-d")) {
+    return "dispatcher-created pull requests must remain draft";
+  }
+  if (args.includes("--dry-run") || args.includes("--web")) {
+    return "dispatcher PR creation must use the non-interactive explicit-head path";
+  }
+  const head = flagValue(args, "--head", "-H");
+  if (!head || head === "main" || head.includes(":")) {
+    return "dispatcher PR creation requires an explicit same-repository non-main --head branch";
+  }
+  const base = flagValue(args, "--base", "-B");
+  if (base && base !== "main") {
+    return "dispatcher PR creation may only target main";
+  }
   return null;
 }
 
@@ -150,12 +198,10 @@ export function ghBoundaryViolation(args) {
   if (!allowedSubcommands || !allowedSubcommands.has(subcommand)) {
     return `GitHub CLI operation '${[topLevel, subcommand].filter(Boolean).join(" ") || "<empty>"}' is not in the dispatcher allowlist`;
   }
-  if (topLevel === "auth" && args.includes("--show-token")) {
+  if (topLevel === "auth" && (args.includes("--show-token") || args.includes("-t"))) {
     return "GitHub authentication tokens must not be exposed to the dispatcher child";
   }
-  if (topLevel === "pr" && subcommand === "create" && !args.includes("--draft")) {
-    return "dispatcher-created pull requests must remain draft";
-  }
+  if (topLevel === "pr" && subcommand === "create") return prCreateViolation(args);
   return null;
 }
 
