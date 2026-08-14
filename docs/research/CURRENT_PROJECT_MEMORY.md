@@ -11,7 +11,7 @@ MoneyFlow is a released functional MVP and is **not public-beta ready**.
 
 Accepted historical checkpoints remain Provider Sync, P1 Secure, P2 Recover and P3 Prove. Repository Resets 1–2, A0 and Phases A–D are completed. Phase E is paused with all candidates owner-rejected; Phase F is not started.
 
-UI Slice 1 (#370), Slice 2 (#381) and the amount-focus hotfix (#383) are merged. Open-work reconciliation is complete: current-main dispatcher hardening merged in #384 and closed out in #385; the `js-yaml` 4.3.1 security backport merged in #386; stale #380 and Dependabot #320 were closed superseded. There are no open PRs after this reconciliation.
+UI Slice 1 (#370), Slice 2 (#381) and amount-focus hotfix #383 are merged. Open-work reconciliation is complete: current-main dispatcher hardening merged in #384 and closed out in #385; the `js-yaml` 4.3.1 security backport merged in #386; stale #380 and Dependabot #320 were closed superseded. There are no open PRs after this reconciliation.
 
 Current sequence:
 
@@ -34,12 +34,7 @@ The owner-facing checklist is `docs/plans/active/README.md`.
 
 The Current Work Board owns current execution. Old issue/PR bodies are provenance/candidate evidence, not authority.
 
-The historical GitHub queue has been reconciled against current main. No open PR remains. Only two open issues remain intentionally decision-gated:
-
-- #40 — Supabase leaked-password protection; provider plan/state + owner decision required.
-- #174 — provider-side security controls; provider state + owner decision required.
-
-The next authorized agent task is Release Readiness Audit v1. The audit must create current evidence, not reopen old feature requests merely because they existed historically.
+The historical GitHub queue has been reconciled against current main. Release Readiness Audit v1 is the next authorized agent task. The audit must create current evidence and must not reopen old feature requests merely because they existed historically.
 
 ## 4. Presentation and product-direction truth
 
@@ -88,36 +83,47 @@ Named accepted limitations remain claim-specific:
 - Current provider checklist still requires explicit verification of public-beta Auth/security settings such as password policy, confirmation, CAPTCHA/rate limits/trusted callbacks and leaked-password protection where supported.
 - #386 upgraded the resolved `js-yaml` dependency from 4.3.0 to 4.3.1 through a current-main security-maintenance delivery. Its final non-draft head passed full CI, CodeQL and secret-history gates.
 - Historical checkout/runtime credential-hardening findings remain audit inputs; they are not permission to revive stale dependency/CI PRs.
+- Release Readiness Audit v1 should reuse current/reconciled evidence and research only unresolved questions. Its dimensions are financial correctness; recovery/data safety; Auth/tenant isolation; security/privacy; usability/accessibility; deployment/operations; and closed-beta support/readiness. Each conclusion must identify the actual evidence mode and use only `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`.
 
-## 8. Release Readiness Audit v1 inputs
+## 8. Reconciled issue status
 
-The audit should reuse current/reconciled evidence and research only unresolved questions. At minimum inspect:
+Historical execution issues were reconciled against current main rather than treated as current authority.
 
-1. financial correctness and mixed-ledger authenticated truth, including transfer neutrality and deterministic VND totals;
-2. recovery/data safety, including edit/delete recovery, archive/export/validation/restore and the hosted-restore limitation;
-3. Auth and tenant isolation, including RLS/ownership and accepted recent-auth/provider limitations;
-4. security/privacy, including provider settings, abuse controls, secret/code scanning, secure-development baseline and applicable Vietnam personal-data review flags;
-5. usability/accessibility, including physical-phone evidence limits and WCAG 2.2-relevant interaction/focus/target/authentication checks;
-6. deployment/operations, including exact-main deployment identity, environment contract, incident/recovery/support visibility and current production/provider read-back where permissions allow;
-7. closed-beta support readiness: onboarding, correction/recovery, user-data ownership, support path, severity/stop-beta criteria and evidence capture.
+Still intentionally open/decision-gated:
 
-Use only `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION` for release-gate conclusions. Unknown or unverified evidence must not be promoted to PASS.
+- #40 — Supabase leaked-password protection; provider plan/state + owner decision required.
+- #174 — provider-side security controls; provider state + owner decision required.
 
-## 9. True gaps now
+These are not backlog-hygiene failures and must not be auto-closed merely to reach zero issues.
 
-1. Run Release Readiness Audit v1 and produce one canonical readiness matrix, blocker backlog and controlled closed-beta validation plan.
-2. Fix only audit-proven release blockers as bounded tasks.
-3. Resolve provider/security owner decisions that remain real (#40/#174 and any audit-created owner gate).
-4. Run controlled real-user beta after readiness permits it.
-5. Record PBT-AC15 only through explicit owner go/no-go and accepted limitations.
+## 9. Open pull-request memory
 
-## 10. Next allowed action
+There are **no open pull requests** after reconciliation.
 
-Start Release Readiness Audit v1 on current main.
+- #384 delivered the live dispatcher hardening; #385 closed its lifecycle; stale #380 is closed superseded.
+- #386 fresh-delivered the `js-yaml` 4.3.1 security patch from current main; Dependabot #320 is closed superseded.
+- Historical stale candidates were closed after evidence review rather than merged from old heads.
+
+A future open PR is candidate evidence until it passes its own current lifecycle and exact-head gates.
+
+## 10. True gaps after this audit
+
+Entering Release Readiness Audit v1, the remaining program gaps are:
+
+1. produce one current readiness matrix across financial correctness, recovery/data safety, Auth/isolation, security/privacy, usability/accessibility, deployment/operations and closed-beta support;
+2. preserve the mixed-ledger authenticated financial-truth scenario, hosted-restore limitation, provider-security decisions, physical-evidence limitations and CI/runtime hardening findings as audit inputs without pre-classifying them as blockers;
+3. fix only audit-proven release blockers as bounded tasks;
+4. resolve real provider/security owner decisions (#40/#174 and any audit-created owner gate);
+5. run controlled real-user beta only after readiness permits it;
+6. record PBT-AC15 only through explicit owner go/no-go and accepted limitations.
+
+## 11. Next allowed action
+
+Start Release Readiness Audit v1 on current main after this reconciliation closeout merges.
 
 No new UI slice, Phase E restart, Phase F implementation, speculative feature work, provider write or production-data mutation is implied.
 
-## 11. Superseded-status register
+## 12. Superseded-status register
 
 - “The amount-focus defect is open” is superseded by #383.
 - “#379 is stale tooling paperwork” is superseded: its live defects were resolved by #384; lifecycle was closed by #385.
