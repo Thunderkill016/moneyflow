@@ -1,52 +1,75 @@
 # Dispatcher boundary reconciliation
 
 **Status:** active delivery
-**Execution state:** implementing
+**Execution state:** evaluating
 **Change class:** Class 3 — local agent/Git/GitHub execution boundary
 **Permission scope:** branch_write only
 **Owner:** Thunderkill016
 **Source:** issue #379, stale draft PR #380, current-main reconciliation
+**PR:** #384
 **Base:** `main@755956f4302df6482b439720c1645efe13673166`
 
 ## Outcome
 
-Resolve the four known P1 safety/correctness defects in the merged owner-opt-in local Codex dispatcher without reviving the stale #380 lifecycle branch or changing MoneyFlow product/runtime/provider behavior.
+Resolve the known P1 safety/correctness defects in the merged owner-opt-in local Codex dispatcher without reviving stale PR #380 or changing MoneyFlow product/runtime/provider behavior.
 
 ## Current evidence
 
-Current `main` still contains the vulnerable #377 implementation:
+Current `main` inherited four reviewed defects from #377:
 
-1. body command identity hashes the whole body, so unrelated prose edits can re-dispatch;
-2. the first `/agent` line anywhere can execute, including ambiguous Markdown examples;
-3. `main` is validated once and its SHA can become stale before later worktree creation;
-4. Codex launches with automatic approval while inherited Git/GitHub access is not constrained by a command policy.
+1. unrelated issue/PR body edits could re-dispatch an unchanged body marker;
+2. ambiguous Markdown examples could execute;
+3. `main` could move between cycle validation and worktree creation;
+4. the auto-approved Codex child retained ordinary Git/GitHub mutation paths without a process-level command policy.
 
-PR #380 contains focused remediation and deterministic tests, but its base and lifecycle docs are stale. Only the still-applicable implementation/test delta may be adopted onto current `main`.
+Only the applicable code/test delta from #380 was transplanted onto current main. Its stale lifecycle files were not copied.
 
 ## Research decision
 
-Current OpenAI safety guidance treats sandboxing and approvals as complementary technical controls and recommends constraining higher-risk actions rather than relying on agent intent. MoneyFlow will keep the existing compatible Codex invocation for this bounded reconciliation and add a process-level Git/GitHub command guard as defense in depth.
+Current OpenAI safety guidance treats sandboxing and approvals/rules as complementary technical controls: routine actions belong inside bounded execution, while higher-risk actions should be blocked or reviewed. This task therefore uses a process-level Git/GitHub command allowlist as **defense in depth**, not as a substitute for Codex's OS sandbox, repository protection or owner-scoped credentials.
 
-The guard is **not** claimed to be an OS sandbox or a hostile-process boundary. An absolute-binary/path bypass remains residual risk. Repository protection, exact-head review and owner-scoped credentials remain independent controls.
+The guard is not claimed to defend against a hostile process that deliberately executes an absolute binary path outside the inherited `PATH` wrapper. That residual limitation is explicit.
 
 ## Acceptance criteria
 
-- **DBR-AC1** unrelated body prose edits do not create a new command identity; an explicit marker-note change does;
+- **DBR-AC1** unrelated body prose edits preserve command identity; explicit marker-note changes remain new commands;
 - **DBR-AC2** fenced, blockquoted and prose examples are ignored;
-- **DBR-AC3** exact local/remote `main` is revalidated immediately before each worktree and the fresh SHA is used;
-- **DBR-AC4** launched Codex receives a guard-first `PATH`; GitHub token environment variables are removed;
-- **DBR-AC5** ordinary `git` main/merge/rebase/pull/force-push and `gh pr merge` / merge-main-ref API paths are blocked;
-- **DBR-AC6** the guarded environment reaches the actual child process and large local Codex output does not fail from Node's default buffer;
-- **DBR-AC7** no product, financial, database, Auth, provider, production, workflow or branch-protection behavior changes;
-- **DBR-AC8** current exact-head policy/static/unit/build/security gates selected by the repository pass before merge.
+- **DBR-AC3** exact local/remote `main` is revalidated immediately before worktree creation and the fresh SHA is used;
+- **DBR-AC4** Codex receives a guard-first `PATH` and no documented GitHub token environment variables;
+- **DBR-AC5** direct main/merge/rebase/pull/force-push, inline Git aliases, unknown Git aliases, PR merge, repo sync, unknown `gh` aliases and GraphQL mutation paths are rejected by the wrapper;
+- **DBR-AC6** guarded environment reaches the actual child process and large local Codex output does not fail from Node's default buffer;
+- **DBR-AC7** no product, financial, database, Auth, provider, production or branch-protection behavior changes;
+- **DBR-AC8** dispatcher safety tests are part of the repository CI policy suite and exact-head policy/static/unit/build/security gates pass before merge.
 
-## Implementation plan
+## Self-review finding and remediation
 
-1. Reuse only `scripts/agent-dispatcher/command-guard.mjs`, the dispatcher hardening and its focused tests from #380.
-2. Do not copy #380's stale active-packet/registry/memory state.
-3. Run exact-head current-main CI and protected security workflows.
-4. Evaluate the diff and explicitly record the residual absolute-path bypass limitation.
-5. Merge only if exact-head evidence is clean; then retire this packet in lifecycle closeout and close #379/#380.
+The first transplanted guard still allowed a Git CLI alias escape such as:
+
+`git -c alias.ship='!git push origin HEAD:main' ship`
+
+That was material because it stayed inside the ordinary `git` executable path and therefore was not covered by the documented absolute-binary residual limitation.
+
+Remediation on #384:
+
+- Git commands now use an explicit operation allowlist;
+- inline `alias.*` config is rejected;
+- unknown operations/aliases are rejected;
+- GitHub CLI uses a top-level allowlist;
+- `gh alias`, `repo sync` and GraphQL API paths are rejected;
+- dedicated regressions cover these escape hatches;
+- `test:agent-dispatcher` now runs both dispatcher and command-guard tests;
+- `test:ci-policy` includes the dispatcher safety suites so provider CI cannot accept this boundary without executing them.
+
+## Verification interpretation
+
+The first PR workflow run occurred while #384 was draft. The classifier correctly selected `fullVerify=true`, but the workflow intentionally skips verification shards for draft pull requests. That run is **not acceptance evidence**.
+
+The next valid evidence must come from a ready-for-review exact head where:
+
+- `Verify policy contracts` executes the dispatcher safety suite;
+- full static/unit/build verification runs;
+- CodeQL and secret-history complete on the same head;
+- review submissions/threads and base movement are rechecked.
 
 ## Control contract
 
@@ -58,29 +81,30 @@ The guard is **not** claimed to be an OS sandbox or a hostile-process boundary. 
 
 ### Feedback
 
-- Expected failing signal: focused regressions for all four historical P1 defects.
-- Deterministic success signal: dispatcher focused suite plus repository-selected exact-head gates.
-- Semantic evidence: diff review proves no product/runtime/provider scope leak and records residual guard limitations.
+- Historical red signal: four P1 findings from exact-head review of #377.
+- Current regression signal: focused tests for identity, Markdown, fresh-base, env propagation, output buffering and command-policy bypasses.
+- Deterministic success signal: ready-for-review exact-head CI + CodeQL + secret-history.
+- Semantic evidence: diff review plus explicit residual limitation.
 
 ### Removal impact
 
-Removing the hardening would restore the reviewed redispatch/Markdown/TOCTOU/credential-boundary defects. Rollback of this task is a focused revert; no external state needs unwinding.
+Removing this hardening restores reviewed redispatch/Markdown/TOCTOU/command-boundary defects. Rollback is a focused revert; no external state needs unwinding.
 
 ### Action safety
 
-- Allowed: branch code/tests/docs and read-only GitHub/provider evidence selected by policy.
-- Forbidden: direct main write, force push, merge until gates pass, provider/production/database/Auth mutation, protection/ruleset changes.
-- Stop if current CLI compatibility requires a broader dispatcher redesign rather than this bounded hardening.
+- Allowed: branch code/tests/docs and read-only GitHub evidence selected by policy.
+- Forbidden: direct main write, force push, provider/production/database/Auth mutation, branch-protection/ruleset change.
+- Merge only after exact-head evidence is complete and clean.
 
 ## Tasks
 
 | ID | Covers | Task | Evidence | Status |
 |---|---|---|---|---|
-| DBR-T1 | DBR-AC1–6 | transplant applicable #380 hardening onto current main | focused diff/tests | implementing |
-| DBR-T2 | DBR-AC7 | scope/evidence review | changed-file audit | pending |
-| DBR-T3 | DBR-AC8 | exact-head verification and security checks | GitHub workflow runs | pending |
-| DBR-T4 | internal: lifecycle | merge/retire only after clean evidence | exact-head merge + closeout | pending |
+| DBR-T1 | DBR-AC1–6 | current-main dispatcher hardening | implementation + focused regressions | complete |
+| DBR-T2 | DBR-AC5–8 | close self-review alias/CI-coverage findings | allowlists + command-guard tests + CI-policy script | complete |
+| DBR-T3 | DBR-AC7–8 | exact-head provider verification and fresh review | ready PR workflow runs | pending |
+| DBR-T4 | internal: lifecycle | merge/retire only after clean evidence | expected-head merge + closeout | pending |
 
 ## Handoff
 
-Current next action: apply only the three still-applicable dispatcher code/test files from #380 onto this branch, then use current-main CI to decide whether the old remediation remains valid.
+Next allowed action: mark PR #384 ready for review, require exact-head full verification/security workflows, resolve any material finding, then perform final base/head/review/thread checks before merge.
