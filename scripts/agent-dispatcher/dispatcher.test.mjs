@@ -30,6 +30,7 @@ const source = {
   title: "Dispatcher v1",
   url: "https://github.com/owner/repo/issues/375",
 };
+const OUTPUT_LARGER_THAN_NODE_DEFAULT_BUFFER_BYTES = 1_100_000;
 
 test("parses one-shot and watch dispatcher controls", () => {
   assert.deepEqual(parseDispatcherArgs(["--once", "--repo", "owner/repo"]), {
@@ -96,6 +97,16 @@ test("passes the guarded environment to the launched process", () => {
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, new RegExp(`^${variable}=present$`, "mu"));
+});
+
+test("retains a Codex-sized local log without marking the command as failed", () => {
+  const result = defaultRun("/bin/bash", [
+    "-c",
+    `head -c ${OUTPUT_LARGER_THAN_NODE_DEFAULT_BUFFER_BYTES} /dev/zero | tr "\\0" x`,
+  ]);
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout.length, OUTPUT_LARGER_THAN_NODE_DEFAULT_BUFFER_BYTES);
 });
 
 test("fails closed when GitHub authentication or the main base is ambiguous", () => {

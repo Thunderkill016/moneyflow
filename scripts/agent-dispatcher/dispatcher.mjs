@@ -15,6 +15,8 @@ const WORKTREE_DIRECTORY = "worktrees";
 const SUPPORTED_LANE = "codex";
 const MAIN_BRANCH = "main";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
+// Preserve detailed local Codex logs without Node's 1 MiB spawnSync default truncating a valid run.
+const MAX_DISPATCH_OUTPUT_BYTES = 8 * 1024 * 1024;
 const GITHUB_TOKEN_VARIABLES = [
   "GH_ENTERPRISE_TOKEN",
   "GH_TOKEN",
@@ -35,6 +37,7 @@ export function defaultRun(command, args, { cwd = process.cwd(), env = undefined
     cwd,
     encoding: "utf8",
     env,
+    maxBuffer: MAX_DISPATCH_OUTPUT_BYTES,
     stdio: ["ignore", "pipe", "pipe"],
   });
   if (result.error) return { status: 1, stderr: result.error.message, stdout: "" };
