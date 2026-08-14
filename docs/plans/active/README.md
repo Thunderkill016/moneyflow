@@ -7,6 +7,7 @@ pull requests remain the dynamic status source.
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `public-beta-trust.md` | active parent program | ordered program state and public-beta decision gate |
+| `moneyflow-codex-dispatcher-v1.md` | active child delivery | bounded local Codex dispatcher tooling only (#375) |
 
 Each packet must use `docs/templates/FEATURE_WORK_PACKET.md` and stay current enough
 that another agent can continue without hidden chat context. Do not add a candidate or
