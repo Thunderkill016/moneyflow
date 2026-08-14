@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ghBoundaryViolation, gitBoundaryViolation } from "./command-guard.mjs";
+import {
+  ghBoundaryViolation,
+  gitBoundaryViolation,
+  prCreateDeliveryViolation,
+} from "./command-guard.mjs";
 
 test("Git wrapper allows ordinary isolated-branch delivery and read paths", () => {
   assert.equal(gitBoundaryViolation(["status"]), null);
@@ -56,11 +60,12 @@ test("Git fetch and remote commands cannot rewrite local refs or remotes", () =>
   assert.match(gitBoundaryViolation(["stash", "branch", "main"]) ?? "", /not permitted/u);
 });
 
-test("GitHub CLI wrapper permits read-only inspection plus explicit draft PR creation only", () => {
+test("GitHub CLI command allowlist permits reads and the PR-create command family only", () => {
   assert.equal(ghBoundaryViolation(["auth", "status"]), null);
   assert.equal(ghBoundaryViolation(["issue", "list"]), null);
   assert.equal(ghBoundaryViolation(["issue", "view", "379"]), null);
   assert.equal(ghBoundaryViolation(["pr", "checks", "384"]), null);
+  assert.equal(ghBoundaryViolation(["pr", "create", "--draft"]), null);
   assert.equal(ghBoundaryViolation(["pr", "diff", "384"]), null);
   assert.equal(ghBoundaryViolation(["pr", "list"]), null);
   assert.equal(ghBoundaryViolation(["pr", "status"]), null);
@@ -69,8 +74,11 @@ test("GitHub CLI wrapper permits read-only inspection plus explicit draft PR cre
   assert.equal(ghBoundaryViolation(["run", "list"]), null);
   assert.equal(ghBoundaryViolation(["run", "view", "123"]), null);
   assert.equal(ghBoundaryViolation(["run", "watch", "123"]), null);
+});
+
+test("PR creation delivery policy requires explicit same-repo draft head to main", () => {
   assert.equal(
-    ghBoundaryViolation([
+    prCreateDeliveryViolation([
       "pr",
       "create",
       "--draft",
@@ -83,25 +91,25 @@ test("GitHub CLI wrapper permits read-only inspection plus explicit draft PR cre
     ]),
     null,
   );
+  assert.match(prCreateDeliveryViolation(["pr", "create", "--head", "feature/x"]) ?? "", /draft/u);
+  assert.match(prCreateDeliveryViolation(["pr", "create", "--draft"]) ?? "", /explicit.*--head/u);
+  assert.match(prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "main"]) ?? "", /non-main/u);
+  assert.match(prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "other:feature"]) ?? "", /same-repository/u);
+  assert.match(
+    prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "feature/x", "--base", "develop"]) ?? "",
+    /target main/u,
+  );
+  assert.match(
+    prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "feature/x", "--dry-run"]) ?? "",
+    /non-interactive/u,
+  );
 });
 
-test("GitHub CLI wrapper rejects token disclosure and write-capable operations outside draft PR delivery", () => {
+test("GitHub CLI wrapper rejects token disclosure and write-capable operations outside PR creation", () => {
   assert.match(ghBoundaryViolation(["auth", "status", "--show-token"]) ?? "", /tokens/u);
   assert.match(ghBoundaryViolation(["auth", "status", "-t"]) ?? "", /tokens/u);
   assert.match(ghBoundaryViolation(["issue", "close", "379"]) ?? "", /allowlist/u);
   assert.match(ghBoundaryViolation(["issue", "edit", "379", "--title", "changed"]) ?? "", /allowlist/u);
-  assert.match(ghBoundaryViolation(["pr", "create", "--head", "feature/x"]) ?? "", /draft/u);
-  assert.match(ghBoundaryViolation(["pr", "create", "--draft"]) ?? "", /explicit.*--head/u);
-  assert.match(ghBoundaryViolation(["pr", "create", "--draft", "--head", "main"]) ?? "", /non-main/u);
-  assert.match(ghBoundaryViolation(["pr", "create", "--draft", "--head", "other:feature"]) ?? "", /same-repository/u);
-  assert.match(
-    ghBoundaryViolation(["pr", "create", "--draft", "--head", "feature/x", "--base", "develop"]) ?? "",
-    /target main/u,
-  );
-  assert.match(
-    ghBoundaryViolation(["pr", "create", "--draft", "--head", "feature/x", "--dry-run"]) ?? "",
-    /non-interactive/u,
-  );
   assert.match(ghBoundaryViolation(["pr", "merge", "384"]) ?? "", /allowlist/u);
   assert.match(ghBoundaryViolation(["pr", "close", "384"]) ?? "", /allowlist/u);
   assert.match(ghBoundaryViolation(["pr", "edit", "384"]) ?? "", /allowlist/u);
