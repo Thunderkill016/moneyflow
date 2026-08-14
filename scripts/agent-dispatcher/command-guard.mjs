@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
+import { basename, isAbsolute } from "node:path";
 import process from "node:process";
 
 const BLOCKED_GIT_OPERATIONS = new Set(["merge", "pull", "rebase"]);
 const ALLOWED_GIT_OPERATIONS = new Set([
   "add",
   "apply",
-  "branch",
   "cat-file",
-  "checkout",
   "commit",
   "diff",
   "diff-tree",
@@ -31,122 +30,190 @@ const ALLOWED_GIT_OPERATIONS = new Set([
   "show",
   "stash",
   "status",
-  "switch",
   "update-index",
-  "worktree",
 ]);
-const ALLOWED_GH_TOP_LEVEL = new Set(["auth", "issue", "pr", "repo", "run"]);
+const MUTATING_GIT_OPERATIONS = new Set([
+  "add",
+  "apply",
+  "commit",
+  "fetch",
+  "mv",
+  "push",
+  "reset",
+  "restore",
+  "rm",
+  "stash",
+  "update-index",
+]);
+const ALLOWED_GIT_GLOBAL_FLAGS = new Set([
+  "--glob-pathspecs",
+  "--icase-pathspecs",
+  "--literal-pathspecs",
+  "--no-pager",
+  "--noglob-pathspecs",
+]);
 const FORCE_PUSH_FLAGS = new Set(["--force", "-f", "--force-with-lease"]);
 const MAIN_REFERENCE_PATTERN = /(?:^|[/:])(?:origin\/)?main(?:$|[/:])/u;
-const FORBIDDEN_GITHUB_API_PATTERN = /\/(?:merge|merges|git\/refs\/heads\/main)(?:\/|$)/u;
-const GIT_GLOBAL_OPTIONS_WITH_VALUES = new Set([
-  "-C",
-  "-c",
-  "--config-env",
-  "--git-dir",
-  "--namespace",
-  "--super-prefix",
-  "--work-tree",
+const SAFE_PUSH_FLAGS = new Set(["-u", "--set-upstream"]);
+const SAFE_GH_SUBCOMMANDS = new Map([
+  ["auth", new Set(["status"])],
+  ["issue", new Set(["list", "view"])],
+  ["pr", new Set(["checks", "create", "diff", "list", "status", "view"])],
+  ["repo", new Set(["view"])],
+  ["run", new Set(["list", "view", "watch"])],
 ]);
 
-function inlineGitConfigViolation(args) {
-  for (let index = 0; index < args.length; index += 1) {
-    const argument = args[index];
-    let config = null;
-    if (argument === "-c" || argument === "--config-env") {
-      config = args[index + 1] ?? "";
-      index += 1;
-    } else if (argument.startsWith("-c") && argument.length > 2) {
-      config = argument.slice(2);
-    } else if (argument.startsWith("--config-env=")) {
-      config = argument.slice("--config-env=".length);
+function gitOperationContext(args) {
+  let index = 0;
+  while (index < args.length && args[index].startsWith("-")) {
+    const option = args[index];
+    if (!ALLOWED_GIT_GLOBAL_FLAGS.has(option)) {
+      return { violation: `Git global option '${option}' is not permitted` };
     }
-    if (config && /^alias\./iu.test(config.split("=", 1)[0])) {
-      return "inline Git aliases are not permitted";
+    index += 1;
+  }
+  const operation = args[index] ?? "";
+  return { operation, tail: args.slice(index + 1), violation: null };
+}
+
+function pushViolation(tail) {
+  if (
+    tail.some((argument) =>
+      FORCE_PUSH_FLAGS.has(argument) || argument.startsWith("--force-with-lease="),
+    )
+  ) {
+    return "force-push is not permitted";
+  }
+
+  const positional = [];
+  for (const argument of tail) {
+    if (SAFE_PUSH_FLAGS.has(argument)) continue;
+    if (argument.startsWith("-")) {
+      return `Git push option '${argument}' is not in the dispatcher allowlist`;
     }
+    positional.push(argument);
+  }
+
+  if (positional.length !== 2 || positional[0] !== "origin" || positional[1] !== "HEAD") {
+    return "Git push is limited to 'origin HEAD' from the isolated feature branch";
   }
   return null;
 }
 
-function firstGitOperation(args) {
-  for (let index = 0; index < args.length; index += 1) {
-    const argument = args[index];
-    if (GIT_GLOBAL_OPTIONS_WITH_VALUES.has(argument)) {
-      index += 1;
-      continue;
-    }
-    if (argument.startsWith("-c") && argument.length > 2) continue;
-    if (argument.startsWith("--config-env=")) continue;
-    if (argument.startsWith("-")) continue;
-    return argument;
+function fetchViolation(tail) {
+  const positional = tail.filter((argument) => !argument.startsWith("-"));
+  if (tail.some((argument) => argument.includes(":"))) {
+    return "Git fetch refspec destinations are not permitted";
   }
-  return "";
+  if (positional.length === 0 || positional[0] !== "origin") {
+    return "Git fetch is limited to the origin remote";
+  }
+  return null;
+}
+
+function remoteViolation(tail) {
+  if (tail.length === 1 && tail[0] === "-v") return null;
+  if (tail[0] === "get-url" && tail.at(-1) === "origin") return null;
+  if (tail.length === 2 && tail[0] === "show" && tail[1] === "origin") return null;
+  return "Git remote mutation is not permitted";
+}
+
+function stashViolation(tail) {
+  const subcommand = tail.find((argument) => !argument.startsWith("-")) ?? "push";
+  if (["apply", "clear", "drop", "list", "pop", "push", "show"].includes(subcommand)) {
+    return null;
+  }
+  return `Git stash subcommand '${subcommand}' is not permitted`;
 }
 
 export function gitBoundaryViolation(args) {
-  const inlineConfigViolation = inlineGitConfigViolation(args);
-  if (inlineConfigViolation) return inlineConfigViolation;
+  const context = gitOperationContext(args);
+  if (context.violation) return context.violation;
 
-  const operation = firstGitOperation(args);
+  const { operation, tail } = context;
   if (!operation) return "Git operation is ambiguous";
   if (BLOCKED_GIT_OPERATIONS.has(operation)) return "merge operations are not permitted";
   if (!ALLOWED_GIT_OPERATIONS.has(operation)) {
     return `Git operation '${operation}' is not in the dispatcher allowlist`;
   }
-  if (
-    operation === "push" &&
-    args.some((argument) => FORCE_PUSH_FLAGS.has(argument) || argument.startsWith("--force-with-lease="))
-  ) {
-    return "force-push is not permitted";
-  }
-  if (
-    ["branch", "checkout", "switch", "push", "worktree"].includes(operation) &&
-    args.some((argument) => MAIN_REFERENCE_PATTERN.test(argument))
-  ) {
-    return "main branch operations are not permitted";
-  }
+  if (operation === "push") return pushViolation(tail);
+  if (operation === "fetch") return fetchViolation(tail);
+  if (operation === "remote") return remoteViolation(tail);
+  if (operation === "stash") return stashViolation(tail);
   return null;
 }
 
 export function ghBoundaryViolation(args) {
   const topLevel = args[0] ?? "";
-  if (!ALLOWED_GH_TOP_LEVEL.has(topLevel) && topLevel !== "api") {
-    return `GitHub CLI operation '${topLevel || "<empty>"}' is not in the dispatcher allowlist`;
+  const subcommand = args[1] ?? "";
+  const allowedSubcommands = SAFE_GH_SUBCOMMANDS.get(topLevel);
+  if (!allowedSubcommands || !allowedSubcommands.has(subcommand)) {
+    return `GitHub CLI operation '${[topLevel, subcommand].filter(Boolean).join(" ") || "<empty>"}' is not in the dispatcher allowlist`;
   }
-  if (topLevel === "pr" && args[1] === "merge") {
-    return "pull request merge is not permitted";
+  if (topLevel === "auth" && args.includes("--show-token")) {
+    return "GitHub authentication tokens must not be exposed to the dispatcher child";
   }
-  if (topLevel === "repo" && args[1] === "sync") {
-    return "repository sync is not permitted";
-  }
-  if (topLevel === "api" && args[1] === "graphql") {
-    return "GitHub GraphQL mutations are not permitted from the dispatcher lane";
-  }
-  if (topLevel === "api" && args.some((argument) => FORBIDDEN_GITHUB_API_PATTERN.test(argument))) {
-    return "GitHub merge or main-ref API operation is not permitted";
+  if (topLevel === "pr" && subcommand === "create" && !args.includes("--draft")) {
+    return "dispatcher-created pull requests must remain draft";
   }
   return null;
 }
 
+function expectedExecutableName(tool) {
+  return process.platform === "win32" ? `${tool}.exe` : tool;
+}
+
+function realToolViolation(tool, realTool) {
+  if (!isAbsolute(realTool)) return "real tool path is not absolute";
+  const actual = basename(realTool).toLowerCase();
+  const expected = expectedExecutableName(tool).toLowerCase();
+  if (actual !== expected && actual !== tool.toLowerCase()) {
+    return `real tool path does not resolve to ${tool}`;
+  }
+  return null;
+}
+
+function currentBranch(realGit, environment) {
+  const result = spawnSync(realGit, ["rev-parse", "--abbrev-ref", "HEAD"], {
+    encoding: "utf8",
+    env: environment,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (result.status !== 0) return null;
+  const branch = String(result.stdout ?? "").trim();
+  if (!branch || branch === "HEAD") return null;
+  return branch;
+}
+
 function runGuard(argv = process.argv.slice(2), environment = process.env) {
-  const [tool, ...args] = argv;
-  const violation = tool === "git"
-    ? gitBoundaryViolation(args)
-    : tool === "gh"
-      ? ghBoundaryViolation(args)
-      : "unknown tool";
+  const [tool, realTool, ...args] = argv;
+  const realToolProblem = realToolViolation(tool, realTool ?? "");
+  const violation = realToolProblem ?? (
+    tool === "git"
+      ? gitBoundaryViolation(args)
+      : tool === "gh"
+        ? ghBoundaryViolation(args)
+        : "unknown tool"
+  );
   if (violation) {
     console.error(`Dispatcher blocked ${tool}: ${violation}`);
     return 126;
   }
-  const originalPath = environment.MONEYFLOW_DISPATCHER_ORIGINAL_PATH;
-  if (!originalPath) {
-    console.error("Dispatcher guard has no original PATH");
-    return 126;
+
+  if (tool === "git") {
+    const { operation } = gitOperationContext(args);
+    if (MUTATING_GIT_OPERATIONS.has(operation)) {
+      const branch = currentBranch(realTool, environment);
+      if (!branch || branch === "main") {
+        console.error("Dispatcher blocked git: mutating Git commands require an unambiguous non-main branch");
+        return 126;
+      }
+    }
   }
-  const result = spawnSync(tool, args, {
+
+  const result = spawnSync(realTool, args, {
     encoding: "utf8",
-    env: { ...environment, PATH: originalPath },
+    env: environment,
     stdio: "inherit",
   });
   return result.status ?? 1;
