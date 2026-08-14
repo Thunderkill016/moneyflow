@@ -1,285 +1,162 @@
 # MoneyFlow Trust
 
-**Status:** active
-**Execution state:** P3 Prove, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority Audit, Phase B, Phase C and Phase D accepted/completed; Phase E is paused with all candidates rejected; owner-authorised UI Slice 2 is active for Manual Capture + Accounts only; public-beta decision remains open
-**Active role:** parent-program planner; Slice 2 is the sole active child packet
-**Permission scope:** branch_write + provider_read
+**Status:** active parent program
+**Execution state:** P1 Secure, P2 Recover, P3 Prove, Repository Resets 1–2, A0 and Phases A–D completed; UI Slice 1 (#370) and Slice 2 (#381) merged; known amount-field focus hotfix pending; repository open-work reconciliation and Release Readiness Audit v1 not yet completed; PBT-AC15 open
+**Active role:** parent-program planner
+**Permission scope:** branch_write + provider_read; provider/production writes require explicit scoped owner approval
 **Owner:** Thunderkill016
-**Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure; #356 P3 Prove packet; #358 PP-12 remediation; #360 Reset 1 closure; #362 Reset 2 closure
 **Last updated:** 2026-08-14
-**Current main baseline:** `dd735700731c9718f8d2ae8e62488e35df87d859` (#377 merged)
+**Current main baseline:** `2ffe63dc470ca84f4e782343238f2353a61ca89d` (#381 merged)
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
-
-**Canonical short name:** MoneyFlow Trust
-**Original planning path:** `docs/plans/active/public-beta-trust.md`
-
-MoneyFlow Trust moves the released functional MVP toward a trustworthy bounded public beta by closing provider alignment, security, recoverability/portability and real-use evidence gaps before speculative breadth.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. The owner-facing execution checklist is `docs/plans/active/README.md`; this packet owns the public-beta trust/release gate, not day-to-day task enumeration.
 
 ## Outcome
 
-MoneyFlow is ready for a bounded public beta only when repository state, production providers and user-visible behavior agree; destructive operations are protected by current security policy; user-owned state is recoverable; and the daily ledger survives real use without data loss or manual database repair.
+MoneyFlow is ready for a bounded public beta only when current repository behavior, current provider configuration and user-visible behavior agree; core financial truth is correct; user-owned data is recoverable/exportable; security/privacy boundaries are credible; real users can complete the daily ledger loop; and the owner records PBT-AC15.
 
-Current program sequence:
-
-> **Phase A Current Reality / Authority Audit → Phase B product-experience research
-> → Phase C Product Experience Architecture → Phase D Brand Strategy → owner-authorised
-> future work only (none currently active) → final physical/device visual QA → owner
-> public-beta decision**
-
-Provider Sync, P1 Secure, P2 Recover and **P3 Prove** are accepted historical
-checkpoints. Generic P4 Improve is not an active or implied next implementation.
+Historical checkpoint completion is evidence, not a substitute for a current release-readiness audit.
 
 ## Repository reconnaissance
 
 ### Current truth
 
-- Functional MVP is released.
-- UI migration P0–P11 is archived; physical Android/iOS remain accepted limitations, not fabricated pass evidence.
-- PR #324 merged the recent-auth implementation.
-- PR #340 repaired password-entry/shared-dropdown regressions that blocked safe production acceptance and is deployed in production.
-- Vercel production deployment `dpl_Ha9j2HWPx4PfrpjLc1jpfcPgFvNi` is `READY` and identifies exact Git SHA `18836e2ebdc63711113f248826b00cd541a0a530`.
-- Reviewed MoneyFlow database migration/schema/ACL state is production-aligned. The Supabase project is now MoneyFlow-only: the Atoryn subsystem and its Edge Functions were removed on 2026-08-12 and migration history is fully aligned.
-- Production `delete-account` is v6 `ACTIVE`, `verify_jwt=true`, with the current recent-auth helper and tenant cleanup inventory read back from the provider.
-- Production-safe password deletion reauthentication passed with same-account provider evidence and no destructive deletion.
-- Production-safe Google/OAuth deletion reauthentication passed with same-account callback continuity and no destructive deletion.
-- Missing-continuity production behavior failed closed.
-- Stale-AMR and real account-mismatch production probes were deliberately not executed; on 2026-08-11 the owner accepted that named limitation and accepted the 35/35 deterministic fail-closed assertions/source evidence instead of destructive/identity-risk production testing.
-- Correlated Auth/API/Postgres/Edge/Vercel review found no acceptance-blocking error cluster for the accepted interactive flows; no `delete-account` Edge invocation was observed.
-- Current transaction/Inbox CSV/JSON export is scoped user-readable export, **not** a complete versioned restorable archive. The complete archive is a separate shipped capability at `/settings/backup`; the report export deliberately still says it is not a full backup.
+- MoneyFlow has a released functional MVP.
+- Provider Sync, P1 Secure, P2 Recover and P3 Prove are accepted checkpoints with named limitations preserved below.
+- Repository Resets 1–2 and A0 Historical UI / Design Failure Review are completed.
+- Phase A Current Reality / Authority Audit, Phase B product-experience research, Phase C Product Experience Architecture and Phase D Brand Strategy are completed.
+- Phase E Creative Territories is paused: every proposed territory was owner-rejected, no territory is selected and rejected exploration is not visual authority.
+- Phase F / broader Brand-Product Experience implementation is not started.
+- UI Slice 1 merged as #370. UI Slice 2 merged as #381 and is no longer an active child packet.
+- After #381, the owner identified one bounded presentation defect: the Manual Capture amount field can paint two blue focus contours. That defect is a hotfix, not a new redesign phase.
+- GitHub still contains a substantial open issue/PR backlog; stale bodies cannot be treated as unfinished product truth until reconciled against current main.
+- PBT-AC15 remains open. MoneyFlow is not public-beta ready by declaration alone.
 
-Accepted P3 packet: `docs/plans/completed/2026-08-12-moneyflow-trust-prove.md` —
-records owner-observed physical-phone acceptance without inventing a signed evidence file.
+### Current authority
 
-Completed Trust packets:
+- Owner checklist: `docs/plans/active/README.md`.
+- Current implementation/trust memory: `docs/research/CURRENT_PROJECT_MEMORY.md`.
+- Product law: `docs/product/PRINCIPLES.md`.
+- Architecture: `ARCHITECTURE.md`.
+- Risk/gates: `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
+- Configuration/provider contract: `docs/configuration.md`.
 
-- `docs/plans/completed/2026-08-11-moneyflow-trust-provider-sync.md`
-- `docs/plans/completed/2026-08-11-account-deletion-recent-auth.md`
+Historical completed packets and PR-memory records provide provenance only when a named claim needs it.
 
-## Accepted limitations carried forward
+## Research
 
-### Provider Sync historical DB checkpoint
+No new external research is required to reconcile this parent packet. Existing accepted research remains historical input. Release Readiness Audit v1 must research only unresolved current questions and must distinguish current evidence from historical evidence.
 
-The earlier ten-file DB checkpoint did not execute an actual linked-production CLI dry-run. The owner accepted the free local union-history simulation plus fresh live preflight for that consumed checkpoint only. This remains a limitation, not a claimed pass.
+### Adoption review
 
-### P1 Secure provider acceptance
-
-The owner accepted stale-AMR and real account-mismatch provider-level destructive/identity-risk probes as unexecuted limitations because deterministic source/tests prove the fail-closed contract and executing those cases safely in production would cross the accepted safety boundary.
-
-This does not weaken the implementation policy:
-
-- recent-auth authority is verified JWT `amr` method/timestamp;
-- only `password` and `oauth` count as current interactive deletion authentication;
-- `token_refresh` does not extend deletion authority;
-- missing, malformed, unsupported, future-dated and stale AMR fail closed before tenant purge.
-
-## Research decisions retained
-
-Official Supabase Auth semantics distinguish `password`, `oauth`, `token_refresh` and other methods in the JWT `amr` claim. MoneyFlow deliberately keeps its allowlist narrower than the provider vocabulary and computes recency from the interactive AMR timestamp rather than access-token `iat`.
-
-Provider and repository evidence remain claim-specific:
-
-- Git merge is not provider deployment;
-- Vercel and Supabase Edge are separate lifecycles;
-- provider source read-back is not interactive behavior acceptance;
-- browser/provider acceptance does not require destructive deletion;
-- log absence is interpreted only for the service and time window actually queried.
+No dependency, provider, architecture framework or new runtime service is adopted by this parent-program reconciliation.
 
 ## Specification
 
 ### Current problem
 
-P1 Secure and P2 Recover no longer block the program. A complete versioned archive can be exported, validated and restored with invariants intact, and the Recover schema is live in production — with the venues kept distinct: **export** is accepted against a real hosted production artifact, while **restore** is proven deterministically by pgTAP against a real PostgreSQL and has never been executed against a live hosted account. That gap is the named P2 limitation, not a claimed pass.
+The functional MVP and trust checkpoints exist, but the repo is not yet in a state where the owner should make a public-beta decision. Three current gaps must be handled before that decision:
 
-P3 Prove is accepted from the owner's physical-phone run and bounded retest.
-Repository Reset 1 is accepted by #360's merged lifecycle record. Repository Reset 2
-is accepted by merged #362 (`main@13650f4`): only 13 proven-unowned leaves were
-retired, while legacy/live and protected boundaries were retained. **A0 Historical UI
-/ Design Failure Review** is accepted/completed in merged #364
-(`main@157ba76795c4ddc1add726e6fb6d4dd82c881c04`). It did not begin Brand/Product
-Experience implementation. **Phase A Current Reality /
-Authority Audit** is accepted/completed in its completed record. **Phase B Fresh
-Product-Experience Research** is accepted/completed in merged #366
-(`main@60f91b7`). **Phase C Product Experience Architecture** is accepted/completed in
-merged #367 (`main@4ba1864`). **Phase D Brand Strategy** is accepted/completed in merged
-#368 (`main@55ee401`), with the durable authority at
-`docs/research/PHASE_D_BRAND_STRATEGY.md`; it makes no visual decision. **Phase E
-Creative Territories is paused:** every candidate territory was rejected by the owner,
-no territory is selected, and the exploration is not visual authority. Owner-authorised
-UI evolutionary refresh Slice 2 (#374) is the sole active child, limited to Manual Capture
-and Accounts. Phase F and Brand/Product Experience implementation are not started and
-have no packet. The public-beta decision remains open.
-
-On 2026-08-12 the owner **removed the seven-day self-use requirement** from the active program after running the physical checklist. P3 Prove is now physical-phone core-ledger acceptance only. No replacement duration gate is introduced. The historical seven-day records in `docs/REAL_USE_READINESS_CONTRACT.md` (R7, 2026-07-29) stay as historical truth and are not re-opened.
-
-### P2 Recover user stories
-
-- As a user, I can export a complete versioned archive of the MoneyFlow state that is necessary to reconstruct my ledger and planning data.
-- As a user, I can validate an archive before restore and receive a safe failure for unsupported, corrupt or partial archives.
-- As a user, restoring an archive preserves integer money, transfer neutrality, split exactness, ownership and referential relationships instead of guessing missing facts.
-- As the owner, restore evidence proves round-trip behavior without exposing credentials, JWTs, provider secrets or infrastructure metadata.
+1. the known post-#381 focus defect must be fixed and proven;
+2. stale/open GitHub work and lifecycle memory must be reconciled so old candidate work does not masquerade as current scope;
+3. the current product must pass a release-readiness audit focused on real-user safety and operability, not feature count or visual polish.
 
 ### Acceptance criteria
 
-Provider baseline/alignment:
+- [x] PBT-AC1–4 provider/repository baseline checkpoints accepted in their completed evidence.
+- [x] PBT-AC5–9 Secure checkpoints accepted, including named provider-test limitations rather than fabricated passes.
+- [x] PBT-AC10–11 Recover archive/export/validation/restore contract accepted; hosted restore remains a named limitation because it was not executed against a live hosted account.
+- [x] PBT-AC12 owner-observed physical-phone core-ledger run accepted.
+- [~] PBT-AC13 duration requirement withdrawn by owner on 2026-08-12; no replacement streak/count exists.
+- [x] PBT-AC14 historical daily-loop checkpoint accepted with its parked findings preserved.
+- [ ] PBT-AC15 owner public-beta go/no-go and accepted limitations recorded from current readiness evidence.
 
-- [x] PBT-AC1 repository/Vercel/Supabase baseline reconciled.
-- [x] PBT-AC2 reviewed database migration/schema/ACL contract production-aligned.
-- [x] PBT-AC3 current `delete-account` Edge source owner-approved, deployed and read back as v6 ACTIVE with `verify_jwt=true`.
-- [x] PBT-AC4 provider read-back contains current recent-auth helper/evaluator and tenant cleanup inventory.
+PBT-AC14 does not mean every later UI defect is impossible. A newly observed current defect is handled as current evidence and must be resolved or explicitly classified before PBT-AC15.
 
-Secure:
+### Financial and security constraints
 
-- [x] PBT-AC5 destructive deletion requires verified recent interactive authentication in merged/live source.
-- [x] PBT-AC6 production-safe password step-up provider evidence accepted.
-- [x] PBT-AC7 production-safe Google/OAuth step-up preserves same-account continuity.
-- [x] PBT-AC8 fail-closed behavior accepted: missing continuity provider-backed PASS; stale-AMR/account-mismatch provider probes retained as explicit owner-accepted limitations backed by deterministic fail-closed evidence.
-- [x] PBT-AC9 relevant Auth/API/Postgres/Edge/Vercel review found no acceptance-blocking cluster for the accepted flows.
+- VND remains integer đồng.
+- Transfers remain equal/opposite account movements, never income/expense.
+- Never invent balances, dates, commitments, income, history or planning assumptions.
+- Demo and authenticated stores remain explicit and separate.
+- Authenticated user-owned data remains tenant-isolated by current RLS/ownership contracts.
+- Archive/restore evidence must never be overstated beyond the environment actually proven.
+- Provider writes require explicit scoped owner approval; this packet grants none.
 
-Recover/Prove/Release:
+### Out of scope
 
-- [x] PBT-AC10 versioned complete archive can be exported, validated and restored with financial invariants intact — deterministic full round trip proven by pgTAP on every CI run that touches the database boundary and on every push to `main` (`classify-ci-changes.mjs` selects the pgTAP job by changed path, and non-pull-request events force the full gate set — so a docs-only PR such as this closure does not re-run it); hosted export accepted on a real production artifact; hosted restore is an owner-accepted named limitation (id-preservation refuses a restore while the source account is live).
-- [x] PBT-AC11 restore fails safely on unsupported/corrupt/partial archives — each rejection writes zero rows, proven in pgTAP.
-- [x] PBT-AC12 core ledger behavior was exercised on the owner's physical phone.
-- [~] PBT-AC13 **withdrawn as a duration gate** by owner decision on 2026-08-12. Real daily use continues to inform defect discovery, but no consecutive-day count is required for public beta and none replaces it.
-- [x] PBT-AC14 no unresolved P0/P1 defect blocks the daily-ledger loop: PP-03 and PP-16 pass; PP-07 passes functionally with its presentation finding parked; PP-12 passes after #358; PP-01 remains a parked performance finding; PP-05 passes after the second-account precondition was satisfied.
-- [ ] PBT-AC15 current memory/evidence are reconciled and owner records the final public-beta decision/accepted limitations.
-
-## Financial and security constraints
-
-- Never infer or alter balances to make archive/restore succeed.
-- Preserve integer money, transfer neutrality, split exactness and tenant ownership.
-- A restore cannot silently omit state required for ledger correctness.
-- Archive data must exclude credentials, JWTs, refresh tokens, provider secrets and private infrastructure metadata.
-- Provider writes continue to require explicit scoped owner approval.
-- Do not reopen destructive account-deletion testing merely because Recover begins.
-
-## Out of scope
-
-- UI redesign/reopening P0–P11.
-- Bank sync/Open Banking.
-- Generative financial advice.
-- Household/collaboration, investments/wealth, native rewrite, full envelope budgeting.
-- Automatic unreviewed ledger posting.
+- New UI slice or visual territory.
+- Phase E restart or Phase F start.
+- Bank sync, AI advice, OCR product identity, household finance or full envelope budgeting.
+- Unreviewed provider/production writes.
+- Merging old open PRs merely to reduce backlog counts.
 
 ## Implementation plan
 
-### Current phase map
+### Current sequence
 
-| Phase/checkpoint | Current state |
-|---|---|
-| P0 Baseline | repository/Vercel/Supabase truth reconciled |
-| Provider Sync | **accepted/completed** |
-| P1 Secure | **accepted/completed**, with named stale/mismatch provider-test limitation |
-| P2 Recover | **accepted/completed** — specified, implemented, deployed; hosted restore is a named limitation |
-| P3 Prove | **accepted/completed** — owner-observed physical-phone core ledger and bounded retest; no signed/filed evidence run was fabricated |
-| Repository Reset 1 | **accepted/completed** — authority/configuration cleanup in merged #360 |
-| Repository Reset 2 | **accepted/completed** — merged #362; only 13 proven-unowned source/assets retired |
-| A0 Historical UI / Design Failure Review | **accepted/completed** — durable retrospective guardrails; no UI implementation or Design Harness change |
-| Phase A Current Reality / Authority Audit | **accepted/completed** — durable code-first route/runtime/presentation/authority map; no design implementation |
-| Phase B Fresh Product-Experience Research | **accepted/completed** — durable first-party mechanism/tradeoff research; no design implementation |
-| Phase C Product Experience Architecture | **accepted/completed** — durable product-experience architecture; no brand/UI implementation |
-| Phase D Brand Strategy | **accepted/completed** — durable brand strategy, positioning, promise, trust and verbal authority; no visual decision and no creative territory |
-| Phase E Creative Territories | paused — all candidate territories owner-rejected; no territory selected; rejected exploration is not visual authority |
-| Phase F / Brand/Product Experience implementation | not started, no packet and not authorised by program sequence |
-| P4 Improve | not an active generic workstream |
-| P5 Release | owner public-beta decision remains open (PBT-AC15) |
+| Order | Work | Purpose | Start condition |
+|---|---|---|---|
+| 1 | bounded amount-field focus hotfix | remove known current UI defect without reopening redesign | owner-observed defect exists |
+| 2 | open-work / repository hygiene reconciliation | make GitHub, active packets, README and memory agree | hotfix may run independently, but readiness audit waits for clean authority |
+| 3 | Release Readiness Audit v1 | classify current product as PASS / BLOCKED / OWNER-ACCEPTED LIMITATION | current main + lifecycle truth reconciled |
+| 4 | blocker fixes | fix only audit-proven P0/P1/P2 gaps under bounded tasks | explicit owner authorization per blocker/task |
+| 5 | controlled closed beta | collect real-user evidence | no unresolved stop-beta blocker |
+| 6 | PBT-AC15 | owner public-beta decision | readiness + beta evidence available |
 
-### Next sequence
+No later row authorizes itself merely because the prior row completes.
 
-P3, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phases A–D and
-the UI evolutionary refresh Slice 1 are accepted/completed records. Phase E is paused
-with all candidates rejected. **No substantive next work is implied by this program
-sequence:** a new owner-authorised packet must define any later phase before it starts.
+### Rollback / provenance
 
-This packet does not start Brand/Product Experience implementation, rebuild UI, modify
-Design Harness, or make the final public-beta decision.
+This packet is documentation authority only. Product fixes, provider writes and deployment each keep their own rollback/evidence boundary. Historical checkpoint details remain in completed packets and PR-memory records instead of being recopied here.
 
 ## Tasks
 
-| ID | Task | Evidence | Status |
+| ID | Task | Evidence / DoD | Status |
 |---|---|---|---|
-| PS-T1 | reconcile provider baseline | #325 + live provider | complete |
-| PS-T2 | align reviewed DB/schema/ACL | #326–#329 + live provider | complete |
-| PS-T3 | deploy/read back current Edge | provider v6 | complete |
-| P1-T1 | recent-auth implementation | #324 | complete |
-| P1-T2 | password provider acceptance | 2026-08-11 provider evidence | complete |
-| P1-T3 | Google/OAuth continuity acceptance | 2026-08-11 provider evidence | complete |
-| P1-T4 | fail-closed/log review + owner limitation decision | production probes + 35/35 deterministic + owner decision | complete |
-| P2-T1 | create/accept Recover archive contract | P1 accepted | complete — `docs/plans/completed/2026-08-12-moneyflow-trust-recover.md` |
-| P2-T2 | implement export/validate/restore | P2-T1 | complete — deployed to production; hosted export accepted, hosted restore an accepted limitation |
-| P3-T1 | physical-phone core ledger checklist | P2 accepted | complete/accepted — owner-observed run and bounded retest; archived at `docs/plans/completed/2026-08-12-moneyflow-trust-prove.md` |
-| P3-T2 | ~~seven-day sanitized self-use~~ | — | **withdrawn 2026-08-12 by owner decision**; never started, and not replaced |
-| RR-T1 | bounded Repository Reset 1 | P3 accepted | accepted/completed — #360 post-merge lifecycle record |
-| RR-T2 | bounded Repository Reset 2 | RR-T1 accepted | accepted/completed — merged #362 |
-| A0-T1 | historical UI/design failure review | Repository Reset 2 complete | accepted/completed — `docs/plans/completed/2026-08-13-a0-historical-ui-design-failure-review.md` |
-| A-T1 | current reality / authority audit | accepted A0 | accepted/completed — `docs/plans/completed/2026-08-13-phase-a-current-reality-authority-audit.md` |
-| B-T1 | fresh product-experience research | accepted Phase A | accepted/completed — `docs/plans/completed/2026-08-13-phase-b-product-experience-research.md` |
-| C-T1 | Product Experience Architecture | accepted Phase B | accepted/completed — `docs/plans/completed/2026-08-13-phase-c-product-experience-architecture.md` |
-| D-T1 | Brand Strategy | accepted Phase C | accepted/completed — `docs/plans/completed/2026-08-13-phase-d-brand-strategy.md` |
-| E-T1 | Phase E Creative Territories candidate exploration | accepted Phase D | paused — all candidates owner-rejected; no selected territory; #369 is obsolete candidate evidence |
-| P5-T1 | owner public-beta decision | prior phases | blocked |
+| TRUST-T1 | Provider Sync / P1 Secure | accepted completed records + named limitations | complete |
+| TRUST-T2 | P2 Recover | versioned archive/export/validation/restore contract accepted; hosted restore limitation preserved | complete |
+| TRUST-T3 | P3 Prove | owner-observed physical-phone core ledger evidence | complete |
+| TRUST-T4 | Repository Resets 1–2 + A0 + Phases A–D | merged/completed lifecycle records | complete |
+| TRUST-T5 | UI Slice 1 + Slice 2 | #370 and #381 merged | complete as slices; post-merge focus defect tracked separately |
+| TRUST-T6 | amount-field focus hotfix | one accessible focus contour + exact-head UI evidence + bounded PR | pending |
+| TRUST-T7 | open-work/repository hygiene | open issues/PRs classified against current main; stale lifecycle removed | pending |
+| TRUST-T8 | Release Readiness Audit v1 | canonical readiness matrix + blocker backlog + closed-beta plan | pending |
+| TRUST-T9 | readiness blocker remediation | only owner-authorized audit blockers resolved | blocked on TRUST-T8 |
+| TRUST-T10 | controlled closed beta | real-user core-loop/support evidence | blocked on readiness |
+| TRUST-T11 | PBT-AC15 owner decision | explicit go/no-go + accepted limitations | blocked on evidence |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Open boundary | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-09 | human owner | provider evaluator | evaluating | Edge v6 ACTIVE/read-back | provider-backed auth acceptance | run safe password/Google flows |
-| 2026-08-11 | human owner + evaluator | planner | accepted | password + Google provider evidence; missing-continuity pass; logs; explicit stale/mismatch limitation acceptance | complete archive/restore absent | open P2 Recover packet/specification |
-| 2026-08-12 | human owner | planner | accepted | deterministic pgTAP round trip; hosted export accepted on a real production artifact; explicit hosted-restore limitation acceptance | hosted restore unproven; P3 evidence absent | define the P3 physical-phone checklist |
-| 2026-08-12 | planner | human_owner | specified | P3 packet, evidence template and `check:prove-evidence` on `277d459`; **no device evidence exists** | physical-phone loop unproven; seven-day run not started | owner runs the 17 REQUIRED scenarios and returns the sanitized evidence file |
-| 2026-08-12 | human_owner | implementer | remediating | owner-reported physical run on a real phone: PP-12 and PP-16 failed, PP-03 and PP-07 passed with defects, PP-01 slow; seven-day requirement withdrawn | four defects fixed in #357 but unverified on hardware | owner retests PP-03, PP-07, PP-12, PP-16 |
-| 2026-08-12 | human_owner | planner | accepted | owner-observed PP-12 PASS on the same Android phone after #358; PP-03/PP-16 PASS; PP-07 functional PASS with presentation finding parked; PP-05 precondition satisfied; no unresolved P0/P1 in the daily loop | PBT-AC15 remains owner decision | archive P3; begin bounded Repository Reset only in its own task |
-| 2026-08-12 | human_owner | implementer | discovery | merged #360 at `main@8fcf8e2`; Reset 2 active packet | source/assets have not yet been classified; A0 must not start | complete the evidence-led Reset 2 audit only |
-| 2026-08-13 | evaluator | human_owner | accepted | merged #362 at `main@13650f4`: 13 unowned source/assets retired; fresh evaluator and exact-head CI green | A0 remains not started | separately open A0 only when authorized |
-| 2026-08-13 | human_owner | researcher | discovery | merged #363 at `main@c248176`; A0 child packet | historical failure mechanisms not yet synthesized; no UI work allowed | complete evidence-led A0 retrospective only |
-| 2026-08-13 | evaluator | human_owner | accepted | #364 staged post-merge A0 completion; durable guardrails; exact final head required | owner merge makes the completed record authoritative on `main` | after merge, Phase A is immediate next but remains unopened |
-| 2026-08-13 | human_owner | researcher | discovery | merged #364 at `main@157ba767`; Phase A child packet | current route/runtime/authority map not yet synthesized; no design work allowed | complete evidence-led Phase A audit only |
-| 2026-08-13 | evaluator | human_owner | accepted | Phase A audit completed; fresh evaluator clean; post-merge lifecycle staged | exact final-head provider checks and owner merge remain required | after merge, separately open Phase B research only |
-| 2026-08-13 | human_owner | researcher | accepted/completed | `main@efaba75`; durable Phase B research record and fresh evaluator | exact final-head provider checks and owner merge remain required; Phase C is deliberately unopened | after merge, separately open Phase C only when authorised |
-| 2026-08-13 | product-experience architect | human_owner | accepted/completed | merged #366 at `main@60f91b7`; durable Phase C architecture and staged completed packet | merged as #367 at `main@4ba1864` | Phase D authorised and completed |
-| 2026-08-13 | brand strategist | human_owner | accepted/completed | merged #367 at `main@4ba1864`; durable Phase D brand strategy; #368 later merged at `main@55ee401` | Historical Phase E handoff was superseded when the owner rejected every candidate | Current authority keeps Phase E paused; no successor is implied |
-| 2026-08-14 | human_owner | planner | paused | every Phase E candidate rejected; no territory selected; rejected exploration is not visual authority | no substantive successor is implied | new owner-authorised packet only |
+| 2026-08-12 | owner + evaluator | program | accepted checkpoints | P1/P2/P3 records and named limitations | public-beta decision still open | proceed through bounded later work only |
+| 2026-08-13 | owner/evaluators | program | product/brand authority reconciled | Resets, A0, Phases A–D completed | Phase E candidates rejected; no new visual direction | owner-authorized bounded work only |
+| 2026-08-14 | owner/evaluators | program | Slice 1/2 merged | #370 + #381 | post-merge double-focus defect observed; open-work backlog stale | fix bounded defect, reconcile repo, then audit readiness |
 
 ### Current permission boundary
 
-Allowed now: bounded branch/PR planning/documentation, repository implementation under an accepted packet, focused research, and read-only GitHub/Vercel/Supabase inspection.
+Allowed now: branch/PR documentation reconciliation, the separately authorized bounded focus hotfix, focused research needed by a future readiness audit, and read-only provider inspection when current policy permits it.
 
-Not authorized standing: destructive account deletion, production financial-data mutation, provider secret/config writes, production DB/Edge writes, or any other provider mutation. Each needs its own scoped owner approval.
-
-Consumed during P2, each under a separate explicit owner approval and not a standing grant:
-
-- 2026-08-12 — deletion of five named Atoryn Edge Functions (forward-fix only; not revertible).
-- 2026-08-12 — one `supabase migration repair` to realign migration history.
-- 2026-08-12 — Approval A: production application of exactly `20260812000000_export_user_archive.sql` then `20260812010000_restore_user_archive.sql`.
-
-Approval B — one hosted restore into a disposable test account — was granted and **not consumed**; no restore was executed. It does not carry forward.
+Not standing-authorized: provider configuration writes, production financial-data mutation, database/Edge mutation, destructive account testing, merge, deployment or the final public-beta decision.
 
 ## Evaluation
 
-### Secure closure evidence
+### Current decision
 
-| Criterion | Result |
-|---|---|
-| exact Vercel deployment source identity | PASS — production deployment identifies `18836e2...` |
-| Edge v6/current helper/`verify_jwt=true` | PASS |
-| password recent-auth | PASS — provider-backed |
-| Google/OAuth same-account continuity | PASS — provider-backed |
-| missing continuity | PASS — provider-backed fail closed |
-| stale/mismatch destructive provider probes | owner-accepted limitation; deterministic fail-closed evidence retained |
-| post-flow logs | PASS for accepted flows; no acceptance-blocking cluster; no destructive Edge invocation observed |
-| destructive real-user deletion used for proof | correctly not executed |
+**BLOCKED FOR PUBLIC BETA.** This is not a regression of the accepted historical checkpoints; it is the correct current state because the owner has not yet received a current release-readiness audit/closed-beta evidence package and PBT-AC15 remains open.
 
-### Decision
+### Accepted limitations carried forward
 
-Provider Sync, P1 Secure, P2 Recover and P3 Prove are complete; P3 is archived after
-owner-observed physical-phone acceptance. PBT-AC13 remains withdrawn, PBT-AC15 remains
-open, and the program is not yet public-beta ready. Repository Reset 2 is
-accepted/completed in merged #362; A0 Historical UI / Design Failure Review is
-accepted/completed, Phase A Current Reality / Authority Audit is accepted/completed,
-and Phase B Fresh Product-Experience Research is accepted/completed in merged #366.
-Phase C Product Experience Architecture is accepted/completed in merged #367, and Phase
-D Brand Strategy is accepted/completed in merged #368. Phase E Creative
-Territories is paused with every candidate owner-rejected and no territory selected; the
-exploration is not visual authority. Phase F and Brand/Product Experience implementation
-have not started and are not authorised by sequence.
+- Hosted restore remains unexecuted against a live hosted account.
+- Stale-AMR and real account-mismatch destructive/identity-risk provider probes remain intentionally unexecuted with deterministic fail-closed evidence accepted for the historical Secure checkpoint.
+- Browser/emulation evidence is not physical-device evidence.
+- PBT-AC13 duration/streak requirement remains withdrawn and must not be reintroduced.
+
+### Remaining evidence before owner decision
+
+- prove the focus hotfix;
+- reconcile stale/open repo work;
+- run Release Readiness Audit v1 on current main;
+- resolve authorized readiness blockers;
+- obtain controlled real-user evidence;
+- record PBT-AC15 explicitly.
