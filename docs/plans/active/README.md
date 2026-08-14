@@ -1,18 +1,22 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-15 02:46 ICT
+**Last reconciled:** 2026-08-15
 **Current main baseline:** `755956f4302df6482b439720c1645efe13673166` (#383 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — the amount-focus defect is fixed, open-work reconciliation is still finishing, Release Readiness Audit v1 has not run, and PBT-AC15 remains an owner decision.
+**Release readiness:** **NOT PUBLIC-BETA READY** — the amount-focus defect is fixed, open-work reconciliation is at its final two delivery items, Release Readiness Audit v1 has not run, and PBT-AC15 remains an owner decision.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **Finish open-work reconciliation on current main.** The historical issue queue has been reduced to `#40`, `#174` and `#379`; old UI/design/provider/agent candidates were closed only after evidence-based classification. Six PRs remain at this checkpoint: dependencies `#247/#248/#320`, CI audit candidate `#304`, financial-truth harness `#345`, and dispatcher hardening `#380`. **Current bounded remediation:** `dispatcher-boundary-reconciliation.md` resolves the four still-live P1 dispatcher defects on a fresh branch rather than merging stale #380 wholesale. **Done when:** remaining PRs are classified, #379/#380 are resolved safely, and GitHub + repo lifecycle agree. **Next actor:** agent.
+- [ ] **Finish open-work reconciliation.** Historical issue/PR candidates have been classified against current `main`; no stale head is being merged for hygiene. Two real implementation gaps remain before the reconciliation closes:
+  1. **Dispatcher boundary #379** — fresh PR #384 replaces stale #380 and must pass final exact-head CI/CodeQL/secret-history + review before merge/closeout.
+  2. **`js-yaml` security backport #320** — Dependabot rebased the 4.3.1 patch onto current main and code/build/unit pass, but MoneyFlow's knowledge policy correctly rejects bot PRs without their own PR-memory record. Deliver the same three-line lockfile patch through a fresh current-main PR after #384 lands; then close #320 as superseded.
+
+**Done when:** #384 and the fresh js-yaml patch are safely merged/closed out, #379/#380/#320 have final dispositions, and GitHub + repo lifecycle agree. **Next actor:** agent.
 
 ## NEXT
 
-- [ ] **Release Readiness Audit v1** — audit current product reality using `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`; cover financial correctness, recovery, auth/tenant isolation, security/privacy, usability/accessibility, deployment/operations, support and closed-beta readiness. **Done when:** one canonical audit, blocker backlog and closed-beta validation plan exist. **Next actor:** agent.
+- [ ] **Release Readiness Audit v1** — audit current product reality using `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`; cover financial correctness, recovery, auth/tenant isolation, security/privacy, usability/accessibility, deployment/operations, support and closed-beta readiness. Carry forward two fresh inputs from reconciliation: the checkout-v4/credential CI hardening finding and #345's mixed-ledger authenticated financial-truth scenario. **Done when:** one canonical audit, blocker backlog and closed-beta validation plan exist. **Next actor:** agent.
 - [ ] **Fix only release blockers found by the audit** — no speculative feature work or visual polish. **Done when:** each authorized blocker has a bounded task, evidence and PR. **Next actor:** agent after audit.
 - [ ] **Controlled closed beta** — onboard a small real-user cohort only after readiness gates allow it. **Done when:** real-user evidence exists for core jobs, correction/recovery, balance/history trust and support burden. **Next actor:** owner + agent.
 
@@ -26,14 +30,10 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 - [ ] **#40 — Supabase leaked-password protection** — verify current provider/plan state before enabling or closing; repository code cannot prove this setting.
 - [ ] **PBT-AC15 — final public-beta go/no-go and accepted limitations** — agent prepares evidence; owner closes the gate.
 
-## TRIAGE — remaining open work
+## TRIAGE — final open candidates
 
-- [ ] `#379` / PR `#380` — four P1 defects still reproduce in the merged local dispatcher. Do not merge stale #380; fresh current-main remediation is active in `dispatcher-boundary-reconciliation.md`.
-- [ ] `#247` — `@types/node` 20 → 25; compare with current Node/runtime support before disposition.
-- [ ] `#248` — mixed GitHub Actions update; current main already absorbed some v7 updates but checkout/CodeQL need current-version review, so do not merge the stale grouped branch.
-- [ ] `#320` — `js-yaml` security patch; verify the current lockfile/advisory before disposition.
-- [ ] `#304` — CI hardening/audit contains still-relevant ideas but is stale against current workflow; classify as fresh-replan vs obsolete, never direct merge.
-- [ ] `#345` — authenticated financial-truth harness is not on current main; decide whether to preserve as fresh readiness evidence or recreate from the audit.
+- [ ] `#379` / stale PR `#380` — current-main defect is being replaced by fresh PR #384; close only after #384 is accepted.
+- [ ] Dependabot PR `#320` — patch is real and rebased, but the bot head cannot satisfy MoneyFlow's own per-PR memory contract. Recreate the exact lockfile delta on current main after #384 rather than weakening policy.
 
 ## HOLD
 
@@ -43,8 +43,8 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 ## RECENTLY DONE
 
 - [x] **Amount focus hotfix** — merged #383 at `main@755956f`; exact-head CI, CodeQL and secret-history passed, including browser smoke and cross-device UI audit. Expense/income/transfer share one intentional focus owner.
-- [x] **Open issue reconciliation:** `#172` superseded by Release Readiness Audit v1; `#310/#374/#376/#378` closed completed after evidence review. `#40/#174` remain owner decisions.
-- [x] **Historical PR reconciliation:** `#119/#170/#171/#292/#293/#294/#314/#315/#317/#331/#333/#338` closed as completed/superseded/obsolete candidates rather than merged from stale heads.
+- [x] **Open issue reconciliation** — `#172` superseded by Release Readiness Audit v1; `#310/#374/#376/#378` closed completed after evidence review. `#40/#174` remain owner decisions; `#379` remains only because its defect was proven live.
+- [x] **Historical PR reconciliation** — `#119/#170/#171/#247/#248/#292/#293/#294/#304/#314/#315/#317/#331/#333/#338/#345` closed as completed/superseded/stale candidates rather than merged from old heads. Useful current findings were preserved as fresh audit inputs.
 - [x] **UI evolutionary refresh Slice 1 + Slice 2** — merged #370 and #381.
 - [x] **Phases A–D; P1 Secure / P2 Recover / P3 Prove** — accepted completed records with named limitations preserved.
 
