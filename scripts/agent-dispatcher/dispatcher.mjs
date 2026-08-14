@@ -148,13 +148,10 @@ export function buildCodexCommand({ prompt, worktree }) {
   return {
     command: "codex",
     args: [
+      "--approve-for-me",
       "exec",
       "--cd",
       worktree,
-      "--sandbox",
-      "workspace-write",
-      "--ask-for-approval",
-      "never",
       prompt,
     ],
   };
@@ -172,13 +169,13 @@ export function validatePrerequisites({ requestedRepo = null, run = defaultRun }
     if (requestedRepo && requestedRepo !== repo) fail("Requested repository does not match this workspace");
     if (repository.defaultBranchRef?.name !== MAIN_BRANCH) fail("Repository default branch is not main");
     const localBase = trimOutput(
-      expectSuccess(run("git", ["rev-parse", `origin/${MAIN_BRANCH}`]), "Local origin/main"),
+      expectSuccess(run("git", ["rev-parse", `origin/${MAIN_BRANCH}`]), "Local origin/main").stdout,
     );
     const remoteBase = trimOutput(
       expectSuccess(
         run("git", ["ls-remote", "origin", `refs/heads/${MAIN_BRANCH}`]),
         "Remote main",
-      ),
+      ).stdout,
     ).split(/\s+/u)[0];
     if (!SHA_PATTERN.test(localBase) || !SHA_PATTERN.test(remoteBase) || localBase !== remoteBase) {
       fail("origin/main is missing, malformed, or differs from remote main");
@@ -254,7 +251,7 @@ export function processCommand({ command, deps = {}, prerequisites = null, sourc
   }
 }
 
-function listOpenSources({ repo, run = defaultRun }) {
+export function listOpenSources({ repo, run = defaultRun }) {
   const fields = "number,title,body,url,author";
   const issueSources = readJson(
     run("gh", ["issue", "list", "--state", "open", "--limit", "100", "--json", fields, "--repo", repo]),
@@ -267,7 +264,7 @@ function listOpenSources({ repo, run = defaultRun }) {
   return [...issueSources, ...pullRequestSources];
 }
 
-function commandsFromSource({ repo, source, trustedAuthor, run = defaultRun }) {
+export function commandsFromSource({ repo, source, trustedAuthor, run = defaultRun }) {
   const commands = [];
   const append = (text, author, sourceKey) => {
     if (authorLogin({ author }) !== trustedAuthor) return;
@@ -288,7 +285,9 @@ function commandsFromSource({ repo, source, trustedAuthor, run = defaultRun }) {
 }
 
 function currentGhUser(run) {
-  const login = trimOutput(expectSuccess(run("gh", ["api", "user", "--jq", ".login"]), "GitHub user"));
+  const login = trimOutput(
+    expectSuccess(run("gh", ["api", "user", "--jq", ".login"]), "GitHub user").stdout,
+  );
   if (!login) fail("GitHub user identity is ambiguous");
   return login;
 }
@@ -298,13 +297,23 @@ export function runCycle({ options, run = defaultRun }) {
   if (!prerequisites.ok) return { status: "blocked", reason: prerequisites.reason, processed: 0 };
   try {
     const trustedAuthor = currentGhUser(run);
-    const commands = listOpenSources({ repo: prerequisites.repo, run }).flatMap((source) =>
-      commandsFromSource({ repo: prerequisites.repo, run, source, trustedAuthor }),
-    );
+    const sources = listOpenSources({ repo: prerequisites.repo, run });
+    const commands = [];
+    const skippedSources = [];
+    for (const source of sources) {
+      try {
+        commands.push(...commandsFromSource({ repo: prerequisites.repo, run, source, trustedAuthor }));
+      } catch (error) {
+        skippedSources.push({ number: source.number, reason: compactError(error) });
+      }
+    }
+    if (sources.length > 0 && skippedSources.length === sources.length) {
+      return { status: "blocked", reason: "Every open source could not be read", processed: 0, skippedSources };
+    }
     const results = commands.map(({ command, source }) =>
       processCommand({ command, prerequisites, source, stateDir: options.stateDir, deps: { run } }),
     );
-    return { status: "ok", processed: results.length, results };
+    return { status: "ok", processed: results.length, results, skippedSources };
   } catch (error) {
     return { status: "blocked", reason: compactError(error), processed: 0 };
   }
@@ -321,7 +330,12 @@ export function main(argv = process.argv.slice(2)) {
   const printCycle = () => {
     const result = runCycle({ options });
     if (result.status === "blocked") console.error(`Dispatcher blocked: ${result.reason}`);
-    else console.log(`Dispatcher processed ${result.processed} command(s).`);
+    else {
+      console.log(`Dispatcher processed ${result.processed} command(s).`);
+      if (result.skippedSources.length > 0) {
+        console.error(`Dispatcher skipped ${result.skippedSources.length} unreadable source(s).`);
+      }
+    }
     return result;
   };
   if (options.mode === "once") return printCycle().status === "blocked" ? 2 : 0;

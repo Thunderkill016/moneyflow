@@ -1,8 +1,8 @@
 # MoneyFlow Codex dispatcher v1
 
-**Status:** evaluating
-**Execution state:** evaluating
-**Active role:** evaluator
+**Status:** implementing
+**Execution state:** delivery
+**Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** #375
@@ -42,8 +42,8 @@ Create one owner-opt-in local `codex` dispatcher lane: GitHub `/agent codex` com
 
 ### Open questions
 
-- [x] Installed `codex-cli 0.147.0` supports `exec`, `--cd`, `--sandbox workspace-write` and `--ask-for-approval never`.
-- [x] Current `gh auth status` is invalid; live smoke/push/PR cannot be claimed until re-authenticated.
+- [x] Installed `codex-cli 0.147.0` supports `exec`, `--cd` and `--approve-for-me`; the latter selects its workspace-write sandbox and cannot be combined with `--sandbox`.
+- [x] `gh auth status` is authenticated as the owner; live smoke can use the existing session without a token file.
 
 ## Research
 
@@ -63,8 +63,8 @@ Create one owner-opt-in local `codex` dispatcher lane: GitHub `/agent codex` com
 
 | Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
 |---|---|---|---|---|
-| `codex --help`, `codex exec --help` | Installed first-party CLI | 2026-08-14 | Supported non-interactive controls | Does not prove subscription auth |
-| `gh issue view --help`, `gh api --help` | Installed GitHub CLI | 2026-08-14 | Issue/PR/API reads and concise comments use existing auth | Current login is invalid |
+| `codex --help`, `codex --approve-for-me exec --help` | Installed first-party CLI | 2026-08-14 | Supported non-interactive controls and mutual exclusivity of `--sandbox`/`--approve-for-me` | Does not prove subscription auth |
+| `gh auth status`, `gh api --help` | Installed GitHub CLI | 2026-08-14 | Issue/PR/API reads and concise comments use existing owner auth | Does not grant provider or production access |
 
 ### Alternatives considered
 
@@ -152,6 +152,7 @@ Claude execution/review, server daemon, GitHub Actions, protection/CI changes, #
 | Restart repeats work | persisted command id/state test |
 | Foreign comment invokes Codex | authenticated-author filter |
 | Output discloses secrets | ignored local log; fixed GitHub summary |
+| One issue endpoint is temporarily unreadable | skip that source, report it locally, and continue only with independently validated sources |
 
 ### Verification plan
 
@@ -167,7 +168,7 @@ Claude execution/review, server daemon, GitHub Actions, protection/CI changes, #
 | T2 | Failing dispatcher tests | T1 | missing module observed | done |
 | T3 | Dispatcher/bootstrap | T2 | focused test green | done |
 | T4 | Local gates and review | T3 | focused tests/typecheck/lint pass; baseline suite failures recorded | in_progress |
-| T5 | Live smoke, commit/push/draft PR | T4 + valid `gh` auth | exact head/result | blocked |
+| T5 | Live smoke, commit/push/draft PR | T4 + valid `gh` auth | live smoke complete; PR delivery pending | in_progress |
 
 ## Handoff record
 
@@ -176,7 +177,7 @@ Claude execution/review, server daemon, GitHub Actions, protection/CI changes, #
 | 2026-08-14 | researcher | planner | specified | local CLI help + #375 | invalid `gh` auth | plan implementation |
 | 2026-08-14 | planner | implementer | planned | this packet and worktree | live flow still unproven | test-first implementation |
 | 2026-08-14 | implementer | evaluator | evaluating | dispatcher test red/green evidence | local gates/live smoke pending | inspect diff and verify |
-| 2026-08-14 | evaluator | implementer | evaluating | focused dispatcher test, lint and typecheck pass; migration/knowledge/CI-policy pass | full unit/browser gates have pre-existing/provider failures; `gh` auth invalid | record honest limits; wait for auth to smoke/publish |
+| 2026-08-14 | evaluator | implementer | delivery | fixed result-stdout extraction, CLI flag incompatibility and per-source read isolation via red/green tests; owner GitHub auth confirmed; #376 smoke completed in a clean isolated worktree | full unit/browser gates have pre-existing/provider failures | run final local gates, commit and publish draft PR |
 
 ### Current permission boundary
 
@@ -197,7 +198,7 @@ Claude execution/review, server daemon, GitHub Actions, protection/CI changes, #
 | Repository migration/knowledge/CI policy | `check:migrations`, `check:knowledge`, CI-policy tests pass | pass |
 | Full unit suite | 151 pass, 3 pre-existing failures in CSS/deployment environment gates | blocked outside scope |
 | Browser smoke | 25 pass; CAPTCHA provider tests fail because no `captchaToken`; run interrupted | blocked outside scope |
-| Live bounded transport | repaired `gh auth status` required | blocked |
+| Live bounded transport | owner marker on disposable #376 completed; concise GitHub summary posted and its isolated worktree is clean | pass |
 
 ### Research and adoption evidence
 
@@ -215,11 +216,11 @@ Claude execution/review, server daemon, GitHub Actions, protection/CI changes, #
 
 ### Remaining limitations
 
-Live dispatch, push and draft PR remain blocked by invalid GitHub CLI authentication. The full unit suite also has three failures reproduced on the untouched checkout (`code-css-ownership`, `dead-css-scanner`, `deployment-env-guard`); the browser run's CAPTCHA tests cannot find the expected provider token. Neither is changed by this packet.
+The full unit suite has three failures reproduced on the untouched checkout (`code-css-ownership`, `dead-css-scanner`, `deployment-env-guard`); the browser run's CAPTCHA tests cannot find the expected provider token. Neither is changed by this packet. Exact-head PR providers and remaining owner review remain pending.
 
 ## Delivery record
 
 - Branch: `agent/issue-375`.
-- PR/CI: pending valid GitHub authentication and exact-head evidence.
+- PR/CI: draft PR creation pending final commit/push; exact-head provider evidence remains pending afterward.
 - Squash/deployment/production verification: not applicable.
 - Packet move: only after owner acceptance.
