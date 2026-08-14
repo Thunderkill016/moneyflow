@@ -1,22 +1,18 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `755956f4302df6482b439720c1645efe13673166` (#383 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — the amount-focus defect is fixed, open-work reconciliation is at its final two delivery items, Release Readiness Audit v1 has not run, and PBT-AC15 remains an owner decision.
+**Current main baseline:** `91fdab2df7713aa5f31fd4eb9322cb67cbf5d205` (#384 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — open-work reconciliation has one final security-dependency delivery, Release Readiness Audit v1 has not run, and PBT-AC15 remains an owner decision.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **Finish open-work reconciliation.** Historical issue/PR candidates have been classified against current `main`; no stale head is being merged for hygiene. Two real implementation gaps remain before the reconciliation closes:
-  1. **Dispatcher boundary #379** — fresh PR #384 replaces stale #380 and must pass final exact-head CI/CodeQL/secret-history + review before merge/closeout.
-  2. **`js-yaml` security backport #320** — Dependabot rebased the 4.3.1 patch onto current main and code/build/unit pass, but MoneyFlow's knowledge policy correctly rejects bot PRs without their own PR-memory record. Deliver the same three-line lockfile patch through a fresh current-main PR after #384 lands; then close #320 as superseded.
-
-**Done when:** #384 and the fresh js-yaml patch are safely merged/closed out, #379/#380/#320 have final dispositions, and GitHub + repo lifecycle agree. **Next actor:** agent.
+- [ ] **Finish open-work reconciliation with the `js-yaml` 4.3.1 security backport.** Dependabot #320 proved the three-line lockfile patch is current and rebased, but its bot head cannot satisfy MoneyFlow's mandatory per-PR memory contract. Recreate that exact delta on `main@91fdab2d`, add truthful PR memory, require exact-head CI/CodeQL/secret-history, merge only if clean, then close #320 as superseded. **Next actor:** agent.
 
 ## NEXT
 
-- [ ] **Release Readiness Audit v1** — audit current product reality using `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`; cover financial correctness, recovery, auth/tenant isolation, security/privacy, usability/accessibility, deployment/operations, support and closed-beta readiness. Carry forward two fresh inputs from reconciliation: the checkout-v4/credential CI hardening finding and #345's mixed-ledger authenticated financial-truth scenario. **Done when:** one canonical audit, blocker backlog and closed-beta validation plan exist. **Next actor:** agent.
+- [ ] **Release Readiness Audit v1** — audit current product reality using `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`; cover financial correctness, recovery, auth/tenant isolation, security/privacy, usability/accessibility, deployment/operations, support and closed-beta readiness. Carry forward current evidence from reconciliation: checkout-v4/credential CI hardening, #345's mixed-ledger authenticated financial-truth scenario, current Supabase production checklist/security posture, WCAG 2.2, OWASP ASVS 5.0, NIST SSDF 1.1 and current Vietnam personal-data law as applicable review inputs. **Done when:** one canonical audit, blocker backlog and closed-beta validation plan exist. **Next actor:** agent.
 - [ ] **Fix only release blockers found by the audit** — no speculative feature work or visual polish. **Done when:** each authorized blocker has a bounded task, evidence and PR. **Next actor:** agent after audit.
 - [ ] **Controlled closed beta** — onboard a small real-user cohort only after readiness gates allow it. **Done when:** real-user evidence exists for core jobs, correction/recovery, balance/history trust and support burden. **Next actor:** owner + agent.
 
@@ -30,10 +26,9 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 - [ ] **#40 — Supabase leaked-password protection** — verify current provider/plan state before enabling or closing; repository code cannot prove this setting.
 - [ ] **PBT-AC15 — final public-beta go/no-go and accepted limitations** — agent prepares evidence; owner closes the gate.
 
-## TRIAGE — final open candidates
+## TRIAGE — final historical candidate
 
-- [ ] `#379` / stale PR `#380` — current-main defect is being replaced by fresh PR #384; close only after #384 is accepted.
-- [ ] Dependabot PR `#320` — patch is real and rebased, but the bot head cannot satisfy MoneyFlow's own per-PR memory contract. Recreate the exact lockfile delta on current main after #384 rather than weakening policy.
+- [ ] Dependabot PR `#320` — real security patch, but stale as lifecycle authority after #384 moved main. Replace with the fresh current-main delivery in NOW; do not weaken repository policy for a bot PR.
 
 ## HOLD
 
@@ -42,9 +37,10 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE
 
-- [x] **Amount focus hotfix** — merged #383 at `main@755956f`; exact-head CI, CodeQL and secret-history passed, including browser smoke and cross-device UI audit. Expense/income/transfer share one intentional focus owner.
-- [x] **Open issue reconciliation** — `#172` superseded by Release Readiness Audit v1; `#310/#374/#376/#378` closed completed after evidence review. `#40/#174` remain owner decisions; `#379` remains only because its defect was proven live.
-- [x] **Historical PR reconciliation** — `#119/#170/#171/#247/#248/#292/#293/#294/#304/#314/#315/#317/#331/#333/#338/#345` closed as completed/superseded/stale candidates rather than merged from old heads. Useful current findings were preserved as fresh audit inputs.
+- [x] **Dispatcher boundary reconciliation** — merged #384 at `main@91fdab2d`. The fresh delivery replaced stale #380; fixed command replay/Markdown/TOCTOU boundaries, constrained Git/GitHub delivery operations, wired dispatcher safety tests into provider CI and fixed a merge-blocking CodeQL command-injection finding. Final head `97f6cb17…`: CI #2456 PASS, policy 148/148, browser + authenticated ownership PASS, CodeQL #1534 PASS with **0 new alerts**, Secret history #1534 PASS; squash merge succeeded through the active ruleset.
+- [x] **Amount focus hotfix** — merged #383 at `main@755956f`; exact-head CI, CodeQL and secret-history passed, including browser smoke and cross-device UI audit.
+- [x] **Open issue reconciliation** — `#172` superseded by Release Readiness Audit v1; `#310/#374/#376/#378` closed completed after evidence review. `#40/#174` remain owner decisions. #379's live defects were resolved by #384 and are pending mechanical issue closeout.
+- [x] **Historical PR reconciliation** — `#119/#170/#171/#247/#248/#292/#293/#294/#304/#314/#315/#317/#331/#333/#338/#345` closed as completed/superseded/stale candidates rather than merged from old heads. Stale #380 is superseded by #384 and pending mechanical closeout.
 - [x] **UI evolutionary refresh Slice 1 + Slice 2** — merged #370 and #381.
 - [x] **Phases A–D; P1 Secure / P2 Recover / P3 Prove** — accepted completed records with named limitations preserved.
 
@@ -53,7 +49,6 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `public-beta-trust.md` | active parent program | release-readiness sequence, trust gates and owner public-beta decision |
-| `dispatcher-boundary-reconciliation.md` | active bounded remediation | local agent/Git/GitHub dispatcher safety only; no product/provider authority |
 
 ## Board rules
 
