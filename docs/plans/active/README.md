@@ -1,34 +1,29 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `91fdab2df7713aa5f31fd4eb9322cb67cbf5d205` (#384 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — open-work reconciliation has one final security-dependency delivery, Release Readiness Audit v1 has not run, and PBT-AC15 remains an owner decision.
+**Current main baseline:** `5a2ef2d9f42c22138c97ac97b822997a95c28569` (#386 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — open-work reconciliation is complete, Release Readiness Audit v1 is now the authorized current task, and PBT-AC15 remains an owner decision.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **Finish open-work reconciliation with the `js-yaml` 4.3.1 security backport.** Dependabot #320 proved the three-line lockfile patch is current and rebased, but its bot head cannot satisfy MoneyFlow's mandatory per-PR memory contract. Recreate that exact delta on `main@91fdab2d`, add truthful PR memory, require exact-head CI/CodeQL/secret-history, merge only if clean, then close #320 as superseded. **Next actor:** agent.
+- [ ] **Release Readiness Audit v1** — audit current product reality using `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`; cover financial correctness, recovery/data safety, auth/tenant isolation, security/privacy, usability/accessibility, deployment/operations, support and closed-beta readiness. Carry forward current evidence from reconciliation and accepted trust work: the mixed-ledger authenticated financial-truth scenario from historical #345, current Supabase production/security posture, physical-phone limitations, hosted-restore limitation, CI/runtime hardening findings, WCAG 2.2, OWASP ASVS 5.0, NIST SSDF 1.1 and current Vietnam personal-data law as applicable review inputs. **Done when:** one canonical audit, explicit blocker backlog and a controlled closed-beta validation plan exist. **Next actor:** agent.
 
 ## NEXT
 
-- [ ] **Release Readiness Audit v1** — audit current product reality using `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`; cover financial correctness, recovery, auth/tenant isolation, security/privacy, usability/accessibility, deployment/operations, support and closed-beta readiness. Carry forward current evidence from reconciliation: checkout-v4/credential CI hardening, #345's mixed-ledger authenticated financial-truth scenario, current Supabase production checklist/security posture, WCAG 2.2, OWASP ASVS 5.0, NIST SSDF 1.1 and current Vietnam personal-data law as applicable review inputs. **Done when:** one canonical audit, blocker backlog and closed-beta validation plan exist. **Next actor:** agent.
-- [ ] **Fix only release blockers found by the audit** — no speculative feature work or visual polish. **Done when:** each authorized blocker has a bounded task, evidence and PR. **Next actor:** agent after audit.
+- [ ] **Fix only release blockers found by the audit** — no speculative feature work or visual polish. Each blocker becomes its own bounded task with risk-selected evidence. **Next actor:** agent after audit.
 - [ ] **Controlled closed beta** — onboard a small real-user cohort only after readiness gates allow it. **Done when:** real-user evidence exists for core jobs, correction/recovery, balance/history trust and support burden. **Next actor:** owner + agent.
 
 ## BLOCKED
 
-- [ ] **Public-beta release** — blocked until the readiness audit is complete, unresolved P0/P1 blockers are zero or explicitly owner-accepted where policy permits, required provider/security decisions are resolved, and PBT-AC15 is recorded. **Next actor:** owner after evidence.
+- [ ] **Public-beta release** — blocked until the readiness audit is complete, unresolved P0/P1 blockers are zero or explicitly owner-accepted where policy permits, required provider/security decisions are resolved, controlled-beta evidence is available and PBT-AC15 is recorded. **Next actor:** owner after evidence.
 
 ## OWNER DECISION
 
 - [ ] **#174 — provider-side security controls** — retain until current provider state is re-audited; no provider write without explicit scoped approval.
 - [ ] **#40 — Supabase leaked-password protection** — verify current provider/plan state before enabling or closing; repository code cannot prove this setting.
 - [ ] **PBT-AC15 — final public-beta go/no-go and accepted limitations** — agent prepares evidence; owner closes the gate.
-
-## TRIAGE — final historical candidate
-
-- [ ] Dependabot PR `#320` — real security patch, but stale as lifecycle authority after #384 moved main. Replace with the fresh current-main delivery in NOW; do not weaken repository policy for a bot PR.
 
 ## HOLD
 
@@ -37,10 +32,10 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE
 
-- [x] **Dispatcher boundary reconciliation** — merged #384 at `main@91fdab2d`. The fresh delivery replaced stale #380; fixed command replay/Markdown/TOCTOU boundaries, constrained Git/GitHub delivery operations, wired dispatcher safety tests into provider CI and fixed a merge-blocking CodeQL command-injection finding. Final head `97f6cb17…`: CI #2456 PASS, policy 148/148, browser + authenticated ownership PASS, CodeQL #1534 PASS with **0 new alerts**, Secret history #1534 PASS; squash merge succeeded through the active ruleset.
-- [x] **Amount focus hotfix** — merged #383 at `main@755956f`; exact-head CI, CodeQL and secret-history passed, including browser smoke and cross-device UI audit.
-- [x] **Open issue reconciliation** — `#172` superseded by Release Readiness Audit v1; `#310/#374/#376/#378` closed completed after evidence review. `#40/#174` remain owner decisions. #379's live defects were resolved by #384 and are pending mechanical issue closeout.
-- [x] **Historical PR reconciliation** — `#119/#170/#171/#247/#248/#292/#293/#294/#304/#314/#315/#317/#331/#333/#338/#345` closed as completed/superseded/stale candidates rather than merged from old heads. Stale #380 is superseded by #384 and pending mechanical closeout.
+- [x] **Open-work reconciliation** — complete. Historical issues/PRs were classified against current main rather than merged for hygiene. No open PR remains; #40/#174 remain intentionally open owner/provider decisions.
+- [x] **`js-yaml` 4.3.1 security backport** — fresh current-main PR #386 replaced Dependabot #320, preserved two deterministic knowledge-policy findings, then passed full ready-state CI #2467, CodeQL #1544 and Secret history #1544 before protected squash merge as `5a2ef2d9…`; #320 closed superseded.
+- [x] **Dispatcher boundary reconciliation** — merged #384; lifecycle closed by #385 and stale #380 closed superseded.
+- [x] **Amount focus hotfix** — merged #383; exact-head CI, CodeQL and secret-history passed, including browser smoke and cross-device UI audit.
 - [x] **UI evolutionary refresh Slice 1 + Slice 2** — merged #370 and #381.
 - [x] **Phases A–D; P1 Secure / P2 Recover / P3 Prove** — accepted completed records with named limitations preserved.
 
@@ -56,5 +51,5 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 2. New substantive work must appear here before it becomes execution authority.
 3. Completion/abandonment updates this board in lifecycle closeout; merged work must not remain in `NOW`.
 4. `OWNER DECISION` is never auto-resolved by an agent.
-5. `TRIAGE` permits evidence gathering, not blind merge/revival.
+5. Historical issues/PRs are provenance, not authority, once reconciled.
 6. Deeper implementation truth lives in [`CURRENT_PROJECT_MEMORY.md`](../../research/CURRENT_PROJECT_MEMORY.md); the active parent program lives in [`public-beta-trust.md`](public-beta-trust.md).
