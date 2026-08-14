@@ -87,26 +87,32 @@ test("constructs supported Codex exec arguments without carrying secret text", (
   assert.ok(!command.args.join(" ").includes("GITHUB_TOKEN"));
 });
 
-test("passes the guarded environment to the launched process", () => {
+test("passes the guarded environment to a fixed Node transport probe", () => {
   const variable = "MONEYFLOW_DISPATCHER_ENV_PROPAGATION_379_TEST_ONLY_7C6DB36E";
   const result = defaultRun(
-    "/usr/bin/env",
-    [],
+    "node",
+    ["-e", `process.stdout.write(process.env.${variable} ?? "")`],
     { env: { [variable]: "present", PATH: process.env.PATH } },
   );
 
   assert.equal(result.status, 0);
-  assert.match(result.stdout, new RegExp(`^${variable}=present$`, "mu"));
+  assert.equal(result.stdout, "present");
 });
 
 test("retains a Codex-sized local log without marking the command as failed", () => {
-  const result = defaultRun("/bin/bash", [
-    "-c",
-    `head -c ${OUTPUT_LARGER_THAN_NODE_DEFAULT_BUFFER_BYTES} /dev/zero | tr "\\0" x`,
+  const result = defaultRun("node", [
+    "-e",
+    `process.stdout.write("x".repeat(${OUTPUT_LARGER_THAN_NODE_DEFAULT_BUFFER_BYTES}))`,
   ]);
 
   assert.equal(result.status, 0);
   assert.equal(result.stdout.length, OUTPUT_LARGER_THAN_NODE_DEFAULT_BUFFER_BYTES);
+});
+
+test("rejects executables outside the fixed dispatcher command set", () => {
+  const result = defaultRun("bash", ["-c", "echo unsafe"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Unsupported dispatcher executable/u);
 });
 
 test("fails closed when GitHub authentication or the main base is ambiguous", () => {
