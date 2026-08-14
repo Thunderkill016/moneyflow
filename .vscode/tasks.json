@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "MoneyFlow: watch Codex dispatcher",
+      "type": "npm",
+      "script": "agent:dispatch:watch",
+      "problemMatcher": [],
+      "detail": "Owner-opt-in: starts local polling for /agent codex commands."
+    }
+  ]
+}

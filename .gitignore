@@ -42,6 +42,7 @@
 
 # agent / local runtime logs (never commit)
 /logs/
+/.agent-dispatcher/
 
 # debug
 npm-debug.log*

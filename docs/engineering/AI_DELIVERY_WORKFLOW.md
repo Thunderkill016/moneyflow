@@ -251,6 +251,19 @@ For UI work:
 
 AI-generated visual polish without a user problem, state model or evidence is not accepted work.
 
+## Local Codex handoff protocol
+
+The owner may opt in to the local dispatcher after `gh auth status` and Codex CLI authentication both succeed. The direct handoff is:
+
+```text
+ChatGPT → GitHub /agent codex command → local dispatcher → isolated Codex worktree
+→ draft PR → ChatGPT exact-head review → Codex fixes on the same PR → owner merge decision
+```
+
+The command source remains the issue or pull request; the dispatcher supplies a compact task contract and points Codex back to `AGENTS.md`, the active packet and current authority. It never grants provider, production, main-branch or merge permission. Local state suppresses a command after a restart, detailed agent output remains local, and GitHub receives only concise status.
+
+`claude-review` is a planned adapter/lane for independent review after Claude becomes locally available. It is not enabled, invoked or represented as working by the v1 dispatcher.
+
 ## Knowledge maintenance
 
 Documentation is part of the system:
