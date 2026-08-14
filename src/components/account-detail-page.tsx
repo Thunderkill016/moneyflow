@@ -104,10 +104,7 @@ export function AccountDetailPage({
   } | null>(null);
 
   useEffect(() => {
-    if (!viewer.isDemo || !account) {
-      setDemoDetail(null);
-      return;
-    }
+    if (!viewer.isDemo || !account) return;
     const frame = window.requestAnimationFrame(() => {
       const liveEntries = buildAccountRegister(
         readStoredTransactions(),
@@ -133,9 +130,15 @@ export function AccountDetailPage({
     return () => window.cancelAnimationFrame(frame);
   }, [account, entries, summary, viewer.isDemo]);
 
-  const displayAccount = demoDetail?.account ?? account;
-  const displayEntries = demoDetail?.entries ?? entries;
-  const displaySummary = demoDetail?.summary ?? summary;
+  const matchingDemoDetail =
+    viewer.isDemo && account && demoDetail?.account?.id === account.id
+      ? demoDetail
+      : null;
+  const displayAccount = matchingDemoDetail?.account ?? account;
+  const displayEntries = matchingDemoDetail?.entries ?? entries;
+  const displaySummary = matchingDemoDetail?.summary ?? summary;
+  const demoLedgerPending =
+    viewer.isDemo && !dataError && Boolean(account) && !matchingDemoDetail;
   const groups = groupEntries(displayEntries);
   const registerAvailable = !dataError;
 
@@ -215,12 +218,28 @@ export function AccountDetailPage({
               </div>
             </section>
 
-            <section
-              className={`${styles.summaryGrid} ${
-                registerAvailable ? "" : styles.summaryGridSingle
-              }`}
-              aria-label="Tóm tắt tài khoản"
-            >
+            {demoLedgerPending ? (
+              <section
+                className={styles.ledgerPending}
+                role="status"
+                aria-live="polite"
+                aria-label="Đang đối soát sổ tài khoản"
+              >
+                <p className="eyebrow">Sổ tài khoản</p>
+                <h2>Đang đối soát giao dịch trên thiết bị</h2>
+                <p>
+                  Số dư, tổng biến động và lịch sử sẽ hiển thị sau khi sổ giao dịch demo
+                  được đọc xong.
+                </p>
+              </section>
+            ) : (
+              <>
+                <section
+                  className={`${styles.summaryGrid} ${
+                    registerAvailable ? "" : styles.summaryGridSingle
+                  }`}
+                  aria-label="Tóm tắt tài khoản"
+                >
               <article className={styles.summaryPrimary}>
                 <span>Số dư hiện tại</span>
                 <MoneyValue
@@ -375,6 +394,8 @@ export function AccountDetailPage({
                   Thử tải lại
                 </Link>
               </section>
+                )}
+              </>
             )}
           </>
         )}

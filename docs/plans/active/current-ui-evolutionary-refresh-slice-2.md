@@ -242,6 +242,14 @@ No external adoption; current code/tests and the named authority documents own t
   Slice 2 regression or as pre-existing. Aggregate `npm test` was invoked once, but this
   terminal transport did not return its final summary after the large parallel output;
   it is deliberately not marked green.
+- Independent exact-head review found a P1 demo first-financial-paint defect: the server
+  snapshot could be rendered before browser-ledger reconciliation. Accounts now withhold
+  snapshot balances, totals and account-register entries behind an explicit live
+  reconciliation state until the stored demo ledger is ready. Focused unit/contract tests
+  cover a stored-ledger difference, income, expense and both transfer legs, list/detail
+  withholding, and unchanged authenticated server ownership. Browser proof at 390×844 and
+  targeted 390×568 confirmed the reconciled values and no horizontal or nested-scroll trap;
+  Harness V2 was rerun unchanged for `/transactions` and `/accounts`.
 
 ### Remaining limitations
 
