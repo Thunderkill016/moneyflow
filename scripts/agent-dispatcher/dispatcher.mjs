@@ -40,14 +40,38 @@ function trimOutput(output) {
   return String(output ?? "").trim();
 }
 
+function spawnSupportedCommand(command, args, options) {
+  switch (command) {
+    case "git":
+      return spawnSync("git", args, options);
+    case "gh":
+      return spawnSync("gh", args, options);
+    case "codex":
+      return spawnSync("codex", args, options);
+    case "node":
+      return spawnSync("node", args, options);
+    default:
+      throw new Error(`Unsupported dispatcher executable: ${command}`);
+  }
+}
+
 export function defaultRun(command, args, { cwd = process.cwd(), env = undefined } = {}) {
-  const result = spawnSync(command, args, {
-    cwd,
-    encoding: "utf8",
-    env,
-    maxBuffer: MAX_DISPATCH_OUTPUT_BYTES,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  let result;
+  try {
+    result = spawnSupportedCommand(command, args, {
+      cwd,
+      encoding: "utf8",
+      env,
+      maxBuffer: MAX_DISPATCH_OUTPUT_BYTES,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (error) {
+    return {
+      status: 1,
+      stderr: error instanceof Error ? error.message : "unsupported dispatcher executable",
+      stdout: "",
+    };
+  }
   if (result.error) return { status: 1, stderr: result.error.message, stdout: "" };
   return { status: result.status ?? 1, stderr: result.stderr ?? "", stdout: result.stdout ?? "" };
 }
