@@ -34,42 +34,9 @@ The owner-facing checklist is `docs/plans/active/README.md`.
 
 `docs/plans/active/README.md` is the Current Work Board. Old open issues/PRs are candidate evidence, not current authority.
 
-The 2026-08-15 reconciliation closed these issues after evidence review:
+The 2026-08-15 reconciliation closed historical issue and PR candidates only after comparing them with current main and later accepted work. A fresh current-main remediation for the still-live dispatcher findings is PR #384 with active packet `docs/plans/active/dispatcher-boundary-reconciliation.md`; stale PR #380 is not merge authority.
 
-- `#374` — Slice 2 contract exhausted by merged #381 plus separate #383 hotfix;
-- `#376` — disposable dispatcher transport smoke completed during #377;
-- `#378` — exact-head #377 review completed and its four P1 findings moved into #379;
-- `#310` — historical failure register outcome exists on current main with prevention/guardrail evidence;
-- `#172` — historical whole-product evaluation superseded as current authority by Release Readiness Audit v1.
-
-Issues still open intentionally:
-
-- `#40` — Supabase leaked-password protection, OWNER DECISION/provider truth required;
-- `#174` — provider-side security controls, OWNER DECISION/provider truth required;
-- `#379` — dispatcher hardening remains real because the four reviewed P1 defects were still present on current main when reconciliation began.
-
-A fresh current-main remediation for #379 is PR #384 with active packet `docs/plans/active/dispatcher-boundary-reconciliation.md`. Stale PR #380 is not merge authority.
-
-## 4. Reconciled pull-request status
-
-Historical candidates closed during this pass instead of being merged from stale heads:
-
-- design/CSS/Atoryn: `#119`, `#170`, `#171`, `#292`, `#293`, `#294`;
-- agent/CI process candidates: `#314`, `#315`, `#317`, `#331`, `#338`;
-- provider preflight: `#333`, superseded by later accepted P1 Secure evidence.
-
-Original open candidates still requiring disposition at this checkpoint:
-
-- `#247` — `@types/node` 20 → 25; current package/runtime support must be compared before any major type upgrade;
-- `#248` — stale grouped GitHub Actions update; current workflow already absorbed some later action versions, but checkout/runtime hardening remains a fresh current-main concern;
-- `#304` — stale CI audit/hardening branch; several ideas may still be relevant but require fresh implementation against current workflow;
-- `#320` — real current security dependency work: current lockfile still contains `js-yaml 4.3.0`; upstream 4.3.1 is a security backport and needs a fresh/current-head delivery rather than stale merge;
-- `#345` — authenticated financial-truth harness is absent from current main; preserve it as a readiness-evidence candidate and decide through Release Readiness Audit v1 rather than merging its stale head;
-- `#380` — stale dispatcher hardening prototype; if #384 is accepted, close #380 as superseded by the fresh current-main delivery.
-
-PR #384 is the only newly started implementation created by this reconciliation.
-
-## 5. Presentation and product-direction truth
+## 4. Presentation and product-direction truth
 
 - Fresh Blue remains the shipped color implementation.
 - Slice 1 (#370) owns accepted shell/Overview/Transactions refinement.
@@ -80,7 +47,7 @@ PR #384 is the only newly started implementation created by this reconciliation.
 - Phase F and a broader Brand/Product Experience rebuild are not started.
 - Browser/emulation evidence is not physical-device evidence.
 
-## 6. Current capability inventory
+## 5. Current capability inventory
 
 | Capability | Current truth |
 |---|---|
@@ -95,7 +62,7 @@ PR #384 is the only newly started implementation created by this reconciliation.
 
 Code, migrations and tests outrank this table on implementation detail.
 
-## 7. Trust, recovery and physical-device evidence
+## 6. Trust, recovery and physical-device evidence
 
 PBT-AC12 physical core-ledger acceptance remains owner-observed evidence from the accepted P3 run. PBT-AC13's duration requirement was withdrawn by the owner and must not be reintroduced under a different streak/count. PBT-AC14 was accepted for its historical daily-loop checkpoint. PBT-AC15 remains open.
 
@@ -107,7 +74,7 @@ Named accepted limitations remain claim-specific:
 
 These limitations are not permission to weaken the current readiness evaluation.
 
-## 8. Configuration and delivery truth
+## 7. Configuration and delivery truth
 
 - `docs/configuration.md` owns environment-variable/provider-setting contracts.
 - `docs/deployment.md` owns branch/deployment workflow.
@@ -117,35 +84,54 @@ These limitations are not permission to weaken the current readiness evaluation.
 - Current PR CI deliberately skips heavy verification while a PR is draft; a draft workflow marked success is not full verification evidence.
 - During #384, current `actions/checkout` v4 emitted GitHub's Node-20-deprecation warning while runners forced it onto Node 24, and checkout persisted credentials by default. This is a fresh CI-hardening observation to reconcile with stale #248/#304; it does not authorize merging either old branch.
 
-## 9. Dispatcher boundary finding
+## 8. Reconciled issue status
 
-Current-main inspection proved #379 was not stale paperwork: the merged #377 dispatcher still had all four reviewed P1 defects.
+Closed after evidence review:
 
-PR #384 freshens the remediation against current main:
+- `#374` — Slice 2 contract exhausted by merged #381 plus separate #383 hotfix;
+- `#376` — disposable dispatcher transport smoke completed during #377;
+- `#378` — exact-head #377 review completed and its four P1 findings moved into #379;
+- `#310` — historical failure-register outcome exists on current main with prevention/guardrail evidence;
+- `#172` — historical whole-product evaluation superseded as current authority by Release Readiness Audit v1.
 
-- stable body-marker identity;
-- Markdown-aware unambiguous command discovery;
-- exact-main revalidation before each worktree;
-- guard-first child environment with GitHub token variables removed;
-- conservative Git/GitHub operation allowlists;
-- alias/repo-sync/GraphQL escape regressions;
-- dispatcher safety suites included in `test:ci-policy`.
+Still open intentionally:
 
-The local command guard is defense in depth, not an OS sandbox. A deliberately executed absolute binary path can bypass the `PATH` wrapper and remains a named residual limitation. Codex sandboxing, repository protection and owner credential controls remain independent boundaries.
+- `#40` — Supabase leaked-password protection; OWNER DECISION/provider truth required;
+- `#174` — provider-side security controls; OWNER DECISION/provider truth required;
+- `#379` — dispatcher hardening remains real because the four reviewed P1 defects were present on current main when reconciliation began. PR #384 is the fresh remediation candidate.
 
-## 10. True gaps after this reconciliation
+## 9. Open pull-request memory
+
+Historical candidates closed during this pass rather than merged from stale heads:
+
+- design/CSS/Atoryn: `#119`, `#170`, `#171`, `#292`, `#293`, `#294`;
+- agent/CI/process/provider candidates: `#247`, `#248`, `#304`, `#314`, `#315`, `#317`, `#331`, `#333`, `#338`;
+- readiness harness candidate: `#345`, whose mixed-ledger financial-truth scenario remains useful audit input but is not current merged test authority.
+
+Remaining original open candidates at this checkpoint:
+
+- `#320` — real current security dependency work: current lockfile still contains `js-yaml 4.3.0`; 4.3.1 is a security backport. A Dependabot rebase was requested; if it does not produce a current safe head, recreate the three-line lockfile update fresh.
+- `#380` — stale dispatcher hardening prototype. If #384 is accepted, close #380 as superseded by the fresh current-main delivery.
+
+Fresh delivery:
+
+- `#384` — current-main dispatcher boundary reconciliation. Exact-head policy/static/unit/build/security review is still in progress and no merge claim is made until all final-head gates pass.
+
+## 10. True gaps after this audit
 
 1. Complete and safely deliver #384, then close #379/#380 if superseded.
-2. Disposition the remaining dependency/CI/readiness candidates (#247/#248/#304/#320/#345) using current-main evidence; fresh-deliver real gaps rather than merging stale branches.
-3. Run Release Readiness Audit v1 across product truth, financial correctness, recovery/data safety, auth/isolation, security/privacy, usability/accessibility, deployment/operations and closed-beta support.
-4. Fix only audit-proven P0/P1/P2 readiness blockers under bounded tasks.
-5. Resolve provider/security owner decisions that remain real after the audit.
-6. Run a controlled real-user beta.
-7. Record PBT-AC15 only through explicit owner go/no-go and accepted limitations.
+2. Resolve #320 with current-head evidence; do not merge its stale head merely because the patch is small.
+3. Freshen the still-current CI hardening found by #304/#248 and reproduced in #384 logs: outdated checkout runtime generation and persisted credentials on read-only jobs.
+4. Run Release Readiness Audit v1 across product truth, financial correctness, recovery/data safety, auth/isolation, security/privacy, usability/accessibility, deployment/operations and closed-beta support.
+5. Recreate the #345 mixed-ledger authenticated financial-truth scenario only if the readiness audit selects it as required evidence.
+6. Fix only audit-proven P0/P1/P2 readiness blockers under bounded tasks.
+7. Resolve provider/security owner decisions that remain real after the audit.
+8. Run a controlled real-user beta.
+9. Record PBT-AC15 only through explicit owner go/no-go and accepted limitations.
 
 ## 11. Next allowed action
 
-Finish exact-head evaluation of PR #384. Open-work reconciliation remains the current program task until every remaining candidate has a current disposition. Release Readiness Audit v1 starts only after repository/lifecycle authority is clean.
+Finish exact-head evaluation of PR #384. Open-work reconciliation remains the current program task until #320 and stale #380 have a current disposition. Release Readiness Audit v1 starts only after repository/lifecycle authority is clean.
 
 No new UI slice, Phase E restart, Phase F implementation, provider write or production mutation is implied.
 
