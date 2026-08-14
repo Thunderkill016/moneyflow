@@ -1,12 +1,29 @@
 # Current UI evolutionary refresh — Slice 1
 
-**Status:** active — owner-accepted for Slice 1, awaiting merge
-**Execution state:** accepted; remains active until merge and post-merge lifecycle reconciliation
-**Active role:** implementer
+**Status:** accepted/completed
+**Execution state:** complete — merged and reconciled
+**Completed role:** bounded evolutionary UI refresh, Slice 1
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** #370
-**Last updated:** 2026-08-13
+**Issue/PR:** #370, merged at `main@75ade3bc4ce9d17a099a38df704c8c82542447ee`
+**Last updated:** 2026-08-14
+
+## Final record
+
+| Fact | Value |
+|---|---|
+| Owner acceptance | **Slice 1 accepted** |
+| Merged as | PR **#370** |
+| Merge/main SHA | `75ade3bc4ce9d17a099a38df704c8c82542447ee` |
+| Materially better than the previous main | **YES** |
+| MoneyFlow identity preserved | **YES** |
+| Further redesign of Slice 1 | **None required** |
+| Known accepted trade | desktop 1440 with a secondary filter open is **+36px** taller than the previous main |
+| Physical-device validation | **none claimed** for this slice |
+
+The authoritative metrics are the four-state table below. The squash-merge commit body
+carries intermediate figures from earlier commits on the branch; those are superseded and
+must not be quoted as current authority.
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet refines the **currently
 shipped** MoneyFlow UI. It is **not** Brand v3, **not** Design System v3, and it does
@@ -138,6 +155,7 @@ Design System v3; Design Harness modification; territory selection.
 | UI1-T5 | Class 2 gates and visual evidence | UI1-T2–T4 | gate output, harness artifacts | complete |
 | UI1-T6 | independent evaluation and fixes | UI1-T5 | evaluator findings | complete |
 | UI1-T7 | owner answers the review question | UI1-T6 | owner review 2026-08-13 | **accepted** |
+| UI1-T8 | merge and post-merge lifecycle reconciliation | UI1-T7 | merged #370 at `main@75ade3b`; packet archived, registry and memory reconciled | complete |
 
 ## Handoff record
 
@@ -145,6 +163,7 @@ Design System v3; Design Harness modification; territory selection.
 |---|---|---|---|---|---|---|
 | 2026-08-13 | implementer | human_owner | delivered for review | shell/Overview/Transactions refinement, Class 2 gates, harness evidence | judgement of "materially better" is the owner's; no user testing | owner answers the review question |
 | 2026-08-13 | human_owner | implementer | **accepted for Slice 1** | owner visual review of the branch | none blocking; merge remains a separate owner decision | final cleanup, then owner merge |
+| 2026-08-14 | human_owner | — | **merged and closed** | merged #370 at `main@75ade3bc4ce9d17a099a38df704c8c82542447ee`; 13/13 exact-head checks green | desktop filtered +36px accepted; no physical-device validation claimed | no further Slice 1 work; a later slice needs its own packet and authorisation |
 
 ### Current permission boundary
 

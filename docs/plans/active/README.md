@@ -7,7 +7,6 @@ pull requests remain the dynamic status source.
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `public-beta-trust.md` | active parent program | ordered program state and public-beta decision gate |
-| `current-ui-evolutionary-refresh.md` | active — Slice 1 delivered for owner review | evolutionary refinement of the **shipped** UI; not Brand v3, not Design System v3, not Phase E |
 
 Each packet must use `docs/templates/FEATURE_WORK_PACKET.md` and stay current enough
 that another agent can continue without hidden chat context. Do not add a candidate or
@@ -17,8 +16,10 @@ abandoned or unaccepted work moves to `../archived/`, which never implies accept
 Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality
 / Authority Audit, Phase B Fresh Product-Experience Research, Phase C Product Experience
 Architecture and Phase D Brand Strategy are accepted/completed in merged or
-staged-completed records. **Phase E Creative Territories is paused**: candidate
-territories were explored and the owner rejected all of them, so **no territory is
-selected**, that exploration is **not visual authority**, and Phase F does not start.
-Meanwhile `current-ui-evolutionary-refresh.md` improves the shipped UI evolutionarily
-without changing product identity. PBT-AC15 remains open.
+staged-completed records. **Phase E candidate exploration is paused**: every
+proposed territory was rejected by the owner, so **no territory is selected**, that
+rejected exploration is **not visual authority**, and Phase F does not start. The
+**UI evolutionary refresh Slice 1 is accepted and merged** (#370 at `main@75ade3b`) and
+is archived at
+`../completed/2026-08-14-current-ui-evolutionary-refresh-slice-1.md`; no further Slice 1
+work is open and a later slice would need its own packet. PBT-AC15 remains open.
