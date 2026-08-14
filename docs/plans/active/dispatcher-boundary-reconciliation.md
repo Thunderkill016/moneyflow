@@ -13,7 +13,9 @@
 
 Resolve the known P1 safety/correctness defects in the merged owner-opt-in local Codex dispatcher without reviving stale PR #380 or changing MoneyFlow product/runtime/provider behavior.
 
-## Current evidence
+## Repository reconnaissance
+
+### Current behavior
 
 Current `main` inherited four reviewed defects from #377:
 
@@ -22,15 +24,40 @@ Current `main` inherited four reviewed defects from #377:
 3. `main` could move between cycle validation and worktree creation;
 4. the auto-approved Codex child retained ordinary Git/GitHub mutation paths without a process-level command policy.
 
-Only the applicable code/test delta from #380 was transplanted onto current main. Its stale lifecycle files were not copied.
+PR #380 contains a useful remediation prototype but is stale against current main and current lifecycle authority. Only its applicable implementation/test delta is reused; its old packet/registry state is not copied.
 
-## Research decision
+### Relevant areas
 
-Current OpenAI safety guidance treats sandboxing and approvals/rules as complementary technical controls: routine actions belong inside bounded execution, while higher-risk actions should be blocked or reviewed. This task therefore uses a process-level Git/GitHub command allowlist as **defense in depth**, not as a substitute for Codex's OS sandbox, repository protection or owner-scoped credentials.
+- `scripts/agent-dispatcher/dispatcher.mjs` — command discovery, identity, prerequisites, worktree creation and Codex launch.
+- `scripts/agent-dispatcher/command-guard.mjs` — child-process Git/GitHub command policy.
+- `scripts/agent-dispatcher/*.test.mjs` — deterministic safety regressions.
+- `package.json` — CI-policy test composition.
+- `docs/plans/active/README.md` — current execution authority.
 
-The guard is not claimed to defend against a hostile process that deliberately executes an absolute binary path outside the inherited `PATH` wrapper. That residual limitation is explicit.
+### Existing constraints
 
-## Acceptance criteria
+- No MoneyFlow product/runtime, financial, database/RLS, Auth or provider semantics are changed.
+- No branch protection/ruleset or production write is authorized.
+- The dispatcher remains owner-opt-in and local-only.
+- A wrapper placed on `PATH` is defense in depth, not an OS sandbox.
+
+## Research
+
+Current OpenAI safety guidance treats sandboxing and approvals/rules as complementary controls: routine work should happen inside bounded execution, while higher-risk actions should be blocked or reviewed. MoneyFlow therefore keeps Codex's sandbox as the primary execution boundary and adds a conservative Git/GitHub command allowlist as a local secondary control.
+
+The guard is not claimed to defend against a hostile process deliberately executing an absolute binary path outside the inherited `PATH`. Repository protection and owner-scoped credentials remain independent safeguards.
+
+### Adoption review
+
+No external library, provider or service is adopted. This change uses Node built-ins and the existing local Codex/Git/GitHub CLI boundary.
+
+## Specification
+
+### Problem
+
+The merged dispatcher can repeat an old command after unrelated prose edits, treat documentation examples as executable requests, start later commands from stale `main`, and give the Codex child ordinary authenticated Git/GitHub command paths that the prompt merely asks it not to use.
+
+### Acceptance criteria
 
 - **DBR-AC1** unrelated body prose edits preserve command identity; explicit marker-note changes remain new commands;
 - **DBR-AC2** fenced, blockquoted and prose examples are ignored;
@@ -41,70 +68,100 @@ The guard is not claimed to defend against a hostile process that deliberately e
 - **DBR-AC7** no product, financial, database, Auth, provider, production or branch-protection behavior changes;
 - **DBR-AC8** dispatcher safety tests are part of the repository CI policy suite and exact-head policy/static/unit/build/security gates pass before merge.
 
-## Self-review finding and remediation
+### Required states
 
-The first transplanted guard still allowed a Git CLI alias escape such as:
+- Safe owner command: processed once in an isolated non-main worktree.
+- Duplicate command: suppressed after restart/body prose edit.
+- Ambiguous Markdown: ignored.
+- Main movement: fresh SHA used before worktree creation or dispatch fails closed.
+- Forbidden Git/GitHub action: wrapper exits non-zero before the real command is executed.
+- Unsupported/unknown command path: fails closed.
 
-`git -c alias.ship='!git push origin HEAD:main' ship`
+### Security constraints
 
-That was material because it stayed inside the ordinary `git` executable path and therefore was not covered by the documented absolute-binary residual limitation.
+- No provider or production credentials are added.
+- Documented GitHub token environment variables are stripped from the child environment.
+- Existing owner Git/GitHub authentication is not represented as removed; the wrapper constrains ordinary CLI paths only.
+- Absolute executable-path bypass remains a named residual limitation of this local defense-in-depth layer.
 
-Remediation on #384:
+### Out of scope
 
-- Git commands now use an explicit operation allowlist;
-- inline `alias.*` config is rejected;
-- unknown operations/aliases are rejected;
-- GitHub CLI uses a top-level allowlist;
-- `gh alias`, `repo sync` and GraphQL API paths are rejected;
-- dedicated regressions cover these escape hatches;
-- `test:agent-dispatcher` now runs both dispatcher and command-guard tests;
-- `test:ci-policy` includes the dispatcher safety suites so provider CI cannot accept this boundary without executing them.
+Product features, UI, financial semantics, database/RLS, Auth, provider configuration, production data, CI workflow topology, branch rulesets and a hostile-process sandbox redesign.
 
-## Verification interpretation
+## Implementation plan
 
-The first PR workflow run occurred while #384 was draft. The classifier correctly selected `fullVerify=true`, but the workflow intentionally skips verification shards for draft pull requests. That run is **not acceptance evidence**.
+1. Transplant only the applicable dispatcher source/tests from stale #380 onto current main.
+2. Stabilize body command identity and require an unambiguous top-level marker.
+3. Revalidate exact main immediately before each worktree.
+4. Build a guard-first environment and strip token variables.
+5. Restrict ordinary Git/GitHub CLI operations using allowlists and targeted forbidden-path rules.
+6. Add regressions for env propagation, output buffering and command-policy escape hatches.
+7. Wire dispatcher safety suites into `test:ci-policy` so provider CI must execute them.
+8. Run ready-for-review exact-head policy/static/unit/build/CodeQL/secret-history gates.
+9. Merge only after fresh review and final base/head/thread recheck; then retire this packet and close #379/#380.
 
-The next valid evidence must come from a ready-for-review exact head where:
+### Data/migration impact
 
-- `Verify policy contracts` executes the dispatcher safety suite;
-- full static/unit/build verification runs;
-- CodeQL and secret-history complete on the same head;
-- review submissions/threads and base movement are rechecked.
+None. Rollback is a focused code/test/docs revert; no external state must be unwound.
 
-## Control contract
+### Risks and counterexamples
 
-### State
-
-- Owner: local dispatcher state under ignored `.agent-dispatcher/`.
-- Code owner: `scripts/agent-dispatcher/`.
-- No provider or production state is written by this task.
-
-### Feedback
-
-- Historical red signal: four P1 findings from exact-head review of #377.
-- Current regression signal: focused tests for identity, Markdown, fresh-base, env propagation, output buffering and command-policy bypasses.
-- Deterministic success signal: ready-for-review exact-head CI + CodeQL + secret-history.
-- Semantic evidence: diff review plus explicit residual limitation.
-
-### Removal impact
-
-Removing this hardening restores reviewed redispatch/Markdown/TOCTOU/command-boundary defects. Rollback is a focused revert; no external state needs unwinding.
-
-### Action safety
-
-- Allowed: branch code/tests/docs and read-only GitHub evidence selected by policy.
-- Forbidden: direct main write, force push, provider/production/database/Auth mutation, branch-protection/ruleset change.
-- Merge only after exact-head evidence is complete and clean.
+| Risk | Control/evidence |
+|---|---|
+| prose edit replays command | stable body key + deterministic regression |
+| Markdown example executes | top-level marker parser regression |
+| stale base | per-command fresh-main validation regression |
+| `git -c alias.*` bypass | inline-alias rejection + operation allowlist regression |
+| pre-existing/unknown CLI alias | unknown Git/GitHub operations fail closed |
+| GraphQL merge/update path | GraphQL API blocked from dispatcher lane |
+| wrapper mistaken for sandbox | explicit residual limitation + primary Codex sandbox remains separate |
+| tests exist but CI skips them | dispatcher suites included in `test:ci-policy` |
 
 ## Tasks
 
 | ID | Covers | Task | Evidence | Status |
 |---|---|---|---|---|
 | DBR-T1 | DBR-AC1–6 | current-main dispatcher hardening | implementation + focused regressions | complete |
-| DBR-T2 | DBR-AC5–8 | close self-review alias/CI-coverage findings | allowlists + command-guard tests + CI-policy script | complete |
-| DBR-T3 | DBR-AC7–8 | exact-head provider verification and fresh review | ready PR workflow runs | pending |
-| DBR-T4 | internal: lifecycle | merge/retire only after clean evidence | expected-head merge + closeout | pending |
+| DBR-T2 | DBR-AC5–8 | close self-review alias/CI-coverage findings | allowlists + guard tests + CI-policy script | complete |
+| DBR-T3 | DBR-AC7–8 | exact-head verification and fresh review | ready PR workflow runs | in progress |
+| DBR-T4 | lifecycle | merge/retire only after clean evidence | expected-head merge + closeout | pending |
+
+## Handoff record
+
+| Date | From | To | State | Evidence | Open boundary | Next allowed action |
+|---|---|---|---|---|---|---|
+| 2026-08-15 | reconciliation | implementer | implementing | current-main review of #377/#380 | four P1 defects live on main | fresh current-main remediation only |
+| 2026-08-15 | implementer | evaluator | evaluating | #384 implementation + regressions | initial guard alias bypass and CI test coverage | repair before ready |
+| 2026-08-15 | evaluator | provider CI + reviewer | evaluating | allowlists, alias/GraphQL regressions, dispatcher tests wired into CI policy | exact-head gates/review pending | ready-for-review full verification |
+
+## Evaluation
+
+### Findings
+
+**P1 — first transplanted guard allowed inline Git alias bypass — RESOLVED.**
+
+Example: `git -c alias.ship='!git push origin HEAD:main' ship` stayed inside the ordinary `git` path but escaped the original operation parser. The fix adds explicit Git/GitHub operation allowlists, rejects inline aliases/unknown operations, blocks repo sync/GraphQL paths and adds dedicated regressions.
+
+**P1 — dispatcher safety tests were not part of provider CI — RESOLVED.**
+
+`npm test` covers `src/lib` only and `test:ci-policy` previously omitted dispatcher tests. `test:agent-dispatcher` now includes both dispatcher and command-guard suites, and `test:ci-policy` includes both files.
+
+**Draft-run interpretation — NOT EVIDENCE.**
+
+The first #384 workflow correctly classified `fullVerify=true`, but verification jobs are intentionally skipped while a PR is draft. No draft “green” is counted as acceptance.
+
+### Current verdict
+
+`EVALUATING — exact-head ready-for-review gates and independent review pending.`
+
+### Required final evidence
+
+- `Verify policy contracts` must execute and pass the dispatcher safety suites;
+- full static/unit/build shards must pass when selected;
+- CodeQL and secret-history must pass on the same head;
+- no material reviewer finding or unresolved thread may remain;
+- main/base/head must be rechecked immediately before expected-head merge.
 
 ## Handoff
 
-Next allowed action: mark PR #384 ready for review, require exact-head full verification/security workflows, resolve any material finding, then perform final base/head/review/thread checks before merge.
+Next allowed action: fix the current project-knowledge contract failure, allow the new exact head to run full verification/security review, resolve any material finding, then perform final merge checks.
