@@ -1,8 +1,8 @@
 # MoneyFlow — current project memory
 
-**Status:** single current implementation/trust-status authority  
-**Last reconciled:** 2026-08-14  
-**Current main baseline:** `2ffe63dc470ca84f4e782343238f2353a61ca89d` (#381 merged)  
+**Status:** single current implementation/trust-status authority
+**Last reconciled:** 2026-08-14
+**Current main baseline:** `2ffe63dc470ca84f4e782343238f2353a61ca89d` (#381 merged)
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` records only for named provenance needs.
 
 ## 1. Current decision
