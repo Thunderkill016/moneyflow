@@ -19,13 +19,20 @@ import {
   type SaveAccountInput,
 } from "@/lib/accounts";
 import {
+  buildAccountRegister,
+  reconcileAccountBalanceSnapshot,
+} from "@/lib/account-register";
+import {
   canTransferSameCurrency,
   normalizeCurrencyCode,
   totalsByCurrency,
 } from "@/lib/currency";
 import { formatMoney } from "@/lib/money";
 import type { CreateTransferInput } from "@/lib/sample-data";
-import { readStoredTransactions } from "@/lib/transaction-store";
+import {
+  readDemoTransactionBaseline,
+  readStoredTransactions,
+} from "@/lib/transaction-store";
 import { applyTransferBalances } from "@/lib/transfers";
 import styles from "./accounts-workspace.module.css";
 
@@ -90,22 +97,18 @@ export function AccountsWorkspace({
   useEffect(() => {
     if (!viewer.isDemo) return;
     const frame = window.requestAnimationFrame(() => {
-      const restored = readStoredTransactions()
-        .filter(
-          (transaction) =>
-            transaction.kind === "transfer" && transaction.destinationAccountId,
-        )
-        .reduce(
-          (current, transaction) =>
-            applyTransferBalances(
-              current,
-              transaction.accountId,
-              transaction.destinationAccountId!,
-              transaction.amount,
-            ),
-          initialAccounts,
-        );
-      setAccounts(restored);
+      const storedTransactions = readStoredTransactions();
+      const baselineTransactions = readDemoTransactionBaseline();
+      setAccounts(
+        initialAccounts.map((account) => ({
+          ...account,
+          balance: reconcileAccountBalanceSnapshot(
+            account.balance,
+            buildAccountRegister(baselineTransactions, account.id),
+            buildAccountRegister(storedTransactions, account.id),
+          ),
+        })),
+      );
     });
     return () => window.cancelAnimationFrame(frame);
   }, [initialAccounts, viewer.isDemo]);

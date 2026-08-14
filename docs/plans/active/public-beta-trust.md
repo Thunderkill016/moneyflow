@@ -1,13 +1,13 @@
 # MoneyFlow Trust
 
 **Status:** active
-**Execution state:** P3 Prove, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority Audit, Phase B, Phase C and Phase D accepted/completed; Phase E is paused with all candidates rejected; no next substantive phase is authorised; public-beta decision remains open
-**Active role:** parent-program planner; no child packet is active
+**Execution state:** P3 Prove, Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority Audit, Phase B, Phase C and Phase D accepted/completed; Phase E is paused with all candidates rejected; owner-authorised UI Slice 2 is active for Manual Capture + Accounts only; public-beta decision remains open
+**Active role:** parent-program planner; Slice 2 is the sole active child packet
 **Permission scope:** branch_write + provider_read
 **Owner:** Thunderkill016
 **Issue/PR:** #323 parent; #324 Secure implementation; #325–#329 Provider Sync; #340 Auth/shared-UI readiness; #353 P2 Recover closure; #356 P3 Prove packet; #358 PP-12 remediation; #360 Reset 1 closure; #362 Reset 2 closure
 **Last updated:** 2026-08-14
-**Current main baseline:** `bc062eeabeb02e215f73d8267bba13c809533751` (#371 merged)
+**Current main baseline:** `dd735700731c9718f8d2ae8e62488e35df87d859` (#377 merged)
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
@@ -105,9 +105,10 @@ merged #367 (`main@4ba1864`). **Phase D Brand Strategy** is accepted/completed i
 #368 (`main@55ee401`), with the durable authority at
 `docs/research/PHASE_D_BRAND_STRATEGY.md`; it makes no visual decision. **Phase E
 Creative Territories is paused:** every candidate territory was rejected by the owner,
-no territory is selected, and the exploration is not visual authority. Phase F and
-Brand/Product Experience implementation are not started and have no packet; neither is
-authorised by program sequence. The public-beta decision remains open.
+no territory is selected, and the exploration is not visual authority. Owner-authorised
+UI evolutionary refresh Slice 2 (#374) is the sole active child, limited to Manual Capture
+and Accounts. Phase F and Brand/Product Experience implementation are not started and
+have no packet. The public-beta decision remains open.
 
 On 2026-08-12 the owner **removed the seven-day self-use requirement** from the active program after running the physical checklist. P3 Prove is now physical-phone core-ledger acceptance only. No replacement duration gate is introduced. The historical seven-day records in `docs/REAL_USE_READINESS_CONTRACT.md` (R7, 2026-07-29) stay as historical truth and are not re-opened.
 

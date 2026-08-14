@@ -53,17 +53,26 @@ function normalizedSampleTransactions() {
   return sampleTransactions.map(withNormalizedReviewStatus);
 }
 
+/**
+ * The approved browser-demo boundary for callers that need the immutable
+ * transaction snapshot behind an account balance. Returning fresh records
+ * prevents a presentation consumer from owning or mutating the fixture.
+ */
+export function readDemoTransactionBaseline() {
+  return normalizedSampleTransactions();
+}
+
 export function readStoredTransactions() {
   try {
     const saved = localStorage.getItem(TRANSACTION_STORAGE_KEY);
-    if (!saved) return normalizedSampleTransactions();
+    if (!saved) return readDemoTransactionBaseline();
     const parsed: unknown = JSON.parse(saved);
     return Array.isArray(parsed) && parsed.every(isTransaction)
       ? parsed.map(withNormalizedReviewStatus)
-      : normalizedSampleTransactions();
+      : readDemoTransactionBaseline();
   } catch {
     localStorage.removeItem(TRANSACTION_STORAGE_KEY);
-    return normalizedSampleTransactions();
+    return readDemoTransactionBaseline();
   }
 }
 

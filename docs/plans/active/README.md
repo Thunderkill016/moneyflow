@@ -8,6 +8,7 @@ pull requests remain the dynamic status source.
 |---|---|---|
 | `public-beta-trust.md` | active parent program | ordered program state and public-beta decision gate |
 | `moneyflow-codex-dispatcher-v1.md` | active child delivery | bounded local Codex dispatcher tooling only (#375) |
+| `current-ui-evolutionary-refresh-slice-2.md` | active child delivery | bounded Manual Capture + Accounts presentation and evidence only (#374) |
 
 Each packet must use `docs/templates/FEATURE_WORK_PACKET.md` and stay current enough
 that another agent can continue without hidden chat context. Do not add a candidate or
@@ -23,4 +24,5 @@ rejected exploration is **not visual authority**, and Phase F does not start. Th
 **UI evolutionary refresh Slice 1 is accepted and merged** (#370 at `main@75ade3b`) and
 is archived at
 `../completed/2026-08-14-current-ui-evolutionary-refresh-slice-1.md`; no further Slice 1
-work is open and a later slice would need its own packet. PBT-AC15 remains open.
+work is open. **Slice 2 is deliberately active under #374** for Manual Capture + Accounts
+only; it does not restart Phase E or Phase F. PBT-AC15 remains open.

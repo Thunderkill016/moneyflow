@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Transaction } from "./sample-data.ts";
-import { isTransaction, restoreTransactionInList } from "./transaction-store.ts";
+import {
+  isTransaction,
+  readDemoTransactionBaseline,
+  restoreTransactionInList,
+} from "./transaction-store.ts";
 
 const validTransaction: Transaction = {
   id: "transaction-1",
@@ -21,6 +25,15 @@ test("accepts a complete integer-money transaction", () => {
   assert.equal(isTransaction(validTransaction), true);
   assert.equal(isTransaction({ ...validTransaction, isRecurringPayment: true }), true);
   assert.equal(isTransaction({ ...validTransaction, isRecurringPayment: "yes" }), false);
+});
+
+test("demo baseline is exposed through the persistence boundary as fresh records", () => {
+  const first = readDemoTransactionBaseline();
+  const second = readDemoTransactionBaseline();
+  assert.ok(first.length > 0);
+  assert.notEqual(first, second);
+  assert.notEqual(first[0], second[0]);
+  assert.equal(first.every(isTransaction), true);
 });
 
 test("rejects unsafe or incomplete transaction data", () => {

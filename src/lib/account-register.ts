@@ -106,3 +106,26 @@ export function summarizeAccountRegister(
 
   return summary;
 }
+
+/**
+ * Reconcile an account-balance snapshot with a newer copy of that account's
+ * register. The snapshot balance already includes `snapshotEntries`; applying
+ * only the register delta keeps income, expenses, and both transfer legs exact.
+ */
+export function reconcileAccountBalanceSnapshot(
+  snapshotBalance: number,
+  snapshotEntries: AccountRegisterEntry[],
+  liveEntries: AccountRegisterEntry[],
+): number {
+  if (!Number.isSafeInteger(snapshotBalance)) {
+    throw new Error("invalid_account_balance_snapshot");
+  }
+  const next =
+    snapshotBalance +
+    summarizeAccountRegister(liveEntries).netMovement -
+    summarizeAccountRegister(snapshotEntries).netMovement;
+  if (!Number.isSafeInteger(next)) {
+    throw new Error("unsafe_account_balance_snapshot");
+  }
+  return next;
+}

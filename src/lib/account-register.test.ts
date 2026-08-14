@@ -4,6 +4,7 @@ import type { Transaction } from "./transactions/contracts.ts";
 import {
   accountTransactionImpact,
   buildAccountRegister,
+  reconcileAccountBalanceSnapshot,
   summarizeAccountRegister,
 } from "./account-register.ts";
 
@@ -166,5 +167,32 @@ test("invalid amounts and structurally invalid same-account transfers are ignore
       "account-a",
     ),
     null,
+  );
+});
+
+test("account snapshot reconciliation applies an exact income, expense, and transfer delta", () => {
+  const snapshotEntries = buildAccountRegister(
+    [transaction({ id: "seed-income", kind: "income", amount: 100_000 })],
+    "account-a",
+  );
+  const liveEntries = buildAccountRegister(
+    [
+      transaction({ id: "seed-income", kind: "income", amount: 100_000 }),
+      transaction({ id: "new-income", kind: "income", amount: 222_000 }),
+      transaction({ id: "new-expense", kind: "expense", amount: 111_000 }),
+      transaction({
+        id: "transfer-out",
+        kind: "transfer",
+        amount: 333_000,
+        destinationAccountId: "account-b",
+        destinationAccount: "Tài khoản B",
+      }),
+    ],
+    "account-a",
+  );
+
+  assert.equal(
+    reconcileAccountBalanceSnapshot(500_000, snapshotEntries, liveEntries),
+    278_000,
   );
 });
