@@ -16,7 +16,9 @@ MoneyFlow is ready for a bounded public beta only when current repository behavi
 
 Historical checkpoint completion is evidence, not a substitute for a current release-readiness audit.
 
-## Current truth
+## Repository reconnaissance
+
+### Current truth
 
 - MoneyFlow has a released functional MVP.
 - Provider Sync, P1 Secure, P2 Recover and P3 Prove are accepted checkpoints with named limitations preserved.
