@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import styles from "./text-field.module.css"
 
 type TextFieldTargetSize = "aa" | "important"
 
@@ -62,7 +63,7 @@ function TextField({
       <div
         data-slot="text-field-control"
         className={cn(
-          "flex items-center rounded-lg border border-input bg-background shadow-xs transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50",
+          "flex items-center rounded-lg border border-input bg-background shadow-xs transition-[border-color,box-shadow] focus-within:ring-3 focus-within:ring-ring/50",
           error && "border-destructive focus-within:border-destructive focus-within:ring-destructive/20",
           disabled && "cursor-not-allowed opacity-50",
           targetSize === "important" ? "min-h-11" : "min-h-9"
@@ -88,6 +89,7 @@ function TextField({
           disabled={disabled || pending}
           className={cn(
             "min-w-0 flex-1 bg-transparent px-3 py-2 text-base text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed sm:text-sm",
+            styles.input,
             inputClassName
           )}
           {...props}

@@ -2,6 +2,7 @@ import { expect, type Page, type TestInfo } from "@playwright/test";
 
 type FocusState = {
   element: string;
+  focusOwner: string;
   top: number;
   right: number;
   bottom: number;
@@ -17,10 +18,14 @@ async function readFocusState(page: Page): Promise<FocusState | null> {
   return page.evaluate(() => {
     const active = document.activeElement;
     if (!(active instanceof HTMLElement) || active === document.body) return null;
-    const rect = active.getBoundingClientRect();
-    const style = window.getComputedStyle(active);
+    // TextField intentionally owns its one focus contour on the control wrapper,
+    // rather than duplicating it on the native input.
+    const focusOwner = active.closest<HTMLElement>('[data-slot="text-field-control"]') ?? active;
+    const rect = focusOwner.getBoundingClientRect();
+    const style = window.getComputedStyle(focusOwner);
     return {
       element: `${active.tagName.toLowerCase()}${active.id ? `#${active.id}` : ""}`,
+      focusOwner: `${focusOwner.tagName.toLowerCase()}${focusOwner.dataset.slot ? `[data-slot=${focusOwner.dataset.slot}]` : ""}`,
       top: rect.top,
       right: rect.right,
       bottom: rect.bottom,
