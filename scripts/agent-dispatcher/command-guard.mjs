@@ -166,7 +166,7 @@ function flagValue(args, longName, shortName) {
   return "";
 }
 
-export function prCreateDeliveryViolation(args) {
+export function prCreateDeliveryViolation(args, currentBranchName = undefined) {
   if (!args.includes("--draft") && !args.includes("-d")) {
     return "dispatcher-created pull requests must remain draft";
   }
@@ -180,6 +180,14 @@ export function prCreateDeliveryViolation(args) {
   const base = flagValue(args, "--base", "-B");
   if (base && base !== "main") {
     return "dispatcher PR creation may only target main";
+  }
+  if (currentBranchName !== undefined) {
+    if (!currentBranchName || currentBranchName === "main") {
+      return "dispatcher PR creation requires an unambiguous current isolated branch";
+    }
+    if (head !== currentBranchName) {
+      return "dispatcher PR --head must match the current isolated branch";
+    }
   }
   return null;
 }
@@ -211,8 +219,8 @@ function realToolViolation(tool, realTool) {
   return null;
 }
 
-function currentBranch(realGit, environment) {
-  const result = spawnSync(realGit, ["rev-parse", "--abbrev-ref", "HEAD"], {
+function currentBranch(executable, environment) {
+  const result = spawnSync(executable, ["rev-parse", "--abbrev-ref", "HEAD"], {
     encoding: "utf8",
     env: environment,
     stdio: ["ignore", "pipe", "pipe"],
@@ -231,9 +239,13 @@ function runGuard(argv = process.argv.slice(2), environment = process.env) {
     : tool === "gh"
       ? ghBoundaryViolation(args)
       : "unknown tool";
+  const currentBranchName =
+    tool === "gh" && args[0] === "pr" && args[1] === "create"
+      ? currentBranch("git", environment)
+      : undefined;
   const deliveryViolation =
     tool === "gh" && args[0] === "pr" && args[1] === "create"
-      ? prCreateDeliveryViolation(args)
+      ? prCreateDeliveryViolation(args, currentBranchName)
       : null;
   const violation = realToolProblem ?? commandViolation ?? deliveryViolation;
   if (violation) {
