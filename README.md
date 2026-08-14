@@ -1,152 +1,116 @@
 # MoneyFlow
 
-**MoneyFlow** is a Vietnamese personal income-and-expense web ledger: multiple accounts, fast manual capture, clear balances and period reporting, with user-owned export and a complete restorable account archive. Calm, factual and non-judgmental.
+MoneyFlow is a Vietnamese, manual-first personal income-and-expense web ledger. It helps a person record income, expenses and internal transfers; understand balances across accounts; inspect where money went; correct mistakes; and keep/export trustworthy data.
 
-Core jobs:
+MoneyFlow is deliberately **not** a bank aggregator, AI financial adviser, business-accounting suite or native mobile app. Import, inbox and rules are optional advanced capture tools; they are not the product identity.
 
-1. Record income, expense or transfer quickly.
-2. Know balances across active accounts.
-3. Understand income, expense and where money went this month.
-4. Correct mistakes and export trustworthy data.
+## Current work and release status
 
-MoneyFlow is not currently a bank aggregator, AI financial adviser, business-accounting product or native mobile application. Paste, import, inbox and rules are optional advanced capture tools, not the product identity.
+MoneyFlow has a released functional MVP, but it is **not yet public-beta ready**. Current execution, blockers, owner decisions and the next authorized steps live in one place:
 
-The released MVP is the first product baseline, not the final ceiling. The owner-approved long-term direction is a comprehensive personal-finance platform delivered as optional, dependency-ordered modules while the simple daily ledger remains the default.
+- **[Current Work Board](docs/plans/active/README.md)** — owner-facing `NOW / NEXT / BLOCKED / OWNER DECISION / TRIAGE / HOLD / RECENTLY DONE` checklist.
+- **[Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md)** — compact implementation/trust truth and named limitations.
 
-## Authority route
+Do not infer current work from an old issue body, branch or historical packet. Open PRs are candidate evidence until merged; GitHub state is dynamic and the board is reconciled against it.
 
-Start with [AGENTS.md](AGENTS.md), then use exactly one current owner for the
-question at hand:
+## What MoneyFlow does today
 
-| Question | Authority |
-|---|---|
-| Product identity and principles | [Product principles](docs/product/PRINCIPLES.md) |
-| Released MVP capability/exit reference | [MVP definition](docs/MVP_DEFINITION.md) |
-| Current project state | [Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md) |
-| Immediate execution | [Active work-packet registry](docs/plans/active/README.md) |
-| Architecture | [Architecture map](ARCHITECTURE.md) |
-| Delivery gates and permissions | [Risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md) and [agent operating model](docs/engineering/AGENT_OPERATING_MODEL.md) |
-| Research routing | [Task context router](docs/context/README.md) and its two reference maps |
-| Historical provenance | [PR memory log](docs/research/PR_MEMORY_LOG.md), [completed packets](docs/plans/completed/) and [archived packets](docs/plans/archived/) |
-| App/deployment configuration | [Configuration contract](docs/configuration.md) |
+- Explicit `demo` mode with browser-local exploration data.
+- Explicit `authenticated` mode using Supabase Auth + PostgreSQL with RLS.
+- Multiple accounts such as cash, bank, e-wallet, credit and savings representations.
+- Income, expense and balanced internal transfers.
+- Edit, soft delete and recovery paths.
+- Account balances, register/history and reconciliation paths.
+- Category budgets, recurring commitments/income and savings goals.
+- Weekly, monthly and yearly reporting.
+- Controlled import and CSV export.
+- Complete versioned account archive at `/settings/backup`, separate from scoped/report export.
+- Responsive light/dark web UI.
 
-Historical research, completed packets and Spec Kit feature artifacts are evidence,
-not current authority. The context router selects them only when their provenance is
-needed. Every pull request targeting `main` adds one truthful PR-memory record; a
-change to current truth also updates the current-project memory.
+The exact implementation always outranks this summary; use the authority route below for detail.
+
+## Financial and trust invariants
+
+- VND is stored as integer đồng; never floating-point money.
+- Internal transfers are equal/opposite account movements and never count as income or expense.
+- Missing planning data, balances, dates, commitments or income are never guessed.
+- Destructive ledger actions use recoverable/soft-delete behavior where the product contract requires it.
+- Authenticated user-owned data is tenant-isolated through PostgreSQL/RLS boundaries.
+- Demo and authenticated data stores are explicit and must never be presented as the same source of truth.
+- Full backup/restore is a separate ownership capability from scoped export. Hosted restore remains a named limitation unless current evidence proves otherwise.
 
 ## Runtime modes
 
-- `authenticated`: Supabase Auth + PostgreSQL with RLS.
-- `demo`: browser-local data for product exploration.
+`NEXT_PUBLIC_APP_MODE` is explicit:
 
-Runtime mode is explicit through `NEXT_PUBLIC_APP_MODE`; it is never inferred from missing credentials.
+- `authenticated` — Supabase Auth + PostgreSQL/RLS.
+- `demo` — browser-local exploration data.
+
+Missing credentials never silently switch the application into demo mode.
 
 ## Run locally
 
 ```bash
 npm install
 cp .env.example .env.local
-# Fill explicit local values in .env.local
+# Fill the documented local values in .env.local
 npm run dev
 ```
 
-Open `http://localhost:3000`.
-
-Production values live in Vercel Project Settings, never in committed `.env` files, TypeScript constants or `vercel.json`. Missing deployment configuration must fail validation instead of falling back to a guessed hostname.
+Open `http://localhost:3000` unless your local command selects another port. Environment and provider requirements are owned by [`docs/configuration.md`](docs/configuration.md); production values belong in provider settings, never committed source files.
 
 ## Quality checks
 
-GitHub CI keeps stable required check names but selects heavy product-layer work from the changed paths. Pushes to `main` and manual runs execute the complete suite. The protected CodeQL workflow performs and uploads a real JavaScript/TypeScript analysis for every pull request. See [risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md).
+Use `npm run agent:doctor -- --json` before implementation to select the risk-proportional gate plan. Common repository checks include:
 
 ```bash
-# Fast repository-policy checks
 npm run check:knowledge
 npm run test:ci-policy
-
-# Static, domain and build verification
 npm run check:deployment-env
 npm run check:architecture
+npm run check:css-ownership
 npm run lint
 npm run typecheck
 npm run test
 npm run build
-
-# Database/RLS, requires Docker and only applies to the database boundary
-npm run test:db
-
-# Browser and responsive evidence, selected by affected runtime/UI paths
-npm run test:e2e:install
-npm run test:e2e
-npm run test:ui-audit:pr
 ```
 
-Each layer proves something different: build success does not prove RLS, browser usability or production behavior. Conversely, a database reset or visual audit adds no useful evidence to an unrelated documentation change. A successful CodeQL check name without completed initialization and analysis does not satisfy the repository code-scanning rule.
+Boundary-specific verification includes database/RLS, browser/e2e and responsive UI audits when the changed layer requires them. A build does not prove RLS, browser usability, provider configuration or production behavior.
+
+## Authority route
+
+Start with [`AGENTS.md`](AGENTS.md), then open only the current owner for the question at hand:
+
+| Question | Authority |
+|---|---|
+| Current task/checklist | [Current Work Board](docs/plans/active/README.md) |
+| Current implementation/trust state | [Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md) |
+| Product identity and principles | [Product principles](docs/product/PRINCIPLES.md) |
+| Released MVP capability reference | [MVP definition](docs/MVP_DEFINITION.md) |
+| Architecture | [Architecture map](ARCHITECTURE.md) |
+| Change classes, gates and permissions | [Risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md) + [agent operating model](docs/engineering/AGENT_OPERATING_MODEL.md) |
+| Context/research routing | [Task context router](docs/context/README.md) |
+| App/deployment configuration | [Configuration contract](docs/configuration.md) |
+| Pull-request provenance | [PR memory log](docs/research/PR_MEMORY_LOG.md) |
+| Historical accepted/superseded work | `docs/plans/completed/`, `docs/plans/archived/` and named PR-memory records |
+
+Historical research, completed packets and old issues are evidence, not permission to restart work. Code, migrations and tests outrank prose on implementation facts.
 
 ## Change workflow
 
-1. Create a focused branch.
-2. Classify the change using `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
-3. Use an inline/PR plan for bounded low-risk work; create a full work packet for financial, data, security, operational, multi-stage or cross-cutting work.
-4. For feature work that benefits from structured specification-driven development, use the MoneyFlow-adapted Spec Kit constitution and templates to create `spec.md`, clarify material ambiguity, produce `plan.md`, generate reviewable `tasks.md` and analyze consistency.
-5. Audit the repository and relevant history.
-6. Research unresolved external/product questions.
-7. Define acceptance criteria, plan and small tasks proportional to the change.
-8. Implement the smallest coherent vertical slice.
-9. Update `docs/research/PR_MEMORY_LOG.md`; update `CURRENT_PROJECT_MEMORY.md` too when implementation status changed.
-10. Open a pull request and evaluate the actual diff against the stated scope.
-11. Require exact-head static, unit, database and browser gates only where the affected layer makes them relevant; require real CodeQL and secret-history workflows according to repository protection.
-12. Review screenshot/artifact evidence for UI changes.
-13. Squash merge and verify the exact affected production behavior when production behavior changed.
-14. Move a full work packet to `docs/plans/completed/` after acceptance.
+1. Read `AGENTS.md` and the Current Work Board.
+2. Create a focused non-main branch.
+3. Run `npm run agent:doctor -- --json` and use the selected risk class/gates.
+4. Read only the affected code/tests plus routed current authority.
+5. Implement the smallest coherent change; do not expand scope from unrelated findings.
+6. Update the PR-memory record and current memory/board only when their truth changes.
+7. Open a PR and require exact-head checks/evidence appropriate to the affected boundary.
+8. Human owner decides merge, provider writes, deployment and public-beta acceptance.
 
-When both Spec Kit artifacts and a full work packet exist, the packet owns execution state, permissions, handoffs and delivery evidence. Spec Kit owns feature-specific requirements, technical planning and task decomposition.
+Do not push feature/fix commits directly to `main`, force-push shared history, weaken required checks, or treat a long-term roadmap item as authorization.
 
-Do not push feature or fix commits directly to `main`. Do not create no-op commits to retrigger deployment.
+## Current product direction
 
-A capability appearing in the global atlas or long-term vision is not permission to implement it immediately. Select a bounded slice only after its user problem, prerequisites, financial/ownership semantics, rollout and rollback are accepted.
+The daily ledger remains the default product. Phase A–D product/brand work is completed; rejected Phase E territory exploration is not visual authority; Phase F is not started. The merged evolutionary UI work is current shipped presentation, while any newly discovered defect is handled as a bounded fix rather than a reason to reopen an unlimited redesign.
 
-## Current product scope
-
-- Authentication: email/password, supported OAuth and recovery.
-- Demo mode with browser-local data.
-- Multiple accounts: cash, bank, e-wallet, credit and savings representations.
-- Income, expense and balanced internal transfers.
-- Edit, soft delete and recovery paths.
-- Category budgets, recurring commitments, recurring income and savings goals.
-- Weekly, monthly and yearly reports.
-- CSV export and controlled import tooling.
-- Complete versioned account archive with backup and restore at `/settings/backup`, separate from the date-range report export.
-- Responsive light/dark web UI.
-- PostgreSQL ledger with RLS and pgTAP coverage.
-
-VND is represented as integer đồng. Internal transfers never count as income or expense. Total assets are not automatically a spending budget, and missing planning data is never guessed.
-
-## Current project phase
-
-MoneyFlow has released its functional MVP. The owner direction is now to mature it toward a comprehensive personal-finance platform while preserving a trustworthy, simple daily ledger.
-
-Near-term delivery remains evidence-driven and dependency-ordered:
-
-1. ledger trust and correction;
-2. connected planning;
-3. deeper reporting and drill-down;
-4. forecast and scenarios;
-5. automation, API and ownership;
-6. wealth, multi-currency and collaboration only after their prerequisites.
-
-Long-term breadth does not replace current self-use, physical-device validation, retention evidence or market validation.
-
-Current implementation status, open candidates and exact completed/partial/absent truth live in:
-
-- [`docs/research/CURRENT_PROJECT_MEMORY.md`](docs/research/CURRENT_PROJECT_MEMORY.md);
-- [`docs/research/PR_MEMORY_LOG.md`](docs/research/PR_MEMORY_LOG.md);
-- [`docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md`](docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md).
-
-Long-term selection and architecture live in:
-
-- [`docs/product/MONEYFLOW_PRODUCT_VISION.md`](docs/product/MONEYFLOW_PRODUCT_VISION.md);
-- [`docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md`](docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md);
-- [`docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md`](docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md).
-
-Do not recreate a completed feature from an old issue body without checking current code and these sources first.
+The next release decision is evidence-led: reconcile current work, run Release Readiness Audit v1, fix only real blockers, validate with controlled real users, then let the owner decide public beta. See the [Current Work Board](docs/plans/active/README.md) for the live sequence.
