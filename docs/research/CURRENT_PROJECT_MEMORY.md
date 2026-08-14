@@ -2,20 +2,20 @@
 
 **Status:** single current implementation/trust-status authority
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `755956f4302df6482b439720c1645efe13673166` (#383 merged)
+**Current main baseline:** `91fdab2df7713aa5f31fd4eb9322cb67cbf5d205` (#384 merged)
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` records only for named provenance needs.
 
 ## 1. Current decision
 
-MoneyFlow is a released functional MVP: a Vietnamese, manual-first personal income-and-expense ledger. It is **not public-beta ready**.
+MoneyFlow is a released functional MVP and is **not public-beta ready**.
 
-Accepted historical checkpoints remain Provider Sync, P1 Secure, P2 Recover and P3 Prove. Repository Resets 1–2, A0 Historical UI / Design Failure Review and Phases A–D are completed records. Phase E Creative Territories is paused with every candidate owner-rejected and no territory selected; rejected exploration is not visual authority. Phase F is not started.
+Accepted historical checkpoints remain Provider Sync, P1 Secure, P2 Recover and P3 Prove. Repository Resets 1–2, A0 and Phases A–D are completed. Phase E is paused with all candidates owner-rejected; Phase F is not started.
 
-UI evolutionary refresh Slice 1 merged as #370 and Slice 2 as #381. The owner-observed post-#381 double-focus defect was fixed in #383: the shared transaction amount TextField now has one intentional outer focus owner, with Expense/Income/Transfer browser evidence and exact-head CI/CodeQL/secret-history success.
+UI Slice 1 (#370), Slice 2 (#381) and the amount-focus hotfix (#383) are merged. The 2026-08-15 open-work reconciliation also delivered current-main dispatcher hardening in #384 after proving the four historical #379 findings were still live.
 
-The current execution sequence is:
+Current sequence:
 
-> finish open-work reconciliation → Release Readiness Audit v1 → only audit-proven blocker fixes → controlled closed beta → owner PBT-AC15 decision.
+> finish the js-yaml security backport → Release Readiness Audit v1 → only audit-proven blocker fixes → controlled closed beta → owner PBT-AC15 decision.
 
 The owner-facing checklist is `docs/plans/active/README.md`.
 
@@ -24,124 +24,104 @@ The owner-facing checklist is `docs/plans/active/README.md`.
 - `authenticated` uses Supabase Auth/PostgreSQL with RLS; `demo` is explicit browser-local exploration.
 - Missing credentials never select demo implicitly.
 - VND is integer đồng; transfers are balanced account movements and never income/expense.
-- Destructive ledger actions use recoverable/soft-delete behavior where the current product contract requires it.
+- Destructive ledger actions use recoverable/soft-delete behavior where the product contract requires it.
 - Authenticated data remains server-owned; demo state remains browser-local.
 - The complete versioned archive is at `/settings/backup`, separate from scoped/report export.
-- Hosted export was accepted. Hosted restore was never executed and remains a named owner-accepted limitation; deterministic/local restore proof is not hosted-restore proof.
+- Hosted export was accepted; hosted restore remains a named unexecuted limitation.
 - Provider configuration, production data and deployment writes require explicit scoped owner approval.
 
 ## 3. Current execution and repository lifecycle truth
 
-`docs/plans/active/README.md` is the Current Work Board. Old open issues/PRs are candidate evidence, not current authority.
+The Current Work Board owns current execution. Old issue/PR bodies are candidate evidence, not authority.
 
-The 2026-08-15 reconciliation closed historical issue and PR candidates only after comparing them with current main and later accepted work. A fresh current-main remediation for the still-live dispatcher findings is PR #384 with active packet `docs/plans/active/dispatcher-boundary-reconciliation.md`; stale PR #380 is not merge authority.
+The reconciliation closed stale historical issues/PRs after evidence review rather than merging old green heads. The only original PR still needing delivery disposition is Dependabot #320 (`js-yaml` 4.3.1). Its security patch is real and rebased, but MoneyFlow's mandatory PR-memory contract requires a fresh owner branch/PR rather than weakening policy for the bot.
+
+PR #384 is merged and its active packet is being retired to completed history. Issue #379 and stale PR #380 can now be mechanically closed as superseded/completed by #384.
 
 ## 4. Presentation and product-direction truth
 
-- Fresh Blue remains the shipped color implementation.
-- Slice 1 (#370) owns accepted shell/Overview/Transactions refinement.
-- Slice 2 (#381) owns accepted Manual Capture/Accounts refinement.
-- #383 fixes the known double-focus contour without opening a new UI slice.
+- Fresh Blue remains shipped presentation.
+- Slice 1 (#370) and Slice 2 (#381) are completed input.
+- #383 fixed the known double-focus contour without opening a new UI slice.
 - No Slice 3 is authorized.
 - Phase E remains paused; no territory is selected.
-- Phase F and a broader Brand/Product Experience rebuild are not started.
+- Phase F / broader Brand-Product Experience implementation is not started.
 - Browser/emulation evidence is not physical-device evidence.
 
 ## 5. Current capability inventory
 
 | Capability | Current truth |
 |---|---|
-| Core ledger | multiple accounts; income, expense and transfers; edit, soft delete/recovery |
-| Accounts | balances, identity, register/history, create/edit/archive/restore and reconciliation paths |
+| Core ledger | multiple accounts; income, expense, transfers; edit, soft delete/recovery |
+| Accounts | balances, identity, register/history, create/edit/archive/restore and reconciliation |
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
-| Ownership | complete versioned archive/export/validation/restore contract; hosted restore limitation remains |
+| Ownership | versioned archive/export/validation/restore contract; hosted restore limitation remains |
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
-| Experience | responsive light/dark web UI; Slice 1 + Slice 2 + #383 focus hotfix merged |
+| Experience | responsive light/dark web UI; Slice 1 + Slice 2 + focus hotfix merged |
 | Public beta | not approved; readiness audit, blocker handling, controlled beta and PBT-AC15 remain ahead |
 
 Code, migrations and tests outrank this table on implementation detail.
 
 ## 6. Trust, recovery and physical-device evidence
 
-PBT-AC12 physical core-ledger acceptance remains owner-observed evidence from the accepted P3 run. PBT-AC13's duration requirement was withdrawn by the owner and must not be reintroduced under a different streak/count. PBT-AC14 was accepted for its historical daily-loop checkpoint. PBT-AC15 remains open.
+PBT-AC12 physical core-ledger acceptance remains owner-observed evidence. PBT-AC13's duration requirement was withdrawn and must not be recreated. PBT-AC14 remains accepted historical daily-loop evidence. PBT-AC15 remains open.
 
 Named accepted limitations remain claim-specific:
-
 - stale-AMR and real account-mismatch destructive/identity-risk provider probes were not executed;
 - hosted restore was not executed against a live hosted account;
 - browser/emulation evidence is not physical-device evidence.
 
-These limitations are not permission to weaken the current readiness evaluation.
-
 ## 7. Configuration and delivery truth
 
-- `docs/configuration.md` owns environment-variable/provider-setting contracts.
+- `docs/configuration.md` owns environment/provider-setting contracts.
 - `docs/deployment.md` owns branch/deployment workflow.
-- `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns risk classes and selected gates.
-- `docs/engineering/AGENT_OPERATING_MODEL.md` owns permissions and execution-state semantics.
-- `scripts/classify-ci-changes.mjs` owns path-to-CI selection; `scripts/agent-policy.mjs` is the machine-readable policy projection.
-- Current PR CI deliberately skips heavy verification while a PR is draft; a draft workflow marked success is not full verification evidence.
-- During #384, current `actions/checkout` v4 emitted GitHub's Node-20-deprecation warning while runners forced it onto Node 24, and checkout persisted credentials by default. This is a fresh CI-hardening observation to reconcile with stale #248/#304; it does not authorize merging either old branch.
+- `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns risk classes/gates.
+- `docs/engineering/AGENT_OPERATING_MODEL.md` owns permissions and execution states.
+- `scripts/classify-ci-changes.mjs` owns path-to-CI selection; `scripts/agent-policy.mjs` projects policy.
+- Draft PR workflow success is not full verification evidence because heavy shards intentionally skip while draft.
+- Current checkout v4 still emits GitHub's Node-20-deprecation warning and persists credentials by default; this is a fresh CI-hardening input for the readiness audit/future bounded task, not permission to revive stale #248/#304.
 
 ## 8. Reconciled issue status
 
-Closed after evidence review:
+Closed during reconciliation: #172, #310, #374, #376, #378.
 
-- `#374` — Slice 2 contract exhausted by merged #381 plus separate #383 hotfix;
-- `#376` — disposable dispatcher transport smoke completed during #377;
-- `#378` — exact-head #377 review completed and its four P1 findings moved into #379;
-- `#310` — historical failure-register outcome exists on current main with prevention/guardrail evidence;
-- `#172` — historical whole-product evaluation superseded as current authority by Release Readiness Audit v1.
+Still intentionally open/decision-gated:
+- #40 — Supabase leaked-password protection; provider/owner decision required.
+- #174 — provider-side security controls; provider/owner decision required.
 
-Still open intentionally:
-
-- `#40` — Supabase leaked-password protection; OWNER DECISION/provider truth required;
-- `#174` — provider-side security controls; OWNER DECISION/provider truth required;
-- `#379` — dispatcher hardening remains real because the four reviewed P1 defects were present on current main when reconciliation began. PR #384 is the fresh remediation candidate.
+#379 was a real tooling-security defect, not stale paperwork. #384 resolved it on current main; issue closeout is now mechanical.
 
 ## 9. Open pull-request memory
 
-Historical candidates closed during this pass rather than merged from stale heads:
+Historical candidates closed instead of merged from stale heads: #119, #170, #171, #247, #248, #292, #293, #294, #304, #314, #315, #317, #331, #333, #338 and #345.
 
-- design/CSS/Atoryn: `#119`, `#170`, `#171`, `#292`, `#293`, `#294`;
-- agent/CI/process/provider candidates: `#247`, `#248`, `#304`, `#314`, `#315`, `#317`, `#331`, `#333`, `#338`;
-- readiness harness candidate: `#345`, whose mixed-ledger financial-truth scenario remains useful audit input but is not current merged test authority.
+Stale #380 is superseded by merged #384 and can close mechanically.
 
-Remaining original open candidates at this checkpoint:
-
-- `#320` — real current security dependency work: current lockfile still contains `js-yaml 4.3.0`; 4.3.1 is a security backport. A Dependabot rebase was requested; if it does not produce a current safe head, recreate the three-line lockfile update fresh.
-- `#380` — stale dispatcher hardening prototype. If #384 is accepted, close #380 as superseded by the fresh current-main delivery.
-
-Fresh delivery:
-
-- `#384` — current-main dispatcher boundary reconciliation. Exact-head policy/static/unit/build/security review is still in progress and no merge claim is made until all final-head gates pass.
+#320 remains the one real security-dependency delivery: current lockfile uses `js-yaml 4.3.0`; 4.3.1 is the security backport. Dependabot's rebased head passed code/build/unit but failed MoneyFlow's per-PR knowledge-memory contract. Deliver the exact lockfile delta fresh on current main.
 
 ## 10. True gaps after this audit
 
-1. Complete and safely deliver #384, then close #379/#380 if superseded.
-2. Resolve #320 with current-head evidence; do not merge its stale head merely because the patch is small.
-3. Freshen the still-current CI hardening found by #304/#248 and reproduced in #384 logs: outdated checkout runtime generation and persisted credentials on read-only jobs.
-4. Run Release Readiness Audit v1 across product truth, financial correctness, recovery/data safety, auth/isolation, security/privacy, usability/accessibility, deployment/operations and closed-beta support.
-5. Recreate the #345 mixed-ledger authenticated financial-truth scenario only if the readiness audit selects it as required evidence.
-6. Fix only audit-proven P0/P1/P2 readiness blockers under bounded tasks.
-7. Resolve provider/security owner decisions that remain real after the audit.
-8. Run a controlled real-user beta.
-9. Record PBT-AC15 only through explicit owner go/no-go and accepted limitations.
+1. Fresh-deliver `js-yaml` 4.3.1 and close #320.
+2. Run Release Readiness Audit v1 across financial correctness, recovery/data safety, auth/isolation, security/privacy, usability/accessibility, deployment/operations and closed-beta support.
+3. Carry forward checkout credential/runtime hardening and #345's mixed-ledger authenticated scenario as audit inputs; only implement them if current evidence classifies them as blockers/required proof.
+4. Fix only audit-proven P0/P1/P2 readiness blockers.
+5. Resolve provider/security owner decisions that remain real.
+6. Run controlled real-user beta.
+7. Record PBT-AC15 only through explicit owner go/no-go and accepted limitations.
 
 ## 11. Next allowed action
 
-Finish exact-head evaluation of PR #384. Open-work reconciliation remains the current program task until #320 and stale #380 have a current disposition. Release Readiness Audit v1 starts only after repository/lifecycle authority is clean.
+Deliver the fresh js-yaml security patch on current main. After its lifecycle closeout, open-work reconciliation is complete and Release Readiness Audit v1 becomes NOW.
 
 No new UI slice, Phase E restart, Phase F implementation, provider write or production mutation is implied.
 
 ## 12. Superseded-status register
 
-- “The amount-focus defect is still open” is superseded by merged #383.
-- “18 PRs and 8 issues are still unreconciled” is superseded by the evidence-based closures above; only the explicitly listed candidates remain.
-- “#379 is just stale tooling paperwork” is superseded: current-main inspection proved its four P1 defects were still live; #384 is the fresh remediation candidate.
-- “P3 Prove is open” / “P4 Improve is next” remain superseded; P3 is accepted and generic P4 is not active.
-- “Phase E is immediate next” remains superseded; all candidates were rejected and Phase E is paused.
-- “Slice 2 is active” is superseded by #381; #383 is a separate completed hotfix.
+- “The amount-focus defect is open” is superseded by #383.
+- “#379 is stale tooling paperwork” is superseded: its P1 defects were live and resolved by #384.
+- “18 PRs + 8 issues are unreconciled” is superseded; only #320 delivery remains from that queue, while #40/#174 are owner decisions.
+- “P3 Prove is open” / “P4 Improve is next” remain superseded.
+- “Phase E is immediate next” remains superseded; all candidates were rejected.
+- “Slice 2 is active” is superseded by #381.
 - The seven-day self-use gate remains withdrawn without replacement.
-- Historical archived packets are provenance, not current execution authority.
