@@ -1,11 +1,11 @@
 # MoneyFlow Trust
 
-**Status:** active parent program  
-**Execution state:** P1 Secure, P2 Recover, P3 Prove, Repository Resets 1–2, A0 and Phases A–D completed; UI Slice 1 (#370) and Slice 2 (#381) merged; known amount-field focus hotfix pending; repository open-work reconciliation and Release Readiness Audit v1 not yet completed; PBT-AC15 open  
-**Active role:** parent-program planner  
-**Permission scope:** branch_write + provider_read; provider/production writes require explicit scoped owner approval  
-**Owner:** Thunderkill016  
-**Last updated:** 2026-08-14  
+**Status:** active parent program
+**Execution state:** P1 Secure, P2 Recover, P3 Prove, Repository Resets 1–2, A0 and Phases A–D completed; UI Slice 1 (#370) and Slice 2 (#381) merged; known amount-field focus hotfix pending; repository open-work reconciliation and Release Readiness Audit v1 not yet completed; PBT-AC15 open
+**Active role:** parent-program planner
+**Permission scope:** branch_write + provider_read; provider/production writes require explicit scoped owner approval
+**Owner:** Thunderkill016
+**Last updated:** 2026-08-14
 **Current main baseline:** `2ffe63dc470ca84f4e782343238f2353a61ca89d` (#381 merged)
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. The owner-facing execution checklist is `docs/plans/active/README.md`; this packet owns the public-beta trust/release gate, not day-to-day task enumeration.
