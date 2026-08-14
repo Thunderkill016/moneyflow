@@ -1,11 +1,11 @@
 # MoneyFlow Codex dispatcher v1
 
-**Status:** implementing
-**Execution state:** delivery
-**Active role:** implementer
+**Status:** evaluating
+**Execution state:** draft_pr
+**Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** #375
+**Issue/PR:** #375 / #377
 **Last updated:** 2026-08-14
 
 ## Outcome
@@ -178,6 +178,7 @@ Claude execution/review, server daemon, GitHub Actions, protection/CI changes, #
 | 2026-08-14 | planner | implementer | planned | this packet and worktree | live flow still unproven | test-first implementation |
 | 2026-08-14 | implementer | evaluator | evaluating | dispatcher test red/green evidence | local gates/live smoke pending | inspect diff and verify |
 | 2026-08-14 | evaluator | implementer | delivery | fixed result-stdout extraction, CLI flag incompatibility and per-source read isolation via red/green tests; owner GitHub auth confirmed; #376 smoke completed in a clean isolated worktree | full unit/browser gates have pre-existing/provider failures | run final local gates, commit and publish draft PR |
+| 2026-08-14 | implementer | evaluator | draft_pr | draft #377 from `agent/issue-375`; bounded PR-memory record | exact-head provider checks and owner review pending; baseline full-suite/CAPTCHA limits remain | inspect exact head and resolve only actionable review/gate findings |
 
 ### Current permission boundary
 
@@ -221,6 +222,6 @@ The full unit suite has three failures reproduced on the untouched checkout (`co
 ## Delivery record
 
 - Branch: `agent/issue-375`.
-- PR/CI: draft PR creation pending final commit/push; exact-head provider evidence remains pending afterward.
+- PR/CI: draft #377; exact-head provider evidence remains pending after the PR-memory update.
 - Squash/deployment/production verification: not applicable.
 - Packet move: only after owner acceptance.
