@@ -14,6 +14,7 @@ const sheet = read("src/components/ui/sheet.tsx");
 const alert = read("src/components/ui/alert.tsx");
 const toast = read("src/components/ui/toast.tsx");
 const emptyState = read("src/components/ui/empty-state.tsx");
+const textFieldStyles = read("src/components/ui/text-field.module.css");
 
 test("action primitives preserve compatibility while owning semantic intent and targets", () => {
   assert.match(button, /type ButtonIntent = "primary" \| "secondary" \| "quiet" \| "destructive"/u);
@@ -32,6 +33,11 @@ test("active form primitives own labels, descriptions, errors and native behavio
   assert.match(textField, /correctionSuggestion/u);
   assert.match(textField, /aria-describedby=\{joinIds/u);
   assert.match(textField, /role="alert"/u);
+  assert.match(textField, /focus-within:ring-3 focus-within:ring-ring\/50/u);
+  assert.doesNotMatch(textField, /focus-within:border-ring/u);
+  assert.match(textField, /styles\.input/u);
+  assert.match(textFieldStyles, /\.input:focus-visible/u);
+  assert.match(textFieldStyles, /outline: none/u);
 
   assert.match(selectField, /<select/u);
   assert.match(selectField, /<label htmlFor=\{selectId\}/u);

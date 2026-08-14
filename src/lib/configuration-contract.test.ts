@@ -64,5 +64,5 @@ test("verification scripts cannot bypass the configuration contract with placeho
   assert.match(mvpVerify, /NEXT_PUBLIC_APP_MODE/);
   assert.match(mvpVerify, /npm run check:deployment-env/);
   assert.doesNotMatch(readme, /SUPABASE_URL=placeholder|PUBLISHABLE_KEY=placeholder/);
-  assert.match(readme, /Do not push feature or fix commits directly to `main`/);
+  assert.match(readme, /Do not push feature\/fix commits directly to `main`/);
 });
