@@ -223,10 +223,11 @@ Recorded from the owner's review on 2026-08-13:
 | Further redesign required for Slice 1? | **No** — the evolutionary direction is accepted; do not redesign this slice further |
 | Another creative territory? | **No** — Phase E stays paused, Phase F does not start |
 
-This accepts the **visual direction and implementation of Slice 1**. It is not a merge
-approval: **final merge remains a separate owner decision under repository policy**, and
-this packet stays **active** until merge and post-merge lifecycle reconciliation. It is
-not marked completed or archived.
+This accepted the **visual direction and implementation of Slice 1** at the time of the
+2026-08-13 review. The following pre-merge boundary is historical: final merge then
+remained a separate owner decision. It was later merged as #370 at
+`main@75ade3bc4ce9d17a099a38df704c8c82542447ee`; this packet is now
+accepted/completed and archived after post-merge lifecycle reconciliation.
 
 ### Remaining limitations
 

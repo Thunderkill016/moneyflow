@@ -5,8 +5,8 @@
 **Completed role:** bounded brand-strategy record
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue/PR:** #368; exact final-head provider checks and owner merge required
-**Last updated:** 2026-08-13
+**Issue/PR:** #368, merged at `main@55ee401`
+**Last updated:** 2026-08-14
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. Phase D turns Phase A's
 executable-current map, Phase B's mechanism research, Phase C's locked product
@@ -60,8 +60,9 @@ as authority.
 - Documentation-only Class 0 local gates and active-registry validation are required.
 - No runtime/source/assets/UI/CSS/route/Design Harness/provider/production/database/Auth
   modification is in scope.
-- Phase E Creative Territories is the immediate next phase; it is not started, has no
-  packet, and no territory has been proposed or selected.
+- **Historical delivery state (superseded):** Phase E Creative Territories was initially
+  the immediate next phase, not started and without a packet. Current Trust authority
+  records it as paused after the owner rejected every candidate; no territory is selected.
 
 ## Research
 
@@ -122,9 +123,10 @@ unevidenced audience story by default — the exact failure A0 exists to prevent
       aggregate drill-down and "every row was typed" — were corrected rather than kept.
 - [x] **D-AC14** Phase E brief locks strategy and leaves every visual question open.
 - [x] **D-AC15** No creative territory is named, proposed, implied or selected.
-- [x] **D-AC16** Lifecycle reconciled in this same delivery: baseline `4ba1864`, stale
-      `#367` pre-merge wording retired, Phase C remains accepted/completed, Phase E is
-      next and unopened, PBT-AC15 open.
+- [x] **D-AC16** Historical #368 delivery reconciled baseline `4ba1864`, retired stale
+      `#367` pre-merge wording, kept Phase C accepted/completed and staged Phase E as
+      next/unopened with PBT-AC15 open. That Phase E handoff is superseded by the current
+      Trust authority: all candidates were rejected and Phase E is paused.
 
 ### Out of scope
 
@@ -152,13 +154,13 @@ writes, and starting Phase E.
 | D-T2 | separate current brand authority from historical input | D-T1 | promotion list in artifact §17 | complete |
 | D-T3 | bounded first-party category mechanism research | D-T1 | artifact §17 source ledger | complete |
 | D-T4 | decide and record the full brand strategy | D-T2, D-T3 | `docs/research/PHASE_D_BRAND_STRATEGY.md` | complete |
-| D-T5 | fresh evaluation, Class 0 gates and PR delivery | D-T4 | fresh evaluator; `check:migrations`, `check:knowledge`, `test:ci-policy`, registry guard, `git diff --check`; PR memory | complete locally — exact final-head provider checks and owner merge remain delivery requirements |
+| D-T5 | fresh evaluation, Class 0 gates and PR delivery | D-T4 | fresh evaluator; `check:migrations`, `check:knowledge`, `test:ci-policy`, registry guard, `git diff --check`; PR memory | complete — #368 merged at `main@55ee401` |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-13 | brand strategist | human_owner | accepted/completed | merged Phase C at `main@4ba1864`; durable Phase D strategy; bounded first-party source ledger; staged lifecycle | strategy cannot prove market response or creative feasibility; hosted restore and the physical retest remain open and bound what the brand may claim | after merge, separately open Phase E Creative Territories only when authorised |
+| 2026-08-13 | brand strategist | human_owner | accepted/completed | merged Phase C at `main@4ba1864`; durable Phase D strategy; bounded first-party source ledger; staged lifecycle | strategy cannot prove market response or creative feasibility; hosted restore and the physical retest remain open and bound what the brand may claim | Historical: after #368, Phase E could be opened only when authorised. Superseded: the owner rejected every candidate, so Phase E is paused and no successor is implied. |
 
 ### Current permission boundary
 
@@ -180,7 +182,7 @@ writes, and starting Phase E.
 | no visual decision | artifact contains no palette, type, metaphor, icon or layout choice; §15 leaves all of them open | PASS |
 | historical material contained | explicit promotion list; Signal Ledger rejected, Calm Ledger historical, Fresh Blue correctly treated as current shipped truth rather than history, with the owner's 2026-08-13 exploration release recorded | PASS |
 | audience honesty | behavioural only; abandonment story and demographics named unevidenced | PASS |
-| lifecycle reconciliation | staged completed packet, parent-only registry, current memory, Trust parent, `#367` wording retired | PASS pending exact final-head provider delivery evidence |
+| lifecycle reconciliation | #368 merged at `main@55ee401`; parent-only registry, current memory, Trust parent and `#367` wording reconciled | PASS |
 | Class 0 local gates | `npm run check:migrations`; `npm run check:knowledge`; `npm run test:ci-policy`; `node scripts/active-packet-registry.mjs`; `git diff --check` | PASS |
 
 ### Remaining limitations
@@ -193,5 +195,6 @@ writes, and starting Phase E.
   yet links to its records, so the traceability half of the primary mechanism is a
   target rather than a shipped behaviour; and direct CSV import writes approved rows
   without the Inbox review queue. The physical-phone run itself is accepted.
-- Exact final-head provider checks and owner merge are required delivery boundaries;
-  this record becomes current-main authority only when this exact PR head merges.
+- #368's exact final-head provider checks passed before its merge at `main@55ee401`.
+  Current authority for any later phase is the active Trust parent, not this completed
+  delivery record.

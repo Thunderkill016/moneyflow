@@ -15,8 +15,8 @@ abandoned or unaccepted work moves to `../archived/`, which never implies accept
 
 Repository Resets 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality
 / Authority Audit, Phase B Fresh Product-Experience Research, Phase C Product Experience
-Architecture and Phase D Brand Strategy are accepted/completed in merged or
-staged-completed records. **Phase E candidate exploration is paused**: every
+Architecture and Phase D Brand Strategy are accepted/completed in merged records.
+**Phase E candidate exploration is paused**: every
 proposed territory was rejected by the owner, so **no territory is selected**, that
 rejected exploration is **not visual authority**, and Phase F does not start. The
 **UI evolutionary refresh Slice 1 is accepted and merged** (#370 at `main@75ade3b`) and
