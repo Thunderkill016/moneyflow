@@ -2,8 +2,8 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { delimiter, dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
 
@@ -15,6 +15,14 @@ const WORKTREE_DIRECTORY = "worktrees";
 const SUPPORTED_LANE = "codex";
 const MAIN_BRANCH = "main";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
+// Preserve detailed local Codex logs without Node's 1 MiB spawnSync default truncating a valid run.
+const MAX_DISPATCH_OUTPUT_BYTES = 8 * 1024 * 1024;
+const GITHUB_TOKEN_VARIABLES = [
+  "GH_ENTERPRISE_TOKEN",
+  "GH_TOKEN",
+  "GITHUB_ENTERPRISE_TOKEN",
+  "GITHUB_TOKEN",
+];
 
 function fail(message) {
   throw new Error(message);
@@ -24,10 +32,12 @@ function trimOutput(output) {
   return String(output ?? "").trim();
 }
 
-function defaultRun(command, args, { cwd = process.cwd() } = {}) {
+export function defaultRun(command, args, { cwd = process.cwd(), env = undefined } = {}) {
   const result = spawnSync(command, args, {
     cwd,
     encoding: "utf8",
+    env,
+    maxBuffer: MAX_DISPATCH_OUTPUT_BYTES,
     stdio: ["ignore", "pipe", "pipe"],
   });
   if (result.error) return { status: 1, stderr: result.error.message, stdout: "" };
@@ -88,8 +98,21 @@ export function parseAgentCommand(text) {
 }
 
 function findAgentMarker(text) {
-  const match = /(?:^|\n)\s*(\/agent\s+[^\n]+)/u.exec(text ?? "");
-  return match ? parseAgentCommand(match[1]) : null;
+  let inFence = false;
+  let hasContent = false;
+  for (const line of String(text ?? "").split(/\r?\n/u)) {
+    const trimmed = line.trim();
+    if (/^(?:```|~~~)/u.test(trimmed)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence || !trimmed) continue;
+    if (hasContent || trimmed.startsWith(">")) return null;
+    hasContent = true;
+    if (!trimmed.startsWith("/agent")) return null;
+    return parseAgentCommand(line);
+  }
+  return null;
 }
 
 export function commandIdFor({ source, command, sourceKey }) {
@@ -144,7 +167,7 @@ export function buildTaskPrompt({ command, source }) {
   ].join("\n");
 }
 
-export function buildCodexCommand({ prompt, worktree }) {
+export function buildCodexCommand({ prompt, worktree, environment = undefined }) {
   return {
     command: "codex",
     args: [
@@ -154,7 +177,31 @@ export function buildCodexCommand({ prompt, worktree }) {
       worktree,
       prompt,
     ],
+    env: environment,
   };
+}
+
+function writeGuardLauncher({ command, guardDirectory }) {
+  const guard = join(guardDirectory, command);
+  const guardProgram = new URL("./command-guard.mjs", import.meta.url);
+  writeFileSync(
+    guard,
+    `#!/bin/sh\nexec "${process.execPath}" "${guardProgram.pathname}" "${command}" "$@"\n`,
+    { mode: 0o700 },
+  );
+  chmodSync(guard, 0o700);
+}
+
+export function buildGuardedEnvironment({ commandId, environmentSource = process.env, stateDir }) {
+  const environment = { ...environmentSource };
+  for (const variable of GITHUB_TOKEN_VARIABLES) delete environment[variable];
+  const guardDirectory = join(resolve(stateDir), "guards", commandId);
+  mkdirSync(guardDirectory, { recursive: true, mode: 0o700 });
+  writeGuardLauncher({ command: "git", guardDirectory });
+  writeGuardLauncher({ command: "gh", guardDirectory });
+  environment.MONEYFLOW_DISPATCHER_ORIGINAL_PATH = environment.PATH ?? "";
+  environment.PATH = [guardDirectory, environment.PATH].filter(Boolean).join(delimiter);
+  return environment;
 }
 
 export function validatePrerequisites({ requestedRepo = null, run = defaultRun } = {}) {
@@ -213,10 +260,10 @@ function postSummary({ repo, source, status, run = defaultRun }) {
 
 export function processCommand({ command, deps = {}, prerequisites = null, source, stateDir }) {
   const run = deps.run ?? defaultRun;
-  const prerequisite = prerequisites ?? validatePrerequisites({ run });
+  const validate = deps.validatePrerequisites ?? validatePrerequisites;
+  const prerequisite = prerequisites ?? validate({ run });
   if (!prerequisite.ok) return { status: "blocked", reason: prerequisite.reason };
-  const sourceKey =
-    source.sourceKey ?? `body:${createHash("sha256").update(source.body ?? "").digest("hex")}`;
+  const sourceKey = source.sourceKey ?? "body";
   const commandId = commandIdFor({ source, command, sourceKey });
   const state = loadState(stateDir);
   if (state.commands[commandId]) return { status: "duplicate", commandId };
@@ -225,13 +272,17 @@ export function processCommand({ command, deps = {}, prerequisites = null, sourc
   state.commands[commandId] = { branch: isolation.branch, status: "running" };
   saveState(stateDir, state);
   try {
+    const freshPrerequisite = validate({ requestedRepo: prerequisite.repo, run });
+    if (!freshPrerequisite.ok) fail(freshPrerequisite.reason);
+    if (freshPrerequisite.repo !== prerequisite.repo) fail("Repository identity changed before worktree creation");
     const createWorktree = deps.createWorktree ?? createIsolatedWorktree;
-    createWorktree({ ...isolation, baseSha: prerequisite.baseSha, run });
+    createWorktree({ ...isolation, baseSha: freshPrerequisite.baseSha, run });
     const execution = buildCodexCommand({
       prompt: buildTaskPrompt({ command, source }),
       worktree: isolation.worktree,
+      environment: buildGuardedEnvironment({ commandId, stateDir }),
     });
-    const result = run(execution.command, execution.args, { cwd: isolation.worktree });
+    const result = run(execution.command, execution.args, { cwd: isolation.worktree, env: execution.env });
     writeLocalLog(stateDir, commandId, result);
     const status = result.status === 0 ? "completed" : "failed";
     state.commands[commandId].status = status;
@@ -274,7 +325,7 @@ export function commandsFromSource({ repo, source, trustedAuthor, run = defaultR
   append(
     source.body ?? "",
     source.author,
-    `body:${createHash("sha256").update(source.body ?? "").digest("hex")}`,
+    "body",
   );
   const comments = readJson(
     run("gh", ["api", `repos/${repo}/issues/${source.number}/comments`, "--paginate"]),
