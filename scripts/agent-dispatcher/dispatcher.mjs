@@ -2,10 +2,18 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  accessSync,
+  chmodSync,
+  constants,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { delimiter, dirname, join, resolve } from "node:path";
 import process from "node:process";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const DEFAULT_STATE_DIR = ".agent-dispatcher";
 const DEFAULT_POLL_SECONDS = 30;
@@ -181,12 +189,44 @@ export function buildCodexCommand({ prompt, worktree, environment = undefined })
   };
 }
 
-function writeGuardLauncher({ command, guardDirectory }) {
+function executableExtensions(environmentSource) {
+  if (process.platform !== "win32") return [""];
+  return String(environmentSource.PATHEXT ?? ".COM;.EXE;.BAT;.CMD")
+    .split(";")
+    .filter(Boolean);
+}
+
+function resolveExecutable(command, environmentSource) {
+  const pathCandidates = [environmentSource.PATH, process.env.PATH]
+    .filter(Boolean)
+    .filter((value, index, values) => values.indexOf(value) === index);
+  const extensions = executableExtensions(environmentSource);
+  for (const pathValue of pathCandidates) {
+    for (const directory of String(pathValue).split(delimiter).filter(Boolean)) {
+      for (const extension of extensions) {
+        const candidate = join(directory, `${command}${extension}`);
+        try {
+          accessSync(candidate, constants.X_OK);
+          return candidate;
+        } catch {
+          // Try the next PATH candidate.
+        }
+      }
+    }
+  }
+  fail(`Dispatcher could not resolve the real ${command} executable`);
+}
+
+function shellDoubleQuote(value) {
+  return `"${String(value).replace(/[\\"$`]/gu, "\\$&")}"`;
+}
+
+function writeGuardLauncher({ command, guardDirectory, realTool }) {
   const guard = join(guardDirectory, command);
-  const guardProgram = new URL("./command-guard.mjs", import.meta.url);
+  const guardProgram = fileURLToPath(new URL("./command-guard.mjs", import.meta.url));
   writeFileSync(
     guard,
-    `#!/bin/sh\nexec "${process.execPath}" "${guardProgram.pathname}" "${command}" "$@"\n`,
+    `#!/bin/sh\nexec ${shellDoubleQuote(process.execPath)} ${shellDoubleQuote(guardProgram)} ${shellDoubleQuote(command)} ${shellDoubleQuote(realTool)} "$@"\n`,
     { mode: 0o700 },
   );
   chmodSync(guard, 0o700);
@@ -195,11 +235,20 @@ function writeGuardLauncher({ command, guardDirectory }) {
 export function buildGuardedEnvironment({ commandId, environmentSource = process.env, stateDir }) {
   const environment = { ...environmentSource };
   for (const variable of GITHUB_TOKEN_VARIABLES) delete environment[variable];
+  delete environment.MONEYFLOW_DISPATCHER_ORIGINAL_PATH;
+
   const guardDirectory = join(resolve(stateDir), "guards", commandId);
   mkdirSync(guardDirectory, { recursive: true, mode: 0o700 });
-  writeGuardLauncher({ command: "git", guardDirectory });
-  writeGuardLauncher({ command: "gh", guardDirectory });
-  environment.MONEYFLOW_DISPATCHER_ORIGINAL_PATH = environment.PATH ?? "";
+  writeGuardLauncher({
+    command: "git",
+    guardDirectory,
+    realTool: resolveExecutable("git", environmentSource),
+  });
+  writeGuardLauncher({
+    command: "gh",
+    guardDirectory,
+    realTool: resolveExecutable("gh", environmentSource),
+  });
   environment.PATH = [guardDirectory, environment.PATH].filter(Boolean).join(delimiter);
   return environment;
 }
