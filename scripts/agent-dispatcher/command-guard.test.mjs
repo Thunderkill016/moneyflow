@@ -76,32 +76,41 @@ test("GitHub CLI command allowlist permits reads and the PR-create command famil
   assert.equal(ghBoundaryViolation(["run", "watch", "123"]), null);
 });
 
-test("PR creation delivery policy requires explicit same-repo draft head to main", () => {
+test("PR creation delivery policy binds draft head to the current isolated branch and main", () => {
+  const branch = "agent/dispatcher/issue-379-abcdef01";
   assert.equal(
     prCreateDeliveryViolation([
       "pr",
       "create",
       "--draft",
       "--head",
-      "agent/dispatcher/issue-379-abcdef01",
+      branch,
       "--base",
       "main",
       "--title",
       "bounded",
-    ]),
+    ], branch),
     null,
   );
-  assert.match(prCreateDeliveryViolation(["pr", "create", "--head", "feature/x"]) ?? "", /draft/u);
-  assert.match(prCreateDeliveryViolation(["pr", "create", "--draft"]) ?? "", /explicit.*--head/u);
-  assert.match(prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "main"]) ?? "", /non-main/u);
-  assert.match(prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "other:feature"]) ?? "", /same-repository/u);
+  assert.match(prCreateDeliveryViolation(["pr", "create", "--head", "feature/x"], "feature/x") ?? "", /draft/u);
+  assert.match(prCreateDeliveryViolation(["pr", "create", "--draft"], branch) ?? "", /explicit.*--head/u);
+  assert.match(prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "main"], "main") ?? "", /non-main/u);
+  assert.match(prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "other:feature"], branch) ?? "", /same-repository/u);
   assert.match(
-    prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "feature/x", "--base", "develop"]) ?? "",
+    prCreateDeliveryViolation(["pr", "create", "--draft", "--head", branch, "--base", "develop"], branch) ?? "",
     /target main/u,
   );
   assert.match(
-    prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "feature/x", "--dry-run"]) ?? "",
+    prCreateDeliveryViolation(["pr", "create", "--draft", "--head", branch, "--dry-run"], branch) ?? "",
     /non-interactive/u,
+  );
+  assert.match(
+    prCreateDeliveryViolation(["pr", "create", "--draft", "--head", "feature/other"], branch) ?? "",
+    /must match/u,
+  );
+  assert.match(
+    prCreateDeliveryViolation(["pr", "create", "--draft", "--head", branch], null) ?? "",
+    /unambiguous/u,
   );
 });
 
