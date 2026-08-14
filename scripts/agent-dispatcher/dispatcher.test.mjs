@@ -1,14 +1,16 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 import {
   buildCodexCommand,
+  buildGuardedEnvironment,
   buildIsolation,
   commandIdFor,
   commandsFromSource,
+  defaultRun,
   loadState,
   listOpenSources,
   parseAgentCommand,
@@ -18,6 +20,7 @@ import {
   saveState,
   validatePrerequisites,
 } from "./dispatcher.mjs";
+import { ghBoundaryViolation, gitBoundaryViolation } from "./command-guard.mjs";
 
 const source = {
   author: "owner",
@@ -27,6 +30,7 @@ const source = {
   title: "Dispatcher v1",
   url: "https://github.com/owner/repo/issues/375",
 };
+const OUTPUT_LARGER_THAN_NODE_DEFAULT_BUFFER_BYTES = 1_100_000;
 
 test("parses one-shot and watch dispatcher controls", () => {
   assert.deepEqual(parseDispatcherArgs(["--once", "--repo", "owner/repo"]), {
@@ -81,6 +85,34 @@ test("constructs supported Codex exec arguments without carrying secret text", (
   assert.deepEqual(command.command, "codex");
   assert.deepEqual(command.args.slice(0, 2), ["--approve-for-me", "exec"]);
   assert.ok(!command.args.join(" ").includes("GITHUB_TOKEN"));
+});
+
+test("passes the guarded environment to a fixed Node transport probe", () => {
+  const variable = "MONEYFLOW_DISPATCHER_ENV_PROPAGATION_379_TEST_ONLY_7C6DB36E";
+  const result = defaultRun(
+    "node",
+    ["-e", `process.stdout.write(process.env.${variable} ?? "")`],
+    { env: { [variable]: "present", PATH: process.env.PATH } },
+  );
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, "present");
+});
+
+test("retains a Codex-sized local log without marking the command as failed", () => {
+  const result = defaultRun("node", [
+    "-e",
+    `process.stdout.write("x".repeat(${OUTPUT_LARGER_THAN_NODE_DEFAULT_BUFFER_BYTES}))`,
+  ]);
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout.length, OUTPUT_LARGER_THAN_NODE_DEFAULT_BUFFER_BYTES);
+});
+
+test("rejects executables outside the fixed dispatcher command set", () => {
+  const result = defaultRun("bash", ["-c", "echo unsafe"]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Unsupported dispatcher executable/u);
 });
 
 test("fails closed when GitHub authentication or the main base is ambiguous", () => {
@@ -172,6 +204,7 @@ test("suppresses an already executed command before creating another worktree", 
       },
       postSummary: () => {},
       run: () => ({ status: 0, stderr: "", stdout: "completed locally" }),
+      validatePrerequisites: () => prerequisites,
     };
     const first = processCommand({
       command: { lane: "codex", note: "" },
@@ -191,6 +224,163 @@ test("suppresses an already executed command before creating another worktree", 
     assert.equal(first.status, "completed");
     assert.equal(second.status, "duplicate");
     assert.equal(worktrees, 1);
+  } finally {
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("keeps a body command identity when unrelated source prose changes", () => {
+  const commandSource = {
+    ...source,
+    author: { login: "owner" },
+    body: "/agent codex inspect the dispatcher\n\nInitial context.",
+  };
+  const editedSource = {
+    ...commandSource,
+    body: "/agent codex inspect the dispatcher\n\nInitial context with a clarified title.",
+  };
+  const run = () => ({ status: 0, stderr: "", stdout: "[]" });
+
+  const original = commandsFromSource({
+    repo: "owner/repo",
+    run,
+    source: commandSource,
+    trustedAuthor: "owner",
+  })[0];
+  const edited = commandsFromSource({
+    repo: "owner/repo",
+    run,
+    source: editedSource,
+    trustedAuthor: "owner",
+  })[0];
+
+  assert.equal(
+    commandIdFor({
+      command: original.command,
+      source: original.source,
+      sourceKey: original.source.sourceKey,
+    }),
+    commandIdFor({
+      command: edited.command,
+      source: edited.source,
+      sourceKey: edited.source.sourceKey,
+    }),
+    "unrelated body prose must not make the same marker runnable again",
+  );
+  assert.notEqual(
+    commandIdFor({
+      command: original.command,
+      source: original.source,
+      sourceKey: original.source.sourceKey,
+    }),
+    commandIdFor({
+      command: { ...original.command, note: "inspect only" },
+      source: original.source,
+      sourceKey: original.source.sourceKey,
+    }),
+    "an explicit marker-note change must remain a new command",
+  );
+});
+
+test("ignores fenced, blockquoted, and prose command examples", () => {
+  const run = () => ({ status: 0, stderr: "", stdout: "[]" });
+  const examples = [
+    "```text\n/agent codex inspect the dispatcher\n```",
+    "> /agent codex inspect the dispatcher",
+    "Run this command to inspect the dispatcher:\n/agent codex inspect the dispatcher",
+  ];
+
+  for (const body of examples) {
+    const commands = commandsFromSource({
+      repo: "owner/repo",
+      run,
+      source: { ...source, author: { login: "owner" }, body },
+      trustedAuthor: "owner",
+    });
+    assert.equal(commands.length, 0, body);
+  }
+});
+
+test("revalidates main immediately before creating a worktree and uses the fresh SHA", () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-dispatcher-"));
+  const initialBase = "a".repeat(40);
+  const freshBase = "b".repeat(40);
+  let createdBase = null;
+  try {
+    const result = processCommand({
+      command: { lane: "codex", note: "" },
+      deps: {
+        createWorktree: ({ baseSha }) => {
+          createdBase = baseSha;
+        },
+        postSummary: () => {},
+        run: () => ({ status: 0, stderr: "", stdout: "" }),
+        validatePrerequisites: () => ({ baseSha: freshBase, ok: true, repo: "owner/repo" }),
+      },
+      prerequisites: { baseSha: initialBase, ok: true, repo: "owner/repo" },
+      source,
+      stateDir,
+    });
+
+    assert.equal(result.status, "completed");
+    assert.equal(createdBase, freshBase);
+  } finally {
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("launches Codex through a guarded environment without token variables", () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-dispatcher-"));
+  let environment;
+  try {
+    environment = buildGuardedEnvironment({
+      commandId: "abcdef0123456789",
+      environmentSource: {
+        GH_ENTERPRISE_TOKEN: "secret",
+        GH_TOKEN: "secret",
+        GITHUB_ENTERPRISE_TOKEN: "secret",
+        GITHUB_TOKEN: "secret",
+        PATH: "/usr/bin",
+      },
+      stateDir,
+    });
+    assert.match(environment.PATH, /^.*guards.*:\/usr\/bin$/u);
+    assert.equal(environment.GH_ENTERPRISE_TOKEN, undefined);
+    assert.equal(environment.GH_TOKEN, undefined);
+    assert.equal(environment.GITHUB_ENTERPRISE_TOKEN, undefined);
+    assert.equal(environment.GITHUB_TOKEN, undefined);
+  } finally {
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+  const command = buildCodexCommand({
+    prompt: "Read AGENTS.md and inspect the task.",
+    worktree: "/tmp/worktree",
+    environment,
+  });
+
+  assert.deepEqual(command.env, environment);
+});
+
+test("blocks main, merge, force-push, and pull-request merge commands in the local guard", () => {
+  assert.match(gitBoundaryViolation(["checkout", "main"]) ?? "", /main/u);
+  assert.match(gitBoundaryViolation(["merge", "feature/other"]) ?? "", /merge/u);
+  assert.match(gitBoundaryViolation(["-C", "/tmp/worktree", "merge", "feature/other"]) ?? "", /merge/u);
+  assert.match(gitBoundaryViolation(["push", "--force", "origin", "HEAD"]) ?? "", /force/u);
+  assert.match(ghBoundaryViolation(["pr", "merge", "379"]) ?? "", /merge/u);
+  assert.equal(gitBoundaryViolation(["status"]), null);
+  assert.equal(ghBoundaryViolation(["pr", "create", "--draft"]), null);
+});
+
+test("guard launchers invoke the guard for Git and GitHub CLI commands", () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-dispatcher-"));
+  try {
+    buildGuardedEnvironment({ commandId: "abcdef0123456789", stateDir });
+    const guardDirectory = join(stateDir, "guards", "abcdef0123456789");
+    const gitLauncher = readFileSync(join(guardDirectory, "git"), "utf8");
+    const ghLauncher = readFileSync(join(guardDirectory, "gh"), "utf8");
+
+    assert.match(gitLauncher, /command-guard\.mjs" "git"/u);
+    assert.match(ghLauncher, /command-guard\.mjs" "gh"/u);
   } finally {
     rmSync(stateDir, { recursive: true, force: true });
   }
