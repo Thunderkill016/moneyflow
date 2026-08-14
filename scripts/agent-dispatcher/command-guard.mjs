@@ -63,20 +63,13 @@ const SAFE_GH_SUBCOMMANDS = new Map([
   ["run", new Set(["list", "view", "watch"])],
 ]);
 
-function firstNonOptionAfter(args, startIndex) {
-  for (let index = startIndex; index < args.length; index += 1) {
-    if (!args[index].startsWith("-")) return args[index];
-  }
-  return "";
-}
-
 function gitOperationContext(args) {
   let index = 0;
   while (index < args.length && args[index].startsWith("-")) {
     const option = args[index];
     if (!ALLOWED_GIT_GLOBAL_FLAGS.has(option)) {
-      const laterOperation = firstNonOptionAfter(args, index + 1);
-      const mergePrefix = BLOCKED_GIT_OPERATIONS.has(laterOperation) ? "merge / " : "";
+      const blockedLater = args.slice(index + 1).find((value) => BLOCKED_GIT_OPERATIONS.has(value));
+      const mergePrefix = blockedLater ? "merge / " : "";
       return { violation: `${mergePrefix}Git global option '${option}' is not permitted` };
     }
     index += 1;
@@ -173,7 +166,7 @@ function flagValue(args, longName, shortName) {
   return "";
 }
 
-function prCreateViolation(args) {
+export function prCreateDeliveryViolation(args) {
   if (!args.includes("--draft") && !args.includes("-d")) {
     return "dispatcher-created pull requests must remain draft";
   }
@@ -201,7 +194,6 @@ export function ghBoundaryViolation(args) {
   if (topLevel === "auth" && (args.includes("--show-token") || args.includes("-t"))) {
     return "GitHub authentication tokens must not be exposed to the dispatcher child";
   }
-  if (topLevel === "pr" && subcommand === "create") return prCreateViolation(args);
   return null;
 }
 
@@ -234,13 +226,16 @@ function currentBranch(realGit, environment) {
 function runGuard(argv = process.argv.slice(2), environment = process.env) {
   const [tool, realTool, ...args] = argv;
   const realToolProblem = realToolViolation(tool, realTool ?? "");
-  const violation = realToolProblem ?? (
-    tool === "git"
-      ? gitBoundaryViolation(args)
-      : tool === "gh"
-        ? ghBoundaryViolation(args)
-        : "unknown tool"
-  );
+  const commandViolation = tool === "git"
+    ? gitBoundaryViolation(args)
+    : tool === "gh"
+      ? ghBoundaryViolation(args)
+      : "unknown tool";
+  const deliveryViolation =
+    tool === "gh" && args[0] === "pr" && args[1] === "create"
+      ? prCreateDeliveryViolation(args)
+      : null;
+  const violation = realToolProblem ?? commandViolation ?? deliveryViolation;
   if (violation) {
     console.error(`Dispatcher blocked ${tool}: ${violation}`);
     return 126;
