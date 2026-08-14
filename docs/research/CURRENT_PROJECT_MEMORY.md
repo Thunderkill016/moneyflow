@@ -2,7 +2,7 @@
 
 **Status:** the single current implementation-status authority
 **Last reconciled:** 2026-08-14
-**Current main baseline:** `75ade3bc4ce9d17a099a38df704c8c82542447ee` (`#370` merged)
+**Current main baseline:** `bc062eeabeb02e215f73d8267bba13c809533751` (`#371` merged)
 **Routing:** use `docs/context/README.md`; open
 `docs/research/pr-memory/YYYY/QN/PR-<number>.md` only for a named provenance need.
 
@@ -18,15 +18,15 @@ P2 Recover and P3 Prove are accepted. P3 is based on owner-observed physical-pho
 acceptance, not a signed/filed evidence run. The exact program order is:
 
 > Phase A Current Reality / Authority Audit → Phase B product-experience research
-> → Phase C Product Experience Architecture → Brand/Product Experience rebuild B→J
-> → final physical/device
+> → Phase C Product Experience Architecture → Phase D Brand Strategy
+> → owner-authorised future work only (none currently active) → final physical/device
 > visual QA → owner public-beta decision.
 
 `docs/plans/active/public-beta-trust.md` owns that program order. Repository Resets
 1–2, A0 Historical UI / Design Failure Review, Phase A Current Reality / Authority
 Audit, Phase B product-experience research, **Phase C Product Experience
-Architecture** and **Phase D Brand Strategy** are accepted/completed in merged or
-staged-completed records. **Phase E candidate exploration is paused**: every proposed
+Architecture** and **Phase D Brand Strategy** are accepted/completed in merged records.
+**Phase E candidate exploration is paused**: every proposed
 territory was rejected by the owner, **no territory is selected**, and that rejected
 exploration is **not visual authority**. **UI evolutionary refresh Slice 1 is merged and
 accepted** (#370 at `main@75ade3b`), not active; packet archived at
@@ -34,7 +34,9 @@ accepted** (#370 at `main@75ade3b`), not active; packet archived at
 shell, Overview and Transactions on Fresh Blue with no destination, route or
 financial-semantic change, and claimed **no physical-device validation**. **Phase F is not
 started** and the later Brand/Product Experience rebuild has not begun. PBT-AC15 remains
-open. *(Superseded wording: Phase E as "immediate next phase with no packet".)*
+open. No substantive next work is implied by this sequence: it requires a new explicit
+owner-authorised packet. *(Superseded wording: Phase E as "immediate next phase with no
+packet".)*
 
 ## 2. Current runtime and trust boundaries
 
@@ -115,29 +117,19 @@ unless a future approved packet names them as current design authority.
 - Phase B product-experience research is accepted/completed in merged #366 at
   `main@60f91b7`. Phase C Product Experience Architecture is accepted/completed in
   merged #367 at `main@4ba1864`.
-- **Phase D Brand Strategy is accepted/completed** in its staged completed record, with
-  the durable authority at `docs/research/PHASE_D_BRAND_STRATEGY.md`. It locks audience,
-  role, positioning, promise hierarchy, differentiation, trust builders/breakers,
-  personality, Vietnamese verbal principles, controlled vocabulary, anti-positioning and
-  proof architecture, and makes **no** visual decision. Earlier brand/design material is
-  input only: Signal Ledger v3 stays rejected, Calm Ledger v2 stays historical, and only
-  four named elements of the brand guidelines are promoted.
-- **Fresh Blue (owner decision, 2026-08-13):** released as a constraint on Phase E
-  exploration — territories need not preserve it — while remaining the **current shipped
-  colour implementation truth** until a later owner-selected territory and approved
-  migration supersede it. Selects no palette or territory; authorises no runtime, CSS,
-  token or UI change. Recorded in `docs/design/DESIGN_DIRECTION_STATUS.md`.
-- **Brand claim ceiling:** claim a property the product enforces, never a verification
-  that has not happened. Bounds today: hosted restore has never run against a live
-  account; no aggregate yet links to its records, so traceability is a target, not a
-  shipped drill-down; and direct CSV import writes approved rows without the Inbox
-  queue. Provenance contract: a record comes from deliberate user entry **or** data the
-  user supplied and accepted — manual capture is the default identity, direct CSV is
-  secondary. Traceability is claimed only for **ledger-derived** figures, never for
-  planning projections, demo samples or counts. The physical-phone run **is** accepted
-  (PBT-AC12).
-- Phase E Creative Territories is immediate next, not started and has no packet; no
-  creative territory is proposed or selected; implementation remains not started.
+- **Phase D Brand Strategy is accepted/completed.** Its durable authority is
+  `docs/research/PHASE_D_BRAND_STRATEGY.md`; it locks brand meaning/verbal behaviour,
+  not a visual decision. Signal Ledger remains rejected and Calm Ledger historical.
+- **Fresh Blue** remains the shipped colour implementation until an owner-selected
+  territory and approved migration supersede it; Phase E exploration did not select a
+  palette, runtime, CSS, token or UI change.
+- **Brand claim ceiling:** only claim an enforced property. Hosted restore is unproven;
+  aggregate drill-down is a target; direct CSV is user-supplied secondary intake; and
+  traceability applies only to ledger-derived figures. PBT-AC12 is accepted.
+- Phase E Creative Territories is paused: every candidate was owner-rejected, no
+  territory is selected, and the rejected exploration is not visual authority. Candidate
+  PR #369 is closed as rejected/obsolete. Phase F and implementation remain not started;
+  neither is implied or authorised by sequence.
 - The owner public-beta decision is blocked on the ordered work above and remains
   the only PBT-AC15 closure authority.
 
@@ -150,21 +142,19 @@ candidate evidence, never current truth.
 
 ## 10. True gaps after this audit
 
-1. Separately start Phase E Creative Territories only after this exact Phase D delivery
-   head merges, and only when authorised. Phase E produces three territories; it does
-   not select one.
-2. Keep Phase E bounded to producing three distinct territories for owner selection; do
-   not select one, and do not begin implementation.
-3. Execute Brand/Product Experience B→J only in later approved packets.
-4. Perform final physical/device visual QA on that rebuilt experience.
-5. Obtain the owner’s public-beta decision and record accepted limitations.
+1. No substantive product, brand or UI phase is currently authorised by the prior
+   sequence. A new explicit owner-authorised packet must state the next problem,
+   boundary and evidence.
+2. Keep the rejected Phase E exploration paused; do not restart it, select a territory
+   or begin Phase F/implementation by implication.
+3. Perform final physical/device visual QA only for a later approved rebuilt experience.
+4. Obtain the owner’s public-beta decision and record accepted limitations.
 
 ## 11. Next allowed action
 
-After this exact Phase D delivery head merges, separately open Phase E Creative
-Territories only when authorised, and only to produce three territories for owner
-selection. Do not begin implementation, modify Design Harness, or make
-provider or production changes without a new bounded authorisation.
+No next substantive phase is automatically authorised. Do not restart Phase E, begin
+Phase F or implementation, modify Design Harness, or make provider or production changes
+without a new bounded owner authorisation.
 
 ## 12. Superseded-status register
 
