@@ -1,14 +1,14 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `5a2ef2d9f42c22138c97ac97b822997a95c28569` (#386 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — open-work reconciliation is complete, Release Readiness Audit v1 is now the authorized current task, and PBT-AC15 remains an owner decision.
+**Current main baseline:** `5e506799eba162fca53466d55553b07f3d04cfeb` (#387 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — open-work reconciliation is complete, Release Readiness Audit v1 is the authorized current task, and PBT-AC15 remains an owner decision.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **Release Readiness Audit v1** — audit current product reality using `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`; cover financial correctness, recovery/data safety, auth/tenant isolation, security/privacy, usability/accessibility, deployment/operations, support and closed-beta readiness. Carry forward current evidence from reconciliation and accepted trust work: the mixed-ledger authenticated financial-truth scenario from historical #345, current Supabase production/security posture, physical-phone limitations, hosted-restore limitation, CI/runtime hardening findings, WCAG 2.2, OWASP ASVS 5.0, NIST SSDF 1.1 and current Vietnam personal-data law as applicable review inputs. **Done when:** one canonical audit, explicit blocker backlog and a controlled closed-beta validation plan exist. **Next actor:** agent.
+- [ ] **Release Readiness Audit v1** — audit current product reality using `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`; cover financial correctness, recovery/data safety, auth/tenant isolation, security/privacy, usability/accessibility, deployment/operations, support and closed-beta readiness. Active packet: [`release-readiness-audit-v1.md`](release-readiness-audit-v1.md). Carry forward current evidence from reconciliation and accepted trust work: the mixed-ledger authenticated financial-truth scenario from historical #345, current Supabase production/security posture, physical-phone limitations, hosted-restore limitation, CI/runtime hardening findings, WCAG 2.2, OWASP ASVS 5.0, NIST SSDF 1.1 and current Vietnam personal-data law as applicable review inputs. **Done when:** one canonical audit, explicit blocker backlog and a controlled closed-beta validation plan exist. **Next actor:** agent.
 
 ## NEXT
 
@@ -32,7 +32,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE
 
-- [x] **Open-work reconciliation** — complete. Historical issues/PRs were classified against current main rather than merged for hygiene. No open PR remains; #40/#174 remain intentionally open owner/provider decisions.
+- [x] **Open-work reconciliation** — complete through #387. Historical issues/PRs were classified against current main rather than merged for hygiene. No open PR remained at reconciliation closeout; #40/#174 remain intentionally open owner/provider decisions.
 - [x] **`js-yaml` 4.3.1 security backport** — fresh current-main PR #386 replaced Dependabot #320, preserved two deterministic knowledge-policy findings, then passed full ready-state CI #2467, CodeQL #1544 and Secret history #1544 before protected squash merge as `5a2ef2d9…`; #320 closed superseded.
 - [x] **Dispatcher boundary reconciliation** — merged #384; lifecycle closed by #385 and stale #380 closed superseded.
 - [x] **Amount focus hotfix** — merged #383; exact-head CI, CodeQL and secret-history passed, including browser smoke and cross-device UI audit.
@@ -44,6 +44,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `public-beta-trust.md` | active parent program | release-readiness sequence, trust gates and owner public-beta decision |
+| `release-readiness-audit-v1.md` | active child audit | evidence inventory, readiness matrix, blocker backlog and closed-beta plan; no blocker implementation |
 
 ## Board rules
 
