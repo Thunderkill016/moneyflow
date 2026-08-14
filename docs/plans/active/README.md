@@ -1,7 +1,7 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-14 23:37 ICT  
-**Current main baseline:** `2ffe63dc470ca84f4e782343238f2353a61ca89d` (#381 merged)  
+**Last reconciled:** 2026-08-14 23:37 ICT
+**Current main baseline:** `2ffe63dc470ca84f4e782343238f2353a61ca89d` (#381 merged)
 **Release readiness:** **NOT PUBLIC-BETA READY** — a known post-merge focus defect remains, open GitHub work still needs evidence-based triage, Release Readiness Audit v1 has not run, and PBT-AC15 is still an owner decision.
 
 This is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** GitHub issues/PRs are dynamic evidence; this board owns the current execution checklist and routes deeper detail to the active packet or current-project memory.
