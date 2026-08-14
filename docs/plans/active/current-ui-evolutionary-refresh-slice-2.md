@@ -260,8 +260,8 @@ No external adoption; current code/tests and the named authority documents own t
   and Transfer retained required selectors, validation, close/cancel/save reachability,
   keyboard focus and one effective dialog-body scroll owner with no horizontal overflow.
   This is not Design Harness or physical-device evidence.
-- PR/CI/squash/deployment: final Class 2 local gates, draft PR, exact-head provider checks
-  and owner merge remain pending; no merge or deployment is authorised. The local gate
-  record above contains its two non-green browser-run limitations and the inconclusive
+- PR/CI/squash/deployment: draft PR #381 exists. Its final exact head, provider checks,
+  review and owner merge remain pending; no merge or deployment is authorised. The local
+  gate record above contains its two non-green browser-run limitations and the inconclusive
   aggregate-test transport result.
 - Packet move to completed: only after accepted exact-head evidence and owner merge.
