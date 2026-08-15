@@ -1,17 +1,18 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `e8a4a10e47cdd90b993eadd034fe97593b271adb` (#399 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. RRB-08 is current and its repository-side preparation is complete; completion still requires real-phone observation. Remaining P1 release gates still depend on owner/provider/legal/read-access.
+**Current main baseline:** `0854a8a16bf10e15256f5fef476691d4a644a25b` (#400 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. RRB-08 is current and its repository-side preparation is complete; real-phone observation has now started, but completion still requires the full bounded smoke and final evidence verdict. Remaining P1 release gates still depend on owner/provider/legal/read-access.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **RRB-08 — current physical-device proof** — issue #398. The bounded runbook/evidence contract is merged in #399 as `rrb-08-physical-device-proof.md`; browser/emulation evidence does not satisfy this task. **Done when:** a real phone runs the bounded current-release smoke and records device/OS/browser/origin/mode, pass/fail and observed defects. **Current blocker:** no real-phone observation is available in this session. **Next actor:** owner + agent when the physical device is available.
+- [ ] **RRB-08 — current physical-device proof** — issue #398. The bounded runbook/evidence contract is merged in #399 as `rrb-08-physical-device-proof.md`; browser/emulation evidence does not satisfy this task. **Done when:** a real phone runs the bounded current-release smoke and records device/OS/browser/origin/mode, pass/fail and observed defects. **Current state:** owner-observed real-phone testing has started; one P2 mobile navigation visual defect has been observed and recorded for follow-up. Continue the remaining smoke before issuing the overall RRB-08 verdict. **Next actor:** owner + agent.
 
 ## NEXT
 
+- [ ] **RRB-08 P2 follow-up — mobile bottom-nav “Ghi” label crowds the primary CTA** — observed by the owner on a real phone during the RRB-08 smoke. The `Ghi` label sits too close to the elevated blue primary-action button, weakening visual separation and making the center navigation item look cramped. **Evidence:** owner-provided real-device screenshot on 2026-08-15. **Fix boundary:** spacing/alignment only; preserve navigation semantics, touch target, CTA prominence, safe-area behavior and current Fresh Blue identity. **Acceptance:** the button and label have intentional vertical separation across supported phone widths, the label aligns coherently with the other navigation labels, and no overlap/clipping/touch-target regression is introduced. **Next actor:** agent after RRB-08 evidence closeout or earlier only if the owner explicitly promotes this bounded fix.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — execute only against a disposable/authorized hosted target, or obtain explicit owner acceptance at the proper release boundary. **Next actor:** owner + agent if authorized.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — stale-AMR/account-mismatch destructive edges remain owner/provider-gated. **Next actor:** owner.
 - [ ] **Controlled closed beta** — start only after all P1 entry gates are cleared and no unresolved P0 exists.
