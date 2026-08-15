@@ -1,10 +1,10 @@
 # MoneyFlow Release Readiness Audit v1
 
-**Audit date:** 2026-08-15  
-**Audit base:** `main@5e506799eba162fca53466d55553b07f3d04cfeb`  
-**Audit PR:** #388  
-**Decision scope:** readiness for controlled closed beta and eventual public beta  
-**Current decision:** **BLOCKED**  
+**Audit date:** 2026-08-15
+**Audit base:** `main@5e506799eba162fca53466d55553b07f3d04cfeb`
+**Audit PR:** #388
+**Decision scope:** readiness for controlled closed beta and eventual public beta
+**Current decision:** **BLOCKED**
 
 This audit is not a feature review and is not a legal certification. It maps current release claims to the evidence layer capable of proving them. Historical accepted work is reused only when it remains applicable to current main. Unknown, stale, cross-layer or unexecuted evidence is not promoted to PASS.
 
@@ -244,7 +244,7 @@ External check on 2026-08-15 found `https://www.moneyflow.app/` and `https://www
 
 # 5. Audit conclusion
 
-**Public beta: BLOCKED.**  
+**Public beta: BLOCKED.**
 **Controlled closed beta: BLOCKED on P1 entry gates.**
 
 The audit does not find evidence that MoneyFlow's core ledger arithmetic, transfer neutrality, database restore contract or tenant isolation are broadly broken. The principal release risk is that some claims are either unproven in authenticated runtime/production/provider/physical layers or depend on unresolved owner/provider/privacy decisions.
