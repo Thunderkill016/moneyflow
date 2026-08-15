@@ -16,7 +16,9 @@ MoneyFlow is ready for a bounded public beta only when current repository behavi
 
 Release Readiness Audit v1 remains the release map. Post-audit blocker dispositions update current truth without reopening speculative scope.
 
-## Current truth
+## Repository reconnaissance
+
+### Current truth
 
 - Functional MVP is released.
 - Provider Sync, P1 Secure, P2 Recover and P3 Prove are accepted checkpoints with named limitations preserved.
@@ -36,7 +38,7 @@ Current release decision remains:
 - **Public beta: BLOCKED**.
 - **Controlled closed beta: BLOCKED on remaining P1 entry gates**.
 
-## Current authority
+### Current authority
 
 - Owner checklist: `docs/plans/active/README.md`.
 - Canonical audit: `docs/release/RELEASE_READINESS_AUDIT_V1.md`.
@@ -48,13 +50,26 @@ Current release decision remains:
 
 Historical packets/PR memory are provenance when a named claim needs them.
 
-## Research rule for blocker remediation
+### Research rule for blocker remediation
 
 Read current code/tests/provider evidence first. Research only the unresolved question for the bounded blocker. Use official/current sources when external standards matter.
 
 Do not turn WCAG, ASVS, SSDF or legal/privacy material into a generic feature backlog. Provider, legal, production, browser and physical-device evidence remain separate layers.
 
-## Acceptance criteria
+## Specification
+
+### Current problem
+
+The audit found a strong functional core but external beta remains unsafe while provider/privacy/production entry gates and bounded evidence gaps are unresolved. RRB-01 is now closed and must not remain in current blockers.
+
+The program prevents four failure modes:
+
+1. a proof gap being mislabeled as a product defect before execution;
+2. one evidence layer silently proving another;
+3. owner/provider/legal decisions being auto-resolved by an agent;
+4. blocker remediation expanding into speculative feature or visual work.
+
+### Acceptance criteria
 
 - [x] PBT-AC1–4 provider/repository baseline checkpoints accepted in completed evidence.
 - [x] PBT-AC5–9 Secure checkpoints accepted with named provider-test limitations.
@@ -69,13 +84,13 @@ Do not turn WCAG, ASVS, SSDF or legal/privacy material into a generic feature ba
 - [ ] Controlled closed-beta evidence collected after P1 entry gates pass.
 - [ ] PBT-AC15 owner public-beta go/no-go and accepted limitations recorded.
 
-## Release status vocabulary
+### Release status vocabulary
 
 - **PASS** — current evidence directly supports the claim at the required layer.
 - **BLOCKED** — evidence is missing/failed or a current defect/decision prevents release at the claimed level.
 - **OWNER-ACCEPTED LIMITATION** — a real limitation is explicitly accepted by the owner where policy allows it; absence of evidence is never silently converted into acceptance.
 
-## Financial and security constraints
+### Financial and security constraints
 
 - VND remains integer đồng.
 - Transfers remain equal/opposite account movements, never income/expense.
@@ -85,7 +100,7 @@ Do not turn WCAG, ASVS, SSDF or legal/privacy material into a generic feature ba
 - Provider writes require explicit scoped owner approval; this packet grants none.
 - Operator contact/domain choice, legal decisions, accepted limitations, beta launch and PBT-AC15 remain owner boundaries.
 
-## Out of scope
+### Out of scope
 
 - New UI slice or visual territory.
 - Phase E restart or Phase F start.
@@ -93,14 +108,14 @@ Do not turn WCAG, ASVS, SSDF or legal/privacy material into a generic feature ba
 - Unreviewed provider/production writes.
 - Fixing unrelated/non-blocking findings merely because they are noticed during a blocker task.
 
-## Implementation sequence
+## Implementation plan
 
 | Order | Work | Purpose | Current state |
 |---|---|---|---|
 | 1 | amount focus + reconciliation + audit | establish current release truth | complete through #388/#389 |
 | 2 | RRB-01 | authenticated mixed-ledger rendered financial truth | complete via #391 |
 | 3 | remaining P1 gates | provider/contact/legal/production evidence and decisions | **blocked by authority/read access** |
-| 4 | RRB-07 | Accessible Authentication browser proof | **current agent-owned work** |
+| 4 | RRB-07 | Accessible Authentication browser proof | **current agent-owned work after #392** |
 | 5 | RRB-02/03/08 | hosted/provider/physical proof or explicit limitation | queued by authority |
 | 6 | controlled closed beta | real-user core-loop/support evidence | blocked on P1 entry gates |
 | 7 | PBT-AC15 | owner public-beta decision | blocked on readiness + beta evidence |
@@ -128,11 +143,11 @@ No later row authorizes itself merely because the prior row completes.
 | Date | From | To | State | Evidence | Open boundary | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-15 | audit/evaluator | blocker remediation | audit complete | #388 | nine RRB findings | execute RRB-01 |
-| 2026-08-15 | RRB-01 delivery | accessibility proof | financial runtime proof complete | #391 final head `873f4d4d…`, CI #2492, CodeQL/Secret #1566 | remaining P1 gates need owner/provider/legal/read access | execute RRB-07 |
+| 2026-08-15 | RRB-01 delivery | accessibility proof | financial runtime proof complete | #391 final head `873f4d4d…`, CI #2492, CodeQL/Secret #1566 | remaining P1 gates need owner/provider/legal/read access | execute RRB-07 after lifecycle closeout |
 
 ### Current permission boundary
 
-Allowed now: RRB-07 branch/PR implementation and browser verification; focused research; repository verification; read-only external evidence where connected tooling exposes it.
+Allowed now: RRB-07 branch/PR implementation and browser verification after #392; focused research; repository verification; read-only external evidence where connected tooling exposes it.
 
 Not implied: provider configuration writes, production financial-data mutation, database/Edge mutation, destructive account testing, deployment, operator domain/contact choice, legal decision, accepted limitation, beta launch or final public-beta decision.
 
@@ -146,4 +161,4 @@ RRB-01 is now PASS at the authenticated browser/runtime-composition layer. It do
 
 ### Next allowed action
 
-Execute RRB-07 on current main. If targeted accessibility evidence exposes a real defect, fix only the bounded root cause with selected exact-head evidence; do not expand into a redesign.
+Execute RRB-07 on fresh current main after #392 merges. If targeted accessibility evidence exposes a real defect, fix only the bounded root cause with selected exact-head evidence; do not expand into a redesign.
