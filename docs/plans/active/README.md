@@ -1,14 +1,14 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `1bb50814d62acdc6e45c6977bbe6184b5d028dac` (#397 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. The owner has promoted RRB-08; agent preparation is active, but completion still requires real-phone observation. Remaining P1 release gates still depend on owner/provider/legal/read-access.
+**Current main baseline:** `e8a4a10e47cdd90b993eadd034fe97593b271adb` (#399 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. RRB-08 is current and its repository-side preparation is complete; completion still requires real-phone observation. Remaining P1 release gates still depend on owner/provider/legal/read-access.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **RRB-08 — current physical-device proof** — issue #398. Agent prep/runbook is being delivered in `rrb-08-physical-device-proof.md`; browser/emulation evidence does not satisfy this task. **Done when:** a real phone runs the bounded current-release smoke and records device/OS/browser/origin/mode, pass/fail and observed defects. **Current blocker:** no real-phone observation is available in this session. **Next actor:** owner + agent when the physical device is available.
+- [ ] **RRB-08 — current physical-device proof** — issue #398. The bounded runbook/evidence contract is merged in #399 as `rrb-08-physical-device-proof.md`; browser/emulation evidence does not satisfy this task. **Done when:** a real phone runs the bounded current-release smoke and records device/OS/browser/origin/mode, pass/fail and observed defects. **Current blocker:** no real-phone observation is available in this session. **Next actor:** owner + agent when the physical device is available.
 
 ## NEXT
 
@@ -42,6 +42,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE
 
+- [x] **RRB-08 repository-side preparation** — issue #398 / PR #399. The bounded real-phone smoke/evidence contract, P0 stop conditions, privacy-safe evidence hygiene and optional device diagnostics are merged. This is preparation only; RRB-08 itself remains open until direct physical-phone evidence exists. Final head `dfc47a29…` passed CI #2526, CodeQL #1599 and Secret history #1599 before protected squash merge as `e8a4a10e…`; first-run CI #2524 knowledge-schema failure is preserved in PR-memory.
 - [x] **RRB-07 WCAG 2.2 Accessible Authentication proof** — issue #393 / PR #394. Five MoneyFlow-owned auth cases passed first-run in the final UI-audit artifact (`556 passed / 141 skipped / 0 failed`), while explicitly not overclaiming provider-managed Google OAuth or Turnstile behavior. The proof exposed and fixed one shared password-field accessible-name defect. Final head `35a31ba5…` passed CI #2511, CodeQL #1584 and Secret history #1584 before merge as `59da7ad2…`.
 - [x] **RRB-01 authenticated mixed-ledger rendered financial truth** — issue #390 / PR #391. Current authenticated browser evidence proves a coherent two-account ledger with `2,700,000` VND aggregate balance, `2,000,000` income, `300,000` expense, `1,700,000` net, neutral `500,000` internal transfer, `1,200,000` cash and `1,500,000` bank balances. Final head `873f4d4d…` passed CI #2492, CodeQL #1566 and Secret history #1566 before protected squash merge as `9911eafa…`. Database/provider claims remain separately owned.
 - [x] **Release Readiness Audit v1** — #388 merged as `6459fdf7…`; canonical matrix + nine RRB blockers + controlled closed-beta plan recorded.
