@@ -457,6 +457,60 @@
   }
 }
 
+/*
+ * When `interactiveWidget: "resizes-content"` reduces the layout viewport for
+ * the numeric keyboard, keep the capture decision sequence ahead of secondary
+ * dialog chrome. This remains local to Expense/Income: Dialog still owns the
+ * one scroll body, while its accessible title/description relationship remains
+ * intact and the two required actions retain their 44px target size.
+ */
+@media (max-width: 620px) and (max-height: 640px) {
+  .dialogContent > header {
+    gap: 8px;
+    padding: 8px 16px;
+  }
+
+  .dialogContent > header p {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .dialogContent > footer {
+    padding: 10px 16px max(10px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .form {
+    gap: 12px;
+  }
+
+  .captureStep,
+  .requiredChoices,
+  .optionalDetails,
+  .categoryFieldset {
+    gap: 8px;
+  }
+
+  .requiredChoices,
+  .optionalDetails {
+    padding-top: 12px;
+  }
+
+  .footerActions {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 8px;
+  }
+
+  .footerActions > * {
+    min-width: 0;
+  }
+}
+
 @media (max-width: 360px) {
   .categoryGrid {
     grid-template-columns: minmax(0, 1fr);
