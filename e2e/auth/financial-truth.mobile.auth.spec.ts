@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import {
   assertAuthenticatedMode,
   assertNoUnservedRequests,
@@ -74,7 +74,9 @@ test.describe("authenticated financial truth", () => {
 
     await page.goto("/accounts", { waitUntil: "domcontentloaded" });
     await assertAuthenticatedMode(page);
-    await expect(page.getByRole("heading", { name: "Tài khoản", exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Tài khoản", exact: true }),
+    ).toBeVisible();
 
     await expect(
       moneyValue(
@@ -100,9 +102,10 @@ test.describe("authenticated financial truth", () => {
       report.served,
       "the browser must authenticate through the Supabase boundary",
     ).toContain("/auth/v1/user");
-    expect(report.served, "the account proof must use the authenticated accounts read path").toContain(
-      "/rest/v1/accounts",
-    );
+    expect(
+      report.served,
+      "the account proof must use the authenticated accounts read path",
+    ).toContain("/rest/v1/accounts");
     expect(
       report.served,
       "the account proof must use the authenticated balance read path",
@@ -110,7 +113,7 @@ test.describe("authenticated financial truth", () => {
   });
 });
 
-function moneyValue(page: Parameters<typeof test>[0] extends never ? never : any, ariaLabel: string) {
+function moneyValue(page: Page, ariaLabel: string) {
   return page.locator(`[data-money-value="true"][aria-label="${ariaLabel}"]`);
 }
 
