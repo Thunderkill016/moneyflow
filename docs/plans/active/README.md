@@ -1,18 +1,17 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `59da7ad28f88a4a227b83fa058c36dcf5e909fe4` (#394 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. No fully agent-owned repository blocker remains; the remaining release path depends on owner/provider/legal/read-access or physical-device/authorized-hosted evidence.
+**Current main baseline:** `1bb50814d62acdc6e45c6977bbe6184b5d028dac` (#397 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. The owner has promoted RRB-08; agent preparation is active, but completion still requires real-phone observation. Remaining P1 release gates still depend on owner/provider/legal/read-access.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **No autonomous repository task is currently authorized.** RRB-07 is complete. Progress now requires owner/provider/legal/read-access or real-device/authorized-hosted input; do not invent a replacement implementation task merely to keep the queue moving. **Next actor:** owner for the P1 gates below; owner + agent for RRB-08/RRB-02 when the required evidence boundary is available.
+- [ ] **RRB-08 — current physical-device proof** — issue #398. Agent prep/runbook is being delivered in `rrb-08-physical-device-proof.md`; browser/emulation evidence does not satisfy this task. **Done when:** a real phone runs the bounded current-release smoke and records device/OS/browser/origin/mode, pass/fail and observed defects. **Current blocker:** no real-phone observation is available in this session. **Next actor:** owner + agent when the physical device is available.
 
 ## NEXT
 
-- [ ] **RRB-08 — current physical-device proof** — current release candidate needs bounded real-phone evidence after the latest UI slices/hotfix and RRB-07 auth fix. **Next actor:** owner + agent; physical-device observation required.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — execute only against a disposable/authorized hosted target, or obtain explicit owner acceptance at the proper release boundary. **Next actor:** owner + agent if authorized.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — stale-AMR/account-mismatch destructive edges remain owner/provider-gated. **Next actor:** owner.
 - [ ] **Controlled closed beta** — start only after all P1 entry gates are cleared and no unresolved P0 exists.
@@ -58,10 +57,11 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `public-beta-trust.md` | active parent program | release-readiness blocker sequence, controlled-beta gates and owner public-beta decision |
+| `rrb-08-physical-device-proof.md` | active bounded validation | real-phone smoke only; no redesign/provider/deployment/production mutation |
 
 ## Board rules
 
-1. `NOW` means current authorized execution, not merely an open issue; it may explicitly state that no autonomous task is authorized.
+1. `NOW` means current authorized execution, not merely an open issue; it may explicitly state that execution is blocked on an external evidence boundary.
 2. New substantive work must appear here before it becomes execution authority.
 3. Completion/abandonment updates this board in lifecycle closeout; merged work must not remain in `NOW`.
 4. `OWNER DECISION` is never auto-resolved by an agent.
