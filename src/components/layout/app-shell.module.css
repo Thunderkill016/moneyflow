@@ -798,29 +798,55 @@
     font-weight: 720;
   }
 
+  /*
+   * The center action used to stack three independent offsets: the shared item
+   * gap, a 7px icon margin and a 5px label margin. That made the 42px blue CTA
+   * visually collide with "Ghi" even though the button's hit area was valid.
+   *
+   * Grid gives the center action one geometry owner. The first 28px track is the
+   * icon/CTA anchor, the label stays in normal flow, and the 42px visual is lifted
+   * as one unit with the icon. This preserves the 52px interactive target and the
+   * existing 70px shell reserve while creating an intentional visible gap.
+   */
   .mobileCapture {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 28px auto;
+    align-content: center;
+    justify-items: center;
+    gap: 4px;
     color: var(--mf-on-brand);
   }
 
   .mobileCapture::before {
     content: "";
-    position: absolute;
-    z-index: -1;
-    top: 1px;
+    position: static;
+    z-index: 0;
+    grid-column: 1;
+    grid-row: 1;
     width: 42px;
     height: 42px;
     border-radius: 14px;
     background: var(--mf-brand);
     box-shadow: var(--mf-shadow-md);
+    transform: translateY(-8px);
   }
 
   .mobileCapture span {
-    margin-top: 5px;
+    grid-column: 1;
+    grid-row: 2;
+    margin: 0;
     color: var(--mf-brand-text);
+    line-height: 1.2;
   }
 
   .mobileCapture svg {
-    margin-top: 7px;
+    position: relative;
+    z-index: 1;
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+    transform: translateY(-8px);
   }
 
   .mobileNav .badge {
