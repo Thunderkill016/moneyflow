@@ -53,7 +53,7 @@ Current rendered proof establishes:
 
 The proof is browser/runtime-composition evidence. It does not replace database/RLS/provider evidence.
 
-## 3. Current execution and lifecycle truth
+## 3. Current execution and repository lifecycle truth
 
 Release Readiness Audit v1 is complete and archived. RRB-01 is complete through #391.
 
@@ -68,7 +68,7 @@ Remaining P1 gates are not automatic agent work:
 
 Provider configuration, production data, deployment writes, legal decisions and owner-accepted limitations retain explicit authority boundaries.
 
-## 4. Presentation and product direction
+## 4. Presentation and product-direction truth
 
 - Fresh Blue remains shipped presentation.
 - Slice 1 (#370), Slice 2 (#381) and focus hotfix #383 are completed input.
@@ -94,7 +94,7 @@ Provider configuration, production data, deployment writes, legal decisions and 
 
 Code, migrations and tests outrank this table on implementation detail.
 
-## 6. Trust and remaining evidence gaps
+## 6. Trust, recovery and physical-device evidence
 
 PBT-AC12 physical core-ledger acceptance remains owner-observed historical evidence. PBT-AC13's duration requirement was withdrawn and must not be recreated. PBT-AC14 remains accepted historical daily-loop evidence. PBT-AC15 remains open.
 
@@ -111,7 +111,7 @@ Current named gaps/limitations:
 
 RRB-01 is no longer a gap.
 
-## 7. Delivery evidence and known findings
+## 7. Configuration, security and delivery truth
 
 - `docs/configuration.md` owns environment/provider-setting contracts.
 - `docs/deployment.md` owns branch/deployment workflow.
@@ -125,7 +125,7 @@ RRB-01 is no longer a gap.
 - Current CI still emits a Node-20-deprecation warning for the pinned checkout action generation. That is tooling debt outside RRB-01 and must not be silently bundled into financial-proof work.
 - Independent PR review was unavailable for #391; no review submission is claimed.
 
-## 8. Reconciled issue / decision status
+## 8. Reconciled issue status
 
 Completed:
 
@@ -138,11 +138,13 @@ Still intentionally open/decision-gated:
 
 Audit blocker IDs are owned by the Current Work Board and canonical release audit; duplicate GitHub issues are created only when they add execution value.
 
-## 9. Pull-request memory rule
+## 9. Open pull-request memory
 
-Merged PRs are accepted evidence only at their recorded layers. Future blocker PRs remain candidate evidence until exact-head gates and lifecycle closeout complete. A green check on an older head never proves a newer head.
+#392 is the current lifecycle closeout candidate for #391. It changes no runtime/provider behavior and must pass its own exact-head policy checks before merge.
 
-## 10. Current release gaps
+Future blocker PRs remain candidate evidence until exact-head gates and lifecycle closeout complete. A green check on an older head never proves a newer head.
+
+## 10. True gaps after this audit
 
 Remaining P1:
 
@@ -162,7 +164,7 @@ Controlled closed beta remains blocked until the P1 entry gates are satisfied an
 
 ## 11. Next allowed action
 
-Execute **RRB-07** on current main as the next fully agent-owned bounded task.
+Execute **RRB-07** on current main as the next fully agent-owned bounded task after #392 lifecycle closeout merges.
 
 Do not auto-resolve RRB-04/05/06/09. If provider read access becomes available, RRB-04/RRB-09 may resume as read-only evidence tasks; writes still require explicit scoped approval.
 
