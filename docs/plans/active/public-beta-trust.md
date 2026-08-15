@@ -1,12 +1,12 @@
 # MoneyFlow Trust
 
 **Status:** active parent program
-**Execution state:** foundational trust checkpoints, Release Readiness Audit v1 and RRB-01 completed; remaining blocker remediation current; PBT-AC15 open
+**Execution state:** foundational trust checkpoints, Release Readiness Audit v1, RRB-01 and RRB-07 completed; remaining blockers require owner/provider/legal/read-access or physical/hosted evidence; PBT-AC15 open
 **Active role:** parent-program planner
 **Permission scope:** branch_write + read-only external evidence when available; provider/production writes require explicit scoped owner approval
 **Owner:** Thunderkill016
 **Last updated:** 2026-08-15
-**Current main baseline:** `9911eafa157ecca5a1fd8571bb38712ac4de1445` (#391 merged)
+**Current main baseline:** `59da7ad28f88a4a227b83fa058c36dcf5e909fe4` (#394 merged)
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. The owner-facing execution checklist is `docs/plans/active/README.md`; this packet owns the public-beta trust/release gate, not day-to-day task enumeration.
 
@@ -24,13 +24,15 @@ Release Readiness Audit v1 remains the release map. Post-audit blocker dispositi
 - Provider Sync, P1 Secure, P2 Recover and P3 Prove are accepted checkpoints with named limitations preserved.
 - Repository Resets 1–2, A0 Historical UI / Design Failure Review and Phases A–D are completed.
 - Phase E is paused; Phase F is not started.
-- UI Slice 1 (#370), Slice 2 (#381) and amount-focus hotfix #383 are merged.
+- UI Slice 1 (#370), Slice 2 (#381), amount-focus hotfix #383 and bounded auth semantic repair #394 are merged.
 - Open-work reconciliation is complete.
 - Release Readiness Audit v1 merged in #388.
 - **RRB-01 closed in #391** with current authenticated rendered mixed-ledger proof.
+- **RRB-07 closed in #394** with explicit MoneyFlow-owned WCAG 2.2 Accessible Authentication browser evidence and one bounded shared password-field semantic repair.
 - Remaining P1: RRB-04, RRB-05, RRB-06, RRB-09.
-- Remaining P2: RRB-02, RRB-03, RRB-07, RRB-08.
+- Remaining P2: RRB-02, RRB-03, RRB-08.
 - #40 and #174 remain intentional owner/provider decisions.
+- No fully agent-owned repository blocker remains after RRB-07.
 - PBT-AC15 remains open.
 
 Current release decision remains:
@@ -60,7 +62,7 @@ Do not turn WCAG, ASVS, SSDF or legal/privacy material into a generic feature ba
 
 ### Current problem
 
-The audit found a strong functional core but external beta remains unsafe while provider/privacy/production entry gates and bounded evidence gaps are unresolved. RRB-01 is now closed and must not remain in current blockers.
+The audit found a strong functional core but external beta remains unsafe while provider/privacy/production entry gates and owner-assisted evidence gaps are unresolved. RRB-01 and RRB-07 are now closed and must not remain in current blockers.
 
 The program prevents four failure modes:
 
@@ -79,6 +81,7 @@ The program prevents four failure modes:
 - [x] PBT-AC14 historical daily-loop checkpoint accepted.
 - [x] Release Readiness Audit v1 completed through #388.
 - [x] RRB-01 authenticated rendered mixed-ledger financial-truth proof completed through #391.
+- [x] RRB-07 MoneyFlow-owned Accessible Authentication browser proof completed through #394; provider-managed OAuth/Turnstile claims remain separate.
 - [ ] Remaining P1 release blockers cleared or explicitly handled only where policy permits.
 - [ ] Remaining P2 proof/limitation decisions completed at their proper evidence layers.
 - [ ] Controlled closed-beta evidence collected after P1 entry gates pass.
@@ -114,13 +117,13 @@ The program prevents four failure modes:
 |---|---|---|---|
 | 1 | amount focus + reconciliation + audit | establish current release truth | complete through #388/#389 |
 | 2 | RRB-01 | authenticated mixed-ledger rendered financial truth | complete via #391 |
-| 3 | remaining P1 gates | provider/contact/legal/production evidence and decisions | **blocked by authority/read access** |
-| 4 | RRB-07 | Accessible Authentication browser proof | **current agent-owned work after #392** |
-| 5 | RRB-02/03/08 | hosted/provider/physical proof or explicit limitation | queued by authority |
+| 3 | RRB-07 | Accessible Authentication browser proof | complete via #394 |
+| 4 | remaining P1 gates | provider/contact/legal/production evidence and decisions | **blocked by authority/read access** |
+| 5 | RRB-02/03/08 | hosted/provider/physical proof or explicit limitation | **queued by authority/evidence availability** |
 | 6 | controlled closed beta | real-user core-loop/support evidence | blocked on P1 entry gates |
 | 7 | PBT-AC15 | owner public-beta decision | blocked on readiness + beta evidence |
 
-No later row authorizes itself merely because the prior row completes.
+No later row authorizes itself merely because a prior row completes.
 
 ## Tasks
 
@@ -134,9 +137,10 @@ No later row authorizes itself merely because the prior row completes.
 | TRUST-T6 | open-work reconciliation | GitHub/lifecycle truth reconciled | complete through #387 |
 | TRUST-T7 | Release Readiness Audit v1 | canonical matrix + blocker backlog + beta plan | complete via #388 |
 | TRUST-T8 | RRB-01 financial runtime proof | two-account authenticated rendered mixed-ledger contract | complete via #391 |
-| TRUST-T9 | remaining readiness blockers | only audit-proven bounded blockers | active; RRB-07 is next agent-owned task |
-| TRUST-T10 | controlled closed beta | real-user core-loop/support evidence | blocked on P1 entry gates |
-| TRUST-T11 | PBT-AC15 owner decision | explicit go/no-go + accepted limitations | blocked on evidence |
+| TRUST-T9 | RRB-07 accessible-auth proof | five scoped current-auth browser cases + bounded shared-field repair | complete via #394 |
+| TRUST-T10 | remaining readiness blockers | only audit-proven bounded blockers | blocked on owner/provider/legal/read-access or physical/hosted evidence |
+| TRUST-T11 | controlled closed beta | real-user core-loop/support evidence | blocked on P1 entry gates |
+| TRUST-T12 | PBT-AC15 owner decision | explicit go/no-go + accepted limitations | blocked on evidence |
 
 ## Handoff record
 
@@ -144,10 +148,13 @@ No later row authorizes itself merely because the prior row completes.
 |---|---|---|---|---|---|---|
 | 2026-08-15 | audit/evaluator | blocker remediation | audit complete | #388 | nine RRB findings | execute RRB-01 |
 | 2026-08-15 | RRB-01 delivery | accessibility proof | financial runtime proof complete | #391 final head `873f4d4d…`, CI #2492, CodeQL/Secret #1566 | remaining P1 gates need owner/provider/legal/read access | execute RRB-07 after lifecycle closeout |
+| 2026-08-15 | RRB-07 delivery | owner/provider handoff | accessible-auth proof complete | #394 final head `35a31ba5…`, CI #2511, CodeQL/Secret #1584, UI audit `556 passed / 141 skipped / 0 failed` | no autonomous repository blocker remains | resume only when a named owner/provider/legal/physical/hosted evidence boundary becomes available |
 
 ### Current permission boundary
 
-Allowed now: RRB-07 branch/PR implementation and browser verification after #392; focused research; repository verification; read-only external evidence where connected tooling exposes it.
+Allowed now: repository verification/lifecycle maintenance and read-only external/provider evidence when connected tooling exposes it.
+
+Conditionally allowed with the required owner/evidence input: RRB-08 physical-device validation with owner observation; RRB-02 hosted restore against a disposable/authorized target; RRB-04/RRB-09 read-back if provider/deployment read access appears; bounded source remediation after an owner/legal/provider decision identifies it.
 
 Not implied: provider configuration writes, production financial-data mutation, database/Edge mutation, destructive account testing, deployment, operator domain/contact choice, legal decision, accepted limitation, beta launch or final public-beta decision.
 
@@ -157,8 +164,10 @@ Not implied: provider configuration writes, production financial-data mutation, 
 
 **BLOCKED FOR PUBLIC BETA. BLOCKED FOR CONTROLLED CLOSED BETA ON REMAINING P1 ENTRY GATES.**
 
-RRB-01 is now PASS at the authenticated browser/runtime-composition layer. It does not substitute for RLS/provider/production evidence.
+RRB-01 is PASS at the authenticated browser/runtime-composition layer. RRB-07 is PASS for the scoped MoneyFlow-owned browser authentication mechanisms. Neither substitutes for RLS/provider/production/physical-device evidence outside its layer.
 
 ### Next allowed action
 
-Execute RRB-07 on fresh current main after #392 merges. If targeted accessibility evidence exposes a real defect, fix only the bounded root cause with selected exact-head evidence; do not expand into a redesign.
+There is no autonomous repository implementation task after RRB-07.
+
+Resume a bounded blocker only when its required boundary becomes available: owner/provider read access for RRB-04/RRB-09, verified operator contact decision for RRB-05, competent legal review for RRB-06, an authorized hosted target for RRB-02, owner authorization/limitation decision for RRB-03, or a real physical device for RRB-08. Do not manufacture a new feature or redesign as substitute work.
