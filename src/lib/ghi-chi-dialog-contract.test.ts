@@ -72,3 +72,16 @@ test("R4: local form owner supports keep-open status and recent category chips",
   assert.match(css, /\.recentBadge/);
   assert.match(css, /\.keepOpenRow/);
 });
+
+test("R4: constrained mobile capture keeps the Dialog body as the only scroller while compacting local chrome", () => {
+  const css = read("src/components/transactions/transaction-form.module.css");
+  assert.match(
+    css,
+    /@media \(max-width: 620px\) and \(max-height: 640px\)/,
+  );
+  assert.match(css, /\.dialogContent > header/);
+  assert.match(css, /\.dialogContent > header p/);
+  assert.match(css, /\.footerActions\s*\{[\s\S]*?grid-template-columns:/);
+  assert.match(css, /\.footerActions > \*\s*\{[\s\S]*?min-width:\s*0/);
+  assert.doesNotMatch(css, /dvh/);
+});
