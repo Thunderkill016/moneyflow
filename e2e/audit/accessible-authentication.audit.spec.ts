@@ -73,7 +73,9 @@ test.describe("accessible authentication mechanisms", () => {
   test("setting the replacement password supports password managers and paste", async ({ page }) => {
     await page.goto("/update-password", { waitUntil: "domcontentloaded" });
 
-    await expect(page.getByRole("heading", { name: "Tạo mật khẩu mới" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Tạo mật khẩu mới", exact: true }),
+    ).toBeVisible();
 
     const password = page.locator('input[name="password"]');
     await expect(password).toHaveAccessibleName("Mật khẩu");
