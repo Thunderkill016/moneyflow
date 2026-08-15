@@ -11,6 +11,7 @@ const budgetMonthHistorySpec = /budget-month-history\.audit\.spec\.ts/;
 const textScaleSpec = /text-scale\.audit\.spec\.ts/;
 const onboardingSpec = /onboarding-presentation\.audit\.spec\.ts/;
 const authAmountSpec = /auth-and-amount\.audit\.spec\.ts/;
+const accessibleAuthSpec = /accessible-authentication\.audit\.spec\.ts/;
 const keyboardSpec = /keyboard\.audit\.spec\.ts/;
 
 const responsiveWithSafety = [responsiveSpec, safetyReviewSpec, onboardingSpec, authAmountSpec];
@@ -211,7 +212,7 @@ export default defineConfig({
     },
     {
       name: "chromium-keyboard-desktop",
-      testMatch: keyboardSpec,
+      testMatch: [keyboardSpec, accessibleAuthSpec],
       use: {
         browserName: "chromium",
         viewport: { width: 1366, height: 768 },
