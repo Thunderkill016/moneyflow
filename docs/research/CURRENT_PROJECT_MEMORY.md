@@ -2,20 +2,25 @@
 
 **Status:** single current implementation/trust-status authority
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `5a2ef2d9f42c22138c97ac97b822997a95c28569` (#386 merged)
+**Current main baseline:** `6459fdf7ed59119bf220993ff5c1637789323429` (#388 merged)
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
 
 MoneyFlow is a released functional MVP and is **not public-beta ready**.
 
-Accepted historical checkpoints remain Provider Sync, P1 Secure, P2 Recover and P3 Prove. Repository Resets 1–2, A0 and Phases A–D are completed. Phase E is paused with all candidates owner-rejected; Phase F is not started.
+Release Readiness Audit v1 merged in #388. Its canonical result is `docs/release/RELEASE_READINESS_AUDIT_V1.md`.
 
-UI Slice 1 (#370), Slice 2 (#381) and amount-focus hotfix #383 are merged. Open-work reconciliation is complete: current-main dispatcher hardening merged in #384 and closed out in #385; the `js-yaml` 4.3.1 security backport merged in #386; stale #380 and Dependabot #320 were closed superseded. There are no open PRs after this reconciliation.
+Current release decision:
+
+- public beta: **BLOCKED**;
+- controlled closed beta: **BLOCKED on P1 entry gates**;
+- core finance arithmetic, transfer neutrality, RLS/tenant isolation and local archive/restore contracts have strong current repository/database evidence;
+- remaining work is bounded proof/remediation plus provider/privacy/operations decisions and controlled-beta validation, not speculative feature expansion.
 
 Current sequence:
 
-> Release Readiness Audit v1 → only audit-proven blocker fixes → controlled closed beta → owner PBT-AC15 decision.
+> RRB-01 authenticated mixed-ledger proof → remaining P1 blocker decisions/read-backs → P2 proof/accepted-limitations at the proper boundary → controlled closed beta → owner PBT-AC15 decision.
 
 The owner-facing checklist is `docs/plans/active/README.md`.
 
@@ -27,14 +32,19 @@ The owner-facing checklist is `docs/plans/active/README.md`.
 - Destructive ledger actions use recoverable/soft-delete behavior where the product contract requires it.
 - Authenticated data remains server-owned; demo state remains browser-local.
 - The complete versioned archive is at `/settings/backup`, separate from scoped/report export.
-- Hosted export was accepted; hosted restore remains a named unexecuted limitation.
+- Hosted export was accepted; hosted restore remains unexecuted and is RRB-02.
 - Provider configuration, production data and deployment writes require explicit scoped owner approval.
+- Evidence layers remain separate: repository/static, unit/domain, database, browser, provider read-back, production runtime, physical device and owner/legal decision cannot silently prove one another.
 
 ## 3. Current execution and repository lifecycle truth
 
 The Current Work Board owns current execution. Old issue/PR bodies are provenance/candidate evidence, not authority.
 
-The historical GitHub queue has been reconciled against current main. Release Readiness Audit v1 is the next authorized agent task. The audit must create current evidence and must not reopen old feature requests merely because they existed historically.
+Release Readiness Audit v1 is complete through #388. Its active packet is retired to `docs/plans/completed/release-readiness-audit-v1.md`.
+
+The first authorized blocker task is **RRB-01**, an agent-owned Class 2 proof task. It must add current-main authenticated browser evidence for a deterministic mixed ledger containing income, expense and internal transfer. If that proof exposes an actual product defect, the defect becomes a bounded fix with its own evidence rather than being hidden inside the test.
+
+Owner/provider/legal-gated blockers remain boundaries, not automatic execution authority.
 
 ## 4. Presentation and product-direction truth
 
@@ -44,6 +54,7 @@ The historical GitHub queue has been reconciled against current main. Release Re
 - Phase E remains paused; no territory is selected.
 - Phase F / broader Brand-Product Experience implementation is not started.
 - Browser/emulation evidence is not physical-device evidence.
+- Audit blocker work does not authorize redesign or speculative polish.
 
 ## 5. Current capability inventory
 
@@ -56,20 +67,22 @@ The historical GitHub queue has been reconciled against current main. Release Re
 | Ownership | versioned archive/export/validation/restore contract; hosted restore limitation remains |
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
 | Experience | responsive light/dark web UI; Slice 1 + Slice 2 + focus hotfix merged |
-| Public beta | not approved; readiness audit, blocker handling, controlled beta and PBT-AC15 remain ahead |
+| Release proof | audit complete; RRB-01/04/05/06/09 P1 and RRB-02/03/07/08 P2 remain |
+| Public beta | not approved; controlled beta and PBT-AC15 remain ahead |
 
 Code, migrations and tests outrank this table on implementation detail.
 
 ## 6. Trust, recovery and physical-device evidence
 
-PBT-AC12 physical core-ledger acceptance remains owner-observed evidence. PBT-AC13's duration requirement was withdrawn and must not be recreated. PBT-AC14 remains accepted historical daily-loop evidence. PBT-AC15 remains open.
+PBT-AC12 physical core-ledger acceptance remains owner-observed historical evidence. PBT-AC13's duration requirement was withdrawn and must not be recreated. PBT-AC14 remains accepted historical daily-loop evidence. PBT-AC15 remains open.
 
-Named accepted limitations remain claim-specific:
+Named current audit gaps/limitations:
 
-- stale-AMR and real account-mismatch destructive/identity-risk provider probes were not executed;
-- hosted restore was not executed against a live hosted account;
-- browser/emulation evidence is not physical-device evidence;
-- P3 physical-phone acceptance was owner-observed rather than a completed signed repository result file.
+- RRB-01: authenticated mixed-ledger rendered financial truth is not yet proven on current main;
+- RRB-02: hosted restore remains unexecuted;
+- RRB-03: stale-AMR and real account-mismatch destructive provider edges remain unexecuted;
+- RRB-07: explicit WCAG 2.2 Accessible Authentication proof for current release-critical auth flows is missing;
+- RRB-08: physical-device evidence predates the latest UI slices/hotfix.
 
 ## 7. Configuration, security and delivery truth
 
@@ -79,11 +92,12 @@ Named accepted limitations remain claim-specific:
 - `docs/engineering/AGENT_OPERATING_MODEL.md` owns permissions and execution states.
 - `scripts/classify-ci-changes.mjs` owns path-to-CI selection; `scripts/agent-policy.mjs` projects policy.
 - Draft PR workflow success is not full verification evidence because heavy shards intentionally skip while draft.
-- The readiness audit must distinguish repository evidence, provider read-back, production evidence, physical-device evidence and owner decision; one layer cannot silently prove another.
-- Current provider checklist still requires explicit verification of public-beta Auth/security settings such as password policy, confirmation, CAPTCHA/rate limits/trusted callbacks and leaked-password protection where supported.
-- #386 upgraded the resolved `js-yaml` dependency from 4.3.0 to 4.3.1 through a current-main security-maintenance delivery. Its final non-draft head passed full CI, CodeQL and secret-history gates.
-- Historical checkout/runtime credential-hardening findings remain audit inputs; they are not permission to revive stale dependency/CI PRs.
-- Release Readiness Audit v1 should reuse current/reconciled evidence and research only unresolved questions. Its dimensions are financial correctness; recovery/data safety; Auth/tenant isolation; security/privacy; usability/accessibility; deployment/operations; and closed-beta support/readiness. Each conclusion must identify the actual evidence mode and use only `PASS / BLOCKED / OWNER-ACCEPTED LIMITATION`.
+- #388 final head `04c3f60088dd495994ce1e42c97fc41d00adb54c` passed CI #2484, CodeQL #1559 and Secret history #1559 before expected-head squash merge as `6459fdf7…`.
+- #388 also preserved a deterministic earlier CI #2481 failure caused by Markdown trailing whitespace; the failure was fixed rather than hidden by retry.
+- RRB-04 remains the current provider/Auth/firewall read-back blocker and includes #40/#174 decisions; repository CI cannot prove provider dashboard/firewall state.
+- RRB-05 requires an operator-controlled verified support/privacy contact; source currently publishes `support@moneyflow.app` while ownership/control is unproven.
+- RRB-06 is an owner/legal review boundary under the current Vietnam personal-data regime; repository audit is not a legal certification.
+- RRB-09 requires read-only production deployment/provider identity tied to the release candidate when access exists.
 
 ## 8. Reconciled issue status
 
@@ -94,41 +108,47 @@ Still intentionally open/decision-gated:
 - #40 — Supabase leaked-password protection; provider plan/state + owner decision required.
 - #174 — provider-side security controls; provider state + owner decision required.
 
-These are not backlog-hygiene failures and must not be auto-closed merely to reach zero issues.
+Audit blocker IDs are owned by the Current Work Board and canonical release audit. They do not need duplicate GitHub issues merely to exist as authority.
 
 ## 9. Open pull-request memory
 
-There are **no open pull requests** after reconciliation.
+#388 is merged and no longer candidate evidence. Its final audit result is current release truth after lifecycle closeout.
 
-- #384 delivered the live dispatcher hardening; #385 closed its lifecycle; stale #380 is closed superseded.
-- #386 fresh-delivered the `js-yaml` 4.3.1 security patch from current main; Dependabot #320 is closed superseded.
-- Historical stale candidates were closed after evidence review rather than merged from old heads.
-
-A future open PR is candidate evidence until it passes its own current lifecycle and exact-head gates.
+Future blocker PRs remain candidate evidence until their own exact-head gates and lifecycle closeout complete. A green check on an older head never proves a newer head.
 
 ## 10. True gaps after this audit
 
-Entering Release Readiness Audit v1, the remaining program gaps are:
+The canonical audit froze nine bounded gaps:
 
-1. produce one current readiness matrix across financial correctness, recovery/data safety, Auth/isolation, security/privacy, usability/accessibility, deployment/operations and closed-beta support;
-2. preserve the mixed-ledger authenticated financial-truth scenario, hosted-restore limitation, provider-security decisions, physical-evidence limitations and CI/runtime hardening findings as audit inputs without pre-classifying them as blockers;
-3. fix only audit-proven release blockers as bounded tasks;
-4. resolve real provider/security owner decisions (#40/#174 and any audit-created owner gate);
-5. run controlled real-user beta only after readiness permits it;
-6. record PBT-AC15 only through explicit owner go/no-go and accepted limitations.
+P1:
+
+1. RRB-01 — authenticated mixed-ledger rendered financial-truth proof;
+2. RRB-04 — current provider/Auth/firewall read-back plus #40/#174 decisions;
+3. RRB-05 — verified operator-controlled support/privacy contact;
+4. RRB-06 — current Vietnam personal-data legal/privacy operational review;
+5. RRB-09 — current production deployment/provider identity tied to the release candidate.
+
+P2:
+
+6. RRB-02 — hosted restore proof/accepted limitation;
+7. RRB-03 — destructive recent-auth provider-edge proof/accepted limitation;
+8. RRB-07 — WCAG 2.2 Accessible Authentication proof;
+9. RRB-08 — current physical-device proof.
+
+Controlled closed beta remains blocked until the P1 entry gates are satisfied and there is no unresolved P0. Public beta additionally requires controlled-beta evidence and explicit PBT-AC15.
 
 ## 11. Next allowed action
 
-Start Release Readiness Audit v1 on current main after this reconciliation closeout merges.
+Execute **RRB-01** on current main as the first agent-owned P1 blocker.
 
-No new UI slice, Phase E restart, Phase F implementation, speculative feature work, provider write or production-data mutation is implied.
+Do not implement RRB-04/05/06/09 decisions by assumption. Provider/production writes, operator contact/domain choice, legal decisions, accepted limitations, beta launch and PBT-AC15 retain their explicit authority boundaries.
 
 ## 12. Superseded-status register
 
+- “Release Readiness Audit v1 is still pending/current” is superseded by #388.
 - “The amount-focus defect is open” is superseded by #383.
-- “#379 is stale tooling paperwork” is superseded: its live defects were resolved by #384; lifecycle was closed by #385.
-- “18 PRs + 8 issues are unreconciled” is superseded: reconciliation is complete and no open PR remains; #40/#174 are owner decisions.
-- “js-yaml 4.3.1 still needs delivery” is superseded by #386 at `main@5a2ef2d9…`; #320 is closed superseded.
+- “18 PRs + 8 issues are unreconciled” is superseded: reconciliation completed before the audit.
+- “js-yaml 4.3.1 still needs delivery” is superseded by #386.
 - “P3 Prove is open” / “P4 Improve is next” remain superseded.
 - “Phase E is immediate next” remains superseded; all candidates were rejected.
 - “Slice 2 is active” is superseded by #381.
