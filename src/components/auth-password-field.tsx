@@ -46,9 +46,9 @@ export function AuthPasswordField({
   const toggleId = useId();
 
   return (
-    <label>
+    <div className={styles.field}>
       <span className={styles.fieldLabelRow}>
-        <span>{label}</span>
+        <label htmlFor={id}>{label}</label>
         {labelAccessory}
       </span>
 
@@ -65,8 +65,12 @@ export function AuthPasswordField({
           className={styles.passwordInput}
         />
         {/*
-          type="button" matters: inside a form a bare <button> submits, so a
-          reveal control that omitted it would post the credential on click.
+          Keep the reveal control outside the input's associated label. If this
+          button is nested in that label, its name becomes part of the input's
+          accessible name (for example, "Mật khẩu Hiện mật khẩu").
+
+          type="button" also matters: inside a form a bare <button> submits, so
+          a reveal control that omitted it would post the credential on click.
         */}
         <button
           type="button"
@@ -85,6 +89,6 @@ export function AuthPasswordField({
       </span>
 
       {children}
-    </label>
+    </div>
   );
 }
