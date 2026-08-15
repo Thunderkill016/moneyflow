@@ -1,35 +1,38 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `6459fdf7ed59119bf220993ff5c1637789323429` (#388 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — Release Readiness Audit v1 is complete; bounded blocker remediation is now authorized, beginning with RRB-01. PBT-AC15 remains an owner decision.
+**Current main baseline:** `9911eafa157ecca5a1fd8571bb38712ac4de1445` (#391 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 is closed with current authenticated rendered financial-truth proof. Remaining P1 entry gates are provider/contact/legal/production-evidence boundaries; the next fully agent-owned repository task is RRB-07.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **RRB-01 — authenticated mixed-ledger rendered financial-truth proof** — add one bounded authenticated browser scenario on current main proving income + expense + internal transfer compose into the rendered per-account balances and aggregate income/expense totals without test-only finance shortcuts. **Done when:** transfer remains neutral to income/expense; rendered account balances/totals match the deterministic fixture; focused browser evidence plus exact-head protected checks pass; any exposed product defect becomes an explicit bounded fix rather than being hidden inside the test. **Next actor:** agent.
+- [ ] **RRB-07 — WCAG 2.2 Accessible Authentication proof** — produce bounded current-main browser/accessibility evidence for login, registration and recovery against the applicable WCAG 2.2 Accessible Authentication (Minimum) boundary. Reuse current auth/a11y harnesses; do not turn the task into a visual redesign. **Done when:** applicable authentication inputs/steps are mapped to the criterion, targeted browser evidence passes, and any actual defect is fixed only as a bounded release blocker with exact-head protected checks. **Next actor:** agent.
 
 ## NEXT
 
-- [ ] **RRB-05 — verified support/privacy contact** — prove `support@moneyflow.app` / domain control or replace public support/privacy surfaces with an owner-controlled verified channel before any external beta. Owner/domain decision required before assuming control.
-- [ ] **RRB-04 — provider/Auth/firewall read-back** — record current production provider state for password policy, confirmation, CAPTCHA, rate limits, trusted callbacks/OAuth and edge controls; retain #40/#174 as owner/provider decisions. No provider write without scoped approval.
-- [ ] **RRB-06 — Vietnam personal-data legal/privacy operational review** — owner/legal boundary; record review/remediation without AI-issued compliance certification.
-- [ ] **RRB-09 — production deployment/provider identity read-back** — tie canonical origin, authenticated mode, deployed commit and intended provider identity to the release candidate using read-only evidence when available.
-- [ ] **RRB-02 / RRB-03 / RRB-07 / RRB-08** — resolve P2 hosted-restore, destructive recent-auth edge, Accessible Authentication and current physical-device proof gaps in bounded tasks or explicit owner acceptance where policy permits.
-- [ ] **Controlled closed beta** — onboard a small real-user cohort only after P1 entry gates allow it. Capture real-user core-loop, correction/recovery, balance/history trust and support evidence without leaking private financial data.
+- [ ] **RRB-08 — current physical-device proof** — current release candidate needs bounded real-phone evidence after the latest UI slices/hotfix. **Next actor:** owner + agent; physical-device observation required.
+- [ ] **RRB-02 — hosted restore proof or explicit limitation** — execute only against a disposable/authorized hosted target, or obtain explicit owner acceptance at the proper release boundary. **Next actor:** owner + agent if authorized.
+- [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — stale-AMR/account-mismatch destructive edges remain owner/provider-gated. **Next actor:** owner.
+- [ ] **Controlled closed beta** — start only after all P1 entry gates are cleared and no unresolved P0 exists.
 
 ## BLOCKED
 
-- [ ] **Controlled closed beta** — blocked until RRB-01, RRB-04, RRB-05, RRB-06 and RRB-09 satisfy their P1 entry gates and no unresolved P0 exists.
-- [ ] **Public-beta release** — blocked until audit blockers have final dispositions, controlled-beta evidence is available, required provider/security decisions are resolved and PBT-AC15 is recorded.
+- [ ] **RRB-05 — verified support/privacy contact** — source publishes `support@moneyflow.app`, but operator control is unproven. External beta is blocked until the owner proves control or selects an owner-controlled replacement; the agent must not invent that choice.
+- [ ] **RRB-04 — provider/Auth/firewall read-back** — current provider state for password policy, confirmation, CAPTCHA, rate limits, trusted callbacks/OAuth and edge controls is not available through the connected tools. #40/#174 remain owner/provider decisions; no provider write is authorized.
+- [ ] **RRB-06 — Vietnam personal-data legal/privacy operational review** — requires competent owner/legal review; the agent does not issue a compliance certification.
+- [ ] **RRB-09 — production deployment/provider identity read-back** — repository tooling available in this session does not expose current Vercel/Supabase production identity. Do not infer deployed SHA/origin/mode/provider state from repo CI.
+- [ ] **Controlled closed beta** — blocked on RRB-04, RRB-05, RRB-06 and RRB-09 P1 entry gates and any future P0.
+- [ ] **Public-beta release** — blocked until blocker dispositions, controlled-beta evidence, provider/security decisions and PBT-AC15 are complete.
 
 ## OWNER DECISION
 
 - [ ] **#174 — provider-side security controls** — retain until current provider state is re-audited; no provider write without explicit scoped approval.
-- [ ] **#40 — Supabase leaked-password protection** — verify current provider/plan state before enabling or closing; repository code cannot prove this setting.
-- [ ] **RRB-05 operator contact/domain choice** — ownership/control must be proven or an owner-controlled replacement selected before external beta.
-- [ ] **RRB-06 legal/privacy decision** — competent owner/legal review determines applicable operational obligations and remediation.
+- [ ] **#40 — Supabase leaked-password protection** — verify current provider/plan state before enabling or closing.
+- [ ] **RRB-05 operator contact/domain choice** — prove control or select an owner-controlled replacement before external beta.
+- [ ] **RRB-06 legal/privacy decision** — competent review determines applicable operational obligations/remediation.
+- [ ] **RRB-02 / RRB-03 limitation decisions** — explicit owner acceptance is required if proof will not be executed at the applicable release boundary.
 - [ ] **PBT-AC15 — final public-beta go/no-go and accepted limitations** — agent prepares evidence; owner closes the gate.
 
 ## HOLD
@@ -39,10 +42,11 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE
 
-- [x] **Release Readiness Audit v1** — PR #388 merged as `6459fdf7…`; canonical `docs/release/RELEASE_READINESS_AUDIT_V1.md` contains the seven-dimension readiness matrix, nine bounded RRB blockers and controlled closed-beta plan. Final head `04c3f600…` passed CI #2484, CodeQL #1559 and Secret history #1559. Public/closed beta remain blocked on explicit evidence/decision gates.
-- [x] **Open-work reconciliation** — complete through #387; historical work was classified against current main and #40/#174 remain intentional owner/provider decisions.
-- [x] **`js-yaml` 4.3.1 security backport** — #386 merged from current main with full protected checks; stale Dependabot #320 closed superseded.
-- [x] **Dispatcher boundary reconciliation** — #384 merged; lifecycle closed by #385 and stale #380 closed superseded.
+- [x] **RRB-01 authenticated mixed-ledger rendered financial truth** — issue #390 / PR #391. Current authenticated browser evidence proves a coherent two-account ledger with `2,700,000` VND aggregate balance, `2,000,000` income, `300,000` expense, `1,700,000` net, neutral `500,000` internal transfer, `1,200,000` cash and `1,500,000` bank balances. Final head `873f4d4d…` passed CI #2492, CodeQL #1566 and Secret history #1566 before protected squash merge as `9911eafa…`. Database/provider claims remain separately owned.
+- [x] **Release Readiness Audit v1** — #388 merged as `6459fdf7…`; canonical matrix + nine RRB blockers + controlled closed-beta plan recorded.
+- [x] **Open-work reconciliation** — complete through #387; #40/#174 remain intentional owner/provider decisions.
+- [x] **`js-yaml` 4.3.1 security backport** — #386 merged; stale Dependabot #320 closed superseded.
+- [x] **Dispatcher boundary reconciliation** — #384/#385 completed; stale #380 closed superseded.
 - [x] **Amount focus hotfix** — #383 merged with exact-head UI/browser evidence.
 - [x] **UI evolutionary refresh Slice 1 + Slice 2** — #370 and #381 merged.
 - [x] **Phases A–D; P1 Secure / P2 Recover / P3 Prove** — accepted completed records with named limitations preserved.
