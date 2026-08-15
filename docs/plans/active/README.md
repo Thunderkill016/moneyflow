@@ -1,18 +1,18 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `9911eafa157ecca5a1fd8571bb38712ac4de1445` (#391 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 is closed with current authenticated rendered financial-truth proof. Remaining P1 entry gates are provider/contact/legal/production-evidence boundaries; the next fully agent-owned repository task is RRB-07.
+**Current main baseline:** `59da7ad28f88a4a227b83fa058c36dcf5e909fe4` (#394 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed at their scoped browser evidence layers. Remaining release work now depends on owner/provider/legal/production or physical-device evidence; there is no fully autonomous repository-only blocker left to execute.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **RRB-07 — WCAG 2.2 Accessible Authentication proof** — produce bounded current-main browser/accessibility evidence for login, registration and recovery against the applicable WCAG 2.2 Accessible Authentication (Minimum) boundary. Reuse current auth/a11y harnesses; do not turn the task into a visual redesign. **Done when:** applicable authentication inputs/steps are mapped to the criterion, targeted browser evidence passes, and any actual defect is fixed only as a bounded release blocker with exact-head protected checks. **Next actor:** agent.
+- [ ] **Release-boundary handoff — unlock the next evidence layer.** Repository-only remediation is exhausted for the currently known blocker set. Resume with the first boundary that becomes legitimately available: current physical-phone observation (RRB-08), an explicitly authorized disposable hosted restore target (RRB-02), current provider/production read access (RRB-04/RRB-09), or owner/legal decisions (RRB-03/RRB-05/RRB-06). Do not manufacture a repo task to keep the queue moving. **Next actor:** owner + agent at the applicable evidence boundary.
 
 ## NEXT
 
-- [ ] **RRB-08 — current physical-device proof** — current release candidate needs bounded real-phone evidence after the latest UI slices/hotfix. **Next actor:** owner + agent; physical-device observation required.
+- [ ] **RRB-08 — current physical-device proof** — current release candidate needs bounded real-phone evidence after the latest UI/auth fixes. **Next actor:** owner + agent; physical-device observation required.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — execute only against a disposable/authorized hosted target, or obtain explicit owner acceptance at the proper release boundary. **Next actor:** owner + agent if authorized.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — stale-AMR/account-mismatch destructive edges remain owner/provider-gated. **Next actor:** owner.
 - [ ] **Controlled closed beta** — start only after all P1 entry gates are cleared and no unresolved P0 exists.
@@ -42,8 +42,9 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE
 
+- [x] **RRB-07 Accessible Authentication (Minimum) scoped browser proof** — issue #393 / PR #394. MoneyFlow-owned login, re-auth, recovery, replacement-password and supporting registration mechanisms now have explicit autocomplete + real clipboard-paste evidence; login/re-auth expose the OAuth alternative. The proof exposed and fixed a shared `AuthPasswordField` accessible-name defect without changing provider configuration. Final head `35a31ba5…` passed CI #2511, CodeQL #1584 and Secret history #1584; all five target cases passed first-run in the final UI-audit artifact before protected squash merge as `59da7ad2…`. Real Google OAuth/Turnstile provider accessibility and whole-site WCAG conformance are **not** claimed.
 - [x] **RRB-01 authenticated mixed-ledger rendered financial truth** — issue #390 / PR #391. Current authenticated browser evidence proves a coherent two-account ledger with `2,700,000` VND aggregate balance, `2,000,000` income, `300,000` expense, `1,700,000` net, neutral `500,000` internal transfer, `1,200,000` cash and `1,500,000` bank balances. Final head `873f4d4d…` passed CI #2492, CodeQL #1566 and Secret history #1566 before protected squash merge as `9911eafa…`. Database/provider claims remain separately owned.
-- [x] **Release Readiness Audit v1** — #388 merged as `6459fdf7…`; canonical matrix + nine RRB blockers + controlled closed-beta plan recorded.
+- [x] **Release Readiness Audit v1** — #388 merged as `6459fdf7…`; canonical matrix + blocker backlog + controlled closed-beta plan recorded.
 - [x] **Open-work reconciliation** — complete through #387; #40/#174 remain intentional owner/provider decisions.
 - [x] **`js-yaml` 4.3.1 security backport** — #386 merged; stale Dependabot #320 closed superseded.
 - [x] **Dispatcher boundary reconciliation** — #384/#385 completed; stale #380 closed superseded.
