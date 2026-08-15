@@ -37,6 +37,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## HOLD
 
+- [ ] **Engineering literature → executable MoneyFlow guardrails** — after release blockers are cleared or the owner explicitly promotes this work, distill selected engineering books into project-specific `Accepted principles / Do not apply / Mapped owner / Evidence` entries, then promote only useful ideas into existing policy, tests, CI, architecture or context routing. Initial reading queue: *Software Engineering at Google*; *Designing Data-Intensive Applications* (2nd ed.); *Building Secure & Reliable Systems*; *Working Effectively with Legacy Code*; *Domain-Driven Design*; *Refactoring* (2nd ed.); *A Philosophy of Software Design* (2nd ed.); *Test-Driven Development: By Example*; *Site Reliability Engineering* + *The Site Reliability Workbook*. **Constraints:** no wholesale book summaries or copyrighted-text copying; literature never overrides product law, current code or intentional tests; do not add ceremony, abstraction or process without a demonstrated MoneyFlow problem. **Next actor:** agent only when the owner promotes it from HOLD.
 - [ ] **Phase E Creative Territories** — paused; every proposed territory was owner-rejected and none is selected.
 - [ ] **Phase F / broader Brand-Product Experience implementation** — not started and not implied by sequence.
 
