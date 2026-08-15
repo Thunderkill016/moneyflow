@@ -1,11 +1,11 @@
 # Release Readiness Audit v1
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** evaluator  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Issue/PR:** #388  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** Thunderkill016
+**Issue/PR:** #388
 **Last updated:** 2026-08-15
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This is a Class 3 cross-boundary audit. It authorizes evidence work only: no provider/production/database/Edge/deployment write and no blocker implementation.
