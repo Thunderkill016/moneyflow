@@ -2,14 +2,14 @@
 
 **Status:** single current implementation/trust-status authority
 **Last reconciled:** 2026-08-15
-**Current main baseline:** `59da7ad28f88a4a227b83fa058c36dcf5e909fe4` (#394 merged)
+**Current main baseline:** `1bb50814d62acdc6e45c6977bbe6184b5d028dac` (#397 merged)
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
 
 MoneyFlow is a released functional MVP and is **not public-beta ready**.
 
-Release Readiness Audit v1 (#388) is the canonical release audit. RRB-01 and RRB-07 have since been closed by current-main browser/runtime evidence in #391 and #394.
+Release Readiness Audit v1 (#388) is the canonical release audit. RRB-01 and RRB-07 have since been closed by current-main browser/runtime evidence in #391 and #394. On 2026-08-15 the owner explicitly promoted RRB-08 as the next current task; issue #398 and `docs/plans/active/rrb-08-physical-device-proof.md` own that bounded validation.
 
 Current release decision:
 
@@ -18,11 +18,11 @@ Current release decision:
 - core finance arithmetic, transfer neutrality, RLS/tenant isolation and local archive/restore contracts remain strongly covered at their correct layers;
 - authenticated rendered mixed-ledger financial truth is proven on current main;
 - MoneyFlow-owned login/re-auth/recovery password mechanisms now have explicit WCAG 2.2 Accessible Authentication browser evidence, without claiming provider-managed OAuth/Turnstile conformance;
-- no fully agent-owned repository blocker remains after RRB-07; remaining progress depends on owner/provider/legal/read-access or physical-device/authorized-hosted evidence.
+- RRB-08 is now the current owner-authorized P2 validation task, but completion remains blocked until a real phone is available for observation.
 
 Current sequence:
 
-> owner/provider/legal/read-access P1 gates RRB-04/05/06/09 → owner-assisted P2 proof or explicit limitation for RRB-02/03/08 → controlled closed beta after P1 clearance → owner PBT-AC15 decision.
+> RRB-08 real-phone proof when the physical device is available + owner/provider/legal/read-access P1 gates RRB-04/05/06/09 → remaining owner-assisted P2 proof or explicit limitation for RRB-02/03 → controlled closed beta after P1 clearance → owner PBT-AC15 decision.
 
 The owner-facing checklist is `docs/plans/active/README.md`.
 
@@ -74,7 +74,7 @@ Provider-managed Google OAuth and Cloudflare Turnstile behavior remain separate 
 
 Release Readiness Audit v1 is complete and archived. RRB-01 is complete through #391. RRB-07 is complete through #394.
 
-There is **no fully agent-owned repository blocker currently authorized**. Do not invent a replacement implementation task merely to keep execution moving.
+**RRB-08 is the current owner-authorized task via issue #398.** Agent preparation is bounded to the physical-device runbook/evidence template. Browser emulation, simulators and CI cannot close RRB-08. The task remains incomplete until a real phone is observed against a selected release-candidate origin and the evidence records device/OS/browser/mode plus pass/fail/defects.
 
 Remaining P1 gates are not automatic agent work:
 
@@ -83,11 +83,10 @@ Remaining P1 gates are not automatic agent work:
 - RRB-06 — competent legal/privacy review boundary;
 - RRB-09 — current Vercel/Supabase production identity requires provider read access not exposed by the connected tools in this session.
 
-Remaining P2 work is also authority/evidence dependent:
+Remaining P2 work after RRB-08 is also authority/evidence dependent:
 
 - RRB-02 — hosted restore requires a disposable/authorized hosted target or explicit owner limitation decision;
-- RRB-03 — destructive recent-auth provider edges require owner authorization/decision;
-- RRB-08 — current physical-device proof requires real-phone observation.
+- RRB-03 — destructive recent-auth provider edges require owner authorization/decision.
 
 Provider configuration, production data, deployment writes, legal decisions and owner-accepted limitations retain explicit authority boundaries.
 
@@ -112,7 +111,7 @@ Provider configuration, production data, deployment writes, legal decisions and 
 | Ownership | versioned archive/export/validation/restore contract; hosted restore limitation remains |
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
 | Experience | responsive light/dark web UI; Slice 1 + Slice 2 + focus hotfix merged; RRB-07 auth semantic repair merged |
-| Release proof | audit complete; RRB-01 and RRB-07 closed; P1 RRB-04/05/06/09 and P2 RRB-02/03/08 remain |
+| Release proof | audit complete; RRB-01 and RRB-07 closed; RRB-08 active/pending physical observation; P1 RRB-04/05/06/09 and P2 RRB-02/03 remain |
 | Public beta | not approved; controlled beta and PBT-AC15 remain ahead |
 
 Code, migrations and tests outrank this table on implementation detail.
@@ -128,7 +127,7 @@ Current named gaps/limitations:
 - RRB-04: current provider/Auth/firewall state is not read back;
 - RRB-05: operator control of the published support/privacy contact is unproven;
 - RRB-06: current Vietnam personal-data legal/privacy operational review is not recorded;
-- RRB-08: physical-device evidence predates the latest UI slices/hotfix and #394 auth repair;
+- RRB-08: active via #398; historical physical-device evidence predates the latest UI slices/hotfix and #394 auth repair, and current real-phone observation is still missing;
 - RRB-09: current production deployment/provider identity is not tied to the release candidate.
 
 RRB-01 and RRB-07 are no longer gaps.
@@ -144,6 +143,8 @@ RRB-01 and RRB-07 are no longer gaps.
 - #391 final head `873f4d4d16f06e41f3b81bef5495c331434b09c7` passed CI #2492, CodeQL #1566 and Secret history #1566 before expected-head squash merge as `9911eafa…`.
 - #394 final head `35a31ba52e4e44ec48d89b69b172b1764cfd8854` passed CI #2511, CodeQL #1584 and Secret history #1584 before merge as `59da7ad2…`.
 - #394 final Cross-device UI audit executed 697 cases: `556 passed`, `141 skipped`, `0 failed`; RRB-07 cases #691–#695 all passed first-run. Final UI-audit artifact digest is `sha256:d69fa4d1e2f018ff7e0e99a77f0fd896fe65eddc5bce982b2a2f12db494f9384`.
+- #396 lifecycle closeout merged as `d5efc6d1…`; its post-merge main CI #2518 passed full policy/static/unit/build/database/browser/UI/e2e regression.
+- #397 merged as `1bb50814…` and added the owner-approved engineering-literature backlog to HOLD without changing release priority.
 - Database checks were explicitly not required for #394 and are not claimed as database proof.
 - Current CI still emits a Node-20-deprecation warning for the pinned checkout action generation. That is tooling debt outside the release-blocker proofs and must not be silently bundled into unrelated work.
 - Independent PR review was unavailable for #391 and #394; no review submission is claimed. #394 also had no inline or conversation comments at merge verification.
@@ -155,6 +156,10 @@ Completed:
 - #390 / RRB-01 — completed by #391.
 - #393 / RRB-07 — completed by #394.
 
+Current:
+
+- #398 / RRB-08 — owner-authorized physical-device validation; agent prep active, real-phone observation pending.
+
 Still intentionally open/decision-gated:
 
 - #40 — Supabase leaked-password protection; provider plan/state + owner decision required.
@@ -164,7 +169,7 @@ Audit blocker IDs are owned by the Current Work Board and canonical release audi
 
 ## 9. Open pull-request memory
 
-RRB-07 lifecycle closeout is a documentation-only candidate until its own exact-head policy checks pass and it merges. It changes no runtime/provider/database behavior.
+RRB-08 preparation is candidate lifecycle/evidence tooling until its own exact-head policy checks pass and it merges. It changes no runtime/provider/database behavior and does not constitute physical-device proof.
 
 Future blocker PRs remain candidate evidence until exact-head gates and lifecycle closeout complete. A green check on an older head never proves a newer head.
 
@@ -181,20 +186,21 @@ Remaining P2:
 
 5. RRB-02 — hosted restore proof/accepted limitation;
 6. RRB-03 — destructive recent-auth provider-edge proof/accepted limitation;
-7. RRB-08 — current physical-device proof.
+7. RRB-08 — current physical-device proof, active via #398 and pending real-phone observation.
 
 Controlled closed beta remains blocked until the P1 entry gates are satisfied and there is no unresolved P0. Public beta additionally requires controlled-beta evidence and explicit PBT-AC15.
 
 ## 11. Next allowed action
 
-No autonomous repository implementation task is currently authorized.
+**RRB-08 is active.** The repository-side preparation may be completed now; the acceptance action requires a real physical phone and owner observation.
 
-Resume only when the required evidence/authority boundary becomes available:
+When the device is available, execute `docs/plans/active/rrb-08-physical-device-proof.md` against the selected release-candidate origin and record the evidence. Until then, do not mark RRB-08 PASS and do not substitute emulation/simulator/browser CI.
+
+Other boundaries remain unchanged:
 
 - owner/provider read access → RRB-04 and/or RRB-09 read-back;
 - owner proves or selects an operator-controlled contact → RRB-05 follow-up if source changes are needed;
 - competent legal/privacy review → RRB-06 remediation only if required;
-- real physical phone available → RRB-08 with owner observation;
 - disposable/authorized hosted target → RRB-02 proof;
 - owner authorization/decision → RRB-03 provider-edge proof or explicit limitation.
 
@@ -202,6 +208,7 @@ Do not auto-resolve RRB-04/05/06/09 or owner-accepted limitations. Provider/prod
 
 ## 12. Superseded-status register
 
+- “No current owner-authorized task exists” is superseded by owner promotion of RRB-08 / issue #398.
 - “RRB-07 is a current proof gap / next agent-owned task” is superseded by #394.
 - “RRB-01 is a current proof gap” is superseded by #391.
 - “Release Readiness Audit v1 is still pending/current” is superseded by #388.
