@@ -48,11 +48,25 @@ test.describe("Global PFM UX benchmark", () => {
     }
 
     await page.goto("/capture/quick");
-    await page.getByRole("button", { name: /Khoản chi/i, exact: true }).click();
-    await page.getByLabel(/Số tiền chi/i).fill(String(AMOUNT));
-    await page.getByRole("button", { name: "Ăn uống", exact: true }).click();
-    await page.getByPlaceholder("Ví dụ: Cơm trưa").fill(NOTE);
-    await page.getByRole("button", { name: "Lưu", exact: true }).click();
+    const quickDialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
+    await expect(quickDialog).toBeVisible();
+    await quickDialog
+      .getByRole("button", { name: /Khoản chi/i, exact: true })
+      .click();
+    await quickDialog.getByLabel(/Số tiền chi/i).fill(String(AMOUNT));
+
+    const category = quickDialog.locator(
+      'details[data-slot="capture-category-choice"]',
+    );
+    await category.locator("summary").click();
+    await category.getByRole("button", { name: "Ăn uống", exact: true }).click();
+
+    const optional = quickDialog.locator(
+      'details[data-slot="capture-optional-details"]',
+    );
+    await optional.locator("summary").click();
+    await quickDialog.getByPlaceholder("Ví dụ: Cơm trưa").fill(NOTE);
+    await quickDialog.getByRole("button", { name: "Lưu", exact: true }).click();
 
     await expect
       .poll(
