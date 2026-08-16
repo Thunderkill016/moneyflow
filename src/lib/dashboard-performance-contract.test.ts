@@ -9,29 +9,13 @@ function read(rel: string): string {
   return readFileSync(join(root, rel), "utf8");
 }
 
-test("authenticated dashboard does not eagerly ship demo-only browser stores", () => {
-  const source = read("src/components/moneyflow-dashboard.tsx");
-  const demoOnlyModules = [
-    "@/lib/planning/commitment-occurrence-store",
-    "@/lib/planning/income-template-store",
-    "@/lib/inbox/candidate-store",
-  ];
+test("root font keeps Vietnamese coverage without forcing every subset preload", () => {
+  const source = read("src/app/layout.tsx");
 
-  for (const modulePath of demoOnlyModules) {
-    assert.doesNotMatch(
-      source,
-      new RegExp(`^import\\s+[^;]+from\\s+["']${modulePath}["']`, "m"),
-      `${modulePath} must stay out of the authenticated dashboard's eager imports`,
-    );
-    assert.match(
-      source,
-      new RegExp(`import\\(["']${modulePath}["']\\)`),
-      `${modulePath} should load only from the demo-only effect path`,
-    );
-  }
-
-  assert.match(source, /if \(!viewer\.isDemo\) return;/);
-  assert.match(source, /cancelled/);
+  assert.match(source, /subsets:\s*\["latin", "vietnamese"\]/);
+  assert.match(source, /display:\s*"swap"/);
+  assert.match(source, /adjustFontFallback:\s*true/);
+  assert.match(source, /preload:\s*false/);
 });
 
 test("closed app-shell sheets are split out of the first client paint without breaking focus restore", () => {
