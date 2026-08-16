@@ -268,7 +268,7 @@ test.describe("Expense path (thu chi)", () => {
     await expect(openButton).toBeVisible();
     await openButton.click();
 
-    const dialog = page.getByRole("dialog", { name: "Ghi chi tiêu" });
+    const dialog = page.getByRole("dialog", { name: "Ghi khoản chi" });
     await expect(dialog).toBeVisible();
 
     const amount = dialog.getByLabel(/Số tiền chi/i);
