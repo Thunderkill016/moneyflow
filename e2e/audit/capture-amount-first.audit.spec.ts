@@ -119,7 +119,7 @@ test.describe("Capture 4 compact keyboard-first phone", () => {
     await expect(defaults).toContainText("Ăn uống");
     await expect(defaults).toContainText("MB Bank");
     await expect(suggestions).toBeVisible();
-    await expect(suggestions.locator("button")).toHaveCount(2);
+    await expect(suggestions.locator(":scope > button")).toHaveCount(2);
     await expect(
       suggestions.locator('details[data-slot="capture-category-choice"] > summary'),
     ).toContainText("Khác");
