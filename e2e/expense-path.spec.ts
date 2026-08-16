@@ -137,35 +137,38 @@ test.describe("Expense path (thu chi)", () => {
     }
 
     await page.goto("/capture/quick");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Thêm nhanh" }),
-    ).toBeVisible();
-    const expenseKind = page.getByRole("button", { name: "Khoản chi" });
+    const quickDialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
+    await expect(quickDialog).toBeVisible();
+
+    const expenseKind = quickDialog.getByRole("button", { name: "Khoản chi" });
     await expect(expenseKind).toBeVisible();
     await expenseKind.click();
 
-    const amount = page.getByLabel(/Số tiền chi/i);
+    const amount = quickDialog.getByLabel(/Số tiền chi/i);
     await expect(amount).toBeFocused();
     await amount.fill(UNIQUE_AMOUNT);
     await expect(amount).toHaveValue(UNIQUE_AMOUNT_DISPLAY);
 
-    const workspace = page.locator('[data-slot="capture-quick-workspace"]');
-    await expect(workspace.locator('[data-slot="capture-account-choice"] summary')).toBeVisible();
-    await expect(workspace.locator('[data-slot="capture-category-choice"] summary')).toBeVisible();
+    await expect(
+      quickDialog.locator('[data-slot="capture-account-choice"] summary'),
+    ).toBeVisible();
+    await expect(
+      quickDialog.locator('[data-slot="capture-category-choice"] summary'),
+    ).toBeVisible();
 
     const categoryDisclosure = await openCaptureDetails(
-      workspace,
+      quickDialog,
       "capture-category-choice",
     );
     await categoryDisclosure
       .getByRole("button", { name: "Ăn uống", exact: true })
       .click();
 
-    await openCaptureDetails(workspace, "capture-optional-details");
-    const note = page.getByPlaceholder("Ví dụ: Cơm trưa");
+    await openCaptureDetails(quickDialog, "capture-optional-details");
+    const note = quickDialog.getByPlaceholder("Ví dụ: Cơm trưa");
     await note.fill(UNIQUE_NOTE);
 
-    const form = page.locator("form").filter({ has: amount });
+    const form = quickDialog.locator("form");
     const save = form.getByRole("button", { name: "Lưu", exact: true });
     await stabilizeQuickExpense(amount, note, save);
     await save.click();
@@ -351,10 +354,12 @@ test.describe("Expense path (thu chi)", () => {
     page,
   }) => {
     await page.goto("/capture/quick?kind=income");
+    const quickDialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
+    await expect(quickDialog).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Khoản thu" }),
+      quickDialog.getByRole("button", { name: "Khoản thu" }),
     ).toHaveAttribute("aria-pressed", "true");
-    await expect(page.getByLabel(/Số tiền thu/i)).toBeFocused();
+    await expect(quickDialog.getByLabel(/Số tiền thu/i)).toBeFocused();
 
     await page.goto("/capture/quick?kind=transfer");
     const transferDialog = page.getByRole("dialog", { name: "Chuyển tiền" });
