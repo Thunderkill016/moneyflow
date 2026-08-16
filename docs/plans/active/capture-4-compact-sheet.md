@@ -1,7 +1,7 @@
 # Capture 4 — compact keyboard-first quick sheet
 
 **Status:** implementing
-**Execution state:** implementing
+**Execution state:** verifying
 **Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** owner-authorized from direct real-phone screenshots
@@ -76,14 +76,16 @@ Do not add another capture model. Keep #412 semantics and redesign only the deci
 - [ ] No CSS `!important`; no new arbitrary literal geometry used merely to satisfy audits. Prefer existing design tokens/shared primitives.
 - [ ] Existing mutation, idempotency, transfer neutrality and learned-preset tests remain green.
 
-## Architecture fit
+## Implementation plan
+
+### Architecture fit
 
 - `AddTransactionDialog` remains the only quick Expense/Income submit owner.
 - #412 `quick-add-prefs` preset persistence is unchanged.
 - Capture-only presentation belongs in `capture-fast-path.module.css`; shared transaction primitives remain unchanged in this candidate.
 - No schema/RLS/provider/deployment/production-data mutation.
 
-## Planned changes
+### Planned changes
 
 | Area | Change |
 |---|---|
@@ -92,7 +94,14 @@ Do not add another capture model. Keep #412 semantics and redesign only the deci
 | focused static/e2e/audit tests | replace Capture 3 heavy-card/rail expectations with Capture 4 compact-sheet contracts |
 | lifecycle docs | archive #412 active packet and record #413/#414 candidate state |
 
-## Risks and prevention
+### Data and migration impact
+
+- Database/schema migration: none.
+- Provider/RLS/Auth change: none.
+- Stored Capture 3 preference key and learned preset shape: unchanged.
+- Rollback: revert #414 presentation changes; no data rollback or backfill required.
+
+### Risks and prevention
 
 | Risk | Prevention |
 |---|---|
@@ -101,6 +110,14 @@ Do not add another capture model. Keep #412 semantics and redesign only the deci
 | Removing footer Cancel traps users | modal close button, Escape/back and dialog dismiss remain; embedded host retains explicit Cancel |
 | Keyboard hides Save/context | existing one-scroll-owner + constrained-height audit updated around compact decision surface |
 | Cosmetic patch regresses design-system discipline | reuse existing tokens and component target-size contract; tests continue to reject CSS `!important` |
+
+### Verification plan
+
+- Static/policy: diff hygiene, project knowledge, deployment/CSS ownership, architecture, lint and typecheck.
+- Unit/domain: existing quick-add preset, finance and static RLS suites unchanged except presentation contracts.
+- Browser: expense path, repeated entry, direct income/transfer modes and authenticated smoke.
+- UI: normal cross-device matrix plus dedicated 390×568 compact capture audit; inspect artifact screenshots at 360/390 and light/dark.
+- Physical: owner real-phone re-test under RRB-08 after merge/deploy; browser evidence is not a substitute.
 
 ## Tasks
 
@@ -116,14 +133,15 @@ Do not add another capture model. Keep #412 semantics and redesign only the deci
 
 | Date | From | To | State | Evidence | Remaining boundary |
 |---|---|---|---|---|---|
-| 2026-08-16 | human_owner | implementer | implementing | direct phone screenshots + #413 + PR #414 + research above | ready-state browser/CI next; final physical-phone acceptance remains owner-observed under RRB-08 |
+| 2026-08-16 | human_owner | implementer | verifying | direct phone screenshots + #413 + PR #414 + research above | corrected ready-state browser/CI next; final physical-phone acceptance remains owner-observed under RRB-08 |
 
 ## Evaluation
 
 ### Acceptance evidence
 
-- Draft PR #414 exists; draft CI only classifies and intentionally skips heavy verification.
-- Ready-state exact-head build/static/unit/browser/UI/e2e evidence is still pending.
+- PR #414 is ready for review.
+- First ready-state CI exposed only packet/memory schema omissions in policy; diff hygiene and migration identity passed. Schema omissions are corrected without weakening the checker.
+- Corrected exact-head build/static/unit/browser/UI/e2e evidence is pending.
 
 ### Remaining limitations
 
@@ -135,6 +153,6 @@ Do not add another capture model. Keep #412 semantics and redesign only the deci
 - Branch: `capture-4-compact-sheet-413`
 - Base: `30ad41a8cb81c9161af2304a5cef596c80f16dcf`
 - PR: #414
-- Exact head: pending final ready-state head
-- CI: pending final ready-state run
+- Exact head: pending final corrected head
+- CI: pending final corrected ready-state run
 - Merge/deployment: pending
