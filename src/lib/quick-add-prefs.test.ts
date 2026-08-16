@@ -6,18 +6,14 @@ import {
   isRecentCategoryId,
   orderCategoriesByRecent,
   pickCategoryForKind,
+  pickKnownCategoryForKind,
   pushRecentCategoryId,
   pushRecentPreset,
 } from "./quick-add-prefs.ts";
 
 test("validates prefs shape", () => {
   assert.equal(
-    isQuickAddPrefs({
-      kind: "expense",
-      accountId: "a1",
-      categoryId: "c1",
-      keepOpen: true,
-    }),
+    isQuickAddPrefs({ kind: "expense", accountId: "a1", categoryId: "c1", keepOpen: true }),
     true,
   );
   assert.equal(
@@ -101,26 +97,26 @@ test("pushRecentPreset keeps coherent newest account/category pairs", () => {
 
 test("orderCategoriesByRecent surfaces recent first", () => {
   const cats = [{ id: "a" }, { id: "b" }, { id: "c" }];
-  assert.deepEqual(
-    orderCategoriesByRecent(cats, ["c", "a"]).map((x) => x.id),
-    ["c", "a", "b"],
-  );
+  assert.deepEqual(orderCategoriesByRecent(cats, ["c", "a"]).map((x) => x.id), ["c", "a", "b"]);
   assert.deepEqual(orderCategoriesByRecent(cats, undefined), cats);
-  // Unknown recent ids ignored; relative order among non-recent preserved
-  assert.deepEqual(
-    orderCategoriesByRecent(cats, ["x", "b"]).map((x) => x.id),
-    ["b", "a", "c"],
-  );
+  assert.deepEqual(orderCategoriesByRecent(cats, ["x", "b"]).map((x) => x.id), ["b", "a", "c"]);
 });
 
-test("pickCategoryForKind prefers preferred, then recent, then first", () => {
+test("pickKnownCategoryForKind uses only established choices", () => {
+  const cats = [{ id: "a" }, { id: "b" }, { id: "c" }];
+  assert.equal(pickKnownCategoryForKind([], ["a"], "a"), "");
+  assert.equal(pickKnownCategoryForKind(cats, undefined, undefined), "");
+  assert.equal(pickKnownCategoryForKind(cats, ["c", "b"], "b"), "b");
+  assert.equal(pickKnownCategoryForKind(cats, ["x", "c", "a"], "missing"), "c");
+  assert.equal(pickKnownCategoryForKind(cats, ["x"], undefined), "");
+});
+
+test("legacy pickCategoryForKind still permits an intentional taxonomy fallback", () => {
   const cats = [{ id: "a" }, { id: "b" }, { id: "c" }];
   assert.equal(pickCategoryForKind([], ["a"], "a"), "");
   assert.equal(pickCategoryForKind(cats, undefined, undefined), "a");
   assert.equal(pickCategoryForKind(cats, ["c", "b"], "b"), "b");
-  // Preferred not in list → first recent that exists
   assert.equal(pickCategoryForKind(cats, ["x", "c", "a"], "missing"), "c");
-  // No recent match → first category
   assert.equal(pickCategoryForKind(cats, ["x"], undefined), "a");
 });
 
