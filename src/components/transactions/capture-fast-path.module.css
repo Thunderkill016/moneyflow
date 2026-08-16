@@ -145,9 +145,7 @@
 }
 
 .categoryChip svg {
-  flex: 0 0 auto;
-  width: var(--space-4);
-  height: var(--space-4);
+  display: none;
 }
 
 .categoryChip span {
