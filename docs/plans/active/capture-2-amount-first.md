@@ -1,11 +1,11 @@
 # Capture 2.0 — amount-first quick capture
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** owner-authorized ChatGPT implementation  
-**Issue/PR:** #409 / PR pending  
+**Status:** implementing
+**Execution state:** implementing
+**Active role:** implementer
+**Permission scope:** branch_write
+**Owner:** owner-authorized ChatGPT implementation
+**Issue/PR:** #409 / #410
 **Last updated:** 2026-08-16
 
 ## Outcome
@@ -29,7 +29,7 @@ Make MoneyFlow's high-frequency manual capture path feel like an input tool rath
 | `src/components/transactions/transaction-form.module.css` | capture geometry and keyboard constraints | change local owner only |
 | `src/components/transfer-dialog.tsx` | trusted transfer boundary | reuse, do not duplicate transfer math |
 | `src/components/moneyflow-dashboard.tsx` | in-place Dashboard capture | wire transfer handoff only |
-| `src/components/transactions/transactions-workspace.tsx` | in-place ledger capture + transfer | wire unified capture entry |
+| `src/components/transactions/transactions-workspace.tsx` | in-place ledger capture + transfer | preserve separate trusted owners |
 | `src/components/inbox/capture-quick-page.tsx` | `/capture/quick` shared form host | pass initial kind and transfer handoff |
 | `src/app/capture/quick/page.tsx` | shortcut/deep-link entry | parse trusted kind query only |
 | `src/app/manifest.ts` | installed-PWA quick actions | add progressive shortcuts |
@@ -150,9 +150,9 @@ Frequent users repeat choices the app already remembers, yet the current UI stil
 |---|---|---|
 | `add-transaction-dialog.tsx` | amount-first structure, compact disclosures, optional initial kind + transfer handoff | remove common-path friction without duplicate mutation logic |
 | `transaction-form.module.css` | compact confirmation/disclosure geometry and mobile footer | keep save/defaults reachable with keyboard pressure |
-| dashboard / transactions / capture quick hosts | wire transfer handoff and initial kind | consistent entry behavior |
+| dashboard / capture quick hosts | wire transfer handoff and initial kind | consistent daily entry behavior without duplicating transfer math |
 | `manifest.ts` | add expense/income/transfer shortcuts | faster installed-PWA entry |
-| affected e2e | open disclosures only when test intentionally changes secondary data | contract new UX instead of old form shape |
+| affected e2e/contracts | open disclosures only when test intentionally changes secondary data | contract new UX instead of old form shape |
 
 ### Data and migration impact
 
@@ -169,12 +169,12 @@ Frequent users repeat choices the app already remembers, yet the current UI stil
 | User cannot find category | labeled native disclosure + full existing category grid |
 | Keyboard still blocks save | compact first viewport + existing dialog footer/one-scroll-owner + UI audit |
 | Transfer accidentally uses income/expense mutation | callback hands off only to existing `TransferDialog`/`addTransfer` |
-| Deep-link kind is untrusted | only normalize explicit `expense`/`income`; fallback to prefs |
+| Deep-link kind is untrusted | only normalize explicit `expense`/`income`/`transfer`; fallback to prefs |
 
 ### Verification plan
 
 - Static: CI policy, knowledge, architecture, CSS ownership, lint, typecheck, build.
-- Unit/domain: existing finance/money/quick-prefs tests.
+- Unit/domain: existing finance/money/quick-prefs tests plus refreshed source contracts.
 - Database: not expected for presentation-only mutation reuse unless CI classifier selects it.
 - Browser flow: expense path, keep-open, transfer handoff, deep-link initial kind.
 - Responsive/visual: full PR UI audit including 320/360/390, dark and WebKit.
@@ -184,17 +184,17 @@ Frequent users repeat choices the app already remembers, yet the current UI stil
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| T1 | Record authority + packet | owner approval | #409 + this packet + board | doing |
-| T2 | Redesign shared quick capture presentation | T1 | focused diff | todo |
-| T3 | Wire transfer handoff + deep-link kinds/PWA shortcuts | T2 | route/browser contract | todo |
-| T4 | Update affected e2e contracts | T2/T3 | exact assertions | todo |
+| T1 | Record authority + packet | owner approval | #409 + this packet + board | done |
+| T2 | Redesign shared quick capture presentation | T1 | focused diff in #410 | done |
+| T3 | Wire transfer handoff + deep-link kinds/PWA shortcuts | T2 | route/browser contract | done |
+| T4 | Update affected e2e/static contracts | T2/T3 | exact assertions | doing |
 | T5 | Independent review + exact-head CI/UI evidence | T4 | PR checks/artifact review | todo |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-16 | human_owner | implementer | implementing | owner authorization + #409 | no local repo runtime; `agent:doctor` cannot run in this chat container because outbound DNS prevents cloning | implement on branch, rely on exact-head CI for executable gates |
+| 2026-08-16 | human_owner | implementer | implementing | owner authorization + #409 + PR #410 | no local repo runtime; `agent:doctor` cannot run in this chat container because outbound DNS prevents cloning | fix exact-head gate findings, then review CI/browser artifacts |
 
 ### Current permission boundary
 
@@ -210,10 +210,10 @@ Frequent users repeat choices the app already remembers, yet the current UI stil
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Amount-first common path | pending | pending |
-| Defaults visible and editable | pending | pending |
-| Transfer boundary preserved | pending | pending |
-| Responsive/browser | pending | pending |
+| Amount-first common path | pending exact-head browser evidence | pending |
+| Defaults visible and editable | pending exact-head browser evidence | pending |
+| Transfer boundary preserved | existing `addTransfer` handoff + pending browser evidence | pending |
+| Responsive/browser | pending exact-head UI audit | pending |
 
 ### Research and adoption evidence
 
@@ -223,11 +223,11 @@ Frequent users repeat choices the app already remembers, yet the current UI stil
 
 ### Review findings
 
-- Correctness: pending.
+- Correctness: first ready-state run exposed stale source contracts; contracts are being reconciled to the owner-authorized hierarchy without weakening financial assertions.
 - Security/ownership: no boundary change planned.
 - UI/UX/accessibility: pending exact-head artifact review.
 - Maintainability/duplication: reuse existing mutation paths; no duplicate financial logic.
-- Scope compliance: pending.
+- Scope compliance: pending final diff review.
 
 ### Remaining limitations
 
@@ -236,9 +236,9 @@ Frequent users repeat choices the app already remembers, yet the current UI stil
 ## Delivery record
 
 - Branch: `capture-2-amount-first-409`
-- PR: pending
+- PR: #410
 - Squash commit: pending
-- CI run: pending
+- CI run: pending final exact-head run
 - Production deployment: pending
 - Production flow verified: pending
 - Work packet moved to `docs/plans/completed/`: pending
