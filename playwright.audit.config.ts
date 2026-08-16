@@ -13,6 +13,7 @@ const onboardingSpec = /onboarding-presentation\.audit\.spec\.ts/;
 const authAmountSpec = /auth-and-amount\.audit\.spec\.ts/;
 const accessibleAuthSpec = /accessible-authentication\.audit\.spec\.ts/;
 const keyboardSpec = /keyboard\.audit\.spec\.ts/;
+const captureConstrainedSpec = /capture-amount-first\.audit\.spec\.ts/;
 
 const responsiveWithSafety = [responsiveSpec, safetyReviewSpec, onboardingSpec, authAmountSpec];
 const criticalWithSafety = [criticalBrowserSpec, safetyReviewSpec, onboardingSpec, authAmountSpec];
@@ -67,6 +68,16 @@ export default defineConfig({
       use: {
         browserName: "chromium",
         viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "chromium-capture-constrained",
+      testMatch: captureConstrainedSpec,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 390, height: 568 },
         isMobile: true,
         hasTouch: true,
       },

@@ -37,6 +37,7 @@ test("R4: quick capture learns coherent presets and keeps recent category orderi
   assert.match(src, /isRecentCategoryId/);
   assert.match(src, /data-slot="capture-fast-defaults"/);
   assert.match(src, /data-slot="capture-category-suggestions"/);
+  assert.match(src, /\.slice\(0, 2\)/);
   assert.match(src, /data-recent/);
   assert.match(src, /Gần đây/);
   assert.match(src, /hay dùng trước/);
@@ -56,14 +57,16 @@ test("R4: save-and-add-another keeps a controlled dialog session alive", () => {
   assert.match(src, /Giữ form mở/);
 });
 
-test("R4: default dialog copy is G5 thu chi (not inbox brand)", () => {
+test("R4: default dialog copy resolves to concise thu chi titles", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   assert.match(src, /title = "Ghi chi tiêu"/);
-  assert.match(src, /eyebrow = "Nhập nhanh"/);
-  assert.doesNotMatch(src, /hộp thư|Inbox-first/i);
+  assert.match(src, /Ghi khoản chi/);
+  assert.match(src, /Ghi khoản thu/);
+  assert.doesNotMatch(src, /Chỉ nhập số tiền rồi lưu/);
+  assert.doesNotMatch(src, /Không cần chọn lại nếu đúng/);
 });
 
-test("R4: local form owner supports keep-open status and recent category chips", () => {
+test("R4: local form owner supports compact corrections and secondary detail", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   const css = read("src/components/transactions/transaction-form.module.css");
   const fastCss = read("src/components/transactions/capture-fast-path.module.css");
@@ -71,23 +74,36 @@ test("R4: local form owner supports keep-open status and recent category chips",
   assert.match(src, /styles\.categoryRecent/);
   assert.match(src, /styles\.recentBadge/);
   assert.match(src, /styles\.keepOpenRow/);
+  assert.match(src, />Khác</);
+  assert.match(src, /\+ Ghi chú/);
   assert.match(css, /\.formStatus/);
   assert.match(css, /\.categoryRecent/);
   assert.match(css, /\.recentBadge/);
   assert.match(css, /\.keepOpenRow/);
-  assert.match(fastCss, /\.categoryRail/);
-  assert.match(fastCss, /\.categoryChipActive/);
+  assert.match(fastCss, /\.categoryActions/);
+  assert.match(fastCss, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(fastCss, /\.morePanel\s*\{[\s\S]*display: none/);
+  assert.match(fastCss, /\.moreDisclosure\[open\] > \.morePanel\s*\{[\s\S]*display: grid/);
+  assert.doesNotMatch(fastCss, /overflow-x:\s*auto/);
 });
 
-test("R4: constrained mobile capture keeps the Dialog body as the only scroller while compacting local chrome", () => {
+test("R4: constrained mobile capture compacts without removing secondary detail access", () => {
   const css = read("src/components/transactions/transaction-form.module.css");
+  const fastCss = read("src/components/transactions/capture-fast-path.module.css");
   assert.match(
     css,
     /@media \(max-width: 620px\) and \(max-height: 640px\)/,
   );
-  assert.match(css, /\.dialogContent > header/);
-  assert.match(css, /\.dialogContent > header p/);
-  assert.match(css, /\.footerActions\s*\{[\s\S]*?grid-template-columns:/);
-  assert.match(css, /\.footerActions > \*\s*\{[\s\S]*?min-width:\s*0/);
+  assert.match(
+    fastCss,
+    /@media \(max-width: 620px\) and \(max-height: 640px\)/,
+  );
+  assert.match(fastCss, /\.secondarySummary\.secondarySummary/);
+  assert.doesNotMatch(
+    fastCss,
+    /\.secondaryDisclosure:not\(\[open\]\)[\s\S]*display:\s*none/,
+  );
+  assert.match(fastCss, /\.footerActions\.footerActions/);
+  assert.doesNotMatch(fastCss, /!important/);
   assert.doesNotMatch(css, /dvh/);
 });

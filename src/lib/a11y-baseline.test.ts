@@ -40,7 +40,8 @@ test("AddTransactionDialog delegates modal focus lifecycle to shared Dialog", ()
   assert.match(src, /data-slot="capture-category-suggestions"/);
   assert.match(src, /data-slot="capture-category-choice"/);
   assert.match(src, /data-slot="capture-optional-details"/);
-  assert.match(src, /aria-label="Danh mục nhanh"/);
+  assert.match(src, /aria-label="Đổi nhanh danh mục"/);
+  assert.match(src, /Ghi khoản chi/);
   assert.match(src, /moneyKindPrefix/);
   assert.doesNotMatch(src, /<dialog\b|showModal\(\)/);
 

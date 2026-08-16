@@ -112,19 +112,13 @@ export function AddTransactionDialog({
   const selectedCategory = availableCategories.find(
     (item) => item.id === selectedCategoryId,
   );
-  const quickCategories = useMemo(() => {
-    const seen = new Set<string>();
-    const ordered = selectedCategory
-      ? [selectedCategory, ...availableCategories]
-      : availableCategories;
-    return ordered
-      .filter((item) => {
-        if (seen.has(item.id)) return false;
-        seen.add(item.id);
-        return true;
-      })
-      .slice(0, 4);
-  }, [availableCategories, selectedCategory]);
+  const quickCategories = useMemo(
+    () =>
+      availableCategories
+        .filter((item) => item.id !== selectedCategoryId)
+        .slice(0, 2),
+    [availableCategories, selectedCategoryId],
+  );
   const hasRecentForKind = availableCategories.some((item) =>
     isRecentCategoryId(item.id, recentCategoryIds),
   );
@@ -132,9 +126,12 @@ export function AddTransactionDialog({
   const amountLabel =
     kind === "expense" ? "Số tiền chi (₫)" : "Số tiền thu (₫)";
   const dateSummary = occurredOn === today ? "Hôm nay" : occurredOn;
-  const optionalSummary = note.trim()
-    ? `${dateSummary} · ${note.trim()}`
-    : `${dateSummary} · ghi chú không bắt buộc`;
+  const resolvedTitle =
+    title === "Ghi chi tiêu"
+      ? kind === "expense"
+        ? "Ghi khoản chi"
+        : "Ghi khoản thu"
+      : title;
   const visibleSaveLabel = keepOpen
     ? "Lưu & thêm tiếp"
     : amount.trim()
@@ -398,16 +395,22 @@ export function AddTransactionDialog({
     !selectedAccountId ||
     !selectedCategoryId;
   const footer = (
-    <div className={styles.footerActions}>
-      <Button
-        type="button"
-        intent="secondary"
-        targetSize="important"
-        onClick={handleRequestClose}
-        disabled={submitting}
-      >
-        Hủy
-      </Button>
+    <div
+      className={`${styles.footerActions} ${fastStyles.footerActions}${
+        embedded ? ` ${fastStyles.footerActionsEmbedded}` : ""
+      }`}
+    >
+      {embedded ? (
+        <Button
+          type="button"
+          intent="secondary"
+          targetSize="important"
+          onClick={handleRequestClose}
+          disabled={submitting}
+        >
+          Hủy
+        </Button>
+      ) : null}
       <Button
         form={formId}
         type="submit"
@@ -427,7 +430,7 @@ export function AddTransactionDialog({
   const form = (
     <form
       id={formId}
-      className={styles.form}
+      className={`${styles.form} ${fastStyles.form}`}
       onSubmit={handleSubmit}
       noValidate
     >
@@ -436,11 +439,6 @@ export function AddTransactionDialog({
           id="add-tx-amount"
           inputRef={amountInputRef}
           label={amountLabel}
-          description={
-            selectedCategory
-              ? "Chỉ nhập số tiền rồi lưu; danh mục và tài khoản đã được chọn sẵn."
-              : "Chọn một danh mục nhanh lần đầu; MoneyFlow sẽ nhớ cho những lần sau."
-          }
           inputMode="numeric"
           autoComplete="off"
           placeholder="0"
@@ -449,6 +447,7 @@ export function AddTransactionDialog({
           prefix={kindSign}
           suffix="₫"
           targetSize="important"
+          rootClassName={fastStyles.amountField}
           inputClassName={styles.amountInput}
           error={error.startsWith("Nhập số tiền") ? error : undefined}
           onChange={(event) => {
@@ -459,7 +458,7 @@ export function AddTransactionDialog({
       </section>
 
       <div
-        className={`${styles.segmented}${
+        className={`${styles.segmented} ${fastStyles.typeSwitch}${
           onTransferRequested ? ` ${styles.segmentedThree}` : ""
         }`}
         role="group"
@@ -522,130 +521,127 @@ export function AddTransactionDialog({
         data-slot="capture-required-choices"
         aria-label="Danh mục và tài khoản đang dùng"
       >
-        <div className={fastStyles.defaultLine} data-slot="capture-fast-defaults">
-          <span>{selectedCategory ? "Đang dùng" : "Chọn một lần"}</span>
-          <strong>{selectedCategory?.name ?? "Danh mục"}</strong>
-          <span aria-hidden="true">·</span>
-          <span>{selectedAccount?.name ?? "Chưa có tài khoản"}</span>
+        <div className={fastStyles.currentChoice} data-slot="capture-fast-defaults">
+          <span className={fastStyles.currentCopy}>
+            <strong>{selectedCategory?.name ?? "Chọn danh mục"}</strong>
+            <small>{selectedAccount?.name ?? "Chưa có tài khoản"}</small>
+          </span>
+          <span className={fastStyles.currentStatus}>
+            {selectedCategory ? "Đang dùng" : "Cần chọn"}
+          </span>
         </div>
 
         <div
-          className={fastStyles.categoryRail}
+          className={fastStyles.categoryActions}
           role="group"
-          aria-label="Danh mục nhanh"
+          aria-label="Đổi nhanh danh mục"
           data-slot="capture-category-suggestions"
         >
           {quickCategories.map((item) => {
             const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
-            const selected = selectedCategoryId === item.id;
             return (
               <Button
                 type="button"
                 unstyled
                 targetSize="important"
                 key={item.id}
-                className={`${fastStyles.categoryChip}${
-                  selected ? ` ${fastStyles.categoryChipActive}` : ""
-                }`}
+                className={fastStyles.categoryChip}
                 onClick={() => chooseCategory(item.id)}
-                aria-pressed={selected}
+                aria-label={`Chọn danh mục ${item.name}`}
               >
                 <Icon name={meta.icon as IconName} aria-hidden="true" />
                 <span>{item.name}</span>
               </Button>
             );
           })}
-        </div>
 
-        <details
-          className={fastStyles.moreDisclosure}
-          data-slot="capture-category-choice"
-        >
-          <summary className={fastStyles.moreSummary}>
-            <span>Đổi tài khoản hoặc xem tất cả danh mục</span>
-            <Icon name="arrowRight" aria-hidden="true" />
-          </summary>
-          <div className={fastStyles.morePanel}>
-            <SelectField
-              label="Tài khoản"
-              value={selectedAccountId}
-              targetSize="important"
-              disabled={submitting}
-              onChange={(event) => {
-                setAccountId(event.target.value);
-                markInputChanged();
-              }}
+          <details
+            className={fastStyles.moreDisclosure}
+            data-slot="capture-category-choice"
+          >
+            <summary
+              className={fastStyles.moreSummary}
+              aria-label="Đổi tài khoản hoặc xem tất cả danh mục"
             >
-              {accounts.map((item) => (
-                <option value={item.id} key={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </SelectField>
+              <span>Khác</span>
+              <Icon name="arrowRight" aria-hidden="true" />
+            </summary>
+            <div className={fastStyles.morePanel}>
+              <SelectField
+                label="Tài khoản"
+                value={selectedAccountId}
+                targetSize="important"
+                disabled={submitting}
+                onChange={(event) => {
+                  setAccountId(event.target.value);
+                  markInputChanged();
+                }}
+              >
+                {accounts.map((item) => (
+                  <option value={item.id} key={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </SelectField>
 
-            <fieldset className={styles.categoryFieldset}>
-              <legend>
-                Tất cả danh mục
-                {autoRuleHint ? (
-                  <span className={styles.legendHint}> · {autoRuleHint}</span>
-                ) : hasRecentForKind ? (
-                  <span className={styles.legendHint}> · hay dùng trước lên trước</span>
-                ) : null}
-              </legend>
-              <div className={styles.categoryGrid}>
-                {availableCategories.map((item) => {
-                  const meta =
-                    categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
-                  const recent = isRecentCategoryId(item.id, recentCategoryIds);
-                  return (
-                    <Button
-                      type="button"
-                      unstyled
-                      targetSize="important"
-                      key={item.id}
-                      className={`${styles.categoryChoice}${
-                        selectedCategoryId === item.id
-                          ? ` ${styles.categorySelected}`
-                          : ""
-                      }${recent ? ` ${styles.categoryRecent}` : ""}`}
-                      onClick={() => chooseCategory(item.id)}
-                      aria-pressed={selectedCategoryId === item.id}
-                      data-recent={recent ? "true" : undefined}
-                    >
-                      <span className={styles.categoryIcon}>
-                        <Icon name={meta.icon as IconName} />
-                      </span>
-                      <span className={styles.categoryLabel}>
-                        {item.name}
-                        {recent ? (
-                          <span className={styles.recentBadge} aria-label="Gần đây">
-                            Gần đây
-                          </span>
-                        ) : null}
-                      </span>
-                    </Button>
-                  );
-                })}
-              </div>
-            </fieldset>
-          </div>
-        </details>
-
-        <p className={fastStyles.fastHint}>
-          {selectedCategory
-            ? "Không cần chọn lại nếu đúng. Ghi chú chỉ dùng khi bạn thực sự muốn thêm ngữ cảnh."
-            : "Sau lần chọn đầu tiên, MoneyFlow dùng lựa chọn đã lưu cho lần ghi quen thuộc tiếp theo."}
-        </p>
+              <fieldset className={styles.categoryFieldset}>
+                <legend>
+                  Tất cả danh mục
+                  {autoRuleHint ? (
+                    <span className={styles.legendHint}> · {autoRuleHint}</span>
+                  ) : hasRecentForKind ? (
+                    <span className={styles.legendHint}> · hay dùng trước lên trước</span>
+                  ) : null}
+                </legend>
+                <div className={styles.categoryGrid}>
+                  {availableCategories.map((item) => {
+                    const meta =
+                      categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                    const recent = isRecentCategoryId(item.id, recentCategoryIds);
+                    return (
+                      <Button
+                        type="button"
+                        unstyled
+                        targetSize="important"
+                        key={item.id}
+                        className={`${styles.categoryChoice}${
+                          selectedCategoryId === item.id
+                            ? ` ${styles.categorySelected}`
+                            : ""
+                        }${recent ? ` ${styles.categoryRecent}` : ""}`}
+                        onClick={() => chooseCategory(item.id)}
+                        aria-pressed={selectedCategoryId === item.id}
+                        data-recent={recent ? "true" : undefined}
+                      >
+                        <span className={styles.categoryIcon}>
+                          <Icon name={meta.icon as IconName} />
+                        </span>
+                        <span className={styles.categoryLabel}>
+                          {item.name}
+                          {recent ? (
+                            <span className={styles.recentBadge} aria-label="Gần đây">
+                              Gần đây
+                            </span>
+                          ) : null}
+                        </span>
+                      </Button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            </div>
+          </details>
+        </div>
       </section>
 
-      <details className={styles.optionalDisclosure} data-slot="capture-optional-details">
-        <summary className={styles.optionalSummary}>
-          <span className={styles.quickChoiceIcon}>
-            <Icon name="calendar" aria-hidden="true" />
-          </span>
-          <span className={styles.quickChoiceCopy}>
-            <small>Tùy chọn</small>
-            <strong>{optionalSummary}</strong>
+      <details
+        className={`${styles.optionalDisclosure} ${fastStyles.secondaryDisclosure}`}
+        data-slot="capture-optional-details"
+      >
+        <summary className={`${styles.optionalSummary} ${fastStyles.secondarySummary}`}>
+          <span>{dateSummary}</span>
+          <span className={fastStyles.secondaryAction}>
+            {note.trim() ? "Sửa ghi chú" : "+ Ghi chú"}
           </span>
           <Icon
             name="arrowRight"
@@ -716,7 +712,7 @@ export function AddTransactionDialog({
       >
         <header className={styles.embeddedHeading}>
           <p className={styles.embeddedEyebrow}>{eyebrow}</p>
-          <h2 id="transaction-embedded-title">{title}</h2>
+          <h2 id="transaction-embedded-title">{resolvedTitle}</h2>
         </header>
         {form}
       </section>
@@ -729,12 +725,11 @@ export function AddTransactionDialog({
       onOpenChange={(nextOpen) => {
         if (!nextOpen && !submitting) handleRequestClose();
       }}
-      title={title}
-      description={eyebrow}
+      title={resolvedTitle}
       dismissible={!submitting}
       initialFocusRef={amountInputRef}
-      className={styles.dialog}
-      contentClassName={styles.dialogContent}
+      className={`${styles.dialog} ${fastStyles.compactDialog}`}
+      contentClassName={`${styles.dialogContent} ${fastStyles.compactDialogContent}`}
       footer={footer}
     >
       {form}

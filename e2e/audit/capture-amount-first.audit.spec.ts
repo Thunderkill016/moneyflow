@@ -65,13 +65,10 @@ async function measureCapture(page: Page) {
   });
 }
 
-test.describe("Capture 3.0 amount-only constrained phone", () => {
+test.describe("Capture 4 compact keyboard-first phone", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize(CONSTRAINED_PHONE);
     await seedUiAuditState(page);
-    // This audit measures the high-frequency familiar path, not first-use setup.
-    // Seed one successful coherent account/category preset so the test proves
-    // that reopening capture needs only amount + explicit Save.
     await page.addInitScript(() => {
       try {
         window.localStorage.setItem(
@@ -100,7 +97,7 @@ test.describe("Capture 3.0 amount-only constrained phone", () => {
     });
   });
 
-  test("amount, learned defaults, one-tap categories and explicit Save stay reachable", async ({
+  test("amount, selected context, two corrections and explicit Save stay reachable", async ({
     page,
   }, testInfo: TestInfo) => {
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
@@ -109,7 +106,7 @@ test.describe("Capture 3.0 amount-only constrained phone", () => {
     const nav = page.getByRole("navigation", { name: "Điều hướng di động" });
     await nav.getByRole("button", { name: "Ghi chi tiêu" }).click();
 
-    const dialog = page.getByRole("dialog", { name: "Ghi chi tiêu" });
+    const dialog = page.getByRole("dialog", { name: "Ghi khoản chi" });
     await expect(dialog).toBeVisible();
 
     const amount = dialog.getByLabel(/Số tiền (chi|thu)/i);
@@ -122,10 +119,10 @@ test.describe("Capture 3.0 amount-only constrained phone", () => {
     await expect(defaults).toContainText("Ăn uống");
     await expect(defaults).toContainText("MB Bank");
     await expect(suggestions).toBeVisible();
-    await expect(suggestions.getByRole("button").first()).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(suggestions.locator(":scope > button")).toHaveCount(2);
+    await expect(
+      suggestions.locator('details[data-slot="capture-category-choice"] > summary'),
+    ).toContainText("Khác");
     await expect(
       dialog.locator('details[data-slot="capture-category-choice"]'),
     ).not.toHaveAttribute("open", "");
@@ -142,11 +139,11 @@ test.describe("Capture 3.0 amount-only constrained phone", () => {
       fullPage: true,
       animations: "disabled",
     });
-    await testInfo.attach(`capture-amount-only-${testInfo.project.name}.png`, {
+    await testInfo.attach(`capture-compact-${testInfo.project.name}.png`, {
       body: screenshot,
       contentType: "image/png",
     });
-    await testInfo.attach(`capture-amount-only-${testInfo.project.name}.json`, {
+    await testInfo.attach(`capture-compact-${testInfo.project.name}.json`, {
       body: Buffer.from(JSON.stringify(measurement, null, 2)),
       contentType: "application/json",
     });
