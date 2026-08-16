@@ -201,8 +201,13 @@ test("quick capture keeps amount first and makes correction compact", () => {
   assert.match(addDialog, /pushRecentPreset/);
   assert.match(addDialog, /\.slice\(0, 2\)/);
   assert.match(fastCaptureCss, /\.categoryActions/);
+  assert.match(fastCaptureCss, /\.morePanel\s*\{[\s\S]*display: none/);
+  assert.match(fastCaptureCss, /\.moreDisclosure\[open\] > \.morePanel\s*\{[\s\S]*display: grid/);
   assert.doesNotMatch(fastCaptureCss, /overflow-x:\s*auto/u);
-  assert.match(fastCaptureCss, /\.secondaryDisclosure:not\(\[open\]\)/u);
+  assert.doesNotMatch(
+    fastCaptureCss,
+    /\.secondaryDisclosure:not\(\[open\]\)[\s\S]*display:\s*none/u,
+  );
   assert.match(transactionFormCss, /\.optionalDisclosure/u);
 });
 
