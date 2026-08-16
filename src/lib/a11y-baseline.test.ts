@@ -34,8 +34,11 @@ test("AddTransactionDialog delegates modal focus lifecycle to shared Dialog", ()
   assert.match(src, /Số tiền/);
   assert.match(src, /Tài khoản/);
   assert.match(src, /Ghi chú/);
-  assert.match(src, /Khoản chi \(−\)/);
-  assert.match(src, /Khoản thu \(\+\)/);
+  assert.match(src, /aria-label="Khoản chi"/);
+  assert.match(src, /aria-label="Khoản thu"/);
+  assert.match(src, /data-slot="capture-account-choice"/);
+  assert.match(src, /data-slot="capture-category-choice"/);
+  assert.match(src, /data-slot="capture-optional-details"/);
   assert.match(src, /moneyKindPrefix/);
   assert.doesNotMatch(src, /<dialog\b|showModal\(\)/);
 
