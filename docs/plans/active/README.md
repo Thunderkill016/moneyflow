@@ -1,17 +1,19 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-15
-**Current main baseline:** `e8a4a10e47cdd90b993eadd034fe97593b271adb` (#399 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. RRB-08 is current and its repository-side preparation is complete; completion still requires real-phone observation. Remaining P1 release gates still depend on owner/provider/legal/read-access.
+**Last reconciled:** 2026-08-16
+**Current main baseline:** `8b895c0f78826ba114d27ebe92d46dac576f9364` (#404 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. RRB-08 real-phone observation has started and exposed bounded P2 mobile findings; #404 merged the keyboard-pressure implementation and #405 is the current agent-executable follow-up for the mobile `Ghi` spacing defect. RRB-08 still requires owner physical-device re-test/closeout. Remaining P1 release gates still depend on owner/provider/legal/read-access.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **RRB-08 — current physical-device proof** — issue #398. The bounded runbook/evidence contract is merged in #399 as `rrb-08-physical-device-proof.md`; browser/emulation evidence does not satisfy this task. **Done when:** a real phone runs the bounded current-release smoke and records device/OS/browser/origin/mode, pass/fail and observed defects. **Current blocker:** no real-phone observation is available in this session. **Next actor:** owner + agent when the physical device is available.
+- [ ] **#405 — mobile bottom-nav `Ghi` spacing** — owner-observed P2 real-phone visual defect during RRB-08: the center `Ghi` label crowds the elevated Fresh Blue capture CTA. **Current scope:** spacing/alignment only; preserve five-tab IA, 52px mobile-nav item target, 70px nav reserve, safe-area behavior, capture destination and current identity. **Done when:** focused implementation + regression contract + responsive/browser evidence + independent review are ready in one draft PR; physical-phone acceptance remains owner-observed. **Next actor:** agent.
+- [ ] **RRB-08 — current physical-device proof** — issue #398. The bounded runbook/evidence contract is merged in #399 as `rrb-08-physical-device-proof.md`. Owner-observed real-phone testing has started; #404 addressed the first bounded keyboard-pressure finding in browser evidence and #405 addresses the second bounded navigation-spacing finding. **Done when:** after the fixes, a real phone completes/repeats the bounded release-critical smoke and records device/OS/browser/origin/mode, pass/fail and observed defects. Browser/emulation does not satisfy the final physical-device verdict. **Next actor:** owner after the current bounded fix is ready.
 
 ## NEXT
 
+- [ ] **#403 — canonical page-load / dashboard LCP optimization** — explicitly authorized by the owner but held behind the one-at-a-time queue. Promote only after #405 reaches reviewed draft-PR/owner handoff, merges or is explicitly stopped. Measure current `/` and `/dashboard` before/after; do not change private financial caching semantics. **Next actor:** agent after #405.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — execute only against a disposable/authorized hosted target, or obtain explicit owner acceptance at the proper release boundary. **Next actor:** owner + agent if authorized.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — stale-AMR/account-mismatch destructive edges remain owner/provider-gated. **Next actor:** owner.
 - [ ] **Controlled closed beta** — start only after all P1 entry gates are cleared and no unresolved P0 exists.
@@ -42,6 +44,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE
 
+- [x] **#401 / PR #404 — compact mobile transaction capture implementation** — constrained Expense/Income capture now reduces redundant header/footer pressure when the software keyboard shrinks the layout viewport. Browser measurement at 390×568 improved the Dialog body from 307px to 397px while preserving one scroll owner and current mutation semantics. This is merged implementation/browser evidence only; owner real-phone keyboard re-test remains part of RRB-08.
 - [x] **RRB-08 repository-side preparation** — issue #398 / PR #399. The bounded real-phone smoke/evidence contract, P0 stop conditions, privacy-safe evidence hygiene and optional device diagnostics are merged. This is preparation only; RRB-08 itself remains open until direct physical-phone evidence exists. Final head `dfc47a29…` passed CI #2526, CodeQL #1599 and Secret history #1599 before protected squash merge as `e8a4a10e…`; first-run CI #2524 knowledge-schema failure is preserved in PR-memory.
 - [x] **RRB-07 WCAG 2.2 Accessible Authentication proof** — issue #393 / PR #394. Five MoneyFlow-owned auth cases passed first-run in the final UI-audit artifact (`556 passed / 141 skipped / 0 failed`), while explicitly not overclaiming provider-managed Google OAuth or Turnstile behavior. The proof exposed and fixed one shared password-field accessible-name defect. Final head `35a31ba5…` passed CI #2511, CodeQL #1584 and Secret history #1584 before merge as `59da7ad2…`.
 - [x] **RRB-01 authenticated mixed-ledger rendered financial truth** — issue #390 / PR #391. Current authenticated browser evidence proves a coherent two-account ledger with `2,700,000` VND aggregate balance, `2,000,000` income, `300,000` expense, `1,700,000` net, neutral `500,000` internal transfer, `1,200,000` cash and `1,500,000` bank balances. Final head `873f4d4d…` passed CI #2492, CodeQL #1566 and Secret history #1566 before protected squash merge as `9911eafa…`. Database/provider claims remain separately owned.
