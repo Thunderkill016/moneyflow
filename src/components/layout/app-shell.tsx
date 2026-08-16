@@ -512,7 +512,7 @@ export function AppShell({
           open
           onClose={() => setCaptureOpen(false)}
           inboxCount={inboxCount}
-          sheetClassName={APP_SHELL_SHEET_CLASS}
+          className={APP_SHELL_SHEET_CLASS}
         />
       ) : null}
       {moreOpen ? (
@@ -522,7 +522,7 @@ export function AppShell({
           pathname={pathname}
           inboxCount={inboxCount}
           viewer={viewer}
-          sheetClassName={APP_SHELL_SHEET_CLASS}
+          className={APP_SHELL_SHEET_CLASS}
         />
       ) : null}
       <ToastRegion
