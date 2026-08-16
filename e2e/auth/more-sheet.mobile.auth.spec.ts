@@ -148,7 +148,7 @@ test.describe("PP-12 authenticated mobile More sheet", () => {
     await assertAuthenticatedMode(page);
 
     await page.getByRole("button", { name: "Ghi chi tiêu", exact: true }).first().click();
-    const dialog = page.getByRole("dialog", { name: "Ghi chi tiêu" });
+    const dialog = page.getByRole("dialog", { name: "Ghi khoản chi" });
     const close = dialog.getByRole("button", { name: "Đóng", exact: true });
     const amount = dialog.getByRole("textbox", { name: "Số tiền chi (₫)" });
     await expect(dialog).toBeVisible();
