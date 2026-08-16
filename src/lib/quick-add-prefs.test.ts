@@ -7,6 +7,7 @@ import {
   orderCategoriesByRecent,
   pickCategoryForKind,
   pushRecentCategoryId,
+  pushRecentPreset,
 } from "./quick-add-prefs.ts";
 
 test("validates prefs shape", () => {
@@ -26,6 +27,10 @@ test("validates prefs shape", () => {
       categoryId: "c1",
       keepOpen: false,
       recentCategoryIds: ["c1", "c2"],
+      recentPresets: [
+        { kind: "expense", accountId: "a1", categoryId: "c1" },
+        { kind: "income", accountId: "a2", categoryId: "c2" },
+      ],
     }),
     true,
   );
@@ -36,6 +41,16 @@ test("validates prefs shape", () => {
       categoryId: "c1",
       keepOpen: false,
       recentCategoryIds: [1 as unknown as string],
+    }),
+    false,
+  );
+  assert.equal(
+    isQuickAddPrefs({
+      kind: "expense",
+      accountId: "a1",
+      categoryId: "c1",
+      keepOpen: false,
+      recentPresets: [{ kind: "expense", accountId: "", categoryId: "c1" }],
     }),
     false,
   );
@@ -51,6 +66,37 @@ test("pushRecentCategoryId keeps newest first and dedupes", () => {
   const many = pushRecentCategoryId(["a", "b", "c", "d", "e", "f"], "g");
   assert.equal(many.length, 6);
   assert.equal(many[0], "g");
+});
+
+test("pushRecentPreset keeps coherent newest account/category pairs", () => {
+  const expenseCash = { kind: "expense" as const, accountId: "cash", categoryId: "food" };
+  const expenseCard = { kind: "expense" as const, accountId: "card", categoryId: "food" };
+  const incomeCash = { kind: "income" as const, accountId: "cash", categoryId: "salary" };
+
+  assert.deepEqual(pushRecentPreset([], expenseCash), [expenseCash]);
+  assert.deepEqual(pushRecentPreset([expenseCash, incomeCash], expenseCard), [
+    expenseCard,
+    expenseCash,
+    incomeCash,
+  ]);
+  assert.deepEqual(pushRecentPreset([expenseCash, expenseCard], expenseCash), [
+    expenseCash,
+    expenseCard,
+  ]);
+  assert.equal(
+    pushRecentPreset(
+      [
+        expenseCash,
+        expenseCard,
+        incomeCash,
+        { kind: "expense", accountId: "a4", categoryId: "c4" },
+        { kind: "expense", accountId: "a5", categoryId: "c5" },
+        { kind: "expense", accountId: "a6", categoryId: "c6" },
+      ],
+      { kind: "expense", accountId: "a7", categoryId: "c7" },
+    ).length,
+    6,
+  );
 });
 
 test("orderCategoriesByRecent surfaces recent first", () => {
