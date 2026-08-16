@@ -5,7 +5,7 @@
 **Active role:** implementer  
 **Permission scope:** branch_write  
 **Owner:** owner-authorized from direct real-phone screenshots  
-**Issue/PR:** #413 / pending  
+**Issue/PR:** #413 / #414  
 **Last updated:** 2026-08-16
 
 ## Outcome
@@ -20,7 +20,7 @@ Make the already-fast Capture 3 interaction visually match its real primary task
 - `AddTransactionDialog` remains the trusted Expense/Income quick-entry owner and already preserves integer-VND parsing, explicit Save, idempotency, optional note/date, and deterministic learned `kind + account + category` presets.
 - `TransferDialog` / `addTransfer` remain the separate trusted transfer boundary.
 - Direct real-phone screenshots after #412 show functional success but presentation debt: repeated instructions, an oversized Chi/Thu selector, a visually heavy category card, a horizontally clipped category rail, redundant visible Cancel + close affordances, and a sheet taller than the common task needs.
-- `capture-fast-path.module.css` owns Capture-specific fast-path presentation; `transaction-form.module.css` owns shared transaction dialog geometry/footer/detail treatment.
+- `capture-fast-path.module.css` owns Capture-specific fast-path presentation; `transaction-form.module.css` continues to own shared transaction dialog geometry.
 
 ## Research
 
@@ -79,8 +79,8 @@ Do not add another capture model. Keep #412 semantics and redesign only the deci
 ## Architecture fit
 
 - `AddTransactionDialog` remains the only quick Expense/Income submit owner.
-- #412 `quick-add-prefs` preset persistence remains unchanged unless a correctness bug is discovered.
-- Capture-only presentation belongs in `capture-fast-path.module.css`; shared transaction primitives stay in `transaction-form.module.css` only where the behavior is genuinely shared.
+- #412 `quick-add-prefs` preset persistence is unchanged.
+- Capture-only presentation belongs in `capture-fast-path.module.css`; shared transaction primitives remain unchanged in this candidate.
 - No schema/RLS/provider/deployment/production-data mutation.
 
 ## Planned changes
@@ -88,10 +88,9 @@ Do not add another capture model. Keep #412 semantics and redesign only the deci
 | Area | Change |
 |---|---|
 | `src/components/add-transaction-dialog.tsx` | simplify modal copy, selected context, category alternatives, secondary actions, and modal footer cancellation |
-| `src/components/transactions/capture-fast-path.module.css` | compact selected-context/category action layout using tokens |
-| `src/components/transactions/transaction-form.module.css` | only the shared amount/type/footer/modal geometry needed for compact keyboard state |
+| `src/components/transactions/capture-fast-path.module.css` | compact selected-context/category/type/footer/keyboard layout using existing tokens |
 | focused static/e2e/audit tests | replace Capture 3 heavy-card/rail expectations with Capture 4 compact-sheet contracts |
-| lifecycle docs | archive #412 active packet and record #413 candidate state |
+| lifecycle docs | archive #412 active packet and record #413/#414 candidate state |
 
 ## Risks and prevention
 
@@ -99,7 +98,7 @@ Do not add another capture model. Keep #412 semantics and redesign only the deci
 |---|---|
 | Compact UI hides what will be saved | selected category/account remain explicit before Save |
 | Fewer category buttons make correction harder | two likely alternatives + `Khác` one tap away; full taxonomy unchanged |
-| Removing footer Cancel traps users | modal close button, Escape/back and dialog dismiss remain; embedded host handled separately |
+| Removing footer Cancel traps users | modal close button, Escape/back and dialog dismiss remain; embedded host retains explicit Cancel |
 | Keyboard hides Save/context | existing one-scroll-owner + constrained-height audit updated around compact decision surface |
 | Cosmetic patch regresses design-system discipline | reuse existing tokens and component target-size contract; tests continue to reject CSS `!important` |
 
@@ -109,21 +108,22 @@ Do not add another capture model. Keep #412 semantics and redesign only the deci
 |---|---|---|
 | T1 | inspect current main, real-phone evidence and current research | done |
 | T2 | create #413 and branch from `main@30ad41a8…` | done |
-| T3 | implement compact keyboard-first presentation | doing |
-| T4 | reconcile static/e2e/UI audit contracts | todo |
-| T5 | open PR, run exact-head gates and inspect artifacts | todo |
+| T3 | implement compact keyboard-first presentation | done |
+| T4 | reconcile static/e2e/UI audit contracts | done |
+| T5 | open PR, run exact-head gates and inspect artifacts | doing |
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Remaining boundary |
 |---|---|---|---|---|---|
-| 2026-08-16 | human_owner | implementer | implementing | direct phone screenshots + #413 + research above | browser/CI first; final physical-phone acceptance remains owner-observed under RRB-08 |
+| 2026-08-16 | human_owner | implementer | implementing | direct phone screenshots + #413 + PR #414 + research above | ready-state browser/CI next; final physical-phone acceptance remains owner-observed under RRB-08 |
 
 ## Evaluation
 
 ### Acceptance evidence
 
-Pending implementation and exact-head CI/UI evidence.
+- Draft PR #414 exists; draft CI only classifies and intentionally skips heavy verification.
+- Ready-state exact-head build/static/unit/browser/UI/e2e evidence is still pending.
 
 ### Remaining limitations
 
@@ -134,7 +134,7 @@ Pending implementation and exact-head CI/UI evidence.
 
 - Branch: `capture-4-compact-sheet-413`
 - Base: `30ad41a8cb81c9161af2304a5cef596c80f16dcf`
-- PR: pending
-- Exact head: pending
-- CI: pending
+- PR: #414
+- Exact head: pending final ready-state head
+- CI: pending final ready-state run
 - Merge/deployment: pending
