@@ -1,5 +1,5 @@
 /**
- * R4 — Ghi chi dialog UX: amount autofocus, recent categories order,
+ * R4 — Ghi chi dialog UX: amount autofocus, learned/recent categories,
  * save-and-add-another polish. Source contracts (no browser).
  */
 import assert from "node:assert/strict";
@@ -28,12 +28,15 @@ test("R4: shared Dialog receives the amount focus target", () => {
   assert.match(dialog, /target\.focus\(\)/);
 });
 
-test("R4: recent categories order via quick-add prefs helpers", () => {
+test("R4: quick capture learns coherent presets and keeps recent category ordering", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   assert.match(src, /orderCategoriesByRecent/);
   assert.match(src, /pushRecentCategoryId/);
-  assert.match(src, /pickCategoryForKind/);
+  assert.match(src, /pushRecentPreset/);
+  assert.match(src, /pickKnownCategoryForKind/);
   assert.match(src, /isRecentCategoryId/);
+  assert.match(src, /data-slot="capture-fast-defaults"/);
+  assert.match(src, /data-slot="capture-category-suggestions"/);
   assert.match(src, /data-recent/);
   assert.match(src, /Gần đây/);
   assert.match(src, /hay dùng trước/);
@@ -63,6 +66,7 @@ test("R4: default dialog copy is G5 thu chi (not inbox brand)", () => {
 test("R4: local form owner supports keep-open status and recent category chips", () => {
   const src = read("src/components/add-transaction-dialog.tsx");
   const css = read("src/components/transactions/transaction-form.module.css");
+  const fastCss = read("src/components/transactions/capture-fast-path.module.css");
   assert.match(src, /styles\.formStatus/);
   assert.match(src, /styles\.categoryRecent/);
   assert.match(src, /styles\.recentBadge/);
@@ -71,6 +75,8 @@ test("R4: local form owner supports keep-open status and recent category chips",
   assert.match(css, /\.categoryRecent/);
   assert.match(css, /\.recentBadge/);
   assert.match(css, /\.keepOpenRow/);
+  assert.match(fastCss, /\.categoryRail/);
+  assert.match(fastCss, /\.categoryChipActive/);
 });
 
 test("R4: constrained mobile capture keeps the Dialog body as the only scroller while compacting local chrome", () => {

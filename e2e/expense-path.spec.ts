@@ -150,10 +150,10 @@ test.describe("Expense path (thu chi)", () => {
     await expect(amount).toHaveValue(UNIQUE_AMOUNT_DISPLAY);
 
     await expect(
-      quickDialog.locator('[data-slot="capture-account-choice"] summary'),
+      quickDialog.locator('[data-slot="capture-fast-defaults"]'),
     ).toBeVisible();
     await expect(
-      quickDialog.locator('[data-slot="capture-category-choice"] summary'),
+      quickDialog.locator('[data-slot="capture-category-suggestions"]'),
     ).toBeVisible();
 
     const categoryDisclosure = await openCaptureDetails(
@@ -273,8 +273,8 @@ test.describe("Expense path (thu chi)", () => {
 
     const amount = dialog.getByLabel(/Số tiền chi/i);
     await expect(amount).toBeFocused();
-    await expect(dialog.locator('[data-slot="capture-account-choice"] summary')).toBeVisible();
-    await expect(dialog.locator('[data-slot="capture-category-choice"] summary')).toBeVisible();
+    await expect(dialog.locator('[data-slot="capture-fast-defaults"]')).toBeVisible();
+    await expect(dialog.locator('[data-slot="capture-category-suggestions"]')).toBeVisible();
 
     if (isMobile) {
       const save = dialog.getByRole("button", { name: "Lưu", exact: true });

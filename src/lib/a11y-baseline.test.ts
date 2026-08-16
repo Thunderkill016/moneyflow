@@ -33,12 +33,14 @@ test("AddTransactionDialog delegates modal focus lifecycle to shared Dialog", ()
   assert.match(src, /id="add-tx-amount"/);
   assert.match(src, /Số tiền/);
   assert.match(src, /Tài khoản/);
-  assert.match(src, /Ghi chú/);
+  assert.match(src, /Ghi chú \(không bắt buộc\)/);
   assert.match(src, /aria-label="Khoản chi"/);
   assert.match(src, /aria-label="Khoản thu"/);
-  assert.match(src, /data-slot="capture-account-choice"/);
+  assert.match(src, /data-slot="capture-fast-defaults"/);
+  assert.match(src, /data-slot="capture-category-suggestions"/);
   assert.match(src, /data-slot="capture-category-choice"/);
   assert.match(src, /data-slot="capture-optional-details"/);
+  assert.match(src, /aria-label="Danh mục nhanh"/);
   assert.match(src, /moneyKindPrefix/);
   assert.doesNotMatch(src, /<dialog\b|showModal\(\)/);
 
