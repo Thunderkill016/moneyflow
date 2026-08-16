@@ -69,6 +69,35 @@ test.describe("Capture 3.0 amount-only constrained phone", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize(CONSTRAINED_PHONE);
     await seedUiAuditState(page);
+    // This audit measures the high-frequency familiar path, not first-use setup.
+    // Seed one successful coherent account/category preset so the test proves
+    // that reopening capture needs only amount + explicit Save.
+    await page.addInitScript(() => {
+      try {
+        window.localStorage.setItem(
+          "moneyflow-quick-add-prefs-v1",
+          JSON.stringify({
+            kind: "expense",
+            accountId: "demo-account-mb",
+            categoryId: "demo-category-expense-Ăn uống",
+            keepOpen: false,
+            recentCategoryIds: [
+              "demo-category-expense-Ăn uống",
+              "demo-category-expense-Di chuyển",
+            ],
+            recentPresets: [
+              {
+                kind: "expense",
+                accountId: "demo-account-mb",
+                categoryId: "demo-category-expense-Ăn uống",
+              },
+            ],
+          }),
+        );
+      } catch {
+        /* storage may be unavailable before same-origin navigation */
+      }
+    });
   });
 
   test("amount, learned defaults, one-tap categories and explicit Save stay reachable", async ({
@@ -90,6 +119,8 @@ test.describe("Capture 3.0 amount-only constrained phone", () => {
     const defaults = dialog.locator('[data-slot="capture-fast-defaults"]');
     const suggestions = dialog.locator('[data-slot="capture-category-suggestions"]');
     await expect(defaults).toBeVisible();
+    await expect(defaults).toContainText("Ăn uống");
+    await expect(defaults).toContainText("MB Bank");
     await expect(suggestions).toBeVisible();
     await expect(suggestions.getByRole("button").first()).toHaveAttribute(
       "aria-pressed",
@@ -104,6 +135,7 @@ test.describe("Capture 3.0 amount-only constrained phone", () => {
 
     const save = dialog.getByRole("button", { name: "Lưu", exact: true });
     await expect(save).toBeVisible();
+    await expect(save).toBeEnabled();
 
     const measurement = await measureCapture(page);
     const screenshot = await page.screenshot({
