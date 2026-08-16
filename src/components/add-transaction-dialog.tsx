@@ -26,7 +26,7 @@ import {
 import {
   isRecentCategoryId,
   orderCategoriesByRecent,
-  pickCategoryForKind,
+  pickKnownCategoryForKind,
   pushRecentCategoryId,
   pushRecentPreset,
   readQuickAddPrefs,
@@ -107,14 +107,11 @@ export function AddTransactionDialog({
     (item) => item.id === categoryId,
   )
     ? categoryId
-    : pickCategoryForKind(availableCategories, recentCategoryIds);
+    : "";
   const selectedAccount = accounts.find((item) => item.id === selectedAccountId);
   const selectedCategory = availableCategories.find(
     (item) => item.id === selectedCategoryId,
   );
-  const selectedCategoryMeta = selectedCategory
-    ? categoryMeta[selectedCategory.name] ?? categoryMeta["Thu nhập khác"]
-    : categoryMeta["Thu nhập khác"];
   const quickCategories = useMemo(() => {
     const seen = new Set<string>();
     const ordered = selectedCategory
@@ -203,12 +200,12 @@ export function AddTransactionDialog({
       } else {
         if (prefs.accountId) setAccountId(prefs.accountId);
         const forKind = categories.filter((item) => item.kind === resolvedKind);
-        const preferred = pickCategoryForKind(
+        const knownCategory = pickKnownCategoryForKind(
           forKind,
           prefs.recentCategoryIds,
           prefs.kind === resolvedKind ? prefs.categoryId || undefined : undefined,
         );
-        if (preferred) setCategoryId(preferred);
+        setCategoryId(knownCategory);
       }
       setOccurredOn(todayInVietnam());
     });
@@ -282,7 +279,9 @@ export function AddTransactionDialog({
       setCategoryId(learnedPreset.categoryId);
     } else {
       const forKind = categories.filter((item) => item.kind === nextKind);
-      setCategoryId(pickCategoryForKind(forKind, recentCategoryIds));
+      setCategoryId(
+        pickKnownCategoryForKind(forKind, recentCategoryIds),
+      );
     }
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
@@ -334,7 +333,7 @@ export function AddTransactionDialog({
       return;
     }
     if (!selectedAccountId || !selectedCategoryId) {
-      setError("Bạn cần có ít nhất một tài khoản và danh mục phù hợp.");
+      setError("Chọn tài khoản và danh mục trước khi lưu.");
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(occurredOn)) {
@@ -393,7 +392,11 @@ export function AddTransactionDialog({
   }
 
   const submitDisabled =
-    disabled || !accounts.length || !availableCategories.length;
+    disabled ||
+    !accounts.length ||
+    !availableCategories.length ||
+    !selectedAccountId ||
+    !selectedCategoryId;
   const footer = (
     <div className={styles.footerActions}>
       <Button
@@ -433,7 +436,11 @@ export function AddTransactionDialog({
           id="add-tx-amount"
           inputRef={amountInputRef}
           label={amountLabel}
-          description="Chỉ nhập số tiền. Danh mục và tài khoản đã được chọn sẵn bên dưới."
+          description={
+            selectedCategory
+              ? "Chỉ nhập số tiền rồi lưu; danh mục và tài khoản đã được chọn sẵn."
+              : "Chọn một danh mục nhanh lần đầu; MoneyFlow sẽ nhớ cho những lần sau."
+          }
           inputMode="numeric"
           autoComplete="off"
           placeholder="0"
@@ -516,8 +523,8 @@ export function AddTransactionDialog({
         aria-label="Danh mục và tài khoản đang dùng"
       >
         <div className={fastStyles.defaultLine} data-slot="capture-fast-defaults">
-          <span>Đang dùng</span>
-          <strong>{selectedCategory?.name ?? "Chưa có danh mục"}</strong>
+          <span>{selectedCategory ? "Đang dùng" : "Chọn một lần"}</span>
+          <strong>{selectedCategory?.name ?? "Danh mục"}</strong>
           <span aria-hidden="true">·</span>
           <span>{selectedAccount?.name ?? "Chưa có tài khoản"}</span>
         </div>
@@ -625,7 +632,9 @@ export function AddTransactionDialog({
         </details>
 
         <p className={fastStyles.fastHint}>
-          Không cần chọn lại nếu đúng. Ghi chú chỉ dùng khi bạn thực sự muốn thêm ngữ cảnh.
+          {selectedCategory
+            ? "Không cần chọn lại nếu đúng. Ghi chú chỉ dùng khi bạn thực sự muốn thêm ngữ cảnh."
+            : "Sau lần chọn đầu tiên, MoneyFlow dùng lựa chọn đã lưu cho lần ghi quen thuộc tiếp theo."}
         </p>
       </section>
 
