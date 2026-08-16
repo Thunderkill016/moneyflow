@@ -45,8 +45,10 @@ export type QuickCaptureMode = TransactionKind | "transfer";
 
 /**
  * Capture → Quick Add.
- * Reuses the trusted transaction and transfer mutation boundaries while the
- * presentation optimizes for amount-first frequent entry.
+ * Direct entry uses the same dialog/footer geometry as in-place Dashboard
+ * capture so installed shortcuts and fallback `Ghi` navigation do not degrade
+ * into a longer embedded form. Transaction and transfer mutations remain the
+ * existing trusted boundaries.
  */
 export function CaptureQuickPage({
   viewer,
@@ -245,9 +247,8 @@ export function CaptureQuickPage({
         {!workspace.dataError && hasQuickSetup ? (
           <AddTransactionDialog
             open={formOpen}
-            embedded
-            eyebrow="Capture"
-            title="Thêm nhanh"
+            eyebrow="Nhập nhanh"
+            title="Ghi giao dịch"
             initialKind={initialKind}
             onClose={handleClose}
             onAdd={handleAdd}
