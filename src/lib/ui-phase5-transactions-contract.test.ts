@@ -170,11 +170,12 @@ test("Transfer keeps the shared lifecycle while later phases may own its present
   assert.doesNotMatch(transferDialog, /primary-button|secondary-button|icon-button/);
 });
 
-test("quick capture composes the embedded transaction form behind a local route owner", () => {
+test("direct quick capture reuses the shared dialog and its phone geometry", () => {
   assert.match(quickCapture, /capture-quick-page\.module\.css/);
   assert.match(quickCapture, /data-slot="capture-quick-workspace"/);
-  assert.match(quickCapture, /<AddTransactionDialog[\s\S]*embedded/);
-  assert.match(dialogSources[0].source, /data-slot="quick-capture-form"/);
+  assert.match(quickCapture, /<AddTransactionDialog[\s\S]*open=\{formOpen\}/);
+  assert.match(quickCapture, /title="Ghi giao dịch"/);
+  assert.match(quickCapture, /onTransferRequested=\{canTransfer \? openTransfer : undefined\}/);
   // `svh` replaced `dvh` after a physical-phone run: the dynamic unit resizes the
   // dialog as mobile browser chrome hides and returns.
   assert.match(transactionFormCss, /max-height: calc\(100svh - 24px\)/);
