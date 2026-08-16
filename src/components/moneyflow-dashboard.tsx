@@ -14,7 +14,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems } from "@/lib/attention";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
-import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
 import {
   monthStartFromDate,
   type RecurringCommitment,
@@ -25,12 +24,7 @@ import {
   topExpenseCategories,
 } from "@/lib/finance";
 import type { SavingsGoal } from "@/lib/planning/goals";
-import { hydrateIncomeTemplatesWithOccurrences } from "@/lib/planning/income-template-store";
 import type { RecurringIncomeTemplate } from "@/lib/planning/income-templates";
-import {
-  countPending,
-  readStoredCandidates,
-} from "@/lib/inbox/candidate-store";
 import { formatMoney } from "@/lib/money";
 import { GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
 import {
@@ -104,38 +98,74 @@ export function MoneyFlowDashboard({
 
   useEffect(() => {
     if (!viewer.isDemo) return;
+
+    let cancelled = false;
     const monthStart = monthStartFromDate(workspace.today);
     const frame = window.requestAnimationFrame(() => {
-      setDemoCommitments(
-        hydrateCommitmentsWithOccurrences(commitments, monthStart),
-      );
-      setDemoIncomeTemplates(
-        hydrateIncomeTemplatesWithOccurrences(incomeTemplates, monthStart),
-      );
+      void Promise.all([
+        import("@/lib/planning/commitment-occurrence-store"),
+        import("@/lib/planning/income-template-store"),
+      ])
+        .then(([commitmentStore, incomeTemplateStore]) => {
+          if (cancelled) return;
+          setDemoCommitments(
+            commitmentStore.hydrateCommitmentsWithOccurrences(
+              commitments,
+              monthStart,
+            ),
+          );
+          setDemoIncomeTemplates(
+            incomeTemplateStore.hydrateIncomeTemplatesWithOccurrences(
+              incomeTemplates,
+              monthStart,
+            ),
+          );
+        })
+        .catch(() => {
+          if (cancelled) return;
+          // Demo-only browser persistence is a progressive enhancement. If its
+          // deferred chunk cannot load, keep the server/sample snapshot usable.
+          setDemoCommitments(commitments);
+          setDemoIncomeTemplates(incomeTemplates);
+        });
     });
-    return () => window.cancelAnimationFrame(frame);
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
   }, [viewer.isDemo, commitments, incomeTemplates, workspace.today]);
 
   useEffect(() => {
     if (!viewer.isDemo) return;
 
     let cancelled = false;
-    const run = () => {
+    const run = async () => {
       if (cancelled) return;
       try {
-        setDemoInboxCount(countPending(readStoredCandidates()));
+        const candidateStore = await import("@/lib/inbox/candidate-store");
+        if (cancelled) return;
+        setDemoInboxCount(
+          candidateStore.countPending(candidateStore.readStoredCandidates()),
+        );
       } catch {
-        setDemoInboxCount(0);
+        if (!cancelled) setDemoInboxCount(0);
       }
     };
+
     if (typeof window.requestIdleCallback === "function") {
-      const id = window.requestIdleCallback(run, { timeout: 1500 });
+      const id = window.requestIdleCallback(() => {
+        void run();
+      }, { timeout: 1500 });
       return () => {
         cancelled = true;
         window.cancelIdleCallback(id);
       };
     }
-    const timeout = window.setTimeout(run, 0);
+
+    const timeout = window.setTimeout(() => {
+      void run();
+    }, 0);
     return () => {
       cancelled = true;
       window.clearTimeout(timeout);
