@@ -154,6 +154,8 @@ export function AppShell({
   const router = useRouter();
   const [captureOpen, setCaptureOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [captureMounted, setCaptureMounted] = useState(false);
+  const [moreMounted, setMoreMounted] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const resolvedPrimary = primaryAction ?? DEFAULT_GHI_CHI_ACTION;
@@ -189,11 +191,13 @@ export function AppShell({
 
   function openCapture() {
     setMoreOpen(false);
+    setCaptureMounted(true);
     setCaptureOpen(true);
   }
 
   function openMore() {
     setCaptureOpen(false);
+    setMoreMounted(true);
     setMoreOpen(true);
   }
 
@@ -507,17 +511,17 @@ export function AppShell({
         })}
       </nav>
 
-      {captureOpen ? (
+      {captureMounted ? (
         <CaptureSheetOverlay
-          open
+          open={captureOpen}
           onClose={() => setCaptureOpen(false)}
           inboxCount={inboxCount}
           placementClasses={APP_SHELL_SHEET_CLASS}
         />
       ) : null}
-      {moreOpen ? (
+      {moreMounted ? (
         <MoreSheetOverlay
-          open
+          open={moreOpen}
           onClose={() => setMoreOpen(false)}
           pathname={pathname}
           inboxCount={inboxCount}
