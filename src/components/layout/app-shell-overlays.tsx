@@ -18,26 +18,6 @@ import {
 } from "@/lib/nav-ia";
 import styles from "./app-shell.module.css";
 
-/**
- * Position only — height belongs to `.shellSheet` alone.
- *
- * These overlays are code-split from the first AppShell paint. Keeping their
- * geometry unchanged avoids turning the performance split into a visual
- * redesign or a second presentation authority.
- */
-const APP_SHELL_SHEET_CLASS = [
-  "w-[min(32rem,100%)]",
-  "max-[760px]:inset-x-0",
-  "max-[760px]:top-auto",
-  "max-[760px]:bottom-0",
-  "max-[760px]:w-full",
-  "max-[760px]:max-w-none",
-  "max-[760px]:rounded-t-3xl",
-  "max-[760px]:border-x-0",
-  "max-[760px]:border-t",
-  "max-[760px]:border-b-0",
-].join(" ");
-
 function cx(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
@@ -51,10 +31,12 @@ export function CaptureSheetOverlay({
   open,
   onClose,
   inboxCount,
+  sheetClassName,
 }: {
   open: boolean;
   onClose: () => void;
   inboxCount: number;
+  sheetClassName: string;
 }) {
   return (
     <Sheet
@@ -65,7 +47,7 @@ export function CaptureSheetOverlay({
       title="Ghi giao dịch"
       description="Chọn cách ghi nhanh hoặc đưa dữ liệu vào để duyệt trước khi vào sổ."
       side="center"
-      className={cx(styles.shellSheet, APP_SHELL_SHEET_CLASS)}
+      className={cx(styles.shellSheet, sheetClassName)}
       footer={
         <Button
           type="button"
@@ -119,12 +101,14 @@ export function MoreSheetOverlay({
   pathname,
   inboxCount,
   viewer,
+  sheetClassName,
 }: {
   open: boolean;
   onClose: () => void;
   pathname: string;
   inboxCount: number;
   viewer: ViewerSummary;
+  sheetClassName: string;
 }) {
   return (
     <Sheet
@@ -135,7 +119,7 @@ export function MoreSheetOverlay({
       title="Thêm & tài khoản"
       description="Mở công cụ, kế hoạch và tùy chọn tài khoản mà không thay đổi luồng ghi chính."
       side="right"
-      className={cx(styles.shellSheet, APP_SHELL_SHEET_CLASS)}
+      className={cx(styles.shellSheet, sheetClassName)}
     >
       <SheetLinks
         label="Công cụ hàng ngày"
