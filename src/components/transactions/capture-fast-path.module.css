@@ -44,7 +44,7 @@
   flex: 0 0 auto;
   align-items: center;
   gap: 7px;
-  min-height: 42px;
+  min-height: 44px;
   max-width: 180px;
   border: 1px solid var(--mf-border);
   border-radius: 999px;
@@ -93,7 +93,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   color: var(--mf-brand-text);
   font-size: 12px;
   font-weight: 720;
@@ -135,7 +135,7 @@
   }
 
   .categoryChip {
-    min-height: 40px;
+    min-height: 44px;
     padding-block: 6px;
   }
 
