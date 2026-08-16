@@ -58,6 +58,7 @@ export function CaptureQuickPage({
   initialMode?: QuickCaptureMode;
 }) {
   const router = useRouter();
+  const canTransfer = workspace.accounts.length >= 2;
   const { addTransaction, addTransfer, isMutating } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
@@ -66,8 +67,12 @@ export function CaptureQuickPage({
   });
   const [notice, setNotice] = useState("");
   const [inboxCount, setInboxCount] = useState(0);
-  const [formOpen, setFormOpen] = useState(initialMode !== "transfer");
-  const [transferOpen, setTransferOpen] = useState(initialMode === "transfer");
+  const [formOpen, setFormOpen] = useState(
+    initialMode !== "transfer" || !canTransfer,
+  );
+  const [transferOpen, setTransferOpen] = useState(
+    initialMode === "transfer" && canTransfer,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -151,7 +156,6 @@ export function CaptureQuickPage({
 
   const hasQuickSetup =
     workspace.accounts.length > 0 && workspace.categories.length > 0;
-  const canTransfer = workspace.accounts.length >= 2;
   const initialKind =
     initialMode === "expense" || initialMode === "income"
       ? initialMode
