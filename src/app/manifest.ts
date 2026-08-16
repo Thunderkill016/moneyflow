@@ -44,6 +44,47 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
     ],
+    shortcuts: [
+      {
+        name: "Ghi khoản chi",
+        short_name: "Khoản chi",
+        description: "Mở nhập nhanh ở chế độ khoản chi",
+        url: "/capture/quick?kind=expense",
+        icons: [
+          {
+            src: "/icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+        ],
+      },
+      {
+        name: "Ghi khoản thu",
+        short_name: "Khoản thu",
+        description: "Mở nhập nhanh ở chế độ khoản thu",
+        url: "/capture/quick?kind=income",
+        icons: [
+          {
+            src: "/icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+        ],
+      },
+      {
+        name: "Chuyển tiền",
+        short_name: "Chuyển tiền",
+        description: "Mở luồng chuyển tiền giữa các tài khoản",
+        url: "/capture/quick?kind=transfer",
+        icons: [
+          {
+            src: "/icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+        ],
+      },
+    ],
     share_target: {
       action: "/capture/share",
       method: "POST",

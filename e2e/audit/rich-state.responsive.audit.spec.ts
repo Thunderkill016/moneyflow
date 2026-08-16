@@ -124,7 +124,7 @@ async function assertNoClippedMoney(page: Page, route: AuditRoute): Promise<void
 
 async function attachFilledCaptureState(page: Page, testInfo: TestInfo): Promise<void> {
   const note = page.getByPlaceholder("Ví dụ: Cơm trưa");
-  const save = page.getByRole("button", { name: /^Lưu$/ }).first();
+  const save = page.getByRole("button", { name: "Lưu", exact: true }).first();
 
   const metrics = await page.evaluate(
     ({ notePlaceholder }) => {
@@ -132,7 +132,7 @@ async function attachFilledCaptureState(page: Page, testInfo: TestInfo): Promise
         (element) => element.getAttribute("placeholder") === notePlaceholder,
       );
       const saveButton = Array.from(document.querySelectorAll("button")).find(
-        (element) => (element.textContent || "").trim() === "Lưu",
+        (element) => element.getAttribute("aria-label") === "Lưu",
       );
       if (!(noteInput instanceof HTMLElement) || !(saveButton instanceof HTMLElement)) {
         throw new Error("Filled quick-capture controls are missing");
@@ -232,13 +232,23 @@ test.describe("large VND and long Vietnamese responsive states", () => {
     const route = { label: "quick-capture-rich-input", path: "/capture/quick" };
     await auditRoute(page, testInfo, route);
 
+    const quickDialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
+    await expect(quickDialog).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /^Khoản chi/ }).first(),
+      quickDialog.getByRole("button", { name: "Khoản chi", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
-    const amount = page.getByLabel(/Số tiền chi/i);
+    const amount = quickDialog.getByLabel(/Số tiền chi/i);
     await expect(amount).toBeVisible();
     await amount.fill("987654321");
-    await page.getByRole("button", { name: "Ăn uống", exact: true }).click();
+
+    const categoryDisclosure = quickDialog.locator(
+      'details[data-slot="capture-category-choice"]',
+    );
+    await categoryDisclosure.locator("summary").click();
+    await expect(categoryDisclosure).toHaveAttribute("open", "");
+    await categoryDisclosure
+      .getByRole("button", { name: "Ăn uống", exact: true })
+      .click();
 
     // Category selection intentionally returns focus to the amount field on the
     // next frame. Let that authored focus transition finish before typing the
@@ -252,7 +262,13 @@ test.describe("large VND and long Vietnamese responsive states", () => {
         }),
     );
 
-    const note = page.getByPlaceholder("Ví dụ: Cơm trưa");
+    const optionalDisclosure = quickDialog.locator(
+      'details[data-slot="capture-optional-details"]',
+    );
+    await optionalDisclosure.locator("summary").click();
+    await expect(optionalDisclosure).toHaveAttribute("open", "");
+
+    const note = quickDialog.getByPlaceholder("Ví dụ: Cơm trưa");
     await note.fill(LONG_CAPTURE_NOTE);
     await expect(note).toHaveValue(LONG_CAPTURE_NOTE);
 

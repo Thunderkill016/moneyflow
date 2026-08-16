@@ -37,6 +37,7 @@ import {
   type AccountOption,
   type CategoryOption,
   type CreateTransactionInput,
+  type CreateTransferInput,
   type Transaction,
 } from "@/lib/sample-data";
 import type { ViewerSummary } from "@/components/user-chip";
@@ -46,6 +47,10 @@ const AddTransactionDialog = dynamic(
     import("@/components/add-transaction-dialog").then(
       (mod) => mod.AddTransactionDialog,
     ),
+  { ssr: false },
+);
+const TransferDialog = dynamic(
+  () => import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
   { ssr: false },
 );
 
@@ -78,6 +83,7 @@ export function MoneyFlowDashboard({
   const {
     transactions,
     addTransaction: addTransactionToStore,
+    addTransfer,
     isMutating,
   } = useTransactions({
     initialTransactions: workspace.transactions,
@@ -86,6 +92,7 @@ export function MoneyFlowDashboard({
     isDemo: viewer.isDemo,
   });
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [demoInboxCount, setDemoInboxCount] = useState(0);
   const [demoCommitments, setDemoCommitments] = useState<
@@ -222,10 +229,23 @@ export function MoneyFlowDashboard({
     return result;
   }
 
+  async function handleTransfer(input: CreateTransferInput) {
+    const result = await addTransfer(input);
+    if (result.ok) {
+      setTransferOpen(false);
+      setNotice("Đã chuyển tiền giữa các tài khoản.");
+    }
+    return result;
+  }
+
   const actionsDisabled = Boolean(workspace.dataError);
   const isEmptyLedger = transactions.length === 0;
   const displayName = viewer.displayName || (viewer.isDemo ? "Minh" : "bạn");
   const openGhiChi = () => setDialogOpen(true);
+  const openTransferFromCapture = () => {
+    setDialogOpen(false);
+    setTransferOpen(true);
+  };
 
   return (
     <AppShell
@@ -286,9 +306,18 @@ export function MoneyFlowDashboard({
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         onAdd={addTransaction}
+        onTransferRequested={
+          workspace.accounts.length >= 2 ? openTransferFromCapture : undefined
+        }
         accounts={workspace.accounts}
         categories={workspace.categories}
         disabled={isMutating || actionsDisabled}
+      />
+      <TransferDialog
+        open={transferOpen}
+        accounts={workspace.accounts}
+        onClose={() => setTransferOpen(false)}
+        onTransfer={handleTransfer}
       />
     </AppShell>
   );

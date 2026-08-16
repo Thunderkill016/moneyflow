@@ -2,18 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { CAPTURE_OPTIONS } from "./options.ts";
 
-test("CAPTURE_OPTIONS has three chooser actions", () => {
+test("CAPTURE_OPTIONS prioritizes daily quick capture before assisted paths", () => {
   assert.equal(CAPTURE_OPTIONS.length, 3);
   assert.deepEqual(
     CAPTURE_OPTIONS.map((o) => o.id),
-    ["paste", "upload", "quick"],
+    ["quick", "paste", "upload"],
   );
 });
 
-test("CAPTURE_OPTIONS link to capture subroutes", () => {
-  assert.equal(CAPTURE_OPTIONS[0]?.href, "/capture/paste");
-  assert.equal(CAPTURE_OPTIONS[1]?.href, "/capture/upload");
-  assert.equal(CAPTURE_OPTIONS[2]?.href, "/capture/quick");
+test("CAPTURE_OPTIONS link to the intended capture subroutes", () => {
+  assert.deepEqual(
+    Object.fromEntries(CAPTURE_OPTIONS.map((option) => [option.id, option.href])),
+    {
+      quick: "/capture/quick",
+      paste: "/capture/paste",
+      upload: "/capture/upload",
+    },
+  );
 });
 
 test("CAPTURE_OPTIONS have Vietnamese labels and icons", () => {

@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AddTransactionDialog } from "@/components/add-transaction-dialog";
@@ -22,9 +23,16 @@ import type {
   AccountOption,
   CategoryOption,
   CreateTransactionInput,
+  CreateTransferInput,
   Transaction,
+  TransactionKind,
 } from "@/lib/sample-data";
 import styles from "./capture-quick-page.module.css";
+
+const TransferDialog = dynamic(
+  () => import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  { ssr: false },
+);
 
 type QuickWorkspace = {
   transactions: Transaction[];
@@ -33,21 +41,27 @@ type QuickWorkspace = {
   dataError: string | null;
 };
 
+export type QuickCaptureMode = TransactionKind | "transfer";
+
 /**
- * Capture → Quick Add (wireframes-inbox §7).
- * Reuses the locally owned AddTransactionDialog form in embedded mode with
- * date, keep-open and remembered preferences. Saves to the ledger and records
- * an optional high-confidence manual candidate as already approved.
+ * Capture → Quick Add.
+ * Direct entry uses the same dialog/footer geometry as in-place Dashboard
+ * capture so installed shortcuts and fallback `Ghi` navigation do not degrade
+ * into a longer embedded form. Transaction and transfer mutations remain the
+ * existing trusted boundaries.
  */
 export function CaptureQuickPage({
   viewer,
   workspace,
+  initialMode,
 }: {
   viewer: ViewerSummary;
   workspace: QuickWorkspace;
+  initialMode?: QuickCaptureMode;
 }) {
   const router = useRouter();
-  const { addTransaction, isMutating } = useTransactions({
+  const canTransfer = workspace.accounts.length >= 2;
+  const { addTransaction, addTransfer, isMutating } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
     categories: workspace.categories,
@@ -55,7 +69,12 @@ export function CaptureQuickPage({
   });
   const [notice, setNotice] = useState("");
   const [inboxCount, setInboxCount] = useState(0);
-  const [formOpen, setFormOpen] = useState(true);
+  const [formOpen, setFormOpen] = useState(
+    initialMode !== "transfer" || !canTransfer,
+  );
+  const [transferOpen, setTransferOpen] = useState(
+    initialMode === "transfer" && canTransfer,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -112,13 +131,37 @@ export function CaptureQuickPage({
     return result;
   }
 
+  async function handleTransfer(input: CreateTransferInput) {
+    const result = await addTransfer(input);
+    if (result.ok) {
+      setTransferOpen(false);
+      setFormOpen(true);
+      setNotice("Đã chuyển tiền giữa các tài khoản.");
+    }
+    return result;
+  }
+
   function handleClose() {
     setFormOpen(false);
     router.push("/capture");
   }
 
-  const hasSetup =
+  function openTransfer() {
+    setFormOpen(false);
+    setTransferOpen(true);
+  }
+
+  function closeTransfer() {
+    setTransferOpen(false);
+    setFormOpen(true);
+  }
+
+  const hasQuickSetup =
     workspace.accounts.length > 0 && workspace.categories.length > 0;
+  const initialKind =
+    initialMode === "expense" || initialMode === "income"
+      ? initialMode
+      : undefined;
 
   return (
     <AppShell
@@ -144,8 +187,8 @@ export function CaptureQuickPage({
             </LinkButton>
             <h1 id="capture-quick-title">Thêm nhanh</h1>
             <p>
-              Ghi một khoản thu/chi tay — tần suất cao, rủi ro thấp. Tài khoản và danh mục được nhớ
-              cho lần sau.
+              Nhập số tiền trước. MoneyFlow nhớ tài khoản và danh mục gần nhất;
+              chỉ mở chi tiết khi bạn cần đổi.
             </p>
           </div>
           <div className={styles.headingActions}>
@@ -174,7 +217,7 @@ export function CaptureQuickPage({
           </Alert>
         ) : null}
 
-        {!workspace.dataError && !hasSetup ? (
+        {!workspace.dataError && !hasQuickSetup && !transferOpen ? (
           <EmptyState
             icon={<Icon name="wallet" />}
             title="Chưa sẵn sàng thêm giao dịch"
@@ -201,20 +244,28 @@ export function CaptureQuickPage({
           />
         ) : null}
 
-        {!workspace.dataError && hasSetup ? (
+        {!workspace.dataError && hasQuickSetup ? (
           <AddTransactionDialog
             open={formOpen}
-            embedded
-            eyebrow="Capture"
-            title="Thêm nhanh"
+            eyebrow="Nhập nhanh"
+            title="Ghi giao dịch"
+            initialKind={initialKind}
             onClose={handleClose}
             onAdd={handleAdd}
+            onTransferRequested={canTransfer ? openTransfer : undefined}
             accounts={workspace.accounts}
             categories={workspace.categories}
             disabled={isMutating}
           />
         ) : null}
       </main>
+
+      <TransferDialog
+        open={!workspace.dataError && canTransfer && transferOpen}
+        accounts={workspace.accounts}
+        onClose={closeTransfer}
+        onTransfer={handleTransfer}
+      />
     </AppShell>
   );
 }

@@ -37,6 +37,16 @@ async function stabilizeQuickExpense(
     });
 }
 
+async function openCaptureDetails(scope: Locator, slot: string) {
+  const disclosure = scope.locator(`details[data-slot="${slot}"]`);
+  await expect(disclosure).toBeVisible();
+  if (!(await disclosure.evaluate((element: HTMLDetailsElement) => element.open))) {
+    await disclosure.locator("summary").click();
+  }
+  await expect(disclosure).toHaveAttribute("open", "");
+  return disclosure;
+}
+
 test.describe("Expense path (thu chi)", () => {
   test.beforeEach(async ({ context }) => {
     await context.addInitScript(() => {
@@ -127,24 +137,38 @@ test.describe("Expense path (thu chi)", () => {
     }
 
     await page.goto("/capture/quick");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Thêm nhanh" }),
-    ).toBeVisible();
-    const expenseKind = page.getByRole("button", { name: /Khoản chi/i });
+    const quickDialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
+    await expect(quickDialog).toBeVisible();
+
+    const expenseKind = quickDialog.getByRole("button", { name: "Khoản chi" });
     await expect(expenseKind).toBeVisible();
     await expenseKind.click();
 
-    const amount = page.getByLabel(/Số tiền chi/i);
-    const note = page.getByPlaceholder("Ví dụ: Cơm trưa");
+    const amount = quickDialog.getByLabel(/Số tiền chi/i);
+    await expect(amount).toBeFocused();
     await amount.fill(UNIQUE_AMOUNT);
     await expect(amount).toHaveValue(UNIQUE_AMOUNT_DISPLAY);
-    await page
+
+    await expect(
+      quickDialog.locator('[data-slot="capture-account-choice"] summary'),
+    ).toBeVisible();
+    await expect(
+      quickDialog.locator('[data-slot="capture-category-choice"] summary'),
+    ).toBeVisible();
+
+    const categoryDisclosure = await openCaptureDetails(
+      quickDialog,
+      "capture-category-choice",
+    );
+    await categoryDisclosure
       .getByRole("button", { name: "Ăn uống", exact: true })
       .click();
+
+    await openCaptureDetails(quickDialog, "capture-optional-details");
+    const note = quickDialog.getByPlaceholder("Ví dụ: Cơm trưa");
     await note.fill(UNIQUE_NOTE);
 
-    const form = page.locator("form").filter({ has: amount });
-    const save = form.getByRole("button", { name: /Lưu/i });
+    const save = quickDialog.getByRole("button", { name: "Lưu", exact: true });
     await stabilizeQuickExpense(amount, note, save);
     await save.click();
 
@@ -248,6 +272,27 @@ test.describe("Expense path (thu chi)", () => {
     await expect(dialog).toBeVisible();
 
     const amount = dialog.getByLabel(/Số tiền chi/i);
+    await expect(amount).toBeFocused();
+    await expect(dialog.locator('[data-slot="capture-account-choice"] summary')).toBeVisible();
+    await expect(dialog.locator('[data-slot="capture-category-choice"] summary')).toBeVisible();
+
+    if (isMobile) {
+      const save = dialog.getByRole("button", { name: "Lưu", exact: true });
+      await expect(save).toBeVisible();
+      const saveBox = await save.boundingBox();
+      expect(saveBox).not.toBeNull();
+      expect(saveBox!.y + saveBox!.height).toBeLessThanOrEqual(
+        (page.viewportSize()?.height ?? 10_000) + 1,
+      );
+    }
+
+    const categoryDisclosure = await openCaptureDetails(
+      dialog,
+      "capture-category-choice",
+    );
+    await categoryDisclosure.getByRole("button", { name: /Ăn uống/i }).click();
+    await openCaptureDetails(dialog, "capture-optional-details");
+
     const note = dialog.getByPlaceholder("Ví dụ: Cơm trưa");
     const keepOpen = dialog.getByRole("checkbox", {
       name: /Lưu xong thêm tiếp/i,
@@ -255,7 +300,6 @@ test.describe("Expense path (thu chi)", () => {
 
     await keepOpen.check();
     await amount.fill("120000");
-    await dialog.getByRole("button", { name: /Ăn uống/i }).click();
     await note.fill(KEEP_OPEN_NOTE);
     await dialog
       .getByRole("button", { name: "Lưu & thêm tiếp", exact: true })
@@ -303,5 +347,22 @@ test.describe("Expense path (thu chi)", () => {
         { timeout: 15_000 },
       )
       .toBe(1);
+  });
+
+  test("direct capture modes select income and reuse the trusted transfer flow", async ({
+    page,
+  }) => {
+    await page.goto("/capture/quick?kind=income");
+    const quickDialog = page.getByRole("dialog", { name: "Ghi giao dịch" });
+    await expect(quickDialog).toBeVisible();
+    await expect(
+      quickDialog.getByRole("button", { name: "Khoản thu" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(quickDialog.getByLabel(/Số tiền thu/i)).toBeFocused();
+
+    await page.goto("/capture/quick?kind=transfer");
+    const transferDialog = page.getByRole("dialog", { name: "Chuyển tiền" });
+    await expect(transferDialog).toBeVisible();
+    await expect(transferDialog.getByLabel("Số tiền chuyển")).toBeFocused();
   });
 });
