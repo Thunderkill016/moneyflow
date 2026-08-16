@@ -1,8 +1,8 @@
 # Capture 3.0 — amount-only fast path
 
-**Status:** accepted / superseded presentation  
-**Execution state:** completed  
-**Issue/PR:** #411 / #412  
+**Status:** accepted / superseded presentation
+**Execution state:** completed
+**Issue/PR:** #411 / #412
 **Completed:** 2026-08-16
 
 ## Outcome
