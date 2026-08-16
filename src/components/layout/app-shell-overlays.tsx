@@ -31,12 +31,12 @@ export function CaptureSheetOverlay({
   open,
   onClose,
   inboxCount,
-  className,
+  placementClasses,
 }: {
   open: boolean;
   onClose: () => void;
   inboxCount: number;
-  className: string;
+  placementClasses: string;
 }) {
   return (
     <Sheet
@@ -47,7 +47,7 @@ export function CaptureSheetOverlay({
       title="Ghi giao dịch"
       description="Chọn cách ghi nhanh hoặc đưa dữ liệu vào để duyệt trước khi vào sổ."
       side="center"
-      className={cx(styles.shellSheet, className)}
+      className={cx(styles.shellSheet, placementClasses)}
       footer={
         <Button
           type="button"
@@ -101,14 +101,14 @@ export function MoreSheetOverlay({
   pathname,
   inboxCount,
   viewer,
-  className,
+  placementClasses,
 }: {
   open: boolean;
   onClose: () => void;
   pathname: string;
   inboxCount: number;
   viewer: ViewerSummary;
-  className: string;
+  placementClasses: string;
 }) {
   return (
     <Sheet
@@ -119,7 +119,7 @@ export function MoreSheetOverlay({
       title="Thêm & tài khoản"
       description="Mở công cụ, kế hoạch và tùy chọn tài khoản mà không thay đổi luồng ghi chính."
       side="right"
-      className={cx(styles.shellSheet, className)}
+      className={cx(styles.shellSheet, placementClasses)}
     >
       <SheetLinks
         label="Công cụ hàng ngày"
