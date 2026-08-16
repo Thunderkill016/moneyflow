@@ -1,9 +1,9 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { signOut } from "@/app/(auth)/actions";
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon, type IconName } from "@/components/icons";
 import {
@@ -17,13 +17,11 @@ import {
   IconButton,
   LinkButton,
 } from "@/components/ui/button";
-import { Sheet } from "@/components/ui/sheet";
 import {
   ToastRegion,
   type ToastMessage,
   type ToastTone,
 } from "@/components/ui/toast";
-import { CAPTURE_OPTIONS } from "@/lib/capture/options";
 import {
   isSearchShortcut,
   shouldIgnoreShortcutTarget,
@@ -42,28 +40,17 @@ import {
 } from "@/lib/nav-ia";
 import styles from "./app-shell.module.css";
 
-const INBOX_BADGE_COUNT = 0;
+const CaptureSheetOverlay = dynamic(
+  () =>
+    import("./app-shell-overlays").then((mod) => mod.CaptureSheetOverlay),
+  { ssr: false },
+);
+const MoreSheetOverlay = dynamic(
+  () => import("./app-shell-overlays").then((mod) => mod.MoreSheetOverlay),
+  { ssr: false },
+);
 
-/**
- * Position only — height belongs to `.shellSheet` alone.
- *
- * Any height utility here would compete with `.shellSheet`, and because a CSS-module
- * class and a utility class carry the same specificity the winner would come down to
- * stylesheet order rather than intent. On a real phone that reads as the sheet sizing
- * itself unpredictably. One owner now.
- */
-const APP_SHELL_SHEET_CLASS = [
-  "w-[min(32rem,100%)]",
-  "max-[760px]:inset-x-0",
-  "max-[760px]:top-auto",
-  "max-[760px]:bottom-0",
-  "max-[760px]:w-full",
-  "max-[760px]:max-w-none",
-  "max-[760px]:rounded-t-3xl",
-  "max-[760px]:border-x-0",
-  "max-[760px]:border-t",
-  "max-[760px]:border-b-0",
-].join(" ");
+const INBOX_BADGE_COUNT = 0;
 
 const DEFAULT_GHI_CHI_ACTION: PrimaryAction = {
   label: GHI_CHI_TIEU_LABEL,
@@ -500,18 +487,22 @@ export function AppShell({
         })}
       </nav>
 
-      <CaptureSheet
-        open={captureOpen}
-        onClose={() => setCaptureOpen(false)}
-        inboxCount={inboxCount}
-      />
-      <MoreSheet
-        open={moreOpen}
-        onClose={() => setMoreOpen(false)}
-        pathname={pathname}
-        inboxCount={inboxCount}
-        viewer={viewer}
-      />
+      {captureOpen ? (
+        <CaptureSheetOverlay
+          open
+          onClose={() => setCaptureOpen(false)}
+          inboxCount={inboxCount}
+        />
+      ) : null}
+      {moreOpen ? (
+        <MoreSheetOverlay
+          open
+          onClose={() => setMoreOpen(false)}
+          pathname={pathname}
+          inboxCount={inboxCount}
+          viewer={viewer}
+        />
+      ) : null}
       <ToastRegion
         messages={toastMessages}
         className={styles.toastRegion}
@@ -521,229 +512,6 @@ export function AppShell({
         }}
       />
     </div>
-  );
-}
-
-function CaptureSheet({
-  open,
-  onClose,
-  inboxCount,
-}: {
-  open: boolean;
-  onClose: () => void;
-  inboxCount: number;
-}) {
-  return (
-    <Sheet
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose();
-      }}
-      title="Ghi giao dịch"
-      description="Chọn cách ghi nhanh hoặc đưa dữ liệu vào để duyệt trước khi vào sổ."
-      side="center"
-      className={cx(styles.shellSheet, APP_SHELL_SHEET_CLASS)}
-      footer={
-        <Button
-          type="button"
-          variant="outline"
-          targetSize="important"
-          className={styles.sheetCancel}
-          onClick={onClose}
-        >
-          Hủy
-        </Button>
-      }
-    >
-      <div className={styles.captureActions}>
-        {CAPTURE_OPTIONS.map((option) => (
-          <Link
-            key={option.href}
-            href={option.href}
-            className={styles.captureOption}
-            onClick={onClose}
-          >
-            <span className={styles.captureOptionIcon}>
-              <Icon name={option.icon} aria-hidden="true" />
-            </span>
-            <span>
-              <strong>{option.label}</strong>
-              <small>{option.description}</small>
-            </span>
-            <Icon name="arrowRight" aria-hidden="true" />
-          </Link>
-        ))}
-      </div>
-      <p className={styles.sheetAlt}>
-        <Link href="/inbox" onClick={onClose}>
-          Mở Hộp thư
-          {inboxCount > 0
-            ? ` (${inboxCount > 99 ? "99+" : inboxCount})`
-            : ""}
-        </Link>
-        {" · "}
-        <Link href="/capture" onClick={onClose}>
-          Trang nhập liệu
-        </Link>
-      </p>
-    </Sheet>
-  );
-}
-
-function MoreSheet({
-  open,
-  onClose,
-  pathname,
-  inboxCount,
-  viewer,
-}: {
-  open: boolean;
-  onClose: () => void;
-  pathname: string;
-  inboxCount: number;
-  viewer: ViewerSummary;
-}) {
-  return (
-    <Sheet
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose();
-      }}
-      title="Thêm & tài khoản"
-      description="Mở công cụ, kế hoạch và tùy chọn tài khoản mà không thay đổi luồng ghi chính."
-      side="right"
-      className={cx(styles.shellSheet, APP_SHELL_SHEET_CLASS)}
-    >
-      <SheetLinks
-        label="Công cụ hàng ngày"
-        items={MORE_NAV_LINKS}
-        pathname={pathname}
-        onClose={onClose}
-      />
-      <p className={styles.sectionLabel}>Kế hoạch · từ Tổng quan</p>
-      <SheetLinks
-        label="Kế hoạch tài chính"
-        items={PLANNING_LINKS}
-        pathname={pathname}
-        onClose={onClose}
-      />
-      <p className={styles.sectionLabel}>Nâng cao · nhập hàng loạt</p>
-      <nav className={styles.sheetNav} aria-label="Công cụ nâng cao">
-        {ADVANCED_NAV_LINKS.map((item) => {
-          const badge =
-            item.href === "/inbox" && inboxCount > 0
-              ? inboxCount
-              : undefined;
-          const active = pathIsActive(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cx(
-                styles.sheetNavLink,
-                active && styles.sheetNavActive,
-              )}
-              onClick={onClose}
-            >
-              <Icon name={item.icon} aria-hidden="true" />
-              <span>{item.label}</span>
-              {badge != null ? (
-                <span
-                  className={styles.badge}
-                  aria-label={`${badge} mục chờ duyệt`}
-                >
-                  {badge > 99 ? "99+" : badge}
-                </span>
-              ) : null}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <section className={styles.accountSection} aria-label="Tài khoản">
-        <div className={styles.accountSummary}>
-          <span className={styles.avatar}>{viewerInitial(viewer)}</span>
-          <span>
-            <strong>{viewerLabel(viewer)}</strong>
-            <small>
-              {viewer.isDemo
-                ? "Dữ liệu demo trên thiết bị"
-                : viewer.email || "Tài khoản MoneyFlow"}
-            </small>
-          </span>
-        </div>
-        <Link
-          href="/settings"
-          className={styles.accountAction}
-          onClick={onClose}
-        >
-          <Icon name="settings" aria-hidden="true" />
-          <span>Cài đặt tài khoản</span>
-        </Link>
-        {viewer.isDemo ? (
-          <Link
-            href="/register"
-            className={cx(
-              styles.accountAction,
-              styles.accountActionPrimary,
-            )}
-            onClick={onClose}
-          >
-            <Icon name="arrowRight" aria-hidden="true" />
-            <span>Tạo tài khoản</span>
-          </Link>
-        ) : (
-          <form action={signOut} className={styles.signoutForm}>
-            <Button
-              type="submit"
-              unstyled
-              targetSize="important"
-              className={cx(
-                styles.accountAction,
-                styles.accountActionDanger,
-              )}
-            >
-              <Icon name="arrowRight" aria-hidden="true" />
-              <span>Đăng xuất</span>
-            </Button>
-          </form>
-        )}
-      </section>
-    </Sheet>
-  );
-}
-
-function SheetLinks({
-  label,
-  items,
-  pathname,
-  onClose,
-}: {
-  label: string;
-  items: typeof MORE_NAV_LINKS;
-  pathname: string;
-  onClose: () => void;
-}) {
-  return (
-    <nav className={styles.sheetNav} aria-label={label}>
-      {items.map((item) => {
-        const active = pathIsActive(pathname, item.href);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cx(
-              styles.sheetNavLink,
-              active && styles.sheetNavActive,
-            )}
-            onClick={onClose}
-          >
-            <Icon name={item.icon} aria-hidden="true" />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
-    </nav>
   );
 }
 
