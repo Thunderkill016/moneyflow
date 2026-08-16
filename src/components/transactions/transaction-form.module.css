@@ -15,7 +15,8 @@
 
 .captureStep,
 .requiredChoices,
-.optionalDetails {
+.optionalDetails,
+.amountFirst {
   display: grid;
   gap: 10px;
   min-width: 0;
@@ -85,6 +86,10 @@
   padding: 4px;
 }
 
+.segmentedThree {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .segment {
   min-height: 44px;
   border: 0;
@@ -105,6 +110,10 @@
   background: var(--mf-surface);
   color: var(--mf-text);
   box-shadow: var(--mf-shadow-sm);
+}
+
+.amountFirst {
+  gap: 6px;
 }
 
 .amountField {
@@ -152,10 +161,10 @@
   background: transparent;
   color: var(--mf-text);
   font-family: var(--mf-font-money);
-  font-size: clamp(24px, 6vw, 34px);
+  font-size: clamp(30px, 8vw, 42px);
   font-variant-numeric: tabular-nums;
-  font-weight: 730;
-  line-height: 1.2;
+  font-weight: 760;
+  line-height: 1.12;
   outline: 0;
 }
 
@@ -171,6 +180,121 @@
 .formAlert,
 .formStatus {
   margin: 0;
+}
+
+.quickConfirmations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.quickChoice,
+.optionalDisclosure {
+  min-width: 0;
+  border: 1px solid var(--mf-border);
+  border-radius: 12px;
+  background: var(--mf-surface);
+  overflow: clip;
+}
+
+.quickChoice[open] {
+  grid-column: 1 / -1;
+}
+
+.quickChoiceSummary,
+.optionalSummary {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 9px;
+  min-height: 54px;
+  padding: 8px 10px;
+  color: var(--mf-text);
+  cursor: pointer;
+  list-style: none;
+}
+
+.quickChoiceSummary::-webkit-details-marker,
+.optionalSummary::-webkit-details-marker {
+  display: none;
+}
+
+.quickChoiceSummary:hover,
+.optionalSummary:hover {
+  background: var(--mf-surface-muted);
+}
+
+.quickChoiceIcon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--mf-brand-subtle);
+  color: var(--mf-brand-text);
+}
+
+.quickChoiceIcon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.quickChoiceCopy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.quickChoiceCopy small {
+  color: var(--mf-text-muted);
+  font-size: 10px;
+  font-weight: 720;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.quickChoiceCopy strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--mf-text);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quickChoiceChevron {
+  width: 16px;
+  height: 16px;
+  color: var(--mf-text-muted);
+  transition: transform 150ms ease;
+}
+
+.quickChoice[open] .quickChoiceChevron,
+.optionalDisclosure[open] .quickChoiceChevron {
+  transform: rotate(90deg);
+}
+
+.quickChoicePanel,
+.optionalBody {
+  border-top: 1px solid var(--mf-border);
+  background: var(--mf-surface-muted);
+  padding: 12px;
+}
+
+.optionalDisclosure {
+  min-width: 0;
+}
+
+.optionalSummary {
+  min-height: 50px;
+}
+
+.optionalBody {
+  display: grid;
+  gap: 12px;
 }
 
 .categoryFieldset,
@@ -295,7 +419,7 @@
   min-height: 44px;
   border: 1px solid var(--mf-border);
   border-radius: 11px;
-  background: var(--mf-surface-muted);
+  background: var(--mf-surface);
   padding: 11px 12px;
   cursor: pointer;
 }
@@ -455,14 +579,21 @@
   .footerActions > * {
     width: 100%;
   }
+
+  .embeddedHeading {
+    gap: 2px;
+  }
+
+  .embeddedHeading h2 {
+    font-size: 19px;
+  }
 }
 
 /*
  * When `interactiveWidget: "resizes-content"` reduces the layout viewport for
  * the numeric keyboard, keep the capture decision sequence ahead of secondary
- * dialog chrome. This remains local to Expense/Income: Dialog still owns the
- * one scroll body, while its accessible title/description relationship remains
- * intact and the two required actions retain their 44px target size.
+ * dialog chrome. Dialog still owns the one scroll body. The amount, compact
+ * type control and remembered confirmations remain above optional detail.
  */
 @media (max-width: 620px) and (max-height: 640px) {
   .dialogContent > header {
@@ -485,13 +616,14 @@
   }
 
   .form {
-    gap: 12px;
+    gap: 10px;
   }
 
   .captureStep,
   .requiredChoices,
   .optionalDetails,
-  .categoryFieldset {
+  .categoryFieldset,
+  .amountFirst {
     gap: 8px;
   }
 
@@ -500,9 +632,19 @@
     padding-top: 12px;
   }
 
+  .amountInput {
+    font-size: clamp(28px, 9vw, 38px);
+  }
+
+  .quickChoiceSummary,
+  .optionalSummary {
+    min-height: 46px;
+    padding: 6px 8px;
+  }
+
   .footerActions {
     display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
     gap: 8px;
   }
 
@@ -519,12 +661,29 @@
   .embedded {
     padding: 14px;
   }
+
+  .quickConfirmations {
+    gap: 6px;
+  }
+
+  .quickChoiceSummary {
+    grid-template-columns: 28px minmax(0, 1fr) 14px;
+    gap: 6px;
+    padding-inline: 7px;
+  }
+
+  .quickChoiceIcon {
+    width: 28px;
+    height: 28px;
+  }
 }
 
 @media (forced-colors: active) {
   .amountControl,
   .categoryChoice,
   .keepOpenRow,
+  .quickChoice,
+  .optionalDisclosure,
   .explainer,
   .impact {
     border: 1px solid CanvasText;
