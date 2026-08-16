@@ -28,8 +28,10 @@ import {
   orderCategoriesByRecent,
   pickCategoryForKind,
   pushRecentCategoryId,
+  pushRecentPreset,
   readQuickAddPrefs,
   writeQuickAddPrefs,
+  type QuickAddPreset,
 } from "@/lib/quick-add-prefs";
 import {
   categoryMeta,
@@ -39,6 +41,7 @@ import {
   type TransactionKind,
 } from "@/lib/sample-data";
 import { todayInVietnam } from "@/lib/vietnam-date";
+import fastStyles from "./transactions/capture-fast-path.module.css";
 import styles from "./transactions/transaction-form.module.css";
 
 const KEEP_OPEN_SUCCESS = "Đã lưu · nhập khoản tiếp";
@@ -86,6 +89,7 @@ export function AddTransactionDialog({
   const [submitting, setSubmitting] = useState(false);
   const [savedFlash, setSavedFlash] = useState("");
   const [recentCategoryIds, setRecentCategoryIds] = useState<string[]>([]);
+  const [recentPresets, setRecentPresets] = useState<QuickAddPreset[]>([]);
   const [rules, setRules] = useState<InboxRule[]>([]);
   const [autoRuleHint, setAutoRuleHint] = useState<string | null>(null);
   const categoryTouchedRef = useRef(false);
@@ -111,6 +115,19 @@ export function AddTransactionDialog({
   const selectedCategoryMeta = selectedCategory
     ? categoryMeta[selectedCategory.name] ?? categoryMeta["Thu nhập khác"]
     : categoryMeta["Thu nhập khác"];
+  const quickCategories = useMemo(() => {
+    const seen = new Set<string>();
+    const ordered = selectedCategory
+      ? [selectedCategory, ...availableCategories]
+      : availableCategories;
+    return ordered
+      .filter((item) => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      })
+      .slice(0, 4);
+  }, [availableCategories, selectedCategory]);
   const hasRecentForKind = availableCategories.some((item) =>
     isRecentCategoryId(item.id, recentCategoryIds),
   );
@@ -120,7 +137,7 @@ export function AddTransactionDialog({
   const dateSummary = occurredOn === today ? "Hôm nay" : occurredOn;
   const optionalSummary = note.trim()
     ? `${dateSummary} · ${note.trim()}`
-    : `${dateSummary} · Ghi chú & tùy chọn`;
+    : `${dateSummary} · ghi chú không bắt buộc`;
   const visibleSaveLabel = keepOpen
     ? "Lưu & thêm tiếp"
     : amount.trim()
@@ -150,6 +167,20 @@ export function AddTransactionDialog({
     }, 2200);
   }
 
+  function validPresetForKind(
+    presets: QuickAddPreset[] | undefined,
+    nextKind: TransactionKind,
+  ): QuickAddPreset | undefined {
+    return presets?.find(
+      (preset) =>
+        preset.kind === nextKind &&
+        accounts.some((item) => item.id === preset.accountId) &&
+        categories.some(
+          (item) => item.kind === nextKind && item.id === preset.categoryId,
+        ),
+    );
+  }
+
   useEffect(() => {
     if (prefsHydratedRef.current) return;
     prefsHydratedRef.current = true;
@@ -158,17 +189,27 @@ export function AddTransactionDialog({
       const resolvedKind = initialKind ?? prefs.kind;
       setKind(resolvedKind);
       setKeepOpen(prefs.keepOpen);
-      if (prefs.accountId) setAccountId(prefs.accountId);
       if (prefs.recentCategoryIds?.length) {
         setRecentCategoryIds(prefs.recentCategoryIds);
       }
-      const forKind = categories.filter((item) => item.kind === resolvedKind);
-      const preferred = pickCategoryForKind(
-        forKind,
-        prefs.recentCategoryIds,
-        prefs.kind === resolvedKind ? prefs.categoryId || undefined : undefined,
-      );
-      if (preferred) setCategoryId(preferred);
+      if (prefs.recentPresets?.length) {
+        setRecentPresets(prefs.recentPresets);
+      }
+
+      const learnedPreset = validPresetForKind(prefs.recentPresets, resolvedKind);
+      if (learnedPreset) {
+        setAccountId(learnedPreset.accountId);
+        setCategoryId(learnedPreset.categoryId);
+      } else {
+        if (prefs.accountId) setAccountId(prefs.accountId);
+        const forKind = categories.filter((item) => item.kind === resolvedKind);
+        const preferred = pickCategoryForKind(
+          forKind,
+          prefs.recentCategoryIds,
+          prefs.kind === resolvedKind ? prefs.categoryId || undefined : undefined,
+        );
+        if (preferred) setCategoryId(preferred);
+      }
       setOccurredOn(todayInVietnam());
     });
     return () => window.cancelAnimationFrame(frame);
@@ -225,28 +266,59 @@ export function AddTransactionDialog({
     if (savedFlash) setSavedFlash("");
   }
 
+  function chooseCategory(nextCategoryId: string) {
+    setCategoryId(nextCategoryId);
+    categoryTouchedRef.current = true;
+    setAutoRuleHint(null);
+    markInputChanged();
+    window.requestAnimationFrame(() => focusAmount(false));
+  }
+
   function changeKind(nextKind: TransactionKind) {
     setKind(nextKind);
-    const forKind = categories.filter((item) => item.kind === nextKind);
-    setCategoryId(pickCategoryForKind(forKind, recentCategoryIds));
+    const learnedPreset = validPresetForKind(recentPresets, nextKind);
+    if (learnedPreset) {
+      setAccountId(learnedPreset.accountId);
+      setCategoryId(learnedPreset.categoryId);
+    } else {
+      const forKind = categories.filter((item) => item.kind === nextKind);
+      setCategoryId(pickCategoryForKind(forKind, recentCategoryIds));
+    }
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
     markInputChanged();
     window.requestAnimationFrame(() => focusAmount(false));
   }
 
-  function persistPrefs(next: {
-    kind: TransactionKind;
-    accountId: string;
-    categoryId: string;
-    keepOpen: boolean;
-  }) {
-    const recentCategoryIdsNext = pushRecentCategoryId(
-      recentCategoryIds,
-      next.categoryId,
-    );
-    setRecentCategoryIds(recentCategoryIdsNext);
-    writeQuickAddPrefs({ ...next, recentCategoryIds: recentCategoryIdsNext });
+  function persistPrefs(
+    next: {
+      kind: TransactionKind;
+      accountId: string;
+      categoryId: string;
+      keepOpen: boolean;
+    },
+    learnSuccessfulPreset = false,
+  ) {
+    const recentCategoryIdsNext = learnSuccessfulPreset
+      ? pushRecentCategoryId(recentCategoryIds, next.categoryId)
+      : recentCategoryIds;
+    const recentPresetsNext = learnSuccessfulPreset
+      ? pushRecentPreset(recentPresets, {
+          kind: next.kind,
+          accountId: next.accountId,
+          categoryId: next.categoryId,
+        })
+      : recentPresets;
+
+    if (learnSuccessfulPreset) {
+      setRecentCategoryIds(recentCategoryIdsNext);
+      setRecentPresets(recentPresetsNext);
+    }
+    writeQuickAddPrefs({
+      ...next,
+      recentCategoryIds: recentCategoryIdsNext,
+      recentPresets: recentPresetsNext,
+    });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -296,12 +368,15 @@ export function AddTransactionDialog({
       return;
     }
 
-    persistPrefs({
-      kind,
-      accountId: selectedAccountId,
-      categoryId: selectedCategoryId,
-      keepOpen,
-    });
+    persistPrefs(
+      {
+        kind,
+        accountId: selectedAccountId,
+        categoryId: selectedCategoryId,
+        keepOpen,
+      },
+      true,
+    );
     idempotencyKeyRef.current = null;
     setAmount("");
     setNote("");
@@ -358,7 +433,7 @@ export function AddTransactionDialog({
           id="add-tx-amount"
           inputRef={amountInputRef}
           label={amountLabel}
-          description="Nhập số tiền trước; MoneyFlow dùng lựa chọn gần nhất bên dưới nếu bạn không đổi."
+          description="Chỉ nhập số tiền. Danh mục và tài khoản đã được chọn sẵn bên dưới."
           inputMode="numeric"
           autoComplete="off"
           placeholder="0"
@@ -436,29 +511,54 @@ export function AddTransactionDialog({
       ) : null}
 
       <section
-        className={styles.quickConfirmations}
+        className={fastStyles.fastDefaults}
         data-slot="capture-required-choices"
-        aria-label="Lựa chọn đang dùng"
+        aria-label="Danh mục và tài khoản đang dùng"
       >
-        <details className={styles.quickChoice} data-slot="capture-account-choice">
-          <summary
-            className={styles.quickChoiceSummary}
-            aria-label={`Tài khoản, ${selectedAccount?.name ?? "chưa chọn"}`}
-          >
-            <span className={styles.quickChoiceIcon}>
-              <Icon name="wallet" aria-hidden="true" />
-            </span>
-            <span className={styles.quickChoiceCopy}>
-              <small>Tài khoản</small>
-              <strong>{selectedAccount?.name ?? "Chưa có tài khoản"}</strong>
-            </span>
-            <Icon
-              name="arrowRight"
-              aria-hidden="true"
-              className={styles.quickChoiceChevron}
-            />
+        <div className={fastStyles.defaultLine} data-slot="capture-fast-defaults">
+          <span>Đang dùng</span>
+          <strong>{selectedCategory?.name ?? "Chưa có danh mục"}</strong>
+          <span aria-hidden="true">·</span>
+          <span>{selectedAccount?.name ?? "Chưa có tài khoản"}</span>
+        </div>
+
+        <div
+          className={fastStyles.categoryRail}
+          role="group"
+          aria-label="Danh mục nhanh"
+          data-slot="capture-category-suggestions"
+        >
+          {quickCategories.map((item) => {
+            const meta = categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+            const selected = selectedCategoryId === item.id;
+            return (
+              <Button
+                type="button"
+                unstyled
+                targetSize="important"
+                key={item.id}
+                className={`${fastStyles.categoryChip}${
+                  selected ? ` ${fastStyles.categoryChipActive}` : ""
+                }`}
+                onClick={() => chooseCategory(item.id)}
+                aria-pressed={selected}
+              >
+                <Icon name={meta.icon as IconName} aria-hidden="true" />
+                <span>{item.name}</span>
+              </Button>
+            );
+          })}
+        </div>
+
+        <details
+          className={fastStyles.moreDisclosure}
+          data-slot="capture-category-choice"
+        >
+          <summary className={fastStyles.moreSummary}>
+            <span>Đổi tài khoản hoặc xem tất cả danh mục</span>
+            <Icon name="arrowRight" aria-hidden="true" />
           </summary>
-          <div className={styles.quickChoicePanel}>
+          <div className={fastStyles.morePanel}>
             <SelectField
               label="Tài khoản"
               value={selectedAccountId}
@@ -475,34 +575,10 @@ export function AddTransactionDialog({
                 </option>
               ))}
             </SelectField>
-          </div>
-        </details>
 
-        <details className={styles.quickChoice} data-slot="capture-category-choice">
-          <summary
-            className={styles.quickChoiceSummary}
-            aria-label={`Danh mục, ${selectedCategory?.name ?? "chưa chọn"}`}
-          >
-            <span className={styles.quickChoiceIcon}>
-              <Icon
-                name={selectedCategoryMeta.icon as IconName}
-                aria-hidden="true"
-              />
-            </span>
-            <span className={styles.quickChoiceCopy}>
-              <small>Danh mục</small>
-              <strong>{selectedCategory?.name ?? "Chưa có danh mục"}</strong>
-            </span>
-            <Icon
-              name="arrowRight"
-              aria-hidden="true"
-              className={styles.quickChoiceChevron}
-            />
-          </summary>
-          <div className={styles.quickChoicePanel}>
             <fieldset className={styles.categoryFieldset}>
               <legend>
-                Chọn danh mục
+                Tất cả danh mục
                 {autoRuleHint ? (
                   <span className={styles.legendHint}> · {autoRuleHint}</span>
                 ) : hasRecentForKind ? (
@@ -525,13 +601,7 @@ export function AddTransactionDialog({
                           ? ` ${styles.categorySelected}`
                           : ""
                       }${recent ? ` ${styles.categoryRecent}` : ""}`}
-                      onClick={() => {
-                        setCategoryId(item.id);
-                        categoryTouchedRef.current = true;
-                        setAutoRuleHint(null);
-                        markInputChanged();
-                        window.requestAnimationFrame(() => focusAmount(false));
-                      }}
+                      onClick={() => chooseCategory(item.id)}
                       aria-pressed={selectedCategoryId === item.id}
                       data-recent={recent ? "true" : undefined}
                     >
@@ -553,6 +623,10 @@ export function AddTransactionDialog({
             </fieldset>
           </div>
         </details>
+
+        <p className={fastStyles.fastHint}>
+          Không cần chọn lại nếu đúng. Ghi chú chỉ dùng khi bạn thực sự muốn thêm ngữ cảnh.
+        </p>
       </section>
 
       <details className={styles.optionalDisclosure} data-slot="capture-optional-details">
@@ -561,7 +635,7 @@ export function AddTransactionDialog({
             <Icon name="calendar" aria-hidden="true" />
           </span>
           <span className={styles.quickChoiceCopy}>
-            <small>Chi tiết</small>
+            <small>Tùy chọn</small>
             <strong>{optionalSummary}</strong>
           </span>
           <Icon
@@ -573,7 +647,7 @@ export function AddTransactionDialog({
         <div className={styles.optionalBody}>
           <div className={styles.formGrid}>
             <TextField
-              label="Ghi chú"
+              label="Ghi chú (không bắt buộc)"
               rootClassName={styles.spanFull}
               value={note}
               targetSize="important"
