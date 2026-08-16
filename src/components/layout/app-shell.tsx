@@ -52,6 +52,26 @@ const MoreSheetOverlay = dynamic(
 
 const INBOX_BADGE_COUNT = 0;
 
+/**
+ * Position only — height belongs to `.shellSheet` alone.
+ *
+ * Keep the class list at the AppShell owner even though the sheet bodies are
+ * lazy-loaded. That preserves the single geometry authority established by the
+ * physical-phone remediation while letting closed overlays leave first-paint JS.
+ */
+const APP_SHELL_SHEET_CLASS = [
+  "w-[min(32rem,100%)]",
+  "max-[760px]:inset-x-0",
+  "max-[760px]:top-auto",
+  "max-[760px]:bottom-0",
+  "max-[760px]:w-full",
+  "max-[760px]:max-w-none",
+  "max-[760px]:rounded-t-3xl",
+  "max-[760px]:border-x-0",
+  "max-[760px]:border-t",
+  "max-[760px]:border-b-0",
+].join(" ");
+
 const DEFAULT_GHI_CHI_ACTION: PrimaryAction = {
   label: GHI_CHI_TIEU_LABEL,
   href: GHI_CHI_TIEU_HREF,
@@ -492,6 +512,7 @@ export function AppShell({
           open
           onClose={() => setCaptureOpen(false)}
           inboxCount={inboxCount}
+          sheetClassName={APP_SHELL_SHEET_CLASS}
         />
       ) : null}
       {moreOpen ? (
@@ -501,6 +522,7 @@ export function AppShell({
           pathname={pathname}
           inboxCount={inboxCount}
           viewer={viewer}
+          sheetClassName={APP_SHELL_SHEET_CLASS}
         />
       ) : null}
       <ToastRegion
