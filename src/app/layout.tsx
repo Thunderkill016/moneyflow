@@ -11,13 +11,18 @@ import "./document-theme.css";
 /**
  * UI text is LCP critical. Inter covers Vietnamese product copy while the
  * ledger uses the system mono stack exposed by the document/theme authority.
+ *
+ * Both Latin and Vietnamese ranges are required, but preloading every range at
+ * the root competes with render-blocking CSS on the first mobile view. Keep
+ * `swap` + adjusted fallback and let the browser request the ranges actually
+ * used by the rendered route instead of forcing root-level font preloads.
  */
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
   variable: "--font-inter",
   display: "swap",
   adjustFontFallback: true,
-  preload: true,
+  preload: false,
 });
 
 const TITLE = "MoneyFlow — Sổ thu chi cá nhân";
