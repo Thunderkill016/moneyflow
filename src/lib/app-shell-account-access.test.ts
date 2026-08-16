@@ -51,9 +51,10 @@ test("mobile account trigger is owned locally and appears at the mobile breakpoi
 });
 
 test("App Shell owns its current translucent topbar rather than a dead global selector", () => {
-  assert.match(shellCss, /\.topbar\s*\{/);
-  assert.match(shellCss, /backdrop-filter:\s*blur\(16px\)/);
-  assert.match(shellCss, /background:\s*color-mix\(/);
+  const match = shellCss.match(/\.topbar\s*\{([^}]*)\}/);
+  assert.ok(match, "expected local .topbar rule");
+  assert.match(match[1], /backdrop-filter:\s*blur\(14px\)/);
+  assert.match(match[1], /background:\s*color-mix\(/);
 });
 
 test("App Shell keeps current navigation and account controls above the product target", () => {
