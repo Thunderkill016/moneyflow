@@ -279,7 +279,6 @@ test.describe("Expense path (thu chi)", () => {
       await expect(save).toBeVisible();
       const saveBox = await save.boundingBox();
       expect(saveBox).not.toBeNull();
-      expect(saveBox!.bottom ?? saveBox!.y + saveBox!.height).toBeUndefined();
       expect(saveBox!.y + saveBox!.height).toBeLessThanOrEqual(
         (page.viewportSize()?.height ?? 10_000) + 1,
       );
