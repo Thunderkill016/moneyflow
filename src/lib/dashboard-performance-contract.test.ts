@@ -34,13 +34,15 @@ test("authenticated dashboard does not eagerly ship demo-only browser stores", (
   assert.match(source, /cancelled/);
 });
 
-test("closed app-shell sheets are split out of the first client paint", () => {
+test("closed app-shell sheets are split out of the first client paint without breaking focus restore", () => {
   const shell = read("src/components/layout/app-shell.tsx");
   const overlays = read("src/components/layout/app-shell-overlays.tsx");
 
   assert.match(shell, /dynamic\([\s\S]*app-shell-overlays/);
-  assert.match(shell, /captureOpen \? \([\s\S]*<CaptureSheetOverlay/);
-  assert.match(shell, /moreOpen \? \([\s\S]*<MoreSheetOverlay/);
+  assert.match(shell, /setCaptureMounted\(true\)/);
+  assert.match(shell, /setMoreMounted\(true\)/);
+  assert.match(shell, /captureMounted \? \([\s\S]*<CaptureSheetOverlay[\s\S]*open=\{captureOpen\}/);
+  assert.match(shell, /moreMounted \? \([\s\S]*<MoreSheetOverlay[\s\S]*open=\{moreOpen\}/);
   assert.doesNotMatch(shell, /from ["']@\/components\/ui\/sheet["']/);
   assert.doesNotMatch(shell, /from ["']@\/lib\/capture\/options["']/);
   assert.match(overlays, /from ["']@\/components\/ui\/sheet["']/);
