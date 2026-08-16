@@ -1,60 +1,61 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-16
-**Current main baseline:** `813cb172c0ad2e0702db76d8c54c4313b2bb2bfe` (#408 merged)
-**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. RRB-08 real-phone observation has started and exposed bounded P2 mobile findings; #404 merged the keyboard-pressure implementation and #408 replaced the rejected protruding mobile-center-action architecture with a unified five-slot dock. The owner has now explicitly promoted #409 Capture 2.0 amount-first quick-entry UX ahead of the held performance task. RRB-08 still requires owner physical-device re-test/closeout after the current capture change. Remaining P1 release gates still depend on owner/provider/legal/read-access.
+**Current main baseline:** `fd23219400d41a533f6cad0f517585f9ae0b7260` (#410 merged)
+**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. RRB-08 real-phone observation exposed bounded mobile findings; #404 fixed keyboard-pressure geometry, #408 replaced the rejected protruding mobile-center-action architecture, and #410 shipped the first amount-first capture pass. Direct owner feedback after #410 says capture still feels like form work because category/note handling is not fast enough, so #411 Capture 3.0 is the authorized current redesign toward an amount-only familiar path with deterministic learned presets and one-tap category correction. RRB-08 still requires owner physical-device re-test/closeout after the current capture change. Remaining P1 release gates still depend on owner/provider/legal/read-access.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
 
 ## NOW
 
-- [ ] **#409 — Capture 2.0 amount-first quick capture UX** — owner-authorized after reviewing the current manual capture flow and mobile capture patterns. **Current scope:** preserve the trusted `AddTransactionDialog` mutation/default/idempotency path while redesigning its presentation around amount-first entry, compact visible account/category confirmations, progressive disclosure for full choices/date/note/keep-open, and immediate save reachability under phone keyboard pressure. Transfer may be unified only by handing off to the existing `TransferDialog`/`addTransfer` boundary; do not reimplement transfer math. PWA shortcuts may deep-link only to supported routes. Active packet: `capture-2-amount-first.md`. **Done when:** exact-head static/build/unit/browser/UI gates are green, browser artifacts show the common familiar transaction needs no scroll to reach Save at constrained phone height, and the merged build is handed back for owner real-phone acceptance. **Next actor:** implementer.
-- [ ] **RRB-08 — current physical-device proof** — issue #398. The bounded runbook/evidence contract is merged in #399 as `rrb-08-physical-device-proof.md`. Owner-observed real-phone testing exposed the keyboard and bottom-nav findings; #404 and #408 are merged. #409 now owns the newly authorized capture-speed/UX change before final phone closeout. **Done when:** after the current bounded capture work, a real phone completes/repeats the release-critical smoke and records device/OS/browser/origin/mode, pass/fail and observed defects. Browser/emulation does not satisfy the final physical-device verdict. **Next actor:** owner after #409 is merged/deployed.
+- [ ] **#411 — Capture 3.0 amount-only fast path with learned quick presets** — preserve `AddTransactionDialog` mutation/idempotency/financial boundaries while learning successful `kind + account + category` pairs as one deterministic browser-local preset, showing the selected pair without disclosure, surfacing recent category choices as one-tap first-viewport controls, and keeping full account/category plus note/date/keep-open secondary. Note stays optional. No AI, schema/provider change, auto-save or financial guessing. Active packet: `capture-3-instant.md`. **Done when:** exact-head static/build/unit/browser/UI gates are green, constrained-phone browser evidence proves the familiar path reaches Save with defaults confirmed and secondary detail closed, and the merged build is handed back for owner real-phone acceptance. **Next actor:** implementer.
+- [ ] **RRB-08 — current physical-device proof** — issue #398. #399 owns the merged runbook. Owner-observed phone testing exposed keyboard, bottom-nav and capture findings; #404/#408/#410 are merged and #411 owns the current bounded capture-speed correction. **Done when:** after #411, a real phone repeats the release-critical smoke and records device/OS/browser/origin/mode, pass/fail and defects. Browser/emulation is not final physical-device evidence. **Next actor:** owner after #411 is merged/deployed.
 
 ## NEXT
 
-- [ ] **#403 — canonical page-load / dashboard LCP optimization** — explicitly authorized by the owner but held behind the one-at-a-time queue. Promote only after #409 reaches reviewed PR/owner handoff, merges or is explicitly stopped. Measure current `/` and `/dashboard` before/after; do not change private financial caching semantics. **Next actor:** agent after #409.
-- [ ] **RRB-02 — hosted restore proof or explicit limitation** — execute only against a disposable/authorized hosted target, or obtain explicit owner acceptance at the proper release boundary. **Next actor:** owner + agent if authorized.
-- [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — stale-AMR/account-mismatch destructive edges remain owner/provider-gated. **Next actor:** owner.
-- [ ] **Controlled closed beta** — start only after all P1 entry gates are cleared and no unresolved P0 exists.
+- [ ] **#403 — canonical page-load / dashboard LCP optimization** — authorized but held behind the one-at-a-time queue. Promote only after #411 reaches reviewed PR/owner handoff, merges or is explicitly stopped. Measure `/` and `/dashboard` before/after; do not change private financial caching semantics.
+- [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or explicit owner limitation decision required.
+- [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — owner/provider-gated.
+- [ ] **Controlled closed beta** — only after P1 entry gates clear and no unresolved P0 exists.
 
 ## BLOCKED
 
-- [ ] **RRB-05 — verified support/privacy contact** — source publishes `support@moneyflow.app`, but operator control is unproven. External beta is blocked until the owner proves control or selects an owner-controlled replacement; the agent must not invent that choice.
-- [ ] **RRB-04 — provider/Auth/firewall read-back** — current provider state for password policy, confirmation, CAPTCHA, rate limits, trusted callbacks/OAuth and edge controls is not available through the connected tools. #40/#174 remain owner/provider decisions; no provider write is authorized.
-- [ ] **RRB-06 — Vietnam personal-data legal/privacy operational review** — requires competent owner/legal review; the agent does not issue a compliance certification.
-- [ ] **RRB-09 — production deployment/provider identity read-back** — repository tooling available in this session does not expose current Vercel/Supabase production identity. Do not infer deployed SHA/origin/mode/provider state from repo CI.
-- [ ] **Controlled closed beta** — blocked on RRB-04, RRB-05, RRB-06 and RRB-09 P1 entry gates and any future P0.
-- [ ] **Public-beta release** — blocked until blocker dispositions, controlled-beta evidence, provider/security decisions and PBT-AC15 are complete.
+- [ ] **RRB-05 — verified support/privacy contact** — `support@moneyflow.app` is published but operator control is unproven.
+- [ ] **RRB-04 — provider/Auth/firewall read-back** — current provider state plus #40/#174 owner decisions require provider read access; no provider write is authorized.
+- [ ] **RRB-06 — Vietnam personal-data legal/privacy operational review** — competent owner/legal review required.
+- [ ] **RRB-09 — production deployment/provider identity read-back** — current Vercel/Supabase production identity is not exposed by repository tooling.
+- [ ] **Controlled closed beta** — blocked on RRB-04/05/06/09 and any future P0.
+- [ ] **Public-beta release** — blocked until blocker dispositions, controlled-beta evidence, provider/security decisions and PBT-AC15 complete.
 
 ## OWNER DECISION
 
-- [ ] **#174 — provider-side security controls** — retain until current provider state is re-audited; no provider write without explicit scoped approval.
+- [ ] **#174 — provider-side security controls** — verify provider state before any owner-authorized change.
 - [ ] **#40 — Supabase leaked-password protection** — verify current provider/plan state before enabling or closing.
-- [ ] **RRB-05 operator contact/domain choice** — prove control or select an owner-controlled replacement before external beta.
-- [ ] **RRB-06 legal/privacy decision** — competent review determines applicable operational obligations/remediation.
-- [ ] **RRB-02 / RRB-03 limitation decisions** — explicit owner acceptance is required if proof will not be executed at the applicable release boundary.
+- [ ] **RRB-05 operator contact/domain choice** — prove control or select an owner-controlled replacement.
+- [ ] **RRB-06 legal/privacy decision** — competent review determines obligations/remediation.
+- [ ] **RRB-02 / RRB-03 limitation decisions** — explicit owner acceptance required if proof will not be executed.
 - [ ] **PBT-AC15 — final public-beta go/no-go and accepted limitations** — agent prepares evidence; owner closes the gate.
 
 ## HOLD
 
-- [ ] **Engineering literature → executable MoneyFlow guardrails** — after release blockers are cleared or the owner explicitly promotes this work, distill selected engineering books into project-specific `Accepted principles / Do not apply / Mapped owner / Evidence` entries, then promote only useful ideas into existing policy, tests, CI, architecture or context routing. Initial reading queue: *Software Engineering at Google*; *Designing Data-Intensive Applications* (2nd ed.); *Building Secure & Reliable Systems*; *Working Effectively with Legacy Code*; *Domain-Driven Design*; *Refactoring* (2nd ed.); *A Philosophy of Software Design* (2nd ed.); *Test-Driven Development: By Example*; *Site Reliability Engineering* + *The Site Reliability Workbook*. **Constraints:** no wholesale book summaries or copyrighted-text copying; literature never overrides product law, current code or intentional tests; do not add ceremony, abstraction or process without a demonstrated MoneyFlow problem. **Next actor:** agent only when the owner promotes it from HOLD.
-- [ ] **Phase E Creative Territories** — paused; every proposed territory was owner-rejected and none is selected.
-- [ ] **Phase F / broader Brand-Product Experience implementation** — not started and not implied by sequence.
+- [ ] **Engineering literature → executable MoneyFlow guardrails** — remain held until release blockers clear or owner promotes it.
+- [ ] **Phase E Creative Territories** — paused; no territory selected.
+- [ ] **Phase F / broader Brand-Product Experience implementation** — not started.
 
 ## RECENTLY DONE
 
-- [x] **#407 / PR #408 — unified mobile bottom navigation redesign** — replaced the rejected floating-FAB/tab hybrid with one five-slot dock geometry. `Ghi` is emphasized inside the shared icon row rather than by protrusion; exact-head CI #2550, CodeQL #1620, Secret history #1620, browser smoke, cross-device UI audit and e2e aggregation passed before merge as `813cb172…`. Browser evidence passed; owner physical-phone acceptance remains part of RRB-08.
-- [x] **#405 / PR #406 — first mobile `Ghi` spacing correction** — replaced the original stacked center-action offsets with an explicit geometry and then increased computed CTA/label clearance after owner phone feedback. Exact-head CI/browser checks passed, but direct real-phone review after merge still judged the center action too protruding and the overall nav architecture too patched. #407 superseded further local spacing work; #406 remains provenance, not accepted final visual design.
-- [x] **#401 / PR #404 — compact mobile transaction capture implementation** — constrained Expense/Income capture now reduces redundant header/footer pressure when the software keyboard shrinks the layout viewport. Browser measurement at 390×568 improved the Dialog body from 307px to 397px while preserving one scroll owner and current mutation semantics. This is merged implementation/browser evidence only; owner real-phone keyboard re-test remains part of RRB-08.
-- [x] **RRB-08 repository-side preparation** — issue #398 / PR #399. The bounded real-phone smoke/evidence contract, P0 stop conditions, privacy-safe evidence hygiene and optional device diagnostics are merged. This is preparation only; RRB-08 itself remains open until direct physical-phone evidence exists. Final head `dfc47a29…` passed CI #2526, CodeQL #1599 and Secret history #1599 before protected squash merge as `e8a4a10e…`; first-run CI #2524 knowledge-schema failure is preserved in PR-memory.
-- [x] **RRB-07 WCAG 2.2 Accessible Authentication proof** — issue #393 / PR #394. Five MoneyFlow-owned auth cases passed first-run in the final UI-audit artifact (`556 passed / 141 skipped / 0 failed`), while explicitly not overclaiming provider-managed Google OAuth or Turnstile behavior. The proof exposed and fixed one shared password-field accessible-name defect. Final head `35a31ba5…` passed CI #2511, CodeQL #1584 and Secret history #1584 before merge as `59da7ad2…`.
-- [x] **RRB-01 authenticated mixed-ledger rendered financial truth** — issue #390 / PR #391. Current authenticated browser evidence proves a coherent two-account ledger with `2,700,000` VND aggregate balance, `2,000,000` income, `300,000` expense, `1,700,000` net, neutral `500,000` internal transfer, `1,200,000` cash and `1,500,000` bank balances. Final head `873f4d4d…` passed CI #2492, CodeQL #1566 and Secret history #1566 before protected squash merge as `9911eafa…`. Database/provider claims remain separately owned.
-- [x] **Release Readiness Audit v1** — #388 merged as `6459fdf7…`; canonical matrix + nine RRB blockers + controlled closed-beta plan recorded.
+- [x] **#409 / PR #410 — Capture 2.0 amount-first quick capture** — preserved trusted transaction mutation semantics, moved amount first, compacted account/category confirmation, unified transfer handoff and added direct/PWA quick entry. Exact-head CI #2573, CodeQL #1635, Secret history #1635, browser smoke, cross-device UI audit and e2e aggregation passed before merge as `fd232194…`. Direct owner phone review then showed the common path still felt too form-like; #411 supersedes further local Capture 2 presentation work.
+- [x] **#407 / PR #408 — unified mobile bottom navigation redesign** — replaced the rejected floating-FAB/tab hybrid with one five-slot dock; merged as `813cb172…` after green CI/browser/UI/e2e evidence.
+- [x] **#405 / PR #406 — first mobile `Ghi` spacing correction** — provenance only; superseded by #408 after owner phone review rejected the protruding architecture.
+- [x] **#401 / PR #404 — compact mobile transaction capture implementation** — reduced keyboard viewport pressure; physical-phone retest remains part of RRB-08.
+- [x] **RRB-08 repository-side preparation** — #398/#399 runbook merged; physical-device verdict still pending.
+- [x] **RRB-07 WCAG 2.2 Accessible Authentication proof** — #393/#394 merged with browser evidence and shared password-field semantic repair.
+- [x] **RRB-01 authenticated mixed-ledger rendered financial truth** — #390/#391 merged with coherent two-account browser/runtime evidence and transfer neutrality.
+- [x] **Release Readiness Audit v1** — #388 merged; canonical blocker matrix recorded.
 - [x] **Open-work reconciliation** — complete through #387; #40/#174 remain intentional owner/provider decisions.
-- [x] **`js-yaml` 4.3.1 security backport** — #386 merged; stale Dependabot #320 closed superseded.
-- [x] **Dispatcher boundary reconciliation** — #384/#385 completed; stale #380 closed superseded.
-- [x] **Amount focus hotfix** — #383 merged with exact-head UI/browser evidence.
+- [x] **`js-yaml` 4.3.1 security backport** — #386 merged.
+- [x] **Dispatcher boundary reconciliation** — #384/#385 completed.
+- [x] **Amount focus hotfix** — #383 merged.
 - [x] **UI evolutionary refresh Slice 1 + Slice 2** — #370 and #381 merged.
 - [x] **Phases A–D; P1 Secure / P2 Recover / P3 Prove** — accepted completed records with named limitations preserved.
 
@@ -64,11 +65,11 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 |---|---|---|
 | `public-beta-trust.md` | active parent program | release-readiness blocker sequence, controlled-beta gates and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active bounded validation | real-phone smoke only; no provider/deployment/production mutation |
-| `capture-2-amount-first.md` | active Class 2 implementation | quick-capture presentation/wiring only; no financial/provider/schema rewrite |
+| `capture-3-instant.md` | active Class 2 implementation | quick-capture presentation + browser-local preference learning only; no financial/provider/schema rewrite |
 
 ## Board rules
 
-1. `NOW` means current authorized execution, not merely an open issue; it may explicitly state that execution is blocked on an external evidence boundary.
+1. `NOW` means current authorized execution, not merely an open issue.
 2. New substantive work must appear here before it becomes execution authority.
 3. Completion/abandonment updates this board in lifecycle closeout; merged work must not remain in `NOW`.
 4. `OWNER DECISION` is never auto-resolved by an agent.
