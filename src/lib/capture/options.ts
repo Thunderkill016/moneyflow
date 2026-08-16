@@ -1,7 +1,8 @@
 /**
  * Capture chooser options (wireframes-inbox CaptureMenu §0 / §24).
  * Shared by Capture sheet (AppShell) and /capture page.
- * Onboarding (TASK-102) no longer forces paste/upload as a primary step.
+ * Daily manual entry is the primary path; paste/upload remain secondary bulk or
+ * assisted-capture paths and never write straight to the ledger implicitly.
  */
 
 export type CaptureOptionId = "paste" | "upload" | "quick";
@@ -18,24 +19,24 @@ export type CaptureOption = {
 
 export const CAPTURE_OPTIONS: CaptureOption[] = [
   {
+    id: "quick",
+    label: "Ghi nhanh",
+    description: "Nhập số tiền trước, dùng lựa chọn gần nhất",
+    href: "/capture/quick",
+    icon: "plus",
+  },
+  {
     id: "paste",
     label: "Dán text / SMS",
-    description: "Dán tin nhắn hoặc dòng ghi chép",
+    description: "Dán tin nhắn hoặc dòng ghi chép để duyệt",
     href: "/capture/paste",
     icon: "paste",
   },
   {
     id: "upload",
     label: "Tải sao kê / file",
-    description: "CSV, Excel hoặc PDF sao kê",
+    description: "CSV, Excel hoặc PDF sao kê để duyệt",
     href: "/capture/upload",
     icon: "upload",
-  },
-  {
-    id: "quick",
-    label: "Thêm nhanh 1 khoản",
-    description: "Nhập tay một giao dịch",
-    href: "/capture/quick",
-    icon: "plus",
   },
 ];
