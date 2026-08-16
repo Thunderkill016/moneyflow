@@ -8,52 +8,67 @@ const css = readFileSync(
   "utf8",
 );
 
-function px(pattern: RegExp, label: string): number {
-  const match = css.match(pattern);
-  assert.ok(match, `missing ${label}`);
-  return Number(match[1]);
-}
-
-test("mobile Ghi CTA keeps explicit visual clearance from its label", () => {
-  assert.match(css, /\.mobileCapture\s*\{[\s\S]*?display:\s*grid/);
-  assert.match(css, /\.mobileCapture\s*\{[\s\S]*?grid-template-rows:\s*28px auto/);
-  assert.match(css, /\.mobileCapture\s*\{[\s\S]*?padding-block:\s*3px/);
-  assert.match(css, /\.mobileCapture span\s*\{[\s\S]*?margin:\s*0/);
-  assert.match(css, /\.mobileCapture svg\s*\{[\s\S]*?margin:\s*0/);
-  assert.doesNotMatch(css, /\.mobileCapture span\s*\{[\s\S]*?margin-top:\s*5px/);
-  assert.doesNotMatch(css, /\.mobileCapture svg\s*\{[\s\S]*?margin-top:\s*7px/);
-
-  const track = px(
-    /\.mobileCapture\s*\{[\s\S]*?grid-template-rows:\s*(\d+)px auto/,
-    "capture track height",
+test("mobile bottom nav uses one five-slot icon-row and label-row geometry", () => {
+  assert.match(
+    css,
+    /\.mobileNav\s*\{[\s\S]*?grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/,
   );
-  const rowGap = px(
-    /\.mobileCapture\s*\{[\s\S]*?gap:\s*(\d+)px/,
-    "capture row gap",
+  assert.match(css, /\.mobileNavItem\s*\{[\s\S]*?display:\s*grid/);
+  assert.match(
+    css,
+    /\.mobileNavItem\s*\{[\s\S]*?grid-template-rows:\s*36px 14px/,
   );
-  const ctaHeight = px(
-    /\.mobileCapture::before\s*\{[\s\S]*?height:\s*(\d+)px/,
-    "capture CTA height",
-  );
-  const ctaLift = px(
-    /\.mobileCapture::before\s*\{[\s\S]*?transform:\s*translateY\(-(\d+)px\)/,
-    "capture CTA lift",
-  );
-  const iconLift = px(
-    /\.mobileCapture svg\s*\{[\s\S]*?transform:\s*translateY\(-(\d+)px\)/,
-    "capture icon lift",
-  );
-
-  assert.equal(iconLift, ctaLift, "CTA visual and icon must move together");
-  assert.ok(
-    track + rowGap - (ctaHeight - ctaLift) >= 8,
-    "Ghi label must keep at least 8px geometric clearance from the 42px CTA",
+  assert.match(css, /\.mobileNavItem\s*\{[\s\S]*?min-height:\s*58px/);
+  assert.match(css, /\.mobileNavItem\s*\{[\s\S]*?gap:\s*3px/);
+  assert.match(
+    css,
+    /\.mobileNavItem > span:not\(\.badge\)\s*\{[\s\S]*?white-space:\s*nowrap/,
   );
 });
 
-test("mobile nav reserve and hit target stay unchanged", () => {
+test("all mobile-nav icons own the same 36px visual row", () => {
+  assert.match(css, /\.mobileNavItem svg\s*\{[\s\S]*?width:\s*36px/);
+  assert.match(css, /\.mobileNavItem svg\s*\{[\s\S]*?height:\s*36px/);
+  assert.match(css, /\.mobileNavItem svg\s*\{[\s\S]*?padding:\s*7px/);
+  assert.match(css, /\.mobileNavItem svg\s*\{[\s\S]*?border-radius:\s*12px/);
+});
+
+test("Ghi is emphasized inside the dock rather than protruding above it", () => {
+  assert.match(
+    css,
+    /\.mobileCapture svg\s*\{[\s\S]*?background:\s*var\(--mf-brand\)/,
+  );
+  assert.match(
+    css,
+    /\.mobileCapture svg\s*\{[\s\S]*?color:\s*var\(--mf-on-brand\)/,
+  );
+  assert.doesNotMatch(css, /\.mobileCapture::before/);
+  assert.doesNotMatch(
+    css,
+    /\.mobileCapture(?:\s+svg)?\s*\{[\s\S]*?translateY\(/,
+  );
+  assert.doesNotMatch(
+    css,
+    /\.mobileCapture(?:\s+svg)?\s*\{[\s\S]*?margin-top:\s*-/,
+  );
+});
+
+test("active destinations do not compete with the primary Ghi action", () => {
+  assert.match(
+    css,
+    /\.mobileNavActive\s*\{[\s\S]*?background:\s*transparent/,
+  );
+  assert.match(
+    css,
+    /\.mobileNavActive svg\s*\{[\s\S]*?background:\s*var\(--mf-brand-subtle\)/,
+  );
+});
+
+test("mobile nav reserve and safe-area owner stay stable", () => {
   assert.match(css, /--mf-shell-mobile-nav-height:\s*70px/);
   assert.match(css, /--mf-shell-mobile-nav-inset:\s*10px/);
-  assert.match(css, /\.mobileNavItem\s*\{[\s\S]*?min-height:\s*52px/);
-  assert.match(css, /grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(
+    css,
+    /bottom:\s*calc\(var\(--mf-shell-mobile-nav-inset\) \+ env\(safe-area-inset-bottom, 0px\)\)/,
+  );
 });
