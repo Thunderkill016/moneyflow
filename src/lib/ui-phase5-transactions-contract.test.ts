@@ -181,14 +181,12 @@ test("direct quick capture reuses the shared dialog and its phone geometry", () 
   assert.match(quickCapture, /<AddTransactionDialog[\s\S]*open=\{formOpen\}/);
   assert.match(quickCapture, /title="Ghi giao dịch"/);
   assert.match(quickCapture, /onTransferRequested=\{canTransfer \? openTransfer : undefined\}/);
-  // `svh` replaced `dvh` after a physical-phone run: the dynamic unit resizes the
-  // dialog as mobile browser chrome hides and returns.
   assert.match(transactionFormCss, /max-height: calc\(100svh - 24px\)/);
   assert.doesNotMatch(transactionFormCss, /dvh/u);
   assert.match(transactionFormCss, /@media \(max-width: 360px\)/);
 });
 
-test("quick capture keeps amount first and makes defaults a one-tap confirmation surface", () => {
+test("quick capture keeps amount first and makes correction compact", () => {
   const addDialog = dialogSources[0].source;
   assert.match(
     addDialog,
@@ -196,12 +194,15 @@ test("quick capture keeps amount first and makes defaults a one-tap confirmation
   );
   assert.match(addDialog, /data-slot="capture-fast-defaults"/);
   assert.match(addDialog, /data-slot="capture-category-suggestions"/);
-  assert.match(addDialog, /aria-label="Danh mục nhanh"/);
+  assert.match(addDialog, /aria-label="Đổi nhanh danh mục"/);
   assert.match(addDialog, /data-slot="capture-category-choice"/);
+  assert.match(addDialog, />Khác</);
   assert.match(addDialog, /Ghi chú \(không bắt buộc\)/);
   assert.match(addDialog, /pushRecentPreset/);
-  assert.match(fastCaptureCss, /\.categoryRail[\s\S]*overflow-x: auto/u);
-  assert.match(fastCaptureCss, /\.categoryChipActive/u);
+  assert.match(addDialog, /\.slice\(0, 2\)/);
+  assert.match(fastCaptureCss, /\.categoryActions/);
+  assert.doesNotMatch(fastCaptureCss, /overflow-x:\s*auto/u);
+  assert.match(fastCaptureCss, /\.secondaryDisclosure:not\(\[open\]\)/u);
   assert.match(transactionFormCss, /\.optionalDisclosure/u);
 });
 
