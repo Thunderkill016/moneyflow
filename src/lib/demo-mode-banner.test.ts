@@ -62,12 +62,14 @@ test("mobile capture is part of the fixed App Shell nav, not a legacy floating F
   const source = css();
   const nav = mobileRuleBlock(source, ".mobileNav");
   assert.match(nav, /position:\s*fixed/);
-  // The floating bar is offset from the bottom edge by its inset plus the safe area.
+  // The floating dock is offset from the bottom edge by its inset plus the safe area.
   assert.match(nav, /bottom:\s*calc\(var\(--mf-shell-mobile-nav-inset\)/);
   assert.match(nav, /z-index:\s*var\(--mf-shell-layer-mobile-nav\)/);
 
   const item = mobileRuleBlock(source, ".mobileNavItem");
-  assert.match(item, /min-height:\s*52px/);
+  assert.match(item, /min-height:\s*58px/);
+  assert.match(item, /display:\s*grid/);
+  assert.match(item, /grid-template-rows:\s*36px 14px/);
   assert.match(shell(), /styles\.mobileCapture/u);
   assert.doesNotMatch(shell(), /mobile-fab/u);
 });

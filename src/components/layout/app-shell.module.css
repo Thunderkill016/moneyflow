@@ -1,9 +1,9 @@
 :global(html[data-moneyflow-shell="mounted"]) {
-  /* 70px is the bar's measured rendered height: the capture item is taller than a
-     plain destination, so the tallest child sets the bar. Keeping the variable equal
-     to what renders is the whole point of routing every clearance through it. */
+  /* 70px is the measured compact height of the unified five-slot mobile dock.
+     Every destination and the Ghi action now share one internal geometry, so the
+     reserve no longer depends on a protruding center control. */
   --mf-shell-mobile-nav-height: 70px;
-  /* The bar now floats, so its outer inset is part of what content must clear.
+  /* The bar floats, so its outer inset is part of what content must clear.
      Everything downstream — content padding, focus clearance, toast placement —
      reads this one value, so the inset can never be forgotten in one of them. */
   --mf-shell-mobile-nav-inset: 10px;
@@ -23,11 +23,10 @@
 }
 
 .shell {
-  /* 70px is the bar's measured rendered height: the capture item is taller than a
-     plain destination, so the tallest child sets the bar. Keeping the variable equal
-     to what renders is the whole point of routing every clearance through it. */
+  /* Keep the shell reserve equal to the same unified dock height used by the
+     mounted html owner above. */
   --mf-shell-mobile-nav-height: 70px;
-  /* The bar now floats, so its outer inset is part of what content must clear.
+  /* The bar floats, so its outer inset is part of what content must clear.
      Everything downstream — content padding, focus clearance, toast placement —
      reads this one value, so the inset can never be forgotten in one of them. */
   --mf-shell-mobile-nav-inset: 10px;
@@ -739,10 +738,9 @@
     flex: 1;
   }
 
-  /* A floating control surface rather than a full-width band: it reads as a
-     precise object, returns edge pixels to content, and keeps all five
-     destinations at full width. The blur is modest and sits behind an opaque-enough
-     surface — this is not glass-over-content for its own sake. */
+  /* One compact five-slot action dock. Navigation destinations and the Ghi
+     primary action share the same icon row and label row; emphasis comes from
+     color and shape, never from breaking the dock baseline. */
   .mobileNav {
     position: fixed;
     z-index: var(--mf-shell-layer-mobile-nav);
@@ -754,96 +752,83 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
     align-items: center;
     border: 1px solid var(--mf-border-subtle);
-    border-radius: 18px;
-    background: color-mix(in srgb, var(--mf-surface) 92%, transparent);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--mf-surface) 96%, transparent);
     padding: 5px 4px;
     box-shadow:
-      0 1px 2px rgb(16 24 40 / 6%),
-      0 12px 28px rgb(16 24 40 / 12%);
-    backdrop-filter: blur(16px);
+      0 1px 2px rgb(16 24 40 / 4%),
+      0 8px 22px rgb(16 24 40 / 10%);
+    backdrop-filter: blur(14px);
   }
 
   .mobileNavItem {
     position: relative;
     min-width: 0;
-    /* 52px keeps every destination above the 44px product floor inside a shorter
-       bar; the bar's own height is what shrank, not the touch target. */
-    min-height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
+    min-height: 58px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 36px 14px;
+    align-content: center;
+    justify-items: center;
     gap: 3px;
     border: 0;
-    border-radius: 12px;
+    border-radius: 14px;
     background: transparent;
     color: var(--mf-text-soft);
-    padding: 4px 2px;
+    padding: 2px;
     font: inherit;
     font-size: 10px;
     font-weight: 650;
+    line-height: 1.2;
+    transition: color var(--mf-fast) var(--mf-ease);
+  }
+
+  .mobileNavItem > span:not(.badge) {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: center;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .mobileNavItem svg {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+    justify-self: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: transparent;
+    color: currentColor;
+    padding: 7px;
     transition:
       background var(--mf-fast) var(--mf-ease),
       color var(--mf-fast) var(--mf-ease);
   }
 
-  .mobileNavItem svg {
-    width: 21px;
-    height: 21px;
-  }
-
   .mobileNavActive {
-    background: var(--mf-brand-subtle);
+    background: transparent;
     color: var(--mf-brand-text);
     font-weight: 720;
   }
 
-  /*
-   * The first candidate still left the 42px CTA only ~2px clear of the Ghi row
-   * on real-phone rendering. Keep the label almost exactly where the other tab
-   * labels sit, but lift the CTA and icon together and encode an 8px geometric
-   * clearance: 28px track + 6px row gap - (42px CTA - 16px lift) = 8px.
-   */
+  .mobileNavActive svg {
+    background: var(--mf-brand-subtle);
+  }
+
   .mobileCapture {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 28px auto;
-    align-content: center;
-    justify-items: center;
-    gap: 6px;
-    padding-block: 3px;
-    color: var(--mf-on-brand);
-  }
-
-  .mobileCapture::before {
-    content: "";
-    position: static;
-    z-index: 0;
-    grid-column: 1;
-    grid-row: 1;
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
-    background: var(--mf-brand);
-    box-shadow: var(--mf-shadow-md);
-    transform: translateY(-16px);
-  }
-
-  .mobileCapture span {
-    grid-column: 1;
-    grid-row: 2;
-    margin: 0;
     color: var(--mf-brand-text);
-    line-height: 1.2;
   }
 
   .mobileCapture svg {
-    position: relative;
-    z-index: 1;
-    grid-column: 1;
-    grid-row: 1;
-    margin: 0;
-    transform: translateY(-16px);
+    background: var(--mf-brand);
+    color: var(--mf-on-brand);
+    box-shadow: 0 2px 8px rgb(16 24 40 / 12%);
+  }
+
+  .mobileCapture span {
+    color: var(--mf-brand-text);
   }
 
   .mobileNav .badge {
