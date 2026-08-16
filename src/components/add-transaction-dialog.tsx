@@ -53,6 +53,8 @@ export function AddTransactionDialog({
   embedded = false,
   title = "Ghi chi tiêu",
   eyebrow = "Nhập nhanh",
+  initialKind,
+  onTransferRequested,
 }: {
   open: boolean;
   onClose: () => void;
@@ -63,6 +65,8 @@ export function AddTransactionDialog({
   embedded?: boolean;
   title?: string;
   eyebrow?: string;
+  initialKind?: TransactionKind;
+  onTransferRequested?: () => void;
 }) {
   const formId = useId();
   const amountInputRef = useRef<HTMLInputElement>(null);
@@ -70,7 +74,7 @@ export function AddTransactionDialog({
   const prefsHydratedRef = useRef(false);
   const savedFlashTimerRef = useRef<number | null>(null);
 
-  const [kind, setKind] = useState<TransactionKind>("expense");
+  const [kind, setKind] = useState<TransactionKind>(initialKind ?? "expense");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [note, setNote] = useState("");
@@ -86,6 +90,7 @@ export function AddTransactionDialog({
   const [autoRuleHint, setAutoRuleHint] = useState<string | null>(null);
   const categoryTouchedRef = useRef(false);
   const effectiveOpen = open || keepOpenSession;
+  const today = todayInVietnam();
 
   const availableCategories = useMemo(() => {
     const filtered = categories.filter((item) => item.kind === kind);
@@ -99,12 +104,28 @@ export function AddTransactionDialog({
   )
     ? categoryId
     : pickCategoryForKind(availableCategories, recentCategoryIds);
+  const selectedAccount = accounts.find((item) => item.id === selectedAccountId);
+  const selectedCategory = availableCategories.find(
+    (item) => item.id === selectedCategoryId,
+  );
+  const selectedCategoryMeta = selectedCategory
+    ? categoryMeta[selectedCategory.name] ?? categoryMeta["Thu nhập khác"]
+    : categoryMeta["Thu nhập khác"];
   const hasRecentForKind = availableCategories.some((item) =>
     isRecentCategoryId(item.id, recentCategoryIds),
   );
   const kindSign = moneyKindPrefix(kind);
   const amountLabel =
     kind === "expense" ? "Số tiền chi (₫)" : "Số tiền thu (₫)";
+  const dateSummary = occurredOn === today ? "Hôm nay" : occurredOn;
+  const optionalSummary = note.trim()
+    ? `${dateSummary} · ${note.trim()}`
+    : `${dateSummary} · Ghi chú & tùy chọn`;
+  const visibleSaveLabel = keepOpen
+    ? "Lưu & thêm tiếp"
+    : amount.trim()
+      ? `Lưu ${amount} ₫`
+      : "Lưu";
 
   function focusAmount(select = true) {
     const input = amountInputRef.current;
@@ -134,17 +155,18 @@ export function AddTransactionDialog({
     prefsHydratedRef.current = true;
     const frame = window.requestAnimationFrame(() => {
       const prefs = readQuickAddPrefs();
-      setKind(prefs.kind);
+      const resolvedKind = initialKind ?? prefs.kind;
+      setKind(resolvedKind);
       setKeepOpen(prefs.keepOpen);
       if (prefs.accountId) setAccountId(prefs.accountId);
       if (prefs.recentCategoryIds?.length) {
         setRecentCategoryIds(prefs.recentCategoryIds);
       }
-      const forKind = categories.filter((item) => item.kind === prefs.kind);
+      const forKind = categories.filter((item) => item.kind === resolvedKind);
       const preferred = pickCategoryForKind(
         forKind,
         prefs.recentCategoryIds,
-        prefs.categoryId || undefined,
+        prefs.kind === resolvedKind ? prefs.categoryId || undefined : undefined,
       );
       if (preferred) setCategoryId(preferred);
       setOccurredOn(todayInVietnam());
@@ -317,8 +339,9 @@ export function AddTransactionDialog({
         pendingLabel="Đang lưu..."
         disabled={submitDisabled}
         data-keep-open={keepOpen ? "true" : undefined}
+        aria-label={keepOpen ? "Lưu & thêm tiếp" : "Lưu"}
       >
-        <Icon name="check" /> {keepOpen ? "Lưu & thêm tiếp" : "Lưu"}
+        <Icon name="check" /> {visibleSaveLabel}
       </Button>
     </div>
   );
@@ -330,47 +353,12 @@ export function AddTransactionDialog({
       onSubmit={handleSubmit}
       noValidate
     >
-      <section className={styles.captureStep} data-slot="capture-type-step">
-        <span className={styles.stepLabel}>1 · Điều gì vừa xảy ra?</span>
-        <div className={styles.segmented} role="group" aria-label="Loại giao dịch">
-          <Button
-            type="button"
-            unstyled
-            targetSize="important"
-            className={`${styles.segment}${
-              kind === "expense" ? ` ${styles.segmentActive}` : ""
-            }`}
-            onClick={() => changeKind("expense")}
-            aria-pressed={kind === "expense"}
-          >
-            Khoản chi (−)
-          </Button>
-          <Button
-            type="button"
-            unstyled
-            targetSize="important"
-            className={`${styles.segment}${
-              kind === "income" ? ` ${styles.segmentActive}` : ""
-            }`}
-            onClick={() => changeKind("income")}
-            aria-pressed={kind === "income"}
-          >
-            Khoản thu (+)
-          </Button>
-        </div>
-      </section>
-
-      <section className={styles.captureStep} data-slot="capture-amount-step">
-        <span className={styles.stepLabel}>2 · Bao nhiêu?</span>
+      <section className={styles.amountFirst} data-slot="capture-amount-step">
         <TextField
           id="add-tx-amount"
           inputRef={amountInputRef}
           label={amountLabel}
-          description={
-            kind === "expense"
-              ? "Số tiền khoản chi, đơn vị đồng Việt Nam."
-              : "Số tiền khoản thu, đơn vị đồng Việt Nam."
-          }
+          description="Nhập số tiền trước; MoneyFlow dùng lựa chọn gần nhất bên dưới nếu bạn không đổi."
           inputMode="numeric"
           autoComplete="off"
           placeholder="0"
@@ -388,104 +376,53 @@ export function AddTransactionDialog({
         />
       </section>
 
-      <section className={styles.requiredChoices} data-slot="capture-required-choices">
-        <span className={styles.stepLabel}>3 · Ghi vào đâu?</span>
-        <SelectField
-          label="Tài khoản"
-          value={selectedAccountId}
+      <div
+        className={`${styles.segmented}${
+          onTransferRequested ? ` ${styles.segmentedThree}` : ""
+        }`}
+        role="group"
+        aria-label="Loại giao dịch"
+        data-slot="capture-type-step"
+      >
+        <Button
+          type="button"
+          unstyled
           targetSize="important"
-          disabled={submitting}
-          onChange={(event) => {
-            setAccountId(event.target.value);
-            markInputChanged();
-          }}
+          className={`${styles.segment}${
+            kind === "expense" ? ` ${styles.segmentActive}` : ""
+          }`}
+          onClick={() => changeKind("expense")}
+          aria-pressed={kind === "expense"}
+          aria-label="Khoản chi"
         >
-          {accounts.map((item) => (
-            <option value={item.id} key={item.id}>
-              {item.name}
-            </option>
-          ))}
-        </SelectField>
-
-        <fieldset className={styles.categoryFieldset}>
-          <legend>
-            Danh mục
-            {autoRuleHint ? (
-              <span className={styles.legendHint}> · {autoRuleHint}</span>
-            ) : hasRecentForKind ? (
-              <span className={styles.legendHint}> · hay dùng trước lên trước</span>
-            ) : null}
-          </legend>
-          <div className={styles.categoryGrid}>
-            {availableCategories.map((item) => {
-              const meta =
-                categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
-              const recent = isRecentCategoryId(item.id, recentCategoryIds);
-              return (
-                <Button
-                  type="button"
-                  unstyled
-                  targetSize="important"
-                  key={item.id}
-                  className={`${styles.categoryChoice}${
-                    selectedCategoryId === item.id
-                      ? ` ${styles.categorySelected}`
-                      : ""
-                  }${recent ? ` ${styles.categoryRecent}` : ""}`}
-                  onClick={() => {
-                    setCategoryId(item.id);
-                    categoryTouchedRef.current = true;
-                    setAutoRuleHint(null);
-                    markInputChanged();
-                    window.requestAnimationFrame(() => focusAmount(false));
-                  }}
-                  aria-pressed={selectedCategoryId === item.id}
-                  data-recent={recent ? "true" : undefined}
-                >
-                  <span className={styles.categoryIcon}>
-                    <Icon name={meta.icon as IconName} />
-                  </span>
-                  <span className={styles.categoryLabel}>
-                    {item.name}
-                    {recent ? (
-                      <span className={styles.recentBadge} aria-label="Gần đây">
-                        Gần đây
-                      </span>
-                    ) : null}
-                  </span>
-                </Button>
-              );
-            })}
-          </div>
-        </fieldset>
-      </section>
-
-      <section className={styles.optionalDetails} data-slot="capture-optional-details">
-        <span className={styles.stepLabel}>4 · Thêm chi tiết nếu cần</span>
-        <div className={styles.formGrid}>
-          <TextField
-            label="Ngày"
-            type="date"
-            value={occurredOn}
+          Chi
+        </Button>
+        <Button
+          type="button"
+          unstyled
+          targetSize="important"
+          className={`${styles.segment}${
+            kind === "income" ? ` ${styles.segmentActive}` : ""
+          }`}
+          onClick={() => changeKind("income")}
+          aria-pressed={kind === "income"}
+          aria-label="Khoản thu"
+        >
+          Thu
+        </Button>
+        {onTransferRequested ? (
+          <Button
+            type="button"
+            unstyled
             targetSize="important"
-            disabled={submitting}
-            onChange={(event) => {
-              setOccurredOn(event.target.value);
-              markInputChanged();
-            }}
-          />
-          <TextField
-            label="Ghi chú"
-            rootClassName={styles.spanFull}
-            value={note}
-            targetSize="important"
-            disabled={submitting}
-            onChange={(event) => applyNoteChange(event.target.value)}
-            placeholder="Ví dụ: Cơm trưa"
-            maxLength={500}
-          />
-        </div>
-      </section>
+            className={styles.segment}
+            onClick={onTransferRequested}
+            aria-label="Chuyển tiền"
+          >
+            Chuyển
+          </Button>
+        ) : null}
+      </div>
 
       {error && !error.startsWith("Nhập số tiền") ? (
         <Alert tone="error" live="assertive" className={styles.formAlert}>
@@ -498,28 +435,189 @@ export function AddTransactionDialog({
         </Alert>
       ) : null}
 
+      <section
+        className={styles.quickConfirmations}
+        data-slot="capture-required-choices"
+        aria-label="Lựa chọn đang dùng"
+      >
+        <details className={styles.quickChoice} data-slot="capture-account-choice">
+          <summary
+            className={styles.quickChoiceSummary}
+            aria-label={`Tài khoản, ${selectedAccount?.name ?? "chưa chọn"}`}
+          >
+            <span className={styles.quickChoiceIcon}>
+              <Icon name="wallet" aria-hidden="true" />
+            </span>
+            <span className={styles.quickChoiceCopy}>
+              <small>Tài khoản</small>
+              <strong>{selectedAccount?.name ?? "Chưa có tài khoản"}</strong>
+            </span>
+            <Icon
+              name="arrowRight"
+              aria-hidden="true"
+              className={styles.quickChoiceChevron}
+            />
+          </summary>
+          <div className={styles.quickChoicePanel}>
+            <SelectField
+              label="Tài khoản"
+              value={selectedAccountId}
+              targetSize="important"
+              disabled={submitting}
+              onChange={(event) => {
+                setAccountId(event.target.value);
+                markInputChanged();
+              }}
+            >
+              {accounts.map((item) => (
+                <option value={item.id} key={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </SelectField>
+          </div>
+        </details>
 
-      <label className={styles.keepOpenRow} htmlFor="add-tx-keep-open">
-        <input
-          id="add-tx-keep-open"
-          type="checkbox"
-          checked={keepOpen}
-          onChange={(event) => {
-            const next = event.target.checked;
-            setKeepOpen(next);
-            persistPrefs({
-              kind,
-              accountId: selectedAccountId,
-              categoryId: selectedCategoryId,
-              keepOpen: next,
-            });
-          }}
-        />
-        <span className={styles.keepOpenCopy}>
-          <strong>Lưu xong thêm tiếp</strong>
-          <span>Giữ form mở, focus lại số tiền sau mỗi lần lưu</span>
-        </span>
-      </label>
+        <details className={styles.quickChoice} data-slot="capture-category-choice">
+          <summary
+            className={styles.quickChoiceSummary}
+            aria-label={`Danh mục, ${selectedCategory?.name ?? "chưa chọn"}`}
+          >
+            <span className={styles.quickChoiceIcon}>
+              <Icon
+                name={selectedCategoryMeta.icon as IconName}
+                aria-hidden="true"
+              />
+            </span>
+            <span className={styles.quickChoiceCopy}>
+              <small>Danh mục</small>
+              <strong>{selectedCategory?.name ?? "Chưa có danh mục"}</strong>
+            </span>
+            <Icon
+              name="arrowRight"
+              aria-hidden="true"
+              className={styles.quickChoiceChevron}
+            />
+          </summary>
+          <div className={styles.quickChoicePanel}>
+            <fieldset className={styles.categoryFieldset}>
+              <legend>
+                Chọn danh mục
+                {autoRuleHint ? (
+                  <span className={styles.legendHint}> · {autoRuleHint}</span>
+                ) : hasRecentForKind ? (
+                  <span className={styles.legendHint}> · hay dùng trước lên trước</span>
+                ) : null}
+              </legend>
+              <div className={styles.categoryGrid}>
+                {availableCategories.map((item) => {
+                  const meta =
+                    categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                  const recent = isRecentCategoryId(item.id, recentCategoryIds);
+                  return (
+                    <Button
+                      type="button"
+                      unstyled
+                      targetSize="important"
+                      key={item.id}
+                      className={`${styles.categoryChoice}${
+                        selectedCategoryId === item.id
+                          ? ` ${styles.categorySelected}`
+                          : ""
+                      }${recent ? ` ${styles.categoryRecent}` : ""}`}
+                      onClick={() => {
+                        setCategoryId(item.id);
+                        categoryTouchedRef.current = true;
+                        setAutoRuleHint(null);
+                        markInputChanged();
+                        window.requestAnimationFrame(() => focusAmount(false));
+                      }}
+                      aria-pressed={selectedCategoryId === item.id}
+                      data-recent={recent ? "true" : undefined}
+                    >
+                      <span className={styles.categoryIcon}>
+                        <Icon name={meta.icon as IconName} />
+                      </span>
+                      <span className={styles.categoryLabel}>
+                        {item.name}
+                        {recent ? (
+                          <span className={styles.recentBadge} aria-label="Gần đây">
+                            Gần đây
+                          </span>
+                        ) : null}
+                      </span>
+                    </Button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          </div>
+        </details>
+      </section>
+
+      <details className={styles.optionalDisclosure} data-slot="capture-optional-details">
+        <summary className={styles.optionalSummary}>
+          <span className={styles.quickChoiceIcon}>
+            <Icon name="calendar" aria-hidden="true" />
+          </span>
+          <span className={styles.quickChoiceCopy}>
+            <small>Chi tiết</small>
+            <strong>{optionalSummary}</strong>
+          </span>
+          <Icon
+            name="arrowRight"
+            aria-hidden="true"
+            className={styles.quickChoiceChevron}
+          />
+        </summary>
+        <div className={styles.optionalBody}>
+          <div className={styles.formGrid}>
+            <TextField
+              label="Ghi chú"
+              rootClassName={styles.spanFull}
+              value={note}
+              targetSize="important"
+              disabled={submitting}
+              onChange={(event) => applyNoteChange(event.target.value)}
+              placeholder="Ví dụ: Cơm trưa"
+              maxLength={500}
+            />
+            <TextField
+              label="Ngày"
+              type="date"
+              value={occurredOn}
+              targetSize="important"
+              disabled={submitting}
+              onChange={(event) => {
+                setOccurredOn(event.target.value);
+                markInputChanged();
+              }}
+            />
+          </div>
+
+          <label className={styles.keepOpenRow} htmlFor="add-tx-keep-open">
+            <input
+              id="add-tx-keep-open"
+              type="checkbox"
+              checked={keepOpen}
+              onChange={(event) => {
+                const next = event.target.checked;
+                setKeepOpen(next);
+                persistPrefs({
+                  kind,
+                  accountId: selectedAccountId,
+                  categoryId: selectedCategoryId,
+                  keepOpen: next,
+                });
+              }}
+            />
+            <span className={styles.keepOpenCopy}>
+              <strong>Lưu xong thêm tiếp</strong>
+              <span>Giữ form mở, focus lại số tiền sau mỗi lần lưu</span>
+            </span>
+          </label>
+        </div>
+      </details>
 
       {embedded ? footer : null}
     </form>
