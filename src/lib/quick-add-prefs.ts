@@ -7,6 +7,12 @@ import type { TransactionKind } from "@/lib/sample-data";
 
 export const QUICK_ADD_PREFS_KEY = "moneyflow-quick-add-prefs-v1";
 
+export type QuickAddPreset = {
+  kind: TransactionKind;
+  accountId: string;
+  categoryId: string;
+};
+
 export type QuickAddPrefs = {
   kind: TransactionKind;
   accountId: string;
@@ -14,9 +20,28 @@ export type QuickAddPrefs = {
   keepOpen: boolean;
   /** Most recent category ids for this kind (expense/income), newest first. */
   recentCategoryIds?: string[];
+  /**
+   * Successful quick-capture account/category pairs, newest first.
+   * Keeping the pair together avoids inventing a combination from two
+   * independent "last used" values when the user switches account contexts.
+   */
+  recentPresets?: QuickAddPreset[];
 };
 
 const KINDS: TransactionKind[] = ["expense", "income"];
+
+function isQuickAddPreset(value: unknown): value is QuickAddPreset {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<QuickAddPreset>;
+  return (
+    typeof item.kind === "string" &&
+    (KINDS as string[]).includes(item.kind) &&
+    typeof item.accountId === "string" &&
+    item.accountId.length > 0 &&
+    typeof item.categoryId === "string" &&
+    item.categoryId.length > 0
+  );
+}
 
 export function isQuickAddPrefs(value: unknown): value is QuickAddPrefs {
   if (!value || typeof value !== "object") return false;
@@ -34,6 +59,10 @@ export function isQuickAddPrefs(value: unknown): value is QuickAddPrefs {
     if (!Array.isArray(item.recentCategoryIds)) return false;
     if (!item.recentCategoryIds.every((id) => typeof id === "string")) return false;
   }
+  if (item.recentPresets !== undefined) {
+    if (!Array.isArray(item.recentPresets)) return false;
+    if (!item.recentPresets.every(isQuickAddPreset)) return false;
+  }
   return true;
 }
 
@@ -44,6 +73,27 @@ export function pushRecentCategoryId(
   max = 6,
 ): string[] {
   const next = [categoryId, ...(recent ?? []).filter((id) => id !== categoryId)];
+  return next.slice(0, max);
+}
+
+/**
+ * Remember successful account/category pairs as one coherent preset.
+ * Dedupe exact pairs while keeping newest-first order.
+ */
+export function pushRecentPreset(
+  recent: QuickAddPreset[] | undefined,
+  preset: QuickAddPreset,
+  max = 6,
+): QuickAddPreset[] {
+  const next = [
+    preset,
+    ...(recent ?? []).filter(
+      (item) =>
+        item.kind !== preset.kind ||
+        item.accountId !== preset.accountId ||
+        item.categoryId !== preset.categoryId,
+    ),
+  ];
   return next.slice(0, max);
 }
 
