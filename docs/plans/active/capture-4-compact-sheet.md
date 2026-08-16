@@ -1,11 +1,11 @@
 # Capture 4 — compact keyboard-first quick sheet
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** owner-authorized from direct real-phone screenshots  
-**Issue/PR:** #413 / #414  
+**Status:** implementing
+**Execution state:** implementing
+**Active role:** implementer
+**Permission scope:** branch_write
+**Owner:** owner-authorized from direct real-phone screenshots
+**Issue/PR:** #413 / #414
 **Last updated:** 2026-08-16
 
 ## Outcome
