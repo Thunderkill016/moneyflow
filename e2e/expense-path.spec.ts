@@ -168,8 +168,7 @@ test.describe("Expense path (thu chi)", () => {
     const note = quickDialog.getByPlaceholder("Ví dụ: Cơm trưa");
     await note.fill(UNIQUE_NOTE);
 
-    const form = quickDialog.locator("form");
-    const save = form.getByRole("button", { name: "Lưu", exact: true });
+    const save = quickDialog.getByRole("button", { name: "Lưu", exact: true });
     await stabilizeQuickExpense(amount, note, save);
     await save.click();
 
