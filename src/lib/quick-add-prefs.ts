@@ -159,10 +159,12 @@ export function isRecentCategoryId(
 }
 
 /**
- * Pick category when opening dialog / switching kind (Ivy-style).
- * preferred → first recent still available → first in list.
+ * Pick only a category the user has actually established before.
+ * Unlike the legacy helper below, this never falls back to the first taxonomy
+ * item. Capture 3 uses it so a first-time user makes one explicit choice rather
+ * than silently saving into an arbitrary category.
  */
-export function pickCategoryForKind<T extends { id: string }>(
+export function pickKnownCategoryForKind<T extends { id: string }>(
   categories: T[],
   recentIds: string[] | undefined,
   preferredId?: string,
@@ -176,7 +178,22 @@ export function pickCategoryForKind<T extends { id: string }>(
       if (categories.some((item) => item.id === id)) return id;
     }
   }
-  return categories[0]!.id;
+  return "";
+}
+
+/**
+ * Legacy general picker: preferred → first recent still available → first in
+ * list. Kept for callers whose product contract intentionally has a taxonomy
+ * fallback; Capture 3 intentionally uses pickKnownCategoryForKind instead.
+ */
+export function pickCategoryForKind<T extends { id: string }>(
+  categories: T[],
+  recentIds: string[] | undefined,
+  preferredId?: string,
+): string {
+  const known = pickKnownCategoryForKind(categories, recentIds, preferredId);
+  if (known) return known;
+  return categories[0]?.id ?? "";
 }
 
 // `todayInVietnam` moved to ./vietnam-date.ts. It decides which calendar day a
