@@ -18,12 +18,15 @@ async function measureCapture(page: Page) {
     ).find((button) => button.getAttribute("aria-label") === "Lưu") as
       | HTMLButtonElement
       | undefined;
-    const account = document.querySelector(
-      'dialog[open] details[data-slot="capture-account-choice"] > summary',
+    const defaults = document.querySelector(
+      'dialog[open] [data-slot="capture-fast-defaults"]',
     ) as HTMLElement | null;
-    const category = document.querySelector(
-      'dialog[open] details[data-slot="capture-category-choice"] > summary',
+    const suggestions = document.querySelector(
+      'dialog[open] [data-slot="capture-category-suggestions"]',
     ) as HTMLElement | null;
+    const fullChoices = document.querySelector(
+      'dialog[open] details[data-slot="capture-category-choice"]',
+    ) as HTMLDetailsElement | null;
     const optional = document.querySelector(
       'dialog[open] details[data-slot="capture-optional-details"]',
     ) as HTMLDetailsElement | null;
@@ -50,8 +53,9 @@ async function measureCapture(page: Page) {
       dialog: rect(dialog),
       amount: rect(amount),
       save: rect(save),
-      account: rect(account),
-      category: rect(category),
+      defaults: rect(defaults),
+      suggestions: rect(suggestions),
+      fullChoicesOpen: fullChoices?.open ?? null,
       optionalOpen: optional?.open ?? null,
       activeId:
         document.activeElement instanceof HTMLElement
@@ -61,13 +65,13 @@ async function measureCapture(page: Page) {
   });
 }
 
-test.describe("Capture 2.0 amount-first constrained phone", () => {
+test.describe("Capture 3.0 amount-only constrained phone", () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize(CONSTRAINED_PHONE);
     await seedUiAuditState(page);
   });
 
-  test("amount, remembered defaults and explicit Save stay reachable without opening secondary detail", async ({
+  test("amount, learned defaults, one-tap categories and explicit Save stay reachable", async ({
     page,
   }, testInfo: TestInfo) => {
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
@@ -83,12 +87,17 @@ test.describe("Capture 2.0 amount-first constrained phone", () => {
     await expect(amount).toBeFocused();
     await amount.fill("85000");
 
+    const defaults = dialog.locator('[data-slot="capture-fast-defaults"]');
+    const suggestions = dialog.locator('[data-slot="capture-category-suggestions"]');
+    await expect(defaults).toBeVisible();
+    await expect(suggestions).toBeVisible();
+    await expect(suggestions.getByRole("button").first()).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await expect(
-      dialog.locator('details[data-slot="capture-account-choice"] > summary'),
-    ).toBeVisible();
-    await expect(
-      dialog.locator('details[data-slot="capture-category-choice"] > summary'),
-    ).toBeVisible();
+      dialog.locator('details[data-slot="capture-category-choice"]'),
+    ).not.toHaveAttribute("open", "");
     await expect(
       dialog.locator('details[data-slot="capture-optional-details"]'),
     ).not.toHaveAttribute("open", "");
@@ -101,11 +110,11 @@ test.describe("Capture 2.0 amount-first constrained phone", () => {
       fullPage: true,
       animations: "disabled",
     });
-    await testInfo.attach(`capture-amount-first-${testInfo.project.name}.png`, {
+    await testInfo.attach(`capture-amount-only-${testInfo.project.name}.png`, {
       body: screenshot,
       contentType: "image/png",
     });
-    await testInfo.attach(`capture-amount-first-${testInfo.project.name}.json`, {
+    await testInfo.attach(`capture-amount-only-${testInfo.project.name}.json`, {
       body: Buffer.from(JSON.stringify(measurement, null, 2)),
       contentType: "application/json",
     });
@@ -114,14 +123,15 @@ test.describe("Capture 2.0 amount-first constrained phone", () => {
     expect(measurement.documentWidth).toBeLessThanOrEqual(CONSTRAINED_PHONE.width + 1);
     expect(measurement.dialog).not.toBeNull();
     expect(measurement.amount).not.toBeNull();
-    expect(measurement.account).not.toBeNull();
-    expect(measurement.category).not.toBeNull();
+    expect(measurement.defaults).not.toBeNull();
+    expect(measurement.suggestions).not.toBeNull();
     expect(measurement.save).not.toBeNull();
+    expect(measurement.fullChoicesOpen).toBe(false);
     expect(measurement.optionalOpen).toBe(false);
     expect(measurement.activeId).toBe("add-tx-amount");
     expect(measurement.save!.bottom).toBeLessThanOrEqual(CONSTRAINED_PHONE.height + 1);
     expect(measurement.save!.top).toBeGreaterThanOrEqual(-1);
-    expect(measurement.account!.right).toBeLessThanOrEqual(CONSTRAINED_PHONE.width + 1);
-    expect(measurement.category!.right).toBeLessThanOrEqual(CONSTRAINED_PHONE.width + 1);
+    expect(measurement.defaults!.right).toBeLessThanOrEqual(CONSTRAINED_PHONE.width + 1);
+    expect(measurement.suggestions!.right).toBeLessThanOrEqual(CONSTRAINED_PHONE.width + 1);
   });
 });
