@@ -161,11 +161,17 @@
   background: transparent;
   color: var(--mf-text);
   font-family: var(--mf-font-money);
-  font-size: clamp(30px, 8vw, 42px);
+  font-size: clamp(24px, 6vw, 34px);
   font-variant-numeric: tabular-nums;
+  font-weight: 730;
+  line-height: 1.2;
+  outline: 0;
+}
+
+.amountFirst .amountInput {
+  font-size: clamp(30px, 8vw, 42px);
   font-weight: 760;
   line-height: 1.12;
-  outline: 0;
 }
 
 .amountInput::placeholder {
@@ -632,7 +638,7 @@
     padding-top: 12px;
   }
 
-  .amountInput {
+  .amountFirst .amountInput {
     font-size: clamp(28px, 9vw, 38px);
   }
 
