@@ -182,15 +182,20 @@ test("quick capture composes the embedded transaction form behind a local route 
   assert.match(transactionFormCss, /@media \(max-width: 360px\)/);
 });
 
-test("quick capture keeps required financial decisions ahead of optional detail", () => {
+test("quick capture keeps amount first with visible defaults before optional detail", () => {
   const addDialog = dialogSources[0].source;
   assert.match(
     addDialog,
-    /data-slot="capture-type-step"[\s\S]*data-slot="capture-amount-step"[\s\S]*data-slot="capture-required-choices"[\s\S]*data-slot="capture-optional-details"/,
+    /data-slot="capture-amount-step"[\s\S]*data-slot="capture-type-step"[\s\S]*data-slot="capture-required-choices"[\s\S]*data-slot="capture-optional-details"/,
   );
+  assert.match(addDialog, /data-slot="capture-account-choice"/);
+  assert.match(addDialog, /data-slot="capture-category-choice"/);
   assert.match(addDialog, /<SelectField[\s\S]*label="Tài khoản"/);
-  assert.match(transactionFormCss, /\.requiredChoices[\s\S]*border-top/u);
-  assert.match(transactionFormCss, /\.optionalDetails[\s\S]*border-top/u);
+  assert.match(
+    transactionFormCss,
+    /\.quickConfirmations[\s\S]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/u,
+  );
+  assert.match(transactionFormCss, /\.optionalDisclosure/u);
 });
 
 test("shared empty state exposes stable semantic action slots", () => {
