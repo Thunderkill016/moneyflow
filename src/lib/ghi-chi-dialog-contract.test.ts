@@ -82,10 +82,12 @@ test("R4: local form owner supports compact corrections and secondary detail", (
   assert.match(css, /\.keepOpenRow/);
   assert.match(fastCss, /\.categoryActions/);
   assert.match(fastCss, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(fastCss, /\.morePanel\s*\{[\s\S]*display: none/);
+  assert.match(fastCss, /\.moreDisclosure\[open\] > \.morePanel\s*\{[\s\S]*display: grid/);
   assert.doesNotMatch(fastCss, /overflow-x:\s*auto/);
 });
 
-test("R4: constrained mobile capture keeps secondary detail out of the closed keyboard path", () => {
+test("R4: constrained mobile capture compacts without removing secondary detail access", () => {
   const css = read("src/components/transactions/transaction-form.module.css");
   const fastCss = read("src/components/transactions/capture-fast-path.module.css");
   assert.match(
@@ -96,7 +98,11 @@ test("R4: constrained mobile capture keeps secondary detail out of the closed ke
     fastCss,
     /@media \(max-width: 620px\) and \(max-height: 640px\)/,
   );
-  assert.match(fastCss, /\.secondaryDisclosure:not\(\[open\]\)/);
+  assert.match(fastCss, /\.secondarySummary\.secondarySummary/);
+  assert.doesNotMatch(
+    fastCss,
+    /\.secondaryDisclosure:not\(\[open\]\)[\s\S]*display:\s*none/,
+  );
   assert.match(fastCss, /\.footerActions\.footerActions/);
   assert.doesNotMatch(fastCss, /!important/);
   assert.doesNotMatch(css, /dvh/);
