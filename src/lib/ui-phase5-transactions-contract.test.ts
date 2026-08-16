@@ -24,6 +24,10 @@ const transactionFormCss = readFileSync(
   "src/components/transactions/transaction-form.module.css",
   "utf8",
 );
+const fastCaptureCss = readFileSync(
+  "src/components/transactions/capture-fast-path.module.css",
+  "utf8",
+);
 const quickCapture = readFileSync(
   "src/components/inbox/capture-quick-page.tsx",
   "utf8",
@@ -158,6 +162,7 @@ test("Phase 5 add, edit and split dialogs use the shared lifecycle and local tra
   assert.match(dialogSources[1].source, /initialFocusRef=\{amountRef\}/);
   assert.match(dialogSources[2].source, /initialFocusRef=\{firstAmountRef\}/);
   assert.doesNotMatch(transactionFormCss, /:global\s*\(|!important/);
+  assert.doesNotMatch(fastCaptureCss, /:global\s*\(|!important/);
 });
 
 test("Transfer keeps the shared lifecycle while later phases may own its presentation", () => {
@@ -183,19 +188,20 @@ test("direct quick capture reuses the shared dialog and its phone geometry", () 
   assert.match(transactionFormCss, /@media \(max-width: 360px\)/);
 });
 
-test("quick capture keeps amount first with visible defaults before optional detail", () => {
+test("quick capture keeps amount first and makes defaults a one-tap confirmation surface", () => {
   const addDialog = dialogSources[0].source;
   assert.match(
     addDialog,
     /data-slot="capture-amount-step"[\s\S]*data-slot="capture-type-step"[\s\S]*data-slot="capture-required-choices"[\s\S]*data-slot="capture-optional-details"/,
   );
-  assert.match(addDialog, /data-slot="capture-account-choice"/);
+  assert.match(addDialog, /data-slot="capture-fast-defaults"/);
+  assert.match(addDialog, /data-slot="capture-category-suggestions"/);
+  assert.match(addDialog, /aria-label="Danh mục nhanh"/);
   assert.match(addDialog, /data-slot="capture-category-choice"/);
-  assert.match(addDialog, /<SelectField[\s\S]*label="Tài khoản"/);
-  assert.match(
-    transactionFormCss,
-    /\.quickConfirmations[\s\S]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/u,
-  );
+  assert.match(addDialog, /Ghi chú \(không bắt buộc\)/);
+  assert.match(addDialog, /pushRecentPreset/);
+  assert.match(fastCaptureCss, /\.categoryRail[\s\S]*overflow-x: auto/u);
+  assert.match(fastCaptureCss, /\.categoryChipActive/u);
   assert.match(transactionFormCss, /\.optionalDisclosure/u);
 });
 
