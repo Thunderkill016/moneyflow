@@ -95,7 +95,7 @@ test("month end is the real last day, including February and leap years", () => 
 test("the expense drill-down sums to exactly the figure the dashboard showed", () => {
   const rows = filterTransactions(
     ledger,
-    dashboardDrilldownFilters({ today: TODAY, kind: "expense" }),
+    dashboardDrilldownFilters({ withinMonth: TODAY, kind: "expense" }),
   );
 
   assert.equal(sumAmounts(rows), monthExpenseTotal(ledger, TODAY.slice(0, 7)));
@@ -107,7 +107,7 @@ test("the expense drill-down sums to exactly the figure the dashboard showed", (
 test("a row dated later in the same month stays inside the drill-down", () => {
   const rows = filterTransactions(
     ledger,
-    dashboardDrilldownFilters({ today: TODAY, kind: "expense" }),
+    dashboardDrilldownFilters({ withinMonth: TODAY, kind: "expense" }),
   );
 
   assert.ok(
@@ -119,7 +119,7 @@ test("a row dated later in the same month stays inside the drill-down", () => {
 test("the income drill-down sums to the income figure and excludes transfers", () => {
   const rows = filterTransactions(
     ledger,
-    dashboardDrilldownFilters({ today: TODAY, kind: "income" }),
+    dashboardDrilldownFilters({ withinMonth: TODAY, kind: "income" }),
   );
 
   assert.equal(sumAmounts(rows), 20_000_000);
@@ -129,11 +129,11 @@ test("the income drill-down sums to the income figure and excludes transfers", (
 test("transfer neutrality holds on both sides of the drill-down", () => {
   const expenseRows = filterTransactions(
     ledger,
-    dashboardDrilldownFilters({ today: TODAY, kind: "expense" }),
+    dashboardDrilldownFilters({ withinMonth: TODAY, kind: "expense" }),
   );
   const incomeRows = filterTransactions(
     ledger,
-    dashboardDrilldownFilters({ today: TODAY, kind: "income" }),
+    dashboardDrilldownFilters({ withinMonth: TODAY, kind: "income" }),
   );
 
   assert.ok(!expenseRows.some((row) => row.id === "transfer"));
@@ -146,7 +146,7 @@ test("transfer neutrality holds on both sides of the drill-down", () => {
 test("last month never leaks into this month's drill-down", () => {
   const rows = filterTransactions(
     ledger,
-    dashboardDrilldownFilters({ today: TODAY, kind: "expense" }),
+    dashboardDrilldownFilters({ withinMonth: TODAY, kind: "expense" }),
   );
 
   assert.ok(!rows.some((row) => row.id === "last-month"));
@@ -160,7 +160,7 @@ test("a category drill-down opens every row behind that category share", () => {
 
   const rows = filterTransactions(
     ledger,
-    dashboardDrilldownFilters({ today: TODAY, kind: "expense", category: "Ăn uống" }),
+    dashboardDrilldownFilters({ withinMonth: TODAY, kind: "expense", category: "Ăn uống" }),
   );
 
   assert.equal(sumAmounts(rows), share.amount);
@@ -195,7 +195,7 @@ test("split rows appear in a category drill-down but carry their full amount", (
 
   const rows = filterTransactions(
     withSplit,
-    dashboardDrilldownFilters({ today: TODAY, kind: "expense", category: "Ăn uống" }),
+    dashboardDrilldownFilters({ withinMonth: TODAY, kind: "expense", category: "Ăn uống" }),
   );
 
   assert.ok(rows.some((row) => row.id === "split"), "the split row is behind the share");
@@ -206,13 +206,13 @@ test("split rows appear in a category drill-down but carry their full amount", (
 
 test("a category drill-down without a resolvable name refuses to build a link", () => {
   assert.equal(
-    dashboardDrilldownHref({ today: TODAY, kind: "expense", requiresCategory: true }),
+    dashboardDrilldownHref({ withinMonth: TODAY, kind: "expense", requiresCategory: true }),
     null,
     "a missing category would fall back to `all` and open the whole ledger",
   );
   assert.equal(
     dashboardDrilldownHref({
-      today: TODAY,
+      withinMonth: TODAY,
       kind: "expense",
       category: "   ",
       requiresCategory: true,
@@ -223,7 +223,7 @@ test("a category drill-down without a resolvable name refuses to build a link", 
 
 test("the href round-trips into the filters it describes", () => {
   const href = dashboardDrilldownHref({
-    today: TODAY,
+    withinMonth: TODAY,
     kind: "expense",
     category: "Ăn uống",
     requiresCategory: true,

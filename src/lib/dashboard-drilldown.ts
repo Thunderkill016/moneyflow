@@ -52,8 +52,16 @@ export function monthStartFromDate(date: string): string {
 }
 
 export type DashboardDrilldown = {
-  /** Server-resolved current date, `workspace.today`. Never a client `new Date()`. */
-  today: string;
+  /**
+   * Any date inside the month being opened, as "YYYY-MM-DD".
+   *
+   * Pass the server-resolved `workspace.today` for current-month figures, or a
+   * budget's own `monthStart` when opening a budget whose period is not the
+   * current month. Never a client `new Date()`: deriving the window from the
+   * browser clock would let a reader near midnight, or in another timezone, open
+   * a different month than the figure they just clicked.
+   */
+  withinMonth: string;
   kind?: TransactionFilterKind;
   /**
    * Category NAME, because `/transactions` resolves the `category` parameter by
@@ -65,7 +73,7 @@ export type DashboardDrilldown = {
 };
 
 export function dashboardDrilldownFilters({
-  today,
+  withinMonth,
   kind = "all",
   category,
   account,
@@ -76,8 +84,8 @@ export function dashboardDrilldownFilters({
     account: account ?? "all",
     category: category ?? "all",
     review: "all",
-    fromDate: monthStartFromDate(today),
-    toDate: monthEndFromDate(today),
+    fromDate: monthStartFromDate(withinMonth),
+    toDate: monthEndFromDate(withinMonth),
     minAmountInput: "",
     maxAmountInput: "",
   };

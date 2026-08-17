@@ -199,7 +199,7 @@ export function DashboardLedgerColumn({
                    * rather than promising a filtered view it cannot deliver.
                    */
                   const drilldownHref = dashboardDrilldownHref({
-                    today,
+                    withinMonth: today,
                     kind: "expense",
                     category: item.name,
                     requiresCategory: true,
