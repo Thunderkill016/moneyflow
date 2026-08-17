@@ -11,6 +11,15 @@ import "./document-theme.css";
 /**
  * UI text is LCP critical. Inter covers Vietnamese product copy while the
  * ledger uses the system mono stack exposed by the document/theme authority.
+ *
+ * #403 tried `preload: false` on the same production-build mobile harness and
+ * observed no reduction in transferred font bytes, because the required ranges
+ * were still requested. That single run also read slower on root FCP/LCP, but
+ * the harness showed +471 ms of run-to-run LCP variance on an unchanged route,
+ * so the timing half of that comparison is NOT conclusive. Preload therefore
+ * stays as the unchanged main behaviour: the byte measurement gave no reason to
+ * drop it, and no measurement supports claiming a timing win either way.
+ * See `docs/performance-budgets.md` (#403 section) for the recorded numbers.
  */
 const inter = Inter({
   subsets: ["latin", "vietnamese"],

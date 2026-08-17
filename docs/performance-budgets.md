@@ -78,6 +78,150 @@ Delta vs Pass 2: landing LCP **−0.3 s**, perf **+3**; insights LCP **−0.6 s*
 
 **Bottlenecks next:** Inter vietnamese subset (~primary remaining font cost), unused CSS, insights client JS.
 
+### Canonical `/` and `/dashboard` (#403, 2026-08-17)
+
+First same-method production-build measurement of the **canonical** routes. Everything
+above this heading is `/landing` + `/insights` provenance and is not this baseline.
+
+Methodology, identical on both sides: `playwright.auth.config.ts` production `next build`
++ `next start`, authenticated app mode against the loopback Supabase double, Lighthouse
+**13.4.1** pinned, `--form-factor=mobile`, `--screenEmulation.mobile`,
+`--throttling-method=simulate`, Chromium from Playwright. `/` is measured with no session
+cookie; `/dashboard` with only the synthetic harness cookie. Harness:
+`e2e/auth/performance.mobile.auth.spec.ts`.
+
+- **Before** = CI run `31965310083`, branch commit `84c9bf8`, whose `src/` tree is
+  byte-identical to `main@8ef322ba` (the commit changed only docs plus the harness), so
+  it is a valid stand-in for the merge base.
+- **After** = CI run `31989167370`, PR #415 head `6832b07`.
+
+| Route | Metric | Before | After | Δ |
+|---|---|---|---|---|
+| `/` | Perf score | 95 | 92 | −3 |
+| `/` | LCP | 2804 ms | 3275 ms | **+471 ms** |
+| `/` | CLS | 0 | 0 | — |
+| `/` | TBT | 33.5 ms | 30.5 ms | −3.0 ms |
+| `/` | FCP | 1679 ms | 1710 ms | +31 ms |
+| `/` | Transferred | 424,527 B | 424,506 B | −21 B (inside noise) |
+| `/` | Script transferred | 195,787 B | 195,787 B | **0 B** |
+| `/dashboard` | Perf score | 86 | 86 | — |
+| `/dashboard` | LCP | 3956 ms | 3857 ms | −99 ms |
+| `/dashboard` | CLS | 0 | 0 | — |
+| `/dashboard` | TBT | 113.0 ms | 150.5 ms | **+37.5 ms** |
+| `/dashboard` | FCP | 1693 ms | 1694 ms | +1 ms |
+| `/dashboard` | Transferred | 544,225 B | 548,164 B | +3,939 B (inside noise) |
+| `/dashboard` | Script transferred | 311,601 B | 311,603 B | +2 B |
+
+**Budget status: LCP misses on both routes.** CLS passes (0). TBT passes (≤ 200 ms).
+
+**These numbers do not establish a performance improvement.** `/` carries no runtime
+change in #415 and its script payload is byte-identical, yet its LCP moved +471 ms
+between the two runs. That +471 ms is therefore the harness's own single-run noise
+floor, and it is several times the −99 ms measured on `/dashboard` — the CI medians below
+put the ratio at about four. The dashboard difference cannot be separated from variance,
+and no route shows a script-byte reduction.
+
+#### Measured noise floor (CI, median of 3)
+
+`e2e/auth/performance.mobile.auth.spec.ts` now samples each route three times and
+reports a per-metric median with its observed spread. Three CI runs of that harness exist,
+on heads whose runtime behaviour on these routes is **identical** — the differences between
+them are an `aria-busy` attribute, comments and documentation:
+
+| Route | Run | Head | LCP median | LCP range | TBT median | Script bytes | Script range |
+|---|---|---|---|---|---|---|---|
+| `/` | 32035005062 | `bba61f9` | 3100 ms | 440 ms | 40.0 ms | 195,786 B | **0 B** |
+| `/` | 32033861313 | `4ea4746` | 2952 ms | 156 ms | 36.0 ms | 195,786 B | **0 B** |
+| `/` | 32031790438 | `aeb39a9` | 2808 ms | **460 ms** | 39.0 ms | 195,785 B | **0 B** |
+| `/dashboard` | 32035005062 | `bba61f9` | 3641 ms | 332 ms | 112.0 ms | 311,595 B | **0 B** |
+| `/dashboard` | 32033861313 | `4ea4746` | 3940 ms | 312 ms | 86.0 ms | 311,595 B | **0 B** |
+| `/dashboard` | 32031790438 | `aeb39a9` | 3641 ms | **411 ms** | 130.5 ms | 311,600 B | **0 B** |
+
+The `/` LCP **median** drifts 2808 → 2952 → 3100 ms across three runs of behaviourally
+identical code — a 292 ms spread in the medians themselves, on top of within-run ranges of
+156–460 ms. Medianing three samples therefore does not pin LCP down at the scale this task
+cares about, and the drift is several times the −99 ms once read as a `/dashboard` gain.
+That reading does not survive. TBT medians drift similarly (86–130.5 ms on `/dashboard`).
+
+Which metrics from this harness can carry a claim:
+
+- **Trustworthy:** `scriptTransferredBytes` — range **0 B** on both routes in every run —
+  and CLS (0 throughout).
+- **Not trustworthy for small deltas:** LCP, TBT, performance score, and **total**
+  transferred bytes, whose single-build range reached 6,669 B on `/dashboard` — larger
+  than the +3,939 B shown in the Δ column above. That +3.9 KB is therefore inside noise
+  and is not a real regression, just as the −21 B on `/` is not a real win.
+- **FCP on `/dashboard` is bimodal and must not be averaged or medianed.** Every
+  `/dashboard` FCP sample measured with the loading boundary present, newest run first:
+
+  | Head | Samples (ms) | Low mode |
+  |---|---|---|
+  | `bba61f9` | 1690 / **1078** / 1690 | 1 of 3 |
+  | `4ea4746` | **1079** / **1075** / 1694 | 2 of 3 |
+  | `aeb39a9` | 1691 / 1692 / 1699 | 0 of 3 |
+  | `6832b07` | 1694 | 0 of 1 |
+
+  The low mode is ~1077 ms and the high mode ~1690 ms, roughly **615 ms** apart, with no
+  values in between — so a median over mixed samples reports a mode, not a central value.
+  The low mode is consistent with the boundary painting its text before the server data
+  resolves and the high mode with the data arriving first; a runner timing race decides
+  which, since these heads are behaviourally identical.
+
+  Two things make this the one genuinely promising signal in the exercise. It **reproduces**
+  across two independent CI runs, and it is **route-specific**: `/` has no loading boundary
+  and never shows a low mode, sitting at 1675–1710 ms in every sample of every run.
+
+  It is still not a claim. The control is thin — one CI sample and one local median run
+  without the boundary, both in the high mode only — and the mechanism is inferred from
+  timing rather than from a recorded LCP/FCP element. Settling it needs a deliberate
+  experiment: many samples per side, boundary present versus absent, on the same runner,
+  reporting the mode split rather than a median. Note that every future CI run adds three
+  more samples per route; those should be aggregated into that experiment rather than read
+  one run at a time.
+
+A developer-machine run of the same harness corroborates the picture with wider spreads
+(LCP range 469 ms on `/`, 684 ms on `/dashboard`), and there `/dashboard` TBT straddled
+200 ms across samples. Treat those as machine-specific variance, not as a budget verdict;
+CI's samples were 112/130.5/176 ms, entirely inside budget.
+
+#### Isolating the one runtime change
+
+Because `src/app/dashboard/loading.tsx` is the only runtime change in #415 that reaches
+these routes (`src/app/layout.tsx` gained comments only), the file was removed and the
+median harness re-run on one machine, back to back, to isolate it:
+
+| Route | LCP median without `loading.tsx` | with it | Δ | LCP range observed |
+|---|---|---|---|---|
+| `/dashboard` | 3524 ms | 3517 ms | −7 ms | 306–684 ms |
+| `/` (unaffected) | 3296 ms | 2855 ms | −441 ms | 469–488 ms |
+
+`/` cannot be affected by a `/dashboard` loading boundary, yet its median moved 441 ms
+between the two runs — so three samples still do not pin LCP down on that hardware, and
+the −7 ms on `/dashboard` is far inside the noise. The honest reading is that the loading
+boundary has **no detectable cold-load LCP effect**, which is consistent with its actual
+purpose: it serves client-side navigation, which Lighthouse cold loads do not exercise.
+
+**First-load JS:** Next.js 16 Turbopack no longer prints per-route First Load JS in the
+build table, so Lighthouse `resource-summary` script transfer (the two `Script
+transferred` rows) is the recorded substitute — it is measured on the real route rather
+than inferred from the manifest.
+
+**Remaining bottleneck (measured, not guessed):** server response is 5–6 ms on `/` and
+14–15 ms on `/dashboard`, so TTFB is not the constraint. FCP sits at ~1.69 s on both
+routes while LCP lands at 3.3–3.9 s, so the cost is render delay after first paint,
+driven by main-thread work: `/` main-thread 1192 → 1204 ms with 367 → 381 ms JS bootup;
+`/dashboard` 1720 → 1746 ms with 766 → 814 ms bootup against 311.6 KB of transferred
+script. Reaching LCP ≤ 2.5 s on `/dashboard` therefore requires reducing the client
+component tree that hydrates the dashboard, which #415 does not do — its lazy-split
+experiments were reverted because bundle evidence showed no benefit.
+
+**Not covered by this evidence:** the harness runs `--only-categories=performance`, so
+the reports contain no `largest-contentful-paint-element` audit and cannot directly name
+the LCP node. Cold-load FCP is unchanged (1693 → 1694 ms) while LCP stays ~3.9 s, which
+indicates the new `/dashboard` loading text is not the LCP element, but that is inference
+from timing rather than a recorded element. Lighthouse simulated mobile throttling is
+also not physical-device evidence.
+
 ### Mitigations shipped (TASK-132 + speed pass + Q8)
 
 1. **Landing is a Server Component** — no `"use client"`; LCP text in first HTML paint.
@@ -192,9 +336,26 @@ limiter because serverless instances and regions do not share its counters.
 Unit tests in `src/lib/performance-budgets.test.ts` assert:
 
 - Landing source is not a Client Component
-- Font layout uses `display: "swap"` + Inter preload / mono no-preload
+- Font layout uses `display: "swap"` + Inter preload / mono no-preload, with the
+  Vietnamese subset retained
 - Proxy fast-path for public `/`
 - Performance budget doc exists with LCP/CLS and bounded-load targets
+
+Unit tests in `src/lib/dashboard-performance-contract.test.ts` additionally assert, for
+the canonical dashboard added under #403:
+
+- the `/dashboard` loading boundary stays a Server Component, announces through
+  `role="status"` without an ancestor `aria-busy`, and renders no value, currency mark or
+  grouped digits — a loading state must not fabricate a balance
+- `src/server/dashboard.ts` keeps **exactly one** `.rpc()` call, `get_dashboard_bundle`,
+  with no `.from()` table read beside it
+- that module contains no `unstable_cache`, `cacheLife`, `cacheTag`, `use cache`,
+  `revalidate`, `fetchCache` or `force-cache`, so private financial data cannot reach a
+  shared or static cache
+
+Both files read source text rather than a rendered DOM, so they catch removal of a
+guarded construct but cannot prove runtime behaviour; the browser and UI-audit shards
+own that.
 
 ## Non-goals
 
