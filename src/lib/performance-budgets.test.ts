@@ -121,7 +121,10 @@ test("root layout font strategy favors LCP and reduces CLS", () => {
   const source = read("src/app/layout.tsx");
   assert.match(source, /display:\s*["']swap["']/);
   assert.match(source, /adjustFontFallback:\s*true/);
-  assert.match(source, /preload:\s*true/);
+  // Keep Latin + Vietnamese coverage, but do not force every subset into the
+  // root critical path. #403 measures this candidate with the same Lighthouse
+  // mobile production-build harness before it becomes durable performance truth.
+  assert.match(source, /preload:\s*false/);
   assert.equal(
     /JetBrains|jetbrains/.test(source),
     false,
