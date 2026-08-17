@@ -78,6 +78,87 @@ Delta vs Pass 2: landing LCP **−0.3 s**, perf **+3**; insights LCP **−0.6 s*
 
 **Bottlenecks next:** Inter vietnamese subset (~primary remaining font cost), unused CSS, insights client JS.
 
+### Canonical `/` and `/dashboard` (#403, 2026-08-17)
+
+First same-method production-build measurement of the **canonical** routes. Everything
+above this heading is `/landing` + `/insights` provenance and is not this baseline.
+
+Methodology, identical on both sides: `playwright.auth.config.ts` production `next build`
++ `next start`, authenticated app mode against the loopback Supabase double, Lighthouse
+**13.4.1** pinned, `--form-factor=mobile`, `--screenEmulation.mobile`,
+`--throttling-method=simulate`, Chromium from Playwright. `/` is measured with no session
+cookie; `/dashboard` with only the synthetic harness cookie. Harness:
+`e2e/auth/performance.mobile.auth.spec.ts`.
+
+- **Before** = CI run `31965310083`, branch commit `84c9bf8`, whose `src/` tree is
+  byte-identical to `main@8ef322ba` (the commit changed only docs plus the harness), so
+  it is a valid stand-in for the merge base.
+- **After** = CI run `31989167370`, PR #415 head `6832b07`.
+
+| Route | Metric | Before | After | Δ |
+|---|---|---|---|---|
+| `/` | Perf score | 95 | 92 | −3 |
+| `/` | LCP | 2804 ms | 3275 ms | **+471 ms** |
+| `/` | CLS | 0 | 0 | — |
+| `/` | TBT | 33.5 ms | 30.5 ms | −3.0 ms |
+| `/` | FCP | 1679 ms | 1710 ms | +31 ms |
+| `/` | Transferred | 424,527 B | 424,506 B | −21 B |
+| `/` | Script transferred | 195,787 B | 195,787 B | **0 B** |
+| `/dashboard` | Perf score | 86 | 86 | — |
+| `/dashboard` | LCP | 3956 ms | 3857 ms | −99 ms |
+| `/dashboard` | CLS | 0 | 0 | — |
+| `/dashboard` | TBT | 113.0 ms | 150.5 ms | **+37.5 ms** |
+| `/dashboard` | FCP | 1693 ms | 1694 ms | +1 ms |
+| `/dashboard` | Transferred | 544,225 B | 548,164 B | +3,939 B |
+| `/dashboard` | Script transferred | 311,601 B | 311,603 B | +2 B |
+
+**Budget status: LCP misses on both routes.** CLS passes (0). TBT passes (≤ 200 ms).
+
+**These numbers do not establish a performance improvement.** `/` carries no runtime
+change in #415 and its script payload is byte-identical, yet its LCP moved +471 ms
+between the two runs. That +471 ms is therefore the harness's own single-run noise
+floor, and it is roughly five times the −99 ms measured on `/dashboard`. The dashboard
+difference cannot be separated from variance, and no route shows a byte reduction.
+`e2e/auth/performance.mobile.auth.spec.ts` now samples each route three times and
+reports a median plus the observed spread. Running that median harness on head
+`6832b07` on a second machine measured the noise floor directly and confirms the
+reading above:
+
+| Route | LCP median | LCP range | TBT median | TBT range | Script bytes | Script range | Score range |
+|---|---|---|---|---|---|---|---|
+| `/` | 2855 ms | **469 ms** | 55.5 ms | 58.0 ms | 195,821 B | **0 B** | 3 |
+| `/dashboard` | 3517 ms | **684 ms** | 219 ms | 221.5 ms | 311,598 B | **0 B** | 11 |
+
+Per-route LCP varies by 469–684 ms across three consecutive samples of the *same*
+build, i.e. roughly seven times the −99 ms once read as a `/dashboard` gain. Transferred
+script bytes, by contrast, are perfectly stable (range 0 B), so byte-level claims from
+this harness are trustworthy while single-run timing claims are not. `/dashboard` TBT
+also straddles its own 200 ms budget across samples, so a single TBT pass or fail from
+this harness should not be reported as a verdict. These figures come from a developer
+machine, not the CI runner, so they characterise variance rather than restate the CI
+budget result.
+
+**First-load JS:** Next.js 16 Turbopack no longer prints per-route First Load JS in the
+build table, so Lighthouse `resource-summary` script transfer (the two `Script
+transferred` rows) is the recorded substitute — it is measured on the real route rather
+than inferred from the manifest.
+
+**Remaining bottleneck (measured, not guessed):** server response is 5–6 ms on `/` and
+14–15 ms on `/dashboard`, so TTFB is not the constraint. FCP sits at ~1.69 s on both
+routes while LCP lands at 3.3–3.9 s, so the cost is render delay after first paint,
+driven by main-thread work: `/` main-thread 1192 → 1204 ms with 367 → 381 ms JS bootup;
+`/dashboard` 1720 → 1746 ms with 766 → 814 ms bootup against 311.6 KB of transferred
+script. Reaching LCP ≤ 2.5 s on `/dashboard` therefore requires reducing the client
+component tree that hydrates the dashboard, which #415 does not do — its lazy-split
+experiments were reverted because bundle evidence showed no benefit.
+
+**Not covered by this evidence:** the harness runs `--only-categories=performance`, so
+the reports contain no `largest-contentful-paint-element` audit and cannot directly name
+the LCP node. Cold-load FCP is unchanged (1693 → 1694 ms) while LCP stays ~3.9 s, which
+indicates the new `/dashboard` loading text is not the LCP element, but that is inference
+from timing rather than a recorded element. Lighthouse simulated mobile throttling is
+also not physical-device evidence.
+
 ### Mitigations shipped (TASK-132 + speed pass + Q8)
 
 1. **Landing is a Server Component** — no `"use client"`; LCP text in first HTML paint.

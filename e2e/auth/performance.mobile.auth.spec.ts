@@ -120,7 +120,88 @@ function runLighthouse({
   return { outputPath, summary: summarize(route, result) };
 }
 
-async function attachSummary(testInfo: TestInfo, summaries: MetricSummary[]) {
+/*
+ * A single Lighthouse pass cannot support a before/after conclusion here. The
+ * #403 baseline and candidate runs differed by +471 ms of LCP on `/` while `/`
+ * had byte-identical script payload, i.e. the run-to-run spread was several
+ * times larger than the dashboard difference being claimed. So each route is
+ * sampled ITERATIONS times and reported as a median with its observed spread;
+ * a reader can then see whether a difference clears the noise floor instead of
+ * trusting one sample.
+ */
+const ITERATIONS = 3;
+
+function median(values: number[]): number | null {
+  const usable = values.filter((value): value is number => Number.isFinite(value)).sort((a, b) => a - b);
+  if (usable.length === 0) return null;
+  const middle = Math.floor(usable.length / 2);
+  return usable.length % 2 === 1
+    ? usable[middle]
+    : (usable[middle - 1] + usable[middle]) / 2;
+}
+
+type SampledMetrics = {
+  route: "/" | "/dashboard";
+  finalUrl: string;
+  iterations: number;
+  median: Record<string, number | null>;
+  spread: Record<string, { min: number | null; max: number | null; range: number | null }>;
+  samples: MetricSummary[];
+};
+
+const SAMPLED_KEYS = [
+  "performanceScore",
+  "lcpMs",
+  "cls",
+  "tbtMs",
+  "fcpMs",
+  "speedIndexMs",
+  "transferredBytes",
+  "scriptTransferredBytes",
+] as const;
+
+function sampleRoute(options: {
+  route: "/" | "/dashboard";
+  url: string;
+  outputName: string;
+  cookieHeader?: string;
+}): SampledMetrics {
+  const samples: MetricSummary[] = [];
+  for (let index = 0; index < ITERATIONS; index += 1) {
+    const { summary } = runLighthouse({
+      ...options,
+      outputName: `${options.outputName}-run${index + 1}`,
+    });
+    samples.push(summary);
+  }
+
+  const medianValues: Record<string, number | null> = {};
+  const spread: SampledMetrics["spread"] = {};
+  for (const key of SAMPLED_KEYS) {
+    const values = samples
+      .map((sample) => sample[key])
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    medianValues[key] = median(values);
+    const min = values.length ? Math.min(...values) : null;
+    const max = values.length ? Math.max(...values) : null;
+    spread[key] = {
+      min,
+      max,
+      range: min !== null && max !== null ? max - min : null,
+    };
+  }
+
+  return {
+    route: options.route,
+    finalUrl: samples[0].finalUrl,
+    iterations: ITERATIONS,
+    median: medianValues,
+    spread,
+    samples,
+  };
+}
+
+async function attachSummary(testInfo: TestInfo, routes: SampledMetrics[]) {
   const payload = {
     method: {
       lighthouseVersion: LIGHTHOUSE_VERSION,
@@ -129,12 +210,15 @@ async function attachSummary(testInfo: TestInfo, summaries: MetricSummary[]) {
       chromePathSource: "Playwright chromium executable",
       appMode: "authenticated against loopback Supabase double",
       build: "playwright.auth.config.ts production next build + next start",
+      iterationsPerRoute: ITERATIONS,
+      reported:
+        "median of the per-route samples; `spread` gives the observed min/max/range so a before/after difference can be compared against this harness's own noise floor",
     },
     git: {
       githubSha: process.env.GITHUB_SHA ?? null,
       githubHeadRef: process.env.GITHUB_HEAD_REF ?? null,
     },
-    summaries,
+    routes,
   };
   const summaryPath = join(OUTPUT_DIR, "lighthouse-summary.json");
   writeFileSync(summaryPath, JSON.stringify(payload, null, 2), "utf8");
@@ -147,17 +231,19 @@ async function attachSummary(testInfo: TestInfo, summaries: MetricSummary[]) {
 test("canonical root and authenticated dashboard record production-build mobile Lighthouse evidence", async ({
   page,
 }, testInfo) => {
-  test.setTimeout(240_000);
+  // Each route is sampled ITERATIONS times and one Lighthouse pass is capped at
+  // 180 s, so the ceiling scales with the sample count rather than a fixed guess.
+  test.setTimeout(ITERATIONS * 2 * 190_000);
   const baseURL = String(testInfo.project.use.baseURL ?? "http://127.0.0.1:3300");
 
   // Canonical public root: authenticated build, no session cookie. The proxy must
   // retain the public fast path and render the real landing route at `/`.
-  const root = runLighthouse({
+  const root = sampleRoute({
     route: "/",
     url: new URL("/", baseURL).toString(),
     outputName: "lighthouse-root",
   });
-  expect(new URL(root.summary.finalUrl).pathname).toBe("/");
+  expect(new URL(root.finalUrl).pathname).toBe("/");
 
   await seedServer();
   await signIn(page);
@@ -167,14 +253,14 @@ test("canonical root and authenticated dashboard record production-build mobile 
 
   // Authenticated canonical home: same production build and Lighthouse mobile
   // profile, with only the synthetic loopback harness cookie forwarded.
-  const dashboard = runLighthouse({
+  const dashboard = sampleRoute({
     route: "/dashboard",
     url: new URL("/dashboard", baseURL).toString(),
     outputName: "lighthouse-dashboard",
     cookieHeader,
   });
-  expect(new URL(dashboard.summary.finalUrl).pathname).toBe("/dashboard");
+  expect(new URL(dashboard.finalUrl).pathname).toBe("/dashboard");
 
-  await attachSummary(testInfo, [root.summary, dashboard.summary]);
+  await attachSummary(testInfo, [root, dashboard]);
   await assertNoUnservedRequests();
 });

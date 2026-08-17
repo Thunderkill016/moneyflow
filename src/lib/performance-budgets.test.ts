@@ -121,8 +121,9 @@ test("root layout font strategy favors LCP and reduces CLS", () => {
   const source = read("src/app/layout.tsx");
   assert.match(source, /display:\s*["']swap["']/);
   assert.match(source, /adjustFontFallback:\s*true/);
-  // #403 measured preload=false with the same production mobile harness: it
-  // transferred the same font bytes but delayed root FCP/LCP, so retain preload.
+  // #403 tried preload=false on the same production mobile harness and saw no
+  // font-byte reduction. The timing half was inconclusive (harness variance
+  // exceeded the difference), so preload stays at the unchanged main behaviour.
   assert.match(source, /preload:\s*true/);
   assert.equal(
     /JetBrains|jetbrains/.test(source),
