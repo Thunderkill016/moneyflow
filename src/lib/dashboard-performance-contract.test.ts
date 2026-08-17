@@ -9,13 +9,13 @@ function read(rel: string): string {
   return readFileSync(join(root, rel), "utf8");
 }
 
-test("root font keeps Vietnamese coverage without forcing every subset preload", () => {
+test("root font keeps Vietnamese coverage and the measured preload path", () => {
   const source = read("src/app/layout.tsx");
 
   assert.match(source, /subsets:\s*\["latin", "vietnamese"\]/);
   assert.match(source, /display:\s*"swap"/);
   assert.match(source, /adjustFontFallback:\s*true/);
-  assert.match(source, /preload:\s*false/);
+  assert.match(source, /preload:\s*true/);
 });
 
 test("closed app-shell sheets are split out of the first client paint without breaking focus restore", () => {
