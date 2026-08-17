@@ -124,27 +124,41 @@ and no route shows a script-byte reduction.
 #### Measured noise floor (CI, median of 3)
 
 `e2e/auth/performance.mobile.auth.spec.ts` now samples each route three times and
-reports a per-metric median with its observed spread. CI run **32031790438** on head
-`aeb39a9` is the auditable version of that measurement:
+reports a per-metric median with its observed spread. Two CI runs of that harness exist;
+**32033861313** on head `4ea4746` is the current one and **32031790438** on `aeb39a9` the
+earlier:
 
-| Route | LCP median | LCP range | TBT median | TBT range | FCP range | Script bytes | Script range | Total bytes range |
-|---|---|---|---|---|---|---|---|---|
-| `/` | 2808 ms | **460 ms** | 39.0 ms | 10.5 ms | 14.3 ms | 195,785 B | **0 B** | 1,460 B |
-| `/dashboard` | 3641 ms | **411 ms** | 130.5 ms | 64.0 ms | 8.1 ms | 311,600 B | **0 B** | 6,669 B |
+| Route | Run | LCP median | LCP range | TBT median | TBT range | Script bytes | Script range |
+|---|---|---|---|---|---|---|---|
+| `/` | `4ea4746` | 2952 ms | 156 ms | 36.0 ms | 10.0 ms | 195,786 B | **0 B** |
+| `/` | `aeb39a9` | 2808 ms | **460 ms** | 39.0 ms | 10.5 ms | 195,785 B | **0 B** |
+| `/dashboard` | `4ea4746` | 3940 ms | 312 ms | 86.0 ms | 23.5 ms | 311,595 B | **0 B** |
+| `/dashboard` | `aeb39a9` | 3641 ms | **411 ms** | 130.5 ms | 64.0 ms | 311,600 B | **0 B** |
 
-LCP varies by **411–460 ms across three samples of one build**, roughly four times the
-−99 ms once read as a `/dashboard` gain, so that reading does not survive. Note also that
-`/`'s median here (2808 ms) sits within 4 ms of the single-run baseline (2804 ms), which
-identifies the 3275 ms "after" sample as an unlucky draw rather than a regression.
+Neither head changes runtime behaviour on these routes relative to the other — `4ea4746`
+only removed an `aria-busy` attribute and edited comments — yet the `/` LCP median moved
+144 ms and the `/dashboard` LCP median 299 ms between them, on top of within-run ranges of
+156–460 ms. So the LCP noise floor is a few hundred milliseconds even after medianing, and
+it is several times the −99 ms once read as a `/dashboard` gain. That reading does not
+survive.
 
 Which metrics from this harness can carry a claim:
 
-- **Trustworthy:** `scriptTransferredBytes` (range **0 B** on both routes), CLS (0), and
-  FCP (range 8–14 ms).
-- **Not trustworthy for small deltas:** LCP and TBT. Also **total** transferred bytes —
-  its single-build range is 1,460 B on `/` and **6,669 B** on `/dashboard`, which is
-  *larger* than the +3,939 B shown in the Δ column above. That +3.9 KB is therefore
-  inside noise and is not a real regression, just as the −21 B on `/` is not a real win.
+- **Trustworthy:** `scriptTransferredBytes` — range **0 B** on both routes in every run —
+  and CLS (0 throughout).
+- **Not trustworthy for small deltas:** LCP, TBT, performance score, and **total**
+  transferred bytes, whose single-build range reached 6,669 B on `/dashboard` — larger
+  than the +3,939 B shown in the Δ column above. That +3.9 KB is therefore inside noise
+  and is not a real regression, just as the −21 B on `/` is not a real win.
+- **FCP on `/dashboard` is bimodal and must not be averaged.** Its three samples on
+  `4ea4746` were 1079 / 1075 / **1694** ms, while every sample on `aeb39a9` and the
+  baseline sat at ~1690–1699 ms. The low mode is consistent with the loading boundary
+  painting its text before the server data resolves, and the high mode with the data
+  arriving first. Both heads contain the same boundary, so the mode is decided by a runner
+  timing race, not by the code. This is the one hint in the whole exercise of a possible
+  real benefit — an earlier first paint of roughly 615 ms when the boundary does paint —
+  and three samples cannot turn a hint into a claim. Measuring it properly needs many more
+  samples and a no-boundary control on the same runner.
 
 A developer-machine run of the same harness corroborates the picture with wider spreads
 (LCP range 469 ms on `/`, 684 ms on `/dashboard`), and there `/dashboard` TBT straddled
