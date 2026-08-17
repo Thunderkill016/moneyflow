@@ -124,23 +124,24 @@ and no route shows a script-byte reduction.
 #### Measured noise floor (CI, median of 3)
 
 `e2e/auth/performance.mobile.auth.spec.ts` now samples each route three times and
-reports a per-metric median with its observed spread. Two CI runs of that harness exist;
-**32033861313** on head `4ea4746` is the current one and **32031790438** on `aeb39a9` the
-earlier:
+reports a per-metric median with its observed spread. Three CI runs of that harness exist,
+on heads whose runtime behaviour on these routes is **identical** — the differences between
+them are an `aria-busy` attribute, comments and documentation:
 
-| Route | Run | LCP median | LCP range | TBT median | TBT range | Script bytes | Script range |
+| Route | Run | Head | LCP median | LCP range | TBT median | Script bytes | Script range |
 |---|---|---|---|---|---|---|---|
-| `/` | `4ea4746` | 2952 ms | 156 ms | 36.0 ms | 10.0 ms | 195,786 B | **0 B** |
-| `/` | `aeb39a9` | 2808 ms | **460 ms** | 39.0 ms | 10.5 ms | 195,785 B | **0 B** |
-| `/dashboard` | `4ea4746` | 3940 ms | 312 ms | 86.0 ms | 23.5 ms | 311,595 B | **0 B** |
-| `/dashboard` | `aeb39a9` | 3641 ms | **411 ms** | 130.5 ms | 64.0 ms | 311,600 B | **0 B** |
+| `/` | 32035005062 | `bba61f9` | 3100 ms | 440 ms | 40.0 ms | 195,786 B | **0 B** |
+| `/` | 32033861313 | `4ea4746` | 2952 ms | 156 ms | 36.0 ms | 195,786 B | **0 B** |
+| `/` | 32031790438 | `aeb39a9` | 2808 ms | **460 ms** | 39.0 ms | 195,785 B | **0 B** |
+| `/dashboard` | 32035005062 | `bba61f9` | 3641 ms | 332 ms | 112.0 ms | 311,595 B | **0 B** |
+| `/dashboard` | 32033861313 | `4ea4746` | 3940 ms | 312 ms | 86.0 ms | 311,595 B | **0 B** |
+| `/dashboard` | 32031790438 | `aeb39a9` | 3641 ms | **411 ms** | 130.5 ms | 311,600 B | **0 B** |
 
-Neither head changes runtime behaviour on these routes relative to the other — `4ea4746`
-only removed an `aria-busy` attribute and edited comments — yet the `/` LCP median moved
-144 ms and the `/dashboard` LCP median 299 ms between them, on top of within-run ranges of
-156–460 ms. So the LCP noise floor is a few hundred milliseconds even after medianing, and
-it is several times the −99 ms once read as a `/dashboard` gain. That reading does not
-survive.
+The `/` LCP **median** drifts 2808 → 2952 → 3100 ms across three runs of behaviourally
+identical code — a 292 ms spread in the medians themselves, on top of within-run ranges of
+156–460 ms. Medianing three samples therefore does not pin LCP down at the scale this task
+cares about, and the drift is several times the −99 ms once read as a `/dashboard` gain.
+That reading does not survive. TBT medians drift similarly (86–130.5 ms on `/dashboard`).
 
 Which metrics from this harness can carry a claim:
 
@@ -150,15 +151,33 @@ Which metrics from this harness can carry a claim:
   transferred bytes, whose single-build range reached 6,669 B on `/dashboard` — larger
   than the +3,939 B shown in the Δ column above. That +3.9 KB is therefore inside noise
   and is not a real regression, just as the −21 B on `/` is not a real win.
-- **FCP on `/dashboard` is bimodal and must not be averaged.** Its three samples on
-  `4ea4746` were 1079 / 1075 / **1694** ms, while every sample on `aeb39a9` and the
-  baseline sat at ~1690–1699 ms. The low mode is consistent with the loading boundary
-  painting its text before the server data resolves, and the high mode with the data
-  arriving first. Both heads contain the same boundary, so the mode is decided by a runner
-  timing race, not by the code. This is the one hint in the whole exercise of a possible
-  real benefit — an earlier first paint of roughly 615 ms when the boundary does paint —
-  and three samples cannot turn a hint into a claim. Measuring it properly needs many more
-  samples and a no-boundary control on the same runner.
+- **FCP on `/dashboard` is bimodal and must not be averaged or medianed.** Every
+  `/dashboard` FCP sample measured with the loading boundary present, newest run first:
+
+  | Head | Samples (ms) | Low mode |
+  |---|---|---|
+  | `bba61f9` | 1690 / **1078** / 1690 | 1 of 3 |
+  | `4ea4746` | **1079** / **1075** / 1694 | 2 of 3 |
+  | `aeb39a9` | 1691 / 1692 / 1699 | 0 of 3 |
+  | `6832b07` | 1694 | 0 of 1 |
+
+  The low mode is ~1077 ms and the high mode ~1690 ms, roughly **615 ms** apart, with no
+  values in between — so a median over mixed samples reports a mode, not a central value.
+  The low mode is consistent with the boundary painting its text before the server data
+  resolves and the high mode with the data arriving first; a runner timing race decides
+  which, since these heads are behaviourally identical.
+
+  Two things make this the one genuinely promising signal in the exercise. It **reproduces**
+  across two independent CI runs, and it is **route-specific**: `/` has no loading boundary
+  and never shows a low mode, sitting at 1675–1710 ms in every sample of every run.
+
+  It is still not a claim. The control is thin — one CI sample and one local median run
+  without the boundary, both in the high mode only — and the mechanism is inferred from
+  timing rather than from a recorded LCP/FCP element. Settling it needs a deliberate
+  experiment: many samples per side, boundary present versus absent, on the same runner,
+  reporting the mode split rather than a median. Note that every future CI run adds three
+  more samples per route; those should be aggregated into that experiment rather than read
+  one run at a time.
 
 A developer-machine run of the same harness corroborates the picture with wider spreads
 (LCP range 469 ms on `/`, 684 ms on `/dashboard`), and there `/dashboard` TBT straddled
