@@ -16,6 +16,7 @@ import {
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import { categoryMeta, type Transaction } from "@/lib/sample-data";
 import { transferRowSubtitle } from "@/lib/transfers";
+import styles from "./dashboard.module.css";
 import { DashboardStatement } from "./statement";
 
 type AttentionItem = {
@@ -214,7 +215,7 @@ export function DashboardLedgerColumn({
                          */
                         <Link
                           href={drilldownHref}
-                          className="insights-category-drill"
+                          className={styles.categoryDrill}
                           aria-label={`Xem giao dịch ${item.name} tháng này`}
                         />
                       ) : null}

@@ -353,7 +353,7 @@
  * collapse them into one cell. The row is ~54px tall (36px icon + 9px padding),
  * so the target clears the 44px floor without adding a separate control.
  */
-.dashboard :global(.insights-category-drill) {
+.categoryDrill {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -366,11 +366,11 @@
  * the anchor sits above the row and inherits its radius, tinting the anchor
  * reads as the whole row lighting up.
  */
-.dashboard :global(.insights-category-drill):hover {
+.categoryDrill:hover {
   background: var(--mf-surface-muted, rgb(0 0 0 / 4%));
 }
 
-.dashboard :global(.insights-category-drill):focus-visible {
+.categoryDrill:focus-visible {
   outline: 2px solid var(--mf-focus, currentColor);
   outline-offset: 2px;
 }

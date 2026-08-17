@@ -126,6 +126,30 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
+  /* Anchors the drill-down overlay; the flex layout itself is unchanged. */
+  position: relative;
+}
+
+/*
+ * Whole-row target for "which rows make up this figure". Overlaid rather than
+ * wrapped so the baseline-aligned flex row keeps its own children. Only the
+ * income and expense rows use it: "Còn lại" is a difference, not a set of rows,
+ * so it has nothing honest to open.
+ */
+.legendDrill {
+  position: absolute;
+  inset: -6px -8px;
+  z-index: 1;
+  border-radius: var(--mf-radius-sm, 8px);
+}
+
+.legendDrill:hover {
+  background: var(--mf-surface-muted, rgb(0 0 0 / 4%));
+}
+
+.legendDrill:focus-visible {
+  outline: 2px solid var(--mf-focus, currentColor);
+  outline-offset: 2px;
 }
 
 .dot {
