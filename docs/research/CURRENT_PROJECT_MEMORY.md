@@ -112,6 +112,7 @@ Provider configuration, production data, deployment writes, legal decisions and 
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
 | Experience | responsive light/dark web UI; Slice 1 + Slice 2 + focus hotfix merged; RRB-07 auth semantic repair merged |
 | Release proof | audit complete; RRB-01 and RRB-07 closed; RRB-08 runbook merged/pending physical observation; P1 RRB-04/05/06/09 and P2 RRB-02/03 remain |
+| Performance measurement | canonical `/` and `/dashboard` have a production-build mobile Lighthouse harness (`e2e/auth/performance.mobile.auth.spec.ts`, median of 3, pinned 13.4.1, inside Browser smoke) and a first recorded baseline in `docs/performance-budgets.md`. Its measured limit is part of the truth: script-transfer bytes are stable to 0 B, but the LCP median drifts a few hundred ms across runs of identical code, so this harness cannot settle small LCP deltas. LCP misses the 2.5 s budget on both routes |
 | Public beta | not approved; controlled beta and PBT-AC15 remain ahead |
 
 Code, migrations and tests outrank this table on implementation detail.
@@ -170,7 +171,9 @@ Audit blocker IDs are owned by the Current Work Board and canonical release audi
 
 ## 9. Open pull-request memory
 
-No RRB-08 preparation PR remains open: #399 merged as `e8a4a10e…`. RRB-08 itself remains open through issue #398 because the required physical-device observation has not occurred.
+No RRB-08 preparation PR remains open: #399 merged as `e8a4a10e…`. RRB-08 itself remains open through issue #398 because the required physical-device observation has not occurred, and it now specifically needs a re-test of the post-#414 build, so no earlier dated phone evidence can close it.
+
+PR #415 merged as `c9a21781…` on 2026-08-17 as a deliberately reduced supporting slice of #403. **#415 produced no demonstrated cold-load performance improvement.** It delivered the canonical measurement harness, a truthful `/dashboard` loading boundary and contract guards on the private dashboard path; #403 acceptance 3 — a material measured improvement when LCP misses 2.5 s — is **not met**, so **#403 remains open**. The review is what caught a false win: a −99 ms `/dashboard` LCP reading that proved to sit inside a several-hundred-millisecond noise floor. Measurement infrastructure must not be restated anywhere as a performance success.
 
 Future blocker PRs remain candidate evidence until exact-head gates and lifecycle closeout complete. A green check on an older head never proves a newer head.
 
@@ -196,6 +199,8 @@ Controlled closed beta remains blocked until the P1 entry gates are satisfied an
 **RRB-08 is active and repository-side preparation is complete.** The acceptance action requires a real physical phone and owner observation.
 
 When the device is available, execute `docs/plans/active/rrb-08-physical-device-proof.md` against the selected release-candidate origin and record the evidence. Until then, do not mark RRB-08 PASS and do not substitute emulation/simulator/browser CI.
+
+**The agent-side queue item is #403, which remains open in `NOW` and is not blocked by RRB-08.** Its owner-set first step is an attribution experiment for the bimodal `/dashboard` FCP — enough samples per side, one runner, loading boundary on versus off, recording the paint element if the harness can capture it, reported as a mode split rather than a median. Follow that signal only if it proves real; otherwise go directly at the measured bottleneck, dashboard hydration / client-JS / main-thread cost (766 → 814 ms JS bootup against 311.6 KB transferred script, with server response at only 5–15 ms), targeting a measurable cost reduction. Do not open another optimization on intuition, and do not treat a single Lighthouse sample as evidence.
 
 Other boundaries remain unchanged:
 
