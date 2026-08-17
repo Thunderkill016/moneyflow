@@ -8,10 +8,6 @@ const appShell = readFileSync(
   join(root, "src/components/layout/app-shell.tsx"),
   "utf8",
 );
-const appShellOverlays = readFileSync(
-  join(root, "src/components/layout/app-shell-overlays.tsx"),
-  "utf8",
-);
 const appShellStyles = readFileSync(
   join(root, "src/components/layout/app-shell.module.css"),
   "utf8",
@@ -36,25 +32,21 @@ const toast = readFileSync(
 
 test("App Shell composes the approved shared owners", () => {
   assert.match(appShell, /import \{ BrandLockup \}/u);
-  assert.match(appShell, /dynamic\([\s\S]*app-shell-overlays/u);
-  assert.match(appShellOverlays, /import \{ Sheet \}/u);
+  assert.match(appShell, /import \{ Sheet \}/u);
   assert.match(appShell, /ToastRegion/u);
   assert.match(appShell, /Button,/u);
   assert.match(appShell, /IconButton,/u);
   assert.match(appShell, /LinkButton,/u);
   assert.doesNotMatch(appShell, /function Brand\(/u);
   assert.doesNotMatch(appShell, /<dialog/u);
-  assert.doesNotMatch(appShellOverlays, /<dialog/u);
   assert.doesNotMatch(appShell, /function Toast\(/u);
 });
 
 test("capture chooser uses deliberate centered modal placement", () => {
   assert.match(sheet, /type SheetSide = "center" \| "left"/u);
   assert.match(sheet, /center:\s*"m-auto h-auto/u);
-  assert.match(appShell, /<CaptureSheetOverlay/u);
-  assert.match(appShell, /<MoreSheetOverlay/u);
-  assert.match(appShellOverlays, /title="Ghi giao dịch"[\s\S]*side="center"/u);
-  assert.match(appShellOverlays, /title="Thêm & tài khoản"[\s\S]*side="right"/u);
+  assert.match(appShell, /title="Ghi giao dịch"[\s\S]*side="center"/u);
+  assert.match(appShell, /title="Thêm & tài khoản"[\s\S]*side="right"/u);
 });
 
 test("route capabilities replace structural chrome inference", () => {

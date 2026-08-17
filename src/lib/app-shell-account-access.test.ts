@@ -6,10 +6,6 @@ const appShellSource = readFileSync(
   new URL("../components/layout/app-shell.tsx", import.meta.url),
   "utf8",
 );
-const appShellOverlaysSource = readFileSync(
-  new URL("../components/layout/app-shell-overlays.tsx", import.meta.url),
-  "utf8",
-);
 const userChipSource = readFileSync(
   new URL("../components/user-chip.tsx", import.meta.url),
   "utf8",
@@ -25,20 +21,16 @@ test("desktop account menu submits the server sign-out action explicitly", () =>
   assert.match(userChipSource, />Đăng xuất</);
 });
 
-test("mobile topbar opens a lazy account sheet with a real sign-out form", () => {
+test("mobile topbar opens an account sheet with a real sign-out form", () => {
   assert.match(appShellSource, /className=\{styles\.mobileAccountButton\}/);
   assert.match(appShellSource, /aria-label=\{`Mở tài khoản/);
+  assert.match(appShellSource, /<MoreSheet[\s\S]*viewer=\{viewer\}/);
   assert.match(
     appShellSource,
-    /dynamic\([\s\S]*app-shell-overlays[\s\S]*MoreSheetOverlay/,
-  );
-  assert.match(appShellSource, /<MoreSheetOverlay[\s\S]*viewer=\{viewer\}/);
-  assert.match(
-    appShellOverlaysSource,
     /<form action=\{signOut\} className=\{styles\.signoutForm\}>/,
   );
   assert.match(
-    appShellOverlaysSource,
+    appShellSource,
     /cx\(\s*styles\.accountAction,\s*styles\.accountActionDanger,?\s*\)/,
   );
 });

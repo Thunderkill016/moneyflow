@@ -18,22 +18,6 @@ test("root font keeps Vietnamese coverage and the measured preload path", () => 
   assert.match(source, /preload:\s*true/);
 });
 
-test("closed app-shell sheets are split out of the first client paint without breaking focus restore", () => {
-  const shell = read("src/components/layout/app-shell.tsx");
-  const overlays = read("src/components/layout/app-shell-overlays.tsx");
-
-  assert.match(shell, /dynamic\([\s\S]*app-shell-overlays/);
-  assert.match(shell, /setCaptureMounted\(true\)/);
-  assert.match(shell, /setMoreMounted\(true\)/);
-  assert.match(shell, /captureMounted \? \([\s\S]*<CaptureSheetOverlay[\s\S]*open=\{captureOpen\}/);
-  assert.match(shell, /moreMounted \? \([\s\S]*<MoreSheetOverlay[\s\S]*open=\{moreOpen\}/);
-  assert.doesNotMatch(shell, /from ["']@\/components\/ui\/sheet["']/);
-  assert.doesNotMatch(shell, /from ["']@\/lib\/capture\/options["']/);
-  assert.match(overlays, /from ["']@\/components\/ui\/sheet["']/);
-  assert.match(overlays, /CAPTURE_OPTIONS/);
-  assert.match(overlays, /signOut/);
-});
-
 test("dashboard loading boundary is lightweight and does not invent financial truth", () => {
   const source = read("src/app/dashboard/loading.tsx");
 
