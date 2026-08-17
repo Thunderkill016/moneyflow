@@ -145,6 +145,12 @@ type SampledMetrics = {
   finalUrl: string;
   iterations: number;
   median: Record<string, number | null>;
+  /*
+   * `sampleCount` is per metric, not per route: a pass can record a route while
+   * failing to report one audit. Without it a median computed from two of three
+   * passes would be indistinguishable from a full one.
+   */
+  sampleCount: Record<string, number>;
   spread: Record<string, { min: number | null; max: number | null; range: number | null }>;
   samples: MetricSummary[];
 };
@@ -164,6 +170,7 @@ function sampleRoute(options: {
   route: "/" | "/dashboard";
   url: string;
   outputName: string;
+  expectedPathname: string;
   cookieHeader?: string;
 }): SampledMetrics {
   const samples: MetricSummary[] = [];
@@ -172,16 +179,30 @@ function sampleRoute(options: {
       ...options,
       outputName: `${options.outputName}-run${index + 1}`,
     });
+    /*
+     * Every sample is checked, not just the first. If the synthetic harness
+     * session lapses or the loopback double resets mid-sampling, `/dashboard`
+     * redirects to the much lighter sign-in page; Lighthouse would measure that
+     * happily and its low LCP would be folded into the median while the test
+     * stayed green — manufacturing exactly the kind of "improvement" this
+     * harness exists to detect.
+     */
+    expect(
+      new URL(summary.finalUrl).pathname,
+      `sample ${index + 1} for ${options.route} measured ${summary.finalUrl}`,
+    ).toBe(options.expectedPathname);
     samples.push(summary);
   }
 
   const medianValues: Record<string, number | null> = {};
+  const sampleCount: Record<string, number> = {};
   const spread: SampledMetrics["spread"] = {};
   for (const key of SAMPLED_KEYS) {
     const values = samples
       .map((sample) => sample[key])
       .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
     medianValues[key] = median(values);
+    sampleCount[key] = values.length;
     const min = values.length ? Math.min(...values) : null;
     const max = values.length ? Math.max(...values) : null;
     spread[key] = {
@@ -191,11 +212,23 @@ function sampleRoute(options: {
     };
   }
 
+  /*
+   * A run that records no timing or no byte weight is not evidence, and an
+   * attached summary full of nulls would read as one. Fail loudly instead.
+   */
+  for (const key of ["lcpMs", "tbtMs", "scriptTransferredBytes"] as const) {
+    expect(
+      sampleCount[key],
+      `${options.route} recorded no usable ${key} in ${ITERATIONS} passes`,
+    ).toBeGreaterThan(0);
+  }
+
   return {
     route: options.route,
     finalUrl: samples[0].finalUrl,
     iterations: ITERATIONS,
     median: medianValues,
+    sampleCount,
     spread,
     samples,
   };
@@ -212,7 +245,7 @@ async function attachSummary(testInfo: TestInfo, routes: SampledMetrics[]) {
       build: "playwright.auth.config.ts production next build + next start",
       iterationsPerRoute: ITERATIONS,
       reported:
-        "median of the per-route samples; `spread` gives the observed min/max/range so a before/after difference can be compared against this harness's own noise floor",
+        "each metric is medianed independently across the per-route samples, so the `median` object is a per-metric summary and not a replay of any single pass; `spread` gives the observed min/max/range and `sampleCount` the usable passes per metric, so a before/after difference can be compared against this harness's own noise floor",
     },
     git: {
       githubSha: process.env.GITHUB_SHA ?? null,
@@ -242,8 +275,8 @@ test("canonical root and authenticated dashboard record production-build mobile 
     route: "/",
     url: new URL("/", baseURL).toString(),
     outputName: "lighthouse-root",
+    expectedPathname: "/",
   });
-  expect(new URL(root.finalUrl).pathname).toBe("/");
 
   await seedServer();
   await signIn(page);
@@ -257,9 +290,9 @@ test("canonical root and authenticated dashboard record production-build mobile 
     route: "/dashboard",
     url: new URL("/dashboard", baseURL).toString(),
     outputName: "lighthouse-dashboard",
+    expectedPathname: "/dashboard",
     cookieHeader,
   });
-  expect(new URL(dashboard.finalUrl).pathname).toBe("/dashboard");
 
   await attachSummary(testInfo, [root, dashboard]);
   await assertNoUnservedRequests();

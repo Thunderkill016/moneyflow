@@ -121,6 +121,8 @@ test("root layout font strategy favors LCP and reduces CLS", () => {
   const source = read("src/app/layout.tsx");
   assert.match(source, /display:\s*["']swap["']/);
   assert.match(source, /adjustFontFallback:\s*true/);
+  // Vietnamese product copy is the LCP text, so the subset must stay loaded.
+  assert.match(source, /subsets:\s*\["latin", "vietnamese"\]/);
   // #403 tried preload=false on the same production mobile harness and saw no
   // font-byte reduction. The timing half was inconclusive (harness variance
   // exceeded the difference), so preload stays at the unchanged main behaviour.

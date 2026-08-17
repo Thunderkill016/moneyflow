@@ -102,14 +102,14 @@ cookie; `/dashboard` with only the synthetic harness cookie. Harness:
 | `/` | CLS | 0 | 0 | — |
 | `/` | TBT | 33.5 ms | 30.5 ms | −3.0 ms |
 | `/` | FCP | 1679 ms | 1710 ms | +31 ms |
-| `/` | Transferred | 424,527 B | 424,506 B | −21 B |
+| `/` | Transferred | 424,527 B | 424,506 B | −21 B (inside noise) |
 | `/` | Script transferred | 195,787 B | 195,787 B | **0 B** |
 | `/dashboard` | Perf score | 86 | 86 | — |
 | `/dashboard` | LCP | 3956 ms | 3857 ms | −99 ms |
 | `/dashboard` | CLS | 0 | 0 | — |
 | `/dashboard` | TBT | 113.0 ms | 150.5 ms | **+37.5 ms** |
 | `/dashboard` | FCP | 1693 ms | 1694 ms | +1 ms |
-| `/dashboard` | Transferred | 544,225 B | 548,164 B | +3,939 B |
+| `/dashboard` | Transferred | 544,225 B | 548,164 B | +3,939 B (inside noise) |
 | `/dashboard` | Script transferred | 311,601 B | 311,603 B | +2 B |
 
 **Budget status: LCP misses on both routes.** CLS passes (0). TBT passes (≤ 200 ms).
@@ -117,26 +117,56 @@ cookie; `/dashboard` with only the synthetic harness cookie. Harness:
 **These numbers do not establish a performance improvement.** `/` carries no runtime
 change in #415 and its script payload is byte-identical, yet its LCP moved +471 ms
 between the two runs. That +471 ms is therefore the harness's own single-run noise
-floor, and it is roughly five times the −99 ms measured on `/dashboard`. The dashboard
-difference cannot be separated from variance, and no route shows a byte reduction.
+floor, and it is several times the −99 ms measured on `/dashboard` — the CI medians below
+put the ratio at about four. The dashboard difference cannot be separated from variance,
+and no route shows a script-byte reduction.
+
+#### Measured noise floor (CI, median of 3)
+
 `e2e/auth/performance.mobile.auth.spec.ts` now samples each route three times and
-reports a median plus the observed spread. Running that median harness on head
-`6832b07` on a second machine measured the noise floor directly and confirms the
-reading above:
+reports a per-metric median with its observed spread. CI run **32031790438** on head
+`aeb39a9` is the auditable version of that measurement:
 
-| Route | LCP median | LCP range | TBT median | TBT range | Script bytes | Script range | Score range |
-|---|---|---|---|---|---|---|---|
-| `/` | 2855 ms | **469 ms** | 55.5 ms | 58.0 ms | 195,821 B | **0 B** | 3 |
-| `/dashboard` | 3517 ms | **684 ms** | 219 ms | 221.5 ms | 311,598 B | **0 B** | 11 |
+| Route | LCP median | LCP range | TBT median | TBT range | FCP range | Script bytes | Script range | Total bytes range |
+|---|---|---|---|---|---|---|---|---|
+| `/` | 2808 ms | **460 ms** | 39.0 ms | 10.5 ms | 14.3 ms | 195,785 B | **0 B** | 1,460 B |
+| `/dashboard` | 3641 ms | **411 ms** | 130.5 ms | 64.0 ms | 8.1 ms | 311,600 B | **0 B** | 6,669 B |
 
-Per-route LCP varies by 469–684 ms across three consecutive samples of the *same*
-build, i.e. roughly seven times the −99 ms once read as a `/dashboard` gain. Transferred
-script bytes, by contrast, are perfectly stable (range 0 B), so byte-level claims from
-this harness are trustworthy while single-run timing claims are not. `/dashboard` TBT
-also straddles its own 200 ms budget across samples, so a single TBT pass or fail from
-this harness should not be reported as a verdict. These figures come from a developer
-machine, not the CI runner, so they characterise variance rather than restate the CI
-budget result.
+LCP varies by **411–460 ms across three samples of one build**, roughly four times the
+−99 ms once read as a `/dashboard` gain, so that reading does not survive. Note also that
+`/`'s median here (2808 ms) sits within 4 ms of the single-run baseline (2804 ms), which
+identifies the 3275 ms "after" sample as an unlucky draw rather than a regression.
+
+Which metrics from this harness can carry a claim:
+
+- **Trustworthy:** `scriptTransferredBytes` (range **0 B** on both routes), CLS (0), and
+  FCP (range 8–14 ms).
+- **Not trustworthy for small deltas:** LCP and TBT. Also **total** transferred bytes —
+  its single-build range is 1,460 B on `/` and **6,669 B** on `/dashboard`, which is
+  *larger* than the +3,939 B shown in the Δ column above. That +3.9 KB is therefore
+  inside noise and is not a real regression, just as the −21 B on `/` is not a real win.
+
+A developer-machine run of the same harness corroborates the picture with wider spreads
+(LCP range 469 ms on `/`, 684 ms on `/dashboard`), and there `/dashboard` TBT straddled
+200 ms across samples. Treat those as machine-specific variance, not as a budget verdict;
+CI's samples were 112/130.5/176 ms, entirely inside budget.
+
+#### Isolating the one runtime change
+
+Because `src/app/dashboard/loading.tsx` is the only runtime change in #415 that reaches
+these routes (`src/app/layout.tsx` gained comments only), the file was removed and the
+median harness re-run on one machine, back to back, to isolate it:
+
+| Route | LCP median without `loading.tsx` | with it | Δ | LCP range observed |
+|---|---|---|---|---|
+| `/dashboard` | 3524 ms | 3517 ms | −7 ms | 306–684 ms |
+| `/` (unaffected) | 3296 ms | 2855 ms | −441 ms | 469–488 ms |
+
+`/` cannot be affected by a `/dashboard` loading boundary, yet its median moved 441 ms
+between the two runs — so three samples still do not pin LCP down on that hardware, and
+the −7 ms on `/dashboard` is far inside the noise. The honest reading is that the loading
+boundary has **no detectable cold-load LCP effect**, which is consistent with its actual
+purpose: it serves client-side navigation, which Lighthouse cold loads do not exercise.
 
 **First-load JS:** Next.js 16 Turbopack no longer prints per-route First Load JS in the
 build table, so Lighthouse `resource-summary` script transfer (the two `Script
@@ -273,9 +303,26 @@ limiter because serverless instances and regions do not share its counters.
 Unit tests in `src/lib/performance-budgets.test.ts` assert:
 
 - Landing source is not a Client Component
-- Font layout uses `display: "swap"` + Inter preload / mono no-preload
+- Font layout uses `display: "swap"` + Inter preload / mono no-preload, with the
+  Vietnamese subset retained
 - Proxy fast-path for public `/`
 - Performance budget doc exists with LCP/CLS and bounded-load targets
+
+Unit tests in `src/lib/dashboard-performance-contract.test.ts` additionally assert, for
+the canonical dashboard added under #403:
+
+- the `/dashboard` loading boundary stays a Server Component, announces through
+  `role="status"` without an ancestor `aria-busy`, and renders no value, currency mark or
+  grouped digits — a loading state must not fabricate a balance
+- `src/server/dashboard.ts` keeps **exactly one** `.rpc()` call, `get_dashboard_bundle`,
+  with no `.from()` table read beside it
+- that module contains no `unstable_cache`, `cacheLife`, `cacheTag`, `use cache`,
+  `revalidate`, `fetchCache` or `force-cache`, so private financial data cannot reach a
+  shared or static cache
+
+Both files read source text rather than a rendered DOM, so they catch removal of a
+guarded construct but cannot prove runtime behaviour; the browser and UI-audit shards
+own that.
 
 ## Non-goals
 
