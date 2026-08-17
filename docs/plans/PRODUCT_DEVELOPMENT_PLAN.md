@@ -66,7 +66,7 @@ questions. Nothing here needs new financial modelling or a research contract.
 | # | Item | Status | Notes |
 |---|---|---|---|
 | 1.1 | Category figure → the rows behind it | ✅ | Whole-row target, month-accurate window, transfer-neutral. 10 invariant tests + browser test. |
-| 1.2 | Month income / expense totals → filtered rows | ⬜ | Module already supports it; only wiring left. Exact-sum invariant already proven. |
+| 1.2 | Month income / expense totals → filtered rows | ⬜ blocked on a design decision | The builder and the exact-sum invariant are already proven, but wiring was **tried and reverted**: the statement legend is a `flex-wrap` row with an 8px row gap, so at 320px a 44px target would overlap its neighbours. Fixing one accessibility rule by breaking another is not a fix. Shipping this needs the legend given real height — a density decision about the statement card, not a wiring task. |
 | 1.3 | Account balance → account register | ⬜ | `/accounts/[accountId]` already exists; link only. |
 | 1.4 | Budget row → that category's rows for the budget period | ⬜ | Reuses 1.1's builder. |
 | 1.5 | Net (thu−chi) drill-down | ⛔ by design | Deliberately **not** linked: no single row set sums to a net figure. Linking it would invite the mismatch the feature exists to prevent. |

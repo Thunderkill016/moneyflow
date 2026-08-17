@@ -1,6 +1,4 @@
-import Link from "next/link";
 import { MoneyValue } from "@/components/money-value";
-import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import { dashboardPeriodLabel } from "@/lib/dashboard-period";
 import { formatMoney } from "@/lib/money";
 import styles from "./statement.module.css";
@@ -86,16 +84,6 @@ export function DashboardStatement({
 
             <ul className={styles.legend}>
               <li className={`${styles.legendItem} ${styles.legendIncome}`}>
-                {/*
-                  Kind-level totals drill down to an exact sum: the aggregate and
-                  the filtered rows select the same kind over the same calendar
-                  month, so the list adds up to the figure shown here.
-                */}
-                <Link
-                  href={dashboardDrilldownHref({ today, kind: "income" }) ?? "/transactions"}
-                  className={styles.legendDrill}
-                  aria-label="Xem các khoản tiền vào tháng này"
-                />
                 <span className={styles.legendText}>
                   <i className={styles.dot} aria-hidden="true" />
                   <span className={styles.legendLabel}>Tiền vào</span>
@@ -108,11 +96,6 @@ export function DashboardStatement({
                 />
               </li>
               <li className={`${styles.legendItem} ${styles.legendExpense}`}>
-                <Link
-                  href={dashboardDrilldownHref({ today, kind: "expense" }) ?? "/transactions"}
-                  className={styles.legendDrill}
-                  aria-label="Xem các khoản tiền ra tháng này"
-                />
                 <span className={styles.legendText}>
                   <i className={styles.dot} aria-hidden="true" />
                   <span className={styles.legendLabel}>Tiền ra</span>
@@ -124,11 +107,6 @@ export function DashboardStatement({
                   className={styles.legendValue}
                 />
               </li>
-              {/*
-                "Còn lại" is intentionally not a drill-down. It is income minus
-                expense, and no single set of rows sums to it, so a link here
-                would open a list that disagrees with the figure above it.
-              */}
               <li className={`${styles.legendItem} ${styles.legendRest}`}>
                 <span className={styles.legendText}>
                   <i className={styles.dot} aria-hidden="true" />
