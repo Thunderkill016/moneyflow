@@ -1,0 +1,99 @@
+# #403 FCP attribution experiment — manual only.
+#
+# Why this is a separate workflow rather than part of `ci.yml`:
+#
+# The control arm cannot be produced with a feature flag. The Suspense boundary on
+# `/dashboard` exists because `src/app/dashboard/loading.tsx` exists, so making that
+# component render `null` would leave the boundary in place and measure nothing. A
+# true control needs a source tree without the file, which means two production
+# builds. Paying for that on every pull request would be indefensible, so this runs
+# only when someone asks for it.
+#
+# It changes no application code and writes nothing back to the repository. It
+# removes the loading boundary inside the runner's checkout for the control arm and
+# restores it, so the branch is never modified.
+name: Performance attribution (#403)
+
+on:
+  workflow_dispatch:
+    inputs:
+      lighthouse_samples:
+        description: Lighthouse passes per route, per arm
+        required: false
+        default: "10"
+      navigations:
+        description: Playwright navigations per arm for the mechanism probe
+        required: false
+        default: "20"
+
+permissions:
+  contents: read
+
+concurrency:
+  # Keyed on the ref only, and NOT cancel-in-progress: a long measurement run
+  # that gets cancelled halfway produces a partial artifact that reads like a
+  # result. Queue instead.
+  group: perf-attribution-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  attribution:
+    name: FCP attribution, both arms on one runner
+    runs-on: ubuntu-latest
+    # Two production builds plus (samples x 2 routes x 2 arms) Lighthouse passes
+    # plus two navigation probes. Generous, because a timeout mid-run wastes the
+    # whole comparison.
+    timeout-minutes: 120
+    env:
+      PERF_SAMPLES: ${{ github.event.inputs.lighthouse_samples || '10' }}
+      PERF_ATTRIBUTION: "1"
+      PERF_ATTRIBUTION_NAVIGATIONS: ${{ github.event.inputs.navigations || '20' }}
+      SPECS: performance.mobile.auth.spec.ts performance-attribution.mobile.auth.spec.ts
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Arm 1: the tree as it is on this ref, loading boundary present.
+      - name: Arm with-boundary
+        env:
+          PERF_ARM: with-boundary
+        run: npx playwright test --config=playwright.auth.config.ts $SPECS
+
+      # Arm 2: identical apart from the boundary being absent, which forces a
+      # second production build through the config's webServer command.
+      - name: Remove the loading boundary for the control arm
+        run: |
+          set -euo pipefail
+          test -f src/app/dashboard/loading.tsx
+          rm src/app/dashboard/loading.tsx
+      - name: Arm no-boundary
+        env:
+          PERF_ARM: no-boundary
+        run: npx playwright test --config=playwright.auth.config.ts $SPECS
+      - name: Restore the loading boundary
+        if: always()
+        run: git checkout -- src/app/dashboard/loading.tsx
+
+      - name: Report
+        if: always()
+        run: node scripts/perf-attribution-report.mjs
+      - name: Summary
+        if: always()
+        run: cat output/playwright-auth/performance/attribution-report.md >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Upload attribution evidence
+        if: always()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: perf-attribution-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/playwright-auth/performance/
+          if-no-files-found: error
+          retention-days: 14

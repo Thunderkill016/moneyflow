@@ -1,5 +1,5 @@
 import { chromium, expect, test, type TestInfo } from "@playwright/test";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import {
@@ -128,8 +128,28 @@ function runLighthouse({
  * sampled ITERATIONS times and reported as a median with its observed spread;
  * a reader can then see whether a difference clears the noise floor instead of
  * trusting one sample.
+ *
+ * Three is the routine Browser-smoke budget and is still too few to settle a
+ * small LCP difference — see `docs/performance-budgets.md`. The #403 attribution
+ * workflow raises it through `PERF_SAMPLES` rather than making every pull request
+ * pay for a bigger sample. An invalid or absent value falls back to 3 instead of
+ * silently sampling once.
  */
-const ITERATIONS = 3;
+function resolveIterations(): number {
+  const raw = Number.parseInt(process.env.PERF_SAMPLES ?? "", 10);
+  return Number.isInteger(raw) && raw > 0 ? raw : 3;
+}
+
+const ITERATIONS = resolveIterations();
+
+/*
+ * The attribution workflow runs the same harness twice on one runner, once with
+ * the `/dashboard` loading boundary present and once without it, so each arm
+ * needs its own summary filename. Empty in ordinary runs, which keeps the
+ * existing `lighthouse-summary.json` path that CI artifacts already reference.
+ */
+const ARM = (process.env.PERF_ARM ?? "").replace(/[^a-z0-9-]/giu, "");
+const SUMMARY_FILENAME = ARM ? `lighthouse-summary-${ARM}.json` : "lighthouse-summary.json";
 
 function median(values: number[]): number | null {
   const usable = values.filter((value): value is number => Number.isFinite(value)).sort((a, b) => a - b);
@@ -177,7 +197,9 @@ function sampleRoute(options: {
   for (let index = 0; index < ITERATIONS; index += 1) {
     const { summary } = runLighthouse({
       ...options,
-      outputName: `${options.outputName}-run${index + 1}`,
+      outputName: ARM
+        ? `${options.outputName}-${ARM}-run${index + 1}`
+        : `${options.outputName}-run${index + 1}`,
     });
     /*
      * Every sample is checked, not just the first. If the synthetic harness
@@ -244,6 +266,10 @@ async function attachSummary(testInfo: TestInfo, routes: SampledMetrics[]) {
       appMode: "authenticated against loopback Supabase double",
       build: "playwright.auth.config.ts production next build + next start",
       iterationsPerRoute: ITERATIONS,
+      arm: ARM || null,
+      loadingBoundaryPresent: existsSync(
+        join(process.cwd(), "src", "app", "dashboard", "loading.tsx"),
+      ),
       reported:
         "each metric is medianed independently across the per-route samples, so the `median` object is a per-metric summary and not a replay of any single pass; `spread` gives the observed min/max/range and `sampleCount` the usable passes per metric, so a before/after difference can be compared against this harness's own noise floor",
     },
@@ -253,9 +279,9 @@ async function attachSummary(testInfo: TestInfo, routes: SampledMetrics[]) {
     },
     routes,
   };
-  const summaryPath = join(OUTPUT_DIR, "lighthouse-summary.json");
+  const summaryPath = join(OUTPUT_DIR, SUMMARY_FILENAME);
   writeFileSync(summaryPath, JSON.stringify(payload, null, 2), "utf8");
-  await testInfo.attach("lighthouse-summary", {
+  await testInfo.attach(ARM ? `lighthouse-summary-${ARM}` : "lighthouse-summary", {
     body: Buffer.from(JSON.stringify(payload, null, 2)),
     contentType: "application/json",
   });

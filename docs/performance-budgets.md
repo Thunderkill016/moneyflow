@@ -222,6 +222,46 @@ indicates the new `/dashboard` loading text is not the LCP element, but that is 
 from timing rather than a recorded element. Lighthouse simulated mobile throttling is
 also not physical-device evidence.
 
+### #403 FCP attribution experiment (how to settle the mode split)
+
+The bimodal `/dashboard` FCP above cannot be settled by more Lighthouse sampling.
+Lighthouse **13.4.1 exposes no paint-element audit at all** — `--list-all-audits`
+returns 165 audits and none of them names a paint node — so its reports can show the
+split but never explain it. A control arm also cannot be made with a feature flag: the
+Suspense boundary exists because `src/app/dashboard/loading.tsx` exists, so making that
+component render `null` would leave the boundary in place and measure nothing.
+
+The experiment therefore uses two instruments and two production builds:
+
+| Instrument | Answers | Does not answer |
+|---|---|---|
+| Lighthouse, mobile `simulate`, `PERF_SAMPLES` passes per route | the timing distribution under throttling | which element painted |
+| Playwright navigations (`e2e/auth/performance-attribution.mobile.auth.spec.ts`) | whether the loading boundary's own text rendered, per navigation, correlated with first paint | anything about budgets — it runs **unthrottled on loopback** |
+
+Run it with `Performance attribution (#403)`, a `workflow_dispatch`-only workflow that
+executes both arms on one runner: the tree as-is, then the same tree with
+`loading.tsx` removed, each with its own build. Inputs are `lighthouse_samples` and
+`navigations`. `scripts/perf-attribution-report.mjs` reports a **mode split**, never a
+mean or median over mixed modes, and exits non-zero if an arm's artifact is missing so a
+partial run cannot read as a result. Routine CI is unaffected: the probe skips without
+`PERF_ATTRIBUTION` and the Lighthouse sample count still defaults to 3.
+
+**Absolute milliseconds from the Playwright arm are not comparable to the Lighthouse
+tables above and must never be quoted against the 1.8 s FCP target.** Only the split
+between arms carries meaning.
+
+Local dry run of both arms, developer machine, n=6 per arm, unthrottled — mechanism only:
+
+| Arm | Boundary in tree | Boundary text seen | FCP when seen | FCP when not seen |
+|---|---|---|---|---|
+| `with-boundary` | present | 1 of 6 | **96 ms** | 196–220 ms |
+| `no-boundary` | absent | **0 of 6** | — | 188–496 ms |
+
+That is consistent with the early mode being the loading boundary's own paint, and with
+the boundary rendering only when the server wait is long enough. It is a dry run proving
+the instrument works, **not** the result: the CI-hardware run with the configured sample
+counts has not been collected yet, and no claim about a user-visible gain follows from it.
+
 ### Mitigations shipped (TASK-132 + speed pass + Q8)
 
 1. **Landing is a Server Component** — no `"use client"`; LCP text in first HTML paint.

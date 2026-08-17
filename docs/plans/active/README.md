@@ -67,6 +67,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 |---|---|---|
 | `public-beta-trust.md` | active parent program | release-readiness blocker sequence, controlled-beta gates and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active bounded validation | real-phone smoke only; no provider/deployment/production mutation |
+| `403-fcp-attribution.md` | active Class 3 measurement | measurement instruments and one dispatch-only workflow; no application, financial, schema, RLS, Auth or provider change, and no optimization |
 
 ## Board rules
 
