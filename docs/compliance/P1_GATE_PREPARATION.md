@@ -1,21 +1,41 @@
-# P1 gate preparation — data inventory and read-back checklists
+# Production facts and the practical privacy checklist
 
 **Last updated:** 2026-08-18
 **Baseline:** `main@fec1195`
-**Purpose:** turn the four remaining P1 release gates from open-ended asks into short,
-prepared sessions. It **does not close any gate** — RRB-04, RRB-05, RRB-06 and RRB-09
-all still require the owner, a provider account, or a qualified lawyer.
+**Purpose:** record what is actually true about production, and reduce the privacy
+side to the short list a SaaS at this stage really needs.
 
-Everything below is derived from current code and migrations, with the file cited.
-Where the code does not answer a question, this document says so rather than guessing.
+An earlier draft of this file framed all of this as four release gates blocking beta,
+with a legal review as the headline item. That was over-weighted for a product at this
+stage, and it is corrected here: the measured facts stay, the gate framing goes. What a
+small SaaS practically needs is four things — know where the data is, be able to export
+it, be able to delete it, and have a contact that works. **Three of those four are
+already done**, which is better than most products at this point.
+
+Everything below is derived from current code, migrations, or a direct read of the
+provider, with the source cited. Where something is unknown, it says so.
 
 ---
 
-## 1. RRB-06 — Vietnam personal-data legal/privacy review
+## 0. The practical checklist
 
-An agent cannot produce a legal opinion. What it can do is remove the discovery cost,
-so the lawyer spends the session on judgement rather than on reverse-engineering the
-system. Hand them sections 1.1–1.6.
+| What a SaaS at this stage needs | MoneyFlow | Evidence |
+|---|---|---|
+| Know where the data physically sits | ✅ | Vercel region `sin1` (Singapore), §3.0 |
+| Users can export their data | ✅ | `export_user_archive()`, §1.4 |
+| Users can delete their data | ✅ | `purge_user_tenant_data` + `auth.users` cascade, §1.4 |
+| The contact in the privacy policy works | ❓ | **the one open item** — §2 |
+
+The rest of this document is supporting detail. If you only do one thing, do §2; it
+takes under a minute.
+
+---
+
+## 1. What data exists and how it is handled
+
+Supporting detail, gathered once so nobody has to re-derive it. Useful if a privacy
+policy is ever rewritten, if a user asks what is stored, or if a reviewer is ever
+brought in — but not a prerequisite for anything.
 
 ### 1.1 What personal data exists
 
@@ -86,7 +106,7 @@ These are real and worth showing the lawyer, because they change the risk pictur
 | Erasure | `purge_user_tenant_data(user_id)` then Auth deletion | implemented, see 1.5 |
 | Rectification | ordinary edit flows | implemented |
 
-### 1.5 Two findings the lawyer should be told about
+### 1.5 Two findings worth knowing about the deletion path
 
 **(a) The erasure guarantee rests on a cascade, not on the purge function.**
 `purge_user_tenant_data` deletes **19** tables. `archive_restore_batches` and
@@ -107,10 +127,11 @@ table being added. Five tables the purge function does delete are absent from th
 The test passes, but it does not prove what its name implies. This is a verification
 gap, not evidence of data surviving deletion.
 
-Neither is a live data leak. Both are the kind of thing that must be stated plainly to
-a reviewer rather than discovered by them.
+Neither is a live data leak. Both are recorded because a claim that no longer matches
+its code is worth fixing before someone relies on it. `PR #423` adds a test that keeps
+the first one from recurring.
 
-### 1.6 What the repository cannot answer
+### 1.6 What the repository does not answer
 
 - **Retention.** No purge schedule, TTL or retention policy exists in code for any table,
   including `financial_mutation_audit_events`. Data appears to persist until the user
@@ -118,16 +139,16 @@ a reviewer rather than discovered by them.
 - **Legal basis** for each processing purpose.
 - **Whether the published privacy policy matches reality** — see RRB-05 below.
 - **Processor agreements** with Supabase, Vercel and Cloudflare.
-- **The governing instrument and its current form.** Vietnam's personal-data framework
-  has been moving; naming the specific decree or law in force, and what it requires of a
-  service like this, is exactly the judgement being bought. This document deliberately
-  does not assert it.
+- **Anything about Vietnamese personal-data law.** This document deliberately makes no
+  claim about it, in either direction — neither that compliance is required today nor
+  that it is not. That is a decision for the owner, informed by whatever source the
+  owner trusts.
 
 ---
 
-## 2. RRB-05 — operator-controlled support/privacy contact
+## 2. The one open item: does the published contact work?
 
-**This gate is already partly failing in public, and that is the finding.**
+**This is the only thing in this document that needs doing.**
 
 `src/components/privacy-policy-page.tsx` publishes **`support@moneyflow.app`**. The
 policy is live and makes a commitment on that address. RRB-05 exists because nobody has
@@ -258,21 +279,26 @@ read:
 
 ---
 
-## 4. Recommended order
+## 4. What to actually do
 
-1. **RRB-04 + RRB-09 first.** One provider session. It converts every "UNVERIFIED" in
-   section 1.2 into a fact, and the legal review needs those facts.
-2. **RRB-05.** A short ownership confirmation, but it may force a policy correction, so
-   do not leave it last.
-3. **RRB-06.** Book the lawyer once 1 and 2 are answered, and hand them sections 1.1–1.6.
+1. **Answer §2** — can you send and receive mail at `support@moneyflow.app`? If yes,
+   the checklist in §0 is complete. If no, change the address in
+   `src/components/privacy-policy-page.tsx` to one you do control. One line.
+2. **Decide whether the site should be publicly registerable right now** (§3.0.1). It
+   is, today. If that is intended, nothing to do. If not, Vercel password protection
+   is a setting.
+3. Everything else here is reference material, not a queue.
 
-Doing RRB-06 before the provider read-back wastes the most expensive hour, because the
-first question a competent reviewer asks is where the data physically sits.
+The Supabase read-back in §3.1 is still worth doing eventually — mainly to know who
+holds the `service_role` key and whether backups have ever been restored, which matters
+for your own data safety rather than for anyone's compliance. It is not urgent.
 
 ---
 
 ## 5. What this document is not
 
-It is not a legal opinion, not a privacy policy, and not evidence that any gate is
-closed. It is preparation. RRB-04, RRB-05, RRB-06 and RRB-09 remain open, and closing
-them requires the owner, a provider account, and a qualified lawyer respectively.
+Not a legal opinion, not a privacy policy, and not a claim that any particular law does
+or does not apply. It makes no assertion about Vietnamese personal-data regulation in
+either direction; that judgement belongs to the owner. What it does contain is measured
+fact about production and a short practical checklist, three quarters of which is
+already satisfied.
