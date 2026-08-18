@@ -10,21 +10,18 @@ export const metadata: Metadata = {
 
 /**
  * Canonical signed-in home: balances, monthly income/expense/net, category
- * distribution, recent transactions and planning status.
+ * distribution, recent transactions and lightweight planning signals.
+ *
+ * Detailed planning stays behind its dedicated routes so the daily ledger does
+ * not hydrate secondary planning UI on every dashboard visit.
  *
  * A numeric safe-to-spend guide stays withdrawn until MoneyFlow can prove a
  * complete income-based plan or a next-payday plan with protected cash.
  */
 export default async function DashboardPage() {
   const viewer = await requireViewer();
-  const {
-    workspace,
-    budgets,
-    commitments,
-    incomeTemplates,
-    goals,
-    pendingInboxCount,
-  } = await getDashboardPageWorkspace(viewer);
+  const { workspace, budgets, commitments, pendingInboxCount } =
+    await getDashboardPageWorkspace(viewer);
 
   return (
     <MoneyFlowDashboard
@@ -37,8 +34,6 @@ export default async function DashboardPage() {
       initialInboxCount={pendingInboxCount}
       budgets={budgets}
       commitments={commitments}
-      incomeTemplates={incomeTemplates}
-      goals={goals}
     />
   );
 }
