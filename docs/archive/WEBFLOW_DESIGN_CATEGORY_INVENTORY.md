@@ -102,7 +102,7 @@ This inventory records the topic coverage found in the current public snapshot o
 
 The detailed Adopt / Adapt / Reject decisions and the binding workflow are recorded in:
 
-- `docs/research/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md`
+- `WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md`
 - `docs/research/UI_UX_RESEARCH_LEDGER.md`
 - `docs/research/PUBLIC_EXPERIENCE_FOUNDATION.md`
 - `docs/design/DESIGN_DIRECTION_STATUS.md`

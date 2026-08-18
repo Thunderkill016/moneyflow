@@ -73,14 +73,14 @@ Authentication is a family of login, registration, recovery, confirmation, OAuth
 
 The active concept-neutral process companions are:
 
-- `docs/research/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md`
-- `docs/research/WEB_DESIGN_PROCESS_CONVERGENCE.md`
+- `docs/archive/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md`
+- `docs/archive/WEB_DESIGN_PROCESS_CONVERGENCE.md`
 
 The dated provenance inventories are:
 
-- `docs/research/WEBFLOW_DESIGN_CATEGORY_INVENTORY.md`
-- `docs/research/UXPILOT_DESIGN_CORPUS_INVENTORY.md`
-- `docs/research/FRAMER_DESIGN_CORPUS_INVENTORY.md`
+- `docs/archive/WEBFLOW_DESIGN_CATEGORY_INVENTORY.md`
+- `docs/archive/UXPILOT_DESIGN_CORPUS_INVENTORY.md`
+- `docs/archive/FRAMER_DESIGN_CORPUS_INVENTORY.md`
 
 Together they contribute reusable evidence for:
 
@@ -128,8 +128,8 @@ Future MoneyFlow design work must begin from:
 1. current product behavior and real user jobs;
 2. `docs/research/UI_UX_RESEARCH_LEDGER.md`;
 3. `docs/research/PUBLIC_EXPERIENCE_FOUNDATION.md` for brand, landing or auth work;
-4. `docs/research/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md` for reusable design foundations;
-5. `docs/research/WEB_DESIGN_PROCESS_CONVERGENCE.md` for briefs, delivery, handoff, release and learning;
+4. `docs/archive/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md` for reusable design foundations;
+5. `docs/archive/WEB_DESIGN_PROCESS_CONVERGENCE.md` for briefs, delivery, handoff, release and learning;
 6. product principles and financial truth;
 7. accessibility and responsive requirements;
 8. multiple genuinely different candidate structures before one is selected.
