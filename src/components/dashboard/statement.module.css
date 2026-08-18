@@ -85,6 +85,33 @@
   gap: 16px;
 }
 
+/*
+ * Drill-down for the month. It sits in the period row rather than on the figures
+ * themselves: the legend below is a wrapping flex row with an 8px row gap, where a
+ * 44px target would overlap its neighbours on a narrow phone. Here the height is
+ * free, so the control clears the floor without costing any density.
+ */
+.flowLink {
+  flex: 0 0 auto;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--mf-brand-text);
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.flowLink:hover {
+  text-decoration: underline;
+}
+
+.flowLink:focus-visible {
+  outline: 2px solid var(--mf-focus, currentColor);
+  outline-offset: 2px;
+}
+
 .flowPeriod {
   margin: 0;
   color: var(--mf-text-muted);

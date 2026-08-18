@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { MoneyValue } from "@/components/money-value";
+import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import { dashboardPeriodLabel } from "@/lib/dashboard-period";
 import { formatMoney } from "@/lib/money";
 import styles from "./statement.module.css";
@@ -60,6 +62,27 @@ export function DashboardStatement({
       <div className={styles.flow}>
         <div className={styles.flowHead}>
           <p className={styles.flowPeriod}>{period}</p>
+          {/*
+            The period row was already a two-column flex with one child, so the
+            drill-down lands where the layout expected it and the legend below
+            keeps its density untouched.
+
+            It opens the whole month rather than filtering to income or expense.
+            That is the honest scope for one control: the figures below are two
+            different sums plus a difference, and no single list adds up to all
+            three. A reader who wants one side filters once they arrive.
+          */}
+          {!isEmptyLedger ? (
+            <Link
+              className={styles.flowLink}
+              href={
+                dashboardDrilldownHref({ withinMonth: today }) ?? "/transactions"
+              }
+              aria-label={`Xem giao dịch ${period.toLowerCase()}`}
+            >
+              Xem giao dịch
+            </Link>
+          ) : null}
         </div>
 
         {isEmptyLedger ? (
