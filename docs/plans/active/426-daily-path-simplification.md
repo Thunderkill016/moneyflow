@@ -5,7 +5,7 @@
 **Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
-**Issue:** #426
+**Issue/PR:** #426 / #427
 **Branch:** `product/426-daily-path-simplification`
 **Base:** `fec11958a573653ebb706d4c3307ace6c7d2d4ac`
 **Last updated:** 2026-08-18
@@ -75,6 +75,29 @@ Do not add new UI or introduce a new navigation model. Remove duplicated present
 - closing #403 or RRB-08;
 - unrelated dependency/dead-CSS work such as #417/#418.
 
+## Implementation plan
+
+1. Remove only the duplicate desktop capture entry point and shell chooser made unreachable by that removal; preserve topbar and mobile capture paths.
+2. Remove only the detailed planning column from default `/dashboard`; preserve compact planning links, attention signals and all planning routes.
+3. Stop passing client props that become unused solely because the column is gone; do not change dashboard server/RPC semantics.
+4. Evolve existing source contracts to assert the intended simplified shell rather than introducing a parallel brittle test layer.
+5. Let risk-selected exact-head CI, browser/UI artifacts and same-method Lighthouse evidence decide whether the candidate is safe and whether client cost actually improved.
+
+## Tasks
+
+- [x] Register #426 and this packet on the Current Work Board; pause rather than close #403.
+- [x] Remove duplicate desktop sidebar capture action.
+- [x] Preserve mobile centered `Ghi` and topbar desktop capture CTA.
+- [x] Remove now-unreachable shell `CaptureSheet` client code.
+- [x] Remove `DashboardPlanningColumn` from default dashboard.
+- [x] Preserve compact planning links and dedicated planning routes.
+- [x] Stop serializing dashboard income-template/goal detail no longer rendered by home.
+- [x] Update existing app-shell source contract for the simplified behavior.
+- [ ] Pass exact-head knowledge, static, unit, build, Browser smoke, Cross-device UI audit and CodeQL gates selected by CI.
+- [ ] Inspect exact-head visual artifacts for desktop/mobile regressions and planning discoverability.
+- [ ] Record same-method `/dashboard` script-transfer before/after without overstating noisy timing deltas.
+- [ ] Complete independent evaluation and fix any valid findings.
+
 ## Acceptance criteria
 
 - [ ] **426-AC1** Desktop renders exactly one prominent capture primary; there is no sidebar duplicate.
@@ -85,6 +108,19 @@ Do not add new UI or introduce a new navigation model. Remove duplicated present
 - [ ] **426-AC6** Browser smoke and cross-device audit show no clipped or unreachable critical controls.
 - [ ] **426-AC7** Same-method performance evidence records `/dashboard` script transferred bytes before/after. Any LCP/TBT claim clears the harness noise floor; otherwise it is reported as noise.
 - [ ] **426-AC8** Exact-head risk-selected gates and independent evaluation are green before owner handoff.
+
+## Evaluation
+
+Independent evaluation must challenge the candidate rather than merely confirm the intended simplification:
+
+- Did removing the dashboard planning column make planning materially harder to discover, or do the existing compact links and dedicated routes preserve capability?
+- Is mobile `Ghi` still the same capture action and is desktop left with one clear primary rather than none?
+- Did any transaction/transfer, balance, integer-VND, dashboard RPC, cache/private-data, Auth or provider behavior drift?
+- Is client surface genuinely removed rather than hidden with CSS or moved into another eager bundle?
+- Does exact-head script-transfer measurement improve; if not, is the UX simplification still justified without inventing a performance win?
+- Do browser/cross-device artifacts expose awkward empty layout, clipping, unreachable controls or a new competing primary?
+
+Valid findings must be fixed in-scope or recorded as a stop condition; the evaluator cannot waive repository policy or owner gates.
 
 ## Verification plan
 
