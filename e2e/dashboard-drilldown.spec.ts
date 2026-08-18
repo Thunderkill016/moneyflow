@@ -96,3 +96,33 @@ test("a dashboard category opens exactly that category for this month", async ({
     await expect(categoryFilter).toHaveValue(categoryName);
   }
 });
+
+test("the statement period opens the whole month, not a filtered slice", async ({
+  page,
+}) => {
+  await recordOneExpense(page);
+  await page.goto("/dashboard");
+
+  const monthLink = page.getByRole("link", { name: /Xem giao dịch tháng/u });
+  await expect(monthLink).toBeVisible();
+
+  const box = await monthLink.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+
+  await monthLink.click();
+  await page.waitForURL(/\/transactions\?/u);
+
+  const url = new URL(page.url());
+  /*
+   * Deliberately unfiltered by kind: the statement shows income, expense and a
+   * difference, and no single list sums to all three. Carrying a kind here would
+   * claim a correspondence that does not exist.
+   */
+  expect(url.searchParams.get("kind")).toBeNull();
+  expect(url.searchParams.get("category")).toBeNull();
+  expect(url.searchParams.get("from")).toMatch(/^\d{4}-\d{2}-01$/u);
+  expect(url.searchParams.get("to")!.slice(0, 7)).toBe(
+    url.searchParams.get("from")!.slice(0, 7),
+  );
+});
