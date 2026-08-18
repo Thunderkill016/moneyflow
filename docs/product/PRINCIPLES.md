@@ -62,21 +62,21 @@ A projection must expose its coverage and assumptions. It may inform planning, b
 
 The exact current implementation status lives in `docs/research/CURRENT_PROJECT_MEMORY.md`. The released MVP definition remains in `docs/MVP_DEFINITION.md`.
 
-## Long-term product horizon
+## Long-term direction
 
-The owner approved a comprehensive personal-finance capability horizon on 2026-08-03. MoneyFlow may ultimately expand through these optional layers:
+`docs/product/MONEYFLOW_PRODUCT_VISION.md` is the authority. In short: MoneyFlow is
+the Vietnamese ledger whose numbers you can check, kept small enough to survive
+without revenue. Three constraints decide the hard cases — zero marginal cost per
+user, payoff before capture speed, and a fixed surface.
 
-- **Core:** ledger trust, review, reconciliation, correction, tags, export and recovery;
-- **Plan:** multiple budgeting methods, recurring lifecycle, goals, debt planning, forecast and scenarios;
-- **Understand:** flexible reports, dimensions, drill-down, dashboards, attention and net worth;
-- **Automate:** imports, deterministic rules, APIs, integrations and optional provider feeds;
-- **Wealth:** assets, liabilities, loans, investments and multi-currency;
-- **Together:** household ownership, permissions and collaboration;
-- **Optional intelligence:** explainable suggestions and natural-language exploration with opt-out and deterministic fallback.
+The six-pillar capability horizon approved on 2026-08-03 (Core / Plan / Understand /
+Automate / Wealth / Together / Optional intelligence) is withdrawn. Vision §9 replaces
+it with explicit rule-outs, each carrying a falsifiable condition that would reopen it.
 
-`docs/product/MONEYFLOW_PRODUCT_VISION.md` selects the product shape. `docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md` records the horizon. `docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md` defines dependency and migration order.
+`docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md` remains useful as research
+into how other products solved problems MoneyFlow already has. It is not a roadmap.
 
-A capability appearing in the horizon is not an implementation commitment. Each high-risk feature still requires a researched specification, owner approval, financial/security contract, migration and rollback plan, and evidence that it solves a real problem.
+Nothing in the atlas or the architecture roadmap is an implementation commitment. Each high-risk feature still requires a researched specification, owner approval, financial/security contract, migration and rollback plan, and evidence that it solves a real problem it can be shown MoneyFlow's users have.
 
 ## Deferred from the current default experience
 
