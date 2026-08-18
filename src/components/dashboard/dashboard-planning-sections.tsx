@@ -12,6 +12,7 @@ import {
   budgetThreshold,
   type BudgetSummary,
 } from "@/lib/planning/budgets";
+import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import {
   commitmentTotals,
   unpaidActiveCount,
@@ -91,6 +92,21 @@ export function DashboardPlanningColumn({
         )}`
       : `${featuredStatus}. Đã dùng ${featuredProgress} phần trăm`
     : "";
+
+  /*
+   * Null when the budget has no usable category name: `/transactions` resolves
+   * `category` by name and falls back to every transaction when it does not
+   * match, so a link without one would open the whole ledger while looking like
+   * it opened this budget.
+   */
+  const budgetDrilldownHref = featuredBudget
+    ? dashboardDrilldownHref({
+        withinMonth: featuredBudget.monthStart,
+        kind: "expense",
+        category: featuredBudget.categoryName,
+        requiresCategory: true,
+      })
+    : null;
 
   const reservedCommitments = commitmentTotals(commitments).reserved;
   const activeCommitmentCount = commitments.filter((item) => !item.isArchived).length;
@@ -269,6 +285,26 @@ export function DashboardPlanningColumn({
               </span>
               <strong className="font-mono">Đã dùng {featuredProgress}%</strong>
             </div>
+            {/*
+              The spend figure above is only trustworthy if it can be opened. This
+              uses the budget's own monthStart rather than today, because a budget's
+              period is not necessarily the current month, and an explicit
+              `section-link` rather than an overlay because this panel's rows are
+              short text lines where a 44px target would collide with its
+              neighbours — the regression the cross-device audit caught earlier on
+              the statement legend.
+            */}
+            {budgetDrilldownHref ? (
+              <LinkButton
+                unstyled
+                targetSize="important"
+                className="section-link"
+                href={budgetDrilldownHref}
+              >
+                {`Xem giao dịch ${featuredBudget.categoryName}`}{" "}
+                <Icon name="arrowRight" aria-hidden="true" />
+              </LinkButton>
+            ) : null}
           </>
         ) : (
           <PlanningCardEmpty {...PLANNING_EMPTY_BUDGET} />

@@ -13,8 +13,10 @@ import {
   REPORTS_MONTH_HREF,
   REPORTS_MONTH_LINK_LABEL,
 } from "@/lib/reports";
+import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import { categoryMeta, type Transaction } from "@/lib/sample-data";
 import { transferRowSubtitle } from "@/lib/transfers";
+import styles from "./dashboard.module.css";
 import { DashboardStatement } from "./statement";
 
 type AttentionItem = {
@@ -150,12 +152,19 @@ export function DashboardLedgerColumn({
   transactions,
   isEmptyLedger,
   actionsDisabled,
+  today,
   onAddTransaction,
 }: {
   topCategories: ExpenseCategory[];
   transactions: Transaction[];
   isEmptyLedger: boolean;
   actionsDisabled: boolean;
+  /**
+   * Server-resolved current date. Drill-down windows are derived from it rather
+   * than from a client clock, so the rows a link opens belong to the same month
+   * as the figure the reader just saw.
+   */
+  today: string;
   onAddTransaction: () => void;
 }) {
   return (
@@ -183,8 +192,33 @@ export function DashboardLedgerColumn({
                 {topCategories.map((item) => {
                   const meta =
                     categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                  /*
+                   * Null when the category name cannot be carried — `/transactions`
+                   * resolves it by name and falls back to every transaction when it
+                   * does not match, so a row without a usable name stays plain text
+                   * rather than promising a filtered view it cannot deliver.
+                   */
+                  const drilldownHref = dashboardDrilldownHref({
+                    withinMonth: today,
+                    kind: "expense",
+                    category: item.name,
+                    requiresCategory: true,
+                  });
                   return (
                     <li className="insights-category-row" key={item.name}>
+                      {drilldownHref ? (
+                        /*
+                         * Overlay rather than a wrapper: the row is a two-column
+                         * grid and wrapping its children would collapse that to a
+                         * single cell. This keeps the layout untouched and still
+                         * gives the whole row as one target.
+                         */
+                        <Link
+                          href={drilldownHref}
+                          className={styles.categoryDrill}
+                          aria-label={`Xem giao dịch ${item.name} tháng này`}
+                        />
+                      ) : null}
                       <span className={`transaction-icon ${meta.color}`}>
                         <Icon name={meta.icon as IconName} aria-hidden="true" />
                       </span>

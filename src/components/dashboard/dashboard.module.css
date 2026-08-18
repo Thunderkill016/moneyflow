@@ -343,6 +343,36 @@
   gap: 11px;
   border-radius: var(--mf-radius-md);
   padding: 9px 6px;
+  /* Anchors the drill-down overlay below; the grid itself is unchanged. */
+  position: relative;
+}
+
+/*
+ * Whole-row target for "which transactions are behind this figure". It overlays
+ * the row instead of wrapping it, because wrapping the two grid children would
+ * collapse them into one cell. The row is ~54px tall (36px icon + 9px padding),
+ * so the target clears the 44px floor without adding a separate control.
+ */
+.categoryDrill {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+}
+
+/*
+ * The overlay carries its own hover tint rather than styling the row from a
+ * parent-matching selector, which this module's contract test forbids. Because
+ * the anchor sits above the row and inherits its radius, tinting the anchor
+ * reads as the whole row lighting up.
+ */
+.categoryDrill:hover {
+  background: var(--mf-surface-muted, rgb(0 0 0 / 4%));
+}
+
+.categoryDrill:focus-visible {
+  outline: 2px solid var(--mf-focus, currentColor);
+  outline-offset: 2px;
 }
 
 .dashboard :global(.transaction-icon),

@@ -289,6 +289,7 @@ export function MoneyFlowDashboard({
             transactions={transactions}
             isEmptyLedger={isEmptyLedger}
             actionsDisabled={actionsDisabled}
+            today={workspace.today}
             onAddTransaction={openGhiChi}
           />
           <DashboardPlanningColumn
