@@ -71,7 +71,12 @@ async function auditCurrentState(
       }),
   );
 
-  const evidence = await page.evaluate<StateEvidence>(
+  // Second generic supplied for the same reason as in the target-size audit: with
+  // only the return type given, the destructured argument was typed `void`.
+  const evidence = await page.evaluate<
+    StateEvidence,
+    { requireAlert: boolean; requireDialog: boolean }
+  >(
     ({ requireAlert, requireDialog }) => {
       const root = document.documentElement;
       const body = document.body;
