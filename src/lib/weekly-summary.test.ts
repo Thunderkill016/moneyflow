@@ -1,5 +1,6 @@
 /**
- * TASK-126 — In-app weekly summary card helpers.
+ * TASK-126 — weekly summary helpers. #426 removes the detailed weekly card from
+ * the default daily dashboard but keeps the financial helper contracts intact.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -43,30 +44,10 @@ test("buildWeeklySummary uses Mon–today week and integer money", () => {
   const summary = buildWeeklySummary(
     [
       txn({ amount: 80_000, occurredOn: "2026-07-14", category: "Ăn uống" }),
-      txn({
-        id: "income",
-        kind: "income",
-        category: "Lương",
-        amount: 500_000,
-        occurredOn: "2026-07-13",
-      }),
-      txn({
-        id: "transport",
-        amount: 40_000,
-        occurredOn: "2026-07-15",
-        category: "Di chuyển",
-      }),
+      txn({ id: "income", kind: "income", category: "Lương", amount: 500_000, occurredOn: "2026-07-13" }),
+      txn({ id: "transport", amount: 40_000, occurredOn: "2026-07-15", category: "Di chuyển" }),
       txn({ id: "old", amount: 999_000, occurredOn: "2026-07-10" }),
-      txn({
-        id: "xfer",
-        kind: "transfer",
-        categoryId: "",
-        category: "Chuyển tiền",
-        destinationAccountId: "bank",
-        destinationAccount: "NH",
-        amount: 200_000,
-        occurredOn: "2026-07-14",
-      }),
+      txn({ id: "xfer", kind: "transfer", categoryId: "", category: "Chuyển tiền", destinationAccountId: "bank", destinationAccount: "NH", amount: 200_000, occurredOn: "2026-07-14" }),
     ],
     "2026-07-15",
   );
@@ -86,17 +67,7 @@ test("buildWeeklySummary uses Mon–today week and integer money", () => {
 
 test("buildWeeklySummary excludes transfer from income/expense", () => {
   const summary = buildWeeklySummary(
-    [
-      txn({
-        kind: "transfer",
-        categoryId: "",
-        category: "Chuyển tiền",
-        destinationAccountId: "bank",
-        destinationAccount: "NH",
-        amount: 1_000_000,
-        occurredOn: "2026-07-14",
-      }),
-    ],
+    [txn({ kind: "transfer", categoryId: "", category: "Chuyển tiền", destinationAccountId: "bank", destinationAccount: "NH", amount: 1_000_000, occurredOn: "2026-07-14" })],
     "2026-07-15",
   );
   assert.equal(summary.income, 0);
@@ -116,26 +87,14 @@ test("weeklyExpenseCompareLine is calm and non-judgmental", () => {
   }
 });
 
-test("dashboard wires weekly summary card (contract)", () => {
+test("default daily dashboard no longer embeds the weekly summary card", () => {
   const dashboard = readDashboardSource();
-  assert.match(dashboard, /buildWeeklySummary/);
-  assert.match(dashboard, /weekly-summary-panel/);
-  assert.match(dashboard, /WEEKLY_SUMMARY_TITLE/);
-  assert.match(dashboard, /WEEKLY_SUMMARY_ARIA/);
-  assert.match(dashboard, /WEEKLY_SUMMARY_REPORTS_HREF/);
-  assert.match(
-    dashboard,
-    /PLANNING_EMPTY_WEEKLY_WEEK|WEEKLY_SUMMARY_EMPTY_WEEK/,
-  );
-  assert.match(
-    dashboard,
-    /PLANNING_EMPTY_WEEKLY_LEDGER|WEEKLY_SUMMARY_EMPTY_LEDGER/,
-  );
-  assert.match(dashboard, /PlanningCardEmpty/);
-  assert.match(dashboard, /weeklyExpenseCompareLine/);
+  assert.doesNotMatch(dashboard, /buildWeeklySummary/);
+  assert.doesNotMatch(dashboard, /weekly-summary-panel/);
+  assert.doesNotMatch(dashboard, /WEEKLY_SUMMARY_TITLE/);
 });
 
-test("copy constants are calm Vietnamese (no email provider)", () => {
+test("copy constants remain calm Vietnamese and point to weekly reports", () => {
   assert.equal(WEEKLY_SUMMARY_TITLE, "Tóm tắt tuần này");
   assert.match(WEEKLY_SUMMARY_ARIA, /tuần/i);
   assert.equal(WEEKLY_SUMMARY_REPORTS_HREF, "/reports?period=week");
