@@ -1,8 +1,10 @@
 # Global personal-finance capability atlas
 
-- **Status:** active long-term research authority
+- **Status:** research reference only. It is NOT a roadmap and no longer a horizon commitment.
+- **Why:** `docs/product/MONEYFLOW_PRODUCT_VISION.md` §9 replaces "approved horizon" framing with explicit rule-outs, each carrying a falsifiable condition to reopen. Listing a capability here creates no expectation that MoneyFlow builds it.
+- **Use it for:** understanding how other products solved a problem MoneyFlow already has.
 - **Prepared:** 2026-08-03
-- **Owner direction:** MoneyFlow may ultimately adopt the strongest proven personal-finance capabilities worldwide, but listing a capability does not authorize implementation.
+- **Owner direction (2026-08-03, now narrowed):** the original direction was that MoneyFlow may ultimately adopt the strongest proven capabilities worldwide. Product vision §1.3 replaces that with a fixed surface: adding a capability requires naming the one removed.
 - **Current implementation authority:** `docs/research/CURRENT_PROJECT_MEMORY.md`
 - **Binding product selection:** `docs/product/MONEYFLOW_PRODUCT_VISION.md`
 - **Architecture sequencing:** `docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md`

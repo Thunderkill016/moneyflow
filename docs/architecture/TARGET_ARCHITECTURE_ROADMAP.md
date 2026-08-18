@@ -1,6 +1,8 @@
 # MoneyFlow target architecture roadmap
 
-- **Status:** binding architecture direction, not an immediate rewrite plan
+- **Status:** SUPERSEDED as binding direction, pending the same owner decision as the product vision. Retained as architecture reference.
+- **Why:** it sequences seams for the "comprehensive personal-finance platform" direction, which `docs/product/MONEYFLOW_PRODUCT_VISION.md` §1 replaces with a fixed-surface direction. Sections covering capabilities now ruled out in vision §9 (wealth, collaboration, provider feeds, multi-currency) describe work that is not planned.
+- **Still valid:** the seam analysis of the existing ledger, and the refusal to create microservices or event buses without evidence.
 - **Prepared:** 2026-08-03
 - **Current architecture authority:** `ARCHITECTURE.md`
 - **Product authority:** `docs/product/MONEYFLOW_PRODUCT_VISION.md`
