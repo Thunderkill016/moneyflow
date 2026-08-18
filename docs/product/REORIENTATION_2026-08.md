@@ -12,30 +12,36 @@ The numbers are counted from the repository, not estimated.
 
 ---
 
-## 1. The navigation says what the product thinks it is
+## 1. The navigation is already tiered, and better than I first reported
 
-`src/lib/nav-ia.ts` exposes **16 destinations**. Grouped by the four jobs:
+**This section corrects an error in the first version of this document.** I counted
+sixteen destinations by grepping hrefs out of `src/lib/nav-ia.ts` and concluded that a
+quarter of the navigation went to Inbox, imports and rules. That was wrong: it flattened
+an information architecture that is deliberately tiered, and it made a well-made thing
+look broken.
 
-| Group | Destinations | Count |
-|---|---|---|
-| Record | `/capture/quick`, `/transactions`, `/timeline` | 3 |
-| Know balances | `/dashboard`, `/accounts` | 2 |
-| Understand | `/reports`, `/categories` | 2 |
-| Retain / export | — *(lives under `/settings`, not in navigation)* | 0 |
-| Planning | `/budgets`, `/commitments`, `/goals`, `/income-templates` | 4 |
-| Inbox / import / rules | `/inbox`, `/imports`, `/imports/direct`, `/rules` | 4 |
-| Other | `/settings` | 1 |
+What is actually there:
 
-**Seven of sixteen destinations serve the four core jobs.**
+| Tier | Contents |
+|---|---|
+| **Primary** — desktop sidebar and mobile tabs | Tổng quan · Giao dịch · **Nhập nhanh** (action) · Tài khoản |
+| More → everyday | Báo cáo · Danh mục · Cài đặt |
+| More → Kế hoạch | budgets · commitments · goals · income templates |
+| More → **Nâng cao** | Hộp thư · Timeline · Quy tắc · Imports · Import CSV thẳng |
 
-Two observations follow directly, and neither is a matter of taste:
+**The primary navigation is four items**, and they map cleanly onto the product's own
+jobs: understand and balances (Tổng quan), the ledger (Giao dịch), record (Nhập nhanh),
+accounts (Tài khoản). Inbox, rules, imports and timeline are already demoted to
+"Nâng cao", under a comment in the source that reads *"so the app feels focused"*.
 
-- **A quarter of the navigation is given to Inbox, imports and rules** — and `AGENTS.md`
-  states plainly that these "are advanced capture tools, not product identity". The
-  navigation contradicts the product law it sits next to.
-- **Retain and export — one of the four jobs — has no navigation entry at all.** It is
-  reachable only by going into settings. The job the brand leans on hardest for trust is
-  the one the product hides.
+So the product law and the navigation do not contradict each other. Somebody already made
+this call, and made it well. **No navigation change is recommended.**
+
+The one weaker point that survives: **export has no destination of its own.** It is
+mentioned inside the Báo cáo description ("Thu chi theo kỳ · xuất CSV") and lives at
+`/settings/export`, so it is reachable rather than hidden — but retain-and-export is one
+of the four jobs and it is the only one without a name in the navigation. That is worth
+an owner's opinion, and it is not worth an agent's unilateral edit to a working IA.
 
 ## 2. The full surface is larger than the navigation admits
 
@@ -140,10 +146,13 @@ first attempt broke two tests. Moving them means changing those tests, which des
 own review. The lesson is worth stating plainly: inbound **code** references must be
 checked, not only documentation links.
 
-### Tier 2 — surface the promise the product hides
+### Tier 2 — one open question about export
 
-Give **export/backup a navigation entry**. One of the four jobs currently has none, and
-it is the one the brand's trust argument rests on. This is small and low-risk.
+Export is the only one of the four jobs without a destination of its own. It is reachable
+through Báo cáo and Settings, so this is a question rather than a defect, and it belongs
+to the owner: does retain-and-export deserve naming in the navigation, or is being
+reachable enough? I am not editing a working information architecture to settle a
+question I raised on a miscount.
 
 ### Tier 3 — make the process scale down *(owner decision)*
 
@@ -156,9 +165,8 @@ charging a subsystem-sized tax for a one-line change.
 
 Three questions, each a real product decision rather than cleanup:
 
-1. **Do Inbox, imports and rules deserve a quarter of the navigation** when the product
-   law calls them "not identity"? Options: keep, demote behind one entry, or move to
-   settings.
+1. ~~Do Inbox, imports and rules deserve a quarter of the navigation?~~ **Withdrawn.**
+   They are already behind More → Nâng cao; the question rested on my miscount.
 2. **Do `/transactions` and `/timeline` both need to exist?** Two ways to read one ledger
    is a cost paid on every future change.
 3. **Do four capture surfaces earn their keep?** `/capture/paste`, `/capture/share` and
