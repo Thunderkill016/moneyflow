@@ -1,5 +1,6 @@
 /**
- * TASK-126 — In-app weekly summary card helpers.
+ * TASK-126 — weekly summary helpers. #426 removes the detailed weekly card from
+ * the default daily dashboard but keeps the financial helper contracts intact.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -116,26 +117,14 @@ test("weeklyExpenseCompareLine is calm and non-judgmental", () => {
   }
 });
 
-test("dashboard wires weekly summary card (contract)", () => {
+test("default daily dashboard no longer embeds the weekly summary card", () => {
   const dashboard = readDashboardSource();
-  assert.match(dashboard, /buildWeeklySummary/);
-  assert.match(dashboard, /weekly-summary-panel/);
-  assert.match(dashboard, /WEEKLY_SUMMARY_TITLE/);
-  assert.match(dashboard, /WEEKLY_SUMMARY_ARIA/);
-  assert.match(dashboard, /WEEKLY_SUMMARY_REPORTS_HREF/);
-  assert.match(
-    dashboard,
-    /PLANNING_EMPTY_WEEKLY_WEEK|WEEKLY_SUMMARY_EMPTY_WEEK/,
-  );
-  assert.match(
-    dashboard,
-    /PLANNING_EMPTY_WEEKLY_LEDGER|WEEKLY_SUMMARY_EMPTY_LEDGER/,
-  );
-  assert.match(dashboard, /PlanningCardEmpty/);
-  assert.match(dashboard, /weeklyExpenseCompareLine/);
+  assert.doesNotMatch(dashboard, /buildWeeklySummary/);
+  assert.doesNotMatch(dashboard, /weekly-summary-panel/);
+  assert.doesNotMatch(dashboard, /WEEKLY_SUMMARY_TITLE/);
 });
 
-test("copy constants are calm Vietnamese (no email provider)", () => {
+test("copy constants remain calm Vietnamese and point to weekly reports", () => {
   assert.equal(WEEKLY_SUMMARY_TITLE, "Tóm tắt tuần này");
   assert.match(WEEKLY_SUMMARY_ARIA, /tuần/i);
   assert.equal(WEEKLY_SUMMARY_REPORTS_HREF, "/reports?period=week");
