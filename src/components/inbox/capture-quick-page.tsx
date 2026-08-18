@@ -15,6 +15,7 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
+import { captureConsequence } from "@/lib/capture-consequence";
 import {
   addCandidatesForClient,
   getPendingCountForClient,
@@ -61,7 +62,7 @@ export function CaptureQuickPage({
 }) {
   const router = useRouter();
   const canTransfer = workspace.accounts.length >= 2;
-  const { addTransaction, addTransfer, isMutating } = useTransactions({
+  const { transactions, addTransaction, addTransfer, isMutating } = useTransactions({
     initialTransactions: workspace.transactions,
     accounts: workspace.accounts,
     categories: workspace.categories,
@@ -127,7 +128,19 @@ export function CaptureQuickPage({
       // Candidate mirroring is optional; the ledger save already succeeded.
     }
 
-    setNotice("Đã lưu giao dịch.");
+    /*
+     * The moment after a save is the highest-attention moment in the app, and it
+     * used to return four words carrying no information. Say what was recorded and
+     * what it now adds up to — the user's own numbers, never guidance.
+     */
+    setNotice(
+      result.ok && result.transaction
+        ? captureConsequence({
+            saved: result.transaction,
+            transactions: [result.transaction, ...transactions],
+          })
+        : "Đã lưu giao dịch.",
+    );
     return result;
   }
 

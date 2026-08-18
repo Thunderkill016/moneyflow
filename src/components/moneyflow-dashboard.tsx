@@ -13,6 +13,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useTransactions } from "@/hooks/use-transactions";
 import { buildAttentionItems } from "@/lib/attention";
+import { captureConsequence } from "@/lib/capture-consequence";
 import { sumBudgetSpent, type BudgetSummary } from "@/lib/planning/budgets";
 import { hydrateCommitmentsWithOccurrences } from "@/lib/planning/commitment-occurrence-store";
 import {
@@ -31,7 +32,6 @@ import {
   countPending,
   readStoredCandidates,
 } from "@/lib/inbox/candidate-store";
-import { formatMoney } from "@/lib/money";
 import { GHI_CHI_TIEU_LABEL } from "@/lib/nav-ia";
 import {
   type AccountOption,
@@ -218,12 +218,13 @@ export function MoneyFlowDashboard({
   async function addTransaction(input: CreateTransactionInput) {
     const result = await addTransactionToStore(input);
     if (result.ok && result.transaction) {
+      // Same helper as the quick-capture surface, so a save reads identically
+      // wherever it happens rather than being richer on one screen than another.
       setNotice(
-        `${
-          result.transaction.kind === "expense"
-            ? "Đã ghi khoản chi"
-            : "Đã ghi khoản thu"
-        } ${formatMoney(result.transaction.amount)}.`,
+        captureConsequence({
+          saved: result.transaction,
+          transactions: [result.transaction, ...transactions],
+        }),
       );
     }
     return result;
