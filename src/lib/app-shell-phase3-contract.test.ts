@@ -42,10 +42,24 @@ test("App Shell composes the approved shared owners", () => {
   assert.doesNotMatch(appShell, /function Toast\(/u);
 });
 
-test("capture chooser uses deliberate centered modal placement", () => {
+test("daily shell keeps one desktop capture primary while preserving mobile Ghi", () => {
+  assert.match(appShell, /if \(item\.kind === "action"\) return null;/u);
+  assert.match(
+    appShell,
+    /const mobileTabs:[\s\S]*item\.kind === "action" \|\| item\.mobileTab/u,
+  );
+  assert.match(
+    appShell,
+    /styles\.mobileCapture[\s\S]*runAction\(resolvedMobilePrimary\)[\s\S]*<span>Ghi<\/span>/u,
+  );
+  assert.doesNotMatch(appShell, /CAPTURE_OPTIONS/u);
+  assert.doesNotMatch(appShell, /function CaptureSheet\(/u);
+  assert.doesNotMatch(appShell, /title="Ghi giao dịch"/u);
+});
+
+test("remaining account sheet uses deliberate right-side placement", () => {
   assert.match(sheet, /type SheetSide = "center" \| "left"/u);
   assert.match(sheet, /center:\s*"m-auto h-auto/u);
-  assert.match(appShell, /title="Ghi giao dịch"[\s\S]*side="center"/u);
   assert.match(appShell, /title="Thêm & tài khoản"[\s\S]*side="right"/u);
 });
 
