@@ -48,7 +48,7 @@ references or other special-category data, because nothing prevents that.
 | Processor | Role | What it receives | Region |
 |---|---|---|---|
 | Supabase | database + Auth | everything in 1.1 | **UNVERIFIED — this is RRB-04/09** |
-| Vercel | hosting + serverless execution | all request traffic | project identity verified 2026-08-18 (§3.0); **region still UNVERIFIED** |
+| Vercel | hosting + serverless execution | all request traffic | **verified 2026-08-18: region `sin1`, Singapore** (§3.0) |
 | Vercel Analytics (`@vercel/analytics`) | page analytics | page views | **UNVERIFIED** |
 | Vercel Speed Insights (`@vercel/speed-insights`) | performance telemetry | route shape only, see 1.3 | **UNVERIFIED** |
 | Cloudflare Turnstile | auth captcha, when enabled | challenge interaction on auth pages | **UNVERIFIED** |
@@ -180,16 +180,45 @@ The Vercel half is no longer inference. Read directly from the provider on
 exactly the confusion RRB-09 exists to remove. The production one is `moneyflow`,
 identified by a deployment whose target is `production`.
 
-**Two things for the owner to decide, not defects:**
+**Region: `sin1` — Singapore.** Read from the `x-vercel-id` response header on all
+three hostnames, 2026-08-18. **This is the cross-border answer the legal review
+needs**, and it means user data does not stay in Vietnam.
 
-1. **All deployment protection is off.** That is correct for a public product, but
-   it also means every preview deployment is world-readable. The open question is
-   whether preview deployments carry production Supabase credentials — if they do,
-   a public preview URL is a public front end onto real user data. This cannot be
-   answered from the repository and is the sharpest item in the Supabase checklist
-   below.
-2. **No custom domain is attached**, yet the privacy policy publishes an address at
-   `moneyflow.app`. See §2.
+**There is no preview environment.** All twenty most recent deployments carry
+`target: production`. Every merge to `main` deploys straight to production; there is
+no staging tier. The three hostnames are aliases of the *same* deployment, confirmed
+by identical build asset hashes (`/_next/static/chunks/05-c3ty_6dwfk.js`) served from
+each. An earlier draft of this document raised the possibility that public preview
+deployments carried production credentials — **that concern is retracted; no preview
+deployments exist.**
+
+### 3.0.1 The finding that changes the urgency
+
+**MoneyFlow is already live, public, and accepting registrations.**
+
+Measured on 2026-08-18 against `https://mfvn.vercel.app`:
+
+- the site returns HTTP 200 with no password, SSO or IP protection;
+- it runs in **authenticated mode**, not demo — `/login` returns 200, and `/dashboard`
+  returns `307 → /login?next=%2Fdashboard`, which is the real Supabase-backed auth path;
+- **`/register` returns 200** and serves a working email/password signup form;
+- the live `/privacy` page publishes `support@moneyflow.app`;
+- the Vercel project was created **2026-07-13**, so this has been publicly reachable
+  for over a month.
+
+The project's own documents describe the P1 gates as blocking *controlled closed beta*,
+which reads as though data collection has not started. It can start today, from any
+browser. Whether anyone has actually signed up is not something this document
+investigates or should — the point is that the capability is open.
+
+**So RRB-06 is not a pre-beta formality.** A live service is collecting Vietnamese
+personal financial data under a privacy policy whose contact address nobody has
+verified, in a region nobody had recorded until today. If the owner's intent is that
+this is not yet open to real users, the fastest correction is Vercel password
+protection or removing the public alias — a setting change, not a release process.
+
+**Also for the owner, not a defect:** no custom domain is attached, yet the privacy
+policy publishes an address at `moneyflow.app`. See §2.
 
 **Still unverified on the Vercel side**, because the connected tooling does not
 expose it: the deployment **region** — which is the cross-border answer the legal
