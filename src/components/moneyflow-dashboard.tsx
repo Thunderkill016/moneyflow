@@ -6,7 +6,6 @@ import {
   DashboardHeaderSections,
   DashboardLedgerColumn,
 } from "@/components/dashboard/dashboard-overview-sections";
-import { DashboardPlanningColumn } from "@/components/dashboard/dashboard-planning-sections";
 import styles from "@/components/dashboard/dashboard.module.css";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -24,9 +23,6 @@ import {
   reconcileBalanceSnapshot,
   topExpenseCategories,
 } from "@/lib/finance";
-import type { SavingsGoal } from "@/lib/planning/goals";
-import { hydrateIncomeTemplatesWithOccurrences } from "@/lib/planning/income-template-store";
-import type { RecurringIncomeTemplate } from "@/lib/planning/income-templates";
 import {
   countPending,
   readStoredCandidates,
@@ -69,16 +65,12 @@ export function MoneyFlowDashboard({
   initialInboxCount,
   budgets,
   commitments,
-  incomeTemplates = [],
-  goals,
 }: {
   viewer: ViewerSummary;
   workspace: DashboardWorkspace;
   initialInboxCount: number;
   budgets: BudgetSummary[];
   commitments: RecurringCommitment[];
-  incomeTemplates?: RecurringIncomeTemplate[];
-  goals: SavingsGoal[];
 }) {
   const {
     transactions,
@@ -98,9 +90,6 @@ export function MoneyFlowDashboard({
   const [demoCommitments, setDemoCommitments] = useState<
     RecurringCommitment[] | null
   >(null);
-  const [demoIncomeTemplates, setDemoIncomeTemplates] = useState<
-    RecurringIncomeTemplate[] | null
-  >(null);
 
   useEffect(() => {
     if (!viewer.isDemo) return;
@@ -109,16 +98,12 @@ export function MoneyFlowDashboard({
       setDemoCommitments(
         hydrateCommitmentsWithOccurrences(commitments, monthStart),
       );
-      setDemoIncomeTemplates(
-        hydrateIncomeTemplatesWithOccurrences(incomeTemplates, monthStart),
-      );
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [viewer.isDemo, commitments, incomeTemplates, workspace.today]);
+  }, [viewer.isDemo, commitments, workspace.today]);
 
   useEffect(() => {
     if (!viewer.isDemo) return;
-
     let cancelled = false;
     const run = () => {
       if (cancelled) return;
@@ -150,10 +135,6 @@ export function MoneyFlowDashboard({
 
   const liveCommitments =
     viewer.isDemo && demoCommitments ? demoCommitments : commitments;
-  const liveIncomeTemplates =
-    viewer.isDemo && demoIncomeTemplates
-      ? demoIncomeTemplates
-      : incomeTemplates;
   const inboxCount = viewer.isDemo ? demoInboxCount : initialInboxCount;
 
   const currentBalance = useMemo(
@@ -170,11 +151,7 @@ export function MoneyFlowDashboard({
     () =>
       budgets.map((budget) => {
         const spentDelta =
-          sumBudgetSpent(
-            transactions,
-            budget.categoryId,
-            budget.monthStart,
-          ) -
+          sumBudgetSpent(transactions, budget.categoryId, budget.monthStart) -
           sumBudgetSpent(
             workspace.transactions,
             budget.categoryId,
@@ -196,11 +173,7 @@ export function MoneyFlowDashboard({
   );
 
   const topCategories = useMemo(
-    () =>
-      topExpenseCategories(transactions, {
-        today: workspace.today,
-        limit: 5,
-      }),
+    () => topExpenseCategories(transactions, { today: workspace.today, limit: 5 }),
     [transactions, workspace.today],
   );
 
@@ -282,25 +255,14 @@ export function MoneyFlowDashboard({
           onAddTransaction={openGhiChi}
         />
 
-        <section className="content-grid insights-main-grid">
-          <DashboardLedgerColumn
-            topCategories={topCategories}
-            transactions={transactions}
-            isEmptyLedger={isEmptyLedger}
-            actionsDisabled={actionsDisabled}
-            today={workspace.today}
-            onAddTransaction={openGhiChi}
-          />
-          <DashboardPlanningColumn
-            transactions={transactions}
-            budgets={liveBudgets}
-            commitments={liveCommitments}
-            incomeTemplates={liveIncomeTemplates}
-            goals={goals}
-            today={workspace.today}
-            isEmptyLedger={isEmptyLedger}
-          />
-        </section>
+        <DashboardLedgerColumn
+          topCategories={topCategories}
+          transactions={transactions}
+          isEmptyLedger={isEmptyLedger}
+          actionsDisabled={actionsDisabled}
+          today={workspace.today}
+          onAddTransaction={openGhiChi}
+        />
       </main>
 
       <AddTransactionDialog
