@@ -48,7 +48,7 @@ references or other special-category data, because nothing prevents that.
 | Processor | Role | What it receives | Region |
 |---|---|---|---|
 | Supabase | database + Auth | everything in 1.1 | **UNVERIFIED — this is RRB-04/09** |
-| Vercel | hosting + serverless execution | all request traffic | **UNVERIFIED — RRB-09** |
+| Vercel | hosting + serverless execution | all request traffic | project identity verified 2026-08-18 (§3.0); **region still UNVERIFIED** |
 | Vercel Analytics (`@vercel/analytics`) | page analytics | page views | **UNVERIFIED** |
 | Vercel Speed Insights (`@vercel/speed-insights`) | performance telemetry | route shape only, see 1.3 | **UNVERIFIED** |
 | Cloudflare Turnstile | auth captcha, when enabled | challenge interaction on auth pages | **UNVERIFIED** |
@@ -133,9 +133,20 @@ a reviewer rather than discovered by them.
 policy is live and makes a commitment on that address. RRB-05 exists because nobody has
 verified the operator controls it.
 
-To close the gate, confirm and record:
+**What public DNS establishes, read 2026-08-18:** `moneyflow.app` resolves
+(`216.198.79.1`), is served by Google Cloud DNS nameservers
+(`ns-cloud-e1..e4.googledomains.com`), and carries **Google Workspace MX records**
+(`aspmx.l.google.com` and its alternates). So the domain is live and mail is
+provisioned — a mailbox at `support@moneyflow.app` is plausible rather than
+imaginary.
 
-1. Is `moneyflow.app` owned by the operator, and is the mailbox reachable?
+**What DNS cannot establish:** who owns it. Public records do not prove control,
+and this document will not infer it.
+
+That narrows RRB-05 to a single question the operator can answer in under a minute,
+which is the whole point:
+
+1. **Can you send and receive mail at `support@moneyflow.app` right now?**
 2. Who monitors it, and within what response time?
 3. Does the address survive a change of hosting or personnel?
 4. If the answer to (1) is no, **the published policy must change before beta**, not
@@ -147,7 +158,47 @@ This needs a person and an account. No amount of preparation substitutes for it.
 
 ## 3. RRB-04 and RRB-09 — provider and production read-back
 
-**The repository currently holds no verified statement about production.** Every claim
+### 3.0 Vercel side: read and recorded, 2026-08-18
+
+The Vercel half is no longer inference. Read directly from the provider on
+2026-08-18 via the connected Vercel account:
+
+| Fact | Value |
+|---|---|
+| Team | `thunderkill016's projects` — `team_1MZEcAVjG3nrOnklJxYIqGQs`, no SAML configured |
+| Production project | `moneyflow` — `prj_eAusnkm1X1HzAt4wMFbuMnRXela7` |
+| Framework / runtime | Next.js, Node `24.x` |
+| Latest production deployment | `dpl_G1atNtCLqSTVkTqje222dZRK6Mnd`, `READY`, target `production`, 2026-08-17T19:18:35Z |
+| Domains | `mfvn.vercel.app`, `moneyflow-thunderkill016s-projects.vercel.app`, `moneyflow-git-main-thunderkill016s-projects.vercel.app` |
+| Custom domain | **none** — all three are `.vercel.app` |
+| Password protection | **disabled** |
+| Vercel Authentication (SSO) | **disabled** |
+| Trusted IPs | **disabled** |
+
+**Project identity is now unambiguous.** Two similarly named projects exist —
+`moneyflow-reference-led-v2` and `moneyflow-public-entry-review-v1` — which is
+exactly the confusion RRB-09 exists to remove. The production one is `moneyflow`,
+identified by a deployment whose target is `production`.
+
+**Two things for the owner to decide, not defects:**
+
+1. **All deployment protection is off.** That is correct for a public product, but
+   it also means every preview deployment is world-readable. The open question is
+   whether preview deployments carry production Supabase credentials — if they do,
+   a public preview URL is a public front end onto real user data. This cannot be
+   answered from the repository and is the sharpest item in the Supabase checklist
+   below.
+2. **No custom domain is attached**, yet the privacy policy publishes an address at
+   `moneyflow.app`. See §2.
+
+**Still unverified on the Vercel side**, because the connected tooling does not
+expose it: the deployment **region** — which is the cross-border answer the legal
+review needs — the environment variables present in production, and whether
+Analytics, Speed Insights and Turnstile are enabled there.
+
+### 3.1 Supabase side: entirely unverified
+
+**The repository still holds no verified statement about the database.** Every claim
 about it is inference from configuration files. These two gates exist to replace that
 with fact, and they gate the legal review in section 1, because region and processor
 identity are inputs to it.
