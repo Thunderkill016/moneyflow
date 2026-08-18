@@ -61,7 +61,7 @@ Environment: `next build` + `next start` **demo mode** (placeholder Supabase), L
 
 **Pass 3 (Q8 — system mono + solid body first paint, 2026-07-15):**
 
-Environment: `NEXT_PUBLIC_SUPABASE_*=placeholder` demo build + `next start`, Lighthouse **13.4** mobile Slow 4G, Chromium headless. JSON: `logs/lighthouse-landing-q8.json`, `logs/lighthouse-insights-q8.json`.
+Environment: `NEXT_PUBLIC_SUPABASE_*=placeholder` demo build + `next start`, Lighthouse **13.4** mobile Slow 4G, Chromium headless. The raw reports were written to `logs/lighthouse-landing-q8.json` and `logs/lighthouse-insights-q8.json`, which are **git-ignored and exist only on the machine that ran them** — the figures in this table are the durable record, not those files.
 
 | Page | Perf | LCP | CLS | TBT | SI | Transfer |
 |------|------|-----|-----|-----|-----|----------|
