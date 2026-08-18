@@ -23,7 +23,6 @@ import {
   type ToastMessage,
   type ToastTone,
 } from "@/components/ui/toast";
-import { CAPTURE_OPTIONS } from "@/lib/capture/options";
 import {
   isSearchShortcut,
   shouldIgnoreShortcutTarget,
@@ -145,7 +144,6 @@ export function AppShell({
 }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [captureOpen, setCaptureOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -180,13 +178,7 @@ export function AppShell({
       ]
     : [];
 
-  function openCapture() {
-    setMoreOpen(false);
-    setCaptureOpen(true);
-  }
-
   function openMore() {
-    setCaptureOpen(false);
     setMoreOpen(true);
   }
 
@@ -261,27 +253,7 @@ export function AppShell({
         />
         <nav className={styles.primaryNav}>
           {PRIMARY_NAV.map((item) => {
-            if (item.kind === "action") {
-              const active =
-                captureOpen || pathIsActive(pathname, "/capture");
-              return (
-                <Button
-                  type="button"
-                  unstyled
-                  targetSize="important"
-                  key={item.label}
-                  className={cx(styles.navButton, active && styles.navActive)}
-                  onClick={openCapture}
-                  aria-current={active ? "page" : undefined}
-                  aria-label={item.label}
-                  aria-haspopup="dialog"
-                  aria-expanded={captureOpen}
-                >
-                  <Icon name={item.icon} aria-hidden="true" />
-                  <span>{item.label}</span>
-                </Button>
-              );
-            }
+            if (item.kind === "action") return null;
 
             const active = pathIsActive(pathname, item.href);
             return (
@@ -500,11 +472,6 @@ export function AppShell({
         })}
       </nav>
 
-      <CaptureSheet
-        open={captureOpen}
-        onClose={() => setCaptureOpen(false)}
-        inboxCount={inboxCount}
-      />
       <MoreSheet
         open={moreOpen}
         onClose={() => setMoreOpen(false)}
@@ -521,72 +488,6 @@ export function AppShell({
         }}
       />
     </div>
-  );
-}
-
-function CaptureSheet({
-  open,
-  onClose,
-  inboxCount,
-}: {
-  open: boolean;
-  onClose: () => void;
-  inboxCount: number;
-}) {
-  return (
-    <Sheet
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) onClose();
-      }}
-      title="Ghi giao dịch"
-      description="Chọn cách ghi nhanh hoặc đưa dữ liệu vào để duyệt trước khi vào sổ."
-      side="center"
-      className={cx(styles.shellSheet, APP_SHELL_SHEET_CLASS)}
-      footer={
-        <Button
-          type="button"
-          variant="outline"
-          targetSize="important"
-          className={styles.sheetCancel}
-          onClick={onClose}
-        >
-          Hủy
-        </Button>
-      }
-    >
-      <div className={styles.captureActions}>
-        {CAPTURE_OPTIONS.map((option) => (
-          <Link
-            key={option.href}
-            href={option.href}
-            className={styles.captureOption}
-            onClick={onClose}
-          >
-            <span className={styles.captureOptionIcon}>
-              <Icon name={option.icon} aria-hidden="true" />
-            </span>
-            <span>
-              <strong>{option.label}</strong>
-              <small>{option.description}</small>
-            </span>
-            <Icon name="arrowRight" aria-hidden="true" />
-          </Link>
-        ))}
-      </div>
-      <p className={styles.sheetAlt}>
-        <Link href="/inbox" onClick={onClose}>
-          Mở Hộp thư
-          {inboxCount > 0
-            ? ` (${inboxCount > 99 ? "99+" : inboxCount})`
-            : ""}
-        </Link>
-        {" · "}
-        <Link href="/capture" onClick={onClose}>
-          Trang nhập liệu
-        </Link>
-      </p>
-    </Sheet>
   );
 }
 
