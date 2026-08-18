@@ -67,8 +67,8 @@ Open branches, draft PRs, design-tool output and generated concepts are candidat
 - `docs/design/BRAND_COLOR_SYSTEM.md` for semantic roles, with executable values resolved from `src/app/document-theme.css`
 - `docs/research/UI_UX_RESEARCH_LEDGER.md`
 - `docs/research/PUBLIC_EXPERIENCE_FOUNDATION.md`
-- `docs/research/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md`
-- `docs/research/WEB_DESIGN_PROCESS_CONVERGENCE.md`
+- `docs/archive/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md`
+- `docs/archive/WEB_DESIGN_PROCESS_CONVERGENCE.md`
 - `docs/product/PRINCIPLES.md`
 - `docs/MVP_DEFINITION.md`
 - this index

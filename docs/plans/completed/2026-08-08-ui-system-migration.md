@@ -60,9 +60,9 @@ Physical Android Chrome and physical iOS/Safari acceptance were **not executed**
 
 ## Historical evidence
 
-- `docs/research/UI_MIGRATION_PHASES_5_10_RECONCILIATION_2026-08-08.md`
-- `docs/research/UI_PHASE_11_VISUAL_BASELINE_REVIEW_2026-08-08.md`
-- `docs/research/UI_PHASE_11_PHYSICAL_DEVICE_ACCEPTANCE_2026-08-08.md`
+- `docs/archive/UI_MIGRATION_PHASES_5_10_RECONCILIATION_2026-08-08.md`
+- `docs/archive/UI_PHASE_11_VISUAL_BASELINE_REVIEW_2026-08-08.md`
+- `docs/archive/UI_PHASE_11_PHYSICAL_DEVICE_ACCEPTANCE_2026-08-08.md`
 - bounded PR memories under `docs/research/pr-memory/YYYY/QN/`.
 
 ## Next boundary

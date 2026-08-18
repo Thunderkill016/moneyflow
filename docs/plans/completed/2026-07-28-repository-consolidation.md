@@ -263,7 +263,7 @@ not to belong in this cluster at all:
     header lines, replaced with "backlog lives in GitHub Issues"), `docs/UX_PRINCIPLES.md`
     (dropped `REBUILD_MASTER_PLAN.md` from its authority citation, kept `BEST_OF_MATRIX.md`).
   - **Left alone on purpose:** `docs/BEST_OF_MATRIX.md` and `docs/REAL_USE_READINESS_CONTRACT.md`
-    (see KEEP above); `docs/cyclewarden/moneyflow-a2-readiness-2026-07-25.md`,
+    (see KEEP above); `docs/archive/moneyflow-a2-readiness-2026-07-25.md`,
     `docs/plans/completed/2026-07-26-ai-project-operating-system.md`,
     `docs/research/01_RESEARCH_PLAN.md`, `docs/research/08_PFM_BEST_IN_CLASS.md`, and
     `docs/UX_RESEARCH_AND_REDESIGN.md` still cite one or more deleted filenames, but
