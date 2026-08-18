@@ -98,8 +98,16 @@ test.describe("minimum interactive target size", () => {
           }),
       );
 
+      /*
+       * Both generics are supplied on purpose. `page.evaluate<R>` with a single
+       * type argument leaves the argument type as `void`, so `minimumSize` typed
+       * as void while the real value was passed at the call site below. The
+       * comparison still worked at runtime, but nothing type-checked it — and
+       * `e2e` was excluded from `tsconfig.json`, so nothing reported it either.
+       */
       const measuredFindings = await page.evaluate<
-        Array<Omit<TargetFinding, "route" | "resolvedPath">>
+        Array<Omit<TargetFinding, "route" | "resolvedPath">>,
+        number
       >((minimumSize) => {
         const selector = [
           "button",
