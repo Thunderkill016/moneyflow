@@ -61,10 +61,10 @@ The first slice covers the public landing and authentication entry journey. The 
 
 | Source | What it establishes | Limit |
 |---|---|---|
-| `docs/research/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md` | content-first hierarchy, systems, accessibility and verification | does not select an aesthetic |
-| `docs/research/UXPILOT_DESIGN_CORPUS_INVENTORY.md` | journeys, wireframes, prototypes and evaluation | UX Pilot itself is not required |
-| `docs/research/FRAMER_DESIGN_CORPUS_INVENTORY.md` | responsive layout, components and delivery | no Framer migration |
-| `docs/research/WEB_DESIGN_PROCESS_CONVERGENCE.md` | unified process from brief through learning | owner and code remain superior |
+| `docs/archive/WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md` | content-first hierarchy, systems, accessibility and verification | does not select an aesthetic |
+| `docs/archive/UXPILOT_DESIGN_CORPUS_INVENTORY.md` | journeys, wireframes, prototypes and evaluation | UX Pilot itself is not required |
+| `docs/archive/FRAMER_DESIGN_CORPUS_INVENTORY.md` | responsive layout, components and delivery | no Framer migration |
+| `docs/archive/WEB_DESIGN_PROCESS_CONVERGENCE.md` | unified process from brief through learning | owner and code remain superior |
 
 ### Alternatives considered
 
