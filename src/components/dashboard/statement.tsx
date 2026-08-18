@@ -90,6 +90,8 @@ export function DashboardStatement({
                 </span>
                 <MoneyValue
                   amount={totals.income}
+                  mode="kind"
+                  kind="income"
                   label="Tiền vào tháng này"
                   align="start"
                   className={styles.legendValue}
@@ -102,6 +104,8 @@ export function DashboardStatement({
                 </span>
                 <MoneyValue
                   amount={totals.expense}
+                  mode="kind"
+                  kind="expense"
                   label="Tiền ra tháng này"
                   align="start"
                   className={styles.legendValue}
