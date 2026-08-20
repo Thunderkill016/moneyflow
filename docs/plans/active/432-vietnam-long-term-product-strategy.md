@@ -1,260 +1,387 @@
-# #432 — Vietnam long-term product strategy research
+# #432 — MoneyFlow master development program
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** researcher  
-**Permission scope:** branch_write  
-**Owner:** human owner / research agent  
+**Status:** active  
+**Execution state:** implementing  
+**Active role:** planner / implementer  
+**Permission scope:** branch documentation only for P0; later phases require their own bounded permission  
+**Owner:** human owner  
 **Issue/PR:** #432 / PR pending  
-**Last updated:** 2026-08-18
+**Branch:** `research/432-vietnam-long-term-product-strategy`  
+**Last updated:** 2026-08-21
 
-## Outcome
+## 1. Outcome
 
-Produce one evidence-backed, practical long-term direction for MoneyFlow as a Vietnamese personal-finance product. The recommendation must start from Vietnamese money behavior, infrastructure, regulation and MoneyFlow's actual ledger strengths rather than copying the feature set of another personal-finance product. It remains research until owner review; no product law or implementation scope changes automatically.
+Develop MoneyFlow into a durable Vietnamese personal-finance product whose long-term default is **automatic or near-automatic acquisition of digital money activity**, while preserving a trustworthy user-owned ledger and manual capture as a fallback for cash, corrections and missing/off-system events.
 
-## Repository reconnaissance
+The program is dependency ordered:
 
-### Current behavior
+```text
+Sources / evidence
+  -> acquisition candidates + provenance
+  -> normalization / duplicate / transfer matching
+  -> trustworthy ledger facts
+  -> clearing / reconciliation / correction
+  -> understanding / review
+  -> connected planning
+  -> automation
+  -> selective read-only providers
+  -> wealth / together / optional intelligence when validated
+```
 
-MoneyFlow is a released manual-first Vietnamese personal-finance ledger with multiple accounts, integer-VND income/expense/transfers, correction/recovery, reports, export/import and secondary planning surfaces. Current principles already prioritize correctness, core transaction completion, mobile usability, recovery and reconciliation above feature breadth. Current product re-orientation found the core financial implementation strong but the total surface larger than the four daily jobs require.
+This is not an authorization to build every capability immediately. Each phase is promoted only when its dependency and evidence gates are met.
 
-### Relevant repository areas
+## 2. Owner decisions now in force for this program
 
-| Area | Why it matters | Reuse/change/avoid |
+1. MoneyFlow remains a personal-finance-management product for Vietnam.
+2. Manual entry must **not** remain the primary long-term workflow for digital transactions.
+3. The product must be provider-independent: bank APIs, wallet/provider integrations, statements, file/share inputs, Android assistance and manual capture converge on one ledger/acquisition contract.
+4. Existing ledger correctness is an asset to evolve, not rewrite.
+5. Develop the whole product over time, but in dependency order and against measured user value.
+6. External repositories are references for subsystem patterns, not a product to clone.
+7. Merge, provider writes, production writes and public-beta acceptance remain owner decisions.
+
+## 3. Repository truth reconciled before planning
+
+Current `main@6d81d334fd7e6d491196bd993b283514cad2c160` says the released MVP is not public-beta ready. RRB-08 physical-phone proof remains open and P1 provider/contact/legal/deployment gates remain independent. Current main also still describes MoneyFlow as `manual-first` in `AGENTS.md`, `README.md` and `docs/product/PRINCIPLES.md`; this conflicts with the owner’s accepted long-term acquisition direction and is the first documentation defect P0 must resolve.
+
+The target architecture already contains the right seams: Ledger Core; Planning; Understanding; Acquisition and Automation; Wealth; Identity and Ownership. It already requires provenance, candidates, duplicate/matching decisions and provider adapters behind a neutral acquisition contract. The architecture should therefore be reordered and clarified, not replaced by a rewrite.
+
+Open work that must be reconciled rather than silently overridden:
+
+- #403 performance work: open; not automatically closed by this program.
+- #426 simplification program: directionally useful where it removes proven friction, but its original desktop-navigation premise was corrected by later repo evidence; it is not master authority.
+- PR #431: conflicting candidate product-direction rewrite; not current authority and must be reconciled against #432 before merge.
+- RRB-08 and other release gates: separate lanes and never closed by strategy docs.
+
+## 4. Research summary that constrains implementation
+
+### Vietnam / provider reality
+
+- Digital banking/QR use is already widespread enough that retyping digital transactions cannot be the long-term product model.
+- Vietnamese Open API regulation creates a real path to account/transaction information, but third-party access is contractual and requires consent/revocation plus security/operational controls; it is not a universal free API.
+- No researched evidence establishes a universal consumer transaction-history API across all e-wallets.
+- Provider connectivity must therefore be optional, read-only first and degradable.
+
+### Android reality
+
+- `NotificationListenerService` can observe posted notifications, but modern Android restricts sensitive notification content; ordinary third-party listeners cannot rely on receiving every bank-sensitive field.
+- Google Play heavily restricts SMS/Call Log permissions. MoneyFlow must not make `READ_SMS` its primary distribution assumption.
+- Android assistance is therefore an optional source adapter to evaluate after the neutral acquisition engine exists.
+
+### Reference implementation evidence
+
+Actual Budget establishes a useful import/reconciliation contract: source `imported_id` avoids duplicates; fallback matching can use date/amount/payee; import runs rules; dry-run is supported; import can update previously imported records such as clearing state; transfers use the same transaction system. MoneyFlow should adopt the **principles**, not Actual's storage/sync architecture.
+
+## 5. Program invariants
+
+### Financial
+
+- VND remains integer đồng.
+- Transfers remain equal/opposite movements and never income/expense.
+- Source/provider records are evidence, not permission to mutate arbitrary balances.
+- Corrections remain recoverable/audited.
+- Fact / expectation / assumption / projection / suggestion remain distinct.
+
+### Ownership and privacy
+
+- Authenticated user-owned data remains tenant-isolated with database enforcement.
+- Raw provider payloads, bank tokens and transaction notes never enter generic logs or project memory.
+- Provider credentials/tokens use a dedicated secret boundary and lifecycle.
+- Export/backup remain user-ownership capabilities and are not paywall hostage.
+
+### Architecture
+
+- Keep the modular monolith until a measured boundary justifies extraction.
+- Parsers/adapters produce neutral candidates/source records.
+- Import/provider jobs are idempotent and restartable.
+- Read models remain rebuildable from facts/plans.
+- No new queue/runtime/provider is selected before requirements make the decision necessary.
+
+### Product
+
+- Reduce human maintenance without reducing trust.
+- Exception-first review beats forcing users to inspect every successfully matched record.
+- Every aggregate can be traced to contributing records.
+- Advanced capability remains progressively disclosed.
+
+## 6. Master roadmap and phase gates
+
+### P0 — Authority alignment and executable program — **NOW**
+
+**Goal:** make the repository tell one non-contradictory story before runtime changes.
+
+Tasks:
+
+- P0.1 update #432 into the master program authority;
+- P0.2 update this packet from research/evaluating to active execution;
+- P0.3 persist the 2026 reference-repository atlas with license/reuse boundaries;
+- P0.4 change future-facing product wording from `manual-first` to `automatic/near-automatic acquisition with manual fallback`, without falsely claiming current runtime has bank sync;
+- P0.5 reorder long-term architecture so Acquisition/Reconciliation precede broad planning/wealth expansion;
+- P0.6 register #432 in the Current Work Board and place #403/#426/PR #431 in explicit reconcile/hold status rather than leaving competing directions;
+- P0.7 run documentation/knowledge/CI-policy/diff-hygiene gates on exact branch head;
+- P0.8 independent review of contradictions, scope and source claims.
+
+**Exit:** strategy/product/architecture docs agree on current capability versus future direction; one reviewable docs-only PR can be handed to owner. No runtime/provider/product capability is claimed.
+
+### P1 — Acquisition foundation
+
+**Goal:** make every future source feed one deterministic ledger-ingestion path.
+
+Required specification before code:
+
+- source and batch identity;
+- source event/candidate model;
+- parser/adapter/version provenance;
+- stable external transaction ID when provided;
+- deterministic fallback fingerprint when not provided;
+- raw description/reference retention policy;
+- candidate validation states;
+- duplicate, transfer-match and reject decisions;
+- dry-run/preview;
+- atomic commit and idempotency;
+- imported-deleted/reimport behavior;
+- source correction/update behavior (for example pending -> cleared);
+- audit fields safe enough to store;
+- delete/disconnect semantics.
+
+Implementation order:
+
+1. inventory current `/imports`, paste/share/upload/direct CSV paths and existing parsing/domain helpers;
+2. write pure contracts/fixtures/counterexamples first;
+3. make one current source path use the neutral pipeline end-to-end;
+4. prove replay/idempotency/atomic failure;
+5. migrate other existing source paths one at a time;
+6. only then consider schema expansion not required by existing structures.
+
+Exit metrics:
+
+- replaying the same source event does not create a second fact;
+- manual and later-imported copies can match rather than duplicate;
+- failed batches cannot partially commit;
+- a source update cannot silently rewrite user-owned corrections;
+- exact source/decision provenance is inspectable without exposing sensitive raw payloads.
+
+### P2 — Low-maintenance ingestion
+
+**Goal:** materially reduce the work to maintain a trustworthy month without depending on bank contracts.
+
+Scope candidates, promoted from evidence only:
+
+- Vietnamese bank/e-wallet statement formats users actually possess;
+- controlled CSV/OFX/QFX/CAMT or applicable local exports;
+- share/paste ingestion;
+- merchant/payee normalization;
+- user-confirmed deterministic categorization rules;
+- recurring-pattern recognition;
+- pending/cleared lifecycle;
+- account reconciliation sessions;
+- exception-first batch review.
+
+Primary metrics:
+
+- manual interventions / 100 observed transactions;
+- maintenance minutes / month;
+- unmatched rate;
+- duplicate rate;
+- correction rate after auto-match;
+- transfer-match precision.
+
+**Exit:** real users maintain a materially more complete ledger with less work and without worse financial error/correction rates.
+
+### P3 — Understanding and trustworthy review
+
+**Goal:** turn trusted data into a concise recurring reason to keep MoneyFlow.
+
+- unresolved/exception state first;
+- current balances and period inflow/outflow;
+- explain meaningful changes through drill-down;
+- weekly/monthly review/close state;
+- `up to date through X` only where its coverage semantics are explicit;
+- upcoming known obligations;
+- one shared report query contract for page/drill-down/export;
+- privacy-minimized product telemetry.
+
+**Exit:** user can explain their current money state and unresolved data from source-linked records without chart hunting.
+
+### P4 — Selective read-only connected sources
+
+**Goal:** replace manual import for retained cohorts where provider economics work.
+
+Before provider selection:
+
+- current official API availability/contract review;
+- consent/revoke lifecycle;
+- security/privacy threat model;
+- commercial/support economics;
+- sandbox/real-user access path;
+- rollback/disconnect/delete contract;
+- provider health, cursor, retry/backoff/rate limit behavior.
+
+First provider capability is limited to account information/balances/transaction history where legally and contractually available. Payment initiation is out unless a future separately authorized regulated product requires it.
+
+**Exit:** connected users show lower maintenance cost, correct reconciliation and supportable provider economics.
+
+### P5 — Connected planning
+
+**Goal:** make planning consume facts instead of becoming a second manual database.
+
+- recurring definitions create expectations;
+- expected occurrences match posted facts;
+- goals use explicit contribution/withdrawal links;
+- financial calendar;
+- reserves/commitments;
+- deterministic forecast with visible coverage/assumptions;
+- retire or demote planning surfaces that do not create measured recurring value.
+
+### P6 — Automation platform
+
+- versioned rules and decisions;
+- suggestion learning from user corrections;
+- confidence thresholds measured from labelled decisions;
+- bounded auto-approval with undo/review;
+- sync/background health and alerts;
+- scoped API/webhooks;
+- durable workflow technology selected only after failure/throughput/latency requirements are measured.
+
+### P7 — Wealth
+
+- assets/liabilities and net-worth semantics;
+- loans and schedules;
+- instruments/holdings/transactions;
+- valuation observations;
+- cost-basis/performance contract;
+- explicit multi-currency migration before non-VND accounting.
+
+### P8 — Together
+
+- workspace/membership migration;
+- private/shared financial scopes;
+- RLS permission matrix;
+- shared expenses/settlement semantics;
+- separation, removal, export and delete.
+
+### P9 — Optional intelligence
+
+- grounded explanations;
+- ambiguous categorization suggestions;
+- anomaly/recurring explanation;
+- natural-language queries over authorized data;
+- source citations, confidence, privacy minimization and opt-out;
+- never autonomous financial advice or unsupported posting.
+
+## 7. Reference repository policy
+
+Deep reference set for future subsystem specs:
+
+| Domain | Primary references | Use |
 |---|---|---|
-| `docs/product/PRINCIPLES.md` | current product law | preserve as authority until owner changes it |
-| `docs/product/REORIENTATION_2026-08.md` | current measured scope/drift assessment | use findings; do not re-open corrected navigation miscount |
-| `docs/MVP_DEFINITION.md` | released MVP capability reference | distinguish shipped scope from future strategy |
-| `docs/research/CURRENT_PROJECT_MEMORY.md` | implementation/trust authority | use for runtime/release facts; code/main outrank stale header metadata |
-| `src/lib`, server/domain tests | financial invariants | no change in this research |
+| PFM/import/reconciliation | `actualbudget/actual`, `firefly-iii/firefly-iii` | transaction lifecycle, rules, imports, reconciliation, transfers |
+| Open Banking abstraction | `OpenBankProject/OBP-API` | provider-neutral contracts and consent/account/transaction boundaries |
+| mobile assisted capture | `sarim2000/pennywiseai-tracker`, `p4r1ch4y/upi-analyser` | parser/fusion/permission/privacy patterns; never assume India policies map to Vietnam |
+| ledger correctness | `ledger/ledger`, `blnkfinance/blnk`, `flash-oss/medici` | accounting invariants, audit/reversal/reconciliation patterns |
+| async workflow | `graphile/worker`, `dbos-inc/dbos-transact-ts` | Postgres-first jobs/durable workflows when requirements justify them |
+| wealth | `wealthfolio/wealthfolio`, `ghostfolio/ghostfolio`, `rotki/rotki` | asset/portfolio/performance boundaries |
+| together | `spliit-app/spliit`, `oss-apps/split-pro` | shared-expense semantics and source-of-truth derived balances |
+| analytics/security | `umami-software/umami`, `OWASP/ASVS`, `OWASP/CheatSheetSeries` | privacy-minimized product evidence and security verification |
 
-### Existing tests and constraints
+Default rule: select 2–4 sources per bounded decision; do not study every repo for every task.
 
-- Related unit/browser/database tests: not changed by this research.
-- Financial invariants: integer VND; transfers neutral; user ownership/RLS; recoverable destructive actions; no invented planning assumptions.
-- Product constraints: Vietnamese-first, mobile-first, progressive disclosure, export/data ownership, no bank sync or AI advice without a new researched specification and owner approval.
+License rule: MIT/Apache sources may be evaluated for code reuse after dependency/security review; AGPL/GPL/custom-restricted sources are architecture/test/product references unless legal review explicitly allows reuse.
 
-### Similar implementation and recent history
+## 8. Program metrics
 
-- #425 / `REORIENTATION_2026-08.md` measured the current product and corrected a false navigation-overload claim.
-- #415/#419 showed why measurement must distinguish infrastructure from user-visible improvement.
-- Current release blockers and RRB-08 remain separate from product strategy research.
+North-star concept: **trusted periods maintained with decreasing maintenance effort**.
 
-### Open questions
+Operational metrics:
 
-- [ ] Which initial Vietnamese user segment has enough repeated pain to retain and pay?
-- [ ] Can a low-maintenance manual/import workflow produce a trusted month before any bank partnership?
-- [ ] Which data sources can be integrated economically and legally after retention is proven?
-- [ ] What pricing is acceptable? No current evidence establishes a price.
+- manual interventions / 100 observed transactions;
+- maintenance minutes / active user / month;
+- source coverage;
+- source parse success by source/version;
+- exact-ID match rate vs fuzzy-match rate;
+- automatic-match precision;
+- unresolved/duplicate/correction rates;
+- reconciliation completion/confidence;
+- time to first trustworthy period;
+- multi-period retention;
+- export/restore success;
+- provider cost and support cost per retained paying user.
 
-## Research
+Do not optimize DAU or feature count as primary success metrics.
 
-### Research scope and source selection
+## 9. User validation program
 
-- Decision question: what product shape can remain useful before bank connectivity, become materially lower-maintenance as connectivity grows, and sustain a trustworthy Vietnamese PFM business over 24–36 months?
-- Reference map consulted: project context router, current principles, current re-orientation and implementation memory.
-- Source budget exception: broader than the default 2–4 because this is cross-cutting market/regulatory strategy. Primary/official sources dominate; behavioral evidence is used only to test interaction principles, not to import another product's feature model.
-- Expected decision: a single product thesis, initial wedge, data-acquisition ladder, sequencing hypothesis, business-model hypothesis and falsifiable validation plan.
+Before native/provider/wealth/AI commitments:
 
-### Questions researched
+1. recruit a small target cohort with digital banking/QR use and varied account complexity;
+2. observe how a real period is reconstructed from current sources;
+3. test improved import/reconciliation as a concierge workflow;
+4. measure maintenance effort and correction burden;
+5. repeat across another period;
+6. test willingness to pay with an actual commitment mechanism, not only survey intent;
+7. record reasons for churn/non-use.
 
-1. How digital are Vietnamese payments and account use now?
-2. Can an independent PFM realistically obtain bank/e-wallet transaction data?
-3. Which population/economic constraints make a broad subscription strategy risky?
-4. What product behavior is more defensible than adding education, charts or feature breadth?
-5. What must be validated before native apps, provider contracts or expensive automation?
+Falsify/revise the strategy if lower maintenance does not improve continuing value/retention, users do not value a provider-independent whole-money picture, or provider/legal/support economics exceed retained user value.
 
-### Sources
+No participant financial details, raw statements or PII belong in repo documents.
 
-| Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
-|---|---|---|---|---|
-| State Bank of Vietnam, Digital Transformation Banking 2025 | regulator / official | 2026-08-18 | >87% of adults have bank accounts; many institutions execute >90% of transactions digitally | supply-side/regulator statistic, not MoneyFlow demand |
-| NAPAS 2025 Member Organization Conference | national payment infrastructure / official | 2026-08-18 | nearly 90m mobile-banking accounts used VietQR by Oct 2025; VietQR volume +52% YoY in first 10 months | account count is not unique people and does not prove PFM need |
-| Circular 64/2024/TT-NHNN | binding regulation | 2026-08-18 | Open API framework includes account/transaction information; third parties need bank contracts, consent, security/risk controls | enables a path, not guaranteed access or economics for MoneyFlow |
-| Decree 94/2025/NĐ-CP + Circular 19/2026/TT-NHNN | binding regulatory sandbox framework | 2026-08-18 | controlled testing of banking fintech including Open API is operational | participation/approval still required |
-| Law 91/2025/QH15 + Decree 356/2025/NĐ-CP | binding privacy law | 2026-08-18 | current personal-data law and implementing decree effective 2026-01-01 | legal counsel must determine MoneyFlow-specific obligations |
-| General Statistics Office 2025 labor/income releases | national statistics | 2026-08-18 | 2025 average worker income ~8.4m VND/month; informal employment remained high (64.3% in Q1) | macro averages do not establish willingness to pay or segment demand |
-| World Bank Global Findex 2025 / IFC Vietnam release | nationally representative demand-side research | 2026-08-18 | digital financial use is widespread; dataset covers payments, resilience and financial health | raw microdata case percentages must not be treated as weighted national estimates without proper analysis |
-| World Bank financial capability + selected field experiments | research evidence | 2026-08-18 | information/education alone has uncertain sustained behavior effects; defaults, reduced cognitive cost and timely feedback can materially affect behavior in some contexts | experiments are not Vietnam PFM product validation and do not transfer effect sizes directly |
-
-Key source URLs:
-
-- https://www.sbv.gov.vn/w/sbv637421
-- https://en.napas.com.vn/napas-2025-member-organization-conference-184260317124736875.htm
-- https://vbpl.vn/nganhangnhanuoc/Pages/vbpq-toanvan.aspx?ItemID=174547
-- https://vanban.chinhphu.vn/?classid=0&docid=213519&pageid=27160
-- https://vanban.chinhphu.vn/?classid=1&docid=218234&orggroupid=4&pageid=27160
-- https://vbpl.vn/TW/Pages/ivbpq-thuoctinh.aspx?ItemID=179252
-- https://vanban.chinhphu.vn/?classid=1&docid=216387&pageid=27160
-- https://www.gso.gov.vn/du-lieu-va-so-lieu-thong-ke/2026/01/bao-cao-tinh-hinh-kinh-te-xa-hoi-quy-iv-va-nam-2025/
-- https://www.gso.gov.vn/tin-tuc-thong-ke/2025/04/thong-cao-bao-chi-ve-tinh-hinh-lao-dong-viec-lam-quy-i-nam-2025/
-- https://www.worldbank.org/en/publication/globalfindex/report
-- https://www.ifc.org/vi/pressroom/2025/digital-finance-to-drive-viet-nam-s-economic-growth-job-creation-and-access-to-fin
-- https://responsiblefinance.worldbank.org/en/responsible-finance/financial-capability
-
-### Alternatives considered
-
-| Option | Advantages | Risks | Decision |
-|---|---|---|---|
-| Manual expense tracker with more features | cheap to build; current base already exists | maintenance burden stays high as payments digitize; feature breadth does not establish retention | reject as long-term thesis |
-| Bank-sync-first aggregator | potentially low data-entry burden | contract/regulatory/provider dependency before product value and retention are proven | reject as day-one foundation; keep as later capability |
-| Financial-education/coach product | broad apparent need | sustained behavior impact uncertain; risks judgmental/advice boundary | reject as product identity |
-| Broad all-in-one finance platform | large theoretical TAM | scope, trust, legal and UX complexity overwhelm current evidence | reject for current horizon |
-| Trusted, low-maintenance personal ledger that becomes progressively connected | works before provider deals; preserves current strengths; connectivity compounds value later | requires excellent import/reconciliation and proof that users return | selected research recommendation |
-
-### Research decision
-
-Observed facts: Vietnamese banking/payment activity is heavily digital; Open API now provides a regulated path to account/transaction access but requires bank-level commercial/operational agreements; privacy obligations are materially stronger from 2026; incomes and labor formality vary widely, so a one-size-fits-all paid PFM proposition is risky.
-
-Inference: MoneyFlow should not depend on daily manual entry forever, but it also should not spend its early life waiting for universal bank connectivity. The durable architecture/product direction is a provider-independent personal ledger whose maintenance effort falls over time through an ingestion ladder: fast manual fallback -> statement/file/share-assisted import -> deterministic matching/reconciliation -> selective contracted read-only bank connections. Planning and intelligence sit on top of trusted data rather than substitute for it.
-
-Product judgment: the first market wedge should be digitally banked Vietnamese adults with enough account/payment activity that maintaining a whole-money picture is a repeated job. Urban salaried users are the best initial hypothesis because digital account use and stable income make the workflow testable, but this is not yet validated demand. Irregular-income workers are a strategically important later/parallel research segment, not something to infer away from national averages.
-
-Remaining uncertainty: retention, willingness to pay, actual multi-account fragmentation, import tolerance and which recurring decisions users value most must be measured directly. No macro source answers those questions.
-
-### Adoption review
-
-Not applicable. This research adds no dependency, provider, service, runtime integration or architecture change.
-
-## Specification
-
-### Problem
-
-MoneyFlow has a strong financial core but no validated long-term market thesis that explains why a Vietnamese user will continue maintaining it as payments become increasingly digital. Continuing to add PFM features or building expensive provider integrations before demand proof both create high failure risk.
-
-### User stories
-
-- As a Vietnamese user with money moving across accounts and payment methods, I can maintain one trustworthy picture of balances and cash flow without re-entering everything by hand.
-- As a user, I can always correct, reconcile and export my own data regardless of which ingestion source is available.
-- As a user with enough trusted history, I receive useful planning/attention at the moment it matters without unsupported advice.
-
-### Acceptance criteria
-
-- [x] Research separates observed market facts from product hypotheses.
-- [x] Recommendation does not depend on copying another PFM product.
-- [x] Data-acquisition path remains useful without Open API and can adopt it later.
-- [x] Privacy/provider constraints are explicit.
-- [x] Strategy contains falsifiable validation gates before expensive implementation.
-- [ ] Owner accepts, rejects or revises the thesis.
-
-### Required states
-
-Not an application implementation. Future slices must separately specify mobile, empty/error, recovery and accessibility states.
-
-### Financial and security constraints
-
-- No guessed financial data or recommendation.
-- Integer VND and transfer invariants remain intact.
-- No provider credentials, transaction data or personal research participant data enter repository research docs.
-- Bank connectivity requires a separate security/privacy/provider specification and owner approval.
-
-### Out of scope
-
-- Application implementation.
-- Provider contracts or production integration.
-- Native mobile commitment.
-- Pricing commitment.
-- Bank/e-wallet selection.
-- AI/financial advice.
-- Closing any release blocker or #403.
-
-## Implementation plan
-
-### Architecture fit
-
-No implementation is authorized by this packet. If owner accepts the thesis, subsequent work should first validate usage with current ledger/import boundaries before introducing a new architecture primitive.
-
-### Planned changes
-
-| File/area | Change | Reason |
-|---|---|---|
-| `docs/research/VIETNAM_LONG_TERM_PRODUCT_STRATEGY_2026.md` | record evidence and recommendation | durable research handoff |
-| `docs/plans/active/README.md` | register owner-promoted research while decision is pending | current execution routing |
-| bounded PR memory after PR creation | truthful lifecycle record | repository policy |
-
-### Data and migration impact
-
-None.
-
-### Risks and counterexamples
-
-| Risk/counterexample | Prevention or test |
-|---|---|
-| Macro digital-payment growth does not mean people want a PFM | interview/concierge cohort and retention metrics before build-out |
-| Users will not upload statements/import data | test import-assisted monthly close before provider work |
-| Users only want bank-native views | test cross-account whole-money value proposition with real workflows |
-| Subscription willingness is low | pricing interviews + real paid pilot; do not set price from income averages |
-| Open API partnerships are uneconomic | treat connectivity as optional capability; require partner economics before commitment |
-| Planning features distract from ledger maintenance | keep progressive disclosure and require usage evidence before expansion |
-
-### Verification plan
-
-- Static: documentation/knowledge policy only.
-- Unit/domain/database/browser/responsive: not applicable.
-- Production/manual: no production change.
-- Research verification: source dates/authority checked; inferences labeled; owner review required.
-
-## Tasks
+## 10. Tasks and tracking
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| T1 | reconcile current product/repo truth | none | principles, reorientation, current main | done |
-| T2 | research Vietnam payment/data/regulatory reality | T1 | official SBV/NAPAS/VBPL/GSO/WB sources | done |
-| T3 | synthesize strategy + data ladder + business hypotheses | T2 | durable research document | done |
-| T4 | owner review of product thesis | T3 | explicit owner decision | todo |
-| T5 | if accepted, design direct user-validation program | T4 | separate accepted slice | blocked |
+| P0.1 | promote #432 from research issue to master program | owner decision | issue body | done |
+| P0.2 | convert packet to active master program | P0.1 | this file | done |
+| P0.3 | persist expanded repo atlas | P0.1 | research doc | in_progress |
+| P0.4 | reconcile future-facing product wording | P0.2 | AGENTS/README/principles/vision diff | todo |
+| P0.5 | reorder architecture delivery sequence | P0.4 | target architecture diff | todo |
+| P0.6 | register #432 on Current Work Board; reconcile #403/#426/#431 status | P0.2 | board + issue/PR notes | todo |
+| P0.7 | documentation/knowledge exact-head gates | P0.3–P0.6 | CI/local evidence | blocked |
+| P0.8 | independent evaluation + fixes | P0.7 | review findings | blocked |
+| P0.9 | owner merge decision | P0.8 | explicit owner action | blocked |
+| P1.0 | acquisition-foundation reconnaissance/spec | P0.9 | bounded Class 3 packet/spec | blocked |
 
-## Handoff record
+Only the promoted current slice becomes executable. Do not pre-create all P1–P9 child issues.
 
-| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
+## 11. Handoff record
+
+| Date | From | To | State | Evidence | Open risk | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-18 | human_owner | researcher | discovery | issue #432 + explicit chat mandate | long-term thesis unknown | research market/product from first principles |
-| 2026-08-18 | researcher | human_owner | evaluating | packet + strategy research | target wedge, WTP and retention remain hypotheses | accept/reject/revise thesis; do not implement automatically |
+| 2026-08-18 | owner | researcher | discovery | #432 research mandate | market/product thesis unknown | research from first principles |
+| 2026-08-18 | researcher | owner | evaluating | Vietnam strategy research + owner correction | retention/WTP/provider economics unproven | owner decide direction |
+| 2026-08-21 | owner | planner/implementer | implementing | explicit instruction to create detailed plan, persist, track and execute; automatic/near-auto digital ingestion is strategic default | main docs still say manual-first; competing PR #431 exists | execute P0 docs-only alignment on existing branch |
 
-### Current permission boundary
+## 12. Permission and stop boundary
 
-- Granted scope: research and branch documentation.
-- Exact repository: `Thunderkill016/moneyflow`.
-- Forbidden writes: provider, production, schema, application/financial semantics, main branch.
-- Human approval required before: merge; changing product law; implementation; provider/native/AI commitments.
-- Rollback or stop condition: close/reject research PR with no runtime impact.
+P0 granted scope: documentation/research writes on `research/432-vietnam-long-term-product-strategy` and issue/board tracking necessary to represent the accepted program.
 
-## Evaluation
+P0 forbidden:
 
-### Acceptance evidence
+- application/runtime code;
+- schema/migration/RLS change;
+- provider credentials/configuration;
+- production/deployment writes;
+- financial semantic mutation;
+- merge;
+- closing RRB-08 or owner/legal/provider gates.
 
-| Criterion | Evidence | Result |
-|---|---|---|
-| current repo truth read before web research | principles/reorientation/current memory | pass |
-| primary/official Vietnam evidence prioritized | SBV, NAPAS, VBPL, GSO, World Bank/IFC | pass |
-| category-copy strategy avoided | research method + alternatives | pass |
-| expensive dependencies gated behind validation | data ladder + roadmap | pass |
-| owner product decision obtained | pending | pending |
+Stop and report if P0 would need to invent provider availability, claim existing automatic capture that does not ship, or resolve a conflicting owner decision without current evidence.
 
-### Research and adoption evidence
+## 13. P0 verification
 
-- Selected official sources support digital-payment growth, regulated Open API path and privacy constraints.
-- Source limitations remain explicit; no raw Findex microdata case percentages are used as national estimates.
-- No adoption/dependency change.
+Required before owner handoff:
 
-### Review findings
+- `npm run check:knowledge`;
+- `npm run test:ci-policy`;
+- `git diff --check` or equivalent exact diff hygiene;
+- any docs-specific gate selected by `agent:doctor`;
+- independent evaluator checks authority contradictions, research claims, license boundaries and accidental runtime/product-capability claims.
 
-- Correctness: recommendation preserves current financial invariants.
-- Security/ownership: data portability and consent/provider boundaries remain first-class.
-- UI/UX/accessibility: no UI change; strategy favors reduced maintenance effort over interface breadth.
-- Maintainability/duplication: recommendation argues against feature expansion without evidence.
-- Scope compliance: research/docs only.
+No browser/database/provider/production evidence is claimed for a documentation-only P0.
 
-### Remaining limitations
-
-Direct Vietnamese user interviews, usage telemetry, paid willingness-to-pay evidence, bank/provider commercial feasibility and e-wallet-specific access are not yet proven.
-
-## Delivery record
+## 14. Delivery record
 
 - Branch: `research/432-vietnam-long-term-product-strategy`
 - PR: pending
-- Squash commit: N/A
-- CI run: pending
-- Production deployment: N/A
-- Production flow verified: N/A
-- Work packet moved to `docs/plans/completed/`: no
+- Main merge: owner decision only
+- Production: not applicable for P0
+- Current phase: P0 Authority Alignment
