@@ -1,6 +1,6 @@
 # MoneyFlow product vision
 
-- **Status:** binding long-term product direction candidate on #432; becomes binding when owner merges
+- **Status:** binding long-term product direction
 - **Owner direction:** 2026-08-21
 - **Current shipped truth:** `docs/research/CURRENT_PROJECT_MEMORY.md`
 - **Product law:** `docs/product/PRINCIPLES.md`
@@ -311,4 +311,4 @@ Separate researched specifications and explicit permission remain mandatory for:
 
 Today's product can truthfully remain manual/import-assisted while the long-term direction is acquisition-first. Documentation must distinguish **current capability** from **future product law** and never claim bank sync, native capture or automation before implementation evidence exists.
 
-`docs/MVP_DEFINITION.md` records the released MVP. `CURRENT_PROJECT_MEMORY.md` and current code/tests own implementation truth. This vision owns the accepted long-term shape after owner merge.
+`docs/MVP_DEFINITION.md` records the released MVP. `CURRENT_PROJECT_MEMORY.md` and current code/tests own implementation truth. This vision owns the accepted long-term shape once merged to the default branch.
