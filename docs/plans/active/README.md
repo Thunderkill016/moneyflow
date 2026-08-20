@@ -1,82 +1,76 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-18
-**Current main baseline:** `6d4c360b` (PR #428 merged; #416, #419–#425 and #428 landed after #415)
-**Release readiness:** **NOT PUBLIC-BETA READY** — RRB-01 and RRB-07 are closed with current browser/runtime evidence. RRB-08 real-phone observation remains open: owner phone evidence drove bounded fixes through #404/#408/#410/#412/#414, and the merged Capture 4 presentation is now ready for the owner to re-test on a physical device after deployment. With #413/#414 complete, the one-at-a-time agent queue advances to #403 canonical page-load/dashboard LCP optimization without displacing RRB-08 or changing private financial caching semantics; #403 is still open, since PR #415 is a measurement/supporting slice that produced no demonstrated cold-load performance improvement. Remaining P1 release gates still depend on owner/provider/legal/read-access.
+**Last reconciled:** 2026-08-21  
+**Current main baseline:** `6d81d334fd7e6d491196bd993b283514cad2c160` (#430 merged)  
+**Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; P1 RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Strategy work never substitutes for those evidence lanes.
 
-This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies.
+This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Unmerged #432 branch changes are candidate direction until owner merge.
 
 ## NOW
 
-- [ ] **#403 — canonical page-load / dashboard LCP optimization** — owner-authorized queue item now promoted after #413/#414 completed. Establish fresh same-method production-build mobile baselines for canonical `/` and `/dashboard`, record LCP/CLS/TBT (or INP where available), transferred bytes and first-load JS, then change only measured repository-controlled bottlenecks. Preserve the healthy one-bounded-RPC authenticated dashboard path and request-private financial-data semantics; no shared cache, provider write, redesign or financial/domain change. **Done when:** before/after evidence is comparable, exact-head risk-selected gates and independent evaluation are green, the measured gain is real rather than hidden content/cost shifting, and any remaining bottleneck is named honestly. **Owner decision 2026-08-17:** #415 is approved for merge as a **supporting slice only** and explicitly **does not complete #403**. #403 stays here in `NOW`. **#415 produced no demonstrated cold-load performance improvement**; what it delivers is the median measurement harness, a truthful `/dashboard` loading boundary and private-path guards. Acceptance 3 of #403 remains **not met** — LCP misses 2.5 s on both routes and no material measured improvement exists, since the harness's own LCP median drifts 292 ms across runs of behaviourally identical code, several times the −99 ms once read as a gain. **Next allowed agent action, in order:** (1) run an attribution experiment for the bimodal `/dashboard` FCP — enough samples per side, one runner, loading boundary on versus off, recording the paint element if the harness can capture it, and reporting the mode split rather than a median; (2) if that signal is real, follow it; (3) if it is not, go directly at the measured bottleneck, dashboard hydration / client-JS / main-thread cost (766 → 814 ms bootup against 311.6 KB transferred script, with server response at only 5–15 ms), targeting a measurable cost reduction rather than another intuition-led optimization. **Measured conclusion, 2026-08-18 — read before resuming.** Client weight was measured directly: `rootMainFiles` is **446 KB of React/Next runtime shipped on every route**, and the gap between `/` (195.8 KB transferred) and `/dashboard` (311.6 KB) is roughly 116 KB of dashboard client components. The framework floor dominates and cannot be removed, so **no simple, high-value LCP win exists here**. A hypothesis that splitting the client boundary in `app-shell.tsx` would be the large lever is **not supported** by that measurement. Resuming this means architectural work on the dashboard client tree for modest payoff — a deliberate choice, not an obvious next step. The FCP attribution experiment (`403-fcp-attribution.md`) remains the only cheap open question, and it needs one owner-triggered `workflow_dispatch` run. **Next actor:** owner, to decide whether #403 is still worth its place in `NOW`.
-- [ ] **RRB-08 — current physical-device proof** — issue #398. #399 owns the merged runbook. Owner-observed phone testing exposed and drove bounded fixes through #404/#408/#410/#412/#414. **Done when:** the merged/deployed Capture 4 build is re-tested on a real phone and the release-critical smoke records device/OS/browser/origin/mode, pass/fail and defects. Browser/emulation is not final physical-device evidence. **Next actor:** owner; agent work on #403 must not claim or close this gate.
+- [ ] **#432 — MoneyFlow master development program / P0 Authority Alignment** — owner-promoted on 2026-08-21. Long-term direction: MoneyFlow remains a Vietnamese personal-finance product, but already-digital transactions should move toward automatic or near-automatic acquisition through one provider-independent source/candidate/provenance/matching/reconciliation pipeline; manual capture remains a first-class fallback for cash, corrections and unseen/off-system events. **Current P0 scope:** documentation/research only on `research/432-vietnam-long-term-product-strategy`: reconcile `AGENTS.md`, README, product principles/vision, target architecture, repo references and this board; preserve current shipped truth and all release/provider/legal boundaries. **Done when:** exact-head docs/knowledge gates and independent evaluation are green and one non-contradictory docs-only change is ready for owner merge decision. **Next actor:** agent for P0; owner for merge.
+- [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Repository/browser preparation exists, but completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
 ## NEXT
 
-- [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or explicit owner limitation decision required.
+- [ ] **#432 P1 — Acquisition Foundation specification** — starts only after P0 owner merge. Define source/batch/candidate/provenance, stable external IDs/fingerprints, dry-run, duplicate/transfer decisions, idempotent atomic commit, update/reimport/correction precedence and reconciliation relationships. Start from current import/share code and tests; do **not** start with a bank integration.
+- [ ] **#432 P2 — Low-Maintenance Ingestion** — migrate real user-provided source paths through the neutral acquisition contract, then reduce manual interventions/100 transactions and maintenance minutes/month while protecting match precision.
+- [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — owner/provider-gated.
-- [ ] **Controlled closed beta** — only after P1 entry gates clear and no unresolved P0 exists.
+- [ ] **Controlled closed beta** — only after P1 release entry gates clear and no unresolved P0 exists.
 
-## BLOCKED
+## BLOCKED / EXTERNAL EVIDENCE
 
 - [ ] **RRB-05 — verified support/privacy contact** — `support@moneyflow.app` is published but operator control is unproven.
-- [ ] **RRB-04 — provider/Auth/firewall read-back** — current provider state plus #40/#174 owner decisions require provider read access; no provider write is authorized.
+- [ ] **RRB-04 — provider/Auth/firewall read-back** — current provider state plus #40/#174 decisions require provider read access; no provider write is authorized.
 - [ ] **RRB-06 — Vietnam personal-data legal/privacy operational review** — competent owner/legal review required.
-- [ ] **RRB-09 — production deployment/provider identity read-back** — current Vercel/Supabase production identity is not exposed by repository tooling.
-- [ ] **Controlled closed beta** — blocked on RRB-04/05/06/09 and any future P0.
-- [ ] **Public-beta release** — blocked until blocker dispositions, controlled-beta evidence, provider/security decisions and PBT-AC15 complete.
+- [ ] **RRB-09 — production deployment/provider identity read-back** — requires current provider/deployment evidence.
+- [ ] **Controlled closed beta / public beta** — blocked by the corresponding release-readiness contract; #432 strategy work does not weaken it.
 
 ## OWNER DECISION
 
-- [ ] **#174 — provider-side security controls** — verify provider state before any owner-authorized change.
-- [ ] **#40 — Supabase leaked-password protection** — verify current provider/plan state before enabling or closing.
-- [ ] **RRB-05 operator contact/domain choice** — prove control or select an owner-controlled replacement.
-- [ ] **RRB-06 legal/privacy decision** — competent review determines obligations/remediation.
-- [ ] **RRB-02 / RRB-03 limitation decisions** — explicit owner acceptance required if proof will not be executed.
-- [ ] **PBT-AC15 — final public-beta go/no-go and accepted limitations** — agent prepares evidence; owner closes the gate.
+- [ ] **#432 P0 merge decision** — accept/reject/revise the acquisition-first long-term product law after exact-head review.
+- [ ] **PR #431 — conflicting product-direction candidate** — reconcile against #432 before merge. It is not current authority merely because it is open.
+- [ ] **#426 — simplification program disposition** — preserve evidence-backed friction reductions, but do not restore the corrected false navigation premise or let it compete with #432 as master direction.
+- [ ] **#403 — performance disposition** — remains open but no longer the default agent `NOW` item. #415 proved there is no obvious high-value LCP win; resume only if owner deliberately promotes its remaining attribution/architecture work after #432 P0.
+- [ ] **#174 / #40 provider security decisions** — verify provider state before change/closure.
+- [ ] **RRB-05 contact, RRB-06 legal, RRB-02/RRB-03 limitation decisions, PBT-AC15 public-beta go/no-go** — owner boundaries remain explicit.
 
 ## HOLD
 
-- [ ] **Engineering literature → executable MoneyFlow guardrails** — remain held until release blockers clear or owner promotes it.
-- [ ] **Phase E Creative Territories** — paused; no territory selected.
-- [ ] **Phase F / broader Brand-Product Experience implementation** — not started.
+- [ ] **#403 implementation** — open, measured, but held behind #432 P0 unless owner overrides.
+- [ ] **#426 further implementation** — held pending reconciliation with #432 and corrected #425 product evidence.
+- [ ] **Wealth / Together / native mobile / AI mutation / provider integration** — horizon only; each requires the dependency gate and a bounded researched specification.
+- [ ] **Engineering literature → executable guardrails** — not promoted by this product program unless a concrete slice needs it.
+- [ ] **Phase E Creative Territories / Phase F broad redesign** — not current authority.
 
-## RECENTLY DONE
+## RECENTLY DONE / DURABLE INPUT
 
-- [x] **#420 / #424 — the dashboard answers questions** — every category figure and the featured budget now open to the exact rows behind them, and a save reports what that category adds up to this month. Before these, the dashboard contained **zero links** and `/capture/quick` returned four words carrying no information. Both carry pure-function invariants asserting the figures agree with the dashboard's own arithmetic, plus browser proof.
-- [x] **#421 / #423 / #428 — verification and hygiene** — `tsconfig.json` no longer excludes `e2e`, so every Playwright spec is type-checked; erasure coverage is derived from the schema instead of a hand-written list; one unused dependency and one dead module removed. The last of these confirmed the codebase carries almost no dead weight.
-- [x] **#422 / #425 — records match reality** — production facts measured rather than inferred (Vercel region `sin1`, Singapore; production project identity; the site live and registerable since 2026-07-13), and sixteen superseded documents moved to `docs/archive/` behind an explicit authority boundary. #425 also **corrected an earlier miscount of mine**: the navigation is deliberately tiered and Inbox/imports/rules already sit under More → Nâng cao, so no navigation change was recommended.
-- [x] **PR #415 — canonical load measurement harness (supporting slice of #403, NOT its completion)** — owner-approved for merge on 2026-08-17 on a deliberately reduced basis. Delivers a median-of-3 production-build mobile Lighthouse harness for canonical `/` and `/dashboard` on one pinned methodology, a truthful `/dashboard` loading boundary that fabricates no balance, and contract guards keeping `src/server/dashboard.ts` at exactly one bounded `get_dashboard_bundle` RPC with no shared/static cache of private financial data. **#415 produced no demonstrated cold-load performance improvement**, and the review is what caught a false one: a −99 ms `/dashboard` LCP reading that turned out to sit inside a several-hundred-millisecond noise floor. Squash-merged as `c9a21781…` from head `6246184…` with 13/13 exact-head checks green on first attempt, under a custom squash body so the retracted intermediate conclusions in the branch commits did not enter main's history. #403 remains open in `NOW`; RRB-08 untouched.
-- [x] **#413 / PR #414 — Capture 4 compact keyboard-first quick sheet** — kept #412 learned-preset and trusted financial mutation semantics while removing repeated instructional copy, compacting type/category correction, removing the clipped horizontal category rail and redundant modal Cancel, and keeping Save reachable under constrained height. Exact-head CI #2602, CodeQL #1669, Secret history #1669, Browser smoke, Cross-device UI audit and `e2e` passed before merge as `8ef322ba…`. Physical-phone acceptance remains RRB-08, not browser evidence.
-- [x] **#411 / PR #412 — Capture 3.0 amount-only learned presets** — successful quick captures remember coherent `kind + account + category` pairs, known category/account defaults are visible, category correction is one tap, and first-time capture no longer guesses an arbitrary taxonomy item. Merged as `30ad41a8…`; Capture 4 supersedes presentation only.
-- [x] **#409 / PR #410 — Capture 2.0 amount-first quick capture** — preserved trusted transaction mutation semantics, moved amount first, compacted account/category confirmation, unified transfer handoff and added direct/PWA quick entry. Merged as `fd232194…`; superseded in presentation by #412/#414.
-- [x] **#407 / PR #408 — unified mobile bottom navigation redesign** — replaced the rejected floating-FAB/tab hybrid with one five-slot dock; merged as `813cb172…` after green CI/browser/UI/e2e evidence.
-- [x] **#405 / PR #406 — first mobile `Ghi` spacing correction** — provenance only; superseded by #408 after owner phone review rejected the protruding architecture.
-- [x] **#401 / PR #404 — compact mobile transaction capture implementation** — reduced keyboard viewport pressure; physical-phone retest remains part of RRB-08.
-- [x] **RRB-08 repository-side preparation** — #398/#399 runbook merged; physical-device verdict still pending.
-- [x] **RRB-07 WCAG 2.2 Accessible Authentication proof** — #393/#394 merged with browser evidence and shared password-field semantic repair.
-- [x] **RRB-01 authenticated mixed-ledger rendered financial truth** — #390/#391 merged with coherent two-account browser/runtime evidence and transfer neutrality.
-- [x] **Release Readiness Audit v1** — #388 merged; canonical blocker matrix recorded.
-- [x] **Open-work reconciliation** — complete through #387; #40/#174 remain intentional owner/provider decisions.
-- [x] **`js-yaml` 4.3.1 security backport** — #386 merged.
-- [x] **Dispatcher boundary reconciliation** — #384/#385 completed.
-- [x] **Amount focus hotfix** — #383 merged.
-- [x] **UI evolutionary refresh Slice 1 + Slice 2** — #370 and #381 merged.
-- [x] **Phases A–D; P1 Secure / P2 Recover / P3 Prove** — accepted completed records with named limitations preserved.
+- [x] **#430** — removed a vendor-tooling doc and absent-evidence citations; current main `6d81d334…`.
+- [x] **#429** — reconciled board with shipped product state.
+- [x] **#428** — removed one unused dependency and dead module; no false performance win claimed.
+- [x] **#425** — product reorientation corrected the earlier navigation-overload miscount and archived historical/non-authority docs.
+- [x] **#420/#424** — dashboard figures link to underlying rows and capture confirmation communicates what was added.
+- [x] **#415/#419** — canonical performance measurement + attribution instrumentation; no demonstrated cold-load performance gain, #403 remains open.
+- [x] **#404/#408/#410/#412/#414** — bounded mobile capture/navigation evolution driven by owner phone evidence; RRB-08 final current-phone acceptance still open.
+- [x] **RRB-01/#391 and RRB-07/#394** — authenticated mixed-ledger truth and accessible authentication browser evidence closed.
+- [x] **Release Readiness Audit v1/#388** — canonical blocker matrix established.
 
 ## Active packet registry
 
 | Packet | Role now | Authority boundary |
 |---|---|---|
-| `public-beta-trust.md` | active parent program | release-readiness blocker sequence, controlled-beta gates and owner public-beta decision |
-| `rrb-08-physical-device-proof.md` | active bounded validation | real-phone smoke only; no provider/deployment/production mutation |
-| `403-fcp-attribution.md` | active Class 3 measurement | measurement instruments and one dispatch-only workflow; no application, financial, schema, RLS, Auth or provider change, and no optimization |
+| `432-vietnam-long-term-product-strategy.md` | **current agent-executable master-program packet on the #432 branch** | P0 docs/research alignment only until owner merge; later phases need bounded specs/permission |
+| `public-beta-trust.md` | release parent program | release-readiness blocker sequence, controlled-beta gates and owner public-beta decision |
+| `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
+| `403-fcp-attribution.md` | held measurement packet | existing attribution instrument; resume only by owner promotion |
 
 ## Board rules
 
 1. `NOW` means current authorized execution, not merely an open issue.
-2. New substantive work must appear here before it becomes execution authority.
-3. Completion/abandonment updates this board in lifecycle closeout; merged work must not remain in `NOW`.
-4. `OWNER DECISION` is never auto-resolved by an agent.
-5. Historical issues/PRs are provenance, not authority, once reconciled.
-6. Deeper implementation truth lives in [`CURRENT_PROJECT_MEMORY.md`](../../research/CURRENT_PROJECT_MEMORY.md); the active parent program lives in [`public-beta-trust.md`](public-beta-trust.md).
+2. One current agent-executable product slice at a time; independent owner/provider/physical-device lanes may remain open.
+3. A long-term phase becomes work only when its bounded issue/spec/packet is promoted.
+4. Completion/abandonment updates this board; merged work must not remain in `NOW`.
+5. `OWNER DECISION` is never auto-resolved by an agent.
+6. Historical issues/PRs are provenance, not authority, once reconciled.
+7. `CURRENT_PROJECT_MEMORY.md` changes only when merged implementation/trust truth changes; unmerged #432 direction is not current runtime capability.
