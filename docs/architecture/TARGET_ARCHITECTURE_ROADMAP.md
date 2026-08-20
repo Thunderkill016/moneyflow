@@ -1,6 +1,6 @@
 # MoneyFlow target architecture roadmap
 
-- **Status:** binding architecture direction candidate for #432; becomes binding when owner merges
+- **Status:** binding architecture direction, not an immediate rewrite plan
 - **Updated:** 2026-08-21
 - **Current architecture authority:** `ARCHITECTURE.md`
 - **Product authority:** `docs/product/PRINCIPLES.md` + `docs/product/MONEYFLOW_PRODUCT_VISION.md`
