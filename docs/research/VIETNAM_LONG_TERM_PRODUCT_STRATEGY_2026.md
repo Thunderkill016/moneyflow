@@ -1,9 +1,9 @@
 # MoneyFlow — Vietnam long-term product strategy research
 
-**Date:** 2026-08-18  
-**Repository baseline researched:** `main@6d81d334fd7e6d491196bd993b283514cad2c160`  
-**Status:** research recommendation — **not product law; owner decision pending**  
-**Research authority:** issue #432 and `docs/plans/active/432-vietnam-long-term-product-strategy.md`  
+**Date:** 2026-08-18
+**Repository baseline researched:** `main@6d81d334fd7e6d491196bd993b283514cad2c160`
+**Status:** accepted research basis for #432; binding product law is owned by `docs/product/PRINCIPLES.md` after merge
+**Research authority:** issue #432 and `docs/plans/active/432-vietnam-long-term-product-strategy.md`
 
 ## Executive conclusion
 
@@ -331,7 +331,7 @@ The moat must come from **being reliably useful over time**, not trapping data.
 
 1. **Keep the ledger core.** Do not rewrite the financial engine for strategic novelty.
 2. **Pause broad feature expansion.** Existing planning/advanced modules remain available but do not automatically earn more scope.
-3. **Make “lower maintenance for a trustworthy whole-money picture” the strategy to validate.** This is a research thesis until the owner accepts it.
+3. **Use “lower maintenance for a trustworthy whole-money picture” as the accepted strategic direction and validate its market thesis directly.** Product law is owned by the product principles/vision; this research document preserves the evidence and falsification conditions.
 4. **Prioritize import/reconciliation and direct user evidence before bank partnerships.** Connected read-only data is the likely long-term accelerator, not the day-one foundation.
 5. **Do not set pricing or native-app commitments yet.** Test willingness to pay and platform bottlenecks with actual use.
 6. **Measure trusted periods and maintenance effort.** DAU/feature count are secondary.
