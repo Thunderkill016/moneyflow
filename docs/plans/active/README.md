@@ -4,11 +4,11 @@
 **Current main baseline:** `6d81d334fd7e6d491196bd993b283514cad2c160` (#430 merged)  
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; P1 RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Strategy work never substitutes for those evidence lanes.
 
-This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Unmerged #432 branch changes are candidate direction until owner merge.
+This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
 
 ## NOW
 
-- [ ] **#432 — MoneyFlow master development program / P0 Authority Alignment** — owner-promoted on 2026-08-21. Long-term direction: MoneyFlow remains a Vietnamese personal-finance product, but already-digital transactions should move toward automatic or near-automatic acquisition through one provider-independent source/candidate/provenance/matching/reconciliation pipeline; manual capture remains a first-class fallback for cash, corrections and unseen/off-system events. **Current P0 scope:** documentation/research only on `research/432-vietnam-long-term-product-strategy`: reconcile `AGENTS.md`, README, product principles/vision, target architecture, repo references and this board; preserve current shipped truth and all release/provider/legal boundaries. **Done when:** exact-head docs/knowledge gates and independent evaluation are green and one non-contradictory docs-only change is ready for owner merge decision. **Next actor:** agent for P0; owner for merge.
+- [ ] **#432 / PR #433 — MoneyFlow master development program / P0 Authority Alignment** — owner-promoted on 2026-08-21. Long-term direction: MoneyFlow remains a Vietnamese personal-finance product, but already-digital transactions should move toward automatic or near-automatic acquisition through one provider-independent source/candidate/provenance/matching/reconciliation pipeline; manual capture remains a first-class fallback for cash, corrections and unseen/off-system events. **Current P0 scope:** documentation/research only on `research/432-vietnam-long-term-product-strategy`: reconcile `AGENTS.md`, README, product principles/vision, target architecture, repo references and this board; preserve current shipped truth and all release/provider/legal boundaries. **Done when:** exact-head docs/knowledge gates and independent evaluation are green and one non-contradictory docs-only change is ready for owner merge decision. **Next actor:** agent for P0 verification/review; owner for merge.
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Repository/browser preparation exists, but completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
 ## NEXT
@@ -29,7 +29,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## OWNER DECISION
 
-- [ ] **#432 P0 merge decision** — accept/reject/revise the acquisition-first long-term product law after exact-head review.
+- [ ] **#432 P0 / PR #433 merge decision** — accept/reject/revise the acquisition-first long-term product law after exact-head review.
 - [ ] **PR #431 — conflicting product-direction candidate** — reconcile against #432 before merge. It is not current authority merely because it is open.
 - [ ] **#426 — simplification program disposition** — preserve evidence-backed friction reductions, but do not restore the corrected false navigation premise or let it compete with #432 as master direction.
 - [ ] **#403 — performance disposition** — remains open but no longer the default agent `NOW` item. #415 proved there is no obvious high-value LCP win; resume only if owner deliberately promotes its remaining attribution/architecture work after #432 P0.
@@ -60,7 +60,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 | Packet | Role now | Authority boundary |
 |---|---|---|
-| `432-vietnam-long-term-product-strategy.md` | **current agent-executable master-program packet on the #432 branch** | P0 docs/research alignment only until owner merge; later phases need bounded specs/permission |
+| `432-vietnam-long-term-product-strategy.md` | **current agent-executable master-program packet** | P0 docs/research alignment; later phases need bounded specs/permission |
 | `public-beta-trust.md` | release parent program | release-readiness blocker sequence, controlled-beta gates and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | existing attribution instrument; resume only by owner promotion |
@@ -73,4 +73,4 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 4. Completion/abandonment updates this board; merged work must not remain in `NOW`.
 5. `OWNER DECISION` is never auto-resolved by an agent.
 6. Historical issues/PRs are provenance, not authority, once reconciled.
-7. `CURRENT_PROJECT_MEMORY.md` changes only when merged implementation/trust truth changes; unmerged #432 direction is not current runtime capability.
+7. `CURRENT_PROJECT_MEMORY.md` changes only when merged implementation/trust truth changes; open strategy changes must not be restated as shipped runtime capability.
