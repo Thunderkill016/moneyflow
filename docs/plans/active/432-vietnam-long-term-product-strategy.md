@@ -1,12 +1,12 @@
 # #432 — MoneyFlow master development program
 
-**Status:** active  
-**Execution state:** implementing  
-**Active role:** planner / implementer  
-**Permission scope:** branch documentation/research only for P0; later phases require their own bounded permission  
-**Owner:** human owner  
-**Issue/PR:** #432 / PR pending  
-**Branch:** `research/432-vietnam-long-term-product-strategy`  
+**Status:** active
+**Execution state:** evaluating
+**Active role:** planner / evaluator
+**Permission scope:** branch documentation/research only for P0; later phases require their own bounded permission
+**Owner:** human owner
+**Issue/PR:** #432 / PR #433
+**Branch:** `research/432-vietnam-long-term-product-strategy`
 **Last updated:** 2026-08-21
 
 ## Outcome
@@ -84,7 +84,7 @@ Default future research rule: select **2–4 sources per bounded decision**. Off
 
 - Android `NotificationListenerService` is a possible user-authorized source, not guaranteed financial truth.
 - Modern Android may redact sensitive notification content from ordinary third-party listeners.
-- Google Play heavily restricts SMS/Call Log permissions, so MoneyFlow must not design its mainstream Android distribution around unrestricted `READ_SMS` access.
+- Google Play heavily restricts SMS/Call Log permissions; SMS-based money management can qualify only under declared/reviewed policy exceptions, so MoneyFlow must not assume unrestricted `READ_SMS` access for mainstream distribution.
 - Native/device assistance is evaluated only after a neutral source/candidate engine exists.
 
 ### Reference implementation findings
@@ -201,7 +201,7 @@ Deliverables:
 - reorder Product Vision and Target Architecture around Acquire + Reconcile before broad expansion;
 - register #432 on the Current Work Board;
 - hold/reconcile #403, #426 and PR #431 without falsely closing them;
-- run exact-head docs/knowledge/CI-policy/diff-hygiene gates and independent evaluation before owner PR/merge decision.
+- run exact-head docs/knowledge/CI-policy/diff-hygiene gates and independent evaluation before owner merge decision.
 
 P0 changes **no runtime code, schema, RLS, provider, deployment or financial semantics**.
 
@@ -320,13 +320,13 @@ Before provider/native/wealth/AI commitments:
 | P0.1 | promote #432 from research to master program | issue #432 body | done |
 | P0.2 | promote packet to active execution | this packet | done |
 | P0.3 | persist reference repository atlas + license policy | `MONEYFLOW_REFERENCE_REPO_ATLAS_2026.md` | done |
-| P0.4 | reconcile AGENTS/README/principles/vision | branch diff | done |
-| P0.5 | reorder target architecture around Acquire + Reconcile | architecture diff | done |
+| P0.4 | reconcile AGENTS/README/principles/vision | PR #433 diff | done |
+| P0.5 | reorder target architecture around Acquire + Reconcile | PR #433 architecture diff | done |
 | P0.6 | register #432 and hold/reconcile competing work on board | active board | done |
-| P0.7 | satisfy active-packet/AGENTS executable knowledge markers | checker-source review + branch diff | done |
-| P0.8 | run exact-head docs/knowledge/CI-policy/diff-hygiene gates | command/CI evidence | blocked: no PR/checkout execution environment yet |
-| P0.9 | independent evaluator + any fixes | review evidence | blocked on P0.8 |
-| P0.10 | owner PR/merge decision | explicit owner action | blocked |
+| P0.7 | satisfy active-packet/AGENTS executable knowledge markers | checker-source review + PR diff | done |
+| P0.8 | exact-head docs/knowledge/CI-policy/diff-hygiene gates | CI #2723 proved policy shard runs and caught trailing whitespace; fixes in progress | in_progress |
+| P0.9 | independent evaluator + any fixes | post-merge wording review + external-source recheck | in_progress |
+| P0.10 | owner merge decision | exact-head green PR #433 required | blocked |
 | P1.0 | Acquisition Foundation reconnaissance/spec | separate bounded Class 3 packet/spec after P0 merge | blocked |
 
 Do not pre-create P1–P9 issue backlogs. Promote only the next bounded slice.
@@ -338,14 +338,15 @@ Do not pre-create P1–P9 issue backlogs. Promote only the next bounded slice.
 | 2026-08-18 | owner | researcher | discovery | original #432 mandate | long-term thesis unknown | first-principles research |
 | 2026-08-18 | researcher | owner | evaluating | Vietnam strategy research + owner acquisition correction | retention/WTP/provider economics unproven | owner decide direction |
 | 2026-08-21 | owner | planner/implementer | implementing | instruction to create detailed plan, persist, track and execute | repository authority still conflicted | execute P0 docs-only alignment |
-| 2026-08-21 | planner/implementer | verification boundary | evaluating pending | P0 docs + board + architecture + repo atlas on branch | executable exact-head gates not yet run; PR not yet authorized/opened | run gates when checkout/PR execution path is available, then independent review |
+| 2026-08-21 | planner/implementer | PR verification | evaluating | PR #433; CI #2717 rejected as false green; real CI #2723 executed policy and caught trailing whitespace | clean remaining diff-hygiene findings; rerun exact-head knowledge/policy; CodeQL/secret scan | fix exact-head findings, then owner handoff |
 
 ### Current permission boundary
 
 Granted for P0:
 
 - documentation/research writes on `research/432-vietnam-long-term-product-strategy`;
-- issue #432 and board tracking necessary to persist the accepted program.
+- issue #432 and board tracking necessary to persist the accepted program;
+- PR #433 creation and review-state verification under the owner's instruction to execute the plan.
 
 Not granted by P0:
 
@@ -363,7 +364,7 @@ Stop rather than improvise if a claimed P0 result would require inventing provid
 
 ### Scope evaluation
 
-Current branch comparison is docs-only; no `src/**`, migrations, schema, RLS or runtime/provider configuration has been changed by P0.
+PR #433 remains docs/research only; no `src/**`, migrations, schema, RLS or runtime/provider configuration has been changed by P0.
 
 ### Knowledge-contract evaluation
 
@@ -376,33 +377,29 @@ The repository checker source was inspected directly. Active packets require exa
 - `## Tasks`
 - `## Evaluation`
 
-This packet now contains them. `AGENTS.md` was also reconciled with the literal project-contract markers required by `scripts/check-project-knowledge.mjs` while keeping procedural hot memory bounded.
+This packet contains them. `AGENTS.md` was also reconciled with the literal project-contract markers required by `scripts/check-project-knowledge.mjs` while keeping procedural hot memory bounded.
 
 ### Verification status
 
-Required before owner handoff:
+- PR #433 opened from `research/432-vietnam-long-term-product-strategy` to `main` and marked ready for review.
+- CI #2717 on head `748c4abd…` reported success but is **rejected as evidence** because the known #417 draft-to-ready race left `Verify policy contracts` and the aggregate `verify` job skipped.
+- A later synchronize event while the PR was already non-draft produced CI #2723 on head `b39cf1d…`. This is valid execution evidence: `Verify policy contracts` actually ran and failed at `Diff hygiene`, identifying only trailing whitespace before later policy steps could execute.
+- The whitespace findings are being fixed without weakening the checker. The next exact-head run must show `Diff hygiene`, `Project knowledge contract` and `CI classification and retry contract` actually execute successfully; aggregate `verify` must also pass.
+- Exact-head CodeQL and Secret history must be green on the final head. Secret history was green on the #2723 head; final-head evidence still must be checked after the fixes.
 
-```bash
-npm run check:knowledge
-npm run test:ci-policy
-# plus diff hygiene / docs-specific checks selected by agent:doctor
-```
+Browser/database/provider/production/physical-device evidence is not applicable to this docs-only P0 and is not claimed. The database shard in CI #2723 correctly reported database checks not required.
 
-These executable commands have **not** been claimed as run in the current tool environment because there is no working repository checkout/network clone path and no #432 PR/CI run exists yet. Manual inspection is not substituted for executable PASS.
+### Independent evaluation findings
 
-Browser/database/provider/production/physical-device evidence is not applicable to this docs-only P0 and is not claimed.
+The review challenged post-merge durability rather than only branch correctness and found three real documentation defects: `PRINCIPLES.md`, `MONEYFLOW_PRODUCT_VISION.md` and `TARGET_ARCHITECTURE_ROADMAP.md` described themselves as branch/candidate documents in wording that would become stale immediately after merge. They were corrected to durable authority wording while preserving the rule that open PRs remain candidate evidence.
 
-### Independent evaluation questions
+The review also rechecked the external implementation/platform claims against current primary documentation:
 
-The evaluator must challenge:
+- Actual Budget documents `imported_id`, import reconciliation/rules, dry-run and update behavior, supporting the neutral ingestion/idempotency pattern rather than a storage-architecture copy.
+- Android documents notification-listener callbacks and sensitive-content redaction constraints.
+- Google Play treats SMS/Call Log access as restricted/high-risk; SMS-based money management is an exception path subject to declaration/review, so MoneyFlow correctly treats SMS as an optional source adapter rather than a default permission assumption.
 
-- whether current capability and future direction are clearly separated;
-- whether any doc accidentally claims provider/native functionality is shipped;
-- whether #432 conflicts with release truth or closes owner-only gates;
-- whether acquisition can remain provider-independent;
-- whether external repo/license evidence is being used as a pattern rather than copied scope;
-- whether P1 starts from current code/tests before creating abstractions/schema;
-- whether the program has falsification gates rather than assuming strategy success.
+Remaining evaluator questions before merge: confirm no final document claims bank/native functionality is already shipped, no release gate is closed, and the final exact-head CI fully executes the policy/knowledge steps.
 
 ### Remaining uncertainties
 
@@ -413,7 +410,9 @@ Direct Vietnamese cohort retention, willingness to pay, actual provider economic
 - Master issue: #432
 - Branch: `research/432-vietnam-long-term-product-strategy`
 - Base inspected: `main@6d81d334fd7e6d491196bd993b283514cad2c160`
-- PR: pending; not opened in P0 without the repository's separate PR authorization boundary
+- PR: #433 open, non-draft; owner merge decision pending
+- First CI: #2717 rejected as false green due #417 skip race
+- Real verification run: CI #2723 failed honestly at diff hygiene; remediation underway
 - Merge: owner decision only
 - Runtime/schema/provider/production change: none
-- Current phase: P0 Authority Alignment, implementation docs complete; executable verification and independent evaluation remain
+- Current phase: P0 Authority Alignment, evaluation/verification in progress
