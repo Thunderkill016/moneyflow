@@ -1,7 +1,7 @@
 # MoneyFlow — reference repository atlas 2026
 
-**Status:** active research reference for #432  
-**Created:** 2026-08-21  
+**Status:** active research reference for #432
+**Created:** 2026-08-21
 **Purpose:** subsystem reference map for long-term MoneyFlow development; not a roadmap, dependency manifest or permission to copy external product scope.
 
 ## Selection rules
