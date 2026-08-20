@@ -1,6 +1,6 @@
 # MoneyFlow product principles
 
-This is the current product-law candidate on the #432 strategy branch. It becomes binding only if the owner merges the corresponding pull request. Current shipped capability continues to come from merged code/tests and `docs/research/CURRENT_PROJECT_MEMORY.md`.
+This document owns MoneyFlow's long-term product law. Current shipped capability continues to come from merged code/tests and `docs/research/CURRENT_PROJECT_MEMORY.md`; an open pull request changing this file remains candidate evidence until merge.
 
 ## Primary user
 
