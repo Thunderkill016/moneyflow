@@ -150,15 +150,15 @@ select is(
   'database test owner matches the SECURITY DEFINER archive-restore owner'
 );
 
+update public.inbox_candidates
+set transfer_pair_id = '44110000-0000-4000-8000-000000000002'::uuid
+where id = '44110000-0000-4000-8000-000000000001'::uuid;
+
 select is(
   (
-    with repaired as (
-      update public.inbox_candidates
-      set transfer_pair_id = '44110000-0000-4000-8000-000000000002'::uuid
-      where id = '44110000-0000-4000-8000-000000000001'::uuid
-      returning transfer_pair_id
-    )
-    select transfer_pair_id from repaired
+    select transfer_pair_id
+    from public.inbox_candidates
+    where id = '44110000-0000-4000-8000-000000000001'::uuid
   ),
   '44110000-0000-4000-8000-000000000002'::uuid,
   'archive-restore owner context can perform the exact phase-two transfer-pair repair'
