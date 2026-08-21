@@ -10,7 +10,7 @@
 
 ## Outcome
 
-When a user already recorded a digital income/expense manually and later source evidence for the same event arrives, MoneyFlow can attach that evidence to the reviewed existing ledger fact instead of creating a duplicate. Linking source evidence must never silently rewrite the existing fact or its reconciliation state.
+When a user already recorded a digital income/expense and later source evidence for the same event arrives, MoneyFlow can attach that evidence to the reviewed existing ledger fact instead of creating a duplicate. Linking source evidence must never silently rewrite the existing fact or its reconciliation state.
 
 This is the second bounded P1 slice after #434/#435. It does not add a provider or broaden fuzzy matching.
 
@@ -18,13 +18,13 @@ This is the second bounded P1 slice after #434/#435. It does not add a provider 
 
 Current main after #435 already has a neutral persisted acquisition foundation: import batches, candidates, source/external identity, versioned fingerprints, match status/reason/confidence, transaction provenance, atomic candidate approval, deterministic rules, reconciliation and privacy-safe financial mutation audit.
 
-`plan_inbox_candidate()` currently checks, in order, already-approved candidates, exact source external IDs, provenance fingerprints, earlier candidate fingerprints, transfer suspicion and required account/category fields. It does **not** search existing non-deleted ledger transactions that have no import provenance. Therefore a later import can still duplicate an earlier manually-created fact.
+`plan_inbox_candidate()` currently checks prior imported provenance/candidates but does not search existing non-deleted ledger transactions that have no import provenance. Therefore later import evidence can still duplicate an earlier user-created fact.
 
-`approve_inbox_candidate()` always creates a new ledger transaction when review proceeds. `transaction_import_provenance.transaction_id` is currently unique/primary, so this slice can attach the first source evidence to an unprovenanced manual transaction but deliberately does not redesign provenance into a one-to-many evidence model.
+`approve_inbox_candidate()` creates a new ledger transaction when review proceeds. `transaction_import_provenance.transaction_id` is currently unique/primary, so this slice can attach the first source evidence to an unprovenanced existing transaction but deliberately does not redesign provenance into a one-to-many evidence model.
 
-`update_money_transaction()` and entry mutations are audited structurally. That makes the safest correction-precedence rule simple and testable: the new source-link operation must not update the existing transaction or entries at all.
+`update_money_transaction()` and entry mutations are audited structurally. The safest correction-precedence rule is therefore simple and testable: the new source-link operation must not update the existing transaction or entries at all.
 
-The Inbox review panel already supports an explicit heuristic-duplicate override. It does not currently run the server dry-run when a review opens, so this slice can add a small plan state and one explicit link action without redesigning Inbox.
+The Inbox review panel already supports an explicit heuristic-duplicate override. It did not run server dry-run when a review opened before this slice, so #436 adds a small plan state and explicit link action without redesigning Inbox.
 
 ## Research
 
@@ -40,29 +40,31 @@ External references are design evidence only. Current MoneyFlow code/tests and #
 
 ### Match planning
 
-After existing exact source/provenance checks and before returning `would_create`, a pending income/expense candidate with an owned account may look for existing ledger facts that:
+After existing exact source/provenance checks, a pending non-manual income/expense candidate with an owned account may look for existing ledger facts that:
 
 - belong to the same user;
 - are not soft-deleted;
 - are income/expense, never transfer;
 - have the same kind and date;
-- contain exactly the same signed amount on the candidate account;
-- have no `transaction_import_provenance` row.
+- contain one entry with exactly the same signed amount on the candidate account;
+- have no `transaction_import_provenance` row;
+- were not already approved from an Inbox candidate;
+- are not recurring-generated or split facts.
 
-If exactly one eligible fact exists, dry-run returns `duplicate` with reason `manual_transaction_match`, a bounded confidence below exact identity, and `matched_transaction_id`.
+If exactly one eligible fact exists, dry-run returns `duplicate` with reason `existing_transaction_match`, confidence `0.7`, and `matched_transaction_id`.
 
-If more than one eligible fact exists, dry-run returns a duplicate/review state with reason `manual_transaction_ambiguous` and no target ID. It must never choose one by row order.
+If more than one eligible fact exists, dry-run returns `duplicate` with reason `existing_transaction_ambiguous`, confidence `0.4`, and no target ID. It must never choose one by row order.
 
-Exact source external ID remains stronger than any manual match. Existing provenance/fingerprint duplicate logic remains ahead of this fallback.
+Exact source external ID and existing provenance/fingerprint matching remain stronger than this fallback.
 
 ### Explicit source-link operation
 
-Add one authenticated SECURITY DEFINER operation that takes candidate ID + reviewed existing transaction ID. It must:
+`attach_inbox_candidate_to_existing_transaction(candidate_id, transaction_id)` must:
 
 1. derive `auth.uid()` and lock the candidate;
 2. be replay-safe when the candidate is already linked to the same transaction;
-3. reject another tenant, deleted target, transfer target, already-provenanced target or a target not equal to the current unique `manual_transaction_match` plan;
-4. write `transaction_import_provenance` using the candidate source evidence and match reason/confidence;
+3. reject another tenant, deleted target, transfer target, already-provenanced target or a target not equal to the current unique `existing_transaction_match` plan;
+4. write `transaction_import_provenance` using candidate source evidence and the reviewed match reason/confidence;
 5. mark the candidate approved and link `approved_transaction_id`;
 6. leave the target transaction and every entry unchanged;
 7. leave reconciliation state unchanged;
@@ -70,11 +72,9 @@ Add one authenticated SECURITY DEFINER operation that takes candidate ID + revie
 
 ### UX
 
-For authenticated review only, load the server plan for the open candidate. When it is a unique manual match, show a calm explicit option to attach source evidence to that existing transaction. The UI must state that MoneyFlow will keep the existing ledger values unchanged.
+Authenticated review loads the server plan only for persisted UUID candidates. A unique existing match shows **“Gắn nguồn, giữ nguyên sổ”** and explicitly states that ledger and reconciliation values stay unchanged and form edits are not applied by the attach action.
 
-The existing “Vẫn ghi sổ” duplicate override remains the route to intentionally keep a separate transaction. Ambiguous matches get no attach button.
-
-Demo remains local and makes no server-provenance claim.
+The existing duplicate override remains the route to intentionally create a separate transaction. Ambiguous matches show a warning but no attach button. Demo IDs remain local and make no server-provenance claim.
 
 ### Deferred boundary
 
@@ -82,12 +82,12 @@ The current provenance table permits one provenance row per ledger transaction. 
 
 ## Implementation plan
 
-1. Add counterexample-first pgTAP for unique manual match, ambiguity, deletion, already-provenanced facts, tenant isolation, replay and unchanged ledger/reconciliation state.
+1. Add counterexample-first pgTAP for unique existing match, ambiguity, deletion, already-provenanced facts, tenant isolation, replay and unchanged ledger/reconciliation state.
 2. Add a migration that extends `plan_inbox_candidate()` conservatively and adds the reviewed source-link RPC with least privilege.
 3. Update migration identity and SECURITY DEFINER inventory contracts without weakening them.
 4. Extend `InboxDryRunResult` user messaging only for the new reasons.
 5. Add a server action for the link operation and read back the existing transaction after success.
-6. Add review-plan state to authenticated Inbox and expose one explicit attach-source action; keep the existing separate-transaction override.
+6. Add authenticated review-plan state and one explicit attach-source action; keep the existing separate-transaction override.
 7. Add unit/static/UI safety tests around copy and decision routing.
 8. Run exact-head Class 3 CI: knowledge/policy, lint/typecheck/build, unit/static RLS, fresh Supabase + pgTAP, browser/auth ownership, cross-device UI/e2e, CodeQL and secret history.
 9. Independent review must challenge false merges, stale plans/races, correction overwrite, reconciliation mutation, tenant leakage and retry ambiguity.
@@ -100,11 +100,11 @@ Rollback: revert this slice. Existing candidate approval and #435 Direct CSV ato
 |---|---|---|
 | 436.1 | reconcile #434 lifecycle and inspect current main | done |
 | 436.2 | research manual→later-import reconciliation behavior | done |
-| 436.3 | persist issue/branch/packet/board authority | implementing |
-| 436.4 | add DB match/link contract + counterexample pgTAP | pending |
-| 436.5 | add authenticated server action | pending |
-| 436.6 | add explicit Inbox review decision | pending |
-| 436.7 | unit/static/UI safety coverage | pending |
+| 436.3 | persist issue/branch/packet/board authority | done |
+| 436.4 | add DB match/link contract + counterexample pgTAP | implementing |
+| 436.5 | add authenticated server action | implementing |
+| 436.6 | add explicit Inbox review decision | implementing |
+| 436.7 | unit/static/UI safety coverage | implementing |
 | 436.8 | exact-head Class 3 verification | pending |
 | 436.9 | independent evaluation/fixes | pending |
 | 436.10 | owner merge handoff | pending |
@@ -113,7 +113,7 @@ Rollback: revert this slice. Existing candidate approval and #435 Direct CSV ato
 
 Acceptance requires one final exact head proving:
 
-- one unique eligible unprovenanced manual transaction is surfaced as reviewable `manual_transaction_match`;
+- one unique eligible unprovenanced existing transaction is surfaced as reviewable `existing_transaction_match`;
 - multiple same-account/date/amount eligible facts are ambiguous and never auto-selected;
 - exact source-ID duplicates remain hard duplicates;
 - deleted, transfer, cross-tenant and already-provenanced facts cannot be linked;
