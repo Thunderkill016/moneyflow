@@ -214,6 +214,11 @@
       "version": "20260821062000",
       "name": "20260821062000_manual_import_reconciliation.sql",
       "hash": "3e22424a7a3ed23994af546a0171df8c"
+    },
+    {
+      "version": "20260821093500",
+      "name": "20260821093500_deleted_source_reimport_precedence.sql",
+      "hash": "13d24df704c7842c66750830da456163"
     }
   ]
 }
