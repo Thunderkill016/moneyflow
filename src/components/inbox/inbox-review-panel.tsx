@@ -87,32 +87,40 @@ export function InboxReviewPanel({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [attachBusy, setAttachBusy] = useState(false);
-  const [serverPlan, setServerPlan] = useState<InboxDryRunResult | null>(null);
-  const [planLoading, setPlanLoading] = useState(false);
+  const [serverPlanState, setServerPlanState] = useState<{
+    candidateId: string;
+    plan: InboxDryRunResult | null;
+  } | null>(null);
+  const candidateId = candidate?.id ?? "";
+  const shouldLoadServerPlan = open && UUID_PATTERN.test(candidateId);
+  const activeServerPlanState =
+    shouldLoadServerPlan && serverPlanState?.candidateId === candidateId
+      ? serverPlanState
+      : null;
+  const serverPlan = activeServerPlanState?.plan ?? null;
+  const planLoading = shouldLoadServerPlan && activeServerPlanState === null;
 
   useEffect(() => {
-    const candidateId = candidate?.id ?? "";
-    if (!open || !UUID_PATTERN.test(candidateId)) {
-      setServerPlan(null);
-      setPlanLoading(false);
-      return;
-    }
+    if (!shouldLoadServerPlan) return;
 
     let cancelled = false;
-    setPlanLoading(true);
     void planInboxCandidateAction(candidateId)
       .then((result) => {
         if (cancelled) return;
-        setServerPlan(result.ok ? result.plan : null);
+        setServerPlanState({
+          candidateId,
+          plan: result.ok ? result.plan : null,
+        });
       })
-      .finally(() => {
-        if (!cancelled) setPlanLoading(false);
+      .catch(() => {
+        if (cancelled) return;
+        setServerPlanState({ candidateId, plan: null });
       });
 
     return () => {
       cancelled = true;
     };
-  }, [candidate?.id, open]);
+  }, [candidateId, shouldLoadServerPlan]);
 
   const moneyKind = draft?.kind === "income" ? "income" : "expense";
   const availableCategories = useMemo(
@@ -165,7 +173,7 @@ export function InboxReviewPanel({
       });
       if (!result.ok) {
         setError(result.message);
-        setServerPlan(null);
+        setServerPlanState({ candidateId: activeCandidate.id, plan: null });
         return;
       }
       // The parent Inbox candidate list is client-owned. A full reload is
