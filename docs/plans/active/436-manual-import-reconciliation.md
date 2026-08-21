@@ -1,7 +1,7 @@
 # #436 — Reconcile manual transactions with later source evidence
 
 **Status:** active
-**Execution state:** implementing
+**Execution state:** evaluating
 **Change class:** Class 3 — financial import/reconciliation boundary
 **Parent:** #432 P1 Acquisition Foundation
 **Branch:** `feat/436-manual-import-reconciliation`
@@ -18,21 +18,23 @@ This is the second bounded P1 slice after #434/#435. It does not add a provider 
 
 Current main after #435 already has a neutral persisted acquisition foundation: import batches, candidates, source/external identity, versioned fingerprints, match status/reason/confidence, transaction provenance, atomic candidate approval, deterministic rules, reconciliation and privacy-safe financial mutation audit.
 
-`plan_inbox_candidate()` currently checks prior imported provenance/candidates but does not search existing non-deleted ledger transactions that have no import provenance. Therefore later import evidence can still duplicate an earlier user-created fact.
+`plan_inbox_candidate()` checks prior imported provenance/candidates but, before this slice, did not search existing non-deleted ledger transactions that had no import provenance. Therefore later import evidence could still duplicate an earlier user-created fact.
 
 `approve_inbox_candidate()` creates a new ledger transaction when review proceeds. `transaction_import_provenance.transaction_id` is currently unique/primary, so this slice can attach the first source evidence to an unprovenanced existing transaction but deliberately does not redesign provenance into a one-to-many evidence model.
 
-`update_money_transaction()` and entry mutations are audited structurally. The safest correction-precedence rule is therefore simple and testable: the new source-link operation must not update the existing transaction or entries at all.
+`update_money_transaction()` and entry mutations are audited structurally. The correction-precedence rule is therefore simple and testable: the source-link operation must not update the existing transaction or entries at all.
 
-The Inbox review panel already supports an explicit heuristic-duplicate override. It did not run server dry-run when a review opened before this slice, so #436 adds a small plan state and explicit link action without redesigning Inbox.
+The Inbox review panel already supported an explicit heuristic-duplicate override. #436 adds a small authenticated server-plan state and explicit link action without redesigning Inbox.
 
 ## Research
 
 Actual Budget's current import documentation allows a manually-entered transaction to be matched by a later import. Its import API also makes deleted-reimport behavior explicit. These are useful contract lessons: reconcile later evidence instead of blindly duplicating, and make deletion behavior deliberate.
 
-MoneyFlow intentionally does **not** adopt Actual's imported-data precedence. Source evidence in this slice cannot overwrite a user's amount, date, note, account, category, review state or reconciliation state.
+MoneyFlow intentionally does **not** adopt imported-data precedence. Source evidence in this slice cannot overwrite a user's amount, date, note, account, category, review state or reconciliation state.
 
 Firefly III Data Importer history repeatedly documents duplicate failures when source identity/data handling changes. The applicable lesson is conservative identity and explicit review, not copying provider-specific heuristics.
+
+Independent concurrency review against current PostgreSQL locking/isolation semantics also constrains this slice: the reviewed target row is locked and the match is recomputed before provenance insert, but a row lock is not a predicate lock against a brand-new matching transaction inserted after that final recheck. Because #436 is an explicit human-reviewed attach action and never auto-links or overwrites ledger data, that residual race is accepted for this bounded slice. Any future automatic attachment requires a stronger concurrency/idempotency contract rather than reusing this fallback as-is.
 
 External references are design evidence only. Current MoneyFlow code/tests and #432 remain authority.
 
@@ -64,21 +66,24 @@ Exact source external ID and existing provenance/fingerprint matching remain str
 1. derive `auth.uid()` and lock the candidate;
 2. be replay-safe when the candidate is already linked to the same transaction;
 3. reject another tenant, deleted target, transfer target, already-provenanced target or a target not equal to the current unique `existing_transaction_match` plan;
-4. write `transaction_import_provenance` using candidate source evidence and the reviewed match reason/confidence;
-5. mark the candidate approved and link `approved_transaction_id`;
-6. leave the target transaction and every entry unchanged;
-7. leave reconciliation state unchanged;
-8. never restore a deleted transaction or fabricate a source external ID.
+4. lock the reviewed target and recompute the narrow match before writing evidence;
+5. write `transaction_import_provenance` using candidate source evidence and the reviewed match reason/confidence;
+6. mark the candidate approved and link `approved_transaction_id`;
+7. leave the target transaction and every entry unchanged;
+8. leave reconciliation state unchanged;
+9. never restore a deleted transaction or fabricate a source external ID.
 
 ### UX
 
 Authenticated review loads the server plan only for persisted UUID candidates. A unique existing match shows **“Gắn nguồn, giữ nguyên sổ”** and explicitly states that ledger and reconciliation values stay unchanged and form edits are not applied by the attach action.
 
-The existing duplicate override remains the route to intentionally create a separate transaction. Ambiguous matches show a warning but no attach button. Demo IDs remain local and make no server-provenance claim.
+The existing duplicate override remains the route to intentionally create a separate transaction. Ambiguous matches show a warning but no attach button. Server-plan state is keyed by candidate identity so a prior candidate's match cannot leak into the next review. Demo IDs remain local and make no server-provenance claim.
 
 ### Deferred boundary
 
 The current provenance table permits one provenance row per ledger transaction. Supporting multiple independent source observations/source updates for one fact is a later P1 decision and must not be smuggled into this slice.
+
+Automatic source attachment is also deferred. The explicit review fallback in #436 is not an auto-merge primitive and must not be promoted to one without a stronger concurrency contract.
 
 ## Implementation plan
 
@@ -101,12 +106,12 @@ Rollback: revert this slice. Existing candidate approval and #435 Direct CSV ato
 | 436.1 | reconcile #434 lifecycle and inspect current main | done |
 | 436.2 | research manual→later-import reconciliation behavior | done |
 | 436.3 | persist issue/branch/packet/board authority | done |
-| 436.4 | add DB match/link contract + counterexample pgTAP | implementing |
-| 436.5 | add authenticated server action | implementing |
-| 436.6 | add explicit Inbox review decision | implementing |
-| 436.7 | unit/static/UI safety coverage | implementing |
-| 436.8 | exact-head Class 3 verification | pending |
-| 436.9 | independent evaluation/fixes | pending |
+| 436.4 | add DB match/link contract + counterexample pgTAP | done |
+| 436.5 | add authenticated server action | done |
+| 436.6 | add explicit Inbox review decision | done |
+| 436.7 | unit/static/UI safety coverage | done |
+| 436.8 | exact-head Class 3 verification | evaluating |
+| 436.9 | independent evaluation/fixes | evaluating |
 | 436.10 | owner merge handoff | pending |
 
 ## Evaluation
@@ -120,7 +125,10 @@ Acceptance requires one final exact head proving:
 - explicit link creates provenance and candidate approval linkage but no second financial transaction;
 - replay returns the same transaction and creates no second provenance row;
 - transaction kind/date/note/review/deletion state and entry account/category/amount/reconciliation state are unchanged by linking;
+- keyed UI plan state cannot expose a stale previous-candidate target;
 - no provider/native/AI capability is claimed;
 - risk-selected exact-head CI, database/security/browser and security scans are green before owner merge decision.
+
+Independent review found no silent ledger overwrite or tenant-leak path in the implemented boundary. The remaining concurrency limitation is intentionally bounded to explicit human review; it is a blocker for future automatic attachment, not for this review-only slice.
 
 If safe linking requires overwriting user data or guessing among multiple targets, stop and leave the candidate unresolved instead.
