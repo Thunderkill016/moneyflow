@@ -71,8 +71,20 @@ function refreshInboxAndFinancePages() {
 }
 
 function approvalErrorMessage(message: string): string {
+  if (message.includes("source_observation_changed")) {
+    return "Nguồn gửi lại cùng mã giao dịch nhưng bằng chứng đã thay đổi. MoneyFlow không khôi phục hoặc ghi đè trong thao tác này.";
+  }
   if (message.includes("source_external_id_duplicate")) {
     return "Giao dịch này đã được nhập từ cùng mã nguồn.";
+  }
+  if (
+    message.includes("deleted_source_match_required") ||
+    message.includes("transaction_not_deleted") ||
+    message.includes("source_provenance_not_found") ||
+    message.includes("candidate_not_restoreable") ||
+    message.includes("transaction_restore_race")
+  ) {
+    return "Giao dịch đã xóa không còn đủ điều kiện để khôi phục từ nguồn này. Hãy tải lại Inbox và kiểm tra lại.";
   }
   if (message.includes("existing_transaction_match_ambiguous")) {
     return "Có nhiều giao dịch đã có cùng tài khoản, ngày và số tiền. MoneyFlow không tự chọn để tránh gắn nhầm.";
@@ -193,6 +205,49 @@ export async function attachInboxCandidateToExistingTransactionAction(input: {
     return {
       ok: false,
       message: "Đã gắn nguồn nhưng chưa tải lại được giao dịch. Hãy làm mới trang trước khi thử lại.",
+    };
+  }
+  return { ok: true, transaction };
+}
+
+export async function restoreDeletedImportedTransactionAction(input: {
+  candidateId: string;
+  transactionId: string;
+}): Promise<InboxApprovalActionResult> {
+  const parsed = existingMatchSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, message: "Thông tin khôi phục giao dịch chưa hợp lệ." };
+  }
+
+  const viewer = await requireViewer();
+  if (viewer.isDemo) {
+    return { ok: false, message: "Khôi phục từ nguồn phía server chỉ áp dụng cho workspace đã đăng nhập." };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
+
+  const { data: transactionId, error } = await supabase.rpc(
+    "restore_deleted_imported_transaction_from_candidate",
+    {
+      p_candidate_id: parsed.data.candidateId,
+      p_transaction_id: parsed.data.transactionId,
+    },
+  );
+
+  if (error || typeof transactionId !== "string") {
+    return {
+      ok: false,
+      message: approvalErrorMessage(error?.message ?? "invalid_transaction_id"),
+    };
+  }
+
+  const transaction = await readTransactionById(supabase, transactionId);
+  refreshInboxAndFinancePages();
+  if (!transaction) {
+    return {
+      ok: false,
+      message: "Khôi phục có thể đã hoàn tất nhưng chưa tải lại được giao dịch. Hãy làm mới trang trước khi thực hiện lại.",
     };
   }
   return { ok: true, transaction };
