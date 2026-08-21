@@ -59,6 +59,17 @@ test("Inbox review is explicit and retries use candidate identity", () => {
     normalizedInboxReview,
     /Các chỉnh sửa trong form này không được áp dụng khi gắn nguồn/,
   );
+  assert.match(normalizedInboxReview, /Ghi nhận cập nhật nguồn/);
+  assert.match(
+    normalizedInboxReview,
+    /chỉ lưu quan sát nguồn mới và gắn nó với giao dịch đã có/,
+  );
+  assert.match(
+    normalizedInboxReview,
+    /MoneyFlow giữ nguyên loại, ngày, số tiền, tài khoản, danh mục, ghi chú và trạng thái đối soát/,
+  );
+  assert.match(inboxReview, /recordChangedSourceObservationAction/);
+  assert.match(inboxReview, /refreshServerPlanOrKeepCurrent/);
   assert.match(normalizedInboxReview, /Khôi phục giao dịch đã xóa/);
   assert.match(
     normalizedInboxReview,
