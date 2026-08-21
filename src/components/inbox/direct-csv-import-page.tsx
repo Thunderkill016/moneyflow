@@ -11,6 +11,7 @@ import {
   type ChangeEvent,
   type DragEvent,
 } from "react";
+import { commitDirectCsvImportAction } from "@/app/actions/direct-csv-import";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
@@ -29,6 +30,7 @@ import {
   directImportRowStatusLabel,
   formatDirectImportSummary,
   planDirectCsvImport,
+  toDirectImportAcquisitionRows,
   toDirectImportPosts,
   type DirectImportPlan,
 } from "@/lib/inbox/direct-csv-import";
@@ -145,6 +147,7 @@ export function DirectCsvImportPage({
   );
   const [skipDuplicates, setSkipDuplicates] = useState(true);
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
+  const [committedLedgerRows, setCommittedLedgerRows] = useState<LedgerLike[]>([]);
   const [resultSummary, setResultSummary] = useState<{
     created: number;
     failed: number;
@@ -163,7 +166,7 @@ export function DirectCsvImportPage({
     if (!accountId || !expenseCategoryId || !incomeCategoryId) return null;
     return planDirectCsvImport(
       parseResult.rows,
-      toLedgerLike(transactions),
+      [...toLedgerLike(transactions), ...committedLedgerRows],
       {
         accountId,
         expenseCategoryId,
@@ -177,6 +180,7 @@ export function DirectCsvImportPage({
   }, [
     parseResult,
     transactions,
+    committedLedgerRows,
     accountId,
     expenseCategoryId,
     incomeCategoryId,
@@ -286,7 +290,7 @@ export function DirectCsvImportPage({
   }
 
   async function runImport() {
-    if (!plan || plan.readyCount === 0 || phase === "importing") return;
+    if (!plan || !parseResult || plan.readyCount === 0 || phase === "importing") return;
     if (workspace.dataError) {
       setError(workspace.dataError);
       setReviewOpen(false);
@@ -300,44 +304,112 @@ export function DirectCsvImportPage({
 
     setPhase("importing");
     setError("");
-    const posts = toDirectImportPosts(plan.ready, () => crypto.randomUUID());
-    setImportProgress({ done: 0, total: posts.length });
-
-    let created = 0;
-    let failed = 0;
-    for (let index = 0; index < posts.length; index += 1) {
-      const result = await addTransaction(posts[index]!.input);
-      if (result.ok) created += 1;
-      else failed += 1;
-      setImportProgress({ done: index + 1, total: posts.length });
-    }
+    setResultSummary(null);
+    setImportProgress({ done: 0, total: plan.readyCount });
 
     const skipped = plan.duplicateCount + plan.transferSkipped + plan.invalidSkipped;
-    setResultSummary({ created, failed, skipped });
+
+    if (viewer.isDemo) {
+      const posts = toDirectImportPosts(plan.ready, () => crypto.randomUUID());
+      let created = 0;
+      let failed = 0;
+      for (let index = 0; index < posts.length; index += 1) {
+        const result = await addTransaction(posts[index]!.input);
+        if (result.ok) created += 1;
+        else failed += 1;
+        setImportProgress({ done: index + 1, total: posts.length });
+      }
+
+      setResultSummary({ created, failed, skipped });
+      setReviewOpen(false);
+      trackProductEvent("import_direct_committed", {
+        created_count: created,
+        failed_count: failed,
+        duplicate_count: plan.duplicateCount,
+        transfer_skipped: plan.transferSkipped,
+        source_type: "csv",
+        runtime_mode: "demo",
+      });
+
+      if (created > 0) {
+        setNotice(
+          failed === 0
+            ? `Đã ghi ${created} giao dịch vào bộ nhớ demo.`
+            : `Đã ghi ${created} giao dịch demo; ${failed} dòng lỗi.`,
+        );
+        setPhase("done");
+      } else {
+        setPhase("error");
+        setError(
+          failed > 0
+            ? "Không ghi được giao dịch demo. Kiểm tra dữ liệu và thử lại."
+            : "Không có dòng nào để ghi.",
+        );
+      }
+      return;
+    }
+
+    const acquisitionRows = toDirectImportAcquisitionRows(plan.ready);
+    const result = await commitDirectCsvImportAction({
+      fileName: fileName || parseResult.fileName || "statement.csv",
+      warningCount: parseResult.warningCount,
+      skippedRows: parseResult.skippedRows + skipped,
+      mapConfidence: parseResult.mapConfidence,
+      headers: parseResult.headers,
+      columnMap: parseResult.columnMap,
+      allowHeuristicDuplicates: !skipDuplicates,
+      rows: acquisitionRows,
+    });
+
     setReviewOpen(false);
+    if (!result.ok) {
+      setImportProgress({ done: 0, total: plan.readyCount });
+      setPhase("error");
+      setError(result.message);
+      trackProductEvent("import_direct_committed", {
+        created_count: 0,
+        failed_count: plan.readyCount,
+        duplicate_count: plan.duplicateCount,
+        transfer_skipped: plan.transferSkipped,
+        source_type: "csv",
+        runtime_mode: "authenticated",
+      });
+      router.refresh();
+      return;
+    }
+
+    const selectedAccountName =
+      accounts.find((account) => account.id === accountId)?.name ?? "Tài khoản";
+    const newlyCommitted: LedgerLike[] = result.transactionIds.map((id, index) => {
+      const row = plan.ready[index]!;
+      return {
+        id,
+        kind: row.kind,
+        amount: row.amount,
+        occurredOn: row.occurredOn,
+        note: row.note,
+        accountId: row.accountId,
+        account: selectedAccountName,
+      };
+    });
+    setCommittedLedgerRows((current) => [...newlyCommitted, ...current]);
+    setImportProgress({ done: result.transactionIds.length, total: plan.readyCount });
+    setResultSummary({
+      created: result.transactionIds.length,
+      failed: 0,
+      skipped,
+    });
+    setNotice(`Đã ghi trọn lượt ${result.transactionIds.length} giao dịch vào sổ.`);
+    setPhase("done");
     trackProductEvent("import_direct_committed", {
-      created_count: created,
-      failed_count: failed,
+      created_count: result.transactionIds.length,
+      failed_count: 0,
       duplicate_count: plan.duplicateCount,
       transfer_skipped: plan.transferSkipped,
       source_type: "csv",
+      runtime_mode: "authenticated",
     });
-
-    if (created > 0) {
-      setNotice(
-        failed === 0
-          ? `Đã ghi ${created} giao dịch vào sổ.`
-          : `Đã ghi ${created} giao dịch; ${failed} dòng lỗi.`,
-      );
-      setPhase("done");
-    } else {
-      setPhase("error");
-      setError(
-        failed > 0
-          ? "Không ghi được giao dịch. Kiểm tra tài khoản/danh mục và thử lại."
-          : "Không có dòng nào để ghi.",
-      );
-    }
+    router.refresh();
   }
 
   const mapOptions = headerOptions(headers);
@@ -351,7 +423,7 @@ export function DirectCsvImportPage({
   const selectedIncome = incomeCategories.find(
     (category) => category.id === incomeCategoryId,
   );
-  const busy = phase === "importing" || isMutating;
+  const busy = phase === "importing" || (viewer.isDemo && isMutating);
 
   return (
     <AppShell viewer={viewer} notice={notice}>
@@ -361,9 +433,9 @@ export function DirectCsvImportPage({
           title="Import CSV thẳng vào sổ"
           description={
             <p>
-              Luồng này bỏ qua Inbox và tạo giao dịch đã duyệt sau bước dry-run cùng
-              review cuối. Chuyển khoản bị bỏ qua vì cần hai tài khoản và phải đi qua
-              Capture → Inbox.
+              Review và dry-run ngay tại đây, không cần qua màn hình Inbox. Khi đã
+              đăng nhập, các dòng được ghi qua cùng contract provenance và theo một
+              lượt all-or-nothing; chuyển khoản vẫn cần Inbox để ghép hai tài khoản.
             </p>
           }
           actions={
@@ -390,8 +462,8 @@ export function DirectCsvImportPage({
         <Alert tone="warning" live="polite">
           <AlertDescription>
             Đây là đường nâng cao. Hãy kiểm tra map cột, dry-run và số dòng bỏ qua.
-            Không có một nút undo toàn batch; các giao dịch đã tạo phải được xử lý
-            theo lifecycle của sổ giao dịch.
+            Tài khoản đăng nhập ghi cả lượt hoặc không ghi dòng nào nếu một dòng lỗi;
+            thao tác undo sau khi đã commit vẫn theo lifecycle của từng giao dịch.
           </AlertDescription>
         </Alert>
 
@@ -665,7 +737,9 @@ export function DirectCsvImportPage({
 
                     {phase === "importing" ? (
                       <p className={styles.progress} role="status" aria-live="polite">
-                        Đang ghi {importProgress.done}/{importProgress.total}…
+                        {viewer.isDemo
+                          ? `Đang ghi ${importProgress.done}/${importProgress.total}…`
+                          : `Đang ghi trọn lượt ${importProgress.total} giao dịch…`}
                       </p>
                     ) : null}
 
@@ -729,7 +803,7 @@ export function DirectCsvImportPage({
           if (!open && !busy) setReviewOpen(false);
         }}
         title="Ghi trực tiếp giao dịch vào sổ?"
-        description="Xác nhận dry-run trước khi bỏ qua Inbox."
+        description="Xác nhận dry-run trước khi ghi các dòng đã duyệt."
         details={[
           { label: "File", value: fileName || "CSV" },
           { label: "Sẽ tạo", value: `${plan?.readyCount ?? 0} giao dịch` },
@@ -743,7 +817,11 @@ export function DirectCsvImportPage({
             value: `Chi: ${selectedExpense?.name ?? "—"} · Thu: ${selectedIncome?.name ?? "—"}`,
           },
         ]}
-        consequence="Các dòng đủ điều kiện sẽ trở thành giao dịch đã duyệt ngay và không xuất hiện trong Inbox. Chuyển khoản cùng dòng trùng/không hợp lệ được bỏ qua theo dry-run; không có undo toàn batch."
+        consequence={
+          viewer.isDemo
+            ? "Demo ghi từng dòng vào bộ nhớ trình duyệt. Chuyển khoản, dòng trùng và dòng không hợp lệ vẫn bị bỏ qua theo dry-run."
+            : "Tài khoản đăng nhập ghi toàn bộ các dòng đủ điều kiện trong một lượt: nếu một dòng bị máy chủ từ chối thì không dòng nào của lượt ghi trở thành giao dịch. Sau khi commit thành công, không có undo toàn batch; hoàn tác vẫn theo lifecycle của từng giao dịch."
+        }
         confirmLabel={`Ghi ${plan?.readyCount ?? 0} giao dịch`}
         confirmIntent="destructive"
         pending={busy}

@@ -185,3 +185,7 @@ DAU and feature count are not primary success metrics. A good MoneyFlow may requ
 MoneyFlow is ready for real self-use only when the relevant production authentication/recovery, physical-phone core flows, financial reconciliation, safe export and open P0/P1 conditions meet the release contract.
 
 Daily-use evidence remains important while broader modules are developed. New feature breadth never substitutes for trust/release evidence, and strategy work cannot close RRB/provider/legal/physical-device gates.
+
+### Historical release-gate decision
+
+The former requirement that the product be used for seven consecutive days was **Withdrawn 2026-08-12**. Nothing replaces it as a hidden time-based release criterion. Release readiness is determined by the explicit trust, financial, security, provider/legal and physical-device evidence named in the active release contract.
