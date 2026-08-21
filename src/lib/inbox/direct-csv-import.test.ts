@@ -9,6 +9,7 @@ import {
   directImportFingerprint,
   formatDirectImportSummary,
   planDirectCsvImport,
+  toDirectImportAcquisitionRows,
   toDirectImportPosts,
   type DirectImportMapping,
 } from "./direct-csv-import.ts";
@@ -56,11 +57,12 @@ test("planDirectCsvImport: sample-bank → ready income/expense, skip transfer",
   );
 
   assert.equal(plan.totalParsed, 4);
-  // CK noi bo is transfer → skipped
   assert.equal(plan.transferSkipped, 1);
   assert.equal(plan.readyCount, 3);
   assert.ok(plan.ready.every((r) => r.kind === "expense" || r.kind === "income"));
   assert.ok(plan.ready.every((r) => Number.isSafeInteger(r.amount) && r.amount > 0));
+  assert.ok(plan.ready.every((r) => r.rawSnippet.length > 0));
+  assert.ok(plan.ready.every((r) => ["high", "medium", "low"].includes(r.confidence)));
   const income = plan.ready.find((r) => r.kind === "income");
   assert.ok(income);
   assert.equal(income.amount, 25_000_000);
@@ -110,7 +112,7 @@ test("planDirectCsvImport: dedupe against ledger fingerprint", () => {
   const dup = plan.rows.find((r) => r.status === "duplicate");
   assert.ok(dup);
   assert.equal(dup.duplicateOfLedgerId, "existing-1");
-  assert.equal(plan.readyCount, 2); // 3 money - 1 dup; transfer still skipped
+  assert.equal(plan.readyCount, 2);
 });
 
 test("planDirectCsvImport: within-batch duplicate", () => {
@@ -178,7 +180,35 @@ test("planDirectCsvImport: invalid account → all invalid", () => {
   assert.equal(plan.invalidSkipped, 1);
 });
 
-test("toDirectImportPosts builds integer CreateTransactionInput", () => {
+test("toDirectImportAcquisitionRows preserves source evidence without inventing source ids", () => {
+  const text = readFileSync(join(fixturesDir, "sample-bank.csv"), "utf8");
+  const parsed = parseCsvStatement(text, {
+    fileName: "sample-bank.csv",
+    today: "2026-07-15",
+  });
+  const plan = planDirectCsvImport(
+    parsed.rows,
+    [],
+    baseMapping,
+    demoAccounts,
+    demoCategories,
+  );
+
+  const rows = toDirectImportAcquisitionRows(plan.ready);
+  assert.equal(rows.length, plan.readyCount);
+  for (const row of rows) {
+    const source = parsed.rows.find((item) => item.rowIndex === row.rowIndex);
+    assert.ok(source);
+    assert.equal(row.rawSnippet, source.rawSnippet);
+    assert.equal(row.confidence, source.confidence);
+    assert.equal(row.accountId, account.id);
+    assert.ok(row.categoryId.length > 0);
+    assert.equal(Object.hasOwn(row, "sourceExternalId"), false);
+    assert.equal(Object.hasOwn(row, "fingerprint"), false);
+  }
+});
+
+test("toDirectImportPosts builds integer CreateTransactionInput for browser-local demo", () => {
   const text = readFileSync(join(fixturesDir, "sample-bank.csv"), "utf8");
   const parsed = parseCsvStatement(text, { today: "2026-07-15" });
   const plan = planDirectCsvImport(
@@ -219,7 +249,6 @@ test("formatDirectImportSummary VN", () => {
 
 test("custom columnMap override on parse", () => {
   const text = "ColA,ColB,ColC\n12/07/2026,Shop,-50000\n";
-  // Headers won't auto-map well as ColA/B/C — override map
   const result = parseCsvStatement(text, {
     today: "2026-07-15",
     columnMap: { date: 0, desc: 1, amount: 2, debit: null, credit: null },
