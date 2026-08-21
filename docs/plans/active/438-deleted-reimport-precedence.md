@@ -5,6 +5,7 @@
 **Change class:** Class 3 — financial import/deletion boundary
 **Parent:** #432 P1 Acquisition Foundation
 **Branch:** `feat/438-deleted-reimport-precedence`
+**PR:** #439
 **Base:** `main@1ae4c765af9789a6a7e34179a1d3a2733eb436fe`
 **Owner:** human owner
 
@@ -116,7 +117,7 @@ Rollback: revert #438. The merged #435 atomic Direct CSV path and #437 manual→
 | 438.5 | implement deleted-source plan + reviewed restore RPC | done |
 | 438.6 | add server action + review UX | done |
 | 438.7 | unit/static/UI safety coverage | done |
-| 438.8 | exact-head Class 3 verification | pending |
+| 438.8 | exact-head Class 3 verification | implementing |
 | 438.9 | independent evaluation/fixes | implementing |
 | 438.10 | owner merge handoff | pending |
 
@@ -126,6 +127,8 @@ Pre-CI review already found and fixed two issues without weakening a checker:
 
 - the new pgTAP suite had 21 assertions but initially declared `plan(20)`;
 - client-side `possibleDuplicate` could otherwise have exposed a heuristic override under a hard server source-identity result, so hard server duplicates now veto both override and ordinary separate approval.
+
+PR #439 is non-draft. Only synchronize-triggered checks on the current post-ready head count as verification; draft or ready-transition false-green/skipped runs are not evidence.
 
 Acceptance still requires one final exact head proving:
 
