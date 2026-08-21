@@ -219,6 +219,11 @@
       "version": "20260821093500",
       "name": "20260821093500_deleted_source_reimport_precedence.sql",
       "hash": "aa5671198fd1006b54f352cd95781cd2"
+    },
+    {
+      "version": "20260821184500",
+      "name": "20260821184500_source_observation_precedence.sql",
+      "hash": "7d83da3f844e97cd28a77b3beae16518"
     }
   ]
 }
