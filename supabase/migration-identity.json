@@ -204,6 +204,11 @@
       "version": "20260812043219",
       "name": "20260812043219_remove_atoryn_from_moneyflow_project.sql",
       "hash": "3cf52f90e53bae37e4f1938607f86805"
+    },
+    {
+      "version": "20260821014500",
+      "name": "20260821014500_direct_csv_batch_atomic_approval.sql",
+      "hash": "9cffdebfbd4d8094d3405cec629d9b4f"
     }
   ]
 }
