@@ -393,16 +393,16 @@ select
 from public.inbox_candidates
 where id = '44020000-0000-4000-8000-000000000003'::uuid;
 
+delete from public.import_batches
+where id = '44010000-0000-4000-8000-000000000001'::uuid;
+
 select is(
   (
-    with removed as (
-      delete from public.import_batches
-      where id = '44010000-0000-4000-8000-000000000001'::uuid
-      returning id
-    )
-    select count(*)::integer from removed
+    select count(*)::integer
+    from public.import_batches
+    where id = '44010000-0000-4000-8000-000000000001'::uuid
   ),
-  1,
+  0,
   'owner can still delete import-batch metadata'
 );
 
