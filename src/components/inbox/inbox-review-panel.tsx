@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   attachInboxCandidateToExistingTransactionAction,
   planInboxCandidateAction,
+  restoreDeletedImportedTransactionAction,
 } from "@/app/actions/inbox-approval";
 import { InboxExplainPanel } from "@/components/inbox/inbox-explain-panel";
 import { MoneyValue } from "@/components/money-value";
@@ -88,6 +89,7 @@ export function InboxReviewPanel({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [attachBusy, setAttachBusy] = useState(false);
+  const [restoreBusy, setRestoreBusy] = useState(false);
   const [serverPlanState, setServerPlanState] = useState<{
     candidateId: string;
     plan: InboxDryRunResult | null;
@@ -128,21 +130,35 @@ export function InboxReviewPanel({
     () => categories.filter((item) => item.kind === moneyKind),
     [categories, moneyKind],
   );
+  const hardServerDuplicate =
+    serverPlan?.status === "duplicate" &&
+    !allowsExplicitDuplicateOverride(serverPlan);
   const showDuplicateOverride =
-    candidate?.possibleDuplicate === true ||
-    allowsExplicitDuplicateOverride(serverPlan) ||
-    error.includes("rất giống") ||
-    draft?.allowHeuristicDuplicate === true;
+    !hardServerDuplicate &&
+    (candidate?.possibleDuplicate === true ||
+      allowsExplicitDuplicateOverride(serverPlan) ||
+      error.includes("rất giống") ||
+      draft?.allowHeuristicDuplicate === true);
   const existingMatchTransactionId =
     serverPlan?.status === "duplicate" &&
     serverPlan.reason === "existing_transaction_match" &&
     serverPlan.matchedTransactionId
       ? serverPlan.matchedTransactionId
       : null;
+  const deletedSourceMatchTransactionId =
+    serverPlan?.status === "duplicate" &&
+    serverPlan.reason === "source_external_id_deleted_match" &&
+    serverPlan.matchedTransactionId
+      ? serverPlan.matchedTransactionId
+      : null;
+  const showChangedDeletedSource =
+    serverPlan?.status === "duplicate" &&
+    serverPlan.reason === "source_external_id_deleted_changed";
   const showAmbiguousExistingMatch =
     serverPlan?.status === "duplicate" &&
     serverPlan.reason === "existing_transaction_ambiguous";
-  const isBusy = busy || submitting || attachBusy;
+  const isBusy = busy || submitting || attachBusy || restoreBusy;
+  const blockSeparateApproval = hardServerDuplicate;
 
   if (!candidate || !draft) return null;
 
@@ -186,8 +202,32 @@ export function InboxReviewPanel({
     }
   }
 
+  async function handleRestoreDeletedSource() {
+    if (!deletedSourceMatchTransactionId) return;
+    setRestoreBusy(true);
+    setError("");
+    try {
+      const result = await restoreDeletedImportedTransactionAction({
+        candidateId: activeCandidate.id,
+        transactionId: deletedSourceMatchTransactionId,
+      });
+      if (!result.ok) {
+        setError(result.message);
+        setServerPlanState({ candidateId: activeCandidate.id, plan: null });
+        return;
+      }
+      // Reload both persisted Inbox resolution and the restored ledger fact
+      // together. The server action is replay-safe, but the UI never retries a
+      // financial mutation blindly after an ambiguous response.
+      window.location.reload();
+    } finally {
+      setRestoreBusy(false);
+    }
+  }
+
   async function handleApprove(event: FormEvent) {
     event.preventDefault();
+    if (blockSeparateApproval) return;
     const amount = parseMoneyInput(amountText);
     const nextDraft: CandidateReviewDraft = { ...activeDraft, amount };
     const post = buildLedgerPost(
@@ -230,7 +270,7 @@ export function InboxReviewPanel({
         if (!nextOpen && !isBusy) onClose();
       }}
       title="Duyệt giao dịch"
-      description="Kiểm tra ứng viên rồi chọn gắn nguồn vào giao dịch đã có hoặc tạo một giao dịch riêng."
+      description="Kiểm tra ứng viên rồi chọn gắn nguồn, khôi phục giao dịch đã xóa hoặc tạo một giao dịch riêng khi được phép."
       dismissible={!isBusy}
       initialFocusRef={merchantRef}
       className={styles.dialog}
@@ -251,6 +291,7 @@ export function InboxReviewPanel({
             form={formId}
             intent="primary"
             targetSize="important"
+            disabled={isBusy || blockSeparateApproval}
             pending={isBusy}
             pendingLabel="Đang ghi sổ…"
           >
@@ -292,6 +333,43 @@ export function InboxReviewPanel({
         {planLoading ? (
           <Alert tone="info" live="polite">
             <AlertDescription>Đang đối chiếu với giao dịch đã có…</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {deletedSourceMatchTransactionId && serverPlan ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              <p>{dryRunUserMessage(serverPlan)}</p>
+              <p>
+                Khôi phục sẽ dùng lại chính giao dịch MoneyFlow đã xóa và giữ nguyên loại,
+                ngày, số tiền, tài khoản, danh mục, ghi chú và trạng thái đối soát đang lưu.
+                Dữ liệu mới trong nguồn và các chỉnh sửa trong form này không được áp dụng
+                khi khôi phục.
+              </p>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                disabled={isBusy}
+                pending={restoreBusy}
+                pendingLabel="Đang khôi phục…"
+                onClick={() => void handleRestoreDeletedSource()}
+              >
+                Khôi phục giao dịch đã xóa
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {showChangedDeletedSource && serverPlan ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              <p>{dryRunUserMessage(serverPlan)}</p>
+              <p>
+                Giữ giao dịch đã xóa ở nguyên trạng. Không có nút khôi phục hoặc đường
+                vòng tạo riêng cho cùng mã nguồn trong bước này.
+              </p>
+            </AlertDescription>
           </Alert>
         ) : null}
 

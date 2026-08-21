@@ -25,12 +25,14 @@ where n.nspname = 'public'
 -- 34 before R7. `restore_user_archive` and `remove_archive_restore_batch` were
 -- the two deliberate R7 additions: fifteen tenant tables deny INSERT to
 -- `authenticated`, so restore cannot be SECURITY INVOKER. #434 added the
--- reviewed `approve_inbox_candidates_batch` boundary. #436 adds exactly one
--- authenticated privileged boundary: explicit reviewed provenance attachment
--- to an existing transaction. Its read-only matcher is not browser-executable.
+-- reviewed `approve_inbox_candidates_batch` boundary. #436 added explicit
+-- reviewed provenance attachment to an existing transaction. #438 adds exactly
+-- one authenticated privileged boundary: explicit reviewed restoration of a
+-- deleted exact-source-ID imported transaction. Planning remains the existing
+-- browser-executable boundary and the read-only matcher is not browser-executable.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  38,
+  39,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 
