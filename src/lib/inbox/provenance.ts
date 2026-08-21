@@ -82,6 +82,13 @@ const MATCH_STATUSES: ImportMatchStatus[] = [
   "invalid",
 ];
 
+const REVIEWABLE_DUPLICATE_REASONS = new Set([
+  "fingerprint_transaction_match",
+  "fingerprint_candidate_match",
+  "existing_transaction_match",
+  "existing_transaction_ambiguous",
+]);
+
 const PARSER_VERSION_BY_SOURCE: Record<CandidateSource, string> = {
   paste: "paste_text@1.0",
   csv: "csv_import@1.0",
@@ -209,6 +216,15 @@ export function parseInboxDryRunResult(value: unknown): InboxDryRunResult {
     matchedCandidateId,
     matchedTransactionId,
   };
+}
+
+export function allowsExplicitDuplicateOverride(
+  result: InboxDryRunResult | null | undefined,
+): boolean {
+  return (
+    result?.status === "duplicate" &&
+    REVIEWABLE_DUPLICATE_REASONS.has(result.reason)
+  );
 }
 
 export function dryRunUserMessage(result: InboxDryRunResult): string {
