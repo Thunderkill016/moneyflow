@@ -224,6 +224,11 @@
       "version": "20260821184500",
       "name": "20260821184500_source_observation_precedence.sql",
       "hash": "7d83da3f844e97cd28a77b3beae16518"
+    },
+    {
+      "version": "20260821190000",
+      "name": "20260821190000_source_observation_guard_compat.sql",
+      "hash": "9f1d14b54393514c0f11dfc82c9f2b8c"
     }
   ]
 }
