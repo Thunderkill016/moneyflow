@@ -48,6 +48,34 @@ test("hard exact-source duplicate never exposes the separate-transaction overrid
   assert.match(dryRunUserMessage(result), /cùng mã nguồn/i);
 });
 
+test("deleted exact-source match is restore-reviewable but never heuristic-overridable", () => {
+  const transactionId = "43800000-0000-4000-8000-000000000098";
+  const result = parseInboxDryRunResult({
+    status: "duplicate",
+    reason: "source_external_id_deleted_match",
+    confidence: 1,
+    matched_transaction_id: transactionId,
+  });
+
+  assert.equal(result.matchedTransactionId, transactionId);
+  assert.equal(allowsExplicitDuplicateOverride(result), false);
+  assert.match(dryRunUserMessage(result), /khôi phục/i);
+  assert.match(dryRunUserMessage(result), /không ghi đè/i);
+});
+
+test("changed evidence under a deleted exact source ID stays blocked", () => {
+  const result = parseInboxDryRunResult({
+    status: "duplicate",
+    reason: "source_external_id_deleted_changed",
+    confidence: 1,
+    matched_transaction_id: "43800000-0000-4000-8000-000000000097",
+  });
+
+  assert.equal(allowsExplicitDuplicateOverride(result), false);
+  assert.match(dryRunUserMessage(result), /nội dung đã thay đổi/i);
+  assert.match(dryRunUserMessage(result), /không tự khôi phục hoặc ghi đè/i);
+});
+
 test("already-approved candidate never exposes the separate-transaction override", () => {
   const result = parseInboxDryRunResult({
     status: "duplicate",
