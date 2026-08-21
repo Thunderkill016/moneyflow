@@ -1,9 +1,11 @@
 /**
- * Power-user direct CSV → ledger (TASK-131).
- * Mapped CSV rows become approved income/expense transactions.
- * Dedupe via fingerprint against existing ledger + within-batch.
- * Transfers are skipped (need two accounts — use Inbox path).
- * Money = integer VND đồng. Pure planning helpers — no I/O.
+ * Power-user Direct CSV planning (TASK-131 / #434).
+ *
+ * The preview stays client-side and conservative. Authenticated commit now uses
+ * the persisted acquisition/provenance boundary; demo can still use the legacy
+ * browser-local post payload. Client fingerprints are preview aids only — the
+ * database computes the canonical persisted candidate fingerprint.
+ * Money = integer VND đồng. Pure helpers — no I/O.
  */
 
 import type {
@@ -12,6 +14,7 @@ import type {
   CreateTransactionInput,
   TransactionKind,
 } from "../sample-data.ts";
+import type { CandidateConfidence } from "./candidate-store.ts";
 import {
   fnv1aHex,
   fingerprintParts,
@@ -45,6 +48,9 @@ export type DirectImportRowPlan = {
   merchant: string;
   categoryId: string;
   accountId: string;
+  confidence: CandidateConfidence;
+  rawSnippet: string;
+  /** Preview-only fingerprint. Persisted candidates are fingerprinted by DB. */
   fingerprint: string;
   status: DirectImportRowStatus;
   duplicateOfLedgerId?: string;
@@ -61,6 +67,25 @@ export type DirectImportPlan = {
   totalParsed: number;
 };
 
+/**
+ * Minimal source evidence sent to the authenticated Direct CSV commit action.
+ * There is intentionally no `sourceExternalId`: ordinary CSV rows do not expose
+ * a bank/provider stable identifier in the current parser contract.
+ */
+export type DirectCsvAcquisitionRow = {
+  rowIndex: number;
+  kind: TransactionKind;
+  amount: number;
+  occurredOn: string;
+  note: string;
+  merchant: string;
+  categoryId: string;
+  accountId: string;
+  confidence: CandidateConfidence;
+  rawSnippet: string;
+};
+
+/** Legacy browser-local demo post payload. */
 export type DirectImportPostItem = {
   input: CreateTransactionInput;
   fingerprint: string;
@@ -72,8 +97,8 @@ function isMoneyKind(kind: ParsedCsvRow["kind"]): kind is TransactionKind {
 }
 
 /**
- * Fingerprint for a planned ledger row (matches ledger after post).
- * Uses accountId|date|amount|note material — same as ledgerFingerprint.
+ * Fingerprint for a previewed ledger row (matches the current client ledger
+ * fingerprint helper). This is not persisted as source identity.
  */
 export function directImportFingerprint(item: {
   accountId: string;
@@ -102,9 +127,7 @@ function resolveCategoryId(
   return found ? found.id : null;
 }
 
-/**
- * Build import plan: map parsed CSV rows → ready posts with dedupe.
- */
+/** Build import preview: map parsed CSV rows → ready rows with conservative dedupe. */
 export function planDirectCsvImport(
   parsed: ParsedCsvRow[],
   ledger: LedgerLike[],
@@ -139,6 +162,11 @@ export function planDirectCsvImport(
   const rows: DirectImportRowPlan[] = [];
 
   for (const item of parsed) {
+    const evidence = {
+      confidence: item.confidence,
+      rawSnippet: item.rawSnippet,
+    };
+
     if (item.kind === "transfer") {
       rows.push({
         rowIndex: item.rowIndex,
@@ -152,6 +180,7 @@ export function planDirectCsvImport(
         fingerprint: "",
         status: skipTransfers ? "skipped_transfer" : "skipped_invalid",
         reason: "Dòng chuyển khoản — dùng Inbox để ghép hai tài khoản.",
+        ...evidence,
       });
       continue;
     }
@@ -169,6 +198,7 @@ export function planDirectCsvImport(
         fingerprint: "",
         status: "skipped_invalid",
         reason: "Loại giao dịch không hỗ trợ.",
+        ...evidence,
       });
       continue;
     }
@@ -186,6 +216,7 @@ export function planDirectCsvImport(
         fingerprint: "",
         status: "skipped_invalid",
         reason: "Số tiền không hợp lệ.",
+        ...evidence,
       });
       continue;
     }
@@ -203,6 +234,7 @@ export function planDirectCsvImport(
         fingerprint: "",
         status: "skipped_invalid",
         reason: "Ngày không hợp lệ.",
+        ...evidence,
       });
       continue;
     }
@@ -221,6 +253,7 @@ export function planDirectCsvImport(
         fingerprint: "",
         status: "skipped_invalid",
         reason: "Chưa chọn danh mục thu/chi phù hợp.",
+        ...evidence,
       });
       continue;
     }
@@ -253,6 +286,7 @@ export function planDirectCsvImport(
           status: "duplicate",
           duplicateOfLedgerId: ledgerId,
           reason: "Trùng giao dịch đã có trên sổ (fingerprint).",
+          ...evidence,
         });
         continue;
       }
@@ -271,6 +305,7 @@ export function planDirectCsvImport(
           fingerprint,
           status: "duplicate",
           reason: `Trùng dòng ${batchPeer} trong cùng file.`,
+          ...evidence,
         });
         continue;
       }
@@ -288,6 +323,7 @@ export function planDirectCsvImport(
       accountId: account.id,
       fingerprint,
       status: "ready",
+      ...evidence,
     });
   }
 
@@ -303,9 +339,27 @@ export function planDirectCsvImport(
   };
 }
 
-/**
- * Build create payloads for ready rows. Caller supplies idempotency keys.
- */
+/** Build authenticated acquisition rows without inventing source IDs/fingerprints. */
+export function toDirectImportAcquisitionRows(
+  ready: DirectImportRowPlan[],
+): DirectCsvAcquisitionRow[] {
+  return ready
+    .filter((row) => row.status === "ready")
+    .map((row) => ({
+      rowIndex: row.rowIndex,
+      kind: row.kind,
+      amount: row.amount,
+      occurredOn: row.occurredOn,
+      note: row.note,
+      merchant: row.merchant,
+      categoryId: row.categoryId,
+      accountId: row.accountId,
+      confidence: row.confidence,
+      rawSnippet: row.rawSnippet,
+    }));
+}
+
+/** Build browser-local demo create payloads. Caller supplies idempotency keys. */
 export function toDirectImportPosts(
   ready: DirectImportRowPlan[],
   makeIdempotencyKey: () => string,
