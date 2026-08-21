@@ -1,19 +1,19 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-21
-**Current main baseline:** `1ae4c765af9789a6a7e34179a1d3a2733eb436fe` (PR #437 merged)
+**Current main baseline:** `d5324c473c2453869dc45dcd4cf5634ecbf97ea3` (PR #439 merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; P1 RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
 
 ## NOW
 
-- [ ] **#438 — P1 deleted-source reimport precedence** — third bounded Acquisition Foundation slice. Exact `source_external_id` currently returns the same hard-duplicate result whether the canonical imported transaction is live or soft-deleted. Make deleted-source behavior an explicit reviewed decision: never auto-restore; distinguish deleted unchanged evidence from materially changed repeat evidence; allow an explicit restore of the same transaction only for the bounded unchanged-evidence case while preserving ledger/reconciliation values and canonical provenance. **Done when:** live exact-ID stays hard duplicate; deleted exact-ID is explicitly reviewable; changed repeat evidence cannot silently restore; restore reuses one transaction, audits `transaction_restored`, is replay/tenant safe, and exact-head Class 3 CI/database/security/browser evidence is green. **Next actor:** agent on `feat/438-deleted-reimport-precedence`; owner merge decision after handoff.
+- [ ] **#440 — P1 changed source-observation precedence** — fourth bounded Acquisition Foundation slice. A live canonical transaction with the same stable source ID but changed source evidence must be distinguishable from an unchanged replay. Reuse persisted Inbox candidates as observation history, keep `transaction_import_provenance` as the canonical identity anchor, and add an explicit reviewed “record source update” path that links the observation without rewriting ledger/reconciliation truth. Harden approved source observations against silent rewrite/delete while preserving import-batch FK cleanup. **Done when:** changed same-ID evidence has a distinct hard plan; reviewed resolution changes observation linkage only; replay/tenant/evidence-durability contracts hold; exact-head Class 3 CI/database/security/browser evidence is green. **Next actor:** agent on `feat/440-source-observation-precedence`; owner merge decision after handoff.
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
 ## NEXT
 
-- [ ] **#432 P1 — source-update precedence** — after #438, define how the same stable source ID can produce later observations such as pending→cleared or provider corrections without overwriting user-corrected ledger truth; decide whether one-to-many source observations need a dedicated model.
+- [ ] **#432 P1 — explicit source lifecycle / predecessor identity** — after #440, bound how provider-supplied pending→posted replacement identity, removed/modified observations and clearing semantics interact with the ledger. Do not infer different-ID lineage heuristically.
 - [ ] **#432 P1 — migrate the next real source path** — after source identity/update lifecycle is explicit, migrate one real file/share path through the same candidate/provenance/reconciliation contract rather than opening a parallel ledger write path.
 - [ ] **#432 P2 — Low-Maintenance Ingestion** — expand real Vietnamese file/share sources, merchant/payee normalization and exception-first review; reduce interventions/100 transactions without reducing match precision.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
@@ -26,7 +26,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 - [ ] **RRB-04 — provider/Auth/firewall read-back** — current provider state plus #40/#174 decisions require provider read access; no provider write is authorized.
 - [ ] **RRB-06 — Vietnam personal-data legal/privacy operational review** — competent owner/legal review required.
 - [ ] **RRB-09 — production deployment/provider identity read-back** — requires current provider/deployment evidence.
-- [ ] **Controlled closed beta / public beta** — blocked by the corresponding release-readiness contract; #432 strategy work does not weaken it.
+- [ ] **Controlled closed beta / public beta** — blocked by the corresponding release-readiness contract; #432 product work does not weaken it.
 
 ## OWNER DECISION
 
@@ -45,7 +45,8 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE / DURABLE INPUT
 
-- [x] **#436 / PR #437** — authenticated Inbox can reconcile later non-manual source evidence to one reviewed existing unprovenanced money transaction without creating a second fact or overwriting user corrections. Exact source identity and transfer suspicion keep stronger precedence; ambiguous/deleted/provenanced targets stay unresolved/ineligible. Final head `83957701…` passed CI #2758, CodeQL #1819 and Secret history #1819 before squash merge as `1ae4c765…`.
+- [x] **#438 / PR #439** — deleted exact-source reimport is now explicit: live same-ID remains hard duplicate; deleted unchanged evidence can be reviewed to restore the same transaction; deleted changed evidence stays blocked; restore preserves ledger/reconciliation/canonical provenance. Final head `00384172…` passed CI #2766, CodeQL #1826 and Secret history #1826 before squash merge as `d5324c47…`.
+- [x] **#436 / PR #437** — authenticated Inbox can reconcile later non-manual source evidence to one reviewed existing unprovenanced money transaction without creating a second fact or overwriting user corrections. Final head `83957701…` passed CI #2758, CodeQL #1819 and Secret history #1819 before squash merge as `1ae4c765…`.
 - [x] **#434 / PR #435** — authenticated Direct CSV persists acquisition evidence and commits selected rows through one batch-atomic approval boundary; exact-head CI #2738, CodeQL #1800 and Secret history #1800 were green before squash merge as `38ae8f86…`.
 - [x] **#432 P0 / PR #433** — acquisition-first long-term direction, target architecture, reference-repo atlas and program tracking merged as `a35d6f96…`; exact-head CI #2728, CodeQL #1791 and Secret history #1791 were green.
 - [x] **#430/#429/#428** — repository truth/hygiene reconciliation before the strategy merge.
@@ -60,7 +61,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 | Packet | Role now | Authority boundary |
 |---|---|---|
-| `438-deleted-reimport-precedence.md` | **current agent-executable Class 3 slice** | reviewed deleted exact-source-ID restoration only; no source-update/provider/native/AI scope |
+| `440-source-observation-precedence.md` | **current agent-executable Class 3 slice** | live same-ID changed observation preservation only; no provider/different-ID lifecycle/automatic ledger update scope |
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates; child slice owns current implementation detail |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
