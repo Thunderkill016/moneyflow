@@ -220,6 +220,12 @@ export function dryRunUserMessage(result: InboxDryRunResult): string {
     if (result.reason === "source_external_id_match") {
       return "Giao dịch này đã được nhập từ cùng mã nguồn.";
     }
+    if (result.reason === "existing_transaction_match") {
+      return "Đã có một giao dịch cùng tài khoản, ngày và số tiền. Bạn có thể gắn nguồn vào giao dịch đó mà không sửa dữ liệu trong sổ.";
+    }
+    if (result.reason === "existing_transaction_ambiguous") {
+      return "Có nhiều giao dịch đã có cùng tài khoản, ngày và số tiền. MoneyFlow không tự chọn để tránh gắn nhầm.";
+    }
     return "Có giao dịch rất giống đã tồn tại. Hãy kiểm tra trước khi duyệt.";
   }
   if (result.reason === "account_required") return "Hãy chọn tài khoản.";
