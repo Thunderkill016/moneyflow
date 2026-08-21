@@ -6,7 +6,7 @@ import { getFinanceWorkspace } from "@/server/finance";
 export const metadata: Metadata = {
   title: "Import CSV vào sổ — Money Flow",
   description:
-    "Power-user: map cột CSV, ghi thu/chi đã duyệt thẳng vào sổ, bỏ qua Inbox, dedupe fingerprint.",
+    "Power-user: map và dry-run CSV, rồi ghi thu/chi đã duyệt qua contract import có provenance; tài khoản đăng nhập commit theo lượt all-or-nothing.",
 };
 
 export default async function Page() {
