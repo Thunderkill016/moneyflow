@@ -47,15 +47,22 @@ test("Categories owns identity and reversible hide review", () => {
 });
 
 test("Inbox review is explicit and retries use candidate identity", () => {
+  const normalizedInboxReview = normalizeSource(inboxReview);
   assert.match(inbox, /SecondaryWorkspace slot="inbox-workspace"/);
   assert.match(inbox, /approvalIdempotencyKey\(candidate\.id\)/);
   assert.match(inbox, /không tạo giao dịch trùng/);
   assert.match(inboxReview, /data-slot="inbox-review"/);
   assert.match(inboxReview, /Độ tin thấp/);
-  assert.match(inboxReview, /Gắn nguồn, giữ nguyên sổ/);
-  assert.match(inboxReview, /trạng thái đối soát của giao dịch đã có/);
-  assert.match(inboxReview, /Các chỉnh sửa trong form này không được áp dụng khi gắn nguồn/);
-  assert.match(inboxReview, /cố ý muốn tạo một giao dịch riêng thay vì gắn nguồn/);
+  assert.match(normalizedInboxReview, /Gắn nguồn, giữ nguyên sổ/);
+  assert.match(normalizedInboxReview, /trạng thái đối soát của giao dịch đã có/);
+  assert.match(
+    normalizedInboxReview,
+    /Các chỉnh sửa trong form này không được áp dụng khi gắn nguồn/,
+  );
+  assert.match(
+    normalizedInboxReview,
+    /cố ý muốn tạo một giao dịch riêng thay vì gắn nguồn/,
+  );
   assert.match(inboxBulk, /slot="inbox-bulk-confirmation"/);
   assert.match(inboxBulk, /Xác nhận hành động hàng loạt/);
 });
