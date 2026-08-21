@@ -135,8 +135,12 @@ export function InboxReviewPanel({
   const hardServerDuplicate =
     serverPlan?.status === "duplicate" &&
     !allowsExplicitDuplicateOverride(serverPlan);
+  const planUnavailable =
+    shouldLoadServerPlan && activeServerPlanState !== null && serverPlan === null;
+  const blockSeparateApproval =
+    hardServerDuplicate || planLoading || planUnavailable;
   const showDuplicateOverride =
-    !hardServerDuplicate &&
+    !blockSeparateApproval &&
     (candidate?.possibleDuplicate === true ||
       allowsExplicitDuplicateOverride(serverPlan) ||
       error.includes("rất giống") ||
@@ -167,7 +171,6 @@ export function InboxReviewPanel({
     serverPlan.reason === "existing_transaction_ambiguous";
   const isBusy =
     busy || submitting || attachBusy || restoreBusy || sourceObservationBusy;
-  const blockSeparateApproval = hardServerDuplicate;
 
   if (!candidate || !draft) return null;
 
@@ -372,6 +375,16 @@ export function InboxReviewPanel({
         {planLoading ? (
           <Alert tone="info" live="polite">
             <AlertDescription>Đang đối chiếu với giao dịch đã có…</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {planUnavailable ? (
+          <Alert tone="warning" live="assertive">
+            <AlertDescription>
+              Chưa tải được kết quả đối chiếu từ máy chủ. MoneyFlow tạm khóa “Duyệt vào
+              sổ” để tránh tạo giao dịch riêng khi quyết định nguồn chưa được xác nhận.
+              Hãy đóng rồi mở lại mục này hoặc tải lại trang để thử đối chiếu lại.
+            </AlertDescription>
           </Alert>
         ) : null}
 
