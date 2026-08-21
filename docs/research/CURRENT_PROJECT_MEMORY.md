@@ -1,228 +1,186 @@
 # MoneyFlow — current project memory
 
 **Status:** single current implementation/trust-status authority
-**Last reconciled:** 2026-08-15
-**Current main baseline:** `e8a4a10e47cdd90b993eadd034fe97593b271adb` (#399 merged)
-**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
+**Last reconciled:** 2026-08-21
+**Current main baseline:** `1ae4c765af9789a6a7e34179a1d3a2733eb436fe` (PR #437 merged)
+**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing execution queue is `docs/plans/active/README.md`.
 
 ## 1. Current decision
 
-MoneyFlow is a released functional MVP and is **not public-beta ready**.
+MoneyFlow is a functional Vietnamese personal-finance product and is **not public-beta ready**.
 
-Release Readiness Audit v1 (#388) is the canonical release audit. RRB-01 and RRB-07 have since been closed by current-main browser/runtime evidence in #391 and #394. On 2026-08-15 the owner explicitly promoted RRB-08 as the next current task; issue #398 and `docs/plans/active/rrb-08-physical-device-proof.md` own that bounded validation. PR #399 completed the repository-side preparation without claiming physical-device PASS.
+The merged #432 program is the current product-direction authority. The long-term product is a low-maintenance, provider-independent PFM: safely acquirable digital transactions should not require retyping, while the ledger remains the single financial source of truth. Manual entry remains a fallback for cash, missing evidence and corrections rather than the intended primary long-term workflow.
 
-Current release decision:
+Product dependency order is:
+
+> trusted ledger → acquisition + reconciliation → understanding → planning → automation → selective connectivity → wealth → together → optional intelligence
+
+Source adapters may create normalized evidence/candidates, not arbitrary balances or silently rewritten ledger facts. Human review remains the boundary for weak matches. Exact source identity is stronger than heuristic similarity. False merges are worse than visible duplicates.
+
+Release readiness is a separate lane from product development:
 
 - public beta: **BLOCKED**;
-- controlled closed beta: **BLOCKED on remaining P1 entry gates RRB-04, RRB-05, RRB-06 and RRB-09**;
-- core finance arithmetic, transfer neutrality, RLS/tenant isolation and local archive/restore contracts remain strongly covered at their correct layers;
-- authenticated rendered mixed-ledger financial truth is proven on current main;
-- MoneyFlow-owned login/re-auth/recovery password mechanisms now have explicit WCAG 2.2 Accessible Authentication browser evidence, without claiming provider-managed OAuth/Turnstile conformance;
-- RRB-08 is the current owner-authorized P2 validation task; its runbook is merged, but completion remains blocked until a real phone is available for observation.
+- controlled closed beta: **BLOCKED on P1 release gates RRB-04, RRB-05, RRB-06 and RRB-09**;
+- RRB-08 still requires current owner-observed physical-phone evidence; browser/emulation/CI cannot close it;
+- RRB-02/RRB-03 remain later owner/provider proof-or-limitation decisions.
 
-Current sequence:
-
-> RRB-08 real-phone proof when the physical device is available + owner/provider/legal/read-access P1 gates RRB-04/05/06/09 → remaining owner-assisted P2 proof or explicit limitation for RRB-02/03 → controlled closed beta after P1 clearance → owner PBT-AC15 decision.
-
-The owner-facing checklist is `docs/plans/active/README.md`.
+Product work never substitutes for provider read-back, production evidence, legal review, physical-device proof or owner go/no-go decisions.
 
 ## 2. Current runtime and financial truth
 
 - `authenticated` uses Supabase Auth/PostgreSQL with RLS; `demo` is explicit browser-local exploration.
 - Missing credentials never select demo implicitly.
-- VND is integer đồng; transfers are balanced account movements and never income/expense.
-- Destructive ledger actions use recoverable/soft-delete behavior where the product contract requires it.
-- Authenticated data remains server-owned; demo state remains browser-local.
-- Complete versioned archive lives at `/settings/backup`, separate from scoped/report export.
-- Hosted export was accepted; hosted restore remains unexecuted and is RRB-02.
+- VND is integer đồng.
+- Transfers are balanced account movements and are neutral to income/expense/net.
+- Authenticated ledger data is server-owned; demo state is browser-local.
+- Ledger facts support edit plus recoverable/soft-delete behavior where the product contract requires it.
+- Accounts support balances, register/history, archive/restore and reconciliation.
+- Planning currently includes category budgets, recurring commitments/income and savings goals.
+- Understanding currently includes weekly/monthly/yearly reports and controlled import/export surfaces.
+- Complete versioned archive lives at `/settings/backup`, separate from scoped/report export. Hosted restore remains unexecuted and belongs to RRB-02.
 - Evidence layers remain separate: repository/static, unit/domain, database, browser, provider read-back, production runtime, physical device and owner/legal decision cannot silently prove one another.
 
-### RRB-01 accepted browser proof
+## 3. Acquisition and reconciliation truth on current main
 
-PR #391 / issue #390 added one deterministic authenticated two-account mixed ledger with independent literal expectations and strict Supabase-double miss detection.
+### #434 / PR #435 — Direct CSV boundary
 
-Current rendered proof establishes:
+Merged as `38ae8f8694554d8d69508f86bcc66b2bdfe68b95`.
 
-- aggregate balance: `2,700,000` VND;
-- income: `2,000,000` VND;
-- expense: `300,000` VND;
-- net: `1,700,000` VND;
-- internal transfer: `500,000` VND, visibly transfer-toned and neutral to income/expense/net;
-- cash balance: `1,200,000` VND;
-- bank balance: `1,500,000` VND;
-- authenticated `get_dashboard_bundle`, accounts and account-balances paths are exercised with zero unserved double requests.
+Authenticated Direct CSV no longer loops ordinary transaction creation row-by-row. It persists import batches/candidates/provenance evidence and commits selected rows through one batch-atomic approval boundary. If one selected financial approval fails, the financial batch rolls back rather than leaving a partial ledger commit. Candidate/import evidence may remain for review/recovery.
 
-The proof is browser/runtime-composition evidence. It does not replace database/RLS/provider evidence.
+The persisted acquisition model already carries source identity and provenance fields including source row index, optional stable `source_external_id`, versioned fingerprint, parser/mapping versions, match status/reason/confidence, transfer evidence, rule evidence and approval linkage.
 
-### RRB-07 accepted browser/accessibility proof
+### #436 / PR #437 — later source evidence for an existing fact
 
-PR #394 / issue #393 added an explicit WCAG 2.2 SC 3.3.8 Accessible Authentication audit for MoneyFlow-owned browser mechanisms.
+Merged as `1ae4c765af9789a6a7e34179a1d3a2733eb436fe` after exact head `83957701cf38647729d35956d6b5af132641a5dd` passed CI #2758, CodeQL #1819 and Secret history #1819.
 
-Final current-main evidence establishes:
+Current authenticated Inbox planning now preserves this precedence:
 
-- login email/password purpose semantics, password paste and visible Google OAuth alternative;
-- account-deletion re-auth exposes the same password-manager/paste mechanism and OAuth alternative without executing deletion;
-- forgot-password email purpose/paste behavior;
-- replacement password uses `new-password` and accepts paste;
-- registration retains supporting new-credential semantics without being overclaimed as the core authentication target.
+1. candidate already approved;
+2. exact source external ID;
+3. canonical fingerprint duplicate evidence;
+4. transfer suspicion;
+5. conservative reviewed fallback to an existing unprovenanced money fact;
+6. account/category validity;
+7. would-create.
 
-The proof exposed one real shared-component defect: `AuthPasswordField` placed the reveal button inside the same implicit label as the password input, producing the accessible name `Mật khẩu Hiện mật khẩu`. #394 replaced that relationship with an explicit input label and adjacent independently named reveal button while preserving autocomplete, reveal behavior, geometry, focus and hit-area contracts.
+The reviewed existing-ledger fallback is intentionally narrow: same owner, income/expense kind, account, date and exact signed amount; one-entry, non-deleted, non-generated, unprovenanced fact only. One eligible fact becomes `existing_transaction_match`; multiple eligible facts become `existing_transaction_ambiguous` with no arbitrary target.
 
-Provider-managed Google OAuth and Cloudflare Turnstile behavior remain separate evidence boundaries; #394 does not certify whole-site WCAG conformance.
+`attach_inbox_candidate_to_existing_transaction()` writes source provenance + candidate approval linkage to the reviewed existing transaction without modifying its kind, date, note, account, category, amount, review state or reconciliation state. User corrections therefore outrank later imported evidence in this boundary.
 
-## 3. Current execution and repository lifecycle truth
+Exact source-ID duplicates remain hard duplicates and do not expose the heuristic separate-transaction override. Transfer suspicion outranks the weaker existing-ledger fallback.
 
-Release Readiness Audit v1 is complete and archived. RRB-01 is complete through #391. RRB-07 is complete through #394.
+Important limitation: reviewed attachment is **not** an automatic-link primitive. The target row is locked and the narrow match is recomputed, but the current implementation is deliberately human-reviewed; future automatic attachment requires a stronger concurrency/idempotency contract.
 
-**RRB-08 is the current owner-authorized task via issue #398.** Repository-side preparation is complete through #399: the bounded physical-device runbook/evidence template is now on main. Browser emulation, simulators and CI cannot close RRB-08. The task remains incomplete until a real phone is observed against a selected release-candidate origin and the evidence records device/OS/browser/mode plus pass/fail/defects.
+### Current provenance limitation
 
-Remaining P1 gates are not automatic agent work:
+`transaction_import_provenance` currently has one canonical provenance row per financial transaction. Multi-observation/provider-update history is not yet modeled as a one-to-many source-observation ledger. Do not smuggle pending→cleared/provider-correction semantics into unrelated work.
 
-- RRB-04 — provider/Auth/firewall state requires provider read access and #40/#174 owner decisions;
-- RRB-05 — operator-controlled support/privacy contact requires ownership proof or owner choice;
-- RRB-06 — competent legal/privacy review boundary;
-- RRB-09 — current Vercel/Supabase production identity requires provider read access not exposed by the connected tools in this session.
+## 4. Current execution state
 
-Remaining P2 work after RRB-08 is also authority/evidence dependent:
+The master program remains #432.
 
-- RRB-02 — hosted restore requires a disposable/authorized hosted target or explicit owner limitation decision;
-- RRB-03 — destructive recent-auth provider edges require owner authorization/decision.
+Current agent slice on branch `feat/438-deleted-reimport-precedence` is **candidate work, not shipped runtime truth**:
 
-Provider configuration, production data, deployment writes, legal decisions and owner-accepted limitations retain explicit authority boundaries.
+- issue #438 owns explicit deleted exact-source-ID reimport precedence;
+- planning must distinguish a live hard duplicate from a soft-deleted canonical transaction;
+- no source observation may auto-restore a deleted ledger fact;
+- an unchanged repeated observation may expose an explicit reviewed restore of the same transaction;
+- a materially changed observation under the same stable source ID must remain blocked for a later source-update-precedence slice;
+- #438 cannot claim shipped capability until merge.
 
-## 4. Presentation and product-direction truth
+After #438, the intended next P1 dependency is source-update precedence: pending→cleared/provider corrections and whether one-to-many source observations require a dedicated model. Only after identity/update lifecycle is explicit should the next real acquisition source path be migrated through the neutral candidate/provenance/reconciliation boundary.
+
+Independent owner/device/provider lanes remain open in parallel where appropriate.
+
+## 5. Release/trust state
+
+Release Readiness Audit v1 (#388) remains the canonical release audit.
+
+Closed evidence:
+
+- RRB-01 — authenticated mixed-ledger financial truth closed through #391.
+- RRB-07 — MoneyFlow-owned Accessible Authentication browser proof closed through #394.
+
+Still open or externally gated:
+
+- **RRB-02** — hosted restore proof or explicit limitation; needs disposable/authorized hosted target or owner decision.
+- **RRB-03** — destructive recent-auth provider-edge proof or explicit limitation; owner/provider gated.
+- **RRB-04** — provider/Auth/firewall read-back plus #40/#174 decisions; requires provider read access.
+- **RRB-05** — operator control of published support/privacy contact is unproven.
+- **RRB-06** — competent Vietnam personal-data legal/privacy operational review is not recorded.
+- **RRB-08** — current physical-device proof remains open; merged runbook does not equal PASS. A real phone, selected release-candidate origin, device/OS/browser/mode and pass/fail/defect evidence are required.
+- **RRB-09** — current production deployment/provider identity is not tied to the release candidate with current provider evidence.
+
+Controlled closed beta remains blocked until P1 release gates clear and no unresolved P0 exists. Public beta additionally requires controlled-beta evidence and explicit owner PBT-AC15 go/no-go.
+
+## 6. Presentation, performance and held work
 
 - Fresh Blue remains shipped presentation.
-- Slice 1 (#370), Slice 2 (#381), focus hotfix #383 and the bounded auth semantic fix in #394 are completed input.
-- No Slice 3 is authorized.
-- Phase E remains paused; no territory is selected.
-- Phase F / broader Brand-Product Experience implementation is not started.
 - Browser/emulation evidence is not physical-device evidence.
-- Audit blocker work does not authorize redesign or speculative polish.
+- #403 performance remains open/held rather than the default current product slice. The canonical harness is useful measurement infrastructure, but prior work demonstrated no material cold-load performance win; do not restate measurement setup as a performance improvement.
+- #426 simplification remains held pending reconciliation with #432. Evidence-backed friction reductions may be reused, but corrected false premises must not be revived.
+- PR #431 remains a conflicting pre-#432 product-direction candidate and should not be merged blindly against the merged #432 authority.
+- Provider integration, native mobile, Wealth, Together and AI mutation remain horizon work until their dependencies and bounded researched specifications exist.
 
-## 5. Current capability inventory
-
-| Capability | Current truth |
-|---|---|
-| Core ledger | multiple accounts; income, expense, transfers; edit, soft delete/recovery |
-| Accounts | balances, identity, register/history, create/edit/archive/restore and reconciliation |
-| Planning | category budgets, recurring commitments/income and savings goals |
-| Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
-| Ownership | versioned archive/export/validation/restore contract; hosted restore limitation remains |
-| Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
-| Experience | responsive light/dark web UI; Slice 1 + Slice 2 + focus hotfix merged; RRB-07 auth semantic repair merged |
-| Release proof | audit complete; RRB-01 and RRB-07 closed; RRB-08 runbook merged/pending physical observation; P1 RRB-04/05/06/09 and P2 RRB-02/03 remain |
-| Performance measurement | canonical `/` and `/dashboard` have a production-build mobile Lighthouse harness (`e2e/auth/performance.mobile.auth.spec.ts`, median of 3, pinned 13.4.1, inside Browser smoke) and a first recorded baseline in `docs/performance-budgets.md`. Its measured limit is part of the truth: script-transfer bytes are stable to 0 B, but the LCP median drifts a few hundred ms across runs of identical code, so this harness cannot settle small LCP deltas. LCP misses the 2.5 s budget on both routes |
-| Public beta | not approved; controlled beta and PBT-AC15 remain ahead |
-
-Code, migrations and tests outrank this table on implementation detail.
-
-## 6. Trust, recovery and physical-device evidence
-
-PBT-AC12 physical core-ledger acceptance remains owner-observed historical evidence. PBT-AC13's duration requirement was withdrawn and must not be recreated. PBT-AC14 remains accepted historical daily-loop evidence. PBT-AC15 remains open.
-
-Current named gaps/limitations:
-
-- RRB-02: hosted restore remains unexecuted;
-- RRB-03: stale-AMR and real account-mismatch destructive provider edges remain unexecuted;
-- RRB-04: current provider/Auth/firewall state is not read back;
-- RRB-05: operator control of the published support/privacy contact is unproven;
-- RRB-06: current Vietnam personal-data legal/privacy operational review is not recorded;
-- RRB-08: active via #398; #399 merged the current runbook, but historical physical-device evidence predates the latest UI slices/hotfix and #394 auth repair, and current real-phone observation is still missing;
-- RRB-09: current production deployment/provider identity is not tied to the release candidate.
-
-RRB-01 and RRB-07 are no longer gaps.
-
-## 7. Configuration, security and delivery truth
+## 7. Security and delivery truth
 
 - `docs/configuration.md` owns environment/provider-setting contracts.
 - `docs/deployment.md` owns branch/deployment workflow.
 - `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns risk classes/gates.
 - `docs/engineering/AGENT_OPERATING_MODEL.md` owns permissions/execution states.
 - `scripts/classify-ci-changes.mjs` owns path-to-CI selection.
-- Draft PR workflow success is not full verification evidence because heavy shards intentionally skip while draft.
-- #391 final head `873f4d4d16f06e41f3b81bef5495c331434b09c7` passed CI #2492, CodeQL #1566 and Secret history #1566 before expected-head squash merge as `9911eafa…`.
-- #394 final head `35a31ba52e4e44ec48d89b69b172b1764cfd8854` passed CI #2511, CodeQL #1584 and Secret history #1584 before merge as `59da7ad2…`.
-- #394 final Cross-device UI audit executed 697 cases: `556 passed`, `141 skipped`, `0 failed`; RRB-07 cases #691–#695 all passed first-run. Final UI-audit artifact digest is `sha256:d69fa4d1e2f018ff7e0e99a77f0fd896fe65eddc5bce982b2a2f12db494f9384`.
-- #396 lifecycle closeout merged as `d5efc6d1…`; its post-merge main CI #2518 passed full policy/static/unit/build/database/browser/UI/e2e regression.
-- #397 merged as `1bb50814…` and added the owner-approved engineering-literature backlog to HOLD without changing release priority.
-- #399 final head `dfc47a290b54233eeb30db6bec972b764a01fba5` passed CI #2526, CodeQL #1599 and Secret history #1599 before expected-head squash merge as `e8a4a10e…`. First-run CI #2524 failed only because the new active packet omitted six canonical knowledge headings; the checker was not loosened and that finding is preserved in PR-memory.
-- #399 was docs/lifecycle preparation only: static/unit/build/browser/UI work was not applicable, database was explicitly not required, and none of those layers is claimed as physical-device evidence.
-- Current CI still emits a Node-20-deprecation warning for the pinned checkout action generation. That is tooling debt outside the release-blocker proofs and must not be silently bundled into unrelated work.
-- Independent PR review was unavailable for #391 and #394; no review submission is claimed. #394 also had no inline or conversation comments at merge verification.
+- `scripts/check-project-knowledge.mjs` and active-packet registry checks are executable governance contracts; do not weaken them to make a PR pass.
+- Draft PR workflow success is not verification evidence when heavy shards skip.
+- Exact-head evidence is required after the final branch mutation. A green check on an older SHA never proves a newer head.
+- Financial/schema/RLS/import/reconciliation changes are Class 3 and require the full bounded packet plus risk-selected database/security/browser evidence.
+- Production/provider writes remain separately authorized even if repository implementation is ready.
 
-## 8. Reconciled issue status
+Recent verified acquisition delivery:
 
-Completed:
+- #433 final head `ea89a15011a1d8ce8bad6605721cc6b4a4116de6` → CI #2728, CodeQL #1791, Secret #1791 → merged `a35d6f96960e889cf988d9d37d4320a8f674cd85`.
+- #435 final head `7c1c5f4daa346415544aa2d474f0f3b18e3b87fd` → full Class 3 CI, CodeQL #1800, Secret #1800 → merged `38ae8f8694554d8d69508f86bcc66b2bdfe68b95`.
+- #437 final head `83957701cf38647729d35956d6b5af132641a5dd` → CI #2758, CodeQL #1819, Secret #1819 → merged `1ae4c765af9789a6a7e34179a1d3a2733eb436fe`.
 
-- #390 / RRB-01 — completed by #391.
-- #393 / RRB-07 — completed by #394.
+## 8. Current capability inventory
 
-Current:
+| Capability | Current main truth |
+|---|---|
+| Core ledger | multiple accounts; income, expense, transfers; edit; soft delete/recovery |
+| Accounts | balances, identity, register/history, create/edit/archive/restore and reconciliation |
+| Planning | category budgets, recurring commitments/income and savings goals |
+| Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
+| Acquisition | persisted import batches/candidates/provenance; deterministic source/fingerprint matching; atomic Direct CSV approval; reviewed later-source attachment to an existing unprovenanced fact |
+| Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
+| Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
+| Experience | responsive light/dark web UI; current Inbox review exposes source/reconciliation decisions without claiming automatic provider sync |
+| Release proof | RRB-01/RRB-07 closed; RRB-08 physical proof open; RRB-04/05/06/09 and RRB-02/03 remain |
+| Public beta | not approved |
 
-- #398 / RRB-08 — owner-authorized physical-device validation; repository preparation completed by #399, real-phone observation pending.
+Code, migrations and tests outrank this table on implementation detail.
 
-Still intentionally open/decision-gated:
+## 9. Next allowed action
 
-- #40 — Supabase leaked-password protection; provider plan/state + owner decision required.
-- #174 — provider-side security controls; provider state + owner decision required.
+Agent work follows `docs/plans/active/README.md` and the active child packet under #432. At this snapshot the candidate branch task is #438 deleted-source reimport precedence.
 
-Audit blocker IDs are owned by the Current Work Board and canonical release audit; duplicate GitHub issues are created only when they add execution value.
+Owner/external actions remain independent:
 
-## 9. Open pull-request memory
+- real physical phone → RRB-08;
+- provider read access → RRB-04/RRB-09 and #40/#174 evidence;
+- operator-controlled contact evidence → RRB-05;
+- competent legal/privacy review → RRB-06;
+- disposable authorized hosted target → RRB-02;
+- explicit owner/provider authorization → RRB-03.
 
-No RRB-08 preparation PR remains open: #399 merged as `e8a4a10e…`. RRB-08 itself remains open through issue #398 because the required physical-device observation has not occurred, and it now specifically needs a re-test of the post-#414 build, so no earlier dated phone evidence can close it.
+Do not auto-resolve owner/provider/legal/device gates. Do not describe branch-only #438 behavior as shipped until merge.
 
-PR #415 merged as `c9a21781…` on 2026-08-17 as a deliberately reduced supporting slice of #403. **#415 produced no demonstrated cold-load performance improvement.** It delivered the canonical measurement harness, a truthful `/dashboard` loading boundary and contract guards on the private dashboard path; #403 acceptance 3 — a material measured improvement when LCP misses 2.5 s — is **not met**, so **#403 remains open**. The review is what caught a false win: a −99 ms `/dashboard` LCP reading that proved to sit inside a several-hundred-millisecond noise floor. Measurement infrastructure must not be restated anywhere as a performance success.
+## 10. Superseded-status register
 
-Future blocker PRs remain candidate evidence until exact-head gates and lifecycle closeout complete. A green check on an older head never proves a newer head.
-
-## 10. True gaps after this audit
-
-Remaining P1:
-
-1. RRB-04 — current provider/Auth/firewall read-back plus #40/#174 decisions;
-2. RRB-05 — verified operator-controlled support/privacy contact;
-3. RRB-06 — current Vietnam personal-data legal/privacy operational review;
-4. RRB-09 — current production deployment/provider identity tied to the release candidate.
-
-Remaining P2:
-
-5. RRB-02 — hosted restore proof/accepted limitation;
-6. RRB-03 — destructive recent-auth provider-edge proof/accepted limitation;
-7. RRB-08 — current physical-device proof, active via #398; runbook merged via #399, real-phone observation pending.
-
-Controlled closed beta remains blocked until the P1 entry gates are satisfied and there is no unresolved P0. Public beta additionally requires controlled-beta evidence and explicit PBT-AC15.
-
-## 11. Next allowed action
-
-**RRB-08 is active and repository-side preparation is complete.** The acceptance action requires a real physical phone and owner observation.
-
-When the device is available, execute `docs/plans/active/rrb-08-physical-device-proof.md` against the selected release-candidate origin and record the evidence. Until then, do not mark RRB-08 PASS and do not substitute emulation/simulator/browser CI.
-
-**The agent-side queue item is #403, which remains open in `NOW` and is not blocked by RRB-08.** Its owner-set first step is an attribution experiment for the bimodal `/dashboard` FCP — enough samples per side, one runner, loading boundary on versus off, recording the paint element if the harness can capture it, reported as a mode split rather than a median. Follow that signal only if it proves real; otherwise go directly at the measured bottleneck, dashboard hydration / client-JS / main-thread cost (766 → 814 ms JS bootup against 311.6 KB transferred script, with server response at only 5–15 ms), targeting a measurable cost reduction. Do not open another optimization on intuition, and do not treat a single Lighthouse sample as evidence.
-
-Other boundaries remain unchanged:
-
-- owner/provider read access → RRB-04 and/or RRB-09 read-back;
-- owner proves or selects an operator-controlled contact → RRB-05 follow-up if source changes are needed;
-- competent legal/privacy review → RRB-06 remediation only if required;
-- disposable/authorized hosted target → RRB-02 proof;
-- owner authorization/decision → RRB-03 provider-edge proof or explicit limitation.
-
-Do not auto-resolve RRB-04/05/06/09 or owner-accepted limitations. Provider/production writes remain separately scoped even if read access becomes available.
-
-## 12. Superseded-status register
-
-- “RRB-08 repository preparation is still pending/candidate” is superseded by #399.
-- “No current owner-authorized task exists” is superseded by owner promotion of RRB-08 / issue #398.
-- “RRB-07 is a current proof gap / next agent-owned task” is superseded by #394.
+- “manual-first is the long-term MoneyFlow product law” is superseded by merged #432. Manual remains a current capability/fallback, not the intended primary long-term acquisition workflow.
+- “Direct CSV authenticated commit loops ordinary transaction creation” is superseded by #435.
+- “later imported evidence cannot reconcile to an existing unprovenanced user fact” is superseded by #437.
+- “RRB-08 repository preparation is pending” is superseded by the merged runbook; physical observation itself remains open.
+- “RRB-07 is a current proof gap” is superseded by #394.
 - “RRB-01 is a current proof gap” is superseded by #391.
-- “Release Readiness Audit v1 is still pending/current” is superseded by #388.
-- “The amount-focus defect is open” is superseded by #383.
-- “18 PRs + 8 issues are unreconciled” is superseded by reconciliation through #387.
-- “js-yaml 4.3.1 still needs delivery” is superseded by #386.
-- “P3 Prove is open” / “P4 Improve is next” remain superseded.
-- “Phase E is immediate next” remains superseded; all candidates were rejected.
-- “Slice 2 is active” is superseded by #381.
-- The seven-day self-use gate remains withdrawn without replacement.
+- “Release Readiness Audit v1 is pending” is superseded by #388.
+- “the seven-day self-use gate is required” remains withdrawn without replacement.
