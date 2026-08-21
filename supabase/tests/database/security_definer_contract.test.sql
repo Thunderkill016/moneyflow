@@ -22,14 +22,15 @@ where n.nspname = 'public'
   and p.prosecdef
   and has_function_privilege('authenticated', p.oid, 'EXECUTE');
 
--- 34 before R7. `restore_user_archive` and `remove_archive_restore_batch` are the
--- two deliberate additions: fifteen tenant tables deny INSERT to `authenticated`
--- so restore cannot be SECURITY INVOKER, and the elevated right is confined to
--- these reviewed functions rather than granted to the role. The R6 producer and
--- `archive_timestamp` are NOT here — they are SECURITY INVOKER by design.
+-- 34 before R7. `restore_user_archive` and `remove_archive_restore_batch` were
+-- the two deliberate R7 additions: fifteen tenant tables deny INSERT to
+-- `authenticated`, so restore cannot be SECURITY INVOKER. #434 adds one more
+-- reviewed boundary, `approve_inbox_candidates_batch`, which derives auth.uid(),
+-- pins search_path and delegates each financial mutation to the already-reviewed
+-- atomic candidate approval contract.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  36,
+  37,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 
