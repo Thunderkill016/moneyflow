@@ -59,6 +59,15 @@ test("Inbox review is explicit and retries use candidate identity", () => {
     normalizedInboxReview,
     /Các chỉnh sửa trong form này không được áp dụng khi gắn nguồn/,
   );
+  assert.match(normalizedInboxReview, /Khôi phục giao dịch đã xóa/);
+  assert.match(
+    normalizedInboxReview,
+    /Dữ liệu mới trong nguồn và các chỉnh sửa trong form này không được áp dụng khi khôi phục/,
+  );
+  assert.match(
+    normalizedInboxReview,
+    /Không có nút khôi phục hoặc đường vòng tạo riêng cho cùng mã nguồn/,
+  );
   assert.match(
     normalizedInboxReview,
     /cố ý muốn tạo một giao dịch riêng thay vì gắn nguồn/,
