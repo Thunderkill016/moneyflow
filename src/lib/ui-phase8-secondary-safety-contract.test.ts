@@ -66,7 +66,8 @@ test("Rules and Imports expose review consequences without browser confirms", ()
   assert.match(imports, /Xóa metadata không xóa giao dịch đã được duyệt vào sổ/);
   assert.match(importPreview, /slot="import-preview-commit-review"/);
   assert.match(directImport, /slot="direct-import-review"/);
-  assert.match(directImport, /không có undo toàn batch/i);
+  assert.match(directImport, /nếu một dòng bị máy chủ từ chối thì không dòng nào của lượt ghi trở thành giao dịch/i);
+  assert.match(directImport, /hoàn tác vẫn theo lifecycle của từng giao dịch/i);
 });
 
 test("Settings states exact export, parser and deletion capabilities", () => {
