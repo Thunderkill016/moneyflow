@@ -130,11 +130,15 @@ export function InboxReviewPanel({
     () => categories.filter((item) => item.kind === moneyKind),
     [categories, moneyKind],
   );
+  const hardServerDuplicate =
+    serverPlan?.status === "duplicate" &&
+    !allowsExplicitDuplicateOverride(serverPlan);
   const showDuplicateOverride =
-    candidate?.possibleDuplicate === true ||
-    allowsExplicitDuplicateOverride(serverPlan) ||
-    error.includes("rất giống") ||
-    draft?.allowHeuristicDuplicate === true;
+    !hardServerDuplicate &&
+    (candidate?.possibleDuplicate === true ||
+      allowsExplicitDuplicateOverride(serverPlan) ||
+      error.includes("rất giống") ||
+      draft?.allowHeuristicDuplicate === true);
   const existingMatchTransactionId =
     serverPlan?.status === "duplicate" &&
     serverPlan.reason === "existing_transaction_match" &&
@@ -154,6 +158,7 @@ export function InboxReviewPanel({
     serverPlan?.status === "duplicate" &&
     serverPlan.reason === "existing_transaction_ambiguous";
   const isBusy = busy || submitting || attachBusy || restoreBusy;
+  const blockSeparateApproval = hardServerDuplicate;
 
   if (!candidate || !draft) return null;
 
@@ -222,6 +227,7 @@ export function InboxReviewPanel({
 
   async function handleApprove(event: FormEvent) {
     event.preventDefault();
+    if (blockSeparateApproval) return;
     const amount = parseMoneyInput(amountText);
     const nextDraft: CandidateReviewDraft = { ...activeDraft, amount };
     const post = buildLedgerPost(
@@ -285,6 +291,7 @@ export function InboxReviewPanel({
             form={formId}
             intent="primary"
             targetSize="important"
+            disabled={isBusy || blockSeparateApproval}
             pending={isBusy}
             pendingLabel="Đang ghi sổ…"
           >
