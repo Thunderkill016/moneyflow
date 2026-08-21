@@ -229,6 +229,11 @@
       "version": "20260821190000",
       "name": "20260821190000_source_observation_guard_compat.sql",
       "hash": "9f1d14b54393514c0f11dfc82c9f2b8c"
+    },
+    {
+      "version": "20260821203000",
+      "name": "20260821203000_import_batch_owner_preserving_fk.sql",
+      "hash": "3fdac45190e57758894fa9ecfe56511a"
     }
   ]
 }
