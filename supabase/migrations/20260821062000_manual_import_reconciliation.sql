@@ -204,38 +204,7 @@ begin
     end if;
   end if;
 
-  -- `manual` is already user-authored evidence, so it must not be reconciled to
-  -- another unprovenanced fact through this later-source path.
-  if v_candidate.source <> 'manual'
-    and v_candidate.kind in ('income', 'expense')
-    and v_candidate.account_id is not null then
-    v_existing_plan := public.find_unprovenanced_money_transaction_match(
-      v_user_id,
-      v_candidate.kind::text,
-      v_candidate.account_id,
-      v_candidate.occurred_on,
-      v_candidate.amount_minor
-    );
-    v_existing_status := v_existing_plan ->> 'status';
-
-    if v_existing_status = 'unique' then
-      return jsonb_build_object(
-        'status', 'duplicate',
-        'reason', 'existing_transaction_match',
-        'confidence', 0.7,
-        'matched_transaction_id', v_existing_plan ->> 'matched_transaction_id'
-      );
-    end if;
-
-    if v_existing_status = 'ambiguous' then
-      return jsonb_build_object(
-        'status', 'duplicate',
-        'reason', 'existing_transaction_ambiguous',
-        'confidence', 0.4
-      );
-    end if;
-  end if;
-
+  -- Preserve transfer review precedence over the weaker existing-ledger fallback.
   if v_candidate.kind = 'transfer' then
     return jsonb_build_object(
       'status', 'suspected_transfer',
@@ -271,6 +240,38 @@ begin
       'confidence', 0.9,
       'matched_candidate_id', v_transfer_pair_id
     );
+  end if;
+
+  -- `manual` is already user-authored evidence, so it must not be reconciled to
+  -- another unprovenanced fact through this later-source path.
+  if v_candidate.source <> 'manual'
+    and v_candidate.kind in ('income', 'expense')
+    and v_candidate.account_id is not null then
+    v_existing_plan := public.find_unprovenanced_money_transaction_match(
+      v_user_id,
+      v_candidate.kind::text,
+      v_candidate.account_id,
+      v_candidate.occurred_on,
+      v_candidate.amount_minor
+    );
+    v_existing_status := v_existing_plan ->> 'status';
+
+    if v_existing_status = 'unique' then
+      return jsonb_build_object(
+        'status', 'duplicate',
+        'reason', 'existing_transaction_match',
+        'confidence', 0.7,
+        'matched_transaction_id', v_existing_plan ->> 'matched_transaction_id'
+      );
+    end if;
+
+    if v_existing_status = 'ambiguous' then
+      return jsonb_build_object(
+        'status', 'duplicate',
+        'reason', 'existing_transaction_ambiguous',
+        'confidence', 0.4
+      );
+    end if;
   end if;
 
   if v_candidate.account_id is null then
