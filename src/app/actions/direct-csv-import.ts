@@ -51,6 +51,7 @@ const directCommitSchema = z.object({
   mapConfidence: z.number().min(0).max(1),
   headers: z.array(z.string().max(260)).max(200),
   columnMap: columnMapSchema,
+  allowHeuristicDuplicates: z.boolean().default(false),
   rows: z.array(directRowSchema).min(1).max(MAX_DIRECT_IMPORT_ROWS),
 });
 
@@ -79,6 +80,9 @@ function refreshFinanceAndImportPaths() {
 }
 
 function calmApprovalError(message: string): string {
+  if (message.includes("source_external_id_duplicate")) {
+    return "Giao dịch từ cùng mã nguồn đã tồn tại. Chưa ghi dòng nào; hãy kiểm tra lịch sử import trước khi thử lại.";
+  }
   if (message.includes("candidate_duplicate")) {
     return "Có dòng trùng với dữ liệu đã có. Chưa ghi dòng nào; hãy tải lại và kiểm tra trước khi thử lại.";
   }
@@ -178,24 +182,18 @@ export async function commitDirectCsvImportAction(
     }),
   );
 
-  const { data: insertedCandidates, error: candidateError } = await supabase
+  const { error: candidateError } = await supabase
     .from("inbox_candidates")
-    .insert(candidateRows)
-    .select("id");
+    .insert(candidateRows);
 
-  if (
-    candidateError ||
-    !Array.isArray(insertedCandidates) ||
-    insertedCandidates.length !== value.rows.length ||
-    insertedCandidates.some((row) => typeof row.id !== "string")
-  ) {
-    // Candidate insertion is one PostgreSQL statement, so there cannot be a
-    // partially inserted candidate list. Remove the orphan batch best-effort.
+  if (candidateError) {
+    // One INSERT statement is atomic, so a database error cannot leave only a
+    // prefix of candidate rows. Remove the now-orphaned batch best-effort.
     await supabase.from("import_batches").delete().eq("id", batchId);
     return { ok: false, message: "Không lưu được dữ liệu import để kiểm tra." };
   }
 
-  const approvalItems = insertedCandidates.map((candidate, index) => {
+  const approvalItems = candidates.map((candidate, index) => {
     const row = value.rows[index]!;
     return {
       candidate_id: candidate.id,
@@ -207,7 +205,7 @@ export async function commitDirectCsvImportAction(
       occurred_on: row.occurredOn,
       note: row.note,
       idempotency_key: randomUUID(),
-      allow_heuristic_duplicate: false,
+      allow_heuristic_duplicate: value.allowHeuristicDuplicates,
     };
   });
 
