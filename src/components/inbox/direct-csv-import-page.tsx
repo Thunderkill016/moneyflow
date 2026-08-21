@@ -357,6 +357,7 @@ export function DirectCsvImportPage({
       mapConfidence: parseResult.mapConfidence,
       headers: parseResult.headers,
       columnMap: parseResult.columnMap,
+      allowHeuristicDuplicates: !skipDuplicates,
       rows: acquisitionRows,
     });
 
@@ -819,7 +820,7 @@ export function DirectCsvImportPage({
         consequence={
           viewer.isDemo
             ? "Demo ghi từng dòng vào bộ nhớ trình duyệt. Chuyển khoản, dòng trùng và dòng không hợp lệ vẫn bị bỏ qua theo dry-run."
-            : "Tài khoản đăng nhập ghi toàn bộ các dòng đủ điều kiện trong một lượt: nếu một dòng bị máy chủ từ chối thì không dòng nào của lượt ghi trở thành giao dịch. Sau khi commit thành công, hoàn tác vẫn theo lifecycle của từng giao dịch."
+            : "Tài khoản đăng nhập ghi toàn bộ các dòng đủ điều kiện trong một lượt: nếu một dòng bị máy chủ từ chối thì không dòng nào của lượt ghi trở thành giao dịch. Sau khi commit thành công, không có undo toàn batch; hoàn tác vẫn theo lifecycle của từng giao dịch."
         }
         confirmLabel={`Ghi ${plan?.readyCount ?? 0} giao dịch`}
         confirmIntent="destructive"
