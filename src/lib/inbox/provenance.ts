@@ -236,6 +236,12 @@ export function dryRunUserMessage(result: InboxDryRunResult): string {
     if (result.reason === "source_external_id_match") {
       return "Giao dịch này đã được nhập từ cùng mã nguồn.";
     }
+    if (result.reason === "source_external_id_deleted_match") {
+      return "Giao dịch từ cùng mã nguồn đã từng được nhập rồi xóa. Bạn có thể khôi phục chính giao dịch đó mà không ghi đè các chỉnh sửa đang lưu trong MoneyFlow.";
+    }
+    if (result.reason === "source_external_id_deleted_changed") {
+      return "Nguồn gửi lại cùng mã giao dịch nhưng nội dung đã thay đổi so với bằng chứng gốc. MoneyFlow không tự khôi phục hoặc ghi đè; mục này cần được xử lý theo quy tắc cập nhật nguồn riêng.";
+    }
     if (result.reason === "existing_transaction_match") {
       return "Đã có một giao dịch cùng tài khoản, ngày và số tiền. Bạn có thể gắn nguồn vào giao dịch đó mà không sửa dữ liệu trong sổ.";
     }
