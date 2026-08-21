@@ -236,6 +236,9 @@ export function dryRunUserMessage(result: InboxDryRunResult): string {
     if (result.reason === "source_external_id_match") {
       return "Giao dịch này đã được nhập từ cùng mã nguồn.";
     }
+    if (result.reason === "source_external_id_changed") {
+      return "Nguồn gửi lại cùng mã giao dịch nhưng bằng chứng đã thay đổi. MoneyFlow không tự ghi đè dữ liệu đang có; bạn có thể ghi nhận cập nhật nguồn và giữ nguyên sổ.";
+    }
     if (result.reason === "source_external_id_deleted_match") {
       return "Giao dịch từ cùng mã nguồn đã từng được nhập rồi xóa. Bạn có thể khôi phục chính giao dịch đó mà không ghi đè các chỉnh sửa đang lưu trong MoneyFlow.";
     }
