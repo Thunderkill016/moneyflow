@@ -18,6 +18,7 @@ import {
 } from "@/lib/inbox/candidate-store";
 import { approvalIdempotencyKey } from "@/lib/inbox/approval-recovery";
 import {
+  allowsExplicitDuplicateOverride,
   dryRunUserMessage,
   type InboxDryRunResult,
 } from "@/lib/inbox/provenance";
@@ -129,7 +130,7 @@ export function InboxReviewPanel({
   );
   const showDuplicateOverride =
     candidate?.possibleDuplicate === true ||
-    serverPlan?.status === "duplicate" ||
+    allowsExplicitDuplicateOverride(serverPlan) ||
     error.includes("rất giống") ||
     draft?.allowHeuristicDuplicate === true;
   const existingMatchTransactionId =
