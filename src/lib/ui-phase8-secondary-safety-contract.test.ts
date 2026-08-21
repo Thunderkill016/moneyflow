@@ -80,7 +80,15 @@ test("Inbox review is explicit and retries use candidate identity", () => {
     /Không có nút khôi phục hoặc đường vòng tạo riêng cho cùng mã nguồn/,
   );
   assert.match(inboxReview, /hardServerDuplicate/);
-  assert.match(inboxReview, /blockSeparateApproval/);
+  assert.match(inboxReview, /planUnavailable/);
+  assert.match(
+    normalizedInboxReview,
+    /const blockSeparateApproval = hardServerDuplicate \|\| planLoading \|\| planUnavailable/,
+  );
+  assert.match(
+    normalizedInboxReview,
+    /tạm khóa “Duyệt vào sổ” để tránh tạo giao dịch riêng khi quyết định nguồn chưa được xác nhận/,
+  );
   assert.match(
     normalizedInboxReview,
     /disabled=\{isBusy \|\| blockSeparateApproval\}/,
