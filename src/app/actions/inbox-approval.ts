@@ -86,10 +86,12 @@ function approvalErrorMessage(message: string): string {
   if (message.includes("source_external_id_duplicate")) {
     return "Giao dịch này đã được nhập từ cùng mã nguồn.";
   }
+  if (message.includes("source_provenance_not_found")) {
+    return "Không tìm thấy bằng chứng nguồn chuẩn cho giao dịch này. Hãy tải lại Inbox và kiểm tra lại.";
+  }
   if (
     message.includes("deleted_source_match_required") ||
     message.includes("transaction_not_deleted") ||
-    message.includes("source_provenance_not_found") ||
     message.includes("candidate_not_restoreable") ||
     message.includes("transaction_restore_race")
   ) {
