@@ -1,6 +1,10 @@
 "use client";
 
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import {
+  attachInboxCandidateToExistingTransactionAction,
+  planInboxCandidateAction,
+} from "@/app/actions/inbox-approval";
 import { InboxExplainPanel } from "@/components/inbox/inbox-explain-panel";
 import { MoneyValue } from "@/components/money-value";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,6 +17,11 @@ import {
   type InboxCandidate,
 } from "@/lib/inbox/candidate-store";
 import { approvalIdempotencyKey } from "@/lib/inbox/approval-recovery";
+import {
+  allowsExplicitDuplicateOverride,
+  dryRunUserMessage,
+  type InboxDryRunResult,
+} from "@/lib/inbox/provenance";
 import {
   buildLedgerPost,
   confidenceScoreLabel,
@@ -30,6 +39,9 @@ export type ReviewSubmitPayload = {
   draft: CandidateReviewDraft;
   post: Extract<LedgerPostResult, { ok: true }>;
 };
+
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 function initialDraft(
   candidate: InboxCandidate | null,
@@ -75,6 +87,41 @@ export function InboxReviewPanel({
   );
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [attachBusy, setAttachBusy] = useState(false);
+  const [serverPlanState, setServerPlanState] = useState<{
+    candidateId: string;
+    plan: InboxDryRunResult | null;
+  } | null>(null);
+  const candidateId = candidate?.id ?? "";
+  const shouldLoadServerPlan = open && UUID_PATTERN.test(candidateId);
+  const activeServerPlanState =
+    shouldLoadServerPlan && serverPlanState?.candidateId === candidateId
+      ? serverPlanState
+      : null;
+  const serverPlan = activeServerPlanState?.plan ?? null;
+  const planLoading = shouldLoadServerPlan && activeServerPlanState === null;
+
+  useEffect(() => {
+    if (!shouldLoadServerPlan) return;
+
+    let cancelled = false;
+    void planInboxCandidateAction(candidateId)
+      .then((result) => {
+        if (cancelled) return;
+        setServerPlanState({
+          candidateId,
+          plan: result.ok ? result.plan : null,
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setServerPlanState({ candidateId, plan: null });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [candidateId, shouldLoadServerPlan]);
 
   const moneyKind = draft?.kind === "income" ? "income" : "expense";
   const availableCategories = useMemo(
@@ -83,9 +130,19 @@ export function InboxReviewPanel({
   );
   const showDuplicateOverride =
     candidate?.possibleDuplicate === true ||
+    allowsExplicitDuplicateOverride(serverPlan) ||
     error.includes("rất giống") ||
     draft?.allowHeuristicDuplicate === true;
-  const isBusy = busy || submitting;
+  const existingMatchTransactionId =
+    serverPlan?.status === "duplicate" &&
+    serverPlan.reason === "existing_transaction_match" &&
+    serverPlan.matchedTransactionId
+      ? serverPlan.matchedTransactionId
+      : null;
+  const showAmbiguousExistingMatch =
+    serverPlan?.status === "duplicate" &&
+    serverPlan.reason === "existing_transaction_ambiguous";
+  const isBusy = busy || submitting || attachBusy;
 
   if (!candidate || !draft) return null;
 
@@ -104,6 +161,29 @@ export function InboxReviewPanel({
         ? activeDraft.categoryId
         : categories.find((item) => item.kind === nextMoneyKind)?.id ?? "";
     patchDraft({ kind, categoryId: nextCategory });
+  }
+
+  async function handleAttachExisting() {
+    if (!existingMatchTransactionId) return;
+    setAttachBusy(true);
+    setError("");
+    try {
+      const result = await attachInboxCandidateToExistingTransactionAction({
+        candidateId: activeCandidate.id,
+        transactionId: existingMatchTransactionId,
+      });
+      if (!result.ok) {
+        setError(result.message);
+        setServerPlanState({ candidateId: activeCandidate.id, plan: null });
+        return;
+      }
+      // The parent Inbox candidate list is client-owned. A full reload is
+      // deliberate here so the persisted approved state and revalidated ledger
+      // arrive together rather than briefly showing a stale pending candidate.
+      window.location.reload();
+    } finally {
+      setAttachBusy(false);
+    }
   }
 
   async function handleApprove(event: FormEvent) {
@@ -139,9 +219,8 @@ export function InboxReviewPanel({
   }
 
   const parsedAmount = parseMoneyInput(amountText);
-  const displayAmount = Number.isSafeInteger(parsedAmount) && parsedAmount > 0
-    ? parsedAmount
-    : draft.amount;
+  const displayAmount =
+    Number.isSafeInteger(parsedAmount) && parsedAmount > 0 ? parsedAmount : draft.amount;
   const formId = `inbox-review-form-${candidate.id}`;
 
   return (
@@ -151,7 +230,7 @@ export function InboxReviewPanel({
         if (!nextOpen && !isBusy) onClose();
       }}
       title="Duyệt giao dịch"
-      description="Kiểm tra mọi trường trước khi tạo một giao dịch thật trong sổ."
+      description="Kiểm tra ứng viên rồi chọn gắn nguồn vào giao dịch đã có hoặc tạo một giao dịch riêng."
       dismissible={!isBusy}
       initialFocusRef={merchantRef}
       className={styles.dialog}
@@ -207,6 +286,42 @@ export function InboxReviewPanel({
               Độ tin thấp. MoneyFlow không tự ghi; giao dịch chỉ được tạo sau khi bạn
               kiểm tra và bấm “Duyệt vào sổ”.
             </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {planLoading ? (
+          <Alert tone="info" live="polite">
+            <AlertDescription>Đang đối chiếu với giao dịch đã có…</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {existingMatchTransactionId && serverPlan ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              <p>{dryRunUserMessage(serverPlan)}</p>
+              <p>
+                Gắn nguồn sẽ giữ nguyên loại, ngày, số tiền, tài khoản, danh mục, ghi chú
+                và trạng thái đối soát của giao dịch đã có. Các chỉnh sửa trong form này
+                không được áp dụng khi gắn nguồn.
+              </p>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                disabled={isBusy}
+                pending={attachBusy}
+                pendingLabel="Đang gắn nguồn…"
+                onClick={() => void handleAttachExisting()}
+              >
+                Gắn nguồn, giữ nguyên sổ
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {showAmbiguousExistingMatch && serverPlan ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>{dryRunUserMessage(serverPlan)}</AlertDescription>
           </Alert>
         ) : null}
 
@@ -357,7 +472,10 @@ export function InboxReviewPanel({
             />
             <span>
               <strong>Tôi đã kiểm tra giao dịch tương tự.</strong>
-              <small>Vẫn ghi sổ dù MoneyFlow phát hiện khả năng trùng.</small>
+              <small>
+                Bật mục này nếu bạn cố ý muốn tạo một giao dịch riêng thay vì gắn nguồn
+                vào giao dịch đã có.
+              </small>
             </span>
           </label>
         ) : null}

@@ -9,6 +9,10 @@ import { requireViewer } from "@/server/auth";
 import { mapTransactionFeedRow } from "@/server/finance";
 
 const candidateIdSchema = z.string().uuid();
+const existingMatchSchema = z.object({
+  candidateId: z.string().uuid(),
+  transactionId: z.string().uuid(),
+});
 
 const approvalSchema = z
   .object({
@@ -70,6 +74,19 @@ function approvalErrorMessage(message: string): string {
   if (message.includes("source_external_id_duplicate")) {
     return "Giao dịch này đã được nhập từ cùng mã nguồn.";
   }
+  if (message.includes("existing_transaction_match_ambiguous")) {
+    return "Có nhiều giao dịch đã có cùng tài khoản, ngày và số tiền. MoneyFlow không tự chọn để tránh gắn nhầm.";
+  }
+  if (
+    message.includes("existing_transaction_match_required") ||
+    message.includes("transaction_not_eligible") ||
+    message.includes("transaction_already_provenanced")
+  ) {
+    return "Giao dịch đã có không còn đủ điều kiện để gắn nguồn. Hãy tải lại Inbox và kiểm tra lại.";
+  }
+  if (message.includes("candidate_not_attachable")) {
+    return "Nguồn này không dùng được thao tác gắn vào giao dịch đã có.";
+  }
   if (message.includes("candidate_duplicate")) {
     return "Có giao dịch rất giống đã tồn tại. Mở từng mục để kiểm tra trước khi duyệt.";
   }
@@ -82,8 +99,8 @@ function approvalErrorMessage(message: string): string {
   if (message.includes("currency_mismatch")) {
     return "Chỉ chuyển được giữa hai tài khoản cùng loại tiền.";
   }
-  if (message.includes("account_not_found")) {
-    return "Tài khoản không hợp lệ hoặc không thuộc workspace hiện tại.";
+  if (message.includes("account_not_found") || message.includes("transaction_not_found")) {
+    return "Tài khoản hoặc giao dịch không hợp lệ cho workspace hiện tại.";
   }
   if (message.includes("category_kind_mismatch") || message.includes("category_archived")) {
     return "Danh mục không hợp lệ cho loại giao dịch đã chọn.";
@@ -92,6 +109,24 @@ function approvalErrorMessage(message: string): string {
     return "Yêu cầu ghi sổ đã được dùng cho một giao dịch khác. Hãy tải lại và thử lại.";
   }
   return "Không thể duyệt mục Inbox. Hãy kiểm tra dữ liệu rồi thử lại.";
+}
+
+async function readTransactionById(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  transactionId: string,
+): Promise<Transaction | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("transaction_feed")
+    .select(feedColumns)
+    .eq("id", transactionId)
+    .single();
+  if (error || !data) return null;
+  try {
+    return mapTransactionFeedRow(data);
+  } catch {
+    return null;
+  }
 }
 
 export async function planInboxCandidateAction(
@@ -118,6 +153,49 @@ export async function planInboxCandidateAction(
   } catch {
     return { ok: false, message: "Kết quả kiểm tra Inbox không đúng định dạng." };
   }
+}
+
+export async function attachInboxCandidateToExistingTransactionAction(input: {
+  candidateId: string;
+  transactionId: string;
+}): Promise<InboxApprovalActionResult> {
+  const parsed = existingMatchSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, message: "Thông tin gắn nguồn chưa hợp lệ." };
+  }
+
+  const viewer = await requireViewer();
+  if (viewer.isDemo) {
+    return { ok: false, message: "Gắn nguồn phía server chỉ áp dụng cho workspace đã đăng nhập." };
+  }
+
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
+
+  const { data: transactionId, error } = await supabase.rpc(
+    "attach_inbox_candidate_to_existing_transaction",
+    {
+      p_candidate_id: parsed.data.candidateId,
+      p_transaction_id: parsed.data.transactionId,
+    },
+  );
+
+  if (error || typeof transactionId !== "string") {
+    return {
+      ok: false,
+      message: approvalErrorMessage(error?.message ?? "invalid_transaction_id"),
+    };
+  }
+
+  const transaction = await readTransactionById(supabase, transactionId);
+  refreshInboxAndFinancePages();
+  if (!transaction) {
+    return {
+      ok: false,
+      message: "Đã gắn nguồn nhưng chưa tải lại được giao dịch. Hãy làm mới trang trước khi thử lại.",
+    };
+  }
+  return { ok: true, transaction };
 }
 
 export async function approveInboxCandidateAction(
@@ -161,29 +239,13 @@ export async function approveInboxCandidateAction(
     };
   }
 
-  const { data, error: readError } = await supabase
-    .from("transaction_feed")
-    .select(feedColumns)
-    .eq("id", transactionId)
-    .single();
-
-  if (readError || !data) {
-    refreshInboxAndFinancePages();
+  const transaction = await readTransactionById(supabase, transactionId);
+  refreshInboxAndFinancePages();
+  if (!transaction) {
     return {
       ok: false,
       message: "Đã duyệt nhưng chưa tải lại được giao dịch. Hãy làm mới trang.",
     };
   }
-
-  try {
-    const transaction = mapTransactionFeedRow(data);
-    refreshInboxAndFinancePages();
-    return { ok: true, transaction };
-  } catch {
-    refreshInboxAndFinancePages();
-    return {
-      ok: false,
-      message: "Đã duyệt nhưng dữ liệu trả về không hợp lệ.",
-    };
-  }
+  return { ok: true, transaction };
 }

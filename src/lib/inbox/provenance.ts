@@ -82,6 +82,13 @@ const MATCH_STATUSES: ImportMatchStatus[] = [
   "invalid",
 ];
 
+const REVIEWABLE_DUPLICATE_REASONS = new Set([
+  "fingerprint_transaction_match",
+  "fingerprint_candidate_match",
+  "existing_transaction_match",
+  "existing_transaction_ambiguous",
+]);
+
 const PARSER_VERSION_BY_SOURCE: Record<CandidateSource, string> = {
   paste: "paste_text@1.0",
   csv: "csv_import@1.0",
@@ -211,6 +218,15 @@ export function parseInboxDryRunResult(value: unknown): InboxDryRunResult {
   };
 }
 
+export function allowsExplicitDuplicateOverride(
+  result: InboxDryRunResult | null | undefined,
+): boolean {
+  return (
+    result?.status === "duplicate" &&
+    REVIEWABLE_DUPLICATE_REASONS.has(result.reason)
+  );
+}
+
 export function dryRunUserMessage(result: InboxDryRunResult): string {
   if (result.status === "would_create") return "Sẵn sàng ghi vào sổ.";
   if (result.status === "suspected_transfer") {
@@ -219,6 +235,12 @@ export function dryRunUserMessage(result: InboxDryRunResult): string {
   if (result.status === "duplicate") {
     if (result.reason === "source_external_id_match") {
       return "Giao dịch này đã được nhập từ cùng mã nguồn.";
+    }
+    if (result.reason === "existing_transaction_match") {
+      return "Đã có một giao dịch cùng tài khoản, ngày và số tiền. Bạn có thể gắn nguồn vào giao dịch đó mà không sửa dữ liệu trong sổ.";
+    }
+    if (result.reason === "existing_transaction_ambiguous") {
+      return "Có nhiều giao dịch đã có cùng tài khoản, ngày và số tiền. MoneyFlow không tự chọn để tránh gắn nhầm.";
     }
     return "Có giao dịch rất giống đã tồn tại. Hãy kiểm tra trước khi duyệt.";
   }

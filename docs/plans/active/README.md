@@ -1,19 +1,19 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-21
-**Current main baseline:** `a35d6f96960e889cf988d9d37d4320a8f674cd85` (PR #433 merged)
+**Current main baseline:** `38ae8f8694554d8d69508f86bcc66b2bdfe68b95` (PR #435 merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; P1 RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
 
 ## NOW
 
-- [ ] **#434 — P1 Direct CSV acquisition boundary** — first bounded implementation slice under #432. Authenticated Direct CSV currently plans locally then posts ordinary transactions one row at a time, so later failure can leave a partial ledger batch and committed rows bypass `transaction_import_provenance`. Reuse the existing persisted candidate + `approve_inbox_candidate` contract; add a batch-atomic approval wrapper and migrate authenticated Direct CSV off per-row ordinary transaction writes. Preserve current preview UX, conservative transfer handling, integer VND, RLS and reconciliation separation. **Done when:** all selected rows either post with provenance/approval linkage together or none do; replay cannot create a second fact; Class 3 exact-head database/security/unit evidence is green. **Next actor:** agent on `feat/434-acquisition-direct-csv`; owner merge decision after handoff.
+- [ ] **#436 — P1 manual → later-source reconciliation** — second bounded Acquisition Foundation slice. Current server planning catches prior imported provenance/candidates but not an existing unprovenanced manual ledger fact, so later source evidence can still create a duplicate. Add a conservative unique account/date/amount/kind match plus an explicit reviewed source-link operation that writes provenance/approval linkage without mutating the existing fact, entries or reconciliation state. Ambiguous/deleted/provenanced/transfer targets remain unresolved/ineligible. **Done when:** unique reviewed matches can attach evidence without a second fact; ambiguity never auto-selects; user corrections remain untouched; exact-head Class 3 CI/database/security/browser evidence is green. **Next actor:** agent on `feat/436-manual-import-reconciliation`; owner merge decision after handoff.
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
 ## NEXT
 
-- [ ] **#432 P1 — remaining Acquisition Foundation** — after #434, reconcile manual + later-imported copies, define source-update/deleted-reimport/user-correction precedence, then migrate the next real source path. Promote one bounded slice at a time.
+- [ ] **#432 P1 — remaining Acquisition Foundation** — after #436, define source-update/deleted-reimport precedence and migrate the next real source path. Promote one bounded slice at a time.
 - [ ] **#432 P2 — Low-Maintenance Ingestion** — migrate real Vietnamese file/share sources through the neutral acquisition contract and reduce interventions/100 transactions without reducing match precision.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — owner/provider-gated.
@@ -44,6 +44,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE / DURABLE INPUT
 
+- [x] **#434 / PR #435** — authenticated Direct CSV now persists acquisition evidence and commits selected rows through one batch-atomic approval boundary; exact-head CI #2738, CodeQL #1800 and Secret history #1800 were green before squash merge as `38ae8f86…`.
 - [x] **#432 P0 / PR #433** — acquisition-first long-term direction, target architecture, reference-repo atlas and program tracking merged as `a35d6f96…`; exact-head CI #2728, CodeQL #1791 and Secret history #1791 were green.
 - [x] **#430/#429/#428** — repository truth/hygiene reconciliation before the strategy merge.
 - [x] **#425** — corrected the earlier navigation-overload miscount and archived historical/non-authority docs.
@@ -57,7 +58,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 | Packet | Role now | Authority boundary |
 |---|---|---|
-| `434-acquisition-direct-csv.md` | **current agent-executable Class 3 slice** | Direct CSV acquisition/provenance/atomicity only; no provider/native/AI scope |
+| `436-manual-import-reconciliation.md` | **current agent-executable Class 3 slice** | reviewed manual→source provenance linking only; no provider/native/AI scope |
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates; child slice owns current implementation detail |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
