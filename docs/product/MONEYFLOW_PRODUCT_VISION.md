@@ -1,297 +1,314 @@
 # MoneyFlow product vision
 
 - **Status:** binding long-term product direction
-- **Owner decision:** 2026-08-03
-- **Current product truth:** `docs/research/CURRENT_PROJECT_MEMORY.md`
-- **Capability research:** `docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md`
+- **Owner direction:** 2026-08-21
+- **Current shipped truth:** `docs/research/CURRENT_PROJECT_MEMORY.md`
+- **Product law:** `docs/product/PRINCIPLES.md`
 - **Architecture sequence:** `docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md`
+- **Program authority:** issue #432 and `docs/plans/active/432-vietnam-long-term-product-strategy.md`
 
 ## 1. Vision
 
-MoneyFlow will grow from a trustworthy Vietnamese manual-first income-and-expense ledger into a comprehensive personal-finance platform that helps a person:
+MoneyFlow will grow from today's Vietnamese manual/import-assisted income-and-expense ledger into a **low-maintenance, provider-independent personal-finance platform**.
 
-1. capture and verify financial facts;
-2. understand current balances and historical cash flow;
-3. plan budgets, obligations, goals and debt;
-4. forecast future cash positions from explicit assumptions;
-5. automate repetitive work without losing control;
-6. track assets, liabilities and wealth;
-7. collaborate safely when the user chooses;
-8. retain, export and extend their own data.
+Its durable job is:
 
-The goal is not to copy every screen from every finance product. The goal is to combine the strongest proven capabilities into one coherent system whose complexity is revealed only when useful.
+> **Maintain one trustworthy, understandable picture of a person's money while steadily reducing the work required to keep that picture correct.**
+
+The product is not defined by how transactions are entered. A user may have financial activity from bank apps, VietQR, e-wallets, cards, cash, statements, share targets or future contracted provider feeds. MoneyFlow should converge those sources into one correctable and user-owned ledger rather than force the user to maintain parallel records.
+
+Long-term acquisition principle:
+
+> **A digital transaction that can be acquired safely should not need to be retyped.**
+
+Manual capture remains essential for cash, corrections and unseen/off-system events. It is a fallback and explicit user action, not the long-term default for already-digital activity.
 
 ## 2. Product promise
 
-> Every number has a source. Every plan states its assumptions. Every automation can be reviewed. The user remains in control of their data and decisions.
+> Every financial fact has a source. Every match can be explained. Every plan states its assumptions. Every automation can be reviewed or corrected. The user remains in control of their data and decisions.
 
-MoneyFlow is calm, factual and non-judgmental. It may explain, compare and project. It does not shame spending, invent missing information or make autonomous financial decisions.
+MoneyFlow is calm, factual and non-judgmental. It may acquire, normalize, reconcile, explain, compare and project. It does not invent missing information, silently rewrite financial truth or make autonomous financial decisions.
 
-## 3. Primary users
+## 3. Primary user and first wedge
 
-### 3.1 Daily ledger user
+MoneyFlow serves a Vietnamese individual managing their own money without accounting jargon or provider lock-in.
 
-A Vietnamese individual who wants to record income, expense and transfers quickly, know where money is held and correct mistakes without accounting jargon.
+The first segment to validate is digitally banked Vietnamese adults with enough payment/account activity that maintaining a whole-money picture is recurring work. Urban salaried users are an initial recruiting hypothesis because their digital transaction trail and income regularity make the workflow easier to test. This is not yet proven demand or willingness to pay.
 
-### 3.2 Planner
-
-A user who wants budgets, recurring obligations, goals, debt plans and upcoming cash requirements connected to actual transactions.
-
-### 3.3 Power user
-
-A user who wants custom reports, tags, rules, imports, saved views, API access, multi-currency or wealth tracking without losing the simple daily loop.
-
-### 3.4 Household or adviser participant
-
-A future user who needs scoped collaboration, shared and private financial areas, review and audit. This persona is horizon-only until the ownership model is redesigned and validated.
+Irregular-income users remain strategically important but require their own observed workflow rather than being treated as a variant of salaried behavior.
 
 ## 4. Product laws
 
 1. **Ledger before dashboard.** Financial facts are the source; summaries are derived.
-2. **Correctness before breadth.** A new module cannot weaken transfer, split, ownership, integer-money or recovery invariants.
-3. **Progressive disclosure.** New users see Core. Advanced modules appear after explicit choice or relevant data.
-4. **Facts, expectations, assumptions and projections are distinct.** They may interact but never masquerade as one another.
-5. **Explainable automation.** The user can see why a rule, match, suggestion or alert occurred.
-6. **Safe correction.** High-impact edits are bounded, previewed, atomic where needed and recoverable.
-7. **No hidden lock-in.** Export, backup and future APIs are first-class trust features.
-8. **Vietnamese-first, globally capable.** Vietnamese language, VND and local mental models remain first-class while architecture may later support other currencies and regions.
-9. **Web-first until evidence says otherwise.** Native applications are not a prerequisite for comprehensive capability.
-10. **A capability horizon is not an implementation commitment.** Each high-risk module still needs a separate accepted specification and owner decision.
+2. **Acquire once, reconcile once.** All input sources converge on one candidate/provenance/matching/ledger path.
+3. **Correctness before automation.** Reducing user work never justifies silent duplicate, transfer, ownership or amount errors.
+4. **Provider-independent by design.** No one bank/e-wallet/provider becomes a second source of truth or a prerequisite for core usefulness.
+5. **Progressive disclosure.** Complexity appears only when the user has relevant data or chooses it.
+6. **Facts, expectations, assumptions, projections and suggestions remain distinct.**
+7. **Explainable automation.** Source, rule/match/version and correction path are inspectable.
+8. **Safe correction and recovery.** High-impact edits are bounded, audited and recoverable.
+9. **No hidden lock-in.** Export/backup and ownership survive the business model.
+10. **Vietnamese-first, globally capable later.** Vietnamese copy, VND and local payment reality are first-class.
+11. **Web-first, capability-led mobile.** Native apps are built when device capabilities solve validated jobs the web cannot reliably solve.
+12. **A horizon is not implementation permission.** Each high-risk module needs an accepted specification and evidence gate.
 
 ## 5. Product system
 
-### MoneyFlow Core — know and trust the ledger
+### MoneyFlow Core — trustworthy financial facts
 
-Default for every user:
+Default foundation:
 
 - accounts and balances;
-- income, expense, transfer and split transactions;
-- review, correction, soft delete and restore;
-- categories, tags and search;
-- reconciliation;
-- trustworthy export and backup.
+- income, expense and internal transfers;
+- review, correction, soft delete and recovery;
+- category/payee/tag/search semantics as validated;
+- reconciliation state;
+- trustworthy export and backup;
+- provenance/audit for source-backed facts.
 
-Core must remain usable without budgets, bank sync, AI, investments or household setup.
+Core remains usable without provider connections, planning, AI, investments or household setup.
 
-### MoneyFlow Plan — give future money explicit jobs
+### MoneyFlow Acquire — reduce maintenance
 
-Optional planning layer:
+This becomes the strategic layer immediately above Core:
 
-- multiple budget methods;
-- recurring income, bills and subscriptions;
-- goals, reserves and debt plans;
-- financial calendar;
-- forecasts and scenarios.
-
-Planning never changes account balances directly. It creates allocations, expectations and projections that are reconciled against ledger facts.
-
-### MoneyFlow Understand — answer questions with traceable evidence
-
-- reports and arbitrary query ranges;
-- dimensions and drill-down;
-- cash flow, savings rate and budget variance;
-- net worth and debt progress;
-- configurable dashboards;
-- attention items tied to underlying records.
-
-Every aggregate must expose the contributing records and calculation boundary.
-
-### MoneyFlow Automate — reduce repetitive work safely
-
-- imports and Inbox;
-- mapping presets and batch management;
+- statement/file/share/paste/manual sources;
+- future read-only provider feeds;
+- source batches and provenance;
+- parser/adapter versions;
+- normalized candidates;
+- stable source identity and fallback fingerprints;
+- duplicate and internal-transfer matching;
+- pending/cleared updates;
 - deterministic rules;
-- optional provider feeds;
-- public API, webhooks and integrations;
-- explainable suggestions.
+- review/exception queue;
+- atomic commit and replay/idempotency.
 
-Automate proposes or performs only actions allowed by its confidence and permission contract. Failure never silently falls back to a different source of truth.
+A parser/provider cannot write arbitrary financial truth directly.
 
-### MoneyFlow Wealth — connect daily cash flow with the balance sheet
+### MoneyFlow Understand — show what is known and unresolved
+
+- current balance state with coverage/reconciliation context;
+- period inflow/outflow;
+- meaningful-change explanations;
+- unresolved/duplicate/source exceptions;
+- traceable reports and drill-down;
+- weekly/monthly review or close states;
+- known upcoming obligations.
+
+Every aggregate must expose or reconstruct the contributing records and calculation boundary.
+
+### MoneyFlow Plan — use facts to manage future money
+
+- recurring income/obligations and matched occurrences;
+- budgets and allocations;
+- goals/reserves and real contributions;
+- debt plans;
+- financial calendar;
+- deterministic forecasts/scenarios with explicit coverage and assumptions.
+
+Planning never changes account facts directly and must not become a second parallel database users maintain by hand.
+
+### MoneyFlow Automate — remove proven repetitive work safely
+
+- versioned deterministic rules;
+- learned suggestions from confirmed corrections;
+- bounded high-confidence auto-approval;
+- background sync health and alerts;
+- scoped APIs/webhooks;
+- rollback, replay/idempotency and audit.
+
+### MoneyFlow Connect — selective read-only providers
+
+Connectivity is an accelerator after the acquisition contract exists:
+
+- bank/Open API consent and revoke;
+- account mapping;
+- account information/balances/transaction history first;
+- sync cursors, rate limits, retries and provider health;
+- token/secret isolation;
+- disconnect/delete behavior;
+- provider economics/support evidence.
+
+Connection count is not success. Reduced maintenance with correct reconciliation is success.
+
+### MoneyFlow Wealth — broader balance sheet
 
 - assets and liabilities;
 - loans and credit;
-- investments and holdings;
-- valuation history;
-- multi-currency;
-- net-worth composition.
+- investments/holdings;
+- valuation observations and history;
+- explicit multi-currency model;
+- net-worth composition and performance methods defined by separate specs.
 
-Wealth data has its own accounting and valuation semantics. It must not be faked through ordinary expense categories.
+### MoneyFlow Together — shared ownership
 
-### MoneyFlow Together — collaborate without losing ownership
-
-- household/workspace membership;
-- private and shared accounts;
+- workspace/membership;
+- private/shared financial resources;
 - scoped roles;
-- transaction review and comments;
-- shared plans and goals;
-- adviser read-only access;
-- activity history and separation workflows.
+- shared expenses/plans/goals;
+- adviser read-only access where validated;
+- separation/export/delete and activity history.
 
-Together begins only after a dedicated ownership threat model and migration design.
+Together begins only after an ownership threat model and RLS migration design.
 
-## 6. Progressive experience
+### MoneyFlow Intelligence — optional interface over trusted data
 
-### Level 1 — start a ledger
+- ambiguous classification suggestions;
+- merchant normalization assistance;
+- recurring/anomaly explanations;
+- natural-language exploration;
+- scenario assistance.
 
-The user creates an account, records a transaction and sees the correct balance. No planning setup is required.
+Intelligence is a consumer of authorized facts and suggestions, not a source of ledger truth or autonomous financial advice.
 
-### Level 2 — keep it trustworthy
+## 6. User experience progression
 
-The product surfaces unreviewed transactions, correction, reconciliation and export only when useful.
+### Level 1 — establish the ledger
 
-### Level 3 — plan the next period
+Create accounts, capture/import initial activity, verify balances and retain ownership of data.
 
-Budgets, recurring obligations and goals become available after the user has enough data or explicitly enables planning.
+### Level 2 — make acquisition cheaper
 
-### Level 4 — understand and forecast
+Import/share/source activity, resolve exceptions, match transfers and reach a trustworthy period with fewer manual actions.
 
-Reports, custom dashboards and forecasts use the user's existing facts and explicit assumptions.
+### Level 3 — review and understand
 
-### Level 5 — automate and extend
+See what changed, what is unresolved and what upcoming known obligations matter.
 
-Rules, imports, APIs and provider feeds reduce repetitive work after review and recovery paths are proven.
+### Level 4 — connect planning to facts
 
-### Level 6 — manage wealth or collaborate
+Budgets, recurring items, goals and forecasts stay linked to actual transactions and explicit assumptions.
 
-Investments, multi-currency and household features remain modular and do not change the default daily experience.
+### Level 5 — automate and connect
+
+Rules and selected provider feeds reduce routine maintenance while preserving source/review/recovery.
+
+### Level 6 — extend to wealth/together/intelligence
+
+Only after Core + Acquire + Understand prove continuing value.
 
 ## 7. Success measures
 
-### Trust
+Primary north-star concept:
 
-- no unexplained balance changes;
-- percentage of accounts reconciled or explicitly acknowledged;
-- correction success without manual database repair;
+> **Trusted periods maintained with decreasing maintenance effort.**
+
+### Trust and data quality
+
+- unexplained balance-change rate;
+- duplicate/unmatched/correction rate;
+- automatic-match precision;
+- reconciliation completion/confidence;
 - export/restore success;
-- user-reported confidence in balances.
+- user-reported confidence in known balances and coverage.
 
-### Daily use
+### Maintenance reduction
 
-- time to first transaction;
-- median capture time on a physical phone;
-- transactions recorded per active day;
-- day-2, day-7 and day-30 retention;
-- percentage of sessions that complete the intended task without support.
+- manual interventions per 100 observed transactions;
+- maintenance minutes per active user/month;
+- share of activity acquired rather than retyped;
+- time to first trustworthy period;
+- source-sync/import failure and recovery rates.
 
-### Planning value
+### Continuing value
 
-- recurring matches completed;
-- budgets or goals revisited after creation;
-- percentage of projections with explicit assumptions;
-- alerts acted on, dismissed or snoozed rather than ignored.
+- multi-period retention / trusted months maintained;
+- repeated use of review/report/planning after data exists;
+- reasons for abandonment;
+- willingness to pay for meaningful work reduction.
 
-### Product breadth health
+### Provider/business evidence
 
-- advanced modules enabled intentionally;
-- Core completion does not regress as breadth grows;
-- feature discovery without navigation overload;
-- support burden and escaped money defects by module.
+- provider and support cost per retained paying user;
+- consent/connect success/expiry recovery;
+- maintenance reduction for connected vs non-connected cohorts;
+- concentration risk by provider.
 
-### Business evidence
+DAU and feature count are secondary diagnostics, not north-star measures.
 
-- users who voluntarily continue after trial;
-- willingness to pay;
-- conversion from landing to first trusted ledger week;
-- reasons users switch from spreadsheets or other apps;
-- cost to operate providers and support per active user.
+## 8. Development waves
 
-No repository test can substitute for these measurements.
+Waves are dependency order, not fixed dates.
 
-## 8. Prioritization
+### Wave 0 — Authority and release trust
 
-When candidate features compete, use this order:
+- reconcile product law and architecture with #432;
+- keep release/physical/provider/legal gates truthful and independent;
+- instrument only privacy-safe product evidence needed for future decisions.
 
-1. known money correctness or data-loss defect;
-2. inability to complete the daily ledger loop;
-3. trust and correction depth;
-4. repeated friction observed in self-use or user research;
-5. connected planning and understanding;
-6. automation that reduces proven repetitive work;
-7. wealth, collaboration and connectivity after prerequisites;
-8. visual polish and speculative breadth.
+### Wave 1 — Acquisition Foundation
 
-A feature's popularity in another app is not evidence that MoneyFlow should build it next.
+- one neutral source/candidate/provenance pipeline;
+- stable source IDs/fingerprints;
+- dry-run, duplicate and transfer decisions;
+- atomic/idempotent commit;
+- pending/cleared and correction precedence.
 
-## 9. Current strategic waves
+### Wave 2 — Low-Maintenance Ingestion
 
-### Wave 1 — Ledger Trust
+- robust real statement/file/share formats;
+- merchant normalization and deterministic rules;
+- recurring recognition;
+- exception-first review and reconciliation.
 
-- transaction review and bounded correction;
-- reconciliation decision and implementation;
-- split-line correction;
-- payee/merchant normalization;
-- mutation audit and saved review views.
+### Wave 3 — Trustworthy Understanding
 
-### Wave 2 — Connected Planning
+- compact whole-money/review state;
+- shared report query/drill-down/export contract;
+- period close/up-to-date coverage semantics;
+- known obligations/attention.
 
-- budget history, copy and explicit rollover;
-- recurring occurrence lifecycle and matching;
-- goal contribution history;
-- debt payoff planning;
-- connections among plan records and ledger facts.
+### Wave 4 — Selective Connectivity
 
-### Wave 3 — Deep Understanding
+- first contracted read-only provider(s) chosen from real retention/economics evidence;
+- consent/token/sync-health/rollback boundaries;
+- same neutral acquisition pipeline.
 
-- arbitrary report ranges;
-- account/type/tag/merchant dimensions;
-- drill-down and saved reports;
-- custom dashboards;
-- cash flow, savings rate and net-worth baseline.
+### Wave 5 — Connected Planning
 
-### Wave 4 — Forecast
-
+- recurring matching;
+- goals/contributions;
 - financial calendar;
-- account balance projection;
-- low-balance attention;
-- scenarios and actual-versus-forecast review.
+- deterministic forecast/scenarios.
 
-### Wave 5 — Automation and Ownership
+### Wave 6 — Automation Platform
 
-- persisted deterministic rules;
-- mapping presets and batch management;
-- versioned backup/restore;
-- scoped public API and webhooks.
+- versioned/learned rules;
+- bounded auto-approval;
+- durable background workflow as required;
+- scoped API/webhooks.
 
-### Wave 6 — Wealth
+### Wave 7 — Wealth
 
-- assets and liabilities;
-- loans and credit semantics;
-- investment holdings and valuation;
-- multi-currency architecture.
+- assets/liabilities/loans/investments;
+- valuations, performance and explicit multi-currency.
 
-### Wave 7 — Together and Connectivity
+### Wave 8 — Together
 
-- household ownership and roles;
-- shared/private financial areas;
-- adviser access;
-- selected bank-data providers after market, cost and operational research.
+- workspace ownership, permissions and shared-finance flows.
 
-### Wave 8 — Optional Intelligence
+### Wave 9 — Optional Intelligence
 
-- explainable classification and recurring suggestions;
-- natural-language exploration over the user's own records;
-- confidence and source-linked answers;
-- complete opt-out and deterministic fallback.
+- grounded suggestions/explanations/NL exploration with opt-out and deterministic fallback.
 
-Waves represent dependency order, not fixed delivery dates. Observed evidence may reorder bounded slices.
+## 9. Current boundaries
 
-## 10. Current boundaries
+This vision authorizes direction, not implementation of every horizon.
 
-The following are approved as long-term research and product horizons, but are **not individually authorized implementation work** by this document alone:
+Separate researched specifications and explicit permission remain mandatory for:
 
-- bank synchronization;
-- probabilistic or generative AI;
-- household finance;
-- investment tracking;
-- multi-currency;
-- native mobile applications;
-- credit scoring, tax, insurance or regulated financial advice.
+- production bank/Open API provider integration;
+- native Android/iOS applications;
+- sensitive notification/SMS-based acquisition;
+- AI/probabilistic mutation;
+- household/workspace migration;
+- wealth/investment accounting;
+- explicit multi-currency accounting;
+- payment initiation, credit scoring, insurance, tax or regulated financial advice.
 
-Each requires its own specification, owner approval, privacy/security review, architecture decision, operational cost model, migration and rollback.
+## 10. Relationship to current shipped MVP
 
-## 11. Relationship to the released MVP
+Today's product can truthfully remain manual/import-assisted while the long-term direction is acquisition-first. Documentation must distinguish **current capability** from **future product law** and never claim bank sync, native capture or automation before implementation evidence exists.
 
-`docs/MVP_DEFINITION.md` remains the authoritative definition of the MVP released on 2026-08-03. It proves what the first release required. It is not the final definition of MoneyFlow and must not be used to reject an owner-approved future module solely because that module was once an MVP non-goal.
-
-Current implementation claims still come only from merged code, migrations, tests and `CURRENT_PROJECT_MEMORY.md`. This vision describes direction, not current behavior.
+`docs/MVP_DEFINITION.md` records the released MVP. `CURRENT_PROJECT_MEMORY.md` and current code/tests own implementation truth. This vision owns the accepted long-term shape once merged to the default branch.

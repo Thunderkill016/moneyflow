@@ -1,37 +1,70 @@
 # MoneyFlow product principles
 
-This is the current product truth. Historical research may describe older directions; when it conflicts with this document, this document wins until a reviewed specification changes it.
+This document owns MoneyFlow's long-term product law. Current shipped capability continues to come from merged code/tests and `docs/research/CURRENT_PROJECT_MEMORY.md`; an open pull request changing this file remains candidate evidence until merge.
 
 ## Primary user
 
-A Vietnamese individual who wants to manage their own money without accounting jargon, mandatory bank aggregation or a judgmental financial coach.
+A Vietnamese individual who wants to manage their own money without accounting jargon, provider lock-in or a judgmental financial coach.
 
-MoneyFlow may later support power users, households and advisers through optional modules. Those future personas must not make the default single-user daily ledger harder to understand.
+The first market wedge to validate is digitally banked Vietnamese adults with enough account/payment activity that keeping one whole-money picture is recurring work. This is a validation hypothesis, not a claim that all Vietnamese adults need or will pay for MoneyFlow.
 
 ## Core jobs
 
-1. Record income or expense quickly, especially on a phone.
-2. Know current balances across active accounts.
-3. Understand income, expense and where money went in the selected period.
-4. Correct mistakes without corrupting the ledger.
-5. Retain and export trustworthy data.
+1. Keep a trustworthy record of income, expense and internal transfers regardless of where the source data came from.
+2. Know current balances across active accounts with explicit coverage and reconciliation state.
+3. Understand income, expense, meaningful changes and where money went in a selected period.
+4. Correct mistakes or source mismatches without corrupting the ledger.
+5. Retain, back up and export trustworthy user-owned data.
 6. Connect plans, obligations, goals and forecasts to explicit financial facts and assumptions.
+7. Reduce the work required to keep the ledger complete as the user continues using the product.
 
 ## Product character
 
 - Calm, factual and non-judgmental.
-- Manual-first and transparent about data quality.
-- Useful with a small amount of setup.
 - Vietnamese copy and integer VND are first-class requirements.
 - Mobile usability is a release gate, not a later enhancement.
 - Advanced capability is progressively disclosed rather than placed in every user's daily path.
-- Automation explains what it changed, why it changed it and how to reverse or correct it.
+- Automation explains what changed, why, its source/provenance and how to correct or reverse it.
+- Data quality and coverage are explicit; unknown activity is never presented as known completeness.
+- The product remains usable when no bank/provider connection is available.
+
+## Acquisition law
+
+MoneyFlow's **current released MVP** is still predominantly manual/import-assisted. That is current capability, not the long-term workflow target.
+
+Long-term:
+
+> **A digital transaction that MoneyFlow can acquire safely should not require the user to retype it.**
+
+Automatic or near-automatic acquisition is the strategic default for digital activity. Manual capture remains a first-class fallback for:
+
+- cash;
+- events no connected/source channel can observe;
+- corrections and missing records;
+- owner-chosen explicit entry.
+
+All acquisition channels must converge on one neutral pipeline:
+
+```text
+source/evidence
+  -> parser/adapter + version
+  -> normalized candidate + provenance
+  -> validation
+  -> duplicate / transfer / rule decision
+  -> human review or bounded approved automation
+  -> atomic ledger fact
+  -> reconciliation / correction / audit
+```
+
+A bank API, e-wallet/provider feed, statement file, share/paste input, Android notification source or manual form must not create a second financial truth model.
+
+Provider adapters create source records/candidates. They do not directly overwrite balances or silently classify/post outside the normal financial mutation contract.
 
 ## Financial honesty
 
-MoneyFlow must distinguish these concepts:
+MoneyFlow must distinguish:
 
-- **Total assets/balance:** money represented by active accounts.
+- **Total assets/balance:** money represented by active accounts according to known/reconciled data.
 - **Income and expense:** ledger activity in a period, excluding transfers.
 - **Allocated money:** money assigned to goals or budgets but still part of total assets.
 - **Commitments:** expected obligations, which may be unpaid or incomplete.
@@ -40,11 +73,12 @@ MoneyFlow must distinguish these concepts:
 - **Expectation:** a planned occurrence that has not yet become a posted fact.
 - **Assumption:** a user-owned scenario input.
 - **Projection:** a recalculable output derived from facts, expectations and assumptions.
-- **Suggestion:** a rule/model result that remains reviewable until the relevant contract allows automatic action.
+- **Suggestion:** a rule/model result that remains reviewable until its contract allows automatic action.
+- **Source evidence:** external/user-provided material that may support a fact but is not itself automatically authoritative.
 
-The product must not infer a spending plan from total assets alone. Missing income dates, reserves, obligations or account intent remain unknown. Do not turn unknowns into confident recommendations.
+The product must not infer a spending plan from total assets alone. Missing income dates, reserves, obligations, source coverage or account intent remain unknown.
 
-A projection must expose its coverage and assumptions. It may inform planning, but it is not a promise or an autonomous financial decision.
+A projection must expose coverage and assumptions. It may inform planning, but it is not a promise or an autonomous financial decision.
 
 ## Current released scope
 
@@ -57,104 +91,97 @@ A projection must expose its coverage and assumptions. It may inform planning, b
 - Recurring commitments and recurring income templates.
 - Savings goals.
 - Weekly/monthly/yearly reporting.
-- CSV export and controlled import tools.
+- CSV export and controlled import/share tools.
 - Responsive web UI with light/dark support.
 
-The exact current implementation status lives in `docs/research/CURRENT_PROJECT_MEMORY.md`. The released MVP definition remains in `docs/MVP_DEFINITION.md`.
+Do not describe bank sync, automatic provider feeds, native Android capture, wealth or household finance as shipped until merged implementation evidence proves them.
 
-## Long-term product horizon
+## Product system and dependency order
 
-The owner approved a comprehensive personal-finance capability horizon on 2026-08-03. MoneyFlow may ultimately expand through these optional layers:
+MoneyFlow may ultimately expand through these layers, but the dependency order is now:
 
-- **Core:** ledger trust, review, reconciliation, correction, tags, export and recovery;
-- **Plan:** multiple budgeting methods, recurring lifecycle, goals, debt planning, forecast and scenarios;
-- **Understand:** flexible reports, dimensions, drill-down, dashboards, attention and net worth;
-- **Automate:** imports, deterministic rules, APIs, integrations and optional provider feeds;
-- **Wealth:** assets, liabilities, loans, investments and multi-currency;
-- **Together:** household ownership, permissions and collaboration;
-- **Optional intelligence:** explainable suggestions and natural-language exploration with opt-out and deterministic fallback.
+1. **Core trust:** ledger facts, balances, review, correction, recovery, export/backup.
+2. **Acquire + reconcile:** sources, imports, candidates, provenance, duplicate/transfer matching, clearing and reconciliation.
+3. **Understand:** traceable reports, drill-down, attention/review state and a compact whole-money picture.
+4. **Plan:** recurring expectations, budgets, goals, reserves, debt plans and deterministic forecasts linked to facts.
+5. **Automate:** versioned rules, learned suggestions, bounded auto-approval, APIs/webhooks and reliable background sync.
+6. **Connect:** selective contracted read-only provider feeds when retention, legal/security and economics justify them. Connectivity may begin earlier as a bounded pilot once the acquisition contract exists; it must not bypass it.
+7. **Wealth:** assets, liabilities, loans, investments, valuations and explicit multi-currency architecture.
+8. **Together:** household/workspace ownership, permissions and collaboration.
+9. **Optional intelligence:** explainable suggestions and natural-language exploration over authorized records with deterministic fallback.
 
-`docs/product/MONEYFLOW_PRODUCT_VISION.md` selects the product shape. `docs/research/GLOBAL_PERSONAL_FINANCE_CAPABILITY_ATLAS.md` records the horizon. `docs/architecture/TARGET_ARCHITECTURE_ROADMAP.md` defines dependency and migration order.
+A capability in the horizon is not implementation permission. High-risk modules require a researched specification, owner approval, financial/security contract, migration/rollback and measurable success/failure criteria.
 
-A capability appearing in the horizon is not an implementation commitment. Each high-risk feature still requires a researched specification, owner approval, financial/security contract, migration and rollback plan, and evidence that it solves a real problem.
+## Provider and mobile boundaries
 
-## Deferred from the current default experience
+- Bank/Open Banking connectivity is read-only first.
+- No bank/e-wallet is selected without current official API/contract/economics evidence.
+- The product must degrade gracefully when a provider cannot connect or a consent expires.
+- Native mobile is justified by validated capabilities the web cannot deliver reliably, not by category convention.
+- Android SMS permissions must not be assumed available for a Play-distributed app; notification content is also a fallible source and may be redacted by the platform.
+- Source data remains evidence requiring validation/reconciliation, not an excuse to trust external payloads blindly.
 
-The following are not part of the current default daily ledger and must not be added through incidental feature work:
+## Automation and intelligence boundaries
 
-- Bank synchronization or Open Banking.
-- Probabilistic or generative AI behavior.
-- OCR receipt processing as a core workflow.
-- Family/shared finance.
-- Business accounting, tax or invoicing.
-- Investments and portfolio accounting.
-- Multi-currency accounting.
-- A complete YNAB-style envelope system.
-- Native mobile applications before the web product proves daily usefulness.
-
-These are no longer permanent product prohibitions. They are separately gated future modules. A new researched specification and explicit human approval are mandatory before implementation, and the default Core must remain usable without them.
+- Deterministic rules are preferred for repeatable known behavior.
+- Probabilistic suggestions must expose uncertainty and be learned/evaluated from user-confirmed outcomes.
+- Auto-approval is bounded by a measured precision/error contract and remains reversible.
+- AI is not a source of financial truth, not autonomous financial advice and not an alternate posting path.
+- Natural-language answers must be grounded in authorized records and make source/coverage visible where relevant.
 
 ## Prioritization rule
 
-Use this order when trade-offs conflict:
+When trade-offs conflict, use this order:
 
-1. Data correctness and ownership safety.
-2. Ability to complete the core transaction flow.
-3. Mobile usability and accessibility.
-4. Clear explanations and recovery from mistakes.
-5. Trust depth: review, reconciliation and traceability.
-6. Observed repeated friction from self-use or user research.
-7. Connected planning and understanding.
-8. Performance and maintainability.
-9. Visual polish.
-10. Speculative feature breadth.
+1. Data correctness, ownership safety and recoverability.
+2. Ability to maintain a trustworthy ledger.
+3. Reduction in repeated human maintenance for real observed activity.
+4. Mobile usability and accessibility.
+5. Reconciliation, provenance and explainability.
+6. Understanding that answers repeated user questions from traceable facts.
+7. Connected planning that stays current from real facts.
+8. Selective automation/connectivity with proven economics and reliability.
+9. Performance and maintainability.
+10. Visual polish and speculative breadth.
+
+Feature popularity elsewhere is not evidence.
 
 ## Evidence before features
 
 A proposed feature must answer:
 
 - What user problem was observed?
-- What existing behavior or data supports the need?
-- What products or official sources were researched?
+- What current MoneyFlow code/data/workflow already exists?
+- Which official sources or implementation references were researched?
 - Which assumptions remain unknown?
 - What is the smallest testable vertical slice?
-- How will success and failure be observed?
-- Which financial, ownership, currency or provider semantics change?
-- What must not be changed?
+- How will success and failure be measured?
+- Which financial, ownership, source, currency or provider semantics change?
+- What is the rollback/disconnect path?
+- What must not change?
 
-Ideas without evidence stay in the capability horizon, research or backlog; they do not enter implementation automatically.
+## Product health metrics
 
-## Daily-use readiness
+Primary program concept:
 
-MoneyFlow is ready for real self-use only when:
+> **Trusted periods maintained with decreasing maintenance effort.**
 
-- authentication and recovery complete on the production domain;
-- transaction creation, editing and deletion are reliable on a physical phone;
-- balances, income, expense and transfers reconcile correctly;
-- export opens safely in common spreadsheet tools;
-- no open P0/P1 defect blocks a core flow;
-- real daily use surfaces no data loss and needs no manual repair.
+Supporting metrics include:
 
-**Withdrawn 2026-08-12:** the earlier form of the last condition required *seven
-consecutive days* of use. The owner removed that duration gate after the
-physical-phone run, and **nothing replaces it** — no shorter count, no substitute
-streak. Real daily use is still how defects get found, and the physical-phone run is
-the evidence of that; it is simply no longer counted in days. This document is
-higher precedence than any work packet, so the withdrawal is recorded here rather
-than only in `docs/plans/completed/2026-08-12-moneyflow-trust-prove.md`.
+- manual interventions per 100 observed transactions;
+- maintenance minutes per active user/month;
+- source coverage and unresolved/duplicate rate;
+- automatic-match precision and user correction rate;
+- reconciliation confidence/completion;
+- time to first trustworthy period;
+- multi-period retention;
+- export/restore success;
+- provider/support cost per retained paying user when applicable.
 
-Daily-use evidence remains necessary while broader modules are developed. Adding feature breadth does not substitute for trust and retention evidence.
+DAU and feature count are not primary success metrics. A good MoneyFlow may require fewer user interventions over time.
 
-## Success for the current project phase
+## Daily-use and release readiness
 
-The near-term goal is not maximum feature count. It is to prove that MoneyFlow can remain the user's trusted daily ledger while selected long-term modules add connected value.
+MoneyFlow is ready for real self-use only when the relevant production authentication/recovery, physical-phone core flows, financial reconciliation, safe export and open P0/P1 conditions meet the release contract.
 
-New work should do at least one of the following:
-
-- reduce uncertainty or money risk;
-- improve correctness, review or recovery;
-- remove repeated friction observed in use;
-- connect an existing plan, report or automation to trustworthy ledger data;
-- establish a prerequisite for an owner-selected future module without exposing premature complexity.
-
-The repository may research the full global capability horizon, but delivery remains bounded, evidence-driven and dependency-ordered.
+Daily-use evidence remains important while broader modules are developed. New feature breadth never substitutes for trust/release evidence, and strategy work cannot close RRB/provider/legal/physical-device gates.
