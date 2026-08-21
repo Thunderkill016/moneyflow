@@ -209,6 +209,11 @@
       "version": "20260821014500",
       "name": "20260821014500_direct_csv_batch_atomic_approval.sql",
       "hash": "c6f25f4bbb64533694d757a4c716d996"
+    },
+    {
+      "version": "20260821062000",
+      "name": "20260821062000_manual_import_reconciliation.sql",
+      "hash": "dc77f39f2bf8cca8dbf1d8c32d9b7fc1"
     }
   ]
 }
