@@ -54,13 +54,13 @@ function board({ baseline = "abc1234", extra = "" } = {}) {
   ].join("\n");
 }
 
+const history = [
+  "deadbeef\tfeat: later child slice (#441)",
+  "facefeed\tdocs(product): install master program (#433)",
+].join("\n");
+
 const fakeGit = (_root, args) => {
-  if (args[0] === "log") {
-    return [
-      "deadbeef\tfeat: later child slice (#441)",
-      "facefeed\tdocs(product): install master program (#433)",
-    ].join("\n");
-  }
+  if (args[0] === "log" && args[1] !== "-1") return history;
   return null;
 };
 
@@ -81,6 +81,7 @@ test("resolves one master, one current slice, and the supersession chain", () =>
         "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md",
       );
       assert.equal(result.masterHistory[1].prNumber, 433);
+      assert.equal(result.baselineMode, "declared-base");
     },
   );
 });
@@ -92,6 +93,50 @@ test("a stale Current Work Board fails closed instead of yielding NEXT work", ()
       const result = resolvePlanAuthority(root, {
         expectedBaseline: "def5678",
         runGit: fakeGit,
+      });
+
+      assert.equal(result.ok, false);
+      assert.ok(result.failures.some((failure) => failure.includes("is stale")));
+    },
+  );
+});
+
+test("the merge that updates the board does not invalidate its own authority", () => {
+  withFixture(
+    { board: board(), manifest: authorityManifest() },
+    (root) => {
+      const mergedHead = "feed999999999999999999999999999999999999";
+      const result = resolvePlanAuthority(root, {
+        expectedBaseline: mergedHead,
+        runGit: (_root, args) => {
+          if (args[0] === "rev-parse" && args[1] === "HEAD") return mergedHead;
+          if (args[0] === "log" && args[1] === "-1") return mergedHead;
+          if (args[0] === "log") return history;
+          return null;
+        },
+      });
+
+      assert.equal(result.ok, true, result.failures.join("\n"));
+      assert.equal(result.baselineMode, "board-updated-at-head");
+      assert.equal(result.boardLastCommit, mergedHead);
+    },
+  );
+});
+
+test("the next main commit without a board update makes the board stale again", () => {
+  withFixture(
+    { board: board(), manifest: authorityManifest() },
+    (root) => {
+      const nextHead = "cafe111111111111111111111111111111111111";
+      const previousBoardCommit = "feed999999999999999999999999999999999999";
+      const result = resolvePlanAuthority(root, {
+        expectedBaseline: nextHead,
+        runGit: (_root, args) => {
+          if (args[0] === "rev-parse" && args[1] === "HEAD") return nextHead;
+          if (args[0] === "log" && args[1] === "-1") return previousBoardCommit;
+          if (args[0] === "log") return history;
+          return null;
+        },
       });
 
       assert.equal(result.ok, false);
@@ -181,7 +226,9 @@ test("the declared introducing PR must be present in first-parent git history", 
       const result = resolvePlanAuthority(root, {
         expectedBaseline: "abc1234",
         runGit: (_root, args) =>
-          args[0] === "log" ? "deadbeef\tfeat: unrelated child (#441)" : null,
+          args[0] === "log" && args[1] !== "-1"
+            ? "deadbeef\tfeat: unrelated child (#441)"
+            : null,
       });
 
       assert.equal(result.ok, false);
