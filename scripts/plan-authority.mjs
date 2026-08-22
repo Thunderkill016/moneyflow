@@ -58,24 +58,38 @@ function prNumberFromSubject(subject) {
   return Number.isInteger(value) ? value : null;
 }
 
+function readPullRequestEvent(env) {
+  if (env.GITHUB_EVENT_NAME !== "pull_request" || !env.GITHUB_EVENT_PATH) {
+    return null;
+  }
+  try {
+    return JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function currentPullRequestNumber(env) {
+  const event = readPullRequestEvent(env);
+  const value = event?.pull_request?.number ?? event?.number;
+  return Number.isInteger(value) ? value : null;
+}
+
 export function resolveExpectedBaseline(
   root,
   { env = process.env, runGit = defaultRunGit } = {},
 ) {
-  if (env.GITHUB_EVENT_NAME === "pull_request" && env.GITHUB_EVENT_PATH) {
-    try {
-      const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
-      const baseSha = event.pull_request?.base?.sha;
-      if (typeof baseSha === "string" && baseSha) {
-        return { sha: baseSha, source: "pull_request.base.sha" };
-      }
-    } catch {
-      return {
-        sha: null,
-        source: "pull_request.base.sha",
-        error: "could not read pull-request event",
-      };
+  if (env.GITHUB_EVENT_NAME === "pull_request") {
+    const event = readPullRequestEvent(env);
+    const baseSha = event?.pull_request?.base?.sha;
+    if (typeof baseSha === "string" && baseSha) {
+      return { sha: baseSha, source: "pull_request.base.sha" };
     }
+    return {
+      sha: null,
+      source: "pull_request.base.sha",
+      error: "could not read pull-request event/base SHA",
+    };
   }
 
   const branch = runGit(root, ["branch", "--show-current"]);
@@ -266,6 +280,7 @@ export function resolvePlanAuthority(
   const authorityChain = [];
   let master = null;
   let masterHistory = [];
+  let masterStatus = "active";
 
   if (manifest?.master?.path && masterRow) {
     const registryMasterPath = `docs/plans/active/${masterRow.packet}`;
@@ -288,10 +303,18 @@ export function resolvePlanAuthority(
       const introMatch = masterHistory.find(
         (entry) => entry.prNumber === manifest.master.introducedByPr,
       );
-      if (!introMatch && masterHistory.length > 0) {
-        failures.push(
-          `${manifest.master.path} says PR #${manifest.master.introducedByPr} introduced authority, but git first-parent history does not contain that PR`,
-        );
+      if (!introMatch) {
+        const currentPr = currentPullRequestNumber(env);
+        if (currentPr === manifest.master.introducedByPr) {
+          masterStatus = "candidate";
+          warnings.push(
+            `${manifest.master.path} is a candidate master in current PR #${currentPr}; it becomes active only after that PR appears in merged first-parent history`,
+          );
+        } else {
+          failures.push(
+            `${manifest.master.path} says PR #${manifest.master.introducedByPr} introduced authority, but git first-parent history does not contain that PR`,
+          );
+        }
       }
     }
 
@@ -299,10 +322,11 @@ export function resolvePlanAuthority(
       path: manifest.master.path,
       packet: basename(manifest.master.path),
       introducedByPr: manifest.master.introducedByPr,
+      status: masterStatus,
     };
     authorityChain.push({
       path: manifest.master.path,
-      status: "active",
+      status: masterStatus,
       introducedByPr: manifest.master.introducedByPr,
     });
 
@@ -330,7 +354,7 @@ export function resolvePlanAuthority(
       }
       authorityChain.push({
         path: predecessor.path,
-        status: "superseded",
+        status: masterStatus === "candidate" ? "superseded-if-merged" : "superseded",
         supersededBy: manifest.master.path,
         supersededByPr: predecessor.supersededByPr,
       });
@@ -383,7 +407,9 @@ function printHuman(result) {
   console.log(
     `board baseline: ${result.boardBaseline ?? "missing"}; expected: ${result.expectedBaseline ?? "unknown"}; mode: ${result.baselineMode ?? "unknown"}`,
   );
-  console.log(`master: ${result.master?.path ?? "unresolved"}`);
+  console.log(
+    `master: ${result.master?.path ?? "unresolved"}${result.master?.status ? ` [${result.master.status}]` : ""}`,
+  );
   console.log(`current slice: ${result.current?.path ?? "none"}`);
 
   if (result.authorityChain.length > 0) {
