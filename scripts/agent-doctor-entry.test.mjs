@@ -23,25 +23,27 @@ function withAuthorityFixture(run) {
       ].join("\n"),
     );
     writeFileSync(join(root, "docs/plans/active/current.md"), "# Current\n");
+    writeFileSync(join(root, "docs/plans/active/master.md"), "# Master\n");
+    writeFileSync(join(root, "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md"), "# Old\n");
     writeFileSync(
-      join(root, "docs/plans/active/master.md"),
-      [
-        "# Master",
-        "**Authority role:** master product program",
-        "**Authority introduced by:** PR #433",
-        "**Supersedes plan:** `docs/plans/PRODUCT_DEVELOPMENT_PLAN.md`",
-        "",
-      ].join("\n"),
-    );
-    mkdirSync(join(root, "docs/plans"), { recursive: true });
-    writeFileSync(
-      join(root, "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md"),
-      [
-        "# Old",
-        "**Authority status:** superseded",
-        "**Superseded by:** `docs/plans/active/master.md` (PR #433)",
-        "",
-      ].join("\n"),
+      join(root, "docs/plans/PLAN_AUTHORITY.json"),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          master: {
+            path: "docs/plans/active/master.md",
+            introducedByPr: 433,
+            supersedes: [
+              {
+                path: "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md",
+                supersededByPr: 433,
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
     );
     return run(root);
   } finally {
