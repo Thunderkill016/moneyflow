@@ -114,6 +114,10 @@ function gitHistory(root, path, runGit) {
     });
 }
 
+function latestCommitForPath(root, path, runGit) {
+  return runGit(root, ["log", "-1", "--format=%H", "--", path]);
+}
+
 function readManifest(root, failures) {
   let manifest;
   try {
@@ -210,14 +214,31 @@ export function resolvePlanAuthority(
   const resolvedExpected = expectedBaseline
     ? { sha: expectedBaseline, source: "caller" }
     : resolveExpectedBaseline(root, { env, runGit });
+  const head = runGit(root, ["rev-parse", "HEAD"]);
+  const boardLastCommit = latestCommitForPath(root, ACTIVE_BOARD_PATH, runGit);
+  let baselineMode = "declared-base";
+
   if (!resolvedExpected.sha) {
     failures.push(
       `could not verify Current Work Board freshness: ${resolvedExpected.error ?? "unknown base"}`,
     );
   } else if (boardBaseline && !sameCommit(boardBaseline, resolvedExpected.sha)) {
-    failures.push(
-      `${ACTIVE_BOARD_PATH} is stale: baseline ${boardBaseline} does not match ${resolvedExpected.source} ${resolvedExpected.sha}`,
-    );
+    const boardUpdatedAtExpectedHead =
+      sameCommit(head, resolvedExpected.sha) &&
+      sameCommit(boardLastCommit, resolvedExpected.sha);
+
+    if (boardUpdatedAtExpectedHead) {
+      // A PR cannot know its future squash-merge SHA. After that PR lands on main,
+      // the board header still names the base it was reconciled from, while Git
+      // proves the exact new HEAD itself contains the board update. Accept that
+      // one transition. The next main commit that does not touch the board makes
+      // boardLastCommit != HEAD and fails closed again.
+      baselineMode = "board-updated-at-head";
+    } else {
+      failures.push(
+        `${ACTIVE_BOARD_PATH} is stale: baseline ${boardBaseline} does not match ${resolvedExpected.source} ${resolvedExpected.sha}; latest board commit is ${boardLastCommit ?? "unknown"}`,
+      );
+    }
   }
 
   const manifest = readManifest(root, failures);
@@ -320,6 +341,8 @@ export function resolvePlanAuthority(
     boardBaseline,
     expectedBaseline: resolvedExpected.sha,
     expectedBaselineSource: resolvedExpected.source,
+    boardLastCommit,
+    baselineMode,
     master,
     current: currentRow
       ? {
@@ -338,7 +361,7 @@ function printHuman(result) {
     `MoneyFlow plan authority — ${result.ok ? "RESOLVED" : "NEEDS RECONCILIATION"}`,
   );
   console.log(
-    `board baseline: ${result.boardBaseline ?? "missing"}; expected: ${result.expectedBaseline ?? "unknown"}`,
+    `board baseline: ${result.boardBaseline ?? "missing"}; expected: ${result.expectedBaseline ?? "unknown"}; mode: ${result.baselineMode ?? "unknown"}`,
   );
   console.log(`master: ${result.master?.path ?? "unresolved"}`);
   console.log(`current slice: ${result.current?.path ?? "none"}`);
