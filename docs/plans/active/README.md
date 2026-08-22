@@ -80,4 +80,4 @@ Before using `NOW` or `NEXT`, `npm run plan:resolve` must resolve the master/cur
 6. `OWNER DECISION` is never auto-resolved by an agent.
 7. Historical issues/PRs are provenance, not authority, once reconciled.
 8. `CURRENT_PROJECT_MEMORY.md` changes only when merged implementation/trust truth changes; open changes must not be restated as shipped runtime capability.
-9. Board baseline mismatch invalidates the board for task selection even when its prose still looks plausible.
+9. The baseline is the main/base state from which the board was reconciled. A board-updating merge may prove freshness by being the exact latest commit touching this file; the next main commit that does not update the board invalidates it.
