@@ -1,13 +1,13 @@
 # #443 — Fail-closed plan authority resolution
 
 **Status:** active
-**Execution state:** implementing
+**Execution state:** evaluating
 **Change class:** Class 3 — repository governance / agent task-selection contract
 **Parent:** repository delivery governance; protects #432 and every later master program
 **Active role:** implementer / evaluator
 **Permission scope:** focused branch/repository documentation and tooling only; no provider, production, financial-data, main or merge write
 **Branch:** `chore/443-plan-authority-resolution`
-**Issue:** #443
+**Issue / PR:** #443 / #444
 **Base:** `main@6123d263c60fba98bd67b5c935a7179477ad7fcb`
 **Owner:** human owner
 
@@ -49,23 +49,21 @@ No external library or service is adopted.
 
 ### Machine authority graph
 
-`docs/plans/PLAN_AUTHORITY.json` is the compact machine route for strategic plan precedence. It records:
+`docs/plans/PLAN_AUTHORITY.json` is the compact machine route for strategic plan precedence. It records exactly one current master path, the PR that introduced it, and explicit predecessor plan path(s).
 
-- exactly one current master path;
-- the PR that introduced that master authority;
-- explicit predecessor plan path(s) and the PR that superseded them.
+The graph is not a “latest filename” shortcut. Resolver acceptance requires the active registry to name the same master and merged first-parent Git history to contain its introducing PR.
 
-It is **not** a free-standing “latest filename” claim. The resolver rejects it unless the active registry independently identifies the same master packet and Git first-parent history contains the declared introduction PR.
+A deliberate future master replacement is still possible: on that replacement PR, `introducedByPr` may equal the **current PR number**. The resolver marks the new master `candidate` and the predecessor `superseded-if-merged`; only after the PR appears in merged first-parent history does that master become `active`. An unrelated newer/open PR never gains authority by chronology alone.
 
 ### Current Work Board freshness
 
-`docs/plans/active/README.md` carries the base from which its current content was reconciled. The resolver compares it with:
+On a normal PR, the board baseline must match the PR base. On local feature work it must match the merge-base. On `main`, a mismatch is a hard stop.
 
-- `pull_request.base.sha` in PR CI;
-- `HEAD` when running on `main`;
-- otherwise the merge-base with `origin/main`/`main` for a local feature branch.
+There is only one explicit post-merge exception: a dedicated lifecycle-reconciliation PR may include:
 
-A PR cannot know its future squash-merge SHA, so one transition is explicitly supported: after a board-updating PR lands, a mismatched header is accepted only when Git proves the exact current `HEAD` itself is also the latest commit touching the board. The very next main commit that does not update the board makes that proof false and the resolver fails closed again.
+`**Post-merge projection:** PR #<number>`
+
+After squash merge, that projection is accepted only when all three facts agree: the exact current commit subject carries that PR number, the exact current commit is the latest commit touching the board, and the declared projection number matches. Merely editing the board inside an implementation PR is not enough. This intentionally means a merged implementation can force a lifecycle reconciliation before another agent may choose new work.
 
 ### Master/current uniqueness
 
@@ -82,11 +80,11 @@ Zero current agent-executable slices is permitted only as a warning because the 
 
 - `npm run plan:resolve` prints the resolved authority or exits non-zero;
 - `npm run check:knowledge` runs authority resolution before the existing knowledge checker;
-- `npm run agent:doctor -- --json` includes `planAuthority`, raises the standard wrapper report schema to v3, and makes `ready=false` when authority is stale/ambiguous.
+- `npm run agent:doctor -- --json` includes `planAuthority` and makes `ready=false` when authority is stale/ambiguous.
 
 ### History trail
 
-The resolver returns up to twelve first-parent commits touching the resolved master path and verifies the declared introduction PR is present. This lets a future agent jump directly to the PR that installed the current plan and inspect later changes without scanning hundreds of unrelated pages.
+The resolver returns up to twelve first-parent commits touching the resolved master path and verifies the declared introduction PR. This lets a future agent jump directly to the PR that installed the current plan instead of scanning hundreds of unrelated documents.
 
 ### Boundaries
 
@@ -106,7 +104,7 @@ The resolver returns up to twelve first-parent commits touching the resolved mas
 7. Classify authority-policy changes as Class 3/full-gate so a broken resolver cannot pass through a light docs lane.
 8. Open the required PR/memory record, run exact-head policy/static/build/database/browser/UI/security checks, and independently attack stale/ambiguous/history counterexamples.
 
-Rollback: revert #443. No persisted product/provider state needs rollback.
+Rollback: revert #444. No persisted product/provider state needs rollback.
 
 ## Tasks
 
@@ -116,12 +114,12 @@ Rollback: revert #443. No persisted product/provider state needs rollback.
 | 443.2 | inspect existing registry/knowledge/doctor ownership | done |
 | 443.3 | official Git/GitHub history research | done |
 | 443.4 | add authority resolver + CLI | done |
-| 443.5 | add deterministic stale/conflict/history/self-merge tests | done |
+| 443.5 | add deterministic stale/conflict/path/projection/future-master tests | done |
 | 443.6 | add machine authority graph | done |
 | 443.7 | integrate standard doctor + knowledge entrypoints | done |
 | 443.8 | reconcile post-#441 active state, memory and entrypoint docs | done |
 | 443.9 | classify authority policy as full-gate Class 3 | done |
-| 443.10 | PR memory + exact-head gates | implementing |
+| 443.10 | PR #444 memory + exact-head gates | evaluating |
 | 443.11 | independent evaluator / owner handoff | pending |
 
 ## Evaluation
@@ -129,17 +127,22 @@ Rollback: revert #443. No persisted product/provider state needs rollback.
 Required counterexamples:
 
 - stale board baseline returns non-zero even if its `NEXT` prose looks plausible;
-- the board-updating squash merge does not invalidate itself;
-- the next main commit without a board update fails freshness again;
+- an implementation merge that merely touched candidate board state remains stale;
+- only an explicit correctly-numbered post-merge reconciliation projection survives its squash merge;
+- a copied/old projection cannot bless a later commit;
 - two master rows fail;
 - two current agent-executable rows fail;
+- zero current executable row resolves with a warning, not invented work;
 - authority graph and registry choosing different masters fail;
 - missing predecessor/master files fail;
 - declared master-introduction PR absent from first-parent history fails;
-- an open newer PR does not replace the merged master without registry + graph changes;
+- current PR can propose a replacement master only under its own PR number, and it stays candidate until merge;
 - standard `agent:doctor -- --json` exposes master/current/chain/history and sets `ready=false` on authority failure;
 - current #432 graph resolves through PR #433 to the superseded #420 plan;
-- post-#441 board baseline resolves to `6123d263…` on this branch base;
-- authority-policy changes select the full CI/database/browser/UI/CodeQL gate set.
+- authority-policy changes select full CI/database/browser/UI/CodeQL gates.
 
 The design is rejected if an agent must know a magic plan filename, scan every plan page, query chat memory, trust modification dates, or trust a board whose freshness cannot be mechanically established.
+
+### Verification status
+
+PR #444 opened from exact base `6123d263…`. The first non-draft exact-head run on `376e0c8…` already proved diff hygiene, migration identity, project knowledge, CI policy contracts and production build before a fresh evaluator found the too-permissive self-merge exception. That older head is historical evidence only. Exact-head verification must restart after the projection/future-master hardening; no earlier green shard is final evidence.
