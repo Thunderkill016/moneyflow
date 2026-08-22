@@ -39,9 +39,23 @@ export function parseBoardBaseline(board) {
   );
 }
 
+export function parseBoardProjectionPr(board) {
+  const value = Number(
+    board.match(/^\*\*Post-merge projection:\*\*\s*PR\s*#(\d+)\s*$/mu)?.[1] ??
+      NaN,
+  );
+  return Number.isInteger(value) ? value : null;
+}
+
 function sameCommit(a, b) {
   if (!a || !b) return false;
   return a.startsWith(b) || b.startsWith(a);
+}
+
+function prNumberFromSubject(subject) {
+  if (!subject) return null;
+  const value = Number(subject.match(/\(#(\d+)\)/u)?.[1] ?? NaN);
+  return Number.isInteger(value) ? value : null;
 }
 
 export function resolveExpectedBaseline(
@@ -105,17 +119,21 @@ function gitHistory(root, path, runGit) {
     .map((line) => {
       const [sha, ...subjectParts] = line.split("\t");
       const subject = subjectParts.join("\t");
-      const prNumber = Number(subject.match(/\(#(\d+)\)/u)?.[1] ?? NaN);
       return {
         sha,
         subject,
-        prNumber: Number.isInteger(prNumber) ? prNumber : null,
+        prNumber: prNumberFromSubject(subject),
       };
     });
 }
 
 function latestCommitForPath(root, path, runGit) {
   return runGit(root, ["log", "-1", "--format=%H", "--", path]);
+}
+
+function commitSubject(root, sha, runGit) {
+  if (!sha) return null;
+  return runGit(root, ["log", "-1", "--format=%s", sha]);
 }
 
 function readManifest(root, failures) {
@@ -205,6 +223,7 @@ export function resolvePlanAuthority(
   }
 
   const boardBaseline = parseBoardBaseline(board);
+  const boardProjectionPr = parseBoardProjectionPr(board);
   if (!boardBaseline) {
     failures.push(
       `${ACTIVE_BOARD_PATH} must declare **Current main baseline:** with a git SHA`,
@@ -223,20 +242,20 @@ export function resolvePlanAuthority(
       `could not verify Current Work Board freshness: ${resolvedExpected.error ?? "unknown base"}`,
     );
   } else if (boardBaseline && !sameCommit(boardBaseline, resolvedExpected.sha)) {
-    const boardUpdatedAtExpectedHead =
+    const headPr = prNumberFromSubject(
+      commitSubject(root, resolvedExpected.sha, runGit),
+    );
+    const explicitPostMergeProjection =
+      Number.isInteger(boardProjectionPr) &&
+      headPr === boardProjectionPr &&
       sameCommit(head, resolvedExpected.sha) &&
       sameCommit(boardLastCommit, resolvedExpected.sha);
 
-    if (boardUpdatedAtExpectedHead) {
-      // A PR cannot know its future squash-merge SHA. After that PR lands on main,
-      // the board header still names the base it was reconciled from, while Git
-      // proves the exact new HEAD itself contains the board update. Accept that
-      // one transition. The next main commit that does not touch the board makes
-      // boardLastCommit != HEAD and fails closed again.
-      baselineMode = "board-updated-at-head";
+    if (explicitPostMergeProjection) {
+      baselineMode = "post-merge-projection";
     } else {
       failures.push(
-        `${ACTIVE_BOARD_PATH} is stale: baseline ${boardBaseline} does not match ${resolvedExpected.source} ${resolvedExpected.sha}; latest board commit is ${boardLastCommit ?? "unknown"}`,
+        `${ACTIVE_BOARD_PATH} is stale: baseline ${boardBaseline} does not match ${resolvedExpected.source} ${resolvedExpected.sha}; latest board commit is ${boardLastCommit ?? "unknown"}; post-merge projection is ${boardProjectionPr ? `PR #${boardProjectionPr}` : "not declared"}`,
       );
     }
   }
@@ -339,6 +358,7 @@ export function resolvePlanAuthority(
     warnings,
     manifestPath: PLAN_AUTHORITY_MANIFEST_PATH,
     boardBaseline,
+    boardProjectionPr,
     expectedBaseline: resolvedExpected.sha,
     expectedBaselineSource: resolvedExpected.source,
     boardLastCommit,
