@@ -1,5 +1,5 @@
 begin;
-select plan(6);
+select plan(7);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -135,7 +135,41 @@ select throws_ok(
     where id = '44110000-0000-4000-8000-000000000003'::uuid
   $$,
   'approved_candidate_evidence_immutable',
-  'authenticated browser role cannot fabricate an approved observation'
+  'authenticated browser role cannot fabricate an approved observation by update'
+);
+
+select throws_ok(
+  $$
+    insert into public.inbox_candidates (
+      id, user_id, kind, amount_minor, merchant, note, occurred_on, source,
+      confidence, status, category_id, account_id, source_external_id,
+      approved_transaction_id, approved_at
+    )
+    select
+      '44110000-0000-4000-8000-000000000004'::uuid,
+      '44100000-0000-4000-8000-000000000001'::uuid,
+      'expense'::public.transaction_kind,
+      44000,
+      'Forged approved source',
+      '',
+      '2026-08-15'::date,
+      'csv'::public.inbox_candidate_source,
+      'high'::public.inbox_candidate_confidence,
+      'approved'::public.inbox_candidate_status,
+      (select id from public.categories
+       where user_id = '44100000-0000-4000-8000-000000000001' and kind = 'expense'
+       order by created_at, id limit 1),
+      (select id from public.accounts
+       where user_id = '44100000-0000-4000-8000-000000000001'
+       order by created_at, id limit 1),
+      'guard-source-forged-approved',
+      transaction_id,
+      now()
+    from source_guard_transactions
+    where candidate_id = '44110000-0000-4000-8000-000000000001'::uuid
+  $$,
+  'approved_candidate_evidence_immutable',
+  'authenticated browser role cannot fabricate an approved observation by insert'
 );
 
 reset role;
