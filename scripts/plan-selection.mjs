@@ -1,30 +1,13 @@
 import process from "node:process";
-import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import { resolvePlanAuthority } from "./plan-authority.mjs";
 
-function currentPullRequestNumber(env) {
-  if (env.GITHUB_EVENT_NAME !== "pull_request" || !env.GITHUB_EVENT_PATH) {
-    return null;
-  }
-  try {
-    const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
-    const value = event?.pull_request?.number ?? event?.number;
-    return Number.isInteger(value) ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-export function isPlanSelectionReady(
-  authority,
-  { currentPrNumber = null } = {},
-) {
+export function isPlanSelectionReady(authority) {
   if (authority.ok !== true || authority.master?.status !== "active") return false;
   if (
-    Number.isInteger(currentPrNumber) &&
-    authority.boardProjectionPr === currentPrNumber
+    Number.isInteger(authority.boardProjectionPr) &&
+    authority.baselineMode !== "post-merge-projection"
   ) {
     return false;
   }
@@ -39,16 +22,14 @@ export function resolvePlanSelection(
     env,
     ...authorityOptions,
   });
-  const currentPrNumber = currentPullRequestNumber(env);
-  const projectionCandidate =
-    Number.isInteger(currentPrNumber) &&
-    authority.boardProjectionPr === currentPrNumber;
+  const projectionPending =
+    Number.isInteger(authority.boardProjectionPr) &&
+    authority.baselineMode !== "post-merge-projection";
 
   return {
     ...authority,
-    currentPrNumber,
-    projectionCandidate,
-    selectionReady: isPlanSelectionReady(authority, { currentPrNumber }),
+    projectionPending,
+    selectionReady: isPlanSelectionReady(authority),
   };
 }
 
@@ -69,9 +50,9 @@ function printHuman(result) {
       "candidate master is valid for review but is not task-selection authority until merged history proves it",
     );
   }
-  if (result.projectionCandidate) {
+  if (result.projectionPending) {
     console.error(
-      `post-merge projection for current PR #${result.currentPrNumber} is valid for review but is not current task-selection authority before merge`,
+      `post-merge projection PR #${result.boardProjectionPr} is validation-only until the exact merged commit activates it`,
     );
   }
   for (const warning of result.warnings) console.warn(`warning: ${warning}`);
