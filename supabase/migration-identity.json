@@ -1,51 +1,239 @@
 {
   "migrations": [
-    {"version":"20260714000100","name":"20260714000100_initial_financial_schema.sql","hash":"1ec14505c869b2311016478fb95c29cb"},
-    {"version":"20260714000200","name":"20260714000200_transaction_feed_and_existing_users.sql","hash":"eb7b96324dd2a53d7881b11bc0e6c454"},
-    {"version":"20260714000300","name":"20260714000300_account_management_rpcs.sql","hash":"06045ab9564bcb995ccf2d9f122ca5a9"},
-    {"version":"20260714000400","name":"20260714000400_monthly_budgets.sql","hash":"43dbfb781d1658c1e1a72608529ab262"},
-    {"version":"20260714000500","name":"20260714000500_recurring_commitments.sql","hash":"acfaf0863ed8406a0cc9988015b2eb28"},
-    {"version":"20260714000600","name":"20260714000600_savings_goals.sql","hash":"1bddaccd76d15e039c0ee9dbc96bc8c2"},
-    {"version":"20260714000700","name":"20260714000700_account_transfers.sql","hash":"2fcd3b81baf3d00b655238ea7de98880"},
-    {"version":"20260714000800","name":"20260714000800_transaction_editing.sql","hash":"e5adfa316aa0586ef6e60d465945b5a2"},
-    {"version":"20260714000900","name":"20260714000900_profile_display_names.sql","hash":"cf7b70222719177c13695e1ea9ac2f95"},
-    {"version":"20260715001400","name":"20260715001400_split_expense.sql","hash":"c355a9f89f017263dd6ec525db523f37"},
-    {"version":"20260715001500","name":"20260715001500_account_currency_on_create.sql","hash":"1ef0d18e6dbbddee35cbbbf0f1cb62e9"},
-    {"version":"20260725012037","name":"20260725012037_import_batches_and_inbox_candidates.sql","hash":"313d7e0a86eac69fd7465c917b52eef4"},
-    {"version":"20260725012045","name":"20260725012045_restore_money_transaction.sql","hash":"36915ce4c747a5b3a3665561ba29b3ba"},
-    {"version":"20260725012059","name":"20260725012059_category_archive.sql","hash":"08ce797164e514edcf3afe6cb48fd6ac"},
-    {"version":"20260725012129","name":"20260725012129_recurring_income_templates.sql","hash":"30cf61f4484e0f446e18703e939647c9"},
-    {"version":"20260725012245","name":"20260725012245_readiness_security_hardening.sql","hash":"6da3a113be21e5c2a2933775cdeb254f"},
-    {"version":"20260725020400","name":"20260725020400_transaction_entries_user_cascade.sql","hash":"241b52dc36fbcce566a0670f8d20f696"},
-    {"version":"20260725035128","name":"20260725035128_restore_split_feed_and_account_currency.sql","hash":"2a3af7aa492173be84eed2e5cd356496"},
-    {"version":"20260725063926","name":"20260725063926_transaction_amount_safe_integer.sql","hash":"b0fa447d1b62d6b2fbc80ba626a3a98f"},
-    {"version":"20260725064242","name":"20260725064242_browser_role_least_privilege.sql","hash":"9549652625639afce4876fd8578a888e"},
-    {"version":"20260725065918","name":"20260725065918_archived_category_finance_guards.sql","hash":"dc6ca71ee721e07ebde9744632a34656"},
-    {"version":"20260726004445","name":"20260726004445_harden_tenant_deletion.sql","hash":"6a96f41d975aad170b5dbcc75c24060a"},
-    {"version":"20260726011134","name":"20260726011134_cover_real_foreign_key_paths.sql","hash":"e68733ffc8a59d51aba8ac769ac0c31f"},
-    {"version":"20260801084523","name":"20260801084523_import_provenance_and_atomic_approval.sql","hash":"b80b75323a7dc615a79ef0ffd6228af8"},
-    {"version":"20260801084534","name":"20260801084534_secure_inbox_fingerprint_trigger.sql","hash":"5c2c70a33f30aa90d7f16f3cd6beddeb"},
-    {"version":"20260801084604","name":"20260801084604_guard_invalid_inbox_approval.sql","hash":"ba1ca51badabbedb3de8ebe9b5c87a1f"},
-    {"version":"20260802022923","name":"20260802022923_dashboard_read_bundle.sql","hash":"64e847d20684aa7a30b008680a4aefe5"},
-    {"version":"20260802060004","name":"20260802060004_cover_foreign_key_indexes.sql","hash":"59a8f8c3bdc543453487982fddc3d8fc"},
-    {"version":"20260803090000","name":"20260803090000_transaction_review_bulk_correction.sql","hash":"5fecd09121270cc2bdb18e38a1ab731b"},
-    {"version":"20260803142000","name":"20260803142000_account_reconciliation_current_main.sql","hash":"546ec8cb57a38687c501f1835a307482"},
-    {"version":"20260803144500","name":"20260803144500_account_reconciliation_ci_hardening.sql","hash":"9cce5a7f8f9d33b3fc15f018f3855388"},
-    {"version":"20260803153000","name":"20260803153000_account_reconciliation_workspace_read_model.sql","hash":"e2b58d90119d3d93147191e0fe084bac"},
-    {"version":"20260804110000","name":"20260804110000_authenticated_deterministic_rules.sql","hash":"633bfe48fb4bc4c7d5c54d3597b51f8c"},
-    {"version":"20260804160000","name":"20260804160000_financial_mutation_audit.sql","hash":"2bb6d5e7de58c1e6b7a517a85ef4182f"},
-    {"version":"20260804160100","name":"20260804160100_financial_read_plan_indexes.sql","hash":"32958c3df4e8e90867452d6c46da2aac"},
-    {"version":"20260804160200","name":"20260804160200_financial_audit_service_role_inspection.sql","hash":"54e6371269f17afb0bd53e45ea4a1094"},
-    {"version":"20260804160300","name":"20260804160300_financial_audit_request_id_token.sql","hash":"fe8376c67a18e3defb7a592f49167cc5"},
-    {"version":"20260809010648","name":"20260809010648_financial_audit_service_role_read_only.sql","hash":"7d792ffe36fcfebbd7a9d22136e5d36d"},
-    {"version":"20260812000000","name":"20260812000000_export_user_archive.sql","hash":"4cbdc7bf5e0837e88786c20f68abc78c"},
-    {"version":"20260812010000","name":"20260812010000_restore_user_archive.sql","hash":"a0be08da0634faaabdaf9fe36a841d39"},
-    {"version":"20260812043219","name":"20260812043219_remove_atoryn_from_moneyflow_project.sql","hash":"3cf52f90e53bae37e4f1938607f86805"},
-    {"version":"20260821014500","name":"20260821014500_direct_csv_batch_atomic_approval.sql","hash":"c6f25f4bbb64533694d757a4c716d996"},
-    {"version":"20260821062000","name":"20260821062000_manual_import_reconciliation.sql","hash":"3e22424a7a3ed23994af546a0171df8c"},
-    {"version":"20260821093500","name":"20260821093500_deleted_source_reimport_precedence.sql","hash":"aa5671198fd1006b54f352cd95781cd2"},
-    {"version":"20260821184500","name":"20260821184500_source_observation_precedence.sql","hash":"7d83da3f844e97cd28a77b3beae16518"},
-    {"version":"20260821190000","name":"20260821190000_source_observation_guard_compat.sql","hash":"1d073507d7d0963aed7c1be5acd6ea1f"},
-    {"version":"20260821203000","name":"20260821203000_import_batch_owner_preserving_fk.sql","hash":"3fdac45190e57758894fa9ecfe56511a"}
+    {
+      "version": "20260714000100",
+      "name": "20260714000100_initial_financial_schema.sql",
+      "hash": "1ec14505c869b2311016478fb95c29cb"
+    },
+    {
+      "version": "20260714000200",
+      "name": "20260714000200_transaction_feed_and_existing_users.sql",
+      "hash": "eb7b96324dd2a53d7881b11bc0e6c454"
+    },
+    {
+      "version": "20260714000300",
+      "name": "20260714000300_account_management_rpcs.sql",
+      "hash": "06045ab9564bcb995ccf2d9f122ca5a9"
+    },
+    {
+      "version": "20260714000400",
+      "name": "20260714000400_monthly_budgets.sql",
+      "hash": "43dbfb781d1658c1e1a72608529ab262"
+    },
+    {
+      "version": "20260714000500",
+      "name": "20260714000500_recurring_commitments.sql",
+      "hash": "acfaf0863ed8406a0cc9988015b2eb28"
+    },
+    {
+      "version": "20260714000600",
+      "name": "20260714000600_savings_goals.sql",
+      "hash": "1bddaccd76d15e039c0ee9dbc96bc8c2"
+    },
+    {
+      "version": "20260714000700",
+      "name": "20260714000700_account_transfers.sql",
+      "hash": "2fcd3b81baf3d00b655238ea7de98880"
+    },
+    {
+      "version": "20260714000800",
+      "name": "20260714000800_transaction_editing.sql",
+      "hash": "e5adfa316aa0586ef6e60d465945b5a2"
+    },
+    {
+      "version": "20260714000900",
+      "name": "20260714000900_profile_display_names.sql",
+      "hash": "cf7b70222719177c13695e1ea9ac2f95"
+    },
+    {
+      "version": "20260715001400",
+      "name": "20260715001400_split_expense.sql",
+      "hash": "c355a9f89f017263dd6ec525db523f37"
+    },
+    {
+      "version": "20260715001500",
+      "name": "20260715001500_account_currency_on_create.sql",
+      "hash": "1ef0d18e6dbbddee35cbbbf0f1cb62e9"
+    },
+    {
+      "version": "20260725012037",
+      "name": "20260725012037_import_batches_and_inbox_candidates.sql",
+      "hash": "313d7e0a86eac69fd7465c917b52eef4"
+    },
+    {
+      "version": "20260725012045",
+      "name": "20260725012045_restore_money_transaction.sql",
+      "hash": "36915ce4c747a5b3a3665561ba29b3ba"
+    },
+    {
+      "version": "20260725012059",
+      "name": "20260725012059_category_archive.sql",
+      "hash": "08ce797164e514edcf3afe6cb48fd6ac"
+    },
+    {
+      "version": "20260725012129",
+      "name": "20260725012129_recurring_income_templates.sql",
+      "hash": "30cf61f4484e0f446e18703e939647c9"
+    },
+    {
+      "version": "20260725012245",
+      "name": "20260725012245_readiness_security_hardening.sql",
+      "hash": "6da3a113be21e5c2a2933775cdeb254f"
+    },
+    {
+      "version": "20260725020400",
+      "name": "20260725020400_transaction_entries_user_cascade.sql",
+      "hash": "241b52dc36fbcce566a0670f8d20f696"
+    },
+    {
+      "version": "20260725035128",
+      "name": "20260725035128_restore_split_feed_and_account_currency.sql",
+      "hash": "2a3af7aa492173be84eed2e5cd356496"
+    },
+    {
+      "version": "20260725063926",
+      "name": "20260725063926_transaction_amount_safe_integer.sql",
+      "hash": "b0fa447d1b62d6b2fbc80ba626a3a98f"
+    },
+    {
+      "version": "20260725064242",
+      "name": "20260725064242_browser_role_least_privilege.sql",
+      "hash": "9549652625639afce4876fd8578a888e"
+    },
+    {
+      "version": "20260725065918",
+      "name": "20260725065918_archived_category_finance_guards.sql",
+      "hash": "dc6ca71ee721e07ebde9744632a34656"
+    },
+    {
+      "version": "20260726004445",
+      "name": "20260726004445_harden_tenant_deletion.sql",
+      "hash": "6a96f41d975aad170b5dbcc75c24060a"
+    },
+    {
+      "version": "20260726011134",
+      "name": "20260726011134_cover_real_foreign_key_paths.sql",
+      "hash": "e68733ffc8a59d51aba8ac769ac0c31f"
+    },
+    {
+      "version": "20260801084523",
+      "name": "20260801084523_import_provenance_and_atomic_approval.sql",
+      "hash": "b80b75323a7dc615a79ef0ffd6228af8"
+    },
+    {
+      "version": "20260801084534",
+      "name": "20260801084534_secure_inbox_fingerprint_trigger.sql",
+      "hash": "5c2c70a33f30aa90d7f16f3cd6beddeb"
+    },
+    {
+      "version": "20260801084604",
+      "name": "20260801084604_guard_invalid_inbox_approval.sql",
+      "hash": "ba1ca51badabbedb3de8ebe9b5c87a1f"
+    },
+    {
+      "version": "20260802022923",
+      "name": "20260802022923_dashboard_read_bundle.sql",
+      "hash": "64e847d20684aa7a30b008680a4aefe5"
+    },
+    {
+      "version": "20260802060004",
+      "name": "20260802060004_cover_foreign_key_indexes.sql",
+      "hash": "59a8f8c3bdc543453487982fddc3d8fc"
+    },
+    {
+      "version": "20260803090000",
+      "name": "20260803090000_transaction_review_bulk_correction.sql",
+      "hash": "5fecd09121270cc2bdb18e38a1ab731b"
+    },
+    {
+      "version": "20260803142000",
+      "name": "20260803142000_account_reconciliation_current_main.sql",
+      "hash": "546ec8cb57a38687c501f1835a307482"
+    },
+    {
+      "version": "20260803144500",
+      "name": "20260803144500_account_reconciliation_ci_hardening.sql",
+      "hash": "9cce5a7f8f9d33b3fc15f018f3855388"
+    },
+    {
+      "version": "20260803153000",
+      "name": "20260803153000_account_reconciliation_workspace_read_model.sql",
+      "hash": "e2b58d90119d3d93147191e0fe084bac"
+    },
+    {
+      "version": "20260804110000",
+      "name": "20260804110000_authenticated_deterministic_rules.sql",
+      "hash": "633bfe48fb4bc4c7d5c54d3597b51f8c"
+    },
+    {
+      "version": "20260804160000",
+      "name": "20260804160000_financial_mutation_audit.sql",
+      "hash": "2bb6d5e7de58c1e6b7a517a85ef4182f"
+    },
+    {
+      "version": "20260804160100",
+      "name": "20260804160100_financial_read_plan_indexes.sql",
+      "hash": "32958c3df4e8e90867452d6c46da2aac"
+    },
+    {
+      "version": "20260804160200",
+      "name": "20260804160200_financial_audit_service_role_inspection.sql",
+      "hash": "54e6371269f17afb0bd53e45ea4a1094"
+    },
+    {
+      "version": "20260804160300",
+      "name": "20260804160300_financial_audit_request_id_token.sql",
+      "hash": "fe8376c67a18e3defb7a592f49167cc5"
+    },
+    {
+      "version": "20260809010648",
+      "name": "20260809010648_financial_audit_service_role_read_only.sql",
+      "hash": "7d792ffe36fcfebbd7a9d22136e5d36d"
+    },
+    {
+      "version": "20260812000000",
+      "name": "20260812000000_export_user_archive.sql",
+      "hash": "4cbdc7bf5e0837e88786c20f68abc78c"
+    },
+    {
+      "version": "20260812010000",
+      "name": "20260812010000_restore_user_archive.sql",
+      "hash": "a0be08da0634faaabdaf9fe36a841d39"
+    },
+    {
+      "version": "20260812043219",
+      "name": "20260812043219_remove_atoryn_from_moneyflow_project.sql",
+      "hash": "3cf52f90e53bae37e4f1938607f86805"
+    },
+    {
+      "version": "20260821014500",
+      "name": "20260821014500_direct_csv_batch_atomic_approval.sql",
+      "hash": "c6f25f4bbb645336eecec3f3c99b32df1c8823cb"
+    },
+    {
+      "version": "20260821062000",
+      "name": "20260821062000_manual_import_reconciliation.sql",
+      "hash": "3e22424a7a3ed23994af546a0171df8c"
+    },
+    {
+      "version": "20260821093500",
+      "name": "20260821093500_deleted_source_reimport_precedence.sql",
+      "hash": "aa5671198fd1006b54f352cd95781cd2"
+    },
+    {
+      "version": "20260821184500",
+      "name": "20260821184500_source_observation_precedence.sql",
+      "hash": "7d83da3f844e97cd28a77b3beae16518"
+    },
+    {
+      "version": "20260821190000",
+      "name": "20260821190000_source_observation_guard_compat.sql",
+      "hash": "1d073507d7d0963aed7c1be5acd6ea1f"
+    },
+    {
+      "version": "20260821203000",
+      "name": "20260821203000_import_batch_owner_preserving_fk.sql",
+      "hash": "3fdac45190e57758894fa9ecfe56511a"
+    }
   ]
 }
