@@ -59,6 +59,17 @@ test("Inbox review is explicit and retries use candidate identity", () => {
     normalizedInboxReview,
     /Các chỉnh sửa trong form này không được áp dụng khi gắn nguồn/,
   );
+  assert.match(normalizedInboxReview, /Ghi nhận cập nhật nguồn/);
+  assert.match(
+    normalizedInboxReview,
+    /chỉ lưu quan sát nguồn mới và gắn nó với giao dịch đã có/,
+  );
+  assert.match(
+    normalizedInboxReview,
+    /MoneyFlow giữ nguyên loại, ngày, số tiền, tài khoản, danh mục, ghi chú và trạng thái đối soát/,
+  );
+  assert.match(inboxReview, /recordChangedSourceObservationAction/);
+  assert.match(inboxReview, /refreshServerPlanOrKeepCurrent/);
   assert.match(normalizedInboxReview, /Khôi phục giao dịch đã xóa/);
   assert.match(
     normalizedInboxReview,
@@ -69,7 +80,15 @@ test("Inbox review is explicit and retries use candidate identity", () => {
     /Không có nút khôi phục hoặc đường vòng tạo riêng cho cùng mã nguồn/,
   );
   assert.match(inboxReview, /hardServerDuplicate/);
-  assert.match(inboxReview, /blockSeparateApproval/);
+  assert.match(inboxReview, /planUnavailable/);
+  assert.match(
+    normalizedInboxReview,
+    /const blockSeparateApproval = hardServerDuplicate \|\| planLoading \|\| planUnavailable/,
+  );
+  assert.match(
+    normalizedInboxReview,
+    /tạm khóa “Duyệt vào sổ” để tránh tạo giao dịch riêng khi quyết định nguồn chưa được xác nhận/,
+  );
   assert.match(
     normalizedInboxReview,
     /disabled=\{isBusy \|\| blockSeparateApproval\}/,

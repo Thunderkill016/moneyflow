@@ -324,8 +324,8 @@ select is(
 
 select is(
   public.plan_inbox_candidate('18220000-0000-4000-8000-000000000002'::uuid) ->> 'reason',
-  'source_external_id_match',
-  'external-ID duplicate has an explicit reason'
+  'source_external_id_changed',
+  'changed external-ID observation has an explicit hard reason'
 );
 
 select throws_ok(

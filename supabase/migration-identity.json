@@ -219,6 +219,21 @@
       "version": "20260821093500",
       "name": "20260821093500_deleted_source_reimport_precedence.sql",
       "hash": "aa5671198fd1006b54f352cd95781cd2"
+    },
+    {
+      "version": "20260821184500",
+      "name": "20260821184500_source_observation_precedence.sql",
+      "hash": "7d83da3f844e97cd28a77b3beae16518"
+    },
+    {
+      "version": "20260821190000",
+      "name": "20260821190000_source_observation_guard_compat.sql",
+      "hash": "1d073507d7d0963aed7c1be5acd6ea1f"
+    },
+    {
+      "version": "20260821203000",
+      "name": "20260821203000_import_batch_owner_preserving_fk.sql",
+      "hash": "3fdac45190e57758894fa9ecfe56511a"
     }
   ]
 }

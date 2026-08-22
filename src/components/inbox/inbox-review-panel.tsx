@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import {
   attachInboxCandidateToExistingTransactionAction,
   planInboxCandidateAction,
+  recordChangedSourceObservationAction,
   restoreDeletedImportedTransactionAction,
 } from "@/app/actions/inbox-approval";
 import { InboxExplainPanel } from "@/components/inbox/inbox-explain-panel";
@@ -90,6 +91,7 @@ export function InboxReviewPanel({
   const [submitting, setSubmitting] = useState(false);
   const [attachBusy, setAttachBusy] = useState(false);
   const [restoreBusy, setRestoreBusy] = useState(false);
+  const [sourceObservationBusy, setSourceObservationBusy] = useState(false);
   const [serverPlanState, setServerPlanState] = useState<{
     candidateId: string;
     plan: InboxDryRunResult | null;
@@ -133,8 +135,12 @@ export function InboxReviewPanel({
   const hardServerDuplicate =
     serverPlan?.status === "duplicate" &&
     !allowsExplicitDuplicateOverride(serverPlan);
+  const planUnavailable =
+    shouldLoadServerPlan && activeServerPlanState !== null && serverPlan === null;
+  const blockSeparateApproval =
+    hardServerDuplicate || planLoading || planUnavailable;
   const showDuplicateOverride =
-    !hardServerDuplicate &&
+    !blockSeparateApproval &&
     (candidate?.possibleDuplicate === true ||
       allowsExplicitDuplicateOverride(serverPlan) ||
       error.includes("rất giống") ||
@@ -142,6 +148,12 @@ export function InboxReviewPanel({
   const existingMatchTransactionId =
     serverPlan?.status === "duplicate" &&
     serverPlan.reason === "existing_transaction_match" &&
+    serverPlan.matchedTransactionId
+      ? serverPlan.matchedTransactionId
+      : null;
+  const changedSourceTransactionId =
+    serverPlan?.status === "duplicate" &&
+    serverPlan.reason === "source_external_id_changed" &&
     serverPlan.matchedTransactionId
       ? serverPlan.matchedTransactionId
       : null;
@@ -157,8 +169,8 @@ export function InboxReviewPanel({
   const showAmbiguousExistingMatch =
     serverPlan?.status === "duplicate" &&
     serverPlan.reason === "existing_transaction_ambiguous";
-  const isBusy = busy || submitting || attachBusy || restoreBusy;
-  const blockSeparateApproval = hardServerDuplicate;
+  const isBusy =
+    busy || submitting || attachBusy || restoreBusy || sourceObservationBusy;
 
   if (!candidate || !draft) return null;
 
@@ -179,6 +191,14 @@ export function InboxReviewPanel({
     patchDraft({ kind, categoryId: nextCategory });
   }
 
+  async function refreshServerPlanOrKeepCurrent() {
+    const refreshed = await planInboxCandidateAction(activeCandidate.id);
+    setServerPlanState({
+      candidateId: activeCandidate.id,
+      plan: refreshed.ok ? refreshed.plan : serverPlan,
+    });
+  }
+
   async function handleAttachExisting() {
     if (!existingMatchTransactionId) return;
     setAttachBusy(true);
@@ -190,7 +210,7 @@ export function InboxReviewPanel({
       });
       if (!result.ok) {
         setError(result.message);
-        setServerPlanState({ candidateId: activeCandidate.id, plan: null });
+        await refreshServerPlanOrKeepCurrent();
         return;
       }
       // The parent Inbox candidate list is client-owned. A full reload is
@@ -213,7 +233,7 @@ export function InboxReviewPanel({
       });
       if (!result.ok) {
         setError(result.message);
-        setServerPlanState({ candidateId: activeCandidate.id, plan: null });
+        await refreshServerPlanOrKeepCurrent();
         return;
       }
       // Reload both persisted Inbox resolution and the restored ledger fact
@@ -222,6 +242,28 @@ export function InboxReviewPanel({
       window.location.reload();
     } finally {
       setRestoreBusy(false);
+    }
+  }
+
+  async function handleRecordChangedSourceObservation() {
+    if (!changedSourceTransactionId) return;
+    setSourceObservationBusy(true);
+    setError("");
+    try {
+      const result = await recordChangedSourceObservationAction({
+        candidateId: activeCandidate.id,
+        transactionId: changedSourceTransactionId,
+      });
+      if (!result.ok) {
+        setError(result.message);
+        await refreshServerPlanOrKeepCurrent();
+        return;
+      }
+      // This resolves source evidence only. Reload so the approved observation
+      // and unchanged ledger are read from one persisted server snapshot.
+      window.location.reload();
+    } finally {
+      setSourceObservationBusy(false);
     }
   }
 
@@ -270,7 +312,7 @@ export function InboxReviewPanel({
         if (!nextOpen && !isBusy) onClose();
       }}
       title="Duyệt giao dịch"
-      description="Kiểm tra ứng viên rồi chọn gắn nguồn, khôi phục giao dịch đã xóa hoặc tạo một giao dịch riêng khi được phép."
+      description="Kiểm tra ứng viên rồi chọn gắn nguồn, ghi nhận cập nhật nguồn, khôi phục giao dịch đã xóa hoặc tạo một giao dịch riêng khi được phép."
       dismissible={!isBusy}
       initialFocusRef={merchantRef}
       className={styles.dialog}
@@ -333,6 +375,41 @@ export function InboxReviewPanel({
         {planLoading ? (
           <Alert tone="info" live="polite">
             <AlertDescription>Đang đối chiếu với giao dịch đã có…</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {planUnavailable ? (
+          <Alert tone="warning" live="assertive">
+            <AlertDescription>
+              Chưa tải được kết quả đối chiếu từ máy chủ. MoneyFlow tạm khóa “Duyệt vào
+              sổ” để tránh tạo giao dịch riêng khi quyết định nguồn chưa được xác nhận.
+              Hãy đóng rồi mở lại mục này hoặc tải lại trang để thử đối chiếu lại.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {changedSourceTransactionId && serverPlan ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              <p>{dryRunUserMessage(serverPlan)}</p>
+              <p>
+                Ghi nhận cập nhật nguồn chỉ lưu quan sát nguồn mới và gắn nó với giao
+                dịch đã có. MoneyFlow giữ nguyên loại, ngày, số tiền, tài khoản, danh mục,
+                ghi chú và trạng thái đối soát; các chỉnh sửa trong form này không được
+                áp dụng.
+              </p>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                disabled={isBusy}
+                pending={sourceObservationBusy}
+                pendingLabel="Đang ghi nhận…"
+                onClick={() => void handleRecordChangedSourceObservation()}
+              >
+                Ghi nhận cập nhật nguồn
+              </Button>
+            </AlertDescription>
           </Alert>
         ) : null}
 

@@ -251,7 +251,7 @@ select is(
   'replay creates no second provenance row'
 );
 
--- Same stable source ID remains a hard duplicate before any fallback matching.
+-- Same stable source ID remains a hard source-identity decision before fallback matching.
 insert into public.inbox_candidates (
   id, user_id, kind, amount_minor, merchant, occurred_on, source,
   confidence, status, account_id, account_name, raw_snippet,
@@ -272,8 +272,8 @@ insert into public.inbox_candidates (
 
 select is(
   public.plan_inbox_candidate('43630000-0000-4000-8000-000000000002'::uuid) ->> 'reason',
-  'source_external_id_match',
-  'exact source ID remains stronger than existing-transaction fallback'
+  'source_external_id_changed',
+  'changed exact source ID remains stronger than existing-transaction fallback'
 );
 
 -- Ambiguity must never be resolved by row order.
