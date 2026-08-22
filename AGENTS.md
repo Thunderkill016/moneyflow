@@ -10,7 +10,9 @@ This version has breaking changes. Before using unfamiliar App Router APIs, read
 
 ## Authority route
 
-Before choosing or continuing implementation, run `npm run plan:resolve`. It must resolve one current master program, at most one current agent-executable slice, the explicit supersession chain, and a Current Work Board baseline that matches the actual main/base commit. If it fails, reconcile authority before using `NOW` or `NEXT`.
+Before selecting new work, or resuming work after a handoff/base change, run `npm run plan:resolve`. It must resolve one merged current master program, at most one current agent-executable slice, the explicit supersession chain, and a Current Work Board baseline that matches the actual main/base commit. If task selection is not ready, do not use `NOW` or `NEXT` to start or promote another task.
+
+A dedicated lifecycle-reconciliation PR may carry a validation-only post-merge projection. While that projection is unmerged, `plan:resolve` intentionally stays NOT READY for task selection; the already-started reconciliation PR may only finish acceptance defects/evaluation inside its recorded scope. It cannot use the projected board to begin follow-on work.
 
 Do not infer the current plan from a filename, modification date, newest document, open PR, chat summary or a plausible-looking board entry. `docs/plans/PLAN_AUTHORITY.json` + the active registry are the machine route; Git first-parent history verifies how that authority arrived.
 
@@ -60,7 +62,7 @@ For Class 3, multi-day, multi-agent, provider/production or cross-cutting work a
 
 ## Delivery workflow
 
-Before implementation, `npm run plan:resolve` must pass, then run `npm run agent:doctor -- --json`. The standard doctor includes plan authority plus risk class, selected gates, capabilities and approval boundaries; it grants no permission.
+Before starting a task, or resuming it after authority may have changed, `npm run plan:resolve` must pass, then run `npm run agent:doctor -- --json`. The standard doctor includes plan selection plus risk class, selected gates, capabilities and approval boundaries; it grants no permission. A lifecycle-reconciliation PR with an unmerged projection is the narrow exception described above: it may finish only its existing acceptance/evaluation scope while new task selection remains blocked.
 
 Classify first:
 
@@ -141,4 +143,4 @@ The protected CodeQL workflow independently initializes, analyzes and uploads a 
 
 ## Definition of done
 
-The focused branch and PR exist; plan authority resolved against current main/base; scope/evidence are honest; risk-selected exact-head checks are green; the bounded PR record exists; current memory changes only when truth changes; required human review and affected production verification are complete. Merge and deployment remain owner decisions.
+The focused branch and PR exist; plan authority is validated against current main/base and new-task selection is not inferred from unmerged projections/candidates; scope/evidence are honest; risk-selected exact-head checks are green; the bounded PR record exists; current memory changes only when truth changes; required human review and affected production verification are complete. Merge and deployment remain owner decisions.
