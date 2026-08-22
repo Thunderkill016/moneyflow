@@ -14,9 +14,13 @@ export type ImportMatchStatus =
   | "suspected_transfer"
   | "invalid";
 
+export type SourceLifecycleState = "pending" | "posted" | "removed";
+
 export type CandidateProvenance = {
   sourceRowIndex?: number;
   sourceExternalId?: string;
+  sourceLifecycleState?: SourceLifecycleState;
+  sourcePredecessorExternalId?: string;
   fingerprintVersion?: number;
   fingerprint?: string;
   parserVersion?: string;
@@ -55,6 +59,8 @@ export type InboxDryRunResult = {
 export type CandidateProvenanceRow = {
   source_row_index?: number | null;
   source_external_id?: string | null;
+  source_lifecycle_state?: SourceLifecycleState | null;
+  source_predecessor_external_id?: string | null;
   fingerprint_version?: number | null;
   fingerprint?: string | null;
   parser_version?: string | null;
@@ -117,6 +123,9 @@ export function candidateProvenanceFromRow(
   return {
     sourceRowIndex: row.source_row_index ?? undefined,
     sourceExternalId: row.source_external_id ?? undefined,
+    sourceLifecycleState: row.source_lifecycle_state ?? undefined,
+    sourcePredecessorExternalId:
+      row.source_predecessor_external_id ?? undefined,
     fingerprintVersion: row.fingerprint_version ?? undefined,
     fingerprint: row.fingerprint ?? undefined,
     parserVersion: row.parser_version ?? undefined,
@@ -153,6 +162,9 @@ export function candidateProvenanceInsertPatch(
   return {
     source_row_index: candidate.sourceRowIndex ?? null,
     source_external_id: candidate.sourceExternalId?.slice(0, 200) ?? null,
+    source_lifecycle_state: candidate.sourceLifecycleState ?? null,
+    source_predecessor_external_id:
+      candidate.sourcePredecessorExternalId?.slice(0, 200) ?? null,
     parser_version:
       candidate.parserVersion?.slice(0, 80) ??
       parserVersionForSource(candidate.source),
@@ -243,7 +255,13 @@ export function dryRunUserMessage(result: InboxDryRunResult): string {
       return "Giao dịch từ cùng mã nguồn đã từng được nhập rồi xóa. Bạn có thể khôi phục chính giao dịch đó mà không ghi đè các chỉnh sửa đang lưu trong MoneyFlow.";
     }
     if (result.reason === "source_external_id_deleted_changed") {
-      return "Nguồn gửi lại cùng mã giao dịch nhưng nội dung đã thay đổi so với bằng chứng gốc. MoneyFlow không tự khôi phục hoặc ghi đè; mục này cần được xử lý theo quy tắc cập nhật nguồn riêng.";
+      return "Nguồn gửi lại cùng mã giao dịch nhưng nội dung đã thay đổi so với bằng chứng đã ghi nhận. MoneyFlow không tự khôi phục hoặc ghi đè; mục này cần được xử lý theo quy tắc cập nhật nguồn riêng.";
+    }
+    if (result.reason === "source_predecessor_match") {
+      return "Nguồn xác nhận mã giao dịch mới thay thế một mã nguồn đã biết. Bạn có thể ghi nhận quan sát thay thế và giữ nguyên dữ liệu trong sổ.";
+    }
+    if (result.reason === "source_predecessor_deleted_match") {
+      return "Nguồn xác nhận mã giao dịch mới thay thế một giao dịch nguồn đang liên kết với mục MoneyFlow đã xóa. MoneyFlow giữ trạng thái đã xóa và không tự khôi phục trong bước này.";
     }
     if (result.reason === "existing_transaction_match") {
       return "Đã có một giao dịch cùng tài khoản, ngày và số tiền. Bạn có thể gắn nguồn vào giao dịch đó mà không sửa dữ liệu trong sổ.";
@@ -252,6 +270,9 @@ export function dryRunUserMessage(result: InboxDryRunResult): string {
       return "Có nhiều giao dịch đã có cùng tài khoản, ngày và số tiền. MoneyFlow không tự chọn để tránh gắn nhầm.";
     }
     return "Có giao dịch rất giống đã tồn tại. Hãy kiểm tra trước khi duyệt.";
+  }
+  if (result.reason === "source_removed_unmatched") {
+    return "Nguồn báo giao dịch đã bị gỡ nhưng MoneyFlow chưa có danh tính nguồn tương ứng. Mục này không được tạo thành giao dịch mới.";
   }
   if (result.reason === "account_required") return "Hãy chọn tài khoản.";
   if (result.reason === "category_required") return "Hãy chọn danh mục.";
