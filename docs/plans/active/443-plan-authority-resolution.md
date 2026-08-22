@@ -41,7 +41,7 @@ Focused official references after repository inspection:
    - squash merge places one consolidated commit on the base branch;
    - the default squash commit message may include the pull-request title/number, which matches MoneyFlow's observed main history.
 
-Applicability: MoneyFlow uses squash-merged PRs with PR numbers in main subjects, so first-parent file history is a reliable local provenance aid. It is still evidence, not authority by itself: the machine authority graph + active registry decide which plan is current, while Git history verifies how that authority arrived.
+Applicability: MoneyFlow uses squash-merged PRs with PR numbers in main subjects; merged #433 is `a35d6f96…` with subject `docs(product): align MoneyFlow around low-maintenance acquisition (#433)`. First-parent file history is therefore a useful local provenance check. It is still evidence, not authority by chronology alone: the machine authority graph + active registry decide which plan is current, while Git history verifies how that authority arrived.
 
 No external library or service is adopted.
 
@@ -59,13 +59,13 @@ It is **not** a free-standing “latest filename” claim. The resolver rejects 
 
 ### Current Work Board freshness
 
-`docs/plans/active/README.md` already carries `Current main baseline`. The resolver must compare that SHA with:
+`docs/plans/active/README.md` carries the base from which its current content was reconciled. The resolver compares it with:
 
 - `pull_request.base.sha` in PR CI;
 - `HEAD` when running on `main`;
 - otherwise the merge-base with `origin/main`/`main` for a local feature branch.
 
-Mismatch is a hard failure. A stale board may not yield actionable `NEXT` work.
+A PR cannot know its future squash-merge SHA, so one transition is explicitly supported: after a board-updating PR lands, a mismatched header is accepted only when Git proves the exact current `HEAD` itself is also the latest commit touching the board. The very next main commit that does not update the board makes that proof false and the resolver fails closed again.
 
 ### Master/current uniqueness
 
@@ -82,7 +82,7 @@ Zero current agent-executable slices is permitted only as a warning because the 
 
 - `npm run plan:resolve` prints the resolved authority or exits non-zero;
 - `npm run check:knowledge` runs authority resolution before the existing knowledge checker;
-- `npm run agent:doctor -- --json` includes `planAuthority`, raises report schema to v3 at the standard entrypoint, and makes `ready=false` when authority is stale/ambiguous.
+- `npm run agent:doctor -- --json` includes `planAuthority`, raises the standard wrapper report schema to v3, and makes `ready=false` when authority is stale/ambiguous.
 
 ### History trail
 
@@ -101,9 +101,10 @@ The resolver returns up to twelve first-parent commits touching the resolved mas
 2. Add machine authority graph for current #432 ← #420 supersession.
 3. Wrap the standard agent doctor so JSON/human output carries plan authority and readiness depends on it.
 4. Make `check:knowledge` run the resolver first.
-5. Reconcile the post-#441 board and retire merged #440 from active packets.
-6. Document the required pre-work route in `AGENTS.md` and `docs/plans/README.md`.
-7. Open the required PR/memory record, run exact-head policy/static/build/security checks selected by the repository, and independently attack stale/ambiguous/history counterexamples.
+5. Reconcile the post-#441 board/current memory and retire merged #440 from active packets.
+6. Document the required pre-work route in `AGENTS.md`, root README and `docs/plans/README.md`.
+7. Classify authority-policy changes as Class 3/full-gate so a broken resolver cannot pass through a light docs lane.
+8. Open the required PR/memory record, run exact-head policy/static/build/database/browser/UI/security checks, and independently attack stale/ambiguous/history counterexamples.
 
 Rollback: revert #443. No persisted product/provider state needs rollback.
 
@@ -115,18 +116,21 @@ Rollback: revert #443. No persisted product/provider state needs rollback.
 | 443.2 | inspect existing registry/knowledge/doctor ownership | done |
 | 443.3 | official Git/GitHub history research | done |
 | 443.4 | add authority resolver + CLI | done |
-| 443.5 | add deterministic stale/conflict/history tests | done |
+| 443.5 | add deterministic stale/conflict/history/self-merge tests | done |
 | 443.6 | add machine authority graph | done |
 | 443.7 | integrate standard doctor + knowledge entrypoints | done |
-| 443.8 | reconcile post-#441 active state and docs | implementing |
-| 443.9 | PR memory + exact-head gates | pending |
-| 443.10 | independent evaluator / owner handoff | pending |
+| 443.8 | reconcile post-#441 active state, memory and entrypoint docs | done |
+| 443.9 | classify authority policy as full-gate Class 3 | done |
+| 443.10 | PR memory + exact-head gates | implementing |
+| 443.11 | independent evaluator / owner handoff | pending |
 
 ## Evaluation
 
 Required counterexamples:
 
 - stale board baseline returns non-zero even if its `NEXT` prose looks plausible;
+- the board-updating squash merge does not invalidate itself;
+- the next main commit without a board update fails freshness again;
 - two master rows fail;
 - two current agent-executable rows fail;
 - authority graph and registry choosing different masters fail;
@@ -135,6 +139,7 @@ Required counterexamples:
 - an open newer PR does not replace the merged master without registry + graph changes;
 - standard `agent:doctor -- --json` exposes master/current/chain/history and sets `ready=false` on authority failure;
 - current #432 graph resolves through PR #433 to the superseded #420 plan;
-- post-#441 board baseline resolves to `6123d263…` on this branch base.
+- post-#441 board baseline resolves to `6123d263…` on this branch base;
+- authority-policy changes select the full CI/database/browser/UI/CodeQL gate set.
 
-The design is rejected if an agent must know a magic plan filename, scan every plan page, query chat memory, or trust a board whose baseline cannot be mechanically matched to main/base.
+The design is rejected if an agent must know a magic plan filename, scan every plan page, query chat memory, trust modification dates, or trust a board whose freshness cannot be mechanically established.
