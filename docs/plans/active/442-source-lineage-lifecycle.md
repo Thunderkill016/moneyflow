@@ -1,15 +1,15 @@
 # #442 — Explicit source lineage and lifecycle evidence
 
-**Status:** active  
-**Execution state:** evaluating  
-**Change class:** Class 3 — financial import/provenance boundary  
-**Parent:** #432 P1 Acquisition Foundation  
-**Active role:** implementer / evaluator  
-**Permission scope:** focused `branch_write` only; no provider, production-data, deployment or main writes  
-**Branch:** `feat/442-source-lineage-lifecycle`  
-**PR:** #445  
-**Base:** `main@99257178ff416e5b1c875f62aea05035824ca9a5`  
-**Owner:** human owner  
+**Status:** active
+**Execution state:** evaluating
+**Change class:** Class 3 — financial import/provenance boundary
+**Parent:** #432 P1 Acquisition Foundation
+**Active role:** implementer / evaluator
+**Permission scope:** focused `branch_write` only; no provider, production-data, deployment or main writes
+**Branch:** `feat/442-source-lineage-lifecycle`
+**PR:** #445
+**Base:** `main@99257178ff416e5b1c875f62aea05035824ca9a5`
+**Owner:** human owner
 **Last updated:** 2026-08-23
 
 ## Outcome
