@@ -1,0 +1,96 @@
+import assert from "node:assert/strict";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+
+import { buildAuthorityAwareDoctorReport } from "./agent-doctor-entry.mjs";
+
+function withAuthorityFixture(run) {
+  const root = mkdtempSync(join(tmpdir(), "moneyflow-doctor-authority-"));
+  try {
+    mkdirSync(join(root, "docs/plans/active"), { recursive: true });
+    writeFileSync(
+      join(root, "docs/plans/active/README.md"),
+      [
+        "# Board",
+        "**Current main baseline:** `abc1234`",
+        "| Packet | Role now | Authority boundary |",
+        "|---|---|---|",
+        "| `current.md` | current agent-executable Class 3 slice | current |",
+        "| `master.md` | master product program | master |",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(join(root, "docs/plans/active/current.md"), "# Current\n");
+    writeFileSync(
+      join(root, "docs/plans/active/master.md"),
+      [
+        "# Master",
+        "**Authority role:** master product program",
+        "**Authority introduced by:** PR #433",
+        "**Supersedes plan:** `docs/plans/PRODUCT_DEVELOPMENT_PLAN.md`",
+        "",
+      ].join("\n"),
+    );
+    mkdirSync(join(root, "docs/plans"), { recursive: true });
+    writeFileSync(
+      join(root, "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md"),
+      [
+        "# Old",
+        "**Authority status:** superseded",
+        "**Superseded by:** `docs/plans/active/master.md` (PR #433)",
+        "",
+      ].join("\n"),
+    );
+    return run(root);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+const historyGit = (_root, args) =>
+  args[0] === "log"
+    ? "facefeed\tdocs(product): install master program (#433)"
+    : null;
+
+test("standard doctor JSON carries resolved plan authority", () => {
+  withAuthorityFixture((root) => {
+    const report = buildAuthorityAwareDoctorReport({
+      argv: ["node", "agent-doctor-entry.mjs", "--files", "docs/example.md"],
+      env: {},
+      root,
+      authorityOptions: {
+        expectedBaseline: "abc1234ffff",
+        runGit: historyGit,
+      },
+    });
+
+    assert.equal(report.schemaVersion, 3);
+    assert.equal(report.planAuthority.ok, true);
+    assert.equal(report.planAuthority.master.path, "docs/plans/active/master.md");
+    assert.equal(report.planAuthority.current.path, "docs/plans/active/current.md");
+    assert.ok(
+      report.readyMeans.includes.includes(
+        "master plan, current slice and Current Work Board freshness resolved",
+      ),
+    );
+  });
+});
+
+test("doctor readiness fails when plan authority is stale even if machine policy is otherwise ready", () => {
+  withAuthorityFixture((root) => {
+    const report = buildAuthorityAwareDoctorReport({
+      argv: ["node", "agent-doctor-entry.mjs", "--files", "docs/example.md"],
+      env: {},
+      root,
+      authorityOptions: {
+        expectedBaseline: "different-sha",
+        runGit: historyGit,
+      },
+    });
+
+    assert.equal(report.planAuthority.ok, false);
+    assert.equal(report.ready, false);
+  });
+});
