@@ -96,7 +96,7 @@ for (const entry of baseline) {
 for (const entry of current) {
   if (!byVersion.has(entry.version)) {
     failures.push(
-      `migration ${entry.version} (${entry.name}) is not in the baseline (current hash ${entry.hash}). Add it deliberately: node scripts/check-migration-identity.mjs --write`,
+      `migration ${entry.version} (${entry.name}) is not in the baseline. Add it deliberately: node scripts/check-migration-identity.mjs --write`,
     );
   }
 }
