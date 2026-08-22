@@ -15,6 +15,17 @@ as $$
 declare
   v_archive_restore_owner name;
 begin
+  -- Browser-side persistence is allowed to insert pending/rejected observations,
+  -- but an authenticated caller must never fabricate an already-approved row.
+  -- Archive reconstruction runs under the SECURITY DEFINER owner and is therefore
+  -- intentionally outside this browser-role block.
+  if tg_op = 'INSERT' then
+    if new.status = 'approved' and current_user = 'authenticated' then
+      raise exception 'approved_candidate_evidence_immutable';
+    end if;
+    return new;
+  end if;
+
   -- Normal authenticated approval is performed inside reviewed SECURITY DEFINER
   -- RPCs. A browser-role UPDATE must not fabricate an approved observation.
   if old.status <> 'approved'
@@ -68,3 +79,9 @@ $$;
 
 revoke all on function public.guard_approved_inbox_candidate_evidence()
 from public, anon, authenticated, service_role;
+
+drop trigger if exists inbox_candidates_guard_approved_evidence
+on public.inbox_candidates;
+create trigger inbox_candidates_guard_approved_evidence
+before insert or update on public.inbox_candidates
+for each row execute function public.guard_approved_inbox_candidate_evidence();
