@@ -6,13 +6,16 @@ Current capability and future direction must not be confused: bank/Open API sync
 
 ## Current work and release status
 
-MoneyFlow has a released functional MVP, but it is **not yet public-beta ready**. Current execution, blockers, owner decisions and the next authorized steps live in:
+MoneyFlow has a released functional MVP, but it is **not yet public-beta ready**. Before reading `NOW` or `NEXT`, run `npm run plan:resolve`; stale or conflicting planning state is not execution authority.
 
-- **[Current Work Board](docs/plans/active/README.md)** — owner-facing `NOW / NEXT / BLOCKED / OWNER DECISION / TRIAGE / HOLD / RECENTLY DONE` checklist.
+Current execution, blockers, owner decisions and plan precedence live in:
+
+- **[Plan authority graph](docs/plans/PLAN_AUTHORITY.json)** — machine-readable master-plan route and explicit supersession chain, checked against the active registry and Git history.
+- **[Current Work Board](docs/plans/active/README.md)** — owner-facing `NOW / NEXT / BLOCKED / OWNER DECISION / HOLD / RECENTLY DONE` checklist; its baseline is mechanically checked against the actual main/base commit.
 - **[Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md)** — compact implementation/trust truth and named limitations.
-- **[#432 master program](docs/plans/active/432-vietnam-long-term-product-strategy.md)** — candidate long-term development program on its strategy branch; it becomes merged product authority only after owner review/merge.
+- **[Current master program](docs/plans/active/432-vietnam-long-term-product-strategy.md)** — currently resolved by the authority graph; installed as merged authority by PR #433.
 
-Do not infer current capability from a strategy document, old issue, branch or historical packet. Open PRs and unmerged strategy artifacts are candidate evidence until merged.
+Do not infer current capability or plan authority from a strategy document's date, old issue, newest file, open PR, branch or historical packet. Open PRs and unmerged strategy artifacts are candidate evidence until merged and promoted through the checked authority route.
 
 ## What MoneyFlow does today
 
@@ -81,7 +84,14 @@ Open `http://localhost:3000` unless your local command selects another port. Env
 
 ## Quality checks
 
-Use `npm run agent:doctor -- --json` before implementation to select the risk-proportional gate plan. Common repository checks include:
+Resolve authority before implementation, then use the standard doctor to select the risk-proportional gate plan:
+
+```bash
+npm run plan:resolve
+npm run agent:doctor -- --json
+```
+
+Common repository checks include:
 
 ```bash
 npm run check:knowledge
@@ -99,14 +109,14 @@ Boundary-specific verification includes database/RLS, browser/e2e and responsive
 
 ## Authority route
 
-Start with [`AGENTS.md`](AGENTS.md), then open only the current owner for the question at hand:
+Start with [`AGENTS.md`](AGENTS.md). `npm run plan:resolve` tells you which master/current packet to open; then load only the current owner for the question at hand:
 
 | Question | Authority |
 |---|---|
-| Current task/checklist | [Current Work Board](docs/plans/active/README.md) |
+| Master-plan precedence | [Plan authority graph](docs/plans/PLAN_AUTHORITY.json) + `npm run plan:resolve` |
+| Current task/checklist | [Current Work Board](docs/plans/active/README.md) after resolver freshness passes |
 | Current implementation/trust state | [Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md) |
 | Product identity and principles | [Product principles](docs/product/PRINCIPLES.md) |
-| Long-term program under #432 | [#432 packet](docs/plans/active/432-vietnam-long-term-product-strategy.md) |
 | Released MVP capability reference | [MVP definition](docs/MVP_DEFINITION.md) |
 | Architecture | [Architecture map](ARCHITECTURE.md) |
 | Change classes, gates and permissions | [Risk-proportional delivery](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md) + [agent operating model](docs/engineering/AGENT_OPERATING_MODEL.md) |
@@ -119,10 +129,10 @@ Historical research, completed packets and old issues are evidence, not permissi
 
 ## Change workflow
 
-1. Read `AGENTS.md` and the Current Work Board.
-2. Create/use a focused non-main branch.
-3. Run `npm run agent:doctor -- --json` and use the selected risk class/gates.
-4. Read only the affected code/tests plus routed current authority.
+1. Read `AGENTS.md` and run `npm run plan:resolve`; stop and reconcile if authority is stale or ambiguous.
+2. Read the resolved Current Work Board/current packet and affected current code/tests.
+3. Create/use a focused non-main branch.
+4. Run `npm run agent:doctor -- --json` and use the selected risk class/gates.
 5. Implement the smallest coherent change; do not expand scope from unrelated findings.
 6. Update the PR-memory record and current memory/board only when their truth changes.
 7. Open a PR and require exact-head checks/evidence appropriate to the affected boundary.
@@ -132,6 +142,6 @@ Do not push feature/fix commits directly to `main`, force-push shared history, w
 
 ## Current product direction
 
-The released daily ledger remains the current product while release/trust work continues. The #432 strategy program changes the long-term growth logic: **Acquire + Reconcile moves ahead of broad feature expansion**, so digital activity should require less user maintenance over time. Existing planning/advanced surfaces remain available but do not automatically earn expansion priority.
+The released daily ledger remains the current product while release/trust work continues. The currently resolved master program (#432, installed by merged PR #433) changes the long-term growth logic: **Acquire + Reconcile moves ahead of broad feature expansion**, so digital activity should require less user maintenance over time. Existing planning/advanced surfaces remain available but do not automatically earn expansion priority.
 
-The next product-platform implementation after the #432 authority-alignment slice is an **Acquisition Foundation specification**, not a bank integration. It must define a neutral source/candidate/provenance/idempotency/matching/reconciliation contract first.
+Detailed next-work selection belongs only to the resolved Current Work Board/current child packet; this README deliberately does not duplicate a `NEXT` item that can go stale after a merge.

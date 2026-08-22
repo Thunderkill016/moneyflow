@@ -1,39 +1,45 @@
-# #440 — Source observation precedence
+# #440 — Source observation precedence — completed
 
-**Status:** merged  
-**Merged:** PR #441 → `main@6123d263c60fba98bd67b5c935a7179477ad7fcb`  
-**Final candidate head:** `237aac8d771dd5f8ba57db5fa44d7309ce571245`  
-**Change class:** Class 3 — financial import/provenance boundary
+**Status:** completed and merged
+**Parent:** #432 P1 Acquisition Foundation
+**Issue / PR:** #440 / #441
+**Final implementation head:** `237aac8d771dd5f8ba57db5fa44d7309ce571245`
+**Merged main:** `6123d263c60fba98bd67b5c935a7179477ad7fcb`
+**Completed:** 2026-08-22
 
 ## Outcome
 
-MoneyFlow now distinguishes unchanged exact-source replay from changed/unknown evidence under the same stable `source_external_id`. A reviewed changed observation can be linked to the same canonical transaction without rewriting ledger values, entries, reconciliation state or the canonical `transaction_import_provenance` row.
+MoneyFlow now distinguishes an unchanged exact-source replay from changed/unknown evidence received under the same stable `source_external_id`. A reviewed changed observation can be linked to the same canonical financial transaction without rewriting transaction values, entries, reconciliation state or canonical `transaction_import_provenance`.
 
-Approved Inbox observations are durable evidence. Browser-role direct DELETE is revoked and browser callers cannot fabricate approved evidence by direct UPDATE or direct INSERT; narrow import-batch FK cleanup and privileged archive reconstruction remain compatible.
+Persisted `inbox_candidates` remain the source-observation history for this slice. Approved observations are protected from browser fabrication/rewrite/delete while the bounded import-batch FK cleanup and privileged archive reconstruction paths remain supported.
 
-## Durable contracts
+## Durable invariants
 
-- live same source ID + same canonical fingerprint/version → hard `source_external_id_match`;
-- live same source ID + changed/missing evidence → hard `source_external_id_changed`;
-- reviewed changed-observation resolution changes candidate resolution/linkage only;
-- exact-source reasons cannot escape through heuristic duplicate override;
-- candidate history remains the source-observation history; canonical provenance remains one row per financial transaction;
-- no financial mutation audit event is created for an observation-only resolution;
-- tenant isolation, replay safety, archive restore and import-batch cleanup remain enforced.
+- exact source identity remains stronger than fingerprint/heuristic matching;
+- live same-ID unchanged evidence stays `source_external_id_match`;
+- live same-ID changed/unknown evidence becomes a hard `source_external_id_changed` decision;
+- reviewed resolution changes observation linkage only;
+- deleted exact-source semantics from #439 remain intact;
+- heuristic duplicate override cannot escape hard exact-source decisions;
+- browser callers cannot INSERT or UPDATE already-approved observation evidence;
+- no provider/native/source-lifecycle/different-ID lineage behavior was introduced;
+- user-owned ledger and reconciliation truth remain authoritative.
 
-## Evaluation and fixes
+## Verification
 
-Independent review found and fixed: pgTAP plan mismatch; direct heuristic-override escape; stale-plan UI fail-open; archive restore incompatibility; browser fabricated approved UPDATE; and, after the first green ready head, a direct browser INSERT path that could fabricate an approved observation. The final guard runs on `BEFORE INSERT OR UPDATE` and has a direct-insert pgTAP counterexample.
+Final exact head `237aac8d771dd5f8ba57db5fa44d7309ce571245`:
 
-## Final verification
-
-Exact candidate head `237aac8d771dd5f8ba57db5fa44d7309ce571245`:
-
-- CI #2792: success — policy/knowledge/diff hygiene, migration identity, lint/typecheck/unit/static RLS, production build, fresh Supabase reset + pgTAP, archive producer/restore round trips, browser smoke, authenticated ownership smoke, cross-device UI audit, aggregate `verify` and `e2e`;
+- CI #2792: success, including policy/knowledge/diff hygiene, migration identity, lint/typecheck/static RLS/unit, production build, fresh Supabase reset + pgTAP, archive producer/restore, Browser smoke, authenticated ownership smoke, Cross-device UI audit, aggregate `verify` and `e2e`;
 - CodeQL #1851: success;
 - Secret history #1851: success;
-- no retry required.
+- no retry required on the final exact-head run.
 
-## Deferred next boundary
+A post-ready evaluator found the earlier guard covered UPDATE but not direct INSERT. The final head expanded the guard to `BEFORE INSERT OR UPDATE`, added the direct-INSERT pgTAP counterexample and updated migration identity before the final green run.
 
-Different-ID source replacement/predecessor identity, source lifecycle state and any source-to-ledger clearing/reconciliation policy were intentionally deferred. Those require explicit source-supplied lineage; MoneyFlow must not infer successor identity heuristically.
+## Deferred boundary
+
+Provider-supplied predecessor/replacement identity, pending→posted across different IDs, removed/modified lifecycle semantics and any source-driven clearing/reconciliation behavior remain later #432 work. Different-ID lineage must not be inferred by fuzzy similarity.
+
+## Lifecycle note
+
+The active copy became stale after #441 merged because the Current Work Board and active-packet registry were not reconciled in the merge. #443 exists specifically to make that class of stale authority mechanically visible before future task selection.
