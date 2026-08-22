@@ -10,7 +10,11 @@ This version has breaking changes. Before using unfamiliar App Router APIs, read
 
 ## Authority route
 
-Start with `README.md`, current-project memory and the active registry; `docs/context/README.md` maps every other authority. Historical packets never reopen work.
+Before choosing or continuing implementation, run `npm run plan:resolve`. It must resolve one current master program, at most one current agent-executable slice, the explicit supersession chain, and a Current Work Board baseline that matches the actual main/base commit. If it fails, reconcile authority before using `NOW` or `NEXT`.
+
+Do not infer the current plan from a filename, modification date, newest document, open PR, chat summary or a plausible-looking board entry. `docs/plans/PLAN_AUTHORITY.json` + the active registry are the machine route; Git first-parent history verifies how that authority arrived.
+
+Then start with `README.md`, current-project memory and the active registry; `docs/context/README.md` maps every other authority. Historical packets never reopen work.
 
 ## Read order
 
@@ -24,7 +28,7 @@ For every change:
 6. `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`;
 7. `docs/engineering/AGENT_OPERATING_MODEL.md` when permissions/handoffs matter.
 
-For #432 product/platform work also read `docs/plans/active/432-vietnam-long-term-product-strategy.md`, `docs/research/VIETNAM_LONG_TERM_PRODUCT_STRATEGY_2026.md` and `docs/research/MONEYFLOW_REFERENCE_REPO_ATLAS_2026.md`.
+For master-program work, read the master packet returned by `npm run plan:resolve` and the research/evidence documents that packet names. Never hard-code a historical master issue or plan path into the discovery process.
 
 For cross-cutting research choose from `docs/research/REPOSITORY_REFERENCE_MAP.md` and `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md`. Historical competitive/capability context lives in `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md` and `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`; it is evidence, not next-work authority.
 
@@ -42,7 +46,7 @@ For Class 3, multi-day, multi-agent, provider/production or cross-cutting work a
 - Every source converges on one candidate/provenance/matching/ledger/reconciliation path. A provider/parser never creates a second source of financial truth.
 - Core jobs: trustworthy financial facts; known balances and coverage; traceable understanding; safe correction/recovery/export; decreasing maintenance effort; planning linked to explicit facts and assumptions.
 - Advanced capability stays progressively disclosed.
-- Bank/Open API, native device acquisition, wealth, household and AI mutation each require a researched specification and explicit owner authorization. #432 authorizes direction and its current P0 documentation slice, not those runtime changes.
+- Bank/Open API, native device acquisition, wealth, household and AI mutation each require a researched specification and explicit owner authorization. The active master program authorizes direction and only the bounded current slice, not every future runtime change.
 
 ## Financial invariants
 
@@ -56,7 +60,7 @@ For Class 3, multi-day, multi-agent, provider/production or cross-cutting work a
 
 ## Delivery workflow
 
-Before implementation, run `npm run agent:doctor -- --json`. It diagnoses risk class, selected gates, capabilities and approval boundaries from repository policy; it grants no permission.
+Before implementation, `npm run plan:resolve` must pass, then run `npm run agent:doctor -- --json`. The standard doctor includes plan authority plus risk class, selected gates, capabilities and approval boundaries; it grants no permission.
 
 Classify first:
 
@@ -71,7 +75,7 @@ Packet lifecycle: reconnaissance → focused research → specification/acceptan
 
 Record the **current execution state**, active responsibility, permission scope and every handoff. **Hidden chat context is not a handoff artifact.**
 
-Research uses **two to four focused sources** by default. Record what each establishes, what does not apply, and license/security/privacy/ownership/rollback implications. For #432 subsystem choices, use `MONEYFLOW_REFERENCE_REPO_ATLAS_2026.md` as an index, not a feature checklist.
+Research uses **two to four focused sources** by default. Record what each establishes, what does not apply, and license/security/privacy/ownership/rollback implications. Use the current master packet's reference indexes as indexes, not feature checklists.
 
 ## Memory and trust rules
 
@@ -137,4 +141,4 @@ The protected CodeQL workflow independently initializes, analyzes and uploads a 
 
 ## Definition of done
 
-The focused branch and PR exist; scope/evidence are honest; risk-selected exact-head checks are green; the bounded PR record exists; current memory changes only when truth changes; required human review and affected production verification are complete. Merge and deployment remain owner decisions.
+The focused branch and PR exist; plan authority resolved against current main/base; scope/evidence are honest; risk-selected exact-head checks are green; the bounded PR record exists; current memory changes only when truth changes; required human review and affected production verification are complete. Merge and deployment remain owner decisions.
