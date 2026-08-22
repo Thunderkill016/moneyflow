@@ -41,13 +41,21 @@ function authorityManifest(overrides = {}) {
   };
 }
 
-function board({ baseline = "abc1234", extra = "" } = {}) {
+function board({
+  baseline = "abc1234",
+  projectionPr = null,
+  includeCurrent = true,
+  extra = "",
+} = {}) {
   return [
     "# Board",
     `**Current main baseline:** \`${baseline}\``,
+    projectionPr ? `**Post-merge projection:** PR #${projectionPr}` : "",
     "| Packet | Role now | Authority boundary |",
     "|---|---|---|",
-    "| `current.md` | **current agent-executable Class 3 slice** | bounded work |",
+    includeCurrent
+      ? "| `current.md` | **current agent-executable Class 3 slice** | bounded work |"
+      : "",
     "| `master.md` | master product program | product sequencing |",
     extra,
     "",
@@ -64,6 +72,20 @@ const fakeGit = (_root, args) => {
   return null;
 };
 
+function mergeGit({ head, boardCommit = head, subject }) {
+  return (_root, args) => {
+    if (args[0] === "rev-parse" && args[1] === "HEAD") return head;
+    if (args[0] === "log" && args[1] === "-1" && args[2] === "--format=%H") {
+      return boardCommit;
+    }
+    if (args[0] === "log" && args[1] === "-1" && args[2] === "--format=%s") {
+      return subject;
+    }
+    if (args[0] === "log") return history;
+    return null;
+  };
+}
+
 test("resolves one master, one current slice, and the supersession chain", () => {
   withFixture(
     { board: board(), manifest: authorityManifest() },
@@ -75,6 +97,7 @@ test("resolves one master, one current slice, and the supersession chain", () =>
 
       assert.equal(result.ok, true, result.failures.join("\n"));
       assert.equal(result.master.path, "docs/plans/active/master.md");
+      assert.equal(result.master.status, "active");
       assert.equal(result.current.path, "docs/plans/active/current.md");
       assert.equal(
         result.authorityChain[1].path,
@@ -101,42 +124,64 @@ test("a stale Current Work Board fails closed instead of yielding NEXT work", ()
   );
 });
 
-test("the merge that updates the board does not invalidate its own authority", () => {
+test("an ordinary merge that happened to edit the board is still stale", () => {
   withFixture(
     { board: board(), manifest: authorityManifest() },
     (root) => {
       const mergedHead = "feed999999999999999999999999999999999999";
       const result = resolvePlanAuthority(root, {
         expectedBaseline: mergedHead,
-        runGit: (_root, args) => {
-          if (args[0] === "rev-parse" && args[1] === "HEAD") return mergedHead;
-          if (args[0] === "log" && args[1] === "-1") return mergedHead;
-          if (args[0] === "log") return history;
-          return null;
-        },
+        runGit: mergeGit({
+          head: mergedHead,
+          subject: "feat: finish current slice (#444)",
+        }),
       });
 
-      assert.equal(result.ok, true, result.failures.join("\n"));
-      assert.equal(result.baselineMode, "board-updated-at-head");
-      assert.equal(result.boardLastCommit, mergedHead);
+      assert.equal(result.ok, false);
+      assert.ok(result.failures.some((failure) => failure.includes("is stale")));
     },
   );
 });
 
-test("the next main commit without a board update makes the board stale again", () => {
+test("an explicitly projected post-merge reconciliation may survive its squash merge", () => {
   withFixture(
-    { board: board(), manifest: authorityManifest() },
+    {
+      board: board({ projectionPr: 445 }),
+      manifest: authorityManifest(),
+    },
+    (root) => {
+      const mergedHead = "feed999999999999999999999999999999999999";
+      const result = resolvePlanAuthority(root, {
+        expectedBaseline: mergedHead,
+        runGit: mergeGit({
+          head: mergedHead,
+          subject: "docs: reconcile lifecycle after merge (#445)",
+        }),
+      });
+
+      assert.equal(result.ok, true, result.failures.join("\n"));
+      assert.equal(result.baselineMode, "post-merge-projection");
+      assert.equal(result.boardProjectionPr, 445);
+    },
+  );
+});
+
+test("a copied projection for an older PR cannot bless a later main commit", () => {
+  withFixture(
+    {
+      board: board({ projectionPr: 445 }),
+      manifest: authorityManifest(),
+    },
     (root) => {
       const nextHead = "cafe111111111111111111111111111111111111";
       const previousBoardCommit = "feed999999999999999999999999999999999999";
       const result = resolvePlanAuthority(root, {
         expectedBaseline: nextHead,
-        runGit: (_root, args) => {
-          if (args[0] === "rev-parse" && args[1] === "HEAD") return nextHead;
-          if (args[0] === "log" && args[1] === "-1") return previousBoardCommit;
-          if (args[0] === "log") return history;
-          return null;
-        },
+        runGit: mergeGit({
+          head: nextHead,
+          boardCommit: previousBoardCommit,
+          subject: "chore: unrelated later merge (#446)",
+        }),
       });
 
       assert.equal(result.ok, false);
@@ -196,6 +241,29 @@ test("two current agent-executable slices are rejected", () => {
   );
 });
 
+test("no current agent-executable slice is allowed only as an explicit warning", () => {
+  withFixture(
+    {
+      board: board({ includeCurrent: false }),
+      manifest: authorityManifest(),
+    },
+    (root) => {
+      const result = resolvePlanAuthority(root, {
+        expectedBaseline: "abc1234",
+        runGit: fakeGit,
+      });
+
+      assert.equal(result.ok, true, result.failures.join("\n"));
+      assert.equal(result.current, null);
+      assert.ok(
+        result.warnings.some((warning) =>
+          warning.includes("no current agent-executable slice"),
+        ),
+      );
+    },
+  );
+});
+
 test("the manifest and active registry cannot disagree about the master", () => {
   withFixture(
     {
@@ -219,6 +287,32 @@ test("the manifest and active registry cannot disagree about the master", () => 
   );
 });
 
+test("missing master and predecessor paths fail closed", () => {
+  withFixture(
+    { board: board(), manifest: authorityManifest() },
+    (root) => {
+      rmSync(join(root, "docs/plans/active/master.md"), { force: true });
+      rmSync(join(root, "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md"), {
+        force: true,
+      });
+      const result = resolvePlanAuthority(root, {
+        expectedBaseline: "abc1234",
+        runGit: fakeGit,
+      });
+
+      assert.equal(result.ok, false);
+      assert.ok(
+        result.failures.some((failure) => failure.includes("missing master plan")),
+      );
+      assert.ok(
+        result.failures.some((failure) =>
+          failure.includes("missing superseded plan"),
+        ),
+      );
+    },
+  );
+});
+
 test("the declared introducing PR must be present in first-parent git history", () => {
   withFixture(
     { board: board(), manifest: authorityManifest() },
@@ -228,6 +322,92 @@ test("the declared introducing PR must be present in first-parent git history", 
         runGit: (_root, args) =>
           args[0] === "log" && args[1] !== "-1"
             ? "deadbeef\tfeat: unrelated child (#441)"
+            : null,
+      });
+
+      assert.equal(result.ok, false);
+      assert.ok(
+        result.failures.some((failure) =>
+          failure.includes("first-parent history does not contain that PR"),
+        ),
+      );
+    },
+  );
+});
+
+test("a deliberate current PR may propose a new master but it remains candidate until merge", () => {
+  withFixture(
+    {
+      board: board(),
+      manifest: authorityManifest({
+        introducedByPr: 444,
+        supersedes: [
+          {
+            path: "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md",
+            supersededByPr: 444,
+          },
+        ],
+      }),
+    },
+    (root) => {
+      const eventPath = join(root, "event.json");
+      writeFileSync(
+        eventPath,
+        JSON.stringify({ pull_request: { number: 444 } }),
+      );
+      const result = resolvePlanAuthority(root, {
+        env: {
+          GITHUB_EVENT_NAME: "pull_request",
+          GITHUB_EVENT_PATH: eventPath,
+        },
+        expectedBaseline: "abc1234",
+        runGit: (_root, args) =>
+          args[0] === "log" && args[1] !== "-1"
+            ? "facefeed\tdocs: previous master history (#433)"
+            : null,
+      });
+
+      assert.equal(result.ok, true, result.failures.join("\n"));
+      assert.equal(result.master.status, "candidate");
+      assert.equal(result.authorityChain[1].status, "superseded-if-merged");
+      assert.ok(
+        result.warnings.some((warning) =>
+          warning.includes("becomes active only after that PR appears"),
+        ),
+      );
+    },
+  );
+});
+
+test("an unmerged master replacement cannot claim a different PR number", () => {
+  withFixture(
+    {
+      board: board(),
+      manifest: authorityManifest({
+        introducedByPr: 999,
+        supersedes: [
+          {
+            path: "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md",
+            supersededByPr: 999,
+          },
+        ],
+      }),
+    },
+    (root) => {
+      const eventPath = join(root, "event.json");
+      writeFileSync(
+        eventPath,
+        JSON.stringify({ pull_request: { number: 444 } }),
+      );
+      const result = resolvePlanAuthority(root, {
+        env: {
+          GITHUB_EVENT_NAME: "pull_request",
+          GITHUB_EVENT_PATH: eventPath,
+        },
+        expectedBaseline: "abc1234",
+        runGit: (_root, args) =>
+          args[0] === "log" && args[1] !== "-1"
+            ? "facefeed\tdocs: previous master history (#433)"
             : null,
       });
 
