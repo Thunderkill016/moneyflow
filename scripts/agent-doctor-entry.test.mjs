@@ -70,11 +70,12 @@ test("standard doctor JSON carries resolved plan authority", () => {
 
     assert.equal(report.schemaVersion, 3);
     assert.equal(report.planAuthority.ok, true);
+    assert.equal(report.planAuthority.selectionReady, true);
     assert.equal(report.planAuthority.master.path, "docs/plans/active/master.md");
     assert.equal(report.planAuthority.current.path, "docs/plans/active/current.md");
     assert.ok(
       report.readyMeans.includes.includes(
-        "master plan, current slice and Current Work Board freshness resolved",
+        "merged master plan, current slice and Current Work Board freshness resolved",
       ),
     );
   });
@@ -93,6 +94,52 @@ test("doctor readiness fails when plan authority is stale even if machine policy
     });
 
     assert.equal(report.planAuthority.ok, false);
+    assert.equal(report.planAuthority.selectionReady, false);
+    assert.equal(report.ready, false);
+  });
+});
+
+test("a valid current-PR master candidate is still blocked from doctor task selection", () => {
+  withAuthorityFixture((root) => {
+    writeFileSync(
+      join(root, "docs/plans/PLAN_AUTHORITY.json"),
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          master: {
+            path: "docs/plans/active/master.md",
+            introducedByPr: 444,
+            supersedes: [
+              {
+                path: "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md",
+                supersededByPr: 444,
+              },
+            ],
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
+    const eventPath = join(root, "event.json");
+    writeFileSync(eventPath, JSON.stringify({ pull_request: { number: 444 } }));
+
+    const report = buildAuthorityAwareDoctorReport({
+      argv: ["node", "agent-doctor-entry.mjs", "--files", "docs/example.md"],
+      env: {
+        GITHUB_EVENT_NAME: "pull_request",
+        GITHUB_EVENT_PATH: eventPath,
+      },
+      root,
+      authorityOptions: {
+        expectedBaseline: "abc1234ffff",
+        runGit: historyGit,
+      },
+    });
+
+    assert.equal(report.planAuthority.ok, true);
+    assert.equal(report.planAuthority.master.status, "candidate");
+    assert.equal(report.planAuthority.selectionReady, false);
     assert.equal(report.ready, false);
   });
 });
