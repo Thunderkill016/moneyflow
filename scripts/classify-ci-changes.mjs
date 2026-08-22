@@ -38,6 +38,8 @@ export const workflowOrPolicyMatchers = [
   equals("scripts/check-ui-migration-diff.test.mjs"),
   equals("scripts/plan-authority.mjs"),
   equals("scripts/plan-authority.test.mjs"),
+  equals("scripts/plan-selection.mjs"),
+  equals("scripts/plan-selection.test.mjs"),
   equals("scripts/agent-doctor-entry.mjs"),
   equals("scripts/agent-doctor-entry.test.mjs"),
   equals("docs/plans/PLAN_AUTHORITY.json"),
