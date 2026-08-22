@@ -80,6 +80,23 @@ test("UI migration policy changes exercise every gate", () => {
   assert.equal(result.codeql, true);
 });
 
+test("plan authority policy changes exercise every gate", () => {
+  for (const file of [
+    "scripts/plan-authority.mjs",
+    "scripts/plan-authority.test.mjs",
+    "scripts/agent-doctor-entry.mjs",
+    "scripts/agent-doctor-entry.test.mjs",
+    "docs/plans/PLAN_AUTHORITY.json",
+  ]) {
+    const result = classifyChanges([file]);
+    assert.equal(result.fullVerify, true, `${file} must select full verify`);
+    assert.equal(result.database, true, `${file} must select database verification`);
+    assert.equal(result.browserSmoke, true, `${file} must select browser smoke`);
+    assert.equal(result.uiAudit, true, `${file} must select UI audit`);
+    assert.equal(result.codeql, true, `${file} must select CodeQL`);
+  }
+});
+
 test("manual and main-branch runs fail safe to full verification", () => {
   const result = classifyChanges(["docs/README.md"], { forceFull: true });
   assert.equal(result.fullVerify, true);
