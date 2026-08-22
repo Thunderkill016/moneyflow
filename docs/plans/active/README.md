@@ -6,7 +6,7 @@
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
 
-Before using `NOW` or `NEXT`, `npm run plan:resolve` must resolve the master/current authority and confirm this board baseline matches the actual main/base commit. A stale or ambiguous board is not execution authority.
+Before using `NOW` or `NEXT`, `npm run plan:resolve` must resolve the master/current authority and confirm this board baseline matches the actual main/base state. A stale or ambiguous board is not execution authority. A dedicated lifecycle-reconciliation PR may instead declare `**Post-merge projection:** PR #<number>` so its projected board can survive its own squash merge; ordinary implementation PRs get no such exception.
 
 ## NOW
 
@@ -80,4 +80,4 @@ Before using `NOW` or `NEXT`, `npm run plan:resolve` must resolve the master/cur
 6. `OWNER DECISION` is never auto-resolved by an agent.
 7. Historical issues/PRs are provenance, not authority, once reconciled.
 8. `CURRENT_PROJECT_MEMORY.md` changes only when merged implementation/trust truth changes; open changes must not be restated as shipped runtime capability.
-9. The baseline is the main/base state from which the board was reconciled. A board-updating merge may prove freshness by being the exact latest commit touching this file; the next main commit that does not update the board invalidates it.
+9. Baseline mismatch is a hard stop. The only exception is an explicit `Post-merge projection` whose PR number equals the exact current squash-merge commit and whose commit is also the latest commit touching this board. An ordinary implementation merge that merely edited candidate board state is still stale after merge and requires lifecycle reconciliation before new work.
