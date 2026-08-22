@@ -1,6 +1,7 @@
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { pathToFileURL } from "node:url";
 
 export const ACTIVE_BOARD_PATH = "docs/plans/active/README.md";
 
@@ -336,3 +337,43 @@ export function resolvePlanAuthority(
     masterHistory: masterHistory.slice(0, 12),
   };
 }
+
+function printHuman(result) {
+  console.log(`MoneyFlow plan authority — ${result.ok ? "RESOLVED" : "NEEDS RECONCILIATION"}`);
+  console.log(
+    `board baseline: ${result.boardBaseline ?? "missing"}; expected: ${result.expectedBaseline ?? "unknown"}`,
+  );
+  console.log(`master: ${result.master?.path ?? "unresolved"}`);
+  console.log(`current slice: ${result.current?.path ?? "none"}`);
+
+  if (result.authorityChain.length > 0) {
+    console.log("authority chain:");
+    for (const entry of result.authorityChain) {
+      console.log(
+        `- ${entry.status}: ${entry.path}${entry.introducedByPr ? ` (PR #${entry.introducedByPr})` : ""}${entry.supersededByPr ? ` → PR #${entry.supersededByPr}` : ""}`,
+      );
+    }
+  }
+
+  if (result.masterHistory.length > 0) {
+    console.log("master plan first-parent history:");
+    for (const entry of result.masterHistory) {
+      console.log(`- ${entry.sha.slice(0, 12)} ${entry.subject}`);
+    }
+  }
+
+  for (const warning of result.warnings) console.warn(`warning: ${warning}`);
+  for (const failure of result.failures) console.error(`failure: ${failure}`);
+}
+
+function runCli() {
+  const result = resolvePlanAuthority(process.cwd());
+  if (process.argv.includes("--json")) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  } else {
+    printHuman(result);
+  }
+  process.exitCode = result.ok ? 0 : 1;
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] || "").href) runCli();
