@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "master": {
+    "path": "docs/plans/active/432-vietnam-long-term-product-strategy.md",
+    "introducedByPr": 433,
+    "supersedes": [
+      {
+        "path": "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md",
+        "supersededByPr": 433
+      }
+    ]
+  }
+}
