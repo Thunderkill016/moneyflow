@@ -84,6 +84,8 @@ test("plan authority policy changes exercise every gate", () => {
   for (const file of [
     "scripts/plan-authority.mjs",
     "scripts/plan-authority.test.mjs",
+    "scripts/plan-selection.mjs",
+    "scripts/plan-selection.test.mjs",
     "scripts/agent-doctor-entry.mjs",
     "scripts/agent-doctor-entry.test.mjs",
     "docs/plans/PLAN_AUTHORITY.json",
