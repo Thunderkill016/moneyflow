@@ -1,10 +1,34 @@
 import process from "node:process";
+import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 import { resolvePlanAuthority } from "./plan-authority.mjs";
 
-export function isPlanSelectionReady(authority) {
-  return authority.ok === true && authority.master?.status === "active";
+function currentPullRequestNumber(env) {
+  if (env.GITHUB_EVENT_NAME !== "pull_request" || !env.GITHUB_EVENT_PATH) {
+    return null;
+  }
+  try {
+    const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
+    const value = event?.pull_request?.number ?? event?.number;
+    return Number.isInteger(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isPlanSelectionReady(
+  authority,
+  { currentPrNumber = null } = {},
+) {
+  if (authority.ok !== true || authority.master?.status !== "active") return false;
+  if (
+    Number.isInteger(currentPrNumber) &&
+    authority.boardProjectionPr === currentPrNumber
+  ) {
+    return false;
+  }
+  return true;
 }
 
 export function resolvePlanSelection(
@@ -15,10 +39,16 @@ export function resolvePlanSelection(
     env,
     ...authorityOptions,
   });
+  const currentPrNumber = currentPullRequestNumber(env);
+  const projectionCandidate =
+    Number.isInteger(currentPrNumber) &&
+    authority.boardProjectionPr === currentPrNumber;
 
   return {
     ...authority,
-    selectionReady: isPlanSelectionReady(authority),
+    currentPrNumber,
+    projectionCandidate,
+    selectionReady: isPlanSelectionReady(authority, { currentPrNumber }),
   };
 }
 
@@ -37,6 +67,11 @@ function printHuman(result) {
   if (result.master?.status === "candidate") {
     console.error(
       "candidate master is valid for review but is not task-selection authority until merged history proves it",
+    );
+  }
+  if (result.projectionCandidate) {
+    console.error(
+      `post-merge projection for current PR #${result.currentPrNumber} is valid for review but is not current task-selection authority before merge`,
     );
   }
   for (const warning of result.warnings) console.warn(`warning: ${warning}`);
