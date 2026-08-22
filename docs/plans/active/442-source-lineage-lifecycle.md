@@ -1,16 +1,16 @@
 # #442 — Explicit source lineage and lifecycle evidence
 
 **Status:** active  
-**Execution state:** implementing  
+**Execution state:** evaluating  
 **Change class:** Class 3 — financial import/provenance boundary  
 **Parent:** #432 P1 Acquisition Foundation  
 **Active role:** implementer / evaluator  
 **Permission scope:** focused `branch_write` only; no provider, production-data, deployment or main writes  
 **Branch:** `feat/442-source-lineage-lifecycle`  
-**PR:** pending  
-**Base:** `main@6123d263c60fba98bd67b5c935a7179477ad7fcb`  
+**PR:** #445  
+**Base:** `main@99257178ff416e5b1c875f62aea05035824ca9a5`  
 **Owner:** human owner  
-**Last updated:** 2026-08-22
+**Last updated:** 2026-08-23
 
 ## Outcome
 
@@ -23,7 +23,7 @@ MoneyFlow can preserve explicit source-supplied lifecycle and predecessor/replac
 - #441 is merged. Same-ID changed evidence is reviewable and durable without ledger overwrite.
 - `transaction_import_provenance` remains one canonical row per financial transaction and uniquely anchors its original `(user_id, source, source_external_id)` when present.
 - `inbox_candidates` persists each observation, is archive-covered, becomes immutable once approved, and can link multiple observations to one transaction through `approved_transaction_id`.
-- `plan_inbox_candidate()` currently resolves exact source identity only through canonical provenance. It therefore cannot recognize a reviewed replacement ID as a later exact identity, and it compares repeated source revisions to the canonical fingerprint rather than the latest reviewed observation.
+- Before #442, `plan_inbox_candidate()` resolved exact source identity only through canonical provenance. The #442 implementation adds reviewed-observation identity resolution and explicit predecessor handling while preserving the canonical provenance anchor.
 - There is no provider cursor/token/consent implementation or authorization.
 
 ### Relevant repository areas
@@ -167,13 +167,13 @@ Rollback: revert the #442 PR. #441 same-ID source-observation behavior remains t
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| 442.1 | reconcile merged #441 + packet/board | #441 merge | docs + issue/branch | implementing |
-| 442.2 | write database counterexamples | 442.1 | pgTAP tests | todo |
-| 442.3 | lifecycle/predecessor schema + identity resolver | 442.2 | migration | todo |
-| 442.4 | predecessor planning + replacement RPC | 442.3 | pgTAP | todo |
-| 442.5 | TS/server/UI reviewed path | 442.4 | unit/static/UI | todo |
-| 442.6 | archive/security compatibility evaluation | 442.4 | database/security | todo |
-| 442.7 | exact-head Class 3 verification | all | CI/CodeQL/secret | todo |
+| 442.1 | reconcile merged #441 + packet/board | #441 merge | docs + issue/branch | done |
+| 442.2 | write database counterexamples | 442.1 | pgTAP tests | done |
+| 442.3 | lifecycle/predecessor schema + identity resolver | 442.2 | migration | done |
+| 442.4 | predecessor planning + replacement RPC | 442.3 | pgTAP | done |
+| 442.5 | TS/server/UI reviewed path | 442.4 | unit/static/UI | done |
+| 442.6 | archive/security compatibility evaluation | 442.4 | database/security | done |
+| 442.7 | exact-head Class 3 verification | all | CI/CodeQL/secret | evaluating |
 | 442.8 | owner merge handoff | 442.7 | PR summary | todo |
 
 ## Handoff record
@@ -181,6 +181,7 @@ Rollback: revert the #442 PR. #441 same-ID source-observation behavior remains t
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-22 | researcher/planner | implementer | implementing | issue #442, official Plaid + Open Banking evidence, branch | implementation/tests not yet proven | write DB counterexamples then migration |
+| 2026-08-23 | implementer | evaluator | evaluating | PR #445; merge/reconciliation commit `e2647a5e43d71b6731939c90fc525d80b3d7b545`; branch now contains `main@99257178…` guard state plus bounded #442 implementation | exact-head CI/database/browser/security evidence pending | create PR memory then run exact-head Class 3 gates |
 
 ### Current permission boundary
 
@@ -192,14 +193,14 @@ Rollback: revert the #442 PR. #441 same-ID source-observation behavior remains t
 
 ## Evaluation
 
-Pending exact-head implementation evidence.
+Implementation is complete on the branch and PR #445 is mergeable against `main@99257178ff416e5b1c875f62aea05035824ca9a5`. Final acceptance remains pending exact-head Class 3 CI, fresh database/pgTAP + archive evidence, browser/UI gates, CodeQL and secret-history evidence after the final documentation/memory head is created.
 
 ## Delivery record
 
 - Branch: `feat/442-source-lineage-lifecycle`
-- PR: pending
-- Squash commit: pending
-- CI run: pending
+- PR: #445
+- Squash commit: pending owner merge decision
+- CI run: pending final exact-head evidence
 - Production deployment: not applicable
 - Production flow verified: not applicable
 - Work packet moved to `docs/plans/completed/`: pending merge
