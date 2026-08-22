@@ -1,9 +1,10 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 export const ACTIVE_BOARD_PATH = "docs/plans/active/README.md";
+export const PLAN_AUTHORITY_MANIFEST_PATH = "docs/plans/PLAN_AUTHORITY.json";
 
 function defaultRunGit(root, args) {
   const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
@@ -36,31 +37,6 @@ export function parseBoardBaseline(board) {
     board.match(/^\*\*Current main baseline:\*\*\s*`([0-9a-f]{7,40})`/mu)?.[1] ??
     null
   );
-}
-
-export function parseMasterMetadata(content) {
-  return {
-    role:
-      content.match(/^\*\*Authority role:\*\*\s*(.+)$/mu)?.[1]?.trim() ?? null,
-    introducedByPr: Number(
-      content.match(
-        /^\*\*Authority introduced by:\*\*\s*PR\s*#(\d+)\s*$/mu,
-      )?.[1] ?? NaN,
-    ),
-    supersedesPlan:
-      content.match(/^\*\*Supersedes plan:\*\*\s*`([^`]+)`\s*$/mu)?.[1] ??
-      null,
-  };
-}
-
-export function parseSupersededMetadata(content) {
-  return {
-    status:
-      content.match(/^\*\*Authority status:\*\*\s*(.+)$/mu)?.[1]?.trim() ?? null,
-    supersededBy: content.match(
-      /^\*\*Superseded by:\*\*\s*`([^`]+)`(?:\s*\(PR\s*#(\d+)\))?\s*$/mu,
-    ),
-  };
 }
 
 function sameCommit(a, b) {
@@ -138,6 +114,45 @@ function gitHistory(root, path, runGit) {
     });
 }
 
+function readManifest(root, failures) {
+  let manifest;
+  try {
+    manifest = JSON.parse(
+      readFileSync(join(root, PLAN_AUTHORITY_MANIFEST_PATH), "utf8"),
+    );
+  } catch {
+    failures.push(
+      `missing or invalid plan authority manifest: ${PLAN_AUTHORITY_MANIFEST_PATH}`,
+    );
+    return null;
+  }
+
+  if (manifest?.schemaVersion !== 1) {
+    failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} must use schemaVersion 1`);
+  }
+  if (
+    typeof manifest?.master?.path !== "string" ||
+    !manifest.master.path.startsWith("docs/plans/active/") ||
+    !manifest.master.path.endsWith(".md")
+  ) {
+    failures.push(
+      `${PLAN_AUTHORITY_MANIFEST_PATH} master.path must point to an active plan packet`,
+    );
+  }
+  if (!Number.isInteger(manifest?.master?.introducedByPr)) {
+    failures.push(
+      `${PLAN_AUTHORITY_MANIFEST_PATH} master.introducedByPr must be a PR number`,
+    );
+  }
+  if (!Array.isArray(manifest?.master?.supersedes)) {
+    failures.push(
+      `${PLAN_AUTHORITY_MANIFEST_PATH} master.supersedes must be an array`,
+    );
+  }
+
+  return manifest;
+}
+
 export function resolvePlanAuthority(
   root,
   {
@@ -205,101 +220,80 @@ export function resolvePlanAuthority(
     );
   }
 
+  const manifest = readManifest(root, failures);
   const masterRow = masterRows[0] ?? null;
   const currentRow = currentRows[0] ?? null;
-  let master = null;
   const authorityChain = [];
+  let master = null;
   let masterHistory = [];
 
-  if (masterRow) {
-    const masterPath = `docs/plans/active/${masterRow.packet}`;
+  if (manifest?.master?.path && masterRow) {
+    const registryMasterPath = `docs/plans/active/${masterRow.packet}`;
+    if (manifest.master.path !== registryMasterPath) {
+      failures.push(
+        `${PLAN_AUTHORITY_MANIFEST_PATH} master ${manifest.master.path} disagrees with active registry master ${registryMasterPath}`,
+      );
+    }
+
     try {
-      const content = readFileSync(join(root, masterPath), "utf8");
-      const metadata = parseMasterMetadata(content);
-      master = { path: masterPath, packet: masterRow.packet, ...metadata };
-
-      if (!/\bmaster product program\b/iu.test(metadata.role ?? "")) {
-        failures.push(
-          `${masterPath} must declare **Authority role:** master product program`,
-        );
-      }
-      if (!Number.isInteger(metadata.introducedByPr)) {
-        failures.push(
-          `${masterPath} must declare **Authority introduced by:** PR #<number>`,
-        );
-      }
-      if (!metadata.supersedesPlan) {
-        failures.push(
-          `${masterPath} must declare **Supersedes plan:** \`<path>\``,
-        );
-      }
-
-      masterHistory = gitHistory(root, masterPath, runGit);
-      if (Number.isInteger(metadata.introducedByPr)) {
-        const introMatch = masterHistory.find(
-          (entry) => entry.prNumber === metadata.introducedByPr,
-        );
-        if (!introMatch && masterHistory.length > 0) {
-          failures.push(
-            `${masterPath} says PR #${metadata.introducedByPr} introduced authority, but git history does not contain that PR`,
-          );
-        }
-      }
-
-      authorityChain.push({
-        path: masterPath,
-        status: "active",
-        introducedByPr: metadata.introducedByPr,
-      });
-
-      if (metadata.supersedesPlan) {
-        try {
-          const predecessor = readFileSync(
-            join(root, metadata.supersedesPlan),
-            "utf8",
-          );
-          const predecessorMeta = parseSupersededMetadata(predecessor);
-          const expected = predecessorMeta.supersededBy?.[1] ?? null;
-          const prNumber = Number(predecessorMeta.supersededBy?.[2] ?? NaN);
-
-          if (!/\bsuperseded\b/iu.test(predecessorMeta.status ?? "")) {
-            failures.push(
-              `${metadata.supersedesPlan} must declare **Authority status:** superseded`,
-            );
-          }
-          if (expected !== masterPath) {
-            failures.push(
-              `${metadata.supersedesPlan} must point **Superseded by:** to ${masterPath}`,
-            );
-          }
-          if (
-            Number.isInteger(metadata.introducedByPr) &&
-            Number.isInteger(prNumber) &&
-            prNumber !== metadata.introducedByPr
-          ) {
-            failures.push(
-              `${metadata.supersedesPlan} supersession PR #${prNumber} disagrees with ${masterPath} introduction PR #${metadata.introducedByPr}`,
-            );
-          }
-
-          authorityChain.push({
-            path: metadata.supersedesPlan,
-            status: "superseded",
-            supersededBy: masterPath,
-            supersededByPr: Number.isInteger(prNumber)
-              ? prNumber
-              : metadata.introducedByPr,
-          });
-        } catch {
-          failures.push(
-            `${masterPath} supersedes missing plan: ${metadata.supersedesPlan}`,
-          );
-        }
-      }
+      readFileSync(join(root, manifest.master.path), "utf8");
     } catch {
       failures.push(
-        `${ACTIVE_BOARD_PATH} master product program points to missing packet: ${masterPath}`,
+        `${PLAN_AUTHORITY_MANIFEST_PATH} points to missing master plan: ${manifest.master.path}`,
       );
+    }
+
+    masterHistory = gitHistory(root, manifest.master.path, runGit);
+    if (Number.isInteger(manifest.master.introducedByPr)) {
+      const introMatch = masterHistory.find(
+        (entry) => entry.prNumber === manifest.master.introducedByPr,
+      );
+      if (!introMatch && masterHistory.length > 0) {
+        failures.push(
+          `${manifest.master.path} says PR #${manifest.master.introducedByPr} introduced authority, but git first-parent history does not contain that PR`,
+        );
+      }
+    }
+
+    master = {
+      path: manifest.master.path,
+      packet: basename(manifest.master.path),
+      introducedByPr: manifest.master.introducedByPr,
+    };
+    authorityChain.push({
+      path: manifest.master.path,
+      status: "active",
+      introducedByPr: manifest.master.introducedByPr,
+    });
+
+    for (const predecessor of manifest.master.supersedes ?? []) {
+      if (
+        typeof predecessor?.path !== "string" ||
+        !Number.isInteger(predecessor?.supersededByPr)
+      ) {
+        failures.push(
+          `${PLAN_AUTHORITY_MANIFEST_PATH} supersedes entries require path + supersededByPr`,
+        );
+        continue;
+      }
+      try {
+        readFileSync(join(root, predecessor.path), "utf8");
+      } catch {
+        failures.push(
+          `${PLAN_AUTHORITY_MANIFEST_PATH} references missing superseded plan: ${predecessor.path}`,
+        );
+      }
+      if (predecessor.supersededByPr !== manifest.master.introducedByPr) {
+        failures.push(
+          `${predecessor.path} supersededByPr #${predecessor.supersededByPr} disagrees with master introduction PR #${manifest.master.introducedByPr}`,
+        );
+      }
+      authorityChain.push({
+        path: predecessor.path,
+        status: "superseded",
+        supersededBy: manifest.master.path,
+        supersededByPr: predecessor.supersededByPr,
+      });
     }
   }
 
@@ -322,6 +316,7 @@ export function resolvePlanAuthority(
     ok: failures.length === 0,
     failures,
     warnings,
+    manifestPath: PLAN_AUTHORITY_MANIFEST_PATH,
     boardBaseline,
     expectedBaseline: resolvedExpected.sha,
     expectedBaselineSource: resolvedExpected.source,
@@ -339,7 +334,9 @@ export function resolvePlanAuthority(
 }
 
 function printHuman(result) {
-  console.log(`MoneyFlow plan authority — ${result.ok ? "RESOLVED" : "NEEDS RECONCILIATION"}`);
+  console.log(
+    `MoneyFlow plan authority — ${result.ok ? "RESOLVED" : "NEEDS RECONCILIATION"}`,
+  );
   console.log(
     `board baseline: ${result.boardBaseline ?? "missing"}; expected: ${result.expectedBaseline ?? "unknown"}`,
   );
