@@ -20,7 +20,8 @@ The post-#441 defect that triggered this work was real: `main` had already merge
 - `scripts/plan-authority.mjs` validates graph/registry/file/history consistency and board freshness.
 - `scripts/plan-selection.mjs` is stricter than validation: only a merged `active` master may authorize task selection.
 - A future master replacement may validate as `candidate` in its own PR, but `plan:resolve` and the standard doctor remain NOT READY until merged first-parent history proves that PR.
-- A lifecycle PR may carry an explicit post-merge board projection. While that PR is open the projection is validation-only and cannot authorize task selection; after squash merge it is accepted only when the exact merge commit carries the same PR number and is the latest commit touching the board.
+- A lifecycle PR may carry an explicit post-merge board projection. Any projection remains validation-only until `plan-authority` proves `baselineMode=post-merge-projection` from the exact merged commit, so the block also holds in local checkouts where no GitHub PR event exists. After squash merge the projection is accepted only when the exact merge commit carries the same PR number and is the latest commit touching the board.
+- An already-started lifecycle-reconciliation PR may finish acceptance defects/evaluation inside its recorded scope while its projection blocks new task selection; it cannot use projected `NOW`/`NEXT` to begin follow-on work.
 - `agent:doctor -- --json` exposes resolved master/current/chain/history and makes readiness depend on selection-ready authority.
 - Authority/selection policy files select the full policy gate set.
 
@@ -43,9 +44,10 @@ These sources verify history mechanics only; owner decisions plus repository aut
 1. A strict `board baseline == HEAD` rule would invalidate its own reconciliation merge.
 2. A broad “latest commit touched board” exception would have incorrectly blessed the original #441 stale-board failure.
 3. An unmerged master candidate could validate and then self-authorize through doctor readiness unless validation and task selection were separated.
-4. A post-merge projection could be mistaken for current pre-merge state unless the current PR is explicitly blocked from task selection.
-5. Authority-policy files initially did not force every CI shard; classifier ownership now covers them.
-6. PR-memory schema is executable: using `Verified in current source:` instead of the required `Verified:` correctly failed CI rather than being waived.
+4. A post-merge projection could be mistaken for current pre-merge state if selection depended only on a GitHub PR event; local feature checkouts have no such event. Selection now blocks every unactivated projection by `baselineMode`, independent of environment.
+5. Blocking every projection without a scoped lifecycle rule would deadlock acceptance fixes on the reconciliation PR itself. Governance now distinguishes finishing the already-recorded reconciliation scope from selecting follow-on work.
+6. Authority-policy files initially did not force every CI shard; classifier ownership now covers them.
+7. PR-memory schema is executable: using `Verified in current source:` instead of the required `Verified:` correctly failed CI rather than being waived.
 
 ## Acceptance
 
