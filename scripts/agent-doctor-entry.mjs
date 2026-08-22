@@ -2,7 +2,7 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 
 import { buildDoctorReport } from "./agent-doctor.mjs";
-import { resolvePlanAuthority } from "./plan-authority.mjs";
+import { resolvePlanSelection } from "./plan-selection.mjs";
 
 export function buildAuthorityAwareDoctorReport({
   argv = process.argv,
@@ -11,7 +11,7 @@ export function buildAuthorityAwareDoctorReport({
   authorityOptions = {},
 } = {}) {
   const report = buildDoctorReport({ argv, env });
-  const planAuthority = resolvePlanAuthority(root, {
+  const planAuthority = resolvePlanSelection(root, {
     env,
     ...authorityOptions,
   });
@@ -20,13 +20,13 @@ export function buildAuthorityAwareDoctorReport({
     ...report,
     schemaVersion: 3,
     planAuthority,
-    ready: report.ready && planAuthority.ok,
+    ready: report.ready && planAuthority.selectionReady,
     readyMeans: {
       ...report.readyMeans,
       scope: "environment-policy-and-authority-freshness",
       includes: [
         ...report.readyMeans.includes,
-        "master plan, current slice and Current Work Board freshness resolved",
+        "merged master plan, current slice and Current Work Board freshness resolved",
       ],
     },
   };
@@ -39,7 +39,9 @@ function printHuman(report) {
   console.log(`head: ${report.repo.head ?? "unknown"}`);
   console.log(`branch: ${report.repo.branch}`);
   console.log(`worktree: ${report.repo.clean ? "clean" : "dirty"}`);
-  console.log(`master plan: ${report.planAuthority.master?.path ?? "unresolved"}`);
+  console.log(
+    `master plan: ${report.planAuthority.master?.path ?? "unresolved"}${report.planAuthority.master?.status ? ` [${report.planAuthority.master.status}]` : ""}`,
+  );
   console.log(`current slice: ${report.planAuthority.current?.path ?? "none"}`);
   console.log(
     `board baseline: ${report.planAuthority.boardBaseline ?? "missing"}; expected: ${report.planAuthority.expectedBaseline ?? "unknown"}`,
@@ -58,6 +60,11 @@ function printHuman(report) {
     for (const entry of report.planAuthority.masterHistory) {
       console.log(`- ${entry.sha.slice(0, 12)} ${entry.subject}`);
     }
+  }
+  if (!report.planAuthority.selectionReady && report.planAuthority.master?.status === "candidate") {
+    console.error(
+      "plan authority failure: candidate master is not task-selection authority until merged history proves it",
+    );
   }
   for (const warning of report.planAuthority.warnings) {
     console.warn(`plan authority warning: ${warning}`);
