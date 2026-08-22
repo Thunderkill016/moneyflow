@@ -17,6 +17,22 @@ test("candidate master may validate but cannot authorize task selection", () => 
   );
 });
 
+test("current PR post-merge projection cannot authorize pre-merge task selection", () => {
+  const authority = {
+    ok: true,
+    master: { status: "active" },
+    boardProjectionPr: 444,
+  };
+  assert.equal(
+    isPlanSelectionReady(authority, { currentPrNumber: 444 }),
+    false,
+  );
+  assert.equal(
+    isPlanSelectionReady(authority, { currentPrNumber: null }),
+    true,
+  );
+});
+
 test("authority failures cannot become selection-ready", () => {
   assert.equal(
     isPlanSelectionReady({ ok: false, master: { status: "active" } }),
