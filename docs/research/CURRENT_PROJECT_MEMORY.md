@@ -2,8 +2,8 @@
 
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-22
-**Current main baseline:** `6123d263c60fba98bd67b5c935a7179477ad7fcb` (PR #441 merged)
-**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md`.
+**Runtime/financial baseline:** `6123d263c60fba98bd67b5c935a7179477ad7fcb` (PR #441 merged); #443/#444 changes repository task-selection governance, not product runtime or financial state.
+**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
 
@@ -61,11 +61,11 @@ Current behavior:
 
 Master #432 remains active. Merged P1 sequence is #435 atomic source ingestion → #437 later-source attachment → #439 deleted-source restore precedence → #441 changed same-ID observation preservation.
 
-Issue #443 on `chore/443-plan-authority-resolution` is the current **candidate governance slice**, not shipped behavior. It exists because post-#441 main still carried a stale board/memory state and agents had no machine check that resolved master-plan supersession before selecting `NEXT`.
+Repository task selection is fail-closed through `docs/plans/PLAN_AUTHORITY.json`, the active packet registry, Current Work freshness and Git first-parent provenance. `npm run plan:resolve` is the pre-work entrypoint; `agent:doctor -- --json` consumes the same selection result.
 
-#443 proposes `docs/plans/PLAN_AUTHORITY.json` plus a fail-closed resolver integrated into standard doctor/knowledge entrypoints. Until it merges, that mechanism is candidate evidence only.
+Validation and task selection are intentionally different: a future replacement master may validate as a `candidate` in its own PR, but it cannot authorize work until merged history proves it. Likewise a current-PR post-merge board projection is validation-only until that PR merges.
 
-Issue/branch #442 for explicit provider-supplied predecessor/replacement identity and source lifecycle already exists but is paused behind #443. After #443 merges, #442 must rebase/re-read current main and continue only if the resolved authority still selects #432 P1.
+There is no agent-executable child auto-promoted by the #443 closeout. Issue/branch #442 for explicit provider-supplied predecessor/replacement identity and source lifecycle remains the next acquisition candidate. A future session must start from fresh `main`, resolve authority, rebase/re-read #442 and promote it only if #432 P1 still owns that boundary.
 
 ## 5. Current capability inventory
 
@@ -98,6 +98,8 @@ Controlled closed beta remains blocked until release entry gates clear and no un
 
 - `docs/configuration.md` owns environment/provider settings; `docs/deployment.md` owns deployment workflow.
 - `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates; `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission scopes and handoffs.
+- `docs/plans/PLAN_AUTHORITY.json` + the active registry own strategic plan selection; Git history verifies provenance but does not choose authority by recency.
+- `plan:resolve` blocks stale/ambiguous authority, unmerged master candidates and pre-merge board projections from task selection.
 - CI classification, migration identity and project-knowledge checks are executable governance contracts; do not weaken them to make a PR pass.
 - Draft PR success is not full evidence when heavy shards skip; exact-head evidence is required after the final branch mutation.
 - Financial/schema/RLS/import/reconciliation changes are Class 3 and need bounded packets plus risk-selected database/security/browser evidence.
@@ -109,7 +111,7 @@ Recent acquisition merge provenance: #433 → `a35d6f96…`; #435 → `38ae8f86�
 
 Completed P1 inputs: #434/#435, #436/#437, #438/#439 and #440/#441. Master #432 remains the product-development program.
 
-Current agent-executable candidate: #443 governance repair. #442 is the next acquisition candidate but must not proceed until #443 is merged/re-resolved against current main.
+#443/#444 closes the plan-authority discovery defect. It does not promote a new product child. #442 remains a NEXT candidate until a fresh-main authority read and explicit promotion make it current.
 
 #403 performance and #426 simplification remain held/reconcile work rather than the current acquisition dependency. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority.
 
@@ -117,15 +119,13 @@ RRB release gates remain separate and are not auto-resolved by product/governanc
 
 ## 9. Open pull-request memory
 
-#443 has no merged authority yet; its PR-specific verification/failure history must live in exactly one `docs/research/pr-memory/YYYY/QN/PR-<number>.md` record once the PR exists.
+#442 branch work is unmerged candidate evidence and must not be restated as shipped behavior.
 
-#442 branch work is also unmerged candidate evidence and must not be restated as shipped behavior.
+PR-specific provenance for #444 lives at `docs/research/pr-memory/2026/Q3/PR-444.md`; provider check identities remain external GitHub evidence on the exact PR head rather than self-referential future run IDs in this snapshot.
 
 Open PRs are candidate evidence even when newer, mergeable or partially green. A final branch mutation invalidates older-head verification evidence.
 
 ## 10. True gaps after this audit
-
-Delivery-governance gap: current main does not yet mechanically resolve plan supersession/board freshness before task selection; #443 is the candidate fix.
 
 Acquisition gaps after merged #441:
 
@@ -138,9 +138,9 @@ Release/trust gaps remain RRB-02/03/04/05/06/08/09 at their existing evidence/au
 
 ## 11. Next allowed action
 
-Finish bounded #443 governance repair: make authority discovery fail closed, reconcile post-#441 active state, exercise exact-head policy/static/database/browser/security gates selected for this repository-policy change, then return owner merge decision.
+Start from fresh `main` and run `npm run plan:resolve`. If it still resolves merged #432 as the active master and reports no conflicting current child, rebase/re-read the existing #442 issue/branch/packet work and promote only the bounded #432 P1 source-lifecycle/predecessor slice before continuing implementation.
 
-Do not continue #442 implementation until #443 has merged and a fresh main read resolves #432 P1 as the current next acquisition boundary. Do not jump to bank/e-wallet/NAPAS integration or perform provider/production writes.
+Do not infer the next plan from filenames, modification dates, a newer open PR or chat memory. Do not jump to bank/e-wallet/NAPAS integration, infer different-ID lineage heuristically, or perform provider/production writes.
 
 Owner/external lanes remain independent: real phone → RRB-08; provider read access → RRB-04/RRB-09 and #40/#174; contact proof → RRB-05; legal/privacy review → RRB-06; disposable hosted target → RRB-02; explicit owner/provider authorization → RRB-03.
 
@@ -148,10 +148,12 @@ Owner/external lanes remain independent: real phone → RRB-08; provider read ac
 
 - “manual-first is the long-term MoneyFlow product law” is superseded by merged #432/#433.
 - `docs/plans/PRODUCT_DEVELOPMENT_PLAN.md` from #420 is predecessor history, not the master plan after #433.
+- “the newest plan file/open PR can be treated as current authority” is superseded by #443/#444 fail-closed graph + registry + merged-history selection.
+- “an unmerged replacement master can authorize work because its graph validates” is superseded by the separate selection-ready gate; candidate masters remain non-authoritative until merge.
 - “Direct CSV authenticated commit loops ordinary transaction creation” is superseded by #435.
 - “later imported evidence cannot reconcile to an existing unprovenanced user fact” is superseded by #437.
 - “deleted exact-source reimport is indistinguishable from an ordinary live exact-ID duplicate” is superseded by #439.
 - “changed evidence under a live stable source ID is indistinguishable from unchanged replay” is superseded by #441.
-- “#440 is current NOW/candidate work” is superseded by #441 merge; #443 is the current candidate governance slice and #442 is paused next work.
+- “#440 is current NOW/candidate work” is superseded by #441 merge; no acquisition child is auto-promoted by the #443 closeout.
 - RRB-07 and RRB-01 are no longer proof gaps; Release Readiness Audit v1 is no longer pending.
 - The seven-day self-use gate remains withdrawn without replacement.
