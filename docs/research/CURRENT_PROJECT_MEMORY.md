@@ -1,21 +1,19 @@
 # MoneyFlow — current project memory
 
 **Status:** single current implementation/trust-status authority when read from `main`
-**Last reconciled:** 2026-08-21
-**Current main baseline:** `d5324c473c2453869dc45dcd4cf5634ecbf97ea3` (PR #439 merged)
-**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md`.
+**Last reconciled:** 2026-08-22
+**Runtime/financial baseline:** `6123d263c60fba98bd67b5c935a7179477ad7fcb` (PR #441 merged); #443/#444 changes repository task-selection governance, not product runtime or financial state.
+**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
 
 MoneyFlow is a functional Vietnamese personal-finance product and is **not public-beta ready**.
 
-Merged #432 is the product-direction authority: safely acquirable digital transactions should not require retyping, while one user-owned ledger remains financial truth. Manual entry is a fallback for cash, missing evidence and corrections.
+Merged #432 is the master product-direction authority: safely acquirable digital transactions should not require retyping, while one user-owned ledger remains financial truth. Manual entry stays first-class for cash, missing/off-system evidence and corrections.
 
-Dependency order:
+Dependency order is source/evidence → candidates/provenance → normalization/dedup/matching → trustworthy ledger facts → reconciliation/correction → understanding/review → connected planning → automation → selective read-only providers → wealth/together/optional intelligence when validated.
 
-> trusted ledger → acquisition + reconciliation → understanding → planning → automation → selective connectivity → wealth → together → optional intelligence
-
-Source adapters create evidence/candidates, not arbitrary balances or silently rewritten ledger facts. Exact source identity is stronger than heuristic similarity; false merges are worse than visible duplicates.
+Source adapters create evidence/candidates, not arbitrary balances or silently rewritten ledger facts. Exact source identity is stronger than heuristic similarity; different-ID lineage is never inferred from fuzzy similarity alone.
 
 Release readiness remains separate from product development. Product work cannot substitute for provider read-back, production evidence, legal review, physical-device proof or owner decisions.
 
@@ -33,40 +31,41 @@ Release readiness remains separate from product development. Product work cannot
 
 ## 3. Acquisition and reconciliation truth
 
-### #434 / PR #435 — Direct CSV atomic acquisition
+### #434 / PR #435 — atomic Direct CSV
 
-Authenticated Direct CSV persists import batches/candidates/provenance and commits selected rows through one batch-atomic approval boundary. A failed selected financial approval rolls back the financial batch rather than leaving a partial ledger commit.
-
-The model carries source row index, optional stable `source_external_id`, versioned fingerprint, parser/mapping versions, match status/reason/confidence, transfer/rule evidence and approval linkage.
+Authenticated Direct CSV persists import batches/candidates/provenance and commits selected rows through one batch-atomic approval boundary. A failed selected financial approval rolls back the batch rather than leaving a partial ledger commit.
 
 ### #436 / PR #437 — later source evidence for an existing fact
 
-Authenticated Inbox planning can conservatively find one reviewed existing unprovenanced money fact by owner/kind/account/date/exact amount. Reviewed attachment writes source provenance + candidate approval linkage without changing the existing transaction's kind, date, note, account, category, amount, review state or reconciliation state. User corrections therefore outrank later imported evidence.
+Authenticated Inbox can conservatively attach later non-manual source evidence to one reviewed existing unprovenanced money fact. Attachment writes provenance + candidate linkage without changing transaction values or reconciliation; user corrections remain authoritative.
 
-### #438 / PR #439 — deleted exact-source reimport precedence
+### #438 / PR #439 — deleted exact-source reimport
 
-Merged as `d5324c473c2453869dc45dcd4cf5634ecbf97ea3` after final head `003841723e9dc8d5528fa7aaf82a969d261f0239` passed CI #2766, CodeQL #1826 and Secret history #1826.
+Live same-ID remains hard `source_external_id_match`. A soft-deleted same-ID with unchanged fingerprint/version can be explicitly restored as the same transaction; changed/missing evidence stays blocked. Restore preserves entries, reconciliation and canonical provenance.
+
+### #440 / PR #441 — changed live source observations
+
+Merged as `6123d263c60fba98bd67b5c935a7179477ad7fcb` after final head `237aac8d771dd5f8ba57db5fa44d7309ce571245` passed CI #2792, CodeQL #1851 and Secret history #1851 with no final-head retry.
 
 Current behavior:
 
-- live canonical transaction + same stable source ID remains hard `source_external_id_match`;
-- soft-deleted canonical transaction + same fingerprint/version becomes `source_external_id_deleted_match` and requires explicit reviewed restore;
-- deleted same-ID with changed/missing fingerprint becomes `source_external_id_deleted_changed` and cannot restore or use heuristic separate approval;
-- planning never restores;
-- reviewed restore clears only `financial_transactions.deleted_at`, preserves ledger/entries/reconciliation/canonical provenance, links the repeat candidate to the same transaction, and uses the existing `transaction_restored` audit path;
-- replay is mutation-idempotent and tenant boundaries are enforced.
-
-`transaction_import_provenance` still has one canonical row per transaction. `inbox_candidates` already stores each source observation and can link multiple reviewed candidates to one transaction through `approved_transaction_id`.
+- unchanged live same-ID evidence remains hard `source_external_id_match`;
+- changed/unknown live evidence under that same stable source ID becomes hard `source_external_id_changed`;
+- reviewed **“Ghi nhận cập nhật nguồn”** links the newer observation to the same transaction without changing transaction/entry/reconciliation/canonical-provenance values;
+- `inbox_candidates` are reused as durable source-observation history for this boundary;
+- authenticated browser callers cannot fabricate approved observation evidence through direct INSERT or UPDATE;
+- heuristic duplicate override cannot bypass hard exact-source identity;
+- no provider/native/different-ID predecessor lifecycle or automatic source-driven clearing/reconciliation was introduced.
 
 ## 4. Current execution state
 
-Master program #432 remains open. Merged P1 sequence is now: #435 atomic source ingestion → #437 reviewed later-source attachment → #439 explicit deleted-source lifecycle.
+Master #432 remains active. Merged P1 sequence is #435 atomic source ingestion → #437 later-source attachment → #439 deleted-source restore precedence → #441 changed same-ID observation preservation.
 
-Issue #440 on branch `feat/440-source-observation-precedence` is the current **candidate** Class 3 slice. It is not shipped runtime truth. Its bounded job is to distinguish a live unchanged same-ID replay from changed same-ID source evidence, preserve that later observation without overwriting the ledger, and decide whether existing candidates are sufficient observation history.
+Repository task selection is fail-closed through `docs/plans/PLAN_AUTHORITY.json`, the active packet registry, Current Work freshness and Git first-parent provenance. `npm run plan:resolve` is the pre-work entrypoint; `agent:doctor -- --json` consumes the same selection result.
 
-Repository reconnaissance currently supports reusing `inbox_candidates` as observation history instead of adding a new table; that remains branch/spec evidence until implementation and merge.
+Validation and task selection are intentionally different: a future replacement master may validate as a `candidate` in its own PR, but it cannot authorize work until merged history proves it. Likewise a current-PR post-merge board projection is validation-only until that PR merges.
 
-Different-ID pending→posted/provider replacement identity, sync cursors and automatic ledger/reconciliation application remain deferred.
+There is no agent-executable child auto-promoted by the #443 closeout. Issue/branch #442 for explicit provider-supplied predecessor/replacement identity and source lifecycle remains the next acquisition candidate. A future session must start from fresh `main`, resolve authority, rebase/re-read #442 and promote it only if #432 P1 still owns that boundary.
 
 ## 5. Current capability inventory
 
@@ -76,7 +75,7 @@ Different-ID pending→posted/provider replacement identity, sync cursors and au
 | Accounts | balances, register/history, create/edit/archive/restore and reconciliation |
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
-| Acquisition | persisted batches/candidates/provenance; exact source/fingerprint matching; atomic Direct CSV approval; reviewed later-source attachment; explicit deleted-source restore precedence |
+| Acquisition | persisted batches/candidates/provenance; exact source/fingerprint matching; atomic Direct CSV approval; reviewed later-source attachment; deleted-source restore precedence; reviewed changed same-ID observation preservation |
 | Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
 | Experience | responsive light/dark web UI; Inbox exposes reviewed source/reconciliation decisions without claiming provider sync |
@@ -99,55 +98,62 @@ Controlled closed beta remains blocked until release entry gates clear and no un
 
 - `docs/configuration.md` owns environment/provider settings; `docs/deployment.md` owns deployment workflow.
 - `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates; `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission scopes and handoffs.
+- `docs/plans/PLAN_AUTHORITY.json` + the active registry own strategic plan selection; Git history verifies provenance but does not choose authority by recency.
+- `plan:resolve` blocks stale/ambiguous authority, unmerged master candidates and pre-merge board projections from task selection.
 - CI classification, migration identity and project-knowledge checks are executable governance contracts; do not weaken them to make a PR pass.
 - Draft PR success is not full evidence when heavy shards skip; exact-head evidence is required after the final branch mutation.
-- Financial/schema/RLS/import/reconciliation changes are Class 3 and need the bounded packet plus risk-selected database/security/browser evidence.
+- Financial/schema/RLS/import/reconciliation changes are Class 3 and need bounded packets plus risk-selected database/security/browser evidence.
 - Production/provider writes remain separately authorized.
 
-Recent acquisition merge provenance: #433 → `a35d6f96…`; #435 → `38ae8f86…`; #437 → `1ae4c765…`; #439 → `d5324c47…`.
+Recent acquisition merge provenance: #433 → `a35d6f96…`; #435 → `38ae8f86…`; #437 → `1ae4c765…`; #439 → `d5324c47…`; #441 → `6123d263…`.
 
 ## 8. Reconciled issue status
 
-Completed P1 inputs: #434/#435, #436/#437 and #438/#439.
+Completed P1 inputs: #434/#435, #436/#437, #438/#439 and #440/#441. Master #432 remains the product-development program.
 
-Current P1 child: #440, candidate until its PR merges. Master #432 remains the product-development program.
+#443/#444 closes the plan-authority discovery defect. It does not promote a new product child. #442 remains a NEXT candidate until a fresh-main authority read and explicit promotion make it current.
 
-#403 performance and #426 simplification remain held/reconcile work rather than the current acquisition dependency. PR #431 remains a conflicting pre-#432 direction candidate and must not be merged blindly.
+#403 performance and #426 simplification remain held/reconcile work rather than the current acquisition dependency. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority.
 
-RRB release gates remain separate and are not auto-resolved by acquisition work.
+RRB release gates remain separate and are not auto-resolved by product/governance work.
 
 ## 9. Open pull-request memory
 
-There is no merged authority from #440 yet. Its future PR-specific verification/failure history must live in exactly one `docs/research/pr-memory/YYYY/QN/PR-<number>.md` record.
+#442 branch work is unmerged candidate evidence and must not be restated as shipped behavior.
 
-Open PRs are candidate evidence even when mergeable or partially green. A final branch mutation invalidates older-head verification evidence.
+PR-specific provenance for #444 lives at `docs/research/pr-memory/2026/Q3/PR-444.md`; provider check identities remain external GitHub evidence on the exact PR head rather than self-referential future run IDs in this snapshot.
+
+Open PRs are candidate evidence even when newer, mergeable or partially green. A final branch mutation invalidates older-head verification evidence.
 
 ## 10. True gaps after this audit
 
-Product/acquisition gaps:
+Acquisition gaps after merged #441:
 
-1. live same-ID changed-source observation precedence and durable observation evidence (#440);
-2. explicit provider-supplied predecessor/replacement identity and pending→posted/removed/modified lifecycle across different IDs;
-3. only then migrate the next real acquisition source through the neutral contract;
+1. explicit provider-supplied predecessor/replacement identity and pending→posted/removed/modified source lifecycle across different IDs (#442 candidate);
+2. define when source lifecycle may affect clearing/completeness/reconciliation without overwriting user truth;
+3. migrate the next real acquisition source through the neutral contract;
 4. provider connectivity remains unselected until current official contract/consent/economics evidence supports a bounded adapter.
 
 Release/trust gaps remain RRB-02/03/04/05/06/08/09 at their existing evidence/authority boundaries.
 
 ## 11. Next allowed action
 
-Execute bounded #440 on its focused branch: tests first, then changed same-ID planning, observation-only reviewed resolution, evidence-durability guard, server/UI review path and exact-head Class 3 verification.
+Start from fresh `main` and run `npm run plan:resolve`. If it still resolves merged #432 as the active master and reports no conflicting current child, rebase/re-read the existing #442 issue/branch/packet work and promote only the bounded #432 P1 source-lifecycle/predecessor slice before continuing implementation.
 
-Do not jump to bank/e-wallet/NAPAS integration, infer different-ID lineage heuristically, or perform provider/production writes.
+Do not infer the next plan from filenames, modification dates, a newer open PR or chat memory. Do not jump to bank/e-wallet/NAPAS integration, infer different-ID lineage heuristically, or perform provider/production writes.
 
 Owner/external lanes remain independent: real phone → RRB-08; provider read access → RRB-04/RRB-09 and #40/#174; contact proof → RRB-05; legal/privacy review → RRB-06; disposable hosted target → RRB-02; explicit owner/provider authorization → RRB-03.
 
 ## 12. Superseded-status register
 
-- “manual-first is the long-term MoneyFlow product law” is superseded by merged #432.
+- “manual-first is the long-term MoneyFlow product law” is superseded by merged #432/#433.
+- `docs/plans/PRODUCT_DEVELOPMENT_PLAN.md` from #420 is predecessor history, not the master plan after #433.
+- “the newest plan file/open PR can be treated as current authority” is superseded by #443/#444 fail-closed graph + registry + merged-history selection.
+- “an unmerged replacement master can authorize work because its graph validates” is superseded by the separate selection-ready gate; candidate masters remain non-authoritative until merge.
 - “Direct CSV authenticated commit loops ordinary transaction creation” is superseded by #435.
 - “later imported evidence cannot reconcile to an existing unprovenanced user fact” is superseded by #437.
 - “deleted exact-source reimport is indistinguishable from an ordinary live exact-ID duplicate” is superseded by #439.
-- “#438 is current NOW work” is superseded by its completed #439 merge; #440 is the current candidate slice.
-- “RRB-08 repository preparation is pending” is superseded by its merged runbook; physical observation remains open.
+- “changed evidence under a live stable source ID is indistinguishable from unchanged replay” is superseded by #441.
+- “#440 is current NOW/candidate work” is superseded by #441 merge; no acquisition child is auto-promoted by the #443 closeout.
 - RRB-07 and RRB-01 are no longer proof gaps; Release Readiness Audit v1 is no longer pending.
 - The seven-day self-use gate remains withdrawn without replacement.
