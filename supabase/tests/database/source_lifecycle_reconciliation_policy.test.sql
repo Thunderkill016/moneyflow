@@ -26,7 +26,7 @@ insert into auth.users (
   now(), now(), '', '', false, false
 ),
 (
-  '00000000-0000-0000-8000-000000000000'::uuid,
+  '00000000-0000-0000-0000-000000000000'::uuid,
   '44800000-0000-4000-8000-000000000002'::uuid,
   'authenticated', 'authenticated', 'lifecycle-other@example.invalid',
   crypt('discarded-test-password', gen_salt('bf')), now(),
