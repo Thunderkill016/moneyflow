@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { validateLifecycleProjection } from "./lifecycle-projection.mjs";
+import {
+  packetRecordsPr,
+  validateLifecycleProjection,
+} from "./lifecycle-projection.mjs";
 
-function board({ projectionPr = null, current = true } = {}) {
+function board({ projectionPr = null, current = true, currentPacket = "442-source-lineage-lifecycle.md" } = {}) {
   return [
     "# Board",
     "**Current main baseline:** `abc1234`",
@@ -11,7 +14,7 @@ function board({ projectionPr = null, current = true } = {}) {
     "| Packet | Role now | Authority boundary |",
     "|---|---|---|",
     current
-      ? "| `442-source-lineage-lifecycle.md` | current agent-executable Class 3 slice | bounded |"
+      ? `| \`${currentPacket}\` | current agent-executable Class 3 slice | bounded |`
       : "",
     "| `master.md` | master product program | sequencing |",
     "",
@@ -85,6 +88,48 @@ test("a ready PR that owns the current slice cannot avoid convergence with metad
   assert.ok(
     result.failures.some((failure) =>
       failure.includes("must enter same-PR post-merge convergence"),
+    ),
+  );
+});
+
+test("current packet ownership is read only from packet metadata", () => {
+  assert.equal(
+    packetRecordsPr(
+      "# Packet\n\n**PR:** #445\n\nResearch mentions PR #999 elsewhere.\n",
+      445,
+    ),
+    true,
+  );
+  assert.equal(
+    packetRecordsPr(
+      "# Packet\n\n**Issue/PR:** #442 / PR #445\n\nResearch mentions PR #999.\n",
+      445,
+    ),
+    true,
+  );
+  assert.equal(
+    packetRecordsPr(
+      "# Packet\n\n**PR:** #444\n\nResearch mentions PR #445 but does not own it.\n",
+      445,
+    ),
+    false,
+  );
+});
+
+test("a completing PR cannot directly swap the current slice to follow-on work", () => {
+  const result = validateLifecycleProjection({
+    baseBoard: board(),
+    board: board({ currentPacket: "next.md" }),
+    currentMemory: memory(),
+    prRecord: record("continues current slice"),
+    prNumber: 445,
+    changes: [{ status: "M", path: "docs/plans/active/README.md" }],
+  });
+
+  assert.equal(result.ok, false);
+  assert.ok(
+    result.failures.some((failure) =>
+      failure.includes("changing current agent-executable packet"),
     ),
   );
 });
