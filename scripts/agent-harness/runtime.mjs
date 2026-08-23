@@ -52,7 +52,19 @@ export function assertAgentProviderCapabilities(provider, providerName) {
   if (typeof provider.start !== "function") {
     throw new Error(`agent provider '${providerName}' does not implement start()`);
   }
+  if (typeof provider.check !== "function") {
+    throw new Error(`agent provider '${providerName}' does not implement check()`);
+  }
   return provider;
+}
+
+async function assertAgentProviderReady(provider, providerName) {
+  const readiness = await provider.check();
+  if (readiness?.ok !== true) {
+    throw new Error(
+      `agent provider '${providerName}' is not ready${readiness?.reason ? `: ${readiness.reason}` : ""}`,
+    );
+  }
 }
 
 export async function processHarnessCommand({
@@ -70,6 +82,8 @@ export async function processHarnessCommand({
     ctx.resolve("agent", command.provider),
     command.provider,
   );
+  await assertAgentProviderReady(agentProvider, command.provider);
+
   const sourceKey = source.sourceKey ?? "body";
   const commandId = commandIdFor({ source, command, sourceKey });
   const journal = new RunJournal({ stateDir, commandId });
@@ -266,8 +280,8 @@ export async function runHarnessCycle({
       } catch (error) {
         // One malformed/unknown provider command must not starve unrelated
         // owner-authored commands discovered in the same poll cycle. Because
-        // capability negotiation happens before run acceptance, this contained
-        // result cannot hide a partially-started execution.
+        // capability/readiness negotiation happens before run acceptance,
+        // this contained result cannot hide a partially-started execution.
         results.push(
           Object.freeze({
             status: "blocked",
