@@ -70,6 +70,25 @@ test("a completion cannot defer board convergence to a later PR", () => {
   assert.ok(result.failures.some((failure) => failure.includes("must carry")));
 });
 
+test("a ready PR that owns the current slice cannot avoid convergence with metadata", () => {
+  const result = validateLifecycleProjection({
+    baseBoard: board(),
+    board: board(),
+    currentMemory: memory(),
+    prRecord: record("none"),
+    prNumber: 445,
+    changes: [],
+    readyCurrentOwnedByPr: true,
+  });
+
+  assert.equal(result.ok, false);
+  assert.ok(
+    result.failures.some((failure) =>
+      failure.includes("must enter same-PR post-merge convergence"),
+    ),
+  );
+});
+
 test("a projection cannot pre-promote follow-on work", () => {
   const result = validateLifecycleProjection({
     baseBoard: board(),
