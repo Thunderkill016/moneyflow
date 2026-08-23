@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
 import {
@@ -6,6 +9,7 @@ import {
   commandIdFor,
   createCodexAgentProvider,
   createGithubSourceProvider,
+  createGuardedPermissionProvider,
   createLocalWorkspaceProvider,
   defaultCommandRun,
   parseAgentCommand,
@@ -112,6 +116,34 @@ test("isolated workspaces are non-main and stable for one command id", () => {
   assert.equal(isolation.branch, "agent/harness/issue-446-aaaaaaaa");
   assert.notEqual(isolation.branch, "main");
   assert.match(isolation.worktree, /worktrees\/issue-446-aaaaaaaa$/u);
+});
+
+test("guarded permission provider strips GitHub tokens and owns Git/GH launchers", () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-harness-guard-"));
+  const commandId = "a".repeat(64);
+  try {
+    const provider = createGuardedPermissionProvider({
+      environmentSource: {
+        GH_ENTERPRISE_TOKEN: "secret",
+        GH_TOKEN: "secret",
+        GITHUB_ENTERPRISE_TOKEN: "secret",
+        GITHUB_TOKEN: "secret",
+        PATH: process.env.PATH,
+      },
+    });
+    const environment = provider.prepare({ commandId, stateDir });
+    assert.equal(environment.GH_ENTERPRISE_TOKEN, undefined);
+    assert.equal(environment.GH_TOKEN, undefined);
+    assert.equal(environment.GITHUB_ENTERPRISE_TOKEN, undefined);
+    assert.equal(environment.GITHUB_TOKEN, undefined);
+    assert.match(environment.PATH, /guards/u);
+
+    const guardDirectory = join(stateDir, "guards", commandId);
+    assert.match(readFileSync(join(guardDirectory, "git"), "utf8"), /agent-harness\/command-guard\.mjs/u);
+    assert.match(readFileSync(join(guardDirectory, "gh"), "utf8"), /agent-harness\/command-guard\.mjs/u);
+  } finally {
+    rmSync(stateDir, { recursive: true, force: true });
+  }
 });
 
 test("Codex is one replaceable agent provider behind the common run-handle contract", async () => {
