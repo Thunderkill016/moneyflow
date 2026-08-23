@@ -25,6 +25,7 @@ function createTestContext({ result = { exitCode: 0, stdout: "ok", stderr: "", s
   const ctx = new HarnessContext();
   const calls = {
     checks: 0,
+    providerChecks: 0,
     workspaces: 0,
     permissions: 0,
     starts: 0,
@@ -61,6 +62,10 @@ function createTestContext({ result = { exitCode: 0, stdout: "ok", stderr: "", s
       isolatedWorkspace: true,
       guardedEnvironment: true,
     },
+    check() {
+      calls.providerChecks += 1;
+      return { ok: true };
+    },
     start() {
       calls.starts += 1;
       return {
@@ -87,6 +92,7 @@ test("one accepted command executes through seams and later replays as duplicate
     assert.equal(first.status, "completed");
     assert.equal(second.status, "duplicate");
     assert.equal(second.priorStatus, "completed");
+    assert.equal(calls.providerChecks, 2);
     assert.equal(calls.workspaces, 1);
     assert.equal(calls.permissions, 1);
     assert.equal(calls.starts, 1);
@@ -112,6 +118,7 @@ test("a prior interrupted journal is never silently rerun", async () => {
     const result = await processHarnessCommand({ ctx, command, source, stateDir });
     assert.equal(result.status, "blocked");
     assert.match(result.reason, /automatic replay is forbidden/u);
+    assert.equal(calls.providerChecks, 1);
     assert.equal(calls.workspaces, 0);
     assert.equal(calls.starts, 0);
   } finally {
@@ -132,6 +139,7 @@ test("agent provider failure is terminal and is not automatically retried", asyn
     assert.equal(first.status, "failed");
     assert.equal(second.status, "duplicate");
     assert.equal(second.priorStatus, "failed");
+    assert.equal(calls.providerChecks, 2);
     assert.equal(calls.starts, 1);
     assert.equal(calls.disposes, 1);
     assert.deepEqual(calls.summaries, ["failed"]);
@@ -185,6 +193,38 @@ test("under-capable agent providers fail before journal or workspace mutation", 
     const commandId = commandIdFor({
       source,
       command: { provider: "unsafe", note: "" },
+      sourceKey: "body",
+    });
+    assert.equal(new RunJournal({ stateDir, commandId }).events().length, 0);
+  } finally {
+    await ctx.dispose();
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("provider readiness failure is rejected before journal or workspace mutation", async () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-harness-runtime-"));
+  const { ctx, calls } = createTestContext();
+  const unavailableCommand = { provider: "unavailable", note: "" };
+  ctx.provide("agent", "unavailable", {
+    capabilities: { isolatedWorkspace: true, guardedEnvironment: true },
+    check() {
+      return { ok: false, reason: "provider binary unavailable" };
+    },
+    start() {
+      throw new Error("must never start");
+    },
+  });
+  try {
+    await assert.rejects(
+      processHarnessCommand({ ctx, command: unavailableCommand, source, stateDir }),
+      /agent provider 'unavailable' is not ready: provider binary unavailable/u,
+    );
+    assert.equal(calls.workspaces, 0);
+    assert.equal(calls.permissions, 0);
+    const commandId = commandIdFor({
+      source,
+      command: unavailableCommand,
       sourceKey: "body",
     });
     assert.equal(new RunJournal({ stateDir, commandId }).events().length, 0);
@@ -254,6 +294,7 @@ test("one unknown provider command cannot starve a valid command in the same cyc
     assert.equal(result.results[0].status, "blocked");
     assert.match(result.results[0].reason, /provider is unavailable: agent\/missing/u);
     assert.equal(result.results[1].status, "completed");
+    assert.equal(calls.providerChecks, 1);
     assert.equal(calls.starts, 1);
     assert.equal(calls.workspaces, 1);
   } finally {
