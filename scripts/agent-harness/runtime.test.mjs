@@ -1,0 +1,187 @@
+import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import test from "node:test";
+
+import { HarnessContext } from "./context.mjs";
+import { RunJournal } from "./journal.mjs";
+import { commandIdFor } from "./providers.mjs";
+import { processHarnessCommand } from "./runtime.mjs";
+
+const source = {
+  author: { login: "owner" },
+  body: "/agent codex inspect",
+  kind: "issue",
+  number: 446,
+  sourceKey: "body",
+  title: "Harness v2",
+  url: "https://github.com/owner/repo/issues/446",
+};
+const command = { provider: "codex", note: "inspect" };
+const baseSha = "a".repeat(40);
+
+function createTestContext({ result = { exitCode: 0, stdout: "ok", stderr: "", stopReason: "completed" } } = {}) {
+  const ctx = new HarnessContext();
+  const calls = {
+    checks: 0,
+    workspaces: 0,
+    permissions: 0,
+    starts: 0,
+    cancels: 0,
+    disposes: 0,
+    summaries: [],
+  };
+  ctx.provide("source", "github", {
+    postSummary({ status }) {
+      calls.summaries.push(status);
+    },
+  });
+  ctx.provide("workspace", "local", {
+    check() {
+      calls.checks += 1;
+      return { ok: true, repo: "owner/repo", baseSha };
+    },
+    prepare({ commandId }) {
+      calls.workspaces += 1;
+      return {
+        branch: `agent/harness/issue-446-${commandId.slice(0, 8)}`,
+        worktree: `/tmp/${commandId.slice(0, 8)}`,
+      };
+    },
+  });
+  ctx.provide("permission", "guarded", {
+    prepare() {
+      calls.permissions += 1;
+      return { PATH: "/guarded" };
+    },
+  });
+  ctx.provide("agent", "codex", {
+    start() {
+      calls.starts += 1;
+      return {
+        result: Promise.resolve(result),
+        cancel() {
+          calls.cancels += 1;
+        },
+        async dispose() {
+          calls.disposes += 1;
+        },
+      };
+    },
+  });
+  return { ctx, calls };
+}
+
+test("one accepted command executes through seams and later replays as duplicate", async () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-harness-runtime-"));
+  const { ctx, calls } = createTestContext();
+  try {
+    const first = await processHarnessCommand({ ctx, command, source, stateDir });
+    const second = await processHarnessCommand({ ctx, command, source, stateDir });
+
+    assert.equal(first.status, "completed");
+    assert.equal(second.status, "duplicate");
+    assert.equal(second.priorStatus, "completed");
+    assert.equal(calls.workspaces, 1);
+    assert.equal(calls.permissions, 1);
+    assert.equal(calls.starts, 1);
+    assert.equal(calls.disposes, 1);
+    assert.deepEqual(calls.summaries, ["completed"]);
+    assert.match(readFileSync(join(stateDir, first.logFile), "utf8"), /^ok/u);
+  } finally {
+    await ctx.dispose();
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("a prior interrupted journal is never silently rerun", async () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-harness-runtime-"));
+  const { ctx, calls } = createTestContext();
+  try {
+    const commandId = commandIdFor({ source, command, sourceKey: "body" });
+    new RunJournal({ stateDir, commandId }).append("run/accepted", {
+      provider: "codex",
+      source: { kind: "issue", number: 446, sourceKey: "body" },
+    });
+
+    const result = await processHarnessCommand({ ctx, command, source, stateDir });
+    assert.equal(result.status, "blocked");
+    assert.match(result.reason, /automatic replay is forbidden/u);
+    assert.equal(calls.workspaces, 0);
+    assert.equal(calls.starts, 0);
+  } finally {
+    await ctx.dispose();
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("agent provider failure is terminal and is not automatically retried", async () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-harness-runtime-"));
+  const { ctx, calls } = createTestContext({
+    result: { exitCode: 1, stdout: "", stderr: "failed", stopReason: "error" },
+  });
+  try {
+    const first = await processHarnessCommand({ ctx, command, source, stateDir });
+    const second = await processHarnessCommand({ ctx, command, source, stateDir });
+
+    assert.equal(first.status, "failed");
+    assert.equal(second.status, "duplicate");
+    assert.equal(second.priorStatus, "failed");
+    assert.equal(calls.starts, 1);
+    assert.equal(calls.disposes, 1);
+    assert.deepEqual(calls.summaries, ["failed"]);
+  } finally {
+    await ctx.dispose();
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("missing agent providers fail loudly before workspace mutation", async () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-harness-runtime-"));
+  const { ctx, calls } = createTestContext();
+  try {
+    await assert.rejects(
+      processHarnessCommand({
+        ctx,
+        command: { provider: "missing", note: "" },
+        source,
+        stateDir,
+      }),
+      /provider is unavailable: agent\/missing/u,
+    );
+    assert.equal(calls.workspaces, 0);
+  } finally {
+    await ctx.dispose();
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("fresh main is revalidated immediately before workspace creation", async () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-harness-runtime-"));
+  const { ctx, calls } = createTestContext();
+  let preparedBase = null;
+  let check = 0;
+  ctx.resolve("workspace", "local").check = () => {
+    check += 1;
+    return {
+      ok: true,
+      repo: "owner/repo",
+      baseSha: check === 1 ? "a".repeat(40) : "b".repeat(40),
+    };
+  };
+  ctx.resolve("workspace", "local").prepare = ({ baseSha, commandId }) => {
+    calls.workspaces += 1;
+    preparedBase = baseSha;
+    return { branch: `agent/harness/${commandId.slice(0, 8)}`, worktree: "/tmp/worktree" };
+  };
+  try {
+    const result = await processHarnessCommand({ ctx, command, source, stateDir });
+    assert.equal(result.status, "completed");
+    assert.equal(preparedBase, "b".repeat(40));
+    assert.equal(check, 2);
+  } finally {
+    await ctx.dispose();
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
