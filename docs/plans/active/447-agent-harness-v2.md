@@ -1,12 +1,12 @@
 # #447 — Agent harness v2
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Change class:** Class 3 — agent execution/security/governance boundary  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** human owner  
-**Issue/PR:** #446 / #447  
+**Status:** implementing
+**Execution state:** implementing
+**Change class:** Class 3 — agent execution/security/governance boundary
+**Active role:** implementer
+**Permission scope:** branch_write
+**Owner:** human owner
+**Issue/PR:** #446 / #447
 **Last updated:** 2026-08-23
 
 ## Outcome
@@ -71,10 +71,11 @@ Adopt the patterns, not the framework: a thin coordinator, explicit capability r
 ### Acceptance criteria
 
 - [ ] `npm run agent:dispatch` uses the new harness rather than the monolithic dispatcher implementation.
-- [ ] The runtime registers source/workspace/permission/agent providers behind explicit capability seams; unknown or conflicting providers fail loudly.
+- [ ] The runtime registers source/workspace/permission/agent providers behind explicit capability seams; unknown, conflicting or under-capable providers fail loudly.
 - [ ] Codex is one named agent provider, not a hard-coded lane constant.
 - [ ] Each accepted command has an append-only JSONL run journal with contiguous sequence numbers; terminal/dedup state is derived from the journal, not mutable `state.json`.
 - [ ] A journal containing an interrupted/non-terminal prior run is not silently re-executed.
+- [ ] Legacy `.agent-dispatcher/state.json` identities migrate fail-closed so completed/failed/running commands cannot silently execute again under v2.
 - [ ] Provider execution returns an owned run handle with result/cancel/dispose semantics; cleanup reaches quiescence on every path.
 - [ ] Existing Git/GitHub guard semantics, token stripping, exact-main revalidation, isolated worktree creation and trusted-author command admission remain tested.
 - [ ] Old dispatcher implementation is removed or reduced to a compatibility entrypoint with no independent state machine.
@@ -104,10 +105,10 @@ CLI / polling consumer
         v
 thin Harness loop
         |
-        +--> source capability  -> GitHub provider
-        +--> workspace capability -> local git worktree provider
+        +--> source capability     -> GitHub provider
+        +--> workspace capability  -> local git worktree provider
         +--> permission capability -> guarded environment provider
-        +--> agent capability registry -> Codex provider (future providers may register)
+        +--> agent capability      -> Codex provider (future providers may register)
         |
         v
 append-only RunJournal (source of run lifecycle truth)
@@ -121,7 +122,7 @@ The coordinator owns ordering only. Provider-specific behavior stays behind seam
 |---|---|---|
 | `scripts/agent-harness/context.mjs` | capability registry + effect cleanup | provider-neutral composition |
 | `scripts/agent-harness/journal.mjs` | append-only JSONL run log + projection | reconstructable state |
-| `scripts/agent-harness/providers/*` | GitHub/workspace/guard/Codex providers | isolate implementations |
+| `scripts/agent-harness/providers.mjs` | GitHub/workspace/guard/Codex providers | isolate implementations |
 | `scripts/agent-harness/runtime.mjs` | thin command execution + cycle orchestration | remove dispatcher monolith |
 | `scripts/agent-harness/cli.mjs` | `--once` / `--watch` entrypoint | stable operator surface |
 | `scripts/agent-harness/*.test.mjs` | adversarial/runtime tests | machine contracts |
@@ -134,9 +135,11 @@ The coordinator owns ordering only. Provider-specific behavior stays behind seam
 | Risk/counterexample | Prevention or test |
 |---|---|
 | provider name silently falls back | registry throws typed error |
+| provider advertises insufficient execution isolation | runtime capability negotiation fails before accepted work |
 | duplicate provider shadows another | atomic registration conflict |
 | crash after side effect then rerun | incomplete journal projects `interrupted`; no automatic replay |
-| mutable state diverges from logs | no state file; projection derives from event stream |
+| legacy state is forgotten during migration | v2 imports terminal/interrupted identity from `.agent-dispatcher/state.json` before source dispatch |
+| mutable state diverges from logs | no v2 state file; projection derives from event stream |
 | child process outlives caller | owned run `dispose()` kills/waits |
 | provider gains GitHub token | environment scrub regression test |
 | new harness bypasses command guard | permission provider is mandatory seam |
@@ -146,7 +149,7 @@ The coordinator owns ordering only. Provider-specific behavior stays behind seam
 
 - `npm run check:knowledge`
 - `npm run test:ci-policy`
-- new harness unit tests, including crash/interrupted replay, provider conflict/missing capability and disposal
+- new harness unit tests, including crash/interrupted replay, legacy-state migration, provider conflict/missing capability and disposal
 - existing command-guard security tests carried forward
 - full Class 3 exact-head CI/database/browser/UI + CodeQL + Secret History because harness policy changes execution authority
 
@@ -154,7 +157,7 @@ The coordinator owns ordering only. Provider-specific behavior stays behind seam
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-23 | human owner | implementer | implementing | explicit request to replace MoneyFlow harness using DeepSeek Harness learnings; #447 branch | final provider/run API and compatibility tests not yet proven | implement v2 seams + journal + Codex provider |
+| 2026-08-23 | human owner | implementer | implementing | explicit request to replace MoneyFlow harness using DeepSeek Harness learnings; #447 branch | final provider/run API, legacy-state migration and compatibility tests not yet proven | finish v2 seams + migration + evaluator pass |
 
 ## Current permission boundary
 
