@@ -2,6 +2,7 @@
 
 **Last reconciled:** 2026-08-23
 **Current main baseline:** `e0b30350c1e819237ce769a9d5af40cc2d0324c0` (PR #445 merged)
+**Post-merge projection:** PR #447
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; P1 RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
