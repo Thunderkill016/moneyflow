@@ -1,19 +1,21 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-22
-**Current main baseline:** `99257178ff416e5b1c875f62aea05035824ca9a5` (PR #444 merged)
+**Last reconciled:** 2026-08-23
+**Current main baseline:** `e0b30350c1e819237ce769a9d5af40cc2d0324c0` (PR #445 merged)
+**Post-merge projection:** PR #447
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; P1 RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
 
 ## NOW
 
-- [ ] **#442 — P1 explicit source lineage + lifecycle evidence** — fifth bounded Acquisition Foundation slice, promoted after #444 merged and the authority resolver still resolved #432 as master with no conflicting current child. Record source-supplied lifecycle and predecessor/replacement identity across different source IDs without fuzzy lineage or source-driven ledger overwrite. Reuse durable approved Inbox observations as source identity history, keep canonical provenance immutable, and add an explicit reviewed replacement path. **Done when:** explicit predecessor identity hard-matches the same ledger fact; replay of the replacement ID is exact-source deduplicated; one source ID cannot bind to two transactions; ledger/reconciliation/provenance remain unchanged; exact-head Class 3 CI/database/security/browser evidence is green. **Next actor:** agent on `feat/442-source-lineage-lifecycle`; owner merge decision after handoff.
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
+
+There is currently **no agent-executable product/governance child**. #442 merged through PR #445; task selection must remain empty until PR #447's one-time recovery + lifecycle-system fix merges and fresh-main authority resolution is run again. PR #447's harness-v2 implementation packet has moved to `docs/plans/completed/2026-08-23-447-agent-harness-v2.md` as this same-PR completion projection; it remains unmerged candidate evidence and is not a newly selected child from `NEXT`.
 
 ## NEXT
 
-- [ ] **#432 P1 — source lifecycle → ledger/reconciliation policy** — after #442, bound when source `pending/posted/removed/modified` evidence may affect MoneyFlow clearing/completeness/reconciliation state. Source state must not silently become ledger truth.
+- [ ] **#432 P1 — source lifecycle → ledger/reconciliation policy** — after #442, bound when source `pending/posted/removed/modified` evidence may affect MoneyFlow clearing/completeness/reconciliation state. Source state must not silently become ledger truth. This remains unpromoted until a fresh-main resolver pass after #447 and a bounded issue/spec/packet exist.
 - [ ] **#432 P1 — migrate the next real source path** — after identity/update lifecycle and source-to-ledger policy are explicit, migrate one real file/share path through the same candidate/provenance/reconciliation contract rather than opening a parallel ledger write path.
 - [ ] **#432 P2 — Low-Maintenance Ingestion** — expand real Vietnamese file/share sources, merchant/payee normalization and exception-first review; reduce interventions/100 transactions without reducing match precision.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
@@ -45,6 +47,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## RECENTLY DONE / DURABLE INPUT
 
+- [x] **#442 / PR #445 — explicit source lineage + lifecycle evidence** — merged as `e0b30350c1e819237ce769a9d5af40cc2d0324c0`. MoneyFlow now preserves explicit source-supplied predecessor/replacement identity across different source IDs without fuzzy lineage or source-driven ledger overwrite; final head `631386482cea3261d53567e709ae7b765fa53976` passed CI #2839, CodeQL #1897 and Secret history #1897, including fresh database/pgTAP, archive producer+restore, Browser smoke, Cross-device UI audit and aggregate e2e.
 - [x] **#443 / PR #444 — fail-closed plan authority resolution** — merged as `99257178ff416e5b1c875f62aea05035824ca9a5` after final head `d7686873da3fde8544dabd24b7d57a05a7735dfe` passed CI #2823, CodeQL #1881 and Secret history #1881. Repository task selection now resolves a machine-readable master/supersession graph against the active registry, board freshness and Git first-parent history; unmerged master candidates and pre-merge projections can validate for review but cannot authorize task selection.
 - [x] **#440 / PR #441** — live same-source-ID changed observations can be reviewed and preserved without overwriting ledger/reconciliation/canonical provenance; approved observation evidence is hardened against direct browser INSERT/UPDATE. Final head `237aac8d…` passed CI #2792, CodeQL #1851 and Secret history #1851 before squash merge as `6123d263…`.
 - [x] **#438 / PR #439** — deleted exact-source reimport is explicit: live same-ID remains hard duplicate; deleted unchanged evidence can be reviewed to restore the same transaction; deleted changed evidence stays blocked; restore preserves ledger/reconciliation/canonical provenance. Final head `00384172…` passed CI #2766, CodeQL #1826 and Secret history #1826 before squash merge as `d5324c47…`.
@@ -63,8 +66,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 | Packet | Role now | Authority boundary |
 |---|---|---|
-| `442-source-lineage-lifecycle.md` | **current agent-executable Class 3 slice** | explicit source-supplied lineage/lifecycle evidence only; no fuzzy successor inference or ledger/reconciliation mutation |
-| `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates; a promoted child slice owns implementation detail |
+| `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates; no child slice is currently promoted |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |
@@ -75,8 +77,8 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 2. `NOW` means current authorized execution, not merely an open issue.
 3. One current agent-executable product/governance slice at a time; independent owner/provider/physical-device lanes may remain open.
 4. A long-term phase becomes work only when its bounded issue/spec/packet is promoted.
-5. Completion/abandonment updates this board; merged work must not remain in `NOW`.
+5. A PR that completes the current agent slice must converge this board **before owner handoff in that same PR**; merged work must not remain in `NOW` and routine cleanup cannot be deferred.
 6. `OWNER DECISION` is never auto-resolved by an agent.
 7. Historical issues/PRs are provenance, not authority, once reconciled.
-8. `CURRENT_PROJECT_MEMORY.md` changes only when merged implementation/trust truth changes; open changes must not be restated as shipped runtime capability on `main`.
-9. Baseline mismatch is a hard stop. The only self-merge exception is an explicit post-merge projection carried by a dedicated lifecycle-reconciliation PR. While that PR is open, its projection is validation-only and cannot authorize task selection. After merge, the projection is accepted only when its PR number equals the exact current squash-merge commit and that commit is the latest commit touching this board.
+8. A completing PR may project post-merge `CURRENT_PROJECT_MEMORY.md` truth only when board + memory carry the same PR projection marker; the entire unmerged branch remains candidate evidence.
+9. Baseline mismatch is a hard stop. A completing PR may carry an explicit same-PR post-merge projection only if projected Current Work has zero current agent-executable slices, its completed packet leaves `active/`, projected memory converges in the same PR, and `Lifecycle impact: completes current slice` is declared. While open, that projection is validation-only and cannot authorize task selection. After the exact matching squash merge it may activate. Dedicated reconciliation PRs are recovery-only for legacy/stale state or exceptional merge races, not the normal feature lifecycle.

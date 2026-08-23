@@ -28,10 +28,12 @@ Example:
 
 `docs/research/pr-memory/2026/Q3/PR-215.md`
 
-- A status-changing PR also updates the affected `CURRENT_PROJECT_MEMORY.md` row/section.
+- Every record declares `Lifecycle impact:`. Use `none` when the PR does not complete or replace the current agent-executable slice.
+- A PR that completes the current slice uses `Lifecycle impact: completes current slice` and must carry same-PR post-merge board/memory/packet convergence; `check:knowledge` enforces it.
+- A status-changing PR also updates the affected `CURRENT_PROJECT_MEMORY.md` row/section. A closing projection may describe the post-merge truth on its branch only when the snapshot carries the same explicit PR projection marker.
 - A PR with no current-truth change uses `Status impact: none` and `Snapshot update: not applicable`.
 - An open PR is candidate evidence only.
-- Provider/post-merge evidence that cannot exist before merge belongs in a later PR record.
+- Provider/post-merge evidence that cannot exist before merge belongs in a later PR record only when it is genuinely new evidence, not routine lifecycle cleanup.
 
 ## Record template
 
@@ -41,6 +43,7 @@ Example:
 - Date: YYYY-MM-DD
 - Change class: Class 0 | Class 1 | Class 2 | Class 3
 - Affected capability or project boundary:
+- Lifecycle impact: none | continues current slice | completes current slice | authority transition
 - Status impact: none | candidate | partial → implemented | implemented → production evidenced | other
 - Changed:
 - Verified:

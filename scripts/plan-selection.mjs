@@ -5,11 +5,9 @@ import { resolvePlanAuthority } from "./plan-authority.mjs";
 
 export function isPlanSelectionReady(authority) {
   if (authority.ok !== true || authority.master?.status !== "active") return false;
-  if (
-    Number.isInteger(authority.boardProjectionPr) &&
-    authority.baselineMode !== "post-merge-projection"
-  ) {
-    return false;
+  if (Number.isInteger(authority.boardProjectionPr)) {
+    if (authority.current) return false;
+    if (authority.baselineMode !== "post-merge-projection") return false;
   }
   return true;
 }
@@ -25,10 +23,13 @@ export function resolvePlanSelection(
   const projectionPending =
     Number.isInteger(authority.boardProjectionPr) &&
     authority.baselineMode !== "post-merge-projection";
+  const projectionRetainsCurrent =
+    Number.isInteger(authority.boardProjectionPr) && Boolean(authority.current);
 
   return {
     ...authority,
     projectionPending,
+    projectionRetainsCurrent,
     selectionReady: isPlanSelectionReady(authority),
   };
 }
@@ -53,6 +54,11 @@ function printHuman(result) {
   if (result.projectionPending) {
     console.error(
       `post-merge projection PR #${result.boardProjectionPr} is validation-only until the exact merged commit activates it`,
+    );
+  }
+  if (result.projectionRetainsCurrent) {
+    console.error(
+      `post-merge projection PR #${result.boardProjectionPr} still retains a current agent-executable slice; a closing projection may not pre-authorize follow-on work`,
     );
   }
   for (const warning of result.warnings) console.warn(`warning: ${warning}`);

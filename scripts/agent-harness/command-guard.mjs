@@ -86,16 +86,12 @@ function pushViolation(tail) {
   ) {
     return "force-push is not permitted";
   }
-
   const positional = [];
   for (const argument of tail) {
     if (SAFE_PUSH_FLAGS.has(argument)) continue;
-    if (argument.startsWith("-")) {
-      return `Git push option '${argument}' is not in the dispatcher allowlist`;
-    }
+    if (argument.startsWith("-")) return `Git push option '${argument}' is not in the harness allowlist`;
     positional.push(argument);
   }
-
   if (positional.length !== 2 || positional[0] !== "origin" || positional[1] !== "HEAD") {
     return "Git push is limited to 'origin HEAD' from the isolated feature branch";
   }
@@ -104,12 +100,8 @@ function pushViolation(tail) {
 
 function fetchViolation(tail) {
   const positional = tail.filter((argument) => !argument.startsWith("-"));
-  if (tail.some((argument) => argument.includes(":"))) {
-    return "Git fetch refspec destinations are not permitted";
-  }
-  if (positional.length === 0 || positional[0] !== "origin") {
-    return "Git fetch is limited to the origin remote";
-  }
+  if (tail.some((argument) => argument.includes(":"))) return "Git fetch refspec destinations are not permitted";
+  if (positional.length === 0 || positional[0] !== "origin") return "Git fetch is limited to the origin remote";
   return null;
 }
 
@@ -122,33 +114,26 @@ function remoteViolation(tail) {
 
 function stashViolation(tail) {
   const subcommand = tail.find((argument) => !argument.startsWith("-")) ?? "push";
-  if (["apply", "clear", "drop", "list", "pop", "push", "show"].includes(subcommand)) {
-    return null;
-  }
+  if (["apply", "clear", "drop", "list", "pop", "push", "show"].includes(subcommand)) return null;
   return `Git stash subcommand '${subcommand}' is not permitted`;
 }
 
 function commitViolation(tail) {
-  if (tail.includes("--amend")) return "Git commit amend is not permitted in the dispatcher lane";
-  if (tail.includes("--no-verify") || tail.includes("-n")) {
-    return "Git commit may not bypass repository hooks";
-  }
+  if (tail.includes("--amend")) return "Git commit amend is not permitted in the harness lane";
+  if (tail.includes("--no-verify") || tail.includes("-n")) return "Git commit may not bypass repository hooks";
   return null;
 }
 
 export function gitBoundaryViolation(args) {
   const context = gitOperationContext(args);
   if (context.violation) return context.violation;
-
   const { operation, tail } = context;
   if (!operation) return "Git operation is ambiguous";
   if (BLOCKED_GIT_OPERATIONS.has(operation)) return "merge operations are not permitted";
   if (BLOCKED_BRANCH_CONTROL_OPERATIONS.has(operation)) {
-    return "main/branch-control operations are not permitted from the dispatcher child";
+    return "main/branch-control operations are not permitted from the harness child";
   }
-  if (!ALLOWED_GIT_OPERATIONS.has(operation)) {
-    return `Git operation '${operation}' is not in the dispatcher allowlist`;
-  }
+  if (!ALLOWED_GIT_OPERATIONS.has(operation)) return `Git operation '${operation}' is not in the harness allowlist`;
   if (operation === "push") return pushViolation(tail);
   if (operation === "fetch") return fetchViolation(tail);
   if (operation === "remote") return remoteViolation(tail);
@@ -167,27 +152,21 @@ function flagValue(args, longName, shortName) {
 }
 
 export function prCreateDeliveryViolation(args, currentBranchName = undefined) {
-  if (!args.includes("--draft") && !args.includes("-d")) {
-    return "dispatcher-created pull requests must remain draft";
-  }
+  if (!args.includes("--draft") && !args.includes("-d")) return "harness-created pull requests must remain draft";
   if (args.includes("--dry-run") || args.includes("--web")) {
-    return "dispatcher PR creation must use the non-interactive explicit-head path";
+    return "harness PR creation must use the non-interactive explicit-head path";
   }
   const head = flagValue(args, "--head", "-H");
   if (!head || head === "main" || head.includes(":")) {
-    return "dispatcher PR creation requires an explicit same-repository non-main --head branch";
+    return "harness PR creation requires an explicit same-repository non-main --head branch";
   }
   const base = flagValue(args, "--base", "-B");
-  if (base && base !== "main") {
-    return "dispatcher PR creation may only target main";
-  }
+  if (base && base !== "main") return "harness PR creation may only target main";
   if (currentBranchName !== undefined) {
     if (!currentBranchName || currentBranchName === "main") {
-      return "dispatcher PR creation requires an unambiguous current isolated branch";
+      return "harness PR creation requires an unambiguous current isolated branch";
     }
-    if (head !== currentBranchName) {
-      return "dispatcher PR --head must match the current isolated branch";
-    }
+    if (head !== currentBranchName) return "harness PR --head must match the current isolated branch";
   }
   return null;
 }
@@ -195,12 +174,12 @@ export function prCreateDeliveryViolation(args, currentBranchName = undefined) {
 export function ghBoundaryViolation(args) {
   const topLevel = args[0] ?? "";
   const subcommand = args[1] ?? "";
-  const allowedSubcommands = SAFE_GH_SUBCOMMANDS.get(topLevel);
-  if (!allowedSubcommands || !allowedSubcommands.has(subcommand)) {
-    return `GitHub CLI operation '${[topLevel, subcommand].filter(Boolean).join(" ") || "<empty>"}' is not in the dispatcher allowlist`;
+  const allowed = SAFE_GH_SUBCOMMANDS.get(topLevel);
+  if (!allowed || !allowed.has(subcommand)) {
+    return `GitHub CLI operation '${[topLevel, subcommand].filter(Boolean).join(" ") || "<empty>"}' is not in the harness allowlist`;
   }
   if (topLevel === "auth" && (args.includes("--show-token") || args.includes("-t"))) {
-    return "GitHub authentication tokens must not be exposed to the dispatcher child";
+    return "GitHub authentication tokens must not be exposed to the harness child";
   }
   return null;
 }
@@ -213,9 +192,7 @@ function realToolViolation(tool, realTool) {
   if (!isAbsolute(realTool)) return "real tool path is not absolute";
   const actual = basename(realTool).toLowerCase();
   const expected = expectedExecutableName(tool).toLowerCase();
-  if (actual !== expected && actual !== tool.toLowerCase()) {
-    return `real tool path does not resolve to ${tool}`;
-  }
+  if (actual !== expected && actual !== tool.toLowerCase()) return `real tool path does not resolve to ${tool}`;
   return null;
 }
 
@@ -231,7 +208,7 @@ function currentBranch(executable, environment) {
   return branch;
 }
 
-function runGuard(argv = process.argv.slice(2), environment = process.env) {
+export function runGuard(argv = process.argv.slice(2), environment = process.env) {
   const [tool, realTool, ...args] = argv;
   const realToolProblem = realToolViolation(tool, realTool ?? "");
   const commandViolation = tool === "git"
@@ -249,7 +226,7 @@ function runGuard(argv = process.argv.slice(2), environment = process.env) {
       : null;
   const violation = realToolProblem ?? commandViolation ?? deliveryViolation;
   if (violation) {
-    console.error(`Dispatcher blocked ${tool}: ${violation}`);
+    console.error(`Harness blocked ${tool}: ${violation}`);
     return 126;
   }
 
@@ -258,7 +235,7 @@ function runGuard(argv = process.argv.slice(2), environment = process.env) {
     if (MUTATING_GIT_OPERATIONS.has(operation)) {
       const branch = currentBranch(realTool, environment);
       if (!branch || branch === "main") {
-        console.error("Dispatcher blocked git: mutating Git commands require an unambiguous non-main branch");
+        console.error("Harness blocked git: mutating Git commands require an unambiguous non-main branch");
         return 126;
       }
     }
