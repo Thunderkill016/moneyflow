@@ -32,6 +32,8 @@ export const isRequestBoundary = (file) => /^(?:middleware|proxy)\.[cm]?[jt]s$/.
 
 export const workflowOrPolicyMatchers = [
   startsWith(".github/workflows/"),
+  startsWith("scripts/agent-harness/"),
+  startsWith("scripts/agent-dispatcher/"),
   equals("scripts/classify-ci-changes.mjs"),
   equals("scripts/classify-ci-changes.test.mjs"),
   equals("scripts/check-ui-migration-diff.mjs"),
