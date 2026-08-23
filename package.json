@@ -17,7 +17,6 @@
     "agent:dispatch": "node scripts/agent-harness/cli.mjs --once",
     "agent:dispatch:watch": "node scripts/agent-harness/cli.mjs --watch",
     "test:agent-runtime": "node --test scripts/agent-harness/context.test.mjs scripts/agent-harness/journal.test.mjs scripts/agent-harness/legacy-migration.test.mjs scripts/agent-harness/providers.test.mjs scripts/agent-harness/runtime.test.mjs scripts/agent-harness/command-guard.test.mjs",
-    "test:agent-dispatcher": "npm run test:agent-runtime",
     "test:agent-harness": "node --test scripts/agent-policy.test.mjs scripts/agent-doctor.test.mjs scripts/plan-selection.test.mjs scripts/agent-doctor-entry.test.mjs scripts/design-evaluation.test.mjs scripts/agent-harness/context.test.mjs scripts/agent-harness/journal.test.mjs scripts/agent-harness/legacy-migration.test.mjs scripts/agent-harness/providers.test.mjs scripts/agent-harness/runtime.test.mjs scripts/agent-harness/command-guard.test.mjs",
     "test:load:contracts": "node --experimental-strip-types --test src/lib/performance-budgets.test.ts",
     "test:load:public": "k6 run tests/load/public-smoke.js",
@@ -63,7 +62,7 @@
     "react-dom": "19.2.4",
     "shadcn": "^4.16.0",
     "tailwind-merge": "^3.6.0",
-    "tw-animate-css": "^1.4.0",
+    "tw-animate-css": "^4",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.4.3"
   },
