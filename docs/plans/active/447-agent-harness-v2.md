@@ -145,6 +145,20 @@ The coordinator owns ordering only. Provider-specific behavior stays behind seam
 | new harness bypasses command guard | permission provider is mandatory seam |
 | old dispatcher remains second source | package entrypoint moves; legacy module becomes bridge or is removed |
 
+## Tasks
+
+| ID | Task | Dependency | Evidence | Status |
+|---|---|---|---|---|
+| T1 | Build capability context + provider registry | research decision | context tests | implemented |
+| T2 | Replace mutable state with append-only run journal | T1 | journal replay/corruption/interruption tests | implemented |
+| T3 | Split GitHub/workspace/permission/Codex providers | T1 | provider-neutral + token/guard tests | implemented |
+| T4 | Build thin runtime + owned run handle orchestration | T1–T3 | runtime dedup/capability/disposal tests | implemented |
+| T5 | Migrate v1 dispatcher identities fail-closed | T2 | legacy migration tests | implemented |
+| T6 | Preserve complete Git/GitHub security matrix | T3 | ported command-guard tests | implemented |
+| T7 | Remove legacy dispatcher as a second state machine | T1–T6 | repository diff + package entrypoint | todo |
+| T8 | Update operating docs + projected memory/PR record | T1–T7 | knowledge contract | todo |
+| T9 | Independent evaluation + exact-head Class 3 verification | T1–T8 | CI/CodeQL/Secret History | todo |
+
 ## Verification plan
 
 - `npm run check:knowledge`
@@ -153,11 +167,34 @@ The coordinator owns ordering only. Provider-specific behavior stays behind seam
 - existing command-guard security tests carried forward
 - full Class 3 exact-head CI/database/browser/UI + CodeQL + Secret History because harness policy changes execution authority
 
+## Evaluation
+
+### Acceptance evidence
+
+| Criterion | Evidence | Result |
+|---|---|---|
+| capability seams are provider-neutral and fail loud | `context.test.mjs`, `runtime.test.mjs` | pending exact-head CI |
+| run state is reconstructable and crash-safe against replay | `journal.test.mjs`, `legacy-migration.test.mjs` | pending exact-head CI |
+| legacy Git/GitHub boundaries are preserved | full port of command-guard regression matrix | pending exact-head CI |
+| lifecycle authority remains fail-closed | lifecycle projection + project knowledge contract | projection valid; packet contract being evaluated |
+
+### Review findings
+
+- Correctness: diagnostic CI caught packet contract omissions rather than runtime semantics; replacement code remains under evaluation.
+- Security/ownership: capability negotiation now requires isolated workspace + guarded environment; token stripping and full guard matrix are explicit tests.
+- Maintainability/duplication: old dispatcher still exists temporarily and is the next removal step before final evaluation.
+- Scope compliance: no provider/production/financial runtime capability added; DeepSeek Harness patterns adopted without adding its dependency.
+
+### Remaining limitations
+
+- Final exact-head CI and old-dispatcher removal are not yet complete.
+- Existing POSIX guard-launcher platform behavior is preserved; this PR does not add a new Windows launcher implementation.
+
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-08-23 | human owner | implementer | implementing | explicit request to replace MoneyFlow harness using DeepSeek Harness learnings; #447 branch | final provider/run API, legacy-state migration and compatibility tests not yet proven | finish v2 seams + migration + evaluator pass |
+| 2026-08-23 | human owner | implementer | implementing | explicit request to replace MoneyFlow harness using DeepSeek Harness learnings; #447 branch | legacy dispatcher still exists as duplicate implementation; final CI pending | remove legacy runtime after v2 diagnostics, update durable docs, evaluate |
 
 ## Current permission boundary
 
