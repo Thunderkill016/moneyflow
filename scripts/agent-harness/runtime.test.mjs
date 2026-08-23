@@ -7,7 +7,7 @@ import test from "node:test";
 import { HarnessContext } from "./context.mjs";
 import { RunJournal } from "./journal.mjs";
 import { commandIdFor } from "./providers.mjs";
-import { processHarnessCommand } from "./runtime.mjs";
+import { processHarnessCommand, runHarnessCycle } from "./runtime.mjs";
 
 const source = {
   author: { login: "owner" },
@@ -220,5 +220,44 @@ test("fresh main is revalidated immediately before workspace creation", async ()
   } finally {
     await ctx.dispose();
     rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("one unknown provider command cannot starve a valid command in the same cycle", async () => {
+  const root = mkdtempSync(join(tmpdir(), "moneyflow-harness-cycle-"));
+  const stateDir = join(root, ".agent-harness");
+  const legacyStateDir = join(root, ".agent-dispatcher");
+  const { ctx, calls } = createTestContext();
+  const sourceProvider = ctx.resolve("source", "github");
+  sourceProvider.currentUser = () => "owner";
+  sourceProvider.listOpenSources = () => [source];
+  sourceProvider.commandsFromSource = () => [
+    {
+      command: { provider: "missing", note: "bad" },
+      source: { ...source, sourceKey: "comment:1" },
+    },
+    {
+      command,
+      source: { ...source, sourceKey: "body" },
+    },
+  ];
+
+  try {
+    const result = await runHarnessCycle({
+      ctx,
+      stateDir,
+      legacyStateDir,
+    });
+
+    assert.equal(result.status, "ok");
+    assert.equal(result.processed, 2);
+    assert.equal(result.results[0].status, "blocked");
+    assert.match(result.results[0].reason, /provider is unavailable: agent\/missing/u);
+    assert.equal(result.results[1].status, "completed");
+    assert.equal(calls.starts, 1);
+    assert.equal(calls.workspaces, 1);
+  } finally {
+    await ctx.dispose();
+    rmSync(root, { recursive: true, force: true });
   }
 });
