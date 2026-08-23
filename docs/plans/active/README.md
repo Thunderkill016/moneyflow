@@ -1,21 +1,18 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-23
-**Current main baseline:** `e0b30350c1e819237ce769a9d5af40cc2d0324c0` (PR #445 merged)
-**Post-merge projection:** PR #447
+**Current main baseline:** `eb8861c71dbc5b8173e7e48fff1293470a639816` (PR #447 merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; P1 RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
 
 ## NOW
 
+- [ ] **#448 — source lifecycle → ledger/reconciliation policy** — next bounded #432 P1 slice. Preserve lifecycle-only source observations and define the one safe reconciliation effect: reviewed `posted` evidence may move an exactly matching one-leg income/expense account leg from `pending` to `cleared`; source evidence never establishes `reconciled`, overwrites ledger fields, deletes facts or demotes user/statement truth. **Next actor:** agent implementer on `feat/448-source-lifecycle-reconciliation`.
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
-
-There is currently **no agent-executable product/governance child**. #442 merged through PR #445; task selection must remain empty until PR #447's one-time recovery + lifecycle-system fix merges and fresh-main authority resolution is run again. PR #447's harness-v2 implementation packet has moved to `docs/plans/completed/2026-08-23-447-agent-harness-v2.md` as this same-PR completion projection; it remains unmerged candidate evidence and is not a newly selected child from `NEXT`.
 
 ## NEXT
 
-- [ ] **#432 P1 — source lifecycle → ledger/reconciliation policy** — after #442, bound when source `pending/posted/removed/modified` evidence may affect MoneyFlow clearing/completeness/reconciliation state. Source state must not silently become ledger truth. This remains unpromoted until a fresh-main resolver pass after #447 and a bounded issue/spec/packet exist.
 - [ ] **#432 P1 — migrate the next real source path** — after identity/update lifecycle and source-to-ledger policy are explicit, migrate one real file/share path through the same candidate/provenance/reconciliation contract rather than opening a parallel ledger write path.
 - [ ] **#432 P2 — Low-Maintenance Ingestion** — expand real Vietnamese file/share sources, merchant/payee normalization and exception-first review; reduce interventions/100 transactions without reducing match precision.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
@@ -47,6 +44,7 @@ There is currently **no agent-executable product/governance child**. #442 merged
 
 ## RECENTLY DONE / DURABLE INPUT
 
+- [x] **#446 / PR #447 — event-sourced capability harness + same-PR lifecycle convergence** — merged as `eb8861c71dbc5b8173e7e48fff1293470a639816`. The local monolithic dispatcher was replaced with the provider-neutral `scripts/agent-harness/` runtime; append-only run journals, capability negotiation, legacy-state migration, owned process cleanup and full Git/GitHub guards are machine-tested. Completing PRs now converge board + packet + memory in the same PR, so routine second lifecycle-closeout PRs are no longer the default. Final head `edfe3686…` passed CI #2913, database/pgTAP/archive, Browser smoke, Cross-device UI audit, aggregate e2e, CodeQL #1970 and Secret history #1970.
 - [x] **#442 / PR #445 — explicit source lineage + lifecycle evidence** — merged as `e0b30350c1e819237ce769a9d5af40cc2d0324c0`. MoneyFlow now preserves explicit source-supplied predecessor/replacement identity across different source IDs without fuzzy lineage or source-driven ledger overwrite; final head `631386482cea3261d53567e709ae7b765fa53976` passed CI #2839, CodeQL #1897 and Secret history #1897, including fresh database/pgTAP, archive producer+restore, Browser smoke, Cross-device UI audit and aggregate e2e.
 - [x] **#443 / PR #444 — fail-closed plan authority resolution** — merged as `99257178ff416e5b1c875f62aea05035824ca9a5` after final head `d7686873da3fde8544dabd24b7d57a05a7735dfe` passed CI #2823, CodeQL #1881 and Secret history #1881. Repository task selection now resolves a machine-readable master/supersession graph against the active registry, board freshness and Git first-parent history; unmerged master candidates and pre-merge projections can validate for review but cannot authorize task selection.
 - [x] **#440 / PR #441** — live same-source-ID changed observations can be reviewed and preserved without overwriting ledger/reconciliation/canonical provenance; approved observation evidence is hardened against direct browser INSERT/UPDATE. Final head `237aac8d…` passed CI #2792, CodeQL #1851 and Secret history #1851 before squash merge as `6123d263…`.
@@ -66,7 +64,8 @@ There is currently **no agent-executable product/governance child**. #442 merged
 
 | Packet | Role now | Authority boundary |
 |---|---|---|
-| `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates; no child slice is currently promoted |
+| `448-source-lifecycle-reconciliation.md` | current agent-executable P1 slice | reviewed source lifecycle may influence clearing only under the bounded exact-match policy; no provider/production write |
+| `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |
