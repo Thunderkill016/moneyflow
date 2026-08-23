@@ -234,6 +234,26 @@
       "version": "20260821203000",
       "name": "20260821203000_import_batch_owner_preserving_fk.sql",
       "hash": "3fdac45190e57758894fa9ecfe56511a"
+    },
+    {
+      "version": "20260822094400",
+      "name": "20260822094400_source_identity_consistency_preflight.sql",
+      "hash": "d2ebfe6349cfd0f2c829054697afb14d"
+    },
+    {
+      "version": "20260822094500",
+      "name": "20260822094500_source_lineage_lifecycle.sql",
+      "hash": "7d4985702fa7ff7b23ca8f051b8df766"
+    },
+    {
+      "version": "20260822094600",
+      "name": "20260822094600_source_lineage_archive_compat.sql",
+      "hash": "ed2d176555c0b87f40cb6228456eae72"
+    },
+    {
+      "version": "20260822094700",
+      "name": "20260822094700_source_lineage_archive_mode_guard.sql",
+      "hash": "7d4cc63b7409bc559c0440c0bd749c4b"
     }
   ]
 }

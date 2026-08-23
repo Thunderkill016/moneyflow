@@ -30,9 +30,11 @@ where n.nspname = 'public'
 -- explicit reviewed restoration of a deleted exact-source-ID transaction.
 -- #440 adds exactly one authenticated privileged boundary: reviewed linkage of
 -- changed same-ID source evidence without any ledger/provenance mutation.
+-- #442 adds one more reviewed boundary for explicit predecessor/replacement
+-- source evidence without ledger/reconciliation/canonical-provenance mutation.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  40,
+  41,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 

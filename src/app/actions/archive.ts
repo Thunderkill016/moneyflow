@@ -7,7 +7,7 @@ import {
   type RestoreFailureKind,
 } from "@/lib/archive/archive-backup";
 import type { MoneyFlowArchive } from "@/lib/archive/moneyflow-archive";
-import { validateMoneyFlowArchive } from "@/lib/archive/moneyflow-archive-validator";
+import { validateMoneyFlowArchiveWithSourceLineage } from "@/lib/archive/source-lineage-archive-validator";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 
@@ -58,8 +58,9 @@ export async function createArchiveBackupAction(): Promise<BackupActionResult> {
 
   // The RPC result is untrusted here: a 200 is not proof the payload satisfies
   // the archive contract, and a broken backup is only discovered when it is
-  // needed. Never hand the browser something that would not validate.
-  const validated = validateMoneyFlowArchive(data);
+  // needed. Accept the historical v1 shape plus the current #442 generation,
+  // both through one fail-closed wrapper over the proven R5 validator.
+  const validated = validateMoneyFlowArchiveWithSourceLineage(data);
   if (!validated.ok) {
     console.error("archive_backup_invalid", { rejections: validated.errors.length });
     return { ok: false, kind: "archive_rejected" };
@@ -76,7 +77,7 @@ export async function restoreArchiveAction(
   // The browser already ran the file through ingress, but a server action is a
   // public entrypoint: re-validate rather than trust the caller. The database
   // validates a third time before it writes, which is the authority.
-  const validated = validateMoneyFlowArchive(archive);
+  const validated = validateMoneyFlowArchiveWithSourceLineage(archive);
   if (!validated.ok) return { ok: false, kind: "archive_rejected" };
 
   const supabase = await createClient();

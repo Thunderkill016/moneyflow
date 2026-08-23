@@ -1,24 +1,20 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-22
-**Current main baseline:** `6123d263c60fba98bd67b5c935a7179477ad7fcb` (PR #441 merged)
-**Post-merge projection:** PR #444
+**Current main baseline:** `99257178ff416e5b1c875f62aea05035824ca9a5` (PR #444 merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; P1 RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
 
-This file is the **post-merge projection carried by PR #444**. While PR #444 is still open, `npm run plan:resolve` deliberately reports task selection **NOT READY** even though the projection can be validated in CI. If PR #444 is squash-merged, the resolver accepts this board only when the exact merge commit identifies PR #444 and is also the latest commit touching this file. A copied/old projection or an ordinary implementation PR cannot use this exception.
-
 ## NOW
 
+- [ ] **#442 — P1 explicit source lineage + lifecycle evidence** — fifth bounded Acquisition Foundation slice, promoted after #444 merged and the authority resolver still resolved #432 as master with no conflicting current child. Record source-supplied lifecycle and predecessor/replacement identity across different source IDs without fuzzy lineage or source-driven ledger overwrite. Reuse durable approved Inbox observations as source identity history, keep canonical provenance immutable, and add an explicit reviewed replacement path. **Done when:** explicit predecessor identity hard-matches the same ledger fact; replay of the replacement ID is exact-source deduplicated; one source ID cannot bind to two transactions; ledger/reconciliation/provenance remain unchanged; exact-head Class 3 CI/database/security/browser evidence is green. **Next actor:** agent on `feat/442-source-lineage-lifecycle`; owner merge decision after handoff.
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
-
-There is deliberately **no current agent-executable slice in this post-#444 projection**. The next agent must start from fresh `main`, run `npm run plan:resolve`, and promote/resume a bounded child only if the resolved master/current state still permits it.
 
 ## NEXT
 
-- [ ] **#442 — #432 P1 explicit source lifecycle / predecessor identity** — existing issue/branch is candidate only. After #444 merges, rebase/re-read current main and continue only if the authority resolver still selects #432 P1. Bound provider-supplied pending→posted replacement identity, removed/modified observations and source lifecycle without heuristic different-ID lineage or automatic ledger/reconciliation mutation.
-- [ ] **#432 P1 — migrate the next real source path** — after source identity/update lifecycle is explicit, migrate one real file/share path through the same candidate/provenance/reconciliation contract rather than opening a parallel ledger write path.
+- [ ] **#432 P1 — source lifecycle → ledger/reconciliation policy** — after #442, bound when source `pending/posted/removed/modified` evidence may affect MoneyFlow clearing/completeness/reconciliation state. Source state must not silently become ledger truth.
+- [ ] **#432 P1 — migrate the next real source path** — after identity/update lifecycle and source-to-ledger policy are explicit, migrate one real file/share path through the same candidate/provenance/reconciliation contract rather than opening a parallel ledger write path.
 - [ ] **#432 P2 — Low-Maintenance Ingestion** — expand real Vietnamese file/share sources, merchant/payee normalization and exception-first review; reduce interventions/100 transactions without reducing match precision.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — owner/provider-gated.
@@ -49,7 +45,7 @@ There is deliberately **no current agent-executable slice in this post-#444 proj
 
 ## RECENTLY DONE / DURABLE INPUT
 
-- [x] **#443 / PR #444 — fail-closed plan authority resolution** — post-merge projection: repository task selection resolves a machine-readable master/supersession graph against the active registry, board freshness and Git first-parent history; unmerged master candidates and current-PR post-merge projections validate for review but cannot authorize task selection. Exact-head acceptance remains the PR #444 merge gate; this row becomes current-main truth only if that PR is actually merged.
+- [x] **#443 / PR #444 — fail-closed plan authority resolution** — merged as `99257178ff416e5b1c875f62aea05035824ca9a5` after final head `d7686873da3fde8544dabd24b7d57a05a7735dfe` passed CI #2823, CodeQL #1881 and Secret history #1881. Repository task selection now resolves a machine-readable master/supersession graph against the active registry, board freshness and Git first-parent history; unmerged master candidates and pre-merge projections can validate for review but cannot authorize task selection.
 - [x] **#440 / PR #441** — live same-source-ID changed observations can be reviewed and preserved without overwriting ledger/reconciliation/canonical provenance; approved observation evidence is hardened against direct browser INSERT/UPDATE. Final head `237aac8d…` passed CI #2792, CodeQL #1851 and Secret history #1851 before squash merge as `6123d263…`.
 - [x] **#438 / PR #439** — deleted exact-source reimport is explicit: live same-ID remains hard duplicate; deleted unchanged evidence can be reviewed to restore the same transaction; deleted changed evidence stays blocked; restore preserves ledger/reconciliation/canonical provenance. Final head `00384172…` passed CI #2766, CodeQL #1826 and Secret history #1826 before squash merge as `d5324c47…`.
 - [x] **#436 / PR #437** — authenticated Inbox can reconcile later non-manual source evidence to one reviewed existing unprovenanced money transaction without creating a second fact or overwriting user corrections. Final head `83957701…` passed CI #2758, CodeQL #1819 and Secret history #1819 before squash merge as `1ae4c765…`.
@@ -67,6 +63,7 @@ There is deliberately **no current agent-executable slice in this post-#444 proj
 
 | Packet | Role now | Authority boundary |
 |---|---|---|
+| `442-source-lineage-lifecycle.md` | **current agent-executable Class 3 slice** | explicit source-supplied lineage/lifecycle evidence only; no fuzzy successor inference or ledger/reconciliation mutation |
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates; a promoted child slice owns implementation detail |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |

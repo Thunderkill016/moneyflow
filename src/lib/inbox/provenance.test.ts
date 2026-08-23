@@ -37,6 +37,8 @@ test("candidate provenance maps nullable Supabase fields without inventing data"
     {
       sourceRowIndex: 7,
       sourceExternalId: "bank-7",
+      sourceLifecycleState: undefined,
+      sourcePredecessorExternalId: undefined,
       fingerprintVersion: 1,
       fingerprint: "abc",
       parserVersion: "csv_import@2.0",
@@ -63,6 +65,8 @@ test("candidate provenance retains a concrete applied rule revision", () => {
     {
       sourceRowIndex: undefined,
       sourceExternalId: undefined,
+      sourceLifecycleState: undefined,
+      sourcePredecessorExternalId: undefined,
       fingerprintVersion: undefined,
       fingerprint: undefined,
       parserVersion: undefined,
@@ -100,6 +104,8 @@ test("candidate insert patch provides current explicit parser/mapping defaults",
   assert.deepEqual(patch, {
     source_row_index: 3,
     source_external_id: null,
+    source_lifecycle_state: null,
+    source_predecessor_external_id: null,
     parser_version: "csv_import@1.0",
     mapping_version: CURRENT_IMPORT_MAPPING_VERSION,
   });

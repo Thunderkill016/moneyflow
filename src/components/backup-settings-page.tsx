@@ -26,7 +26,7 @@ import {
   summarizeArchive,
   type ArchiveSummary,
 } from "@/lib/archive/archive-backup";
-import { ingestArchiveBytes } from "@/lib/archive/archive-ingress";
+import { ingestArchiveBytes } from "@/lib/archive/source-lineage-archive-ingress";
 import type { MoneyFlowArchive } from "@/lib/archive/moneyflow-archive";
 import styles from "./settings/settings-surfaces.module.css";
 

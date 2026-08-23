@@ -7,6 +7,7 @@ import {
   recordChangedSourceObservationAction,
   restoreDeletedImportedTransactionAction,
 } from "@/app/actions/inbox-approval";
+import { recordSourceReplacementObservationAction } from "@/app/actions/inbox-source-lineage";
 import { InboxExplainPanel } from "@/components/inbox/inbox-explain-panel";
 import { MoneyValue } from "@/components/money-value";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -92,6 +93,7 @@ export function InboxReviewPanel({
   const [attachBusy, setAttachBusy] = useState(false);
   const [restoreBusy, setRestoreBusy] = useState(false);
   const [sourceObservationBusy, setSourceObservationBusy] = useState(false);
+  const [sourceReplacementBusy, setSourceReplacementBusy] = useState(false);
   const [serverPlanState, setServerPlanState] = useState<{
     candidateId: string;
     plan: InboxDryRunResult | null;
@@ -157,6 +159,12 @@ export function InboxReviewPanel({
     serverPlan.matchedTransactionId
       ? serverPlan.matchedTransactionId
       : null;
+  const sourceReplacementTransactionId =
+    serverPlan?.status === "duplicate" &&
+    serverPlan.reason === "source_predecessor_match" &&
+    serverPlan.matchedTransactionId
+      ? serverPlan.matchedTransactionId
+      : null;
   const deletedSourceMatchTransactionId =
     serverPlan?.status === "duplicate" &&
     serverPlan.reason === "source_external_id_deleted_match" &&
@@ -166,11 +174,19 @@ export function InboxReviewPanel({
   const showChangedDeletedSource =
     serverPlan?.status === "duplicate" &&
     serverPlan.reason === "source_external_id_deleted_changed";
+  const showDeletedSourcePredecessor =
+    serverPlan?.status === "duplicate" &&
+    serverPlan.reason === "source_predecessor_deleted_match";
   const showAmbiguousExistingMatch =
     serverPlan?.status === "duplicate" &&
     serverPlan.reason === "existing_transaction_ambiguous";
   const isBusy =
-    busy || submitting || attachBusy || restoreBusy || sourceObservationBusy;
+    busy ||
+    submitting ||
+    attachBusy ||
+    restoreBusy ||
+    sourceObservationBusy ||
+    sourceReplacementBusy;
 
   if (!candidate || !draft) return null;
 
@@ -267,6 +283,28 @@ export function InboxReviewPanel({
     }
   }
 
+  async function handleRecordSourceReplacement() {
+    if (!sourceReplacementTransactionId) return;
+    setSourceReplacementBusy(true);
+    setError("");
+    try {
+      const result = await recordSourceReplacementObservationAction({
+        candidateId: activeCandidate.id,
+        transactionId: sourceReplacementTransactionId,
+      });
+      if (!result.ok) {
+        setError(result.message);
+        await refreshServerPlanOrKeepCurrent();
+        return;
+      }
+      // This is source-evidence resolution only. Reload the candidate and the
+      // unchanged ledger from the same persisted snapshot.
+      window.location.reload();
+    } finally {
+      setSourceReplacementBusy(false);
+    }
+  }
+
   async function handleApprove(event: FormEvent) {
     event.preventDefault();
     if (blockSeparateApproval) return;
@@ -312,7 +350,7 @@ export function InboxReviewPanel({
         if (!nextOpen && !isBusy) onClose();
       }}
       title="Duyệt giao dịch"
-      description="Kiểm tra ứng viên rồi chọn gắn nguồn, ghi nhận cập nhật nguồn, khôi phục giao dịch đã xóa hoặc tạo một giao dịch riêng khi được phép."
+      description="Kiểm tra ứng viên rồi chọn gắn nguồn, ghi nhận cập nhật/thay thế nguồn, khôi phục giao dịch đã xóa hoặc tạo một giao dịch riêng khi được phép."
       dismissible={!isBusy}
       initialFocusRef={merchantRef}
       className={styles.dialog}
@@ -384,6 +422,44 @@ export function InboxReviewPanel({
               Chưa tải được kết quả đối chiếu từ máy chủ. MoneyFlow tạm khóa “Duyệt vào
               sổ” để tránh tạo giao dịch riêng khi quyết định nguồn chưa được xác nhận.
               Hãy đóng rồi mở lại mục này hoặc tải lại trang để thử đối chiếu lại.
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {sourceReplacementTransactionId && serverPlan ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              <p>{dryRunUserMessage(serverPlan)}</p>
+              <p>
+                Nguồn đã cung cấp liên kết rõ ràng từ mã giao dịch mới tới mã nguồn trước
+                đó. “Ghi nhận giao dịch thay thế” chỉ lưu quan sát nguồn mới và gắn nó với
+                giao dịch đã có. MoneyFlow giữ nguyên loại, ngày, số tiền, tài khoản, danh
+                mục, ghi chú và trạng thái đối soát; các chỉnh sửa trong form này không
+                được áp dụng.
+              </p>
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                disabled={isBusy}
+                pending={sourceReplacementBusy}
+                pendingLabel="Đang ghi nhận…"
+                onClick={() => void handleRecordSourceReplacement()}
+              >
+                Ghi nhận giao dịch thay thế
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {showDeletedSourcePredecessor && serverPlan ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              <p>{dryRunUserMessage(serverPlan)}</p>
+              <p>
+                Giữ giao dịch MoneyFlow đã xóa ở nguyên trạng. Không có nút khôi phục hoặc
+                đường vòng tạo riêng cho mã nguồn thay thế trong bước này.
+              </p>
             </AlertDescription>
           </Alert>
         ) : null}
