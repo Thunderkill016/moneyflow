@@ -1,19 +1,20 @@
 # Agent operating model
 
-**Status:** active engineering contract  
-**Last reviewed:** 2026-08-01  
+**Status:** active engineering contract
+**Last reviewed:** 2026-08-23
 **Owner:** `docs/engineering/AI_DELIVERY_WORKFLOW.md`
 
 ## Purpose
 
-This document converts the useful patterns from the owner-selected AI and operations repositories into MoneyFlow's actual delivery model. It is a contract for how agents work on the repository. It is not a runtime AI architecture for the personal-finance product.
+This document converts useful patterns from owner-selected AI and operations repositories into MoneyFlow's actual delivery model. It is a contract for how agents work on the repository. It is not a runtime AI architecture for the personal-finance product.
 
-MoneyFlow does **not** install or embed Ruflo, CrewAI, Swarm, OpenHands, LangGraph or AutoGen. The repository keeps its existing Next.js/Supabase modular monolith and applies only the smallest patterns that improve correctness, isolation, review and recovery.
+MoneyFlow does **not** install or embed the studied orchestration frameworks. The repository keeps its existing Next.js/Supabase modular monolith and applies only the smallest patterns that improve correctness, isolation, review and recovery. The repository-local agent harness is engineering infrastructure and is kept separate from the MoneyFlow product runtime.
 
 ## Applied source decisions
 
 | Repository | Pattern applied to MoneyFlow | Explicitly not adopted |
 |---|---|---|
+| [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) | Thin agent coordinator; capability Definition/Provider/Consumer seams; append-only reconstructable run state; fail-loud capability negotiation; holder-owned execution cleanup | Cordis/DeepSeek runtime dependency, dynamic self-modification/plugin installation, unrestricted agent swarms, product-runtime agent framework |
 | [ruvnet/ruflo](https://github.com/ruvnet/ruflo), formerly Claude-Flow | Treat the coding model as one part of a harness; preserve task state, evidence, reusable workflow rules and bounded tool access | Agent swarm, daemon, hidden self-learning memory, vector database, federation, 98+ agents and broad plugin installation |
 | [crewAIInc/crewAI](https://github.com/crewAIInc/crewAI) | Separate deterministic **Flow** from optional role specialization; roles have responsibilities and artifacts | Autonomous Crews deciding product scope or delegating without repository contracts |
 | [openai/swarm](https://github.com/openai/swarm) | Keep handoffs lightweight: current state, artifacts, open risks and next allowed action | Production dependency; Swarm is educational and superseded by the OpenAI Agents SDK |
@@ -117,6 +118,25 @@ Agents receive the smallest permission scope required for the current state.
 
 Provider or production-data writes require an explicit human decision and rollback plan. A task instruction to “finish everything” does not grant those permissions.
 
+## Local harness execution contract
+
+`scripts/agent-harness/` is the repository-local execution layer for owner-authorized coding agents. It consumes the permission model above; it does not define a broader one.
+
+The harness is deliberately split into capability seams:
+
+- `source/github`: discovers owner-authored `/agent <provider>` commands and writes concise status;
+- `workspace/local`: proves local `origin/main` matches remote `main` and creates a fresh isolated non-main worktree;
+- `permission/guarded`: removes GitHub token environment variables and installs the Git/GitHub allowlist guard;
+- `agent/<provider>`: starts an implementation provider behind a common owned-run contract. `codex` is currently the built-in provider.
+
+A provider name is not authority. Before an accepted run, the runtime requires explicit `isolatedWorkspace` and `guardedEnvironment` capabilities; unavailable, conflicting or under-capable providers fail loudly. The child process receives no merge/main/force-push/provider-write/production-data permission from provider registration.
+
+Run lifecycle is append-only. `.agent-harness/runs/<command-id>.jsonl` records contiguous accepted facts and is projected into `unseen`, `interrupted`, `completed` or `failed`. The runtime does not maintain a second mutable v2 state file. A non-terminal accepted history blocks automatic replay because repository side effects before a crash are unknowable. Detailed model output stays in private ignored local logs rather than the run journal or repository memory.
+
+Each agent provider returns a holder-owned handle with `result`, `cancel()` and `dispose()`. The harness owns that handle until settlement and waits for cleanup. Watch mode runs cycles serially rather than overlapping polling executions.
+
+The legacy `.agent-dispatcher/state.json` file is read-only migration input. V2 migrates its known command identities before source dispatch: `completed`/`failed` become terminal journals and `running` becomes interrupted. Malformed legacy state blocks the cycle; migration does not delete the original file. The old executable dispatcher is not a second runtime after harness v2.
+
 ## Repository-backed memory
 
 MoneyFlow uses repository artifacts as durable memory:
@@ -128,7 +148,7 @@ MoneyFlow uses repository artifacts as durable memory:
 - evidence: tests, CI artifacts, screenshots and deployment records;
 - completed learning: completed packet and current source-of-truth updates.
 
-Do not create a hidden vector-memory system or copy private conversation history into the repository. Sensitive financial content, credentials, tokens and provider secrets never belong in agent memory artifacts.
+Do not create a hidden vector-memory system or copy private conversation history into the repository. Sensitive financial content, credentials, tokens and provider secrets never belong in agent memory artifacts. Local harness journals contain lifecycle metadata only and remain ignored local runtime state, not project knowledge.
 
 ## Stop and interrupt conditions
 
