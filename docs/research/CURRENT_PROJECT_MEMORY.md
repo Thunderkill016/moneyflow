@@ -3,6 +3,7 @@
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-23
 **Runtime/financial baseline:** `e0b30350c1e819237ce769a9d5af40cc2d0324c0` (PR #445 merged).
+**Post-merge projection:** PR #447
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -71,7 +72,9 @@ Master #432 remains active. Merged P1 sequence is #435 atomic source ingestion �
 
 Repository task selection is fail-closed through `docs/plans/PLAN_AUTHORITY.json`, the active packet registry, Current Work freshness and Git first-parent provenance. `npm run plan:resolve` is the pre-work entrypoint; `agent:doctor -- --json` consumes the same selection result.
 
-After #445 merged, its branch-carried board necessarily became stale: the board still named #442 as current and still declared pre-merge `main@99257178…`. Issue #446 owns the dedicated lifecycle reconciliation. Until that reconciliation merges and fresh-main authority is resolved again, there is **no current agent-executable child** and no follow-on product task may be auto-promoted.
+PR #447 is a **one-time legacy recovery plus systemic lifecycle fix** after #445 exposed repeated cleanup overhead. It removes merged #442 from active state and changes the default delivery contract so future current-slice PRs converge their board, packet and current-memory lifecycle **inside the same implementation PR before owner handoff**. Unmerged projections remain selection-blocked and may not pre-promote follow-on work.
+
+After #447 merges, a routine second cleanup PR is no longer part of normal feature delivery. Dedicated reconciliation remains recovery-only for legacy/stale state or merge races that predate/bypass the same-PR convergence contract.
 
 The first unpromoted #432 P1 candidate remains source lifecycle → ledger/reconciliation policy. It requires a fresh resolver pass plus its own bounded issue/spec/packet before implementation.
 
@@ -108,6 +111,7 @@ Controlled closed beta remains blocked until release entry gates clear and no un
 - `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates; `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission scopes and handoffs.
 - `docs/plans/PLAN_AUTHORITY.json` + the active registry own strategic plan selection; Git history verifies provenance but does not choose authority by recency.
 - `plan:resolve` blocks stale/ambiguous authority, unmerged master candidates and pre-merge board projections from task selection.
+- Same-PR lifecycle convergence is enforced by `scripts/lifecycle-projection.mjs`: completing a current slice requires the same PR to remove it from current work, archive its packet, project current memory and leave zero follow-on current slices before handoff.
 - CI classification, migration identity and project-knowledge checks are executable governance contracts; do not weaken them to make a PR pass.
 - Draft PR success is not full evidence when heavy shards skip; exact-head evidence is required after the final branch mutation.
 - Financial/schema/RLS/import/reconciliation changes are Class 3 and need bounded packets plus risk-selected database/security/browser evidence.
@@ -119,7 +123,7 @@ Recent acquisition merge provenance: #433 → `a35d6f96…`; #435 → `38ae8f86�
 
 Completed P1 inputs: #434/#435, #436/#437, #438/#439, #440/#441 and #442/#445. Master #432 remains the product-development program.
 
-#443/#444 closes the plan-authority discovery defect. #446 is the required post-#445 lifecycle reconciliation and does not itself authorize the next product child.
+#443/#444 closes the plan-authority discovery defect. #446/#447 is the one-time post-#445 recovery that also installs same-PR convergence so the repeated closeout pattern is not normal future work.
 
 #403 performance and #426 simplification remain held/reconcile work rather than the current acquisition dependency. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority.
 
@@ -127,9 +131,9 @@ RRB release gates remain separate and are not auto-resolved by product/governanc
 
 ## 9. Open pull-request memory
 
-No open product PR is current authority. The #446 lifecycle reconciliation is documentation/governance candidate evidence until merged; it may reconcile #445 truth but cannot use its projected board state to start follow-on work.
+No open product PR is current authority. PR #447 is governance candidate evidence until merged; its projection cannot be used to start follow-on work.
 
-PR-specific provenance for #445 lives at `docs/research/pr-memory/2026/Q3/PR-445.md`. Exact provider check identities remain external GitHub evidence rather than self-referential future run IDs in this snapshot.
+PR-specific provenance for #445 lives at `docs/research/pr-memory/2026/Q3/PR-445.md`; #447 owns the lifecycle-system correction. Exact provider check identities remain external GitHub evidence rather than self-referential future run IDs in this snapshot.
 
 Open PRs are candidate evidence even when newer, mergeable or green. A final branch mutation invalidates older-head verification evidence.
 
@@ -146,9 +150,9 @@ Release/trust gaps remain RRB-02/03/04/05/06/08/09 at their existing evidence/au
 
 ## 11. Next allowed action
 
-Finish the dedicated #446 lifecycle reconciliation only. Do not start or promote the next product child from this branch.
+Finish PR #447 only. Because its projection is unmerged, do not start or promote the next product child from this branch.
 
-After that reconciliation merges, start from fresh `main` and run `npm run plan:resolve`. If merged #432 remains master and no current child exists, create/promote one bounded #432 P1 issue/spec/packet for source lifecycle → ledger/reconciliation policy before implementation.
+After #447 merges, start from fresh `main` and run `npm run plan:resolve`. If merged #432 remains master and no current child exists, create/promote one bounded #432 P1 issue/spec/packet for source lifecycle → ledger/reconciliation policy before implementation. That future PR must close its own lifecycle via the same-PR convergence contract if it completes the slice.
 
 Do not jump to bank/e-wallet/NAPAS integration, infer different-ID lineage heuristically, or perform provider/production writes.
 
@@ -165,6 +169,7 @@ Owner/external lanes remain independent: real phone → RRB-08; provider read ac
 - “deleted exact-source reimport is indistinguishable from an ordinary live exact-ID duplicate” is superseded by #439.
 - “changed evidence under a live stable source ID is indistinguishable from unchanged replay” is superseded by #441.
 - “different-ID source lineage must be guessed from similarity or cannot be represented” is superseded by #445 explicit predecessor evidence.
-- “#442 is current NOW work” is superseded by #445 merge; no product child is auto-promoted until lifecycle reconciliation + fresh authority resolution.
+- “#442 is current NOW work” is superseded by #445 merge.
+- “every completed feature needs a second lifecycle-closeout PR” is superseded by #447 same-PR convergence; dedicated reconciliation is recovery-only.
 - RRB-07 and RRB-01 are no longer proof gaps; Release Readiness Audit v1 is no longer pending.
 - The seven-day self-use gate remains withdrawn without replacement.
