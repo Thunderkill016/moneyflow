@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { RunJournal } from "./journal.mjs";
+import { migrateLegacyDispatcherState } from "./legacy-migration.mjs";
 import {
   buildTaskPrompt,
   commandIdFor,
@@ -9,6 +10,11 @@ import {
 } from "./providers.mjs";
 
 export const DEFAULT_HARNESS_STATE_DIR = ".agent-harness";
+export const DEFAULT_LEGACY_DISPATCHER_STATE_DIR = ".agent-dispatcher";
+const REQUIRED_AGENT_CAPABILITIES = Object.freeze([
+  "isolatedWorkspace",
+  "guardedEnvironment",
+]);
 
 function privateLogPath(stateDir, commandId) {
   return join(stateDir, "logs", `${commandId}.log`);
@@ -34,6 +40,21 @@ function assertRunHandle(handle) {
   return handle;
 }
 
+export function assertAgentProviderCapabilities(provider, providerName) {
+  const missing = REQUIRED_AGENT_CAPABILITIES.filter(
+    (capability) => provider?.capabilities?.[capability] !== true,
+  );
+  if (missing.length > 0) {
+    throw new Error(
+      `agent provider '${providerName}' lacks required capability: ${missing.join(", ")}`,
+    );
+  }
+  if (typeof provider.start !== "function") {
+    throw new Error(`agent provider '${providerName}' does not implement start()`);
+  }
+  return provider;
+}
+
 export async function processHarnessCommand({
   ctx,
   command,
@@ -45,7 +66,10 @@ export async function processHarnessCommand({
   const sourceProvider = ctx.resolve("source", "github");
   const workspaceProvider = ctx.resolve("workspace", "local");
   const permissionProvider = ctx.resolve("permission", "guarded");
-  const agentProvider = ctx.resolve("agent", command.provider);
+  const agentProvider = assertAgentProviderCapabilities(
+    ctx.resolve("agent", command.provider),
+    command.provider,
+  );
   const sourceKey = source.sourceKey ?? "body";
   const commandId = commandIdFor({ source, command, sourceKey });
   const journal = new RunJournal({ stateDir, commandId });
@@ -173,10 +197,24 @@ export async function runHarnessCycle({
   ctx,
   requestedRepo = null,
   stateDir = DEFAULT_HARNESS_STATE_DIR,
+  legacyStateDir = DEFAULT_LEGACY_DISPATCHER_STATE_DIR,
   signal = undefined,
 }) {
   const workspaceProvider = ctx.resolve("workspace", "local");
   const sourceProvider = ctx.resolve("source", "github");
+
+  try {
+    // Migrate identity before source discovery so old completed/failed/running
+    // commands cannot be rediscovered and executed as if v2 had never seen them.
+    migrateLegacyDispatcherState({ legacyStateDir, stateDir });
+  } catch (error) {
+    return Object.freeze({
+      status: "blocked",
+      reason: compactError(error),
+      processed: 0,
+    });
+  }
+
   const prerequisites = workspaceProvider.check({ requestedRepo });
   if (!prerequisites.ok) {
     return Object.freeze({ status: "blocked", reason: prerequisites.reason, processed: 0 });
