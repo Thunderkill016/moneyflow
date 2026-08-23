@@ -1,6 +1,6 @@
 /**
  * R6 round-trip evidence: real database tenant state → archive producer →
- * parsed archive → R5 validator.
+ * parsed archive → current archive ingress/validator.
  *
  * The producer's output is fed to the validator **unmodified**. Nothing here
  * reshapes, fills in or repairs the payload — if the archive only validates
@@ -14,9 +14,13 @@ import {
   ALL_ARCHIVE_COLLECTIONS,
   ARCHIVE_ROW_SPECS,
 } from "../src/lib/archive/moneyflow-archive.ts";
-import { ingestArchiveBytes } from "../src/lib/archive/archive-ingress.ts";
+import { ingestArchiveBytes } from "../src/lib/archive/source-lineage-archive-ingress.ts";
 
 const failures = [];
+const CURRENT_INBOX_SOURCE_FIELDS = new Set([
+  "source_lifecycle_state",
+  "source_predecessor_external_id",
+]);
 
 function check(condition, message) {
   if (!condition) failures.push(message);
@@ -30,8 +34,8 @@ if (!path) {
 
 // The producer's bytes are fed through the R8 file-ingress boundary exactly as a
 // downloaded archive would be — strict UTF-8, duplicate-member scan, JSON parse,
-// then the R5 validator. Nothing reshapes the file in between, so this proves the
-// whole chain: database -> archive -> file ingress -> validated archive.
+// then the generation-aware validator. Nothing reshapes the file in between, so
+// this proves the whole chain: database -> archive -> file ingress -> validated archive.
 const rawBytes = readFileSync(path);
 if (rawBytes.byteLength === 0) {
   console.error(`${path} is empty — the producer emitted nothing.`);
@@ -71,7 +75,10 @@ for (const collection of ALL_ARCHIVE_COLLECTIONS) {
   );
 }
 
-// 3. Field-level completeness against the contract, row by row, on real output.
+// 3. Field-level completeness against the archive-v1 contract, row by row, on
+// real output. The current #442 generation deliberately extends Inbox rows with
+// exactly two source-evidence fields; the generation-aware ingress above proves
+// their types/shape, while this loop keeps the legacy field inventory fail-closed.
 for (const [collection, spec] of Object.entries(ARCHIVE_ROW_SPECS)) {
   const rows = collection === "profile" ? [tables.profile] : tables[collection];
   if (!Array.isArray(rows) && collection !== "profile") continue;
@@ -84,9 +91,18 @@ for (const [collection, spec] of Object.entries(ARCHIVE_ROW_SPECS)) {
         `${collection}[${index}] is missing the contract field ${field}`,
       );
     }
+    if (collection === "inboxCandidates") {
+      for (const field of CURRENT_INBOX_SOURCE_FIELDS) {
+        check(
+          field in row,
+          `${collection}[${index}] is missing the current source-evidence field ${field}`,
+        );
+      }
+    }
     for (const field of Object.keys(row)) {
       check(
-        field in spec.fields,
+        field in spec.fields ||
+          (collection === "inboxCandidates" && CURRENT_INBOX_SOURCE_FIELDS.has(field)),
         `${collection}[${index}] carries ${field}, which is not in the contract`,
       );
     }
@@ -167,6 +183,6 @@ if (failures.length > 0) {
 const counts = ALL_ARCHIVE_COLLECTIONS.map(
   (collection) => `${collection}=${archive.tenant_row_counts[collection]}`,
 ).join(" ");
-console.log("Archive producer verification passed (through the R8 file-ingress boundary).");
+console.log("Archive producer verification passed (through the current R8 file-ingress boundary).");
 console.log(`  archive_version=${archive.archive_version} schema_generation=${archive.schema_generation}`);
 console.log(`  ${counts}`);
