@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(25);
 
 select has_function(
   'public',
@@ -57,33 +57,21 @@ begin
     raw_snippet, source_row_index, source_external_id, source_lifecycle_state,
     source_predecessor_external_id, parser_version, mapping_version
   ) values (
-    p_id,
-    p_user_id,
-    p_kind,
-    p_amount,
-    'Lifecycle merchant',
-    'Lifecycle evidence',
-    p_occurred_on,
-    'csv',
-    'high',
-    'pending',
+    p_id, p_user_id, p_kind, p_amount,
+    'Lifecycle merchant', 'Lifecycle evidence', p_occurred_on, 'csv',
+    'high', 'pending',
     (select id from public.categories
-      where user_id = p_user_id and kind = p_kind
+      where user_id = p_user_id and kind::text = p_kind::text
       order by created_at, id limit 1),
     (select name from public.categories
-      where user_id = p_user_id and kind = p_kind
+      where user_id = p_user_id and kind::text = p_kind::text
       order by created_at, id limit 1),
     (select id from public.accounts
       where user_id = p_user_id order by created_at, id limit 1),
     (select name from public.accounts
       where user_id = p_user_id order by created_at, id limit 1),
-    p_raw,
-    1,
-    p_external_id,
-    p_lifecycle,
-    p_predecessor,
-    'lifecycle-test@1.0',
-    1
+    p_raw, 1, p_external_id, p_lifecycle, p_predecessor,
+    'lifecycle-test@1.0', 1
   );
 end;
 $$;
@@ -91,19 +79,16 @@ $$;
 set local request.jwt.claims = '{"sub":"44800000-0000-4000-8000-000000000001","role":"authenticated"}';
 set local role authenticated;
 
--- A pending source fact enters the ledger as a pending account leg.
 select pg_temp.insert_source_candidate(
   '44810000-0000-4000-8000-000000000001',
   '44800000-0000-4000-8000-000000000001',
   'same-id-448', 'pending', 51000, '2026-08-20',
   '20/08 Lifecycle merchant -51000'
 );
-
 select set_config(
   'moneyflow_test.lifecycle_tx',
   public.approve_inbox_candidate(
-    '44810000-0000-4000-8000-000000000001',
-    'expense',
+    '44810000-0000-4000-8000-000000000001', 'expense',
     (select id from public.accounts where user_id = '44800000-0000-4000-8000-000000000001' order by created_at, id limit 1),
     (select id from public.categories where user_id = '44800000-0000-4000-8000-000000000001' and kind = 'expense' order by created_at, id limit 1),
     null, 51000, '2026-08-20', 'User ledger fact',
@@ -111,42 +96,36 @@ select set_config(
   )::text,
   true
 );
-
 select is(
   (select reconciliation_state::text from public.transaction_entries
-    where transaction_id = current_setting('moneyflow_test.lifecycle_tx')::uuid),
+   where transaction_id = current_setting('moneyflow_test.lifecycle_tx')::uuid),
   'pending',
-  'initial pending source approval leaves the MoneyFlow account leg pending'
+  'initial pending source approval leaves the account leg pending'
 );
 
--- Same source ID, same financial fingerprint, only lifecycle changes to posted.
 select pg_temp.insert_source_candidate(
   '44810000-0000-4000-8000-000000000002',
   '44800000-0000-4000-8000-000000000001',
   'same-id-448', 'posted', 51000, '2026-08-20',
   '20/08 Lifecycle merchant -51000'
 );
-
 select is(
   public.plan_inbox_candidate('44810000-0000-4000-8000-000000000002') ->> 'reason',
   'source_external_id_lifecycle_changed',
-  'same-ID lifecycle-only transition is reviewable instead of collapsing to unchanged duplicate'
+  'same-ID lifecycle-only transition is reviewable'
 );
-
 select throws_ok(
   format(
     'select public.approve_inbox_candidate(%L::uuid, %L::public.transaction_kind, %L::uuid, %L::uuid, null, 51000, %L::date, %L, %L::uuid, true)',
-    '44810000-0000-4000-8000-000000000002',
-    'expense',
+    '44810000-0000-4000-8000-000000000002', 'expense',
     (select id from public.accounts where user_id = '44800000-0000-4000-8000-000000000001' order by created_at, id limit 1),
     (select id from public.categories where user_id = '44800000-0000-4000-8000-000000000001' and kind = 'expense' order by created_at, id limit 1),
     '2026-08-20', 'must not create separately',
     '44820000-0000-4000-8000-000000000002'
   ),
   'source_external_id_duplicate',
-  'ordinary approval cannot bypass lifecycle source identity even with duplicate override'
+  'ordinary approval cannot bypass lifecycle source identity'
 );
-
 select set_config(
   'moneyflow_test.lifecycle_audit_before',
   (select count(*)::text from public.financial_mutation_audit_events
@@ -155,39 +134,34 @@ select set_config(
      and action = 'entry_reconciliation_changed'),
   true
 );
-
 select is(
   public.review_source_lifecycle_observation_from_candidate(
     '44810000-0000-4000-8000-000000000002',
     current_setting('moneyflow_test.lifecycle_tx')::uuid
   ) ->> 'reason',
   'posted_exact_match_cleared',
-  'reviewed exact posted evidence clears the pending account leg'
+  'reviewed exact posted evidence clears the pending leg'
 );
-
 select is(
   (select reconciliation_state::text from public.transaction_entries
-    where transaction_id = current_setting('moneyflow_test.lifecycle_tx')::uuid),
+   where transaction_id = current_setting('moneyflow_test.lifecycle_tx')::uuid),
   'cleared',
   'posted source evidence advances only to cleared'
 );
-
 select is(
   (select match_reason from public.inbox_candidates
    where id = '44810000-0000-4000-8000-000000000002'),
   'source_lifecycle_observation',
-  'lifecycle-only source evidence is durably approved'
+  'lifecycle-only evidence is durably approved'
 );
-
 select is(
   (select count(*)::integer from public.financial_mutation_audit_events
    where user_id = '44800000-0000-4000-8000-000000000001'
      and related_transaction_id = current_setting('moneyflow_test.lifecycle_tx')::uuid
      and action = 'entry_reconciliation_changed'),
   current_setting('moneyflow_test.lifecycle_audit_before')::integer + 1,
-  'posted-to-cleared transition uses the existing privacy-safe financial audit'
+  'pending-to-cleared uses the existing financial audit'
 );
-
 select is(
   public.review_source_lifecycle_observation_from_candidate(
     '44810000-0000-4000-8000-000000000002',
@@ -196,16 +170,14 @@ select is(
   'already_cleared',
   'review replay is idempotent'
 );
-
 select is(
   (select count(*)::integer from public.financial_mutation_audit_events
    where user_id = '44800000-0000-4000-8000-000000000001'
      and related_transaction_id = current_setting('moneyflow_test.lifecycle_tx')::uuid
      and action = 'entry_reconciliation_changed'),
   current_setting('moneyflow_test.lifecycle_audit_before')::integer + 1,
-  'review replay creates no second reconciliation mutation audit'
+  'review replay creates no second reconciliation audit'
 );
-
 select pg_temp.insert_source_candidate(
   '44810000-0000-4000-8000-000000000003',
   '44800000-0000-4000-8000-000000000001',
@@ -215,10 +187,9 @@ select pg_temp.insert_source_candidate(
 select is(
   public.plan_inbox_candidate('44810000-0000-4000-8000-000000000003') ->> 'reason',
   'source_external_id_match',
-  'replay of reviewed posted lifecycle evidence is an exact-source duplicate'
+  'reviewed posted evidence becomes the new exact-source baseline'
 );
 
--- A later pending observation is preserved but cannot demote cleared state.
 select pg_temp.insert_source_candidate(
   '44810000-0000-4000-8000-000000000004',
   '44800000-0000-4000-8000-000000000001',
@@ -235,12 +206,11 @@ select is(
 );
 select is(
   (select reconciliation_state::text from public.transaction_entries
-    where transaction_id = current_setting('moneyflow_test.lifecycle_tx')::uuid),
+   where transaction_id = current_setting('moneyflow_test.lifecycle_tx')::uuid),
   'cleared',
-  'pending source evidence cannot demote a cleared account leg'
+  'pending evidence cannot demote cleared state'
 );
 
--- Removed is also observation-only and cannot delete/demote the ledger fact.
 select pg_temp.insert_source_candidate(
   '44810000-0000-4000-8000-000000000005',
   '44800000-0000-4000-8000-000000000001',
@@ -261,11 +231,9 @@ select is(
    join public.transaction_entries e on e.transaction_id = t.id and e.user_id = t.user_id
    where t.id = current_setting('moneyflow_test.lifecycle_tx')::uuid),
   '(,cleared)',
-  'removed evidence neither deletes the transaction nor demotes reconciliation'
+  'removed evidence neither deletes nor demotes the ledger fact'
 );
 
--- Posted evidence whose economics differ from the user-owned ledger is preserved
--- but cannot overwrite or clear it.
 select pg_temp.insert_source_candidate(
   '44810000-0000-4000-8000-000000000006',
   '44800000-0000-4000-8000-000000000001',
@@ -275,8 +243,7 @@ select pg_temp.insert_source_candidate(
 select set_config(
   'moneyflow_test.mismatch_tx',
   public.approve_inbox_candidate(
-    '44810000-0000-4000-8000-000000000006',
-    'expense',
+    '44810000-0000-4000-8000-000000000006', 'expense',
     (select id from public.accounts where user_id = '44800000-0000-4000-8000-000000000001' order by created_at, id limit 1),
     (select id from public.categories where user_id = '44800000-0000-4000-8000-000000000001' and kind = 'expense' order by created_at, id limit 1),
     null, 80000, '2026-08-21', 'User keeps 80000',
@@ -293,7 +260,7 @@ select pg_temp.insert_source_candidate(
 select is(
   public.plan_inbox_candidate('44810000-0000-4000-8000-000000000007') ->> 'reason',
   'source_external_id_changed',
-  'posted source economics change remains explicit changed-source evidence'
+  'changed posted economics remain explicit changed-source evidence'
 );
 select is(
   public.review_source_lifecycle_observation_from_candidate(
@@ -301,7 +268,7 @@ select is(
     current_setting('moneyflow_test.mismatch_tx')::uuid
   ) ->> 'reason',
   'posted_ledger_mismatch',
-  'changed posted evidence does not clear a ledger fact with different economics'
+  'changed posted evidence does not clear mismatched ledger economics'
 );
 select is(
   (select row(e.amount_minor, e.reconciliation_state::text)::text
@@ -311,8 +278,6 @@ select is(
   'source mismatch neither overwrites amount nor advances reconciliation'
 );
 
--- Explicit predecessor identity can clear when the new posted record still
--- matches the current ledger economics exactly.
 select pg_temp.insert_source_candidate(
   '44810000-0000-4000-8000-000000000008',
   '44800000-0000-4000-8000-000000000001',
@@ -322,8 +287,7 @@ select pg_temp.insert_source_candidate(
 select set_config(
   'moneyflow_test.predecessor_tx',
   public.approve_inbox_candidate(
-    '44810000-0000-4000-8000-000000000008',
-    'expense',
+    '44810000-0000-4000-8000-000000000008', 'expense',
     (select id from public.accounts where user_id = '44800000-0000-4000-8000-000000000001' order by created_at, id limit 1),
     (select id from public.categories where user_id = '44800000-0000-4000-8000-000000000001' and kind = 'expense' order by created_at, id limit 1),
     null, 70000, '2026-08-22', 'Replacement ledger fact',
@@ -343,7 +307,7 @@ select is(
     current_setting('moneyflow_test.predecessor_tx')::uuid
   ) ->> 'reason',
   'posted_exact_match_cleared',
-  'explicit pending-to-posted predecessor observation can clear exact current ledger economics'
+  'explicit pending-to-posted predecessor can clear exact ledger economics'
 );
 select is(
   (select row(c.match_reason, e.reconciliation_state::text)::text
@@ -352,10 +316,9 @@ select is(
      on e.transaction_id = c.approved_transaction_id and e.user_id = c.user_id
    where c.id = '44810000-0000-4000-8000-000000000009'),
   '(source_predecessor_observation,cleared)',
-  'predecessor identity remains durable while the account leg becomes cleared'
+  'predecessor identity stays durable while the account leg becomes cleared'
 );
 
--- Reconciled statement truth is stronger than later source posting evidence.
 set local request.jwt.claims = '{"sub":"44800000-0000-4000-8000-000000000002","role":"authenticated"}';
 select pg_temp.insert_source_candidate(
   '44810000-0000-4000-8000-000000000010',
@@ -366,8 +329,7 @@ select pg_temp.insert_source_candidate(
 select set_config(
   'moneyflow_test.reconciled_tx',
   public.approve_inbox_candidate(
-    '44810000-0000-4000-8000-000000000010',
-    'income',
+    '44810000-0000-4000-8000-000000000010', 'income',
     (select id from public.accounts where user_id = '44800000-0000-4000-8000-000000000002' order by created_at, id limit 1),
     (select id from public.categories where user_id = '44800000-0000-4000-8000-000000000002' and kind = 'income' order by created_at, id limit 1),
     null, 100000, '2026-08-20', 'Reconciled ledger fact',
@@ -387,14 +349,13 @@ select is(
     'cleared'
   ),
   'cleared'::public.entry_reconciliation_state,
-  'test fixture clears the isolated account leg before statement completion'
+  'fixture clears the account leg before statement completion'
 );
 select set_config(
   'moneyflow_test.reconciliation_id',
   public.start_account_reconciliation(
     (select id from public.accounts where user_id = '44800000-0000-4000-8000-000000000002' order by created_at, id limit 1),
-    '2026-08-31',
-    100000
+    '2026-08-31', 100000
   )::text,
   true
 );
@@ -426,7 +387,6 @@ select is(
   'statement-reconciled account leg remains reconciled'
 );
 
--- Tenant isolation remains fail closed.
 set local request.jwt.claims = '{"sub":"44800000-0000-4000-8000-000000000001","role":"authenticated"}';
 select throws_ok(
   format(
