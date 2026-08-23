@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,6 +14,7 @@ import {
   createLocalWorkspaceProvider,
   defaultCommandRun,
   parseAgentCommand,
+  startOwnedProcess,
 } from "./providers.mjs";
 
 const source = {
@@ -144,6 +146,39 @@ test("guarded permission provider strips GitHub tokens and owns Git/GH launchers
   } finally {
     rmSync(stateDir, { recursive: true, force: true });
   }
+});
+
+test("owned process cancellation escalates from SIGTERM to SIGKILL before settlement", async () => {
+  class FakeChild extends EventEmitter {
+    stdout = new EventEmitter();
+    stderr = new EventEmitter();
+    signals = [];
+
+    kill(signal) {
+      this.signals.push(signal);
+      return true;
+    }
+  }
+
+  const child = new FakeChild();
+  const handle = startOwnedProcess({
+    command: "codex",
+    args: [],
+    cwd: "/tmp",
+    env: {},
+    spawnProcess: () => child,
+    killGraceMs: 5,
+  });
+
+  handle.cancel("test cancellation");
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.deepEqual(child.signals, ["SIGTERM", "SIGKILL"]);
+
+  child.emit("close", null, "SIGKILL");
+  const result = await handle.result;
+  assert.equal(result.stopReason, "error");
+  assert.match(result.stderr, /test cancellation/u);
+  await handle.dispose();
 });
 
 test("Codex is one replaceable agent provider behind the common run-handle contract", async () => {
