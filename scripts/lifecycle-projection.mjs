@@ -64,6 +64,16 @@ function completedPacketWasAdded(changes, packet) {
   );
 }
 
+export function packetRecordsPr(packet, prNumber) {
+  if (!Number.isInteger(prNumber)) return false;
+  const metadataLines = packet.match(
+    /^\*\*(?:PR|Issue\/PR):\*\*[^\n]*$/gmu,
+  );
+  if (!metadataLines) return false;
+  const prPattern = new RegExp(`(?:^|\\s)PR\\s*#${prNumber}(?:\\b|$)|(?:^|\\s)#${prNumber}(?:\\b|$)`, "iu");
+  return metadataLines.some((line) => prPattern.test(line));
+}
+
 export function validateLifecycleProjection({
   baseBoard,
   board,
@@ -83,6 +93,11 @@ export function validateLifecycleProjection({
   const snapshotChanged = pathWasChanged(changes, CURRENT_PROJECT_MEMORY_PATH);
   const closesCurrentSlice = /^completes current slice\b/iu.test(lifecycleImpact);
   const authorityTransition = /^authority transition\b/iu.test(lifecycleImpact);
+  const baseCurrentPacket = baseCurrent.length === 1 ? baseCurrent[0].packet : null;
+  const projectedCurrentPacket =
+    projectedCurrent.length === 1 ? projectedCurrent[0].packet : null;
+  const currentTransition =
+    baseCurrentPacket !== null && projectedCurrentPacket !== baseCurrentPacket;
 
   if (!lifecycleImpact) {
     failures.push("PR memory must declare - Lifecycle impact:");
@@ -91,6 +106,12 @@ export function validateLifecycleProjection({
   if (readyCurrentOwnedByPr && projectionPr !== prNumber) {
     failures.push(
       `non-draft PR #${prNumber} is recorded as the owner of the current agent-executable packet; it must enter same-PR post-merge convergence before ready-for-review`,
+    );
+  }
+
+  if (currentTransition && projectionPr !== prNumber) {
+    failures.push(
+      `changing current agent-executable packet ${baseCurrentPacket} to ${projectedCurrentPacket ?? "none"} requires a same-PR post-merge projection; follow-on work may not be promoted in the completing PR`,
     );
   }
 
@@ -103,17 +124,6 @@ export function validateLifecycleProjection({
   if (closesCurrentSlice && projectionPr !== prNumber) {
     failures.push(
       `a PR that completes the current slice must carry **Post-merge projection:** PR #${prNumber} in ${ACTIVE_BOARD_PATH}`,
-    );
-  }
-
-  const removedCurrent =
-    baseCurrent.length === 1 &&
-    projectedCurrent.length === 0 &&
-    baseCurrent[0].packet;
-
-  if (removedCurrent && projectionPr !== prNumber) {
-    failures.push(
-      `removing current agent-executable packet ${removedCurrent} requires a same-PR post-merge projection`,
     );
   }
 
@@ -176,10 +186,6 @@ function parseNameStatus(output) {
       }
       return { status, path: parts[1] };
     });
-}
-
-function packetRecordsPr(packet, prNumber) {
-  return new RegExp(`\\bPR\\s*#${prNumber}\\b`, "u").test(packet);
 }
 
 function runCli() {
