@@ -254,6 +254,16 @@
       "version": "20260822094700",
       "name": "20260822094700_source_lineage_archive_mode_guard.sql",
       "hash": "7d4cc63b7409bc559c0440c0bd749c4b"
+    },
+    {
+      "version": "20260823124000",
+      "name": "20260823124000_source_lifecycle_reconciliation_policy.sql",
+      "hash": "7af7634a3cbf4487bd4d4b50ee73c7bc"
+    },
+    {
+      "version": "20260823124500",
+      "name": "20260823124500_source_lifecycle_reconciliation_lock_order.sql",
+      "hash": "e34d7d20b8b36c903b9a9f2f8f367c40"
     }
   ]
 }

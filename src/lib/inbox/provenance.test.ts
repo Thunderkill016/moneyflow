@@ -173,3 +173,14 @@ test("dry-run messages distinguish exact and heuristic duplicates", () => {
     /rất giống/,
   );
 });
+
+test("dry-run message makes lifecycle-only source changes explicit", () => {
+  assert.match(
+    dryRunUserMessage({
+      status: "duplicate",
+      reason: "source_external_id_lifecycle_changed",
+      confidence: 1,
+    }),
+    /trạng thái xử lý đã thay đổi/,
+  );
+});

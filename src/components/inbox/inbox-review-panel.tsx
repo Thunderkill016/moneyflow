@@ -155,7 +155,8 @@ export function InboxReviewPanel({
       : null;
   const changedSourceTransactionId =
     serverPlan?.status === "duplicate" &&
-    serverPlan.reason === "source_external_id_changed" &&
+    (serverPlan.reason === "source_external_id_changed" ||
+      serverPlan.reason === "source_external_id_lifecycle_changed") &&
     serverPlan.matchedTransactionId
       ? serverPlan.matchedTransactionId
       : null;
@@ -275,8 +276,8 @@ export function InboxReviewPanel({
         await refreshServerPlanOrKeepCurrent();
         return;
       }
-      // This resolves source evidence only. Reload so the approved observation
-      // and unchanged ledger are read from one persisted server snapshot.
+      // Reviewed source evidence and any permitted pending→cleared transition
+      // commit atomically. Reload both from one persisted server snapshot.
       window.location.reload();
     } finally {
       setSourceObservationBusy(false);
@@ -297,8 +298,8 @@ export function InboxReviewPanel({
         await refreshServerPlanOrKeepCurrent();
         return;
       }
-      // This is source-evidence resolution only. Reload the candidate and the
-      // unchanged ledger from the same persisted snapshot.
+      // Explicit replacement identity and any permitted pending→cleared effect
+      // commit atomically; the ledger economics are never overwritten.
       window.location.reload();
     } finally {
       setSourceReplacementBusy(false);
@@ -432,10 +433,11 @@ export function InboxReviewPanel({
               <p>{dryRunUserMessage(serverPlan)}</p>
               <p>
                 Nguồn đã cung cấp liên kết rõ ràng từ mã giao dịch mới tới mã nguồn trước
-                đó. “Ghi nhận giao dịch thay thế” chỉ lưu quan sát nguồn mới và gắn nó với
-                giao dịch đã có. MoneyFlow giữ nguyên loại, ngày, số tiền, tài khoản, danh
-                mục, ghi chú và trạng thái đối soát; các chỉnh sửa trong form này không
-                được áp dụng.
+                đó. MoneyFlow luôn lưu quan sát thay thế mà không ghi đè loại, ngày, số
+                tiền, tài khoản, danh mục hay ghi chú. Nếu nguồn báo đã posted và loại,
+                ngày, tài khoản, số tiền vẫn khớp chính xác với sổ hiện tại, thao tác này
+                chỉ có thể đưa account leg từ “chờ” sang “đã ghi sổ”; nó không bao giờ tự
+                đánh dấu “đã đối soát”.
               </p>
               <Button
                 type="button"
@@ -469,10 +471,11 @@ export function InboxReviewPanel({
             <AlertDescription>
               <p>{dryRunUserMessage(serverPlan)}</p>
               <p>
-                Ghi nhận cập nhật nguồn chỉ lưu quan sát nguồn mới và gắn nó với giao
-                dịch đã có. MoneyFlow giữ nguyên loại, ngày, số tiền, tài khoản, danh mục,
-                ghi chú và trạng thái đối soát; các chỉnh sửa trong form này không được
-                áp dụng.
+                MoneyFlow ghi nhận cập nhật nguồn nhưng không ghi đè loại, ngày, số tiền,
+                tài khoản, danh mục hay ghi chú của giao dịch đã có. Nếu nguồn báo đã
+                posted và loại, ngày, tài khoản, số tiền vẫn khớp chính xác với sổ hiện
+                tại, thao tác này chỉ có thể đưa account leg từ “chờ” sang “đã ghi sổ”.
+                Trạng thái “đã đối soát” vẫn chỉ đến từ quy trình đối chiếu sao kê.
               </p>
               <Button
                 type="button"

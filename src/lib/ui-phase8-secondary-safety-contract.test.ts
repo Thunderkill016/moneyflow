@@ -62,11 +62,15 @@ test("Inbox review is explicit and retries use candidate identity", () => {
   assert.match(normalizedInboxReview, /Ghi nhận cập nhật nguồn/);
   assert.match(
     normalizedInboxReview,
-    /chỉ lưu quan sát nguồn mới và gắn nó với giao dịch đã có/,
+    /không ghi đè loại, ngày, số tiền, tài khoản, danh mục hay ghi chú/,
   );
   assert.match(
     normalizedInboxReview,
-    /MoneyFlow giữ nguyên loại, ngày, số tiền, tài khoản, danh mục, ghi chú và trạng thái đối soát/,
+    /chỉ có thể đưa account leg từ “chờ” sang “đã ghi sổ”/,
+  );
+  assert.match(
+    normalizedInboxReview,
+    /Trạng thái “đã đối soát” vẫn chỉ đến từ quy trình đối chiếu sao kê/,
   );
   assert.match(inboxReview, /recordChangedSourceObservationAction/);
   assert.match(inboxReview, /refreshServerPlanOrKeepCurrent/);

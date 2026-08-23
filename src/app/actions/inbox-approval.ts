@@ -76,7 +76,9 @@ function approvalErrorMessage(message: string): string {
   }
   if (
     message.includes("changed_source_match_required") ||
-    message.includes("candidate_not_source_observation")
+    message.includes("source_lifecycle_review_match_required") ||
+    message.includes("candidate_not_source_observation") ||
+    message.includes("candidate_not_source_lifecycle_observation")
   ) {
     return "Cập nhật nguồn không còn khớp với giao dịch đã kiểm tra. Hãy tải lại Inbox và đối chiếu lại.";
   }
@@ -284,14 +286,16 @@ export async function recordChangedSourceObservationAction(input: {
   const supabase = await createClient();
   if (!supabase) return { ok: false, message: "Không thể kết nối Supabase." };
 
-  const { data: transactionId, error } = await supabase.rpc(
-    "record_changed_source_observation_from_candidate",
+  const { data, error } = await supabase.rpc(
+    "review_source_lifecycle_observation_from_candidate",
     {
       p_candidate_id: parsed.data.candidateId,
       p_transaction_id: parsed.data.transactionId,
     },
   );
 
+  const payload = data as Record<string, unknown> | null;
+  const transactionId = payload?.transaction_id;
   if (error || typeof transactionId !== "string") {
     return {
       ok: false,

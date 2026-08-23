@@ -32,9 +32,11 @@ where n.nspname = 'public'
 -- changed same-ID source evidence without any ledger/provenance mutation.
 -- #442 adds one more reviewed boundary for explicit predecessor/replacement
 -- source evidence without ledger/reconciliation/canonical-provenance mutation.
+-- #448 adds one reviewed lifecycle boundary that may conditionally advance an
+-- exact one-leg posted observation from pending to cleared, never reconciled.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  41,
+  42,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 
