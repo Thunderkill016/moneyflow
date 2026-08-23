@@ -11,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-There is currently **no agent-executable product/governance child**. #442 merged through PR #445; task selection must remain empty until PR #447's one-time recovery + lifecycle-system fix merges and fresh-main authority resolution is run again.
+There is currently **no agent-executable product/governance child**. #442 merged through PR #445; task selection must remain empty until PR #447's one-time recovery + lifecycle-system fix merges and fresh-main authority resolution is run again. PR #447 also carries its own bounded harness-v2 implementation packet as recovery/governance work; it is not a newly selected child from `NEXT`.
 
 ## NEXT
 
@@ -66,6 +66,7 @@ There is currently **no agent-executable product/governance child**. #442 merged
 
 | Packet | Role now | Authority boundary |
 |---|---|---|
+| `447-agent-harness-v2.md` | PR #447 governance implementation packet | replace the local dispatcher harness inside the already-open recovery PR; cannot authorize a new product child |
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates; no child slice is currently promoted |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
