@@ -14,6 +14,7 @@ import { fileURLToPath } from "node:url";
 const MAIN_BRANCH = "main";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
 const MAX_AGENT_OUTPUT_BYTES = 8 * 1024 * 1024;
+const DEFAULT_KILL_GRACE_MS = 5_000;
 const GITHUB_TOKEN_VARIABLES = [
   "GH_ENTERPRISE_TOKEN",
   "GH_TOKEN",
@@ -301,10 +302,19 @@ function appendChunk(state, chunk) {
   return true;
 }
 
-export function startOwnedProcess({ command, args, cwd, env, signal, spawnProcess = spawn }) {
+export function startOwnedProcess({
+  command,
+  args,
+  cwd,
+  env,
+  signal,
+  spawnProcess = spawn,
+  killGraceMs = DEFAULT_KILL_GRACE_MS,
+}) {
   let child;
   let settled = false;
   let forcedError = null;
+  let killTimer = null;
   const stdout = { bytes: 0, chunks: [] };
   const stderr = { bytes: 0, chunks: [] };
   let resolveResult;
@@ -312,16 +322,31 @@ export function startOwnedProcess({ command, args, cwd, env, signal, spawnProces
     resolveResult = resolveResultPromise;
   });
 
+  const terminate = (killSignal) => {
+    try {
+      return child?.kill?.(killSignal) ?? false;
+    } catch {
+      return false;
+    }
+  };
   const settle = (value) => {
     if (settled) return;
     settled = true;
+    if (killTimer) clearTimeout(killTimer);
+    killTimer = null;
     signal?.removeEventListener("abort", onAbort);
     resolveResult(Object.freeze(value));
   };
   const cancel = (reason = "cancelled") => {
     if (settled) return;
     forcedError ??= reason;
-    child?.kill?.("SIGTERM");
+    terminate("SIGTERM");
+    if (!killTimer && Number.isFinite(killGraceMs) && killGraceMs >= 0) {
+      killTimer = setTimeout(() => {
+        if (!settled) terminate("SIGKILL");
+      }, killGraceMs);
+      killTimer.unref?.();
+    }
   };
   const onAbort = () => cancel("cancelled");
 
