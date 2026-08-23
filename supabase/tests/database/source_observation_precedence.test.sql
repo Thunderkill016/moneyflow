@@ -43,7 +43,7 @@ insert into public.import_batches (
 ) values (
   '44010000-0000-4000-8000-000000000001'::uuid,
   '44000000-0000-4000-8000-000000000001'::uuid,
-  'source-observations.csv', 'csv', 'committed', 4, 0, 0, 1,
+  'source-observations.csv', 'csv', 'committed', 5, 0, 0, 1,
   '["date","description","amount"]'::jsonb,
   '{"date":0,"desc":1,"amount":2,"debit":null,"credit":null}'::jsonb,
   'csv_import@2.0', 2
@@ -311,18 +311,42 @@ select is(
   'replay remains free of financial mutation audit events'
 );
 
-select throws_ok(
-  $$
-    select public.record_changed_source_observation_from_candidate(
-      '44020000-0000-4000-8000-000000000002'::uuid,
-      (select id from source_observation_ids where key = 'transaction')
-    )
-  $$,
-  'source_observation_unchanged',
-  'unchanged replay cannot use the changed-observation resolution RPC'
+select is(
+  public.plan_inbox_candidate('44020000-0000-4000-8000-000000000002'::uuid) ->> 'reason',
+  'source_external_id_changed',
+  'an older payload becomes a reversion observation after a newer revision is reviewed'
 );
 
 -- Deleted targets stay under #439 deletion precedence, not this live-source operation.
+-- Create a replay matching the latest reviewed source baseline so deletion restore
+-- still proves #439 semantics against the current durable observation history.
+insert into public.inbox_candidates (
+  id, user_id, kind, amount_minor, merchant, note, occurred_on, source,
+  confidence, status, category_id, category_name, account_id, account_name,
+  raw_snippet, import_batch_id, source_row_index, source_external_id,
+  parser_version, mapping_version
+) values (
+  '44020000-0000-4000-8000-000000000005'::uuid,
+  '44000000-0000-4000-8000-000000000001'::uuid,
+  'expense', 61000, 'Canonical merchant corrected upstream', 'Changed source', '2026-08-20',
+  'csv', 'high', 'pending',
+  (select id from public.categories
+   where user_id = '44000000-0000-4000-8000-000000000001' and kind = 'expense'
+   order by created_at, id limit 1),
+  (select name from public.categories
+   where user_id = '44000000-0000-4000-8000-000000000001' and kind = 'expense'
+   order by created_at, id limit 1),
+  (select id from public.accounts
+   where user_id = '44000000-0000-4000-8000-000000000001'
+   order by created_at, id limit 1),
+  (select name from public.accounts
+   where user_id = '44000000-0000-4000-8000-000000000001'
+   order by created_at, id limit 1),
+  '20/08 Canonical merchant corrected upstream -61000',
+  '44010000-0000-4000-8000-000000000001'::uuid,
+  5, 'stable-event-440', 'csv_import@2.0', 2
+);
+
 insert into public.inbox_candidates (
   id, user_id, kind, amount_minor, merchant, note, occurred_on, source,
   confidence, status, category_id, category_name, account_id, account_name,
@@ -360,10 +384,10 @@ select throws_ok(
 
 select ok(
   public.restore_deleted_imported_transaction_from_candidate(
-    '44020000-0000-4000-8000-000000000002'::uuid,
+    '44020000-0000-4000-8000-000000000005'::uuid,
     (select id from source_observation_ids where key = 'transaction')
   ) = (select id from source_observation_ids where key = 'transaction'),
-  'existing #439 unchanged-evidence restore path still owns deleted-source restoration'
+  'existing #439 latest-unchanged-evidence restore path still owns deleted-source restoration'
 );
 
 -- Resolved source evidence cannot be silently rewritten through the browser role.
