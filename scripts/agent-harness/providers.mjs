@@ -406,10 +406,22 @@ export function startOwnedProcess({
   });
 }
 
-export function createCodexAgentProvider({ startProcess = startOwnedProcess } = {}) {
+export function createCodexAgentProvider({
+  startProcess = startOwnedProcess,
+  environmentSource = process.env,
+} = {}) {
   return Object.freeze({
     id: "codex",
     capabilities: Object.freeze({ isolatedWorkspace: true, guardedEnvironment: true }),
+
+    check() {
+      try {
+        resolveExecutable("codex", environmentSource);
+        return Object.freeze({ ok: true });
+      } catch (error) {
+        return Object.freeze({ ok: false, reason: compactError(error) });
+      }
+    },
 
     start({ prompt, worktree, environment, signal }) {
       return startProcess({
@@ -425,12 +437,20 @@ export function createCodexAgentProvider({ startProcess = startOwnedProcess } = 
 
 export async function defaultHarnessPlugin(ctx, config = {}) {
   const run = config.run ?? defaultCommandRun;
+  const environmentSource = config.environmentSource ?? process.env;
   ctx.provide("source", "github", createGithubSourceProvider({ run }));
   ctx.provide("workspace", "local", createLocalWorkspaceProvider({ run }));
   ctx.provide(
     "permission",
     "guarded",
-    createGuardedPermissionProvider({ environmentSource: config.environmentSource }),
+    createGuardedPermissionProvider({ environmentSource }),
   );
-  ctx.provide("agent", "codex", createCodexAgentProvider({ startProcess: config.startProcess }));
+  ctx.provide(
+    "agent",
+    "codex",
+    createCodexAgentProvider({
+      startProcess: config.startProcess,
+      environmentSource,
+    }),
+  );
 }
