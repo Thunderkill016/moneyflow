@@ -72,15 +72,20 @@ Master #432 remains active. Merged P1 sequence is #435 atomic source ingestion �
 
 Repository task selection is fail-closed through `docs/plans/PLAN_AUTHORITY.json`, the active packet registry, Current Work freshness and Git first-parent provenance. `npm run plan:resolve` is the pre-work entrypoint; `agent:doctor -- --json` consumes the same selection result.
 
-PR #447 is a **one-time legacy recovery plus systemic lifecycle fix** after #445 exposed repeated cleanup overhead. It removes merged #442 from active state and changes the default delivery contract so future current-slice PRs converge their board, packet and current-memory lifecycle **inside the same implementation PR before owner handoff**. Unmerged projections remain selection-blocked and may not pre-promote follow-on work.
+PR #447 is a **one-time legacy recovery plus systemic agent-delivery upgrade** after #445 exposed repeated lifecycle cleanup overhead. Its post-merge projection does two things without promoting a product child:
 
-After #447 merges, a routine second cleanup PR is no longer part of normal feature delivery. Dedicated reconciliation remains recovery-only for legacy/stale state or merge races that predate/bypass the same-PR convergence contract.
+1. removes merged #442 from active state and changes the default delivery contract so future current-slice PRs converge their board, packet and current-memory lifecycle inside the same implementation PR before owner handoff;
+2. replaces the repository-local monolithic Codex dispatcher with an event-sourced capability harness under `scripts/agent-harness/`.
+
+The projected harness uses a thin coordinator, named source/workspace/permission/agent providers, fail-loud capability negotiation, append-only JSONL run journals, explicit interrupted-run no-replay semantics, holder-owned run cleanup and a one-time migration of v1 `.agent-dispatcher/state.json` identities. Codex is one registered provider rather than the execution loop itself. The old executable dispatcher is removed in the projection; legacy dispatcher state remains read-only migration input.
+
+Unmerged PR #447 is still candidate evidence. Its projection remains selection-blocked and may not be used to pre-promote follow-on work. After #447 merges, routine second cleanup PRs are no longer part of normal feature delivery. Dedicated reconciliation remains recovery-only for legacy/stale state or merge races that predate/bypass the same-PR convergence contract.
 
 The first unpromoted #432 P1 candidate remains source lifecycle → ledger/reconciliation policy. It requires a fresh resolver pass plus its own bounded issue/spec/packet before implementation.
 
 ## 5. Current capability inventory
 
-| Capability | Current main truth |
+| Capability | Current main truth / PR #447 post-merge projection |
 |---|---|
 | Core ledger | multiple accounts; income, expense, transfers; edit; soft delete/recovery |
 | Accounts | balances, register/history, create/edit/archive/restore and reconciliation |
@@ -88,12 +93,13 @@ The first unpromoted #432 P1 candidate remains source lifecycle → ledger/recon
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
 | Acquisition | persisted batches/candidates/provenance; exact source/fingerprint matching; atomic Direct CSV approval; later-source attachment; deleted-source restore precedence; changed same-ID observation preservation; explicit different-ID predecessor/replacement lineage and lifecycle evidence |
 | Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
+| Agent delivery | PR #447 projection: provider-neutral local harness with source/workspace/permission/agent capability seams, append-only run journals, legacy-state migration and Codex provider; no merge/provider/production authority |
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
 | Experience | responsive light/dark web UI; Inbox exposes reviewed source/reconciliation decisions without claiming provider sync |
 | Release proof | RRB-01/RRB-07 closed; RRB-02/03/04/05/06/08/09 remain open or externally gated |
 | Public beta | not approved |
 
-Code, migrations and tests outrank this table on implementation detail.
+Code, migrations and tests outrank this table on implementation detail. The agent-delivery row is projected candidate truth until PR #447 merges.
 
 ## 6. Release/trust state
 
@@ -108,10 +114,14 @@ Controlled closed beta remains blocked until release entry gates clear and no un
 ## 7. Security and delivery truth
 
 - `docs/configuration.md` owns environment/provider settings; `docs/deployment.md` owns deployment workflow.
-- `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates; `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission scopes and handoffs.
+- `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates; `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission scopes, handoffs and local harness permission semantics.
 - `docs/plans/PLAN_AUTHORITY.json` + the active registry own strategic plan selection; Git history verifies provenance but does not choose authority by recency.
 - `plan:resolve` blocks stale/ambiguous authority, unmerged master candidates and pre-merge board projections from task selection.
 - Same-PR lifecycle convergence is enforced by `scripts/lifecycle-projection.mjs`: completing a current slice requires the same PR to remove it from current work, archive its packet, project current memory and leave zero follow-on current slices before handoff.
+- PR #447 projects `scripts/agent-harness/` as the sole local agent runtime. Harness changes are CI policy changes and select full gates.
+- The harness does not infer provider capability from a name: a provider must explicitly satisfy isolated-workspace and guarded-environment requirements before a command is accepted.
+- `.agent-harness/runs/*.jsonl` is append-only lifecycle state. A non-terminal accepted run is treated as interrupted and blocks automatic replay. V1 completed/failed/running identities migrate before source dispatch so upgrade cannot silently duplicate old work.
+- Child Git/GitHub commands remain behind the preserved allowlist. GitHub token environment variables are stripped before agent execution; merge, main-branch control, force-push, generic `gh api`, provider writes and production-data writes are not granted.
 - CI classification, migration identity and project-knowledge checks are executable governance contracts; do not weaken them to make a PR pass.
 - Draft PR success is not full evidence when heavy shards skip; exact-head evidence is required after the final branch mutation.
 - Financial/schema/RLS/import/reconciliation changes are Class 3 and need bounded packets plus risk-selected database/security/browser evidence.
@@ -123,7 +133,7 @@ Recent acquisition merge provenance: #433 → `a35d6f96…`; #435 → `38ae8f86�
 
 Completed P1 inputs: #434/#435, #436/#437, #438/#439, #440/#441 and #442/#445. Master #432 remains the product-development program.
 
-#443/#444 closes the plan-authority discovery defect. #446/#447 is the one-time post-#445 recovery that also installs same-PR convergence so the repeated closeout pattern is not normal future work.
+#443/#444 closes the plan-authority discovery defect. #446/#447 is the one-time post-#445 recovery plus agent-harness replacement: same-PR convergence prevents the repeated closeout pattern, while the local v1 Codex dispatcher is superseded by the event-sourced capability harness if #447 merges.
 
 #403 performance and #426 simplification remain held/reconcile work rather than the current acquisition dependency. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority.
 
@@ -131,9 +141,9 @@ RRB release gates remain separate and are not auto-resolved by product/governanc
 
 ## 9. Open pull-request memory
 
-No open product PR is current authority. PR #447 is governance candidate evidence until merged; its projection cannot be used to start follow-on work.
+No open product PR is current authority. PR #447 is agent-governance candidate evidence until merged; its projection cannot be used to start follow-on work.
 
-PR-specific provenance for #445 lives at `docs/research/pr-memory/2026/Q3/PR-445.md`; #447 owns the lifecycle-system correction. Exact provider check identities remain external GitHub evidence rather than self-referential future run IDs in this snapshot.
+PR-specific provenance for #445 lives at `docs/research/pr-memory/2026/Q3/PR-445.md`; `PR-447.md` owns the lifecycle-system and harness-v2 replacement evidence. Exact provider check identities remain external GitHub evidence rather than self-referential future run IDs in this snapshot.
 
 Open PRs are candidate evidence even when newer, mergeable or green. A final branch mutation invalidates older-head verification evidence.
 
@@ -148,13 +158,15 @@ Acquisition gaps after merged #445:
 
 Release/trust gaps remain RRB-02/03/04/05/06/08/09 at their existing evidence/authority boundaries.
 
+Agent-delivery gaps deliberately remain bounded after PR #447: only the Codex provider is registered; dynamic self-modification, unrestricted multi-agent orchestration and provider/production-write capabilities are not part of the harness contract.
+
 ## 11. Next allowed action
 
-Finish PR #447 only. Because its projection is unmerged, do not start or promote the next product child from this branch.
+Finish and evaluate PR #447 only. Because its projection is unmerged, do not start or promote the next product child from this branch.
 
 After #447 merges, start from fresh `main` and run `npm run plan:resolve`. If merged #432 remains master and no current child exists, create/promote one bounded #432 P1 issue/spec/packet for source lifecycle → ledger/reconciliation policy before implementation. That future PR must close its own lifecycle via the same-PR convergence contract if it completes the slice.
 
-Do not jump to bank/e-wallet/NAPAS integration, infer different-ID lineage heuristically, or perform provider/production writes.
+Do not jump to bank/e-wallet/NAPAS integration, infer different-ID lineage heuristically, perform provider/production writes, or treat a newly registered agent provider as expanded authority.
 
 Owner/external lanes remain independent: real phone → RRB-08; provider read access → RRB-04/RRB-09 and #40/#174; contact proof → RRB-05; legal/privacy review → RRB-06; disposable hosted target → RRB-02; explicit owner/provider authorization → RRB-03.
 
@@ -170,6 +182,7 @@ Owner/external lanes remain independent: real phone → RRB-08; provider read ac
 - “changed evidence under a live stable source ID is indistinguishable from unchanged replay” is superseded by #441.
 - “different-ID source lineage must be guessed from similarity or cannot be represented” is superseded by #445 explicit predecessor evidence.
 - “#442 is current NOW work” is superseded by #445 merge.
-- “every completed feature needs a second lifecycle-closeout PR” is superseded by #447 same-PR convergence; dedicated reconciliation is recovery-only.
+- “every completed feature needs a second lifecycle-closeout PR” is superseded by PR #447's same-PR convergence projection; dedicated reconciliation is recovery-only.
+- “the local Codex dispatcher + mutable `state.json` is the repository agent runtime” is superseded by PR #447's event-sourced capability-harness projection; until merge, this remains candidate truth.
 - RRB-07 and RRB-01 are no longer proof gaps; Release Readiness Audit v1 is no longer pending.
 - The seven-day self-use gate remains withdrawn without replacement.
