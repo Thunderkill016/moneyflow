@@ -71,6 +71,7 @@ export function validateLifecycleProjection({
   prRecord,
   prNumber,
   changes,
+  readyCurrentOwnedByPr = false,
 }) {
   const failures = [];
   const baseCurrent = currentRows(baseBoard);
@@ -85,6 +86,12 @@ export function validateLifecycleProjection({
 
   if (!lifecycleImpact) {
     failures.push("PR memory must declare - Lifecycle impact:");
+  }
+
+  if (readyCurrentOwnedByPr && projectionPr !== prNumber) {
+    failures.push(
+      `non-draft PR #${prNumber} is recorded as the owner of the current agent-executable packet; it must enter same-PR post-merge convergence before ready-for-review`,
+    );
   }
 
   if (boardChanged && Number.isInteger(projectionPr) && projectionPr !== prNumber) {
@@ -171,6 +178,10 @@ function parseNameStatus(output) {
     });
 }
 
+function packetRecordsPr(packet, prNumber) {
+  return new RegExp(`\\bPR\\s*#${prNumber}\\b`, "u").test(packet);
+}
+
 function runCli() {
   const event = readPullRequestEvent(process.env);
   if (!event) {
@@ -229,6 +240,20 @@ function runCli() {
       { cwd: root, encoding: "utf8" },
     ),
   );
+  const projectedCurrent = currentRows(board);
+  let readyCurrentOwnedByPr = false;
+  if (event.pull_request?.draft === false && projectedCurrent.length === 1) {
+    try {
+      const packet = readFileSync(
+        join(root, `docs/plans/active/${projectedCurrent[0].packet}`),
+        "utf8",
+      );
+      readyCurrentOwnedByPr = packetRecordsPr(packet, prNumber);
+    } catch {
+      // Missing active packet is already covered by the active-registry contract.
+    }
+  }
+
   const result = validateLifecycleProjection({
     baseBoard,
     board,
@@ -236,6 +261,7 @@ function runCli() {
     prRecord,
     prNumber,
     changes,
+    readyCurrentOwnedByPr,
   });
 
   console.log(
