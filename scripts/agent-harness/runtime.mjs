@@ -252,16 +252,35 @@ export async function runHarnessCycle({
     const results = [];
     for (const entry of queued) {
       if (signal?.aborted) break;
-      results.push(
-        await processHarnessCommand({
-          ctx,
-          command: entry.command,
-          source: entry.source,
-          stateDir,
-          prerequisites,
-          signal,
-        }),
-      );
+      try {
+        results.push(
+          await processHarnessCommand({
+            ctx,
+            command: entry.command,
+            source: entry.source,
+            stateDir,
+            prerequisites,
+            signal,
+          }),
+        );
+      } catch (error) {
+        // One malformed/unknown provider command must not starve unrelated
+        // owner-authored commands discovered in the same poll cycle. Because
+        // capability negotiation happens before run acceptance, this contained
+        // result cannot hide a partially-started execution.
+        results.push(
+          Object.freeze({
+            status: "blocked",
+            provider: entry.command.provider,
+            source: Object.freeze({
+              kind: entry.source.kind,
+              number: entry.source.number,
+              sourceKey: entry.source.sourceKey ?? "body",
+            }),
+            reason: compactError(error),
+          }),
+        );
+      }
     }
 
     return Object.freeze({
