@@ -57,6 +57,10 @@ function createTestContext({ result = { exitCode: 0, stdout: "ok", stderr: "", s
     },
   });
   ctx.provide("agent", "codex", {
+    capabilities: {
+      isolatedWorkspace: true,
+      guardedEnvironment: true,
+    },
     start() {
       calls.starts += 1;
       return {
@@ -151,6 +155,39 @@ test("missing agent providers fail loudly before workspace mutation", async () =
       /provider is unavailable: agent\/missing/u,
     );
     assert.equal(calls.workspaces, 0);
+  } finally {
+    await ctx.dispose();
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("under-capable agent providers fail before journal or workspace mutation", async () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-harness-runtime-"));
+  const { ctx, calls } = createTestContext();
+  ctx.provide("agent", "unsafe", {
+    capabilities: { isolatedWorkspace: true, guardedEnvironment: false },
+    start() {
+      throw new Error("must never start");
+    },
+  });
+  try {
+    await assert.rejects(
+      processHarnessCommand({
+        ctx,
+        command: { provider: "unsafe", note: "" },
+        source,
+        stateDir,
+      }),
+      /lacks required capability: guardedEnvironment/u,
+    );
+    assert.equal(calls.workspaces, 0);
+    assert.equal(calls.permissions, 0);
+    const commandId = commandIdFor({
+      source,
+      command: { provider: "unsafe", note: "" },
+      sourceKey: "body",
+    });
+    assert.equal(new RunJournal({ stateDir, commandId }).events().length, 0);
   } finally {
     await ctx.dispose();
     rmSync(stateDir, { recursive: true, force: true });
