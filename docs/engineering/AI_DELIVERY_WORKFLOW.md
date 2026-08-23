@@ -4,7 +4,7 @@ MoneyFlow uses AI as an engineering multiplier inside a controlled delivery syst
 
 ## Operating contract
 
-`docs/engineering/AGENT_OPERATING_MODEL.md` is the execution contract for this workflow. It applies the useful patterns from Ruflo/Claude-Flow, CrewAI, OpenAI Swarm, OpenHands, LangGraph and AutoGen without adding those frameworks to the MoneyFlow runtime.
+`docs/engineering/AGENT_OPERATING_MODEL.md` is the execution contract for this workflow. It applies useful patterns from external agent systems without making those frameworks MoneyFlow runtime dependencies. The local agent harness follows the same rule: architecture patterns may be adopted after review, while MoneyFlow keeps its own authority, permission and evidence boundaries.
 
 Every non-trivial work packet records:
 
@@ -263,27 +263,52 @@ For UI work:
 
 AI-generated visual polish without a user problem, state model or evidence is not accepted work.
 
-## Local Codex handoff protocol
+## Local agent harness
 
-The owner may opt in to the local dispatcher after `gh auth status` and Codex CLI authentication both succeed. The direct handoff is:
+The owner may opt in to the local harness after `gh auth status` and the selected agent-provider authentication succeed. `npm run agent:dispatch` runs one cycle; `npm run agent:dispatch:watch` runs serial cycles with no overlapping poll executions.
+
+The direct Codex route is currently:
 
 ```text
-ChatGPT → GitHub /agent codex command → local dispatcher → isolated Codex worktree
-→ draft PR → ChatGPT exact-head review → Codex fixes on the same PR → owner merge decision
+GitHub owner-authored /agent codex command
+        ↓
+source/github capability
+        ↓
+thin harness runtime
+        ↓
+workspace/local → fresh exact-main isolated worktree
+permission/guarded → token scrub + Git/GitHub command boundary
+agent/codex → owned run handle
+        ↓
+append-only .agent-harness run journal + private local output log
+        ↓
+concise GitHub status only
 ```
 
-The command source remains the issue or pull request; the dispatcher supplies a compact task contract and points Codex back to `AGENTS.md`, the active packet and current authority. It never grants provider, production, main-branch or merge permission. Local state suppresses a command after a restart, detailed agent output remains local, and GitHub receives only concise status.
+The harness uses four rules adapted from agent-runtime research while keeping MoneyFlow-specific policy:
 
-`claude-review` is a planned adapter/lane for independent review after Claude becomes locally available. It is not enabled, invoked or represented as working by the v1 dispatcher.
+1. **Thin coordinator.** `scripts/agent-harness/runtime.mjs` owns ordering only. GitHub source discovery, workspace preparation, permission environment and agent execution live behind named providers in the capability context.
+2. **Fail-loud capability negotiation.** An agent provider must explicitly support isolated workspaces and guarded environments before a command is accepted. Missing, conflicting or under-capable providers do not silently fall back.
+3. **Append-only run truth.** `.agent-harness/runs/<command-id>.jsonl` is the run-lifecycle source of truth. Terminal/dedup state is projected from its contiguous events. An accepted run with no terminal event is `interrupted` and is never automatically replayed because prior side effects are ambiguous.
+4. **Holder-owned execution.** A provider returns a run handle with `result`, `cancel()` and `dispose()`. The runtime owns that handle until settlement and waits for disposal/cleanup instead of abandoning child work.
+
+The v1 `.agent-dispatcher/state.json` format is legacy migration input only. Before source dispatch, v2 projects completed and failed identities into terminal journals and running identities into non-terminal interrupted journals. Malformed legacy state blocks the cycle; migration never deletes the legacy file. This prevents an upgrade from silently re-executing an old command.
+
+The current built-in agent provider is `codex`. The command grammar is provider-neutral (`/agent <provider> ...`), but naming a provider does not grant it authority: it must be registered and meet the mandatory capability contract. Future providers reuse the same source/workspace/permission/run-journal boundaries rather than adding another dispatcher state machine.
+
+The harness does **not** grant merge, main-branch mutation, force-push, provider write, deployment or production-data authority. Child Git/GitHub commands run through the preserved allowlist guard; GitHub token variables are removed before the agent process starts. Detailed agent output remains local/private and GitHub receives only concise status.
+
+The architecture was informed by DeepSeek Harness's thin loop, capability seams, event-sourced sessions, fail-loud provider negotiation and holder-owned workflow/subagent runs. MoneyFlow intentionally does not import DeepSeek Harness/Cordis, dynamic self-modification, runtime plugin installation or unrestricted agent swarms.
 
 ## Knowledge maintenance
 
 Documentation is part of the system:
 
 - `AGENTS.md` stays short and points to sources of truth.
-- `ARCHITECTURE.md` changes only when boundaries change.
+- `ARCHITECTURE.md` changes only when product/runtime boundaries change.
 - Product truth lives in `docs/product/PRINCIPLES.md`.
 - `docs/engineering/AGENT_OPERATING_MODEL.md` owns execution states, handoffs, permissions and runtime-tool adoption triggers.
+- This workflow owns the local agent-harness orchestration contract; executable behavior in `scripts/agent-harness/` and its tests outranks prose.
 - Research may be historical, but must be labeled when superseded.
 - The two repository reference maps are maintained indexes, not roadmaps or dependency manifests.
 - Active work packets describe current execution; completed packets preserve decisions.
