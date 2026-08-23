@@ -40,9 +40,10 @@
 # whole tenant's ledger, so it must never be committed.
 /.tmp/
 
-# agent / local runtime logs (never commit)
+# agent / local runtime logs and journals (never commit)
 /logs/
 /.agent-dispatcher/
+/.agent-harness/
 
 # debug
 npm-debug.log*
