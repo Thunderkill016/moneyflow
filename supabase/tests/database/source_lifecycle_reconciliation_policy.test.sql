@@ -26,7 +26,7 @@ insert into auth.users (
   now(), now(), '', '', false, false
 ),
 (
-  '00000000-0000-0000-0000-000000000000'::uuid,
+  '00000000-0000-0000-8000-000000000000'::uuid,
   '44800000-0000-4000-8000-000000000002'::uuid,
   'authenticated', 'authenticated', 'lifecycle-other@example.invalid',
   crypt('discarded-test-password', gen_salt('bf')), now(),
@@ -355,7 +355,7 @@ select set_config(
   'moneyflow_test.reconciliation_id',
   public.start_account_reconciliation(
     (select id from public.accounts where user_id = '44800000-0000-4000-8000-000000000002' order by created_at, id limit 1),
-    '2026-08-31', 100000
+    '2026-08-22', 100000
   )::text,
   true
 );
