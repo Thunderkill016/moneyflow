@@ -11,11 +11,11 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-There is currently **no agent-executable product/governance child**. #442 merged through PR #445; task selection must remain empty until this lifecycle reconciliation merges and fresh-main authority resolution is run again.
+There is currently **no agent-executable product/governance child**. #442 merged through PR #445; task selection must remain empty until PR #447's one-time recovery + lifecycle-system fix merges and fresh-main authority resolution is run again.
 
 ## NEXT
 
-- [ ] **#432 P1 — source lifecycle → ledger/reconciliation policy** — after #442, bound when source `pending/posted/removed/modified` evidence may affect MoneyFlow clearing/completeness/reconciliation state. Source state must not silently become ledger truth. This remains unpromoted until a fresh-main resolver pass after the lifecycle reconciliation and a bounded issue/spec/packet exist.
+- [ ] **#432 P1 — source lifecycle → ledger/reconciliation policy** — after #442, bound when source `pending/posted/removed/modified` evidence may affect MoneyFlow clearing/completeness/reconciliation state. Source state must not silently become ledger truth. This remains unpromoted until a fresh-main resolver pass after #447 and a bounded issue/spec/packet exist.
 - [ ] **#432 P1 — migrate the next real source path** — after identity/update lifecycle and source-to-ledger policy are explicit, migrate one real file/share path through the same candidate/provenance/reconciliation contract rather than opening a parallel ledger write path.
 - [ ] **#432 P2 — Low-Maintenance Ingestion** — expand real Vietnamese file/share sources, merchant/payee normalization and exception-first review; reduce interventions/100 transactions without reducing match precision.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
@@ -77,8 +77,8 @@ There is currently **no agent-executable product/governance child**. #442 merged
 2. `NOW` means current authorized execution, not merely an open issue.
 3. One current agent-executable product/governance slice at a time; independent owner/provider/physical-device lanes may remain open.
 4. A long-term phase becomes work only when its bounded issue/spec/packet is promoted.
-5. Completion/abandonment updates this board; merged work must not remain in `NOW`.
+5. A PR that completes the current agent slice must converge this board **before owner handoff in that same PR**; merged work must not remain in `NOW` and routine cleanup cannot be deferred.
 6. `OWNER DECISION` is never auto-resolved by an agent.
 7. Historical issues/PRs are provenance, not authority, once reconciled.
-8. `CURRENT_PROJECT_MEMORY.md` changes only when merged implementation/trust truth changes; open changes must not be restated as shipped runtime capability on `main`.
-9. Baseline mismatch is a hard stop. The only self-merge exception is an explicit post-merge projection carried by a dedicated lifecycle-reconciliation PR. While that PR is open, its projection is validation-only and cannot authorize task selection. After merge, the projection is accepted only when its PR number equals the exact current squash-merge commit and that commit is the latest commit touching this board.
+8. A completing PR may project post-merge `CURRENT_PROJECT_MEMORY.md` truth only when board + memory carry the same PR projection marker; the entire unmerged branch remains candidate evidence.
+9. Baseline mismatch is a hard stop. A completing PR may carry an explicit same-PR post-merge projection only if projected Current Work has zero current agent-executable slices, its completed packet leaves `active/`, projected memory converges in the same PR, and `Lifecycle impact: completes current slice` is declared. While open, that projection is validation-only and cannot authorize task selection. After the exact matching squash merge it may activate. Dedicated reconciliation PRs are recovery-only for legacy/stale state or exceptional merge races, not the normal feature lifecycle.
