@@ -234,7 +234,19 @@ Run the required static, domain, database, browser and responsive gates. Review 
 - screenshots or browser evidence;
 - production verification instructions.
 
-Only exact-head evidence supports `ready_for_review`. Merge is a human-owner or approved repository-policy transition. After squash merge and successful deployment, verify the exact affected production flow, then move the work packet from `docs/plans/active/` to `docs/plans/completed/` after acceptance.
+Only exact-head evidence supports `ready_for_review`. Merge is a human-owner or approved repository-policy transition.
+
+When this PR **completes the current agent-executable slice**, convergence happens **before owner handoff in the same PR**, not in a routine follow-up PR:
+
+1. its PR-memory record declares `Lifecycle impact: completes current slice`;
+2. Current Work carries `Post-merge projection: PR #<this PR>`;
+3. projected Current Work leaves zero current agent-executable slices and does not pre-promote NEXT;
+4. the completed work packet moves from `docs/plans/active/` to `docs/plans/completed/`;
+5. `CURRENT_PROJECT_MEMORY.md` records projected post-merge truth with the same PR marker.
+
+`scripts/lifecycle-projection.mjs`, reached through `npm run check:knowledge`, enforces the bundle. The unmerged projection intentionally keeps task selection NOT READY, but the already-started PR may repair acceptance defects inside its recorded scope. If the PR merges, that same projected repository state becomes merged lifecycle truth; no second cleanup PR is normally required. A dedicated reconciliation PR is recovery-only for legacy/stale state or an exceptional merge race.
+
+After merge and successful deployment, verify only the production evidence actually required by the scope. Production/provider evidence that cannot exist pre-merge may be recorded later as new evidence, but routine board/memory/packet cleanup is not deferred.
 
 ## UI/UX-specific loop
 
