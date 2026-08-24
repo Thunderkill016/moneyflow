@@ -39,6 +39,11 @@ limit 1;
 grant select on share_other_account to authenticated;
 
 create temporary table share_rule(id uuid not null, category_id uuid not null) on commit drop;
+
+-- The rule validation trigger intentionally requires the caller to be its tenant.
+set local request.jwt.claims = '{"sub":"45000000-0000-4000-8000-000000000001","role":"authenticated"}';
+set local role authenticated;
+
 insert into public.inbox_rules (
   id, user_id, priority, enabled, match_field, contains_text, category_id, merchant_name
 )
@@ -62,6 +67,8 @@ select id, category_id
 from public.inbox_rules
 where id = '45030000-0000-4000-8000-000000000001'::uuid;
 grant select on share_rule to authenticated;
+
+reset role;
 
 create or replace function pg_temp.cross_tenant_share_rejected()
 returns boolean
