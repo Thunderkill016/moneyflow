@@ -185,7 +185,7 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 |---|---|---|---|---|---|---|
 | 2026-08-24 | owner | implementer | planned | #454; this packet; `main@ac86d273` resolver READY | no authenticated/browser production proof | write failing regression |
 | 2026-08-25 | implementer | evaluator | evaluating | unit red→green; `verify:prepush` demo build; 12/12 Share browser; Class 3 static/RLS/migration gates | local pgTAP has no PostgreSQL/Docker; full audit WebKit navigation fails internally before assertions | prepare truthful draft PR; provider exact-head must run pgTAP/WebKit |
-| 2026-08-25 | evaluator | ci_or_production | evaluating | draft PR #455 at `5f4e939c` | CI is queued; provider database and WebKit evidence remain required | observe exact-head provider checks; do not merge without owner direction |
+| 2026-08-25 | evaluator | ci_or_production | evaluating | draft PR #455, introduced by implementation commit `5f4e939c` | CI is queued; provider database and WebKit evidence remain required | observe exact-head provider checks; do not merge without owner direction |
 
 ### Current permission boundary
 
@@ -230,7 +230,7 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 ## Delivery record
 
 - Branch: `feat/454-share-rule-application`
-- PR: #455 draft at `5f4e939c4955d1b5b5438c38dd7a2150158a2a24`
+- PR: #455 draft; its exact head must be checked again after every branch update
 - Squash commit: pending
 - CI run: queued on the exact draft head; draft does not supply substantive Class 3 evidence
 - Production deployment: not applicable
