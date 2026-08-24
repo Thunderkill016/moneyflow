@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-23
-**Current main baseline:** `eb8861c71dbc5b8173e7e48fff1293470a639816` (PR #447 merged)
-**Post-merge projection:** PR #449
+**Last reconciled:** 2026-08-24
+**Current main baseline:** `9e709a2116a560da673539a3ff3994928b22262b` (PR #449 merged)
+**Post-merge projection:** PR #451
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,12 +11,11 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-There is currently **no projected agent-executable product/governance child**. Issue #448 / PR #449 is in same-PR completion projection: its packet has moved to `docs/plans/completed/2026-08-23-448-source-lifecycle-reconciliation.md`, and this branch may only finish #448 acceptance defects/evaluation/verification. The next product slice must remain unpromoted until PR #449 merges and fresh-main authority resolution runs.
+There is currently **no projected agent-executable product/governance child**. Issue #450 / PR #451 is in same-PR completion projection: its packet has moved to `docs/plans/completed/2026-08-24-450-share-target-atomic-source.md`, and this branch may only finish #450 acceptance defects/evaluation/verification. The next product slice must remain unpromoted until PR #451 merges and fresh-main authority resolution runs.
 
 ## NEXT
 
-- [ ] **#432 P1 — migrate the next real source path** — after #448 merges, select one real file/share source and route it through the same candidate/provenance/reconciliation contract rather than opening a parallel ledger-write path. It remains unpromoted while PR #449 is open.
-- [ ] **#432 P2 — Low-Maintenance Ingestion** — expand real Vietnamese file/share sources, merchant/payee normalization and exception-first review; reduce interventions/100 transactions without reducing match precision.
+- [ ] **#432 P2 — Low-Maintenance Ingestion** — after #450 merges, select the next bounded evidence-backed improvement across real Vietnamese file/share sources, normalization or exception-first review; reduce interventions/100 transactions without reducing match precision. Do not pre-promote a child while PR #451 is open.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — owner/provider-gated.
 - [ ] **Controlled closed beta** — only after release entry gates clear and no unresolved P0 exists.
@@ -42,12 +41,13 @@ There is currently **no projected agent-executable product/governance child**. I
 - [ ] **#403 implementation** — measured, open, not the current product slice.
 - [ ] **#426 further implementation** — held pending reconciliation with #432.
 - [ ] **Provider integration / native mobile / Wealth / Together / AI mutation** — horizon only; each requires dependency evidence and a bounded researched specification.
-- [ ] **Phase E Creative Territories / Phase F broad redesign** — not current authority.
+- [ ] **Phase E Creative Territories / Phase F broad redesign** — parked; not current authority.
 
 ## CURRENT PR PROJECTION / RECENTLY DONE
 
-- [ ] **#448 / PR #449 — reviewed source lifecycle → clearing** — candidate until merge. Same-ID lifecycle-only observations become reviewable; reviewed `posted` evidence may advance one exactly matching one-leg income/expense account leg from `pending` to `cleared`; source state never establishes `reconciled`, overwrites ledger facts, deletes facts or demotes user/statement truth. Final exact-head non-draft Class 3 verification is still required.
-- [x] **#446 / PR #447 — event-sourced capability harness + same-PR lifecycle convergence** — merged as `eb8861c71dbc5b8173e7e48fff1293470a639816`. Final head `edfe3686…` passed CI #2913, database/pgTAP/archive, Browser smoke, Cross-device UI audit, aggregate e2e, CodeQL #1970 and Secret History #1970.
+- [ ] **#450 / PR #451 — PWA Share Target atomic source** — candidate until merge. Authenticated `/api/share-target` → `/capture/share` text/CSV persistence moves from browser-orchestrated generic mutations to one server/RPC transaction that creates only pending Inbox batches/candidates. Demo stays browser-local; no ledger write, automatic approval, provider or native expansion. Final exact-head non-draft Class 3 verification remains required.
+- [x] **#448 / PR #449 — reviewed source lifecycle → clearing** — merged as `9e709a2116a560da673539a3ff3994928b22262b`. Reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; source state never establishes `reconciled`, overwrites ledger facts, deletes facts or demotes user/statement truth.
+- [x] **#446 / PR #447 — event-sourced capability harness + same-PR lifecycle convergence** — merged as `eb8861c71dbc5b8173e7e48fff1293470a639816`.
 - [x] **#442 / PR #445 — explicit source lineage + lifecycle evidence** — merged as `e0b30350c1e819237ce769a9d5af40cc2d0324c0`; exact lineage only, no fuzzy replacement or source-driven ledger overwrite.
 - [x] **#443 / PR #444 — fail-closed plan authority resolution** — merged as `99257178ff416e5b1c875f62aea05035824ca9a5`.
 - [x] **#440 / PR #441** — changed same-ID source observations can be reviewed without overwriting ledger/reconciliation/canonical provenance.
@@ -60,7 +60,7 @@ There is currently **no projected agent-executable product/governance child**. I
 
 | Packet | Role now | Authority boundary |
 |---|---|---|
-| `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates; no child slice is currently projected as executable |
+| `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates; no child is currently projected as executable |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |

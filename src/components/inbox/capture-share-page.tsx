@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ingestShareTargetAction } from "@/app/actions/share-target-import";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import type { ViewerSummary } from "@/components/user-chip";
@@ -21,11 +22,7 @@ import {
   type SharePayload,
 } from "@/lib/inbox/share-payload";
 
-type Phase =
-  | "loading"
-  | "empty"
-  | "error"
-  | "success";
+type Phase = "loading" | "empty" | "error" | "success";
 
 type SuccessInfo = {
   candidateCount: number;
@@ -71,11 +68,8 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
         }
 
         if (!payload || !hasShareContent(payload)) {
-          // Fallback: GET query (manual test / share_target GET clients)
           const fromQuery = sharePayloadFromSearchParams(searchParams);
-          if (hasShareContent(fromQuery)) {
-            payload = fromQuery;
-          }
+          if (hasShareContent(fromQuery)) payload = fromQuery;
         }
 
         if (!payload || !hasShareContent(payload)) {
@@ -96,47 +90,74 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
           }
 
           let written = 0;
-          if (plan.pasteCandidates.length > 0) {
-            const pasteResult = await addCandidatesForClient(
-              viewer.isDemo,
-              plan.pasteCandidates,
-            );
-            if (!pasteResult.ok) {
-              setErrors([pasteResult.message]);
-              setPhase("error");
-              return;
-            }
-            written += pasteResult.candidates.length;
-          }
-
           let csvFileCount = 0;
-          for (const csvPlan of plan.csvPlans) {
-            const batchResult = await addImportBatchForClient(viewer.isDemo, {
-              fileName: csvPlan.fileName,
-              source: "csv",
-              status: "parsed",
-              rowCount: csvPlan.parse.rows.length,
-              warningCount: csvPlan.parse.warningCount,
-              skippedRows: csvPlan.parse.skippedRows,
-              mapConfidence: csvPlan.parse.mapConfidence,
-              headers: csvPlan.parse.headers,
-              columnMap: csvPlan.parse.columnMap,
+
+          if (!viewer.isDemo) {
+            // Authenticated Share is one server/RPC operation. A failure cannot
+            // leave an earlier text/CSV prefix persisted from this share action.
+            const result = await ingestShareTargetAction({
+              pasteCandidates: plan.pasteCandidates,
+              csvPlans: plan.csvPlans.map((csvPlan) => ({
+                fileName: csvPlan.fileName,
+                warningCount: csvPlan.parse.warningCount,
+                skippedRows: csvPlan.parse.skippedRows,
+                mapConfidence: csvPlan.parse.mapConfidence,
+                headers: csvPlan.parse.headers,
+                columnMap: csvPlan.parse.columnMap,
+                rows: csvPlan.parse.rows,
+              })),
             });
-            if (!batchResult.ok) {
-              setErrors([batchResult.message]);
+            if (!result.ok) {
+              setErrors([result.message]);
               setPhase("error");
               return;
             }
-            const inputs = csvPlanToCandidates(csvPlan, batchResult.batch.id);
-            const candResult = await addCandidatesForClient(viewer.isDemo, inputs);
-            if (!candResult.ok) {
-              setErrors([candResult.message]);
-              setPhase("error");
-              return;
+            written = result.candidateCount;
+            csvFileCount = plan.csvPlans.length;
+          } else {
+            // Demo intentionally remains local-first. It does not claim the
+            // authenticated server transaction boundary.
+            if (plan.pasteCandidates.length > 0) {
+              const pasteResult = await addCandidatesForClient(
+                true,
+                plan.pasteCandidates,
+              );
+              if (!pasteResult.ok) {
+                setErrors([pasteResult.message]);
+                setPhase("error");
+                return;
+              }
+              written += pasteResult.candidates.length;
             }
-            written += candResult.candidates.length;
-            await markBatchCommittedForClient(viewer.isDemo, batchResult.batch.id);
-            csvFileCount += 1;
+
+            for (const csvPlan of plan.csvPlans) {
+              const batchResult = await addImportBatchForClient(true, {
+                fileName: csvPlan.fileName,
+                source: "csv",
+                status: "parsed",
+                rowCount: csvPlan.parse.rows.length,
+                warningCount: csvPlan.parse.warningCount,
+                skippedRows: csvPlan.parse.skippedRows,
+                mapConfidence: csvPlan.parse.mapConfidence,
+                headers: csvPlan.parse.headers,
+                columnMap: csvPlan.parse.columnMap,
+              });
+              if (!batchResult.ok) {
+                setErrors([batchResult.message]);
+                setPhase("error");
+                return;
+              }
+              const inputs = csvPlanToCandidates(csvPlan, batchResult.batch.id);
+              const candResult = await addCandidatesForClient(true, inputs);
+              if (!candResult.ok) {
+                setErrors([candResult.message]);
+                setPhase("error");
+                return;
+              }
+              written += candResult.candidates.length;
+              await markBatchCommittedForClient(true, batchResult.batch.id);
+              csvFileCount += 1;
+            }
           }
 
           const pending = await getPendingCountForClient(viewer.isDemo);
@@ -148,12 +169,10 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
             warnings: [...plan.warnings, ...plan.errors],
           });
           setNotice(
-            // Counts only — never echo shared statement/paste body into the toast.
             `Đã đưa ${written} mục vào Inbox từ chia sẻ — chưa ghi sổ.`,
           );
           setPhase("success");
 
-          // Auto-continue to Inbox after a short beat (user can stay via cancel)
           window.setTimeout(() => {
             router.push("/inbox");
           }, 1400);
@@ -171,11 +190,7 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
     <AppShell
       viewer={viewer}
       inboxCount={inboxCount}
-      primaryAction={{
-        label: "Inbox",
-        href: "/inbox",
-        icon: "inbox",
-      }}
+      primaryAction={{ label: "Inbox", href: "/inbox", icon: "inbox" }}
       notice={notice}
     >
       <main className="dashboard capture-workspace capture-share-workspace">
@@ -213,9 +228,7 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
             <div className="capture-share-state" role="status">
               <div className="loading-line wide" />
               <div className="loading-line" />
-              <p className="capture-share-lead">
-                Đang phân tích nội dung chia sẻ…
-              </p>
+              <p className="capture-share-lead">Đang phân tích nội dung chia sẻ…</p>
             </div>
           )}
 
@@ -227,15 +240,9 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
                 text / tải CSV.
               </p>
               <div className="capture-paste-actions">
-                <Link className="primary-button" href="/capture/paste">
-                  Dán text
-                </Link>
-                <Link className="secondary-button" href="/capture/upload">
-                  Tải sao kê
-                </Link>
-                <Link className="secondary-button" href="/capture">
-                  Menu Capture
-                </Link>
+                <Link className="primary-button" href="/capture/paste">Dán text</Link>
+                <Link className="secondary-button" href="/capture/upload">Tải sao kê</Link>
+                <Link className="secondary-button" href="/capture">Menu Capture</Link>
               </div>
               <p className="capture-upload-trust-inline">
                 <Icon name="lock" />
@@ -254,21 +261,13 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
               </p>
               {errors.length > 1 && (
                 <ul className="capture-share-error-list">
-                  {errors.slice(1).map((msg) => (
-                    <li key={msg}>{msg}</li>
-                  ))}
+                  {errors.slice(1).map((msg) => <li key={msg}>{msg}</li>)}
                 </ul>
               )}
               <div className="capture-paste-actions">
-                <Link className="primary-button" href="/capture/paste">
-                  Dán thủ công
-                </Link>
-                <Link className="secondary-button" href="/capture/upload">
-                  Tải file
-                </Link>
-                <Link className="secondary-button" href="/inbox">
-                  Về Inbox
-                </Link>
+                <Link className="primary-button" href="/capture/paste">Dán thủ công</Link>
+                <Link className="secondary-button" href="/capture/upload">Tải file</Link>
+                <Link className="secondary-button" href="/inbox">Về Inbox</Link>
               </div>
             </div>
           )}
@@ -276,39 +275,25 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
           {phase === "success" && success && (
             <div className="capture-share-state" role="status">
               <p className="capture-paste-summary">
-                Đã xếp <strong>{success.candidateCount}</strong> ứng viên vào
-                Inbox
-                {success.pasteCount > 0
-                  ? ` · ${success.pasteCount} từ text`
-                  : ""}
-                {success.csvFileCount > 0
-                  ? ` · ${success.csvFileCount} file CSV`
-                  : ""}
-                .
+                Đã xếp <strong>{success.candidateCount}</strong> ứng viên vào Inbox
+                {success.pasteCount > 0 ? ` · ${success.pasteCount} từ text` : ""}
+                {success.csvFileCount > 0 ? ` · ${success.csvFileCount} file CSV` : ""}.
               </p>
               <p className="capture-share-lead">
                 Đang mở Inbox để bạn duyệt — không mục nào được ghi sổ tự động.
               </p>
               {success.warnings.length > 0 && (
                 <ul className="capture-share-warning-list">
-                  {success.warnings.map((w) => (
-                    <li key={w}>{w}</li>
-                  ))}
+                  {success.warnings.map((w) => <li key={w}>{w}</li>)}
                 </ul>
               )}
               <div className="capture-paste-actions">
-                <Link className="primary-button" href="/inbox">
-                  Mở Inbox ngay
-                </Link>
-                <Link className="secondary-button" href="/capture">
-                  Capture khác
-                </Link>
+                <Link className="primary-button" href="/inbox">Mở Inbox ngay</Link>
+                <Link className="secondary-button" href="/capture">Capture khác</Link>
               </div>
               <p className="capture-upload-trust-inline">
                 <Icon name="lock" />
-                <span>
-                  Ứng viên độ tin cậy thấp luôn chờ bạn xác nhận trong Inbox.
-                </span>
+                <span>Ứng viên độ tin cậy thấp luôn chờ bạn xác nhận trong Inbox.</span>
               </p>
             </div>
           )}
