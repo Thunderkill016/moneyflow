@@ -1,6 +1,6 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-24
+**Last reconciled:** 2026-08-25
 **Current main baseline:** `ac86d273876414c76fc050b11d3904dddfbb93b6` (PR #453 merged)
 **Post-merge projection:** PR #455
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
@@ -45,7 +45,7 @@ PR #455 is in same-PR completion projection for #454. Its packet has moved to `d
 
 ## CURRENT PR PROJECTION / RECENTLY DONE
 
-- [ ] **#454 / PR #455 — deterministic PWA Share candidate rules** — ready-for-review completion candidate. Explicit rules normalize only matching future Share candidates through an atomic server validation path; every candidate remains pending, with no automatic approval, ledger write, raw-source rewrite, provider/native/AI expansion. Exact-head non-draft CI and owner merge remain pending.
+- [ ] **#454 / PR #455 — deterministic PWA Share candidate rules** — ready-for-review completion candidate. Explicit rules normalize only matching future Share candidates through an atomic server validation path; every candidate remains pending, with no automatic approval, ledger write, raw-source rewrite, provider/native/AI expansion. Exact code head `26c281e8` passed all selected provider gates; owner merge remains pending.
 - [x] **#452 / PR #453 — confirmed Inbox rule capture** — merged as `ac86d273876414c76fc050b11d3904dddfbb93b6`. Explicit non-transfer review confirmation creates only a future candidate-stage rule; no automatic approval, ledger write, source rewrite, backfill, migration or provider/native/AI expansion.
 - [x] **#450 / PR #451 — PWA Share Target atomic source** — merged as `4d80fbe915155061fc3152740bb65c9cfa5c09ba` after exact-head Class 3 checks. Authenticated `/api/share-target` → `/capture/share` text/CSV persistence creates only pending Inbox batches/candidates; demo stays browser-local with no ledger write or automatic approval.
 - [x] **#448 / PR #449 — reviewed source lifecycle → clearing** — merged as `9e709a2116a560da673539a3ff3994928b22262b`. Reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; source state never establishes `reconciled`, overwrites ledger facts, deletes facts or demotes user/statement truth.

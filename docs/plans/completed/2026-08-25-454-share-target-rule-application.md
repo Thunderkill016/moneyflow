@@ -5,7 +5,7 @@
 **Active role:** none after the PR #455 projection activates
 **Permission scope:** branch_write
 **Owner:** human owner
-**Issue/PR:** #454 / PR #455 (draft)
+**Issue/PR:** #454 / PR #455 (open, ready for review)
 **Base at implementation start:** `main@ac86d273876414c76fc050b11d3904dddfbb93b6`
 **Last updated:** 2026-08-25
 
@@ -186,7 +186,7 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 | 2026-08-24 | owner | implementer | planned | #454; this packet; `main@ac86d273` resolver READY | no authenticated/browser production proof | write failing regression |
 | 2026-08-25 | implementer | evaluator | evaluating | unit red→green; `verify:prepush` demo build; 12/12 Share browser; Class 3 static/RLS/migration gates | local pgTAP has no PostgreSQL/Docker; full audit WebKit navigation fails internally before assertions | prepare truthful draft PR; provider exact-head must run pgTAP/WebKit |
 | 2026-08-25 | evaluator | ci_or_production | evaluating | draft PR #455, introduced by implementation commit `5f4e939c` | CI is queued; provider database and WebKit evidence remain required | observe exact-head provider checks; do not merge without owner direction |
-| 2026-08-25 | ci_or_production | human owner | ready_for_review | exact-head draft CodeQL, Gitleaks and classify passed; PR #455 completion projection | non-draft provider database/e2e/UI gates, review and merge remain required | mark PR ready, then await exact-head CI and owner merge decision |
+| 2026-08-25 | ci_or_production | human owner | ready_for_review | exact code head `26c281e8` passed provider CI run `32757666717`: policy/static/build/unit/RLS, fresh Supabase pgTAP, archive round trips, browser smoke and cross-device audit | review and merge remain owner decisions; no production write | await owner merge decision |
 
 ### Current permission boundary
 
@@ -204,9 +204,9 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 |---|---|---|
 | Deterministic Share match stays pending and records exact demo revision | focused share-payload unit plus Playwright Chromium + mobile Chromium regression | pass locally |
 | Transfers and already categorized candidates remain unchanged | focused `planShareRuleEvidence` unit test | pass locally |
-| Authenticated Share applies/rolls back server-side rule evidence atomically | new pgTAP match and stale-version rollback cases | blocked: local Supabase cannot connect to PostgreSQL; provider database job required |
+| Authenticated Share applies/rolls back server-side rule evidence atomically | new pgTAP match and stale-version rollback cases; provider database gate | pass on exact code head `26c281e8` |
 | Static/domain/migration/RLS checks | `check:knowledge`, `test:ci-policy`, `check:migrations`, `check:rls`, `verify:prepush` with `NEXT_PUBLIC_APP_MODE=demo` | pass locally (lint has five pre-existing warnings outside this diff) |
-| Responsive audit | 503 Chromium-family checks passed; 141 matrix skips | blocked: 54 WebKit checks fail at `page.goto` with WebKit internal error before app assertions |
+| Responsive audit | 503 Chromium-family checks passed; 141 matrix skips; provider cross-device audit | pass on exact code head `26c281e8`; local WebKit host still fails before assertions |
 
 ### Research and adoption evidence
 
@@ -216,7 +216,7 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 
 ### Review findings
 
-- Correctness: demo path preserves pending state, normalizes a matching rule and writes its evidence; authenticated execution remains unproven until pgTAP/provider CI.
+- Correctness: demo path preserves pending state, normalizes a matching rule and writes its evidence; authenticated execution passed provider pgTAP and browser gates on exact code head `26c281e8`.
 - Security/ownership: new wrapper is `SECURITY INVOKER`, requires `auth.uid()`, exposes execute only to `authenticated`, and delegates tenant/rule/version/match checks to the existing rule function. Static RLS check passes.
 - UI/UX/accessibility: affected Share regression passes on Chromium desktop and mobile; broad Chromium audit passes. WebKit local navigation is unavailable before assertion.
 - Maintainability/duplication: Share uses the existing rule matcher and the existing authoritative database application function, rather than a Share-only normalization contract.
@@ -226,14 +226,14 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 
 - This does not measure interventions/100 transactions or create an automatic approval path.
 - This environment has no local PostgreSQL/Docker, so the new pgTAP migration assertions are not executed locally.
-- WebKit local audit cannot navigate to the local app (`WebKit encountered an internal error`); this affects unrelated routes and must be rechecked in exact-head CI or a repaired browser host.
+- WebKit local audit cannot navigate to the local app (`WebKit encountered an internal error`); this affects unrelated routes, while the provider cross-device audit passed.
 
 ## Delivery record
 
 - Branch: `feat/454-share-rule-application`
-- PR: #455 draft; its exact head must be checked again after every branch update
+- PR: #455 open, ready for review; exact code head `26c281e8` passed provider CI run `32757666717`
 - Squash commit: pending
-- CI run: queued on the exact draft head; draft does not supply substantive Class 3 evidence
+- CI run: `32757666717` passed all selected Class 3 gates on `26c281e8`
 - Production deployment: not applicable
 - Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: pending
+- Work packet moved to `docs/plans/completed/`: complete; candidate remains unmerged

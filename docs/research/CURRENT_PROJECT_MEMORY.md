@@ -130,7 +130,7 @@ Release/trust gaps remain RRB-02/03/04/05/06/08/09 at their existing evidence/au
 
 ## 11. Next allowed action
 
-Complete PR #455 only: resolve #454 acceptance defects, run exact-head Class 3 evidence, then await the owner merge decision. Do not select a follow-on child before fresh-main authority resolution after an exact matching merge.
+Complete PR #455 only: exact code head `26c281e8` has passed Class 3 provider evidence; await the owner merge decision. Do not select a follow-on child before fresh-main authority resolution after an exact matching merge.
 
 Do not jump to bank/e-wallet/NAPAS integration, infer rules from behavior, auto-approve/backfill candidates, source-drive `reconciled`, perform provider/production writes, broaden matching semantics, or expand transfer behavior inside #454.
 
