@@ -8,7 +8,7 @@ create or replace function public.ingest_share_target_capture(
 )
 returns jsonb
 language plpgsql
-security definer
+security invoker
 set search_path = ''
 as $$
 declare
@@ -24,6 +24,8 @@ declare
   v_candidate_source public.inbox_candidate_source;
   v_kind public.transaction_kind;
   v_confidence public.inbox_candidate_confidence;
+  v_parser_version text;
+  v_mapping_version integer := 1;
   v_batch_count integer;
   v_candidate_count integer;
   v_expected_rows integer;
@@ -75,10 +77,14 @@ begin
       or coalesce((v_batch ->> 'skipped_rows')::integer, -1) < 0
       or coalesce((v_batch ->> 'map_confidence')::double precision, -1) < 0
       or coalesce((v_batch ->> 'map_confidence')::double precision, 2) > 1
-      or char_length(coalesce(v_batch ->> 'parser_version', '')) not between 1 and 80
-      or coalesce((v_batch ->> 'mapping_version')::integer, 0) < 1 then
+      then
       raise exception 'invalid_share_batch';
     end if;
+
+    v_parser_version := case v_batch_source
+      when 'paste'::public.import_batch_source then 'paste_text@1.0'
+      when 'csv'::public.import_batch_source then 'csv_import@1.0'
+    end;
 
     if jsonb_typeof(coalesce(v_batch -> 'headers', '[]'::jsonb)) <> 'array'
       or jsonb_typeof(coalesce(v_batch -> 'column_map', '{}'::jsonb)) <> 'object' then
@@ -115,8 +121,8 @@ begin
       (v_batch ->> 'map_confidence')::double precision,
       coalesce(v_batch -> 'headers', '[]'::jsonb),
       coalesce(v_batch -> 'column_map', '{}'::jsonb),
-      v_batch ->> 'parser_version',
-      (v_batch ->> 'mapping_version')::integer,
+      v_parser_version,
+      v_mapping_version,
       null,
       now()
     );
@@ -157,11 +163,14 @@ begin
       or char_length(coalesce(v_candidate ->> 'merchant', '')) not between 1 and 200
       or char_length(coalesce(v_candidate ->> 'note', '')) > 500
       or char_length(coalesce(v_candidate ->> 'raw_snippet', '')) > 2000
-      or char_length(coalesce(v_candidate ->> 'parser_version', '')) not between 1 and 80
-      or coalesce((v_candidate ->> 'mapping_version')::integer, 0) < 1
       or (v_candidate ? 'source_external_id') then
       raise exception 'invalid_share_candidate';
     end if;
+
+    v_parser_version := case v_candidate_source
+      when 'paste'::public.inbox_candidate_source then 'paste_text@1.0'
+      when 'csv'::public.inbox_candidate_source then 'csv_import@1.0'
+    end;
 
     v_candidate_ids := array_append(v_candidate_ids, v_candidate_id);
 
@@ -209,8 +218,8 @@ begin
       null,
       nullif(v_candidate ->> 'source_row_index', '')::integer,
       null,
-      v_candidate ->> 'parser_version',
-      (v_candidate ->> 'mapping_version')::integer
+      v_parser_version,
+      v_mapping_version
     );
   end loop;
 
