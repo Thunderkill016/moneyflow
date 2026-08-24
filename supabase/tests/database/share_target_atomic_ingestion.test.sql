@@ -1,5 +1,5 @@
 begin;
-select plan(10);
+select plan(14);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -7,7 +7,8 @@ insert into auth.users (
   email_change_token_current, reauthentication_token, raw_app_meta_data,
   raw_user_meta_data, created_at, updated_at, phone_change, phone_change_token,
   is_sso_user, is_anonymous
-) values (
+) values
+(
   '00000000-0000-0000-0000-000000000000'::uuid,
   '45000000-0000-4000-8000-000000000001'::uuid,
   'authenticated', 'authenticated', 'share-owner@example.invalid',
@@ -16,7 +17,72 @@ insert into auth.users (
   '{"provider":"email","providers":["email"]}'::jsonb,
   '{"full_name":"Share Owner"}'::jsonb,
   now(), now(), '', '', false, false
+),
+(
+  '00000000-0000-0000-0000-000000000000'::uuid,
+  '45000000-0000-4000-8000-000000000002'::uuid,
+  'authenticated', 'authenticated', 'share-other@example.invalid',
+  crypt('discarded-test-password', gen_salt('bf')), now(),
+  '', '', '', '', '', '',
+  '{"provider":"email","providers":["email"]}'::jsonb,
+  '{"full_name":"Share Other"}'::jsonb,
+  now(), now(), '', '', false, false
 );
+
+create temporary table share_other_account(id uuid not null) on commit drop;
+insert into share_other_account(id)
+select id
+from public.accounts
+where user_id = '45000000-0000-4000-8000-000000000002'::uuid
+order by created_at, id
+limit 1;
+grant select on share_other_account to authenticated;
+
+create or replace function pg_temp.cross_tenant_share_rejected()
+returns boolean
+language plpgsql
+as $$
+begin
+  perform public.ingest_share_target_capture(
+    jsonb_build_array(
+      jsonb_build_object(
+        'id', '45010000-0000-4000-8000-000000000020',
+        'file_name', 'cross-tenant.csv',
+        'source', 'csv',
+        'row_count', 1,
+        'warning_count', 0,
+        'skipped_rows', 0,
+        'map_confidence', 1,
+        'headers', '["date","description","amount"]'::jsonb,
+        'column_map', '{"date":0,"desc":1,"amount":2,"debit":null,"credit":null}'::jsonb,
+        'parser_version', 'csv_import@1.0',
+        'mapping_version', 1
+      )
+    ),
+    jsonb_build_array(
+      jsonb_build_object(
+        'id', '45020000-0000-4000-8000-000000000020',
+        'import_batch_id', '45010000-0000-4000-8000-000000000020',
+        'kind', 'expense',
+        'amount_minor', 30000,
+        'merchant', 'Foreign account attempt',
+        'note', '',
+        'occurred_on', '2026-08-24',
+        'source', 'csv',
+        'confidence', 'high',
+        'account_id', (select id::text from pg_temp.share_other_account limit 1),
+        'source_row_index', 1,
+        'parser_version', 'csv_import@1.0',
+        'mapping_version', 1
+      )
+    )
+  );
+  return false;
+exception
+  when foreign_key_violation then return true;
+end;
+$$;
+grant execute on function pg_temp.cross_tenant_share_rejected() to authenticated;
 
 set local request.jwt.claims = '{"sub":"45000000-0000-4000-8000-000000000001","role":"authenticated"}';
 set local role authenticated;
@@ -214,6 +280,25 @@ select is(
    )),
   0,
   'failed Share leaves no candidate prefix'
+);
+
+select ok(
+  pg_temp.cross_tenant_share_rejected(),
+  'Share Target cannot bind a candidate to another tenant account'
+);
+
+select is(
+  (select count(*)::integer from public.import_batches
+   where id = '45010000-0000-4000-8000-000000000020'),
+  0,
+  'cross-tenant rejection rolls back the attempted batch'
+);
+
+select is(
+  (select count(*)::integer from public.inbox_candidates
+   where id = '45020000-0000-4000-8000-000000000020'),
+  0,
+  'cross-tenant rejection leaves no attempted candidate'
 );
 
 select * from finish();
