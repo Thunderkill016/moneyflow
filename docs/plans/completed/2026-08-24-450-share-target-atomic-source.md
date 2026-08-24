@@ -1,10 +1,10 @@
 # #450 — PWA Share Target atomic acquisition source
 
-**Status:** implementing
-**Execution state:** active
+**Status:** ready_for_review
+**Execution state:** projected completion in PR #451; unmerged candidate until owner decision
 **Change class:** Class 3 — financial acquisition / persistence boundary
 **Parent:** #432 P1 Acquisition Foundation
-**Active role:** planner / implementer
+**Active role:** none after the PR #451 projection activates
 **Permission scope:** branch_write only; no merge, provider, deployment or production-data action
 **Owner:** human owner
 **Issue/PR:** #450 / PR #451
@@ -102,12 +102,12 @@ All batch and candidate rows for that share action commit or roll back together.
 | T1 | Resolve fresh-main authority and choose one real source | main #449 merge + resolver source + Current Work | done |
 | T2 | Reconcile existing Share Target implementation and failure modes | route/parser/client/action review | done |
 | T3 | Validate platform share-target constraints | MDN + web.dev | done |
-| T4 | Promote #450 packet/board/memory | repo governance artifacts | in_progress |
-| T5 | Implement atomic authenticated source persistence | migration + server action + client wiring | pending |
-| T6 | Prove atomicity/ownership/provenance/no-ledger-write | pgTAP + unit/static tests | pending |
-| T7 | Exercise browser Share Target / Inbox review flow | browser evidence | pending |
-| T8 | Independent adversarial evaluation | review findings + fixes | pending |
-| T9 | Same-PR lifecycle convergence | packet archive + board/memory projection | pending |
+| T4 | Promote #450 packet/board/memory | repo governance artifacts | done |
+| T5 | Implement atomic authenticated source persistence | migration + server action + client wiring | done |
+| T6 | Prove atomicity/ownership/provenance/no-ledger-write | pgTAP + unit/static tests | done; final exact-head database gate pending |
+| T7 | Exercise browser Share Target / Inbox review flow | browser evidence | pending final exact-head CI |
+| T8 | Independent adversarial evaluation | review findings + fixes | done; no new blocker found |
+| T9 | Same-PR lifecycle convergence | packet archive + board/memory projection | done in branch projection |
 | T10 | Exact-head Class 3 verification | CI/database/browser/UI/CodeQL/Secret History | pending |
 
 ## Evaluation
@@ -127,11 +127,16 @@ Required counterexamples before handoff:
 
 No exact-head verification claim may survive a later branch mutation.
 
+### Independent evaluation
+
+The server action validates the bounded planned payload before rate limiting, derives UUIDs and provenance versions server-side, and calls exactly one RPC. The RPC uses `auth.uid()` with `SECURITY INVOKER`, rejects invalid/cross-batch values, preserves the existing tenant foreign keys, inserts only `pending` candidate evidence, and rejects caller-supplied external source IDs. The database suite covers mixed text/CSV success, a late invalid-row rollback, cross-tenant account rejection, canonical provenance and zero ledger writes. No new blocker was found in this review; Docker-backed pgTAP and browser/UI proof remain final exact-head CI evidence.
+
 ## Handoff record
 
 | Date | From | To | State | Evidence | Remaining | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-24 | owner | planner/implementer | implementing | user instruction; merged #449; issue #450; exact-main branch | code/tests not implemented | promote #450, then implement bounded slice |
+| 2026-08-24 | implementer | PR #451 verification | ready_for_review projection | migration, server action, client split, pgTAP, local policy/knowledge/RLS/unit/build and same-PR convergence | final non-draft exact-head CI/database/browser/UI/e2e, CodeQL and Secret History | mark PR ready, fix acceptance defects only, owner handoff when green |
 
 ## Current permission boundary
 
