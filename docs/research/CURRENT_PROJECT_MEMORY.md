@@ -59,7 +59,7 @@ Merged PR #451 changes only that acquisition boundary:
 
 Master #432 is active. #450 closed through exact matching squash merge `main@4d80fbe915155061fc3152740bb65c9cfa5c09ba`; its completed packet is `docs/plans/completed/2026-08-24-450-share-target-atomic-source.md`. #452 closed through exact matching squash merge `main@ac86d273876414c76fc050b11d3904dddfbb93b6`; its completed packet is `docs/plans/completed/2026-08-24-452-confirmed-inbox-rule-capture.md`.
 
-#454 is the one current P2 child. It may only make PWA Share Target candidates reuse existing explicit deterministic candidate-stage rules, carrying exact rule id/version through a focused atomic Share RPC wrapper. Every candidate remains pending; no inference, automatic approval, ledger mutation, raw-source rewrite, backfill, RLS, provider/native/AI or deployment change is in scope.
+#454 is the one current P2 child, carried by draft PR #455 at `5f4e939c4955d1b5b5438c38dd7a2150158a2a24`. It may only make PWA Share Target candidates reuse existing explicit deterministic candidate-stage rules, carrying exact rule id/version through a focused atomic Share RPC wrapper. Every candidate remains pending; no inference, automatic approval, ledger mutation, raw-source rewrite, backfill, RLS, provider/native/AI or deployment change is in scope. Draft evidence is candidate-only until exact-head provider checks and owner merge decision.
 
 ## 5. Current capability inventory
 
@@ -107,11 +107,11 @@ Completed acquisition inputs: #434/#435, #436/#437, #438/#439, #440/#441, #442/#
 
 #443/#444 closed the plan-authority discovery defect. #446/#447 closed the repeated lifecycle-cleanup pattern and replaced the local monolithic dispatcher with the event-sourced capability harness.
 
-#451 and #453 are merged runtime truth. #454 is the current active P2 child; #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
+#451 and #453 are merged runtime truth. #454 is the current active P2 child, with draft PR #455 candidate evidence only; #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
 
 ## 9. Open pull-request memory
 
-PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. PR #453 is the durable merged record for #452; its record is `docs/research/pr-memory/2026/Q3/PR-453.md`. #454 will receive its own record when a PR exists.
+PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. PR #453 is the durable merged record for #452; its record is `docs/research/pr-memory/2026/Q3/PR-453.md`. Draft PR #455 is the candidate record for #454; it does not establish runtime truth.
 
 A final branch mutation invalidates older-head verification evidence. Merge remains owner-authorized only.
 

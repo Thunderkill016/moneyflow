@@ -5,7 +5,7 @@
 **Active role:** evaluator
 **Permission scope:** branch_write
 **Owner:** human owner
-**Issue/PR:** #454 / pending
+**Issue/PR:** #454 / PR #455 (draft)
 **Base at implementation start:** `main@ac86d273876414c76fc050b11d3904dddfbb93b6`
 **Last updated:** 2026-08-25
 
@@ -177,7 +177,7 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 | T1 | Add a failing Share rule-flow regression | packet | helper test failed before implementation, then passed | done |
 | T2 | Reuse rule selection and apply it atomically in Share capture | T1 | focused unit/database/browser coverage added | done |
 | T3 | Run selected local/browser checks and independent UI review | T2 | local gates/browser output; pgTAP and WebKit environment blockers recorded | in_progress |
-| T4 | Publish focused PR and exact-head verification record | T3 | PR/CI evidence | todo |
+| T4 | Publish focused PR and exact-head verification record | T3 | PR #455 draft + CI evidence pending | in_progress |
 
 ## Handoff record
 
@@ -185,6 +185,7 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 |---|---|---|---|---|---|---|
 | 2026-08-24 | owner | implementer | planned | #454; this packet; `main@ac86d273` resolver READY | no authenticated/browser production proof | write failing regression |
 | 2026-08-25 | implementer | evaluator | evaluating | unit red→green; `verify:prepush` demo build; 12/12 Share browser; Class 3 static/RLS/migration gates | local pgTAP has no PostgreSQL/Docker; full audit WebKit navigation fails internally before assertions | prepare truthful draft PR; provider exact-head must run pgTAP/WebKit |
+| 2026-08-25 | evaluator | ci_or_production | evaluating | draft PR #455 at `5f4e939c` | CI is queued; provider database and WebKit evidence remain required | observe exact-head provider checks; do not merge without owner direction |
 
 ### Current permission boundary
 
@@ -229,9 +230,9 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 ## Delivery record
 
 - Branch: `feat/454-share-rule-application`
-- PR: pending (do not claim completion until provider exact-head checks run)
+- PR: #455 draft at `5f4e939c4955d1b5b5438c38dd7a2150158a2a24`
 - Squash commit: pending
-- CI run: pending
+- CI run: queued on the exact draft head; draft does not supply substantive Class 3 evidence
 - Production deployment: not applicable
 - Production flow verified: not applicable
 - Work packet moved to `docs/plans/completed/`: pending

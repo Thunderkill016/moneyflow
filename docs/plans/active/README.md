@@ -8,7 +8,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## NOW
 
-- [ ] **#454 — deterministic rules for PWA Share Target candidates** — selected P2 slice. Carry existing explicit candidate-stage rule id/version through shared text/CSV persistence and apply it inside the atomic Share transaction. Each candidate remains pending Inbox review; no inferred rule, automatic approval, ledger write, raw-source rewrite or provider/native/AI expansion. **Next actor:** agent.
+- [ ] **#454 / PR #455 (draft) — deterministic rules for PWA Share Target candidates** — selected P2 slice. Carry existing explicit candidate-stage rule id/version through shared text/CSV persistence and apply it inside the atomic Share transaction. Each candidate remains pending Inbox review; no inferred rule, automatic approval, ledger write, raw-source rewrite or provider/native/AI expansion. **Next actor:** agent/CI; draft status is not completion evidence.
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
