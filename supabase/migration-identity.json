@@ -264,6 +264,11 @@
       "version": "20260823124500",
       "name": "20260823124500_source_lifecycle_reconciliation_lock_order.sql",
       "hash": "e34d7d20b8b36c903b9a9f2f8f367c40"
+    },
+    {
+      "version": "20260824083000",
+      "name": "20260824083000_share_target_atomic_ingestion.sql",
+      "hash": "62bf161554fd77fb3b7a63af7a4b6530"
     }
   ]
 }
