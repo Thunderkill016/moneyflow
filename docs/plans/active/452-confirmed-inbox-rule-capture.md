@@ -5,7 +5,7 @@
 **Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** human owner
-**Issue/PR:** #452 / PR pending
+**Issue/PR:** #452 / PR #453 (draft)
 **Last updated:** 2026-08-24
 
 ## Outcome
@@ -224,7 +224,7 @@ The Inbox review component owns the explicit user gesture; the existing rules cl
 ## Delivery record
 
 - Branch: `feat/452-confirmed-inbox-rule`
-- PR: pending
+- PR: #453 (draft)
 - Squash commit: pending
 - CI run: pending
 - Production deployment: not authorized

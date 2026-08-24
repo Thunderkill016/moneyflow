@@ -9,7 +9,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 ## NOW
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
-- [ ] **#452 / #432 P2 — confirmed Inbox rule capture** — an explicit review-time rule can reduce repeated merchant/category entry while leaving all candidates pending for review. **Next actor:** agent on `feat/452-confirmed-inbox-rule`; Class 3 packet `452-confirmed-inbox-rule-capture.md`.
+- [ ] **#452 / PR #453 / #432 P2 — confirmed Inbox rule capture** — an explicit review-time rule can reduce repeated merchant/category entry while leaving all candidates pending for review. **Next actor:** agent on `feat/452-confirmed-inbox-rule`; Class 3 packet `452-confirmed-inbox-rule-capture.md`.
 
 ## NEXT
 
@@ -43,7 +43,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## CURRENT PR PROJECTION / RECENTLY DONE
 
-- [ ] **#452 — confirmed Inbox rule capture** — active Class 3 candidate on `feat/452-confirmed-inbox-rule`; explicit non-transfer review confirmation may create only a future candidate-stage rule. No automatic approval, ledger write, source rewrite, backfill, migration or provider/native/AI expansion.
+- [ ] **#452 / PR #453 — confirmed Inbox rule capture** — active Class 3 draft candidate on `feat/452-confirmed-inbox-rule`; explicit non-transfer review confirmation may create only a future candidate-stage rule. No automatic approval, ledger write, source rewrite, backfill, migration or provider/native/AI expansion.
 - [x] **#450 / PR #451 — PWA Share Target atomic source** — merged as `4d80fbe915155061fc3152740bb65c9cfa5c09ba` after exact-head Class 3 checks. Authenticated `/api/share-target` → `/capture/share` text/CSV persistence creates only pending Inbox batches/candidates; demo stays browser-local with no ledger write or automatic approval.
 - [x] **#448 / PR #449 — reviewed source lifecycle → clearing** — merged as `9e709a2116a560da673539a3ff3994928b22262b`. Reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; source state never establishes `reconciled`, overwrites ledger facts, deletes facts or demotes user/statement truth.
 - [x] **#446 / PR #447 — event-sourced capability harness + same-PR lifecycle convergence** — merged as `eb8861c71dbc5b8173e7e48fff1293470a639816`.

@@ -59,7 +59,7 @@ Merged PR #451 changes only that acquisition boundary:
 
 Master #432 is active. #450 closed through exact matching squash merge `main@4d80fbe915155061fc3152740bb65c9cfa5c09ba`; its completed packet is `docs/plans/completed/2026-08-24-450-share-target-atomic-source.md`.
 
-#452 is the one active P2 child on branch `feat/452-confirmed-inbox-rule`, with packet `docs/plans/active/452-confirmed-inbox-rule-capture.md`. It may add only an explicit, separate review-time save of an existing candidate-stage deterministic rule for future non-transfer candidates. It cannot post, approve, backfill, alter raw source or change rule persistence/RLS semantics.
+#452 is the one active P2 child on branch `feat/452-confirmed-inbox-rule`, draft PR #453, with packet `docs/plans/active/452-confirmed-inbox-rule-capture.md`. It may add only an explicit, separate review-time save of an existing candidate-stage deterministic rule for future non-transfer candidates. It cannot post, approve, backfill, alter raw source or change rule persistence/RLS semantics.
 
 ## 5. Current capability inventory
 
@@ -111,7 +111,7 @@ Completed acquisition inputs: #434/#435, #436/#437, #438/#439, #440/#441, #442/#
 
 ## 9. Open pull-request memory
 
-PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. #452 has no PR yet and remains branch-local candidate work.
+PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. Draft PR #453 is the candidate record for #452 at `docs/research/pr-memory/2026/Q3/PR-453.md`.
 
 A final branch mutation invalidates older-head verification evidence. Merge remains owner-authorized only.
 
