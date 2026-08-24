@@ -1,9 +1,8 @@
 # MoneyFlow — current project memory
 
 **Status:** single current implementation/trust-status authority when read from `main`
-**Last reconciled:** 2026-08-24
-**Runtime/financial baseline:** `ac86d273876414c76fc050b11d3904dddfbb93b6` (PR #453 merged).
-**Post-merge projection:** PR #455
+**Last reconciled:** 2026-08-25
+**Runtime/financial baseline:** `7a758843296b08167ba33ddb1f76e2f81a044a6d` (PR #455 squash-merged).
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -58,9 +57,9 @@ Merged PR #451 changes only that acquisition boundary:
 
 ## 4. Current execution state
 
-Master #432 is active. #450 closed through exact matching squash merge `main@4d80fbe915155061fc3152740bb65c9cfa5c09ba`; its completed packet is `docs/plans/completed/2026-08-24-450-share-target-atomic-source.md`. #452 closed through exact matching squash merge `main@ac86d273876414c76fc050b11d3904dddfbb93b6`; its completed packet is `docs/plans/completed/2026-08-24-452-confirmed-inbox-rule-capture.md`.
+Master #432 is active. #450 closed through exact matching squash merge `main@4d80fbe915155061fc3152740bb65c9cfa5c09ba`; its completed packet is `docs/plans/completed/2026-08-24-450-share-target-atomic-source.md`. #452 closed through exact matching squash merge `main@ac86d273876414c76fc050b11d3904dddfbb93b6`; its completed packet is `docs/plans/completed/2026-08-24-452-confirmed-inbox-rule-capture.md`. #454 closed through exact matching squash merge `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`; its completed packet is `docs/plans/completed/2026-08-25-454-share-target-rule-application.md`.
 
-PR #455 is the same-PR completion projection for #454. It may only make PWA Share Target candidates reuse existing explicit deterministic candidate-stage rules, carrying exact rule id/version through a focused atomic Share RPC wrapper. Every candidate remains pending; no inference, automatic approval, ledger mutation, raw-source rewrite, backfill, RLS, provider/native/AI or deployment change is in scope. Candidate evidence activates only after the exact matching squash merge.
+Merged PR #455 lets PWA Share Target candidates reuse existing explicit deterministic candidate-stage rules, carrying exact rule id/version through a focused atomic Share RPC wrapper. Every candidate remains pending; no inference, automatic approval, ledger mutation, raw-source rewrite, backfill, RLS, provider/native/AI or deployment change is introduced.
 
 ## 5. Current capability inventory
 
@@ -70,7 +69,7 @@ PR #455 is the same-PR completion projection for #454. It may only make PWA Shar
 | Accounts | balances, register/history, create/edit/archive/restore and statement reconciliation |
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
-| Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; merged #451 PWA Share Target atomic persistence; merged #453 candidate review-time rule capture; PR #455 is candidate-only Share rule application |
+| Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; merged #451 PWA Share Target atomic persistence; merged #453 candidate review-time rule capture; merged #455 deterministic Share rule application |
 | Lifecycle clearing | merged #449: reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; never source-driven `reconciled`, ledger overwrite, delete or demotion |
 | Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
 | Agent delivery | provider-neutral `scripts/agent-harness/`, append-only run journals, guarded permissions, same-PR lifecycle convergence; no merge/provider/production authority |
@@ -108,19 +107,17 @@ Completed acquisition inputs: #434/#435, #436/#437, #438/#439, #440/#441, #442/#
 
 #443/#444 closed the plan-authority discovery defect. #446/#447 closed the repeated lifecycle-cleanup pattern and replaced the local monolithic dispatcher with the event-sourced capability harness.
 
-#451 and #453 are merged runtime truth. PR #455 is the current completion projection for #454, not merged runtime truth; #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
+#451, #453 and #455 are merged runtime truth. #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
 
 ## 9. Open pull-request memory
 
-PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. PR #453 is the durable merged record for #452; its record is `docs/research/pr-memory/2026/Q3/PR-453.md`. PR #455 is the exact durable completion-projection identifier for #454; it cannot establish runtime truth before an exact matching squash merge.
+PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. PR #453 is the durable merged record for #452; its record is `docs/research/pr-memory/2026/Q3/PR-453.md`. PR #455 is the durable merged record for #454, squash-merged as `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`.
 
 A final branch mutation invalidates older-head verification evidence. Merge remains owner-authorized only.
 
 ## 10. True gaps after this audit
 
-Current candidate ingestion ergonomics work is PR #455 / #454: apply an already explicit deterministic candidate-stage rule to future PWA Share Target candidates without adding a parallel ledger path.
-
-After #450, remaining program gaps include:
+After #455, remaining program gaps include:
 
 1. expand low-maintenance Vietnamese file/share acquisition, merchant/payee normalization and exception-first review based on measured maintenance/error outcomes;
 2. keep provider connectivity unselected until current official contract, consent and economics evidence supports a bounded read-only adapter;
@@ -130,7 +127,7 @@ Release/trust gaps remain RRB-02/03/04/05/06/08/09 at their existing evidence/au
 
 ## 11. Next allowed action
 
-Complete PR #455 only: exact code head `26c281e8` has passed Class 3 provider evidence; await the owner merge decision. Do not select a follow-on child before fresh-main authority resolution after an exact matching merge.
+No agent-executable product/governance child is selected. A follow-on #432 child must begin with a fresh bounded issue/spec/packet and evidence-backed acceptance; the completed #454 scope does not authorize it.
 
 Do not jump to bank/e-wallet/NAPAS integration, infer rules from behavior, auto-approve/backfill candidates, source-drive `reconciled`, perform provider/production writes, broaden matching semantics, or expand transfer behavior inside #454.
 

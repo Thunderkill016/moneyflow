@@ -1,8 +1,7 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-25
-**Current main baseline:** `ac86d273876414c76fc050b11d3904dddfbb93b6` (PR #453 merged)
-**Post-merge projection:** PR #455
+**Current main baseline:** `7a758843296b08167ba33ddb1f76e2f81a044a6d` (PR #455 squash-merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,11 +10,11 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-PR #455 is in same-PR completion projection for #454. Its packet has moved to `docs/plans/completed/2026-08-25-454-share-target-rule-application.md`; this branch may only resolve #454 acceptance defects/evaluation/verification. Do not promote another #432 child until the exact matching squash merge activates this projection and fresh-main authority resolution runs.
+No agent-executable product/governance slice is currently selected. PR #455 completed #454 through exact matching squash merge `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`; its completed packet is `docs/plans/completed/2026-08-25-454-share-target-rule-application.md`. A new #432 child requires a fresh bounded issue/spec/packet, not automatic promotion from this completed work.
 
 ## NEXT
 
-- [ ] **#432 P2 — Low-Maintenance Ingestion** — after #454, select the next bounded evidence-backed improvement across real Vietnamese file/share sources, normalization or exception-first review; reduce interventions/100 transactions without reducing match precision. Do not pre-promote another child while #454 is open.
+- [ ] **#432 P2 — Low-Maintenance Ingestion** — select the next bounded evidence-backed improvement across real Vietnamese file/share sources, normalization or exception-first review; reduce interventions/100 transactions without reducing match precision. Do not promote work without its bounded issue/spec/packet.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — owner/provider-gated.
 - [ ] **Controlled closed beta** — only after release entry gates clear and no unresolved P0 exists.
@@ -43,9 +42,9 @@ PR #455 is in same-PR completion projection for #454. Its packet has moved to `d
 - [ ] **Provider integration / native mobile / Wealth / Together / AI mutation** — horizon only; each requires dependency evidence and a bounded researched specification.
 - [ ] **Phase E Creative Territories / Phase F broad redesign** — parked; not current authority.
 
-## CURRENT PR PROJECTION / RECENTLY DONE
+## RECENTLY DONE
 
-- [ ] **#454 / PR #455 — deterministic PWA Share candidate rules** — ready-for-review completion candidate. Explicit rules normalize only matching future Share candidates through an atomic server validation path; every candidate remains pending, with no automatic approval, ledger write, raw-source rewrite, provider/native/AI expansion. Exact code head `26c281e8` passed all selected provider gates; owner merge remains pending.
+- [x] **#454 / PR #455 — deterministic PWA Share candidate rules** — squash-merged as `7a758843296b08167ba33ddb1f76e2f81a044a6d` after exact-head Class 3 checks. Explicit rules normalize only matching future Share candidates through an atomic server validation path; every candidate remains pending, with no automatic approval, ledger write, raw-source rewrite, provider/native/AI expansion.
 - [x] **#452 / PR #453 — confirmed Inbox rule capture** — merged as `ac86d273876414c76fc050b11d3904dddfbb93b6`. Explicit non-transfer review confirmation creates only a future candidate-stage rule; no automatic approval, ledger write, source rewrite, backfill, migration or provider/native/AI expansion.
 - [x] **#450 / PR #451 — PWA Share Target atomic source** — merged as `4d80fbe915155061fc3152740bb65c9cfa5c09ba` after exact-head Class 3 checks. Authenticated `/api/share-target` → `/capture/share` text/CSV persistence creates only pending Inbox batches/candidates; demo stays browser-local with no ledger write or automatic approval.
 - [x] **#448 / PR #449 — reviewed source lifecycle → clearing** — merged as `9e709a2116a560da673539a3ff3994928b22262b`. Reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; source state never establishes `reconciled`, overwrites ledger facts, deletes facts or demotes user/statement truth.
