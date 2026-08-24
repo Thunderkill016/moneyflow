@@ -6,6 +6,7 @@ import {
   emptySharePayload,
   hasShareContent,
   isSharePayload,
+  planShareRuleEvidence,
   planShareImport,
   sharePayloadFromSearchParams,
   type SharePayload,
@@ -103,6 +104,73 @@ describe("share-payload", () => {
     assert.equal(plan.csvPlans.length, 1);
     assert.equal(plan.candidateCount, 2);
     assert.equal(plan.csvPlans[0]!.parse.rows[0]!.amount, 45_000);
+  });
+
+  test("planShareRuleEvidence selects exact rules without normalizing transfers or known categories", () => {
+    const plan = planShareImport({
+      title: "",
+      text: "",
+      url: "",
+      files: [],
+    });
+    plan.pasteCandidates = [
+      {
+        kind: "expense",
+        amount: 45_000,
+        merchant: "HIGHLANDS 45K",
+        note: "",
+        occurredOn: "2026-08-24",
+        source: "paste",
+        confidence: "high",
+        rawSnippet: "HIGHLANDS 45K",
+      },
+      {
+        kind: "transfer",
+        amount: 100_000,
+        merchant: "Chuyển khoản",
+        note: "",
+        occurredOn: "2026-08-24",
+        source: "paste",
+        confidence: "high",
+      },
+      {
+        kind: "expense",
+        amount: 30_000,
+        merchant: "HIGHLANDS đã phân loại",
+        note: "",
+        occurredOn: "2026-08-24",
+        source: "paste",
+        confidence: "high",
+        categoryId: "cat-existing",
+        category: "Giải trí",
+      },
+    ];
+    plan.candidateCount = plan.pasteCandidates.length;
+    plan.ok = true;
+
+    const evidence = planShareRuleEvidence(plan, [
+      {
+        id: "rule-highlands",
+        stage: "candidate",
+        priority: 1,
+        enabled: true,
+        contains: "highlands",
+        field: "merchant",
+        categoryId: "cat-food",
+        category: "Ăn uống",
+        categoryKind: "expense",
+        merchant: "Highlands Coffee",
+        version: 7,
+        createdAt: "2026-08-24T00:00:00.000Z",
+        updatedAt: "2026-08-24T00:00:00.000Z",
+      },
+    ]);
+
+    assert.deepEqual(evidence.pasteCandidates, [
+      { ruleId: "rule-highlands", ruleVersion: 7 },
+      null,
+      null,
+    ]);
   });
 
   test("planShareImport rejects xlsx with Vietnamese error", () => {

@@ -1,22 +1,39 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 
 const RULES_KEY = "moneyflow-rules-v2";
 const LEGACY_RULES_KEY = "moneyflow-rules-v1";
 const CANDIDATES_KEY = "moneyflow-inbox-candidates-v1";
 const RESET_GUARD_KEY = "moneyflow-rules-e2e-reset";
+const RULE_DIALOG_ATTEMPT_TIMEOUT_MS = 1_000;
+const RULE_DIALOG_HYDRATION_TIMEOUT_MS = 15_000;
+
+async function firstVisibleLocator(locators: Locator): Promise<Locator | null> {
+  const count = await locators.count();
+  for (let index = 0; index < count; index += 1) {
+    const locator = locators.nth(index);
+    if (await locator.isVisible()) return locator;
+  }
+  return null;
+}
 
 async function createDemoRule(
   page: Page,
   input: { contains: string; categoryLabel: string; merchant?: string },
 ) {
   await page.goto("/rules", { waitUntil: "domcontentloaded" });
-  await page
-    .getByRole("button", { name: "Thêm quy tắc", exact: true })
-    .first()
-    .click();
-
+  const addRuleButtons = page.getByRole("button", {
+    name: "Thêm quy tắc",
+    exact: true,
+  });
   const dialog = page.getByRole("dialog", { name: "Thêm quy tắc" });
-  await expect(dialog).toBeVisible();
+  // The action moves between the main empty state and app header by viewport and
+  // rule count; its SSR markup becomes actionable only after client hydration.
+  await expect(async () => {
+    const addRule = await firstVisibleLocator(addRuleButtons);
+    expect(addRule).not.toBeNull();
+    if (!(await dialog.isVisible())) await addRule!.click();
+    await expect(dialog).toBeVisible({ timeout: RULE_DIALOG_ATTEMPT_TIMEOUT_MS });
+  }).toPass({ timeout: RULE_DIALOG_HYDRATION_TIMEOUT_MS });
   await dialog.getByLabel("Nếu chứa").fill(input.contains);
   await dialog
     .getByLabel("Thì danh mục")
@@ -114,6 +131,44 @@ test.describe("Deterministic rules workspace", () => {
     expect(evidence.ruleVersion).toBe(1);
     expect(evidence.merchant).toBe("Highlands Coffee");
     expect(evidence.category).toBe("Ăn uống");
+  });
+
+  test("retains the exact demo rule revision on a shared candidate without posting", async ({
+    page,
+  }) => {
+    await createDemoRule(page, {
+      contains: "HIGHLANDS",
+      categoryLabel: "Ăn uống · Tiền ra",
+      merchant: "Highlands Coffee",
+    });
+
+    await page.goto("/capture/share?text=HIGHLANDS+45k", {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page).toHaveURL(/\/inbox$/);
+
+    const evidence = await page.evaluate((storageKey) => {
+      const candidates = JSON.parse(
+        window.localStorage.getItem(storageKey) ?? "[]",
+      ) as Array<Record<string, unknown>>;
+      return {
+        status: candidates[0]?.status,
+        ruleId: candidates[0]?.appliedRuleId,
+        ruleVersion: candidates[0]?.appliedRuleVersion,
+        merchant: candidates[0]?.merchant,
+        category: candidates[0]?.category,
+        transactions: JSON.parse(
+          window.localStorage.getItem("moneyflow-demo-transactions-v1") ?? "[]",
+        ) as unknown[],
+      };
+    }, CANDIDATES_KEY);
+
+    expect(evidence.status).toBe("pending");
+    expect(evidence.ruleId).toEqual(expect.any(String));
+    expect(evidence.ruleVersion).toBe(1);
+    expect(evidence.merchant).toBe("Highlands Coffee");
+    expect(evidence.category).toBe("Ăn uống");
+    expect(evidence.transactions).toHaveLength(0);
   });
 
   test("saves a reviewed merchant rule without posting the current candidate", async ({

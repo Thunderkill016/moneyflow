@@ -14,13 +14,21 @@ import {
   markBatchCommittedForClient,
 } from "@/hooks/client-inbox";
 import {
+  loadRulesForClient,
+  persistCandidateRuleEvidenceForClient,
+} from "@/hooks/client-rules";
+import { applyRulesToTargets } from "@/lib/inbox/apply-rules";
+import type { CreateCandidateInput } from "@/lib/inbox/candidate-store";
+import {
   consumeSharePayloadFromSession,
   csvPlanToCandidates,
   hasShareContent,
+  planShareRuleEvidence,
   planShareImport,
   sharePayloadFromSearchParams,
   type SharePayload,
 } from "@/lib/inbox/share-payload";
+import type { InboxRule } from "@/lib/inbox/rules-store";
 
 type Phase = "loading" | "empty" | "error" | "success";
 
@@ -30,6 +38,40 @@ type SuccessInfo = {
   csvFileCount: number;
   warnings: string[];
 };
+
+type RuleAwareShareCandidate = CreateCandidateInput & {
+  matchedRuleId?: string;
+  matchedRuleVersion?: number;
+};
+
+async function persistRuleEvidence(
+  isDemo: boolean,
+  created: Array<{ id: string }>,
+  previewed: RuleAwareShareCandidate[],
+): Promise<number> {
+  const results = await Promise.all(
+    created.map(async (candidate, index) => {
+      const match = previewed[index];
+      if (!match?.matchedRuleId || !match.matchedRuleVersion) return { ok: true };
+      return persistCandidateRuleEvidenceForClient(isDemo, {
+        candidateId: candidate.id,
+        ruleId: match.matchedRuleId,
+        ruleVersion: match.matchedRuleVersion,
+      });
+    }),
+  );
+  return results.filter((result) => !result.ok).length;
+}
+
+function applyRulesForDemo(
+  candidates: CreateCandidateInput[],
+  rules: InboxRule[],
+): RuleAwareShareCandidate[] {
+  return applyRulesToTargets(
+    candidates.map((candidate) => ({ ...candidate, note: candidate.note ?? "" })),
+    rules,
+  ) as RuleAwareShareCandidate[];
+}
 
 export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
   const router = useRouter();
@@ -91,20 +133,45 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
 
           let written = 0;
           let csvFileCount = 0;
+          const ruleLoad = await loadRulesForClient(viewer.isDemo);
+          const rules = ruleLoad.ok ? ruleLoad.rules : [];
+          const ruleWarnings = ruleLoad.ok
+            ? []
+            : ["Không tải được quy tắc; các mục Share này vẫn chờ duyệt bình thường."];
 
           if (!viewer.isDemo) {
             // Authenticated Share is one server/RPC operation. A failure cannot
             // leave an earlier text/CSV prefix persisted from this share action.
+            const evidence = planShareRuleEvidence(plan, rules);
             const result = await ingestShareTargetAction({
-              pasteCandidates: plan.pasteCandidates,
-              csvPlans: plan.csvPlans.map((csvPlan) => ({
+              pasteCandidates: plan.pasteCandidates.map((candidate, index) => ({
+                ...candidate,
+                ...(evidence.pasteCandidates[index]
+                  ? {
+                      appliedRuleId: evidence.pasteCandidates[index]!.ruleId,
+                      appliedRuleVersion:
+                        evidence.pasteCandidates[index]!.ruleVersion,
+                    }
+                  : {}),
+              })),
+              csvPlans: plan.csvPlans.map((csvPlan, planIndex) => ({
                 fileName: csvPlan.fileName,
                 warningCount: csvPlan.parse.warningCount,
                 skippedRows: csvPlan.parse.skippedRows,
                 mapConfidence: csvPlan.parse.mapConfidence,
                 headers: csvPlan.parse.headers,
                 columnMap: csvPlan.parse.columnMap,
-                rows: csvPlan.parse.rows,
+                rows: csvPlan.parse.rows.map((row, rowIndex) => ({
+                  ...row,
+                  ...(evidence.csvPlans[planIndex]?.[rowIndex]
+                    ? {
+                        appliedRuleId:
+                          evidence.csvPlans[planIndex]![rowIndex]!.ruleId,
+                        appliedRuleVersion:
+                          evidence.csvPlans[planIndex]![rowIndex]!.ruleVersion,
+                      }
+                    : {}),
+                })),
               })),
             });
             if (!result.ok) {
@@ -117,10 +184,12 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
           } else {
             // Demo intentionally remains local-first. It does not claim the
             // authenticated server transaction boundary.
+            let evidenceFailureCount = 0;
             if (plan.pasteCandidates.length > 0) {
+              const candidates = applyRulesForDemo(plan.pasteCandidates, rules);
               const pasteResult = await addCandidatesForClient(
                 true,
-                plan.pasteCandidates,
+                candidates,
               );
               if (!pasteResult.ok) {
                 setErrors([pasteResult.message]);
@@ -128,6 +197,11 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
                 return;
               }
               written += pasteResult.candidates.length;
+              evidenceFailureCount += await persistRuleEvidence(
+                true,
+                pasteResult.candidates,
+                candidates,
+              );
             }
 
             for (const csvPlan of plan.csvPlans) {
@@ -147,16 +221,29 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
                 setPhase("error");
                 return;
               }
-              const inputs = csvPlanToCandidates(csvPlan, batchResult.batch.id);
-              const candResult = await addCandidatesForClient(true, inputs);
+              const candidates = applyRulesForDemo(
+                csvPlanToCandidates(csvPlan, batchResult.batch.id),
+                rules,
+              );
+              const candResult = await addCandidatesForClient(true, candidates);
               if (!candResult.ok) {
                 setErrors([candResult.message]);
                 setPhase("error");
                 return;
               }
               written += candResult.candidates.length;
+              evidenceFailureCount += await persistRuleEvidence(
+                true,
+                candResult.candidates,
+                candidates,
+              );
               await markBatchCommittedForClient(true, batchResult.batch.id);
               csvFileCount += 1;
+            }
+            if (evidenceFailureCount > 0) {
+              ruleWarnings.push(
+                `${evidenceFailureCount} bằng chứng quy tắc chưa lưu được; hãy kiểm tra lại Inbox.`,
+              );
             }
           }
 
@@ -166,7 +253,7 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
             candidateCount: written,
             pasteCount: plan.pasteCandidates.length,
             csvFileCount,
-            warnings: [...plan.warnings, ...plan.errors],
+            warnings: [...plan.warnings, ...plan.errors, ...ruleWarnings],
           });
           setNotice(
             `Đã đưa ${written} mục vào Inbox từ chia sẻ — chưa ghi sổ.`,

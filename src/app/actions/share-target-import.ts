@@ -39,6 +39,17 @@ const candidateSchema = z.object({
   accountId: optionalUuidSchema,
   account: z.string().max(80).optional(),
   rawSnippet: z.string().max(2_000).optional(),
+  appliedRuleId: z.string().uuid().optional(),
+  appliedRuleVersion: z.number().int().min(1).optional(),
+}).superRefine((value, ctx) => {
+  const hasRuleId = value.appliedRuleId !== undefined;
+  const hasRuleVersion = value.appliedRuleVersion !== undefined;
+  if (hasRuleId !== hasRuleVersion) {
+    ctx.addIssue({
+      code: "custom",
+      message: "invalid_share_rule_evidence",
+    });
+  }
 });
 
 const csvRowSchema = candidateSchema.extend({
@@ -166,6 +177,12 @@ export async function ingestShareTargetAction(
         account_id: item.accountId ?? null,
         account_name: item.account ?? null,
         raw_snippet: item.rawSnippet ?? null,
+        ...(item.appliedRuleId
+          ? {
+              applied_rule_id: item.appliedRuleId,
+              applied_rule_version: item.appliedRuleVersion,
+            }
+          : {}),
         source_row_index: null,
         parser_version: parserVersion,
         mapping_version: mappingVersion,
@@ -206,6 +223,12 @@ export async function ingestShareTargetAction(
         account_id: item.accountId ?? null,
         account_name: item.account ?? null,
         raw_snippet: item.rawSnippet ?? null,
+        ...(item.appliedRuleId
+          ? {
+              applied_rule_id: item.appliedRuleId,
+              applied_rule_version: item.appliedRuleVersion,
+            }
+          : {}),
         source_row_index: item.rowIndex,
         parser_version: parserVersion,
         mapping_version: mappingVersion,
@@ -213,7 +236,7 @@ export async function ingestShareTargetAction(
     }
   }
 
-  const { data, error } = await supabase.rpc("ingest_share_target_capture", {
+  const { data, error } = await supabase.rpc("ingest_share_target_capture_with_rules", {
     p_batches: batches,
     p_candidates: candidates,
   });
