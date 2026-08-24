@@ -7,7 +7,7 @@
 **Active role:** planner / implementer
 **Permission scope:** branch_write only; no merge, provider, deployment or production-data action
 **Owner:** human owner
-**Issue/PR:** #450 / PR pending
+**Issue/PR:** #450 / PR #451
 **Base at implementation start:** `main@9e709a2116a560da673539a3ff3994928b22262b`
 **Last updated:** 2026-08-24
 
