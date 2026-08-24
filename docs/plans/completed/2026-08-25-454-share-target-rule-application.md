@@ -1,8 +1,8 @@
 # #454 — Apply deterministic rules to PWA Share Target candidates
 
-**Status:** evaluating
-**Execution state:** evaluating
-**Active role:** evaluator
+**Status:** ready_for_review
+**Execution state:** projected completion in PR #455; unmerged candidate until owner decision
+**Active role:** none after the PR #455 projection activates
 **Permission scope:** branch_write
 **Owner:** human owner
 **Issue/PR:** #454 / PR #455 (draft)
@@ -176,8 +176,8 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 |---|---|---|---|---|
 | T1 | Add a failing Share rule-flow regression | packet | helper test failed before implementation, then passed | done |
 | T2 | Reuse rule selection and apply it atomically in Share capture | T1 | focused unit/database/browser coverage added | done |
-| T3 | Run selected local/browser checks and independent UI review | T2 | local gates/browser output; pgTAP and WebKit environment blockers recorded | in_progress |
-| T4 | Publish focused PR and exact-head verification record | T3 | PR #455 draft + CI evidence pending | in_progress |
+| T3 | Run selected local/browser checks and independent UI review | T2 | local gates/browser output; pgTAP and WebKit environment blockers recorded | done |
+| T4 | Publish focused PR and exact-head verification record | T3 | PR #455 record + same-PR completion projection | done |
 
 ## Handoff record
 
@@ -186,6 +186,7 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 | 2026-08-24 | owner | implementer | planned | #454; this packet; `main@ac86d273` resolver READY | no authenticated/browser production proof | write failing regression |
 | 2026-08-25 | implementer | evaluator | evaluating | unit red→green; `verify:prepush` demo build; 12/12 Share browser; Class 3 static/RLS/migration gates | local pgTAP has no PostgreSQL/Docker; full audit WebKit navigation fails internally before assertions | prepare truthful draft PR; provider exact-head must run pgTAP/WebKit |
 | 2026-08-25 | evaluator | ci_or_production | evaluating | draft PR #455, introduced by implementation commit `5f4e939c` | CI is queued; provider database and WebKit evidence remain required | observe exact-head provider checks; do not merge without owner direction |
+| 2026-08-25 | ci_or_production | human owner | ready_for_review | exact-head draft CodeQL, Gitleaks and classify passed; PR #455 completion projection | non-draft provider database/e2e/UI gates, review and merge remain required | mark PR ready, then await exact-head CI and owner merge decision |
 
 ### Current permission boundary
 
