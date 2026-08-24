@@ -1,12 +1,12 @@
 # #458 — Direct CSV recovery handoff
 
-**Status:** implementing
-**Execution state:** implementing
+**Status:** post-merge projection — evaluating exact head
+**Execution state:** evaluating
 **Risk class:** Class 3 — financial-domain boundary
 **Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** human owner
-**Issue/PR:** #458 / PR pending
+**Issue/PR:** #458 / PR #459 (draft)
 **Base at implementation start:** `main@a84dcfd11f67ed1e6c400b55cb1048d25f2c0131`
 **Last updated:** 2026-08-25
 
@@ -128,7 +128,7 @@ The server action remains the authoritative atomic writer and describes whether 
 |---|---|---|---|---|
 | T1 | Add a failing retained-batch recovery contract test | packet | test failed because descriptor was absent, then passed after the minimal descriptor | done |
 | T2 | Add minimal pure descriptor and Direct CSV error handoff | T1 | focused unit/UI contracts pass | done |
-| T3 | Run selected UI/static verification and publish PR evidence | T2 | local/provider exact-head evidence | in_progress |
+| T3 | Run selected UI/static verification and publish PR evidence | T2 | local evidence recorded; exact-head provider evidence pending | in_progress |
 
 ## Handoff record
 
@@ -170,9 +170,9 @@ The server action remains the authoritative atomic writer and describes whether 
 ## Delivery record
 
 - Branch: `feat/p2-next-ingestion-v2`
-- PR: pending
+- PR: #459 (draft)
 - Squash commit: pending
 - CI run: pending
 - Production deployment: not applicable
 - Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: pending
+- Work packet moved to `docs/plans/completed/`: post-merge projection in PR #459; not merged truth until exact matching squash merge
