@@ -1,16 +1,15 @@
 # MoneyFlow — current project memory
 
 **Status:** single current implementation/trust-status authority when read from `main`
-**Last reconciled:** 2026-08-23
-**Runtime/financial baseline:** `eb8861c71dbc5b8173e7e48fff1293470a639816` (PR #447 merged).
-**Post-merge projection:** PR #449
+**Last reconciled:** 2026-08-24
+**Runtime/financial baseline:** `9e709a2116a560da673539a3ff3994928b22262b` (PR #449 merged).
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
 
 MoneyFlow is a functional Vietnamese personal-finance product and is **not public-beta ready**.
 
-Merged #432 is the master product-direction authority: safely acquirable digital transactions should not require permanent retyping, while one user-owned ledger remains financial truth. Manual entry stays first-class for cash, missing/off-system evidence and corrections.
+Merged #432 remains the master product-direction authority: safely acquirable digital transactions should not require permanent retyping, while one user-owned ledger remains financial truth. Manual entry stays first-class for cash, missing/off-system evidence and corrections.
 
 Dependency order is source/evidence → candidates/provenance → normalization/dedup/matching → trustworthy ledger facts → reconciliation/correction → understanding/review → connected planning → automation → selective read-only providers → wealth/together/optional intelligence when validated.
 
@@ -30,53 +29,57 @@ Source adapters create evidence/candidates, not arbitrary balances or silently r
 
 ## 3. Acquisition and reconciliation truth
 
-Merged P1 chain before #449:
+Merged P1 chain:
 
 - #435: authenticated Direct CSV persists source evidence and commits selected rows atomically.
 - #437: later non-manual evidence can attach to one reviewed existing unprovenanced money fact without changing ledger values or reconciliation.
 - #439: deleted unchanged exact-source reimport can restore the same transaction; changed evidence stays blocked.
 - #441: changed live same-ID evidence can be preserved as a reviewed observation without overwriting ledger/reconciliation/canonical provenance.
 - #445: explicit different-ID predecessor/replacement lineage plus nullable `pending | posted | removed` lifecycle evidence; no fuzzy lineage and one source identity cannot bind to two financial transactions.
+- #449: source identity carries the latest reviewed lifecycle baseline; lifecycle-only transitions remain reviewable. `pending` and `removed` remain observation-only. Reviewed exact `posted` evidence may advance one live one-leg income/expense account leg from `pending` to `cleared` only when current kind/account/date/signed amount still match. Source evidence never establishes `reconciled`, overwrites ledger economics, deletes facts or demotes user/statement truth. Replays of already-cleared/reconciled reviews are no-ops, and eligible posted review follows reconciliation account → transaction lock order.
 
-### #448 / PR #449 — reviewed lifecycle → clearing projection
+### #450 — current PWA Share Target source slice
 
-PR #449 is candidate evidence until merge. If its exact squash merge activates this projection:
+The installed-PWA Share Target already receives bounded shared title/text/url and text/CSV files through `/api/share-target`, then parses them in `/capture/share` into the existing candidate model.
 
-- source identity carries the latest reviewed lifecycle baseline, so same-ID lifecycle-only transitions remain reviewable;
-- `pending` and `removed` remain observation-only and cannot delete or demote ledger truth;
-- reviewed `posted` evidence may advance exactly one live income/expense account leg from `pending` to `cleared` only when current kind, account, occurred date and signed amount still match exactly;
-- source evidence never establishes `reconciled`; statement reconciliation remains stronger truth;
-- user-corrected ledger mismatches are preserved as source observations without overwrite or clearing;
-- already-cleared/reconciled reviews are replay-safe no-ops;
-- explicit predecessor posted evidence uses the same policy; transfers/splits remain outside this slice;
-- the financial effect uses the canonical reconciliation RPC and existing privacy-safe mutation audit;
-- posted review follows reconciliation account → transaction lock order before source helpers may lock target rows.
+Current gap: authenticated persistence is browser-orchestrated across separate generic mutations — text candidates are inserted separately, and each CSV file creates an import batch, then candidates, then marks the batch committed. A later failure can therefore leave a prefix of one share action persisted even though the source action was one user gesture.
+
+#450 changes only that acquisition boundary:
+
+- authenticated shared text + CSV from one share action must persist through one transactional server/database operation;
+- shared text receives a durable `paste` batch and CSV rows retain their own `csv` batch + source row identity;
+- existing parser/mapping versions, bounded raw snippets and source identity contracts are reused;
+- no source external ID is fabricated;
+- all created candidates remain pending Inbox evidence;
+- ingestion creates no financial transaction, entry or transaction-import provenance row;
+- demo remains browser-local;
+- request/file limits and unsupported XLSX/PDF Share Target behavior remain fail-closed.
 
 ## 4. Current execution state
 
-Master #432 remains active. PR #449 is the bounded candidate completion of the source lifecycle → ledger/reconciliation policy slice.
+Master #432 is active. Issue #450 is the one current agent-executable child on branch `feat/450-share-target-atomic-source`, based exactly on merged `main@9e709a2116a560da673539a3ff3994928b22262b`.
 
-Same-PR convergence is projected in PR #449: the #448 packet is archived at `docs/plans/completed/2026-08-23-448-source-lifecycle-reconciliation.md`, Current Work projects zero agent-executable current slices, and no NEXT child is pre-promoted. While PR #449 is open, only #448 acceptance defects, evaluation and exact-head verification may continue.
+The previous PR #449 same-PR projection has activated through its exact squash merge; no cleanup PR is needed. The active packet is `docs/plans/active/450-share-target-atomic-source.md`.
 
-After an exact PR #449 merge, fresh-main authority resolution may select the next bounded #432 P1 slice: migrate one real file/share source through the common acquisition/provenance/reconciliation path. That NEXT work is not authorized by this projection.
+Only #450 implementation, tests, evaluation, lifecycle convergence and exact-head acceptance work may proceed in the product lane. Do not pre-promote the next #432 child.
 
 ## 5. Current capability inventory
 
-| Capability | Current `main` truth / PR #449 post-merge projection |
+| Capability | Current truth |
 |---|---|
 | Core ledger | multiple accounts; income, expense, transfers; edit; soft delete/recovery |
 | Accounts | balances, register/history, create/edit/archive/restore and statement reconciliation |
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
-| Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence |
-| Lifecycle clearing | PR #449 projection: reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; never source-driven `reconciled`, ledger overwrite, delete or demotion |
+| Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; #450 is hardening PWA Share Target persistence |
+| Lifecycle clearing | merged #449: reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; never source-driven `reconciled`, ledger overwrite, delete or demotion |
 | Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
 | Agent delivery | provider-neutral `scripts/agent-harness/`, append-only run journals, guarded permissions, same-PR lifecycle convergence; no merge/provider/production authority |
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
 | Release proof | RRB-01/RRB-07 closed; RRB-02/03/04/05/06/08/09 remain open or externally gated |
 | Public beta | not approved |
 
-Code, migrations and tests outrank this table on implementation detail. The lifecycle-clearing row is projected candidate truth until PR #449 merges.
+Code, migrations and tests outrank this table on implementation detail.
 
 ## 6. Release/trust state
 
@@ -91,50 +94,52 @@ Controlled closed beta remains blocked until release entry gates clear and no un
 - `docs/configuration.md` owns environment/provider settings; `docs/deployment.md` owns deployment workflow.
 - `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates; `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission scopes and handoffs.
 - `docs/plans/PLAN_AUTHORITY.json` + the active registry own strategic task selection; Git history verifies provenance but does not choose authority by recency.
-- `plan:resolve` blocks stale/ambiguous authority, unmerged master candidates and pre-merge projections from authorizing new work.
+- `plan:resolve` blocks stale/ambiguous authority, unmerged master candidates and unactivated pre-merge projections from authorizing new work.
 - `scripts/lifecycle-projection.mjs` requires completing slices to archive their packet, clear projected current work, project current memory and leave zero follow-on current slices in the same PR.
 - `scripts/agent-harness/` is the local agent runtime; provider capability/readiness is explicit and fail-loud.
 - Git/GitHub child commands remain allowlisted; merge, main-branch control, force-push, generic provider writes and production-data writes are not granted.
 - CI classification, migration identity and project-knowledge checks are executable governance contracts and are not weakened to make a PR pass.
 - Draft PR success is not full evidence when heavy shards skip; final acceptance requires exact-head substantive gates.
 - Financial/schema/RLS/import/reconciliation changes are Class 3 and require database/security/browser evidence.
+- Shared PWA payloads are untrusted source material. The existing bridge bounds request/file/text sizes and accepted formats; #450 does not weaken those checks.
 
 ## 8. Reconciled issue status
 
-Completed acquisition inputs: #434/#435, #436/#437, #438/#439, #440/#441 and #442/#445. Master #432 remains the product-development program.
+Completed acquisition inputs: #434/#435, #436/#437, #438/#439, #440/#441, #442/#445 and #448/#449. Master #432 remains the product-development program.
 
 #443/#444 closed the plan-authority discovery defect. #446/#447 closed the repeated lifecycle-cleanup pattern and replaced the local monolithic dispatcher with the event-sourced capability harness.
 
-#448 is projected complete through open PR #449 and its archived completion packet; it is not an active packet while that same-PR completion projection is under review. #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority.
-
-RRB release gates remain separate and are not auto-resolved by product work.
+#450 is current. #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
 
 ## 9. Open pull-request memory
 
-PR #449 is the only current product-slice candidate in this projection. It is not authority until merged and cannot authorize the next source migration.
-
-PR-specific evidence lives at `docs/research/pr-memory/2026/Q3/PR-449.md`; earlier acquisition provenance remains in its corresponding PR records. Exact final CI/CodeQL/Secret History run identities remain GitHub evidence rather than self-referential future IDs in this snapshot.
+No #450 PR existed at activation time; issue #450 and branch `feat/450-share-target-atomic-source` are the current durable identifiers. Once a PR exists, its record belongs under `docs/research/pr-memory/2026/Q3/` and same-PR lifecycle convergence must use that exact PR number.
 
 A final branch mutation invalidates older-head verification evidence. Merge remains owner-authorized only.
 
 ## 10. True gaps after this audit
 
-After the PR #449 projection, remaining acquisition gaps are:
+Current acquisition gap is #450: make the existing PWA shared text/CSV source transactionally persist pending evidence without adding a parallel ledger path.
 
-1. migrate the next real file/share acquisition source through the common candidate/provenance/reconciliation contract;
-2. expand low-maintenance Vietnamese file/share acquisition, merchant/payee normalization and exception-first review based on measured maintenance/error outcomes;
-3. keep provider connectivity unselected until current official contract, consent and economics evidence supports a bounded read-only adapter;
-4. research transfer lifecycle clearing separately before source evidence may affect multi-leg transfers.
+After #450, remaining program gaps include:
+
+1. expand low-maintenance Vietnamese file/share acquisition, merchant/payee normalization and exception-first review based on measured maintenance/error outcomes;
+2. keep provider connectivity unselected until current official contract, consent and economics evidence supports a bounded read-only adapter;
+3. research transfer lifecycle clearing separately before source evidence may affect multi-leg transfers.
 
 Release/trust gaps remain RRB-02/03/04/05/06/08/09 at their existing evidence/authority boundaries.
 
 ## 11. Next allowed action
 
-Finish and evaluate PR #449 only. Do not start or promote the next product child while this projection is unmerged.
+Implement and evaluate #450 only:
 
-After #449 merges, start from fresh `main` and run `npm run plan:resolve`. If #432 remains master and no current child exists, create/promote one bounded issue/spec/packet for the next real acquisition source path.
+1. transactional authenticated Share Target batch/candidate persistence;
+2. server-side validation/tenant ownership and safe source provenance;
+3. demo-local split preserved;
+4. pgTAP/unit/browser counterexamples for atomic failure, ownership, provenance and review-before-ledger;
+5. same-PR lifecycle convergence and exact-head Class 3 evidence before owner handoff.
 
-Do not jump to bank/e-wallet/NAPAS integration, infer lineage heuristically, source-drive `reconciled`, perform provider/production writes, or broaden transfer semantics inside #449.
+Do not jump to bank/e-wallet/NAPAS integration, infer lineage heuristically, source-drive `reconciled`, auto-approve Share Target candidates, perform provider/production writes, broaden binary Share Target formats, or expand transfer semantics inside #450.
 
 Owner/external lanes remain independent: real phone → RRB-08; provider read access → RRB-04/RRB-09 and #40/#174; contact proof → RRB-05; legal/privacy review → RRB-06; hosted target → RRB-02; explicit owner/provider authorization → RRB-03.
 
@@ -149,6 +154,7 @@ Owner/external lanes remain independent: real phone → RRB-08; provider read ac
 - “changed evidence under a stable source ID is indistinguishable from unchanged replay” is superseded by #441.
 - “different-ID lineage must be guessed from similarity or cannot be represented” is superseded by #445 explicit predecessor evidence.
 - “every completed feature needs a second lifecycle-closeout PR” and “the monolithic dispatcher is the local agent runtime” are superseded by merged #447.
-- “source lifecycle is evidence only and can never inform clearing” is narrowed by PR #449 projection: lifecycle always remains source evidence, while only reviewed exact `posted` evidence may establish `cleared`; never `reconciled` or ledger economics.
+- “source lifecycle can never inform clearing” is superseded narrowly by merged #449: lifecycle remains source evidence, while only reviewed exact `posted` evidence may establish `cleared`; never `reconciled` or ledger economics.
+- “PR #449 is unmerged candidate evidence” is superseded by exact merge `9e709a2116a560da673539a3ff3994928b22262b`.
 - RRB-07 and RRB-01 are no longer proof gaps; Release Readiness Audit v1 is no longer pending.
 - The seven-day self-use gate remains withdrawn without replacement.
