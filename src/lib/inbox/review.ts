@@ -44,6 +44,17 @@ export type CandidateReviewDraft = {
   allowHeuristicDuplicate: boolean;
 };
 
+export type ConfirmedReviewRuleSeed = {
+  contains: string;
+  field: "merchant";
+  merchant: string;
+  categoryId: string;
+  category: string;
+  categoryKind: "income" | "expense";
+};
+
+const UNKNOWN_MERCHANT = "không rõ";
+
 const PARSER_BY_SOURCE: Record<InboxCandidate["source"], string> = {
   paste: "paste_text@1.0",
   csv: "csv_import@1.0",
@@ -218,6 +229,39 @@ export function draftFromCandidate(
     destinationAccountId: otherAccount,
     possibleDuplicate: candidate.possibleDuplicate === true,
     allowHeuristicDuplicate: false,
+  };
+}
+
+/**
+ * A reviewed merchant can seed a future candidate-stage rule only when the
+ * reviewer selected a compatible money category. Transfers stay outside the
+ * deterministic categorization contract.
+ */
+export function buildConfirmedReviewRuleSeed(
+  review: Pick<CandidateReviewDraft, "kind" | "merchant" | "categoryId">,
+  categories: CategoryOption[],
+): ConfirmedReviewRuleSeed | null {
+  if (review.kind === "transfer") return null;
+
+  const merchant = review.merchant.trim();
+  if (!merchant || merchant.toLocaleLowerCase("vi-VN") === UNKNOWN_MERCHANT) {
+    return null;
+  }
+
+  const category = categories.find(
+    (item) => item.id === review.categoryId && item.kind === review.kind,
+  );
+  if (!category || (category.kind !== "income" && category.kind !== "expense")) {
+    return null;
+  }
+
+  return {
+    contains: merchant,
+    field: "merchant",
+    merchant,
+    categoryId: category.id,
+    category: category.name,
+    categoryKind: category.kind,
   };
 }
 

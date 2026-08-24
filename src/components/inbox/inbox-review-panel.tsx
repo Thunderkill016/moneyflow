@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { SelectField } from "@/components/ui/select-field";
 import { TextField } from "@/components/ui/text-field";
+import { saveRuleForClient } from "@/hooks/client-rules";
 import {
   CONFIDENCE_LABELS,
   type InboxCandidate,
@@ -26,6 +27,7 @@ import {
   type InboxDryRunResult,
 } from "@/lib/inbox/provenance";
 import {
+  buildConfirmedReviewRuleSeed,
   buildLedgerPost,
   confidenceScoreLabel,
   draftFromCandidate,
@@ -66,6 +68,7 @@ export function InboxReviewPanel({
   candidate,
   accounts,
   categories,
+  isDemo,
   busy = false,
   onClose,
   onApprove,
@@ -76,6 +79,7 @@ export function InboxReviewPanel({
   candidate: InboxCandidate | null;
   accounts: AccountOption[];
   categories: CategoryOption[];
+  isDemo: boolean;
   busy?: boolean;
   onClose: () => void;
   onApprove: (payload: ReviewSubmitPayload) => Promise<{ ok: boolean; message?: string }>;
@@ -90,6 +94,8 @@ export function InboxReviewPanel({
   );
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [ruleSaving, setRuleSaving] = useState(false);
+  const [savedRuleKey, setSavedRuleKey] = useState<string | null>(null);
   const [attachBusy, setAttachBusy] = useState(false);
   const [restoreBusy, setRestoreBusy] = useState(false);
   const [sourceObservationBusy, setSourceObservationBusy] = useState(false);
@@ -184,6 +190,7 @@ export function InboxReviewPanel({
   const isBusy =
     busy ||
     submitting ||
+    ruleSaving ||
     attachBusy ||
     restoreBusy ||
     sourceObservationBusy ||
@@ -193,6 +200,15 @@ export function InboxReviewPanel({
 
   const activeCandidate = candidate;
   const activeDraft = draft;
+  const confirmedRuleSeed = buildConfirmedReviewRuleSeed(activeDraft, categories);
+  const confirmedRuleKey = confirmedRuleSeed
+    ? JSON.stringify({
+        contains: confirmedRuleSeed.contains,
+        categoryId: confirmedRuleSeed.categoryId,
+      })
+    : null;
+  const ruleAlreadySaved =
+    confirmedRuleKey !== null && savedRuleKey === confirmedRuleKey;
 
   function patchDraft(partial: Partial<CandidateReviewDraft>) {
     setDraft((current) => (current ? { ...current, ...partial } : current));
@@ -336,6 +352,25 @@ export function InboxReviewPanel({
       onClose();
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleSaveConfirmedRule() {
+    if (!confirmedRuleSeed || ruleSaving) return;
+    setRuleSaving(true);
+    setError("");
+    try {
+      const result = await saveRuleForClient(isDemo, {
+        ...confirmedRuleSeed,
+        enabled: true,
+      });
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+      setSavedRuleKey(confirmedRuleKey);
+    } finally {
+      setRuleSaving(false);
     }
   }
 
@@ -693,6 +728,38 @@ export function InboxReviewPanel({
             rootClassName={styles.wide}
           />
         </div>
+
+        {confirmedRuleSeed ? (
+          <Alert tone={ruleAlreadySaved ? "success" : "info"} live="polite">
+            <AlertDescription>
+              {ruleAlreadySaved ? (
+                <p>
+                  Đã lưu quy tắc “{confirmedRuleSeed.contains}” → {confirmedRuleSeed.category}.
+                  Ứng viên này vẫn chờ bạn duyệt vào sổ riêng.
+                </p>
+              ) : (
+                <>
+                  <p>
+                    Lưu xác nhận này cho các ứng viên sau: nơi giao dịch chứa “
+                    {confirmedRuleSeed.contains}” → {confirmedRuleSeed.category}. Quy tắc chỉ
+                    chuẩn hóa ứng viên chờ duyệt, không tự ghi sổ.
+                  </p>
+                  <Button
+                    type="button"
+                    intent="secondary"
+                    targetSize="important"
+                    disabled={isBusy}
+                    pending={ruleSaving}
+                    pendingLabel="Đang lưu quy tắc…"
+                    onClick={() => void handleSaveConfirmedRule()}
+                  >
+                    Lưu thành quy tắc
+                  </Button>
+                </>
+              )}
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         {showDuplicateOverride ? (
           <label className={styles.checkRow}>
