@@ -2,6 +2,7 @@
 
 **Last reconciled:** 2026-08-24
 **Current main baseline:** `4d80fbe915155061fc3152740bb65c9cfa5c09ba` (PR #451 merged)
+**Post-merge projection:** PR #453
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -9,7 +10,8 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 ## NOW
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
-- [ ] **#452 / PR #453 / #432 P2 — confirmed Inbox rule capture** — an explicit review-time rule can reduce repeated merchant/category entry while leaving all candidates pending for review. **Next actor:** agent on `feat/452-confirmed-inbox-rule`; Class 3 packet `452-confirmed-inbox-rule-capture.md`.
+
+PR #453 is in same-PR completion projection for #452. Its packet has moved to `docs/plans/completed/2026-08-24-452-confirmed-inbox-rule-capture.md`; this branch may only resolve #452 acceptance defects/evaluation/verification. Do not promote another #432 child until the exact matching squash merge activates this projection and fresh-main authority resolution runs.
 
 ## NEXT
 
@@ -43,7 +45,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 ## CURRENT PR PROJECTION / RECENTLY DONE
 
-- [ ] **#452 / PR #453 — confirmed Inbox rule capture** — active Class 3 draft candidate on `feat/452-confirmed-inbox-rule`; explicit non-transfer review confirmation may create only a future candidate-stage rule. No automatic approval, ledger write, source rewrite, backfill, migration or provider/native/AI expansion.
+- [ ] **#452 / PR #453 — confirmed Inbox rule capture** — ready-for-review completion candidate. Explicit non-transfer review confirmation creates only a future candidate-stage rule; no automatic approval, ledger write, source rewrite, backfill, migration or provider/native/AI expansion. Exact-head non-draft CI and owner merge remain pending.
 - [x] **#450 / PR #451 — PWA Share Target atomic source** — merged as `4d80fbe915155061fc3152740bb65c9cfa5c09ba` after exact-head Class 3 checks. Authenticated `/api/share-target` → `/capture/share` text/CSV persistence creates only pending Inbox batches/candidates; demo stays browser-local with no ledger write or automatic approval.
 - [x] **#448 / PR #449 — reviewed source lifecycle → clearing** — merged as `9e709a2116a560da673539a3ff3994928b22262b`. Reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; source state never establishes `reconciled`, overwrites ledger facts, deletes facts or demotes user/statement truth.
 - [x] **#446 / PR #447 — event-sourced capability harness + same-PR lifecycle convergence** — merged as `eb8861c71dbc5b8173e7e48fff1293470a639816`.
@@ -60,7 +62,6 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates |
-| `452-confirmed-inbox-rule-capture.md` | **current agent-executable Class 3 slice** | explicit future candidate-stage rule only; approval and ledger remain separate |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |

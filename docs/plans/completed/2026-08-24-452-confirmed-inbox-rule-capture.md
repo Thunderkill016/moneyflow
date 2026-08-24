@@ -1,11 +1,12 @@
 # #452 — Create deterministic Inbox rules from confirmed review
 
-**Status:** implementing
-**Execution state:** implementing
-**Active role:** implementer
+**Status:** ready_for_review
+**Execution state:** projected completion in PR #453; unmerged candidate until owner decision
+**Active role:** none after the PR #453 projection activates
 **Permission scope:** branch_write
 **Owner:** human owner
 **Issue/PR:** #452 / PR #453 (draft)
+**Base at implementation start:** `main@4d80fbe915155061fc3152740bb65c9cfa5c09ba`
 **Last updated:** 2026-08-24
 
 ## Outcome
@@ -174,8 +175,8 @@ The Inbox review component owns the explicit user gesture; the existing rules cl
 | T1 | Register #452 and freeze scope | fresh-main resolver | packet + board/memory gates | done |
 | T2 | Add failing domain tests for eligible and fail-closed seeds | T1 | focused test failed for missing helper | done |
 | T3 | Implement helper and explicit review save action | T2 | focused unit and desktop browser regression passed; full gates pending | done |
-| T4 | Evaluate browser/responsive flow | T3 | desktop browser passed; mobile/full UI audit pending | in_progress |
-| T5 | Prepare truthful draft PR, exact-head checks and lifecycle convergence | T4 | PR record + CI | todo |
+| T4 | Evaluate browser/responsive flow | T3 | desktop and mobile regression passed; exact-head full UI audit pending | done |
+| T5 | Prepare truthful draft PR, exact-head checks and lifecycle convergence | T4 | PR #453 record and same-PR projection | done |
 
 ## Handoff record
 
@@ -183,6 +184,7 @@ The Inbox review component owns the explicit user gesture; the existing rules cl
 |---|---|---|---|---|---|---|
 | 2026-08-24 | planner | implementer | planned | #452, fresh `main@4d80fbe9`, packet | no code/test/browser evidence yet | write focused failing domain tests |
 | 2026-08-24 | implementer | evaluator | implementing | focused domain test red→green; desktop review-save browser regression passed | mobile/full verification and authenticated-provider boundary remain unverified | run risk-selected local gates |
+| 2026-08-24 | evaluator | ci_or_production | ready_for_review | PR #453 draft, projected completion and PR memory | exact-head non-draft CI, authenticated rule action, review and owner merge remain unverified | run exact-head CI; await owner merge decision |
 
 ### Current permission boundary
 
@@ -198,10 +200,10 @@ The Inbox review component owns the explicit user gesture; the existing rules cl
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Explicit non-transfer save is separate from approval | pending | pending |
-| Transfers/invalid merchant/category fail closed | pending | pending |
-| Demo/auth persistence and later candidate evidence | pending | pending |
-| Responsive accessible dialog | pending | pending |
+| Explicit non-transfer save is separate from approval | Playwright desktop/mobile demo regression: rule saved, current candidate stays pending | pass locally; exact-head CI pending |
+| Transfers/invalid merchant/category fail closed | focused domain test | pass locally; exact-head CI pending |
+| Demo/auth persistence and later candidate evidence | demo browser regression proves local persistence only | authenticated reuse and future-candidate evidence pending exact-head CI/review |
+| Responsive accessible dialog | mobile Playwright regression | pass locally; full audit pending exact-head CI |
 
 ### Research and adoption evidence
 
@@ -211,11 +213,11 @@ The Inbox review component owns the explicit user gesture; the existing rules cl
 
 ### Review findings
 
-- Correctness: pending.
-- Security/ownership: pending.
-- UI/UX/accessibility: pending.
-- Maintainability/duplication: pending.
-- Scope compliance: pending.
+- Correctness: no local evidence of candidate approval, ledger posting or source mutation; exact-head CI still required.
+- Security/ownership: existing authenticated action/RLS boundary is reused, not reimplemented; authenticated environment remains unexercised locally.
+- UI/UX/accessibility: desktop and mobile demo regression passed; full responsive audit remains pending.
+- Maintainability/duplication: pure seed validation centralizes transfer/unknown/category guards; review UI reuses `saveRuleForClient`.
+- Scope compliance: no migration, RPC/RLS, provider, deployment or ledger change in diff.
 
 ### Remaining limitations
 
@@ -224,9 +226,9 @@ The Inbox review component owns the explicit user gesture; the existing rules cl
 ## Delivery record
 
 - Branch: `feat/452-confirmed-inbox-rule`
-- PR: #453 (draft)
+- PR: #453 (ready-for-review projection pending)
 - Squash commit: pending
-- CI run: pending
+- CI run: exact-head non-draft pending
 - Production deployment: not authorized
 - Production flow verified: not applicable before owner deployment decision
-- Work packet moved to `docs/plans/completed/`: pending
+- Work packet moved to `docs/plans/completed/`: projected in PR #453
