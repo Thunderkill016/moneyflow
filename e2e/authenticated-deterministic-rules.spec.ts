@@ -116,6 +116,42 @@ test.describe("Deterministic rules workspace", () => {
     expect(evidence.category).toBe("Ăn uống");
   });
 
+  test("saves a reviewed merchant rule without posting the current candidate", async ({
+    page,
+  }) => {
+    await page.goto("/inbox", { waitUntil: "domcontentloaded" });
+    await page.getByRole("button", { name: "Nạp dữ liệu mẫu", exact: true }).click();
+    await page.getByRole("button", { name: /Duyệt Highlands Coffee/ }).click();
+
+    const review = page.getByRole("dialog", { name: "Duyệt giao dịch" });
+    await expect(review).toContainText(
+      /nơi giao dịch chứa “Highlands Coffee” → Ăn uống/i,
+    );
+    await review.getByRole("button", { name: "Lưu thành quy tắc" }).click();
+    await expect(review).toContainText(/Ứng viên này vẫn chờ bạn duyệt vào sổ riêng/i);
+
+    const persisted = await page.evaluate(({ candidatesKey, rulesKey }) => {
+      const candidates = JSON.parse(
+        window.localStorage.getItem(candidatesKey) ?? "[]",
+      ) as Array<Record<string, unknown>>;
+      const rules = JSON.parse(
+        window.localStorage.getItem(rulesKey) ?? "[]",
+      ) as Array<Record<string, unknown>>;
+      return { candidate: candidates[0], rule: rules[0] };
+    }, { candidatesKey: CANDIDATES_KEY, rulesKey: RULES_KEY });
+
+    expect(persisted.candidate?.status).toBe("pending");
+    expect(persisted.rule).toMatchObject({
+      contains: "Highlands Coffee",
+      field: "merchant",
+      merchant: "Highlands Coffee",
+      category: "Ăn uống",
+      categoryKind: "expense",
+      enabled: true,
+      version: 1,
+    });
+  });
+
   test("reordering changes the deterministic winner", async ({ page }) => {
     await createDemoRule(page, {
       contains: "SHOP",

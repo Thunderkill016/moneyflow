@@ -864,6 +864,7 @@ export function InboxPage({
           candidate={reviewCandidate}
           accounts={workspace.accounts}
           categories={workspace.categories}
+          isDemo={viewer.isDemo}
           busy={isMutating}
           onClose={() => setReviewId(null)}
           onApprove={handleApproveReview}

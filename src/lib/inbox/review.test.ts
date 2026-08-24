@@ -4,6 +4,7 @@ import type { AccountOption, CategoryOption } from "../sample-data.ts";
 import type { InboxCandidate } from "./candidate-store.ts";
 import {
   applyBulkCategory,
+  buildConfirmedReviewRuleSeed,
   buildExplainLines,
   buildLedgerPost,
   draftFromCandidate,
@@ -119,6 +120,50 @@ test("resolve account and category by name", () => {
   assert.equal(
     resolveCategoryId({ category: "Lương" }, categories, "income"),
     "cat-salary",
+  );
+});
+
+test("buildConfirmedReviewRuleSeed preserves an explicit money review as a merchant rule", () => {
+  const seed = buildConfirmedReviewRuleSeed(
+    {
+      kind: "expense",
+      merchant: "  Highlands Coffee  ",
+      categoryId: "cat-food",
+    },
+    categories,
+  );
+
+  assert.deepEqual(seed, {
+    contains: "Highlands Coffee",
+    field: "merchant",
+    merchant: "Highlands Coffee",
+    categoryId: "cat-food",
+    category: "Ăn uống",
+    categoryKind: "expense",
+  });
+});
+
+test("buildConfirmedReviewRuleSeed fails closed for transfers, unknown merchants and mismatched categories", () => {
+  assert.equal(
+    buildConfirmedReviewRuleSeed(
+      { kind: "transfer", merchant: "Vietcombank", categoryId: "cat-food" },
+      categories,
+    ),
+    null,
+  );
+  assert.equal(
+    buildConfirmedReviewRuleSeed(
+      { kind: "expense", merchant: " Không rõ ", categoryId: "cat-food" },
+      categories,
+    ),
+    null,
+  );
+  assert.equal(
+    buildConfirmedReviewRuleSeed(
+      { kind: "expense", merchant: "Highlands", categoryId: "cat-salary" },
+      categories,
+    ),
+    null,
   );
 });
 
