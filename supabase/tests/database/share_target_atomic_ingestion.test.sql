@@ -62,12 +62,14 @@ where user_id = '45000000-0000-4000-8000-000000000001'::uuid
   and is_archived = false
 order by created_at, id
 limit 1;
+
+reset role;
+
 insert into share_rule(id, category_id)
 select id, category_id
 from public.inbox_rules
 where id = '45030000-0000-4000-8000-000000000001'::uuid;
 
-reset role;
 grant select on share_rule to authenticated;
 
 create or replace function pg_temp.cross_tenant_share_rejected()
