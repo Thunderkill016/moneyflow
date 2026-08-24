@@ -1,11 +1,11 @@
 # #454 — Apply deterministic rules to PWA Share Target candidates
 
-**Status:** ready_for_review
-**Execution state:** projected completion in PR #455; unmerged candidate until owner decision
-**Active role:** none after the PR #455 projection activates
+**Status:** complete
+**Execution state:** completed through exact matching squash merge `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`
+**Active role:** none
 **Permission scope:** branch_write
 **Owner:** human owner
-**Issue/PR:** #454 / PR #455 (open, ready for review)
+**Issue/PR:** #454 / PR #455 (closed / merged)
 **Base at implementation start:** `main@ac86d273876414c76fc050b11d3904dddfbb93b6`
 **Last updated:** 2026-08-25
 
@@ -101,11 +101,11 @@ People who explicitly saved a merchant/category rule still need to re-categorize
 
 ### Acceptance criteria
 
-- [ ] An eligible shared text/CSV candidate that matches an enabled candidate-stage rule carries its exact id/version into the Share action; the server normalizes it inside the atomic transaction.
-- [ ] Only a successful created candidate receives the exact matching rule id/version evidence; it remains pending Inbox review and the Inbox explanation can show the result.
-- [ ] Transfers and candidates already categorized by parsing stay unchanged; rules are not inferred or forced.
-- [ ] Rule-load failure leaves Share ingestion unchanged; stale, mismatched or invalid submitted rule evidence rolls back the whole Share source action with no ledger write or partial source data.
-- [ ] Demo remains browser-local; authenticated mode reuses existing tenant-scoped rule read and database application contracts.
+- [x] An eligible shared text/CSV candidate that matches an enabled candidate-stage rule carries its exact id/version into the Share action; the server normalizes it inside the atomic transaction.
+- [x] Only a successful created candidate receives the exact matching rule id/version evidence; it remains pending Inbox review and the Inbox explanation can show the result.
+- [x] Transfers and candidates already categorized by parsing stay unchanged; rules are not inferred or forced.
+- [x] Rule-load failure leaves Share ingestion unchanged; stale, mismatched or invalid submitted rule evidence rolls back the whole Share source action with no ledger write or partial source data.
+- [x] Demo remains browser-local; authenticated mode reuses existing tenant-scoped rule read and database application contracts.
 
 ### Required states
 
@@ -187,6 +187,7 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 | 2026-08-25 | implementer | evaluator | evaluating | unit red→green; `verify:prepush` demo build; 12/12 Share browser; Class 3 static/RLS/migration gates | local pgTAP has no PostgreSQL/Docker; full audit WebKit navigation fails internally before assertions | prepare truthful draft PR; provider exact-head must run pgTAP/WebKit |
 | 2026-08-25 | evaluator | ci_or_production | evaluating | draft PR #455, introduced by implementation commit `5f4e939c` | CI is queued; provider database and WebKit evidence remain required | observe exact-head provider checks; do not merge without owner direction |
 | 2026-08-25 | ci_or_production | human owner | ready_for_review | exact code head `26c281e8` passed provider CI run `32757666717`: policy/static/build/unit/RLS, fresh Supabase pgTAP, archive round trips, browser smoke and cross-device audit | review and merge remain owner decisions; no production write | await owner merge decision |
+| 2026-08-25 | human owner | project memory | merged | exact matching squash merge `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`; issue #454 closed; final exact-head CI, CodeQL and Gitleaks checks passed | no production deployment or physical-device proof | select a new bounded #432 child only through fresh authority resolution |
 
 ### Current permission boundary
 
@@ -231,9 +232,9 @@ The Share component owns client orchestration, while `apply-rules.ts` selects on
 ## Delivery record
 
 - Branch: `feat/454-share-rule-application`
-- PR: #455 open, ready for review; exact code head `26c281e8` passed provider CI run `32757666717`
-- Squash commit: pending
-- CI run: `32757666717` passed all selected Class 3 gates on `26c281e8`
+- PR: #455 merged; issue #454 closed
+- Squash commit: `7a758843296b08167ba33ddb1f76e2f81a044a6d`
+- CI: exact source head `f6dad6b864e9dacc131b601533a4021d724ab56b` passed CI run `32759003121`, CodeQL run `32759003267` and Gitleaks run `32759003134`
 - Production deployment: not applicable
 - Production flow verified: not applicable
-- Work packet moved to `docs/plans/completed/`: complete; candidate remains unmerged
+- Work packet moved to `docs/plans/completed/`: complete and merged
