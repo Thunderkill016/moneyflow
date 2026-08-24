@@ -1,5 +1,5 @@
 begin;
-select plan(14);
+select plan(16);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -55,8 +55,8 @@ begin
         'map_confidence', 1,
         'headers', '["date","description","amount"]'::jsonb,
         'column_map', '{"date":0,"desc":1,"amount":2,"debit":null,"credit":null}'::jsonb,
-        'parser_version', 'csv_import@1.0',
-        'mapping_version', 1
+        'parser_version', 'caller-spoof@9.9',
+        'mapping_version', 99
       )
     ),
     jsonb_build_array(
@@ -72,8 +72,8 @@ begin
         'confidence', 'high',
         'account_id', (select id::text from pg_temp.share_other_account limit 1),
         'source_row_index', 1,
-        'parser_version', 'csv_import@1.0',
-        'mapping_version', 1
+        'parser_version', 'caller-spoof@9.9',
+        'mapping_version', 99
       )
     )
   );
@@ -117,8 +117,8 @@ select is(
           'map_confidence', 1,
           'headers', '[]'::jsonb,
           'column_map', '{"date":null,"amount":null,"desc":null,"debit":null,"credit":null}'::jsonb,
-          'parser_version', 'paste_text@1.0',
-          'mapping_version', 1
+          'parser_version', 'caller-spoof@9.9',
+          'mapping_version', 99
         ),
         jsonb_build_object(
           'id', '45010000-0000-4000-8000-000000000002',
@@ -130,8 +130,8 @@ select is(
           'map_confidence', 1,
           'headers', '["date","description","amount"]'::jsonb,
           'column_map', '{"date":0,"desc":1,"amount":2,"debit":null,"credit":null}'::jsonb,
-          'parser_version', 'csv_import@1.0',
-          'mapping_version', 1
+          'parser_version', 'caller-spoof@9.9',
+          'mapping_version', 99
         )
       ),
       jsonb_build_array(
@@ -147,8 +147,8 @@ select is(
           'confidence', 'medium',
           'raw_snippet', 'Highlands 45k',
           'source_row_index', null,
-          'parser_version', 'paste_text@1.0',
-          'mapping_version', 1
+          'parser_version', 'caller-spoof@9.9',
+          'mapping_version', 99
         ),
         jsonb_build_object(
           'id', '45020000-0000-4000-8000-000000000002',
@@ -162,8 +162,8 @@ select is(
           'confidence', 'high',
           'raw_snippet', '23/08/2026 | Market | -90000',
           'source_row_index', 7,
-          'parser_version', 'csv_import@1.0',
-          'mapping_version', 1
+          'parser_version', 'caller-spoof@9.9',
+          'mapping_version', 99
         )
       )
     ) ->> 'candidate_count'
@@ -204,6 +204,20 @@ select ok(
 );
 
 select is(
+  (select parser_version from public.import_batches
+   where id = '45010000-0000-4000-8000-000000000002'),
+  'csv_import@1.0',
+  'RPC derives canonical CSV parser version instead of trusting caller metadata'
+);
+
+select is(
+  (select mapping_version from public.inbox_candidates
+   where id = '45020000-0000-4000-8000-000000000002'),
+  1,
+  'RPC derives canonical mapping version instead of trusting caller metadata'
+);
+
+select is(
   (select count(*)::integer from public.financial_transactions
    where user_id = '45000000-0000-4000-8000-000000000001'),
   0,
@@ -224,8 +238,8 @@ select throws_ok(
           'map_confidence', 1,
           'headers', '["date","description","amount"]'::jsonb,
           'column_map', '{"date":0,"desc":1,"amount":2,"debit":null,"credit":null}'::jsonb,
-          'parser_version', 'csv_import@1.0',
-          'mapping_version', 1
+          'parser_version', 'caller-spoof@9.9',
+          'mapping_version', 99
         )
       ),
       jsonb_build_array(
@@ -240,8 +254,8 @@ select throws_ok(
           'source', 'csv',
           'confidence', 'high',
           'source_row_index', 1,
-          'parser_version', 'csv_import@1.0',
-          'mapping_version', 1
+          'parser_version', 'caller-spoof@9.9',
+          'mapping_version', 99
         ),
         jsonb_build_object(
           'id', '45020000-0000-4000-8000-000000000011',
@@ -254,8 +268,8 @@ select throws_ok(
           'source', 'csv',
           'confidence', 'high',
           'source_row_index', 2,
-          'parser_version', 'csv_import@1.0',
-          'mapping_version', 1
+          'parser_version', 'caller-spoof@9.9',
+          'mapping_version', 99
         )
       )
     )
