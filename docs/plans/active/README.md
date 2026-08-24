@@ -1,8 +1,7 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-25
-**Current main baseline:** `9f0a22107a778e9cf946ecf8f6d5435a97bf0767` (PR #456 squash-merged)
-**Post-merge projection:** PR #457
+**Current main baseline:** `a84dcfd11f67ed1e6c400b55cb1048d25f2c0131` (PR #457 squash-merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,7 +10,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is currently selected. PR #455 completed #454 through exact matching squash merge `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`; its completed packet is `docs/plans/completed/2026-08-25-454-share-target-rule-application.md`. A new #432 child requires a fresh bounded issue/spec/packet, not automatic promotion from this completed work.
+**#458 — Direct CSV recovery handoff** is the current bounded P2 slice. When an authenticated atomic approval fails after retaining the import batch and pending candidates, the user must receive a clear review path to Inbox and import history instead of a blind retry. No auto-retry, auto-approval, ledger/source mutation, RPC/schema/RLS or provider/deployment change is in scope. Packet: `docs/plans/active/458-direct-csv-recovery-handoff.md`.
 
 ## NEXT
 
@@ -63,6 +62,7 @@ No agent-executable product/governance slice is currently selected. PR #455 comp
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates |
+| `458-direct-csv-recovery-handoff.md` | current agent-executable Class 3 slice | retained Direct CSV failure → review handoff only |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |

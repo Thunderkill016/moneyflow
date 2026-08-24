@@ -7,6 +7,7 @@ import type { Transaction } from "../transactions/contracts.ts";
 import { demoAccounts, demoCategories } from "../demo/transaction-fixtures.ts";
 import {
   directImportFingerprint,
+  retainedDirectImportRecovery,
   formatDirectImportSummary,
   planDirectCsvImport,
   toDirectImportAcquisitionRows,
@@ -245,6 +246,16 @@ test("formatDirectImportSummary VN", () => {
   assert.ok(s.includes("3 sẽ ghi vào sổ"));
   assert.ok(s.includes("1 trùng"));
   assert.ok(s.includes("1 chuyển khoản"));
+});
+
+test("retainedDirectImportRecovery exposes review-only destinations only for an explicit batch id", () => {
+  assert.deepEqual(retainedDirectImportRecovery(undefined), null);
+  assert.deepEqual(retainedDirectImportRecovery("   "), null);
+  assert.deepEqual(retainedDirectImportRecovery("batch-123"), {
+    batchId: "batch-123",
+    inboxHref: "/inbox",
+    importsHref: "/imports",
+  });
 });
 
 test("custom columnMap override on parse", () => {

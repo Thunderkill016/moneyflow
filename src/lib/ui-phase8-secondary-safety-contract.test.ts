@@ -117,6 +117,16 @@ test("Rules and Imports expose review consequences without browser confirms", ()
   assert.match(directImport, /slot="direct-import-review"/);
   assert.match(directImport, /nếu một dòng bị máy chủ từ chối thì không dòng nào của lượt ghi trở thành giao dịch/i);
   assert.match(directImport, /hoàn tác vẫn theo lifecycle của từng giao dịch/i);
+  assert.match(
+    directImport,
+    /setRecovery\(retainedDirectImportRecovery\(result\.batchId\)\)/,
+  );
+  assert.match(
+    directImport,
+    /đừng thử lại trước khi xem Inbox/,
+  );
+  assert.match(directImport, /href=\{recovery\.inboxHref\}/);
+  assert.match(directImport, /href=\{recovery\.importsHref\}/);
 });
 
 test("Settings states exact export, parser and deletion capabilities", () => {
