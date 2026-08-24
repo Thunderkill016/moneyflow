@@ -1,7 +1,8 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-25
-**Current main baseline:** `7a758843296b08167ba33ddb1f76e2f81a044a6d` (PR #455 squash-merged)
+**Current main baseline:** `9f0a22107a778e9cf946ecf8f6d5435a97bf0767` (PR #456 squash-merged)
+**Post-merge projection:** PR #457
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
