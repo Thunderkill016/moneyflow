@@ -1,7 +1,7 @@
 # #458 — Direct CSV recovery handoff
 
-**Status:** post-merge projection — evaluating exact head
-**Execution state:** evaluating
+**Status:** ready_for_review — post-merge projection pending owner merge
+**Execution state:** ready_for_review
 **Risk class:** Class 3 — financial-domain boundary
 **Active role:** implementer
 **Permission scope:** branch_write
@@ -128,7 +128,7 @@ The server action remains the authoritative atomic writer and describes whether 
 |---|---|---|---|---|
 | T1 | Add a failing retained-batch recovery contract test | packet | test failed because descriptor was absent, then passed after the minimal descriptor | done |
 | T2 | Add minimal pure descriptor and Direct CSV error handoff | T1 | focused unit/UI contracts pass | done |
-| T3 | Run selected UI/static verification and publish PR evidence | T2 | local evidence recorded; exact-head provider evidence pending | in_progress |
+| T3 | Run selected UI/static verification and publish PR evidence | T2 | local evidence plus exact-head provider checks pass | done |
 
 ## Handoff record
 
@@ -137,6 +137,7 @@ The server action remains the authoritative atomic writer and describes whether 
 | 2026-08-25 | owner | implementer | implementing | #458; current code reconnaissance; action returns retained `batchId` while UI drops it | no authenticated browser fixture yet selected | write failing pure recovery test |
 | 2026-08-25 | implementer | evaluator | evaluating | focused red→green recovery test; UI source contract; lint/typecheck/knowledge/CI-policy/migration checks pass | authenticated browser flow and provider exact-head checks remain pending | run selected browser and responsive gates |
 | 2026-08-25 | evaluator | implementer | implementing | `verify:prepush` passed in explicit demo mode (1,110 tests + build); Chromium `/imports/direct` audits passed at phone, tablet and desktop sizes | authenticated retained-batch error lacks a local backend fixture; full E2E has 4 expected-missing-CAPTCHA failures; UI audit has 1 unrelated 320px password-reveal flake and 54 WebKit navigation internal errors | publish exact head and use provider checks for the remaining evidence |
+| 2026-08-25 | ci_or_production | human owner | ready_for_review | PR #459 exact code head `de946d5d` passed CI run `32766848106`: policy, static quality/typecheck, production build, unit/static RLS, browser smoke and cross-device UI audit; CodeQL and Gitleaks passed | review and merge remain owner decisions; no provider/production write occurred | await owner merge decision |
 
 ### Current permission boundary
 
@@ -152,8 +153,10 @@ The server action remains the authoritative atomic writer and describes whether 
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Retained failure directs to review without retry | pending focused unit/UI evidence | pending |
-| Generic failure makes no retained-batch claim | pending focused unit/UI evidence | pending |
+| Retained failure directs to review without retry | red→green recovery descriptor, UI contract and exact-head browser smoke/cross-device audit | pass; authenticated retained-failure fixture remains unavailable locally |
+| Generic failure makes no retained-batch claim | descriptor returns `null` for absent/whitespace batch ids; focused contract | pass |
+| Success/demo behavior remains unchanged | full demo `verify:prepush` plus exact-head provider build/unit/browser checks | pass |
+| No automatic mutation or server-contract change | focused diff, UI contract, unit/static RLS and provider checks | pass |
 
 ### Local verification evidence
 
@@ -162,6 +165,7 @@ The server action remains the authoritative atomic writer and describes whether 
 - Full: `NEXT_PUBLIC_APP_MODE=demo npm run verify:prepush` passed with 1,110 tests and production build.
 - E2E: 120 passed; four `auth-captcha` failures require a Turnstile key that the demo web server intentionally does not configure. They are outside this diff.
 - Responsive audit: Chromium `/imports/direct` target-size and responsive checks passed at 320, 360, 390, tablet and desktop widths. The full matrix reported one unrelated 320px password-reveal flake and 54 WebKit `page.goto` internal errors, so it is not a green complete matrix.
+- Exact-head provider: CI run `32766848106` passed policy, static quality/typecheck, production build, unit/static RLS, browser smoke and cross-device UI audit for `de946d5dc8050fcefeb4cd4e6561e822560216bf`; CodeQL and Gitleaks also passed.
 
 ### Remaining limitations
 
@@ -170,9 +174,9 @@ The server action remains the authoritative atomic writer and describes whether 
 ## Delivery record
 
 - Branch: `feat/p2-next-ingestion-v2`
-- PR: #459 (draft)
+- PR: #459 (ready for review)
 - Squash commit: pending
-- CI run: pending
+- CI run: `32766848106` passed on code head `de946d5dc8050fcefeb4cd4e6561e822560216bf`
 - Production deployment: not applicable
 - Production flow verified: not applicable
 - Work packet moved to `docs/plans/completed/`: post-merge projection in PR #459; not merged truth until exact matching squash merge
