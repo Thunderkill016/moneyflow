@@ -5,6 +5,7 @@
  */
 
 import type { CreateCandidateInput } from "./candidate-store.ts";
+import { previewRuleApplication } from "./apply-rules.ts";
 import {
   MAX_UPLOAD_BYTES,
   parseCsvStatement,
@@ -16,6 +17,7 @@ import {
   parsePasteText,
   toCreateCandidateInputs,
 } from "./parse-text.ts";
+import type { InboxRule } from "./rules-store.ts";
 
 /** sessionStorage key written by the POST share bridge. */
 export const SHARE_PAYLOAD_STORAGE_KEY = "moneyflow-share-payload-v1";
@@ -54,6 +56,17 @@ export type SharePlan = {
   errors: string[];
   /** Non-fatal notes (skipped xlsx, empty file, …). */
   warnings: string[];
+};
+
+/** Exact rule revision selected for one Share candidate; server applies it atomically. */
+export type ShareCandidateRuleEvidence = {
+  ruleId: string;
+  ruleVersion: number;
+};
+
+export type ShareRuleEvidencePlan = {
+  pasteCandidates: Array<ShareCandidateRuleEvidence | null>;
+  csvPlans: Array<Array<ShareCandidateRuleEvidence | null>>;
 };
 
 export function emptySharePayload(): SharePayload {
@@ -249,6 +262,42 @@ export function planShareImport(payload: SharePayload): SharePlan {
     candidateCount,
     errors,
     warnings,
+  };
+}
+
+function ruleEvidenceForShareCandidate(
+  candidate: Pick<
+    CreateCandidateInput,
+    "kind" | "merchant" | "note" | "rawSnippet" | "categoryId" | "category"
+  >,
+  rules: InboxRule[],
+): ShareCandidateRuleEvidence | null {
+  const preview = previewRuleApplication(
+    { ...candidate, note: candidate.note ?? "" },
+    rules,
+  );
+  if (!preview.match) return null;
+  return { ruleId: preview.match.id, ruleVersion: preview.match.version };
+}
+
+/**
+ * Select only exact rule identifiers for the Share persistence boundary.
+ * The server remains responsible for applying and re-validating the rule inside
+ * the atomic Share transaction, so this never mutates raw candidate data.
+ */
+export function planShareRuleEvidence(
+  plan: SharePlan,
+  rules: InboxRule[],
+): ShareRuleEvidencePlan {
+  return {
+    pasteCandidates: plan.pasteCandidates.map((candidate) =>
+      ruleEvidenceForShareCandidate(candidate, rules),
+    ),
+    csvPlans: plan.csvPlans.map((csvPlan) =>
+      csvPlan.parse.rows.map((candidate) =>
+        ruleEvidenceForShareCandidate(candidate, rules),
+      ),
+    ),
   };
 }
 

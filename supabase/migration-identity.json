@@ -269,6 +269,11 @@
       "version": "20260824083000",
       "name": "20260824083000_share_target_atomic_ingestion.sql",
       "hash": "cf7ba53dbb21a4d9163170856b518a5e"
+    },
+    {
+      "version": "20260824170000",
+      "name": "20260824170000_share_target_rule_atomic_ingestion.sql",
+      "hash": "5b0b72c43dbc35a8e035508db28e9bc3"
     }
   ]
 }
