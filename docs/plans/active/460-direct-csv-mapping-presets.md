@@ -1,6 +1,6 @@
 # #460 Remembered Direct CSV column mappings
 
-**Status:** draft PR open
+**Status:** ready for provider verification
 **Execution state:** local verification complete; exact-head provider verification pending
 **Active role:** implementer
 **Permission scope:** branch_write
@@ -180,4 +180,4 @@ A small pure preset helper owns header normalization, validation and storage pay
 ## Delivery record
 
 - Branch: `feat/p2-direct-csv-mapping-presets`
-- PR: #461 (draft; no merge/deployment decision)
+- PR: #461 (ready for review; no merge/deployment decision)
