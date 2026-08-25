@@ -14,6 +14,12 @@ import {
   toDirectImportPosts,
   type DirectImportMapping,
 } from "./direct-csv-import.ts";
+import {
+  createDirectCsvMappingPreset,
+  readDirectCsvMappingPreset,
+  resolveDirectCsvMappingPreset,
+  writeDirectCsvMappingPreset,
+} from "./direct-csv-mapping-preset.ts";
 import type { LedgerLike } from "./detect.ts";
 import { parseCsvStatement } from "./parse-csv.ts";
 
@@ -269,4 +275,83 @@ test("custom columnMap override on parse", () => {
   assert.equal(result.rows.length, 1);
   assert.equal(result.rows[0]?.amount, 50_000);
   assert.equal(result.rows[0]?.occurredOn, "2026-07-12");
+});
+
+test("a remembered Direct CSV preset matches only the same normalized ordered headers", () => {
+  const map = {
+    date: 0,
+    amount: null,
+    desc: 1,
+    debit: 2,
+    credit: 3,
+  };
+  const preset = createDirectCsvMappingPreset(
+    ["  Ngày GD ", "Nội dung", "Ghi nợ", "Ghi có"],
+    map,
+  );
+
+  assert.deepEqual(preset, {
+    version: 1,
+    headerShape: "ngày gd\u001fnội dung\u001fghi nợ\u001fghi có",
+    columnMap: map,
+  });
+  assert.deepEqual(
+    resolveDirectCsvMappingPreset(
+      ["NGÀY   GD", "nội dung", "ghi nợ", "ghi có"],
+      preset,
+    ),
+    map,
+  );
+  assert.equal(
+    resolveDirectCsvMappingPreset(
+      ["Ngày GD", "Nội dung", "Số tiền"],
+      preset,
+    ),
+    null,
+  );
+});
+
+test("a Direct CSV mapping preset rejects malformed column indexes", () => {
+  assert.equal(
+    createDirectCsvMappingPreset(
+      ["Ngày GD", "Nội dung", "Số tiền"],
+      { date: 0, amount: 3, desc: 1, debit: null, credit: null },
+    ),
+    null,
+  );
+});
+
+test("Direct CSV preset storage writes only the verified mapping payload", () => {
+  const map = { date: 0, amount: 2, desc: 1, debit: null, credit: null };
+  const preset = createDirectCsvMappingPreset(
+    ["Ngày GD", "Nội dung", "Số tiền"],
+    map,
+  );
+  assert.ok(preset);
+
+  let stored: string | null = null;
+  writeDirectCsvMappingPreset(
+    {
+      setItem(_key: string, value: string) {
+        stored = value;
+      },
+    },
+    preset,
+  );
+
+  assert.deepEqual(JSON.parse(stored ?? "null"), preset);
+  assert.deepEqual(
+    readDirectCsvMappingPreset(
+      stored,
+      ["ngày gd", "nội dung", "số tiền"],
+    ),
+    map,
+  );
+  assert.equal(
+    readDirectCsvMappingPreset(
+      '{"version":1,"headerShape":"x","columnMap":{"amount":9}}',
+      ["Ngày GD", "Nội dung", "Số tiền"],
+    ),
+    null,
+  );
 });

@@ -35,6 +35,12 @@ import {
   toDirectImportPosts,
   type DirectImportPlan,
 } from "@/lib/inbox/direct-csv-import";
+import {
+  DIRECT_CSV_MAPPING_PRESET_STORAGE_KEY,
+  createDirectCsvMappingPreset,
+  readDirectCsvMappingPreset,
+  writeDirectCsvMappingPreset,
+} from "@/lib/inbox/direct-csv-mapping-preset";
 import type { LedgerLike } from "@/lib/inbox/detect";
 import {
   emptyColumnMap,
@@ -138,6 +144,8 @@ export function DirectCsvImportPage({
   const [csvText, setCsvText] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
   const [columnMap, setColumnMap] = useState<CsvColumnMap>(emptyColumnMap());
+  const [rememberedColumnMap, setRememberedColumnMap] =
+    useState<CsvColumnMap | null>(null);
   const [parseResult, setParseResult] = useState<ParseCsvResult | null>(null);
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
   const [expenseCategoryId, setExpenseCategoryId] = useState(
@@ -250,7 +258,17 @@ export function DirectCsvImportPage({
           ? first.map((header, index) => header.trim() || `Cột ${index + 1}`)
           : first.map((_, index) => `Cột ${index + 1}`);
         const auto = mapCsvColumns(looksHeader ? first : nextHeaders);
+        let remembered: CsvColumnMap | null = null;
+        try {
+          remembered = readDirectCsvMappingPreset(
+            window.localStorage.getItem(DIRECT_CSV_MAPPING_PRESET_STORAGE_KEY),
+            nextHeaders,
+          );
+        } catch {
+          // Browser storage is optional; normal auto-mapping remains available.
+        }
         setHeaders(nextHeaders);
+        setRememberedColumnMap(remembered);
         setColumnMap(auto.map);
         reparseWithMap(text, file.name, auto.map);
       } catch {
@@ -279,6 +297,27 @@ export function DirectCsvImportPage({
     if (csvText && fileName) reparseWithMap(csvText, fileName, next);
   }
 
+  function applyRememberedColumnMap() {
+    if (!rememberedColumnMap || !csvText || !fileName) return;
+    reparseWithMap(csvText, fileName, rememberedColumnMap);
+    setNotice("Đã dùng mapping đã nhớ. Hãy kiểm tra dry-run trước khi ghi sổ.");
+  }
+
+  function rememberCurrentColumnMap() {
+    const preset = createDirectCsvMappingPreset(headers, columnMap);
+    if (!preset) {
+      setNotice("Mapping hiện tại chưa hợp lệ để nhớ.");
+      return;
+    }
+    try {
+      writeDirectCsvMappingPreset(window.localStorage, preset);
+      setRememberedColumnMap(preset.columnMap);
+      setNotice("Đã nhớ mapping này trên thiết bị.");
+    } catch {
+      setNotice("Không thể nhớ mapping trên thiết bị này; vẫn có thể import như bình thường.");
+    }
+  }
+
   function reset() {
     setPhase("idle");
     setError("");
@@ -287,6 +326,7 @@ export function DirectCsvImportPage({
     setCsvText("");
     setHeaders([]);
     setColumnMap(emptyColumnMap());
+    setRememberedColumnMap(null);
     setParseResult(null);
     setResultSummary(null);
     setRecovery(null);
@@ -627,6 +667,39 @@ export function DirectCsvImportPage({
                         ))}
                       </SelectField>
                     ))}
+                  </div>
+                  <div
+                    className={styles.alertAction}
+                    data-slot="direct-import-saved-mapping"
+                  >
+                    {rememberedColumnMap ? (
+                      <Alert tone="info" live="polite">
+                        <AlertDescription className={styles.alertAction}>
+                          <span>
+                            Đã tìm thấy mapping bạn từng nhớ cho cấu trúc cột này. Chỉ
+                            dùng khi bạn đã kiểm tra lại preview.
+                          </span>
+                          <Button
+                            type="button"
+                            intent="secondary"
+                            targetSize="important"
+                            disabled={busy || phase === "done"}
+                            onClick={applyRememberedColumnMap}
+                          >
+                            Dùng mapping đã nhớ
+                          </Button>
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
+                    <Button
+                      type="button"
+                      intent="quiet"
+                      targetSize="important"
+                      disabled={busy || phase === "done"}
+                      onClick={rememberCurrentColumnMap}
+                    >
+                      Nhớ mapping này
+                    </Button>
                   </div>
                   <div className={styles.mapGrid}>
                     <SelectField

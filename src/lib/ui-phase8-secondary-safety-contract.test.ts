@@ -127,6 +127,12 @@ test("Rules and Imports expose review consequences without browser confirms", ()
   );
   assert.match(directImport, /href=\{recovery\.inboxHref\}/);
   assert.match(directImport, /href=\{recovery\.importsHref\}/);
+  assert.match(directImport, /DIRECT_CSV_MAPPING_PRESET_STORAGE_KEY/);
+  assert.match(directImport, /readDirectCsvMappingPreset/);
+  assert.match(directImport, /writeDirectCsvMappingPreset/);
+  assert.match(directImport, /data-slot="direct-import-saved-mapping"/);
+  assert.match(directImport, /Dùng mapping đã nhớ/);
+  assert.match(directImport, /Nhớ mapping này/);
 });
 
 test("Settings states exact export, parser and deletion capabilities", () => {
