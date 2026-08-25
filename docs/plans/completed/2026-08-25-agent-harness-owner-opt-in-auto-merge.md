@@ -1,11 +1,11 @@
 # Agent harness owner-opt-in auto-merge
 
-**Status:** evaluating
-**Execution state:** evaluating
-**Active role:** evaluator
+**Status:** post-merge projection candidate
+**Execution state:** awaiting exact-head provider verification and owner merge decision
+**Active role:** none after merge
 **Permission scope:** branch_write; GitHub pull-request merge only after the owner-authored opt-in and the stated exact-head checks
 **Owner:** human owner
-**Issue/PR:** user-directed operational slice / PR pending
+**Issue/PR:** PR #462; branch `feat/agent-harness-auto-merge`
 **Last updated:** 2026-08-25
 
 ## Outcome
@@ -146,15 +146,15 @@ provider setting is introduced.
 |---|---|---|---|---|
 | T1 | add tests for opt-in parsing and fail-closed delivery eligibility | specification | observed red tests | done |
 | T2 | implement host-only delivery seam and journal facts | T1 | targeted green tests | done |
-| T3 | independent contract review and full selected verification | T2 | gates and acceptance matrix | in progress |
-| T4 | publish PR and merge only after exact-head evidence | T3 | provider checks and merge record | todo |
+| T3 | independent contract review and full selected verification | T2 | gates and acceptance matrix | done locally; exact-head provider evidence pending |
+| T4 | publish PR and merge only after exact-head evidence | T3 | provider checks and merge record | ready for review |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-08-25 | researcher | planner | planned | current harness code, GitHub API references | exact required-check policy remains to specify in tests | write failing contract tests |
-| 2026-08-25 | implementer | evaluator | evaluating | host-only delivery seam; 44 agent-harness tests; no worker merge permission | local Docker/Gitleaks unavailable; exact-head provider evidence pending | run remaining local gates and publish draft PR |
+| 2026-08-25 | implementer | evaluator | evaluating | host-only delivery seam; 45 agent-harness tests; no worker merge permission | local Docker/Gitleaks unavailable; exact-head provider evidence pending | publish and evaluate PR #462 |
 
 ### Current permission boundary
 
@@ -187,4 +187,4 @@ provider setting is introduced.
 ## Delivery record
 
 - Branch: `feat/agent-harness-auto-merge`
-- PR: pending
+- PR: #462 (post-merge projection candidate)
