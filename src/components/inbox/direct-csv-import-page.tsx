@@ -30,6 +30,7 @@ import {
   directImportRowStatusLabel,
   formatDirectImportSummary,
   planDirectCsvImport,
+  retainedDirectImportRecovery,
   toDirectImportAcquisitionRows,
   toDirectImportPosts,
   type DirectImportPlan,
@@ -153,6 +154,9 @@ export function DirectCsvImportPage({
     failed: number;
     skipped: number;
   } | null>(null);
+  const [recovery, setRecovery] = useState<ReturnType<
+    typeof retainedDirectImportRecovery
+  >>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
 
   useEffect(() => {
@@ -210,6 +214,7 @@ export function DirectCsvImportPage({
     async (file: File) => {
       setError("");
       setResultSummary(null);
+      setRecovery(null);
       setFileName(file.name);
       setFileSize(file.size);
 
@@ -284,6 +289,7 @@ export function DirectCsvImportPage({
     setColumnMap(emptyColumnMap());
     setParseResult(null);
     setResultSummary(null);
+    setRecovery(null);
     setImportProgress({ done: 0, total: 0 });
     setReviewOpen(false);
     if (inputRef.current) inputRef.current.value = "";
@@ -305,6 +311,7 @@ export function DirectCsvImportPage({
     setPhase("importing");
     setError("");
     setResultSummary(null);
+    setRecovery(null);
     setImportProgress({ done: 0, total: plan.readyCount });
 
     const skipped = plan.duplicateCount + plan.transferSkipped + plan.invalidSkipped;
@@ -366,6 +373,7 @@ export function DirectCsvImportPage({
       setImportProgress({ done: 0, total: plan.readyCount });
       setPhase("error");
       setError(result.message);
+      setRecovery(retainedDirectImportRecovery(result.batchId));
       trackProductEvent("import_direct_committed", {
         created_count: 0,
         failed_count: plan.readyCount,
@@ -755,7 +763,34 @@ export function DirectCsvImportPage({
 
                     {error ? (
                       <Alert tone="error" live="assertive">
-                        <AlertDescription>{error}</AlertDescription>
+                        <AlertDescription
+                          className={recovery ? styles.alertAction : undefined}
+                        >
+                          <span>
+                            {error}
+                            {recovery
+                              ? " Lượt import đã được giữ để kiểm tra; đừng thử lại trước khi xem Inbox."
+                              : ""}
+                          </span>
+                          {recovery ? (
+                            <span className={styles.recoveryActions}>
+                              <LinkButton
+                                href={recovery.inboxHref}
+                                intent="primary"
+                                targetSize="important"
+                              >
+                                Mở Inbox
+                              </LinkButton>
+                              <LinkButton
+                                href={recovery.importsHref}
+                                intent="secondary"
+                                targetSize="important"
+                              >
+                                Lịch sử import
+                              </LinkButton>
+                            </span>
+                          ) : null}
+                        </AlertDescription>
                       </Alert>
                     ) : null}
 

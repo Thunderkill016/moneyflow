@@ -6,6 +6,12 @@
   width: 100%;
 }
 
+.recoveryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .dropzone {
   display: grid;
   justify-items: center;
@@ -192,6 +198,11 @@
 @media (max-width: 620px) {
   .alertAction {
     display: grid;
+  }
+
+  .recoveryActions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .actions {

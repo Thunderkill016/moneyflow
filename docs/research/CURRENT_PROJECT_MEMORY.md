@@ -2,8 +2,8 @@
 
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-25
-**Runtime/financial baseline:** `9f0a22107a778e9cf946ecf8f6d5435a97bf0767` (PR #456 squash-merged; no runtime capability change).
-**Post-merge projection:** PR #457
+**Runtime/financial baseline:** `a84dcfd11f67ed1e6c400b55cb1048d25f2c0131` (PR #457 squash-merged; no runtime capability change).
+**Post-merge projection:** PR #459
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -62,6 +62,8 @@ Master #432 is active. #450 closed through exact matching squash merge `main@4d8
 
 Merged PR #455 lets PWA Share Target candidates reuse existing explicit deterministic candidate-stage rules, carrying exact rule id/version through a focused atomic Share RPC wrapper. Every candidate remains pending; no inference, automatic approval, ledger mutation, raw-source rewrite, backfill, RLS, provider/native/AI or deployment change is introduced.
 
+PR #459 is a post-merge candidate only: when an authenticated Direct CSV atomic approval failure explicitly returns its retained batch id, the existing Direct CSV error alert tells the user to review Inbox before retrying and provides navigation to `/inbox` and `/imports`. It does not retry, approve candidates, write a ledger/source fact, or alter the server/RPC/schema/RLS contract. Until exact-head CI and an exact matching squash merge, this is not merged runtime truth.
+
 ## 5. Current capability inventory
 
 | Capability | Current truth |
@@ -108,11 +110,11 @@ Completed acquisition inputs: #434/#435, #436/#437, #438/#439, #440/#441, #442/#
 
 #443/#444 closed the plan-authority discovery defect. #446/#447 closed the repeated lifecycle-cleanup pattern and replaced the local monolithic dispatcher with the event-sourced capability harness.
 
-#451, #453 and #455 are merged runtime truth. #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
+#451, #453 and #455 are merged runtime truth. PR #459 is a post-merge candidate for #458, not authority until merge. #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
 
 ## 9. Open pull-request memory
 
-PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. PR #453 is the durable merged record for #452; its record is `docs/research/pr-memory/2026/Q3/PR-453.md`. PR #455 is the durable merged record for #454, squash-merged as `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`.
+PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. PR #453 is the durable merged record for #452; its record is `docs/research/pr-memory/2026/Q3/PR-453.md`. PR #455 is the durable merged record for #454, squash-merged as `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`. PR #459 is the candidate record for #458 and carries the same-PR post-merge projection.
 
 A final branch mutation invalidates older-head verification evidence. Merge remains owner-authorized only.
 

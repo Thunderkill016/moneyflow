@@ -85,6 +85,28 @@ export type DirectCsvAcquisitionRow = {
   rawSnippet: string;
 };
 
+/**
+ * A failed authenticated commit may retain a batch plus pending candidates for
+ * review. Navigation is deliberately the only recovery: never retry or mutate.
+ */
+export type RetainedDirectImportRecovery = {
+  batchId: string;
+  inboxHref: "/inbox";
+  importsHref: "/imports";
+};
+
+export function retainedDirectImportRecovery(
+  batchId: string | undefined,
+): RetainedDirectImportRecovery | null {
+  const normalizedBatchId = batchId?.trim();
+  if (!normalizedBatchId) return null;
+  return {
+    batchId: normalizedBatchId,
+    inboxHref: "/inbox",
+    importsHref: "/imports",
+  };
+}
+
 /** Legacy browser-local demo post payload. */
 export type DirectImportPostItem = {
   input: CreateTransactionInput;

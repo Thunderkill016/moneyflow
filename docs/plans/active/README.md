@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-25
-**Current main baseline:** `9f0a22107a778e9cf946ecf8f6d5435a97bf0767` (PR #456 squash-merged)
-**Post-merge projection:** PR #457
+**Current main baseline:** `a84dcfd11f67ed1e6c400b55cb1048d25f2c0131` (PR #457 squash-merged)
+**Post-merge projection:** PR #459
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is currently selected. PR #455 completed #454 through exact matching squash merge `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`; its completed packet is `docs/plans/completed/2026-08-25-454-share-target-rule-application.md`. A new #432 child requires a fresh bounded issue/spec/packet, not automatic promotion from this completed work.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #459 is the candidate completion of #458: a retained Direct CSV failure directs the user to existing Inbox/import-history review only, without retry, approval, ledger/source mutation, RPC/schema/RLS, provider or deployment change. The completion becomes current truth only after its exact-head checks and an exact matching squash merge.
 
 ## NEXT
 
@@ -45,6 +45,7 @@ No agent-executable product/governance slice is currently selected. PR #455 comp
 
 ## RECENTLY DONE
 
+- [ ] **#458 / PR #459 — Direct CSV recovery handoff** — post-merge projection only; awaiting exact-head checks and owner merge decision. A server-returned retained batch id exposes existing Inbox/history review actions and tells the user not to retry blindly; it never performs a financial or source mutation.
 - [x] **#454 / PR #455 — deterministic PWA Share candidate rules** — squash-merged as `7a758843296b08167ba33ddb1f76e2f81a044a6d` after exact-head Class 3 checks. Explicit rules normalize only matching future Share candidates through an atomic server validation path; every candidate remains pending, with no automatic approval, ledger write, raw-source rewrite, provider/native/AI expansion.
 - [x] **#452 / PR #453 — confirmed Inbox rule capture** — merged as `ac86d273876414c76fc050b11d3904dddfbb93b6`. Explicit non-transfer review confirmation creates only a future candidate-stage rule; no automatic approval, ledger write, source rewrite, backfill, migration or provider/native/AI expansion.
 - [x] **#450 / PR #451 — PWA Share Target atomic source** — merged as `4d80fbe915155061fc3152740bb65c9cfa5c09ba` after exact-head Class 3 checks. Authenticated `/api/share-target` → `/capture/share` text/CSV persistence creates only pending Inbox batches/candidates; demo stays browser-local with no ledger write or automatic approval.
