@@ -1,8 +1,8 @@
 # #460 Remembered Direct CSV column mappings
 
-**Status:** ready for provider verification
-**Execution state:** local verification complete; exact-head provider verification pending
-**Active role:** implementer
+**Status:** post-merge projection candidate
+**Execution state:** awaiting exact-head provider verification and owner merge decision
+**Active role:** none after merge
 **Permission scope:** branch_write
 **Owner:** Thunderkill016
 **Issue/PR:** #460 / PR #461; branch `feat/p2-direct-csv-mapping-presets`
@@ -180,4 +180,4 @@ A small pure preset helper owns header normalization, validation and storage pay
 ## Delivery record
 
 - Branch: `feat/p2-direct-csv-mapping-presets`
-- PR: #461 (ready for review; no merge/deployment decision)
+- PR: #461 (ready for review; this archive is a post-merge projection only)
