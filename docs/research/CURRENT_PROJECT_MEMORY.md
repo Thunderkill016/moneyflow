@@ -2,8 +2,8 @@
 
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-25
-**Runtime/financial baseline:** `3876666da38bdd446c49053da827af731d55cf54` (PR #459 squash-merged).
-**Post-merge projection:** PR #461
+**Runtime/financial baseline:** `ba2890670ceabed049aa1ed3bee0a9c8593b194a` (PR #461 squash-merged).
+**Post-merge projection:** PR #462
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -64,7 +64,7 @@ Merged PR #455 lets PWA Share Target candidates reuse existing explicit determin
 
 PR #459 is merged runtime truth: when an authenticated Direct CSV atomic approval failure explicitly returns its retained batch id, the existing Direct CSV error alert tells the user to review Inbox before retrying and provides navigation to `/inbox` and `/imports`. It does not retry, approve candidates, write a ledger/source fact, or alter the server/RPC/schema/RLS contract.
 
-PR #461 is a post-merge candidate only: Direct CSV can offer browser-local, user-confirmed column-map reuse for an exact normalized header shape. It persists no source/financial data, account/category selection or cross-device state, and retains the existing explicit dry-run and commit boundaries. Until exact-head CI and an exact matching squash merge, this is not merged runtime truth.
+PR #461 is merged runtime truth: Direct CSV offers browser-local, user-confirmed column-map reuse for an exact normalized header shape. It persists no source/financial data, account/category selection or cross-device state, and retains the existing explicit dry-run and commit boundaries.
 
 ## 5. Current capability inventory
 
@@ -77,7 +77,7 @@ PR #461 is a post-merge candidate only: Direct CSV can offer browser-local, user
 | Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; retained Direct CSV review recovery (#459); later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; merged #451 PWA Share Target atomic persistence; merged #453 candidate review-time rule capture; merged #455 deterministic Share rule application |
 | Lifecycle clearing | merged #449: reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; never source-driven `reconciled`, ledger overwrite, delete or demotion |
 | Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
-| Agent delivery | provider-neutral `scripts/agent-harness/`, append-only run journals, guarded permissions, same-PR lifecycle convergence; no merge/provider/production authority |
+| Agent delivery | provider-neutral `scripts/agent-harness/`, append-only run journals, guarded permissions and same-PR lifecycle convergence; PR #462 is the post-merge candidate for owner-opt-in host-only exact-head squash delivery, never child/worker authority |
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
 | Release proof | RRB-01/RRB-07 closed; RRB-02/03/04/05/06/08/09 remain open or externally gated |
 | Public beta | not approved |
@@ -112,11 +112,11 @@ Completed acquisition inputs: #434/#435, #436/#437, #438/#439, #440/#441, #442/#
 
 #443/#444 closed the plan-authority discovery defect. #446/#447 closed the repeated lifecycle-cleanup pattern and replaced the local monolithic dispatcher with the event-sourced capability harness.
 
-#451, #453, #455 and #459 are merged runtime truth; #458 is complete. PR #461 is the post-merge candidate for #460, not authority until merge. #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
+#451, #453, #455, #459 and #461 are merged runtime truth; #458/#460 are complete. PR #462 is the post-merge candidate for the owner-selected agent-harness auto-merge slice, not authority until merge. #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
 
 ## 9. Open pull-request memory
 
-PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. PR #453 is the durable merged record for #452; its record is `docs/research/pr-memory/2026/Q3/PR-453.md`. PR #455 is the durable merged record for #454, squash-merged as `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`. PR #459 is the durable merged record for #458, squash-merged as `main@3876666da38bdd446c49053da827af731d55cf54`. PR #461 is the candidate record for #460 and carries the same-PR post-merge projection.
+PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. PR #453 is the durable merged record for #452; its record is `docs/research/pr-memory/2026/Q3/PR-453.md`. PR #455 is the durable merged record for #454, squash-merged as `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`. PR #459 is the durable merged record for #458, squash-merged as `main@3876666da38bdd446c49053da827af731d55cf54`. PR #461 is the durable merged record for #460, squash-merged as `main@ba2890670ceabed049aa1ed3bee0a9c8593b194a`. PR #462 is the candidate record for the owner-selected harness slice and carries the same-PR post-merge projection.
 
 A final branch mutation invalidates older-head verification evidence. Merge remains owner-authorized only.
 
@@ -132,7 +132,7 @@ Release/trust gaps remain RRB-02/03/04/05/06/08/09 at their existing evidence/au
 
 ## 11. Next allowed action
 
-No agent-executable product/governance child is selected in this post-merge projection. A follow-on #432 child must begin only after #461 is exact-head verified, squash-merged and the projection activates; it requires a fresh bounded issue/spec/packet and evidence-backed acceptance.
+No agent-executable product/governance child is selected in this post-merge projection. A follow-on #432 child must begin only after #462 is exact-head verified, squash-merged and the projection activates; it requires a fresh bounded issue/spec/packet and evidence-backed acceptance.
 
 Do not jump to bank/e-wallet/NAPAS integration, infer rules from behavior, auto-approve/backfill candidates, source-drive `reconciled`, perform provider/production writes, broaden matching semantics, or expand transfer behavior inside #454.
 

@@ -296,7 +296,24 @@ The v1 `.agent-dispatcher/state.json` format is legacy migration input only. Bef
 
 The current built-in agent provider is `codex`. The command grammar is provider-neutral (`/agent <provider> ...`), but naming a provider does not grant it authority: it must be registered and meet the mandatory capability contract. Future providers reuse the same source/workspace/permission/run-journal boundaries rather than adding another dispatcher state machine.
 
-The harness does **not** grant merge, main-branch mutation, force-push, provider write, deployment or production-data authority. Child Git/GitHub commands run through the preserved allowlist guard; GitHub token variables are removed before the agent process starts. Detailed agent output remains local/private and GitHub receives only concise status.
+By default, the harness does **not** grant merge, main-branch mutation,
+force-push, provider write, deployment or production-data authority. Child
+Git/GitHub commands run through the preserved allowlist guard; GitHub token
+variables are removed before the agent process starts. Detailed agent output
+remains local/private and GitHub receives only concise status.
+
+An owner may opt one command into delivery by writing
+`/agent codex --automerge <task>` as the first substantive line. This does not
+grant the child merge authority: the guarded child still creates only its own
+draft PR. After a successful worker result, a host-owned GitHub delivery
+provider finds exactly that isolated-branch PR, marks it ready, waits for all
+required checks to pass, rereads its head/base/merge state and review threads,
+confirms remote `main` still equals the run base, then makes one direct
+**squash** request with the observed head SHA. It never schedules GitHub
+auto-merge, bypasses a queue/protection, creates reviews, retries an ambiguous
+state, merges another branch, deploys or changes provider/production data. Any
+missing, skipped, pending, failed or changed fact stops delivery without a
+merge.
 
 The architecture was informed by DeepSeek Harness's thin loop, capability seams, event-sourced sessions, fail-loud provider negotiation and holder-owned workflow/subagent runs. MoneyFlow intentionally does not import DeepSeek Harness/Cordis, dynamic self-modification, runtime plugin installation or unrestricted agent swarms.
 

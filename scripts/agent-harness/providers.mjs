@@ -15,6 +15,10 @@ const MAIN_BRANCH = "main";
 const SHA_PATTERN = /^[a-f0-9]{40}$/u;
 const MAX_AGENT_OUTPUT_BYTES = 8 * 1024 * 1024;
 const DEFAULT_KILL_GRACE_MS = 5_000;
+const AUTO_MERGE_OPTION = "--automerge";
+const REQUIRED_CHECK_WATCH_INTERVAL_SECONDS = 30;
+const CLEAN_MERGE_STATE = "CLEAN";
+const CHANGES_REQUESTED_REVIEW = "CHANGES_REQUESTED";
 const GITHUB_TOKEN_VARIABLES = [
   "GH_ENTERPRISE_TOKEN",
   "GH_TOKEN",
@@ -71,7 +75,14 @@ function authorLogin(source) {
 export function parseAgentCommand(text) {
   const match = /^\s*\/agent\s+([a-z][a-z0-9-]*)(?:\s+([\s\S]*?))?\s*$/iu.exec(text ?? "");
   if (!match) fail("Missing command marker: /agent <provider>");
-  return { provider: match[1].toLowerCase(), note: match[2] ?? "" };
+  const rawNote = match[2] ?? "";
+  const autoMerge = rawNote === AUTO_MERGE_OPTION || rawNote.startsWith(`${AUTO_MERGE_OPTION} `);
+  const note = autoMerge ? rawNote.slice(AUTO_MERGE_OPTION.length).trim() : rawNote;
+  return {
+    provider: match[1].toLowerCase(),
+    note,
+    ...(autoMerge ? { autoMerge: true } : {}),
+  };
 }
 
 function findAgentMarker(text) {
@@ -93,13 +104,15 @@ function findAgentMarker(text) {
 }
 
 export function commandIdFor({ source, command, sourceKey }) {
-  const identity = [
+  const identityParts = [
     source.kind,
     source.number,
     sourceKey,
     command.provider,
     command.note,
-  ].join("\n");
+  ];
+  if (command.autoMerge === true) identityParts.push("automerge");
+  const identity = identityParts.join("\n");
   return createHash("sha256").update(identity).digest("hex");
 }
 
@@ -166,6 +179,178 @@ export function createGithubSourceProvider({ run = defaultCommandRun } = {}) {
         run("gh", ["api", `repos/${repo}/issues/${source.number}/comments`, "-f", `body=${body}`]),
         "GitHub run summary",
       );
+    },
+  });
+}
+
+function parseRepoSlug(repo) {
+  const [owner, name, ...extra] = String(repo ?? "").split("/");
+  if (!owner || !name || extra.length > 0) fail("Repository identity is ambiguous");
+  return { owner, name };
+}
+
+function freshMainSha({ run }) {
+  const output = trimOutput(
+    expectSuccess(run("git", ["ls-remote", "origin", `refs/heads/${MAIN_BRANCH}`]), "Remote main").stdout,
+  );
+  const sha = output.split(/\s+/u)[0] ?? "";
+  if (!SHA_PATTERN.test(sha)) fail("Remote main SHA is malformed");
+  return sha;
+}
+
+function oneRunOwnedPullRequest({ run, repo, branch }) {
+  const fields = "number,isDraft,headRefOid,baseRefOid,mergeStateStatus";
+  const pullRequests = readJson(
+    run("gh", [
+      "pr",
+      "list",
+      "--repo",
+      repo,
+      "--head",
+      branch,
+      "--base",
+      MAIN_BRANCH,
+      "--state",
+      "open",
+      "--json",
+      fields,
+    ]),
+    "Run-owned pull-request lookup",
+  );
+  if (!Array.isArray(pullRequests) || pullRequests.length !== 1) {
+    fail("Expected exactly one open pull request from the isolated run branch");
+  }
+  const pullRequest = pullRequests[0];
+  if (!Number.isInteger(pullRequest?.number) || !SHA_PATTERN.test(pullRequest?.headRefOid ?? "")) {
+    fail("Run-owned pull request is missing a valid number or head SHA");
+  }
+  return pullRequest;
+}
+
+function requiredChecksPass({ run, repo, pullRequest }) {
+  const checks = readJson(
+    run("gh", [
+      "pr",
+      "checks",
+      String(pullRequest),
+      "--repo",
+      repo,
+      "--required",
+      "--watch",
+      "--interval",
+      String(REQUIRED_CHECK_WATCH_INTERVAL_SECONDS),
+      "--json",
+      "name,bucket",
+    ]),
+    "Required pull-request checks",
+  );
+  if (!Array.isArray(checks) || checks.length === 0 || checks.some((check) => check?.bucket !== "pass")) {
+    fail("Every required pull-request check must finish with a pass bucket");
+  }
+}
+
+function freshPullRequest({ run, repo, pullRequest }) {
+  return readJson(
+    run("gh", [
+      "pr",
+      "view",
+      String(pullRequest),
+      "--repo",
+      repo,
+      "--json",
+      "number,isDraft,headRefOid,baseRefOid,mergeStateStatus,reviewDecision",
+    ]),
+    "Fresh pull-request state",
+  );
+}
+
+function reviewThreadsAreResolved({ run, repo, pullRequest }) {
+  const { owner, name } = parseRepoSlug(repo);
+  const query = [
+    "query($owner: String!, $name: String!, $number: Int!) {",
+    "  repository(owner: $owner, name: $name) {",
+    "    pullRequest(number: $number) { reviewThreads(first: 100) { nodes { isResolved } } }",
+    "  }",
+    "}",
+  ].join("\n");
+  const result = readJson(
+    run("gh", [
+      "api",
+      "graphql",
+      "-f",
+      `query=${query}`,
+      "-F",
+      `owner=${owner}`,
+      "-F",
+      `name=${name}`,
+      "-F",
+      `number=${pullRequest}`,
+    ]),
+    "Pull-request review threads",
+  );
+  const threads = result?.data?.repository?.pullRequest?.reviewThreads?.nodes;
+  if (!Array.isArray(threads) || threads.some((thread) => thread?.isResolved !== true)) {
+    fail("Pull-request review threads must all be resolved");
+  }
+}
+
+export function createGithubDeliveryProvider({ run = defaultCommandRun } = {}) {
+  return Object.freeze({
+    id: "github",
+
+    deliver({ repo, isolation, baseSha }) {
+      if (!SHA_PATTERN.test(baseSha ?? "")) fail("Delivery base SHA is malformed");
+      if (!isolation?.branch || isolation.branch === MAIN_BRANCH) {
+        fail("Delivery requires an unambiguous isolated non-main branch");
+      }
+
+      const initialPullRequest = oneRunOwnedPullRequest({ run, repo, branch: isolation.branch });
+      if (initialPullRequest.isDraft !== true) fail("Run-owned pull request must start as a draft");
+      if (initialPullRequest.baseRefOid !== baseSha) fail("Run-owned pull request base no longer matches the run base");
+
+      expectSuccess(
+        run("gh", ["pr", "ready", String(initialPullRequest.number), "--repo", repo]),
+        "Marking the run-owned pull request ready",
+      );
+      requiredChecksPass({ run, repo, pullRequest: initialPullRequest.number });
+
+      const pullRequest = freshPullRequest({ run, repo, pullRequest: initialPullRequest.number });
+      if (pullRequest?.isDraft === true) fail("Run-owned pull request remained a draft");
+      if (pullRequest?.headRefOid !== initialPullRequest.headRefOid) {
+        fail("Run-owned pull request head changed after checks began");
+      }
+      if (pullRequest?.baseRefOid !== baseSha || freshMainSha({ run }) !== baseSha) {
+        fail("Main changed after the isolated run began");
+      }
+      if (pullRequest?.mergeStateStatus !== CLEAN_MERGE_STATE) {
+        fail("Run-owned pull request is not cleanly mergeable");
+      }
+      if (pullRequest?.reviewDecision === CHANGES_REQUESTED_REVIEW) {
+        fail("Run-owned pull request has changes requested");
+      }
+      reviewThreadsAreResolved({ run, repo, pullRequest: initialPullRequest.number });
+
+      const merged = readJson(
+        run("gh", [
+          "api",
+          "-X",
+          "PUT",
+          `repos/${repo}/pulls/${initialPullRequest.number}/merge`,
+          "-f",
+          `sha=${initialPullRequest.headRefOid}`,
+          "-f",
+          "merge_method=squash",
+        ]),
+        "Exact-head squash merge",
+      );
+      if (merged?.merged !== true || !SHA_PATTERN.test(merged?.sha ?? "")) {
+        fail("GitHub did not confirm an exact-head squash merge");
+      }
+      return Object.freeze({
+        status: "merged",
+        pullRequest: initialPullRequest.number,
+        mergeCommit: merged.sha,
+      });
     },
   });
 }
@@ -440,6 +625,7 @@ export async function defaultHarnessPlugin(ctx, config = {}) {
   const environmentSource = config.environmentSource ?? process.env;
   ctx.provide("source", "github", createGithubSourceProvider({ run }));
   ctx.provide("workspace", "local", createLocalWorkspaceProvider({ run }));
+  ctx.provide("delivery", "github", createGithubDeliveryProvider({ run }));
   ctx.provide(
     "permission",
     "guarded",

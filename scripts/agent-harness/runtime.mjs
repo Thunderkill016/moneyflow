@@ -158,14 +158,29 @@ export async function processHarnessCommand({
       logFile,
     });
 
-    const status = result.exitCode === 0 && result.stopReason === "completed" ? "completed" : "failed";
+    let status = result.exitCode === 0 && result.stopReason === "completed" ? "completed" : "failed";
+    if (status === "completed" && command.autoMerge === true) {
+      const deliveryProvider = ctx.resolve("delivery", "github");
+      const delivery = await deliveryProvider.deliver({
+        repo: initial.repo,
+        commandId,
+        source,
+        isolation,
+        baseSha: fresh.baseSha,
+      });
+      if (delivery?.status !== "merged") {
+        throw new Error("Owner-opted delivery did not produce an exact squash merge");
+      }
+      journal.append("delivery/merged", { pullRequest: delivery.pullRequest });
+      status = "merged";
+    }
     sourceProvider.postSummary({
       repo: initial.repo,
       source: { ...source, commandProvider: command.provider },
       status,
     });
     journal.append("summary/posted", { status });
-    journal.append(status === "completed" ? "run/completed" : "run/failed", {
+    journal.append(status === "failed" ? "run/failed" : "run/completed", {
       provider: command.provider,
       exitCode: Number.isInteger(result.exitCode) ? result.exitCode : 1,
     });
