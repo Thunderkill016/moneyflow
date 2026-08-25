@@ -31,6 +31,7 @@ function createTestContext({ result = { exitCode: 0, stdout: "ok", stderr: "", s
     starts: 0,
     cancels: 0,
     disposes: 0,
+    deliveries: [],
     summaries: [],
   };
   ctx.provide("source", "github", {
@@ -99,6 +100,35 @@ test("one accepted command executes through seams and later replays as duplicate
     assert.equal(calls.disposes, 1);
     assert.deepEqual(calls.summaries, ["completed"]);
     assert.match(readFileSync(join(stateDir, first.logFile), "utf8"), /^ok/u);
+  } finally {
+    await ctx.dispose();
+    rmSync(stateDir, { recursive: true, force: true });
+  }
+});
+
+test("an owner-opted run delegates delivery to the host after the guarded worker succeeds", async () => {
+  const stateDir = mkdtempSync(join(tmpdir(), "moneyflow-harness-runtime-"));
+  const { ctx, calls } = createTestContext();
+  ctx.provide("delivery", "github", {
+    deliver(request) {
+      calls.deliveries.push(request);
+      return { status: "merged", pullRequest: 447 };
+    },
+  });
+  try {
+    const result = await processHarnessCommand({
+      ctx,
+      command: { provider: "codex", note: "verify", autoMerge: true },
+      source,
+      stateDir,
+    });
+
+    assert.equal(result.status, "merged");
+    assert.equal(calls.starts, 1);
+    assert.equal(calls.deliveries.length, 1);
+    assert.equal(calls.deliveries[0].repo, "owner/repo");
+    assert.equal(calls.deliveries[0].baseSha, baseSha);
+    assert.deepEqual(calls.summaries, ["merged"]);
   } finally {
     await ctx.dispose();
     rmSync(stateDir, { recursive: true, force: true });
