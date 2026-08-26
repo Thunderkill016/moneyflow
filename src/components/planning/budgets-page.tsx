@@ -34,6 +34,10 @@ import {
   type BudgetSummary,
   type SaveBudgetInput,
 } from "@/lib/planning/budgets";
+import {
+  allocateMonthFromTotals,
+  allocationExplanation,
+} from "@/lib/planning/allocation";
 import { budgetToneToCard } from "@/lib/planning-pages";
 import { categoryMeta, type CategoryOption } from "@/lib/sample-data";
 
@@ -45,6 +49,7 @@ const BudgetDialog = dynamic(
 type BudgetPageWorkspace = {
   budgets: BudgetSummary[];
   previousBudgets: BudgetSummary[];
+  monthIncome: number;
   categories: CategoryOption[];
   monthStart: string;
   monthEnd: string;
@@ -109,6 +114,20 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   }, [notice]);
 
   const totals = useMemo(() => sumBudgetTotals(budgets), [budgets]);
+  /*
+   * Recomputed from the live `budgets` state rather than read from the server
+   * payload, so the figure moves the moment a limit is added, edited or removed
+   * — a stale "chưa phân bổ" would be worse than none at all.
+   */
+  const allocation = useMemo(
+    () =>
+      allocateMonthFromTotals({
+        income: workspace.monthIncome,
+        allocated: totals.limit,
+        monthStart: workspace.monthStart,
+      }),
+    [workspace.monthIncome, workspace.monthStart, totals.limit],
+  );
   const previousTotals = useMemo(
     () => sumBudgetTotals(workspace.previousBudgets),
     [workspace.previousBudgets],
@@ -286,6 +305,18 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
           >
             <MoneyValue
               amount={Math.abs(totals.limit - totals.spent)}
+              emphasis="strong"
+              align="start"
+            />
+          </PlanningSummaryItem>
+          <PlanningSummaryItem
+            label={
+              allocation.state === "over" ? "Phân bổ vượt thu nhập" : "Chưa phân bổ"
+            }
+            meta={allocationExplanation(allocation)}
+          >
+            <MoneyValue
+              amount={Math.abs(allocation.unassigned)}
               emphasis="strong"
               align="start"
             />
