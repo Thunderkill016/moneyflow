@@ -1,6 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
+import { monthIncomeTotal } from "@/lib/planning/allocation";
 import {
   resolveBudgetMonth,
   type BudgetMonthAdjustment,
@@ -8,7 +9,7 @@ import {
   type BudgetSummary,
 } from "@/lib/planning/budgets";
 import type { CategoryOption } from "@/lib/transactions/contracts";
-import { demoCategories } from "@/lib/demo/transaction-fixtures";
+import { demoCategories, sampleTransactions } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 
@@ -22,6 +23,15 @@ export type BudgetsWorkspace = {
   nextMonthStart: string;
   canGoNext: boolean;
   adjustment: BudgetMonthAdjustment;
+  /**
+   * Income actually recorded in the selected month, in integer đồng.
+   *
+   * Recorded, not expected: recurring income templates are assumptions, and the
+   * unassigned figure derived from this must be answerable from the ledger. The
+   * filter below mirrors how the dashboard selects income, so the two screens
+   * cannot show one user two different incomes for one month.
+   */
+  monthIncome: number;
   dataError: string | null;
 };
 
@@ -72,6 +82,15 @@ export function mapBudgetRow(value: unknown): BudgetSummary {
     limit: safePositiveMoney(row.limit_minor),
     spent: safePositiveMoney(row.spent_minor),
   };
+}
+
+/** Sum `amount_minor` rows into integer đồng, refusing to silently overflow. */
+function sumMinorAmounts(rows: { amount_minor: number }[]): number {
+  return rows.reduce((sum, row) => {
+    const next = sum + row.amount_minor;
+    if (!Number.isSafeInteger(next)) throw new Error("unsafe_income_total");
+    return next;
+  }, 0);
 }
 
 function workspaceMetadata(resolution: BudgetMonthResolution) {
@@ -153,6 +172,9 @@ function demoWorkspace(
     previousBudgets: selectedIsCurrent
       ? demoRows(resolution.previousMonthStart, "previous")
       : [],
+    // Derived from the same demo ledger the demo dashboard reads, so the two
+    // agree in demo exactly as they must in authenticated mode.
+    monthIncome: monthIncomeTotal(sampleTransactions, resolution.monthStart.slice(0, 7)),
     dataError: null,
   };
 }
@@ -172,11 +194,12 @@ export async function getBudgetsWorkspace(
       budgets: [],
       previousBudgets: [],
       categories: [],
+      monthIncome: 0,
       dataError: "Không thể kết nối dữ liệu ngân sách.",
     };
   }
 
-  const [budgetsResult, categoriesResult] = await Promise.all([
+  const [budgetsResult, categoriesResult, incomeResult] = await Promise.all([
     supabase
       .from("budget_progress")
       .select(
@@ -193,14 +216,27 @@ export async function getBudgetsWorkspace(
       .eq("kind", "expense")
       .eq("is_archived", false)
       .order("created_at"),
+    /*
+     * Only the amounts, and only this month's income. The whole-month window is
+     * what the dashboard aggregate already uses, so a row dated later in the
+     * month is inside both figures rather than dropped from one of them.
+     */
+    supabase
+      .from("transaction_feed")
+      .select("amount_minor")
+      .eq("user_id", viewer.id)
+      .eq("kind", "income")
+      .gte("occurred_on", resolution.monthStart)
+      .lte("occurred_on", resolution.monthEnd),
   ]);
 
-  if (budgetsResult.error || categoriesResult.error) {
+  if (budgetsResult.error || categoriesResult.error || incomeResult.error) {
     return {
       ...workspaceMetadata(resolution),
       budgets: [],
       previousBudgets: [],
       categories: [],
+      monthIncome: 0,
       dataError: "Chưa tải được ngân sách. Hãy thử lại.",
     };
   }
@@ -214,6 +250,7 @@ export async function getBudgetsWorkspace(
         (item) => item.monthStart === resolution.previousMonthStart,
       ),
       categories: z.array(categorySchema).parse(categoriesResult.data),
+      monthIncome: sumMinorAmounts(incomeResult.data ?? []),
       dataError: null,
     };
   } catch {
@@ -222,6 +259,7 @@ export async function getBudgetsWorkspace(
       budgets: [],
       previousBudgets: [],
       categories: [],
+      monthIncome: 0,
       dataError: "Dữ liệu ngân sách không đúng định dạng.",
     };
   }
