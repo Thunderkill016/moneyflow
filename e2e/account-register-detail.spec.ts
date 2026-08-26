@@ -53,11 +53,19 @@ test.describe("Account register detail", () => {
   });
 
   test("does not reveal an unknown account", async ({ page }) => {
-    await page.goto("/accounts/not-a-viewer-account");
+    const response = await page.goto("/accounts/not-a-viewer-account");
 
-    await expect(page.getByRole("heading", { name: "404" })).toBeVisible();
+    /*
+     * The status code is the real non-disclosure guarantee: an unknown account
+     * must not be distinguishable from a path that does not exist. Asserting it
+     * is stronger than any markup check, which is why it leads here — the
+     * previous assertions pinned Next's built-in 404 markup and stopped holding
+     * when MoneyFlow gained its own not-found boundary. The account-name check
+     * below is unchanged and is what actually proves nothing leaked.
+     */
+    expect(response?.status()).toBe(404);
     await expect(
-      page.getByRole("heading", { name: "This page could not be found." }),
+      page.getByRole("heading", { name: "Không tìm thấy trang này" }),
     ).toBeVisible();
     await expect(page.getByText("MB Bank", { exact: true })).toHaveCount(0);
   });
