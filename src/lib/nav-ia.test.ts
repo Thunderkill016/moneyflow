@@ -7,6 +7,7 @@ import {
   GHI_CHI_TIEU_LABEL,
   isPlanningPath,
   isPrimaryNavHref,
+  SIDEBAR_NAV,
   MORE_NAV_LINKS,
   MORE_OTHER_LINKS,
   PLANNING_LINKS,
@@ -135,4 +136,27 @@ test("More nav is daily tools; lab capture lives under Advanced", () => {
   const otherHrefs = MORE_OTHER_LINKS.map((item) => item.href);
   assert.ok(otherHrefs.includes("/inbox"));
   assert.equal(otherHrefs.includes("/settings"), false);
+});
+
+/*
+ * The product law this guards: one primary action per viewport. The topbar
+ * carries the desktop capture CTA, so the desktop sidebar must not render a
+ * second capture control — while the mobile bottom bar keeps its centred `Ghi`
+ * tab, which is deliberate.
+ */
+test("the desktop sidebar carries no capture action", () => {
+  assert.ok(
+    SIDEBAR_NAV.every((item) => item.kind === "link"),
+    "a capture action in the sidebar would be a second desktop primary",
+  );
+  assert.deepEqual(
+    SIDEBAR_NAV.map((item) => item.label),
+    ["Tổng quan", "Giao dịch", "Tài khoản"],
+  );
+});
+
+test("the capture action stays available to the mobile tab bar", () => {
+  // Not vacuous: it is still in PRIMARY_NAV, which is what mobileTabs is built
+  // from, so filtering the sidebar has not removed it from the product.
+  assert.ok(PRIMARY_NAV.some((item) => item.kind === "action"));
 });

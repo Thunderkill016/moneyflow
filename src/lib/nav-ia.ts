@@ -71,6 +71,20 @@ export const PRIMARY_NAV: PrimaryNavItem[] = [
   },
 ];
 
+/**
+ * Primary nav as the desktop sidebar renders it — links only.
+ *
+ * The capture action stays in `PRIMARY_NAV` because the mobile bottom bar is
+ * built from it and its centred `Ghi` tab is deliberate. The desktop sidebar
+ * must not render it as well: the topbar already carries the capture CTA, and
+ * two capture primaries in one viewport breaks the product law of one primary
+ * action per viewport. Filtering here rather than at the call site keeps the
+ * rule stated once, in the module that owns the information architecture.
+ */
+export const SIDEBAR_NAV: PrimaryNavLink[] = PRIMARY_NAV.filter(
+  (item): item is PrimaryNavLink => item.kind !== "action",
+);
+
 /** Href-only primary routes (excludes Capture action). */
 export const PRIMARY_NAV_HREFS = PRIMARY_NAV.filter(
   (item): item is PrimaryNavLink => item.kind === "link",

@@ -38,6 +38,7 @@ import {
   MORE_NAV_LINKS,
   PLANNING_LINKS,
   PRIMARY_NAV,
+  SIDEBAR_NAV,
   type PrimaryNavItem,
 } from "@/lib/nav-ia";
 import styles from "./app-shell.module.css";
@@ -260,29 +261,7 @@ export function AppShell({
           className={styles.brand}
         />
         <nav className={styles.primaryNav}>
-          {PRIMARY_NAV.map((item) => {
-            if (item.kind === "action") {
-              const active =
-                captureOpen || pathIsActive(pathname, "/capture");
-              return (
-                <Button
-                  type="button"
-                  unstyled
-                  targetSize="important"
-                  key={item.label}
-                  className={cx(styles.navButton, active && styles.navActive)}
-                  onClick={openCapture}
-                  aria-current={active ? "page" : undefined}
-                  aria-label={item.label}
-                  aria-haspopup="dialog"
-                  aria-expanded={captureOpen}
-                >
-                  <Icon name={item.icon} aria-hidden="true" />
-                  <span>{item.label}</span>
-                </Button>
-              );
-            }
-
+          {SIDEBAR_NAV.map((item) => {
             const active = pathIsActive(pathname, item.href);
             return (
               <Link

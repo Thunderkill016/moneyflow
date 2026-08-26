@@ -218,8 +218,13 @@ test.describe("critical browser compatibility audit", () => {
       return;
     }
 
+    /*
+     * The topbar CTA is the desktop capture primary. The sidebar used to render
+     * a second one ("Nhập nhanh"), which broke the one-primary-action-per-
+     * viewport rule; that action now belongs to the mobile bottom bar only.
+     */
     const trigger = page.getByRole("button", {
-      name: "Nhập nhanh",
+      name: "Ghi chi tiêu",
       exact: true,
     });
     await expect(trigger).toBeVisible();
