@@ -11,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-- [ ] **#468 / PR #469 — money that has not been given a job yet** — post-merge projection only. The budgets page states `unassigned = income recorded this month − limits assigned this month`, using recorded income selected exactly as the dashboard selects it, with transfers excluded and no carry-over between months. It reports arithmetic and gives no spending guidance. PR #469 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #469 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
@@ -44,6 +44,8 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 - [ ] **Phase E Creative Territories / Phase F broad redesign** — parked; not current authority.
 
 ## RECENTLY DONE
+
+- [ ] **#468 / PR #469 — money that has not been given a job yet** — post-merge projection only. The budgets page states `unassigned = income recorded this month − limits assigned this month` from recorded income only, selected exactly as the dashboard selects it, with transfers excluded and no carry-over between months. Over-allocation is reported as its own labelled state rather than by colour. It reports arithmetic and gives no spending guidance, guarded by a vocabulary test. No schema, RLS, RPC, provider or ledger-mutation change.
 
 - [x] **#463 / PR #464 — Direct CSV confirmed-rule dry-run** — squash-merged as `3975007738a3cf383c11e73b9e6d9fdfccfb2f59`. Existing explicit rules normalize eligible Direct CSV dry-run rows through exact server-validated rule evidence; every row remains in the existing review/atomic approval path, with no auto-posting, inference or financial-intent memory.
 - [x] **#460 / PR #461 — remembered Direct CSV column mapping** — squash-merged as `ba2890670ceabed049aa1ed3bee0a9c8593b194a`. The user can explicitly save and later choose a same-device map for an exact normalized header shape; it stores no source/financial data and never auto-applies or commits a transaction.
