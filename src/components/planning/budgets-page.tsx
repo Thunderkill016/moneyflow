@@ -3,7 +3,11 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { deleteBudgetAction, saveBudgetAction } from "@/app/actions/budgets";
+import {
+  carryForwardBudgetsAction,
+  deleteBudgetAction,
+  saveBudgetAction,
+} from "@/app/actions/budgets";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
@@ -28,6 +32,7 @@ import {
   budgetRemaining,
   budgetStatusLabel,
   budgetThreshold,
+  budgetsToCarryForward,
   budgetTransactionsHref,
   compareBudgetAmount,
   type BudgetMonthAdjustment,
@@ -108,6 +113,7 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogVersion, setDialogVersion] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [carrying, setCarrying] = useState(false);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -148,6 +154,19 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
   const availableCategories = workspace.categories.filter(
     (category) => !budgets.some((budget) => budget.categoryId === category.id),
   );
+  /*
+   * Recomputed from live budget state, so the offer disappears the moment the
+   * last missing category is filled — including when the user fills it by hand.
+   */
+  const carryable = useMemo(
+    () =>
+      budgetsToCarryForward({
+        previousBudgets: workspace.previousBudgets,
+        currentBudgets: budgets,
+        monthStart: workspace.monthStart,
+      }),
+    [workspace.previousBudgets, workspace.monthStart, budgets],
+  );
   const monthLabel = formatMonthLabel(workspace.monthStart);
   const previousMonthLabel = formatMonthLabel(workspace.previousMonthStart);
   const adjustmentNotice =
@@ -156,6 +175,28 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
       : workspace.adjustment === "invalid"
         ? "Tháng trong đường dẫn không hợp lệ. MoneyFlow đang hiển thị tháng hiện tại."
         : null;
+
+  async function applyPreviousMonth() {
+    if (carrying || carryable.length === 0) return;
+    setCarrying(true);
+    const result = await carryForwardBudgetsAction(carryable);
+    setCarrying(false);
+    if (!result.ok) {
+      setNotice(result.message);
+      return;
+    }
+    // Merge rather than replace: a category the user edited by hand while this
+    // was in flight keeps its own value, since carry-forward never claimed it.
+    setBudgets((current) => {
+      const existing = new Set(current.map((item) => item.categoryId));
+      return [...current, ...result.budgets.filter((item) => !existing.has(item.categoryId))];
+    });
+    setNotice(
+      result.budgets.length === carryable.length
+        ? `Đã áp dụng ${result.budgets.length} hạn mức của ${previousMonthLabel}.`
+        : `Đã áp dụng ${result.budgets.length}/${carryable.length} hạn mức. Hãy kiểm tra phần còn lại.`,
+    );
+  }
 
   function openDialog(budget: BudgetSummary | null) {
     setEditing(budget);
@@ -335,6 +376,21 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
           title="Theo danh mục"
           description={`Chọn “Xem giao dịch” để kiểm tra đúng các khoản của ${monthLabel}.`}
           slot="budget-list"
+          action={
+            carryable.length ? (
+              <Button
+                type="button"
+                intent="secondary"
+                targetSize="important"
+                onClick={applyPreviousMonth}
+                disabled={carrying}
+              >
+                {carrying
+                  ? "Đang áp dụng…"
+                  : `Áp dụng ${carryable.length} hạn mức của ${previousMonthLabel}`}
+              </Button>
+            ) : undefined
+          }
         >
           {budgets.length ? (
             <div className={planningStyles.grid}>
