@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   extractAmounts,
+  selectPrimaryAmount,
   parsePasteLine,
   parsePasteText,
   parseVndAmountToken,
@@ -30,6 +31,101 @@ test("extractAmounts finds signed and unit amounts", () => {
   assert.equal(sms.length, 1);
   assert.equal(sms[0]?.amount, 120_000);
   assert.equal(sms[0]?.signedNegative, true);
+});
+
+/*
+ * The eight formats below are the ones this product actually receives through
+ * the PWA Share Target, and each opens with an unmasked account number.
+ *
+ * The masked fixture above (`TK ****1234`) is kept because it covers the
+ * `[*#xX]` guard, but on its own it hid a defect for the whole life of the
+ * parser: it is one of only two shapes where the leftmost token is not the
+ * account number, so a leftmost-wins rule passed it while getting six of the
+ * eight real formats wrong — reading the account number as the amount.
+ *
+ * These cases pin the amount specifically, because a wrong amount is the one
+ * parser error a reviewer cannot catch by eye: 11,004,567,890 ₫ and 250,000 ₫
+ * are equally plausible-looking rows in a review queue.
+ */
+const BANK_SMS: { bank: string; text: string; amount: number }[] = [
+  {
+    bank: "Vietcombank",
+    text: "TK 0011004567890|GD: -250,000VND luc 14-08-2026 09:12|SD: 3,450,000VND|ND: THANH TOAN GRAB",
+    amount: 250_000,
+  },
+  {
+    bank: "Techcombank",
+    text: "TK 19036758392018 |GD:-85,000VND 14/08/26 12:03| So du:1,250,000VND |ND CHUYEN TIEN AN TRUA",
+    amount: 85_000,
+  },
+  {
+    bank: "BIDV",
+    text: "BIDV: 21510001234567 08/14 -1,200,000VND SD 5,600,000VND ND:THANH TOAN HOA DON DIEN",
+    amount: 1_200_000,
+  },
+  {
+    bank: "MB Bank",
+    text: "MBBank: TK 0901234567 +15,000,000VND luc 05/08/2026. So du 18,200,000VND. ND: LUONG THANG 8",
+    amount: 15_000_000,
+  },
+  {
+    bank: "ACB",
+    text: "ACB:TK 2489163 GD -45,000 VND 14/08 SD 890,000 VND ND MUA CA PHE",
+    amount: 45_000,
+  },
+  {
+    bank: "MoMo",
+    text: "Ban da thanh toan 120.000d cho Highlands Coffee qua MoMo luc 14/08/2026",
+    amount: 120_000,
+  },
+  {
+    bank: "VietinBank",
+    text: "VietinBank TK 107865432109 GD: -3.500.000 VND ngay 14/08/2026 SD: 12.000.000 VND ND: CHUYEN KHOAN",
+    amount: 3_500_000,
+  },
+  {
+    bank: "TPBank",
+    text: "TPBank: 0339 xxxx 12  -68,000VND  14/08/2026  SD:432,000VND  ND: SHOPEE PAY",
+    amount: 68_000,
+  },
+];
+
+test("bank SMS: the amount is read, never the account number", () => {
+  for (const { bank, text, amount } of BANK_SMS) {
+    const row = parsePasteLine(text, { today: "2026-08-14" });
+    assert.ok(row, `${bank}: produced no candidate`);
+    assert.equal(row!.amount, amount, `${bank}: wrong amount`);
+  }
+});
+
+test("selectPrimaryAmount prefers a money-marked token over an earlier bare one", () => {
+  const vcb = extractAmounts(BANK_SMS[0]!.text);
+  // Not vacuous: the account number really is extracted, and really is first.
+  assert.equal(vcb[0]?.amount, 11_004_567_890);
+  assert.equal(vcb[0]?.hasMoneyMarker, false);
+
+  const chosen = selectPrimaryAmount(vcb);
+  assert.equal(chosen?.primary.amount, 250_000);
+  assert.equal(chosen?.primary.hasMoneyMarker, true);
+  // The closing balance is also money-marked, so the choice stays flagged.
+  assert.equal(chosen?.ambiguous, true);
+
+  assert.equal(selectPrimaryAmount([]), null);
+});
+
+test("selectPrimaryAmount falls back to order when nothing is marked", () => {
+  const bare = extractAmounts("an trua 50000 hom nay 60000");
+  assert.ok(bare.every((item) => !item.hasMoneyMarker));
+
+  const chosen = selectPrimaryAmount(bare);
+  assert.equal(chosen?.primary.amount, 50_000);
+  assert.equal(chosen?.ambiguous, true);
+});
+
+test("a single marked amount is not flagged ambiguous", () => {
+  const row = parsePasteLine("cafe 45k tiền mặt", { today: "2026-07-15" });
+  assert.ok(row);
+  assert.ok(!row!.uncertainFields.includes("amount"));
 });
 
 test("parsePasteLine: simple NL cafe 45k", () => {
