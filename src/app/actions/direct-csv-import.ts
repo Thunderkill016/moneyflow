@@ -4,16 +4,6 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import {
-  batchToInsertRow,
-  candidateToInsertRow,
-  prepareBatchForServer,
-  prepareCandidateForServer,
-} from "@/lib/inbox/inbox-map";
-import {
-  CURRENT_IMPORT_MAPPING_VERSION,
-  parserVersionForSource,
-} from "@/lib/inbox/provenance";
-import {
   importActionLimiter,
   importRateKey,
   rateLimitUserMessage,
@@ -24,6 +14,7 @@ import { requireViewer } from "@/server/auth";
 const MAX_DIRECT_IMPORT_ROWS = 5_000;
 
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const optionalUuidSchema = z.string().uuid().optional();
 const columnIndexSchema = z.number().int().min(0).nullable();
 const columnMapSchema = z.object({
   date: columnIndexSchema,
@@ -43,6 +34,12 @@ const directRowSchema = z.object({
   accountId: z.string().uuid(),
   confidence: z.enum(["high", "medium", "low"]),
   rawSnippet: z.string().max(2_000),
+  appliedRuleId: optionalUuidSchema,
+  appliedRuleVersion: z.number().int().min(1).optional(),
+}).superRefine((value, context) => {
+  if ((value.appliedRuleId === undefined) !== (value.appliedRuleVersion === undefined)) {
+    context.addIssue({ code: "custom", message: "invalid_direct_csv_rule_evidence" });
+  }
 });
 const directCommitSchema = z.object({
   fileName: z.string().trim().min(1).max(260),
@@ -101,6 +98,21 @@ function calmApprovalError(message: string): string {
   return "Không ghi được toàn bộ lượt import. Chưa có giao dịch nào từ lần ghi này; dữ liệu import đã được giữ để kiểm tra.";
 }
 
+function calmPreparationError(message: string): string {
+  if (
+    message.includes("invalid_direct_csv_rule_evidence") ||
+    message.includes("rule_not_available") ||
+    message.includes("rule_no_longer_matches") ||
+    message.includes("rule_category_kind_mismatch")
+  ) {
+    return "Quy tắc đã thay đổi hoặc không còn khớp. Chưa lưu lượt import nào; hãy tải lại và kiểm tra dry-run trước khi ghi sổ.";
+  }
+  if (message.includes("account_not_found") || message.includes("category_kind_mismatch")) {
+    return "Tài khoản hoặc danh mục đã thay đổi. Chưa lưu lượt import nào; hãy tải lại và kiểm tra dry-run trước khi ghi sổ.";
+  }
+  return "Không chuẩn bị được toàn bộ lượt import. Chưa có giao dịch nào được ghi; hãy kiểm tra CSV và thử lại.";
+}
+
 export async function commitDirectCsvImportAction(
   input: DirectCsvCommitInput,
 ): Promise<DirectCsvCommitResult> {
@@ -128,78 +140,98 @@ export async function commitDirectCsvImportAction(
   }
 
   const value = parsed.data;
-  const parserVersion = parserVersionForSource("csv");
-  const mappingVersion = CURRENT_IMPORT_MAPPING_VERSION;
-  const batch = prepareBatchForServer({
-    fileName: value.fileName,
-    source: "csv",
-    status: "parsed",
-    rowCount: value.rows.length,
-    warningCount: value.warningCount,
-    skippedRows: value.skippedRows,
-    mapConfidence: value.mapConfidence,
-    headers: value.headers,
-    columnMap: value.columnMap,
-    parserVersion,
-    mappingVersion,
-  });
+  const batchId = randomUUID();
+  const candidateIds = value.rows.map(() => randomUUID());
+  const { data: preparationData, error: preparationError } = await supabase.rpc(
+    "prepare_direct_csv_candidates_with_rules",
+    {
+      p_batch: {
+        id: batchId,
+        file_name: value.fileName,
+        warning_count: value.warningCount,
+        skipped_rows: value.skippedRows,
+        map_confidence: value.mapConfidence,
+        headers: value.headers,
+        column_map: value.columnMap,
+      },
+      p_candidates: value.rows.map((row, index) => ({
+        id: candidateIds[index],
+        row_index: row.rowIndex,
+        kind: row.kind,
+        amount_minor: row.amount,
+        merchant: row.merchant || row.note || "Giao dịch CSV",
+        note: row.note,
+        occurred_on: row.occurredOn,
+        confidence: row.confidence,
+        category_id: row.categoryId,
+        account_id: row.accountId,
+        raw_snippet: row.rawSnippet,
+        ...(row.appliedRuleId
+          ? {
+              applied_rule_id: row.appliedRuleId,
+              applied_rule_version: row.appliedRuleVersion,
+            }
+          : {}),
+      })),
+    },
+  );
 
-  const { data: batchRow, error: batchError } = await supabase
-    .from("import_batches")
-    .insert(batchToInsertRow(batch, viewer.id, { localId: null }))
-    .select("id")
-    .single();
-
-  if (batchError || !batchRow || typeof batchRow.id !== "string") {
-    return { ok: false, message: "Không tạo được lượt import để ghi sổ." };
+  if (preparationError) {
+    return { ok: false, message: calmPreparationError(preparationError.message ?? "") };
   }
 
-  const batchId = batchRow.id;
-  const candidates = value.rows.map((row) =>
-    prepareCandidateForServer({
-      kind: row.kind,
-      amount: row.amount,
-      merchant: row.merchant || row.note || "Giao dịch CSV",
-      note: row.note,
-      occurredOn: row.occurredOn,
-      source: "csv",
-      confidence: row.confidence,
-      status: "pending",
-      categoryId: row.categoryId,
-      accountId: row.accountId,
-      rawSnippet: row.rawSnippet,
-      importBatchId: batchId,
-      sourceRowIndex: row.rowIndex,
-      parserVersion,
-      mappingVersion,
-    }),
-  );
+  const preparation = z
+    .object({
+      batch_id: z.string().uuid(),
+      candidate_ids: z.array(z.string().uuid()).length(value.rows.length),
+      candidate_count: z.number().int().min(1),
+    })
+    .safeParse(preparationData);
+  if (
+    !preparation.success ||
+    preparation.data.batch_id !== batchId ||
+    preparation.data.candidate_count !== value.rows.length
+  ) {
+    refreshFinanceAndImportPaths();
+    return {
+      ok: false,
+      batchId,
+      message:
+        "Lượt import đã được chuẩn bị nhưng phản hồi máy chủ không đầy đủ. Hãy mở Inbox hoặc Lịch sử import để kiểm tra trước khi thử lại.",
+    };
+  }
 
-  const candidateRows = candidates.map((candidate) =>
-    candidateToInsertRow(candidate, viewer.id, {
-      localId: null,
-      importBatchId: batchId,
-    }),
-  );
-
-  const { error: candidateError } = await supabase
+  const { data: preparedCandidates, error: preparedCandidatesError } = await supabase
     .from("inbox_candidates")
-    .insert(candidateRows);
-
-  if (candidateError) {
-    // One INSERT statement is atomic, so a database error cannot leave only a
-    // prefix of candidate rows. Remove the now-orphaned batch best-effort.
-    await supabase.from("import_batches").delete().eq("id", batchId);
-    return { ok: false, message: "Không lưu được dữ liệu import để kiểm tra." };
+    .select("id,category_id")
+    .in("id", preparation.data.candidate_ids);
+  const categoryByCandidateId = new Map(
+    (preparedCandidates ?? []).flatMap((candidate) =>
+      typeof candidate.id === "string" && typeof candidate.category_id === "string"
+        ? [[candidate.id, candidate.category_id] as const]
+        : [],
+    ),
+  );
+  if (
+    preparedCandidatesError ||
+    categoryByCandidateId.size !== preparation.data.candidate_ids.length
+  ) {
+    refreshFinanceAndImportPaths();
+    return {
+      ok: false,
+      batchId,
+      message:
+        "Lượt import đã được chuẩn bị nhưng chưa đọc được kết quả quy tắc. Hãy mở Inbox hoặc Lịch sử import để kiểm tra trước khi thử lại.",
+    };
   }
 
-  const approvalItems = candidates.map((candidate, index) => {
+  const approvalItems = preparation.data.candidate_ids.map((candidateId, index) => {
     const row = value.rows[index]!;
     return {
-      candidate_id: candidate.id,
+      candidate_id: candidateId,
       kind: row.kind,
       account_id: row.accountId,
-      category_id: row.categoryId,
+      category_id: categoryByCandidateId.get(candidateId),
       destination_account_id: null,
       amount_minor: row.amount,
       occurred_on: row.occurredOn,

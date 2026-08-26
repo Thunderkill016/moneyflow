@@ -22,6 +22,7 @@ import {
 } from "./direct-csv-mapping-preset.ts";
 import type { LedgerLike } from "./detect.ts";
 import { parseCsvStatement } from "./parse-csv.ts";
+import type { InboxRule } from "./rules-store.ts";
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 
@@ -185,6 +186,52 @@ test("planDirectCsvImport: invalid account → all invalid", () => {
   );
   assert.equal(plan.readyCount, 0);
   assert.equal(plan.invalidSkipped, 1);
+});
+
+test("planDirectCsvImport: an explicit matching rule normalizes a ready CSV row", () => {
+  const rule: InboxRule = {
+    id: "rule-highlands",
+    stage: "candidate",
+    priority: 1,
+    enabled: true,
+    field: "merchant",
+    contains: "highlands",
+    categoryId: expenseCat.id,
+    category: expenseCat.name,
+    categoryKind: "expense",
+    merchant: "Highlands Coffee",
+    version: 4,
+    createdAt: "2026-08-25T00:00:00.000Z",
+    updatedAt: "2026-08-25T00:00:00.000Z",
+  };
+  const rows = [
+    {
+      kind: "expense" as const,
+      amount: 45_000,
+      merchant: "HIGHLANDS Q1",
+      note: "",
+      occurredOn: "2026-08-24",
+      confidence: "high" as const,
+      uncertainFields: [] as [],
+      explanations: [] as string[],
+      rawSnippet: "HIGHLANDS Q1 | 45000",
+      rowIndex: 2,
+    },
+  ];
+
+  const plan = planDirectCsvImport(
+    rows,
+    [],
+    baseMapping,
+    demoAccounts,
+    demoCategories,
+    [rule],
+  );
+
+  assert.equal(plan.ready[0]?.categoryId, expenseCat.id);
+  assert.equal(plan.ready[0]?.merchant, "Highlands Coffee");
+  assert.equal(plan.ready[0]?.appliedRuleId, "rule-highlands");
+  assert.equal(plan.ready[0]?.appliedRuleVersion, 4);
 });
 
 test("toDirectImportAcquisitionRows preserves source evidence without inventing source ids", () => {

@@ -1,21 +1,19 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-25
-**Current main baseline:** `ba2890670ceabed049aa1ed3bee0a9c8593b194a` (PR #461 squash-merged)
-**Post-merge projection:** PR #462
+**Current main baseline:** `86ef47a12e835d303f3550b89caa8ee22306c601` (PR #462 squash-merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
 
 ## NOW
 
+- [ ] **#463 — Direct CSV confirmed-rule dry-run** — one current agent-executable P2 slice. Reuse only existing explicit candidate-stage rules to normalize eligible rows before the current review/atomic commit; exact rule evidence must be server-validated, and no rule may auto-post, rewrite raw source or expand provider/native/AI scope. **Next actor:** agent on `feat/463-direct-csv-rule-preview`.
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
-
-No agent-executable product/governance slice is selected in this post-merge projection. PR #462 is the candidate completion of the owner-selected operational slice: an owner-authored `/agent codex --automerge` marker may cause only the host to squash-merge the single draft PR created from that run after required checks, review threads, remote main and exact head all pass fresh validation. The guarded child never receives merge/token authority.
 
 ## NEXT
 
-- [ ] **#432 P2 — Low-Maintenance Ingestion** — after PR #462 merges and the projection activates, select the next bounded evidence-backed improvement across real Vietnamese file/share sources, normalization or exception-first review; reduce interventions/100 transactions without reducing match precision. Do not promote work without its bounded issue/spec/packet.
+- [ ] **#432 P2 — Low-Maintenance Ingestion** — select a new bounded evidence-backed source, normalization or exception-first review slice only after #463 completes; reduce interventions/100 transactions without reducing match precision.
 - [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — owner/provider-gated.
 - [ ] **Controlled closed beta** — only after release entry gates clear and no unresolved P0 exists.
@@ -46,7 +44,7 @@ No agent-executable product/governance slice is selected in this post-merge proj
 ## RECENTLY DONE
 
 - [x] **#460 / PR #461 — remembered Direct CSV column mapping** — squash-merged as `ba2890670ceabed049aa1ed3bee0a9c8593b194a`. The user can explicitly save and later choose a same-device map for an exact normalized header shape; it stores no source/financial data and never auto-applies or commits a transaction.
-- [ ] **PR #462 — owner-opt-in agent harness auto-merge** — post-merge projection only; awaiting exact-head checks and owner merge decision. The host may merge only a run-owned draft PR with fresh required checks, resolved threads, unchanged main/base and its observed head SHA; no child merge/provider/production authority is granted.
+- [x] **PR #462 — owner-opt-in agent harness auto-merge** — squash-merged as `86ef47a12e835d303f3550b89caa8ee22306c601`. The host may merge only a run-owned draft PR with fresh required checks, resolved threads, unchanged main/base and its observed head SHA; no child merge/provider/production authority is granted.
 - [x] **#458 / PR #459 — Direct CSV recovery handoff** — squash-merged as `3876666da38bdd446c49053da827af731d55cf54`. A server-returned retained batch id exposes existing Inbox/history review actions and tells the user not to retry blindly; it never performs a financial or source mutation.
 - [x] **#454 / PR #455 — deterministic PWA Share candidate rules** — squash-merged as `7a758843296b08167ba33ddb1f76e2f81a044a6d` after exact-head Class 3 checks. Explicit rules normalize only matching future Share candidates through an atomic server validation path; every candidate remains pending, with no automatic approval, ledger write, raw-source rewrite, provider/native/AI expansion.
 - [x] **#452 / PR #453 — confirmed Inbox rule capture** — merged as `ac86d273876414c76fc050b11d3904dddfbb93b6`. Explicit non-transfer review confirmation creates only a future candidate-stage rule; no automatic approval, ledger write, source rewrite, backfill, migration or provider/native/AI expansion.
@@ -66,6 +64,7 @@ No agent-executable product/governance slice is selected in this post-merge proj
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates |
+| `463-direct-csv-rule-preview.md` | current agent-executable P2 slice | explicit Direct CSV rule normalization with source/ledger safeguards |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |

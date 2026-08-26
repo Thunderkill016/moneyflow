@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DirectCsvImportPage } from "@/components/inbox/direct-csv-import-page";
 import { requireViewer } from "@/server/auth";
 import { getFinanceWorkspace } from "@/server/finance";
+import { getRulesWorkspace } from "@/server/rules";
 
 export const metadata: Metadata = {
   title: "Import CSV vào sổ — Money Flow",
@@ -11,7 +12,10 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const viewer = await requireViewer();
-  const workspace = await getFinanceWorkspace();
+  const [workspace, rules] = await Promise.all([
+    getFinanceWorkspace(),
+    getRulesWorkspace(),
+  ]);
   return (
     <DirectCsvImportPage
       viewer={{
@@ -20,6 +24,7 @@ export default async function Page() {
         isDemo: viewer.isDemo,
       }}
       workspace={workspace}
+      rules={rules}
     />
   );
 }
