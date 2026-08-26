@@ -1,7 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-26 (post-#464 recovery)
-**Current main baseline:** `3975007738a3cf383c11e73b9e6d9fdfccfb2f59` (PR #464 squash-merged)
+**Last reconciled:** 2026-08-26 (post-#466)
+**Current main baseline:** `12554852f1d84aa0501ea2266409a4f756891978` (PR #466 squash-merged)
+**Post-merge projection:** PR #469
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -10,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is selected. PR #464 merged, and no successor slice has been registered; the next #432 P2 slice below requires owner selection before an agent may start it.
+- [ ] **#468 / PR #469 — money that has not been given a job yet** — post-merge projection only. The budgets page states `unassigned = income recorded this month − limits assigned this month`, using recorded income selected exactly as the dashboard selects it, with transfers excluded and no carry-over between months. It reports arithmetic and gives no spending guidance. PR #469 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
