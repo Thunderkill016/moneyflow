@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-26 (post-#471)
-**Current main baseline:** `b0099f70910237c8c1b26826effc3fb91085d3b1` (PR #471 squash-merged)
-**Post-merge projection:** PR #473
+**Last reconciled:** 2026-08-26 (post-#473)
+**Current main baseline:** `dcd3d3bac1506341014d48856133371187d3ede6` (PR #473 squash-merged)
+**Post-merge projection:** PR #475
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is selected in this post-merge projection. PR #473 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #475 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
@@ -45,7 +45,8 @@ No agent-executable product/governance slice is selected in this post-merge proj
 
 ## RECENTLY DONE
 
-- [ ] **#472 / PR #473 — carry last month's plan into an empty month** — post-merge projection only. `previousBudgets` were already loaded and used only for comparison text; one action now applies them through the existing `upsert_monthly_budget` RPC. Additive only: a category already budgeted this month is never overwritten, non-positive previous limits are skipped, and the offer is computed from live budget state so it disappears once nothing is missing. No new RPC, migration, RLS or provider change.
+- [ ] **#474 / PR #475 — show the reserve picture instead of only refusing with it** — post-merge projection only. `adjust_savings_goal` already enforced `total_allocated + amount <= greatest(0, balance − unpaid commitments)`; the user met it only as a rejection naming two causes and giving neither figure. The goals page now states balance, bills protected, goals reserved and what is left, mirroring the RPC exactly with a test asserting the boundary from both sides. Omitted rather than guessed when an input read fails or in demo. No RPC, migration, RLS or provider change.
+- [x] **#472 / PR #473 — carry last month's plan into an empty month** — squash-merged as `dcd3d3bac1506341014d48856133371187d3ede6`. `previousBudgets` were already loaded and used only for comparison text; one action now applies them through the existing `upsert_monthly_budget` RPC. Additive only: a category already budgeted this month is never overwritten, non-positive previous limits are skipped, and the offer is computed from live budget state so it disappears once nothing is missing. No new RPC, migration, RLS or provider change.
 - [x] **#470 / PR #471 — unpaid bills are not free money** — squash-merged as `b0099f70910237c8c1b26826effc3fb91085d3b1`. Corrects a defect introduced by #469: unassigned money counted only budget limits, so an unpaid recurring commitment in an unbudgeted category was reported as free cash. Coverage is computed live from client budget state; a bill whose category has a budget is claimed once by that limit, and paid, archived or other-month occurrences claim nothing.
 - [x] **#468 / PR #469 — money that has not been given a job yet** — squash-merged as `e33bbd24f1b8bdcc70f185d2f242b7cc45cb05b4`. The budgets page states `unassigned = income recorded this month − limits assigned this month` from recorded income only, selected exactly as the dashboard selects it, with transfers excluded and no carry-over between months. Over-allocation is reported as its own labelled state rather than by colour. It reports arithmetic and gives no spending guidance, guarded by a vocabulary test. No schema, RLS, RPC, provider or ledger-mutation change.
 

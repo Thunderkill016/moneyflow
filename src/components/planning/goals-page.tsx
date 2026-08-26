@@ -2,6 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
+import {
+  reserveExplanation,
+  reservePictureFromTotals,
+} from "@/lib/planning/reserve";
 import { adjustGoalAction, archiveGoalAction, saveGoalAction } from "@/app/actions/goals";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -57,14 +61,26 @@ export function GoalsPage({
   viewer,
   initialGoals,
   today,
+  reserveInputs,
   dataError,
 }: {
   viewer: ViewerSummary;
   initialGoals: SavingsGoal[];
   today: string;
+  /**
+   * Balance and unpaid bills behind the reserve figure. Null when the server
+   * could not derive them: a guessed figure would promise money the funding RPC
+   * then refuses, and the goal side is recomputed here from live state.
+   */
+  reserveInputs: { balance: number; protectedForBills: number } | null;
   dataError: string | null;
 }) {
   const [goals, setGoals] = useState(initialGoals);
+  const reserve = useMemo(
+    () =>
+      reserveInputs ? reservePictureFromTotals({ ...reserveInputs, goals }) : null,
+    [reserveInputs, goals],
+  );
   const [editing, setEditing] = useState<SavingsGoal | null>(null);
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [allocationGoal, setAllocationGoal] = useState<SavingsGoal | null>(null);
@@ -229,6 +245,20 @@ export function GoalsPage({
           >
             <MoneyValue amount={totals.plannedDaily} emphasis="strong" align="start" />
           </PlanningSummaryItem>
+          {reserve ? (
+            <PlanningSummaryItem
+              label={
+                reserve.unreserved < 0 ? "Đã dành quá số dư" : "Còn có thể dành"
+              }
+              meta={reserveExplanation(reserve)}
+            >
+              <MoneyValue
+                amount={Math.abs(reserve.unreserved)}
+                emphasis="strong"
+                align="start"
+              />
+            </PlanningSummaryItem>
+          ) : null}
         </PlanningSummary>
 
         <PlanningSection
