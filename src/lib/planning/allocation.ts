@@ -2,6 +2,7 @@ import { sumTransactions } from "../finance.ts";
 import { formatMoney } from "../money.ts";
 import type { Transaction } from "../sample-data.ts";
 import { budgetMonthKey, type BudgetSummary } from "./budgets.ts";
+import type { RecurringCommitment } from "./commitments.ts";
 
 /*
  * Money that has not been given a job yet.
@@ -14,7 +15,13 @@ import { budgetMonthKey, type BudgetSummary } from "./budgets.ts";
  * This module closes that gap with one subtraction, and deliberately nothing
  * more:
  *
- *     unassigned = income recorded this month − limits assigned this month
+ *     unassigned = income recorded this month
+ *                − budget limits assigned this month
+ *                − unpaid recurring obligations no budget already covers
+ *
+ * The third term is not optional. Without it the figure counts only limits and
+ * overstates free money by the size of the user's bills, in the direction that
+ * causes harm: it invites committing money that is already spoken for.
  *
  * Three rules keep the figure honest, and each is load-bearing:
  *
@@ -50,6 +57,15 @@ export type MonthAllocation = {
   /** Income recorded in this calendar month, in integer đồng. */
   income: number;
   /** Sum of budget limits assigned to this month, in integer đồng. */
+  limits: number;
+  /**
+   * Unpaid recurring obligations this month that no budget already covers.
+   *
+   * Separate from `limits` so the reader can see which half of the claim is a
+   * decision they made and which half is a bill that is simply due.
+   */
+  committed: number;
+  /** `limits + committed` — everything this month's income is already claimed by. */
   allocated: number;
   /** `income − allocated`. Negative means over-allocated. */
   unassigned: number;
@@ -74,6 +90,60 @@ export function monthIncomeTotal(
 }
 
 /**
+ * Recurring obligations that no budget already accounts for.
+ *
+ * Without this, the unassigned figure counts only budget limits and therefore
+ * overstates free money by the size of the user's unpaid bills — in the wrong
+ * direction, because it invites committing money that is already spoken for.
+ *
+ * Each đồng must be claimed exactly once, which is what the coverage rule
+ * below is for:
+ *
+ * - A commitment whose category **has** a budget this month is already
+ *   allocated by that limit. Adding its amount again would double-count rent
+ *   against a `Nhà ở` budget set to cover exactly that rent.
+ * - A commitment whose category has **no** budget is its own allocation, and
+ *   is the case this function exists to find.
+ * - A **paid** commitment is already a recorded expense with a transaction, so
+ *   it lives in budget `spent`, never in an allocation.
+ * - Archived commitments, and occurrences due in another month, claim nothing.
+ *
+ * `commitments` must already be resolved for `monthStart` — `isPaid` is a
+ * per-month fact, so passing an unhydrated list would report last month's
+ * payment state.
+ */
+export function uncoveredCommitmentTotal({
+  commitments,
+  budgets,
+  monthStart,
+}: {
+  commitments: RecurringCommitment[];
+  budgets: BudgetSummary[];
+  monthStart: string;
+}): number {
+  const monthPrefix = budgetMonthKey(monthStart);
+  const budgetedCategories = new Set(
+    budgets
+      .filter((budget) => budget.monthStart === monthStart)
+      .map((budget) => budget.categoryId),
+  );
+
+  return commitments
+    .filter(
+      (item) =>
+        !item.isArchived &&
+        !item.isPaid &&
+        item.dueDate.startsWith(monthPrefix) &&
+        !budgetedCategories.has(item.categoryId),
+    )
+    .reduce((sum, item) => {
+      const next = sum + item.amount;
+      if (!Number.isSafeInteger(next)) throw new Error("unsafe_commitment_total");
+      return next;
+    }, 0);
+}
+
+/**
  * The subtraction itself, for callers that already hold both totals.
  *
  * The budgets page recomputes its allocated total from live client state as the
@@ -83,20 +153,30 @@ export function monthIncomeTotal(
  */
 export function allocateMonthFromTotals({
   income,
-  allocated,
+  limits,
+  committed = 0,
   monthStart,
 }: {
   income: number;
-  allocated: number;
+  limits: number;
+  /** Uncovered recurring obligations; see `uncoveredCommitmentTotal`. */
+  committed?: number;
   monthStart: string;
 }): MonthAllocation {
   // Throws on a malformed month rather than silently reporting zero, which
   // would read as "nothing assigned" instead of "the question was invalid".
   budgetMonthKey(monthStart);
 
-  if (!Number.isSafeInteger(income) || !Number.isSafeInteger(allocated)) {
+  if (
+    !Number.isSafeInteger(income) ||
+    !Number.isSafeInteger(limits) ||
+    !Number.isSafeInteger(committed)
+  ) {
     throw new Error("unsafe_allocation_input");
   }
+
+  const allocated = limits + committed;
+  if (!Number.isSafeInteger(allocated)) throw new Error("unsafe_allocated_total");
 
   const unassigned = income - allocated;
   if (!Number.isSafeInteger(unassigned)) {
@@ -106,21 +186,24 @@ export function allocateMonthFromTotals({
   const state: AllocationState =
     unassigned > 0 ? "unallocated" : unassigned < 0 ? "over" : "balanced";
 
-  return { monthStart, income, allocated, unassigned, state };
+  return { monthStart, income, limits, committed, allocated, unassigned, state };
 }
 
 export function allocateMonth({
   transactions,
   budgets,
+  commitments = [],
   monthStart,
 }: {
   transactions: Transaction[];
   budgets: BudgetSummary[];
+  /** Must already be resolved for `monthStart`; see `uncoveredCommitmentTotal`. */
+  commitments?: RecurringCommitment[];
   monthStart: string;
 }): MonthAllocation {
   const monthPrefix = budgetMonthKey(monthStart);
 
-  const allocated = budgets
+  const limits = budgets
     .filter((budget) => budget.monthStart === monthStart)
     .reduce((sum, budget) => {
       const next = sum + budget.limit;
@@ -130,7 +213,8 @@ export function allocateMonth({
 
   return allocateMonthFromTotals({
     income: monthIncomeTotal(transactions, monthPrefix),
-    allocated,
+    limits,
+    committed: uncoveredCommitmentTotal({ commitments, budgets, monthStart }),
     monthStart,
   });
 }
@@ -148,13 +232,23 @@ export function allocationExplanation(allocation: MonthAllocation): string {
   }
 
   const income = formatMoney(allocation.income);
-  const allocated = formatMoney(allocation.allocated);
+  const limits = formatMoney(allocation.limits);
+
+  /*
+   * Bills are named separately from limits when they exist. Folding them into
+   * one "allocated" total would hide the half the reader did not choose, and
+   * the figure is only checkable if every operand is visible.
+   */
+  const claims =
+    allocation.committed > 0
+      ? `hạn mức ${limits} + cam kết chưa trả ${formatMoney(allocation.committed)}`
+      : `hạn mức ${limits}`;
 
   if (allocation.state === "over") {
-    return `Hạn mức ${allocated} nhiều hơn thu nhập đã ghi ${income}.`;
+    return `${claims.charAt(0).toUpperCase()}${claims.slice(1)} nhiều hơn thu nhập đã ghi ${income}.`;
   }
   if (allocation.state === "balanced") {
-    return `Thu nhập đã ghi ${income}, đã đặt hạn mức đủ ${allocated}.`;
+    return `Thu nhập đã ghi ${income}, đã kín với ${claims}.`;
   }
-  return `Thu nhập đã ghi ${income} − hạn mức ${allocated}.`;
+  return `Thu nhập đã ghi ${income} − ${claims}.`;
 }

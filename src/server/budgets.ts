@@ -8,10 +8,12 @@ import {
   type BudgetMonthResolution,
   type BudgetSummary,
 } from "@/lib/planning/budgets";
+import type { RecurringCommitment } from "@/lib/planning/commitments";
 import type { CategoryOption } from "@/lib/transactions/contracts";
 import { demoCategories, sampleTransactions } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
+import { mapCommitmentRow } from "@/server/commitments";
 
 export type BudgetsWorkspace = {
   budgets: BudgetSummary[];
@@ -32,6 +34,15 @@ export type BudgetsWorkspace = {
    * cannot show one user two different incomes for one month.
    */
   monthIncome: number;
+  /**
+   * Recurring obligations resolved for the selected month.
+   *
+   * The list, not a precomputed total: coverage depends on which categories
+   * have a budget, and the budgets page edits that set live. A server-side
+   * total would keep counting a bill after the user gives its category a
+   * budget, which is the double-count this data exists to prevent.
+   */
+  monthCommitments: RecurringCommitment[];
   dataError: string | null;
 };
 
@@ -175,6 +186,9 @@ function demoWorkspace(
     // Derived from the same demo ledger the demo dashboard reads, so the two
     // agree in demo exactly as they must in authenticated mode.
     monthIncome: monthIncomeTotal(sampleTransactions, resolution.monthStart.slice(0, 7)),
+    // Demo commitment state lives in browser storage owned by the commitments
+    // surface, so the server cannot resolve it here without inventing one.
+    monthCommitments: [],
     dataError: null,
   };
 }
@@ -195,11 +209,13 @@ export async function getBudgetsWorkspace(
       previousBudgets: [],
       categories: [],
       monthIncome: 0,
+      monthCommitments: [],
       dataError: "Không thể kết nối dữ liệu ngân sách.",
     };
   }
 
-  const [budgetsResult, categoriesResult, incomeResult] = await Promise.all([
+  const [budgetsResult, categoriesResult, incomeResult, commitmentsResult, occurrencesResult] =
+    await Promise.all([
     supabase
       .from("budget_progress")
       .select(
@@ -228,29 +244,56 @@ export async function getBudgetsWorkspace(
       .eq("kind", "income")
       .gte("occurred_on", resolution.monthStart)
       .lte("occurred_on", resolution.monthEnd),
+    supabase
+      .from("recurring_commitment_feed")
+      .select(
+        "id,name,amount_minor,due_day,account_id,account_name,category_id,category_name,category_icon,category_color,is_archived",
+      )
+      .order("due_day"),
+    // Paid state is a per-month fact; without this the page would report last
+    // month's payments as still outstanding.
+    supabase
+      .from("commitment_occurrences")
+      .select("commitment_id,transaction_id")
+      .eq("month_start", resolution.monthStart),
   ]);
 
-  if (budgetsResult.error || categoriesResult.error || incomeResult.error) {
+  if (
+    budgetsResult.error ||
+    categoriesResult.error ||
+    incomeResult.error ||
+    commitmentsResult.error ||
+    occurrencesResult.error
+  ) {
     return {
       ...workspaceMetadata(resolution),
       budgets: [],
       previousBudgets: [],
       categories: [],
       monthIncome: 0,
+      monthCommitments: [],
       dataError: "Chưa tải được ngân sách. Hãy thử lại.",
     };
   }
 
   try {
     const rows = (budgetsResult.data ?? []).map(mapBudgetRow);
+    const monthBudgets = rows.filter((item) => item.monthStart === resolution.monthStart);
+    const paid = new Map(
+      (occurrencesResult.data ?? []).map((row) => [row.commitment_id, row.transaction_id]),
+    );
+    const commitments = (commitmentsResult.data ?? []).map((row) =>
+      mapCommitmentRow(row, resolution.monthStart, paid.get(row.id) ?? null),
+    );
     return {
       ...workspaceMetadata(resolution),
-      budgets: rows.filter((item) => item.monthStart === resolution.monthStart),
+      budgets: monthBudgets,
       previousBudgets: rows.filter(
         (item) => item.monthStart === resolution.previousMonthStart,
       ),
       categories: z.array(categorySchema).parse(categoriesResult.data),
       monthIncome: sumMinorAmounts(incomeResult.data ?? []),
+      monthCommitments: commitments,
       dataError: null,
     };
   } catch {
@@ -260,6 +303,7 @@ export async function getBudgetsWorkspace(
       previousBudgets: [],
       categories: [],
       monthIncome: 0,
+      monthCommitments: [],
       dataError: "Dữ liệu ngân sách không đúng định dạng.",
     };
   }

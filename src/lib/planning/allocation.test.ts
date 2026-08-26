@@ -3,6 +3,7 @@ import test from "node:test";
 import { calculateDashboardSummary } from "../finance.ts";
 import type { Transaction } from "../sample-data.ts";
 import type { BudgetSummary } from "./budgets.ts";
+import type { RecurringCommitment } from "./commitments.ts";
 import {
   allocateMonth,
   allocateMonthFromTotals,
@@ -219,7 +220,7 @@ test("allocateMonthFromTotals agrees with the ledger-derived path", () => {
   const fromLedger = allocateMonth({ transactions, budgets, monthStart: MONTH_START });
   const fromTotals = allocateMonthFromTotals({
     income: fromLedger.income,
-    allocated: 8_000_000,
+    limits: 8_000_000,
     monthStart: MONTH_START,
   });
 
@@ -231,13 +232,13 @@ test("allocateMonthFromTotals refuses unsafe operands", () => {
     () =>
       allocateMonthFromTotals({
         income: Number.MAX_SAFE_INTEGER,
-        allocated: -1,
+        limits: -1,
         monthStart: MONTH_START,
       }),
     /unsafe_unassigned_total/u,
   );
   assert.throws(
-    () => allocateMonthFromTotals({ income: 1.5, allocated: 0, monthStart: MONTH_START }),
+    () => allocateMonthFromTotals({ income: 1.5, limits: 0, monthStart: MONTH_START }),
     /unsafe_allocation_input/u,
   );
 });
@@ -245,7 +246,7 @@ test("allocateMonthFromTotals refuses unsafe operands", () => {
 test("the explanation names both operands so the figure can be checked", () => {
   const unallocated = allocateMonthFromTotals({
     income: 20_000_000,
-    allocated: 8_000_000,
+    limits: 8_000_000,
     monthStart: MONTH_START,
   });
   const text = allocationExplanation(unallocated);
@@ -256,10 +257,10 @@ test("the explanation names both operands so the figure can be checked", () => {
 
 test("the explanation distinguishes over-allocation from an empty month", () => {
   const over = allocationExplanation(
-    allocateMonthFromTotals({ income: 5_000_000, allocated: 9_000_000, monthStart: MONTH_START }),
+    allocateMonthFromTotals({ income: 5_000_000, limits: 9_000_000, monthStart: MONTH_START }),
   );
   const empty = allocationExplanation(
-    allocateMonthFromTotals({ income: 0, allocated: 0, monthStart: MONTH_START }),
+    allocateMonthFromTotals({ income: 0, limits: 0, monthStart: MONTH_START }),
   );
 
   assert.match(over, /nhiều hơn thu nhập/u);
@@ -276,7 +277,7 @@ test("the explanation reports and never advises", () => {
   const forbidden =
     /nên|đừng|hãy|cảnh báo|vượt mức|tiết kiệm|cắt giảm|quá nhiều|hạn chế|khuyên|cẩn thận|coi chừng|còn có thể tiêu/iu;
 
-  for (const [income, allocated] of [
+  for (const [income, limits] of [
     [20_000_000, 8_000_000],
     [5_000_000, 9_000_000],
     [7_000_000, 7_000_000],
@@ -284,7 +285,142 @@ test("the explanation reports and never advises", () => {
     [0, 3_000_000],
   ] as [number, number][]) {
     const text = allocationExplanation(
-      allocateMonthFromTotals({ income, allocated, monthStart: MONTH_START }),
+      allocateMonthFromTotals({ income, limits, monthStart: MONTH_START }),
+    );
+    assert.ok(!forbidden.test(text), `advisory wording leaked: ${text}`);
+  }
+});
+
+function commitment(
+  categoryId: string,
+  amount: number,
+  overrides: Partial<RecurringCommitment> = {},
+): RecurringCommitment {
+  return {
+    id: `commitment-${categoryId}-${amount}`,
+    name: categoryId,
+    amount,
+    dueDay: 5,
+    dueDate: "2026-08-05",
+    accountId: "acc-bank",
+    accountName: "Ngân hàng",
+    categoryId,
+    categoryName: categoryId,
+    categoryIcon: null,
+    categoryColor: null,
+    isArchived: false,
+    isPaid: false,
+    transactionId: null,
+    ...overrides,
+  };
+}
+
+/*
+ * The defect this rule exists to prevent, with the numbers from the report:
+ * income 20tr, limits 8tr, an unpaid 6tr bill in an unbudgeted category. Before
+ * commitments were counted the page said 12tr was free when only 6tr was.
+ */
+test("an unpaid bill in an unbudgeted category is not free money", () => {
+  const result = allocateMonth({
+    transactions: [salary],
+    budgets: [budget("cat-food", 8_000_000)],
+    commitments: [commitment("cat-rent", 6_000_000)],
+    monthStart: MONTH_START,
+  });
+
+  assert.equal(result.limits, 8_000_000);
+  assert.equal(result.committed, 6_000_000);
+  assert.equal(result.allocated, 14_000_000);
+  assert.equal(result.unassigned, 6_000_000);
+});
+
+test("a bill whose category has a budget is claimed once, by the budget", () => {
+  const result = allocateMonth({
+    transactions: [salary],
+    budgets: [budget("cat-rent", 6_000_000)],
+    commitments: [commitment("cat-rent", 6_000_000)],
+    monthStart: MONTH_START,
+  });
+
+  assert.equal(result.committed, 0, "double-counting rent against its own budget");
+  assert.equal(result.allocated, 6_000_000);
+  assert.equal(result.unassigned, 14_000_000);
+});
+
+test("a paid bill is already an expense and is never allocated again", () => {
+  const result = allocateMonth({
+    transactions: [salary],
+    budgets: [],
+    commitments: [
+      commitment("cat-rent", 6_000_000, { isPaid: true, transactionId: "txn-rent" }),
+    ],
+    monthStart: MONTH_START,
+  });
+
+  assert.equal(result.committed, 0);
+  assert.equal(result.unassigned, 20_000_000);
+});
+
+test("archived bills and bills due in another month claim nothing", () => {
+  const result = allocateMonth({
+    transactions: [salary],
+    budgets: [],
+    commitments: [
+      commitment("cat-rent", 6_000_000, { isArchived: true }),
+      commitment("cat-insurance", 4_000_000, { dueDate: "2026-09-05" }),
+    ],
+    monthStart: MONTH_START,
+  });
+
+  assert.equal(result.committed, 0);
+  assert.equal(result.unassigned, 20_000_000);
+});
+
+test("bills can push a month from unallocated into over", () => {
+  const result = allocateMonth({
+    transactions: [salary],
+    budgets: [budget("cat-food", 16_000_000)],
+    commitments: [commitment("cat-rent", 6_000_000)],
+    monthStart: MONTH_START,
+  });
+
+  assert.equal(result.state, "over");
+  assert.equal(result.unassigned, -2_000_000);
+});
+
+test("the explanation names bills separately from limits", () => {
+  const withBills = allocationExplanation(
+    allocateMonthFromTotals({
+      income: 20_000_000,
+      limits: 8_000_000,
+      committed: 6_000_000,
+      monthStart: MONTH_START,
+    }),
+  );
+
+  assert.match(withBills, /8\.000\.000/u);
+  assert.match(withBills, /6\.000\.000/u);
+  assert.match(withBills, /cam kết chưa trả/u);
+
+  // With no bills the wording stays as it was, rather than saying "+ 0".
+  const withoutBills = allocationExplanation(
+    allocateMonthFromTotals({ income: 20_000_000, limits: 8_000_000, monthStart: MONTH_START }),
+  );
+  assert.ok(!withoutBills.includes("cam kết"));
+});
+
+test("the explanation still never advises once bills are named", () => {
+  const forbidden =
+    /nên|đừng|hãy|cảnh báo|vượt mức|tiết kiệm|cắt giảm|quá nhiều|hạn chế|khuyên|cẩn thận|coi chừng|còn có thể tiêu/iu;
+
+  for (const [income, limits, committed] of [
+    [20_000_000, 8_000_000, 6_000_000],
+    [5_000_000, 2_000_000, 9_000_000],
+    [7_000_000, 3_000_000, 4_000_000],
+    [0, 0, 3_000_000],
+  ] as [number, number, number][]) {
+    const text = allocationExplanation(
+      allocateMonthFromTotals({ income, limits, committed, monthStart: MONTH_START }),
     );
     assert.ok(!forbidden.test(text), `advisory wording leaked: ${text}`);
   }
