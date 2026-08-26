@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-26 (post-#477)
-**Current main baseline:** `7509d02d25fa2b106c56dc246478fa0d12d920c4` (PR #477 squash-merged)
-**Post-merge projection:** PR #479
+**Last reconciled:** 2026-08-26 (post-#479)
+**Current main baseline:** `f1bc0607bbed80bec3b0d76526c75fe1291e5c62` (PR #479 squash-merged)
+**Post-merge projection:** PR #480
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is selected in this post-merge projection. PR #479 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #480 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
@@ -31,7 +31,7 @@ No agent-executable product/governance slice is selected in this post-merge proj
 ## OWNER DECISION
 
 - [x] **PR #431 — conflicting pre-#432 product-direction candidate** — closed 2026-08-26 as superseded by merged #432/#433 authority; branch retained on origin.
-- [ ] **#426 — simplification program disposition** — preserve evidence-backed friction reductions, but do not restore the corrected false navigation premise or let it compete with #432 as master direction.
+- [x] **#426 — simplification program disposition** — resolved 2026-08-26 on owner instruction to remove blockers and drop what no longer applies. Part 1 (one desktop capture primary) is delivered by PR #480. Part 2 (removing the dashboard planning column) is **dropped as superseded**: six merged slices since 2026-08-26 made planning the product's differentiating method, so removing its dashboard surface would work against the direction rather than simplify it. Any future performance claim still needs its own measurement.
 - [ ] **#403 — performance disposition** — remains open but no longer the default agent item; resume only if deliberately promoted after higher-value product work.
 - [ ] **#174 / #40 provider security decisions** — verify provider state before change/closure.
 - [ ] **RRB-05 contact, RRB-06 legal, RRB-02/RRB-03 limitation decisions, PBT-AC15 public-beta go/no-go** — owner boundaries remain explicit.
@@ -39,13 +39,14 @@ No agent-executable product/governance slice is selected in this post-merge proj
 ## HOLD
 
 - [ ] **#403 implementation** — measured, open, not the current product slice.
-- [ ] **#426 further implementation** — held pending reconciliation with #432.
+- [x] **#426** — no longer held; disposition recorded under OWNER DECISION and part 2 dropped as superseded.
 - [ ] **Provider integration / native mobile / Wealth / Together / AI mutation** — horizon only; each requires dependency evidence and a bounded researched specification.
 - [ ] **Phase E Creative Territories / Phase F broad redesign** — parked; not current authority.
 
 ## RECENTLY DONE
 
-- [ ] **#478 / PR #479 — open the rows behind a report figure** — post-merge projection only. `/reports` had no link from any figure to its transactions; category and account rows now open `/transactions` bounded by the report's own window. An account drill-down carries `kind: "expense"` because `filterTransactions` also matches `destinationAccount`. Accounts sum exactly, categories answer membership, and the difference is pinned by test. No schema, RPC, RLS or provider change.
+- [ ] **#426 slice 1 part 1 / PR #480 — one capture primary on desktop** — post-merge projection only. The desktop sidebar rendered `PRIMARY_NAV`'s capture action beside the topbar CTA, giving one viewport two capture primaries against the product law. `SIDEBAR_NAV` is now links-only and typed so the compiler enforces it; mobile's centred `Ghi` tab is unchanged. The browser audit had been asserting the violation and now targets the topbar CTA.
+- [x] **#478 / PR #479 — open the rows behind a report figure** — squash-merged as `f1bc0607bbed80bec3b0d76526c75fe1291e5c62`. `/reports` had no link from any figure to its transactions; category and account rows now open `/transactions` bounded by the report's own window. An account drill-down carries `kind: "expense"` because `filterTransactions` also matches `destinationAccount`. Accounts sum exactly, categories answer membership, and the difference is pinned by test. No schema, RPC, RLS or provider change.
 - [x] **#476 / PR #477 — which account the money left from** — squash-merged as `7509d02d25fa2b106c56dc246478fa0d12d920c4`. Reports broke expense down by category and time only; an account breakdown is added to `buildFinancialReport` and rendered beside the category one. Split rows belong **whole** to the paying account rather than being distributed as categories are, transfers stay excluded, and account amounts sum to the range's expense total. No schema, RPC, RLS or provider change.
 - [x] **#474 / PR #475 — show the reserve picture instead of only refusing with it** — squash-merged as `2da83e10155c17accfc7ca01b6f3e184a164d182`. `adjust_savings_goal` already enforced `total_allocated + amount <= greatest(0, balance − unpaid commitments)`; the user met it only as a rejection naming two causes and giving neither figure. The goals page now states balance, bills protected, goals reserved and what is left, mirroring the RPC exactly with a test asserting the boundary from both sides. Omitted rather than guessed when an input read fails or in demo. No RPC, migration, RLS or provider change.
 - [x] **#472 / PR #473 — carry last month's plan into an empty month** — squash-merged as `dcd3d3bac1506341014d48856133371187d3ede6`. `previousBudgets` were already loaded and used only for comparison text; one action now applies them through the existing `upsert_monthly_budget` RPC. Additive only: a category already budgeted this month is never overwritten, non-positive previous limits are skipped, and the offer is computed from live budget state so it disappears once nothing is missing. No new RPC, migration, RLS or provider change.
