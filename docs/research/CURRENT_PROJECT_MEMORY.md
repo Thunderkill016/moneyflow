@@ -2,8 +2,8 @@
 
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-26
-**Runtime/financial baseline:** `f1bc0607bbed80bec3b0d76526c75fe1291e5c62` (PR #479 squash-merged).
-**Post-merge projection:** PR #481
+**Runtime/financial baseline:** `bc68b5a0fc5c6921848ab18a9b26fb38941247dc` (PR #481 squash-merged).
+**Post-merge projection:** PR #482
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -75,7 +75,7 @@ PR #464 is merged runtime truth: an eligible Direct CSV dry-run row can reuse on
 | Core ledger | multiple accounts; income, expense, transfers; edit; soft delete/recovery |
 | Accounts | balances, register/history, create/edit/archive/restore and statement reconciliation |
 | Planning | category budgets, recurring commitments/income and savings goals; merged #469 states unassigned income on the budgets page from recorded income only, with no carry-over and no spending guidance; merged #471 additionally subtracts unpaid recurring commitments that no budget for the month already covers, so bills are never reported as free money; merged #473 applies last month's limits to categories the selected month has no budget for, additively and never overwriting a current-month decision; merged #475 states the reserve picture on the goals surface — balance, unpaid bills protected, goals reserved and what remains — restating the arithmetic `adjust_savings_goal` already enforces rather than adding a rule |
-| Understanding | weekly/monthly/yearly reports with category and time breakdowns, controlled import and CSV export; merged #477 adds an expense-by-account breakdown taking split rows whole and excluding transfers; merged #479 opens the rows behind a report's category and account figures within the report's own window; post-merge candidate #481 removes draft-payload gating from CI so a draft→ready race can no longer produce a green head whose contracts never ran |
+| Understanding | weekly/monthly/yearly reports with category and time breakdowns, controlled import and CSV export; merged #477 adds an expense-by-account breakdown taking split rows whole and excluding transfers; merged #479 opens the rows behind a report's category and account figures within the report's own window; merged #481 removes draft-payload gating from CI so a draft→ready race can no longer produce a green head whose contracts never ran, verified on PR #482; post-merge candidate #482 raises the postcss override to a patched release and converts the version pin to a patched floor |
 | Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; retained Direct CSV review recovery (#459); later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; merged #451 PWA Share Target atomic persistence; merged #453 candidate review-time rule capture; merged #455 deterministic Share rule application; merged #464 Direct CSV explicit-rule normalization |
 | Lifecycle clearing | merged #449: reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; never source-driven `reconciled`, ledger overwrite, delete or demotion |
 | Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
