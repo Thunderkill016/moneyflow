@@ -269,6 +269,30 @@
   overflow-wrap: anywhere;
 }
 
+/*
+ * The drill-down target for one category or account row.
+ *
+ * Sized to the 44px minimum the cross-device audit enforces, and given that
+ * height through padding rather than a fixed box so a long Vietnamese name
+ * still wraps instead of clipping. `align-content` keeps the text centred in
+ * that height whether it wraps to one line or two.
+ */
+.categoryLink {
+  display: block;
+  align-content: center;
+  min-height: 2.75rem;
+  padding: 0.25rem 0;
+  color: var(--mf-text);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.categoryLink:hover,
+.categoryLink:focus-visible {
+  text-decoration: underline;
+}
+
 .categoryTrack {
   display: block;
   height: 0.35rem;
