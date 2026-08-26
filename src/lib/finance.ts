@@ -1,7 +1,6 @@
 import type { Transaction } from "@/lib/sample-data";
 
 export const OPENING_BALANCE = 1_126_000;
-export const MONTHLY_EXPENSE_BEFORE_SAMPLE = 4_209_000;
 
 export function sumTransactions(
   transactions: Transaction[],
@@ -152,10 +151,15 @@ export function calculateDashboardSummary(
   const monthPrefix = today.slice(0, 7);
   const periodTransactions = transactions.filter((item) => item.occurredOn.startsWith(monthPrefix));
   const income = sumTransactions(periodTransactions, (item) => item.kind === "income");
-  const recordedExpense = sumTransactions(periodTransactions, (item) => item.kind === "expense");
-  const expense = isDemo
-    ? MONTHLY_EXPENSE_BEFORE_SAMPLE + recordedExpense
-    : recordedExpense;
+  /*
+   * Demo used to add a 4.209.000 ₫ constant here, so the month figure had no
+   * rows behind it: the category panel builds from real transactions and
+   * correctly showed nothing, and the two could never agree on one screen. In a
+   * product whose claim is that every number can be checked, a demo figure that
+   * opens to nothing was demonstrating the opposite to every first visitor.
+   * Demo and authenticated now compute expense the same way.
+   */
+  const expense = sumTransactions(periodTransactions, (item) => item.kind === "expense");
 
   return {
     income,

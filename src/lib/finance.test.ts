@@ -59,12 +59,34 @@ const transfer: Transaction = {
 
 test("demo dashboard summary preserves visible factual totals only", () => {
   const summary = calculateDashboardSummary([expense, incomeTxn]);
+  /*
+   * This used to expect 4.309.000 — one 100.000 expense plus a 4.209.000
+   * constant no transaction produced, under a test named "visible factual
+   * totals only". The figure could not be opened to check it, and the category
+   * panel, which builds from real rows, disagreed with it on the same screen.
+   * The expectation now matches the rows that exist.
+   */
   assert.deepEqual(summary, {
     income: 500_000,
-    expense: 4_309_000,
-    net: -3_809_000,
+    expense: 100_000,
+    net: 400_000,
     balance: 1_526_000,
   });
+});
+
+test("demo and authenticated compute the month the same way", () => {
+  // The only difference left is where the balance comes from, so a demo figure
+  // is now as checkable as an authenticated one.
+  const demo = calculateDashboardSummary([expense, incomeTxn]);
+  const authenticated = calculateDashboardSummary([expense, incomeTxn], {
+    isDemo: false,
+    totalBalance: 1_526_000,
+    today: "2026-07-14",
+  });
+
+  assert.equal(demo.income, authenticated.income);
+  assert.equal(demo.expense, authenticated.expense);
+  assert.equal(demo.net, authenticated.net);
 });
 
 test("authenticated dashboard summary contains only ledger facts", () => {

@@ -12,7 +12,7 @@ import {
   type ReportRangeNotice,
 } from "@/lib/report-range-notice";
 import type { Transaction } from "@/lib/transactions/contracts";
-import { sampleTransactions } from "@/lib/demo/transaction-fixtures";
+import { sampleTransactionsFor } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
 import { todayInVietnam } from "@/lib/vietnam-date";
 import { requireViewer } from "@/server/auth";
@@ -38,7 +38,7 @@ export async function getReportsWorkspace(
   const rangeNotice = describeReportRangeAdjustment(period, custom, today);
   const viewer = await requireViewer();
   if (viewer.isDemo) {
-    const transactions = sampleTransactions.filter(
+    const transactions = sampleTransactionsFor(today).filter(
       (item) =>
         item.occurredOn >= range.previousStart &&
         item.occurredOn <= range.currentEnd,

@@ -1,5 +1,6 @@
 import type { Transaction } from "./transactions/contracts.ts";
-import { sampleTransactions } from "./demo/transaction-fixtures.ts";
+import { sampleTransactionsFor } from "./demo/transaction-fixtures.ts";
+import { todayInVietnam } from "./vietnam-date.ts";
 import { isSplitLine, sumSplitAmounts } from "./splits.ts";
 import { getTransactionReviewStatus } from "./transaction-review.ts";
 
@@ -50,7 +51,11 @@ function withNormalizedReviewStatus(transaction: Transaction): Transaction {
 }
 
 function normalizedSampleTransactions() {
-  return sampleTransactions.map(withNormalizedReviewStatus);
+  /*
+   * Resolved at call time, not at module load: this store runs in the browser
+   * and a tab left open overnight would otherwise keep yesterday's "Hôm nay".
+   */
+  return sampleTransactionsFor(todayInVietnam()).map(withNormalizedReviewStatus);
 }
 
 /**
