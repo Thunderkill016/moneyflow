@@ -2,8 +2,7 @@
 
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-26
-**Runtime/financial baseline:** `86ef47a12e835d303f3550b89caa8ee22306c601` (PR #462 squash-merged).
-**Post-merge projection:** PR #464
+**Runtime/financial baseline:** `3975007738a3cf383c11e73b9e6d9fdfccfb2f59` (PR #464 squash-merged).
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -66,7 +65,7 @@ PR #459 is merged runtime truth: when an authenticated Direct CSV atomic approva
 
 PR #461 is merged runtime truth: Direct CSV offers browser-local, user-confirmed column-map reuse for an exact normalized header shape. It persists no source/financial data, account/category selection or cross-device state, and retains the existing explicit dry-run and commit boundaries.
 
-PR #464 is the post-merge candidate: an eligible Direct CSV dry-run row can reuse only an existing explicit Inbox rule for merchant/category normalization. The client carries exact rule id/version as evidence; authenticated preparation validates all source candidates and rule evidence atomically before the unchanged batch approval, and preview/review disclose normalized rows textually. No rule auto-posts, infers from behavior, remembers account/category choices, touches transfers or expands provider/native/AI scope.
+PR #464 is merged runtime truth: an eligible Direct CSV dry-run row can reuse only an existing explicit Inbox rule for merchant/category normalization. The client carries exact rule id/version as evidence; authenticated preparation validates all source candidates and rule evidence atomically before the unchanged batch approval, and preview/review disclose normalized rows textually. No rule auto-posts, infers from behavior, remembers account/category choices, touches transfers or expands provider/native/AI scope.
 
 ## 5. Current capability inventory
 
@@ -76,10 +75,10 @@ PR #464 is the post-merge candidate: an eligible Direct CSV dry-run row can reus
 | Accounts | balances, register/history, create/edit/archive/restore and statement reconciliation |
 | Planning | category budgets, recurring commitments/income and savings goals |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
-| Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; retained Direct CSV review recovery (#459); later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; merged #451 PWA Share Target atomic persistence; merged #453 candidate review-time rule capture; merged #455 deterministic Share rule application; post-merge candidate #464 Direct CSV explicit-rule normalization |
+| Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; retained Direct CSV review recovery (#459); later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; merged #451 PWA Share Target atomic persistence; merged #453 candidate review-time rule capture; merged #455 deterministic Share rule application; merged #464 Direct CSV explicit-rule normalization |
 | Lifecycle clearing | merged #449: reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; never source-driven `reconciled`, ledger overwrite, delete or demotion |
 | Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
-| Agent delivery | provider-neutral `scripts/agent-harness/`, append-only run journals, guarded permissions and same-PR lifecycle convergence; PR #462 is the post-merge candidate for owner-opt-in host-only exact-head squash delivery, never child/worker authority |
+| Agent delivery | provider-neutral `scripts/agent-harness/`, append-only run journals, guarded permissions and same-PR lifecycle convergence; merged PR #462 grants owner-opt-in host-only exact-head squash delivery, never child/worker authority |
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
 | Release proof | RRB-01/RRB-07 closed; RRB-02/03/04/05/06/08/09 remain open or externally gated |
 | Public beta | not approved |

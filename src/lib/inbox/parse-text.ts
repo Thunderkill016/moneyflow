@@ -133,16 +133,23 @@ function toSafeInt(n: number): number | null {
   return n;
 }
 
-export function extractAmounts(
-  line: string,
-): { amount: number; index: number; length: number; signedNegative: boolean; raw: string }[] {
-  const results: {
-    amount: number;
-    index: number;
-    length: number;
-    signedNegative: boolean;
-    raw: string;
-  }[] = [];
+export type ExtractedAmount = {
+  amount: number;
+  index: number;
+  length: number;
+  signedNegative: boolean;
+  raw: string;
+  /**
+   * The token carried a sign, a magnitude unit or a currency suffix — direct
+   * evidence that the writer meant money rather than an identifier. A bare run
+   * of digits can survive the guards below and still be an account number, so
+   * this is what `selectPrimaryAmount` ranks on.
+   */
+  hasMoneyMarker: boolean;
+};
+
+export function extractAmounts(line: string): ExtractedAmount[] {
+  const results: ExtractedAmount[] = [];
   const re = new RegExp(AMOUNT_TOKEN.source, "g");
   let match: RegExpExecArray | null;
   while ((match = re.exec(line)) !== null) {
@@ -173,9 +180,41 @@ export function extractAmounts(
       length: match[0].length,
       signedNegative: sign === "-",
       raw: match[0].trim(),
+      hasMoneyMarker,
     });
   }
   return results;
+}
+
+/**
+ * Choose which extracted token is the transaction amount.
+ *
+ * Document order is the wrong rule for the format this product actually
+ * receives. Every Vietnamese bank SMS opens with the account number, so the
+ * leftmost token is systematically the account, not the amount:
+ *
+ *   TK 0011004567890 | GD: -250,000VND | SD: 3,450,000VND
+ *      ^ leftmost                ^ the amount
+ *
+ * A bare account number clears the guards in `extractAmounts` — it is over
+ * 1000, outside the year window, unmasked, and long enough to skip the grouped
+ * check — so filtering cannot fix this. What separates the two is that the
+ * amount carries a money marker and the account number never does.
+ *
+ * Marked tokens therefore outrank bare ones, and order decides only within a
+ * tier. When several marked tokens compete (an amount plus a closing balance)
+ * the caller is told the choice was ambiguous, so the candidate reaches review
+ * flagged rather than silently confident.
+ */
+export function selectPrimaryAmount(
+  amounts: ExtractedAmount[],
+): { primary: ExtractedAmount; ambiguous: boolean } | null {
+  if (amounts.length === 0) return null;
+
+  const marked = amounts.filter((item) => item.hasMoneyMarker);
+  const tier = marked.length > 0 ? marked : amounts;
+
+  return { primary: tier[0]!, ambiguous: tier.length > 1 };
 }
 
 function extractDate(line: string, today: string): { date: string; found: boolean } {
@@ -312,14 +351,13 @@ export function parsePasteLine(
 
   const today = options.today ?? todayInHoChiMinh();
   const sourceHint = options.sourceHint ?? "auto";
-  const amounts = extractAmounts(trimmed);
-  if (amounts.length === 0) return null;
+  const selected = selectPrimaryAmount(extractAmounts(trimmed));
+  if (!selected) return null;
 
-  // Prefer the first money-like amount; if multiple, still take first and mark uncertain
-  const primary = amounts[0]!;
+  const primary = selected.primary;
   const uncertainFields: UncertainField[] = [];
 
-  if (amounts.length > 1) {
+  if (selected.ambiguous) {
     uncertainFields.push("amount");
   }
 
