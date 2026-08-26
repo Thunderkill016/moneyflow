@@ -20,6 +20,14 @@ export default async function Page() {
         isDemo: viewer.isDemo,
       }}
       initialGoals={workspace.goals}
+      reserveInputs={
+        workspace.reserve
+          ? {
+              balance: workspace.reserve.balance,
+              protectedForBills: workspace.reserve.protectedForBills,
+            }
+          : null
+      }
       today={workspace.today}
       dataError={workspace.dataError}
     />
