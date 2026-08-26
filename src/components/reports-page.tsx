@@ -71,7 +71,22 @@ export function ReportsPage({
   const { report } = workspace;
   const expenseChange = report.expenseChangePercent;
   const expenseDays = report.trend.filter((item) => item.expense > 0);
-  const maxExpense = Math.max(1, ...report.trend.map((item) => item.expense));
+  /*
+   * Both series share one scale, or the two bars in a column would not be
+   * comparable and the chart would lie about which way money moved.
+   */
+  const trendMax = Math.max(
+    1,
+    ...report.trend.map((item) => Math.max(item.income, item.expense)),
+  );
+  /*
+   * A period can hold income and no expense — a month where salary arrived and
+   * nothing was spent yet. Keying the empty state on expense alone would hide
+   * real recorded data behind "chưa có khoản chi".
+   */
+  const trendHasActivity = report.trend.some(
+    (item) => item.income > 0 || item.expense > 0,
+  );
   const averageExpense = expenseDays.length
     ? Math.round(report.totals.expense / expenseDays.length)
     : 0;
@@ -279,13 +294,22 @@ export function ReportsPage({
               contained
               slot="report-trend"
             >
-              {expenseDays.length ? (
+              {trendHasActivity ? (
                 <>
+                  {/*
+                    * Money must not rely on colour alone, so the two series are
+                    * named in text here as well as being drawn in different
+                    * colours.
+                    */}
+                  <p className={styles.trendLegend}>
+                    <span className={styles.legendIncome}>Thu</span>
+                    <span className={styles.legendExpense}>Chi</span>
+                  </p>
                   <div className={styles.trendScroll}>
                     <div
                       className={styles.trendChart}
                       role="img"
-                      aria-label={`Biểu đồ nhịp chi tiêu ${periodTitle}`}
+                      aria-label={`Biểu đồ thu và chi ${periodTitle}`}
                       aria-describedby="report-trend-data"
                       style={{
                         gridTemplateColumns: `repeat(${report.trend.length}, minmax(0, 1fr))`,
@@ -294,25 +318,35 @@ export function ReportsPage({
                       {report.trend.map((item, index) => (
                         <div
                           className={
-                            item.expense
+                            item.expense || item.income
                               ? `${styles.trendColumn} ${styles.hasValue}`
                               : styles.trendColumn
                           }
                           key={item.key}
-                          title={`${item.label}: chi ${formatMoney(item.expense)}`}
+                          title={`${item.label}: thu ${formatMoney(item.income)} · chi ${formatMoney(item.expense)}`}
                         >
                           <div className={styles.trendBars}>
+                            <span
+                              className={styles.incomeBar}
+                              style={{
+                                height: `${
+                                  item.income
+                                    ? Math.max(7, (item.income / trendMax) * 100)
+                                    : 0
+                                }%`,
+                              }}
+                            />
                             <span
                               className={styles.expenseBar}
                               style={{
                                 height: `${
                                   item.expense
-                                    ? Math.max(7, (item.expense / maxExpense) * 100)
+                                    ? Math.max(7, (item.expense / trendMax) * 100)
                                     : 0
                                 }%`,
                               }}
                             >
-                              {item.expense === maxExpense ? (
+                              {item.expense === trendMax ? (
                                 <b>{formatMoney(item.expense)}</b>
                               ) : null}
                             </span>
@@ -332,7 +366,8 @@ export function ReportsPage({
                   <ul className={styles.srTrendData} id="report-trend-data">
                     {report.trend.map((item) => (
                       <li key={item.key}>
-                        {item.label}: chi {formatMoney(item.expense)}
+                        {item.label}: thu {formatMoney(item.income)} · chi{" "}
+                        {formatMoney(item.expense)}
                       </li>
                     ))}
                   </ul>
@@ -340,7 +375,7 @@ export function ReportsPage({
               ) : (
                 <div className={styles.subEmpty}>
                   <Icon name="chart" />
-                  <p>Chưa có khoản chi trong kỳ này.</p>
+                  <p>Chưa có giao dịch nào trong kỳ này.</p>
                 </div>
               )}
             </SecondarySection>
