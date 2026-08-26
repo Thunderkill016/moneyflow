@@ -12,6 +12,27 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# Draft state deliberately gates nothing here.
+#
+# Jobs used to carry
+#   github.event_name != 'pull_request'
+#     || github.event.action == 'ready_for_review'
+#     || github.event.pull_request.draft == false
+# in eight places. That reads the draft flag out of the run's own event payload,
+# which can already be stale: opening a pull request as a draft and marking it
+# ready seconds later delivers both events, the concurrency group below cancels
+# one of them, and if the surviving run is the draft-event one it skips every
+# shard and reports success. A job skipped by `if:` reports Success and does not
+# block merge even when the check is required, so that head could merge with the
+# knowledge, migration identity, CI classification and diff hygiene contracts
+# never having executed (issue #417, observed on PR #416 head 9e77ad86).
+#
+# Path classification is the real risk signal and `scripts/classify-ci-changes.mjs`
+# is its single authority, as AGENTS.md states. Gating on it alone means the
+# checks a change needs run whenever that change exists, draft or not, and the
+# rule is stated once instead of eight times. Do not reintroduce a draft
+# condition: any fix that trusts the event payload has this race again.
+
 permissions:
   contents: read
 
@@ -74,7 +95,6 @@ jobs:
 
   verify_policy:
     name: Verify policy contracts
-    if: github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false
     needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -104,7 +124,7 @@ jobs:
 
   verify_static:
     name: Verify static quality
-    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.full_verify == 'true'
+    if: needs.classify.outputs.full_verify == 'true'
     needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -137,7 +157,7 @@ jobs:
 
   verify_tests:
     name: Verify unit tests and static RLS
-    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.full_verify == 'true'
+    if: needs.classify.outputs.full_verify == 'true'
     needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -179,7 +199,7 @@ jobs:
 
   verify_build:
     name: Verify production build
-    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.full_verify == 'true'
+    if: needs.classify.outputs.full_verify == 'true'
     needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -214,7 +234,7 @@ jobs:
         run: npm run check:code-css-ownership
 
   verify:
-    if: always() && (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false)
+    if: always()
     needs: [classify, verify_policy, verify_static, verify_tests, verify_build]
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -252,7 +272,6 @@ jobs:
           fi
 
   database:
-    if: github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false
     needs: classify
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -324,7 +343,7 @@ jobs:
 
   browser_smoke:
     name: Browser smoke
-    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.browser_smoke == 'true'
+    if: needs.classify.outputs.browser_smoke == 'true'
     needs: [classify, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -371,7 +390,7 @@ jobs:
 
   ui_audit:
     name: Cross-device UI audit
-    if: (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false) && needs.classify.outputs.ui_audit == 'true'
+    if: needs.classify.outputs.ui_audit == 'true'
     needs: [classify, verify]
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -402,7 +421,7 @@ jobs:
           retention-days: 3
 
   e2e:
-    if: always() && (github.event_name != 'pull_request' || github.event.action == 'ready_for_review' || github.event.pull_request.draft == false)
+    if: always()
     needs: [classify, verify, browser_smoke, ui_audit]
     runs-on: ubuntu-latest
     timeout-minutes: 5
