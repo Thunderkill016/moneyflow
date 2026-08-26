@@ -5,7 +5,7 @@
 **Active role:** implementer  
 **Permission scope:** branch_write  
 **Owner:** human owner  
-**Issue/PR:** #463 / PR pending  
+**Issue/PR:** #463 / draft PR #464
 **Base at implementation start:** `main@86ef47a12e835d303f3550b89caa8ee22306c601`  
 **Last updated:** 2026-08-26
 
@@ -173,7 +173,7 @@ The candidate-stage rule domain owns deterministic matching; Direct CSV owns sou
 | T2 | Write pure rule-aware Direct CSV failure tests | T1 | observed RED test failure | complete |
 | T3 | Implement minimal pure plan and UI preview/review state | T2 | focused green tests | complete |
 | T4 | Add authenticated atomic validation/preparation contract | T2 | migration checks + pgTAP (local Postgres unavailable) | complete |
-| T5 | Evaluate, run risk-selected gates and create PR record | T3, T4 | exact outputs and PR evidence | in progress |
+| T5 | Evaluate, run risk-selected gates and create PR record | T3, T4 | draft PR #464; exact-head provider gates pending | in progress |
 
 ## Handoff record
 
@@ -222,9 +222,9 @@ The candidate-stage rule domain owns deterministic matching; Direct CSV owns sou
 ## Delivery record
 
 - Branch: `feat/463-direct-csv-rule-preview`
-- PR: pending
+- PR: #464 (draft)
 - Squash commit: pending
-- CI run: pending
+- CI run: pending exact head; draft checks intentionally do not establish completion
 - Production deployment: none
 - Production flow verified: none
 - Work packet moved to `docs/plans/completed/`: pending merge and acceptance
