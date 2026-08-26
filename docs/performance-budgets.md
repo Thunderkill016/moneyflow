@@ -259,8 +259,49 @@ Local dry run of both arms, developer machine, n=6 per arm, unthrottled — mech
 
 That is consistent with the early mode being the loading boundary's own paint, and with
 the boundary rendering only when the server wait is long enough. It is a dry run proving
-the instrument works, **not** the result: the CI-hardware run with the configured sample
-counts has not been collected yet, and no claim about a user-visible gain follows from it.
+the instrument works, **not** the result.
+
+#### Result — CI run `32991729913`, 2026-08-26, n=20 navigations and 10 Lighthouse passes per arm
+
+**Mechanism.** The attribution criterion this section set in advance is satisfied: the
+boundary's text appeared **exclusively** in the arm that contains it, and the single
+low-FCP navigation is the one where it appeared.
+
+| Arm | Boundary in tree | Boundary text seen | FCP when seen | FCP when not seen | Mean when not seen |
+|---|---|---|---|---|---|
+| `with-boundary` | present | **1 of 20** | 76 ms | 132–184 ms | 164 ms |
+| `no-boundary` | absent | **0 of 20** | — | 136–432 ms | 179 ms |
+
+So the early mode is real and it is the loading boundary. It is also **rare**: the
+boundary painted on one navigation in twenty, and on the other nineteen the page reached
+first paint without it. The dry run's 1-of-6 was not a small-sample artefact.
+
+**Timing.** The mechanism does not translate into the metric #403 names.
+
+| Arm | Route | LCP median | LCP range | Script bytes |
+|---|---|---|---|---|
+| `with-boundary` | `/dashboard` | 3647 ms | 546 ms | 313072 B |
+| `no-boundary` | `/dashboard` | 3807 ms | 516 ms | 313072 B |
+| `with-boundary` | `/` | 3173 ms | 454 ms | 195821 B |
+| `no-boundary` | `/` | 2805 ms | 454 ms | 195821 B |
+
+`/` is the control: deleting `src/app/dashboard/loading.tsx` cannot affect it, and the
+identical script bytes confirm both arms built the same output for it. Yet its LCP
+medians differ by **368 ms** between arms. That is a direct measurement of run-to-run
+variance on this hardware.
+
+The `/dashboard` difference is **160 ms**, in the direction the hypothesis predicts but
+**less than half the noise measured on a route the change cannot touch**, and well inside
+each arm's own ~500 ms range.
+
+**Conclusion.** The loading boundary occasionally produces an earlier first paint and has
+**no effect on `/dashboard` LCP that this instrument can distinguish from noise**. It is
+not the lever for #403. Removing or keeping it is a correctness and honesty decision about
+what the user sees during a server wait, not a performance decision, and no performance
+claim may be made from it in either direction.
+
+Script bytes remain the only metric this harness has shown to be stable, and they are
+**identical across arms** — as they must be, since a loading file changes no bundle.
 
 ### Mitigations shipped (TASK-132 + speed pass + Q8)
 
