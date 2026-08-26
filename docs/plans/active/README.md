@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-26 (post-#469)
-**Current main baseline:** `e33bbd24f1b8bdcc70f185d2f242b7cc45cb05b4` (PR #469 squash-merged)
-**Post-merge projection:** PR #471
+**Last reconciled:** 2026-08-26 (post-#471)
+**Current main baseline:** `b0099f70910237c8c1b26826effc3fb91085d3b1` (PR #471 squash-merged)
+**Post-merge projection:** PR #473
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is selected in this post-merge projection. PR #471 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #473 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
@@ -45,7 +45,8 @@ No agent-executable product/governance slice is selected in this post-merge proj
 
 ## RECENTLY DONE
 
-- [ ] **#470 / PR #471 — unpaid bills are not free money** — post-merge projection only. Corrects a defect introduced by #469: unassigned money counted only budget limits, so an unpaid recurring commitment in an unbudgeted category was reported as free cash. Coverage is computed live from client budget state; a bill whose category has a budget is claimed once by that limit, and paid, archived or other-month occurrences claim nothing.
+- [ ] **#472 / PR #473 — carry last month's plan into an empty month** — post-merge projection only. `previousBudgets` were already loaded and used only for comparison text; one action now applies them through the existing `upsert_monthly_budget` RPC. Additive only: a category already budgeted this month is never overwritten, non-positive previous limits are skipped, and the offer is computed from live budget state so it disappears once nothing is missing. No new RPC, migration, RLS or provider change.
+- [x] **#470 / PR #471 — unpaid bills are not free money** — squash-merged as `b0099f70910237c8c1b26826effc3fb91085d3b1`. Corrects a defect introduced by #469: unassigned money counted only budget limits, so an unpaid recurring commitment in an unbudgeted category was reported as free cash. Coverage is computed live from client budget state; a bill whose category has a budget is claimed once by that limit, and paid, archived or other-month occurrences claim nothing.
 - [x] **#468 / PR #469 — money that has not been given a job yet** — squash-merged as `e33bbd24f1b8bdcc70f185d2f242b7cc45cb05b4`. The budgets page states `unassigned = income recorded this month − limits assigned this month` from recorded income only, selected exactly as the dashboard selects it, with transfers excluded and no carry-over between months. Over-allocation is reported as its own labelled state rather than by colour. It reports arithmetic and gives no spending guidance, guarded by a vocabulary test. No schema, RLS, RPC, provider or ledger-mutation change.
 
 - [x] **#463 / PR #464 — Direct CSV confirmed-rule dry-run** — squash-merged as `3975007738a3cf383c11e73b9e6d9fdfccfb2f59`. Existing explicit rules normalize eligible Direct CSV dry-run rows through exact server-validated rule evidence; every row remains in the existing review/atomic approval path, with no auto-posting, inference or financial-intent memory.
