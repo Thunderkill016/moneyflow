@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-26 (post-#477)
-**Current main baseline:** `7509d02d25fa2b106c56dc246478fa0d12d920c4` (PR #477 squash-merged)
-**Post-merge projection:** PR #479
+**Last reconciled:** 2026-08-26 (post-#479)
+**Current main baseline:** `f1bc0607bbed80bec3b0d76526c75fe1291e5c62` (PR #479 squash-merged)
+**Post-merge projection:** PR #481
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is selected in this post-merge projection. PR #479 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #481 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
@@ -45,7 +45,8 @@ No agent-executable product/governance slice is selected in this post-merge proj
 
 ## RECENTLY DONE
 
-- [ ] **#478 / PR #479 — open the rows behind a report figure** — post-merge projection only. `/reports` had no link from any figure to its transactions; category and account rows now open `/transactions` bounded by the report's own window. An account drill-down carries `kind: "expense"` because `filterTransactions` also matches `destinationAccount`. Accounts sum exactly, categories answer membership, and the difference is pinned by test. No schema, RPC, RLS or provider change.
+- [ ] **#417 / PR #481 — stale draft flag can skip the contracts** — post-merge projection only. Eight jobs gated on the draft flag from their own event payload, which the draft→ready race makes stale; a surviving draft-event run skipped every shard and reported success, so a head could merge with the knowledge, migration identity, classification and diff-hygiene contracts never having run. All nine occurrences removed; `classify` path selection is now the sole gate, as `AGENTS.md` already declares. No branch-protection, required-check, permission or `CODEOWNERS` change.
+- [x] **#478 / PR #479 — open the rows behind a report figure** — squash-merged as `f1bc0607bbed80bec3b0d76526c75fe1291e5c62`. `/reports` had no link from any figure to its transactions; category and account rows now open `/transactions` bounded by the report's own window. An account drill-down carries `kind: "expense"` because `filterTransactions` also matches `destinationAccount`. Accounts sum exactly, categories answer membership, and the difference is pinned by test. No schema, RPC, RLS or provider change.
 - [x] **#476 / PR #477 — which account the money left from** — squash-merged as `7509d02d25fa2b106c56dc246478fa0d12d920c4`. Reports broke expense down by category and time only; an account breakdown is added to `buildFinancialReport` and rendered beside the category one. Split rows belong **whole** to the paying account rather than being distributed as categories are, transfers stay excluded, and account amounts sum to the range's expense total. No schema, RPC, RLS or provider change.
 - [x] **#474 / PR #475 — show the reserve picture instead of only refusing with it** — squash-merged as `2da83e10155c17accfc7ca01b6f3e184a164d182`. `adjust_savings_goal` already enforced `total_allocated + amount <= greatest(0, balance − unpaid commitments)`; the user met it only as a rejection naming two causes and giving neither figure. The goals page now states balance, bills protected, goals reserved and what is left, mirroring the RPC exactly with a test asserting the boundary from both sides. Omitted rather than guessed when an input read fails or in demo. No RPC, migration, RLS or provider change.
 - [x] **#472 / PR #473 — carry last month's plan into an empty month** — squash-merged as `dcd3d3bac1506341014d48856133371187d3ede6`. `previousBudgets` were already loaded and used only for comparison text; one action now applies them through the existing `upsert_monthly_budget` RPC. Additive only: a category already budgeted this month is never overwritten, non-positive previous limits are skipped, and the offer is computed from live budget state so it disappears once nothing is missing. No new RPC, migration, RLS or provider change.
