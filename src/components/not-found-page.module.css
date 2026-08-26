@@ -1,0 +1,91 @@
+/*
+ * The 404 a visitor actually lands on.
+ *
+ * Production served Next's built-in fallback until now: an English,
+ * system-font "404: This page could not be found." with no route back. This
+ * owns its own presentation rather than reusing the `.route-error` globals,
+ * which survive only through `presentation-ownership-baseline.json` and would
+ * fail `check:code-css-ownership` if extended to a new caller.
+ */
+
+.page {
+  display: grid;
+  place-content: center;
+  justify-items: start;
+  gap: 1rem;
+  min-height: 70vh;
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+  color: var(--mf-text);
+}
+
+.code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mf-text-muted);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.lead {
+  margin: 0;
+  color: var(--mf-text-muted);
+  line-height: 1.6;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  /*
+   * Row gap matters as much as column gap: these wrap to their own lines on a
+   * narrow phone, and the cross-device audit measures every pressable target
+   * for overlap once it wraps.
+   */
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.action,
+.actionQuiet {
+  display: inline-flex;
+  align-items: center;
+  /* 44px minimum target, taken from padding so a long label still wraps. */
+  min-height: 2.75rem;
+  padding: 0.5rem 1.1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--mf-border);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--mf-fast, 150ms) var(--mf-ease, ease);
+}
+
+.action {
+  background: var(--mf-brand);
+  border-color: var(--mf-brand);
+  color: var(--mf-brand-text);
+}
+
+.actionQuiet {
+  background: var(--mf-surface);
+  color: var(--mf-text);
+}
+
+.action:hover,
+.actionQuiet:hover {
+  background: var(--mf-surface-muted);
+  color: var(--mf-text);
+}
+
+.action:focus-visible,
+.actionQuiet:focus-visible {
+  outline: 2px solid var(--mf-brand);
+  outline-offset: 2px;
+}
