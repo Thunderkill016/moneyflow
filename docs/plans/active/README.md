@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-27 (post-#483)
-**Current main baseline:** `0f3e64f1ee5670bea2ca1e5ff5edae64a79e9462` (PR #483 squash-merged)
-**Post-merge projection:** PR #484
+**Current main baseline:** `968288754a59c466c7a3a6b41c76055ba826e0f3` (PR #484 squash-merged)
+**Post-merge projection:** PR #485
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is selected in this post-merge projection. PR #484 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #485 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
@@ -45,7 +45,8 @@ No agent-executable product/governance slice is selected in this post-merge proj
 
 ## RECENTLY DONE
 
-- [ ] **PR #484 — a wrong URL now has a way back** — post-merge projection only. No `not-found.tsx` existed, so production served Next's built-in English fallback with no route back; verified live before the change. A Server Component with no client JS, no `AppShell` dependency so it renders for signed-out visitors, leading with `/` so one link is correct for both audiences, and its own CSS Module rather than the baselined `.route-error` globals. Found by the repository audit rather than by an issue.
+- [ ] **PR #485 — the trend draws the income it already computed** — post-merge projection only. `buildFinancialReport` always returned income per bucket and the page drew only the expense bar. Both series now share one scale, the empty state keys on any activity rather than expense alone, the screen-reader list and `aria-label` report both, and a text legend keeps the distinction off colour alone. Found by the repository audit.
+- [x] **PR #484 — a wrong URL now has a way back** — squash-merged as `968288754a59c466c7a3a6b41c76055ba826e0f3`. No `not-found.tsx` existed, so production served Next's built-in English fallback with no route back; verified live before the change. A Server Component with no client JS, no `AppShell` dependency so it renders for signed-out visitors, leading with `/` so one link is correct for both audiences, and its own CSS Module rather than the baselined `.route-error` globals. Found by the repository audit rather than by an issue.
 - [x] **#403 attribution result / PR #483** — squash-merged as `0f3e64f1ee5670bea2ca1e5ff5edae64a79e9462`. Issue #403 was closed by the owner on 2026-08-26. The `workflow_dispatch` experiment merged in #419 was finally run (`32991729913`). The loading boundary is confirmed as the early-paint mechanism but fires 1 navigation in 20, and `/dashboard` LCP differs by 160 ms between arms against 368 ms of variance measured on `/`, a route the change cannot affect. Recorded as a **negative result**: the boundary is not the lever for #403 and no performance claim follows in either direction.
 - [x] **#418 / PR #482 — patched postcss and nanoid** — squash-merged as `9e2f7f862c89df7544f2b1e262ce7d2c2bb0ceb7`. Confirmed by the provider: both Dependabot alerts now report `fixed`, 0 open. The override's provenance was recovered from `158a9d69`; it exists to stop Next resolving its own nested `postcss 8.4.31`, so it stays and is raised to a patched release with an explicit `nanoid` override. The security test's exact pin, which made applying a security fix fail the security test, is corrected to a patched floor and proven non-vacuous.
 - [x] **#417 / PR #481 — stale draft flag can skip the contracts** — squash-merged as `bc68b5a0fc5c6921848ab18a9b26fb38941247dc`. Verified on PR #482: a draft pull request now runs the policy, build, static, unit/RLS and database checks for real instead of reporting skipped-success. Eight jobs gated on the draft flag from their own event payload, which the draft→ready race makes stale; a surviving draft-event run skipped every shard and reported success, so a head could merge with the knowledge, migration identity, classification and diff-hygiene contracts never having run. All nine occurrences removed; `classify` path selection is now the sole gate, as `AGENTS.md` already declares. No branch-protection, required-check, permission or `CODEOWNERS` change.

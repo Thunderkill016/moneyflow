@@ -181,7 +181,56 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  /* Two series per column now, so they need separating. */
+  gap: 0.15rem;
   min-height: 0;
+}
+
+/*
+ * Two bars per column, sharing one scale. `.trendBars` is already
+ * `align-items: flex-end`, so both grow from the baseline.
+ */
+.incomeBar {
+  display: block;
+  width: min(1.75rem, 80%);
+  min-height: 0;
+  border-radius: 0.25rem 0.25rem 0 0;
+  background: var(--mf-income);
+}
+
+.trendLegend {
+  display: flex;
+  gap: 1rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  color: var(--mf-text-muted);
+}
+
+/*
+ * The swatch sits beside the word rather than replacing it: money must not
+ * rely on colour alone, so the series stay readable with the colour ignored.
+ */
+.legendIncome,
+.legendExpense {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legendIncome::before,
+.legendExpense::before {
+  content: "";
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 0.2rem;
+}
+
+.legendIncome::before {
+  background: var(--mf-income);
+}
+
+.legendExpense::before {
+  background: var(--mf-expense);
 }
 
 .expenseBar {
