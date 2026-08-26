@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import {
+  reportAccountDrilldownHref,
+  reportCategoryDrilldownHref,
+} from "@/lib/report-drilldown";
 import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
@@ -352,13 +356,26 @@ export function ReportsPage({
                   {report.categories.map((item) => {
                     const meta =
                       categoryMeta[item.name] ?? categoryMeta["Thu nhập khác"];
+                    const href = reportCategoryDrilldownHref(report.range, item.name);
                     return (
                       <article className={styles.category} key={item.name}>
                         <span className={styles.categoryIcon} aria-hidden="true">
                           <Icon name={meta.icon as IconName} />
                         </span>
                         <div className={styles.categoryBody}>
-                          <strong>{item.name}</strong>
+                          {/*
+                            * Plain text when the name cannot be carried: an
+                            * unresolvable category falls back to `all` at
+                            * /transactions and would open the whole ledger while
+                            * looking like one slice.
+                            */}
+                          {href ? (
+                            <Link className={styles.categoryLink} href={href}>
+                              {item.name}
+                            </Link>
+                          ) : (
+                            <strong>{item.name}</strong>
+                          )}
                           <span
                             className={styles.categoryTrack}
                             aria-label={`${item.share}% tổng chi`}
@@ -401,13 +418,21 @@ export function ReportsPage({
             >
               {report.accounts.length ? (
                 <div className={styles.categories}>
-                  {report.accounts.map((item) => (
+                  {report.accounts.map((item) => {
+                    const href = reportAccountDrilldownHref(report.range, item.name);
+                    return (
                     <article className={styles.category} key={item.name}>
                       <span className={styles.categoryIcon} aria-hidden="true">
                         <Icon name="wallet" />
                       </span>
                       <div className={styles.categoryBody}>
-                        <strong>{item.name}</strong>
+                        {href ? (
+                          <Link className={styles.categoryLink} href={href}>
+                            {item.name}
+                          </Link>
+                        ) : (
+                          <strong>{item.name}</strong>
+                        )}
                         <span
                           className={styles.categoryTrack}
                           aria-label={`${item.share}% tổng chi`}
@@ -426,7 +451,8 @@ export function ReportsPage({
                         <small>{item.share}%</small>
                       </div>
                     </article>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className={styles.subEmpty}>
