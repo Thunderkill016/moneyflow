@@ -2,8 +2,8 @@
 
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-26
-**Runtime/financial baseline:** `dcd3d3bac1506341014d48856133371187d3ede6` (PR #473 squash-merged).
-**Post-merge projection:** PR #475
+**Runtime/financial baseline:** `2da83e10155c17accfc7ca01b6f3e184a164d182` (PR #475 squash-merged).
+**Post-merge projection:** PR #477
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -74,8 +74,8 @@ PR #464 is merged runtime truth: an eligible Direct CSV dry-run row can reuse on
 |---|---|
 | Core ledger | multiple accounts; income, expense, transfers; edit; soft delete/recovery |
 | Accounts | balances, register/history, create/edit/archive/restore and statement reconciliation |
-| Planning | category budgets, recurring commitments/income and savings goals; merged #469 states unassigned income on the budgets page from recorded income only, with no carry-over and no spending guidance; merged #471 additionally subtracts unpaid recurring commitments that no budget for the month already covers, so bills are never reported as free money; merged #473 applies last month's limits to categories the selected month has no budget for, additively and never overwriting a current-month decision; post-merge candidate #475 states the reserve picture on the goals surface — balance, unpaid bills protected, goals reserved and what remains — restating the arithmetic `adjust_savings_goal` already enforces rather than adding a rule |
-| Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
+| Planning | category budgets, recurring commitments/income and savings goals; merged #469 states unassigned income on the budgets page from recorded income only, with no carry-over and no spending guidance; merged #471 additionally subtracts unpaid recurring commitments that no budget for the month already covers, so bills are never reported as free money; merged #473 applies last month's limits to categories the selected month has no budget for, additively and never overwriting a current-month decision; merged #475 states the reserve picture on the goals surface — balance, unpaid bills protected, goals reserved and what remains — restating the arithmetic `adjust_savings_goal` already enforces rather than adding a rule |
+| Understanding | weekly/monthly/yearly reports with category and time breakdowns, controlled import and CSV export; post-merge candidate #477 adds an expense-by-account breakdown taking split rows whole and excluding transfers |
 | Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; retained Direct CSV review recovery (#459); later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; merged #451 PWA Share Target atomic persistence; merged #453 candidate review-time rule capture; merged #455 deterministic Share rule application; merged #464 Direct CSV explicit-rule normalization |
 | Lifecycle clearing | merged #449: reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; never source-driven `reconciled`, ledger overwrite, delete or demotion |
 | Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |

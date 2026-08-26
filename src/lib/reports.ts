@@ -43,6 +43,16 @@ export type FinancialReport = {
   previous: { income: number; expense: number; net: number };
   expenseChangePercent: number | null;
   categories: { name: string; amount: number; share: number }[];
+  /**
+   * Expense grouped by the account it left from, largest first.
+   *
+   * Deliberately NOT split-distributed, unlike `categories`. A split row names
+   * several categories but is still one payment leaving one account, so its
+   * full amount belongs to that account. Distributing it would under-report
+   * every account holding split rows, and the figures would quietly disagree
+   * with the account register.
+   */
+  accounts: { name: string; amount: number; share: number }[];
   trend: { key: string; label: string; income: number; expense: number }[];
 };
 
@@ -287,6 +297,23 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
   const categories = [...categoryTotals.entries()]
     .map(([name, amount]) => ({ name, amount, share: expense ? Math.round((amount / expense) * 100) : 0 }))
     .sort((a, b) => b.amount - a.amount);
+  /*
+   * One pass over the same expense rows, taking each row whole. Transfers are
+   * already excluded by matching `kind`, which is what keeps this honest: a
+   * transfer moves the user's own money between their own accounts, so counting
+   * it as money leaving would inflate the funding account while nothing left
+   * the user.
+   */
+  const accountTotals = new Map<string, number>();
+  for (const item of current) {
+    if (item.kind !== "expense") continue;
+    const name = item.account;
+    if (!name) continue;
+    accountTotals.set(name, safeAdd(accountTotals.get(name) ?? 0, item.amount));
+  }
+  const accounts = [...accountTotals.entries()]
+    .map(([name, amount]) => ({ name, amount, share: expense ? Math.round((amount / expense) * 100) : 0 }))
+    .sort((a, b) => b.amount - a.amount);
   const trend = trendBuckets(range).map((bucket) => {
     // A monthly bucket key is `YYYY-MM`; a daily one is a full date. Matching on
     // key length keeps this in step with trendBuckets without repeating its rule.
@@ -300,6 +327,7 @@ export function buildFinancialReport(transactions: Transaction[], range: ReportR
     previous: { income: previousIncome, expense: previousExpense, net: safeDifference(previousIncome, previousExpense) },
     expenseChangePercent: previousExpense === 0 ? null : Math.round(((expense - previousExpense) / previousExpense) * 100),
     categories,
+    accounts,
     trend,
   };
 }

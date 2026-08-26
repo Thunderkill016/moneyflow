@@ -172,3 +172,118 @@ test("custom period href and title read as the chosen window", () => {
   assert.equal(formatReportPeriodTitle("custom", "2025-12-20", "2026-01-10"), "20/12/2025 – 10/1/2026");
   assert.equal(formatReportPeriodTitle("custom", "2026-06-01"), "Khoảng tự chọn");
 });
+
+const ACCOUNT_RANGE = customReportRange("2026-08-01", "2026-08-31");
+
+function accountRow(
+  id: string,
+  account: string,
+  amount: number,
+  overrides: Partial<Transaction> = {},
+): Transaction {
+  return {
+    id,
+    kind: "expense",
+    categoryId: "cat-food",
+    category: "Ăn uống",
+    note: "",
+    accountId: `acc-${account}`,
+    account,
+    amount,
+    occurredOn: "2026-08-10",
+    occurredAt: "2026-08-10T05:00:00.000Z",
+    relativeDate: "10 tháng 8",
+    ...overrides,
+  } as Transaction;
+}
+
+test("expense is broken down by the account it left from, largest first", () => {
+  const report = buildFinancialReport(
+    [
+      accountRow("a", "Tiền mặt", 300_000),
+      accountRow("b", "Ngân hàng", 700_000),
+      accountRow("c", "Tiền mặt", 200_000),
+    ],
+    ACCOUNT_RANGE,
+  );
+
+  assert.deepEqual(
+    report.accounts.map((item) => [item.name, item.amount]),
+    [
+      ["Ngân hàng", 700_000],
+      ["Tiền mặt", 500_000],
+    ],
+  );
+  assert.equal(report.accounts[0]?.share, 58);
+});
+
+/*
+ * The trap this breakdown exists around. A split row names several categories
+ * and the category breakdown distributes it across them — but the payment still
+ * left ONE account, so the account breakdown must take it whole. Distributing it
+ * would under-report every account holding split rows, and the figures would
+ * quietly disagree with the account register.
+ */
+test("a split row belongs whole to the account it was paid from", () => {
+  const split = accountRow("split", "Ngân hàng", 300_000, {
+    splits: [
+      { category: "Ăn uống", amount: 200_000 },
+      { category: "Di chuyển", amount: 100_000 },
+    ],
+  } as Partial<Transaction>);
+  const report = buildFinancialReport([split], ACCOUNT_RANGE);
+
+  assert.equal(report.accounts.length, 1);
+  assert.equal(report.accounts[0]?.amount, 300_000);
+  // Not vacuous: the same row really is distributed on the category side.
+  assert.equal(report.categories.length, 2);
+});
+
+test("account amounts sum to the range's expense total", () => {
+  const report = buildFinancialReport(
+    [
+      accountRow("a", "Tiền mặt", 300_000),
+      accountRow("b", "Ngân hàng", 700_000),
+      accountRow("c", "Ví MoMo", 45_000),
+    ],
+    ACCOUNT_RANGE,
+  );
+
+  const summed = report.accounts.reduce((total, item) => total + item.amount, 0);
+  assert.equal(summed, report.totals.expense);
+  assert.equal(summed, 1_045_000);
+});
+
+test("transfers are not money leaving an account", () => {
+  const withTransfer = buildFinancialReport(
+    [
+      accountRow("a", "Tiền mặt", 300_000),
+      accountRow("t", "Tiền mặt", 5_000_000, {
+        kind: "transfer",
+        destinationAccount: "Ngân hàng",
+      } as Partial<Transaction>),
+    ],
+    ACCOUNT_RANGE,
+  );
+
+  assert.equal(withTransfer.accounts.length, 1);
+  assert.equal(withTransfer.accounts[0]?.amount, 300_000);
+});
+
+test("income does not appear in the account breakdown", () => {
+  const report = buildFinancialReport(
+    [
+      accountRow("a", "Tiền mặt", 300_000),
+      accountRow("i", "Ngân hàng", 20_000_000, { kind: "income" } as Partial<Transaction>),
+    ],
+    ACCOUNT_RANGE,
+  );
+
+  assert.equal(report.accounts.length, 1);
+  assert.equal(report.accounts[0]?.name, "Tiền mặt");
+});
+
+test("an empty range reports no accounts rather than a zero row", () => {
+  const report = buildFinancialReport([], ACCOUNT_RANGE);
+  assert.deepEqual(report.accounts, []);
+});

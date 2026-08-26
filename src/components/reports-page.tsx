@@ -387,6 +387,54 @@ export function ReportsPage({
                 </div>
               )}
             </SecondarySection>
+
+            <SecondarySection
+              title="Chi theo tài khoản"
+              description={
+                <p>
+                  Tiền rời khỏi ví nào · {periodTitle}. Chuyển khoản giữa ví của bạn
+                  không tính là chi.
+                </p>
+              }
+              contained
+              slot="report-accounts"
+            >
+              {report.accounts.length ? (
+                <div className={styles.categories}>
+                  {report.accounts.map((item) => (
+                    <article className={styles.category} key={item.name}>
+                      <span className={styles.categoryIcon} aria-hidden="true">
+                        <Icon name="wallet" />
+                      </span>
+                      <div className={styles.categoryBody}>
+                        <strong>{item.name}</strong>
+                        <span
+                          className={styles.categoryTrack}
+                          aria-label={`${item.share}% tổng chi`}
+                        >
+                          <i style={{ width: `${item.share}%` }} />
+                        </span>
+                      </div>
+                      <div className={styles.categoryAmount}>
+                        <MoneyValue
+                          amount={item.amount}
+                          mode="kind"
+                          kind="expense"
+                          label={`Chi từ ${item.name}`}
+                          emphasis="strong"
+                        />
+                        <small>{item.share}%</small>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.subEmpty}>
+                  <Icon name="chart" />
+                  <p>Chưa có khoản chi trong kỳ này.</p>
+                </div>
+              )}
+            </SecondarySection>
           </div>
         ) : (
           <EmptyState
