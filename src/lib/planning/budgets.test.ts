@@ -6,6 +6,7 @@ import {
   budgetMonthKey,
   budgetProgress,
   budgetRemaining,
+  budgetsToCarryForward,
   budgetStatusLabel,
   budgetThreshold,
   budgetTransactionsHref,
@@ -13,6 +14,7 @@ import {
   resolveBudgetMonth,
   shiftBudgetMonth,
   sumBudgetSpent,
+  type BudgetSummary,
 } from "./budgets.ts";
 import type { Transaction } from "../sample-data.ts";
 
@@ -222,4 +224,108 @@ test("sumBudgetSpent counts only matching split line portion", () => {
   assert.equal(sumBudgetSpent([split], "cat-food", "2026-07-01"), 60_000);
   assert.equal(sumBudgetSpent([split], "cat-transport", "2026-07-01"), 40_000);
   assert.equal(sumBudgetSpent([split], "cat-other", "2026-07-01"), 0);
+});
+
+const CARRY_MONTH = "2026-08-01";
+const CARRY_PREVIOUS = "2026-07-01";
+
+function carryRow(
+  categoryId: string,
+  limit: number,
+  monthStart: string,
+): BudgetSummary {
+  return {
+    id: `budget-${categoryId}-${monthStart}`,
+    categoryId,
+    categoryName: categoryId,
+    categoryIcon: null,
+    categoryColor: null,
+    monthStart,
+    limit,
+    spent: 0,
+  };
+}
+
+test("carry-forward fills categories this month has no decision for", () => {
+  const carried = budgetsToCarryForward({
+    previousBudgets: [
+      carryRow("cat-food", 5_000_000, CARRY_PREVIOUS),
+      carryRow("cat-transport", 2_000_000, CARRY_PREVIOUS),
+    ],
+    currentBudgets: [],
+    monthStart: CARRY_MONTH,
+  });
+
+  assert.equal(carried.length, 2);
+  assert.deepEqual(carried[0], {
+    categoryId: "cat-food",
+    monthStart: CARRY_MONTH,
+    limit: 5_000_000,
+  });
+});
+
+/*
+ * The invariant the whole feature rests on. A limit the user already set this
+ * month is a decision; replacing it with history would overwrite their own
+ * judgement, and they would have no way to tell it had happened.
+ */
+test("carry-forward never overwrites a decision already made this month", () => {
+  const carried = budgetsToCarryForward({
+    previousBudgets: [carryRow("cat-food", 5_000_000, CARRY_PREVIOUS)],
+    currentBudgets: [carryRow("cat-food", 3_000_000, CARRY_MONTH)],
+    monthStart: CARRY_MONTH,
+  });
+
+  assert.deepEqual(carried, []);
+});
+
+test("carry-forward leaves a category budgeted only this month alone", () => {
+  const carried = budgetsToCarryForward({
+    previousBudgets: [carryRow("cat-food", 5_000_000, CARRY_PREVIOUS)],
+    currentBudgets: [
+      carryRow("cat-food", 3_000_000, CARRY_MONTH),
+      carryRow("cat-fun", 1_000_000, CARRY_MONTH),
+    ],
+    monthStart: CARRY_MONTH,
+  });
+
+  assert.deepEqual(carried, []);
+});
+
+test("carry-forward skips non-positive previous limits", () => {
+  const carried = budgetsToCarryForward({
+    previousBudgets: [
+      carryRow("cat-zero", 0, CARRY_PREVIOUS),
+      carryRow("cat-negative", -5_000, CARRY_PREVIOUS),
+      carryRow("cat-food", 5_000_000, CARRY_PREVIOUS),
+    ],
+    currentBudgets: [],
+    monthStart: CARRY_MONTH,
+  });
+
+  assert.equal(carried.length, 1);
+  assert.equal(carried[0]?.categoryId, "cat-food");
+});
+
+test("carry-forward has nothing to offer when last month was empty", () => {
+  assert.deepEqual(
+    budgetsToCarryForward({
+      previousBudgets: [],
+      currentBudgets: [carryRow("cat-food", 3_000_000, CARRY_MONTH)],
+      monthStart: CARRY_MONTH,
+    }),
+    [],
+  );
+});
+
+test("carry-forward rejects a malformed target month before writing anything", () => {
+  assert.throws(
+    () =>
+      budgetsToCarryForward({
+        previousBudgets: [carryRow("cat-food", 5_000_000, CARRY_PREVIOUS)],
+        currentBudgets: [],
+        monthStart: "2026-13-01",
+      }),
+    /invalid_budget_month_start/u,
+  );
 });

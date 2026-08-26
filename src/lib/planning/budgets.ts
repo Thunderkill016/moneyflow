@@ -237,3 +237,53 @@ export function budgetBarColor(level: BudgetThreshold): string {
       return "var(--color-success-default)";
   }
 }
+
+/**
+ * Last month's limits that this month has no decision for yet.
+ *
+ * A new month opens with no budgets, so without this the user retypes a stable
+ * plan every month — and until they do, the unassigned figure reports their
+ * whole income as unassigned, which is true and useless. Carrying the plan
+ * forward is what makes the monthly loop cheap enough to repeat.
+ *
+ * The rule is additive only, and that is the whole safety of the feature: a
+ * category the user has **already** budgeted this month is never touched. If
+ * they set food to 3.000.000 ₫ this month after 5.000.000 ₫ last month, that
+ * is a decision, and silently replacing it would overwrite the user's own
+ * judgement with history.
+ *
+ * Non-positive previous limits are skipped rather than carried as zero, since
+ * `upsert_monthly_budget` treats a limit as a real cap and a zero-limit budget
+ * would read as "you may spend nothing here" rather than "not planned".
+ */
+export function budgetsToCarryForward({
+  previousBudgets,
+  currentBudgets,
+  monthStart,
+}: {
+  previousBudgets: BudgetSummary[];
+  currentBudgets: BudgetSummary[];
+  monthStart: string;
+}): SaveBudgetInput[] {
+  // Rejects a malformed target month before anything is written.
+  budgetMonthKey(monthStart);
+
+  const alreadyDecided = new Set(
+    currentBudgets
+      .filter((budget) => budget.monthStart === monthStart)
+      .map((budget) => budget.categoryId),
+  );
+
+  return previousBudgets
+    .filter(
+      (budget) =>
+        budget.limit > 0 &&
+        Number.isSafeInteger(budget.limit) &&
+        !alreadyDecided.has(budget.categoryId),
+    )
+    .map((budget) => ({
+      categoryId: budget.categoryId,
+      monthStart,
+      limit: budget.limit,
+    }));
+}
