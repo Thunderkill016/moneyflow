@@ -3,10 +3,10 @@
 **Status:** post-merge projection candidate
 **Execution state:** awaiting exact-head provider verification and owner merge decision
 **Active role:** none after merge
-**Permission scope:** branch_write  
-**Owner:** human owner  
+**Permission scope:** branch_write
+**Owner:** human owner
 **Issue/PR:** #463 / PR #464; branch `feat/463-direct-csv-rule-preview`
-**Base at implementation start:** `main@86ef47a12e835d303f3550b89caa8ee22306c601`  
+**Base at implementation start:** `main@86ef47a12e835d303f3550b89caa8ee22306c601`
 **Last updated:** 2026-08-26
 
 ## Outcome
