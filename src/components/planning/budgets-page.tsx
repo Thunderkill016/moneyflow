@@ -37,7 +37,9 @@ import {
 import {
   allocateMonthFromTotals,
   allocationExplanation,
+  uncoveredCommitmentTotal,
 } from "@/lib/planning/allocation";
+import type { RecurringCommitment } from "@/lib/planning/commitments";
 import { budgetToneToCard } from "@/lib/planning-pages";
 import { categoryMeta, type CategoryOption } from "@/lib/sample-data";
 
@@ -50,6 +52,7 @@ type BudgetPageWorkspace = {
   budgets: BudgetSummary[];
   previousBudgets: BudgetSummary[];
   monthIncome: number;
+  monthCommitments: RecurringCommitment[];
   categories: CategoryOption[];
   monthStart: string;
   monthEnd: string;
@@ -123,10 +126,15 @@ export function BudgetsPage({ viewer, workspace }: BudgetsPageProps) {
     () =>
       allocateMonthFromTotals({
         income: workspace.monthIncome,
-        allocated: totals.limit,
+        limits: totals.limit,
+        committed: uncoveredCommitmentTotal({
+          commitments: workspace.monthCommitments,
+          budgets,
+          monthStart: workspace.monthStart,
+        }),
         monthStart: workspace.monthStart,
       }),
-    [workspace.monthIncome, workspace.monthStart, totals.limit],
+    [workspace.monthIncome, workspace.monthCommitments, workspace.monthStart, budgets, totals.limit],
   );
   const previousTotals = useMemo(
     () => sumBudgetTotals(workspace.previousBudgets),

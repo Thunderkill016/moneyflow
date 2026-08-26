@@ -2,8 +2,8 @@
 
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-26
-**Runtime/financial baseline:** `12554852f1d84aa0501ea2266409a4f756891978` (PR #466 squash-merged).
-**Post-merge projection:** PR #469
+**Runtime/financial baseline:** `e33bbd24f1b8bdcc70f185d2f242b7cc45cb05b4` (PR #469 squash-merged).
+**Post-merge projection:** PR #471
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -74,7 +74,7 @@ PR #464 is merged runtime truth: an eligible Direct CSV dry-run row can reuse on
 |---|---|
 | Core ledger | multiple accounts; income, expense, transfers; edit; soft delete/recovery |
 | Accounts | balances, register/history, create/edit/archive/restore and statement reconciliation |
-| Planning | category budgets, recurring commitments/income and savings goals; post-merge candidate #469 states unassigned income against this month's limits on the budgets page, from recorded income only, with no carry-over and no spending guidance |
+| Planning | category budgets, recurring commitments/income and savings goals; merged #469 states unassigned income on the budgets page from recorded income only, with no carry-over and no spending guidance; post-merge candidate #471 additionally subtracts unpaid recurring commitments that no budget for the month already covers, so bills are never reported as free money |
 | Understanding | weekly/monthly/yearly reports, controlled import and CSV export |
 | Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; retained Direct CSV review recovery (#459); later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; merged #451 PWA Share Target atomic persistence; merged #453 candidate review-time rule capture; merged #455 deterministic Share rule application; merged #464 Direct CSV explicit-rule normalization |
 | Lifecycle clearing | merged #449: reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; never source-driven `reconciled`, ledger overwrite, delete or demotion |
