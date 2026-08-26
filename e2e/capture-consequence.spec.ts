@@ -8,7 +8,14 @@ import { expect, test } from "@playwright/test";
  * with the category's running total for the month, built from the user's own rows.
  */
 
-const CATEGORY = "Ăn uống";
+/*
+ * Deliberately a category the demo ledger does not already use. The demo now
+ * carries rows dated today, so "Ăn uống" already holds one and the first save
+ * there would be the second entry in its category — which is the case this test
+ * checks does NOT report a running total. "Giải trí" keeps the first save
+ * genuinely first.
+ */
+const CATEGORY = "Giải trí";
 
 async function quickSave(page: import("@playwright/test").Page, amount: string) {
   await page.goto("/capture/quick");

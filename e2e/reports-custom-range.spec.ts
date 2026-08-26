@@ -1,6 +1,25 @@
 import { expect, test } from "@playwright/test";
+import { formatReportPeriodTitle } from "../src/lib/reports.ts";
+import { todayInVietnam } from "../src/lib/vietnam-date.ts";
 
-const RANGE = { from: "2026-07-01", to: "2026-07-31" };
+/*
+ * Derived from today, not pinned to a month the demo happened to sit in. The
+ * fixture now dates its rows relative to the current date, so a fixed July
+ * window became empty and the assertions below stopped meaning anything.
+ *
+ * The window is [8 days ago, 2 days ago] on purpose: it always contains the
+ * demo salary row (4 days ago) and never contains the two rows dated today, so
+ * its count is at least one and always differs from the month preset, whatever
+ * day this runs.
+ */
+function shiftDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  return new Date(date.getTime() - days * 86_400_000).toISOString().slice(0, 10);
+}
+
+const TODAY = todayInVietnam();
+const RANGE = { from: shiftDays(TODAY, 8), to: shiftDays(TODAY, 2) };
+const RANGE_TITLE = formatReportPeriodTitle("custom", RANGE.from, RANGE.to);
 
 function reportNotice(page: import("@playwright/test").Page) {
   return page.locator("main").getByRole("status");
@@ -48,7 +67,7 @@ test.describe("reports custom range", () => {
     await expect(page).toHaveURL(
       new RegExp(`period=custom.*from=${RANGE.from}.*to=${RANGE.to}`),
     );
-    await expect(reportPeriodTitle(page)).toHaveText("1/7 – 31/7/2026");
+    await expect(reportPeriodTitle(page)).toHaveText(RANGE_TITLE);
 
     const href = `/reports/export?period=custom&from=${RANGE.from}&to=${RANGE.to}`;
     await expect(reportExport(page, href)).toHaveAttribute("href", href);
@@ -58,7 +77,7 @@ test.describe("reports custom range", () => {
     expect(customCount).not.toBe(presetCount);
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(reportPeriodTitle(page)).toHaveText("1/7 – 31/7/2026");
+    await expect(reportPeriodTitle(page)).toHaveText(RANGE_TITLE);
   });
 
   test("a reversed window is repaired and the repair is stated", async ({
@@ -68,7 +87,7 @@ test.describe("reports custom range", () => {
       `/reports?period=custom&from=${RANGE.to}&to=${RANGE.from}`,
       { waitUntil: "domcontentloaded" },
     );
-    await expect(reportPeriodTitle(page)).toHaveText("1/7 – 31/7/2026");
+    await expect(reportPeriodTitle(page)).toHaveText(RANGE_TITLE);
     await expect(reportNotice(page)).toContainText("đổi thứ tự");
   });
 
