@@ -1,11 +1,11 @@
 # #463 — Apply confirmed Inbox rules in Direct CSV dry-run
 
-**Status:** evaluating  
-**Execution state:** evaluating  
-**Active role:** implementer  
+**Status:** post-merge projection candidate
+**Execution state:** awaiting exact-head provider verification and owner merge decision
+**Active role:** none after merge
 **Permission scope:** branch_write  
 **Owner:** human owner  
-**Issue/PR:** #463 / draft PR #464
+**Issue/PR:** #463 / PR #464; branch `feat/463-direct-csv-rule-preview`
 **Base at implementation start:** `main@86ef47a12e835d303f3550b89caa8ee22306c601`  
 **Last updated:** 2026-08-26
 
@@ -173,7 +173,7 @@ The candidate-stage rule domain owns deterministic matching; Direct CSV owns sou
 | T2 | Write pure rule-aware Direct CSV failure tests | T1 | observed RED test failure | complete |
 | T3 | Implement minimal pure plan and UI preview/review state | T2 | focused green tests | complete |
 | T4 | Add authenticated atomic validation/preparation contract | T2 | migration checks + pgTAP (local Postgres unavailable) | complete |
-| T5 | Evaluate, run risk-selected gates and create PR record | T3, T4 | draft PR #464; exact-head provider gates pending | in progress |
+| T5 | Evaluate, run risk-selected gates and create PR record | T3, T4 | PR #464 lifecycle projection; exact-head provider gates pending | complete |
 
 ## Handoff record
 
@@ -222,7 +222,7 @@ The candidate-stage rule domain owns deterministic matching; Direct CSV owns sou
 ## Delivery record
 
 - Branch: `feat/463-direct-csv-rule-preview`
-- PR: #464 (draft)
+- PR: #464 (ready-for-review projection only)
 - Squash commit: pending
 - CI run: pending exact head; draft checks intentionally do not establish completion
 - Production deployment: none
