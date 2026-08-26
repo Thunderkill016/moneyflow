@@ -25,6 +25,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button, LinkButton } from "@/components/ui/button";
 import { SelectField } from "@/components/ui/select-field";
 import type { ViewerSummary } from "@/components/user-chip";
+import { loadRulesForClient } from "@/hooks/client-rules";
 import { useTransactions } from "@/hooks/use-transactions";
 import {
   directImportRowStatusLabel,
@@ -42,6 +43,7 @@ import {
   writeDirectCsvMappingPreset,
 } from "@/lib/inbox/direct-csv-mapping-preset";
 import type { LedgerLike } from "@/lib/inbox/detect";
+import type { InboxRule } from "@/lib/inbox/rules-store";
 import {
   emptyColumnMap,
   mapCsvColumns,
@@ -65,6 +67,12 @@ type DirectImportWorkspace = {
   categories: CategoryOption[];
   totalBalance: number;
   today: string;
+  dataError: string | null;
+};
+
+type DirectImportRules = {
+  featureAvailable: boolean;
+  rules: InboxRule[];
   dataError: string | null;
 };
 
@@ -110,9 +118,11 @@ function indexFromSelect(value: string): number | null {
 export function DirectCsvImportPage({
   viewer,
   workspace,
+  rules,
 }: {
   viewer: ViewerSummary;
   workspace: DirectImportWorkspace;
+  rules: DirectImportRules;
 }) {
   const router = useRouter();
   const inputId = useId();
@@ -155,6 +165,7 @@ export function DirectCsvImportPage({
     incomeCategories[0]?.id ?? "",
   );
   const [skipDuplicates, setSkipDuplicates] = useState(true);
+  const [activeRules, setActiveRules] = useState<InboxRule[]>(rules.rules);
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
   const [committedLedgerRows, setCommittedLedgerRows] = useState<LedgerLike[]>([]);
   const [resultSummary, setResultSummary] = useState<{
@@ -173,6 +184,13 @@ export function DirectCsvImportPage({
     return () => window.clearTimeout(timer);
   }, [notice]);
 
+  useEffect(() => {
+    if (!viewer.isDemo) return;
+    void loadRulesForClient(true).then((result) => {
+      if (result.ok) setActiveRules(result.rules);
+    });
+  }, [viewer.isDemo]);
+
   const plan: DirectImportPlan | null = useMemo(() => {
     if (!parseResult?.ok || parseResult.rows.length === 0) return null;
     if (!accountId || !expenseCategoryId || !incomeCategoryId) return null;
@@ -188,6 +206,7 @@ export function DirectCsvImportPage({
       },
       accounts,
       categories,
+      activeRules,
     );
   }, [
     parseResult,
@@ -199,6 +218,7 @@ export function DirectCsvImportPage({
     skipDuplicates,
     accounts,
     categories,
+    activeRules,
   ]);
 
   const reparseWithMap = useCallback(
@@ -472,6 +492,7 @@ export function DirectCsvImportPage({
     (category) => category.id === incomeCategoryId,
   );
   const busy = phase === "importing" || (viewer.isDemo && isMutating);
+  const ruleNormalizedCount = plan?.ready.filter((row) => row.appliedRuleId).length ?? 0;
 
   return (
     <AppShell viewer={viewer} notice={notice}>
@@ -527,6 +548,15 @@ export function DirectCsvImportPage({
               >
                 Thử lại
               </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
+        {!workspace.dataError && rules.dataError ? (
+          <Alert tone="warning" live="polite">
+            <AlertDescription>
+              Chưa tải được quy tắc đã lưu; CSV vẫn dùng danh mục mặc định và cần
+              review như bình thường.
             </AlertDescription>
           </Alert>
         ) : null}
@@ -776,6 +806,7 @@ export function DirectCsvImportPage({
                             <th scope="col">#</th>
                             <th scope="col">Ngày</th>
                             <th scope="col">Mô tả</th>
+                            <th scope="col">Phân loại</th>
                             <th scope="col">Số tiền</th>
                             <th scope="col">Trạng thái</th>
                           </tr>
@@ -786,6 +817,16 @@ export function DirectCsvImportPage({
                               <td>{row.rowIndex}</td>
                               <td>{row.occurredOn}</td>
                               <td>{row.merchant || row.note || "—"}</td>
+                              <td>
+                                {row.matchedRuleSummary ? (
+                                  <span title={row.matchedRuleSummary}>
+                                    Quy tắc đã áp dụng
+                                  </span>
+                                ) : (
+                                  categories.find((category) => category.id === row.categoryId)
+                                    ?.name ?? "—"
+                                )}
+                              </td>
                               <td>
                                 <MoneyValue
                                   amount={row.amount}
@@ -923,6 +964,10 @@ export function DirectCsvImportPage({
           {
             label: "Danh mục mặc định",
             value: `Chi: ${selectedExpense?.name ?? "—"} · Thu: ${selectedIncome?.name ?? "—"}`,
+          },
+          {
+            label: "Quy tắc đã áp dụng",
+            value: `${ruleNormalizedCount} dòng`,
           },
         ]}
         consequence={

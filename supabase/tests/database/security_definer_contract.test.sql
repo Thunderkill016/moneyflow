@@ -34,9 +34,11 @@ where n.nspname = 'public'
 -- source evidence without ledger/reconciliation/canonical-provenance mutation.
 -- #448 adds one reviewed lifecycle boundary that may conditionally advance an
 -- exact one-leg posted observation from pending to cleared, never reconciled.
+-- #463 adds one source-preparation boundary that validates the complete Direct
+-- CSV candidate set and any exact explicit rule evidence before batch approval.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  42,
+  43,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 

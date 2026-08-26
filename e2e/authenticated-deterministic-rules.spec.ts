@@ -171,6 +171,46 @@ test.describe("Deterministic rules workspace", () => {
     expect(evidence.transactions).toHaveLength(0);
   });
 
+  test("normalizes a matching Direct CSV dry-run before its explicit review", async ({
+    page,
+  }) => {
+    await createDemoRule(page, {
+      contains: "HIGHLANDS",
+      categoryLabel: "Ăn uống · Tiền ra",
+      merchant: "Highlands Coffee",
+    });
+
+    await page.goto("/imports/direct", { waitUntil: "domcontentloaded" });
+    await page.locator('input[type="file"]').setInputFiles({
+      name: "highlands.csv",
+      mimeType: "text/csv",
+      buffer: Buffer.from(
+        "date,description,amount\n2026-08-25,HIGHLANDS Q1,-45000\n",
+      ),
+    });
+
+    const dryRun = page.getByRole("heading", { name: "3. Dry-run", exact: true });
+    const dryRunSection = page.locator('[data-slot="direct-import-preview"]');
+    await expect(dryRun).toBeVisible();
+    await expect(dryRunSection.getByText("Highlands Coffee", { exact: true })).toBeVisible();
+    await expect(
+      dryRunSection.getByText("Quy tắc đã áp dụng", { exact: true }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Xem lại ghi 1 giao dịch" }).click();
+    const review = page.getByRole("dialog", {
+      name: "Ghi trực tiếp giao dịch vào sổ?",
+    });
+    await expect(review).toContainText("Quy tắc đã áp dụng");
+    await expect(review).toContainText("1 dòng");
+    await expect(review.getByRole("button", { name: "Ghi 1 giao dịch" })).toBeVisible();
+
+    const transactions = await page.evaluate(() =>
+      JSON.parse(window.localStorage.getItem("moneyflow-demo-transactions-v1") ?? "[]"),
+    );
+    expect(transactions).toHaveLength(0);
+  });
+
   test("saves a reviewed merchant rule without posting the current candidate", async ({
     page,
   }) => {

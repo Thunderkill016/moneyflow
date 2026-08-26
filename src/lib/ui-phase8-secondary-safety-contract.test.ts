@@ -133,6 +133,9 @@ test("Rules and Imports expose review consequences without browser confirms", ()
   assert.match(directImport, /data-slot="direct-import-saved-mapping"/);
   assert.match(directImport, /Dùng mapping đã nhớ/);
   assert.match(directImport, /Nhớ mapping này/);
+  assert.match(directImport, /rules: InboxRule\[\]/);
+  assert.match(directImport, /planDirectCsvImport\([\s\S]*activeRules/);
+  assert.match(directImport, /Quy tắc đã áp dụng/);
 });
 
 test("Settings states exact export, parser and deletion capabilities", () => {

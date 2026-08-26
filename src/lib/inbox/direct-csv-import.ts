@@ -21,7 +21,9 @@ import {
   ledgerFingerprint,
   type LedgerLike,
 } from "./detect.ts";
+import { applyRuleToTarget } from "./apply-rules.ts";
 import type { ParsedCsvRow } from "./parse-csv.ts";
+import type { InboxRule } from "./rules-store.ts";
 
 export type DirectImportMapping = {
   accountId: string;
@@ -52,6 +54,10 @@ export type DirectImportRowPlan = {
   rawSnippet: string;
   /** Preview-only fingerprint. Persisted candidates are fingerprinted by DB. */
   fingerprint: string;
+  /** Exact deterministic normalization evidence, when a rule validly applied. */
+  appliedRuleId?: string;
+  appliedRuleVersion?: number;
+  matchedRuleSummary?: string;
   status: DirectImportRowStatus;
   duplicateOfLedgerId?: string;
   reason?: string;
@@ -83,6 +89,8 @@ export type DirectCsvAcquisitionRow = {
   accountId: string;
   confidence: CandidateConfidence;
   rawSnippet: string;
+  appliedRuleId?: string;
+  appliedRuleVersion?: number;
 };
 
 /**
@@ -114,8 +122,10 @@ export type DirectImportPostItem = {
   rowIndex: number;
 };
 
-function isMoneyKind(kind: ParsedCsvRow["kind"]): kind is TransactionKind {
-  return kind === "expense" || kind === "income";
+function isMoneyRow(
+  item: ParsedCsvRow,
+): item is ParsedCsvRow & { kind: TransactionKind } {
+  return item.kind === "expense" || item.kind === "income";
 }
 
 /**
@@ -149,6 +159,37 @@ function resolveCategoryId(
   return found ? found.id : null;
 }
 
+function resolveRuleNormalization(
+  item: ParsedCsvRow & { kind: TransactionKind },
+  rules: InboxRule[],
+  categories: CategoryOption[],
+) {
+  const applied = applyRuleToTarget(
+    {
+      kind: item.kind,
+      merchant: item.merchant,
+      note: item.note,
+      rawSnippet: item.rawSnippet,
+    },
+    rules,
+  );
+  const category = categories.find(
+    (candidate) => candidate.id === applied.categoryId && candidate.kind === item.kind,
+  );
+
+  if (!category || !applied.matchedRuleId || !applied.matchedRuleVersion) {
+    return { merchant: item.merchant };
+  }
+
+  return {
+    merchant: applied.merchant,
+    categoryId: category.id,
+    appliedRuleId: applied.matchedRuleId,
+    appliedRuleVersion: applied.matchedRuleVersion,
+    matchedRuleSummary: applied.matchedRuleSummary,
+  };
+}
+
 /** Build import preview: map parsed CSV rows → ready rows with conservative dedupe. */
 export function planDirectCsvImport(
   parsed: ParsedCsvRow[],
@@ -156,6 +197,7 @@ export function planDirectCsvImport(
   mapping: DirectImportMapping,
   accounts: AccountOption[],
   categories: CategoryOption[],
+  rules: InboxRule[] = [],
 ): DirectImportPlan {
   const skipDuplicates = mapping.skipDuplicates !== false;
   const skipTransfers = mapping.skipTransfers !== false;
@@ -207,7 +249,7 @@ export function planDirectCsvImport(
       continue;
     }
 
-    if (!isMoneyKind(item.kind)) {
+    if (!isMoneyRow(item)) {
       rows.push({
         rowIndex: item.rowIndex,
         kind: "expense",
@@ -261,7 +303,9 @@ export function planDirectCsvImport(
       continue;
     }
 
-    const categoryId = resolveCategoryId(item.kind, mapping, categories);
+    const normalization = resolveRuleNormalization(item, rules, categories);
+    const categoryId =
+      normalization.categoryId ?? resolveCategoryId(item.kind, mapping, categories);
     if (!categoryId) {
       rows.push({
         rowIndex: item.rowIndex,
@@ -301,13 +345,16 @@ export function planDirectCsvImport(
           amount: item.amount,
           occurredOn: item.occurredOn,
           note,
-          merchant: item.merchant,
+          merchant: normalization.merchant,
           categoryId,
           accountId: account.id,
           fingerprint,
           status: "duplicate",
           duplicateOfLedgerId: ledgerId,
           reason: "Trùng giao dịch đã có trên sổ (fingerprint).",
+          appliedRuleId: normalization.appliedRuleId,
+          appliedRuleVersion: normalization.appliedRuleVersion,
+          matchedRuleSummary: normalization.matchedRuleSummary,
           ...evidence,
         });
         continue;
@@ -321,12 +368,15 @@ export function planDirectCsvImport(
           amount: item.amount,
           occurredOn: item.occurredOn,
           note,
-          merchant: item.merchant,
+          merchant: normalization.merchant,
           categoryId,
           accountId: account.id,
           fingerprint,
           status: "duplicate",
           reason: `Trùng dòng ${batchPeer} trong cùng file.`,
+          appliedRuleId: normalization.appliedRuleId,
+          appliedRuleVersion: normalization.appliedRuleVersion,
+          matchedRuleSummary: normalization.matchedRuleSummary,
           ...evidence,
         });
         continue;
@@ -340,10 +390,13 @@ export function planDirectCsvImport(
       amount: item.amount,
       occurredOn: item.occurredOn,
       note,
-      merchant: item.merchant,
+      merchant: normalization.merchant,
       categoryId,
       accountId: account.id,
       fingerprint,
+      appliedRuleId: normalization.appliedRuleId,
+      appliedRuleVersion: normalization.appliedRuleVersion,
+      matchedRuleSummary: normalization.matchedRuleSummary,
       status: "ready",
       ...evidence,
     });
@@ -378,6 +431,8 @@ export function toDirectImportAcquisitionRows(
       accountId: row.accountId,
       confidence: row.confidence,
       rawSnippet: row.rawSnippet,
+      appliedRuleId: row.appliedRuleId,
+      appliedRuleVersion: row.appliedRuleVersion,
     }));
 }
 
