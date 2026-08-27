@@ -1,11 +1,11 @@
 # Plan projection main continuity
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** MoneyFlow owner  
-**Issue/PR:** PR #510  
+**Status:** implementing
+**Execution state:** implementing
+**Active role:** implementer
+**Permission scope:** branch_write
+**Owner:** MoneyFlow owner
+**Issue/PR:** PR #510
 **Last updated:** 2026-08-28
 
 ## Outcome
