@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-27 (post-#492)
-**Current main baseline:** `9e2c7db6a048e35234b4d6612d562bcc31709084` (PR #492 squash-merged)
-**Post-merge projection:** PR #493
+**Last reconciled:** 2026-08-27 (post-#493)
+**Current main baseline:** `cac5f157e6f89a6c0871f89e18f309c9113badaa` (PR #493 squash-merged)
+**Post-merge projection:** PR #494
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -16,7 +16,7 @@ việc nào cần code. Không lượng code nào thay thế được chúng.
 |---|---|---|---|
 | **#40** | 25/07 | Supabase Dashboard → Auth → bật leaked-password protection → chạy lại Security Advisor | ~5 phút |
 | **#174** | 31/07 | Đọc lại cấu hình provider/Auth/firewall và dán kết quả vào issue | ~15 phút |
-| **#398** | 15/08 | Mở bản đã deploy trên điện thoại thật, ghi thiết bị/OS/trình duyệt + pass/fail. Runbook: `docs/plans/active/rrb-08-physical-device-proof.md` | ~20 phút |
+| **#398** | 15/08 | **Quan sát đã có** (POCO X8 Pro · Android · Chrome · tài khoản thật · owner báo pass hết, ghi trong runbook). Còn lại: bạn tuyên bố nó có đủ đóng RRB-08 không — agent không được đóng thay | quyết định |
 | **#426** | 18/08 | Một quyết định: bộ chọn cách ghi (`CaptureSheet`) nên nằm ở đâu trên desktop, khi topbar đã có CTA riêng | quyết định, không phải code |
 
 **RRB-02** không có trong bảng vì nó cần thêm một project Supabase dùng một
@@ -27,7 +27,7 @@ hợp đồng khôi phục mới chỉ chạy trên Postgres cục bộ với qu
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is selected in this post-merge projection. PR #493 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #494 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
@@ -62,7 +62,8 @@ No agent-executable product/governance slice is selected in this post-merge proj
 ## RECENTLY DONE
 
 - [x] **PR #490 — a nine-digit report total stays inside its cell** — squash-merged as `0cdb1deacf3329de6f333dafec1762f3434d77d8`, returning `main` to green. Originally recorded as: `main` is red because the cross-device audit reports `financial-value-overflowed` on `/reports` at tablet-landscape. The limit predates this session and became visible when PR #487 stopped the demo dating its salary in a past month; the audit did not catch it there because `classify` selected no UI audit for that change. `report-metrics` joins the existing dense-scale rule for summary owners.
-- [ ] **PR #493 — the knowledge contract checks locally** — post-merge projection only. `check:knowledge` returned early without a pull-request event, so a PR memory record was validated for the first time on the runner. That produced three red runs in one day for one class of mistake. It now also validates every record this branch touches, working tree and untracked files included, and the board leads with the four owner-only actions that have sat 9–33 days.
+- [ ] **PR #494 — RRB-08 owner observation recorded** — post-merge projection only. First current real-phone evidence in this program: POCO X8 Pro, Android, Chrome, authenticated, owner verdict PASS. Recorded verbatim with unstated fields marked as unstated rather than filled in. **#398 stays open**: whether this closes RRB-08 is the owner's declaration, not an agent's.
+- [x] **PR #493 — the knowledge contract checks locally** — squash-merged as `cac5f157e6f89a6c0871f89e18f309c9113badaa`. `check:knowledge` returned early without a pull-request event, so a PR memory record was validated for the first time on the runner. That produced three red runs in one day for one class of mistake. It now also validates every record this branch touches, working tree and untracked files included, and the board leads with the four owner-only actions that have sat 9–33 days.
 - [x] **#491 / PR #492 — a demo-fixture change selects the visual audit** — squash-merged as `9e2c7db6a048e35234b4d6612d562bcc31709084`. The audit runs with `NEXT_PUBLIC_APP_MODE: "demo"`, so `src/lib/demo/` defines every value it measures, yet nothing under `src/lib/` selected it. Replaying the matchers over PR #487's merge commit returns no selection, which is how the `/reports` overflow reached `main`. Narrow on purpose — `src/lib/demo/` only — with a test pinning that other domain modules still skip it.
 - [x] **#488 / PR #489 — the app tells the truth about connectivity** — squash-merged as `8161898898a6a21ef7cc15da8e85233ea428318a`. Awareness only: nothing is queued, cached or retried. Awareness, not capability: nothing is queued, cached or retried.
 - [x] **#486 / PR #487 — the demo agrees with itself** — squash-merged as `c79a0e8770e857f5acf39ca4fa86536b43344d66`. Three dashboard panels disagreed: the statement added a 4.209.000 ₫ constant no transaction produced, while the category and weekly panels built from real rows correctly showed nothing, and a fixture row labelled "Hôm nay" had been six weeks old. Demo and authenticated now compute expense identically, and fixture dates plus their relative labels derive from one resolved date passed in by callers. Found by reading the cross-device audit screenshots.
