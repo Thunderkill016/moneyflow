@@ -132,6 +132,10 @@ export function PrivacyPolicyPage() {
             </p>
             <p>
               Trong app:{" "}
+              <Link href="/security">Trang bảo mật</Link> giải thích sản phẩm được
+              bảo vệ thế nào, gồm cả những thứ chưa có.
+            </p>
+            <p>
               <Link href="/settings/privacy">Cài đặt → Quyền riêng tư</Link>,{" "}
               <Link href="/settings/export">Xuất dữ liệu</Link>,{" "}
               <Link href="/settings/delete-account">Xóa tài khoản</Link>.

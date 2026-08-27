@@ -269,6 +269,7 @@ export function LandingPage() {
         <p>Ghi đúng dòng tiền. Mở lại để kiểm tra.</p>
         <div>
           <Link href="/privacy">Quyền riêng tư</Link>
+          <Link href="/security">Bảo mật</Link>
           <Link href="/login">Đăng nhập</Link>
         </div>
       </footer>
