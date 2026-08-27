@@ -14,6 +14,7 @@ Current execution, blockers, owner decisions and plan precedence live in:
 - **[Current Work Board](docs/plans/active/README.md)** — owner-facing `NOW / NEXT / BLOCKED / OWNER DECISION / HOLD / RECENTLY DONE` checklist; its baseline is mechanically checked against the actual main/base commit.
 - **[Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md)** — compact implementation/trust truth and named limitations.
 - **[Current master program](docs/plans/active/432-vietnam-long-term-product-strategy.md)** — currently resolved by the authority graph; installed as merged authority by PR #433.
+- **[Changelog](CHANGELOG.md)** — versioned releases, semver. Per-change provenance stays in `docs/research/pr-memory/`; the changelog says what a *tag* shipped, not what a commit did.
 
 Do not infer current capability or plan authority from a strategy document's date, old issue, newest file, open PR, branch or historical packet. Open PRs and unmerged strategy artifacts are candidate evidence until merged and promoted through the checked authority route.
 
