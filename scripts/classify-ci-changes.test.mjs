@@ -112,3 +112,50 @@ test("manual and main-branch runs fail safe to full verification", () => {
   assert.equal(result.uiAudit, true);
   assert.equal(result.codeql, true);
 });
+
+/*
+ * `playwright.audit.config.ts` runs the audit with NEXT_PUBLIC_APP_MODE "demo",
+ * so the demo fixtures define every value it measures. Before this rule a
+ * change to what each screen renders selected no visual gate, which is how the
+ * /reports overflow reached main (issue #491).
+ */
+test("demo fixtures select the visual audit, because the audit renders demo", () => {
+  const result = classifyChanges(["src/lib/demo/transaction-fixtures.ts"]);
+  assert.equal(result.uiAudit, true);
+  assert.equal(result.browserSmoke, true);
+  assert.equal(result.fullVerify, true);
+});
+
+test("the rule stays narrow: other domain modules still skip the visual audit", () => {
+  /*
+   * Widening to all of src/lib/ would select a ten-minute audit for most domain
+   * work, against the risk-proportional principle. This pins that it did not
+   * happen by accident.
+   */
+  for (const file of [
+    "src/lib/finance.ts",
+    "src/lib/planning/budgets.ts",
+    "src/lib/inbox/parse-text.ts",
+  ]) {
+    assert.equal(classifyChanges([file]).uiAudit, false, `${file} must not select the audit`);
+  }
+});
+
+test("the PR #487 file list would now select the visual audit", () => {
+  /*
+   * The real regression, replayed. These are the paths from merge commit
+   * c79a0e87, which returned no UI-audit selection and let a nine-digit income
+   * overflow its cell on /reports reach main.
+   */
+  const pr487 = [
+    "docs/plans/active/README.md",
+    "docs/research/CURRENT_PROJECT_MEMORY.md",
+    "e2e/account-register-detail.spec.ts",
+    "e2e/support/demo-ledger.ts",
+    "src/lib/demo/transaction-fixtures.ts",
+    "src/lib/demo/demo-consistency.test.ts",
+    "src/lib/finance.ts",
+    "src/server/budgets.ts",
+  ];
+  assert.equal(classifyChanges(pr487).uiAudit, true);
+});
