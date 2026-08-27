@@ -603,6 +603,22 @@ export function InboxPage({
           }
           actions={
             <>
+              {/*
+                The two ways of putting something *into* this screen. Until #426 the
+                Inbox was where candidates landed and offered no way to acquire any:
+                the only shell-level route was a desktop sidebar chooser that
+                duplicated the topbar primary. They sit here for the same reason YNAB
+                puts File-Based Import in the account register — an import belongs on
+                the screen its results appear on.
+              */}
+              <LinkButton href="/capture/paste" intent="secondary" targetSize="important">
+                <Icon name="paste" />
+                Dán text / SMS
+              </LinkButton>
+              <LinkButton href="/capture/upload" intent="secondary" targetSize="important">
+                <Icon name="upload" />
+                Tải sao kê
+              </LinkButton>
               <LinkButton href="/rules" intent="secondary" targetSize="important">
                 <Icon name="rules" />
                 Quy tắc

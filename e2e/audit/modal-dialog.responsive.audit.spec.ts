@@ -149,40 +149,56 @@ test.describe("modal dialog placement", () => {
     });
   }
 
-  const chooserTrigger = 'aside[aria-label="Điều hướng chính"] nav button';
-
-  test("capture chooser is placed deliberately", async ({ page }, testInfo) => {
+  /*
+   * The capture chooser used to be a modal opened from a desktop sidebar button,
+   * and this file asserted its placement. #426 removed that button: desktop was
+   * rendering two capture primaries at once — the sidebar chooser and the topbar
+   * `Ghi chi tiêu` CTA — which breaks the product's own one-primary-per-viewport
+   * rule. With no trigger left, the modal was dead code and was deleted; `/capture`
+   * is the chooser, and it is a page rather than a dialog.
+   *
+   * So the placement assertion no longer has a subject. What replaces it is the
+   * guarantee that actually matters and that a future change could quietly break:
+   * desktop keeps exactly one capture primary, and every capture path stays
+   * reachable. Deleting the old test without this would have traded a real
+   * guarantee for nothing.
+   */
+  test("desktop offers one capture primary and still reaches every capture path", async ({
+    page,
+  }) => {
     const width = page.viewportSize()?.width ?? 0;
-    test.skip(width <= PHONE_MAX_WIDTH, `chooser has no trigger at ${width}px`);
+    test.skip(width <= PHONE_MAX_WIDTH, `sidebar nav does not exist at ${width}px`);
 
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    await page.locator('main:not([aria-busy="true"])').first().waitFor({ state: "visible" });
 
-    const trigger = page.locator(chooserTrigger);
-    await expect(trigger, "capture chooser trigger should exist beside the nav links")
-      .toHaveCount(1);
-    await trigger.click();
-
-    const dialog = page.locator("dialog[open]");
-    await dialog.waitFor({ state: "visible" });
-    await page.waitForFunction(() =>
-      Array.from(document.querySelectorAll("dialog[open]")).every((el) =>
-        el.getAnimations().every((animation) => animation.playState === "finished"),
-      ),
-    );
+    const sidebar = page.locator('aside[aria-label="Điều hướng chính"]');
+    await expect(
+      sidebar.locator("nav button"),
+      "the sidebar must not hold a second capture primary beside the topbar CTA",
+    ).toHaveCount(0);
 
     await expect(
-      dialog.getByRole("heading", { name: "Ghi giao dịch" }),
-      "the open dialog should be the capture chooser",
-    ).toBeVisible();
+      page.getByRole("button", { name: "Ghi chi tiêu" }),
+      "the topbar CTA is the single capture primary",
+    ).toHaveCount(1);
 
-    const box = await measure(dialog);
-    expect(box.isModal, "chooser must be opened as a modal").toBe(true);
-    assertCentred(box, "capture chooser");
+    // The other two paths produce Inbox candidates, so they live on the Inbox.
+    await page.goto("/inbox", { waitUntil: "domcontentloaded" });
+    await page.locator('main:not([aria-busy="true"])').first().waitFor({ state: "visible" });
+    for (const href of ["/capture/paste", "/capture/upload"]) {
+      await expect(
+        page.locator(`main a[href="${href}"]`).first(),
+        `${href} must stay reachable from the screen its output lands on`,
+      ).toBeVisible();
+    }
 
-    await testInfo.attach(`capture-chooser-${testInfo.project.name}.png`, {
-      body: await page.screenshot({ animations: "disabled" }),
-      contentType: "image/png",
-    });
+    // And the full chooser still exists as a page for anyone who wants all three.
+    await page.goto("/capture", { waitUntil: "domcontentloaded" });
+    await page.locator('main:not([aria-busy="true"])').first().waitFor({ state: "visible" });
+    for (const href of ["/capture/quick", "/capture/paste", "/capture/upload"]) {
+      await expect(page.locator(`main a[href="${href}"]`).first()).toBeVisible();
+    }
   });
 
   test("a placed dialog still traps focus and closes on Escape", async ({ page }) => {

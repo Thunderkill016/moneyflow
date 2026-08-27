@@ -102,7 +102,6 @@
 }
 
 .navLink,
-.navButton,
 .settingsLink {
   position: relative;
   width: 100%;
@@ -129,7 +128,6 @@
 }
 
 .navLink:hover,
-.navButton:hover,
 .settingsLink:hover {
   background: var(--mf-surface-muted);
   color: var(--mf-text);
@@ -156,7 +154,6 @@
 }
 
 .navLink svg,
-.navButton svg,
 .settingsLink svg {
   width: 19px;
   height: 19px;
@@ -436,13 +433,11 @@
   overscroll-behavior-y: contain;
 }
 
-.captureActions,
 .sheetNav {
   display: grid;
   gap: 8px;
 }
 
-.captureOption,
 .sheetNavLink,
 .accountAction {
   min-height: 56px;
@@ -457,49 +452,10 @@
   padding: 9px 12px;
 }
 
-.captureOption:hover,
 .sheetNavLink:hover,
 .accountAction:hover {
   border-color: var(--mf-border-strong);
   background: var(--mf-surface-muted);
-}
-
-.captureOptionIcon {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: var(--mf-brand-subtle);
-  color: var(--mf-brand-text);
-}
-
-.captureOption strong,
-.captureOption small {
-  display: block;
-}
-
-.captureOption strong {
-  font-size: 14px;
-}
-
-.captureOption small {
-  margin-top: 3px;
-  color: var(--mf-text-soft);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-.sheetAlt {
-  margin: 16px 0 0;
-  color: var(--mf-text-muted);
-  font-size: 12px;
-  text-align: center;
-}
-
-.sheetAlt a {
-  color: var(--mf-brand-text);
-  font-weight: 700;
 }
 
 .sheetCancel {
@@ -642,7 +598,6 @@
 
   .brand > span:last-child,
   .navLink > span,
-  .navButton > span,
   .settingsLink > span,
   .profileSlot :global(.profile-chip-copy),
   .profileSlot :global(.profile-chip > svg:last-child) {
@@ -655,7 +610,6 @@
   }
 
   .navLink,
-  .navButton,
   .settingsLink {
     justify-content: center;
     padding: 0;
@@ -888,7 +842,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .navLink,
-  .navButton,
   .settingsLink {
     transition: none;
   }
