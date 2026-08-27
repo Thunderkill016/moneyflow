@@ -127,7 +127,26 @@ function enforcePullRequestMemoryUpdate() {
       return;
     }
 
-    const recordPath = records[0];
+    validateMemoryRecord(records[0], prNumber, changedFiles);
+  } catch (error) {
+    failures.push(
+      `pull-request memory check failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+/*
+ * The field checks, shared by the pull-request path and the local one.
+ *
+ * They used to live inside the pull-request branch, so this checker validated
+ * nothing about a record when run on a developer machine — the whole function
+ * returns early without `GITHUB_EVENT_NAME`. A record could then be pushed with
+ * a malformed field and only fail in CI, which is exactly what happened three
+ * times in one day: two records missing `- Changed:` and one writing
+ * `- Remaining, from the audit:` instead of `- Remaining:`. Each cost a red run
+ * for a mistake the machine could have caught in a second.
+ */
+function validateMemoryRecord(recordPath, prNumber, changedFiles) {
     const record = read(recordPath);
     const requiredRecordMarkers = [
       `# PR #${prNumber}`,
@@ -178,15 +197,64 @@ function enforcePullRequestMemoryUpdate() {
         `${recordPath} may use Snapshot update: not applicable only when Status impact starts with none or candidate`,
       );
     }
-  } catch (error) {
-    failures.push(
-      `pull-request memory check failed: ${error instanceof Error ? error.message : "unknown error"}`,
+}
+
+/*
+ * Local equivalent of the pull-request check.
+ *
+ * Without a pull-request event the record cannot be matched by PR number, but
+ * git already knows which records this branch touches. Validating those gives a
+ * developer the same field, budget and snapshot feedback before pushing, which
+ * is the whole point: the contract should fail on the machine that can fix it
+ * in a second, not on the runner ten minutes later.
+ *
+ * CI is unaffected — it takes the pull-request path, which still enforces the
+ * exactly-one-own-record rule this cannot know about.
+ */
+function enforceLocalMemoryRecords() {
+  if (process.env.GITHUB_EVENT_NAME === "pull_request") return;
+
+  let changedFiles;
+  try {
+    const base = execFileSync("git", ["merge-base", "HEAD", "main"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+    /*
+     * Committed changes plus the working tree plus untracked files. A record is
+     * usually still uncommitted when it is written, so a check that only read
+     * `base...HEAD` would stay silent at exactly the moment it is useful.
+     */
+    const committed = execFileSync(
+      "git",
+      ["diff", "--name-only", "--diff-filter=ACMR", base],
+      { cwd: root, encoding: "utf8" },
     );
+    const untracked = execFileSync(
+      "git",
+      ["ls-files", "--others", "--exclude-standard"],
+      { cwd: root, encoding: "utf8" },
+    );
+    changedFiles = [...committed.split(/\r?\n/u), ...untracked.split(/\r?\n/u)].filter(
+      Boolean,
+    );
+  } catch {
+    // No git, no main, or a detached checkout. Silent rather than noisy: this
+    // is an early-warning convenience and CI remains the enforcing path.
+    return;
+  }
+
+  const recordPattern = /^docs\/research\/pr-memory\/\d{4}\/Q[1-4]\/PR-(\d+)\.md$/u;
+  for (const file of changedFiles) {
+    const match = recordPattern.exec(file);
+    if (!match) continue;
+    validateMemoryRecord(file, Number(match[1]), changedFiles);
   }
 }
 
 enforceStructuredProjectMemory();
 enforcePullRequestMemoryUpdate();
+enforceLocalMemoryRecords();
 
 const currentTruthFiles = [
   "AGENTS.md",
