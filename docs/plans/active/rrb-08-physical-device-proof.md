@@ -176,8 +176,57 @@ Overall RRB-08 verdict: PASS | BLOCKED
 
 - Browser/emulation regression evidence on current main is strong, including #394 UI audit and the post-merge full-main regression after #396.
 - Historical owner-observed PBT-AC12 physical-phone evidence exists, but predates Slice 2, #383 and #394.
-- **No current real-phone observation has been supplied in this session. RRB-08 therefore remains BLOCKED.**
+- **An owner observation was supplied on 2026-08-27 and is recorded below.** It is the first current real-phone evidence in this program. Whether it closes RRB-08 is the owner's call, not this document's.
+
+### Owner observation — 2026-08-27
+
+Recorded verbatim from what the owner reported. Everything not reported is marked
+unstated rather than filled in, because a physical-device record that guesses is
+worth less than one with gaps.
+
+```text
+Date/time: 2026-08-27 (time unstated)
+Release candidate / commit if known: unstated; main was cac5f157 on this date
+Origin: https://mfvn.vercel.app  (confirmed by the owner as the correct address)
+Mode: authenticated — a real account
+Device model: POCO X8 Pro
+OS + version: Android, version unstated
+Browser + version: Chrome, version unstated
+Network context: unstated
+
+1. Open/shell: PASS — owner reported "pass hết" across the run
+2. Auth surface: PASS — signed in with a real account
+3. Core ledger: PASS
+4. Amount capture/keyboard: PASS
+5. Accounts/transactions: PASS
+6. Theme: PASS
+
+Observed defects:
+- none reported
+
+Overall RRB-08 verdict: PASS (owner's verdict)
+```
+
+**What this evidence does and does not carry.** The owner reported a single
+summary verdict rather than six separate notes, so the per-checkpoint PASS lines
+above are that summary applied to each step, not six independent observations.
+OS version, browser version, network context and time are unstated. One Android
+device on Chrome is covered; no iOS or Safari observation exists, which matters
+because `webkit-iphone` was the only CI project to behave differently during the
+2026-08-27 session.
+
+The owner also stated that **demo mode is used only for AI/agent testing, not by
+real users**. That corrects the justification given in PR #487, which argued the
+demo is "the first thing a stranger sees". The change there remains worthwhile —
+the audits render demo, so a demo that contradicts itself makes those gates
+measure fiction — but the reason recorded in that PR was wrong.
 
 ### Next action
 
-Execute the evidence template on a real phone against the selected release-candidate origin. Until that happens, do not mark RRB-08 complete and do not infer physical-device readiness from CI/browser emulation.
+**Owner decision.** The observation above is supplied; whether it satisfies
+RRB-08 is for the owner to declare, and #398 stays open until they do. No agent
+may mark this complete, and physical-device readiness must not be inferred from
+CI or browser emulation.
+
+If the owner wants the gap closed rather than accepted, the smallest additions
+are an iOS/Safari observation and the unstated fields above.
