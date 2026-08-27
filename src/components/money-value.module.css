@@ -52,7 +52,18 @@
  * clipping financial data inside summary and row owners.
  */
 [data-slot="ledger-summary"] .value,
-[data-slot="timeline-summary"] .value {
+[data-slot="timeline-summary"] .value,
+/*
+ * `report-metrics` joins the same rule rather than getting its own. Its cells
+ * come from the 190px `auto-fit` summary grid, so at tablet-landscape a
+ * nine-digit income painted about 197px inside a 177px box and spilled over its
+ * neighbour — the cross-device audit's `financial-value-overflowed`.
+ *
+ * It was invisible until the demo stopped dating its salary in a past month, so
+ * the month income was 0 ₫ and this figure never rendered at full width. The
+ * limit was always there.
+ */
+[data-slot="report-metrics"] .value {
   font-size: clamp(17px, 1.65vw, 21px);
   letter-spacing: -0.025em;
 }
