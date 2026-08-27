@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
 **Last reconciled:** 2026-08-27 (post-#497)
-**Current main baseline:** `855f23ac8b969d170b70254e7b2aaf63f12f0e37` (PR #501 squash-merged)
-**Post-merge projection:** PR #502
+**Current main baseline:** `f71164942424604d98966dffbd97cfc859520504` (PR #502 squash-merged)
+**Post-merge projection:** PR #503
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 closed by owner declaration on 2026-08-27 — one Android device on Chrome, no iOS/Safari observation. RRB-02 and RRB-05 closed by explicit owner decision on 2026-08-27; RRB-04/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
