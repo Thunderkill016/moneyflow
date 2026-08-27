@@ -190,6 +190,42 @@ test("an activated projection remains valid for a child branch that does not edi
   );
 });
 
+test("an activated projection remains valid after a later main merge that does not edit the board", () => {
+  withFixture(
+    {
+      board: board({ projectionPr: 445 }),
+      manifest: authorityManifest(),
+    },
+    (root) => {
+      const projectionCommit = "feed999999999999999999999999999999999999";
+      const laterMainCommit = "later111111111111111111111111111111111111";
+      const result = resolvePlanAuthority(root, {
+        expectedBaseline: laterMainCommit,
+        runGit: (_root, args) => {
+          if (args[0] === "log" && args[1] === "-1" && args[2] === "--format=%H") {
+            return projectionCommit;
+          }
+          if (args[0] === "log" && args[1] === "-1" && args[2] === "--format=%s") {
+            return args[3] === projectionCommit
+              ? "docs: reconcile lifecycle after merge (#445)"
+              : "feat: later runtime change (#446)";
+          }
+          if (args[0] === "merge-base" && args[1] === "--is-ancestor") {
+            return args[2] === projectionCommit && args[3] === laterMainCommit
+              ? ""
+              : null;
+          }
+          if (args[0] === "log") return history;
+          return null;
+        },
+      });
+
+      assert.equal(result.ok, true, result.failures.join("\n"));
+      assert.equal(result.baselineMode, "post-merge-projection");
+    },
+  );
+});
+
 test("a copied projection for an older PR cannot bless a later main commit", () => {
   withFixture(
     {

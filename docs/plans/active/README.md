@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-28 (post-#508 recovery projection)
-**Current main baseline:** `6d6e09f750c3e83ebb50834c02381550ad425ee0` (PR #508 squash-merged)
-**Post-merge projection:** PR #509
+**Last reconciled:** 2026-08-28 (post-#507 recovery projection)
+**Current main baseline:** `1a70100fb0a62698d90a35ad6bb200d2136f1de0` (PR #507 squash-merged)
+**Post-merge projection:** PR #510
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 closed by owner declaration on 2026-08-27 — one Android device on Chrome, no iOS/Safari observation. RRB-02 and RRB-05 closed by explicit owner decision on 2026-08-27; RRB-04/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -110,6 +110,7 @@ No agent-executable product/governance slice is selected in this post-merge proj
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |
+| `510-plan-projection-main-continuity.md` | recovery-only Class 3 governance packet | repair authority continuity; does not select product work |
 
 ## Board rules
 
