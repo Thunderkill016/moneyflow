@@ -3,6 +3,12 @@
  * Never write full bank statements / paste / raw_snippet to console.
  */
 
+import {
+  buildClientErrorReport,
+  CLIENT_ERROR_ENDPOINT,
+  MAX_REPORT_BYTES,
+} from "./client-error-report.ts";
+
 /** Keys that may hold statement or paste content — never log values. */
 export const RAW_SENSITIVE_KEYS = new Set([
   "raw",
@@ -156,6 +162,46 @@ export function logClientError(context: string, error: unknown): void {
       ? context.slice(0, 64)
       : "client_error";
   console.error(`[moneyflow:${safeContext}]`, serializeErrorForLog(error));
+  reportClientError(safeContext, error);
+}
+
+/*
+ * Send the error somewhere a person will actually see it.
+ *
+ * `sendBeacon` rather than `fetch`: an error frequently precedes a navigation
+ * or a reload, and a beacon is queued by the browser and survives the page
+ * going away. A fetch started at the same moment is cancelled with the document
+ * and the report is lost exactly when it matters most.
+ *
+ * Everything here is best effort and silent. Reporting an error must never
+ * raise one, never block a render, and never surface to the reader — they
+ * already have the problem the report is about.
+ */
+function reportClientError(context: string, error: unknown): void {
+  if (typeof window === "undefined" || typeof navigator === "undefined") return;
+
+  try {
+    const report = buildClientErrorReport(context, error, window.location?.pathname);
+    const body = JSON.stringify(report);
+    if (body.length > MAX_REPORT_BYTES) return;
+
+    if (typeof navigator.sendBeacon === "function") {
+      navigator.sendBeacon(
+        CLIENT_ERROR_ENDPOINT,
+        new Blob([body], { type: "application/json" }),
+      );
+      return;
+    }
+
+    void fetch(CLIENT_ERROR_ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    // Nothing here may escape. A failed report is a lost breadcrumb, not a bug.
+  }
 }
 
 /**
