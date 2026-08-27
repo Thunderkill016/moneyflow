@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/app/(auth)/actions";
 import { BrandLockup } from "@/components/brand/brand-lockup";
 import { Icon, type IconName } from "@/components/icons";
+import { useConnectionState } from "@/hooks/use-connection-state";
+import { connectionNotice as connectionNoticeFor } from "@/lib/connectivity";
 import {
   UserChip,
   viewerInitial,
@@ -145,6 +147,8 @@ export function AppShell({
 }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const connectionState = useConnectionState();
+  const connectionNotice = connectionNoticeFor(connectionState);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -410,6 +414,19 @@ export function AppShell({
             <Icon name="bell" aria-hidden="true" />
             <span>Chế độ demo — dữ liệu lưu trên trình duyệt</span>
             <Link href="/register">Đăng ký</Link>
+          </div>
+        ) : null}
+
+        {/*
+          * Quiet and persistent rather than a dialog: losing signal is not an
+          * error the reader caused, and interrupting them mid-entry would be a
+          * worse answer than letting them keep typing. `aria-live="polite"`
+          * announces it once without cutting across whatever they are doing.
+          */}
+        {connectionNotice ? (
+          <div className={styles.offlineBanner} role="status" aria-live="polite">
+            <Icon name="bell" aria-hidden="true" />
+            <span>{connectionNotice}</span>
           </div>
         ) : null}
 
