@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-27 (post-#496)
-**Current main baseline:** `6bc4b6877429f0f491348a34390dd6dc68988e5b` (PR #496 squash-merged)
-**Post-merge projection:** PR #497
+**Last reconciled:** 2026-08-27 (post-#497)
+**Current main baseline:** `2187a3cec72275dde8851d856bb6322358e427ac` (PR #497 squash-merged)
+**Post-merge projection:** PR #498
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 closed by owner declaration on 2026-08-27 — one Android device on Chrome, no iOS/Safari observation. RRB-02 hosted restore and RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -27,7 +27,7 @@ hợp đồng khôi phục mới chỉ chạy trên Postgres cục bộ với qu
 
 - [x] **RRB-08 — current physical-device proof** — issue #398 closed by the owner on 2026-08-27 on a POCO X8 Pro, Android, Chrome, authenticated, verdict PASS. Coverage is one Android device; no iOS/Safari observation exists. Evidence in `docs/plans/active/rrb-08-physical-device-proof.md`.
 
-No agent-executable product/governance slice is selected in this post-merge projection. PR #497 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #498 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
@@ -62,7 +62,8 @@ No agent-executable product/governance slice is selected in this post-merge proj
 ## RECENTLY DONE
 
 - [x] **PR #490 — a nine-digit report total stays inside its cell** — squash-merged as `0cdb1deacf3329de6f333dafec1762f3434d77d8`, returning `main` to green. Originally recorded as: `main` is red because the cross-device audit reports `financial-value-overflowed` on `/reports` at tablet-landscape. The limit predates this session and became visible when PR #487 stopped the demo dating its salary in a past month; the audit did not catch it there because `classify` selected no UI audit for that change. `report-metrics` joins the existing dense-scale rule for summary owners.
-- [ ] **PR #497 — client errors reach a log a person reads** — post-merge projection only. `logClientError` wrote only to the browser console, so a user hitting a bug in production was invisible. Reports now post to an own route and land in platform runtime logs — no vendor, no new data processor, dependencies unchanged at 17. The server re-sanitises rather than trusting the client and answers 204 in every case.
+- [ ] **PR #498 — licence, Node pin, build identity, health check** — post-merge projection only. The last four engineering-benchmark gaps. `LICENSE` is AGPL-3.0, matching Firefly III: anyone may self-host, but running a modified copy as a service obliges publishing changes; MIT would let a hosted competitor close its source. Node pinned to 22 because CI builds on 22 while local ran 24.16 unnoticed all day. The deployed commit is now baked in and shown on `/security`, and `/api/health` is deliberately shallow so it cannot fail on provider maintenance or probe the database.
+- [x] **PR #497 — client errors reach a log a person reads** — squash-merged as `2187a3cec72275dde8851d856bb6322358e427ac`. `logClientError` wrote only to the browser console, so a user hitting a bug in production was invisible. Reports now post to an own route and land in platform runtime logs — no vendor, no new data processor, dependencies unchanged at 17. The server re-sanitises rather than trusting the client and answers 204 in every case.
 - [x] **PR #496 — public security page** — squash-merged as `6bc4b6877429f0f491348a34390dd6dc68988e5b`. It also carried PR #495's commits, because #496 was branched from #495 rather than from `main`; #495 was closed as superseded. From the industry benchmark: every commercial product in this category publishes one and MoneyFlow did not, while already doing most of what such a page describes. Split three ways — what the product does, what the platform provides and we cannot verify, and what does not exist. Reporting points at the private channel `SECURITY.md` already defines; no address is invented.
 - [x] **PR #495 — board reflects RRB-08 closed** — squash-merged as `da872d92a1e37ec346bdd733d5f61aeb95d8394c`. Records that the owner closed `#398` on 2026-08-27, moves it out of NOW and out of the owner-action table, and restates release readiness: one gate closed, RRB-02/04/05/06/09 still open and the product still not public-beta ready.
 - [x] **PR #494 — RRB-08 owner observation recorded** — squash-merged as `da872d92a1e37ec346bdd733d5f61aeb95d8394c`. First current real-phone evidence in this program: POCO X8 Pro, Android, Chrome, authenticated, owner verdict PASS. Recorded verbatim with unstated fields marked as unstated rather than filled in. **#398 stays open**: whether this closes RRB-08 is the owner's declaration, not an agent's.

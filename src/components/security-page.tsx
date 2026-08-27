@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buildLabel } from "@/lib/build-identity";
 import styles from "@/components/security-page.module.css";
 
 /*
@@ -120,6 +121,12 @@ export function SecurityPage() {
         >
           Báo lỗi bảo mật riêng tư
         </a>
+        {/*
+          * The running build, next to the place someone reports a problem from.
+          * A report that cannot be tied to a build is a report nobody can act
+          * on, and this is the moment the reader needs the number.
+          */}
+        <p className={styles.build}>{buildLabel()}</p>
       </section>
     </main>
   );

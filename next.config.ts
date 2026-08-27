@@ -1,7 +1,18 @@
 import type { NextConfig } from "next";
 import { buildSecurityHeaders } from "./src/lib/security-headers.ts";
 
+/*
+ * The deployed commit, baked in so the app can name its own build.
+ *
+ * Read from the hosting platform's build variable, falling back to the generic
+ * one CI sets, and left undefined locally so `buildLabel` says "dev" rather
+ * than inventing a value.
+ */
+const buildCommit =
+  process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.GITHUB_SHA ?? "";
+
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_BUILD_COMMIT: buildCommit },
   // Tree-shake lucide icons (icons.tsx imports many named exports).
   experimental: {
     optimizePackageImports: ["lucide-react"],
