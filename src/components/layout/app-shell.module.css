@@ -351,6 +351,29 @@
   display: none;
 }
 
+/*
+ * Offline notice. Same shape as the demo banner deliberately — it sits in the
+ * same slot and should read as another piece of standing context, not as an
+ * alarm. Attention colours are reserved for things the reader can act on, and
+ * losing signal is not one of them.
+ */
+.offlineBanner {
+  width: min(calc(100% - 40px), 1080px);
+  min-height: 42px;
+  margin: 18px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid var(--mf-border);
+  border-radius: var(--mf-radius-md);
+  background: var(--mf-surface-muted);
+  color: var(--mf-text-muted);
+  padding: 9px 14px;
+  font-size: 13px;
+  text-align: center;
+}
+
 .demoBanner {
   width: min(calc(100% - 40px), 1080px);
   min-height: 42px;

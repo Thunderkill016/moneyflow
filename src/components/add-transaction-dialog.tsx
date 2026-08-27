@@ -9,6 +9,8 @@ import {
   useState,
 } from "react";
 import { Icon, type IconName } from "@/components/icons";
+import { useConnectionState } from "@/hooks/use-connection-state";
+import { saveFailureMessage } from "@/lib/connectivity";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -85,6 +87,7 @@ export function AddTransactionDialog({
   const [occurredOn, setOccurredOn] = useState(() => todayInVietnam());
   const [keepOpen, setKeepOpen] = useState(false);
   const [keepOpenSession, setKeepOpenSession] = useState(false);
+  const connectionState = useConnectionState();
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [savedFlash, setSavedFlash] = useState("");
@@ -360,7 +363,17 @@ export function AddTransactionDialog({
     }
 
     if (!result.ok) {
-      setError(result.message || "Không thể lưu giao dịch. Hãy thử lại.");
+      /*
+       * Offline, "hãy thử lại" is the one recommendation guaranteed not to
+       * work. The form keeps everything the reader typed either way, so the
+       * message says that instead of sending them into a dead network.
+       */
+      setError(
+        saveFailureMessage(
+          connectionState,
+          result.message || "Không thể lưu giao dịch. Hãy thử lại.",
+        ),
+      );
       return;
     }
 
