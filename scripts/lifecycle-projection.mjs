@@ -188,16 +188,61 @@ function parseNameStatus(output) {
     });
 }
 
+/*
+ * Off CI there is no pull_request event, so every rule below used to be skipped and
+ * `check:knowledge` reported a pass that proved nothing about lifecycle. PR #499 was
+ * rejected by CI for a projection/impact mismatch that had passed locally minutes
+ * earlier. Reconstruct the same three inputs from git and the working tree so the
+ * local run answers the same question the CI run does.
+ */
+function reconstructLocalPullRequest(root) {
+  let baseSha;
+  try {
+    baseSha = execFileSync("git", ["merge-base", "HEAD", "main"], {
+      cwd: root,
+      encoding: "utf8",
+    }).trim();
+  } catch {
+    return null;
+  }
+  if (!baseSha) return null;
+
+  // A record is usually still uncommitted when it is written, which is exactly when
+  // this check is worth running; read untracked files as well as the committed diff.
+  const listed = ["diff", "--name-only", "--diff-filter=ACMR", baseSha, "--", "docs/research/pr-memory"];
+  const untracked = ["ls-files", "--others", "--exclude-standard", "--", "docs/research/pr-memory"];
+  const paths = new Set();
+  for (const args of [listed, untracked]) {
+    try {
+      for (const line of execFileSync("git", args, { cwd: root, encoding: "utf8" }).split(/\r?\n/u)) {
+        if (line.trim()) paths.add(line.trim());
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  const numbers = [...paths]
+    .map((path) => Number(path.match(/\/PR-(\d+)\.md$/u)?.[1] ?? NaN))
+    .filter((value) => Number.isInteger(value));
+  // Two records in one branch is its own violation, reported by the knowledge
+  // contract; staying silent here avoids guessing which one the branch is for.
+  if (new Set(numbers).size !== 1) return null;
+
+  return { prNumber: numbers[0], baseSha, headSha: "HEAD", local: true };
+}
+
 function runCli() {
   const event = readPullRequestEvent(process.env);
-  if (!event) {
+  const local = event ? null : reconstructLocalPullRequest(process.cwd());
+  if (!event && !local) {
     console.log("MoneyFlow lifecycle projection — no pull-request event; skipped");
     return;
   }
 
-  const prNumber = event.pull_request?.number ?? event.number;
-  const baseSha = event.pull_request?.base?.sha;
-  const headSha = event.pull_request?.head?.sha;
+  const prNumber = local ? local.prNumber : event.pull_request?.number ?? event.number;
+  const baseSha = local ? local.baseSha : event.pull_request?.base?.sha;
+  const headSha = local ? local.headSha : event.pull_request?.head?.sha;
   if (!Number.isInteger(prNumber) || !baseSha || !headSha) {
     console.error("MoneyFlow lifecycle projection — could not resolve PR/base/head");
     process.exitCode = 1;
@@ -215,22 +260,23 @@ function runCli() {
     join(root, CURRENT_PROJECT_MEMORY_PATH),
     "utf8",
   );
-  const recordPaths = execFileSync(
-    "git",
-    [
-      "diff",
-      "--name-only",
-      "--diff-filter=ACMRD",
-      `${baseSha}...${headSha}`,
-      "--",
-      "docs/research/pr-memory",
-    ],
-    { cwd: root, encoding: "utf8" },
-  )
-    .split(/\r?\n/u)
-    .filter((path) => path.endsWith(`/PR-${prNumber}.md`));
+  const recordRange = local ? [baseSha] : [`${baseSha}...${headSha}`];
+  const recordPaths = [
+    ...execFileSync(
+      "git",
+      ["diff", "--name-only", "--diff-filter=ACMRD", ...recordRange, "--", "docs/research/pr-memory"],
+      { cwd: root, encoding: "utf8" },
+    ).split(/\r?\n/u),
+    ...(local
+      ? execFileSync(
+          "git",
+          ["ls-files", "--others", "--exclude-standard", "--", "docs/research/pr-memory"],
+          { cwd: root, encoding: "utf8" },
+        ).split(/\r?\n/u)
+      : []),
+  ].filter((path) => path.endsWith(`/PR-${prNumber}.md`));
 
-  if (recordPaths.length !== 1) {
+  if (new Set(recordPaths).size !== 1) {
     console.error(
       `MoneyFlow lifecycle projection — expected one PR #${prNumber} memory record`,
     );
@@ -238,17 +284,23 @@ function runCli() {
     return;
   }
 
-  const prRecord = readFileSync(join(root, recordPaths[0]), "utf8");
+  const prRecord = readFileSync(join(root, [...new Set(recordPaths)][0]), "utf8");
   const changes = parseNameStatus(
     execFileSync(
       "git",
-      ["diff", "--name-status", `${baseSha}...${headSha}`],
+      ["diff", "--name-status", ...(local ? [baseSha] : [`${baseSha}...${headSha}`])],
       { cwd: root, encoding: "utf8" },
-    ),
+    ) + (local
+      ? execFileSync(
+          "git",
+          ["ls-files", "--others", "--exclude-standard"],
+          { cwd: root, encoding: "utf8" },
+        ).split(/\r?\n/u).filter(Boolean).map((path) => `A\t${path}`).join("\n")
+      : ""),
   );
   const projectedCurrent = currentRows(board);
   let readyCurrentOwnedByPr = false;
-  if (event.pull_request?.draft === false && projectedCurrent.length === 1) {
+  if ((local || event.pull_request?.draft === false) && projectedCurrent.length === 1) {
     try {
       const packet = readFileSync(
         join(root, `docs/plans/active/${projectedCurrent[0].packet}`),
