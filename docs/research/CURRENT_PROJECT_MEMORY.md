@@ -2,8 +2,8 @@
 
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-26
-**Runtime/financial baseline:** `cac5f157e6f89a6c0871f89e18f309c9113badaa` (PR #493 squash-merged).
-**Post-merge projection:** PR #494
+**Runtime/financial baseline:** `da872d92a1e37ec346bdd733d5f61aeb95d8394c` (PR #494 squash-merged).
+**Post-merge projection:** PR #495
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -81,7 +81,7 @@ PR #464 is merged runtime truth: an eligible Direct CSV dry-run row can reuse on
 | Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
 | Agent delivery | provider-neutral `scripts/agent-harness/`, append-only run journals, guarded permissions and same-PR lifecycle convergence; merged PR #462 grants owner-opt-in host-only exact-head squash delivery, never child/worker authority |
 | Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
-| Release proof | RRB-01/RRB-07 closed; RRB-02/03/04/05/06/08/09 remain open or externally gated |
+| Release proof | RRB-01/RRB-07 closed; **RRB-08 closed by owner declaration 2026-08-27** on one Android device (POCO X8 Pro, Chrome, authenticated) with no iOS/Safari observation; RRB-02/03/04/05/06/09 remain open or externally gated |
 | Public beta | not approved |
 
 Code, migrations and tests outrank this table on implementation detail.
