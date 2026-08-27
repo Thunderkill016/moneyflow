@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { routeErrorCode } from "@/lib/route-error-code";
 import { logClientError } from "@/lib/safe-log";
 import { trackProductEvent } from "@/lib/safe-analytics";
+import { supportMailtoHref } from "@/lib/support-contact";
 
 export type RouteErrorProps = {
   error: Error & { digest?: string };
@@ -28,11 +29,10 @@ export function RouteError({
   routeKey = "app",
 }: RouteErrorProps) {
   const code = routeErrorCode(error);
-  const supportHref = `mailto:support@moneyflow.app?subject=${encodeURIComponent(
+  const supportHref = supportMailtoHref(
     "Hỗ trợ Money Flow",
-  )}&body=${encodeURIComponent(
     `Mã lỗi: ${code}\n\n(Mô tả ngắn — không dán raw/sao kê tài chính.)\n`,
-  )}`;
+  );
 
   useEffect(() => {
     logClientError("route_error", error);

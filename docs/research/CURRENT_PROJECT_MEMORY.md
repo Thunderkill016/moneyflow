@@ -2,8 +2,8 @@
 
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-26
-**Runtime/financial baseline:** `4261cc392870b2d5615ca5d37c38e6ddb42e4ff3` (PR #500 squash-merged).
-**Post-merge projection:** PR #501
+**Runtime/financial baseline:** `855f23ac8b969d170b70254e7b2aaf63f12f0e37` (PR #501 squash-merged).
+**Post-merge projection:** PR #502
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
@@ -26,7 +26,7 @@ Source adapters create evidence/candidates, not arbitrary balances or silently r
 - `reconciled` is statement-close truth: statement completion creates it, reopening returns it to `cleared`, and reconciled financial facts are mutation-guarded.
 - Planning includes category budgets, recurring commitments/income and savings goals.
 - Understanding includes weekly/monthly/yearly reports and controlled import/export.
-- Complete versioned archive lives at `/settings/backup`; hosted restore remains unexecuted under RRB-02.
+- Complete versioned archive lives at `/settings/backup`. RRB-02 closed 2026-08-27 by explicit owner limitation decision: restore logic is covered by 42 pgTAP assertions running on every CI run, and only the managed-Supabase path stays unexercised — an accepted limitation, not a proof.
 
 ## 3. Acquisition and reconciliation truth
 
@@ -90,7 +90,7 @@ Code, migrations and tests outrank this table on implementation detail.
 
 Release Readiness Audit v1 (#388) remains canonical. RRB-01 authenticated mixed-ledger truth and RRB-07 accessible-auth browser proof are closed.
 
-Still open/external: RRB-02 hosted restore; RRB-03 destructive recent-auth provider edges; RRB-04 provider/Auth/firewall read-back plus #40/#174; RRB-05 operator-controlled contact proof; RRB-06 Vietnam personal-data legal/privacy review; RRB-08 current real-phone proof; RRB-09 production deployment/provider identity.
+Still open/external: RRB-03 destructive recent-auth provider edges; RRB-04 provider/Auth/firewall read-back plus #40/#174; RRB-06 Vietnam personal-data legal/privacy review; RRB-09 production deployment/provider identity. RRB-02 (owner limitation decision) and RRB-05 (owner-controlled mailbox) closed 2026-08-27; RRB-08 closed by owner declaration the same day.
 
 Controlled closed beta remains blocked until release entry gates clear and no unresolved P0 exists. Public beta also requires controlled-beta evidence and explicit owner go/no-go.
 
@@ -138,7 +138,7 @@ No agent-executable product/governance child is selected in this post-merge proj
 
 Do not jump to bank/e-wallet/NAPAS integration, infer rules from behavior, auto-approve/backfill candidates, source-drive `reconciled`, perform provider/production writes, broaden matching semantics, or expand transfer behavior inside #454.
 
-Owner/external lanes remain independent: real phone → RRB-08; provider read access → RRB-04/RRB-09 and #40/#174; contact proof → RRB-05; legal/privacy review → RRB-06; hosted target → RRB-02; explicit owner/provider authorization → RRB-03.
+Owner/external lanes remain independent: real phone → RRB-08; provider read access → RRB-04/RRB-09 and #40/#174; legal/privacy review → RRB-06; explicit owner/provider authorization → RRB-03.
 
 ## 12. Superseded-status register
 
