@@ -87,6 +87,20 @@ const browserSmokeMatchers = [
 const uiAuditMatchers = [
   matches(/^src\/app\/.*\.(?:tsx|css)$/),
   matches(/^src\/components\/.*\.(?:tsx|css)$/),
+  /*
+   * `playwright.audit.config.ts` runs the audit with NEXT_PUBLIC_APP_MODE
+   * "demo", so these fixtures define every value it measures for overflow,
+   * target size and layout. Without this, a change to what each screen renders
+   * selected no visual gate at all: replaying these matchers over PR #487
+   * returned no UI-audit selection, that PR merged green, and `main` went red
+   * on the next PR that did select the audit — a nine-digit income painting
+   * about 197px inside a 177px box on /reports (issue #491, fixed in #490).
+   *
+   * Deliberately `src/lib/demo/` rather than `src/lib/`: widening would select
+   * a ten-minute audit for most domain work, against this repository's own
+   * risk-proportional principle.
+   */
+  startsWith("src/lib/demo/"),
   startsWith("public/"),
   startsWith("e2e/audit/"),
   matches(/^src\/.*\.css$/),
