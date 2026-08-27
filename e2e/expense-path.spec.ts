@@ -275,6 +275,25 @@ test.describe("Expense path (thu chi)", () => {
     await expect(amount).toBeFocused();
     await expect(dialog.locator('[data-slot="capture-fast-defaults"]')).toBeVisible();
     await expect(dialog.locator('[data-slot="capture-category-suggestions"]')).toBeVisible();
+    const saveAndContinue = dialog.getByRole("button", {
+      name: "Lưu & thêm tiếp",
+      exact: true,
+    });
+    await expect(
+      saveAndContinue,
+      "one-time repeated entry must not require opening optional details first",
+    ).toBeVisible();
+    await expect(saveAndContinue).toBeDisabled();
+    await dialog
+      .getByRole("button", { name: "Chọn danh mục Ăn uống" })
+      .click();
+    await amount.fill("110000");
+    await expect(saveAndContinue).toBeEnabled();
+    await saveAndContinue.click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("status")).toContainText("Đã lưu");
+    await expect(amount).toHaveValue("");
+    await expect(amount).toBeFocused();
 
     if (isMobile) {
       const save = dialog.getByRole("button", { name: "Lưu", exact: true });
@@ -298,6 +317,7 @@ test.describe("Expense path (thu chi)", () => {
       name: /Lưu xong thêm tiếp/i,
     });
 
+    await expect(keepOpen).not.toBeChecked();
     await keepOpen.check();
     await amount.fill("120000");
     await note.fill(KEEP_OPEN_NOTE);

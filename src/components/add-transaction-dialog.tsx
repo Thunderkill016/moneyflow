@@ -140,6 +140,7 @@ export function AddTransactionDialog({
     : amount.trim()
       ? `Lưu ${amount} ₫`
       : "Lưu";
+  const showOneTimeContinue = !keepOpen;
 
   function focusAmount(select = true) {
     const input = amountInputRef.current;
@@ -322,6 +323,11 @@ export function AddTransactionDialog({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const submittedForNext =
+      (event.nativeEvent as SubmitEvent).submitter?.getAttribute(
+        "data-capture-continue",
+      ) === "true";
+    const shouldKeepOpen = keepOpen || submittedForNext;
     const parsedAmount = parseMoneyInput(amount);
     if (!Number.isSafeInteger(parsedAmount) || parsedAmount <= 0) {
       setError(
@@ -343,7 +349,7 @@ export function AddTransactionDialog({
 
     const idempotencyKey = idempotencyKeyRef.current ?? crypto.randomUUID();
     idempotencyKeyRef.current = idempotencyKey;
-    if (keepOpen) setKeepOpenSession(true);
+    if (shouldKeepOpen) setKeepOpenSession(true);
     setSubmitting(true);
     let result: { ok: boolean; message?: string };
     try {
@@ -393,7 +399,7 @@ export function AddTransactionDialog({
     categoryTouchedRef.current = false;
     setAutoRuleHint(null);
 
-    if (keepOpen) {
+    if (shouldKeepOpen) {
       showKeepOpenSuccess();
       window.requestAnimationFrame(() => focusAmount(false));
       return;
@@ -411,6 +417,8 @@ export function AddTransactionDialog({
     <div
       className={`${styles.footerActions} ${fastStyles.footerActions}${
         embedded ? ` ${fastStyles.footerActionsEmbedded}` : ""
+      }${
+        showOneTimeContinue ? ` ${fastStyles.footerActionsWithContinue}` : ""
       }`}
     >
       {embedded ? (
@@ -422,6 +430,18 @@ export function AddTransactionDialog({
           disabled={submitting}
         >
           Hủy
+        </Button>
+      ) : null}
+      {showOneTimeContinue ? (
+        <Button
+          form={formId}
+          type="submit"
+          intent="secondary"
+          targetSize="important"
+          disabled={submitDisabled}
+          data-capture-continue="true"
+        >
+          Lưu & thêm tiếp
         </Button>
       ) : null}
       <Button

@@ -50,7 +50,10 @@ test("R4: save-and-add-another keeps a controlled dialog session alive", () => {
   assert.match(src, /keepOpen/);
   assert.match(src, /keepOpenSession/);
   assert.match(src, /effectiveOpen = open \|\| keepOpenSession/);
-  assert.match(src, /if \(keepOpen\) setKeepOpenSession\(true\)/);
+  assert.match(src, /data-capture-continue="true"/);
+  assert.match(src, /const shouldKeepOpen = keepOpen \|\| submittedForNext/);
+  assert.match(src, /if \(shouldKeepOpen\) setKeepOpenSession\(true\)/);
+  assert.match(src, /if \(shouldKeepOpen\) \{/);
   assert.match(src, /open=\{effectiveOpen\}/);
   assert.match(src, /KEEP_OPEN_SUCCESS|Đã lưu · nhập khoản tiếp/);
   assert.match(src, /<Alert tone="success" live="polite"/);
