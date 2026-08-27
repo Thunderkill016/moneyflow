@@ -51,6 +51,47 @@ test("CSP restricts every high-value browser capability", () => {
   assert.doesNotMatch(policy, /upgrade-insecure-requests/);
 });
 
+test("no fetch directive falls back to a bare scheme wildcard", () => {
+  /*
+   * `img-src` allowed `https:`, which makes any HTTPS host on the internet a
+   * legal image source — a tracking-pixel and exfiltration channel bought for
+   * nothing, since production serves every image and font from its own origin
+   * (measured: 3 images, 12 fonts, zero third-party). A bare scheme is an
+   * absence of a policy wearing the shape of one, so no fetch directive may
+   * carry one.
+   */
+  for (const authCaptchaReady of [false, true]) {
+    const policy = buildContentSecurityPolicy(true, authCaptchaReady);
+    for (const directive of [
+      "default-src",
+      "script-src",
+      "style-src",
+      "img-src",
+      "font-src",
+      "connect-src",
+      "media-src",
+      "worker-src",
+      "manifest-src",
+      "frame-src",
+    ]) {
+      for (const token of directiveTokens(policy, directive)) {
+        assert.ok(
+          !/^(https?|ws|wss|ftp):$/u.test(token),
+          `${directive} must not allow the bare scheme ${token}`,
+        );
+      }
+    }
+  }
+});
+
+test("images and fonts come only from this origin, plus local previews", () => {
+  const policy = buildContentSecurityPolicy(true, false);
+  // `data:` and `blob:` stay: an uploaded receipt is previewed before it is ever
+  // sent anywhere, and that preview is a local blob.
+  assert.deepEqual(directiveTokens(policy, "img-src"), ["'self'", "data:", "blob:"]);
+  assert.deepEqual(directiveTokens(policy, "font-src"), ["'self'", "data:"]);
+});
+
 test("Turnstile origin is allowed only when auth captcha is configured", () => {
   const disabled = buildContentSecurityPolicy(true, false);
   const enabled = buildContentSecurityPolicy(true, true);
