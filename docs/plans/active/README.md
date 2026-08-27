@@ -1,8 +1,7 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-27 (post-#497)
-**Current main baseline:** `cfba0b186bd954e93c6fa8f3bdf6c10e4ce5565c` (PR #504 squash-merged)
-**Post-merge projection:** PR #505
+**Last reconciled:** 2026-08-28 (post-#505 recovery closeout)
+**Current main baseline:** `23f1e2f9861fa428ab0ec498a496faf2bdc6e8bb` (PR #505 squash-merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 closed by owner declaration on 2026-08-27 — one Android device on Chrome, no iOS/Safari observation. RRB-02 and RRB-05 closed by explicit owner decision on 2026-08-27; RRB-04/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -17,7 +16,7 @@ chương trình này.
 |---|---|---|---|
 | **#40** | 25/07 | Supabase Dashboard → Auth → bật leaked-password protection → chạy lại Security Advisor | ~5 phút |
 | **#174** | 31/07 | Đọc lại cấu hình provider/Auth/firewall và dán kết quả vào issue | ~15 phút |
-| **#426** | 18/08 | Một quyết định: bộ chọn cách ghi (`CaptureSheet`) nên nằm ở đâu trên desktop, khi topbar đã có CTA riêng | quyết định, không phải code |
+| **#426** | 18/08 | Một quyết định: có tiếp tục Slice 2, bỏ `DashboardPlanningColumn`, sau khi Slice 1 đã được merge không | quyết định, không phải code |
 
 **RRB-02** đã đóng ngày 27/08/2026 bằng quyết định giới hạn của chủ dự án — đúng
 nhánh mà chính gate này cho phép. Logic khôi phục có 42 assertion pgTAP chạy ở mọi
@@ -48,7 +47,7 @@ No agent-executable product/governance slice is selected in this post-merge proj
 ## OWNER DECISION
 
 - [x] **PR #431 — conflicting pre-#432 product-direction candidate** — closed 2026-08-26 as superseded by merged #432/#433 authority; branch retained on origin.
-- [ ] **#426 — simplification program disposition** — preserve evidence-backed friction reductions, but do not restore the corrected false navigation premise or let it compete with #432 as master direction.
+- [ ] **#426 — simplification program disposition** — Slice 1 is merged in PR #505: desktop has one capture primary, while paste/upload live in Inbox. Decide whether to continue its separate Slice 2 (`DashboardPlanningColumn`); do not restore the corrected navigation premise or let this issue compete with #432 as master direction.
 - [ ] **#403 — performance disposition** — remains open but no longer the default agent item; resume only if deliberately promoted after higher-value product work.
 - [ ] **#174 / #40 provider security decisions** — verify provider state before change/closure.
 - [ ] **RRB-05 contact, RRB-06 legal, RRB-02/RRB-03 limitation decisions, PBT-AC15 public-beta go/no-go** — owner boundaries remain explicit.
@@ -62,6 +61,7 @@ No agent-executable product/governance slice is selected in this post-merge proj
 
 ## RECENTLY DONE
 
+- [x] **#426 Slice 1 / PR #505 — one desktop capture primary, with acquisition paths in Inbox** — squash-merged as `23f1e2f9861fa428ab0ec498a496faf2bdc6e8bb`. Desktop no longer offers both the sidebar chooser and the topbar capture CTA. Paste/SMS and statement-upload actions now live in Inbox, the candidate context they create; `CaptureSheet`, which had become unreachable duplicate UI, is removed. Mobile is unchanged. The separately judged `DashboardPlanningColumn` Slice 2 remains an owner decision.
 - [x] **PR #490 — a nine-digit report total stays inside its cell** — squash-merged as `0cdb1deacf3329de6f333dafec1762f3434d77d8`, returning `main` to green. Originally recorded as: `main` is red because the cross-device audit reports `financial-value-overflowed` on `/reports` at tablet-landscape. The limit predates this session and became visible when PR #487 stopped the demo dating its salary in a past month; the audit did not catch it there because `classify` selected no UI audit for that change. `report-metrics` joins the existing dense-scale rule for summary owners.
 - [ ] **PR #498 — licence, Node pin, build identity, health check** — post-merge projection only. The last four engineering-benchmark gaps. `LICENSE` is AGPL-3.0, matching Firefly III: anyone may self-host, but running a modified copy as a service obliges publishing changes; MIT would let a hosted competitor close its source. Node pinned to 22 because CI builds on 22 while local ran 24.16 unnoticed all day. The deployed commit is now baked in and shown on `/security`, and `/api/health` is deliberately shallow so it cannot fail on provider maintenance or probe the database.
 - [x] **PR #497 — client errors reach a log a person reads** — squash-merged as `2187a3cec72275dde8851d856bb6322358e427ac`. `logClientError` wrote only to the browser console, so a user hitting a bug in production was invisible. Reports now post to an own route and land in platform runtime logs — no vendor, no new data processor, dependencies unchanged at 17. The server re-sanitises rather than trusting the client and answers 204 in every case.
