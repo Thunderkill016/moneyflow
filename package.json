@@ -1,6 +1,10 @@
 {
   "name": "moneyflow",
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=22 <23"
+  },
   "private": true,
   "scripts": {
     "dev": "next dev",

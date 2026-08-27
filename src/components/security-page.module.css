@@ -135,3 +135,12 @@
   outline: 2px solid var(--mf-brand);
   outline-offset: 2px;
 }
+
+/* Quiet by design: useful when quoted in a report, invisible the rest of the time. */
+.build {
+  margin: 1.25rem 0 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--mf-text-muted);
+}
