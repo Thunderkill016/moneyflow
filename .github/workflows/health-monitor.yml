@@ -1,0 +1,41 @@
+name: Health monitor
+
+# `/api/health` has existed since PR #498 and nothing called it. This is what calls
+# it. A failed scheduled run notifies the repository owner through GitHub's own
+# workflow-failure notification, so no third-party monitoring account is needed.
+on:
+  schedule:
+    # Every 15 minutes. GitHub does not guarantee scheduled punctuality and delays
+    # under load are normal, so treat this as "checked regularly", not "checked to
+    # the minute". A missed window is not evidence the site was up.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  # Never let a backlog of delayed runs pile up behind a slow probe.
+  group: health-monitor
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe production health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # No `npm ci`: the probe is dependency-free on purpose, so a broken install
+      # can never be the reason the site's health goes unreported.
+      - name: Probe
+        env:
+          # Set the PRODUCTION_ORIGIN repository variable to point this elsewhere;
+          # the script falls back to the deployment the project serves from today.
+          PRODUCTION_ORIGIN: ${{ vars.PRODUCTION_ORIGIN }}
+        run: node scripts/probe-health.mjs
