@@ -60,7 +60,7 @@
 }
 
 .figureNegative {
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .caption {
@@ -164,11 +164,11 @@
 }
 
 .legendIncome {
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .legendExpense {
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .legendRest {
@@ -197,11 +197,11 @@
 }
 
 .legendIncome .legendValue {
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .legendExpense .legendValue {
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .empty {

@@ -37,15 +37,15 @@
 }
 
 .confidenceHigh {
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .confidenceMedium {
-  color: var(--mf-warning);
+  color: var(--mf-warning-text);
 }
 
 .confidenceLow {
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .grid {

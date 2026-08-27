@@ -57,7 +57,7 @@ function Toast({
       )}
     >
       <div className="min-w-0 font-semibold">{title}</div>
-      {description ? <div className="text-current/85">{description}</div> : null}
+      {description ? <div>{description}</div> : null}
       {action ? <div className="mt-1 flex flex-wrap gap-2">{action}</div> : null}
     </article>
   )

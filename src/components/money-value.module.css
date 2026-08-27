@@ -35,11 +35,11 @@
 }
 
 .income {
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .expense {
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .transfer {

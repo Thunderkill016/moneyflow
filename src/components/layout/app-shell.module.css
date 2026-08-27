@@ -57,7 +57,11 @@
   box-sizing: border-box;
 }
 
-.shell :where(a) {
+/* Links inside the shell inherit the surrounding text colour, but a link rendered
+   as a Button carries its own foreground. This reset and `.text-primary-foreground`
+   have equal specificity, so without the exclusion source order silently wins and
+   a primary-styled <a> paints near-black on the brand fill. */
+.shell :where(a:not([data-slot~="button"], [data-slot~="link-button"])) {
   color: inherit;
   text-decoration: none;
 }
@@ -412,7 +416,7 @@
   margin-left: auto;
   border-radius: 999px;
   background: var(--mf-expense);
-  color: #fff;
+  color: var(--mf-on-expense);
   padding: 0 5px;
   font-size: 10px;
   font-weight: 800;
@@ -574,7 +578,7 @@
 }
 
 .accountActionDanger {
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .signoutForm {

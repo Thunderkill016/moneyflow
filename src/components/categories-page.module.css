@@ -59,7 +59,7 @@
 
 .green {
   background: color-mix(in srgb, var(--mf-income) 14%, var(--mf-surface));
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .violet {
@@ -69,7 +69,7 @@
 
 .amber {
   background: color-mix(in srgb, var(--mf-warning) 14%, var(--mf-surface));
-  color: var(--mf-warning);
+  color: var(--mf-warning-text);
 }
 
 .cyan {
@@ -80,12 +80,12 @@
 .coral,
 .red {
   background: color-mix(in srgb, var(--mf-expense) 14%, var(--mf-surface));
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .pink {
   background: color-mix(in srgb, var(--mf-expense) 8%, var(--mf-surface));
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .body {

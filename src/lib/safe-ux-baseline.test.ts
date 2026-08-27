@@ -93,8 +93,11 @@ test("SAFE-06: Dashboard amount surfaces are neutral and semantic color stays on
     statementCss,
     /\.statement\s*\{[\s\S]*?background:\s*var\(--mf-surface\)/,
   );
-  assert.match(statementCss, /\.legendIncome[\s\S]*?var\(--mf-income\)/);
-  assert.match(statementCss, /\.legendExpense[\s\S]*?var\(--mf-expense\)/);
+  // Semantic colour still belongs on the figures, but it must be the -text grade:
+  // the fill tokens measure 3.30:1 (income) and 4.13:1 (expense) as text on the
+  // statement surface, under the 4.5:1 that WCAG 2.2 AA requires for body copy.
+  assert.match(statementCss, /\.legendIncome[\s\S]*?var\(--mf-income-text\)/);
+  assert.match(statementCss, /\.legendExpense[\s\S]*?var\(--mf-expense-text\)/);
   assert.match(
     dashboardCss,
     /\.dashboard :global\(\.panel\),[\s\S]*?background:\s*var\(--mf-surface\)/,

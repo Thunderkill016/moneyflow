@@ -113,11 +113,11 @@
 }
 
 .readyStatus {
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .warningStatus {
-  color: var(--mf-warning);
+  color: var(--mf-warning-text);
 }
 
 .hint {

@@ -222,22 +222,22 @@
 
 .flags span {
   border-color: color-mix(in srgb, var(--mf-warning) 45%, var(--mf-border));
-  color: var(--mf-warning);
+  color: var(--mf-warning-text);
 }
 
 .confidenceHigh {
   border-color: color-mix(in srgb, var(--mf-income) 45%, var(--mf-border));
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .confidenceMedium {
   border-color: color-mix(in srgb, var(--mf-warning) 45%, var(--mf-border));
-  color: var(--mf-warning);
+  color: var(--mf-warning-text);
 }
 
 .confidenceLow {
   border-color: color-mix(in srgb, var(--mf-expense) 45%, var(--mf-border));
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .amount {
