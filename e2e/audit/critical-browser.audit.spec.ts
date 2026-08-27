@@ -218,18 +218,31 @@ test.describe("critical browser compatibility audit", () => {
       return;
     }
 
-    const trigger = page.getByRole("button", {
-      name: "Nhập nhanh",
-      exact: true,
-    });
+    /*
+     * Desktop used to open the `Ghi giao dịch` capture sheet from a `Nhập nhanh`
+     * sidebar button. #426 removed that button — desktop was rendering two capture
+     * primaries at once — and with no trigger left the sheet was unreachable code,
+     * so it went too. The shell now has no modal sheet above 760px.
+     *
+     * The guarantee being tested is not "that sheet exists"; it is that a modal
+     * opened from the shell closes on Escape and hands focus back to the control
+     * that opened it. `modal-dialog.responsive.audit.spec.ts` checks focus trapping
+     * and Escape, but not the hand-back, so this keeps the desktop half of it on a
+     * modal that does still exist.
+     */
+    await page.goto("/transactions", { waitUntil: "domcontentloaded" });
+    await page.locator('main:not([aria-busy="true"])').first().waitFor({ state: "visible" });
+
+    const trigger = page
+      .getByRole("button", { name: "Ghi chi tiêu", exact: true })
+      .first();
     await expect(trigger).toBeVisible();
     await trigger.click();
 
-    const sheet = page.getByRole("dialog", { name: "Ghi giao dịch" });
-    await expect(sheet).toBeVisible();
-    await expect(sheet.getByRole("button", { name: "Đóng" })).toBeVisible();
+    const dialog = page.locator('dialog[data-slot="dialog"][open]');
+    await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(sheet).toBeHidden();
+    await expect(dialog).toBeHidden();
     await expect(trigger).toBeFocused();
   });
 
