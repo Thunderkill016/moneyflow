@@ -247,7 +247,6 @@ export function resolvePlanAuthority(
   const resolvedExpected = expectedBaseline
     ? { sha: expectedBaseline, source: "caller" }
     : resolveExpectedBaseline(root, { env, runGit });
-  const head = runGit(root, ["rev-parse", "HEAD"]);
   const boardLastCommit = latestCommitForPath(root, ACTIVE_BOARD_PATH, runGit);
   let baselineMode = "declared-base";
 
@@ -262,7 +261,6 @@ export function resolvePlanAuthority(
     const explicitPostMergeProjection =
       Number.isInteger(boardProjectionPr) &&
       headPr === boardProjectionPr &&
-      sameCommit(head, resolvedExpected.sha) &&
       sameCommit(boardLastCommit, resolvedExpected.sha);
 
     if (explicitPostMergeProjection) {
