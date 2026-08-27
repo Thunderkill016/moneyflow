@@ -1,9 +1,8 @@
 # MoneyFlow — current project memory
 
 **Status:** single current implementation/trust-status authority when read from `main`
-**Last reconciled:** 2026-08-26
-**Runtime/financial baseline:** `cfba0b186bd954e93c6fa8f3bdf6c10e4ce5565c` (PR #504 squash-merged).
-**Post-merge projection:** PR #505
+**Last reconciled:** 2026-08-28
+**Runtime/financial baseline:** `23f1e2f9861fa428ab0ec498a496faf2bdc6e8bb` (PR #505 squash-merged).
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
