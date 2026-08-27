@@ -181,15 +181,29 @@ test.describe("Deterministic rules workspace", () => {
     });
 
     await page.goto("/imports/direct", { waitUntil: "domcontentloaded" });
-    await page.locator('input[type="file"]').setInputFiles({
+
+    const csv = {
       name: "highlands.csv",
       mimeType: "text/csv",
       buffer: Buffer.from(
         "date,description,amount\n2026-08-25,HIGHLANDS Q1,-45000\n",
       ),
-    });
-
+    };
     const dryRun = page.getByRole("heading", { name: "3. Dry-run", exact: true });
+
+    /*
+     * `setInputFiles` dispatches `change` on the input, and React attaches that
+     * listener only once the route has hydrated. Setting the file before then
+     * drops the event with no error at all: the page simply stays on "1. Chọn CSV",
+     * which is exactly what CI captured on a slower runner while this passed
+     * locally every time. Re-set the file until the page reacts, rather than
+     * guessing a delay that would be too short on a slow machine and wasted on a
+     * fast one.
+     */
+    await expect(async () => {
+      await page.locator('input[type="file"]').setInputFiles(csv);
+      await expect(dryRun).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
     const dryRunSection = page.locator('[data-slot="direct-import-preview"]');
     await expect(dryRun).toBeVisible();
     await expect(dryRunSection.getByText("Highlands Coffee", { exact: true })).toBeVisible();
