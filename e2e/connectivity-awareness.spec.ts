@@ -50,13 +50,15 @@ test.describe("connectivity awareness", () => {
     const notice = page.getByText(/Đang mất kết nối/u);
     await expect(notice).toBeVisible();
 
-    // Losing signal is not something the reader caused, so it must not trap them.
+    /*
+     * Losing signal is not something the reader caused, so it must not trap
+     * them. Asserted without naming a nav item: the sidebar carries the links
+     * on desktop and the bottom tab bar does on a phone, so any specific label
+     * would pass on one viewport and fail on the other — which is exactly how
+     * the first version of this test slipped through a chromium-only local run.
+     */
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(
-      page
-        .getByRole("navigation")
-        .first()
-        .getByRole("link", { name: "Giao dịch", exact: true }),
-    ).toBeVisible();
+    await expect(page.getByRole("navigation").first()).toBeVisible();
+    await expect(page.getByText("15.735.000 ₫").first()).toBeVisible();
   });
 });
