@@ -3,7 +3,7 @@
 **Status:** single current implementation/trust-status authority when read from `main`
 **Last reconciled:** 2026-08-26
 **Runtime/financial baseline:** `da872d92a1e37ec346bdd733d5f61aeb95d8394c` (PR #495 squash-merged).
-**Post-merge projection:** PR #496
+**Post-merge projection:** PR #497
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
 
 ## 1. Current decision
