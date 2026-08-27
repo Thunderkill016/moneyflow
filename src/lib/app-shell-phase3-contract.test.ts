@@ -42,11 +42,20 @@ test("App Shell composes the approved shared owners", () => {
   assert.doesNotMatch(appShell, /function Toast\(/u);
 });
 
-test("capture chooser uses deliberate centered modal placement", () => {
+test("shell sheets use deliberate placement", () => {
   assert.match(sheet, /type SheetSide = "center" \| "left"/u);
   assert.match(sheet, /center:\s*"m-auto h-auto/u);
-  assert.match(appShell, /title="Ghi giao dịch"[\s\S]*side="center"/u);
   assert.match(appShell, /title="Thêm & tài khoản"[\s\S]*side="right"/u);
+
+  /*
+   * The capture chooser sheet was asserted here too, until #426. Desktop rendered
+   * two capture primaries at once — the sidebar chooser and the topbar CTA — so the
+   * sidebar trigger went, and with no trigger left the sheet was unreachable code
+   * duplicating the `/capture` page. It was deleted rather than left dangling.
+   * The chooser still exists, as a page; `modal-dialog.responsive.audit.spec.ts`
+   * now guards that desktop keeps one capture primary and every path stays reachable.
+   */
+  assert.doesNotMatch(appShell, /title="Ghi giao dịch"/u);
 });
 
 test("route capabilities replace structural chrome inference", () => {

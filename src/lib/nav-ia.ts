@@ -71,6 +71,28 @@ export const PRIMARY_NAV: PrimaryNavItem[] = [
   },
 ];
 
+/**
+ * Desktop sidebar navigation — the capture action is deliberately absent.
+ *
+ * Desktop rendered two capture primaries at once: this sidebar chooser and the
+ * topbar `Ghi chi tiêu` CTA, which breaks the product's own "one primary action
+ * per viewport" rule (#426). The topbar CTA wins because it performs the daily
+ * action directly instead of asking a question first.
+ *
+ * The other two capture paths are not lost, they are re-homed: pasting an SMS and
+ * uploading a statement both produce Inbox candidates rather than ledger rows, so
+ * they now live on `/inbox`, the screen their output lands on. That is also what
+ * every comparable product does — YNAB puts File-Based Import in the account
+ * register, Actual Budget puts `Import` beside `Add New` inside the account, and
+ * Monarch puts CSV upload under Accounts. None of them offers a global "how do you
+ * want to capture?" chooser.
+ *
+ * Mobile keeps the centred `Ghi` tab: a bottom bar has no topbar CTA to duplicate.
+ */
+export const DESKTOP_SIDEBAR_NAV: PrimaryNavLink[] = PRIMARY_NAV.filter(
+  (item): item is PrimaryNavLink => item.kind === "link",
+);
+
 /** Href-only primary routes (excludes Capture action). */
 export const PRIMARY_NAV_HREFS = PRIMARY_NAV.filter(
   (item): item is PrimaryNavLink => item.kind === "link",
