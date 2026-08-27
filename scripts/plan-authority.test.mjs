@@ -166,6 +166,30 @@ test("an explicitly projected post-merge reconciliation may survive its squash m
   );
 });
 
+test("an activated projection remains valid for a child branch that does not edit the board", () => {
+  withFixture(
+    {
+      board: board({ projectionPr: 445 }),
+      manifest: authorityManifest(),
+    },
+    (root) => {
+      const mergedHead = "feed999999999999999999999999999999999999";
+      const childHead = "child111111111111111111111111111111111111";
+      const result = resolvePlanAuthority(root, {
+        expectedBaseline: mergedHead,
+        runGit: mergeGit({
+          head: childHead,
+          boardCommit: mergedHead,
+          subject: "docs: reconcile lifecycle after merge (#445)",
+        }),
+      });
+
+      assert.equal(result.ok, true, result.failures.join("\n"));
+      assert.equal(result.baselineMode, "post-merge-projection");
+    },
+  );
+});
+
 test("a copied projection for an older PR cannot bless a later main commit", () => {
   withFixture(
     {
