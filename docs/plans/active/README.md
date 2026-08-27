@@ -1,8 +1,8 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-27 (post-#490)
-**Current main baseline:** `0cdb1deacf3329de6f333dafec1762f3434d77d8` (PR #490 squash-merged)
-**Post-merge projection:** PR #489
+**Last reconciled:** 2026-08-27 (post-#489)
+**Current main baseline:** `8161898898a6a21ef7cc15da8e85233ea428318a` (PR #489 squash-merged)
+**Post-merge projection:** PR #492
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 current physical-phone proof remains open; RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -11,7 +11,7 @@ This board is the owner-facing answer to **“đang làm gì, tiếp theo là g�
 
 - [ ] **RRB-08 — current physical-device proof** — issue #398 / merged runbook #399. Completion still requires the owner to re-test the selected deployed release candidate on a real phone and record device/OS/browser/origin/mode plus pass/fail/defects. Browser/emulation cannot close it. **Next actor:** owner.
 
-No agent-executable product/governance slice is selected in this post-merge projection. PR #489 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
+No agent-executable product/governance slice is selected in this post-merge projection. PR #492 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
@@ -46,7 +46,8 @@ No agent-executable product/governance slice is selected in this post-merge proj
 ## RECENTLY DONE
 
 - [x] **PR #490 — a nine-digit report total stays inside its cell** — squash-merged as `0cdb1deacf3329de6f333dafec1762f3434d77d8`, returning `main` to green. Originally recorded as: `main` is red because the cross-device audit reports `financial-value-overflowed` on `/reports` at tablet-landscape. The limit predates this session and became visible when PR #487 stopped the demo dating its salary in a past month; the audit did not catch it there because `classify` selected no UI audit for that change. `report-metrics` joins the existing dense-scale rule for summary owners.
-- [ ] **#488 / PR #489 — the app tells the truth about connectivity** — post-merge projection only; rebased onto PR #490. Awareness, not capability: nothing is queued, cached or retried.
+- [ ] **#491 / PR #492 — a demo-fixture change selects the visual audit** — post-merge projection only. The audit runs with `NEXT_PUBLIC_APP_MODE: "demo"`, so `src/lib/demo/` defines every value it measures, yet nothing under `src/lib/` selected it. Replaying the matchers over PR #487's merge commit returns no selection, which is how the `/reports` overflow reached `main`. Narrow on purpose — `src/lib/demo/` only — with a test pinning that other domain modules still skip it.
+- [x] **#488 / PR #489 — the app tells the truth about connectivity** — squash-merged as `8161898898a6a21ef7cc15da8e85233ea428318a`. Awareness only: nothing is queued, cached or retried. Awareness, not capability: nothing is queued, cached or retried.
 - [x] **#486 / PR #487 — the demo agrees with itself** — squash-merged as `c79a0e8770e857f5acf39ca4fa86536b43344d66`. Three dashboard panels disagreed: the statement added a 4.209.000 ₫ constant no transaction produced, while the category and weekly panels built from real rows correctly showed nothing, and a fixture row labelled "Hôm nay" had been six weeks old. Demo and authenticated now compute expense identically, and fixture dates plus their relative labels derive from one resolved date passed in by callers. Found by reading the cross-device audit screenshots.
 - [x] **PR #485 — the trend draws the income it already computed** — squash-merged as `5c4335d7e17a93d17187f03b29ec8b23521e1b82`. `buildFinancialReport` always returned income per bucket and the page drew only the expense bar. Both series now share one scale, the empty state keys on any activity rather than expense alone, the screen-reader list and `aria-label` report both, and a text legend keeps the distinction off colour alone. Found by the repository audit.
 - [x] **PR #484 — a wrong URL now has a way back** — squash-merged as `968288754a59c466c7a3a6b41c76055ba826e0f3`. No `not-found.tsx` existed, so production served Next's built-in English fallback with no route back; verified live before the change. A Server Component with no client JS, no `AppShell` dependency so it renders for signed-out visitors, leading with `/` so one link is correct for both audiences, and its own CSS Module rather than the baselined `.route-error` globals. Found by the repository audit rather than by an issue.
