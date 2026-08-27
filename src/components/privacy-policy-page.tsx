@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SUPPORT_EMAIL } from "@/lib/support-contact";
 
 /**
  * Public privacy policy (TASK-110).
@@ -126,7 +127,7 @@ export function PrivacyPolicyPage() {
             <h2 id="privacy-contact">Liên hệ</h2>
             <p>
               Câu hỏi về quyền riêng tư hoặc yêu cầu liên quan dữ liệu cá nhân:{" "}
-              <a href="mailto:support@moneyflow.app">support@moneyflow.app</a>
+              <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
               . Vui lòng <strong>không</strong> gửi mật khẩu ngân hàng hay dán raw sao kê đầy
               đủ trong email hỗ trợ.
             </p>

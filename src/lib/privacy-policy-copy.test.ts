@@ -21,7 +21,11 @@ const REQUIRED_TOPICS = [
   "Lưu trữ",
   "Xuất dữ liệu",
   "Liên hệ",
-  "support@moneyflow.app",
+  // Not a literal address any more. The page must publish a contact, and that
+  // contact must come from the single owned source — pinning the literal here is
+  // how `support@moneyflow.app`, on a domain this project does not own, survived
+  // in the published policy. `support-contact.test.ts` guards the value itself.
+  "SUPPORT_EMAIL",
 ] as const;
 
 function read(path: string): string {

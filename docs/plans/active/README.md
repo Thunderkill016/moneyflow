@@ -3,7 +3,7 @@
 **Last reconciled:** 2026-08-27 (post-#497)
 **Current main baseline:** `4261cc392870b2d5615ca5d37c38e6ddb42e4ff3` (PR #500 squash-merged)
 **Post-merge projection:** PR #501
-**Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 closed by owner declaration on 2026-08-27 — one Android device on Chrome, no iOS/Safari observation. RRB-02 hosted restore and RRB-04/05/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
+**Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 closed by owner declaration on 2026-08-27 — one Android device on Chrome, no iOS/Safari observation. RRB-02 and RRB-05 closed by explicit owner decision on 2026-08-27; RRB-04/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
 
@@ -19,9 +19,10 @@ chương trình này.
 | **#174** | 31/07 | Đọc lại cấu hình provider/Auth/firewall và dán kết quả vào issue | ~15 phút |
 | **#426** | 18/08 | Một quyết định: bộ chọn cách ghi (`CaptureSheet`) nên nằm ở đâu trên desktop, khi topbar đã có CTA riêng | quyết định, không phải code |
 
-**RRB-02** không có trong bảng vì nó cần thêm một project Supabase dùng một
-lần. Nhưng nó là tuyên bố duy nhất mà nếu sai thì mọi thứ còn lại mất giá trị:
-hợp đồng khôi phục mới chỉ chạy trên Postgres cục bộ với quyền superuser.
+**RRB-02** đã đóng ngày 27/08/2026 bằng quyết định giới hạn của chủ dự án — đúng
+nhánh mà chính gate này cho phép. Logic khôi phục có 42 assertion pgTAP chạy ở mọi
+lượt CI; thứ còn chưa chạy là riêng đường Supabase quản lý, và điều đó được ghi
+nhận là giới hạn đã chấp nhận chứ không phải đã chứng minh.
 
 ## NOW
 
@@ -32,13 +33,13 @@ No agent-executable product/governance slice is selected in this post-merge proj
 ## NEXT
 
 - [ ] **#432 P2 — Low-Maintenance Ingestion** — PR #464 is merged and the projection has been applied; select a new bounded evidence-backed source, normalization or exception-first review slice; reduce interventions/100 transactions without reducing match precision.
-- [ ] **RRB-02 — hosted restore proof or explicit limitation** — disposable/authorized hosted target or owner limitation decision required.
+- [x] **RRB-02 — hosted restore proof or explicit limitation** — closed 2026-08-27 by the **explicit owner limitation decision** this gate always allowed. Restore is not unverified: `supabase/tests/database/restore_user_archive.test.sql` runs **42 pgTAP assertions over 464 lines** against the real `restore_user_archive` function on every CI run, covering removal reverting the overwritten profile, a bad restore staying recoverable, and a corrected restore rebuilding the ledger, alongside 19 unit-test files on the archive contracts. What stays unproven is narrower than the gate's name suggests: the managed-Supabase path specifically — extensions, roles, `security definer` behaviour and timeouts on a large archive — has never been exercised outside local Postgres. Recorded as an accepted limitation, not as proof.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — owner/provider-gated.
 - [ ] **Controlled closed beta** — only after release entry gates clear and no unresolved P0 exists.
 
 ## BLOCKED / EXTERNAL EVIDENCE
 
-- [ ] **RRB-05 — verified support/privacy contact** — `support@moneyflow.app` is published but operator control is unproven.
+- [x] **RRB-05 — verified support/privacy contact** — closed by owner decision 2026-08-27 (PR #502). The published address is now the owner's own mailbox, replacing `support@moneyflow.app` on `moneyflow.app`, a domain this project does not own and which serves another company's product. `src/lib/support-contact.test.ts` fails the build if any address on an unowned domain reappears under `src/`. What is proven is that the operator can read the mailbox; no claim is made that a personal Gmail address is the right long-term support channel.
 - [ ] **RRB-04 — provider/Auth/firewall read-back** — current provider state plus #40/#174 decisions require provider read access; no provider write is authorized.
 - [ ] **RRB-06 — Vietnam personal-data legal/privacy operational review** — competent owner/legal review required.
 - [ ] **RRB-09 — production deployment/provider identity read-back** — requires current provider/deployment evidence.
