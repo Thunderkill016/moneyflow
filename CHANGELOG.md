@@ -9,6 +9,16 @@ chưa sẵn sàng cho public beta, nên số hiệu phải nói đúng điều �
 
 ## [Chưa phát hành]
 
+### Bảo mật
+
+- `img-src` không còn cho phép `https:`. Trước đó **mọi host HTTPS trên internet** đều là
+  nguồn ảnh hợp lệ; đo trên production thì toàn bộ ảnh và font đều đến từ chính origin của
+  app (3 ảnh, 12 font, không có bên thứ ba nào). `data:` và `blob:` giữ lại vì hoá đơn tải
+  lên được xem trước ngay trên máy.
+- `'unsafe-inline'` trong `script-src` được **giữ lại có chủ đích và ghi rõ lý do ngay tại
+  chỗ**: thay bằng nonce thì Next bắt buộc render động, tức 35 trong 51 tuyến đang tĩnh sẽ
+  thành lời gọi hàm mỗi request.
+
 ## [0.1.0] — 2026-08-27
 
 Bản gắn thẻ đầu tiên sau **530 commit**.
