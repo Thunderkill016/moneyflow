@@ -10,8 +10,9 @@ import {
 } from "@/lib/planning/budgets";
 import type { RecurringCommitment } from "@/lib/planning/commitments";
 import type { CategoryOption } from "@/lib/transactions/contracts";
-import { demoCategories, sampleTransactions } from "@/lib/demo/transaction-fixtures";
+import { demoCategories, sampleTransactionsFor } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
+import { todayInVietnam } from "@/lib/vietnam-date";
 import { requireViewer } from "@/server/auth";
 import { mapCommitmentRow } from "@/server/commitments";
 
@@ -185,7 +186,7 @@ function demoWorkspace(
       : [],
     // Derived from the same demo ledger the demo dashboard reads, so the two
     // agree in demo exactly as they must in authenticated mode.
-    monthIncome: monthIncomeTotal(sampleTransactions, resolution.monthStart.slice(0, 7)),
+    monthIncome: monthIncomeTotal(sampleTransactionsFor(todayInVietnam()), resolution.monthStart.slice(0, 7)),
     // Demo commitment state lives in browser storage owned by the commitments
     // surface, so the server cannot resolve it here without inventing one.
     monthCommitments: [],

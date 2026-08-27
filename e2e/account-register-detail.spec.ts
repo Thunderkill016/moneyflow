@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { demoSalary } from "./support/demo-ledger.ts";
 
 test.describe("Account register detail", () => {
   test.beforeEach(async ({ context }) => {
@@ -22,7 +23,7 @@ test.describe("Account register detail", () => {
       page.getByRole("region", { name: "Tóm tắt tài khoản" }),
     ).toBeVisible();
     await expect(page.getByText("Cơm trưa", { exact: true })).toBeVisible();
-    await expect(page.getByText("Lương tháng 7", { exact: true })).toBeVisible();
+    await expect(page.getByText(demoSalary().note, { exact: true })).toBeVisible();
     await expect(page.getByText("Grab đi làm", { exact: true })).toBeHidden();
     await expect(page.getByText("Không gồm chuyển tiền nội bộ").first()).toBeVisible();
   });

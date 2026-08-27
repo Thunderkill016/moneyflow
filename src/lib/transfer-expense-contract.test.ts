@@ -14,7 +14,10 @@ import {
 } from "./finance.ts";
 import { buildFinancialReport, reportRange } from "./reports.ts";
 import type { Transaction } from "./transactions/contracts.ts";
-import { sampleTransactions } from "./demo/transaction-fixtures.ts";
+import { sampleTransactionsFor } from "./demo/transaction-fixtures.ts";
+import { todayInVietnam } from "./vietnam-date.ts";
+
+const sampleTransactions = sampleTransactionsFor(todayInVietnam());
 
 const TODAY = "2026-07-14";
 const MONTH = "2026-07";

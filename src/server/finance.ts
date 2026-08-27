@@ -17,7 +17,7 @@ import type {
 import {
   demoAccounts,
   demoCategories,
-  sampleTransactions,
+  sampleTransactionsFor,
 } from "@/lib/demo/transaction-fixtures";
 import { getTransactionReviewStatus } from "@/lib/transaction-review";
 
@@ -157,7 +157,7 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
 
 function demoWorkspace(): FinanceWorkspace {
   return {
-    transactions: sampleTransactions.map((transaction) => ({
+    transactions: sampleTransactionsFor(todayInVietnam()).map((transaction) => ({
       ...transaction,
       reviewStatus: getTransactionReviewStatus(transaction),
     })),

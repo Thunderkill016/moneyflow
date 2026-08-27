@@ -19,57 +19,131 @@ export const demoCategories: CategoryOption[] = Object.entries(categories).flatM
     })),
 );
 
-export const sampleTransactions: Transaction[] = [
+/*
+ * Demo ledger seeds, dated relative to whenever the demo is opened.
+ *
+ * These rows used to carry a hard-coded `occurredOn` beside a hard-coded
+ * `relativeDate`, so a row labelled "Hôm nay" kept that label while its date
+ * aged. Six weeks after the fixture was written it claimed to be today while
+ * sitting in a month every month-scoped panel correctly reported as empty, and
+ * the dashboard showed a spend figure with nothing behind it. In a product
+ * whose whole claim is that a number can be checked, the demo was demonstrating
+ * the opposite to every first-time visitor.
+ *
+ * Deriving both from one resolved date is what keeps them from drifting apart
+ * again: the label cannot disagree with the date because it is computed from it.
+ */
+type DemoSeed = {
+  id: string;
+  kind: Transaction["kind"];
+  categoryId: string;
+  category: string;
+  note: (monthLabel: string) => string;
+  accountId: string;
+  account: string;
+  amount: number;
+  /** Whole days before the resolved date. 0 is that date itself. */
+  daysAgo: number;
+  /** UTC clock portion, kept so the ordering within a day stays deliberate. */
+  timeUtc: string;
+};
+
+const DEMO_SEEDS: DemoSeed[] = [
   {
     id: "sample-1",
     kind: "expense",
     categoryId: "demo-category-expense-Ăn uống",
     category: "Ăn uống",
-    note: "Cơm trưa",
+    note: () => "Cơm trưa",
     accountId: "demo-account-mb",
     account: "MB Bank",
     amount: 63_000,
-    occurredOn: "2026-07-14",
-    occurredAt: "2026-07-14T05:10:00.000Z",
-    relativeDate: "Hôm nay",
+    daysAgo: 0,
+    timeUtc: "05:10:00.000Z",
   },
   {
     id: "sample-2",
     kind: "expense",
     categoryId: "demo-category-expense-Di chuyển",
     category: "Di chuyển",
-    note: "Grab đi làm",
+    note: () => "Grab đi làm",
     accountId: "demo-account-momo",
     account: "MoMo",
     amount: 42_000,
-    occurredOn: "2026-07-14",
-    occurredAt: "2026-07-14T01:15:00.000Z",
-    relativeDate: "Hôm nay",
+    daysAgo: 0,
+    timeUtc: "01:15:00.000Z",
   },
   {
     id: "sample-3",
     kind: "expense",
     categoryId: "demo-category-expense-Mua sắm",
     category: "Mua sắm",
-    note: "Đồ dùng cá nhân",
+    note: () => "Đồ dùng cá nhân",
     accountId: "demo-account-mb",
     account: "MB Bank",
     amount: 286_000,
-    occurredOn: "2026-07-13",
-    occurredAt: "2026-07-13T11:30:00.000Z",
-    relativeDate: "Hôm qua",
+    daysAgo: 1,
+    timeUtc: "11:30:00.000Z",
   },
   {
     id: "sample-4",
     kind: "income",
     categoryId: "demo-category-income-Lương",
     category: "Lương",
-    note: "Lương tháng 7",
+    /*
+     * Named for the month it actually falls in. A fixed "Lương tháng 7" would
+     * be the same lie as a fixed "Hôm nay", just slower to notice.
+     */
+    note: (monthLabel) => `Lương ${monthLabel}`,
     accountId: "demo-account-mb",
     account: "MB Bank",
     amount: 15_000_000,
-    occurredOn: "2026-07-10",
-    occurredAt: "2026-07-10T02:00:00.000Z",
-    relativeDate: "10 thg 7",
+    daysAgo: 4,
+    timeUtc: "02:00:00.000Z",
   },
 ];
+
+const DAY_MS = 86_400_000;
+
+function shiftDays(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) throw new Error("invalid_demo_date");
+  return new Date(date.getTime() - days * DAY_MS).toISOString().slice(0, 10);
+}
+
+/** "Hôm nay" / "Hôm qua" / "13 thg 7" — derived, never stored beside the date. */
+function relativeLabel(occurredOn: string, daysAgo: number): string {
+  if (daysAgo === 0) return "Hôm nay";
+  if (daysAgo === 1) return "Hôm qua";
+  const day = Number(occurredOn.slice(8, 10));
+  const month = Number(occurredOn.slice(5, 7));
+  return `${day} thg ${month}`;
+}
+
+/**
+ * The demo ledger as of `today` ("YYYY-MM-DD", already resolved in
+ * Asia/Ho_Chi_Minh by the caller).
+ *
+ * Callers pass their own resolved date rather than this module reading a clock,
+ * so a server module that stays warm for hours cannot freeze the demo's idea of
+ * today — the same reason every other date in this product is passed in.
+ */
+export function sampleTransactionsFor(today: string): Transaction[] {
+  return DEMO_SEEDS.map((seed) => {
+    const occurredOn = shiftDays(today, seed.daysAgo);
+    const monthLabel = `tháng ${Number(occurredOn.slice(5, 7))}`;
+    return {
+      id: seed.id,
+      kind: seed.kind,
+      categoryId: seed.categoryId,
+      category: seed.category,
+      note: seed.note(monthLabel),
+      accountId: seed.accountId,
+      account: seed.account,
+      amount: seed.amount,
+      occurredOn,
+      occurredAt: `${occurredOn}T${seed.timeUtc}`,
+      relativeDate: relativeLabel(occurredOn, seed.daysAgo),
+    } satisfies Transaction;
+  });
+}

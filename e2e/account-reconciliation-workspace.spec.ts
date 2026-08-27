@@ -1,4 +1,17 @@
 import { expect, test, type Page } from "@playwright/test";
+import { demoSalary } from "./support/demo-ledger.ts";
+import { todayInVietnam } from "../src/lib/vietnam-date.ts";
+
+/*
+ * The statement closes on the demo ledger's own last day rather than a pinned
+ * date. The fixture now dates its rows relative to today, so "2026-07-14" fell
+ * outside every demo row and the reconciliation had nothing to clear.
+ *
+ * The balance stays literal: it is the opening balance plus every demo
+ * movement, and that total does not move when the dates do.
+ */
+const STATEMENT_DATE = todayInVietnam();
+const STATEMENT_DATE_LABEL = STATEMENT_DATE.split("-").reverse().join("/");
 
 const DEMO_KEY = "moneyflow-account-reconciliation-v1:demo-account-mb";
 
@@ -65,17 +78,17 @@ test.describe("Account reconciliation workspace", () => {
     await expect(
       page.getByRole("heading", { name: "Đối soát MB Bank" }),
     ).toBeVisible();
-    await fillStatementForm(page, "2026-07-14", "15.777.000");
+    await fillStatementForm(page, STATEMENT_DATE, "15.777.000");
     await expect(page.getByRole("button", { name: "Mở kỳ đối soát" })).toBeEnabled();
     await page.getByRole("button", { name: "Mở kỳ đối soát" }).click();
 
-    await expect(page.getByText("Kỳ sao kê 14/07/2026 đang mở")).toBeVisible();
+    await expect(page.getByText(`Kỳ sao kê ${STATEMENT_DATE_LABEL} đang mở`)).toBeVisible();
     await page.getByRole("button", { name: "Đánh dấu đã khớp Cơm trưa" }).click();
     await page
       .getByRole("button", { name: "Đánh dấu đã khớp Đồ dùng cá nhân" })
       .click();
     await page
-      .getByRole("button", { name: "Đánh dấu đã khớp Lương tháng 7" })
+      .getByRole("button", { name: `Đánh dấu đã khớp ${demoSalary().note}` })
       .click();
 
     await expect(
@@ -85,10 +98,10 @@ test.describe("Account reconciliation workspace", () => {
 
     await expect(page.getByRole("heading", { name: "Các kỳ đã hoàn tất" })).toBeVisible();
     await expect(page.getByText("1 kỳ", { exact: true })).toBeVisible();
-    await expect(page.getByText("Kỳ sao kê 14/07/2026", { exact: true })).toBeVisible();
+    await expect(page.getByText(`Kỳ sao kê ${STATEMENT_DATE_LABEL}`, { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "Mở lại kỳ gần nhất" }).click();
-    await expect(page.getByText("Kỳ sao kê 14/07/2026 đang mở")).toBeVisible();
+    await expect(page.getByText(`Kỳ sao kê ${STATEMENT_DATE_LABEL} đang mở`)).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Bỏ đánh dấu đã khớp Cơm trưa" }),
     ).toBeVisible();
@@ -96,12 +109,12 @@ test.describe("Account reconciliation workspace", () => {
 
   test("suggests an exact-difference row without clearing it automatically", async ({ page }) => {
     await page.goto("/accounts/demo-account-mb/reconcile");
-    await fillStatementForm(page, "2026-07-14", "15.777.000");
+    await fillStatementForm(page, STATEMENT_DATE, "15.777.000");
     await page.getByRole("button", { name: "Mở kỳ đối soát" }).click();
 
     await page.getByRole("button", { name: "Đánh dấu đã khớp Cơm trưa" }).click();
     await page
-      .getByRole("button", { name: "Đánh dấu đã khớp Lương tháng 7" })
+      .getByRole("button", { name: `Đánh dấu đã khớp ${demoSalary().note}` })
       .click();
 
     const hint = page.locator('[data-exact-difference-candidate="true"]');
@@ -128,7 +141,7 @@ test.describe("Account reconciliation workspace", () => {
 
   test("does not enable completion while the statement difference is nonzero", async ({ page }) => {
     await page.goto("/accounts/demo-account-mb/reconcile");
-    await fillStatementForm(page, "2026-07-14", "15.777.000");
+    await fillStatementForm(page, STATEMENT_DATE, "15.777.000");
     await expect(page.getByRole("button", { name: "Mở kỳ đối soát" })).toBeEnabled();
     await page.getByRole("button", { name: "Mở kỳ đối soát" }).click();
 
