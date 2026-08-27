@@ -192,7 +192,7 @@ export function OnboardingFlow({
             <span className={styles.progressCount}>{progressLabel}</span>
             <span className={styles.progressTitle}>{stepMeta.title}</span>
           </p>
-          <ol
+          <div
             className={styles.progress}
             role="progressbar"
             aria-valuenow={step}
@@ -204,16 +204,16 @@ export function OnboardingFlow({
               const state =
                 item.step < step ? styles.isDone : item.step === step ? styles.isActive : "";
               return (
-                <li key={item.step} className={state}>
+                <span key={item.step} className={state}>
                   <span className={styles.progressDot} aria-hidden="true" />
                   <span className={styles.progressStepLabel}>
                     {item.step}/{ONBOARDING_STEP_COUNT}
                     <span className={styles.progressStepName}> · {item.shortLabel}</span>
                   </span>
-                </li>
+                </span>
               );
             })}
-          </ol>
+          </div>
         </div>
 
         {step === 1 && (

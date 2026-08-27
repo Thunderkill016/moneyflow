@@ -424,6 +424,7 @@ export function DashboardPlanningColumn({
             <div
               className="budget-track"
               role="progressbar"
+              aria-label={`Tiến độ mục tiêu ${featuredGoal.name}`}
               aria-valuenow={featuredGoalProgressValue}
               aria-valuemin={0}
               aria-valuemax={100}

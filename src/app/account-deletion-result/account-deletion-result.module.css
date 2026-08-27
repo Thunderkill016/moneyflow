@@ -30,12 +30,12 @@
   justify-content: center;
   border-radius: 1rem;
   background: color-mix(in srgb, var(--mf-income) 14%, var(--mf-surface));
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .warning {
   background: color-mix(in srgb, var(--mf-warning) 14%, var(--mf-surface));
-  color: var(--mf-warning);
+  color: var(--mf-warning-text);
 }
 
 .eyebrow {

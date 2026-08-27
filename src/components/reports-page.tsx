@@ -305,7 +305,7 @@ export function ReportsPage({
                     <span className={styles.legendIncome}>Thu</span>
                     <span className={styles.legendExpense}>Chi</span>
                   </p>
-                  <div className={styles.trendScroll}>
+                  <div className={styles.trendScroll} tabIndex={0}>
                     <div
                       className={styles.trendChart}
                       role="img"
@@ -413,7 +413,7 @@ export function ReportsPage({
                           )}
                           <span
                             className={styles.categoryTrack}
-                            aria-label={`${item.share}% tổng chi`}
+                            aria-hidden="true"
                           >
                             <i style={{ width: `${item.share}%` }} />
                           </span>
@@ -470,7 +470,7 @@ export function ReportsPage({
                         )}
                         <span
                           className={styles.categoryTrack}
-                          aria-label={`${item.share}% tổng chi`}
+                          aria-hidden="true"
                         >
                           <i style={{ width: `${item.share}%` }} />
                         </span>

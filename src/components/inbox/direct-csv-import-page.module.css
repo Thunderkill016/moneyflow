@@ -168,11 +168,11 @@
 }
 
 .readyStatus {
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .skippedStatus {
-  color: var(--mf-warning);
+  color: var(--mf-warning-text);
 }
 
 .hint,

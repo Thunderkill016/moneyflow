@@ -80,6 +80,7 @@
   --mf-expense-subtle: #fef2f2;
   --mf-expense-text: #b91c1c;
   --mf-expense-border: #fca5a5;
+  --mf-on-expense: #ffffff;
   --mf-transfer: #4f46e5;
   --mf-transfer-subtle: #eef2ff;
   --mf-transfer-text: #4338ca;
@@ -176,6 +177,7 @@ html[data-theme="dark"] {
   --mf-expense-subtle: #7f1d1d;
   --mf-expense-text: #fca5a5;
   --mf-expense-border: #dc2626;
+  --mf-on-expense: #450a0a;
   --mf-transfer: #818cf8;
   --mf-transfer-subtle: #312e81;
   --mf-transfer-text: #a5b4fc;

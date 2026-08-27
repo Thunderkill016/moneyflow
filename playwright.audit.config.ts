@@ -14,6 +14,7 @@ const authAmountSpec = /auth-and-amount\.audit\.spec\.ts/;
 const accessibleAuthSpec = /accessible-authentication\.audit\.spec\.ts/;
 const keyboardSpec = /keyboard\.audit\.spec\.ts/;
 const captureConstrainedSpec = /capture-amount-first\.audit\.spec\.ts/;
+const wcagSpec = /wcag\.audit\.spec\.ts/;
 
 const responsiveWithSafety = [responsiveSpec, safetyReviewSpec, onboardingSpec, authAmountSpec];
 const criticalWithSafety = [criticalBrowserSpec, safetyReviewSpec, onboardingSpec, authAmountSpec];
@@ -219,6 +220,14 @@ export default defineConfig({
         viewport: { width: 320, height: 568 },
         isMobile: true,
         hasTouch: true,
+      },
+    },
+    {
+      name: "chromium-wcag",
+      testMatch: wcagSpec,
+      use: {
+        browserName: "chromium",
+        viewport: { width: 1366, height: 768 },
       },
     },
     {

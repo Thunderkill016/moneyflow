@@ -116,15 +116,15 @@
 }
 
 .statusCommitted {
-  color: var(--mf-income);
+  color: var(--mf-income-text);
 }
 
 .statusCancelled {
-  color: var(--mf-expense);
+  color: var(--mf-expense-text);
 }
 
 .statusParsed {
-  color: var(--mf-warning);
+  color: var(--mf-warning-text);
 }
 
 .actions {
