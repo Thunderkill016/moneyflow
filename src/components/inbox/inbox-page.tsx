@@ -47,7 +47,6 @@ import { annotateCandidates, type DetectedCandidate } from "@/lib/inbox/detect";
 import {
   isEditableKeyboardTarget,
   moveFocusIndex,
-  resolveApproveTargetIds,
   resolveInboxShortcut,
 } from "@/lib/inbox/keyboard";
 import {
@@ -257,11 +256,6 @@ export function InboxPage({
     );
     return selectedIds.filter((id) => pendingIds.has(id));
   }, [candidates, selectedIds]);
-  const activeSelectedIdsRef = useRef(activeSelectedIds);
-
-  useEffect(() => {
-    activeSelectedIdsRef.current = activeSelectedIds;
-  }, [activeSelectedIds]);
 
   const safeFocusedIndex =
     visible.length === 0
@@ -546,16 +540,10 @@ export function InboxPage({
     }
   }
 
-  const handleBulkApplyRef = useRef(handleBulkApply);
-  const bulkBusyRef = useRef(bulkBusy);
-  const isMutatingRef = useRef(isMutating);
   const reviewOpen = reviewId != null && reviewCandidate != null;
   const reviewOpenRef = useRef(reviewOpen);
 
   useEffect(() => {
-    handleBulkApplyRef.current = handleBulkApply;
-    bulkBusyRef.current = bulkBusy;
-    isMutatingRef.current = isMutating;
     reviewOpenRef.current = reviewOpen;
   });
 
@@ -607,30 +595,6 @@ export function InboxPage({
         }
         event.preventDefault();
         toggleSelect(list[index]!.id);
-        return;
-      }
-
-      if (action === "approve") {
-        if (bulkBusyRef.current || isMutatingRef.current) return;
-        const focused =
-          focusedIndexRef.current >= 0 && focusedIndexRef.current < list.length
-            ? list[focusedIndexRef.current]!.id
-            : null;
-        const ids = resolveApproveTargetIds(
-          activeSelectedIdsRef.current,
-          focused,
-        );
-        if (ids.length === 0) {
-          setNotice("Chọn ứng viên bằng X trước khi duyệt.");
-          return;
-        }
-        event.preventDefault();
-        void handleBulkApplyRef.current({
-          action: "approve",
-          selectedIds: ids,
-          includeLowConfidence: false,
-          categoryId: "",
-        });
       }
     }
 
@@ -940,8 +904,8 @@ export function InboxPage({
                 vẫn cần xác nhận; Cần xem lại không đi vào duyệt nhóm.
               </p>
               <p aria-label="Phím tắt Inbox">
-                <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>X</kbd> chọn · <kbd>A</kbd>{" "}
-                duyệt · <kbd>C</kbd> Capture · <kbd>N</kbd> Thêm nhanh
+                <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>X</kbd> chọn · <kbd>C</kbd>{" "}
+                Capture · <kbd>N</kbd> Thêm nhanh
               </p>
             </div>
           </section>
