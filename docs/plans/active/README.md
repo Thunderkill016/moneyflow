@@ -1,7 +1,7 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-28 (#511 selection candidate from current main)
-**Current main baseline:** `6298e6c52cfff6f3a972cf72cf79022e341ce638` (PR #510 squash-merged)
+**Last reconciled:** 2026-08-28 (#511 implementation active under merged PR #521 authority)
+**Current main baseline:** `133fa462d3cd5f90b1f70cccb179547815c2ba2d` (PR #521 squash-merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 closed by owner declaration on 2026-08-27 — one Android device on Chrome, no iOS/Safari observation. RRB-02 and RRB-05 closed by explicit owner decision on 2026-08-27; RRB-04/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -25,7 +25,7 @@ nhận là giới hạn đã chấp nhận chứ không phải đã chứng minh
 
 ## NOW
 
-- [ ] **#511 — Inbox exception-first review without auto-posting** — selected #432 P2 `current agent-executable` slice in this planning candidate. It derives one strict shared Ready/Needs-attention classification from existing candidate/account/category facts, exposes a cheaper explicit Ready-set selection, preserves confirmation before every ledger write, and keeps duplicates/transfers/low-confidence/unresolved candidates in explicit review. Full packet: `docs/plans/active/511-inbox-exception-first-review.md`. **This unmerged planning branch is candidate authority only; runtime implementation starts from fresh `main` only after owner merge.**
+- [ ] **#511 — Inbox exception-first review without auto-posting** — selected #432 P2 `current agent-executable` slice under merged PR #521 authority. Runtime implementation is active in PR #522 from fresh `main@133fa462d3cd5f90b1f70cccb179547815c2ba2d`. It derives one strict shared Ready/Needs-attention classification from existing candidate/account/category facts, exposes a cheaper explicit Ready-set selection, preserves confirmation before every ledger write, and keeps duplicates/transfers/low-confidence/unresolved candidates in explicit review. Full packet: `docs/plans/active/511-inbox-exception-first-review.md`. PR #522 remains candidate implementation evidence until exact-head gates, lifecycle convergence and owner merge.
 - [x] **RRB-08 — current physical-device proof** — issue #398 closed by the owner on 2026-08-27 on a POCO X8 Pro, Android, Chrome, authenticated, verdict PASS. Coverage is one Android device; no iOS/Safari observation exists. Evidence in `docs/plans/active/rrb-08-physical-device-proof.md`.
 
 ## NEXT
@@ -105,7 +105,7 @@ nhận là giới hạn đã chấp nhận chứ không phải đã chứng minh
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates |
-| `511-inbox-exception-first-review.md` | current agent-executable | bounded #432 P2 exception-first Inbox review; authority activates only after this planning selection merges |
+| `511-inbox-exception-first-review.md` | current agent-executable | bounded #432 P2 exception-first Inbox review; authority activated by merged PR #521; implementation candidate PR #522 does not change authority until owner merge |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |
