@@ -26,6 +26,7 @@ source of truth.
 | How is it built? | `ARCHITECTURE.md` | affected code, tests and migrations |
 | Which delivery/permission rules apply? | `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` and `docs/engineering/AGENT_OPERATING_MODEL.md` | `npm run agent:doctor` projects the existing policy; it grants no permission |
 | How do I research or recover history? | `docs/research/REPOSITORY_REFERENCE_MAP.md` and `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` | `docs/research/PR_MEMORY_LOG.md`, `docs/plans/completed/` and `docs/plans/archived/` |
+| Where is the larger external research corpus? | `Thunderkill016/moneyflow-research` (evidence only) | `docs/research/2026-08-28_RESEARCH_HANDOFF.md`; verify every implementation-impacting recommendation against current MoneyFlow truth before acting |
 | Where is configuration authority? | `docs/configuration.md` | `docs/deployment.md`, `docs/supabase-setup.md`, `.env.example`, `vercel.json` and deployment validator |
 
 Do not read archived packets or PR memory to determine current state unless this route
@@ -42,10 +43,10 @@ identifies a provenance question.
 | Reports/export | report/export domain modules and tests | transfer exclusion, safe integers, filter parity, formula safety |
 | Import/Inbox/rules | import workspaces, provenance migrations/tests and issue #53 current comments | raw provenance, idempotency, confidence, tenant isolation |
 | Auth/provider/security | `docs/configuration.md`, `docs/supabase-setup.md`, `docs/security-rls-check.md`, provider runbook when accepted | repository readiness versus provider enforcement; rollback and smoke |
-| UI/mobile/accessibility | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` | owning CSS layer, responsive/browser evidence, physical-device claims |
+| UI/mobile/accessibility | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md`, `docs/research/2026-08-28_RESEARCH_HANDOFF.md` | owning CSS layer, responsive/browser evidence, physical-device claims; broad redesign must begin with A0 historical failure review |
 | Architecture/dependency/tooling | `ARCHITECTURE.md`, `docs/engineering/AI_DELIVERY_WORKFLOW.md`, focused repository reference maps | license, security, privacy, ownership, operations and rollback |
 | CI/deployment/performance | `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`, CI classifier/workflows, load contracts | exact-head selected gates; no claim for skipped boundaries |
-| Brand/landing | brand guidelines, logo docs, `docs/research/UI_UX_RESEARCH_LEDGER.md` and historical UI packets | owner judgment; candidate design is not product truth; A0 must retain prior failure lessons |
+| Brand/landing | brand guidelines, logo docs, `docs/research/UI_UX_RESEARCH_LEDGER.md`, `docs/research/2026-08-28_RESEARCH_HANDOFF.md` and historical UI packets | owner judgment; candidate design is not product truth; A0 must retain prior failure lessons |
 
 ## Cold-memory retrieval
 
