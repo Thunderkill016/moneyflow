@@ -255,13 +255,20 @@ export function resolvePlanAuthority(
       `could not verify Current Work Board freshness: ${resolvedExpected.error ?? "unknown base"}`,
     );
   } else if (boardBaseline && !sameCommit(boardBaseline, resolvedExpected.sha)) {
-    const headPr = prNumberFromSubject(
-      commitSubject(root, resolvedExpected.sha, runGit),
+    const boardCommitPr = prNumberFromSubject(
+      commitSubject(root, boardLastCommit, runGit),
     );
     const explicitPostMergeProjection =
       Number.isInteger(boardProjectionPr) &&
-      headPr === boardProjectionPr &&
-      sameCommit(boardLastCommit, resolvedExpected.sha);
+      boardCommitPr === boardProjectionPr &&
+      Boolean(boardLastCommit) &&
+      (sameCommit(boardLastCommit, resolvedExpected.sha) ||
+        runGit(root, [
+          "merge-base",
+          "--is-ancestor",
+          boardLastCommit,
+          resolvedExpected.sha,
+        ]) !== null);
 
     if (explicitPostMergeProjection) {
       baselineMode = "post-merge-projection";
