@@ -75,7 +75,7 @@ test.describe("Phase 8 secondary and safety flows", () => {
     await expect(dialog.getByRole("button", { name: "Hủy" })).toBeFocused();
   });
 
-  test("shows low-confidence Inbox review and bulk confirmation", async ({
+  test("shows low-confidence Inbox review and fail-closed bulk confirmation", async ({
     page,
   }) => {
     await page.goto("/inbox");
@@ -93,19 +93,19 @@ test.describe("Phase 8 secondary and safety flows", () => {
 
     await page.getByLabel("Chọn Highlands Coffee").check();
     await page.getByLabel("Chọn LUONG CT").check();
-    await expect(
-      page.locator('[data-slot="inbox-bulk-review"]'),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Xem lại" }).click();
+    const bulkBar = page.locator('[data-slot="inbox-bulk-review"]');
+    await expect(bulkBar).toBeVisible();
+    await expect(bulkBar).toContainText("Cần xem lại sẽ không được ghi sổ");
+    await bulkBar.getByRole("button", { name: "Xem lại", exact: true }).click();
 
     const bulkDialog = page.getByRole("dialog", {
       name: "Xác nhận hành động hàng loạt",
     });
     await expect(bulkDialog).toBeVisible();
-    await expect(
-      bulkDialog.locator('[data-slot="inbox-bulk-confirmation"]'),
-    ).toContainText("1 ứng viên");
-    await expect(bulkDialog).toContainText("độ tin thấp sẽ bị bỏ qua");
+    const confirmation = bulkDialog.locator('[data-slot="inbox-bulk-confirmation"]');
+    await expect(confirmation).toContainText("Sẵn sàng ghi sổ");
+    await expect(confirmation).toContainText("Cần xem lại");
+    await expect(bulkDialog).toContainText("giữ nguyên trạng thái chờ duyệt");
   });
 
   test("states Rules and Imports remain review-first", async ({ page }) => {
