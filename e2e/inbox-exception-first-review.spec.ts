@@ -123,9 +123,9 @@ test("mixed batch selects and posts only Ready candidates after explicit confirm
   // This test proves the same explicit-review path now selects only deterministic
   // Ready rows; it does not claim a general click-count or manual-entry reduction.
   await selectReady.click();
-  await expect(page.getByText("Đã chọn 3 ứng viên")).toBeVisible();
 
   const bulkBar = page.locator('[data-slot="inbox-bulk-review"]');
+  await expect(bulkBar.getByText("Đã chọn 3 ứng viên", { exact: true })).toBeVisible();
   await bulkBar.getByRole("button", { name: "Xem lại", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Xác nhận hành động hàng loạt" });
   await expect(dialog).toBeVisible();
