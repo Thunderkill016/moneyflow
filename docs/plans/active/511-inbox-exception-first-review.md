@@ -22,18 +22,44 @@ The pre-#511 Inbox already had a one-click `Chọn tất cả ... ứng viên đ
 
 The actual value is safety and decision burden: the old grouped approval gate mainly excluded low-confidence rows and could still admit selected high/medium duplicate or transfer-like candidates. #511 derives one stricter Ready contract and keeps exceptions pending for explicit review.
 
-The community corpus still ranks capture/maintenance friction as the stronger product problem. Follow-on acquisition work must be selected from that evidence rather than treating this safety slice as capture reduction.
+## Repository reconnaissance
 
-## Repository truth before implementation
+Current repository truth before #522:
 
 - `filterCandidates(..., "needs_review")` meant low confidence only.
 - bulk approval partitioned by confidence rather than one deterministic Ready contract.
 - `draftFromCandidate` could fall back to the first current account/category; that convenience is valid for manual review but cannot prove readiness.
 - `buildLedgerPost` already enforced positive safe-integer VND amount, valid date, current account/category membership and transfer invariants.
 - Inbox already owned explicit selection, review confirmation and the posting path.
-- desktop keyboard shortcut `A` could reach grouped apply directly; #522 removes `A` from the shortcut map so grouped approval has no confirmation-bypassing shortcut.
+- desktop keyboard shortcut `A` could reach grouped apply directly; that could bypass the visible grouped confirmation path.
+- demo accounts are `MB Bank`, `Tiền mặt`, `MoMo`, and `USD du lịch`; tests must use those actual fixtures rather than invented account labels.
 
-## Readiness contract
+Relevant implementation boundary:
+
+- `src/lib/inbox/readiness.ts`
+- `src/components/inbox/inbox-page.tsx`
+- `src/components/inbox/inbox-bulk-bar.tsx`
+- `src/lib/inbox/keyboard.ts`
+- bounded unit/browser tests.
+
+No schema, RPC, RLS, provider, native or deployment change is required by the intended slice.
+
+## Research
+
+The separate MoneyFlow Research corpus supports capture/maintenance friction as the stronger user problem. That evidence is useful for product priority but does not widen this already-selected slice.
+
+Applicable external patterns from current YNAB/Actual/Firefly documentation are limited to trust principles:
+
+- uncertain imported rows remain reviewable/correctable;
+- stable source identity is stronger than fuzzy similarity;
+- duplicate/reconciliation behavior needs explicit semantics;
+- saving review effort must not silently lower correctness.
+
+The earlier research interpretation that #511 itself was the best answer to manual-entry friction was corrected. Follow-on acquisition work requires separate authority and should target trusted rows acquired per user action plus correction burden.
+
+## Specification
+
+### Readiness contract
 
 One pure classifier shared by presentation and grouped selection returns `ready | needs_attention` plus machine-readable reasons.
 
@@ -64,7 +90,7 @@ Attention reasons cover:
 
 Non-pending rows never enter the pending partition.
 
-## UX contract
+### UX contract
 
 - textual Sẵn sàng / Cần xem lại counts and row state;
 - direct `Chọn Sẵn sàng` action selects only; it never posts;
@@ -75,7 +101,7 @@ Non-pending rows never enter the pending partition.
 - manual single review, reject, category, duplicate and transfer workflows remain available;
 - state is not color-only.
 
-## Financial/security boundaries
+### Financial/security boundaries
 
 - readiness is derived workflow state, not persisted financial truth;
 - no auto-posting or auto-approval;
@@ -87,16 +113,19 @@ Non-pending rows never enter the pending partition.
 - source evidence never establishes `reconciled`;
 - candidate idempotency/recovery remains unchanged.
 
-## Implementation
+## Implementation plan
 
-PR #522 currently changes the bounded Inbox path only:
+PR #522 implements the bounded Inbox change only:
 
-- `src/lib/inbox/readiness.ts` — pure strict classifier and pending partition;
-- `src/components/inbox/inbox-page.tsx` — counts, filters, Ready selection and defense-in-depth reclassification before posting;
-- `src/components/inbox/inbox-bulk-bar.tsx` — fail-closed confirmation payload;
-- `src/lib/inbox/keyboard.ts` — no direct grouped-approval shortcut;
-- unit tests for inclusion/exclusion and keyboard behavior;
-- Playwright mixed-batch proof and compatibility update for the existing Phase 8 Inbox safety test.
+1. `src/lib/inbox/readiness.ts` owns the strict classifier and pending partition.
+2. `src/components/inbox/inbox-page.tsx` consumes the shared partition for counts, filters, Ready selection and defense-in-depth reclassification immediately before posting.
+3. `src/components/inbox/inbox-bulk-bar.tsx` derives the selected Ready subset again and sends only Ready IDs for grouped approve confirmation.
+4. `src/lib/inbox/keyboard.ts` removes direct grouped approval from the shortcut map so grouped ledger writes cannot bypass visible confirmation through `A`.
+5. Unit tests cover inclusion/exclusion reasons and keyboard behavior.
+6. Playwright covers a mixed batch with three Ready rows plus low-confidence, duplicate and transfer exceptions, asserting only Ready rows post after explicit confirmation.
+7. Existing Phase 8 Inbox safety coverage is updated only where the new semantics make its old global selector/wording stale.
+
+No drive-by architecture, parser, bank-source or provider work belongs in #522.
 
 ## Verification state
 
@@ -119,9 +148,13 @@ The browser failures were diagnosed rather than waived:
 1. the new mixed-batch fixture used `Vietcombank` for two supposed Ready rows even though demo accounts are `MB Bank`, `Tiền mặt`, `MoMo`, and `USD du lịch`; strict readiness correctly rejected the invented account. The fixture now uses explicit real demo account/category IDs.
 2. the existing Phase 8 test used an unscoped `getByRole("button", { name: "Xem lại" })`; after the new Cần-xem-lại labels, the locator became ambiguous. It now scopes the exact `Xem lại` button to `[data-slot="inbox-bulk-review"]` and asserts fail-closed Ready/Attention semantics.
 
-Any branch mutation invalidates superseded-head browser acceptance; the latest exact-head CI must pass before handoff.
+On later head `00eaa10f4c82367dc79b5229dc02d80b30211e4d`, build/static/unit/code analysis remained green, but the project-knowledge contract correctly rejected documentation structure changes before browser shards ran. This packet restores the required structure instead of weakening that gate.
 
-## Acceptance matrix
+Any branch mutation invalidates prior exact-head acceptance; the latest CI is authoritative.
+
+## Evaluation
+
+### Acceptance matrix
 
 - [x] one classifier owns readiness for UI and grouped selection;
 - [x] pending rows partition into Ready / Needs attention with reason codes;
@@ -139,7 +172,7 @@ Any branch mutation invalidates superseded-head browser acceptance; the latest e
 - [ ] independent final diff/spec review;
 - [ ] same-PR completion projection (board + current memory + packet archive) before owner handoff.
 
-## Metric statement
+### Metric statement
 
 Do **not** publish a `40% fewer clicks` claim for #511.
 
@@ -151,6 +184,14 @@ What can be measured on the representative mixed batch is:
 
 Real user maintenance/capture impact remains unproven and is not an acceptance claim for this slice.
 
+### Remaining limitations
+
+- Real Ready proportion in actual imported batches is unknown.
+- No claim that #511 reduces manual entry or total user maintenance.
+- Corpus evidence is tech-community-skewed and not Vietnam-wide prevalence.
+- Browser CI is not physical-device evidence.
+- Follow-on capture/import work requires separate authority after this current slice converges.
+
 ## Tasks
 
 | ID | Task | Status |
@@ -161,17 +202,9 @@ Real user maintenance/capture impact remains unproven and is not an acceptance c
 | P4 | Select #511 via PR #521 | done — merged |
 | I1 | Implement strict classifier | done |
 | I2 | Wire exception-first UI and confirmation | done |
-| I3 | Unit/static/build/policy verification | done on superseded head; latest exact head pending |
-| I4 | Browser mixed-batch + regression verification | in progress after evidence-driven test corrections |
+| I3 | Unit/static/build/policy verification | latest exact-head rerun pending after contract-structure repair |
+| I4 | Browser mixed-batch + regression verification | pending exact-head browser run |
 | I5 | Same-PR lifecycle convergence and owner handoff | pending exact-head green |
-
-## Remaining limitations
-
-- Real Ready proportion in actual imported batches is unknown.
-- No claim that #511 reduces manual entry or total user maintenance.
-- Corpus evidence is tech-community-skewed and not Vietnam-wide prevalence.
-- Browser CI is not physical-device evidence.
-- Follow-on capture/import work requires separate authority after this current slice converges.
 
 ## Handoff / permission boundary
 
