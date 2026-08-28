@@ -75,7 +75,7 @@ test.describe("Phase 8 secondary and safety flows", () => {
     await expect(dialog.getByRole("button", { name: "Hủy" })).toBeFocused();
   });
 
-  test("shows low-confidence Inbox review and fail-closed bulk confirmation", async ({
+  test("shows low-confidence Inbox review and fail-closed grouped approval", async ({
     page,
   }) => {
     await page.goto("/inbox");
@@ -96,16 +96,17 @@ test.describe("Phase 8 secondary and safety flows", () => {
     const bulkBar = page.locator('[data-slot="inbox-bulk-review"]');
     await expect(bulkBar).toBeVisible();
     await expect(bulkBar).toContainText("Cần xem lại sẽ không được ghi sổ");
-    await bulkBar.getByRole("button", { name: "Xem lại", exact: true }).click();
 
-    const bulkDialog = page.getByRole("dialog", {
-      name: "Xác nhận hành động hàng loạt",
+    // This selection contains no deterministic Ready candidate. The grouped
+    // approval path must fail closed before a confirmation dialog can open.
+    const reviewButton = bulkBar.getByRole("button", {
+      name: "Xem lại",
+      exact: true,
     });
-    await expect(bulkDialog).toBeVisible();
-    const confirmation = bulkDialog.locator('[data-slot="inbox-bulk-confirmation"]');
-    await expect(confirmation).toContainText("Sẵn sàng ghi sổ");
-    await expect(confirmation).toContainText("Cần xem lại");
-    await expect(bulkDialog).toContainText("giữ nguyên trạng thái chờ duyệt");
+    await expect(reviewButton).toBeDisabled();
+    await expect(
+      page.getByRole("dialog", { name: "Xác nhận hành động hàng loạt" }),
+    ).toHaveCount(0);
   });
 
   test("states Rules and Imports remain review-first", async ({ page }) => {
