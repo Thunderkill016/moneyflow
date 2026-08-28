@@ -1,86 +1,55 @@
 # Inbox exception-first review without auto-posting
 
-**Status:** specified — selection candidate until PR #521 merges
-**Execution state:** planned
-**Active role:** planner
+**Status:** active implementation under merged selection PR #521
+**Execution state:** implementation / exact-head verification
+**Active role:** current agent-executable
 **Permission scope:** branch_write
 **Owner:** MoneyFlow owner
-**Issue/PR:** Issue #511; implementation PR intentionally not started
+**Issue/PR:** Issue #511; implementation PR #522
 **Parent authority:** #432 P2 — Low-Maintenance Ingestion
-**Baseline:** `main@6298e6c52cfff6f3a972cf72cf79022e341ce638`
+**Baseline:** `main@133fa462d3cd5f90b1f70cccb179547815c2ba2d`
 **Last updated:** 2026-08-28
 
 ## Outcome
 
-Reduce review work for already well-formed Inbox candidates by separating a deterministic **Sẵn sàng** set from **Cần xem lại**, then letting the user explicitly select the Ready set before the existing confirmation/posting path.
+Separate pending Inbox candidates into deterministic **Sẵn sàng** and **Cần xem lại** states so grouped review fails closed to candidates that already have enough explicit evidence to build a valid ledger post. Selection never posts by itself and explicit confirmation remains mandatory.
 
-Success is fewer interventions on the same representative mixed batch without lowering correctness, duplicate/transfer safety, provenance, idempotency or explicit approval. Classification never posts by itself.
+### Corrected product interpretation
 
-This packet becomes execution authority only after PR #521 is merged. Runtime implementation must then start from fresh `main`, with `npm run plan:resolve` and `npm run agent:doctor -- --json` passing first.
+#511 is **review/trust infrastructure**, not the primary solution to manual-entry/capture friction.
 
-## Repository reconnaissance
+The pre-#511 Inbox already had a one-click `Chọn tất cả ... ứng viên đang hiển thị` control. Therefore the product must not claim that #511 generally reduces the minimum grouped path from five activations to three. `select all → review → confirm` was already three activations; `select Ready → review → confirm` is also three.
 
-### Current behavior
+The actual value is safety and decision burden: the old grouped approval gate mainly excluded low-confidence rows and could still admit selected high/medium duplicate or transfer-like candidates. #511 derives one stricter Ready contract and keeps exceptions pending for explicit review.
 
-Current code confirms issue #511:
+The community corpus still ranks capture/maintenance friction as the stronger product problem. Follow-on acquisition work must be selected from that evidence rather than treating this safety slice as capture reduction.
 
-- `filterCandidates(..., "needs_review")` currently means low confidence only.
-- `partitionBulkApprove` gates selected pending rows by confidence, not one deterministic Ready contract.
-- `draftFromCandidate` can obtain account/category through helpers that fall back to the first current option. That is acceptable convenience for manual review but **cannot prove readiness**.
-- `buildLedgerPost` is stricter: amount must be a positive safe-integer VND value, date must match `YYYY-MM-DD`, money rows need an existing account and same-kind category, and transfers need two distinct accounts.
-- Inbox already owns explicit selection, confirmation and posting. #511 changes selection cost and exception visibility, not the ledger-write boundary.
+## Repository truth before implementation
 
-### Relevant areas
+- `filterCandidates(..., "needs_review")` meant low confidence only.
+- bulk approval partitioned by confidence rather than one deterministic Ready contract.
+- `draftFromCandidate` could fall back to the first current account/category; that convenience is valid for manual review but cannot prove readiness.
+- `buildLedgerPost` already enforced positive safe-integer VND amount, valid date, current account/category membership and transfer invariants.
+- Inbox already owned explicit selection, review confirmation and the posting path.
+- desktop keyboard shortcut `A` could reach grouped apply directly; #522 removes `A` from the shortcut map so grouped approval has no confirmation-bypassing shortcut.
 
-| Area | Boundary |
-|---|---|
-| `src/lib/inbox/candidate-store.ts` | candidate facts/current filters; do not create a second truth path |
-| `src/lib/inbox/review.ts` | review drafts, bulk partition and ledger-post validation; preferred classifier owner |
-| `src/components/inbox/inbox-page.tsx` | list/filter/selection/confirmation orchestration |
-| `src/components/inbox/inbox-bulk-bar.tsx` | bounded Ready-set affordance if this remains the owning control |
-| related unit/browser tests | classifier exclusions, mixed-batch posting and interaction proof |
+## Readiness contract
 
-### Constraints confirmed
+One pure classifier shared by presentation and grouped selection returns `ready | needs_attention` plus machine-readable reasons.
 
-- VND remains integer đồng.
-- Transfers remain manual/single-row and never grouped Ready approval.
-- Possible duplicates and possible transfers stay attention-required; no matching semantics change.
-- Candidate idempotency/recovery behavior remains unchanged.
-- Demo and authenticated modes share readiness semantics.
-- State cannot rely on color alone.
-- No schema, RLS, Auth, provider, deployment, native-device or AI mutation change is authorized.
+A pending candidate is Ready only when all hold:
 
-## Research
+1. kind is `income` or `expense`;
+2. confidence is not low;
+3. `possibleDuplicate !== true`;
+4. `possibleTransfer !== true`;
+5. amount is a positive safe integer;
+6. date satisfies the existing ledger-date format;
+7. explicit candidate account evidence resolves to a current account without fallback-to-first;
+8. explicit candidate category evidence resolves to a current same-kind category without fallback-to-first;
+9. the existing `buildLedgerPost` validation succeeds.
 
-Research is evidence, not implementation authority; code/tests outrank it for current behavior.
-
-1. **MoneyFlow Research — community corpus decision intelligence** — `https://github.com/Thunderkill016/moneyflow-research/blob/main/docs/product/2026-08-28-community-corpus-decision-intelligence.md`. It supports maintenance/capture burden as a strong repeated signal in the current adjudicated subset, but does not establish market prevalence or authorize automation.
-2. **MoneyFlow Research PR #4 — low-maintenance acquisition sequence** — `https://github.com/Thunderkill016/moneyflow-research/pull/4`. Candidate evidence ranks #511 before broader file/OCR/provider work and rejects fuzzy/semantic or fallback guesses as a way to inflate Ready. It is unmerged and therefore supporting evidence only.
-3. **YNAB — Approving and Matching Transactions** — `https://support.ynab.com/en_us/approving-and-matching-transactions-a-guide-ByYNZaQ1i`. Official current guidance demonstrates approve/reject/match/categorize and bulk review. YNAB's automatic approval for some matched imports does **not** apply because #511 forbids automatic approval.
-4. **Actual Budget — Importing Transactions** — `https://actualbudget.org/docs/transactions/importing/`. Official current guidance prefers stable imported IDs when available and documents duplicate matching. Its fuzzy fallback behavior is not a MoneyFlow requirement and is outside #511.
-
-**Applied conclusion:** adapt only the shared trust pattern — make the clearly actionable set cheaper to review while preserving visible exceptions and correction paths. Do not import another product's threshold, provider stack or auto-approval behavior.
-
-## Specification
-
-### Readiness contract
-
-Add **one pure, testable classifier** shared by Inbox presentation and Ready-set selection. It accepts candidate facts plus current account/category options and returns `ready | needs_attention` with machine-readable reasons.
-
-A candidate is `ready` only when all hold:
-
-1. `status === "pending"`;
-2. `kind` is `income` or `expense`;
-3. `confidence !== "low"`;
-4. `possibleDuplicate !== true`;
-5. `possibleTransfer !== true`;
-6. amount satisfies the existing positive safe-integer VND constraint;
-7. date satisfies the existing ledger date constraint;
-8. explicit candidate account evidence resolves to a current account **without fallback-to-first**;
-9. explicit candidate category evidence resolves to a current same-kind category **without fallback-to-first**;
-10. the existing money-post validation succeeds without invented account/category choices.
-
-Every other pending candidate is `needs_attention`. Reason codes must cover at least:
+Attention reasons cover:
 
 - `low_confidence`;
 - `possible_duplicate`;
@@ -91,138 +60,127 @@ Every other pending candidate is `needs_attention`. Reason codes must cover at l
 - `account_missing_or_unresolved`;
 - `category_missing_or_unresolved`;
 - `category_kind_mismatch`;
-- `invalid_posting_draft` for another existing post invariant.
+- `invalid_posting_draft`.
 
-Non-pending rows never enter the pending Ready/Attention partition.
+Non-pending rows never enter the pending partition.
 
-### UX contract
+## UX contract
 
-- Show textual **Sẵn sàng** and **Cần xem lại** state/counts or semantic equivalents.
-- Provide one direct action to select the Ready set.
-- Selecting Ready never approves/posts.
-- Preserve the existing explicit confirmation with selected count/consequence before grouped posting.
-- Only Ready rows enter the grouped Ready action.
-- Preserve manual single-review, reject, duplicate and transfer paths.
-- Transfers never join grouped Ready approval.
-- Changed controls remain keyboard/touch usable and responsive.
+- textual Sẵn sàng / Cần xem lại counts and row state;
+- direct `Chọn Sẵn sàng` action selects only; it never posts;
+- existing visible grouped confirmation remains mandatory;
+- grouped approve payload contains only candidates classified Ready from current facts;
+- page handler reclassifies again immediately before posting;
+- low-confidence, duplicate, transfer, missing/invalid account/category/date/amount remain pending;
+- manual single review, reject, category, duplicate and transfer workflows remain available;
+- state is not color-only.
 
-### Acceptance criteria
+## Financial/security boundaries
 
-- [ ] One classifier owns readiness for both UI and grouped selection.
-- [ ] Pending rows partition into `ready` and `needs_attention` with reason codes.
-- [ ] Every exclusion above has unit coverage.
-- [ ] Explicit account/category resolution is proven; first-option fallback is never Ready evidence.
-- [ ] Inbox exposes Ready count and one-action Ready-set selection.
-- [ ] Explicit confirmation remains mandatory before every grouped ledger write.
-- [ ] No auto-approval/posting exists.
-- [ ] Candidate idempotency/recovery remains unchanged.
-- [ ] Manual single-review/reject/duplicate/transfer flows still work.
-- [ ] Demo/authenticated modes use identical classifier semantics.
-- [ ] Mixed-batch E2E: select Ready → explicit confirm → only Ready posts; all exceptions stay pending/visible.
-- [ ] Accessibility/responsive evidence covers the changed state/action.
-- [ ] Implementing PR reports measured before/after interaction count on the same fixture.
+- readiness is derived workflow state, not persisted financial truth;
+- no auto-posting or auto-approval;
+- no behavior learning or AI mutation;
+- no fuzzy/semantic duplicate or transfer expansion;
+- no provider/bank/native integration;
+- no OCR/document parser change;
+- no schema/RLS/Auth/deployment change;
+- source evidence never establishes `reconciled`;
+- candidate idempotency/recovery remains unchanged.
 
-### Representative intervention fixture
+## Implementation
 
-Use six pending candidates: three Ready plus three attention-required rows covering at least low confidence, duplicate and transfer/transfer-like or unresolved evidence.
+PR #522 currently changes the bounded Inbox path only:
 
-Count one intervention as one user activation that changes selection or advances grouped approval. Record the actual pre-change baseline first. Planning hypothesis only: three individual row selections + enter review + confirm = 5 activations versus Ready-set selection + review + confirm = 3, a possible 40% reduction. **This is not acceptance evidence until measured in the browser flow.**
+- `src/lib/inbox/readiness.ts` — pure strict classifier and pending partition;
+- `src/components/inbox/inbox-page.tsx` — counts, filters, Ready selection and defense-in-depth reclassification before posting;
+- `src/components/inbox/inbox-bulk-bar.tsx` — fail-closed confirmation payload;
+- `src/lib/inbox/keyboard.ts` — no direct grouped-approval shortcut;
+- unit tests for inclusion/exclusion and keyboard behavior;
+- Playwright mixed-batch proof and compatibility update for the existing Phase 8 Inbox safety test.
 
-### Financial/security boundaries
+## Verification state
 
-- Readiness is derived workflow state, not stored financial truth.
-- A candidate becomes a ledger fact only through the existing explicit posting path.
-- Source evidence never establishes `reconciled`.
-- Duplicate/transfer guards, tenant ownership, RLS and idempotency are not weakened.
-- Imported/shared material remains untrusted input.
+On superseded head `412888c8fcd9d9267a873c3c2ef5e76c451f05f0`:
 
-### Out of scope
+- classify: PASS;
+- static quality / lint / typecheck: PASS;
+- production build: PASS;
+- database shard: PASS / not required;
+- policy contracts including project knowledge: PASS;
+- unit tests/static RLS: PASS;
+- aggregate verify: PASS;
+- cross-device UI audit: PASS;
+- CodeQL: PASS;
+- secret-history scan: PASS;
+- Browser smoke: FAIL (132 passed, four failures across two tests/projects).
 
-Auto-posting; behavior learning; AI mutation; fuzzy/semantic duplicate or transfer expansion; provider/bank/native integration; OCR/document parsing; schema/RLS/Auth/deployment changes; transfer bulk approval; broad Inbox redesign; first-option defaults as readiness proof.
+The browser failures were diagnosed rather than waived:
 
-## Implementation plan
+1. the new mixed-batch fixture used `Vietcombank` for two supposed Ready rows even though demo accounts are `MB Bank`, `Tiền mặt`, `MoMo`, and `USD du lịch`; strict readiness correctly rejected the invented account. The fixture now uses explicit real demo account/category IDs.
+2. the existing Phase 8 test used an unscoped `getByRole("button", { name: "Xem lại" })`; after the new Cần-xem-lại labels, the locator became ambiguous. It now scopes the exact `Xem lại` button to `[data-slot="inbox-bulk-review"]` and asserts fail-closed Ready/Attention semantics.
 
-### Architecture fit
+Any branch mutation invalidates superseded-head browser acceptance; the latest exact-head CI must pass before handoff.
 
-Keep readiness in `src/lib/inbox/review.ts` or one focused adjacent pure module if dependency direction requires it. UI counts and Ready-set selection must consume the same classifier result. Manual review may retain convenience fallbacks; readiness must use strict explicit resolution.
+## Acceptance matrix
 
-### Planned changes
+- [x] one classifier owns readiness for UI and grouped selection;
+- [x] pending rows partition into Ready / Needs attention with reason codes;
+- [x] specified exclusions have unit coverage;
+- [x] first-option fallback is never readiness evidence;
+- [x] Ready count and direct selection exist;
+- [x] selecting Ready never posts;
+- [x] grouped confirmation remains mandatory;
+- [x] direct `A` grouped-approval shortcut removed/pinned by unit test;
+- [x] page reclassifies current facts immediately before posting;
+- [x] no auto-post/provider/OCR/AI/schema/RLS expansion;
+- [ ] exact-head mixed-batch browser proof passes on desktop and mobile after fixture correction;
+- [ ] existing Phase 8 browser safety test passes after selector/semantic correction;
+- [ ] exact-head required checks all green;
+- [ ] independent final diff/spec review;
+- [ ] same-PR completion projection (board + current memory + packet archive) before owner handoff.
 
-| Area | Planned change |
-|---|---|
-| review domain | strict classifier + partition; reuse existing post validation |
-| unit tests | positive Ready case plus every exclusion/reason |
-| candidate filter boundary | redirect only conflicting review semantics; avoid duplicated policy |
-| Inbox page/bulk bar | textual counts + Ready-set selection, no auto-post |
-| browser/E2E | mixed-batch confirmation proof + measured intervention delta |
+## Metric statement
 
-Final file set may shrink after implementation reconnaissance; no drive-by refactor is authorized.
+Do **not** publish a `40% fewer clicks` claim for #511.
 
-### Data/rollback
+What can be measured on the representative mixed batch is:
 
-No migration, RLS or backfill is expected or authorized. Ready/Attention is derived from current data. A focused revert restores prior selection behavior without data rollback.
+- raw minimum grouped activations: unchanged at three (`select → review → confirm`);
+- safety: attention-required rows are excluded from grouped posting and remain pending;
+- decision burden: the user can select the deterministic Ready set without manually classifying every row.
 
-### Risks and prevention
-
-| Risk | Prevention |
-|---|---|
-| fallback expands Ready | strict resolvers + negative unit tests |
-| duplicate/transfer enters grouped post | reason exclusions + mixed-batch E2E |
-| UI/selection drift | one classifier |
-| Ready is mistaken for posting | selection-only action + unchanged confirmation |
-| options change after classification | classify from current options before action; post validator remains final guard |
-| click reduction weakens correctness | same fixture and exceptions must remain pending |
-| demo/auth drift | shared pure helper + browser coverage |
-
-### Verification plan
-
-Implementation is Class 3 because it changes which candidates can enter grouped financial-posting UX.
-
-After PR #521 merges, fresh implementation branch must run `plan:resolve` and `agent:doctor`. Expected implementation evidence: red-green unit tests, knowledge/CI-policy, deployment-env, architecture, lint, typecheck, full unit suite, build, and policy-selected database/E2E/UI audit gates. Exact-head required checks and independent review remain mandatory.
-
-No production/provider write is expected for this slice.
+Real user maintenance/capture impact remains unproven and is not an acceptance claim for this slice.
 
 ## Tasks
 
-| ID | Task | Evidence | Status |
-|---|---|---|---|
-| P1 | Verify #511 against current code/tests | confidence-only review/bulk + fallback resolvers + strict post validator | done |
-| P2 | Focused research and applicability limits | four sources above | done |
-| P3 | Specify readiness/UX/metric/rollback contract | this packet | done |
-| P4 | Select #511 as sole current slice | PR #521 board + exact-head CI | in_progress |
-| I1 | Implement strict classifier from fresh post-merge main | red-green unit evidence | blocked on owner merge |
-| I2 | Wire exception-first UI/Ready selection | component/browser evidence | blocked |
-| I3 | Verify mixed batch, intervention delta and exact head | acceptance matrix/gates | blocked |
-| I4 | Same-PR completion convergence and owner handoff | archived packet + board/memory projection | blocked |
+| ID | Task | Status |
+|---|---|---|
+| P1 | Verify #511 against code/tests | done |
+| P2 | Research trust/review applicability | done |
+| P3 | Specify readiness/safety/rollback contract | done |
+| P4 | Select #511 via PR #521 | done — merged |
+| I1 | Implement strict classifier | done |
+| I2 | Wire exception-first UI and confirmation | done |
+| I3 | Unit/static/build/policy verification | done on superseded head; latest exact head pending |
+| I4 | Browser mixed-batch + regression verification | in progress after evidence-driven test corrections |
+| I5 | Same-PR lifecycle convergence and owner handoff | pending exact-head green |
 
-## Evaluation
+## Remaining limitations
 
-Planning evidence currently confirms the problem, bounded reuse path and safety contract. Runtime acceptance and intervention reduction remain unimplemented and unclaimed.
-
-Independent evaluation must inspect strict versus fallback resolution, every exclusion reason, confirmation preservation, no auto-post side effect, demo/auth parity, interaction-count methodology and scope compliance.
-
-### Remaining limitations
-
+- Real Ready proportion in actual imported batches is unknown.
+- No claim that #511 reduces manual entry or total user maintenance.
 - Corpus evidence is tech-community-skewed and not Vietnam-wide prevalence.
-- Research PR #4 is candidate evidence.
-- Real Ready proportion is unknown; #511 must measure rather than assume impact.
-- Browser evidence will not imply physical-device proof.
+- Browser CI is not physical-device evidence.
+- Follow-on capture/import work requires separate authority after this current slice converges.
 
-## Handoff record
+## Handoff / permission boundary
 
-| Date | From | To | State | Evidence | Open risk | Next allowed action |
-|---|---|---|---|---|---|---|
-| 2026-08-28 | researcher/planner | owner review | planning | #511, current code/tests, packet, PR #521 | exact-head CI + owner merge pending | merge planning PR only if gates/review are green |
-
-### Permission boundary
-
-Planning/authority branch writes and PR creation are allowed. Runtime code before planning merge, direct `main` writes, production/provider/user-data writes, schema/RLS/Auth changes and branch-protection/required-check changes are forbidden. Owner approval is required for merge and any widened requirement.
+PR #522 remains draft until exact-head checks and lifecycle convergence complete. No direct `main` write, merge, provider/production write or widened financial scope is authorized. Owner controls merge.
 
 ## Delivery record
 
-- Planning branch: `plan/511-inbox-exception-first-review`
-- Planning PR: #521
-- Implementation branch/PR: not started; forbidden until #521 merges
-- CI: exact-head rerun pending after diff-hygiene fix
-- Production/provider evidence: none
-- Packet archive: deferred to the implementation PR that completes #511
+- Selection PR: #521 — merged into main as `133fa462d3cd5f90b1f70cccb179547815c2ba2d`.
+- Implementation branch: `feat/511-inbox-exception-first-review`.
+- Implementation PR: #522 — draft.
+- Production/provider evidence: none expected.
+- Packet archive: must occur in this same PR when #511 reaches completion projection.
