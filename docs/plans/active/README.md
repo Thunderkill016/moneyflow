@@ -1,8 +1,7 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-28 (post-#507 recovery projection)
-**Current main baseline:** `1a70100fb0a62698d90a35ad6bb200d2136f1de0` (PR #507 squash-merged)
-**Post-merge projection:** PR #510
+**Last reconciled:** 2026-08-28 (#511 selection candidate from current main)
+**Current main baseline:** `6298e6c52cfff6f3a972cf72cf79022e341ce638` (PR #510 squash-merged)
 **Release readiness:** **NOT PUBLIC-BETA READY**. RRB-08 closed by owner declaration on 2026-08-27 — one Android device on Chrome, no iOS/Safari observation. RRB-02 and RRB-05 closed by explicit owner decision on 2026-08-27; RRB-04/06/09 remain owner/provider/legal/read-access dependent. Product work never substitutes for those evidence lanes.
 
 This board is the owner-facing answer to **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Current code/provider truth outrank stale issue/PR bodies. Open PRs and unmerged changes remain candidate evidence until merge.
@@ -26,13 +25,12 @@ nhận là giới hạn đã chấp nhận chứ không phải đã chứng minh
 
 ## NOW
 
+- [ ] **#511 — Inbox exception-first review without auto-posting** — selected #432 P2 `current agent-executable` slice in this planning candidate. It derives one strict shared Ready/Needs-attention classification from existing candidate/account/category facts, exposes a cheaper explicit Ready-set selection, preserves confirmation before every ledger write, and keeps duplicates/transfers/low-confidence/unresolved candidates in explicit review. Full packet: `docs/plans/active/511-inbox-exception-first-review.md`. **This unmerged planning branch is candidate authority only; runtime implementation starts from fresh `main` only after owner merge.**
 - [x] **RRB-08 — current physical-device proof** — issue #398 closed by the owner on 2026-08-27 on a POCO X8 Pro, Android, Chrome, authenticated, verdict PASS. Coverage is one Android device; no iOS/Safari observation exists. Evidence in `docs/plans/active/rrb-08-physical-device-proof.md`.
-
-No agent-executable product/governance slice is selected in this post-merge projection. PR #498 is candidate-only until its exact head has required checks, resolved review threads, unchanged base/main and an owner squash merge.
 
 ## NEXT
 
-- [ ] **#432 P2 — Low-Maintenance Ingestion** — PR #464 is merged and the projection has been applied; select a new bounded evidence-backed source, normalization or exception-first review slice; reduce interventions/100 transactions without reducing match precision.
+- [ ] **#432 P2 — continue Low-Maintenance Ingestion after #511 evidence** — use #511's measured intervention/correction result before selecting the next bounded evidence-backed source, normalization or exception-first review slice; reduce interventions/100 transactions without reducing match precision. Research currently recommends structured Vietnam statement/file robustness next, but research does not pre-authorize that follow-on slice.
 - [x] **RRB-02 — hosted restore proof or explicit limitation** — closed 2026-08-27 by the **explicit owner limitation decision** this gate always allowed. Restore is not unverified: `supabase/tests/database/restore_user_archive.test.sql` runs **42 pgTAP assertions over 464 lines** against the real `restore_user_archive` function on every CI run, covering removal reverting the overwritten profile, a bad restore staying recoverable, and a corrected restore rebuilding the ledger, alongside 19 unit-test files on the archive contracts. What stays unproven is narrower than the gate's name suggests: the managed-Supabase path specifically — extensions, roles, `security definer` behaviour and timeouts on a large archive — has never been exercised outside local Postgres. Recorded as an accepted limitation, not as proof.
 - [ ] **RRB-03 — destructive recent-auth provider-edge proof or explicit limitation** — owner/provider-gated.
 - [ ] **Controlled closed beta** — only after release entry gates clear and no unresolved P0 exists.
@@ -107,10 +105,11 @@ No agent-executable product/governance slice is selected in this post-merge proj
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates |
+| `511-inbox-exception-first-review.md` | current agent-executable | bounded #432 P2 exception-first Inbox review; authority activates only after this planning selection merges |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | real-phone smoke only; no provider/deployment/production mutation |
 | `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |
-| `510-plan-projection-main-continuity.md` | recovery-only Class 3 governance packet | repair authority continuity; does not select product work |
+| `510-plan-projection-main-continuity.md` | recovery-only Class 3 governance packet | merged authority-continuity provenance; does not compete with #511 product work |
 
 ## Board rules
 
