@@ -47,15 +47,18 @@ import { annotateCandidates, type DetectedCandidate } from "@/lib/inbox/detect";
 import {
   isEditableKeyboardTarget,
   moveFocusIndex,
-  resolveApproveTargetIds,
   resolveInboxShortcut,
 } from "@/lib/inbox/keyboard";
+import {
+  attentionReasonLabel,
+  classifyCandidateReadiness,
+  partitionPendingCandidates,
+} from "@/lib/inbox/readiness";
 import {
   applyBulkCategory,
   buildLedgerPost,
   draftFromCandidate,
   markCandidatesStatus,
-  partitionBulkApprove,
 } from "@/lib/inbox/review";
 import { safeUserNotice } from "@/lib/safe-log";
 import type {
@@ -70,6 +73,7 @@ import {
 import styles from "./inbox-page.module.css";
 
 type LoadState = "loading" | "ready" | "error";
+type InboxViewFilter = InboxFilter | "ready";
 
 type InboxWorkspace = {
   transactions: Transaction[];
@@ -78,9 +82,10 @@ type InboxWorkspace = {
   dataError: string | null;
 };
 
-const FILTERS: { id: InboxFilter; label: string }[] = [
+const FILTERS: { id: InboxViewFilter; label: string }[] = [
   { id: "all", label: "Tất cả" },
-  { id: "needs_review", label: "Cần xem" },
+  { id: "ready", label: "Sẵn sàng" },
+  { id: "needs_review", label: "Cần xem lại" },
   { id: "duplicate", label: "Có thể trùng" },
   { id: "transfer", label: "Có thể chuyển khoản" },
 ];
@@ -108,7 +113,7 @@ export function InboxPage({
 
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [candidates, setCandidates] = useState<InboxCandidate[]>([]);
-  const [filter, setFilter] = useState<InboxFilter>("all");
+  const [filter, setFilter] = useState<InboxViewFilter>("all");
   const [notice, setNotice] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -182,11 +187,56 @@ export function InboxPage({
       ),
     [candidates, workspace.transactions],
   );
+  const detectedRef = useRef<DetectedCandidate[]>(detected);
+
+  useEffect(() => {
+    detectedRef.current = detected;
+  }, [detected]);
+
   const pendingCount = useMemo(() => countPending(detected), [detected]);
-  const visible = useMemo(
-    () => sortCandidatesNewest(filterCandidates(detected, filter)),
-    [detected, filter],
+  const readiness = useMemo(
+    () =>
+      partitionPendingCandidates(
+        detected,
+        workspace.accounts,
+        workspace.categories,
+      ),
+    [detected, workspace.accounts, workspace.categories],
   );
+  const readyIds = useMemo(
+    () => readiness.ready.map((item) => item.id),
+    [readiness.ready],
+  );
+  const attentionIds = useMemo(
+    () => new Set(readiness.needsAttention.map((item) => item.candidate.id)),
+    [readiness.needsAttention],
+  );
+  const readinessById = useMemo(() => {
+    const map = new Map<
+      string,
+      ReturnType<typeof classifyCandidateReadiness>
+    >();
+    for (const item of detected) {
+      if (item.status !== "pending") continue;
+      map.set(
+        item.id,
+        classifyCandidateReadiness(item, workspace.accounts, workspace.categories),
+      );
+    }
+    return map;
+  }, [detected, workspace.accounts, workspace.categories]);
+
+  const visible = useMemo(() => {
+    if (filter === "ready") return sortCandidatesNewest(readiness.ready);
+    if (filter === "needs_review") {
+      return sortCandidatesNewest(
+        detected.filter(
+          (item) => item.status === "pending" && attentionIds.has(item.id),
+        ),
+      );
+    }
+    return sortCandidatesNewest(filterCandidates(detected, filter));
+  }, [attentionIds, detected, filter, readiness.ready]);
   const visibleRef = useRef(visible);
 
   useEffect(() => {
@@ -206,11 +256,6 @@ export function InboxPage({
     );
     return selectedIds.filter((id) => pendingIds.has(id));
   }, [candidates, selectedIds]);
-  const activeSelectedIdsRef = useRef(activeSelectedIds);
-
-  useEffect(() => {
-    activeSelectedIdsRef.current = activeSelectedIds;
-  }, [activeSelectedIds]);
 
   const safeFocusedIndex =
     visible.length === 0
@@ -275,6 +320,17 @@ export function InboxPage({
       for (const id of visibleIds) next.add(id);
       return [...next];
     });
+  }
+
+  function selectReadySet() {
+    setSelectedIds(readyIds);
+    setFilter("ready");
+    setFocusedIndex(-1);
+    setNotice(
+      readyIds.length > 0
+        ? `Đã chọn ${readyIds.length} ứng viên Sẵn sàng. Chưa có giao dịch nào được ghi sổ.`
+        : "Chưa có ứng viên Sẵn sàng để chọn.",
+    );
   }
 
   async function postOne(
@@ -441,14 +497,16 @@ export function InboxPage({
         return;
       }
 
-      const { eligible, skippedLow } = partitionBulkApprove(
-        candidatesRef.current,
-        payload.selectedIds,
-        payload.includeLowConfidence,
+      const selected = new Set(payload.selectedIds);
+      const latestSelected = detectedRef.current.filter((item) => selected.has(item.id));
+      const currentReadiness = partitionPendingCandidates(
+        latestSelected,
+        workspace.accounts,
+        workspace.categories,
       );
       let approved = 0;
       let failed = 0;
-      for (const candidate of eligible) {
+      for (const candidate of currentReadiness.ready) {
         const draft = draftFromCandidate(
           candidate,
           workspace.accounts,
@@ -475,23 +533,17 @@ export function InboxPage({
 
       setSelectedIds([]);
       setNotice(
-        `Đã duyệt ${approved}${skippedLow.length ? ` · Bỏ qua ${skippedLow.length} độ tin thấp` : ""}${failed ? ` · Cần xử lý lại ${failed}` : ""}.`,
+        `Đã duyệt ${approved}${currentReadiness.needsAttention.length ? ` · Giữ lại ${currentReadiness.needsAttention.length} Cần xem lại` : ""}${failed ? ` · Cần xử lý lại ${failed}` : ""}.`,
       );
     } finally {
       setBulkBusy(false);
     }
   }
 
-  const handleBulkApplyRef = useRef(handleBulkApply);
-  const bulkBusyRef = useRef(bulkBusy);
-  const isMutatingRef = useRef(isMutating);
   const reviewOpen = reviewId != null && reviewCandidate != null;
   const reviewOpenRef = useRef(reviewOpen);
 
   useEffect(() => {
-    handleBulkApplyRef.current = handleBulkApply;
-    bulkBusyRef.current = bulkBusy;
-    isMutatingRef.current = isMutating;
     reviewOpenRef.current = reviewOpen;
   });
 
@@ -543,30 +595,6 @@ export function InboxPage({
         }
         event.preventDefault();
         toggleSelect(list[index]!.id);
-        return;
-      }
-
-      if (action === "approve") {
-        if (bulkBusyRef.current || isMutatingRef.current) return;
-        const focused =
-          focusedIndexRef.current >= 0 && focusedIndexRef.current < list.length
-            ? list[focusedIndexRef.current]!.id
-            : null;
-        const ids = resolveApproveTargetIds(
-          activeSelectedIdsRef.current,
-          focused,
-        );
-        if (ids.length === 0) {
-          setNotice("Chọn ứng viên bằng X trước khi duyệt.");
-          return;
-        }
-        event.preventDefault();
-        void handleBulkApplyRef.current({
-          action: "approve",
-          selectedIds: ids,
-          includeLowConfidence: false,
-          categoryId: "",
-        });
       }
     }
 
@@ -597,20 +625,12 @@ export function InboxPage({
           title="Inbox"
           description={
             <p>
-              Ứng viên chỉ trở thành giao dịch thật sau khi bạn kiểm tra và duyệt.
-              Độ tin thấp không được ghi hàng loạt nếu chưa bật rõ ràng.
+              Sẵn sàng nghĩa là đủ dữ kiện xác định để duyệt theo nhóm — không phải
+              đã ghi sổ. Các ngoại lệ vẫn ở Cần xem lại cho tới khi bạn xử lý.
             </p>
           }
           actions={
             <>
-              {/*
-                The two ways of putting something *into* this screen. Until #426 the
-                Inbox was where candidates landed and offered no way to acquire any:
-                the only shell-level route was a desktop sidebar chooser that
-                duplicated the topbar primary. They sit here for the same reason YNAB
-                puts File-Based Import in the account register — an import belongs on
-                the screen its results appear on.
-              */}
               <LinkButton href="/capture/paste" intent="secondary" targetSize="important">
                 <Icon name="paste" />
                 Dán text / SMS
@@ -633,6 +653,11 @@ export function InboxPage({
 
         <SecondarySummary label="Trạng thái Inbox" slot="inbox-summary">
           <SecondarySummaryItem label="Chờ duyệt" value={pendingCount} />
+          <SecondarySummaryItem label="Sẵn sàng" value={readiness.ready.length} />
+          <SecondarySummaryItem
+            label="Cần xem lại"
+            value={readiness.needsAttention.length}
+          />
           <SecondarySummaryItem label="Đang hiển thị" value={visible.length} />
           <SecondarySummaryItem label="Đã chọn" value={activeSelectedIds.length} />
         </SecondarySummary>
@@ -676,6 +701,15 @@ export function InboxPage({
                 {item.label}
               </Button>
             ))}
+            <Button
+              type="button"
+              intent="secondary"
+              targetSize="important"
+              onClick={selectReadySet}
+              disabled={loadState !== "ready" || readyIds.length === 0}
+            >
+              Chọn Sẵn sàng ({readyIds.length})
+            </Button>
           </div>
           <p>Sắp xếp: mới nhất</p>
         </section>
@@ -778,6 +812,11 @@ export function InboxPage({
               {visible.map((candidate, index) => {
                 const selected = activeSelectedIds.includes(candidate.id);
                 const focused = safeFocusedIndex === index;
+                const rowReadiness = readinessById.get(candidate.id);
+                const reasonText =
+                  rowReadiness?.state === "needs_attention"
+                    ? rowReadiness.reasons.map(attentionReasonLabel).join(" · ")
+                    : "";
                 return (
                   <li key={candidate.id}>
                     <article
@@ -818,6 +857,13 @@ export function InboxPage({
                           </small>
                         ) : null}
                         <span className={styles.flags}>
+                          {rowReadiness?.state === "ready" ? (
+                            <span>Sẵn sàng</span>
+                          ) : (
+                            <span>
+                              Cần xem lại{reasonText ? ` · ${reasonText}` : ""}
+                            </span>
+                          )}
                           {candidate.possibleDuplicate ? <span>Có thể trùng</span> : null}
                           {candidate.possibleTransfer || candidate.kind === "transfer" ? (
                             <span>Chuyển khoản</span>
@@ -854,20 +900,21 @@ export function InboxPage({
             </ul>
             <div className={styles.listFooter}>
               <p>
-                Hiển thị {visible.length}/{pendingCount} ứng viên chờ duyệt. Độ tin
-                thấp không tự vào sổ.
+                Hiển thị {visible.length}/{pendingCount} ứng viên chờ duyệt. Sẵn sàng
+                vẫn cần xác nhận; Cần xem lại không đi vào duyệt nhóm.
               </p>
               <p aria-label="Phím tắt Inbox">
-                <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>X</kbd> chọn · <kbd>A</kbd>{" "}
-                duyệt · <kbd>C</kbd> Capture · <kbd>N</kbd> Thêm nhanh
+                <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>X</kbd> chọn · <kbd>C</kbd>{" "}
+                Capture · <kbd>N</kbd> Thêm nhanh
               </p>
             </div>
           </section>
         ) : null}
 
         <InboxBulkBar
-          candidates={candidates}
+          candidates={detected}
           selectedIds={activeSelectedIds}
+          accounts={workspace.accounts}
           categories={workspace.categories}
           busy={bulkBusy || isMutating}
           onClear={() => setSelectedIds([])}

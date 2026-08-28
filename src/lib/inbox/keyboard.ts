@@ -2,7 +2,10 @@
  * Inbox keyboard shortcuts (wireframes-inbox § Keyboard desktop power).
  * Pure helpers — no DOM; UI wires keydown separately.
  *
- * j/k navigate · x select · a approve · c capture · n quick add
+ * j/k navigate · x select · c capture · n quick add
+ *
+ * Grouped approval intentionally has no direct `a` shortcut: every grouped
+ * ledger write must pass through the visible review/confirmation dialog.
  */
 
 export type InboxShortcutAction =
@@ -17,7 +20,6 @@ const KEY_TO_ACTION: Record<string, InboxShortcutAction> = {
   j: "next",
   k: "prev",
   x: "toggle_select",
-  a: "approve",
   c: "capture",
   n: "quick_add",
 };
@@ -80,7 +82,7 @@ export function moveFocusIndex(
   return next;
 }
 
-/** Ids to approve on `A`: multi-select if any, else focused row. */
+/** Legacy selection helper retained for callers/tests; it never posts by itself. */
 export function resolveApproveTargetIds(
   selectedIds: string[],
   focusedId: string | null,

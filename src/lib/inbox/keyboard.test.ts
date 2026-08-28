@@ -7,12 +7,12 @@ import {
   resolveInboxShortcut,
 } from "./keyboard.ts";
 
-test("resolveInboxShortcut maps j/k/x/a/c/n", () => {
+test("resolveInboxShortcut maps navigation/selection/capture but not direct approval", () => {
   assert.equal(resolveInboxShortcut("j"), "next");
   assert.equal(resolveInboxShortcut("J"), "next");
   assert.equal(resolveInboxShortcut("k"), "prev");
   assert.equal(resolveInboxShortcut("x"), "toggle_select");
-  assert.equal(resolveInboxShortcut("a"), "approve");
+  assert.equal(resolveInboxShortcut("a"), null);
   assert.equal(resolveInboxShortcut("c"), "capture");
   assert.equal(resolveInboxShortcut("n"), "quick_add");
   assert.equal(resolveInboxShortcut("z"), null);
@@ -35,7 +35,7 @@ test("moveFocusIndex wraps ends without looping past list", () => {
   assert.equal(moveFocusIndex(0, 1, 0), -1);
 });
 
-test("resolveApproveTargetIds prefers selection then focus", () => {
+test("resolveApproveTargetIds is a selection helper only", () => {
   assert.deepEqual(resolveApproveTargetIds(["a", "b"], "c"), ["a", "b"]);
   assert.deepEqual(resolveApproveTargetIds([], "c"), ["c"]);
   assert.deepEqual(resolveApproveTargetIds([], null), []);

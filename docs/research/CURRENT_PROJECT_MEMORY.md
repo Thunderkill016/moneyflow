@@ -1,158 +1,142 @@
 # MoneyFlow — current project memory
 
-**Status:** single current implementation/trust-status authority when read from `main`
+**Status:** single current implementation/trust-status authority when read from `main`; this branch carries a candidate post-merge projection only
 **Last reconciled:** 2026-08-28
-**Runtime/financial baseline:** `1a70100fb0a62698d90a35ad6bb200d2136f1de0` (PR #507 squash-merged).
-**Post-merge projection:** PR #510
-**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` after `npm run plan:resolve` passes.
+**Runtime/financial baseline:** `main@133fa462d3cd5f90b1f70cccb179547815c2ba2d` (PR #521 squash-merged)
+**Post-merge projection:** PR #522
+**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` only after `npm run plan:resolve` passes.
 
 ## 1. Current decision
 
-MoneyFlow is a functional Vietnamese personal-finance product and is **not public-beta ready**.
+MoneyFlow is a Vietnamese personal-finance product built around one trustworthy user-owned ledger. The product is functional but **not public-beta ready**.
 
-Merged #432 remains the master product-direction authority: safely acquirable digital transactions should not require permanent retyping, while one user-owned ledger remains financial truth. Manual entry stays first-class for cash, missing/off-system evidence and corrections.
+Merged #432/#433 is the master product authority. A digital transaction MoneyFlow can acquire safely should not require permanent retyping. Manual capture remains first-class for cash, corrections and missing/off-system events.
 
-Dependency order is source/evidence → candidates/provenance → normalization/dedup/matching → trustworthy ledger facts → reconciliation/correction → understanding/review → connected planning → automation → selective read-only providers → wealth/together/optional intelligence when validated.
+Dependency order remains:
 
-Source adapters create evidence/candidates, not arbitrary balances or silently rewritten ledger facts. Exact source identity is stronger than heuristic similarity; different-ID lineage is accepted only when the source explicitly supplies predecessor identity. Release readiness remains separate from product development.
+`source/evidence → candidates/provenance → normalization/dedup/matching → ledger → reconciliation/correction → understanding/review → planning → automation → selective providers → later wealth/together/intelligence when separately validated`.
+
+Code, migrations and tests outrank this memory. Open PRs and this projection remain candidate evidence until merged.
 
 ## 2. Current runtime and financial truth
 
-- `authenticated` uses Supabase Auth/PostgreSQL with RLS; `demo` is explicit browser-local exploration. Demo and authenticated compute month income and expense identically; demo differs only in deriving its balance from a seeded opening balance, and its ledger dates are resolved from the current date rather than stored.
-- VND is integer đồng; transfers are balanced account movements and neutral to income/expense/net.
-- Authenticated ledger data is server-owned; demo state is browser-local.
-- Ledger facts support edit plus recoverable soft delete where required.
-- Account-leg reconciliation states are `pending | cleared | reconciled`.
-- `reconciled` is statement-close truth: statement completion creates it, reopening returns it to `cleared`, and reconciled financial facts are mutation-guarded.
-- Planning includes category budgets, recurring commitments/income and savings goals.
-- Understanding includes weekly/monthly/yearly reports and controlled import/export.
-- Complete versioned archive lives at `/settings/backup`. RRB-02 closed 2026-08-27 by explicit owner limitation decision: restore logic is covered by 42 pgTAP assertions running on every CI run, and only the managed-Supabase path stays unexercised — an accepted limitation, not a proof.
+- VND is stored as integer đồng; never floating point.
+- Transfers are balanced movements and neutral to income/expense/net.
+- Authenticated user-owned data is tenant-isolated through PostgreSQL/RLS; demo is explicit browser-local state.
+- Missing balances, dates, commitments, source coverage, categories or financial intent are never guessed.
+- Ledger facts support explicit correction and recoverable deletion where required.
+- Reconciliation state is distinct from source evidence; source observations never establish `reconciled` by themselves.
+- Full archive/restore is separate from scoped/report export.
 
 ## 3. Acquisition and reconciliation truth
 
-Merged P1 chain:
+Merged acquisition lineage:
 
-- #435: authenticated Direct CSV persists source evidence and commits selected rows atomically.
-- #437: later non-manual evidence can attach to one reviewed existing unprovenanced money fact without changing ledger values or reconciliation.
-- #439: deleted unchanged exact-source reimport can restore the same transaction; changed evidence stays blocked.
-- #441: changed live same-ID evidence can be preserved as a reviewed observation without overwriting ledger/reconciliation/canonical provenance.
-- #445: explicit different-ID predecessor/replacement lineage plus nullable `pending | posted | removed` lifecycle evidence; no fuzzy lineage and one source identity cannot bind to two financial transactions.
-- #449: source identity carries the latest reviewed lifecycle baseline; lifecycle-only transitions remain reviewable. `pending` and `removed` remain observation-only. Reviewed exact `posted` evidence may advance one live one-leg income/expense account leg from `pending` to `cleared` only when current kind/account/date/signed amount still match. Source evidence never establishes `reconciled`, overwrites ledger economics, deletes facts or demotes user/statement truth. Replays of already-cleared/reconciled reviews are no-ops, and eligible posted review follows reconciliation account → transaction lock order.
+- #435: Direct CSV persists source provenance and commits selected rows atomically.
+- #437: later non-manual evidence can attach to one reviewed unprovenanced transaction without rewriting ledger facts.
+- #439: deleted exact-source reimport can restore the same fact when evidence is unchanged.
+- #441: changed same-ID observations are preserved for review without overwriting canonical ledger/reconciliation truth.
+- #445: explicit predecessor/replacement lineage exists; no fuzzy lineage guessing.
+- #449: reviewed exact `posted` evidence may advance one eligible leg `pending → cleared`; never `reconciled`, overwrite, delete or demote user/statement truth.
+- #451: PWA Share Target persists one share action atomically into pending source batches/candidates.
+- #453: explicit Inbox review can create a future candidate-stage rule.
+- #455: Share candidates can reuse explicit deterministic rules; no auto-post.
+- #459: failed Direct CSV approval with retained batch id hands the user to Inbox/import history rather than encouraging blind retry.
+- #461: user-confirmed Direct CSV column mappings can be remembered for the exact normalized header shape.
+- #464: eligible Direct CSV dry-run rows may reuse exact explicit rules for normalization before unchanged review/approval.
 
-### #450 / PR #451 — merged PWA Share Target source completion
-
-The installed-PWA Share Target already receives bounded shared title/text/url and text/CSV files through `/api/share-target`, then parses them in `/capture/share` into the existing candidate model.
-
-Current gap: authenticated persistence is browser-orchestrated across separate generic mutations — text candidates are inserted separately, and each CSV file creates an import batch, then candidates, then marks the batch committed. A later failure can therefore leave a prefix of one share action persisted even though the source action was one user gesture.
-
-Merged PR #451 changes only that acquisition boundary:
-
-- authenticated shared text + CSV from one share action must persist through one transactional server/database operation;
-- shared text receives a durable `paste` batch and CSV rows retain their own `csv` batch + source row identity;
-- existing parser/mapping versions, bounded raw snippets and source identity contracts are reused;
-- no source external ID is fabricated;
-- all created candidates remain pending Inbox evidence;
-- ingestion creates no financial transaction, entry or transaction-import provenance row;
-- demo remains browser-local;
-- request/file limits and unsupported XLSX/PDF Share Target behavior remain fail-closed.
+The current file-import implementation remains generic/shallow relative to real consumer bank exports. Exact exported schemas must be proven with privacy-safe structural fixtures before bank-specific adapters are authorized.
 
 ## 4. Current execution state
 
-Master #432 is active. #450 closed through exact matching squash merge `main@4d80fbe915155061fc3152740bb65c9cfa5c09ba`; its completed packet is `docs/plans/completed/2026-08-24-450-share-target-atomic-source.md`. #452 closed through exact matching squash merge `main@ac86d273876414c76fc050b11d3904dddfbb93b6`; its completed packet is `docs/plans/completed/2026-08-24-452-confirmed-inbox-rule-capture.md`. #454 closed through exact matching squash merge `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`; its completed packet is `docs/plans/completed/2026-08-25-454-share-target-rule-application.md`.
+PR #522 completes #511 — exception-first Inbox grouped review — only if the owner squash-merges the exact final head after required checks pass.
 
-Merged PR #455 lets PWA Share Target candidates reuse existing explicit deterministic candidate-stage rules, carrying exact rule id/version through a focused atomic Share RPC wrapper. Every candidate remains pending; no inference, automatic approval, ledger mutation, raw-source rewrite, backfill, RLS, provider/native/AI or deployment change is introduced.
+**Projected current agent-executable slices after PR #522 merge: zero.**
 
-PR #459 is merged runtime truth: when an authenticated Direct CSV atomic approval failure explicitly returns its retained batch id, the existing Direct CSV error alert tells the user to review Inbox before retrying and provides navigation to `/inbox` and `/imports`. It does not retry, approve candidates, write a ledger/source fact, or alter the server/RPC/schema/RLS contract.
+No follow-on slice is selected in this PR. Issue #523 (`prove consumer bank-export compatibility before expanding capture`) is a candidate only. It may be considered only from fresh `main` after merge + `npm run plan:resolve`; selection requires a separate bounded authority change.
 
-PR #461 is merged runtime truth: Direct CSV offers browser-local, user-confirmed column-map reuse for an exact normalized header shape. It persists no source/financial data, account/category selection or cross-device state, and retains the existing explicit dry-run and commit boundaries.
+#511 is **review/trust infrastructure**, not the primary answer to manual-entry/capture friction. PR #522 adds one shared deterministic readiness classifier; grouped posting remains explicit-confirmation-only; low-confidence, duplicate, transfer, invalid or unresolved candidates stay pending. The former desktop `A` shortcut no longer reaches grouped approval directly.
 
-PR #464 is merged runtime truth: an eligible Direct CSV dry-run row can reuse only an existing explicit Inbox rule for merchant/category normalization. The client carries exact rule id/version as evidence; authenticated preparation validates all source candidates and rule evidence atomically before the unchanged batch approval, and preview/review disclose normalized rows textually. No rule auto-posts, infers from behavior, remembers account/category choices, touches transfers or expands provider/native/AI scope.
+Do **not** claim `40% fewer clicks` or manual-entry reduction. The pre-#511 Inbox already had one-click `Chọn tất cả`; raw minimum grouped activations remain three. The proven change is fail-closed safety and lower row-by-row decision burden for mixed batches.
 
 ## 5. Current capability inventory
 
-| Capability | Current truth |
+| Capability | Current merged truth / projected change |
 |---|---|
-| Core ledger | multiple accounts; income, expense, transfers; edit; soft delete/recovery |
-| Accounts | balances, register/history, create/edit/archive/restore and statement reconciliation |
-| Planning | category budgets, recurring commitments/income and savings goals; merged #469 states unassigned income on the budgets page from recorded income only, with no carry-over and no spending guidance; merged #471 additionally subtracts unpaid recurring commitments that no budget for the month already covers, so bills are never reported as free money; merged #473 applies last month's limits to categories the selected month has no budget for, additively and never overwriting a current-month decision; merged #475 states the reserve picture on the goals surface — balance, unpaid bills protected, goals reserved and what remains — restating the arithmetic `adjust_savings_goal` already enforces rather than adding a rule |
-| Understanding | weekly/monthly/yearly reports with category and time breakdowns, controlled import and CSV export; merged #477 adds an expense-by-account breakdown taking split rows whole and excluding transfers; merged #479 opens the rows behind a report's category and account figures within the report's own window; merged #481 removes draft-payload gating from CI so a draft→ready race can no longer produce a green head whose contracts never ran, verified on PR #482; merged #482 raises the postcss override to a patched release and converts the version pin to a patched floor, with both Dependabot alerts confirmed `fixed`; merged #483 records the #403 attribution result as negative — the loading boundary is the early-paint mechanism but has no LCP effect distinguishable from noise; merged #484 adds the root not-found boundary that production lacked; merged #485 draws income in the reports trend; merged #487 removes the demo-only expense constant so the demo dashboard's month figure opens to the rows behind it, and derives fixture dates and relative labels from a resolved date; merged #490 keeps a nine-digit report total inside its summary cell; merged #489 adds connectivity awareness — a shell notice and a truthful save-failure message — while queueing, caching and retrying remain explicitly unbuilt; merged #492 makes a demo-fixture change select the cross-device audit, which renders demo mode; merged #493 makes the knowledge contract validate PR memory records locally instead of first on the runner; post-merge candidate #494 records the first current real-phone observation for RRB-08 — POCO X8 Pro, Android, Chrome, authenticated, owner verdict PASS — while #398 stays open pending the owner's own declaration |
-| Acquisition | persisted batches/candidates/provenance; exact source matching; atomic CSV approval; retained Direct CSV review recovery (#459); later-source attachment; deleted-source restore; changed-observation preservation; explicit predecessor lineage; lifecycle evidence; merged #451 PWA Share Target atomic persistence; merged #453 candidate review-time rule capture; merged #455 deterministic Share rule application; merged #464 Direct CSV explicit-rule normalization |
-| Lifecycle clearing | merged #449: reviewed exact `posted` evidence may advance one eligible account leg `pending → cleared`; never source-driven `reconciled`, ledger overwrite, delete or demotion |
-| Ownership | versioned archive/export/validation/restore contract; hosted restore proof still open |
-| Agent delivery | provider-neutral `scripts/agent-harness/`, append-only run journals, guarded permissions and same-PR lifecycle convergence; merged PR #462 grants owner-opt-in host-only exact-head squash delivery, never child/worker authority |
-| Runtime modes | explicit demo/browser-local and authenticated/Supabase-RLS modes |
-| Release proof | RRB-01/RRB-07 closed; **RRB-08 closed by owner declaration 2026-08-27** on one Android device (POCO X8 Pro, Chrome, authenticated) with no iOS/Safari observation; RRB-02/03/04/05/06/09 remain open or externally gated |
+| Core ledger | multiple accounts; income, expense, balanced transfers; edit; recoverable deletion |
+| Accounts | balances, register/history, create/edit/archive/restore, statement reconciliation |
+| Planning | category budgets, recurring commitments/income, savings goals |
+| Understanding | weekly/monthly/yearly reports, drill-downs, controlled import/export |
+| Acquisition | persisted batches/candidates/provenance, exact source matching, Direct CSV atomic approval, Share Target persistence, explicit deterministic candidate rules |
+| Review | current merged review plus **projected PR #522 Ready/Needs-attention fail-closed grouped review** |
+| Ownership | versioned archive/export/validation/restore contract |
+| Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
 | Public beta | not approved |
-
-Code, migrations and tests outrank this table on implementation detail.
 
 ## 6. Release/trust state
 
-Release Readiness Audit v1 (#388) remains canonical. RRB-01 authenticated mixed-ledger truth and RRB-07 accessible-auth browser proof are closed.
+Release readiness is separate from #432 product development.
 
-Still open/external: RRB-03 destructive recent-auth provider edges; RRB-04 provider/Auth/firewall read-back plus #40/#174; RRB-06 Vietnam personal-data legal/privacy review; RRB-09 production deployment/provider identity. RRB-02 (owner limitation decision) and RRB-05 (owner-controlled mailbox) closed 2026-08-27; RRB-08 closed by owner declaration the same day.
+Closed by current evidence/owner decision: RRB-01, RRB-02 limitation path, RRB-05 contact path, RRB-07, RRB-08 one-device Android/Chrome observation.
 
-Controlled closed beta remains blocked until release entry gates clear and no unresolved P0 exists. Public beta also requires controlled-beta evidence and explicit owner go/no-go.
+Still external/open at their own boundaries: RRB-03 destructive recent-auth provider edge, RRB-04 provider/Auth/firewall read-back, RRB-06 Vietnam personal-data legal/privacy review, RRB-09 production deployment/provider identity.
+
+No product PR may silently convert those external gaps into proof.
 
 ## 7. Security and delivery truth
 
-- `docs/configuration.md` owns environment/provider settings; `docs/deployment.md` owns deployment workflow.
-- `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates; `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission scopes and handoffs.
-- `docs/plans/PLAN_AUTHORITY.json` + the active registry own strategic task selection; Git history verifies provenance but does not choose authority by recency.
-- `plan:resolve` blocks stale/ambiguous authority, unmerged master candidates and unactivated pre-merge projections from authorizing new work.
-- `scripts/lifecycle-projection.mjs` requires completing slices to archive their packet, clear projected current work, project current memory and leave zero follow-on current slices in the same PR.
-- `scripts/agent-harness/` is the local agent runtime; provider capability/readiness is explicit and fail-loud.
-- Git/GitHub child commands remain allowlisted; merge, main-branch control, force-push, generic provider writes and production-data writes are not granted.
-- CI classification, migration identity and project-knowledge checks are executable governance contracts and are not weakened to make a PR pass.
-- Draft PR success is not full evidence when heavy shards skip; final acceptance requires exact-head substantive gates.
-- Financial/schema/RLS/import/reconciliation changes are Class 3 and require database/security/browser evidence.
-- Shared PWA payloads are untrusted source material. The existing bridge bounds request/file/text sizes and accepted formats; #450 does not weaken those checks.
+- `docs/configuration.md` owns environment/provider settings; provider values never belong in source.
+- `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates and `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission/handoff boundaries.
+- `docs/plans/PLAN_AUTHORITY.json` + the active board registry own task selection.
+- `plan:resolve` blocks stale/ambiguous authority and unactivated projections.
+- `scripts/lifecycle-projection.mjs` requires a completing PR to archive its active packet, project board/current memory and leave zero follow-on current slices in the same PR.
+- Code/evaluation head `20896ba3c7a9bee71893994fbf199bfd9ffc77eb` passed CI #3142, browser/E2E, cross-device UI audit, CodeQL and secret-history scan. Lifecycle convergence creates a newer head, so **final exact-head required checks remain the merge gate**.
 
 ## 8. Reconciled issue status
 
-Completed acquisition inputs: #434/#435, #436/#437, #438/#439, #440/#441, #442/#445 and #448/#449. Master #432 remains the product-development program.
-
-#443/#444 closed the plan-authority discovery defect. #446/#447 closed the repeated lifecycle-cleanup pattern and replaced the local monolithic dispatcher with the event-sourced capability harness.
-
-#451, #453, #455, #459, #461 and #462 are merged runtime truth; #458/#460 are complete. PR #464 is the post-merge candidate for #463 Direct CSV explicit-rule normalization, not authority until merge. #403 performance and #426 simplification remain held. PR #431 remains an unmerged conflicting pre-#432 candidate and is not authority. RRB release gates remain separate and are not auto-resolved by product work.
+- #432/#433: merged master acquisition-first program.
+- #434/#435 through #464: merged acquisition/provenance/rule lineage described above.
+- #511/#522: current slice completion projection; not merged yet.
+- #523: candidate follow-on evidence slice only; not authority.
+- #403 performance: held.
+- #426 simplification Slice 2: owner decision/held.
+- Release-readiness issues remain on their independent owner/provider/legal boundaries.
 
 ## 9. Open pull-request memory
 
-PR #451 is the durable merged record for #450; its record is `docs/research/pr-memory/2026/Q3/PR-451.md`. PR #453 is the durable merged record for #452; its record is `docs/research/pr-memory/2026/Q3/PR-453.md`. PR #455 is the durable merged record for #454, squash-merged as `main@7a758843296b08167ba33ddb1f76e2f81a044a6d`. PR #459 is the durable merged record for #458, squash-merged as `main@3876666da38bdd446c49053da827af731d55cf54`. PR #461 is the durable merged record for #460, squash-merged as `main@ba2890670ceabed049aa1ed3bee0a9c8593b194a`. PR #462 is the durable merged record for the owner-selected harness slice. PR #464 is the candidate record for #463 and carries the same-PR post-merge projection.
+PR #522 durable record: `docs/research/pr-memory/2026/Q3/PR-522.md`.
 
-A final branch mutation invalidates older-head verification evidence. Merge remains owner-authorized only.
+PR #522 projects completion of #511 with zero current agent-executable slice after merge. The completed packet projection is `docs/plans/completed/2026-08-28-511-inbox-exception-first-review.md`.
+
+A final branch mutation invalidates older-head verification evidence. GitHub required checks on the exact final PR head are authoritative. Merge remains owner-authorized only.
 
 ## 10. True gaps after this audit
 
-After #455, remaining program gaps include:
-
-1. expand low-maintenance Vietnamese file/share acquisition, merchant/payee normalization and exception-first review based on measured maintenance/error outcomes;
-2. keep provider connectivity unselected until current official contract, consent and economics evidence supports a bounded read-only adapter;
-3. research transfer lifecycle clearing separately before source evidence may affect multi-leg transfers.
-
-Release/trust gaps remain RRB-02/03/04/05/06/08/09 at their existing evidence/authority boundaries.
+1. Prove whether real consumer Vietnam bank exports can be acquired with materially less user work than retyping.
+2. Obtain privacy-safe structure-preserving fixtures before claiming bank-specific file compatibility.
+3. Measure parser output by rows detected, exact amount/date/kind, reference/source identity preserved and correction burden.
+4. Keep OCR/provider/native acquisition unselected until structured-source evidence shows the need.
+5. Validate capture/maintenance conclusions beyond the current tech-community-skewed corpus before market-wide claims.
+6. Release/provider/legal gaps remain separate from product acquisition work.
 
 ## 11. Next allowed action
 
-No agent-executable product/governance child is selected in this post-merge projection. A follow-on #432 child must begin only after #464 is exact-head verified, squash-merged and the projection activates; it requires a fresh bounded issue/spec/packet and evidence-backed acceptance.
+After PR #522 is owner-merged:
 
-Do not jump to bank/e-wallet/NAPAS integration, infer rules from behavior, auto-approve/backfill candidates, source-drive `reconciled`, perform provider/production writes, broaden matching semantics, or expand transfer behavior inside #454.
+1. fetch fresh `main`;
+2. run `npm run plan:resolve` and `npm run agent:doctor -- --json`;
+3. confirm the projected zero-current state activated through the exact merge;
+4. only then evaluate/select a new bounded #432 child.
 
-Owner/external lanes remain independent: real phone → RRB-08; provider read access → RRB-04/RRB-09 and #40/#174; legal/privacy review → RRB-06; explicit owner/provider authorization → RRB-03.
+Candidate #523 targets the strongest current product problem more directly: stop retyping transactions that already exist as digital bank records, measured as trusted rows acquired per user action plus correction burden. Phase A must first benchmark privacy-safe structural consumer export fixtures against the current parser. It does **not** pre-authorize a bank-specific parser, OCR engine, provider integration or native acquisition.
 
 ## 12. Superseded-status register
 
-- “manual-first is the long-term MoneyFlow product law” is superseded by merged #432/#433.
-- `docs/plans/PRODUCT_DEVELOPMENT_PLAN.md` from #420 is predecessor history, not master authority after #433.
-- “the newest plan/open PR can be treated as current authority” is superseded by #444 fail-closed graph + registry + merged-history selection.
-- “Direct CSV authenticated commit loops ordinary transaction creation” is superseded by #435.
-- “later imported evidence cannot reconcile to an existing unprovenanced user fact” is superseded by #437.
-- “deleted exact-source reimport is indistinguishable from a live exact-ID duplicate” is superseded by #439.
-- “changed evidence under a stable source ID is indistinguishable from unchanged replay” is superseded by #441.
-- “different-ID lineage must be guessed from similarity or cannot be represented” is superseded by #445 explicit predecessor evidence.
-- “every completed feature needs a second lifecycle-closeout PR” and “the monolithic dispatcher is the local agent runtime” are superseded by merged #447.
-- “source lifecycle can never inform clearing” is superseded narrowly by merged #449: lifecycle remains source evidence, while only reviewed exact `posted` evidence may establish `cleared`; never `reconciled` or ledger economics.
-- “PR #449 is unmerged candidate evidence” is superseded by exact merge `9e709a2116a560da673539a3ff3994928b22262b`.
-- “#450 is an active agent-executable child” is superseded by exact merge `4d80fbe915155061fc3152740bb65c9cfa5c09ba`; #452 is now the one active P2 child.
-- RRB-07 and RRB-01 are no longer proof gaps; Release Readiness Audit v1 is no longer pending.
-- The seven-day self-use gate remains withdrawn without replacement.
+- “#511 materially reduces manual-entry friction” — superseded.
+- “#511 reduces the minimum grouped path by 40%” — superseded.
+- “SMS is a primary acquisition bet” — unsupported; fallback/legacy only unless new evidence changes that.
+- “AI should position MoneyFlow” — unsupported; AI may be used only where a bounded spec proves it reduces capture/reconcile friction safely.
+- “open issue #523 is already selected work” — false; #523 is candidate only.
+- “a provider/bank/native/OCR horizon item is authorized by master #432 alone” — false; each requires a bounded researched slice and owner authority.
+
+PR #522 remains unmerged candidate evidence. Owner controls merge. No direct `main` write, force-push, provider/production mutation or next-slice promotion is authorized by this projection.
