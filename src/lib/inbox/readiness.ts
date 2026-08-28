@@ -1,6 +1,6 @@
+import type { AccountOption, CategoryOption } from "../sample-data.ts";
 import type { InboxCandidate } from "./candidate-store.ts";
 import { buildLedgerPost, type CandidateReviewDraft } from "./review.ts";
-import type { AccountOption, CategoryOption, TransactionKind } from "../sample-data.ts";
 
 export type CandidateAttentionReason =
   | "low_confidence"
