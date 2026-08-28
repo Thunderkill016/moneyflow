@@ -14,7 +14,9 @@ const candidates = [
     source: "csv",
     confidence: "high",
     status: "pending",
+    categoryId: "demo-category-expense-Ăn uống",
     category: "Ăn uống",
+    accountId: "demo-account-cash",
     account: "Tiền mặt",
     createdAt: "2026-08-28T01:00:00.000Z",
   },
@@ -28,8 +30,10 @@ const candidates = [
     source: "csv",
     confidence: "medium",
     status: "pending",
+    categoryId: "demo-category-expense-Di chuyển",
     category: "Di chuyển",
-    account: "Vietcombank",
+    accountId: "demo-account-mb",
+    account: "MB Bank",
     createdAt: "2026-08-28T01:01:00.000Z",
   },
   {
@@ -42,8 +46,10 @@ const candidates = [
     source: "csv",
     confidence: "high",
     status: "pending",
+    categoryId: "demo-category-income-Lương",
     category: "Lương",
-    account: "Vietcombank",
+    accountId: "demo-account-mb",
+    account: "MB Bank",
     createdAt: "2026-08-28T01:02:00.000Z",
   },
   {
@@ -56,7 +62,9 @@ const candidates = [
     source: "csv",
     confidence: "low",
     status: "pending",
+    categoryId: "demo-category-expense-Ăn uống",
     category: "Ăn uống",
+    accountId: "demo-account-cash",
     account: "Tiền mặt",
     createdAt: "2026-08-28T01:03:00.000Z",
   },
@@ -71,7 +79,9 @@ const candidates = [
     confidence: "high",
     status: "pending",
     possibleDuplicate: true,
+    categoryId: "demo-category-expense-Ăn uống",
     category: "Ăn uống",
+    accountId: "demo-account-cash",
     account: "Tiền mặt",
     createdAt: "2026-08-28T01:04:00.000Z",
   },
@@ -85,7 +95,8 @@ const candidates = [
     source: "csv",
     confidence: "high",
     status: "pending",
-    account: "Vietcombank",
+    accountId: "demo-account-mb",
+    account: "MB Bank",
     createdAt: "2026-08-28T01:05:00.000Z",
   },
 ] as const;
@@ -105,14 +116,17 @@ test("mixed batch selects and posts only Ready candidates after explicit confirm
 
   await expect(page.getByText("Sẵn sàng").first()).toBeVisible();
   await expect(page.getByText("Cần xem lại").first()).toBeVisible();
-  await expect(page.getByRole("button", { name: "Chọn Sẵn sàng (3)" })).toBeEnabled();
+  const selectReady = page.getByRole("button", { name: "Chọn Sẵn sàng (3)", exact: true });
+  await expect(selectReady).toBeEnabled();
 
-  // Representative fixture baseline was 3 row selections + review + confirm = 5
-  // activations. Exception-first is select Ready + review + confirm = 3.
-  await page.getByRole("button", { name: "Chọn Sẵn sàng (3)" }).click();
+  // The pre-#511 UI already had a three-activation bulk path via Chọn tất cả.
+  // This test proves the same explicit-review path now selects only deterministic
+  // Ready rows; it does not claim a general click-count or manual-entry reduction.
+  await selectReady.click();
   await expect(page.getByText("Đã chọn 3 ứng viên")).toBeVisible();
 
-  await page.getByRole("button", { name: "Xem lại" }).click();
+  const bulkBar = page.locator('[data-slot="inbox-bulk-review"]');
+  await bulkBar.getByRole("button", { name: "Xem lại", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Xác nhận hành động hàng loạt" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("3 giao dịch")).toBeVisible();
@@ -154,6 +168,6 @@ test("mixed batch selects and posts only Ready candidates after explicit confirm
   expect(state.notes).not.toContain("ATTENTION_DUPLICATE");
   expect(state.notes).not.toContain("ATTENTION_TRANSFER");
 
-  await page.getByRole("button", { name: "Cần xem lại" }).click();
+  await page.getByRole("button", { name: "Cần xem lại", exact: true }).click();
   await expect(page.locator('[data-slot="inbox-candidate-row"]')).toHaveCount(3);
 });
