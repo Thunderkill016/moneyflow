@@ -1,10 +1,10 @@
 # #527 — recover production page-load performance
 
-**Issue:** #527  
-**Parent authority:** operational/product quality under the current MoneyFlow product; #432 remains master product strategy  
-**Baseline:** `main@d6ff88bff08d9efc3bfca828ce861b15b4cc0620`  
-**Status:** specified — selection candidate until the planning PR is owner-merged  
-**Change class:** planning Class 0 here; implementation is at least Class 2 and becomes Class 3 if it alters cross-cutting authenticated rendering/data-flow boundaries  
+**Issue:** #527
+**Parent authority:** operational/product quality under the current MoneyFlow product; #432 remains master product strategy
+**Baseline:** `main@d6ff88bff08d9efc3bfca828ce861b15b4cc0620`
+**Status:** specified — selection candidate until the planning PR is owner-merged
+**Change class:** planning Class 0 here; implementation is at least Class 2 and becomes Class 3 if it alters cross-cutting authenticated rendering/data-flow boundaries
 **Owner merge required:** yes
 
 ## Why this slice exists now
