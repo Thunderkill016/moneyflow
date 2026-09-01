@@ -5,6 +5,7 @@ import { PLAN_AUTHORITY_MANIFEST_PATH } from "./plan-authority.mjs";
 
 const ACTIVE_PACKET_DIRECTORY = "docs/plans/active";
 const RETIRED_BOARD_PATH = "docs/plans/active/README.md";
+const RETIRED_BOARD_MARKER = "**Status:** retired as executable authority";
 
 export function validateActivePacketRegistry(root) {
   const failures = [];
@@ -38,13 +39,14 @@ export function validateActivePacketRegistry(root) {
   }
 
   try {
-    if (statSync(join(root, RETIRED_BOARD_PATH)).isFile()) {
+    const retired = readFileSync(join(root, RETIRED_BOARD_PATH), "utf8");
+    if (!retired.includes(RETIRED_BOARD_MARKER)) {
       failures.push(
-        `${RETIRED_BOARD_PATH} is retired; human planning belongs in GitHub Issues/PRs and executable authority belongs in ${PLAN_AUTHORITY_MANIFEST_PATH}`,
+        `${RETIRED_BOARD_PATH} may exist only as a retired compatibility pointer; it must not regain board/authority semantics`,
       );
     }
   } catch {
-    // Expected: the Markdown board has been retired.
+    failures.push(`${RETIRED_BOARD_PATH} compatibility pointer is missing`);
   }
 
   return failures;
