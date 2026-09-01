@@ -18,9 +18,7 @@ function prNumberFromSubject(subject) {
 }
 
 function readPullRequestEvent(env) {
-  if (env.GITHUB_EVENT_NAME !== "pull_request" || !env.GITHUB_EVENT_PATH) {
-    return null;
-  }
+  if (env.GITHUB_EVENT_NAME !== "pull_request" || !env.GITHUB_EVENT_PATH) return null;
   try {
     return JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, "utf8"));
   } catch {
@@ -44,7 +42,6 @@ function gitHistory(root, path, runGit) {
     path,
   ]);
   if (!output) return [];
-
   return output
     .split(/\r?\n/u)
     .filter(Boolean)
@@ -58,88 +55,80 @@ function gitHistory(root, path, runGit) {
 function readManifest(root, failures) {
   let manifest;
   try {
-    manifest = JSON.parse(
-      readFileSync(join(root, PLAN_AUTHORITY_MANIFEST_PATH), "utf8"),
-    );
+    manifest = JSON.parse(readFileSync(join(root, PLAN_AUTHORITY_MANIFEST_PATH), "utf8"));
   } catch {
-    failures.push(
-      `missing or invalid plan authority manifest: ${PLAN_AUTHORITY_MANIFEST_PATH}`,
-    );
+    failures.push(`missing or invalid plan authority manifest: ${PLAN_AUTHORITY_MANIFEST_PATH}`);
     return null;
   }
 
   if (manifest?.schemaVersion !== 2) {
     failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} must use schemaVersion 2`);
   }
-  validateAuthorityEntry(manifest?.master, "master", failures, { required: true });
-  validateAuthorityEntry(manifest?.current, "current", failures, { required: false });
+  validateMaster(manifest?.master, failures);
+  validateCurrent(manifest?.current, failures);
 
-  if (
-    manifest?.master?.path &&
-    manifest?.current?.path &&
-    manifest.master.path === manifest.current.path
-  ) {
+  if (manifest?.master?.path && manifest?.current?.path && manifest.master.path === manifest.current.path) {
     failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} master and current must be different packets`);
   }
-
   if (!Array.isArray(manifest?.master?.supersedes)) {
     failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} master.supersedes must be an array`);
   }
-
   return manifest;
 }
 
-function validateAuthorityEntry(entry, label, failures, { required }) {
-  if (entry == null) {
-    if (required) failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} must declare ${label}`);
-    return;
-  }
+function validatePath(entry, label, failures) {
   if (
-    typeof entry.path !== "string" ||
+    typeof entry?.path !== "string" ||
     !entry.path.startsWith("docs/plans/active/") ||
     !entry.path.endsWith(".md")
   ) {
-    failures.push(
-      `${PLAN_AUTHORITY_MANIFEST_PATH} ${label}.path must point to an active plan packet`,
-    );
-  }
-  if (!Number.isInteger(entry.introducedByPr)) {
-    failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} ${label}.introducedByPr must be a PR number`);
+    failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} ${label}.path must point to an active plan packet`);
   }
 }
 
-function resolveEntryStatus(root, entry, label, env, runGit, failures, warnings) {
-  if (!entry?.path || !Number.isInteger(entry?.introducedByPr)) return null;
-
-  try {
-    readFileSync(join(root, entry.path), "utf8");
-  } catch {
-    failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} points to missing ${label} packet: ${entry.path}`);
-    return {
-      path: entry.path,
-      packet: basename(entry.path),
-      introducedByPr: entry.introducedByPr,
-      status: "invalid",
-      history: [],
-    };
+function validateMaster(entry, failures) {
+  if (!entry) {
+    failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} must declare master`);
+    return;
   }
+  validatePath(entry, "master", failures);
+  if (!Number.isInteger(entry.introducedByPr)) {
+    failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} master.introducedByPr must be a PR number`);
+  }
+}
 
+function validateCurrent(entry, failures) {
+  if (entry == null) return;
+  validatePath(entry, "current", failures);
+  if (!Number.isInteger(entry.selectedByPr)) {
+    failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} current.selectedByPr must be a PR number`);
+  }
+}
+
+function ensurePacket(root, path, label, failures) {
+  try {
+    readFileSync(join(root, path), "utf8");
+    return true;
+  } catch {
+    failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} points to missing ${label} packet: ${path}`);
+    return false;
+  }
+}
+
+function resolveMaster(root, entry, env, runGit, failures, warnings) {
+  if (!entry?.path || !Number.isInteger(entry?.introducedByPr)) return null;
+  ensurePacket(root, entry.path, "master", failures);
   const history = gitHistory(root, entry.path, runGit);
   const merged = history.some((item) => item.prNumber === entry.introducedByPr);
-  const currentPr = currentPullRequestNumber(env);
-  const candidate = !merged && currentPr === entry.introducedByPr;
-
+  const candidate = !merged && currentPullRequestNumber(env) === entry.introducedByPr;
   if (!merged && !candidate) {
     failures.push(
-      `${entry.path} says PR #${entry.introducedByPr} introduced ${label} authority, but merged first-parent history does not contain that PR`,
+      `${entry.path} says PR #${entry.introducedByPr} introduced master authority, but merged first-parent history does not contain that PR`,
     );
   }
   if (candidate) {
-    warnings.push(
-      `${entry.path} is candidate ${label} authority in PR #${entry.introducedByPr}; it activates only after that PR appears in merged first-parent history`,
-    );
+    warnings.push(`${entry.path} is candidate master authority in PR #${entry.introducedByPr}`);
   }
-
   return {
     path: entry.path,
     packet: basename(entry.path),
@@ -149,60 +138,56 @@ function resolveEntryStatus(root, entry, label, env, runGit, failures, warnings)
   };
 }
 
-export function resolvePlanAuthority(
-  root,
-  { env = process.env, runGit = defaultRunGit } = {},
-) {
+function resolveCurrent(root, entry, env, runGit, failures, warnings) {
+  if (!entry?.path || !Number.isInteger(entry?.selectedByPr)) return null;
+  ensurePacket(root, entry.path, "current", failures);
+
+  const history = gitHistory(root, PLAN_AUTHORITY_MANIFEST_PATH, runGit);
+  const merged = history.some((item) => item.prNumber === entry.selectedByPr);
+  const candidate = !merged && currentPullRequestNumber(env) === entry.selectedByPr;
+
+  if (!merged && !candidate) {
+    failures.push(
+      `${entry.path} says PR #${entry.selectedByPr} selected current authority, but merged first-parent history of ${PLAN_AUTHORITY_MANIFEST_PATH} does not contain that PR`,
+    );
+  }
+  if (candidate) {
+    warnings.push(
+      `${entry.path} is candidate current authority selected by PR #${entry.selectedByPr}; it activates only after that PR merges`,
+    );
+  }
+
+  return {
+    path: entry.path,
+    packet: basename(entry.path),
+    selectedByPr: entry.selectedByPr,
+    status: merged ? "active" : candidate ? "candidate" : "invalid",
+    history,
+  };
+}
+
+export function resolvePlanAuthority(root, { env = process.env, runGit = defaultRunGit } = {}) {
   const failures = [];
   const warnings = [];
   const manifest = readManifest(root, failures);
-
-  const master = resolveEntryStatus(
-    root,
-    manifest?.master,
-    "master",
-    env,
-    runGit,
-    failures,
-    warnings,
-  );
+  const master = resolveMaster(root, manifest?.master, env, runGit, failures, warnings);
   const current = manifest?.current
-    ? resolveEntryStatus(
-        root,
-        manifest.current,
-        "current",
-        env,
-        runGit,
-        failures,
-        warnings,
-      )
+    ? resolveCurrent(root, manifest.current, env, runGit, failures, warnings)
     : null;
 
   const authorityChain = [];
   if (master) {
-    authorityChain.push({
-      path: master.path,
-      status: master.status,
-      introducedByPr: master.introducedByPr,
-    });
+    authorityChain.push({ path: master.path, status: master.status, introducedByPr: master.introducedByPr });
   }
-
   for (const predecessor of manifest?.master?.supersedes ?? []) {
-    if (
-      typeof predecessor?.path !== "string" ||
-      !Number.isInteger(predecessor?.supersededByPr)
-    ) {
-      failures.push(
-        `${PLAN_AUTHORITY_MANIFEST_PATH} supersedes entries require path + supersededByPr`,
-      );
+    if (typeof predecessor?.path !== "string" || !Number.isInteger(predecessor?.supersededByPr)) {
+      failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} supersedes entries require path + supersededByPr`);
       continue;
     }
     try {
       readFileSync(join(root, predecessor.path), "utf8");
     } catch {
-      failures.push(
-        `${PLAN_AUTHORITY_MANIFEST_PATH} references missing superseded plan: ${predecessor.path}`,
-      );
+      failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} references missing superseded plan: ${predecessor.path}`);
     }
     if (predecessor.supersededByPr !== manifest?.master?.introducedByPr) {
       failures.push(
@@ -216,10 +201,7 @@ export function resolvePlanAuthority(
       supersededByPr: predecessor.supersededByPr,
     });
   }
-
-  if (!current) {
-    warnings.push("no current agent-executable slice is selected; zero-current is valid between slices");
-  }
+  if (!current) warnings.push("no current agent-executable slice is selected; zero-current is valid between slices");
 
   return {
     ok: failures.length === 0,
@@ -228,20 +210,10 @@ export function resolvePlanAuthority(
     manifestPath: PLAN_AUTHORITY_MANIFEST_PATH,
     schemaVersion: manifest?.schemaVersion ?? null,
     master: master
-      ? {
-          path: master.path,
-          packet: master.packet,
-          introducedByPr: master.introducedByPr,
-          status: master.status,
-        }
+      ? { path: master.path, packet: master.packet, introducedByPr: master.introducedByPr, status: master.status }
       : null,
     current: current
-      ? {
-          path: current.path,
-          packet: current.packet,
-          introducedByPr: current.introducedByPr,
-          status: current.status,
-        }
+      ? { path: current.path, packet: current.packet, selectedByPr: current.selectedByPr, status: current.status }
       : null,
     authorityChain,
     masterHistory: master?.history?.slice(0, 12) ?? [],
@@ -250,39 +222,18 @@ export function resolvePlanAuthority(
 }
 
 function printHuman(result) {
-  console.log(
-    `MoneyFlow plan authority — ${result.ok ? "RESOLVED" : "NEEDS RECONCILIATION"}`,
-  );
-  console.log(
-    `manifest: ${result.manifestPath}; schema: ${result.schemaVersion ?? "invalid"}`,
-  );
-  console.log(
-    `master: ${result.master?.path ?? "unresolved"}${result.master?.status ? ` [${result.master.status}]` : ""}`,
-  );
-  console.log(
-    `current slice: ${result.current?.path ?? "none"}${result.current?.status ? ` [${result.current.status}]` : ""}`,
-  );
-
-  if (result.authorityChain.length > 0) {
-    console.log("authority chain:");
-    for (const entry of result.authorityChain) {
-      console.log(
-        `- ${entry.status}: ${entry.path}${entry.introducedByPr ? ` (PR #${entry.introducedByPr})` : ""}${entry.supersededByPr ? ` → PR #${entry.supersededByPr}` : ""}`,
-      );
-    }
-  }
-
+  console.log(`MoneyFlow plan authority — ${result.ok ? "RESOLVED" : "NEEDS RECONCILIATION"}`);
+  console.log(`manifest: ${result.manifestPath}; schema: ${result.schemaVersion ?? "invalid"}`);
+  console.log(`master: ${result.master?.path ?? "unresolved"}${result.master?.status ? ` [${result.master.status}]` : ""}`);
+  console.log(`current slice: ${result.current?.path ?? "none"}${result.current?.status ? ` [${result.current.status}]` : ""}`);
   for (const warning of result.warnings) console.warn(`warning: ${warning}`);
   for (const failure of result.failures) console.error(`failure: ${failure}`);
 }
 
 function runCli() {
   const result = resolvePlanAuthority(process.cwd());
-  if (process.argv.includes("--json")) {
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  } else {
-    printHuman(result);
-  }
+  if (process.argv.includes("--json")) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  else printHuman(result);
   process.exitCode = result.ok ? 0 : 1;
 }
 
