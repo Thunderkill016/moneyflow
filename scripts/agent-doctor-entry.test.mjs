@@ -10,18 +10,6 @@ function withAuthorityFixture(run) {
   const root = mkdtempSync(join(tmpdir(), "moneyflow-doctor-authority-"));
   try {
     mkdirSync(join(root, "docs/plans/active"), { recursive: true });
-    writeFileSync(
-      join(root, "docs/plans/active/README.md"),
-      [
-        "# Board",
-        "**Current main baseline:** `abc1234`",
-        "| Packet | Role now | Authority boundary |",
-        "|---|---|---|",
-        "| `current.md` | current agent-executable Class 3 slice | current |",
-        "| `master.md` | master product program | master |",
-        "",
-      ].join("\n"),
-    );
     writeFileSync(join(root, "docs/plans/active/current.md"), "# Current\n");
     writeFileSync(join(root, "docs/plans/active/master.md"), "# Master\n");
     writeFileSync(join(root, "docs/plans/PRODUCT_DEVELOPMENT_PLAN.md"), "# Old\n");
@@ -29,7 +17,7 @@ function withAuthorityFixture(run) {
       join(root, "docs/plans/PLAN_AUTHORITY.json"),
       `${JSON.stringify(
         {
-          schemaVersion: 1,
+          schemaVersion: 2,
           master: {
             path: "docs/plans/active/master.md",
             introducedByPr: 433,
@@ -39,6 +27,10 @@ function withAuthorityFixture(run) {
                 supersededByPr: 433,
               },
             ],
+          },
+          current: {
+            path: "docs/plans/active/current.md",
+            introducedByPr: 528,
           },
         },
         null,
@@ -51,21 +43,24 @@ function withAuthorityFixture(run) {
   }
 }
 
-const historyGit = (_root, args) =>
-  args[0] === "log"
-    ? "facefeed\tdocs(product): install master program (#433)"
-    : null;
+const historyGit = (_root, args) => {
+  if (args[0] !== "log") return null;
+  if (args.at(-1) === "docs/plans/active/current.md") {
+    return "current123\tdocs(plan): select current slice (#528)";
+  }
+  if (args.at(-1) === "docs/plans/active/master.md") {
+    return "facefeed\tdocs(product): install master program (#433)";
+  }
+  return null;
+};
 
-test("standard doctor JSON carries resolved plan authority", () => {
+test("standard doctor JSON carries resolved manifest plan authority", () => {
   withAuthorityFixture((root) => {
     const report = buildAuthorityAwareDoctorReport({
       argv: ["node", "agent-doctor-entry.mjs", "--files", "docs/example.md"],
       env: {},
       root,
-      authorityOptions: {
-        expectedBaseline: "abc1234ffff",
-        runGit: historyGit,
-      },
+      authorityOptions: { runGit: historyGit },
     });
 
     assert.equal(report.schemaVersion, 3);
@@ -75,21 +70,26 @@ test("standard doctor JSON carries resolved plan authority", () => {
     assert.equal(report.planAuthority.current.path, "docs/plans/active/current.md");
     assert.ok(
       report.readyMeans.includes.includes(
-        "merged master plan, current slice and Current Work Board freshness resolved",
+        "merged manifest master/current authority resolved from Git first-parent history",
       ),
     );
   });
 });
 
-test("doctor readiness fails when plan authority is stale even if machine policy is otherwise ready", () => {
+test("doctor readiness fails when current authority is unmerged", () => {
   withAuthorityFixture((root) => {
     const report = buildAuthorityAwareDoctorReport({
       argv: ["node", "agent-doctor-entry.mjs", "--files", "docs/example.md"],
       env: {},
       root,
       authorityOptions: {
-        expectedBaseline: "different-sha",
-        runGit: historyGit,
+        runGit: (_root, args) => {
+          if (args[0] !== "log") return null;
+          if (args.at(-1) === "docs/plans/active/master.md") {
+            return "facefeed\tdocs(product): install master program (#433)";
+          }
+          return null;
+        },
       },
     });
 
@@ -105,7 +105,7 @@ test("a valid current-PR master candidate is still blocked from doctor task sele
       join(root, "docs/plans/PLAN_AUTHORITY.json"),
       `${JSON.stringify(
         {
-          schemaVersion: 1,
+          schemaVersion: 2,
           master: {
             path: "docs/plans/active/master.md",
             introducedByPr: 444,
@@ -116,6 +116,7 @@ test("a valid current-PR master candidate is still blocked from doctor task sele
               },
             ],
           },
+          current: null,
         },
         null,
         2,
@@ -132,8 +133,7 @@ test("a valid current-PR master candidate is still blocked from doctor task sele
       },
       root,
       authorityOptions: {
-        expectedBaseline: "abc1234ffff",
-        runGit: historyGit,
+        runGit: () => null,
       },
     });
 
