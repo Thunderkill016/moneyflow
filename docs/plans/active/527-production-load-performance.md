@@ -11,15 +11,9 @@
 
 On 2026-09-02 the owner reported a current Vercel load/performance score of **39**. That is fresh production-quality evidence and outranks candidate #523 in execution priority until the regression is attributed and materially improved.
 
-This packet reopens the performance problem, not the completed #403 experiment. Historical #403 evidence remains valid provenance:
+This packet reopens the performance problem, not the completed #403 experiment. The owner-reported 39 is not independently reproduced yet. It must remain labelled as owner/Vercel field observation until the current measurement phase reproduces or decomposes it.
 
-- canonical `/` and `/dashboard` server response was already small in the lab harness;
-- the remaining measured cost was render delay/main-thread/client JavaScript;
-- the dashboard loading-boundary experiment later recorded in PR #483 was negative for material LCP improvement and must not be repeated as an assumed fix.
-
-The owner-reported 39 is not independently reproduced yet. It must remain labelled as owner/Vercel field observation until the current measurement phase reproduces or decomposes it.
-
-## Fresh production reconnaissance
+## Repository reconnaissance
 
 Against the current production origin `https://mfvn.vercel.app`:
 
@@ -38,7 +32,19 @@ Current code also shows:
 - `src/components/layout/app-shell.tsx` is a shared authenticated `"use client"` root with routing, keyboard, connectivity, sheet, toast and navigation behavior;
 - the public landing marks the first story screenshot `/landing/moneyflow-quick-capture.svg` as `priority`, so production preloads it even though source places it after the text hero. This is only a candidate cause until current waterfall/fold evidence proves it matters.
 
-## Historical comparison evidence — not a new baseline
+The repo already has the required measurement and verification entry points:
+
+- `npm run analyze` → `next experimental-analyze`;
+- `npm run test:load:contracts`;
+- production build, browser/UI audit, policy/knowledge and exact-head CI gates.
+
+## Research
+
+Completed #403 remains the closest internal performance evidence and must not be discarded or silently treated as current measurement. It established that:
+
+- canonical `/` and `/dashboard` server response was small in the lab harness;
+- the remaining measured cost was render delay/main-thread/client JavaScript;
+- the dashboard loading-boundary experiment later recorded in PR #483 was negative for material LCP improvement and must not be repeated as an assumed fix.
 
 The last canonical #403 lab run recorded approximately:
 
@@ -49,13 +55,19 @@ The last canonical #403 lab run recorded approximately:
 
 Those values explain why client ownership is the first code hypothesis, but acceptance requires a fresh current-main baseline on identical before/after methodology.
 
+Current official Next.js guidance is consistent with the existing evidence: keep interactive client boundaries as small as practical and leave non-interactive factual UI in Server Components when that does not duplicate truth or break mutation freshness. Dynamic loading is appropriate for secondary client UI that is not needed for first useful paint. This is a method constraint, not proof that either mechanism is the current bottleneck.
+
+Current Vercel guidance distinguishes lab measurements from field Speed Insights/Core Web Vitals. The owner's 39 remains field observation unless directly read/reproduced; synthetic Lighthouse changes may support attribution but cannot by themselves claim that the field score is fixed.
+
 ## User-visible problem
 
 A finance ledger that takes several seconds to become useful creates friction on the exact repeated loop MoneyFlow needs to make cheap: open → understand → record/review. A low field score also means prior CI/lab confidence is not enough to represent real devices/networks.
 
 The goal is not to win a synthetic score. The goal is to remove actual critical-path work while preserving truthful content and interaction.
 
-## Phase A — attribution before runtime change
+## Specification
+
+### Phase A — attribution before runtime change
 
 No implementation change is allowed until the task branch records a fresh production-build baseline for `/` and `/dashboard` using the same methodology before/after.
 
@@ -73,9 +85,44 @@ Required evidence per route:
 
 Do not remote-load-test production. Existing k6 production safeguards remain unchanged.
 
-## Decision rule after Phase A
+### Explicit invariants
 
-Select the smallest mechanism that explains a material part of the measured cost.
+Implementation must preserve:
+
+- integer-VND and all financial calculations;
+- transfer neutrality;
+- one bounded authenticated dashboard data load and request-private semantics;
+- no shared/private financial caching;
+- demo/auth separation;
+- capture idempotency and mutation behavior;
+- navigation and keyboard shortcuts;
+- accessibility and the current 44px target contract;
+- truthful loading: no fabricated balances/totals;
+- Analytics, privacy-safe Speed Insights and current error reporting;
+- Vietnamese glyph coverage and current visual authority.
+
+### Acceptance metrics
+
+Target current good budgets:
+
+- LCP <= 2.5 s;
+- CLS <= 0.10;
+- TBT <= 200 ms.
+
+If LCP remains above 2.5 s, the implementation can still pass only when it demonstrates a material same-methodology improvement and records the remaining bottleneck.
+
+A score increase alone is insufficient. The chosen mechanism must show at least one corresponding cost reduction such as:
+
+- lower first-load/client JS bytes;
+- lower JS bootup/main-thread work;
+- lower LCP render delay;
+- removal of an unnecessary critical-path transfer.
+
+No result may claim the owner-reported Vercel score 39 was fixed unless current field evidence actually changes accordingly.
+
+## Implementation plan
+
+After Phase A, select only the smallest mechanism that explains a material part of the measured cost.
 
 ### Hypothesis A — authenticated dashboard hydration ownership
 
@@ -106,44 +153,45 @@ Do not touch Vietnamese font coverage or root analytics merely because they are 
 
 Font strategy, root client components, global CSS or another eager dependency may be selected only when fresh attribution points there. #403's inconclusive font/loading-boundary experiments cannot be presented as new evidence.
 
-## Explicit invariants
+### Stop conditions
 
-Implementation must preserve:
+Stop implementation and report rather than improvising if:
 
-- integer-VND and all financial calculations;
-- transfer neutrality;
-- one bounded authenticated dashboard data load and request-private semantics;
-- no shared/private financial caching;
-- demo/auth separation;
-- capture idempotency and mutation behavior;
-- navigation and keyboard shortcuts;
-- accessibility and the current 44px target contract;
-- truthful loading: no fabricated balances/totals;
-- Analytics, privacy-safe Speed Insights and current error reporting;
-- Vietnamese glyph coverage and current visual authority.
+- current attribution does not reproduce a repository-controlled bottleneck;
+- the proposed gain requires provider/deployment writes or production load testing;
+- dashboard island splitting would create two financial calculation authorities or stale post-mutation facts;
+- a change requires weakening privacy/security/analytics/a11y;
+- font/CSS trimming risks Vietnamese coverage or current visual authority;
+- improvement is within measurement noise.
 
-## Acceptance metrics
+## Tasks
 
-Target current good budgets:
+| ID | Task | State before planning-PR merge |
+|---|---|---|
+| P1 | Inspect current repo, production deployment and historical #403 evidence | done |
+| P2 | Research current official Next.js/Vercel performance guidance and constrain hypotheses | done |
+| P3 | Specify baseline, invariants, acceptance, stop conditions and verification | done |
+| P4 | Select #527 through planning PR #528 | candidate — exact-head CI + owner merge required |
+| I1 | Fresh-main `plan:resolve` + `agent:doctor` after planning merge | blocked on owner merge |
+| I2 | Record current `/` + `/dashboard` analyzer/Lighthouse baseline | blocked on I1 |
+| I3 | Implement only the measured smallest mechanism | blocked on I2 |
+| I4 | Repeat same-methodology measurements and full selected verification | blocked on I3 |
+| I5 | Independent evaluation + same-PR lifecycle completion | blocked on I4 |
 
-- LCP <= 2.5 s;
-- CLS <= 0.10;
-- TBT <= 200 ms.
+## Evaluation
 
-If LCP remains above 2.5 s, the implementation can still pass only when it demonstrates a material same-methodology improvement and records the remaining bottleneck.
+The implementation later passes only if evidence supports all of the following:
 
-A score increase alone is insufficient. The chosen mechanism must show at least one corresponding cost reduction such as:
+- the route responsible for the meaningful cost is identified rather than guessed;
+- the chosen code change removes or defers genuinely non-critical work, not required first-paint truth/interactivity;
+- before/after numbers use the same profile and route state;
+- any claimed improvement is larger than observed run noise;
+- one corresponding underlying cost metric improves, not only the aggregate score;
+- authenticated financial values and mutation refresh semantics remain truthful;
+- no private-data cache, provider mutation, analytics weakening, visual deception or accessibility regression is introduced;
+- if Vercel field evidence is unavailable, the result says so and does not claim the owner's 39 field observation is resolved.
 
-- lower first-load/client JS bytes;
-- lower JS bootup/main-thread work;
-- lower LCP render delay;
-- removal of an unnecessary critical-path transfer.
-
-No result may claim the owner-reported Vercel score 39 was fixed unless current field evidence actually changes accordingly.
-
-## Required verification
-
-Before owner handoff of the implementation PR:
+Required implementation verification before owner handoff:
 
 - `npm run plan:resolve`;
 - `npm run agent:doctor -- --json`;
@@ -157,17 +205,6 @@ Before owner handoff of the implementation PR:
 - same-methodology Lighthouse before/after `/` and `/dashboard`;
 - exact final head CI, CodeQL and secret scan as selected by policy;
 - independent evaluation focused on whether work was removed rather than hidden/deferred and whether financial/private-data behavior stayed truthful.
-
-## Stop conditions
-
-Stop implementation and report rather than improvising if:
-
-- current attribution does not reproduce a repository-controlled bottleneck;
-- the proposed gain requires provider/deployment writes or production load testing;
-- dashboard island splitting would create two financial calculation authorities or stale post-mutation facts;
-- a change requires weakening privacy/security/analytics/a11y;
-- font/CSS trimming risks Vietnamese coverage or current visual authority;
-- improvement is within measurement noise.
 
 ## Non-scope
 
