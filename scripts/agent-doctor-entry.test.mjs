@@ -30,7 +30,7 @@ function withAuthorityFixture(run) {
           },
           current: {
             path: "docs/plans/active/current.md",
-            introducedByPr: 528,
+            selectedByPr: 530,
           },
         },
         null,
@@ -45,8 +45,8 @@ function withAuthorityFixture(run) {
 
 const historyGit = (_root, args) => {
   if (args[0] !== "log") return null;
-  if (args.at(-1) === "docs/plans/active/current.md") {
-    return "current123\tdocs(plan): select current slice (#528)";
+  if (args.at(-1) === "docs/plans/PLAN_AUTHORITY.json") {
+    return "manifest123\tfix(plan): select current slice (#530)";
   }
   if (args.at(-1) === "docs/plans/active/master.md") {
     return "facefeed\tdocs(product): install master program (#433)";
@@ -68,6 +68,7 @@ test("standard doctor JSON carries resolved manifest plan authority", () => {
     assert.equal(report.planAuthority.selectionReady, true);
     assert.equal(report.planAuthority.master.path, "docs/plans/active/master.md");
     assert.equal(report.planAuthority.current.path, "docs/plans/active/current.md");
+    assert.equal(report.planAuthority.current.selectedByPr, 530);
     assert.ok(
       report.readyMeans.includes.includes(
         "merged manifest master/current authority resolved from Git first-parent history",
@@ -76,7 +77,7 @@ test("standard doctor JSON carries resolved manifest plan authority", () => {
   });
 });
 
-test("doctor readiness fails when current authority is unmerged", () => {
+test("doctor readiness fails when current selection is not in merged manifest history", () => {
   withAuthorityFixture((root) => {
     const report = buildAuthorityAwareDoctorReport({
       argv: ["node", "agent-doctor-entry.mjs", "--files", "docs/example.md"],
@@ -132,9 +133,7 @@ test("a valid current-PR master candidate is still blocked from doctor task sele
         GITHUB_EVENT_PATH: eventPath,
       },
       root,
-      authorityOptions: {
-        runGit: () => null,
-      },
+      authorityOptions: { runGit: () => null },
     });
 
     assert.equal(report.planAuthority.ok, true);
