@@ -1,23 +1,24 @@
 # MoneyFlow — Current Work Board
 
-**Last reconciled:** 2026-08-28 (same-PR completion projection for #511 / PR #522)
-**Current main baseline:** `133fa462d3cd5f90b1f70cccb179547815c2ba2d` (PR #521 squash-merged)
-**Post-merge projection:** PR #522
+**Last reconciled:** 2026-09-02 (candidate selection of #527 production load performance)
+**Current main baseline:** `d6ff88bff08d9efc3bfca828ce861b15b4cc0620` (PR #522 squash-merged)
+**Selection projection:** planning PR for #527; activates only after owner merge
 **Release readiness:** **NOT PUBLIC-BETA READY**. Product development does not substitute for provider/legal/physical-device release evidence.
 
-This board answers **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Code/tests/provider truth outrank prose. The PR #522 projection below is candidate state until the owner merges the exact verified head.
+This board answers **“đang làm gì, tiếp theo là gì, cái gì đang block, cái gì cần tao quyết?”** Code/tests/provider truth outrank prose. A planning-PR selection is candidate authority until the owner merges its exact verified head.
 
 ## NOW
 
-**Projected after PR #522 merge: no current agent-executable product/governance slice is selected.**
+**Candidate after this planning PR merges: exactly one current agent-executable slice — #527.**
 
-- [x] **#511 — Inbox exception-first review without auto-posting** — completion is projected by PR #522. The implementation adds deterministic Ready/Needs-attention classification, preserves explicit confirmation, and keeps low-confidence/duplicate/transfer/invalid/unresolved candidates pending. It is review/trust infrastructure, not a manual-entry reduction claim. Completed packet projection: `docs/plans/completed/2026-08-28-511-inbox-exception-first-review.md`.
+- [ ] **#527 — recover production page-load performance** — owner reported a current Vercel load/performance score of **39** on 2026-09-02. Fresh production reconnaissance shows anonymous `/` is prerendered/CDN HIT and skips Supabase auth without an auth cookie, while historical #403 evidence already identified client JS/main-thread render delay as the remaining measured bottleneck. Phase A must establish a fresh current-main `/` + `/dashboard` baseline and analyzer attribution before any runtime change. Packet: `docs/plans/active/527-production-load-performance.md`.
+- [x] **#511 / PR #522 — Inbox exception-first review without auto-posting** — merged as `d6ff88bff08d9efc3bfca828ce861b15b4cc0620`. Review/trust infrastructure only; no manual-entry reduction claim.
 - [x] **RRB-08 — current physical-device proof** — owner closed #398 on 2026-08-27 after one POCO X8 Pro / Android / Chrome / authenticated PASS observation. No iOS/Safari observation exists.
 
 ## NEXT
 
-- [ ] **#523 — prove consumer bank-export compatibility before expanding capture** — **candidate only, not selected by PR #522**. After #522 is merged and fresh-main `plan:resolve` confirms zero current slices, #523 may be separately promoted under #432. Phase A must benchmark privacy-safe structural consumer export fixtures against the current parser before any bank-specific adapter is authorized.
-- [ ] **#432 P2 — continue Low-Maintenance Ingestion** — choose the next bounded slice from evidence and measured correction burden. The product-level target is trusted rows acquired per user action plus correction burden, not parser count or review-click claims.
+- [ ] **#523 — prove consumer bank-export compatibility before expanding capture** — candidate only and temporarily behind #527 because a current production-quality regression has priority. #527 completion may not auto-select #523; fresh-main selection is required later.
+- [ ] **#432 P2 — continue Low-Maintenance Ingestion** — choose the next bounded acquisition slice from evidence and measured correction burden after the performance defect is closed or explicitly stopped.
 - [ ] **Controlled closed beta** — only after release entry gates clear and no unresolved P0 exists.
 
 ## BLOCKED / EXTERNAL EVIDENCE
@@ -26,7 +27,7 @@ This board answers **“đang làm gì, tiếp theo là gì, cái gì đang bloc
 - [ ] **RRB-04 — provider/Auth/firewall read-back** — requires provider read access; #40/#174 remain owner/provider decisions.
 - [ ] **RRB-06 — Vietnam personal-data legal/privacy operational review** — competent owner/legal review required.
 - [ ] **RRB-09 — production deployment/provider identity read-back** — requires current provider/deployment evidence.
-- [ ] **Controlled closed beta / public beta** — release-readiness contract remains independent of #432 product work.
+- [ ] **Controlled closed beta / public beta** — release-readiness contract remains independent of product/performance work.
 
 Closed by current evidence/owner decision: RRB-01, RRB-02 limitation path, RRB-05 operator-controlled contact, RRB-07 and RRB-08 one-device observation.
 
@@ -34,19 +35,20 @@ Closed by current evidence/owner decision: RRB-01, RRB-02 limitation path, RRB-0
 
 - [ ] **#40** — Supabase leaked-password protection / Security Advisor provider action.
 - [ ] **#174** — provider/Auth/firewall configuration read-back and disposition.
-- [ ] **#426** — decide whether the separate simplification Slice 2 (`DashboardPlanningColumn`) should continue after merged Slice 1; it does not compete with #432 as master direction.
+- [ ] **#426** — decide whether the separate simplification Slice 2 (`DashboardPlanningColumn`) should continue; it must not overlap #527 while #527 is current.
 - [ ] **Public-beta go/no-go and remaining limitation decisions** — owner-only.
 
 ## HOLD
 
-- [ ] **#403 performance work** — measured/held; resume only by deliberate promotion.
-- [ ] **#426 further implementation** — held pending owner disposition.
+- [x] **#403 performance work** — completed historical measurement/attribution lineage. Its negative loading-boundary result remains evidence; #527 is the new current problem on fresh production evidence, not a reopening of the old experiment.
+- [ ] **#426 further implementation** — held pending owner disposition and cannot overlap current #527.
 - [ ] **Provider integration / native mobile / Wealth / Together / AI mutation** — horizon only; each needs dependency evidence, a bounded researched specification and owner authority.
 - [ ] **Phase E Creative Territories / Phase F broad redesign** — parked.
 
 ## RECENTLY DONE / CURRENT LINEAGE
 
-- [ ] **#511 / PR #522 — exception-first Inbox grouped review** — post-merge projection only until owner merge. Code/evaluation head `20896ba3c7a9bee71893994fbf199bfd9ffc77eb` passed CI #3142, browser/E2E, cross-device audit, CodeQL and secret scan before lifecycle-only convergence; the final projection head must pass exact-head checks again.
+- [x] **#511 / PR #522 — exception-first Inbox grouped review** — merged `d6ff88bff08d9efc3bfca828ce861b15b4cc0620`; grouped posting remains explicit-confirmation-only and fail-closed to deterministic Ready candidates.
+- [x] **#403 / PR #415 / #419 / #483 — canonical load measurement and attribution** — historical evidence. Last canonical runs found server response small and post-paint/client-JS work dominant; the loading-boundary experiment did not show a material LCP lever.
 - [x] **#463 / PR #464 — Direct CSV confirmed-rule dry-run** — merged as `3975007738a3cf383c11e73b9e6d9fdfccfb2f59`.
 - [x] **#460 / PR #461 — remembered Direct CSV column mapping** — merged as `ba2890670ceabed049aa1ed3bee0a9c8593b194a`.
 - [x] **#458 / PR #459 — Direct CSV recovery handoff** — merged as `3876666da38bdd446c49053da827af731d55cf54`.
@@ -63,12 +65,13 @@ Closed by current evidence/owner decision: RRB-01, RRB-02 limitation path, RRB-0
 | Packet | Role now | Authority boundary |
 |---|---|---|
 | `432-vietnam-long-term-product-strategy.md` | master product program | sequencing, invariants, metrics and phase gates |
+| `527-production-load-performance.md` | **candidate current slice after planning PR merge** | current-main attribution + bounded performance implementation only; no financial/provider semantics |
 | `public-beta-trust.md` | release parent program | release-readiness blockers and owner public-beta decision |
 | `rrb-08-physical-device-proof.md` | active owner validation | historical/current physical-device evidence lane; no provider/deployment mutation |
-| `403-fcp-attribution.md` | held measurement packet | resume only by owner promotion |
+| `403-fcp-attribution.md` | historical/held measurement packet | provenance only; loading-boundary negative result must not be re-litigated without new evidence |
 | `510-plan-projection-main-continuity.md` | recovery-only Class 3 governance packet | authority-continuity provenance; does not compete with product work |
 
-There is intentionally **no `current agent-executable` row** in this PR #522 post-merge projection.
+If this planning PR is owner-merged, `527-production-load-performance.md` is the only `current agent-executable` packet. #523 remains NEXT/candidate.
 
 ## Board rules
 
@@ -79,5 +82,6 @@ There is intentionally **no `current agent-executable` row** in this PR #522 pos
 5. A completing PR must converge board + current memory + completed packet in that same PR before owner handoff.
 6. `OWNER DECISION` is never auto-resolved by an agent.
 7. Historical issues/PRs are provenance, not authority.
-8. This projection activates only after the exact matching owner merge; while open it cannot authorize #523 or any other follow-on work.
-9. After merge, fetch fresh `main`, run `npm run plan:resolve` and `npm run agent:doctor -- --json`, then select any next slice through a separate authority change.
+8. This #527 selection activates only after the owner merges the exact planning PR head; while open it authorizes no runtime code.
+9. After planning merge, fetch fresh `main`, run `npm run plan:resolve` and `npm run agent:doctor -- --json`, establish fresh measurements, then implement only the measured #527 mechanism.
+10. Completing #527 may not select #523 or any other follow-on slice in the same PR.
