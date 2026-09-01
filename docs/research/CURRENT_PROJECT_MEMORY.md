@@ -1,22 +1,19 @@
 # MoneyFlow — current project memory
 
-**Status:** single current implementation/trust-status authority when read from `main`; this branch carries a candidate post-merge projection only
-**Last reconciled:** 2026-08-28
-**Runtime/financial baseline:** `main@133fa462d3cd5f90b1f70cccb179547815c2ba2d` (PR #521 squash-merged)
-**Post-merge projection:** PR #522
-**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs. The owner-facing queue is `docs/plans/active/README.md` only after `npm run plan:resolve` passes.
+**Status:** current implementation/trust snapshot; this branch carries the #529 governance recovery candidate until owner merge
+**Last reconciled:** 2026-09-02
+**Merged main baseline:** `dea07378fe00030c3fee1a3f4be52831ece959f0` (PR #528)
+**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
 
-MoneyFlow is a Vietnamese personal-finance product built around one trustworthy user-owned ledger. The product is functional but **not public-beta ready**.
+MoneyFlow is a Vietnamese personal-finance product built around one trustworthy user-owned ledger. It is functional but **not public-beta ready**.
 
-Merged #432/#433 is the master product authority. A digital transaction MoneyFlow can acquire safely should not require permanent retyping. Manual capture remains first-class for cash, corrections and missing/off-system events.
+Merged #432/#433 remains the master product program. A digital transaction MoneyFlow can acquire safely should not require permanent retyping. Manual capture remains first-class for cash, corrections and missing/off-system events.
 
-Dependency order remains:
+PR #528 was owner-merged to select #527 production-load performance ahead of candidate #523. The merge exposed a governance defect: main CI #3162 failed because the old Markdown Current Work Board still duplicated a pre-merge SHA baseline. Issue #529 removes that duplicated authority model.
 
-`source/evidence → candidates/provenance → normalization/dedup/matching → ledger → reconciliation/correction → understanding/review → planning → automation → selective providers → later wealth/together/intelligence when separately validated`.
-
-Code, migrations and tests outrank this memory. Open PRs and this projection remain candidate evidence until merged.
+After #529 merges, `docs/plans/PLAN_AUTHORITY.json` is the single executable plan selector: master #432 and current #527. GitHub Issues/PRs hold human backlog/status. The retired `docs/plans/active/README.md` is a compatibility pointer only.
 
 ## 2. Current runtime and financial truth
 
@@ -30,113 +27,108 @@ Code, migrations and tests outrank this memory. Open PRs and this projection rem
 
 ## 3. Acquisition and reconciliation truth
 
-Merged acquisition lineage:
+Merged acquisition lineage includes Direct CSV provenance/atomic approval, later-source attachment, deleted exact-source recovery, changed observation preservation, predecessor/replacement lineage, clearing progression, PWA Share Target persistence, explicit candidate rules and Direct CSV mapping/rule reuse through PR #464.
 
-- #435: Direct CSV persists source provenance and commits selected rows atomically.
-- #437: later non-manual evidence can attach to one reviewed unprovenanced transaction without rewriting ledger facts.
-- #439: deleted exact-source reimport can restore the same fact when evidence is unchanged.
-- #441: changed same-ID observations are preserved for review without overwriting canonical ledger/reconciliation truth.
-- #445: explicit predecessor/replacement lineage exists; no fuzzy lineage guessing.
-- #449: reviewed exact `posted` evidence may advance one eligible leg `pending → cleared`; never `reconciled`, overwrite, delete or demote user/statement truth.
-- #451: PWA Share Target persists one share action atomically into pending source batches/candidates.
-- #453: explicit Inbox review can create a future candidate-stage rule.
-- #455: Share candidates can reuse explicit deterministic rules; no auto-post.
-- #459: failed Direct CSV approval with retained batch id hands the user to Inbox/import history rather than encouraging blind retry.
-- #461: user-confirmed Direct CSV column mappings can be remembered for the exact normalized header shape.
-- #464: eligible Direct CSV dry-run rows may reuse exact explicit rules for normalization before unchanged review/approval.
+The generic file-import implementation remains shallow relative to real Vietnam consumer bank exports. Exact exported schemas still require privacy-safe structural fixtures before bank-specific adapters are authorized.
 
-The current file-import implementation remains generic/shallow relative to real consumer bank exports. Exact exported schemas must be proven with privacy-safe structural fixtures before bank-specific adapters are authorized.
+Issue #523 remains a candidate only while #527 is current.
 
 ## 4. Current execution state
 
-PR #522 completes #511 — exception-first Inbox grouped review — only if the owner squash-merges the exact final head after required checks pass.
+Merged PR #528 selected **#527 — recover production page-load performance**. Owner observed a Vercel performance/load score of 39 on 2026-09-02.
 
-**Projected current agent-executable slices after PR #522 merge: zero.**
+Fresh production reconnaissance before #529 found:
 
-No follow-on slice is selected in this PR. Issue #523 (`prove consumer bank-export compatibility before expanding capture`) is a candidate only. It may be considered only from fresh `main` after merge + `npm run plan:resolve`; selection requires a separate bounded authority change.
+- anonymous `/` is prerendered and served as a Vercel cache HIT;
+- anonymous public routing skips Supabase auth when no auth cookie exists;
+- `/dashboard` is dynamic/cache MISS and is the first route to benchmark;
+- historical #403 evidence measured client JS/main-thread cost as the dominant repository-controlled performance burden;
+- current `MoneyFlowDashboard` and `AppShell` are broad client roots, but mutation freshness means a naive full Server Component rewrite would risk stale financial UI.
 
-#511 is **review/trust infrastructure**, not the primary answer to manual-entry/capture friction. PR #522 adds one shared deterministic readiness classifier; grouped posting remains explicit-confirmation-only; low-confidence, duplicate, transfer, invalid or unresolved candidates stay pending. The former desktop `A` shortcut no longer reaches grouped approval directly.
-
-Do **not** claim `40% fewer clicks` or manual-entry reduction. The pre-#511 Inbox already had one-click `Chọn tất cả`; raw minimum grouped activations remain three. The proven change is fail-closed safety and lower row-by-row decision burden for mixed batches.
+No runtime performance change is authorized inside #529. #529 repairs plan authority only. After that owner merge, #527 resumes from fresh main with measurement-first attribution.
 
 ## 5. Current capability inventory
 
-| Capability | Current merged truth / projected change |
+| Capability | Current merged truth |
 |---|---|
 | Core ledger | multiple accounts; income, expense, balanced transfers; edit; recoverable deletion |
 | Accounts | balances, register/history, create/edit/archive/restore, statement reconciliation |
 | Planning | category budgets, recurring commitments/income, savings goals |
 | Understanding | weekly/monthly/yearly reports, drill-downs, controlled import/export |
-| Acquisition | persisted batches/candidates/provenance, exact source matching, Direct CSV atomic approval, Share Target persistence, explicit deterministic candidate rules |
-| Review | current merged review plus **projected PR #522 Ready/Needs-attention fail-closed grouped review** |
+| Acquisition | persisted batches/candidates/provenance, exact source matching, Direct CSV atomic approval, Share Target persistence, deterministic candidate rules |
+| Review | exception-first Ready/Needs-attention grouped review from PR #522; explicit confirmation; fail-closed exceptions |
 | Ownership | versioned archive/export/validation/restore contract |
 | Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
 | Public beta | not approved |
 
-## 6. Release/trust state
+## 6. Performance truth
 
-Release readiness is separate from #432 product development.
+The owner's Vercel score 39 is field observation, not yet independently reproduced by the repository harness.
 
-Closed by current evidence/owner decision: RRB-01, RRB-02 limitation path, RRB-05 contact path, RRB-07, RRB-08 one-device Android/Chrome observation.
+Historical #403 lab evidence recorded roughly 195.8 KB script transfer on `/` and 311.6 KB on `/dashboard`, with dashboard main-thread work around 1.72–1.75 s and JS bootup around 766–814 ms. Those values are provenance, not current acceptance numbers.
 
-Still external/open at their own boundaries: RRB-03 destructive recent-auth provider edge, RRB-04 provider/Auth/firewall read-back, RRB-06 Vietnam personal-data legal/privacy review, RRB-09 production deployment/provider identity.
-
-No product PR may silently convert those external gaps into proof.
+#527 requires same-methodology current-main before/after evidence: Lighthouse score, LCP/FCP/CLS/TBT, transfer/script bytes, main-thread/bootup, LCP attribution, analyzer output and available Vercel field evidence. A score-only improvement is insufficient.
 
 ## 7. Security and delivery truth
 
 - `docs/configuration.md` owns environment/provider settings; provider values never belong in source.
-- `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates and `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission/handoff boundaries.
-- `docs/plans/PLAN_AUTHORITY.json` + the active board registry own task selection.
-- `plan:resolve` blocks stale/ambiguous authority and unactivated projections.
-- `scripts/lifecycle-projection.mjs` requires a completing PR to archive its active packet, project board/current memory and leave zero follow-on current slices in the same PR.
-- Code/evaluation head `20896ba3c7a9bee71893994fbf199bfd9ffc77eb` passed CI #3142, browser/E2E, cross-device UI audit, CodeQL and secret-history scan. Lifecycle convergence creates a newer head, so **final exact-head required checks remain the merge gate**.
+- `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates.
+- `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission/handoff boundaries.
+- `docs/plans/PLAN_AUTHORITY.json` owns executable master/current plan selection.
+- `plan:resolve` blocks candidate/unmerged authority.
+- Completing current work must set manifest `current` to `null`, archive the packet and update this memory in the same PR; it cannot preselect follow-on work.
+- Code, migrations and tests outrank prose.
 
 ## 8. Reconciled issue status
 
 - #432/#433: merged master acquisition-first program.
-- #434/#435 through #464: merged acquisition/provenance/rule lineage described above.
-- #511/#522: current slice completion projection; not merged yet.
-- #523: candidate follow-on evidence slice only; not authority.
-- #403 performance: held.
-- #426 simplification Slice 2: owner decision/held.
-- Release-readiness issues remain on their independent owner/provider/legal boundaries.
+- #511/#522: merged exception-first Inbox grouped review; safety/review improvement only, not manual-entry reduction.
+- #527/#528: performance slice selected by merged planning PR #528.
+- #529: governance recovery; retires Markdown board authority after main CI #3162 exposed the duplicate-state bug.
+- #523: candidate bank-export compatibility evidence slice; not current while #527 executes.
+- #403: historical performance measurement/attribution provenance; not current authority.
+- #426: further simplification work held and must not overlap current #527.
+- Release/provider/legal issues remain independent owner/provider/legal boundaries.
 
 ## 9. Open pull-request memory
 
-PR #522 durable record: `docs/research/pr-memory/2026/Q3/PR-522.md`.
+#529 recovery will create one bounded record under `docs/research/pr-memory/2026/Q3/PR-<number>.md` after its PR number exists.
 
-PR #522 projects completion of #511 with zero current agent-executable slice after merge. The completed packet projection is `docs/plans/completed/2026-08-28-511-inbox-exception-first-review.md`.
+Its intended lifecycle impact is an **authority transition/recovery**, not completion of #527. It changes governance truth from duplicated board+manifest state to manifest-only current selection and keeps #527 current.
 
-A final branch mutation invalidates older-head verification evidence. GitHub required checks on the exact final PR head are authoritative. Merge remains owner-authorized only.
+No runtime performance claim is produced by #529.
 
 ## 10. True gaps after this audit
 
-1. Prove whether real consumer Vietnam bank exports can be acquired with materially less user work than retyping.
-2. Obtain privacy-safe structure-preserving fixtures before claiming bank-specific file compatibility.
-3. Measure parser output by rows detected, exact amount/date/kind, reference/source identity preserved and correction burden.
-4. Keep OCR/provider/native acquisition unselected until structured-source evidence shows the need.
-5. Validate capture/maintenance conclusions beyond the current tech-community-skewed corpus before market-wide claims.
-6. Release/provider/legal gaps remain separate from product acquisition work.
+1. Restore green main plan-authority/knowledge checks through #529 without reintroducing duplicated state.
+2. From post-#529 fresh main, run `plan:resolve` and `agent:doctor -- --json` and record current #527 baseline measurements.
+3. Attribute current `/dashboard` critical-path JS/main-thread cost before selecting any implementation mechanism.
+4. Apply proven Next/Vercel patterns only where analyzer/Lighthouse evidence shows a material critical-path contribution.
+5. Re-measure same methodology and separate synthetic gains from Vercel field evidence.
+6. After #527 is completed and current authority returns to zero, separately reconsider #523 from fresh main.
+7. Release/provider/legal gaps remain separate from performance/product work.
 
 ## 11. Next allowed action
 
-After PR #522 is owner-merged:
+#529 may change only governance scripts/tests/docs required to retire the Markdown board as executable authority and activate merged #528 intent safely.
+
+After owner merges #529:
 
 1. fetch fresh `main`;
-2. run `npm run plan:resolve` and `npm run agent:doctor -- --json`;
-3. confirm the projected zero-current state activated through the exact merge;
-4. only then evaluate/select a new bounded #432 child.
-
-Candidate #523 targets the strongest current product problem more directly: stop retyping transactions that already exist as digital bank records, measured as trusted rows acquired per user action plus correction burden. Phase A must first benchmark privacy-safe structural consumer export fixtures against the current parser. It does **not** pre-authorize a bank-specific parser, OCR engine, provider integration or native acquisition.
+2. run `npm run plan:resolve` and confirm master #432 + current #527 are active;
+3. run `npm run agent:doctor -- --json`;
+4. create the focused #527 implementation branch/PR;
+5. establish current `/` and `/dashboard` analyzer + Lighthouse baseline before runtime edits;
+6. implement only the smallest measured performance mechanism.
 
 ## 12. Superseded-status register
 
+- “The Markdown Current Work Board is executable plan authority” — superseded by #529; manifest-only authority is the target.
+- “Every merge must maintain a hand-written Current main baseline SHA in Markdown” — superseded; this caused main CI #3162.
+- “Post-merge projection markers are required to activate current work” — superseded; merged `introducedByPr` history activates manifest authority.
 - “#511 materially reduces manual-entry friction” — superseded.
 - “#511 reduces the minimum grouped path by 40%” — superseded.
 - “SMS is a primary acquisition bet” — unsupported; fallback/legacy only unless new evidence changes that.
-- “AI should position MoneyFlow” — unsupported; AI may be used only where a bounded spec proves it reduces capture/reconcile friction safely.
-- “open issue #523 is already selected work” — false; #523 is candidate only.
-- “a provider/bank/native/OCR horizon item is authorized by master #432 alone” — false; each requires a bounded researched slice and owner authority.
-
-PR #522 remains unmerged candidate evidence. Owner controls merge. No direct `main` write, force-push, provider/production mutation or next-slice promotion is authorized by this projection.
+- “AI should position MoneyFlow” — unsupported; AI is acceptable only where bounded evidence shows it safely reduces capture/reconcile friction.
+- “Open issue #523 is already selected work” — false; #527 is current after #528/#529 authority convergence.
+- “A provider/bank/native/OCR horizon item is authorized by master #432 alone” — false; each requires a bounded researched slice and owner authority.
