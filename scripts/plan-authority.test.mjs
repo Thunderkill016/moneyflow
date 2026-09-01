@@ -38,7 +38,7 @@ function authorityManifest(overrides = {}) {
     },
     current: {
       path: "docs/plans/active/current.md",
-      introducedByPr: 528,
+      selectedByPr: 530,
     },
     ...overrides,
   };
@@ -47,8 +47,8 @@ function authorityManifest(overrides = {}) {
 function mergedGit(_root, args) {
   if (args[0] !== "log") return null;
   const path = args.at(-1);
-  if (path === "docs/plans/active/current.md") {
-    return "current123\tperf: select current slice (#528)";
+  if (path === "docs/plans/PLAN_AUTHORITY.json") {
+    return "manifest123\tfix(plan): select current slice (#530)";
   }
   if (path === "docs/plans/active/master.md") {
     return "master123\tdocs(product): install master program (#433)";
@@ -56,7 +56,7 @@ function mergedGit(_root, args) {
   return null;
 }
 
-test("resolves one merged master and one merged current slice from the manifest", () => {
+test("resolves one merged master and one merged current slice from manifest history", () => {
   withFixture(authorityManifest(), (root) => {
     const result = resolvePlanAuthority(root, { runGit: mergedGit });
 
@@ -64,6 +64,7 @@ test("resolves one merged master and one merged current slice from the manifest"
     assert.equal(result.schemaVersion, 2);
     assert.equal(result.master.status, "active");
     assert.equal(result.current.status, "active");
+    assert.equal(result.current.selectedByPr, 530);
     assert.equal(result.current.path, "docs/plans/active/current.md");
     assert.equal(result.authorityChain[1].supersededByPr, 433);
   });
@@ -79,39 +80,28 @@ test("zero current slice is valid between executable slices", () => {
   });
 });
 
-test("a current slice is candidate inside its introducing PR until merged history proves it", () => {
-  withFixture(
-    authorityManifest({
-      current: {
-        path: "docs/plans/active/current.md",
-        introducedByPr: 529,
+test("a current selection is candidate inside its selecting PR until manifest history proves merge", () => {
+  withFixture(authorityManifest(), (root) => {
+    const eventPath = join(root, "event.json");
+    writeFileSync(eventPath, JSON.stringify({ number: 530, pull_request: { number: 530 } }));
+    const result = resolvePlanAuthority(root, {
+      env: { GITHUB_EVENT_NAME: "pull_request", GITHUB_EVENT_PATH: eventPath },
+      runGit: (_root, args) => {
+        if (args[0] !== "log") return null;
+        if (args.at(-1) === "docs/plans/active/master.md") {
+          return "master123\tdocs(product): install master program (#433)";
+        }
+        return null;
       },
-    }),
-    (root) => {
-      const eventPath = join(root, "event.json");
-      writeFileSync(
-        eventPath,
-        JSON.stringify({ number: 529, pull_request: { number: 529 } }),
-      );
-      const result = resolvePlanAuthority(root, {
-        env: { GITHUB_EVENT_NAME: "pull_request", GITHUB_EVENT_PATH: eventPath },
-        runGit: (_root, args) => {
-          if (args[0] !== "log") return null;
-          const path = args.at(-1);
-          if (path === "docs/plans/active/master.md") {
-            return "master123\tdocs(product): install master program (#433)";
-          }
-          return null;
-        },
-      });
+    });
 
-      assert.equal(result.ok, true, result.failures.join("\n"));
-      assert.equal(result.current.status, "candidate");
-    },
-  );
+    assert.equal(result.ok, true, result.failures.join("\n"));
+    assert.equal(result.current.status, "candidate");
+    assert.equal(result.current.selectedByPr, 530);
+  });
 });
 
-test("unmerged current authority outside its introducing PR fails closed", () => {
+test("an unmerged current selection outside its selecting PR fails closed", () => {
   withFixture(authorityManifest(), (root) => {
     const result = resolvePlanAuthority(root, {
       runGit: (_root, args) => {
@@ -126,10 +116,42 @@ test("unmerged current authority outside its introducing PR fails closed", () =>
     assert.equal(result.ok, false);
     assert.ok(
       result.failures.some((failure) =>
-        failure.includes("merged first-parent history does not contain"),
+        failure.includes("merged first-parent history of docs/plans/PLAN_AUTHORITY.json"),
       ),
     );
   });
+});
+
+test("an open PR cannot activate an old packet by claiming an already-merged PR number", () => {
+  withFixture(
+    authorityManifest({
+      current: {
+        path: "docs/plans/active/current.md",
+        selectedByPr: 528,
+      },
+    }),
+    (root) => {
+      const eventPath = join(root, "event.json");
+      writeFileSync(eventPath, JSON.stringify({ number: 530, pull_request: { number: 530 } }));
+      const result = resolvePlanAuthority(root, {
+        env: { GITHUB_EVENT_NAME: "pull_request", GITHUB_EVENT_PATH: eventPath },
+        runGit: (_root, args) => {
+          if (args[0] !== "log") return null;
+          if (args.at(-1) === "docs/plans/active/master.md") {
+            return "master123\tdocs(product): install master program (#433)";
+          }
+          // The packet itself may be old/merged; selection is intentionally proven by manifest history instead.
+          if (args.at(-1) === "docs/plans/active/current.md") {
+            return "oldpacket\tdocs(plan): old packet existed (#528)";
+          }
+          return null;
+        },
+      });
+
+      assert.equal(result.ok, false);
+      assert.equal(result.current.status, "invalid");
+    },
+  );
 });
 
 test("schema version 1 is rejected so the retired board cannot remain implicit authority", () => {
