@@ -5,10 +5,7 @@ import { resolvePlanAuthority } from "./plan-authority.mjs";
 
 export function isPlanSelectionReady(authority) {
   if (authority.ok !== true || authority.master?.status !== "active") return false;
-  if (Number.isInteger(authority.boardProjectionPr)) {
-    if (authority.current) return false;
-    if (authority.baselineMode !== "post-merge-projection") return false;
-  }
+  if (authority.current && authority.current.status !== "active") return false;
   return true;
 }
 
@@ -20,16 +17,9 @@ export function resolvePlanSelection(
     env,
     ...authorityOptions,
   });
-  const projectionPending =
-    Number.isInteger(authority.boardProjectionPr) &&
-    authority.baselineMode !== "post-merge-projection";
-  const projectionRetainsCurrent =
-    Number.isInteger(authority.boardProjectionPr) && Boolean(authority.current);
 
   return {
     ...authority,
-    projectionPending,
-    projectionRetainsCurrent,
     selectionReady: isPlanSelectionReady(authority),
   };
 }
@@ -41,24 +31,19 @@ function printHuman(result) {
   console.log(
     `master: ${result.master?.path ?? "unresolved"}${result.master?.status ? ` [${result.master.status}]` : ""}`,
   );
-  console.log(`current slice: ${result.current?.path ?? "none"}`);
   console.log(
-    `board baseline: ${result.boardBaseline ?? "missing"}; expected: ${result.expectedBaseline ?? "unknown"}; mode: ${result.baselineMode ?? "unknown"}`,
+    `current slice: ${result.current?.path ?? "none"}${result.current?.status ? ` [${result.current.status}]` : ""}`,
   );
+  console.log(`manifest: ${result.manifestPath}; schema: ${result.schemaVersion ?? "invalid"}`);
 
   if (result.master?.status === "candidate") {
     console.error(
-      "candidate master is valid for review but is not task-selection authority until merged history proves it",
+      "candidate master is reviewable but does not become task-selection authority until merged first-parent history proves its PR",
     );
   }
-  if (result.projectionPending) {
+  if (result.current?.status === "candidate") {
     console.error(
-      `post-merge projection PR #${result.boardProjectionPr} is validation-only until the exact merged commit activates it`,
-    );
-  }
-  if (result.projectionRetainsCurrent) {
-    console.error(
-      `post-merge projection PR #${result.boardProjectionPr} still retains a current agent-executable slice; a closing projection may not pre-authorize follow-on work`,
+      `candidate current slice from PR #${result.current.introducedByPr} is validation-only until that PR appears in merged first-parent history`,
     );
   }
   for (const warning of result.warnings) console.warn(`warning: ${warning}`);
