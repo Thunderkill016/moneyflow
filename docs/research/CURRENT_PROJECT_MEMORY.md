@@ -13,7 +13,7 @@ Merged #432/#433 remains the master product program. A digital transaction Money
 
 PR #528 was owner-merged to select #527 production-load performance ahead of candidate #523. The merge exposed a governance defect: main CI #3162 failed because the old Markdown Current Work Board still duplicated a pre-merge SHA baseline. Issue #529 removes that duplicated authority model.
 
-After #529 merges, `docs/plans/PLAN_AUTHORITY.json` is the single executable plan selector: master #432 and current #527. GitHub Issues/PRs hold human backlog/status. The retired `docs/plans/active/README.md` is a compatibility pointer only.
+After #529/#530 merges, `docs/plans/PLAN_AUTHORITY.json` is the single executable plan selector: master #432 and current #527. GitHub Issues/PRs hold human backlog/status. The retired `docs/plans/active/README.md` is a compatibility pointer only.
 
 ## 2. Current runtime and financial truth
 
@@ -45,7 +45,7 @@ Fresh production reconnaissance before #529 found:
 - historical #403 evidence measured client JS/main-thread cost as the dominant repository-controlled performance burden;
 - current `MoneyFlowDashboard` and `AppShell` are broad client roots, but mutation freshness means a naive full Server Component rewrite would risk stale financial UI.
 
-No runtime performance change is authorized inside #529. #529 repairs plan authority only. After that owner merge, #527 resumes from fresh main with measurement-first attribution.
+No runtime performance change is authorized inside #529/#530. This recovery repairs plan authority only. After owner merge, #527 resumes from fresh main with measurement-first attribution.
 
 ## 5. Current capability inventory
 
@@ -84,7 +84,7 @@ Historical #403 lab evidence recorded roughly 195.8 KB script transfer on `/` an
 - #432/#433: merged master acquisition-first program.
 - #511/#522: merged exception-first Inbox grouped review; safety/review improvement only, not manual-entry reduction.
 - #527/#528: performance slice selected by merged planning PR #528.
-- #529: governance recovery; retires Markdown board authority after main CI #3162 exposed the duplicate-state bug.
+- #529 / PR #530: governance recovery; retires Markdown board authority after main CI #3162 exposed the duplicate-state bug.
 - #523: candidate bank-export compatibility evidence slice; not current while #527 executes.
 - #403: historical performance measurement/attribution provenance; not current authority.
 - #426: further simplification work held and must not overlap current #527.
@@ -92,16 +92,16 @@ Historical #403 lab evidence recorded roughly 195.8 KB script transfer on `/` an
 
 ## 9. Open pull-request memory
 
-#529 recovery will create one bounded record under `docs/research/pr-memory/2026/Q3/PR-<number>.md` after its PR number exists.
+PR #530 durable record: `docs/research/pr-memory/2026/Q3/PR-530.md`.
 
-Its intended lifecycle impact is an **authority transition/recovery**, not completion of #527. It changes governance truth from duplicated board+manifest state to manifest-only current selection and keeps #527 current.
+Its lifecycle impact is an **authority transition/recovery**, not completion of #527. It changes governance truth from duplicated board+manifest state to manifest-only current selection and keeps #527 current.
 
-No runtime performance claim is produced by #529.
+No runtime performance claim is produced by PR #530.
 
 ## 10. True gaps after this audit
 
-1. Restore green main plan-authority/knowledge checks through #529 without reintroducing duplicated state.
-2. From post-#529 fresh main, run `plan:resolve` and `agent:doctor -- --json` and record current #527 baseline measurements.
+1. Restore green main plan-authority/knowledge checks through #529/#530 without reintroducing duplicated state.
+2. From post-#530 fresh main, run `plan:resolve` and `agent:doctor -- --json` and record current #527 baseline measurements.
 3. Attribute current `/dashboard` critical-path JS/main-thread cost before selecting any implementation mechanism.
 4. Apply proven Next/Vercel patterns only where analyzer/Lighthouse evidence shows a material critical-path contribution.
 5. Re-measure same methodology and separate synthetic gains from Vercel field evidence.
@@ -110,9 +110,9 @@ No runtime performance claim is produced by #529.
 
 ## 11. Next allowed action
 
-#529 may change only governance scripts/tests/docs required to retire the Markdown board as executable authority and activate merged #528 intent safely.
+PR #530 may change only governance scripts/tests/docs required to retire the Markdown board as executable authority and activate merged #528 intent safely.
 
-After owner merges #529:
+After owner merges PR #530:
 
 1. fetch fresh `main`;
 2. run `npm run plan:resolve` and confirm master #432 + current #527 are active;
@@ -123,12 +123,12 @@ After owner merges #529:
 
 ## 12. Superseded-status register
 
-- “The Markdown Current Work Board is executable plan authority” — superseded by #529; manifest-only authority is the target.
+- “The Markdown Current Work Board is executable plan authority” — superseded by #529/#530; manifest-only authority is the target.
 - “Every merge must maintain a hand-written Current main baseline SHA in Markdown” — superseded; this caused main CI #3162.
 - “Post-merge projection markers are required to activate current work” — superseded; merged `introducedByPr` history activates manifest authority.
 - “#511 materially reduces manual-entry friction” — superseded.
 - “#511 reduces the minimum grouped path by 40%” — superseded.
 - “SMS is a primary acquisition bet” — unsupported; fallback/legacy only unless new evidence changes that.
 - “AI should position MoneyFlow” — unsupported; AI is acceptable only where bounded evidence shows it safely reduces capture/reconcile friction.
-- “Open issue #523 is already selected work” — false; #527 is current after #528/#529 authority convergence.
+- “Open issue #523 is already selected work” — false; #527 is current after #528/#530 authority convergence.
 - “A provider/bank/native/OCR horizon item is authorized by master #432 alone” — false; each requires a bounded researched slice and owner authority.
