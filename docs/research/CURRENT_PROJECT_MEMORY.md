@@ -1,51 +1,49 @@
 # MoneyFlow — current project memory
 
-**Status:** current implementation/trust snapshot; this branch carries the #529 governance recovery candidate until owner merge
+**Status:** current implementation/trust snapshot; this branch carries the #529 governance recovery candidate in PR #531 until merge
 **Last reconciled:** 2026-09-02
 **Merged main baseline:** `dea07378fe00030c3fee1a3f4be52831ece959f0` (PR #528)
-**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
+**Routing:** use `docs/context/README.md`; open PR memory only for named provenance needs.
 
 ## 1. Current decision
 
 MoneyFlow is a Vietnamese personal-finance product built around one trustworthy user-owned ledger. It is functional but **not public-beta ready**.
 
-Merged #432/#433 remains the master product program. A digital transaction MoneyFlow can acquire safely should not require permanent retyping. Manual capture remains first-class for cash, corrections and missing/off-system events.
+Merged #432/#433 remains the master product program. PR #528 selected #527 production-load performance ahead of candidate #523. The merge exposed duplicated plan authority: main CI #3162 failed because the old Markdown Current Work Board still carried a pre-merge SHA baseline.
 
-PR #528 was owner-merged to select #527 production-load performance ahead of candidate #523. The merge exposed a governance defect: main CI #3162 failed because the old Markdown Current Work Board still duplicated a pre-merge SHA baseline. Issue #529 removes that duplicated authority model.
-
-After #529/#530 merges, `docs/plans/PLAN_AUTHORITY.json` is the single executable plan selector: master #432 and current #527. GitHub Issues/PRs hold human backlog/status. The retired `docs/plans/active/README.md` is a compatibility pointer only.
+Issue #529 removes that duplicate model. Draft PR #530 reached exact-head green but could not be marked ready because the connected GitHub mutation is broken upstream; GitHub correctly refused to merge a Draft PR. #530 was closed unmerged and replaced by non-draft PR #531. After #531 merges, `docs/plans/PLAN_AUTHORITY.json` is the single executable selector: master #432 + current #527.
 
 ## 2. Current runtime and financial truth
 
-- VND is stored as integer đồng; never floating point.
-- Transfers are balanced movements and neutral to income/expense/net.
+- VND is integer đồng; never floating point.
+- Transfers are balanced and neutral to income/expense/net.
 - Authenticated user-owned data is tenant-isolated through PostgreSQL/RLS; demo is explicit browser-local state.
 - Missing balances, dates, commitments, source coverage, categories or financial intent are never guessed.
 - Ledger facts support explicit correction and recoverable deletion where required.
-- Reconciliation state is distinct from source evidence; source observations never establish `reconciled` by themselves.
+- Reconciliation state is distinct from source evidence.
 - Full archive/restore is separate from scoped/report export.
 
 ## 3. Acquisition and reconciliation truth
 
-Merged acquisition lineage includes Direct CSV provenance/atomic approval, later-source attachment, deleted exact-source recovery, changed observation preservation, predecessor/replacement lineage, clearing progression, PWA Share Target persistence, explicit candidate rules and Direct CSV mapping/rule reuse through PR #464.
+Merged acquisition lineage includes Direct CSV provenance/atomic approval, later-source attachment, deleted exact-source recovery, changed-observation preservation, predecessor/replacement lineage, clearing progression, Share Target persistence, explicit candidate rules and Direct CSV mapping/rule reuse through PR #464.
 
-The generic file-import implementation remains shallow relative to real Vietnam consumer bank exports. Exact exported schemas still require privacy-safe structural fixtures before bank-specific adapters are authorized.
-
-Issue #523 remains a candidate only while #527 is current.
+The generic file importer remains shallow relative to real Vietnam consumer bank exports. Exact schemas still require privacy-safe structural fixtures. #523 remains candidate-only while #527 is current.
 
 ## 4. Current execution state
 
-Merged PR #528 selected **#527 — recover production page-load performance**. Owner observed a Vercel performance/load score of 39 on 2026-09-02.
+Owner observed a Vercel performance/load score of **39** on 2026-09-02. Fresh production reconnaissance found:
 
-Fresh production reconnaissance before #529 found:
+- anonymous `/` is prerendered and served as Vercel cache HIT;
+- public anonymous routing skips Supabase auth without an auth cookie;
+- `/dashboard` remains the first authenticated route to benchmark;
+- historical #403 evidence attributes the main repository-controlled cost to client JS/main-thread work rather than server response;
+- current `MoneyFlowDashboard` and `AppShell` are broad client roots, but a naive Server Component rewrite would risk stale optimistic financial UI;
+- landing currently marks the first below-fold story image as priority, causing an eager preload;
+- AppShell always renders closed MoreSheet internals; dashboard dynamic capture dialogs are also mounted even when closed.
 
-- anonymous `/` is prerendered and served as a Vercel cache HIT;
-- anonymous public routing skips Supabase auth when no auth cookie exists;
-- `/dashboard` is dynamic/cache MISS and is the first route to benchmark;
-- historical #403 evidence measured client JS/main-thread cost as the dominant repository-controlled performance burden;
-- current `MoneyFlowDashboard` and `AppShell` are broad client roots, but mutation freshness means a naive full Server Component rewrite would risk stale financial UI.
+Official Next guidance supports lazy-loading below-fold images and conditionally rendering dynamically imported modal/client UI so its JavaScript is requested only when needed. These are the first bounded #527 mechanisms after authority recovery.
 
-No runtime performance change is authorized inside #529/#530. This recovery repairs plan authority only. After owner merge, #527 resumes from fresh main with measurement-first attribution.
+No runtime performance code belongs in #529/#531. After #531 merge and fresh-main authority resolution, #527 resumes immediately.
 
 ## 5. Current capability inventory
 
@@ -54,81 +52,76 @@ No runtime performance change is authorized inside #529/#530. This recovery repa
 | Core ledger | multiple accounts; income, expense, balanced transfers; edit; recoverable deletion |
 | Accounts | balances, register/history, create/edit/archive/restore, statement reconciliation |
 | Planning | category budgets, recurring commitments/income, savings goals |
-| Understanding | weekly/monthly/yearly reports, drill-downs, controlled import/export |
-| Acquisition | persisted batches/candidates/provenance, exact source matching, Direct CSV atomic approval, Share Target persistence, deterministic candidate rules |
-| Review | exception-first Ready/Needs-attention grouped review from PR #522; explicit confirmation; fail-closed exceptions |
+| Understanding | reports, drill-downs, controlled import/export |
+| Acquisition | batches/candidates/provenance, exact source matching, Direct CSV atomic approval, Share Target, deterministic rules |
+| Review | exception-first Ready/Needs-attention grouped review from PR #522 |
 | Ownership | versioned archive/export/validation/restore contract |
 | Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
 | Public beta | not approved |
 
 ## 6. Performance truth
 
-The owner's Vercel score 39 is field observation, not yet independently reproduced by the repository harness.
+The owner-reported score 39 has **not** been independently reproduced by the repository harness yet.
 
-Historical #403 lab evidence recorded roughly 195.8 KB script transfer on `/` and 311.6 KB on `/dashboard`, with dashboard main-thread work around 1.72–1.75 s and JS bootup around 766–814 ms. Those values are provenance, not current acceptance numbers.
+Historical #403 lab evidence recorded roughly 195.8 KB script transfer on `/` and 311.6 KB on `/dashboard`, with dashboard main-thread work around 1.72–1.75 s and JS bootup around 766–814 ms. These are provenance, not current acceptance values.
 
-#527 requires same-methodology current-main before/after evidence: Lighthouse score, LCP/FCP/CLS/TBT, transfer/script bytes, main-thread/bootup, LCP attribution, analyzer output and available Vercel field evidence. A score-only improvement is insufficient.
+#527 requires same-methodology before/after evidence: score, LCP/FCP/CLS/TBT, transfer/script bytes, main-thread/bootup, LCP attribution, analyzer output and available Vercel field evidence. A score-only improvement is insufficient.
 
 ## 7. Security and delivery truth
 
-- `docs/configuration.md` owns environment/provider settings; provider values never belong in source.
+- `docs/configuration.md` owns environment/provider settings.
 - `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` owns change classes/gates.
 - `docs/engineering/AGENT_OPERATING_MODEL.md` owns permission/handoff boundaries.
-- `docs/plans/PLAN_AUTHORITY.json` owns executable master/current plan selection.
-- `plan:resolve` blocks candidate/unmerged authority.
+- `docs/plans/PLAN_AUTHORITY.json` owns executable master/current selection.
+- `plan:resolve` blocks candidate/unmerged current selection.
+- Current selection activation is proven by the selecting PR in merged manifest first-parent history.
 - Completing current work must set manifest `current` to `null`, archive the packet and update this memory in the same PR; it cannot preselect follow-on work.
 - Code, migrations and tests outrank prose.
 
 ## 8. Reconciled issue status
 
 - #432/#433: merged master acquisition-first program.
-- #511/#522: merged exception-first Inbox grouped review; safety/review improvement only, not manual-entry reduction.
-- #527/#528: performance slice selected by merged planning PR #528.
-- #529 / PR #530: governance recovery; retires Markdown board authority after main CI #3162 exposed the duplicate-state bug.
+- #511/#522: merged exception-first Inbox review; safety improvement, not manual-entry reduction.
+- #527/#528: performance slice selected; activation recovery is #529/#531.
+- #529 / PR #531: governance recovery; replacement for closed unmerged draft #530.
 - #523: candidate bank-export compatibility evidence slice; not current while #527 executes.
-- #403: historical performance measurement/attribution provenance; not current authority.
-- #426: further simplification work held and must not overlap current #527.
-- Release/provider/legal issues remain independent owner/provider/legal boundaries.
+- #403: historical performance measurement provenance only.
+- #426: further simplification held to avoid overlap with #527.
 
 ## 9. Open pull-request memory
 
-PR #530 durable record: `docs/research/pr-memory/2026/Q3/PR-530.md`.
+PR #531 durable record: `docs/research/pr-memory/2026/Q3/PR-531.md`.
 
-Its lifecycle impact is an **authority transition/recovery**, not completion of #527. It changes governance truth from duplicated board+manifest state to manifest-only current selection and keeps #527 current.
-
-No runtime performance claim is produced by PR #530.
+Its lifecycle impact is an **authority transition/recovery**, not completion of #527. PR #530 remains historical evidence of the connector draft-state failure and its green predecessor head; it does not merge or activate authority.
 
 ## 10. True gaps after this audit
 
-1. Restore green main plan-authority/knowledge checks through #529/#530 without reintroducing duplicated state.
-2. From post-#530 fresh main, run `plan:resolve` and `agent:doctor -- --json` and record current #527 baseline measurements.
-3. Attribute current `/dashboard` critical-path JS/main-thread cost before selecting any implementation mechanism.
-4. Apply proven Next/Vercel patterns only where analyzer/Lighthouse evidence shows a material critical-path contribution.
-5. Re-measure same methodology and separate synthetic gains from Vercel field evidence.
-6. After #527 is completed and current authority returns to zero, separately reconsider #523 from fresh main.
-7. Release/provider/legal gaps remain separate from performance/product work.
+1. Merge exact-head-green PR #531 and verify fresh-main authority resolves #527 active.
+2. Establish current `/` and `/dashboard` baseline measurements where tooling permits; keep score 39 explicitly owner-observed until reproduced.
+3. Implement the smallest proven critical-path reductions: remove below-fold image preload; defer closed MoreSheet; defer closed capture-dialog chunks.
+4. Re-measure same methodology and separate synthetic gains from Vercel field evidence.
+5. Only if those bounded changes are insufficient, split dashboard client ownership while preserving optimistic mutation correctness.
+6. After #527 completes to zero-current, reconsider #523 separately.
 
 ## 11. Next allowed action
 
-PR #530 may change only governance scripts/tests/docs required to retire the Markdown board as executable authority and activate merged #528 intent safely.
+PR #531 may change only governance scripts/tests/docs required to retire the Markdown board and activate merged #528 intent safely.
 
-After owner merges PR #530:
+After PR #531 merges:
 
-1. fetch fresh `main`;
-2. run `npm run plan:resolve` and confirm master #432 + current #527 are active;
-3. run `npm run agent:doctor -- --json`;
-4. create the focused #527 implementation branch/PR;
-5. establish current `/` and `/dashboard` analyzer + Lighthouse baseline before runtime edits;
-6. implement only the smallest measured performance mechanism.
+1. fetch fresh `main` and confirm #527 active;
+2. create a focused #527 runtime branch/PR;
+3. establish current route/bundle evidence available in the environment;
+4. remove unnecessary below-fold image priority and defer closed secondary client UI;
+5. verify exact-head CI + browser/UI + preview behavior;
+6. claim performance improvement only from measured before/after evidence.
 
 ## 12. Superseded-status register
 
-- “The Markdown Current Work Board is executable plan authority” — superseded by #529/#530; manifest-only authority is the target.
-- “Every merge must maintain a hand-written Current main baseline SHA in Markdown” — superseded; this caused main CI #3162.
-- “Post-merge projection markers are required to activate current work” — superseded; merged `introducedByPr` history activates manifest authority.
-- “#511 materially reduces manual-entry friction” — superseded.
-- “#511 reduces the minimum grouped path by 40%” — superseded.
-- “SMS is a primary acquisition bet” — unsupported; fallback/legacy only unless new evidence changes that.
-- “AI should position MoneyFlow” — unsupported; AI is acceptable only where bounded evidence shows it safely reduces capture/reconcile friction.
-- “Open issue #523 is already selected work” — false; #527 is current after #528/#530 authority convergence.
-- “A provider/bank/native/OCR horizon item is authorized by master #432 alone” — false; each requires a bounded researched slice and owner authority.
+- Markdown Current Work Board as executable authority — superseded by #529/#531.
+- Hand-written Current main SHA / Post-merge projection activation — superseded.
+- #511 materially reducing manual-entry friction or 40% grouped clicks — superseded.
+- SMS as a primary acquisition bet — unsupported.
+- AI as MoneyFlow positioning — unsupported; use only where safely reducing capture/reconcile friction.
+- #523 already selected — false; #527 is the intended current slice after #531 authority convergence.
+- Master #432 alone authorizes provider/bank/native/OCR work — false; each needs a bounded researched slice.
