@@ -11,10 +11,11 @@ const NEEDLES = [
   "moneyflow-dashboard",
   "add-transaction-dialog",
   "transfer-dialog",
-  "layout/app-shell",
-  "components/ui/sheet",
+  "app-shell",
+  "ui/sheet",
+  "sheet.tsx",
 ];
-const TEXT_EXTENSIONS = new Set([".css", ".html", ".js", ".json", ".txt"]);
+const TEXT_EXTENSIONS = new Set([".css", ".data", ".html", ".js", ".json", ".txt"]);
 
 function run(command: string, args: string[], cwd: string, timeout = 360_000) {
   const result = spawnSync(command, args, {
@@ -45,28 +46,50 @@ function walkFiles(root: string, prefix = "") {
 }
 
 function snippetsForNeedle(root: string, files: Array<{ path: string; bytes: number }>, needle: string) {
-  const matches: Array<{ file: string; bytes: number; snippet: string }> = [];
+  const matches: Array<{ file: string; bytes: number; count: number; snippet: string }> = [];
   for (const file of files) {
-    if (matches.length >= 3 || file.bytes > 20 * 1024 * 1024) break;
-    if (!TEXT_EXTENSIONS.has(extname(file.path))) continue;
+    if (matches.length >= 5) break;
+    if (file.bytes > 20 * 1024 * 1024 || !TEXT_EXTENSIONS.has(extname(file.path))) continue;
     const full = join(root, file.path);
     let content: string;
     try {
-      content = readFileSync(full, "utf8");
+      content = readFileSync(full).toString("utf8");
     } catch {
       continue;
     }
-    const index = content.toLowerCase().indexOf(needle.toLowerCase());
+    const lower = content.toLowerCase();
+    const target = needle.toLowerCase();
+    const index = lower.indexOf(target);
     if (index < 0) continue;
-    const start = Math.max(0, index - 180);
-    const end = Math.min(content.length, index + needle.length + 240);
+    let count = 0;
+    let cursor = 0;
+    while ((cursor = lower.indexOf(target, cursor)) >= 0) {
+      count += 1;
+      cursor += target.length;
+      if (count >= 1000) break;
+    }
+    const start = Math.max(0, index - 220);
+    const end = Math.min(content.length, index + needle.length + 300);
     matches.push({
       file: file.path,
       bytes: file.bytes,
-      snippet: content.slice(start, end).replace(/\s+/gu, " "),
+      count,
+      snippet: content.slice(start, end).replace(/[^\x20-\x7E]+/gu, " ").replace(/\s+/gu, " "),
     });
   }
   return matches;
+}
+
+function routeNeedles(root: string) {
+  const routePath = join(root, "data", "dashboard", "analyze.data");
+  if (!existsSync(routePath)) return { exists: false, bytes: 0, needles: {} };
+  const raw = readFileSync(routePath).toString("utf8");
+  const lower = raw.toLowerCase();
+  return {
+    exists: true,
+    bytes: lstatSync(routePath).size,
+    needles: Object.fromEntries(NEEDLES.map((needle) => [needle, lower.includes(needle.toLowerCase())])),
+  };
 }
 
 function summarize(cwd: string, label: string) {
@@ -81,6 +104,7 @@ function summarize(cwd: string, label: string) {
     fileCount: files.length,
     totalBytes: files.reduce((total, file) => total + file.bytes, 0),
     largestFiles: files.slice(0, 20),
+    dashboardRoute: routeNeedles(analyzerRoot),
     matches,
   };
   console.log(`ANALYZE_EVIDENCE_JSON ${JSON.stringify(evidence)}`);
@@ -109,8 +133,6 @@ test("one-shot #527 analyzer evidence on main and current head", () => {
     assert.ok(base.fileCount > 0, "baseline analyzer should emit static analyzer files");
     assert.ok(head.fileCount > 0, "head analyzer should emit static analyzer files");
 
-    // Deliberate one-shot failure: the unit shard uploads test-output.log only on failure.
-    // This makes the analyzer evidence retrievable without changing the CI workflow.
     assert.fail("ANALYZE_CAPTURE_COMPLETE — delete this one-shot test after collecting the uploaded log");
   } finally {
     spawnSync("git", ["worktree", "remove", "--force", baseWorktree], {
