@@ -1,0 +1,39 @@
+name: tmp-536-audit-evidence
+
+on:
+  push:
+    branches:
+      - security/536-runtime-dependency-patch
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: security/536-runtime-dependency-patch
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install exact tree
+        run: npm ci
+      - name: Exact npm audit JSON
+        shell: bash
+        run: |
+          set +e
+          npm audit --json > audit.json
+          audit_status=$?
+          set -e
+          cat audit.json
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const audit = JSON.parse(fs.readFileSync('audit.json', 'utf8'));
+          const v = audit.metadata?.vulnerabilities ?? {};
+          console.log(`AUDIT_COUNTS info=${v.info ?? 0} low=${v.low ?? 0} moderate=${v.moderate ?? 0} high=${v.high ?? 0} critical=${v.critical ?? 0} total=${v.total ?? 0}`);
+          if ((v.high ?? 0) > 0 || (v.critical ?? 0) > 0) process.exit(1);
+          NODE
+          echo "npm_audit_exit=$audit_status"
