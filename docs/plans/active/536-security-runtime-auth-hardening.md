@@ -138,6 +138,8 @@ Verify at minimum:
 - no provider write without rollback and owner decision;
 - no claim that production is patched until patched code is actually deployed by owner decision.
 
+## Implementation plan
+
 ## Tasks
 
 ### Phase A — authority and exact baseline
