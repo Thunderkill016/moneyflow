@@ -104,6 +104,7 @@ test("a current selection is candidate inside its selecting PR until manifest hi
 test("an unmerged current selection outside its selecting PR fails closed", () => {
   withFixture(authorityManifest(), (root) => {
     const result = resolvePlanAuthority(root, {
+      env: {},
       runGit: (_root, args) => {
         if (args[0] !== "log") return null;
         if (args.at(-1) === "docs/plans/active/master.md") {
