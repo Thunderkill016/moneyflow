@@ -1,0 +1,85 @@
+name: tmp-536-capture-strict-mode-fix
+
+on:
+  push:
+    branches:
+      - security/536-runtime-dependency-patch
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: security/536-runtime-dependency-patch
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+      - name: Patch Strict Mode-safe share ingestion
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/components/inbox/capture-share-page.tsx')
+          text = path.read_text()
+          old = '''  useEffect(() => {
+              if (ranRef.current) return;
+              ranRef.current = true;
+
+              const frame = window.requestAnimationFrame(() => {
+                void (async () => {
+          '''
+          new = '''  useEffect(() => {
+              if (ranRef.current) return;
+
+              const frame = window.requestAnimationFrame(() => {
+                // React Strict Mode can run setup -> cleanup -> setup in development.
+                // Mark this one-shot as consumed only after a frame actually starts;
+                // otherwise the first cleanup can cancel the frame and strand the route.
+                if (ranRef.current) return;
+                ranRef.current = true;
+                void (async () => {
+          '''
+          if old not in text:
+              raise SystemExit('expected capture-share effect snippet not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Install exact tree
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify shared-candidate regression
+        id: targeted
+        continue-on-error: true
+        env:
+          NEXT_PUBLIC_AUTH_CAPTCHA_ENABLED: "true"
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+        run: npx playwright test e2e/authenticated-deterministic-rules.spec.ts --project=chromium --grep "shared candidate without posting"
+      - name: Commit verified fix and self-delete
+        env:
+          TARGET_OUTCOME: ${{ steps.targeted.outcome }}
+        run: |
+          if [ "$TARGET_OUTCOME" != "success" ]; then
+            git checkout -- src/components/inbox/capture-share-page.tsx
+          fi
+          rm .github/workflows/tmp-536-capture-strict-mode-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/inbox/capture-share-page.tsx .github/workflows/tmp-536-capture-strict-mode-fix.yml
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          if [ "$TARGET_OUTCOME" = "success" ]; then
+            git commit -m "fix(capture): make share ingestion strict-mode safe"
+          else
+            git commit -m "chore(ci): remove temporary capture verifier"
+          fi
+          git push origin HEAD:security/536-runtime-dependency-patch
+          if [ "$TARGET_OUTCOME" != "success" ]; then
+            exit 1
+          fi
