@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "master": {
     "path": "docs/plans/active/432-vietnam-long-term-product-strategy.md",
     "introducedByPr": 433,
@@ -9,5 +9,9 @@
         "supersededByPr": 433
       }
     ]
+  },
+  "current": {
+    "path": "docs/plans/active/527-production-load-performance.md",
+    "selectedByPr": 531
   }
 }

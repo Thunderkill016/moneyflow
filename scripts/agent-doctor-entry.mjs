@@ -26,7 +26,7 @@ export function buildAuthorityAwareDoctorReport({
       scope: "environment-policy-and-authority-freshness",
       includes: [
         ...report.readyMeans.includes,
-        "merged master plan, current slice and Current Work Board freshness resolved",
+        "merged manifest master/current authority resolved from Git first-parent history",
       ],
     },
   };
@@ -42,9 +42,11 @@ function printHuman(report) {
   console.log(
     `master plan: ${report.planAuthority.master?.path ?? "unresolved"}${report.planAuthority.master?.status ? ` [${report.planAuthority.master.status}]` : ""}`,
   );
-  console.log(`current slice: ${report.planAuthority.current?.path ?? "none"}`);
   console.log(
-    `board baseline: ${report.planAuthority.boardBaseline ?? "missing"}; expected: ${report.planAuthority.expectedBaseline ?? "unknown"}`,
+    `current slice: ${report.planAuthority.current?.path ?? "none"}${report.planAuthority.current?.status ? ` [${report.planAuthority.current.status}]` : ""}`,
+  );
+  console.log(
+    `plan manifest: ${report.planAuthority.manifestPath}; schema: ${report.planAuthority.schemaVersion ?? "invalid"}`,
   );
 
   if (report.planAuthority.authorityChain.length > 0) {
@@ -61,9 +63,13 @@ function printHuman(report) {
       console.log(`- ${entry.sha.slice(0, 12)} ${entry.subject}`);
     }
   }
-  if (!report.planAuthority.selectionReady && report.planAuthority.master?.status === "candidate") {
+  if (
+    !report.planAuthority.selectionReady &&
+    (report.planAuthority.master?.status === "candidate" ||
+      report.planAuthority.current?.status === "candidate")
+  ) {
     console.error(
-      "plan authority failure: candidate master is not task-selection authority until merged history proves it",
+      "plan authority failure: candidate authority is not executable until merged history proves its introducing PR",
     );
   }
   for (const warning of report.planAuthority.warnings) {

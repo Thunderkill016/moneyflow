@@ -1,59 +1,52 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-export const ACTIVE_PACKET_REGISTRY_PATH = "docs/plans/active/README.md";
-const ACTIVE_PACKET_DIRECTORY = "docs/plans/active";
+import { PLAN_AUTHORITY_MANIFEST_PATH } from "./plan-authority.mjs";
 
-function packetNamesFromRegistry(registry) {
-  return Array.from(
-    registry.matchAll(/^\|\s*`([^`]+\.md)`\s*\|/gmu),
-    ([, packet]) => packet,
-  );
-}
+const ACTIVE_PACKET_DIRECTORY = "docs/plans/active";
+const RETIRED_BOARD_PATH = "docs/plans/active/README.md";
+const RETIRED_BOARD_MARKER = "**Status:** retired as executable authority";
 
 export function validateActivePacketRegistry(root) {
   const failures = [];
-  let registry;
+  let manifest;
 
   try {
-    registry = readFileSync(join(root, ACTIVE_PACKET_REGISTRY_PATH), "utf8");
+    manifest = JSON.parse(
+      readFileSync(join(root, PLAN_AUTHORITY_MANIFEST_PATH), "utf8"),
+    );
   } catch {
-    return [`missing active-packet registry: ${ACTIVE_PACKET_REGISTRY_PATH}`];
+    return [`missing or invalid plan authority manifest: ${PLAN_AUTHORITY_MANIFEST_PATH}`];
   }
 
-  const registered = packetNamesFromRegistry(registry);
-  if (registered.length === 0) {
-    failures.push(`${ACTIVE_PACKET_REGISTRY_PATH} must register active packets`);
-    return failures;
-  }
-  if (new Set(registered).size !== registered.length) {
-    failures.push(`${ACTIVE_PACKET_REGISTRY_PATH} registers a packet more than once`);
+  for (const [label, entry] of [
+    ["master", manifest?.master],
+    ["current", manifest?.current],
+  ]) {
+    if (entry == null && label === "current") continue;
+    const path = entry?.path;
+    if (typeof path !== "string" || !path.startsWith(`${ACTIVE_PACKET_DIRECTORY}/`)) {
+      failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} ${label}.path must point inside ${ACTIVE_PACKET_DIRECTORY}`);
+      continue;
+    }
+    try {
+      if (!statSync(join(root, path)).isFile()) {
+        failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} ${label} packet is not a file: ${path}`);
+      }
+    } catch {
+      failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} ${label} packet is missing: ${path}`);
+    }
   }
 
-  let actual = [];
   try {
-    actual = readdirSync(join(root, ACTIVE_PACKET_DIRECTORY)).filter((entry) => {
-      if (entry === "README.md" || !entry.endsWith(".md")) return false;
-      return statSync(join(root, ACTIVE_PACKET_DIRECTORY, entry)).isFile();
-    });
+    const retired = readFileSync(join(root, RETIRED_BOARD_PATH), "utf8");
+    if (!retired.includes(RETIRED_BOARD_MARKER)) {
+      failures.push(
+        `${RETIRED_BOARD_PATH} may exist only as a retired compatibility pointer; it must not regain board/authority semantics`,
+      );
+    }
   } catch {
-    failures.push(`${ACTIVE_PACKET_DIRECTORY} must exist`);
-    return failures;
-  }
-
-  for (const packet of registered) {
-    if (!actual.includes(packet)) {
-      failures.push(
-        `${ACTIVE_PACKET_REGISTRY_PATH} registers missing active packet: ${packet}`,
-      );
-    }
-  }
-  for (const packet of actual) {
-    if (!registered.includes(packet)) {
-      failures.push(
-        `${ACTIVE_PACKET_DIRECTORY}/${packet} is active but absent from the registry`,
-      );
-    }
+    failures.push(`${RETIRED_BOARD_PATH} compatibility pointer is missing`);
   }
 
   return failures;

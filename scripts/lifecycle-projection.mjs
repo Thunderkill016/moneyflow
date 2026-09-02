@@ -1,13 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import {
-  ACTIVE_BOARD_PATH,
-  parseActivePacketRows,
-  parseBoardProjectionPr,
-} from "./plan-authority.mjs";
+import { PLAN_AUTHORITY_MANIFEST_PATH } from "./plan-authority.mjs";
 
 export const CURRENT_PROJECT_MEMORY_PATH =
   "docs/research/CURRENT_PROJECT_MEMORY.md";
@@ -27,18 +23,8 @@ function parseLifecycleImpact(record) {
   return record.match(/^- Lifecycle impact:\s*(.+)$/mu)?.[1]?.trim() ?? "";
 }
 
-export function parseMemoryProjectionPr(memory) {
-  const value = Number(
-    memory.match(/^\*\*Post-merge projection:\*\*\s*PR\s*#(\d+)\s*$/mu)?.[1] ??
-      NaN,
-  );
-  return Number.isInteger(value) ? value : null;
-}
-
-function currentRows(board) {
-  return parseActivePacketRows(board).filter((row) =>
-    /\bcurrent agent-executable\b/iu.test(row.role),
-  );
+function manifestCurrentPath(manifest) {
+  return typeof manifest?.current?.path === "string" ? manifest.current.path : null;
 }
 
 function pathWasRemoved(changes, path) {
@@ -70,107 +56,109 @@ export function packetRecordsPr(packet, prNumber) {
     /^\*\*(?:PR|Issue\/PR):\*\*[^\n]*$/gmu,
   );
   if (!metadataLines) return false;
-  const prPattern = new RegExp(`(?:^|\\s)PR\\s*#${prNumber}(?:\\b|$)|(?:^|\\s)#${prNumber}(?:\\b|$)`, "iu");
+  const prPattern = new RegExp(
+    `(?:^|\\s)PR\\s*#${prNumber}(?:\\b|$)|(?:^|\\s)#${prNumber}(?:\\b|$)`,
+    "iu",
+  );
   return metadataLines.some((line) => prPattern.test(line));
 }
 
-export function validateLifecycleProjection({
-  baseBoard,
-  board,
-  currentMemory,
+export function validateLifecycleTransition({
+  baseManifest,
+  manifest,
   prRecord,
   prNumber,
   changes,
   readyCurrentOwnedByPr = false,
 }) {
   const failures = [];
-  const baseCurrent = currentRows(baseBoard);
-  const projectedCurrent = currentRows(board);
-  const projectionPr = parseBoardProjectionPr(board);
-  const memoryProjectionPr = parseMemoryProjectionPr(currentMemory);
+  const baseCurrent = manifestCurrentPath(baseManifest);
+  const nextCurrent = manifestCurrentPath(manifest);
   const lifecycleImpact = parseLifecycleImpact(prRecord);
-  const boardChanged = pathWasChanged(changes, ACTIVE_BOARD_PATH);
+  const manifestChanged = pathWasChanged(changes, PLAN_AUTHORITY_MANIFEST_PATH);
   const snapshotChanged = pathWasChanged(changes, CURRENT_PROJECT_MEMORY_PATH);
   const closesCurrentSlice = /^completes current slice\b/iu.test(lifecycleImpact);
   const authorityTransition = /^authority transition\b/iu.test(lifecycleImpact);
-  const baseCurrentPacket = baseCurrent.length === 1 ? baseCurrent[0].packet : null;
-  const projectedCurrentPacket =
-    projectedCurrent.length === 1 ? projectedCurrent[0].packet : null;
-  const currentTransition =
-    baseCurrentPacket !== null && projectedCurrentPacket !== baseCurrentPacket;
+  const currentTransition = baseCurrent !== nextCurrent;
 
   if (!lifecycleImpact) {
     failures.push("PR memory must declare - Lifecycle impact:");
   }
 
-  if (readyCurrentOwnedByPr && projectionPr !== prNumber) {
+  if (readyCurrentOwnedByPr && !closesCurrentSlice) {
     failures.push(
-      `non-draft PR #${prNumber} is recorded as the owner of the current agent-executable packet; it must enter same-PR post-merge convergence before ready-for-review`,
+      `non-draft PR #${prNumber} owns the current executable packet; it must complete same-PR lifecycle convergence before ready-for-review`,
     );
   }
 
-  if (currentTransition && projectionPr !== prNumber) {
+  if (currentTransition && !manifestChanged) {
     failures.push(
-      `changing current agent-executable packet ${baseCurrentPacket} to ${projectedCurrentPacket ?? "none"} requires a same-PR post-merge projection; follow-on work may not be promoted in the completing PR`,
+      `changing current executable authority requires ${PLAN_AUTHORITY_MANIFEST_PATH} in the PR diff`,
     );
   }
 
-  if (boardChanged && Number.isInteger(projectionPr) && projectionPr !== prNumber) {
+  if (baseCurrent && nextCurrent && baseCurrent !== nextCurrent) {
     failures.push(
-      `${ACTIVE_BOARD_PATH} changes a post-merge projection for PR #${projectionPr}, but the current PR is #${prNumber}`,
+      `a PR may not swap current executable packet ${baseCurrent} directly to ${nextCurrent}; complete the current slice to null and select follow-on work from fresh main`,
     );
   }
 
-  if (closesCurrentSlice && projectionPr !== prNumber) {
-    failures.push(
-      `a PR that completes the current slice must carry **Post-merge projection:** PR #${prNumber} in ${ACTIVE_BOARD_PATH}`,
-    );
-  }
-
-  if (projectionPr === prNumber) {
-    if (!closesCurrentSlice && !authorityTransition) {
+  if (!baseCurrent && nextCurrent) {
+    if (!authorityTransition) {
       failures.push(
-        `PR #${prNumber} carries a post-merge projection but PR memory Lifecycle impact is not "completes current slice" or "authority transition"`,
-      );
-    }
-    if (projectedCurrent.length !== 0) {
-      failures.push(
-        `post-merge projection PR #${prNumber} must leave zero current agent-executable slices; follow-on work is selected only after merge + fresh-main resolution`,
-      );
-    }
-    if (memoryProjectionPr !== prNumber) {
-      failures.push(
-        `${CURRENT_PROJECT_MEMORY_PATH} must declare **Post-merge projection:** PR #${prNumber} when the board carries that projection`,
+        `selecting current executable packet ${nextCurrent} requires Lifecycle impact: authority transition`,
       );
     }
     if (!snapshotChanged) {
       failures.push(
-        `post-merge projection PR #${prNumber} must update ${CURRENT_PROJECT_MEMORY_PATH} so shipped truth converges in the same PR`,
+        `selecting current executable authority must update ${CURRENT_PROJECT_MEMORY_PATH}`,
       );
     }
+  }
 
-    if (baseCurrent.length === 1) {
-      const packet = baseCurrent[0].packet;
-      const activePath = `docs/plans/active/${packet}`;
-      if (!pathWasRemoved(changes, activePath)) {
-        failures.push(
-          `post-merge projection PR #${prNumber} must remove completed current packet ${activePath} from active plans`,
-        );
-      }
-      if (!completedPacketWasAdded(changes, packet)) {
-        failures.push(
-          `post-merge projection PR #${prNumber} must archive ${packet} under docs/plans/completed/ in the same PR`,
-        );
-      }
+  if (baseCurrent && !nextCurrent) {
+    if (!closesCurrentSlice) {
+      failures.push(
+        `removing current executable packet ${baseCurrent} requires Lifecycle impact: completes current slice`,
+      );
     }
+    if (!snapshotChanged) {
+      failures.push(
+        `completing the current slice must update ${CURRENT_PROJECT_MEMORY_PATH}`,
+      );
+    }
+    if (!pathWasRemoved(changes, baseCurrent)) {
+      failures.push(
+        `completing the current slice must remove active packet ${baseCurrent}`,
+      );
+    }
+    const packet = basename(baseCurrent);
+    if (!completedPacketWasAdded(changes, packet)) {
+      failures.push(
+        `completing the current slice must archive ${packet} under docs/plans/completed/ in the same PR`,
+      );
+    }
+  }
+
+  if (closesCurrentSlice && !(baseCurrent && !nextCurrent)) {
+    failures.push(
+      "Lifecycle impact says completes current slice, but PLAN_AUTHORITY.json does not transition current from one packet to null",
+    );
+  }
+
+  if (authorityTransition && !currentTransition) {
+    failures.push(
+      "Lifecycle impact says authority transition, but PLAN_AUTHORITY.json current authority did not change",
+    );
   }
 
   return {
     ok: failures.length === 0,
     failures,
-    projectionPr,
-    memoryProjectionPr,
     lifecycleImpact,
+    baseCurrent,
+    nextCurrent,
+    currentTransition,
   };
 }
 
@@ -188,13 +176,6 @@ function parseNameStatus(output) {
     });
 }
 
-/*
- * Off CI there is no pull_request event, so every rule below used to be skipped and
- * `check:knowledge` reported a pass that proved nothing about lifecycle. PR #499 was
- * rejected by CI for a projection/impact mismatch that had passed locally minutes
- * earlier. Reconstruct the same three inputs from git and the working tree so the
- * local run answers the same question the CI run does.
- */
 function reconstructLocalPullRequest(root) {
   let baseSha;
   try {
@@ -207,14 +188,16 @@ function reconstructLocalPullRequest(root) {
   }
   if (!baseSha) return null;
 
-  // A record is usually still uncommitted when it is written, which is exactly when
-  // this check is worth running; read untracked files as well as the committed diff.
-  const listed = ["diff", "--name-only", "--diff-filter=ACMR", baseSha, "--", "docs/research/pr-memory"];
-  const untracked = ["ls-files", "--others", "--exclude-standard", "--", "docs/research/pr-memory"];
   const paths = new Set();
-  for (const args of [listed, untracked]) {
+  for (const args of [
+    ["diff", "--name-only", "--diff-filter=ACMR", baseSha, "--", "docs/research/pr-memory"],
+    ["ls-files", "--others", "--exclude-standard", "--", "docs/research/pr-memory"],
+  ]) {
     try {
-      for (const line of execFileSync("git", args, { cwd: root, encoding: "utf8" }).split(/\r?\n/u)) {
+      for (const line of execFileSync("git", args, {
+        cwd: root,
+        encoding: "utf8",
+      }).split(/\r?\n/u)) {
         if (line.trim()) paths.add(line.trim());
       }
     } catch {
@@ -225,8 +208,6 @@ function reconstructLocalPullRequest(root) {
   const numbers = [...paths]
     .map((path) => Number(path.match(/\/PR-(\d+)\.md$/u)?.[1] ?? NaN))
     .filter((value) => Number.isInteger(value));
-  // Two records in one branch is its own violation, reported by the knowledge
-  // contract; staying silent here avoids guessing which one the branch is for.
   if (new Set(numbers).size !== 1) return null;
 
   return { prNumber: numbers[0], baseSha, headSha: "HEAD", local: true };
@@ -236,7 +217,7 @@ function runCli() {
   const event = readPullRequestEvent(process.env);
   const local = event ? null : reconstructLocalPullRequest(process.cwd());
   if (!event && !local) {
-    console.log("MoneyFlow lifecycle projection — no pull-request event; skipped");
+    console.log("MoneyFlow lifecycle transition — no pull-request event; skipped");
     return;
   }
 
@@ -244,21 +225,21 @@ function runCli() {
   const baseSha = local ? local.baseSha : event.pull_request?.base?.sha;
   const headSha = local ? local.headSha : event.pull_request?.head?.sha;
   if (!Number.isInteger(prNumber) || !baseSha || !headSha) {
-    console.error("MoneyFlow lifecycle projection — could not resolve PR/base/head");
+    console.error("MoneyFlow lifecycle transition — could not resolve PR/base/head");
     process.exitCode = 1;
     return;
   }
 
   const root = process.cwd();
-  const baseBoard = execFileSync(
-    "git",
-    ["show", `${baseSha}:${ACTIVE_BOARD_PATH}`],
-    { cwd: root, encoding: "utf8" },
+  const baseManifest = JSON.parse(
+    execFileSync(
+      "git",
+      ["show", `${baseSha}:${PLAN_AUTHORITY_MANIFEST_PATH}`],
+      { cwd: root, encoding: "utf8" },
+    ),
   );
-  const board = readFileSync(join(root, ACTIVE_BOARD_PATH), "utf8");
-  const currentMemory = readFileSync(
-    join(root, CURRENT_PROJECT_MEMORY_PATH),
-    "utf8",
+  const manifest = JSON.parse(
+    readFileSync(join(root, PLAN_AUTHORITY_MANIFEST_PATH), "utf8"),
   );
   const recordRange = local ? [baseSha] : [`${baseSha}...${headSha}`];
   const recordPaths = [
@@ -278,7 +259,7 @@ function runCli() {
 
   if (new Set(recordPaths).size !== 1) {
     console.error(
-      `MoneyFlow lifecycle projection — expected one PR #${prNumber} memory record`,
+      `MoneyFlow lifecycle transition — expected one PR #${prNumber} memory record`,
     );
     process.exitCode = 1;
     return;
@@ -290,32 +271,34 @@ function runCli() {
       "git",
       ["diff", "--name-status", ...(local ? [baseSha] : [`${baseSha}...${headSha}`])],
       { cwd: root, encoding: "utf8" },
-    ) + (local
-      ? execFileSync(
-          "git",
-          ["ls-files", "--others", "--exclude-standard"],
-          { cwd: root, encoding: "utf8" },
-        ).split(/\r?\n/u).filter(Boolean).map((path) => `A\t${path}`).join("\n")
-      : ""),
+    ) +
+      (local
+        ? execFileSync(
+            "git",
+            ["ls-files", "--others", "--exclude-standard"],
+            { cwd: root, encoding: "utf8" },
+          )
+            .split(/\r?\n/u)
+            .filter(Boolean)
+            .map((path) => `A\t${path}`)
+            .join("\n")
+        : ""),
   );
-  const projectedCurrent = currentRows(board);
+
   let readyCurrentOwnedByPr = false;
-  if ((local || event.pull_request?.draft === false) && projectedCurrent.length === 1) {
+  const nextCurrent = manifestCurrentPath(manifest);
+  if ((local || event.pull_request?.draft === false) && nextCurrent) {
     try {
-      const packet = readFileSync(
-        join(root, `docs/plans/active/${projectedCurrent[0].packet}`),
-        "utf8",
-      );
+      const packet = readFileSync(join(root, nextCurrent), "utf8");
       readyCurrentOwnedByPr = packetRecordsPr(packet, prNumber);
     } catch {
-      // Missing active packet is already covered by the active-registry contract.
+      // Missing packet is already covered by plan-authority validation.
     }
   }
 
-  const result = validateLifecycleProjection({
-    baseBoard,
-    board,
-    currentMemory,
+  const result = validateLifecycleTransition({
+    baseManifest,
+    manifest,
     prRecord,
     prNumber,
     changes,
@@ -323,7 +306,7 @@ function runCli() {
   });
 
   console.log(
-    `MoneyFlow lifecycle projection — ${result.ok ? "VALID" : "INVALID"}; impact: ${result.lifecycleImpact || "missing"}; projection: ${result.projectionPr ? `PR #${result.projectionPr}` : "none"}`,
+    `MoneyFlow lifecycle transition — ${result.ok ? "VALID" : "INVALID"}; impact: ${result.lifecycleImpact || "missing"}; current: ${result.baseCurrent ?? "none"} -> ${result.nextCurrent ?? "none"}`,
   );
   for (const failure of result.failures) console.error(`failure: ${failure}`);
   process.exitCode = result.ok ? 0 : 1;

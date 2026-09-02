@@ -162,27 +162,78 @@ function withActivePacketFixture(files, run) {
   }
 }
 
-test("requires the active-packet registry to match its directory exactly", () => {
-  const files = {
+function authorityFiles(overrides = {}) {
+  return {
+    "docs/plans/PLAN_AUTHORITY.json": `${JSON.stringify(
+      {
+        schemaVersion: 2,
+        master: {
+          path: "docs/plans/active/master.md",
+          introducedByPr: 433,
+          supersedes: [],
+        },
+        current: {
+          path: "docs/plans/active/current.md",
+          introducedByPr: 528,
+        },
+      },
+      null,
+      2,
+    )}\n`,
     "docs/plans/active/README.md": [
-      "# Active work packets",
-      "| Packet | Role |",
-      "|---|---|",
-      "| `current.md` | current |",
+      "# MoneyFlow — active-plan pointer",
+      "**Status:** retired as executable authority",
       "",
     ].join("\n"),
+    "docs/plans/active/master.md": "# Master\n",
     "docs/plans/active/current.md": "# Current\n",
+    ...overrides,
   };
+}
 
-  withActivePacketFixture(files, (root) => {
+test("active packet validation follows manifest authority, not a Markdown table", () => {
+  withActivePacketFixture(authorityFiles(), (root) => {
     assert.deepEqual(validateActivePacketRegistry(root), []);
   });
+
   withActivePacketFixture(
-    { ...files, "docs/plans/active/stale.md": "# Stale\n" },
+    authorityFiles({
+      "docs/plans/PLAN_AUTHORITY.json": `${JSON.stringify(
+        {
+          schemaVersion: 2,
+          master: {
+            path: "docs/plans/active/master.md",
+            introducedByPr: 433,
+            supersedes: [],
+          },
+          current: {
+            path: "docs/plans/active/missing.md",
+            introducedByPr: 528,
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    }),
     (root) => {
       assert.ok(
         validateActivePacketRegistry(root).some((failure) =>
-          failure.includes("stale.md is active but absent"),
+          failure.includes("current packet is missing"),
+        ),
+      );
+    },
+  );
+});
+
+test("retired board pointer cannot silently regain authority semantics", () => {
+  withActivePacketFixture(
+    authorityFiles({
+      "docs/plans/active/README.md": "# Current Work Board\n| Packet | Role |\n",
+    }),
+    (root) => {
+      assert.ok(
+        validateActivePacketRegistry(root).some((failure) =>
+          failure.includes("retired compatibility pointer"),
         ),
       );
     },
@@ -192,8 +243,7 @@ test("requires the active-packet registry to match its directory exactly", () =>
 test("rejects a default authority route to an archived or missing active packet", () => {
   withActivePacketFixture(
     {
-      "docs/plans/active/README.md": "| `current.md` | current |\n",
-      "docs/plans/active/current.md": "# Current\n",
+      ...authorityFiles(),
       "README.md": "See docs/plans/active/retired.md.\n",
     },
     (root) => {

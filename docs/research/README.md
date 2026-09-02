@@ -14,19 +14,16 @@ Khung nghiên cứu **ứng dụng web quản lý thu chi cá nhân**.
 
 | Reference | File | Purpose |
 |---|---|---|
-| Warm-context router | [`docs/context/README.md`](../context/README.md) | Chọn đúng tài liệu theo boundary; không preload toàn bộ repo history |
+| Warm-context router | [`docs/context/README.md`](../context/README.md) | Chọn đúng tài liệu theo boundary; không preload toàn bộ history |
 | Current project memory | [CURRENT_PROJECT_MEMORY.md](./CURRENT_PROJECT_MEMORY.md) | Snapshot gọn về current truth và true gaps |
-| Machine knowledge contract | [PROJECT_KNOWLEDGE_CONTRACT.json](./PROJECT_KNOWLEDGE_CONTRACT.json) | Heading, reference và size budget ổn định cho policy; không biến prose thành API |
+| Plan authority | [`docs/plans/PLAN_AUTHORITY.json`](../plans/PLAN_AUTHORITY.json) | Machine source cho master + zero/one current executable packet |
+| Machine knowledge contract | [PROJECT_KNOWLEDGE_CONTRACT.json](./PROJECT_KNOWLEDGE_CONTRACT.json) | Heading, reference và size budget ổn định cho policy |
 | Pull-request memory index | [PR_MEMORY_LOG.md](./PR_MEMORY_LOG.md) | Policy, trust boundary và size budget |
 | Per-PR records | `pr-memory/YYYY/QN/PR-<number>.md` | Cold provenance riêng cho từng PR |
-| Historical failure register | [HISTORICAL_FAILURE_REGISTER_2026-08-06.md](./HISTORICAL_FAILURE_REGISTER_2026-08-06.md) | Mẫu lỗi lặp lại, root cause, tầng phát hiện và prevention status |
+| Historical failure register | [HISTORICAL_FAILURE_REGISTER_2026-08-06.md](./HISTORICAL_FAILURE_REGISTER_2026-08-06.md) | Mẫu lỗi lặp lại và prevention status |
 | Capability gap matrix | [PRODUCT_CAPABILITY_GAP_MATRIX.md](./PRODUCT_CAPABILITY_GAP_MATRIX.md) | Historical capability audit; not development order |
 | Competitive memory | [PRODUCT_COMPETITIVE_MEMORY.md](./PRODUCT_COMPETITIVE_MEMORY.md) | Historical competitor patterns, sources and anti-copy limits |
-| UI/UX ledger | [UI_UX_RESEARCH_LEDGER.md](./UI_UX_RESEARCH_LEDGER.md) | Bằng chứng UI/UX tích lũy và concept bị supersede |
-| Webflow Design synthesis | [WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md](./WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md) | Nền tảng design concept-neutral: user research → flow → content → wireframe → system → accessibility → verification |
-| UX Pilot corpus inventory | [UXPILOT_DESIGN_CORPUS_INVENTORY.md](./UXPILOT_DESIGN_CORPUS_INVENTORY.md) | Snapshot tài liệu UX/UI/product design công khai, phạm vi và relevance labels |
-| Framer corpus inventory | [FRAMER_DESIGN_CORPUS_INVENTORY.md](./FRAMER_DESIGN_CORPUS_INVENTORY.md) | Blog, Academy, Design, brand, help và component-design references công khai |
-| Cross-source design process | [WEB_DESIGN_PROCESS_CONVERGENCE.md](./WEB_DESIGN_PROCESS_CONVERGENCE.md) | Quy trình delivery thống nhất từ Webflow, UX Pilot và Framer cho MoneyFlow |
+| UI/UX ledger | [UI_UX_RESEARCH_LEDGER.md](./UI_UX_RESEARCH_LEDGER.md) | Bằng chứng UI/UX tích lũy |
 | Finance repositories | [REPOSITORY_REFERENCE_MAP.md](./REPOSITORY_REFERENCE_MAP.md) | Nguồn tham khảo theo capability |
 | Engineering foundations | [ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md](./ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md) | Nguồn kỹ thuật, testing, security và CI/CD |
 
@@ -35,18 +32,14 @@ Khung nghiên cứu **ứng dụng web quản lý thu chi cá nhân**.
 1. Đọc code/tests/migrations của boundary đang sửa.
 2. Đọc `CURRENT_PROJECT_MEMORY.md` để biết current truth.
 3. Dùng `docs/context/README.md` để chọn 2–4 tài liệu warm context.
-4. Dùng `docs/plans/active/README.md` cho execution state và next work.
-5. Dùng `PRODUCT_CAPABILITY_GAP_MATRIX.md` hoặc `PRODUCT_COMPETITIVE_MEMORY.md`
-   chỉ khi cần audit/provenance hoặc pattern đối thủ.
-6. Với UI/UX, đọc `UI_UX_RESEARCH_LEDGER.md`; với public/brand work, đọc thêm `PUBLIC_EXPERIENCE_FOUNDATION.md`, `WEBFLOW_DESIGN_CATEGORY_SYNTHESIS.md` và `WEB_DESIGN_PROCESS_CONVERGENCE.md`.
-7. Chỉ mở inventory UX Pilot/Framer khi cần provenance hoặc nguồn chi tiết; không preload toàn bộ corpus vào mọi task.
-8. Chỉ mở `pr-memory/YYYY/QN/PR-<number>.md` khi cần provenance.
+4. Chạy `npm run plan:resolve`; dùng `docs/plans/PLAN_AUTHORITY.json` + merged Git history cho execution state. GitHub Issues/PRs giữ backlog/status người dùng.
+5. Mở manifest-selected active packet; không suy ra authority từ tên file hoặc `docs/plans/active/README.md`.
+6. Dùng `PRODUCT_CAPABILITY_GAP_MATRIX.md` hoặc `PRODUCT_COMPETITIVE_MEMORY.md` chỉ khi cần audit/provenance hoặc pattern đối thủ.
+7. Chỉ mở `pr-memory/YYYY/QN/PR-<number>.md` khi cần provenance.
 
 Mọi PR targeting `main` phải có record riêng. PR đổi capability, architecture, security, operations hoặc verification phải cập nhật snapshot; PR không đổi current truth ghi `Status impact: none`.
 
-Snapshot budget is executable in `PROJECT_KNOWLEDGE_CONTRACT.json`: target 80–150
-lines, soft warning above 180 lines or 16 KiB, hard failure above 240 lines or 24 KiB.
-Lịch sử chi tiết không được copy vào snapshot.
+Snapshot budget is executable in `PROJECT_KNOWLEDGE_CONTRACT.json`: target 80–150 lines, soft warning above 180 lines or 16 KiB, hard failure above 240 lines or 24 KiB. Lịch sử chi tiết không được copy vào snapshot.
 
 Quyết định owner ngày 2026-08-02 thay thế feature freeze toàn cục. Validation vẫn bắt buộc trong từng workstream.
 

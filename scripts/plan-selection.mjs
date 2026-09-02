@@ -5,10 +5,7 @@ import { resolvePlanAuthority } from "./plan-authority.mjs";
 
 export function isPlanSelectionReady(authority) {
   if (authority.ok !== true || authority.master?.status !== "active") return false;
-  if (Number.isInteger(authority.boardProjectionPr)) {
-    if (authority.current) return false;
-    if (authority.baselineMode !== "post-merge-projection") return false;
-  }
+  if (authority.current && authority.current.status !== "active") return false;
   return true;
 }
 
@@ -16,49 +13,22 @@ export function resolvePlanSelection(
   root = process.cwd(),
   { env = process.env, ...authorityOptions } = {},
 ) {
-  const authority = resolvePlanAuthority(root, {
-    env,
-    ...authorityOptions,
-  });
-  const projectionPending =
-    Number.isInteger(authority.boardProjectionPr) &&
-    authority.baselineMode !== "post-merge-projection";
-  const projectionRetainsCurrent =
-    Number.isInteger(authority.boardProjectionPr) && Boolean(authority.current);
-
-  return {
-    ...authority,
-    projectionPending,
-    projectionRetainsCurrent,
-    selectionReady: isPlanSelectionReady(authority),
-  };
+  const authority = resolvePlanAuthority(root, { env, ...authorityOptions });
+  return { ...authority, selectionReady: isPlanSelectionReady(authority) };
 }
 
 function printHuman(result) {
-  console.log(
-    `MoneyFlow plan selection — ${result.selectionReady ? "READY" : "NOT READY"}`,
-  );
-  console.log(
-    `master: ${result.master?.path ?? "unresolved"}${result.master?.status ? ` [${result.master.status}]` : ""}`,
-  );
-  console.log(`current slice: ${result.current?.path ?? "none"}`);
-  console.log(
-    `board baseline: ${result.boardBaseline ?? "missing"}; expected: ${result.expectedBaseline ?? "unknown"}; mode: ${result.baselineMode ?? "unknown"}`,
-  );
+  console.log(`MoneyFlow plan selection — ${result.selectionReady ? "READY" : "NOT READY"}`);
+  console.log(`master: ${result.master?.path ?? "unresolved"}${result.master?.status ? ` [${result.master.status}]` : ""}`);
+  console.log(`current slice: ${result.current?.path ?? "none"}${result.current?.status ? ` [${result.current.status}]` : ""}`);
+  console.log(`manifest: ${result.manifestPath}; schema: ${result.schemaVersion ?? "invalid"}`);
 
   if (result.master?.status === "candidate") {
-    console.error(
-      "candidate master is valid for review but is not task-selection authority until merged history proves it",
-    );
+    console.error("candidate master is reviewable but not executable until merged history proves its introduction PR");
   }
-  if (result.projectionPending) {
+  if (result.current?.status === "candidate") {
     console.error(
-      `post-merge projection PR #${result.boardProjectionPr} is validation-only until the exact merged commit activates it`,
-    );
-  }
-  if (result.projectionRetainsCurrent) {
-    console.error(
-      `post-merge projection PR #${result.boardProjectionPr} still retains a current agent-executable slice; a closing projection may not pre-authorize follow-on work`,
+      `candidate current slice selected by PR #${result.current.selectedByPr} is validation-only until that PR appears in merged manifest history`,
     );
   }
   for (const warning of result.warnings) console.warn(`warning: ${warning}`);
@@ -67,11 +37,8 @@ function printHuman(result) {
 
 function runCli() {
   const result = resolvePlanSelection();
-  if (process.argv.includes("--json")) {
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-  } else {
-    printHuman(result);
-  }
+  if (process.argv.includes("--json")) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  else printHuman(result);
   process.exitCode = result.selectionReady ? 0 : 1;
 }
 
