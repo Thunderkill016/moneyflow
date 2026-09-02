@@ -61,7 +61,7 @@ Those new advisor warnings are security debt that must be evaluated, but they ar
 
 Do **not** bulk-convert `SECURITY DEFINER` functions to `SECURITY INVOKER`, revoke authenticated execution, or move financial RPCs merely to silence the advisor. Any database change requires a reproduced or evidence-backed ownership defect and the corresponding migration/pgTAP/browser proof.
 
-## Focused upstream research — refreshed 2026-09-02
+## Research
 
 1. **Next.js August 2026 Security Release** — official Next.js blog index, published 2026-08-25, directs the Active LTS line to Next.js 16.3.3 and Maintenance LTS to 15.5.24 for two Critical vulnerabilities. Source: https://nextjs.org/blog
 2. **GHSA-p293-qw3h-jr36 / CVE-2026-75604** — official `vercel/next.js` advisory; affected Next.js `>=16.0 <16.3.3`, patched in 16.3.3; unauthenticated RCE on affected Windows-hosted applications. Source: https://github.com/vercel/next.js/security/advisories/GHSA-p293-qw3h-jr36
@@ -175,7 +175,7 @@ The objective is to eliminate real exploitability and unexplained warnings, not 
 - no claim that production is patched until the patched tree is actually deployed by owner decision;
 - exact-head gates are not weakened to make the security change pass.
 
-## Tasks
+## Implementation plan
 
 ### Phase A — authority and exact baseline
 
@@ -244,7 +244,7 @@ A completion PR may close #536 only when repository security patch and required 
 - record final PR memory with literal `- Lifecycle impact:`;
 - leave follow-on work unselected.
 
-## Acceptance
+## Evaluation
 
 ### Security patch
 
