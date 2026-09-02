@@ -3,7 +3,7 @@
 **Status:** current implementation/trust snapshot; this branch carries the #529 governance recovery candidate in PR #531 until merge
 **Last reconciled:** 2026-09-02
 **Merged main baseline:** `dea07378fe00030c3fee1a3f4be52831ece959f0` (PR #528)
-**Routing:** use `docs/context/README.md`; open PR memory only for named provenance needs.
+**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
 
