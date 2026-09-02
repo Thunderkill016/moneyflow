@@ -32,7 +32,7 @@ const toast = readFileSync(
 
 test("App Shell composes the approved shared owners", () => {
   assert.match(appShell, /import \{ BrandLockup \}/u);
-  assert.match(appShell, /import \{ Sheet \}/u);
+  assert.match(appShell, /@\/components\/ui\/sheet/u);
   assert.match(appShell, /ToastRegion/u);
   assert.match(appShell, /Button,/u);
   assert.match(appShell, /IconButton,/u);
