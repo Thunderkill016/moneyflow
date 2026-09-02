@@ -159,9 +159,9 @@ test.describe("modal dialog placement", () => {
    *
    * So the placement assertion no longer has a subject. What replaces it is the
    * guarantee that actually matters and that a future change could quietly break:
-   * desktop keeps exactly one capture primary, and every capture path stays
-   * reachable. Deleting the old test without this would have traded a real
-   * guarantee for nothing.
+   * desktop keeps exactly one capture primary in the app chrome, and every capture
+   * path stays reachable. Page-local actions may reuse the same label without
+   * becoming a second shell primary.
    */
   test("desktop offers one capture primary and still reaches every capture path", async ({
     page,
@@ -178,9 +178,12 @@ test.describe("modal dialog placement", () => {
       "the sidebar must not hold a second capture primary beside the topbar CTA",
     ).toHaveCount(0);
 
+    const topbar = page.locator("header").filter({
+      has: page.getByRole("link", { name: "Tìm giao dịch trên sổ (⌘K)" }),
+    });
     await expect(
-      page.getByRole("button", { name: "Ghi chi tiêu" }),
-      "the topbar CTA is the single capture primary",
+      topbar.getByRole("button", { name: "Ghi chi tiêu" }),
+      "the app topbar must expose exactly one capture primary",
     ).toHaveCount(1);
 
     // The other two paths produce Inbox candidates, so they live on the Inbox.
