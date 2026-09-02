@@ -92,9 +92,13 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
 
   useEffect(() => {
     if (ranRef.current) return;
-    ranRef.current = true;
 
     const frame = window.requestAnimationFrame(() => {
+      // React Strict Mode can run setup -> cleanup -> setup in development.
+      // Mark this one-shot as consumed only after a frame actually starts;
+      // otherwise the first cleanup can cancel the frame and strand the route.
+      if (ranRef.current) return;
+      ranRef.current = true;
       void (async () => {
         try {
           setInboxCount(await getPendingCountForClient(viewer.isDemo));
