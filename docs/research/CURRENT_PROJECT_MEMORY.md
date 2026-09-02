@@ -1,19 +1,19 @@
 # MoneyFlow — current project memory
 
-**Status:** PR #538 is the non-draft replacement merge vehicle for #527; merged `main` still selects #527 until #538 merges
+**Status:** #527 is closed by merged PR #538. PR #539 is the fresh-main authority transition that selects #536; this selection becomes merged-main execution truth only when #539 is owner-merged.
 **Last reconciled:** 2026-09-02
-**Merged main baseline:** `0585caea055797cf3c0bfe45494946629ae5a7d0` (PR #531)
+**Merged main baseline:** `aa82d47f70d48e1383140d5daa06be443cb08e5b` (PR #538)
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
 
-MoneyFlow is a Vietnamese personal-finance product built around one trustworthy user-owned ledger. It is functional but **not public-beta ready**.
+MoneyFlow is a Vietnamese personal-finance product built around one trustworthy user-owned ledger. It remains **not public-beta ready**.
 
-Merged #432/#433 remains the master product program. Merged #531 made `docs/plans/PLAN_AUTHORITY.json` the single executable selector and activated current slice #527. PR #532 produced the canonical #527 implementation/evidence tree and reached full exact-head green at `6ae948e553309d28bcb3ee6132324241cfa0e2ac`, but GitHub REST refuses to merge it while Draft and the connected Ready-for-review mutation is broken upstream on `Repository.fullDatabaseId`.
+Merged #432/#433 remains the master product program. PR #538 completed performance slice #527, archived its packet and left `docs/plans/PLAN_AUTHORITY.json.current` as `null` on merged `main`.
 
-PR #538 is therefore the non-draft replacement merge vehicle, created directly from that exact-green #532 head. Its replacement delta is provenance only. If #538 merges, it leaves `current: null`; it does not select follow-on work.
+Issue #536 is now the release-blocking candidate: patch the vulnerable Next.js runtime line, triage exact High/Critical dependency findings, preserve auth/tenant/financial guarantees, evaluate current Supabase security-advisor warnings against real RPC ownership tests, and enable leaked-password protection before public-beta acceptance when the owner authorizes the provider write.
 
-A separate whole-project audit on 2026-09-02 found a release-blocking runtime security gap: main still pins Next.js 16.2.11 while the current upstream patched 16.x floor for the August Critical advisories is 16.3.3. Issue #536 and draft PR #537 record the future Class 3 security packet, but #536 remains unselected and non-executable until #527 closes and a later selector merges from fresh main.
+PR #539 is the separate fresh-main selector required by lifecycle policy. It carries `current: null -> #536` and adds the refreshed Class 3 packet. It does **not** change runtime dependencies, database behavior, Supabase Auth configuration, deployment or production state.
 
 ## 2. Current runtime and financial truth
 
@@ -24,29 +24,57 @@ A separate whole-project audit on 2026-09-02 found a release-blocking runtime se
 - Ledger facts support explicit correction and recoverable deletion where required.
 - Reconciliation state is distinct from source evidence.
 - Full archive/restore is separate from scoped/report export.
-- The #532/#538 performance tree changes loading ownership only; it does not add a second financial authority.
+- Performance work from #532/#538 changed loading ownership only and did not add a second financial authority.
 
 ## 3. Acquisition and reconciliation truth
 
 Merged acquisition lineage includes Direct CSV provenance/atomic approval, later-source attachment, deleted exact-source recovery, changed-observation preservation, predecessor/replacement lineage, clearing progression, Share Target persistence, explicit candidate rules and Direct CSV mapping/rule reuse through PR #464.
 
-The generic file importer remains shallow relative to real Vietnam consumer bank exports. Exact schemas still require privacy-safe structural fixtures. #523 remains candidate-only and is not selected by #538.
+The generic file importer remains shallow relative to real Vietnam consumer bank exports. Exact schemas still require privacy-safe structural fixtures. #523 remains candidate-only and is not selected by #539.
 
-## 4. Current execution state
+## 4. Performance truth after #527
 
-The #532/#538 tree applies three bounded #527 mechanisms:
+PR #538 merged the #527 performance slice. Same-methodology `/dashboard` medians versus the pre-#527 main baseline were:
 
-- remove eager `priority` from the below-fold landing story image;
-- mount dashboard AddTransactionDialog and TransferDialog only while needed;
-- lazy-load the shared AppShell Sheet on first More-sheet use, then keep it mounted after first use so close/focus restoration remains correct.
+- performance score 86 -> 87;
+- LCP 4009.7 -> 3793.9 ms (-5.4%);
+- TBT 140.0 -> 77.9 ms (-44.4%);
+- script transfer 319,931 -> 303,886 B (-5.0%);
+- total transfer 553,643 -> 534,785 B (-3.4%);
+- main-thread 1735 -> 1585 ms (-8.7%);
+- JS bootup 805 -> 630 ms (-21.7%);
+- CLS remained 0.
 
-The first Sheet attempt unmounted immediately on close and exact-head browser/UI CI caught a real focus-restoration regression. The corrected one-way lazy mount passed the previously failing authenticated focus assertion. No accessibility assertion was weakened.
+`/` remained effectively flat and served as the regression/control route. Dashboard LCP still exceeds 2.5 s; the named remaining debt is render-blocking CSS plus residual client/main-thread work. Owner-observed Vercel score 39 remains field provenance and is **not** claimed fixed.
 
-The canonical same-methodology Lighthouse 13.4.1 comparison uses production build/start, mobile simulated throttling, authenticated loopback Supabase double and three samples per route.
+## 5. Security and delivery truth
 
-PR #532 final exact head passed CI #3209, CodeQL #2244 and Secret history #2244, including fresh Supabase reset + pgTAP + archive round-trip, Browser smoke, authenticated ownership, Cross-device UI audit and `e2e`. PR #538 must still pass its own exact-head checks after the provenance-only replacement delta before merge.
+Fresh merged `main` still pins:
 
-## 5. Current capability inventory
+- Next.js 16.2.11;
+- `eslint-config-next` 16.2.12;
+- React / React DOM 19.2.4;
+- Node engine `>=22 <23`.
+
+Official Next.js security guidance published 2026-08-25 places Next 16.2.11 inside two Critical advisory affected ranges and patches the 16.x line at 16.3.3. Existing Dependabot #524 targets only 16.3.1 and is insufficient for this blocker.
+
+Prior CI install output reported one High severity npm vulnerability without the exact advisory/path. #536 must run `npm audit --json` on the exact post-upgrade tree rather than guess or blindly use `npm audit fix --force`.
+
+## 6. Supabase security truth
+
+Read-only production evidence on 2026-09-02:
+
+- MoneyFlow Supabase project is healthy.
+- Earlier audit found 21/21 audited public application tables with RLS enabled and no audited anonymous application-table CRUD.
+- Earlier systematic privileged-RPC review found `auth.uid()` ownership checks and empty `search_path` on the authenticated-callable privileged functions inspected; no cross-tenant P0 was reproduced.
+- Current Supabase Security Advisor reports **Leaked Password Protection Disabled**.
+- Current Supabase Security Advisor also reports multiple `authenticated_security_definer_function_executable` WARN findings for authenticated-callable public RPCs.
+
+Those `SECURITY DEFINER` warnings are not automatically defects: many RPCs are intentional financial authorities. #536 must compare advisor findings to function source, grants, ownership predicates, search path, pgTAP and browser tenant tests before changing execution mode or privileges. Bulk conversion to `SECURITY INVOKER` or broad revoke operations are out of scope without evidence of a real ownership/grant defect.
+
+Official Supabase docs expose leaked-password protection as `password_hibp_enabled`, backed by HaveIBeenPwned Pwned Passwords, and list it as available on Pro and above. A provider write remains owner-controlled and reversible; repository planning does not imply it has happened.
+
+## 7. Current capability inventory
 
 | Capability | Current truth |
 |---|---|
@@ -58,86 +86,52 @@ PR #532 final exact head passed CI #3209, CodeQL #2244 and Secret history #2244,
 | Review | exception-first Ready/Needs-attention grouped review from PR #522 |
 | Ownership | versioned archive/export/validation/restore contract |
 | Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
-| Performance | #532/#538 materially reduces dashboard client cost; field score 39 is not claimed fixed |
-| Public beta | not approved; security issue #536 remains release-blocking candidate work |
+| Performance | #527 completed with material dashboard client-cost reduction; field score 39 remains unresolved provenance |
+| Public beta | blocked by #536 security/runtime/auth hardening |
 
-## 6. Performance truth
-
-Owner-reported Vercel score **39** remains field provenance and has not been reproduced by the repository harness or queried from Speed Insights through the connected provider surface.
-
-Same-methodology `/dashboard` medians, merged main `0585caea...` -> #532/#538 candidate:
-
-- performance score 86 -> 87;
-- LCP 4009.7 -> 3793.9 ms (-5.4%);
-- TBT 140.0 -> 77.9 ms (-44.4%);
-- script transfer 319,931 -> 303,886 B (-5.0%);
-- total transfer 553,643 -> 534,785 B (-3.4%);
-- main-thread 1735 -> 1585 ms (-8.7%);
-- JS bootup 805 -> 630 ms (-21.7%);
-- CLS remains 0.
-
-`/` is a regression/control route and remained effectively flat: score 94 -> 94; LCP 2958 -> 2881 ms; script transfer and main-thread work changed only within a small range.
-
-LCP remains above 2.5 s. Current attribution names the remaining bottleneck rather than hiding it: dashboard server response is small (~16 ms TTFB in the harness), while render-blocking CSS still carries roughly 1.24 s estimated delay and residual dashboard main-thread work remains about 1.58 s. The tested dashboard LCP element is the empty-state statement paragraph; its render delay improved materially but did not reach the target.
-
-`npm run analyze -- --output` was executed on both merged-main baseline and the #532 candidate under Node 22 with real installs. Analyzer output is written to `.next/diagnostics/analyze` as the Next.js module graph. Detailed module-owner evidence remains in PR #532 memory; PR #538 carries the exact same runtime tree.
-
-## 7. Security and delivery truth
-
-- 21/21 audited public application tables have RLS enabled; the audited anonymous role has no application-table CRUD.
-- No cross-tenant P0 was found in the 2026-09-02 database/RPC audit.
-- Supabase Security Advisor reports leaked-password protection disabled; current docs expose this as `password_hibp_enabled`, available on Pro and above.
-- Main pins Next.js 16.2.11; issue #536 records the requirement to move to patched 16.3.3+ and triage the remaining npm High advisory.
-- No Next upgrade, Supabase Auth write, provider change or deployment belongs in #538.
-- `docs/plans/PLAN_AUTHORITY.json` remains the only executable selector.
-- Completing current work must leave zero current slice and cannot preselect #536 or #523.
-
-## 8. Reconciled issue status
+## 8. Reconciled issue / PR status
 
 - #432/#433: merged master product program.
 - #511/#522: merged exception-first Inbox review.
-- #527/#528/#531: selected and governance-recovered performance slice; PR #538 is now its canonical non-draft merge vehicle.
-- #532: detailed implementation/evidence predecessor; exact-head full-green but still Draft because the connected Ready-for-review mutation is broken upstream.
-- #538: open non-draft replacement created from #532 exact-green head; provenance-only delta must pass its own exact-head gates before merge.
+- #527/#528/#531/#538: performance slice selected, governance-recovered and completed; `current:null` on merged main after #538.
+- #532: closed unmerged detailed implementation/evidence predecessor for #538.
 - #533/#534/#535: closed duplicate performance PRs.
-- #536: open release-blocking security issue; future Class 3 execution only after explicit selection.
-- #537: draft packet-preparation PR; exact-head green, no authority change, no runtime/provider write.
+- #536: open release-blocking Class 3 security/runtime/auth issue.
+- #537: draft pre-#538 packet-preparation PR; historical candidate evidence only and superseded as the activation vehicle by fresh-main #539.
+- #539: fresh-main non-draft selector for #536; no runtime/provider write.
 - #523: candidate bank-export compatibility slice; unselected.
 - #403: historical performance provenance only.
 
-## 9. Open pull-request memory
+## 9. Durable PR memory
 
-PR #538 durable record: `docs/research/pr-memory/2026/Q3/PR-538.md`.
+- PR #532: detailed #527 mechanism, analyzer, Lighthouse and accessibility-regression evidence.
+- PR #538: actual merged #527 closure/replacement provenance.
+- PR #537: pre-#538 #536 packet-preparation provenance; not authority.
+- PR #539: fresh-main #536 selection provenance; exact-head checks and owner merge required.
 
-PR #532 durable record: `docs/research/pr-memory/2026/Q3/PR-532.md`; it retains detailed mechanism, analyzer, Lighthouse and regression provenance for the tree carried by #538.
+## 10. True gaps
 
-PR #537 durable record: `docs/research/pr-memory/2026/Q3/PR-537.md` on its separate branch. It prepares #536 only; it does not activate it.
-
-The connected GitHub Ready-for-review mutation currently fails because its response requests nonexistent GraphQL field `Repository.fullDatabaseId`. GitHub REST correctly refuses to merge Draft PRs. #538 exists only as the non-draft delivery workaround and must not be used to bypass required checks.
-
-## 10. True gaps after this audit
-
-1. Run and require exact-head checks for non-draft replacement PR #538, then merge it only under the owner's explicit approval already given on 2026-09-02.
-2. Do not claim Vercel score 39 resolved without new field evidence; retain render-blocking CSS/residual client work as explicit future performance debt rather than silently extending #527.
-3. From fresh main with `current: null`, persist/merge the #536 packet if needed and select #536 in a separate authority PR.
-4. Under active #536, upgrade Next to a patched 16.3.x release at least 16.3.3, run exact `npm audit --json`, and verify auth/browser/financial regressions.
-5. Enable and verify Supabase leaked-password protection only through an authorized reversible provider change under #536.
-6. Reconsider #523 or other product work only after release-blocking security work is dispositioned.
+1. Require exact-head policy/CodeQL/secret checks for #539 and owner review before merge.
+2. After #539 merges, run fresh `npm run plan:resolve` and `npm run agent:doctor -- --json` before implementation.
+3. Upgrade Next to a vetted patched 16.3.x release at least 16.3.3 and align `eslint-config-next` with minimal lockfile churn.
+4. Run exact `npm audit --json` and resolve or explicitly disposition every High/Critical finding.
+5. Verify auth, Server Actions, image behavior, tenant/financial contracts, build, browser and relevant performance regression evidence.
+6. Triage current Supabase `SECURITY DEFINER` advisor warnings against source/grants/tests; fix only evidence-backed defects.
+7. Enable and verify leaked-password protection only through an authorized reversible provider change under active #536; public-beta remains blocked if plan/tooling cannot support it safely.
+8. Reconsider #523 or other product work only after #536 is dispositioned.
 
 ## 11. Next allowed action
 
-On the #538 branch, only replacement provenance plus #527 closure verification is allowed. Do not change runtime behavior, security dependencies, provider settings or plan selection. Require exact-head CI/CodeQL/Gitleaks/browser/UI for #538; if green, owner approval already authorizes squash merge. After successful #538 merge, close #532 unmerged as the superseded draft predecessor.
+On PR #539, only #536 authority/planning reconciliation is allowed: active packet, manifest selection, project memory and PR memory. No dependency upgrade, migration/RPC change, Supabase Auth write, deployment or public-beta claim belongs in the selector PR.
 
-After #538 merges, the next execution decision must start from fresh `main`. #536 is the recommended release-blocking candidate from the 2026-09-02 audit, but it still requires a separate selector; it is not auto-selected by this memory.
+After owner merge of #539, implementation starts from fresh main under the selected #536 packet and must begin with `plan:resolve` then `agent:doctor`.
 
 ## 12. Superseded-status register
 
-- Markdown Current Work Board as executable authority — superseded by #529/#531.
-- Hand-written Current main SHA / Post-merge projection activation — superseded by manifest authority.
-- #511 materially reducing manual-entry friction or 40% grouped clicks — superseded.
-- SMS as a primary acquisition bet — unsupported.
-- AI as MoneyFlow positioning — unsupported; use only where safely reducing capture/reconcile friction.
+- Markdown Current Work Board as executable authority — superseded by manifest authority.
+- Hand-written post-merge SHA projection as authority — superseded by first-parent manifest resolution.
 - #523 already selected — false; it remains candidate-only.
-- Owner-observed Vercel score 39 already fixed by #532/#538 — false; repository lab cost improved but field score is not reproduced.
-- #536 already executable — false until a separate post-#527 selector merges.
-- Master #432 alone authorizes provider/bank/native/OCR/security-provider work — false; each needs a bounded researched slice.
+- Owner-observed Vercel score 39 fixed by #527 — false; repository lab cost improved but field score is not reproduced.
+- #536 executable before #539 merge — false; selection requires the fresh-main owner-merged authority PR.
+- Every authenticated `SECURITY DEFINER` advisor warning proves a vulnerability — false; each must be reconciled with source, grants and tenant tests.
+- Master #432 alone authorizes provider/security writes — false; the bounded selected packet plus owner decision is required.
