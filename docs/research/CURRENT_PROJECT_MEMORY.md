@@ -1,19 +1,19 @@
 # MoneyFlow — current project memory
 
-**Status:** #527 is closed by merged PR #538. PR #539 is the fresh-main authority transition that selects #536; this selection becomes merged-main execution truth only when #539 is owner-merged.
+**Status:** #536 is the selected active Class 3 security/runtime/auth slice. Draft PR #540 advances repository-side dependency remediation but is not merged or deployed; production remains on the pre-#540 runtime until owner merge/deployment.
 **Last reconciled:** 2026-09-02
-**Merged main baseline:** `aa82d47f70d48e1383140d5daa06be443cb08e5b` (PR #538)
+**Merged main baseline:** `425af4508e547de28fb372eedbcb07ced226d522` (PR #539)
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
 
 MoneyFlow is a Vietnamese personal-finance product built around one trustworthy user-owned ledger. It remains **not public-beta ready**.
 
-Merged #432/#433 remains the master product program. PR #538 completed performance slice #527, archived its packet and left `docs/plans/PLAN_AUTHORITY.json.current` as `null` on merged `main`.
+Merged #432/#433 remains the master product program. PR #538 completed performance slice #527. PR #539 then selected `docs/plans/active/536-security-runtime-auth-hardening.md` as the single current executable slice on `main`.
 
-Issue #536 is now the release-blocking candidate: patch the vulnerable Next.js runtime line, triage exact High/Critical dependency findings, preserve auth/tenant/financial guarantees, evaluate current Supabase security-advisor warnings against real RPC ownership tests, and enable leaked-password protection before public-beta acceptance when the owner authorizes the provider write.
+#536 is release-blocking: patch the vulnerable Next.js runtime line, resolve or explicitly disposition exact High/Critical dependency findings, preserve auth/tenant/financial guarantees, classify current Supabase `SECURITY DEFINER` warnings against real ownership evidence, and enable leaked-password protection before public-beta acceptance only through an explicitly authorized reversible provider change.
 
-PR #539 is the separate fresh-main selector required by lifecycle policy. It carries `current: null -> #536` and adds the refreshed Class 3 packet. It does **not** change runtime dependencies, database behavior, Supabase Auth configuration, deployment or production state.
+Draft PR #540 is the current repository implementation candidate for the runtime dependency portion. It does **not** close #536, change database functions/grants, change Supabase Auth configuration, merge itself, or deploy production.
 
 ## 2. Current runtime and financial truth
 
@@ -30,7 +30,7 @@ PR #539 is the separate fresh-main selector required by lifecycle policy. It car
 
 Merged acquisition lineage includes Direct CSV provenance/atomic approval, later-source attachment, deleted exact-source recovery, changed-observation preservation, predecessor/replacement lineage, clearing progression, Share Target persistence, explicit candidate rules and Direct CSV mapping/rule reuse through PR #464.
 
-The generic file importer remains shallow relative to real Vietnam consumer bank exports. Exact schemas still require privacy-safe structural fixtures. #523 remains candidate-only and is not selected by #539.
+The generic file importer remains shallow relative to real Vietnam consumer bank exports. Exact schemas still require privacy-safe structural fixtures. #523 remains candidate-only and is not selected while #536 is active.
 
 ## 4. Performance truth after #527
 
@@ -60,70 +60,71 @@ PR #538 merged the #527 performance slice. Same-methodology `/dashboard` medians
 | Ownership | versioned archive/export/validation/restore contract |
 | Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
 | Performance | #527 completed with material dashboard client-cost reduction; field score 39 remains unresolved provenance |
-| Public beta | blocked by #536 security/runtime/auth hardening |
+| Public beta | blocked by active #536 security/runtime/auth hardening |
 
 ## 6. Security and delivery truth
 
-Fresh merged `main` still pins:
+Merged `main` at `425af450...` still pins Next.js 16.2.11 / `eslint-config-next` 16.2.12 and React / React DOM 19.2.4. Official Next.js security guidance published 2026-08-25 places Next 16.2.11 inside two Critical advisory affected ranges and patches the 16.x line at 16.3.3.
 
-- Next.js 16.2.11;
-- `eslint-config-next` 16.2.12;
-- React / React DOM 19.2.4;
-- Node engine `>=22 <23`.
+Draft PR #540 currently proposes:
 
-Official Next.js security guidance published 2026-08-25 places Next 16.2.11 inside two Critical advisory affected ranges and patches the 16.x line at 16.3.3. Existing Dependabot #524 targets only 16.3.1 and is insufficient for this blocker.
+- Next.js 16.3.4;
+- `eslint-config-next` 16.3.4;
+- React / React DOM unchanged at 19.2.4;
+- `sharp` override 0.35.4;
+- `browserslist` override 4.28.8.
 
-Prior CI install output reported one High severity npm vulnerability without the exact advisory/path. #536 must run `npm audit --json` on the exact post-upgrade tree rather than guess or blindly use `npm audit fix --force`.
+A real GitHub-hosted Node 22.23.2 / npm 10.9.8 checkout regenerated the candidate lockfile. After the first Next/Sharp refresh, exact `npm audit --json` exposed one High Browserslist finding (`<=4.28.6`); pinning stable 4.28.8 cleared it. The restored exact candidate tree then reported 0 info / 0 low / 0 moderate / 0 high / 0 critical. This is branch evidence only: production is not patched until owner merge/deployment.
 
 ## 7. Supabase security truth
 
-Read-only production evidence on 2026-09-02:
+Read-only production evidence refreshed on 2026-09-02:
 
-- MoneyFlow Supabase project is healthy.
-- Earlier audit found 21/21 audited public application tables with RLS enabled and no audited anonymous application-table CRUD.
-- Earlier systematic privileged-RPC review found `auth.uid()` ownership checks and empty `search_path` on the authenticated-callable privileged functions inspected; no cross-tenant P0 was reproduced.
-- Current Supabase Security Advisor reports **Leaked Password Protection Disabled**.
-- Current Supabase Security Advisor also reports multiple `authenticated_security_definer_function_executable` WARN findings for authenticated-callable public RPCs.
+- MoneyFlow Supabase project is `ACTIVE_HEALTHY`.
+- Current Security Advisor reports **Leaked Password Protection Disabled**.
+- Current Security Advisor also reports multiple `authenticated_security_definer_function_executable` WARN findings.
+- Live catalog reconciliation of the currently warned functions shows `anon` has no `EXECUTE`, `PUBLIC` has no `EXECUTE`, `authenticated` does have `EXECUTE`, owner is `postgres`, `search_path` is empty, and every warned function body references `auth.uid()`.
+- Representative high-risk surfaces inspected live (`create_money_transaction`, `bulk_update_transaction_category`, `approve_inbox_candidate`, `restore_user_archive`) derive tenant identity from `auth.uid()` and constrain affected rows to it.
+- `reconciliation_snapshot_for_user(p_user_id, ...)` explicitly rejects `p_user_id` when it differs from `auth.uid()` before returning tenant data.
 
-Those `SECURITY DEFINER` warnings are not automatically defects: many RPCs are intentional financial authorities. #536 must compare advisor findings to function source, grants, ownership predicates, search path, pgTAP and browser tenant tests before changing execution mode or privileges. Bulk conversion to `SECURITY INVOKER` or broad revoke operations are out of scope without evidence of a real ownership/grant defect.
+Supabase's current lint guidance explicitly allows an authenticated `SECURITY DEFINER` function to remain intentional when it is a constrained per-user privileged operation; the fix is per function, not a bulk rewrite. The live evidence materially narrows the warning class but does **not** fully disposition every function. #536 must continue function-by-function source/test classification before any suppression or privilege change.
 
-Official Supabase docs expose leaked-password protection as `password_hibp_enabled`, backed by HaveIBeenPwned Pwned Passwords, and list it as available on Pro and above. A provider write remains owner-controlled and reversible; repository planning does not imply it has happened.
+Leaked-password protection remains disabled. Any future Auth configuration write must record the current value and rollback, then receive explicit owner authorization. No provider write has occurred in #540.
 
 ## 8. Reconciled issue status
 
 - #432/#433: merged master product program.
 - #511/#522: merged exception-first Inbox review.
-- #527/#528/#531/#538: performance slice selected, governance-recovered and completed; `current:null` on merged main after #538.
+- #527/#528/#531/#538: performance slice selected, governance-recovered and completed.
 - #532: closed unmerged detailed implementation/evidence predecessor for #538.
 - #533/#534/#535: closed duplicate performance PRs.
-- #536: open release-blocking Class 3 security/runtime/auth issue.
-- #537: draft pre-#538 packet-preparation PR; historical candidate evidence only and superseded as the activation vehicle by fresh-main #539.
-- #539: fresh-main non-draft selector for #536; no runtime/provider write.
+- #536: selected active release-blocking Class 3 security/runtime/auth slice.
+- #537: historical draft packet-preparation evidence; superseded as activation vehicle by merged #539.
+- #539: merged selector for #536 at `425af450...`.
+- #540: open draft dependency-remediation PR for #536; exact-head repository gates still govern readiness.
 - #523: candidate bank-export compatibility slice; unselected.
 - #403: historical performance provenance only.
 
 ## 9. Open pull-request memory
 
-- PR #537 durable record remains on its historical draft branch; it prepared #536 before #527 closed and is not authority.
-- PR #539 durable record: `docs/research/pr-memory/2026/Q3/PR-539.md`; it is the fresh-main #536 selector and requires exact-head checks plus owner merge.
+- PR #540 durable record: `docs/research/pr-memory/2026/Q3/PR-540.md`; dependency candidate plus read-only provider forensic, with #536 intentionally left active.
+- PR #537 remains historical draft preparation evidence and is not authority.
 - PR #532/#538 records remain historical #527 implementation/closure provenance rather than current executable work.
 
 ## 10. True gaps after this audit
 
-1. Require exact-head policy/CodeQL/secret checks for #539 and owner review before merge.
-2. After #539 merges, run fresh `npm run plan:resolve` and `npm run agent:doctor -- --json` before implementation.
-3. Upgrade Next to a vetted patched 16.3.x release at least 16.3.3 and align `eslint-config-next` with minimal lockfile churn.
-4. Run exact `npm audit --json` and resolve or explicitly disposition every High/Critical finding.
-5. Verify auth, Server Actions, image behavior, tenant/financial contracts, build, browser and relevant performance regression evidence.
-6. Triage current Supabase `SECURITY DEFINER` advisor warnings against source/grants/tests; fix only evidence-backed defects.
-7. Enable and verify leaked-password protection only through an authorized reversible provider change under active #536; public-beta remains blocked if plan/tooling cannot support it safely.
-8. Reconsider #523 or other product work only after #536 is dispositioned.
+1. Get exact-head policy/static/unit/build/browser/UI/CodeQL/secret evidence green for draft PR #540.
+2. Complete function-by-function disposition of the live authenticated `SECURITY DEFINER` warnings against source, grants and tenant-boundary tests; change privileges only for evidence-backed defects.
+3. Obtain explicit owner authorization before any Supabase Auth configuration write; enable and verify leaked-password protection with rollback evidence before public beta.
+4. If owner merges #540, verify the patched runtime is actually deployed before describing production as patched.
+5. Close/archive #536 only after repository, provider and deployment acceptance are all truthful; then set `PLAN_AUTHORITY.current` according to lifecycle policy.
+6. Reconsider #523 or other product work only after #536 is dispositioned.
 
 ## 11. Next allowed action
 
-On PR #539, only #536 authority/planning reconciliation is allowed: active packet, manifest selection, project memory and PR memory. No dependency upgrade, migration/RPC change, Supabase Auth write, deployment or public-beta claim belongs in the selector PR.
+Continue #540 exact-head verification and evidence-backed read-only Supabase classification. Repository fixes may be made on the #540 branch when gates expose defects.
 
-After owner merge of #539, implementation starts from fresh main under the selected #536 packet and must begin with `plan:resolve` then `agent:doctor`.
+Do not merge or deploy on behalf of the owner. Do not mutate Supabase Auth configuration, database privileges/functions, or tenant data without crossing the packet's explicit authorization boundary. Do not claim production patched from branch or CI evidence alone.
 
 ## 12. Superseded-status register
 
@@ -131,6 +132,8 @@ After owner merge of #539, implementation starts from fresh main under the selec
 - Hand-written post-merge SHA projection as authority — superseded by first-parent manifest resolution.
 - #523 already selected — false; it remains candidate-only.
 - Owner-observed Vercel score 39 fixed by #527 — false; repository lab cost improved but field score is not reproduced.
-- #536 executable before #539 merge — false; selection requires the fresh-main owner-merged authority PR.
+- #536 executable before #539 merge — historical; #539 is now merged and #536 is active.
 - Every authenticated `SECURITY DEFINER` advisor warning proves a vulnerability — false; each must be reconciled with source, grants and tenant tests.
-- Master #432 alone authorizes provider/security writes — false; the bounded selected packet plus owner decision is required.
+- `anon` or `PUBLIC` currently has execute permission on the warned #536 function set — false in the 2026-09-02 live catalog read; the current warning is authenticated-only.
+- Draft PR #540 means production is patched — false; owner merge/deployment plus provider verification are still required.
+- Master #432 alone authorizes provider/security writes — false; the bounded selected packet plus the explicit owner decision is required.
