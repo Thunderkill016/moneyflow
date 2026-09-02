@@ -304,23 +304,27 @@ export function MoneyFlowDashboard({
         </section>
       </main>
 
-      <AddTransactionDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onAdd={addTransaction}
-        onTransferRequested={
-          workspace.accounts.length >= 2 ? openTransferFromCapture : undefined
-        }
-        accounts={workspace.accounts}
-        categories={workspace.categories}
-        disabled={isMutating || actionsDisabled}
-      />
-      <TransferDialog
-        open={transferOpen}
-        accounts={workspace.accounts}
-        onClose={() => setTransferOpen(false)}
-        onTransfer={handleTransfer}
-      />
+      {dialogOpen ? (
+        <AddTransactionDialog
+          open
+          onClose={() => setDialogOpen(false)}
+          onAdd={addTransaction}
+          onTransferRequested={
+            workspace.accounts.length >= 2 ? openTransferFromCapture : undefined
+          }
+          accounts={workspace.accounts}
+          categories={workspace.categories}
+          disabled={isMutating || actionsDisabled}
+        />
+      ) : null}
+      {transferOpen ? (
+        <TransferDialog
+          open
+          accounts={workspace.accounts}
+          onClose={() => setTransferOpen(false)}
+          onTransfer={handleTransfer}
+        />
+      ) : null}
     </AppShell>
   );
 }
