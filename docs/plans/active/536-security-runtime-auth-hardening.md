@@ -177,6 +177,8 @@ The objective is to eliminate real exploitability and unexplained warnings, not 
 
 ## Implementation plan
 
+## Tasks
+
 ### Phase A — authority and exact baseline
 
 1. [x] Persist issue #536.
