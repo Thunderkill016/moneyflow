@@ -47,34 +47,7 @@ PR #538 merged the #527 performance slice. Same-methodology `/dashboard` medians
 
 `/` remained effectively flat and served as the regression/control route. Dashboard LCP still exceeds 2.5 s; the named remaining debt is render-blocking CSS plus residual client/main-thread work. Owner-observed Vercel score 39 remains field provenance and is **not** claimed fixed.
 
-## 5. Security and delivery truth
-
-Fresh merged `main` still pins:
-
-- Next.js 16.2.11;
-- `eslint-config-next` 16.2.12;
-- React / React DOM 19.2.4;
-- Node engine `>=22 <23`.
-
-Official Next.js security guidance published 2026-08-25 places Next 16.2.11 inside two Critical advisory affected ranges and patches the 16.x line at 16.3.3. Existing Dependabot #524 targets only 16.3.1 and is insufficient for this blocker.
-
-Prior CI install output reported one High severity npm vulnerability without the exact advisory/path. #536 must run `npm audit --json` on the exact post-upgrade tree rather than guess or blindly use `npm audit fix --force`.
-
-## 6. Supabase security truth
-
-Read-only production evidence on 2026-09-02:
-
-- MoneyFlow Supabase project is healthy.
-- Earlier audit found 21/21 audited public application tables with RLS enabled and no audited anonymous application-table CRUD.
-- Earlier systematic privileged-RPC review found `auth.uid()` ownership checks and empty `search_path` on the authenticated-callable privileged functions inspected; no cross-tenant P0 was reproduced.
-- Current Supabase Security Advisor reports **Leaked Password Protection Disabled**.
-- Current Supabase Security Advisor also reports multiple `authenticated_security_definer_function_executable` WARN findings for authenticated-callable public RPCs.
-
-Those `SECURITY DEFINER` warnings are not automatically defects: many RPCs are intentional financial authorities. #536 must compare advisor findings to function source, grants, ownership predicates, search path, pgTAP and browser tenant tests before changing execution mode or privileges. Bulk conversion to `SECURITY INVOKER` or broad revoke operations are out of scope without evidence of a real ownership/grant defect.
-
-Official Supabase docs expose leaked-password protection as `password_hibp_enabled`, backed by HaveIBeenPwned Pwned Passwords, and list it as available on Pro and above. A provider write remains owner-controlled and reversible; repository planning does not imply it has happened.
-
-## 7. Current capability inventory
+## 5. Current capability inventory
 
 | Capability | Current truth |
 |---|---|
@@ -89,7 +62,34 @@ Official Supabase docs expose leaked-password protection as `password_hibp_enabl
 | Performance | #527 completed with material dashboard client-cost reduction; field score 39 remains unresolved provenance |
 | Public beta | blocked by #536 security/runtime/auth hardening |
 
-## 8. Reconciled issue / PR status
+## 6. Security and delivery truth
+
+Fresh merged `main` still pins:
+
+- Next.js 16.2.11;
+- `eslint-config-next` 16.2.12;
+- React / React DOM 19.2.4;
+- Node engine `>=22 <23`.
+
+Official Next.js security guidance published 2026-08-25 places Next 16.2.11 inside two Critical advisory affected ranges and patches the 16.x line at 16.3.3. Existing Dependabot #524 targets only 16.3.1 and is insufficient for this blocker.
+
+Prior CI install output reported one High severity npm vulnerability without the exact advisory/path. #536 must run `npm audit --json` on the exact post-upgrade tree rather than guess or blindly use `npm audit fix --force`.
+
+## 7. Supabase security truth
+
+Read-only production evidence on 2026-09-02:
+
+- MoneyFlow Supabase project is healthy.
+- Earlier audit found 21/21 audited public application tables with RLS enabled and no audited anonymous application-table CRUD.
+- Earlier systematic privileged-RPC review found `auth.uid()` ownership checks and empty `search_path` on the authenticated-callable privileged functions inspected; no cross-tenant P0 was reproduced.
+- Current Supabase Security Advisor reports **Leaked Password Protection Disabled**.
+- Current Supabase Security Advisor also reports multiple `authenticated_security_definer_function_executable` WARN findings for authenticated-callable public RPCs.
+
+Those `SECURITY DEFINER` warnings are not automatically defects: many RPCs are intentional financial authorities. #536 must compare advisor findings to function source, grants, ownership predicates, search path, pgTAP and browser tenant tests before changing execution mode or privileges. Bulk conversion to `SECURITY INVOKER` or broad revoke operations are out of scope without evidence of a real ownership/grant defect.
+
+Official Supabase docs expose leaked-password protection as `password_hibp_enabled`, backed by HaveIBeenPwned Pwned Passwords, and list it as available on Pro and above. A provider write remains owner-controlled and reversible; repository planning does not imply it has happened.
+
+## 8. Reconciled issue status
 
 - #432/#433: merged master product program.
 - #511/#522: merged exception-first Inbox review.
@@ -102,14 +102,13 @@ Official Supabase docs expose leaked-password protection as `password_hibp_enabl
 - #523: candidate bank-export compatibility slice; unselected.
 - #403: historical performance provenance only.
 
-## 9. Durable PR memory
+## 9. Open pull-request memory
 
-- PR #532: detailed #527 mechanism, analyzer, Lighthouse and accessibility-regression evidence.
-- PR #538: actual merged #527 closure/replacement provenance.
-- PR #537: pre-#538 #536 packet-preparation provenance; not authority.
-- PR #539: fresh-main #536 selection provenance; exact-head checks and owner merge required.
+- PR #537 durable record remains on its historical draft branch; it prepared #536 before #527 closed and is not authority.
+- PR #539 durable record: `docs/research/pr-memory/2026/Q3/PR-539.md`; it is the fresh-main #536 selector and requires exact-head checks plus owner merge.
+- PR #532/#538 records remain historical #527 implementation/closure provenance rather than current executable work.
 
-## 10. True gaps
+## 10. True gaps after this audit
 
 1. Require exact-head policy/CodeQL/secret checks for #539 and owner review before merge.
 2. After #539 merges, run fresh `npm run plan:resolve` and `npm run agent:doctor -- --json` before implementation.
