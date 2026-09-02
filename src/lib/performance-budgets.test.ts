@@ -96,6 +96,16 @@ test("landing is a Server Component (no use client) for LCP", () => {
   assert.match(source, /export function LandingPage/);
 });
 
+test("landing story screenshots stay off the initial preload path", () => {
+  const source = read("src/components/landing-page.tsx");
+  assert.match(source, /storySteps\.map/);
+  assert.doesNotMatch(
+    source,
+    /priority=\{index\s*===\s*0\}/,
+    "below-fold story screenshots must use next/image lazy loading",
+  );
+});
+
 test("home page avoids getViewer round-trip on public landing", () => {
   const source = read("src/app/page.tsx");
   assert.equal(
@@ -149,11 +159,20 @@ test("CSS uses system mono stack (no second webfont variable)", () => {
   assert.match(css, /body::before/);
 });
 
-test("insights dashboard defers AddTransactionDialog chunk", () => {
+test("insights dashboard defers capture dialog chunks until opened", () => {
   const source = read("src/components/moneyflow-dashboard.tsx");
   assert.match(source, /dynamic\(/);
   assert.match(source, /add-transaction-dialog/);
+  assert.match(source, /transfer-dialog/);
   assert.match(source, /ssr:\s*false/);
+  assert.match(
+    source,
+    /\{dialogOpen\s*\?\s*\([\s\S]*?<AddTransactionDialog[\s\S]*?\)\s*:\s*null\}/,
+  );
+  assert.match(
+    source,
+    /\{transferOpen\s*\?\s*\([\s\S]*?<TransferDialog[\s\S]*?\)\s*:\s*null\}/,
+  );
 });
 
 test("transactions workspace code-splits dialogs for smaller first paint", () => {

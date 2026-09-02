@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -19,7 +20,6 @@ import {
   IconButton,
   LinkButton,
 } from "@/components/ui/button";
-import { Sheet } from "@/components/ui/sheet";
 import {
   ToastRegion,
   type ToastMessage,
@@ -43,6 +43,11 @@ import {
   type PrimaryNavItem,
 } from "@/lib/nav-ia";
 import styles from "./app-shell.module.css";
+
+const Sheet = dynamic(
+  () => import("@/components/ui/sheet").then((mod) => mod.Sheet),
+  { ssr: false },
+);
 
 const INBOX_BADGE_COUNT = 0;
 
@@ -150,6 +155,7 @@ export function AppShell({
   const connectionState = useConnectionState();
   const connectionNotice = connectionNoticeFor(connectionState);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [moreLoaded, setMoreLoaded] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const resolvedPrimary = primaryAction ?? DEFAULT_GHI_CHI_ACTION;
@@ -184,6 +190,7 @@ export function AppShell({
     : [];
 
   function openMore() {
+    setMoreLoaded(true);
     setMoreOpen(true);
   }
 
@@ -488,13 +495,15 @@ export function AppShell({
         })}
       </nav>
 
-      <MoreSheet
-        open={moreOpen}
-        onClose={() => setMoreOpen(false)}
-        pathname={pathname}
-        inboxCount={inboxCount}
-        viewer={viewer}
-      />
+      {moreLoaded ? (
+        <MoreSheet
+          open={moreOpen}
+          onClose={() => setMoreOpen(false)}
+          pathname={pathname}
+          inboxCount={inboxCount}
+          viewer={viewer}
+        />
+      ) : null}
       <ToastRegion
         messages={toastMessages}
         className={styles.toastRegion}

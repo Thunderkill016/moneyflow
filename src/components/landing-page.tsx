@@ -196,7 +196,6 @@ export function LandingPage() {
                     src={step.image}
                     width={step.width}
                     height={step.height}
-                    priority={index === 0}
                     sizes="(max-width: 860px) 92vw, 55vw"
                     alt={step.alt}
                   />
