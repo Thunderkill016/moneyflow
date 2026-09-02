@@ -1,13 +1,13 @@
-import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import assert from "node:assert/strict";
 
 const BASE_SHA = "0585caea055797cf3c0bfe45494946629ae5a7d0";
 
-function run(command: string, args: string[], cwd: string, timeout = 420_000) {
+function run(command: string, args: string[], cwd: string, timeout = 360_000) {
   const result = spawnSync(command, args, {
     cwd,
     env: { ...process.env, NEXT_TELEMETRY_DISABLED: "1" },
@@ -70,7 +70,7 @@ test("one-shot #527 analyzer evidence on main and current head", () => {
   try {
     run("git", ["fetch", "--no-tags", "--depth=1", "origin", BASE_SHA], root, 120_000);
     run("git", ["worktree", "add", "--detach", baseWorktree, BASE_SHA], root, 120_000);
-    symlinkSync(join(root, "node_modules"), join(baseWorktree, "node_modules"), "dir");
+    run("npm", ["ci"], baseWorktree, 180_000);
 
     run("npm", ["run", "analyze", "--", "--output"], baseWorktree);
     const base = summarize(baseWorktree, `base=${BASE_SHA}`);
