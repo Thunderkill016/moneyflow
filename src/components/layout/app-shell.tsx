@@ -155,6 +155,7 @@ export function AppShell({
   const connectionState = useConnectionState();
   const connectionNotice = connectionNoticeFor(connectionState);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [moreLoaded, setMoreLoaded] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const resolvedPrimary = primaryAction ?? DEFAULT_GHI_CHI_ACTION;
@@ -189,6 +190,7 @@ export function AppShell({
     : [];
 
   function openMore() {
+    setMoreLoaded(true);
     setMoreOpen(true);
   }
 
@@ -493,9 +495,9 @@ export function AppShell({
         })}
       </nav>
 
-      {moreOpen ? (
+      {moreLoaded ? (
         <MoreSheet
-          open
+          open={moreOpen}
           onClose={() => setMoreOpen(false)}
           pathname={pathname}
           inboxCount={inboxCount}
