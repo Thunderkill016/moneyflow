@@ -22,6 +22,7 @@ function readJson(path: string): Record<string, unknown> {
 const MIN_POSTCSS = "8.5.23"; // GHSA-6g55-p6wh-862q incomplete-fix follow-up
 const MIN_NANOID = "3.3.18"; // nanoid: custom generators can loop indefinitely
 const MIN_BROWSERLIST = "4.28.7"; // GHSA-c83g-rgw3-j3cx + GHSA-73wf-gq98-2v4g
+const MIN_QS = "6.16.0"; // GHSA-x5fp-wj9c-mxmx + GHSA-4mjr-xmp4-gh2g
 const VETTED_NEXT = "16.3.4"; // >= 16.3.3 patched floor for the 2026-08-25 Critical advisories
 const VETTED_SHARP = "0.35.4";
 
@@ -57,7 +58,7 @@ test("untrusted Excel imports use patched SheetJS 0.20.3", () => {
   assert.equal(installed?.resolved, PATCHED_XLSX_SOURCE);
 });
 
-test("framework runtime uses patched Next, PostCSS, Sharp and Browserslist releases", () => {
+test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist and qs releases", () => {
   const packageJson = readJson("package.json") as {
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
@@ -86,6 +87,13 @@ test("framework runtime uses patched Next, PostCSS, Sharp and Browserslist relea
   assert.ok(
     isAtLeast(browserslistOverride, MIN_BROWSERLIST),
     `browserslist override ${browserslistOverride} is below the patched floor ${MIN_BROWSERLIST}`,
+  );
+
+  const qsOverride = packageJson.overrides?.qs;
+  assert.ok(qsOverride, "the qs override must exist");
+  assert.ok(
+    isAtLeast(qsOverride, MIN_QS),
+    `qs override ${qsOverride} is below the patched floor ${MIN_QS}`,
   );
 
   assert.equal(lock.packages?.["node_modules/next"]?.version, VETTED_NEXT);
@@ -118,6 +126,12 @@ test("framework runtime uses patched Next, PostCSS, Sharp and Browserslist relea
       assert.ok(
         isAtLeast(installed.version ?? "0.0.0", MIN_BROWSERLIST),
         `${path} resolves browserslist ${installed.version}, below ${MIN_BROWSERLIST}`,
+      );
+    }
+    if (/(?:^|\/)node_modules\/qs$/.test(path)) {
+      assert.ok(
+        isAtLeast(installed.version ?? "0.0.0", MIN_QS),
+        `${path} resolves qs ${installed.version}, below ${MIN_QS}`,
       );
     }
   }
