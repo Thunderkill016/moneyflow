@@ -23,6 +23,7 @@ const MIN_POSTCSS = "8.5.23"; // GHSA-6g55-p6wh-862q incomplete-fix follow-up
 const MIN_NANOID = "3.3.18"; // nanoid: custom generators can loop indefinitely
 const MIN_BROWSERLIST = "4.28.7"; // GHSA-c83g-rgw3-j3cx + GHSA-73wf-gq98-2v4g
 const MIN_QS = "6.16.0"; // GHSA-x5fp-wj9c-mxmx + GHSA-4mjr-xmp4-gh2g
+const MIN_FAST_URI = "3.1.6"; // 2026-08 fast-uri host-confusion / SSRF advisories
 const VETTED_NEXT = "16.3.4"; // >= 16.3.3 patched floor for the 2026-08-25 Critical advisories
 const VETTED_SHARP = "0.35.4";
 
@@ -58,7 +59,7 @@ test("untrusted Excel imports use patched SheetJS 0.20.3", () => {
   assert.equal(installed?.resolved, PATCHED_XLSX_SOURCE);
 });
 
-test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist and qs releases", () => {
+test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist, qs and fast-uri releases", () => {
   const packageJson = readJson("package.json") as {
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
@@ -94,6 +95,13 @@ test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist and qs r
   assert.ok(
     isAtLeast(qsOverride, MIN_QS),
     `qs override ${qsOverride} is below the patched floor ${MIN_QS}`,
+  );
+
+  const fastUriOverride = packageJson.overrides?.["fast-uri"];
+  assert.ok(fastUriOverride, "the fast-uri override must exist");
+  assert.ok(
+    isAtLeast(fastUriOverride, MIN_FAST_URI),
+    `fast-uri override ${fastUriOverride} is below the patched floor ${MIN_FAST_URI}`,
   );
 
   assert.equal(lock.packages?.["node_modules/next"]?.version, VETTED_NEXT);
@@ -132,6 +140,12 @@ test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist and qs r
       assert.ok(
         isAtLeast(installed.version ?? "0.0.0", MIN_QS),
         `${path} resolves qs ${installed.version}, below ${MIN_QS}`,
+      );
+    }
+    if (/(?:^|\/)node_modules\/fast-uri$/.test(path)) {
+      assert.ok(
+        isAtLeast(installed.version ?? "0.0.0", MIN_FAST_URI),
+        `${path} resolves fast-uri ${installed.version}, below ${MIN_FAST_URI}`,
       );
     }
   }
