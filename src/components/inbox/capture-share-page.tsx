@@ -265,7 +265,7 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
           setPhase("success");
 
           window.setTimeout(() => {
-            router.push("/inbox");
+            window.location.replace("/inbox");
           }, 1400);
         } catch {
           setErrors(["Lỗi khi xử lý nội dung chia sẻ. Thử lại từ app nguồn."]);
