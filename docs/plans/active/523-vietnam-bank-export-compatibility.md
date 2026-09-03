@@ -5,7 +5,7 @@
 **Active role:** planner
 **Permission scope:** branch_write
 **Owner:** ThunderK
-**Issue/PR:** GitHub #523 / Linear MON-61 / PR #545
+**Issue/PR:** GitHub #523 / Linear MON-61
 **Last updated:** 2026-09-03
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is the first bounded M1 slice. The selector PR changes planning authority only; runtime implementation starts only after owner merge and fresh plan resolution/doctor.
