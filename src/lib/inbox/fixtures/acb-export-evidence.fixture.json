@@ -4,7 +4,7 @@
   "containsCustomerData": false,
   "artifact": {
     "kind": "transaction-history-export",
-    "format": "xlsx",
+    "format": "excel",
     "evidence": "confirmed"
   },
   "layout": {
@@ -19,7 +19,7 @@
   },
   "syntheticRows": [],
   "notes": [
-    "First-party ACB material confirms Excel history/statement download in supported flows.",
+    "First-party ACB material confirms Excel history/statement download in supported flows without establishing .xls versus .xlsx.",
     "Store-management export evidence is not generalized to every personal-account layout.",
     "ACB ONE UI history states are not treated as exported-file status fields without stronger evidence."
   ]
