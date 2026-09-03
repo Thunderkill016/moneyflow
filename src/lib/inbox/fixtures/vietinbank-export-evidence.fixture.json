@@ -1,0 +1,26 @@
+{
+  "fixtureVersion": 1,
+  "provider": "vietinbank",
+  "containsCustomerData": false,
+  "artifact": {
+    "kind": "statement-or-history",
+    "format": "unknown",
+    "evidence": "unknown"
+  },
+  "layout": {
+    "headers": [],
+    "evidence": "unknown",
+    "bankSpecificAutoMapSupported": false
+  },
+  "transactionReference": {
+    "field": null,
+    "stability": "unknown",
+    "evidence": "unknown"
+  },
+  "syntheticRows": [],
+  "notes": [
+    "Current first-party VietinBank material confirms statement/history concepts and iPay access.",
+    "No target consumer-account downloadable file format or header schema is asserted.",
+    "Posting-date/fee concepts from card material are not promoted to a target export contract."
+  ]
+}
