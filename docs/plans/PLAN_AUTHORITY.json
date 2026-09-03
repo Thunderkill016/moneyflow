@@ -10,8 +10,5 @@
       }
     ]
   },
-  "current": {
-    "path": "docs/plans/active/536-security-runtime-auth-hardening.md",
-    "selectedByPr": 539
-  }
+  "current": null
 }
