@@ -1,0 +1,26 @@
+{
+  "fixtureVersion": 1,
+  "provider": "vietcombank",
+  "containsCustomerData": false,
+  "artifact": {
+    "kind": "transaction-history-export",
+    "format": "xlsx",
+    "evidence": "confirmed"
+  },
+  "layout": {
+    "headers": [],
+    "evidence": "unknown",
+    "bankSpecificAutoMapSupported": false
+  },
+  "transactionReference": {
+    "field": null,
+    "stability": "unknown",
+    "evidence": "unknown"
+  },
+  "syntheticRows": [],
+  "notes": [
+    "First-party VCB Digibank guidance confirms Excel export availability.",
+    "Visible UI reference/date/amount concepts are not treated as exported-file headers.",
+    "No source-stable provider transaction identifier is asserted."
+  ]
+}
