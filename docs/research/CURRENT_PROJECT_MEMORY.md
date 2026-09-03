@@ -168,3 +168,24 @@ Leaked-password protection remains disabled. The MoneyFlow Supabase organization
 Finish current-head PR verification after this evidence reconciliation, then hand #540 to the owner for merge/deployment decision. The database reconciliation plan is prepared but remains read-only until the owner explicitly authorizes the bounded production operation.
 
 Do not merge or deploy on behalf of the owner. Do not mutate Supabase Auth configuration, migration history, database privileges/functions/schema or tenant data without crossing the packet's explicit authorization boundary. Do not claim production patched from branch/CI evidence alone, and do not claim production acquisition/recovery parity until the forward migration and live postconditions are verified.
+
+## 12. Superseded-status register
+
+- Markdown Current Work Board as executable authority — superseded by `PLAN_AUTHORITY.json` and `npm run plan:resolve`.
+- Hand-written post-merge SHA projection as authority — superseded by first-parent manifest resolution.
+- #523 already selected — false; it remains candidate-only while #536 is active.
+- Owner-observed Vercel score 39 fixed by #527 — false; repository lab cost improved, but the field score is not reproduced or claimed fixed.
+- #536 executable before #539 merge — historical; #539 merged and #536 is now the selected current slice.
+- Every authenticated SECURITY DEFINER advisor warning proves a vulnerability — false; the current 36-function live set is evidence-classified as intentional authenticated tenant-bound privileged API surface with controls.
+- A remaining SECURITY DEFINER advisor warning means the current 36 functions are still unclassified — false; the linter warning may remain even though the current set is dispositioned by ACL, source and tenant-test evidence.
+- `anon` or `PUBLIC` currently has execute permission on the live warned #536 function set — false in the 2026-09-03 live ACL read.
+- Repository acquisition lineage proves production database parity — false; production is missing the later Aug-21–25 database contracts.
+- Missing migration-history rows alone prove every later migration effect is absent — superseded; the final 15-version contract matrix now independently shows all 14 durable postconditions absent while the data-only preflight passes.
+- `migration repair --status applied` is the correct fix for the current 15-version production gap — false; the schema effects are actually missing, so the prepared direction is forward application after authorization.
+- `supabase db push --dry-run` validates migration SQL — false; it previews pending migrations, while fresh local reset/pgTAP is required for SQL/contract validation.
+- Supabase Free provides automatic backup/PITR for the planned production migration rollback — false; the handoff requires a private off-repository logical schema and data backup before any authorized write.
+- An earlier zero-audit result means the dependency tree cannot acquire a new advisory later — false; a fresh audit caught later `qs` disclosures and #540 remediated them.
+- An earlier exact-head green run can be reused as merge authority after the branch head changes — false; every changed head needs its own required checks.
+- PR #540 being Ready for review means production is patched — false; owner merge/deployment plus exact production verification remain required.
+- Production schema drift discovered during #540 means the Critical Next patch should wait for a bundled DB fix — false; the drift predates #540 and blocks #536 closure/public-beta acceptance, while the vulnerable runtime should be patched independently once current-head repository evidence is acceptable.
+- Master #432 alone authorizes provider/security writes — false; the selected packet plus explicit owner approval is required for production database/Auth/provider mutation.
