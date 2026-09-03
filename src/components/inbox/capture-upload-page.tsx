@@ -8,8 +8,8 @@ import {
   useId,
   useRef,
   useState,
-  type DragEvent,
   type ChangeEvent,
+  type DragEvent,
 } from "react";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -18,7 +18,6 @@ import {
   addImportBatchForClient,
   getPendingCountForClient,
 } from "@/hooks/client-inbox";
-import { listBankExportCompatibility } from "@/lib/inbox/bank-export-compatibility";
 import { writeImportDraft } from "@/lib/inbox/import-draft-store";
 import {
   MAX_UPLOAD_BYTES,
@@ -31,10 +30,14 @@ import styles from "./capture-upload-page.module.css";
 
 type Phase = "idle" | "reading" | "error";
 
+type BankExportGuidance = {
+  provider: string;
+  displayName: string;
+  guidance: string;
+};
+
 const ACCEPT =
   ".csv,.xlsx,.xls,.pdf,text/csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-
-const BANK_EXPORT_GUIDANCE = listBankExportCompatibility();
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -42,7 +45,13 @@ function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
+export function CaptureUploadPage({
+  viewer,
+  bankExportGuidance,
+}: {
+  viewer: ViewerSummary;
+  bankExportGuidance: readonly BankExportGuidance[];
+}) {
   const router = useRouter();
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -237,7 +246,7 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
             ghi sổ; ứng dụng không yêu cầu thông tin đăng nhập ngân hàng.
           </p>
           <ul>
-            {BANK_EXPORT_GUIDANCE.map((profile) => (
+            {bankExportGuidance.map((profile) => (
               <li key={profile.provider}>
                 <strong>{profile.displayName}:</strong> {profile.guidance}
               </li>
