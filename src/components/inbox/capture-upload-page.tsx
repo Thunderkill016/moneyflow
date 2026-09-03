@@ -18,6 +18,7 @@ import {
   addImportBatchForClient,
   getPendingCountForClient,
 } from "@/hooks/client-inbox";
+import { listBankExportCompatibility } from "@/lib/inbox/bank-export-compatibility";
 import { writeImportDraft } from "@/lib/inbox/import-draft-store";
 import {
   MAX_UPLOAD_BYTES,
@@ -31,6 +32,8 @@ type Phase = "idle" | "reading" | "error";
 
 const ACCEPT =
   ".csv,.xlsx,.xls,.pdf,text/csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+const BANK_EXPORT_GUIDANCE = listBankExportCompatibility();
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -220,6 +223,22 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
               Về Inbox
             </Link>
           </div>
+        </section>
+
+        <section className="panel" aria-labelledby="bank-export-guidance-heading">
+          <h2 id="bank-export-guidance-heading">Sao kê ngân hàng Việt Nam</h2>
+          <p>
+            MoneyFlow chưa tự nhận diện cấu trúc file theo ngân hàng. File vẫn đi
+            qua parser chung, Import Preview và Inbox để bạn kiểm tra trước khi
+            ghi sổ; ứng dụng không yêu cầu thông tin đăng nhập ngân hàng.
+          </p>
+          <ul>
+            {BANK_EXPORT_GUIDANCE.map((profile) => (
+              <li key={profile.provider}>
+                <strong>{profile.displayName}:</strong> {profile.guidance}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section
