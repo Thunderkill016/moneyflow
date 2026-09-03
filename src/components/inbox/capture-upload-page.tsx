@@ -27,6 +27,7 @@ import {
   type ImportCandidateSource,
 } from "@/lib/inbox/parse-csv";
 import { trackProductEvent } from "@/lib/safe-analytics";
+import styles from "./capture-upload-page.module.css";
 
 type Phase = "idle" | "reading" | "error";
 
@@ -225,7 +226,10 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
           </div>
         </section>
 
-        <section className="panel" aria-labelledby="bank-export-guidance-heading">
+        <section
+          className={styles.bankGuidance}
+          aria-labelledby="bank-export-guidance-heading"
+        >
           <h2 id="bank-export-guidance-heading">Sao kê ngân hàng Việt Nam</h2>
           <p>
             MoneyFlow chưa tự nhận diện cấu trúc file theo ngân hàng. File vẫn đi
