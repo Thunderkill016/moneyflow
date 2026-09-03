@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ingestShareTargetAction } from "@/app/actions/share-target-import";
 import { Icon } from "@/components/icons";
@@ -74,7 +74,6 @@ function applyRulesForDemo(
 }
 
 export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const ranRef = useRef(false);
 
@@ -93,10 +92,10 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
   useEffect(() => {
     if (ranRef.current) return;
 
-    window.requestAnimationFrame(() => {
+    const frame = window.requestAnimationFrame(() => {
       // React Strict Mode can run setup -> cleanup -> setup in development.
-      // Keep the queued frame alive across that replay; whichever frame starts
-      // first consumes the one-shot and the duplicate exits via ranRef.
+      // Consume the one-shot only when a frame actually starts. Cleanup cancels
+      // abandoned work; the replayed setup can then schedule a fresh frame.
       if (ranRef.current) return;
       ranRef.current = true;
       void (async () => {
@@ -274,7 +273,8 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
       })();
     });
 
-  }, [router, searchParams, viewer.isDemo]);
+    return () => window.cancelAnimationFrame(frame);
+  }, [searchParams, viewer.isDemo]);
 
   return (
     <AppShell
