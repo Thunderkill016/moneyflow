@@ -1,4 +1,4 @@
-name: Temporary #536 share lifecycle fix
+name: Temporary 536 share lifecycle fix
 
 on:
   push:
@@ -20,29 +20,7 @@ jobs:
       - name: Apply bounded compatibility fix
         shell: bash
         run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('src/components/inbox/capture-share-page.tsx')
-          text = path.read_text()
-          old = '''    const frame = window.requestAnimationFrame(() => {
-      // React Strict Mode can run setup -> cleanup -> setup in development.
-      // Mark this one-shot as consumed only after a frame actually starts;
-      // otherwise the first cleanup can cancel the frame and strand the route.
-'''
-          new = '''    window.requestAnimationFrame(() => {
-      // React Strict Mode can run setup -> cleanup -> setup in development.
-      // Keep the queued frame alive across that replay; whichever frame starts
-      // first consumes the one-shot and the duplicate exits via ranRef.
-'''
-          if old not in text:
-              raise SystemExit('expected requestAnimationFrame block not found')
-          text = text.replace(old, new, 1)
-          old_cleanup = '    return () => window.cancelAnimationFrame(frame);\n'
-          if old_cleanup not in text:
-              raise SystemExit('expected requestAnimationFrame cleanup not found')
-          text = text.replace(old_cleanup, '', 1)
-          path.write_text(text)
-          PY
+          python -c "from pathlib import Path; p=Path('src/components/inbox/capture-share-page.tsx'); t=p.read_text(); old='    const frame = window.requestAnimationFrame(() => {\\n      // React Strict Mode can run setup -> cleanup -> setup in development.\\n      // Mark this one-shot as consumed only after a frame actually starts;\\n      // otherwise the first cleanup can cancel the frame and strand the route.\\n'; new='    window.requestAnimationFrame(() => {\\n      // React Strict Mode can run setup -> cleanup -> setup in development.\\n      // Keep the queued frame alive across that replay; whichever frame starts\\n      // first consumes the one-shot and the duplicate exits via ranRef.\\n'; assert old in t, 'expected requestAnimationFrame block not found'; t=t.replace(old,new,1); cleanup='    return () => window.cancelAnimationFrame(frame);\\n'; assert cleanup in t, 'expected requestAnimationFrame cleanup not found'; p.write_text(t.replace(cleanup,'',1))"
       - name: Remove temporary workflow and commit
         shell: bash
         run: |
