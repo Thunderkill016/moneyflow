@@ -18,7 +18,7 @@ type EvidenceFixture = {
   provider: BankExportProvider;
   containsCustomerData: boolean;
   artifact: {
-    format: "xlsx" | "csv" | "pdf" | "unknown";
+    format: "excel" | "csv" | "pdf" | "unknown";
     evidence: "confirmed" | "observed-but-unverified" | "unknown";
   };
   layout: {
@@ -50,10 +50,10 @@ test("Phase A compatibility inventory covers exactly the three selected banks", 
   );
 });
 
-test("VCB and ACB Excel availability is confirmed without claiming exported headers", () => {
+test("VCB and ACB Excel availability is confirmed without claiming file extension or exported headers", () => {
   for (const provider of ["vietcombank", "acb"] as const) {
     const profile = getBankExportCompatibility(provider);
-    assert.equal(profile.artifactFormat.value, "xlsx");
+    assert.equal(profile.artifactFormat.value, "excel");
     assert.equal(profile.artifactFormat.evidence, "confirmed");
     assert.equal(profile.layoutHeaders.value, null);
     assert.equal(profile.layoutHeaders.evidence, "unknown");
