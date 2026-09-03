@@ -4,7 +4,7 @@
   "containsCustomerData": false,
   "artifact": {
     "kind": "transaction-history-export",
-    "format": "xlsx",
+    "format": "excel",
     "evidence": "confirmed"
   },
   "layout": {
@@ -19,7 +19,7 @@
   },
   "syntheticRows": [],
   "notes": [
-    "First-party VCB Digibank guidance confirms Excel export availability.",
+    "First-party VCB Digibank guidance confirms Excel export availability without establishing .xls versus .xlsx.",
     "Visible UI reference/date/amount concepts are not treated as exported-file headers.",
     "No source-stable provider transaction identifier is asserted."
   ]
