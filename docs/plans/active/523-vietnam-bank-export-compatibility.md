@@ -1,11 +1,11 @@
 # #523 — Vietnam bank-export compatibility matrix and fixtures
 
-**Status:** specified  
-**Execution state:** specified  
-**Active role:** planner  
-**Permission scope:** branch_write  
-**Owner:** ThunderK  
-**Issue/PR:** GitHub #523 / Linear MON-61 / selector PR pending  
+**Status:** specified
+**Execution state:** specified
+**Active role:** planner
+**Permission scope:** branch_write
+**Owner:** ThunderK
+**Issue/PR:** GitHub #523 / Linear MON-61 / PR #545
 **Last updated:** 2026-09-03
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is the first bounded M1 slice. The selector PR changes planning authority only; runtime implementation starts only after owner merge and fresh plan resolution/doctor.
@@ -249,7 +249,7 @@ The existing inbox acquisition boundary owns this work. A thin evidence-aware co
 ## Delivery record
 
 - Branch: `docs/523-vietnam-bank-export-matrix`
-- PR: pending
+- PR: #545
 - Squash commit: pending
 - CI run: pending
 - Production deployment: not applicable to selector PR
