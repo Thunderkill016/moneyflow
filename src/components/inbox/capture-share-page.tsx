@@ -93,10 +93,10 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
   useEffect(() => {
     if (ranRef.current) return;
 
-    const frame = window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
       // React Strict Mode can run setup -> cleanup -> setup in development.
-      // Mark this one-shot as consumed only after a frame actually starts;
-      // otherwise the first cleanup can cancel the frame and strand the route.
+      // Keep the queued frame alive across that replay; whichever frame starts
+      // first consumes the one-shot and the duplicate exits via ranRef.
       if (ranRef.current) return;
       ranRef.current = true;
       void (async () => {
@@ -274,7 +274,6 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
       })();
     });
 
-    return () => window.cancelAnimationFrame(frame);
   }, [router, searchParams, viewer.isDemo]);
 
   return (
