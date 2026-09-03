@@ -1,7 +1,9 @@
 # Vietnam bank-export compatibility — Phase A (2026)
 
-**Status:** implementation evidence for #523 / MON-61  
-**Last refreshed:** 2026-09-04  
+**Status:** implementation evidence for #523 / MON-61
+
+**Last refreshed:** 2026-09-04
+
 **Scope:** Vietcombank, ACB and VietinBank export/statement evidence only. This is not a claim of live bank sync, universal bank/version support or provider-stable transaction identity.
 
 ## Decision rule
@@ -82,25 +84,25 @@ This does not change the current Direct CSV acquisition payload, which still int
 
 ### Vietcombank
 
-- VCB Digibank web guide — transaction history and Excel export:  
+- VCB Digibank web guide — transaction history and Excel export:
   `https://digibankm5.vietcombank.com.vn/get_file/ibomni/html/hdsd-ib/pages/vi/tinh-nang-giao-dich-ngan-hang/tai-khoan/3-lich-su-giao-dich.html`
-- VCB Digibank user-guide PDF:  
+- VCB Digibank user-guide PDF:
   `https://digibankm5.vietcombank.com.vn/get_file/ibomni/html/hdsdib/hdsd.pdf`
 
 ### ACB
 
-- ACB store-management solution page:  
+- ACB store-management solution page:
   `https://acb.com.vn/giai-phap-quan-ly-cua-hang`
-- ACB ONE store-management user guide:  
+- ACB ONE store-management user guide:
   `https://acb.com.vn/acbwebsite/files/ACB_HDSD_Quanlycuahang.pdf`
-- ACB online-account FAQ / ACB ONE transaction-history states:  
+- ACB online-account FAQ / ACB ONE transaction-history states:
   `https://acb.com.vn/thu-vien/nhung-cau-hoi-thuong-gap-khi-tao-tai-khoan-ngan-hang-online`
 
 ### VietinBank
 
-- Current VietinBank card terms/statement-history material:  
+- Current VietinBank card terms/statement-history material:
   `https://www.vietinbank.vn/assets/cfa87952-5eb4-496d-b780-5b21335ba19f`
-- Current VietinBank card agreement/history/iPay material:  
+- Current VietinBank card agreement/history/iPay material:
   `https://www.vietinbank.vn/assets/9a43a89d-a5c7-4655-8e28-2871c449359b`
 
 ## Remaining evidence needed before bank-specific parsing
