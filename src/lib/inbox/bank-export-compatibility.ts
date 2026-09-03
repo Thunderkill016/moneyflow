@@ -5,7 +5,11 @@ export type BankExportEvidenceLevel =
   | "observed-but-unverified"
   | "unknown";
 
-export type BankExportArtifactFormat = "xlsx" | "csv" | "pdf" | "unknown";
+export type BankExportArtifactFormat =
+  | "excel"
+  | "csv"
+  | "pdf"
+  | "unknown";
 
 export type BankExportReferenceStability =
   | "source-stable"
@@ -59,7 +63,7 @@ const COMPATIBILITY: Record<BankExportProvider, BankExportCompatibility> = {
       scope: "VCB Digibank account transaction-history workflow",
     },
     artifactFormat: {
-      value: "xlsx",
+      value: "excel",
       evidence: "confirmed",
       scope: "VCB Digibank history guide says “Xuất excel” after search",
     },
@@ -120,7 +124,7 @@ const COMPATIBILITY: Record<BankExportProvider, BankExportCompatibility> = {
       scope: "ACB ONE history and store-management transaction-history workflows",
     },
     artifactFormat: {
-      value: "xlsx",
+      value: "excel",
       evidence: "confirmed",
       scope: "ACB first-party store-management/payment-account guidance documents Excel download",
     },
