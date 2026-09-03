@@ -1,223 +1,180 @@
 # #523 — Vietnam bank-export compatibility matrix and fixtures
 
-**Status:** specified
-**Execution state:** specified
-**Active role:** planner
+**Status:** implementing
+**Execution state:** implementing
+**Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** ThunderK
 **Issue/PR:** GitHub #523 / Linear MON-61
-**Last updated:** 2026-09-03
+**Last updated:** 2026-09-04
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is the first bounded M1 slice. The selector PR changes planning authority only; runtime implementation starts only after owner merge and fresh plan resolution/doctor.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This is the first bounded M1 slice. PR #545 selected this packet and was owner-merged to `main` as `2ac2026c3d5a27898b17482b36f503a32a3dd4f6`. Implementation is branch-scoped on `feat/523-vietnam-bank-export-contract`; no production DB/Auth/provider write is authorized.
 
 ## Outcome
 
-MoneyFlow can describe and test the first production-oriented compatibility contract for Vietnamese bank exports without inventing provider semantics or bypassing the existing candidate/provenance/matching/ledger/reconciliation path. Phase A targets Vietcombank, ACB and VietinBank with an evidence-tagged compatibility matrix, privacy-safe synthetic fixtures, deterministic parser-normalization expectations and calm user guidance for supported export artifacts.
+MoneyFlow can describe and test the first production-oriented compatibility contract for Vietnamese bank exports without inventing provider semantics or bypassing the existing candidate/provenance/matching/ledger/reconciliation path. Phase A targets Vietcombank, ACB and VietinBank with an evidence-tagged compatibility matrix, privacy-safe synthetic evidence fixtures, deterministic parser-normalization/source-identity rules and calm guidance for supported or still-unverified export artifacts.
 
 ## Repository reconnaissance
 
 ### Current behavior
 
-- `/imports/direct` is CSV-only and provides client-side map/dry-run plus an authenticated all-or-nothing commit through the existing acquisition/provenance boundary.
-- `src/lib/inbox/parse-csv.ts` provides generic date/amount/description/debit/credit heuristics, integer-VND parsing, uncertainty and transfer hints. It does not expose a provider transaction reference or source external ID.
-- `src/lib/inbox/parse-xlsx.ts` reads XLS/XLSX with SheetJS, first sheet by default, then reuses the same generic matrix parser.
-- `src/lib/inbox/direct-csv-import.ts` deliberately does not invent `sourceExternalId`; preview fingerprints are not persisted source identity.
-- Production DB source-lineage contracts already support explicit `source_external_id`, lifecycle state and predecessor identity when source evidence actually supplies them. Source lifecycle is evidence only and cannot mutate ledger truth automatically.
-- Existing fixtures are generic/demo artifacts only: `sample-bank.csv`, `sample-bank.xlsx`, `sample-generic.csv`, `sample-mf-demo-bank.pdf`.
+- `/imports/direct` is CSV-only with client-side mapping/dry-run and authenticated all-or-nothing commit through the existing provenance boundary.
+- `src/lib/inbox/parse-csv.ts` owns generic date/amount/description/debit/credit heuristics and integer-VND parsing; it has no provider transaction-reference/source-ID contract.
+- `src/lib/inbox/parse-xlsx.ts` reads XLS/XLSX with SheetJS and reuses `parseStatementFromMatrix`; no parallel spreadsheet parser is needed.
+- `src/lib/inbox/direct-csv-import.ts` intentionally has no `sourceExternalId`; preview fingerprints are not persisted source identity.
+- DB source-lineage already supports explicit `source_external_id` when source evidence actually supplies a stable ID; source lifecycle evidence cannot silently mutate ledger truth.
+- Existing statement fixtures are generic/demo and do not prove VCB/ACB/VietinBank compatibility.
 
 ### Relevant repository areas
 
-| Area | Why it matters | Reuse/change/avoid |
-|---|---|---|
-| `src/lib/inbox/parse-csv.ts` | canonical generic matrix normalization | reuse; extend only through evidence-backed adapters/contracts |
-| `src/lib/inbox/parse-xlsx.ts` | existing Excel extraction | reuse; avoid a parallel spreadsheet parser |
-| `src/lib/inbox/direct-csv-import.ts` | conservative preview/dedupe planning | reuse; do not turn preview fingerprints into source identity |
-| `src/app/actions/direct-csv-import.ts` | authenticated all-or-nothing commit boundary | reuse later; no Phase A provider write |
-| `src/lib/inbox/fixtures/` | current structural fixture home | add privacy-safe bank-specific synthetic fixtures |
-| `supabase/migrations/20260822094500_source_lineage_lifecycle.sql` | durable explicit source identity/lifecycle law | preserve; map only proven stable source IDs later |
-| `docs/product/PRINCIPLES.md` | ledger truth and explicit uncertainty | preserve |
+| Area | Decision |
+|---|---|
+| `src/lib/inbox/parse-csv.ts` | reuse canonical generic normalization; do not hard-code guessed bank headers |
+| `src/lib/inbox/parse-xlsx.ts` | reuse extraction path; no second XLSX parser |
+| `src/lib/inbox/direct-csv-import.ts` | preserve preview-only fingerprint and no invented source identity |
+| `src/lib/inbox/fixtures/` | add privacy-safe evidence fixtures; add synthetic statement rows only after layout evidence exists |
+| `docs/research/` | own evidence-tagged compatibility matrix and source limits |
+| `supabase/migrations/20260822094500_source_lineage_lifecycle.sql` | preserve explicit source-identity law; no migration in Phase A |
 
 ### Existing tests and constraints
 
-- Related unit tests: `parse-csv.test.ts`, `parse-xlsx.test.ts`, `direct-csv-import.test.ts`, provenance/detection/review tests.
-- Database/RLS tests: source identity, provenance, direct CSV preparation/approval and cross-tenant contracts already exist; no DB change is planned in Phase A.
-- Browser tests: direct-import and authenticated ownership smoke exist; implementation PR must rerun browser coverage if user flow changes.
-- Product/architecture rules: integer VND; no guessed dates/balances/source semantics; one mutation owner; provider/parser never becomes a second financial truth.
-
-### Similar implementation and recent history
-
-- Existing pattern to reuse: generic CSV/XLSX → candidate evidence → deterministic planning/rules/dedupe → authenticated approval RPC → ledger/provenance.
-- Relevant issue/PR/decision: #432/#433 long-term Vietnam strategy; #523 is the owner-selected M1 Phase A slice; #536/M0 is completed and `PLAN_AUTHORITY.current` is null on the pre-selector main baseline.
+- Related unit tests: `parse-csv.test.ts`, `parse-xlsx.test.ts`, `direct-csv-import.test.ts` and provenance/detection/review suites.
+- No DB contract change is planned; existing pgTAP/RLS tests remain the lower-level safety net.
+- Product/architecture invariants: integer VND, no guessed financial/source semantics, one mutation owner, provider/parser cannot become a second financial truth.
 
 ### Open questions
 
-- [ ] What exact downloadable artifact types and field headers are produced today for consumer transaction-history exports by each target bank?
-- [ ] Which target exports expose a stable provider transaction identifier rather than row number, display reference or export-local identifier?
-- [ ] How are pending/posted/removed/reversed transactions represented, if at all, in downloadable artifacts?
-- [ ] How are fees, foreign-currency transactions and debit/credit direction represented per artifact/version?
-- [ ] What overlap behavior occurs when users export intersecting date ranges?
+- [ ] Exact downloadable consumer-account headers for VCB/ACB/VietinBank.
+- [ ] Whether any target export exposes a provider-stable transaction identifier rather than a row/display/export-local reference.
+- [ ] Exact pending/posted/reversed/removed representation in downloadable artifacts.
+- [ ] Fee, FX, direction and overlapping-range semantics per artifact/version.
 
 ## Research
 
-### Research scope and source selection
+### Decision question
 
-- Decision question: what can MoneyFlow safely claim and encode for VCB/ACB/VietinBank export compatibility before seeing validated real export structures?
-- Reference map consulted: not required; this decision is governed by first-party bank documentation plus current repository contracts.
-- Source budget: three focused first-party bank sources, one per target bank.
-- Expected decision or uncertainty to resolve: prove export/statement availability where public evidence permits, and explicitly retain unknown field-level semantics rather than guessing.
+What can MoneyFlow safely encode for VCB/ACB/VietinBank compatibility today without inventing an export schema or stable provider identity?
 
-### Questions researched
+### First-party sources refreshed 2026-09-04
 
-1. Does the bank expose transaction history/statement retrieval or export through its official digital channel?
-2. Does public first-party material establish file type or enough layout information to build a structural fixture?
-3. Does public material establish transaction status/reference semantics strongly enough to map source identity?
-
-### Sources
-
-| Source | Authority/type | Date accessed | What it establishes | Limits/applicability |
-|---|---|---|---|---|
-| Vietcombank VCB Digibank user guide — `https://digibankm5.vietcombank.com.vn/get_file/ibomni/html/hdsdib/hdsd.pdf` | first-party user guide | 2026-09-03 | VCB Digibank includes account transaction-history and statement workflows | public material reviewed does not establish a complete current downloadable-file column schema or stable reference semantics |
-| ACB ONE store-management guide — `https://acb.com.vn/acbwebsite/files/ACB_HDSD_Quanlycuahang.pdf` | first-party user guide | 2026-09-03 | ACB documents downloading transaction history in Excel for the supported flow; details are intended for reconciliation | this flow is store-management specific and cannot be treated as proof that every consumer-account export has identical columns |
-| VietinBank current card user guide — `https://www.vietinbank.vn/assets/1149f1b0-3f81-436a-9041-87430eaa02e4` | first-party user guide | 2026-09-03 | VietinBank documents statement delivery/reading for current card products and iPay access | this source does not establish a consumer-account export file format, headers or stable source ID; those remain unresolved |
-
-### Alternatives considered
-
-| Option | Advantages | Risks | Decision |
-|---|---|---|---|
-| Hard-code guessed bank headers from screenshots/search snippets | fast apparent coverage | false compatibility, silent financial misclassification | reject |
-| Build separate provider-specific ledger import paths | simple local adapters | creates second financial truth and bypasses provenance/review | reject |
-| Evidence-tagged compatibility matrix + synthetic fixtures + shared normalization contract | honest uncertainty, testable, reuses existing boundary | requires incremental source research/real-export validation | selected |
-| Native/Open Banking/provider credential integration in Phase A | potentially less user effort | high privacy/provider/operational scope; unsupported by current evidence | defer to separately authorized later slice |
+| Provider/source | What it establishes | What it does **not** establish |
+|---|---|---|
+| Vietcombank VCB Digibank history guide — `https://digibankm5.vietcombank.com.vn/get_file/ibomni/html/hdsd-ib/pages/vi/tinh-nang-giao-dich-ngan-hang/tai-khoan/3-lich-su-giao-dich.html` and user guide PDF | account transaction history supports **Xuất excel**; UI material shows transaction date/system date/reference/amount concepts | exact exported Excel headers, stable reference semantics, status/fee/overlap contract |
+| ACB store-management page/guide — `https://acb.com.vn/giai-phap-quan-ly-cua-hang` and `https://acb.com.vn/acbwebsite/files/ACB_HDSD_Quanlycuahang.pdf` | supported ACB ONE flow can download transaction history/statement as Excel; store-management material says Excel separates store/recipient information | universal consumer-account Excel layout, exact headers, stable transaction ID |
+| ACB online-account FAQ — `https://acb.com.vn/thu-vien/nhung-cau-hoi-thuong-gap-khi-tao-tai-khoan-ngan-hang-online` | ACB ONE history has states `đã thực hiện`, `chờ xử lý`, `đặt lịch` | whether those states are exported in statement files or map directly to ledger/source lifecycle |
+| VietinBank current card terms/guides under `https://www.vietinbank.vn/assets/` | current card products provide statements/history and iPay access; statement concepts include posted activity, fees and posting-date language in current material | consumer-account downloadable file format, headers, source-stable reference semantics |
 
 ### Research decision
 
-Observed facts: generic CSV/XLSX normalization and durable provenance/source-lineage machinery already exist in MoneyFlow; ACB first-party material explicitly supports an Excel transaction-history export in at least one current flow; Vietcombank and VietinBank first-party material confirms statement/history capabilities but the reviewed public sources do not prove a complete current field schema for the target personal-account exports.
+Observed facts: VCB and ACB have first-party evidence for Excel export in supported flows. VietinBank has current first-party evidence for statements/history but not enough evidence for a target consumer-account export file format. None of the reviewed sources proves an exact current export-header schema plus a provider-stable transaction identifier across the target flows.
 
-Product decision: Phase A records fields as `confirmed`, `observed-but-unverified`, or `unknown`; it never manufactures exact headers/reference semantics. Bank-specific adapters may only normalize evidence they can justify, and all normalized rows continue through shared candidate/provenance/matching/ledger/reconciliation ownership.
+Product decision: Phase A records `confirmed`, `observed-but-unverified`, or `unknown` evidence. It **does not** add bank-specific auto-mapping from guessed headers and **does not** create `source_external_id` from row numbers, UI/display references, generated hashes or MoneyFlow fingerprints. Exact-layout adapters remain disabled until stronger first-party or privacy-safe real-export structural evidence exists.
 
-Remaining uncertainty: exact artifacts for current VCB/ACB/VietinBank consumer-account exports still need privacy-safe real-export or stronger first-party documentation validation before any field is treated as a stable provider contract.
+### Alternatives rejected
+
+- Guess bank headers from screenshots/search snippets — rejected: false compatibility and silent financial misclassification.
+- Treat a displayed reference as source-stable identity — rejected: stability across exports/ranges is unproven.
+- Create provider-specific ledger posting paths — rejected: second financial truth and provenance bypass.
+- Add native/Open Banking connectivity now — rejected: outside Phase A and requires separate provider/security/economics authorization.
 
 ### Adoption review
 
-Not applicable. Phase A adds no dependency, provider service or new runtime architecture. SheetJS already owns Excel extraction.
+No new dependency, provider service or runtime architecture. Existing SheetJS path remains the spreadsheet owner.
 
 ## Specification
 
 ### Problem
 
-Today MoneyFlow can parse generic CSV/XLSX statements, but users of Vietnamese banks still need manual mapping and cannot know whether provider-specific transaction references, statuses, fees or overlapping exports are preserved safely. Guessing those semantics would damage provenance and dedupe. M1 therefore begins with an explicit evidence-backed compatibility contract before deeper parser implementation.
-
-### User stories
-
-- As a Vietcombank, ACB or VietinBank user, I can see whether my exported statement artifact is supported and what MoneyFlow still needs me to review.
-- As a user importing overlapping bank exports, I do not get silent duplicate ledger writes from provider-specific shortcuts.
-- As a reviewer, I can distinguish a bank-provided stable transaction identifier from a MoneyFlow heuristic fingerprint or export-local row number.
+MoneyFlow parses generic CSV/XLSX, but it cannot truthfully claim current bank-specific VCB/ACB/VietinBank layouts or stable source identity. The first M1 slice must make support and uncertainty explicit before deeper parser automation.
 
 ### Acceptance criteria
 
-- [ ] A compatibility matrix covers Vietcombank, ACB and VietinBank with artifact type, evidence level, layout/header evidence, date/timezone, currency, debit/credit direction, status, transaction reference, fee representation and overlap/dedupe behavior; unsupported facts remain explicitly unknown.
-- [ ] Privacy-safe synthetic fixtures exist for each target bank only where structure is supported; no real account holder, account number, transaction reference or private customer data is committed.
-- [ ] Parser-normalization contract/tests define canonical row fields plus optional provider evidence without creating a second ledger/import authority.
-- [ ] `source_external_id` is populated only when the artifact exposes a source-stable transaction identity backed by evidence; row indexes, generated hashes and display-only references are never promoted to source identity.
-- [ ] Ambiguous amount direction/date/status/reference cases fail closed or remain uncertain/reviewable; they are not silently guessed.
-- [ ] Existing generic CSV/XLSX fixtures and parsers remain valid.
-- [ ] User guidance describes supported export workflow/artifact without collecting bank credentials or claiming live bank sync.
+- [ ] Compatibility matrix covers all three banks with artifact type, evidence level, layout/header evidence, date/timezone, currency, direction, status, transaction reference, fee and overlap/dedupe semantics; unsupported facts remain unknown.
+- [ ] Privacy-safe evidence fixtures exist for all three providers; synthetic statement rows exist only when source-backed layout structure exists. No real customer/account/reference data is committed.
+- [ ] Pure normalization/source-identity contract exposes provider evidence without creating a second import/ledger authority.
+- [ ] `source_external_id` is derivable only from a non-empty, **confirmed source-stable** provider reference; display-only/export-local/unknown references fail closed.
+- [ ] Existing generic CSV/XLSX parsing and Direct CSV behavior remain backward compatible.
+- [ ] User-facing guidance never claims live bank sync or unsupported automatic mapping.
 
 ### Required states
 
-- Loading: unchanged unless implementation adds a guidance lookup.
-- Empty: unsupported/unknown artifact displays clear guidance rather than fabricated support.
-- Populated: parsed rows show source/evidence confidence and existing review state.
-- Validation/error: unsupported layout or ambiguous required fields fail closed with actionable export/mapping guidance.
-- Recovery/undo: preserve existing batch/review navigation; no blind retry after ambiguous commit response.
-- Long data / large VND: integer-safe VND and existing row/file limits remain enforced.
-- Mobile/tablet/desktop: no broad redesign; guidance must fit existing import surfaces.
-- Accessibility: existing semantic controls and focus behavior remain intact for any changed import UI.
+- Unknown/unsupported layout: explain what is confirmed and direct user to generic/manual mapping; never fabricate support.
+- Supported artifact but unverified layout: allow existing generic import path only; require review.
+- Ambiguous amount/date/status/reference: remain uncertain/reviewable or fail closed.
+- Recovery, VND integer, mobile and accessibility contracts remain unchanged unless UI work is added.
 
 ### Financial and security constraints
 
-- No guessed financial data, transaction status, ownership or provider identity.
-- Integer VND and transfer invariants remain intact.
-- Ownership/RLS: file content or account-holder text never establishes tenant ownership; authenticated viewer/RLS remains authoritative.
-- Parser/provider-specific code cannot write financial tables directly.
-- Stable source identity must be explicit provider evidence, not a MoneyFlow-derived fingerprint.
+- No guessed amount/date/status/ownership/provider identity.
+- File content never establishes tenant ownership; viewer/RLS remains authoritative.
+- Provider-specific code cannot write financial tables directly.
+- No credentials, customer exports or real account identifiers in repository fixtures.
 
 ### Out of scope
 
-- Direct bank credentials, screen scraping, browser automation, Open Banking or provider API connectivity.
-- Broad UI/brand redesign.
-- Automatic reconciliation state changes from source lifecycle/status evidence.
-- Wallet/card coverage beyond the three-bank Phase A contract.
-- Production DB/Auth/provider mutation.
+Bank credentials/screen scraping/browser automation/Open Banking; broad redesign; automatic reconciliation-state mutation from source lifecycle; wallet/card expansion beyond the three-bank contract; production DB/Auth/provider mutation.
 
 ## Implementation plan
 
 ### Architecture fit
 
-The existing inbox acquisition boundary owns this work. A thin evidence-aware compatibility layer may identify/normalize known bank-export structures, then must hand a canonical matrix/row shape to the existing CSV/XLSX parser and shared candidate/provenance/matching/approval pipeline. Provider code is an adapter, never mutation authority.
+Add a small pure compatibility/evidence module in `src/lib/inbox/` plus evidence fixtures and tests. It describes support and source-identity eligibility but does not alter `parse-csv.ts`, `parse-xlsx.ts` or commit ownership unless later evidence justifies an adapter. Generic parsing remains the only executable parser for unverified layouts.
 
 ### Planned changes
 
-| File/area | Change | Reason |
-|---|---|---|
-| `docs/research/` | add evidence-tagged Vietnam bank export compatibility matrix | durable source truth and limits |
-| `src/lib/inbox/fixtures/` | add privacy-safe synthetic structural fixtures where evidence supports them | regression coverage without customer data |
-| `src/lib/inbox/parse-csv*` / focused adapter module | add normalization contract and tests without duplicating parser core | deterministic bank-aware normalization |
-| `src/lib/inbox/parse-xlsx*` | reuse extraction; add only structure-selection tests if needed | preserve one matrix parsing path |
-| direct import/upload guidance | minimal supported/unknown bank export guidance if required by acceptance | user-visible safe workflow |
+| File/area | Change |
+|---|---|
+| `docs/research/VIETNAM_BANK_EXPORT_COMPATIBILITY_2026.md` | evidence-tagged VCB/ACB/VietinBank matrix |
+| `src/lib/inbox/bank-export-compatibility.ts` | pure provider/evidence/source-ID contract + guidance |
+| `src/lib/inbox/bank-export-compatibility.test.ts` | counterexamples and fixture contract tests |
+| `src/lib/inbox/fixtures/*-export-evidence.fixture.json` | synthetic evidence fixtures with no real transaction/customer data |
+| active packet / PR memory | durable implementation/evaluation truth |
 
 ### Data and migration impact
 
-- Schema/migration: none planned for Phase A.
-- Backfill: none.
-- Compatibility: existing generic parser and direct import must remain backward compatible.
-- Rollback: revert the implementation PR; no production data migration should be required.
+No schema/migration/backfill. Rollback is a normal code/docs revert. Existing generic parsers must remain unchanged in this first implementation checkpoint.
 
 ### Risks and counterexamples
 
-| Risk/counterexample | Prevention or test |
+| Risk | Prevention/test |
 |---|---|
-| Bank changes export headers/version | evidence/version notes; unknown layout fails closed; fixture contract does not imply universal version support |
-| Same value/date appears twice legitimately | never use heuristic fingerprint as stable provider identity; preserve shared duplicate review semantics |
-| Export row number looks unique | test that row numbers/export-local IDs do not become `source_external_id` |
-| Debit/credit or sign convention differs | fixture/contract must encode evidence; ambiguous direction remains reviewable |
-| Pending/reversed rows appear | do not post automatically; preserve lifecycle evidence separately from ledger/reconciliation truth |
-| Real fixture leaks customer data | only synthetic fixtures in repo; real export validation stays private and structural |
+| UI/display reference mistaken for stable source ID | confirmed+source-stable gate test |
+| row index/hash promoted to source identity | explicit rejection tests |
+| provider changes export layout | no auto-layout claim without confirmed evidence/version |
+| ACB store flow generalized to personal accounts | scope field + guidance/test keeps it bounded |
+| VietinBank history mistaken for export-format proof | artifact format stays unknown |
+| real data leaks into fixtures | fixtures contain evidence metadata only; no real rows/accounts/references |
 
 ### Verification plan
 
-- Static: `npm run lint`, `npm run typecheck`, `npm run build` for executable implementation PR.
-- Unit/domain: focused CSV/XLSX/adapter fixtures + existing import/provenance/dedupe suites.
-- Database: no DB gate for Phase A unless implementation changes DB contracts; if it does, reclassify and run fresh reset + pgTAP.
-- Browser flow: direct/upload import smoke if guidance or mapping behavior changes; authenticated ownership smoke remains required for changed financial flow.
-- Responsive/visual: targeted only if UI guidance changes; no broad visual work.
-- Production/manual: after owner merge/deploy, validate supported artifact guidance and one synthetic/private structural flow without exposing customer data.
+- Focused unit test for compatibility/source-ID contract.
+- Existing `parse-csv`, `parse-xlsx`, direct import/provenance tests via CI.
+- `npm run lint`, `npm run typecheck`, `npm run build` on implementation PR.
+- No DB/provider gate unless scope changes.
+- Browser/responsive gate only if T4 changes UI; otherwise guidance is contract/docs only at this checkpoint.
 
 ## Tasks
 
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
-| T1 | Select #523 as M1 Phase A authority and reconcile durable memory | owner M1 selection | selector PR + exact-head policy checks | in_progress |
-| T2 | Build evidence-tagged VCB/ACB/VietinBank compatibility matrix | T1 | first-party source table with explicit unknowns | todo |
-| T3 | Add privacy-safe structural fixtures and normalization contract/tests | T2 | focused fixture/unit tests | todo |
-| T4 | Add minimal user guidance for supported/unknown export artifacts | T2/T3 | browser/manual evidence if UI changes | todo |
+| T1 | Select #523 as M1 Phase A authority and reconcile durable memory | owner M1 selection | #545 merged; main CI #3283 + CodeQL/Secret #2315 green | done |
+| T2 | Build evidence-tagged VCB/ACB/VietinBank compatibility matrix | T1 | first-party source table with explicit unknowns | in_progress |
+| T3 | Add privacy-safe evidence fixtures + normalization/source-ID contract tests | T2 | focused unit tests + exact-head CI | in_progress |
+| T4 | Add minimal user guidance for supported/unknown export artifacts | T2/T3 | targeted UI/browser evidence if UI changes | todo |
 | T5 | Evaluate full Phase A against architecture/provenance/dedupe constraints | T2–T4 | exact-head CI/CodeQL/secret + review record | todo |
-| T6 | Owner-controlled merge/deploy verification and lifecycle closeout | T5 | owner authorization + production evidence + current→null closeout | todo |
+| T6 | Owner-controlled merge/deploy verification and same-PR lifecycle closeout | T5 | owner authorization + post-merge evidence | todo |
 
 ## Handoff record
 
-| Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
+| Date | From | To | State | Artifacts/evidence | Open risks | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-09-03 | human_owner | researcher | discovery | owner selected M1; #523/MON-61 identified as first slice | exact current export schemas unresolved | inspect repo and first-party sources |
-| 2026-09-03 | researcher | planner | specified | repo reconnaissance + 3 first-party source review + this packet | VCB/VietinBank file schemas and stable transaction-ID semantics remain unknown | create selector PR; after owner merge run plan resolver/doctor before implementation |
+| 2026-09-03 | human_owner | researcher | discovery | owner selected M1; #523/MON-61 | exact export schemas unresolved | research + packet |
+| 2026-09-03 | researcher | planner | specified | repository reconnaissance + first-party sources | field-level export semantics unresolved | selector PR |
+| 2026-09-03 | human_owner | implementer | implementing | #545 merged as `2ac2026c...`; merged-main CI #3283, CodeQL/Secret #2315 green; branch `feat/523-vietnam-bank-export-contract` | exact headers/stable IDs remain unproven | implement T2/T3 without guessed layouts |
 
 ### Current permission boundary
 
-- Granted scope: M1 planning/research and branch/PR work for #523.
-- Exact repositories/providers/resources: `Thunderkill016/moneyflow`; public first-party bank documentation; Linear MON-50/MON-61.
-- Forbidden writes: direct `main`, production database, Supabase Auth/provider settings, Vercel production configuration, external bank accounts/providers.
-- Human approval required before: selector PR merge; later implementation merge/deploy; any production/provider mutation.
-- Rollback or stop condition: if the selector conflicts with fresh-main authority or research cannot support a claimed provider contract, stop and leave the field unknown rather than infer it.
+Allowed: research + branch/PR writes for #523 in `Thunderkill016/moneyflow`. Forbidden: direct `main`, merge without owner authorization, production DB/Auth/provider/Vercel writes, external bank-account access, customer data. Stop if implementation needs an unproven provider layout or broader production/provider permission.
 
 ## Evaluation
 
@@ -225,33 +182,27 @@ The existing inbox acquisition boundary owns this work. A thin evidence-aware co
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| selector authority and packet | pending selector PR exact head | pending |
+| #523 is current merged authority | `PLAN_AUTHORITY.current` selected by #545 on `main@2ac2026c...` | pass |
+| merged-main selector gates | CI #3283 + CodeQL/Secret #2315 | pass |
+| matrix/fixtures/source-ID contract | implementation branch | pending |
 
 ### Research and adoption evidence
 
-- Selected sources still support the final implementation: must be rechecked at evaluation.
-- Important source limitations remain respected: exact file headers/reference semantics are not currently claimed for VCB/VietinBank.
-- New tool/dependency/pattern passed the adoption review, or not applicable: not applicable.
+First-party sources were refreshed on 2026-09-04. VCB/ACB Excel availability is supportable only at the stated scope; exact headers and stable reference semantics remain unverified. No dependency adoption is needed.
 
 ### Review findings
 
-- Correctness: pending implementation.
-- Security/ownership: no runtime/provider write in selector; implementation must preserve viewer/RLS authority.
-- UI/UX/accessibility: no selector UI change.
-- Maintainability/duplication: shared parser/provenance path selected; parallel ledger path rejected.
-- Scope compliance: first three banks only for Phase A.
+Pending implementation evaluation. The main counterexample is a display/export-local identifier that looks unique but is not proven stable across overlapping exports.
 
 ### Remaining limitations
 
-- Exact current consumer-account export artifacts for all three banks require stronger first-party documentation or privacy-safe real-export structural validation.
-- No claim of live bank sync or universal bank/version coverage.
+No claim of live sync, universal bank/version coverage, exact current exported headers or stable provider transaction IDs without stronger source evidence.
 
 ## Delivery record
 
-- Branch: `docs/523-vietnam-bank-export-matrix`
-- PR: #545
-- Squash commit: pending
-- CI run: pending
-- Production deployment: not applicable to selector PR
-- Production flow verified: not applicable to selector PR
-- Work packet moved to `docs/plans/completed/`: no; active only after selector is owner-merged
+- Base: `main@2ac2026c3d5a27898b17482b36f503a32a3dd4f6`
+- Branch: `feat/523-vietnam-bank-export-contract`
+- PR: pending
+- CI: pending implementation exact head
+- Production/provider mutation: none authorized or required for T2/T3
+- Lifecycle: packet remains active; same implementation PR must project closeout before owner merge if it completes #523.
