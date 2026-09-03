@@ -249,7 +249,8 @@ export function listBankExportCompatibility(): BankExportCompatibility[] {
 export function sourceExternalIdFromProviderReference(
   reference: BankExportReferenceEvidence | null | undefined,
 ): string | undefined {
-  const value = reference?.value.trim();
+  if (!reference) return undefined;
+  const value = reference.value.trim();
   if (!value) return undefined;
   if (reference.evidence !== "confirmed") return undefined;
   if (reference.stability !== "source-stable") return undefined;
@@ -263,6 +264,7 @@ export function canUseBankSpecificAutoMap(
   return (
     compatibility.bankSpecificAutoMapSupported &&
     compatibility.artifactFormat.evidence === "confirmed" &&
+    compatibility.artifactFormat.value !== null &&
     compatibility.artifactFormat.value !== "unknown" &&
     compatibility.layoutHeaders.evidence === "confirmed" &&
     Array.isArray(compatibility.layoutHeaders.value) &&
