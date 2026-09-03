@@ -21,7 +21,7 @@ A field stays unknown rather than being guessed. A displayed reference, export r
 | Contract area | Vietcombank | ACB | VietinBank |
 |---|---|---|---|
 | Statement/history available | **confirmed** — VCB Digibank history workflow | **confirmed** — ACB ONE history + supported store-management flow | **confirmed** — current card statement/history + iPay material |
-| Downloadable artifact | **confirmed: Excel/XLSX** in VCB Digibank history workflow | **confirmed: Excel/XLSX** in supported ACB first-party flow | **unknown** for target consumer-account export |
+| Downloadable artifact | **confirmed: Excel** in VCB Digibank history workflow; `.xls` vs `.xlsx` not established | **confirmed: Excel** in supported ACB first-party flow; `.xls` vs `.xlsx` not established | **unknown** for target consumer-account export |
 | Exact exported headers/layout | **unknown** | **unknown**; store-management evidence must not be generalized to all consumer exports | **unknown** |
 | Date/timezone semantics in exported file | **unknown**; UI shows transaction/system dates | **unknown** | **unknown**; card material distinguishes posting-date concepts only |
 | Currency field/semantics | **unknown**; examples show VND but export contract is not proven | **unknown** | **unknown** |
@@ -38,13 +38,13 @@ A field stays unknown rather than being guessed. A displayed reference, export r
 
 ### Vietcombank
 
-First-party VCB Digibank guidance explicitly says users can search account transaction history and **Xuất excel** after the search. The VCB user guide also shows UI concepts such as transaction date, system date, amount, `Tiền vào`/`Tiền ra` and `Số tham chiếu`. Those visible UI labels are useful evidence that the concepts exist, but they are **not treated as exported Excel headers** and do not prove that `Số tham chiếu` is stable across overlapping exports.
+First-party VCB Digibank guidance explicitly says users can search account transaction history and **Xuất excel** after the search. The reviewed source establishes Excel as the artifact family but does not establish whether the downloaded file is `.xls` or `.xlsx`. The VCB user guide also shows UI concepts such as transaction date, system date, amount, `Tiền vào`/`Tiền ra` and `Số tham chiếu`. Those visible UI labels are useful evidence that the concepts exist, but they are **not treated as exported Excel headers** and do not prove that `Số tham chiếu` is stable across overlapping exports.
 
 Current decision: artifact availability is confirmed; bank-specific layout normalization and source identity remain disabled.
 
 ### ACB
 
-ACB first-party store-management material confirms downloading transaction history/statement as Excel in a supported flow and describes Excel output that separates store/recipient information. ACB also documents transaction-history states in ACB ONE (`đã thực hiện`, `chờ xử lý`, `đặt lịch`). These are scoped facts: store-management structure cannot be generalized to every personal-account export, and UI states are not automatically treated as exported status fields.
+ACB first-party store-management material confirms downloading transaction history/statement as Excel in a supported flow and describes Excel output that separates store/recipient information. The reviewed source does not establish `.xls` versus `.xlsx` for the target compatibility contract. ACB also documents transaction-history states in ACB ONE (`đã thực hiện`, `chờ xử lý`, `đặt lịch`). These are scoped facts: store-management structure cannot be generalized to every personal-account export, and UI states are not automatically treated as exported status fields.
 
 Current decision: Excel availability is confirmed for the supported scope; exact consumer headers, direction semantics, status fields and provider-stable source IDs remain unknown.
 
@@ -108,6 +108,7 @@ This does not change the current Direct CSV acquisition payload, which still int
 ## Remaining evidence needed before bank-specific parsing
 
 - Exact current downloadable headers for target account/export versions.
+- Exact Excel file extension/version where first-party sources only say “Excel”.
 - Decimal/thousand separator and sign/debit-credit conventions in actual exported values.
 - Time/timezone and posting-vs-transaction-date semantics.
 - Whether status/fee data appears as fields, rows or not at all.
