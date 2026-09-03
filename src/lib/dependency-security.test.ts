@@ -10,21 +10,22 @@ function readJson(path: string): Record<string, unknown> {
 }
 
 /*
- * Minimum patched versions, asserted as a floor rather than an exact pin.
- *
- * This test used to require `postcss` to equal `8.5.19` exactly. That inverted
- * its own purpose: when a later advisory landed, raising the dependency to the
- * fixed release made the security test fail, so the alert stayed open until
- * someone edited the assertion. A security guard that has to be weakened to
- * apply a security fix is the wrong shape.
+ * Minimum patched versions, asserted as floors where the security requirement
+ * is broader than one exact package release.
  *
  * A floor states the real requirement — no vulnerable copy anywhere in the tree
- * — and lets a patch bump through without a test edit, while still failing if
- * anything ever resolves below it. `next` and `sharp` keep exact pins: neither
- * was involved in this problem, and pinning the framework release is deliberate.
+ * — and lets a later patch bump through without weakening the guard. Next and
+ * eslint-config-next remain aligned to the deliberately vetted framework release;
+ * Sharp remains an exact override because native/image behavior is part of the
+ * runtime regression surface for this security patch.
  */
 const MIN_POSTCSS = "8.5.23"; // GHSA-6g55-p6wh-862q incomplete-fix follow-up
 const MIN_NANOID = "3.3.18"; // nanoid: custom generators can loop indefinitely
+const MIN_BROWSERLIST = "4.28.7"; // GHSA-c83g-rgw3-j3cx + GHSA-73wf-gq98-2v4g
+const MIN_QS = "6.16.0"; // GHSA-x5fp-wj9c-mxmx + GHSA-4mjr-xmp4-gh2g
+const MIN_FAST_URI = "3.1.6"; // 2026-08 fast-uri host-confusion / SSRF advisories
+const VETTED_NEXT = "16.3.4"; // >= 16.3.3 patched floor for the 2026-08-25 Critical advisories
+const VETTED_SHARP = "0.35.4";
 
 function isAtLeast(version: string, minimum: string): boolean {
   const parse = (value: string) => value.split(".").map((part) => Number(part));
@@ -58,7 +59,7 @@ test("untrusted Excel imports use patched SheetJS 0.20.3", () => {
   assert.equal(installed?.resolved, PATCHED_XLSX_SOURCE);
 });
 
-test("framework runtime uses patched Next, PostCSS and Sharp releases", () => {
+test("framework runtime uses patched Next, PostCSS, Sharp, Browserslist, qs and fast-uri releases", () => {
   const packageJson = readJson("package.json") as {
     dependencies?: Record<string, string>;
     devDependencies?: Record<string, string>;
@@ -68,12 +69,11 @@ test("framework runtime uses patched Next, PostCSS and Sharp releases", () => {
     packages?: Record<string, { version?: string }>;
   };
 
-  assert.equal(packageJson.dependencies?.next, "16.2.11");
-  assert.equal(packageJson.devDependencies?.["eslint-config-next"], "16.2.12");
+  assert.equal(packageJson.dependencies?.next, VETTED_NEXT);
+  assert.equal(packageJson.devDependencies?.["eslint-config-next"], VETTED_NEXT);
   /*
    * The postcss override is load-bearing, not tidiness: removing it lets Next
-   * resolve its own nested postcss 8.4.31, far below the patched floor. It must
-   * stay, and it must stay patched.
+   * resolve a nested vulnerable postcss. It must stay, and it must stay patched.
    */
   const postcssOverride = packageJson.overrides?.postcss;
   assert.ok(postcssOverride, "the postcss override must exist");
@@ -81,13 +81,34 @@ test("framework runtime uses patched Next, PostCSS and Sharp releases", () => {
     isAtLeast(postcssOverride, MIN_POSTCSS),
     `postcss override ${postcssOverride} is below the patched floor ${MIN_POSTCSS}`,
   );
-  assert.equal(packageJson.overrides?.sharp, "0.35.0");
+  assert.equal(packageJson.overrides?.sharp, VETTED_SHARP);
 
-  assert.equal(lock.packages?.["node_modules/next"]?.version, "16.2.11");
+  const browserslistOverride = packageJson.overrides?.browserslist;
+  assert.ok(browserslistOverride, "the browserslist override must exist");
+  assert.ok(
+    isAtLeast(browserslistOverride, MIN_BROWSERLIST),
+    `browserslist override ${browserslistOverride} is below the patched floor ${MIN_BROWSERLIST}`,
+  );
+
+  const qsOverride = packageJson.overrides?.qs;
+  assert.ok(qsOverride, "the qs override must exist");
+  assert.ok(
+    isAtLeast(qsOverride, MIN_QS),
+    `qs override ${qsOverride} is below the patched floor ${MIN_QS}`,
+  );
+
+  const fastUriOverride = packageJson.overrides?.["fast-uri"];
+  assert.ok(fastUriOverride, "the fast-uri override must exist");
+  assert.ok(
+    isAtLeast(fastUriOverride, MIN_FAST_URI),
+    `fast-uri override ${fastUriOverride} is below the patched floor ${MIN_FAST_URI}`,
+  );
+
+  assert.equal(lock.packages?.["node_modules/next"]?.version, VETTED_NEXT);
   assert.ok(
     isAtLeast(lock.packages?.["node_modules/postcss"]?.version ?? "0.0.0", MIN_POSTCSS),
   );
-  assert.equal(lock.packages?.["node_modules/sharp"]?.version, "0.35.0");
+  assert.equal(lock.packages?.["node_modules/sharp"]?.version, VETTED_SHARP);
 
   for (const [path, installed] of Object.entries(lock.packages ?? {})) {
     if (/(?:^|\/)node_modules\/postcss$/.test(path)) {
@@ -107,7 +128,25 @@ test("framework runtime uses patched Next, PostCSS and Sharp releases", () => {
       );
     }
     if (/(?:^|\/)node_modules\/sharp$/.test(path)) {
-      assert.equal(installed.version, "0.35.0");
+      assert.equal(installed.version, VETTED_SHARP);
+    }
+    if (/(?:^|\/)node_modules\/browserslist$/.test(path)) {
+      assert.ok(
+        isAtLeast(installed.version ?? "0.0.0", MIN_BROWSERLIST),
+        `${path} resolves browserslist ${installed.version}, below ${MIN_BROWSERLIST}`,
+      );
+    }
+    if (/(?:^|\/)node_modules\/qs$/.test(path)) {
+      assert.ok(
+        isAtLeast(installed.version ?? "0.0.0", MIN_QS),
+        `${path} resolves qs ${installed.version}, below ${MIN_QS}`,
+      );
+    }
+    if (/(?:^|\/)node_modules\/fast-uri$/.test(path)) {
+      assert.ok(
+        isAtLeast(installed.version ?? "0.0.0", MIN_FAST_URI),
+        `${path} resolves fast-uri ${installed.version}, below ${MIN_FAST_URI}`,
+      );
     }
   }
 });

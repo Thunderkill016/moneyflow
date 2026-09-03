@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ingestShareTargetAction } from "@/app/actions/share-target-import";
 import { Icon } from "@/components/icons";
@@ -74,7 +74,6 @@ function applyRulesForDemo(
 }
 
 export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const ranRef = useRef(false);
 
@@ -92,9 +91,13 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
 
   useEffect(() => {
     if (ranRef.current) return;
-    ranRef.current = true;
 
     const frame = window.requestAnimationFrame(() => {
+      // React Strict Mode can run setup -> cleanup -> setup in development.
+      // Consume the one-shot only when a frame actually starts. Cleanup cancels
+      // abandoned work; the replayed setup can then schedule a fresh frame.
+      if (ranRef.current) return;
+      ranRef.current = true;
       void (async () => {
         try {
           setInboxCount(await getPendingCountForClient(viewer.isDemo));
@@ -261,7 +264,7 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
           setPhase("success");
 
           window.setTimeout(() => {
-            router.push("/inbox");
+            window.location.replace("/inbox");
           }, 1400);
         } catch {
           setErrors(["Lỗi khi xử lý nội dung chia sẻ. Thử lại từ app nguồn."]);
@@ -271,7 +274,7 @@ export function CaptureSharePage({ viewer }: { viewer: ViewerSummary }) {
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [router, searchParams, viewer.isDemo]);
+  }, [searchParams, viewer.isDemo]);
 
   return (
     <AppShell
