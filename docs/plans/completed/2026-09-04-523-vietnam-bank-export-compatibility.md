@@ -85,7 +85,7 @@ Focused unit coverage verifies:
 - fixtures contain no customer rows and match the conservative runtime profiles;
 - guidance does not claim live bank sync.
 
-`e2e/vietnam-bank-export-guidance.spec.ts` verifies user-visible Capture guidance using accessible role/name locators and web-first assertions. The normal Playwright configuration exercises the baseline suite on Desktop Chrome and Pixel 5. Final exact-head browser/UI evidence remains a required PR #546 merge gate.
+`e2e/vietnam-bank-export-guidance.spec.ts` verifies user-visible Capture guidance using accessible role/name locators and web-first assertions. The normal Playwright configuration exercises the baseline suite on Desktop Chrome and Pixel 5.
 
 Existing generic parser/import tests remain the regression boundary; no parallel bank parser or mutation path was introduced.
 
@@ -98,7 +98,9 @@ T5 review found two issues before lifecycle closeout and both were corrected:
 
 Earlier CI also caught and drove fixes for trailing Markdown whitespace, required PR-memory fields, TypeScript nullable-reference narrowing and attempted reuse of the legacy global `panel` class. Validators were not weakened or bypassed.
 
-No remaining architecture, provenance, source-identity, privacy or presentation-ownership blocker was identified in the reviewed diff. Exact-head CI, CodeQL, Secret history, browser smoke and selected cross-device UI audit must still be green before PR #546 is marked ready/merged.
+No remaining architecture, provenance, source-identity, privacy or presentation-ownership blocker was identified in the reviewed diff.
+
+Lifecycle-converged implementation head `dfb38edec9714437b26771566464103c79d40e9b` passed CI #3303, CodeQL #2335 and Secret history #2335. CI #3303 also passed policy/knowledge/migration identity, lint/typecheck, architecture/CSS ownership, unit/static-RLS, production build, fresh local Supabase reset + pgTAP, archive producer/restore round trips, Browser smoke, Cross-device UI audit and final verify/e2e aggregators. PR #546 was then marked Ready for review. A documentation-only evidence reconciliation supersedes that head and must receive its own exact-head checks before owner merge.
 
 ## Tasks
 
@@ -108,12 +110,12 @@ No remaining architecture, provenance, source-identity, privacy or presentation-
 | T2 | Evidence-tagged VCB/ACB/VietinBank compatibility matrix | done |
 | T3 | Privacy-safe fixtures + source-ID contract/tests | done |
 | T4 | Minimal user-visible supported/unknown guidance | done |
-| T5 | Full architecture/provenance/dedupe/privacy/performance review | done — findings fixed; final exact-head gates still required before owner merge |
+| T5 | Full architecture/provenance/dedupe/privacy/performance review | done — findings fixed; implementation exact-head gates passed |
 | T6 | Owner-controlled merge and post-merge lifecycle verification | pending owner authorization; PR #546 projects lifecycle convergence but does not self-merge |
 
 ## Verification boundary
 
-Pre-closeout implementation head `56811e68cf7f5530fc32d6675c3ce8b8776c0c5d` had CodeQL #2330 and Secret history #2330 green; policy, unit/static-RLS, production-build, lint/typecheck and architecture/CSS checks in CI #3298 were green before the lifecycle projection superseded that run. The final authority/archive commit must receive its own exact-head CI/CodeQL/Secret/browser/UI evidence before owner handoff.
+Implementation head `dfb38edec9714437b26771566464103c79d40e9b` is fully green on CI #3303 / CodeQL #2335 / Secret history #2335, including browser and cross-device UI evidence. The final documentation-only evidence reconciliation must receive its own exact-head CI/CodeQL/Secret-history checks before owner handoff/merge.
 
 No database/provider gate is required because the diff contains no database, migration, RLS, Auth or provider mutation.
 
