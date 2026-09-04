@@ -1,6 +1,6 @@
 # MoneyFlow — current project memory
 
-**Status:** M0 is closed. M1 Phase A #523 implementation/evaluation is complete on PR #546 and this branch projects lifecycle closeout; owner merge and post-merge verification remain pending.
+**Status:** M0 is closed. M1 Phase A #523 implementation/evaluation is complete on PR #546; the PR is Ready for review and this branch projects lifecycle closeout. Owner merge and post-merge verification remain pending.
 **Last reconciled:** 2026-09-04
 **Merged main baseline before PR #546:** `2ac2026c3d5a27898b17482b36f503a32a3dd4f6` (PR #545 selector)
 **Projected authority after PR #546 merge:** `PLAN_AUTHORITY.current: null`; no follow-on slice is selected in #546.
@@ -10,9 +10,9 @@
 
 MoneyFlow remains a Vietnamese personal-finance product built around one trustworthy user-owned ledger. M0 Release Integrity is complete.
 
-The owner selected **M1 — Vietnam Acquisition Depth** and PR #545 selected #523 / MON-61 as the first executable slice. PR #546 now contains the bounded Phase A implementation, evaluation and same-PR lifecycle projection. It does not select MON-62, MON-63 or any other follow-on packet.
+The owner selected **M1 — Vietnam Acquisition Depth** and PR #545 selected #523 / MON-61 as the first executable slice. PR #546 now contains the bounded Phase A implementation, independent evaluation and same-PR lifecycle projection and is Ready for review. It does not select MON-62, MON-63 or any other follow-on packet.
 
-Until PR #546 is explicitly owner-merged, merged `main@2ac2026c...` still has #523 as current authority and GitHub #523 / Linear MON-61 remain open/In Progress. If #546 merges after its final gates are green, current authority becomes `null`; follow-on M1 work must be selected from fresh main.
+Until PR #546 is explicitly owner-merged, merged `main@2ac2026c...` still has #523 as current authority and GitHub #523 / Linear MON-61 remain open/In Progress. If #546 merges after its final exact-head documentation checks are green, current authority becomes `null`; follow-on M1 work must be selected from fresh main.
 
 ## 2. Current runtime and financial truth
 
@@ -64,7 +64,9 @@ For #523, T5 moved the full compatibility/source-URL matrix out of the client co
 
 Selector merged-main evidence is green on exact `main@2ac2026c...`: CI #3283, CodeQL #2315 and Secret history #2315 succeeded.
 
-PR #546 implementation head `56811e68cf7f5530fc32d6675c3ce8b8776c0c5d` had CodeQL #2330 and Secret history #2330 green; policy, unit/static-RLS, production build, lint/typecheck, architecture and CSS ownership checks in CI #3298 were green before lifecycle commits superseded that run. Final lifecycle-converged exact-head CI/CodeQL/Secret/browser/UI evidence is required before owner handoff.
+PR #546 lifecycle-converged implementation head `dfb38edec9714437b26771566464103c79d40e9b` passed CI #3303, CodeQL #2335 and Secret history #2335. CI #3303 also passed policy/knowledge/migration identity, lint/typecheck, architecture/CSS ownership, unit/static-RLS, production build, fresh local Supabase reset + pgTAP, archive producer/restore round trips, Browser smoke, Cross-device UI audit and final verify/e2e aggregators. T5 review is blocker-free after the recorded fixes.
+
+A final documentation-only reconciliation records that evidence and Ready-for-review state. Because it changes the PR head, its own exact-head checks must pass before owner merge; this does not reopen implementation findings.
 
 No production DB/Auth/provider/Vercel write, external bank access or real customer statement data is part of #546.
 
@@ -77,8 +79,8 @@ M0 production schema remains the verified 56/56 migration baseline with the expe
 - #432/#433: merged master product program.
 - #527/#528/#531/#538: performance slice completed.
 - #536/#539/#540/#544: M0 security/runtime/database/lifecycle slice completed.
-- #523: open until explicit owner merge/post-merge verification. Its implementation/evaluation is represented by PR #546; selector auto-close was previously corrected by reopening the issue.
-- PR #546: draft/lifecycle-converged branch candidate until final exact-head gates pass; merge remains owner-controlled.
+- #523: open until explicit owner merge/post-merge verification. Its implementation/evaluation is represented by Ready-for-review PR #546; selector auto-close was previously corrected by reopening the issue.
+- PR #546: Ready for review, mergeable, lifecycle-converged; exact-head checks for the final docs-only evidence reconciliation are the remaining pre-merge gate. Merge remains owner-controlled.
 - MON-50: M1 — Vietnam Acquisition Depth — In Progress.
 - MON-61: #523 Phase A — In Progress until owner merge/post-merge verification.
 - MON-62 / MON-63: Todo; not selected by #546.
@@ -106,13 +108,13 @@ Important evidence boundary: VCB and ACB first-party material confirms **Excel**
 2. Provider-stable transaction identity across repeated/overlapping exports.
 3. Exact exported date/timezone, currency/direction, status and fee semantics.
 4. Privacy-safe structural statement examples before any bank-specific parser aliases are enabled.
-5. Final exact-head PR #546 CI/CodeQL/Secret/browser/UI evidence after lifecycle convergence.
+5. Exact-head checks for the final docs-only #546 evidence reconciliation.
 6. Explicit owner merge and post-merge #523/MON-61 closure verification.
 7. A fresh-main owner selection before MON-62, MON-63 or any follow-on executable slice starts.
 
 ## 11. Next allowed action
 
-Finish the final exact-head gates on lifecycle-converged PR #546. If all required checks pass and T5 review remains blocker-free, mark #546 Ready for review and wait for explicit owner merge authorization. After owner merge, verify merged-main authority/current memory and runtime health, then close #523 and mark MON-61 Done. Do not start MON-62/MON-63 before that closure.
+Verify the final docs-only #546 head. If its exact-head CI/CodeQL/Secret-history gates pass, keep #546 Ready for review and wait for explicit owner merge authorization. After owner merge, verify merged-main authority/current memory and runtime health, then close #523 and mark MON-61 Done. Do not start MON-62/MON-63 before that closure.
 
 ## 12. Superseded-status register
 
