@@ -14,6 +14,7 @@ import type {
   CandidateKind,
 } from "./candidate-store.ts";
 import type { ParsedCsvRow, UncertainCsvField } from "./parse-csv.ts";
+import type { SourceLifecycleState } from "./provenance.ts";
 
 export const IMPORT_DRAFT_STORAGE_KEY = "moneyflow-import-drafts-v1";
 export const IMPORT_SESSION_DRAFT_STORAGE_KEY =
@@ -30,6 +31,55 @@ type BrowserStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 const CONFIDENCES: CandidateConfidence[] = ["high", "medium", "low"];
 const KINDS: CandidateKind[] = ["expense", "income", "transfer"];
 const UNCERTAIN: UncertainCsvField[] = ["amount", "merchant", "date", "kind"];
+const SOURCE_LIFECYCLE_STATES: SourceLifecycleState[] = [
+  "pending",
+  "posted",
+  "removed",
+];
+
+function optionalBoundedString(
+  value: unknown,
+  maxLength: number,
+): boolean {
+  return (
+    value === undefined ||
+    (typeof value === "string" &&
+      value.trim().length > 0 &&
+      value.length <= maxLength)
+  );
+}
+
+function validOptionalProvenance(row: Partial<ParsedCsvRow>): boolean {
+  if (
+    row.sourceRowIndex !== undefined &&
+    (!Number.isSafeInteger(row.sourceRowIndex) || row.sourceRowIndex < 0)
+  ) {
+    return false;
+  }
+  if (!optionalBoundedString(row.sourceExternalId, 200)) return false;
+  if (!optionalBoundedString(row.sourcePredecessorExternalId, 200)) return false;
+  if (!optionalBoundedString(row.parserVersion, 80)) return false;
+  if (
+    row.mappingVersion !== undefined &&
+    (!Number.isSafeInteger(row.mappingVersion) || row.mappingVersion < 1)
+  ) {
+    return false;
+  }
+  if (
+    row.sourceLifecycleState !== undefined &&
+    !(SOURCE_LIFECYCLE_STATES as string[]).includes(row.sourceLifecycleState)
+  ) {
+    return false;
+  }
+  if (
+    row.sourcePredecessorExternalId !== undefined &&
+    (row.sourceExternalId === undefined ||
+      row.sourcePredecessorExternalId.trim() === row.sourceExternalId.trim())
+  ) {
+    return false;
+  }
+  return true;
+}
 
 export function isParsedCsvRow(value: unknown): value is ParsedCsvRow {
   if (!value || typeof value !== "object") return false;
@@ -53,7 +103,9 @@ export function isParsedCsvRow(value: unknown): value is ParsedCsvRow {
     row.explanations.every((e) => typeof e === "string") &&
     typeof row.rawSnippet === "string" &&
     typeof row.rowIndex === "number" &&
-    Number.isSafeInteger(row.rowIndex)
+    Number.isSafeInteger(row.rowIndex) &&
+    row.rowIndex >= 0 &&
+    validOptionalProvenance(row)
   );
 }
 
@@ -242,7 +294,6 @@ export function removeImportDraft(batchId: string): void {
   }
 }
 
-/** Pure helper: first N rows for preview table. */
 export function previewDraftRows(
   rows: ParsedCsvRow[],
   limit = 10,
@@ -251,7 +302,6 @@ export function previewDraftRows(
   return rows.slice(0, limit);
 }
 
-/** Pure summary line for import preview (wireframes §9). */
 export function formatImportPreviewSummary(input: {
   rowCount: number;
   warningCount: number;
@@ -271,7 +321,6 @@ export function formatImportPreviewSummary(input: {
   return parts.join(" · ");
 }
 
-/** Label for a mapped column index. */
 export function columnHeaderLabel(
   headers: string[],
   index: number | null,
