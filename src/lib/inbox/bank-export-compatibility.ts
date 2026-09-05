@@ -262,3 +262,18 @@ export function sourceExternalIdFromProviderReference(
   if (reference.stability !== "source-stable") return undefined;
   return value;
 }
+
+export function canUseBankSpecificAutoMap(
+  provider: BankExportProvider,
+): boolean {
+  const compatibility = getBankExportCompatibility(provider);
+  return (
+    compatibility.bankSpecificAutoMapSupported &&
+    compatibility.artifactFormat.evidence === "confirmed" &&
+    compatibility.artifactFormat.value !== null &&
+    compatibility.artifactFormat.value !== "unknown" &&
+    compatibility.layoutHeaders.evidence === "confirmed" &&
+    Array.isArray(compatibility.layoutHeaders.value) &&
+    compatibility.layoutHeaders.value.length > 0
+  );
+}
