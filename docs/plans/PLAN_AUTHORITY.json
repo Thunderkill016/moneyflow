@@ -10,5 +10,8 @@
       }
     ]
   },
-  "current": null
+  "current": {
+    "path": "docs/plans/active/mon-62-source-adapters-provenance-dedupe.md",
+    "selectedByPr": 550
+  }
 }
