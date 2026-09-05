@@ -72,9 +72,15 @@ function validOptionalProvenance(row: Partial<ParsedCsvRow>): boolean {
     return false;
   }
   if (
+    (row.sourceLifecycleState !== undefined ||
+      row.sourcePredecessorExternalId !== undefined) &&
+    row.sourceExternalId === undefined
+  ) {
+    return false;
+  }
+  if (
     row.sourcePredecessorExternalId !== undefined &&
-    (row.sourceExternalId === undefined ||
-      row.sourcePredecessorExternalId.trim() === row.sourceExternalId.trim())
+    row.sourcePredecessorExternalId.trim() === row.sourceExternalId?.trim()
   ) {
     return false;
   }
