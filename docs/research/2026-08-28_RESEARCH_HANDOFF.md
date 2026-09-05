@@ -1,8 +1,8 @@
 # MoneyFlow — research handoff, 2026-08-28
 
-**Status:** historical evidence handoff; not implementation authority  
-**Product repository snapshot baseline:** `main@6298e6c52cfff6f3a972cf72cf79022e341ce638` (PR #510)  
-**Research repository snapshot baseline:** `Thunderkill016/moneyflow-research@583df3e19fb9caec39e850654274c039f0b1ccea`  
+**Status:** historical evidence handoff; not implementation authority
+**Product repository snapshot baseline:** `main@6298e6c52cfff6f3a972cf72cf79022e341ce638` (PR #510)
+**Research repository snapshot baseline:** `Thunderkill016/moneyflow-research@583df3e19fb9caec39e850654274c039f0b1ccea`
 **Authority boundary:** current MoneyFlow code, tests, migrations, `CURRENT_PROJECT_MEMORY`, plan authority and owner decisions remain higher authority than this document.
 
 ## 1. Why this exists
@@ -137,6 +137,6 @@ MoneyFlow-side history/evidence:
 
 ## 8. Execution impact
 
-**Status impact:** none.  
-**Lifecycle impact:** none.  
+**Status impact:** none.
+**Lifecycle impact:** none.
 **Next-work impact:** none. No agent-executable slice is selected or promoted by this handoff.
