@@ -5,7 +5,7 @@
 **Active role:** planner
 **Permission scope:** branch_write
 **Owner:** ThunderK
-**Issue/PR:** Linear MON-62 / selector PR pending
+**Issue/PR:** Linear MON-62 / GitHub PR #550
 **Fresh-main baseline:** `06c3a0cc804c3764e0b7e1a94b6c556009b2b46e`
 **Last updated:** 2026-09-05
 
@@ -225,7 +225,7 @@ Implementation PR after selector merge:
 
 | Date | From | To | State | Evidence | Open risks | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-09-05 | researcher | planner | specified | fresh main `06c3a0cc...`; current code seam audit; MON-62 tracker; OFX/Open Banking/Plaid/SheetJS source refresh | exact Vietnamese consumer export layouts/stable IDs still unknown; source namespace privacy representation must fail closed | create selector PR only; implementation waits for explicit owner merge |
+| 2026-09-05 | researcher | planner | specified | fresh main `06c3a0cc...`; current code seam audit; MON-62 tracker; OFX/Open Banking/Plaid/SheetJS source refresh; selector PR #550 | exact Vietnamese consumer export layouts/stable IDs still unknown; source namespace privacy representation must fail closed | verify selector #550 exact head; implementation waits for explicit owner merge |
 
 ## Permission boundary
 
