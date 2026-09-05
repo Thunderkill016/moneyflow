@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/server/auth";
 
 const CANDIDATE_BASE_COLUMNS =
-  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at,source_row_index,source_external_id,fingerprint_version,fingerprint,parser_version,mapping_version,match_status,match_reason,match_confidence,possible_transfer,transfer_pair_id,approved_transaction_id,approved_at";
+  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at,source_row_index,source_external_id,source_lifecycle_state,source_predecessor_external_id,fingerprint_version,fingerprint,parser_version,mapping_version,match_status,match_reason,match_confidence,possible_transfer,transfer_pair_id,approved_transaction_id,approved_at";
 const CANDIDATE_RULE_COLUMNS =
   `${CANDIDATE_BASE_COLUMNS},applied_rule_id,applied_rule_version`;
 

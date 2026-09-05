@@ -8,11 +8,29 @@ import { toCsvCandidateInputs } from "./parse-csv.ts";
 import {
   isExcelUpload,
   parseXlsxStatement,
+  readXlsxSourceEvidence,
   workbookFirstSheetToMatrix,
   xlsxCellToString,
+  xlsxWorkbookDateSystem,
 } from "./parse-xlsx.ts";
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
+
+function workbookWithDateEvidence(date1904: boolean): XLSX.WorkBook {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ["Date", "Description"],
+    [45_000, "Synthetic"],
+  ]);
+  ws.A2!.z = "yyyy-mm-dd";
+  XLSX.utils.book_append_sheet(wb, ws, "Evidence");
+  (
+    wb as unknown as {
+      Workbook: { WBProps: { date1904?: boolean } };
+    }
+  ).Workbook = { WBProps: { date1904 } };
+  return wb;
+}
 
 test("xlsxCellToString: numbers, dates, empty", () => {
   assert.equal(xlsxCellToString(null), "");
@@ -24,6 +42,83 @@ test("xlsxCellToString: numbers, dates, empty", () => {
     xlsxCellToString(new Date(2026, 6, 12)),
     "2026-07-12",
   );
+});
+
+test("xlsxWorkbookDateSystem reads explicit 1900/1904 workbook metadata", () => {
+  assert.equal(xlsxWorkbookDateSystem(workbookWithDateEvidence(false)), "1900");
+  assert.equal(xlsxWorkbookDateSystem(workbookWithDateEvidence(true)), "1904");
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([[1]]), "Sheet1");
+  assert.equal(xlsxWorkbookDateSystem(wb), "1900");
+});
+
+test("evidence reader preserves numeric date code, number format and 1904 epoch", () => {
+  const wb = workbookWithDateEvidence(true);
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+  const evidence = readXlsxSourceEvidence(buf);
+
+  assert.equal(evidence.ok, true);
+  if (!evidence.ok) return;
+  assert.equal(evidence.sheetName, "Evidence");
+  assert.equal(evidence.dateSystem, "1904");
+
+  const dateCell = evidence.rows[1]?.[0];
+  assert.ok(dateCell);
+  assert.equal(dateCell.address, "A2");
+  assert.equal(dateCell.rowIndex, 2);
+  assert.equal(dateCell.columnIndex, 0);
+  assert.equal(dateCell.cellType, "n");
+  assert.equal(dateCell.rawValue, 45_000);
+  assert.equal(dateCell.numberFormat, "yyyy-mm-dd");
+  assert.equal(dateCell.dateLikeFormat, true);
+});
+
+test("evidence reader accepts a real BIFF8 XLS workbook container", () => {
+  const wb = workbookWithDateEvidence(false);
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "biff8" }) as Buffer;
+  const evidence = readXlsxSourceEvidence(buf);
+
+  assert.equal(evidence.ok, true);
+  if (!evidence.ok) return;
+  assert.equal(evidence.sheetName, "Evidence");
+  assert.equal(evidence.dateSystem, "1900");
+  assert.equal(evidence.rows[1]?.[0]?.rawValue, 45_000);
+});
+
+test("evidence reader rejects ODS even though it is also a ZIP spreadsheet", () => {
+  const wb = workbookWithDateEvidence(false);
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "ods" }) as Buffer;
+  const evidence = readXlsxSourceEvidence(buf);
+
+  assert.equal(evidence.ok, false);
+});
+
+test("evidence reader keeps empty worksheet positions and does not invent values", () => {
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet([
+    ["A", "B", "C"],
+    [1, undefined, 3],
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws, "Sparse");
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }) as Buffer;
+  const evidence = readXlsxSourceEvidence(buf);
+
+  assert.equal(evidence.ok, true);
+  if (!evidence.ok) return;
+  assert.equal(evidence.rows[1]?.length, 3);
+  assert.equal(evidence.rows[1]?.[1]?.address, "B2");
+  assert.equal(evidence.rows[1]?.[1]?.rawValue, null);
+  assert.equal(evidence.rows[1]?.[1]?.cellType, null);
+  assert.equal(evidence.rows[1]?.[1]?.dateLikeFormat, false);
+});
+
+test("evidence reader rejects empty/corrupt inputs without falling back to generic dates", () => {
+  const empty = readXlsxSourceEvidence(new Uint8Array(0));
+  assert.equal(empty.ok, false);
+
+  const garbage = readXlsxSourceEvidence(new Uint8Array([1, 2, 3, 4, 5]));
+  assert.equal(garbage.ok, false);
 });
 
 test("fixture sample-bank.xlsx → first sheet only, integer money", () => {

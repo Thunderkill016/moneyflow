@@ -12,6 +12,7 @@ import {
   toCsvCandidateInputs,
   validateUploadFile,
   MAX_UPLOAD_BYTES,
+  type ParsedCsvRow,
 } from "./parse-csv.ts";
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
@@ -103,7 +104,7 @@ test("fixture sample-generic.csv quoted amounts", () => {
   assert.equal(result.rows[2]?.amount, 45_000);
 });
 
-test("toCsvCandidateInputs attaches batch id + source csv", () => {
+test("toCsvCandidateInputs attaches batch id + source csv without inventing identity", () => {
   const text = readFileSync(join(fixturesDir, "sample-bank.csv"), "utf8");
   const result = parseCsvStatement(text, { today: "2026-07-15" });
   const inputs = toCsvCandidateInputs(result.rows, "imp-test-1");
@@ -111,6 +112,41 @@ test("toCsvCandidateInputs attaches batch id + source csv", () => {
   assert.ok(inputs.every((i) => i.source === "csv"));
   assert.ok(inputs.every((i) => i.importBatchId === "imp-test-1"));
   assert.ok(inputs.every((i) => i.status === "pending"));
+  assert.ok(inputs.every((i) => i.sourceExternalId === undefined));
+  assert.deepEqual(
+    inputs.map((i) => i.sourceRowIndex),
+    result.rows.map((row) => row.rowIndex),
+  );
+});
+
+test("toCsvCandidateInputs preserves evidence-aware source lineage through preview commit", () => {
+  const row: ParsedCsvRow = {
+    kind: "expense",
+    amount: 89_000,
+    merchant: "Merchant",
+    note: "",
+    occurredOn: "2026-09-05",
+    confidence: "high",
+    uncertainFields: [],
+    explanations: [],
+    rawSnippet: "synthetic",
+    rowIndex: 9,
+    sourceRowIndex: 42,
+    sourceExternalId: "mf-src-v1|account|bank|acct|posted-1",
+    sourceLifecycleState: "posted",
+    sourcePredecessorExternalId: "mf-src-v1|account|bank|acct|pending-1",
+    parserVersion: "source-adapter@1.0",
+    mappingVersion: 3,
+  };
+
+  const [input] = toCsvCandidateInputs([row], "batch-1", "xlsx");
+  assert.equal(input?.source, "xlsx");
+  assert.equal(input?.sourceRowIndex, 42);
+  assert.equal(input?.sourceExternalId, row.sourceExternalId);
+  assert.equal(input?.sourceLifecycleState, "posted");
+  assert.equal(input?.sourcePredecessorExternalId, row.sourcePredecessorExternalId);
+  assert.equal(input?.parserVersion, "source-adapter@1.0");
+  assert.equal(input?.mappingVersion, 3);
 });
 
 test("parseCsvStatement empty / no amount column → error", () => {

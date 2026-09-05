@@ -53,7 +53,7 @@ export type InboxActionResult =
   | { ok: false; message: string };
 
 const CANDIDATE_COLUMNS =
-  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at,source_row_index,source_external_id,fingerprint_version,fingerprint,parser_version,mapping_version,match_status,match_reason,match_confidence,possible_transfer,transfer_pair_id,approved_transaction_id,approved_at";
+  "id,kind,amount_minor,merchant,note,occurred_on,source,confidence,status,possible_duplicate,category_id,category_name,account_id,account_name,raw_snippet,import_batch_id,local_id,created_at,source_row_index,source_external_id,source_lifecycle_state,source_predecessor_external_id,fingerprint_version,fingerprint,parser_version,mapping_version,match_status,match_reason,match_confidence,possible_transfer,transfer_pair_id,approved_transaction_id,approved_at";
 
 const BATCH_COLUMNS =
   "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at,parser_version,mapping_version";
@@ -71,30 +71,56 @@ const sourceSchema = z.enum([
 const confidenceSchema = z.enum(["high", "medium", "low"]);
 const statusSchema = z.enum(["pending", "approved", "rejected"]);
 const kindSchema = z.enum(["expense", "income", "transfer"]);
+const sourceLifecycleSchema = z.enum(["pending", "posted", "removed"]);
 
-const createCandidateSchema = z.object({
-  id: z.string().uuid().optional(),
-  kind: kindSchema,
-  amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
-  merchant: z.string().trim().min(1).max(200),
-  note: z.string().trim().max(500).optional(),
-  occurredOn: dateSchema,
-  source: sourceSchema,
-  confidence: confidenceSchema,
-  status: statusSchema.optional(),
-  possibleDuplicate: z.boolean().optional(),
-  categoryId: z.string().uuid().optional(),
-  category: z.string().max(60).optional(),
-  accountId: z.string().uuid().optional(),
-  account: z.string().max(80).optional(),
-  rawSnippet: z.string().max(2000).optional(),
-  importBatchId: z.string().uuid().optional(),
-  sourceRowIndex: z.number().int().min(0).optional(),
-  sourceExternalId: z.string().trim().min(1).max(200).optional(),
-  parserVersion: z.string().trim().min(1).max(80).optional(),
-  mappingVersion: z.number().int().min(1).optional(),
-  createdAt: z.string().optional(),
-});
+const createCandidateSchema = z
+  .object({
+    id: z.string().uuid().optional(),
+    kind: kindSchema,
+    amount: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+    merchant: z.string().trim().min(1).max(200),
+    note: z.string().trim().max(500).optional(),
+    occurredOn: dateSchema,
+    source: sourceSchema,
+    confidence: confidenceSchema,
+    status: statusSchema.optional(),
+    possibleDuplicate: z.boolean().optional(),
+    categoryId: z.string().uuid().optional(),
+    category: z.string().max(60).optional(),
+    accountId: z.string().uuid().optional(),
+    account: z.string().max(80).optional(),
+    rawSnippet: z.string().max(2000).optional(),
+    importBatchId: z.string().uuid().optional(),
+    sourceRowIndex: z.number().int().min(0).optional(),
+    sourceExternalId: z.string().trim().min(1).max(200).optional(),
+    sourceLifecycleState: sourceLifecycleSchema.optional(),
+    sourcePredecessorExternalId: z.string().trim().min(1).max(200).optional(),
+    parserVersion: z.string().trim().min(1).max(80).optional(),
+    mappingVersion: z.number().int().min(1).optional(),
+    createdAt: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    const hasLineage =
+      value.sourceLifecycleState !== undefined ||
+      value.sourcePredecessorExternalId !== undefined;
+    if (hasLineage && value.sourceExternalId === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["sourceExternalId"],
+        message: "source lineage requires sourceExternalId",
+      });
+    }
+    if (
+      value.sourceExternalId !== undefined &&
+      value.sourcePredecessorExternalId === value.sourceExternalId
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["sourcePredecessorExternalId"],
+        message: "source predecessor must differ from current identity",
+      });
+    }
+  });
 
 const updateCandidateSchema = z
   .object({
