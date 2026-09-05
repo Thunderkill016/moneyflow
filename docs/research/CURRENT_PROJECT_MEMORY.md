@@ -1,20 +1,19 @@
 # MoneyFlow — current project memory
 
-**Status:** M0 is closed and M1 Phase A #523 / MON-61 is closed. Fresh-main selector PR #550 proposes MON-62 as the next bounded M1 slice; until #550 is owner-merged, merged `main` still has no executable current packet.
-**Last reconciled:** 2026-09-05
-**Repository baseline:** `main@06c3a0cc804c3764e0b7e1a94b6c556009b2b46e` after dependency-maintenance PRs #526, #543 and #542.
-**Last explicitly verified production runtime baseline:** `0bf9335c748aeddfdd988aa458298d2edc8ae437` (PR #546). Later documentation/dependency maintenance has not been used here as evidence of a production deployment.
-**Current authority on merged main:** `PLAN_AUTHORITY.current: null`.
-**Selector candidate:** PR #550 proposes `docs/plans/active/mon-62-source-adapters-provenance-dedupe.md`; candidate only until owner merge.
+**Status:** M0 is closed; M1 Phase A #523 / MON-61 is closed; MON-62 is the active Class 3 executable slice selected by merged PR #550. Implementation PR #552 is draft/candidate evidence until exact-head acceptance and owner merge.
+**Last reconciled:** 2026-09-06
+**Repository baseline:** `main@388549f99a288d99249e26f4116539e6705cb3ff` after selector PR #550 and research-handoff cleanup PR #551.
+**Last explicitly verified production runtime baseline:** `0bf9335c748aeddfdd988aa458298d2edc8ae437` (PR #546). Later selector/docs/dependency work is not production-deployment evidence.
+**Current authority on merged main:** `docs/plans/active/mon-62-source-adapters-provenance-dedupe.md`, selected by PR #550.
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
 
-MoneyFlow remains a Vietnamese personal-finance product built around one trustworthy user-owned ledger. M0 Release Integrity and M1 Phase A bank-export evidence work are complete. GitHub #523 is closed completed and Linear MON-61 is Done.
+MoneyFlow remains a Vietnamese personal-finance product centered on one trustworthy user-owned ledger. M0 Release Integrity and M1 Phase A bank-export evidence work are complete. GitHub #523 is closed and Linear MON-61 is Done.
 
-The next dependency-ordered candidate is **Linear MON-62 — source adapters, mappings and provenance-safe dedupe**. PR #550 is the fresh-main Class 0 selector for that Class 3 packet. It starts from exact `main@06c3a0cc804c3764e0b7e1a94b6c556009b2b46e` and may change repository executable authority only if the owner merges it. Runtime implementation must not begin before that merge, fresh `npm run plan:resolve`, and `npm run agent:doctor -- --json`.
+PR #550 merged and activated **MON-62 — source adapters, mappings and provenance-safe dedupe**. Git-history-backed plan resolution in CI confirms the master and MON-62 current packet are active. MON-63 remains Todo/unselected and must not be selected by the MON-62 completion PR.
 
-MON-63 remains Todo and unselected. The MON-62 implementation PR, if later completed, must converge authority back to `null` and must not select MON-63 in the same lifecycle closeout.
+PR #552 is the implementation vehicle for MON-62. It started from exact `main@388549f99a288d99249e26f4116539e6705cb3ff`; it is draft while implementation evaluation, exact-head gates and lifecycle convergence remain incomplete. Merge remains owner-only.
 
 ## 2. Current runtime and financial truth
 
@@ -25,49 +24,38 @@ MON-63 remains Todo and unselected. The MON-62 implementation PR, if later compl
 - Ledger facts support explicit correction and recoverable deletion where required.
 - Reconciliation state is distinct from source evidence.
 - Source/provider evidence is not automatically a posted fact.
-- Full archive/restore is separate from scoped/report export.
 - Parsers/adapters never become a second financial mutation authority; all sources converge on candidate/provenance/matching/approval/ledger/reconciliation ownership.
-
-Dependency maintenance after #547 changed repository/tooling/runtime package versions but did not authorize a new financial/data capability. PR #526 upgraded GitHub Actions dependencies, #543 upgraded bounded npm minor/patch dependencies, and #542 upgraded React/react-dom to 19.2.8. #542 final exact head `65dd4006831ef603655b0890728532294805b588` passed CI #3353, CodeQL #2380 and Secret history #2380 without retry, including first-pass authenticated ownership browser smoke, before squash merge as `06c3a0cc804c3764e0b7e1a94b6c556009b2b46e`.
+- Full archive/restore is separate from scoped/report export.
 
 ## 3. Acquisition and reconciliation truth
 
-Production/repository contracts already include provenance, exact-source matching, source lifecycle, replacement/predecessor observations, Direct CSV atomic/rule-aware ingestion and existing Inbox approval ownership.
+Merged repository/database contracts already include provenance, exact-source matching, source lifecycle, replacement/predecessor observations, Direct CSV atomic/rule-aware ingestion and Inbox approval ownership.
 
-The completed #523 / MON-61 slice established conservative Vietnam bank-export evidence:
+Completed #523 / MON-61 established conservative Vietnam bank-export evidence:
 
-- first-party material confirms an **Excel artifact family** in scoped Vietcombank, ACB and VietinBank flows;
-- exact `.xls` versus `.xlsx`, exported headers/layout, date/timezone, currency/direction, status/fee representation and provider-stable transaction identity remain unproven;
-- `source_external_id` is eligible only when a non-empty reference is evidence-confirmed and source-stable;
-- row indexes, UI/display references, export-local IDs, generated hashes and MoneyFlow preview fingerprints fail closed;
+- first-party material confirms an Excel artifact family in scoped Vietcombank, ACB and VietinBank flows;
+- exact exported consumer headers/layout, date/timezone, currency/direction, status/fee representation and provider-stable transaction identity remain unproven;
+- row indexes, UI/display references, export-local IDs, generated hashes and MoneyFlow preview fingerprints are not stable source identity;
 - all VCB/ACB/VietinBank bank-specific auto-map flags remain disabled.
 
-### MON-62 seam audit from fresh main
+MON-62 reuses existing schema. No new migration is needed merely to preserve source external ID, lifecycle, predecessor, parser/mapping evidence or existing matching semantics.
 
-Current code already contains the persistence primitives MON-62 needs, but evidence is lost before persistence:
+## 4. MON-62 implementation truth in PR #552
 
-- `src/lib/inbox/provenance.ts` models `sourceExternalId`, `sourceLifecycleState`, `sourcePredecessorExternalId`, parser/mapping versions and existing match evidence.
-- `candidateProvenanceInsertPatch()` already persists lifecycle and predecessor fields.
-- `src/lib/inbox/inbox-map.ts::prepareCandidateForServer()` currently preserves source row index, source external ID, parser version and mapping version but drops lifecycle/predecessor evidence.
-- `src/hooks/client-inbox.ts::addCandidatesForClient()` projects the same reduced provenance set.
-- `src/app/actions/inbox.ts::createCandidateSchema` accepts the reduced set and omits lifecycle/predecessor.
-- `src/components/inbox/import-preview-page.tsx` reads generic `ParsedCsvRow[]` draft rows and calls `toCsvCandidateInputs()`, so richer adapter evidence would currently disappear before Inbox insertion.
-- Direct CSV intentionally remains generic and must not be converted into a provider-specific bypass.
+PR #552 currently implements candidate changes only; none are merged runtime truth yet.
 
-MON-62 therefore defaults to **no new schema**. Existing database provenance/source-lineage contracts should be reused unless implementation proves an accepted source identity scope cannot be represented safely and stably without collision, PII leakage or dependence on mutable MoneyFlow mapping.
+- adds a pure source-adapter contract with explicit institution/account identity scope;
+- canonical source identity includes the proven namespace and fails closed when evidence is incomplete or unsafe;
+- source identity is never truncated at the 200-character persistence boundary;
+- adapter-only date normalization requires explicit date format and Excel 1900/1904 system, rejects Excel serial 60 and fractional datetime ambiguity, and never reads the current clock;
+- adapter-only amount normalization requires safe positive integer VND, absolute-value semantics and explicit debit/credit direction;
+- generic CSV/XLSX date fallback remains unchanged and generic imports do not invent stable identity;
+- a pure adapter→draft bridge preserves accepted source evidence without adding mutation authority;
+- draft → preview projection → client facade → server schema → insert → reload preserves current ID/lifecycle/predecessor/parser/mapping evidence;
+- raw provider references now require explicit identity scope before becoming a canonical source ID;
+- Direct CSV remains generic and no bank/provider network access or credentials are introduced.
 
-## 4. Source identity and strict-date boundary for MON-62
-
-External architecture references support a fail-closed source-identity design but do not prove target-bank export fields:
-
-- OFX 2.2 defines FITID for duplicate detection as account-scoped and warns it is not unique across financial institutions; a global key can require FI + account + FITID.
-- UK Open Banking v4 describes an optional transaction ID that is unique and immutable within the servicing institution.
-- Plaid Core Exchange describes persistent account-scoped transaction IDs and separate pending/posted identities linked by predecessor/reference semantics.
-- SheetJS documents spreadsheet date serials, number formats, 1900/1904 date-system issues and timezone interpretation limits.
-
-Product consequence: source identity scope is explicit evidence, not an implementation convenience. Provider name alone is insufficient for an account-scoped ID. A mutable MoneyFlow account UUID is not automatically a valid source namespace. If the stable source namespace is incomplete or unsafe to persist, omit `sourceExternalId` and continue through existing matching/review behavior.
-
-Adapter mode must also be strict about dates. The generic CSV parser currently has a fallback path that can produce the current date for a missing/unparseable date while marking uncertainty. MON-62 adapters must never inherit that fallback: missing or ambiguous required dates are invalid/reviewable, not silently replaced with today.
+A deeper implementation finding is now guarded: previous provenance insertion shortened `sourceExternalId` and predecessor values with `.slice(0, 200)`. Because truncation can alias two distinct identities, PR #552 changes identity persistence to omit invalid/overlong evidence rather than shorten it.
 
 ## 5. Current capability inventory
 
@@ -77,29 +65,32 @@ Adapter mode must also be strict about dates. The generic CSV parser currently h
 | Accounts | balances, register/history, create/edit/archive/restore, statement reconciliation |
 | Planning | category budgets, recurring commitments/income, savings goals |
 | Understanding | reports, drill-downs, controlled import/export |
-| Acquisition | provenance/source-lineage, generic CSV/XLSX/PDF surfaces, Direct CSV atomic/rule-aware ingestion, Share Target atomic/rule-aware ingestion; VCB/ACB/VietinBank Excel-family guidance exists but bank-specific auto-map does not |
+| Acquisition | merged provenance/source-lineage, generic CSV/XLSX/PDF, Direct CSV and Share Target flows; MON-62 adapter foundation is candidate in PR #552 |
 | Review | exception-first review plus duplicate/transfer/reconciliation contracts |
 | Ownership | versioned archive/export/validation/restore with source-lineage generation |
 | Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
-| Executable authority | merged main remains `null`; PR #550 is the unmerged MON-62 selector candidate |
+| Executable authority | MON-62 active via merged PR #550; MON-63 unselected |
 
-## 6. Security and delivery truth
+## 6. Research/evidence boundary
 
-M1 Phase A implementation PR #546 final exact head `44f281df135b43747af77e6efc7580b5db606333` passed CI #3323, CodeQL #2353 and Secret history #2353 without retry. Post-merge Vercel deployment `dpl_HWvZJNht8Yo1WzWi8NWCowbLnKBT` was READY for exact runtime commit `0bf9335c748aeddfdd988aa458298d2edc8ae437`; `/api/health` returned 200 with that commit and `no-store`, and no runtime errors were found in the checked one-hour window.
+External architecture references support MON-62 design but do not prove target-bank export fields:
 
-Docs-only PR #547 then reconciled durable memory and merged as `897807cb2ee3e21d53197810bfd418f44d37f9a3` after clean exact-head gates.
+- OFX 2.2 describes duplicate-detection identity as account-scoped and not globally unique across institutions.
+- UK Open Banking v4 describes an optional transaction ID unique and immutable within the servicing institution.
+- Plaid Core Exchange 6.3 describes persistent account-scoped transaction IDs and distinct pending/posted IDs connected by reference lineage.
+- SheetJS documents spreadsheet serial dates, 1900/1904 date systems, the preserved 1900 leap-year bug, fractional time values and timezone interpretation limits.
 
-Maintenance cleanup on 2026-09-05 then merged:
+These sources justify explicit namespace and fail-closed date handling only. They do not enable VCB/ACB/VietinBank auto-map or prove a consumer-export stable transaction ID.
 
-- PR #526 → `dc188e8e72a1fe03f8d51866d4dac3321b6962e0` after CI #3342 / CodeQL #2369 / Secret #2369 success;
-- PR #543 → `7c76767af4df397c64305d643441b6fb603c08dc` after CI #3347 / CodeQL #2374 / Secret #2374 success;
-- PR #542 → `06c3a0cc804c3764e0b7e1a94b6c556009b2b46e` after CI #3353 / CodeQL #2380 / Secret #2380 success and first-pass authenticated ownership browser smoke.
+## 7. Security and production-schema truth
 
-Failed/stale heads from those PRs are not acceptance evidence. No production database/Auth/provider/bank/customer-data mutation was used for dependency cleanup.
+M0 production schema remains the verified 56/56 migration baseline with the expected authenticated SECURITY DEFINER surface and the owner-accepted Supabase Free-plan leaked-password-protection limitation.
 
-## 7. Supabase security and production-schema truth
+M1 Phase A PR #546 exact head passed CI #3323, CodeQL #2353 and Secret history #2353 without retry; its production Vercel deployment was READY for runtime commit `0bf9335c748aeddfdd988aa458298d2edc8ae437`, and `/api/health` returned 200 during verification.
 
-M0 production schema remains the verified 56/56 migration baseline with the expected authenticated SECURITY DEFINER surface and the owner-accepted Supabase Free-plan leaked-password-protection limitation. M1 Phase A and selector PR #550 do not modify this boundary.
+PR #550 merged the MON-62 selector as `10ecf726dce426d6e03a020c6424fae43f202199`. Docs/research replay PR #551 then passed clean exact-head gates and merged as `388549f99a288d99249e26f4116539e6705cb3ff`. PRs #549 and #512 are closed as superseded.
+
+PR #552 performs no migration, production database/Auth/provider/bank/customer-data write or production deployment.
 
 ## 8. Reconciled issue status
 
@@ -108,52 +99,45 @@ M0 production schema remains the verified 56/56 migration baseline with the expe
 - #536/#539/#540/#544: M0 security/runtime/database/lifecycle slice completed.
 - #523 / MON-61: completed and closed/Done.
 - MON-50: broader M1 — Vietnam Acquisition Depth program remains active.
-- MON-62: Todo/High in Linear; dependency predecessor complete; PR #550 proposes it as the next repository current slice.
-- MON-63: Todo/High; blocked by MON-62 and remains unselected.
-- PR #549: docs-only fresh-main replacement for stale/conflicted #512; exact-head green but remains at a separate owner merge boundary and establishes no executable product authority.
-- PR #512: stale historical research-handoff PR; close as superseded only after #549 actually merges.
+- MON-62: active repository slice via merged #550; implementation is PR #552 draft.
+- MON-63: Todo/High, blocked by MON-62 and unselected.
+- PR #549: closed superseded by #551.
+- PR #512: closed superseded by #551.
 
 ## 9. Open pull-request memory
 
-### PR #550 — MON-62 selector candidate
+### PR #552 — MON-62 implementation
 
-PR #550 is a Class 0 authority/planning PR from exact `main@06c3a0cc804c3764e0b7e1a94b6c556009b2b46e`. It adds `docs/plans/active/mon-62-source-adapters-provenance-dedupe.md` and proposes:
+PR #552 is a Class 3 runtime/data-integrity PR from exact base `main@388549f99a288d99249e26f4116539e6705cb3ff`. It contains the source-adapter foundation, strict adapter validation, identity hardening, evidence-aware import plumbing and counterexample tests described above.
 
-`PLAN_AUTHORITY.current → { path: "docs/plans/active/mon-62-source-adapters-provenance-dedupe.md", selectedByPr: 550 }`
-
-This is candidate evidence until owner merge. It performs no runtime, schema, RLS, Auth, provider, bank, production-data or deployment write. Implementation remains forbidden until selector merge plus fresh plan resolution/doctor.
-
-The packet requires a pure deterministic adapter/normalized-row contract, explicit `identityScope`, strict date/amount/direction validation, evidence-aware draft/preview transport, preservation of lifecycle/predecessor provenance, replay/collision/counterexample tests and existing Inbox/approval mutation ownership. VCB/ACB/VietinBank auto-map remains false.
-
-### Other open maintenance/history PRs
-
-PR #549 is docs-only and green but not executable authority. PR #512 remains stale/supersedable only after #549 merge. Neither authorizes MON-62 runtime work.
+The first CI run on implementation head `ddb9ac0af7ddecd0010dd01260ba9269ebe3d78f` confirmed plan authority resolves MON-62 active and migration identity remains unchanged, but Project Knowledge failed because this snapshot file was absent from the PR diff. That head is not acceptance evidence. PR #552 now reconciles this file on a new head; all required acceptance must be clean on the final exact head without retry-only substitution.
 
 ## 10. True gaps after this audit
 
-1. Exact current VCB/ACB/VietinBank consumer export headers/layout versions and exact Excel extensions.
-2. Provider-stable transaction identity and its namespace across repeated/overlapping exports.
+1. Exact VCB/ACB/VietinBank consumer export headers/layout versions and exact Excel extensions.
+2. Provider-stable transaction identity plus proven institution/account namespace for those exports.
 3. Exact exported date/timezone, currency/direction, status and fee semantics.
-4. Evidence-aware import draft/preview transport that preserves accepted source lifecycle/predecessor fields.
-5. Explicit, collision-safe source identity canonicalization without mutable MoneyFlow mapping.
-6. Strict adapter date handling that never substitutes the current date.
-7. Owner merge of selector #550 before executable MON-62 implementation begins.
+4. Clean exact-head CI/static/unit/build/browser/security acceptance for PR #552.
+5. Independent final-diff evaluation against replay, collision, changed-observation, predecessor, removed-source and no-ID counterexamples.
+6. Same-PR MON-62 lifecycle convergence after acceptance.
 
 ## 11. Next allowed action
 
-Verify selector PR #550 at its exact head: project knowledge/policy contract, CodeQL and Secret history as selected by repository policy, with no retry-pass accepted. Confirm mergeability and review/thread state, then hand off for explicit owner merge.
+Continue PR #552 verification on its newest head. Fix first-pass findings by changing the head rather than treating a retry as acceptance. If runtime evidence conflicts with the selected packet, regress to specification rather than widening scope silently.
 
-Do **not** implement MON-62 runtime code, create schema/provider changes, enable bank-specific auto-map, access bank credentials, mutate production data or select MON-63 before #550 is owner-merged and fresh merged authority is resolved.
+After implementation and counterexample evaluation are clean, PR #552 must archive the MON-62 packet, set `PLAN_AUTHORITY.current` to `null`, update this memory to the completed truth, leave MON-63 unselected, then reach owner merge handoff. No production/provider write is implied.
 
 ## 12. Superseded-status register
 
-- `PLAN_AUTHORITY.current` is already MON-62 on merged main — **false**; merged main remains `null` until #550 is owner-merged.
-- MON-62 is executable merely because MON-61 is Done — **false**; dependency order does not bypass selector authority.
-- Existing provenance requires a new schema just to preserve lifecycle/predecessor evidence — **false**; current provenance types and insertion mapper already contain those primitives, while client/action/preview seams currently drop them.
-- Provider name + raw transaction reference is always a globally safe source ID — **false**; identity scope may be institution- or account-scoped and must be proven.
-- A MoneyFlow account UUID is automatically a safe source namespace — **false**; user mapping can be corrected and is not necessarily source evidence.
-- Missing adapter dates may use today's date if marked uncertain — **false**; adapter mode must fail closed.
-- VCB/ACB/VietinBank Excel evidence proves exact headers or stable transaction IDs — **false**.
-- PR #550 enables bank-specific auto-map or live bank sync — **false**.
-- PR #549 or stale #512 establishes current executable product authority — **false**.
+- `PLAN_AUTHORITY.current` is null on merged main — **false**; MON-62 is active via PR #550 until same-PR implementation closeout merges.
+- PR #550 is still an unmerged selector candidate — **false**; it merged and activated MON-62.
+- PR #549 or #512 remains an open research-maintenance boundary — **false**; both are closed after #551 merged.
+- Existing provenance requires a new schema just to preserve lifecycle/predecessor evidence — **false**; current migrations already contain those primitives.
+- A raw provider transaction reference is globally safe source identity — **false**; namespace scope must be proven and encoded.
+- Truncating an overlong stable source ID is safe — **false**; truncation can alias identities, so PR #552 fails closed instead.
+- A MoneyFlow account UUID is automatically a safe source namespace — **false**; mutable mapping is not source evidence.
+- Missing adapter dates may use today's date if marked uncertain — **false**; adapter mode fails closed.
+- Generic CSV/XLSX behavior was globally changed to strict-date mode by PR #552 — **false**; strictness is adapter-only.
+- VCB/ACB/VietinBank Excel evidence proves exact headers/stable IDs or enables auto-map — **false**.
+- PR #552 adds live bank sync, provider credentials or a new ledger mutation route — **false**.
 - Supabase leaked-password protection was remediated in M0 — **false**; it remains an owner-accepted Free-plan limitation.
