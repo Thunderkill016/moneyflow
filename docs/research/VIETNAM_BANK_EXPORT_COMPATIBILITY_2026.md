@@ -2,7 +2,7 @@
 
 **Status:** implementation evidence for #523 / MON-61
 
-**Last refreshed:** 2026-09-04
+**Last refreshed:** 2026-09-05
 
 **Scope:** Vietcombank, ACB and VietinBank export/statement evidence only. This is not a claim of live bank sync, universal bank/version support or provider-stable transaction identity.
 
@@ -20,8 +20,8 @@ A field stays unknown rather than being guessed. A displayed reference, export r
 
 | Contract area | Vietcombank | ACB | VietinBank |
 |---|---|---|---|
-| Statement/history available | **confirmed** — VCB Digibank history workflow | **confirmed** — ACB ONE history + supported store-management flow | **confirmed** — current card statement/history + iPay material |
-| Downloadable artifact | **confirmed: Excel** in VCB Digibank history workflow; `.xls` vs `.xlsx` not established | **confirmed: Excel** in supported ACB first-party flow; `.xls` vs `.xlsx` not established | **unknown** for target consumer-account export |
+| Statement/history available | **confirmed** — VCB Digibank history workflow | **confirmed** — ACB ONE history + supported store-management flow | **confirmed** — iPay Web account history/statement plus current account/card material |
+| Downloadable artifact | **confirmed: Excel** in VCB Digibank history workflow; `.xls` vs `.xlsx` not established | **confirmed: Excel** in supported ACB first-party flow; `.xls` vs `.xlsx` not established | **confirmed: Excel** — VietinBank customer-support guidance says iPay Web can retrieve Excel detailed transaction data for the account; `.xls` vs `.xlsx` not established |
 | Exact exported headers/layout | **unknown** | **unknown**; store-management evidence must not be generalized to all consumer exports | **unknown** |
 | Date/timezone semantics in exported file | **unknown**; UI shows transaction/system dates | **unknown** | **unknown**; card material distinguishes posting-date concepts only |
 | Currency field/semantics | **unknown**; examples show VND but export contract is not proven | **unknown** | **unknown** |
@@ -32,7 +32,7 @@ A field stays unknown rather than being guessed. A displayed reference, export r
 | Fee representation | **unknown** | **unknown** | **observed-but-unverified** — current card statement concept includes fees; target export layout unproven |
 | Overlapping export behavior / dedupe | **unknown** | **unknown** | **unknown** |
 | Bank-specific auto-map enabled | **no** | **no** | **no** |
-| Safe current path | existing generic CSV/XLSX parser + mapping/review | existing generic CSV/XLSX parser + mapping/review | generic import only if user has a compatible file; no bank-specific claim |
+| Safe current path | existing generic CSV/XLSX parser + mapping/review | existing generic CSV/XLSX parser + mapping/review | existing generic CSV/XLSX parser + mapping/review; no bank-specific layout claim |
 
 ## Provider notes
 
@@ -50,9 +50,9 @@ Current decision: Excel availability is confirmed for the supported scope; exact
 
 ### VietinBank
 
-Current first-party VietinBank card terms/guidance confirm statement/history access and iPay-related account/card history. Current material also uses posting-date and fee concepts for card statements. The reviewed first-party evidence does **not** establish a target consumer-account downloadable file format or exported header schema.
+First-party VietinBank customer-support guidance for personal customers states that on iPay Web users can print an account statement as PDF or retrieve an **Excel file with detailed transaction data on the account**. That evidence is strong enough to confirm the Excel artifact family for the stated iPay Web account scope. It does not establish `.xls` versus `.xlsx`, exact exported headers, field semantics or a provider-stable transaction reference. Current card terms/guidance additionally establish statement/history, posting-date and fee concepts, but those concepts are not promoted to the account-export layout contract.
 
-Current decision: statement/history availability is confirmed; downloadable artifact type and bank-specific mapping remain unknown/disabled.
+Current decision: Excel artifact availability is confirmed for the iPay Web account scope; bank-specific layout normalization, source identity and auto-map remain disabled.
 
 ## Synthetic fixture policy
 
@@ -100,6 +100,8 @@ This does not change the current Direct CSV acquisition payload, which still int
 
 ### VietinBank
 
+- VietinBank customer-support FAQ — iPay Web account statement / Excel detailed transaction data:
+  `https://contact.vietinbank.vn/blog/obj_faq_42767083/fld_faqid_63024046/FAQ42`
 - Current VietinBank card terms/statement-history material:
   `https://www.vietinbank.vn/assets/cfa87952-5eb4-496d-b780-5b21335ba19f`
 - Current VietinBank card agreement/history/iPay material:
