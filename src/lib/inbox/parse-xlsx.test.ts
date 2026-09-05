@@ -74,6 +74,26 @@ test("evidence reader preserves numeric date code, number format and 1904 epoch"
   assert.equal(dateCell.dateLikeFormat, true);
 });
 
+test("evidence reader accepts a real BIFF8 XLS workbook container", () => {
+  const wb = workbookWithDateEvidence(false);
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "biff8" }) as Buffer;
+  const evidence = readXlsxSourceEvidence(buf);
+
+  assert.equal(evidence.ok, true);
+  if (!evidence.ok) return;
+  assert.equal(evidence.sheetName, "Evidence");
+  assert.equal(evidence.dateSystem, "1900");
+  assert.equal(evidence.rows[1]?.[0]?.rawValue, 45_000);
+});
+
+test("evidence reader rejects ODS even though it is also a ZIP spreadsheet", () => {
+  const wb = workbookWithDateEvidence(false);
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "ods" }) as Buffer;
+  const evidence = readXlsxSourceEvidence(buf);
+
+  assert.equal(evidence.ok, false);
+});
+
 test("evidence reader keeps empty worksheet positions and does not invent values", () => {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([
