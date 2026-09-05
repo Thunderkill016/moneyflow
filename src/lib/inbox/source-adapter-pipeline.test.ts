@@ -8,7 +8,11 @@ import {
   toCsvCandidateInputs,
   type ParsedCsvRow,
 } from "./parse-csv.ts";
-import { canonicalizeSourceExternalId } from "./source-adapter.ts";
+import { sourceAdapterRowToParsedCsvRow } from "./source-adapter-bridge.ts";
+import {
+  canonicalizeSourceExternalId,
+  type NormalizedSourceAdapterRow,
+} from "./source-adapter.ts";
 
 const accountScope = {
   kind: "account" as const,
@@ -28,27 +32,26 @@ function sourceId(value: string): string {
   return result;
 }
 
-test("stable posted evidence survives preview projection through DB insert payload", () => {
+test("accepted adapter evidence survives adapter bridge through DB insert payload", () => {
   const current = sourceId("posted-123");
   const predecessor = sourceId("pending-123");
-  const parsed: ParsedCsvRow = {
+  const adapted: NormalizedSourceAdapterRow = {
     kind: "expense",
     amount: 120_000,
     merchant: "Synthetic Merchant",
     note: "",
     occurredOn: "2026-09-05",
     confidence: "high",
-    uncertainFields: [],
-    explanations: [],
     rawSnippet: "synthetic structural fixture",
-    rowIndex: 17,
     sourceRowIndex: 17,
     sourceExternalId: current,
     sourceLifecycleState: "posted",
     sourcePredecessorExternalId: predecessor,
     parserVersion: "example-bank-xlsx@1.0",
     mappingVersion: 1,
+    findings: [],
   };
+  const parsed = sourceAdapterRowToParsedCsvRow(adapted);
 
   const [input] = toCsvCandidateInputs(
     [parsed],
@@ -60,6 +63,7 @@ test("stable posted evidence survives preview projection through DB insert paylo
   const prepared = prepareCandidateForServer(input);
   const row = candidateToInsertRow(prepared, "user-1");
 
+  assert.equal(parsed.rowIndex, 17);
   assert.equal(row.source_row_index, 17);
   assert.equal(row.source_external_id, current);
   assert.equal(row.source_lifecycle_state, "posted");
@@ -67,6 +71,29 @@ test("stable posted evidence survives preview projection through DB insert paylo
   assert.equal(row.parser_version, "example-bank-xlsx@1.0");
   assert.equal(row.mapping_version, 1);
   assert.equal(row.status, "pending");
+});
+
+test("adapter findings become review evidence without creating financial authority", () => {
+  const parsed = sourceAdapterRowToParsedCsvRow({
+    kind: "expense",
+    amount: 90_000,
+    merchant: "Synthetic Merchant",
+    note: "",
+    occurredOn: "2026-09-05",
+    confidence: "medium",
+    rawSnippet: "synthetic",
+    sourceRowIndex: 4,
+    parserVersion: "example@1.0",
+    mappingVersion: 1,
+    findings: [
+      { field: "direction", code: "review_direction", message: "Review direction" },
+      { field: "identity", code: "no_stable_id", message: "No stable ID" },
+    ],
+  });
+
+  assert.deepEqual(parsed.uncertainFields, ["kind"]);
+  assert.deepEqual(parsed.explanations, ["Review direction", "No stable ID"]);
+  assert.equal(parsed.sourceExternalId, undefined);
 });
 
 test("row order changes cannot change or invent stable source identity", () => {
