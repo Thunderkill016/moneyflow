@@ -183,12 +183,12 @@ const COMPATIBILITY: Record<BankExportProvider, BankExportCompatibility> = {
     statementOrHistoryAvailable: {
       value: true,
       evidence: "confirmed",
-      scope: "Current VietinBank card terms/guidance describe statements/history and iPay access",
+      scope: "VietinBank iPay Web account history/statement and current first-party account/card guidance",
     },
     artifactFormat: {
-      value: "unknown",
-      evidence: "unknown",
-      scope: "No target consumer-account downloadable file format was established",
+      value: "excel",
+      evidence: "confirmed",
+      scope: "VietinBank customer-support guidance says iPay Web can retrieve Excel detailed transaction data for the account",
     },
     layoutHeaders: {
       value: null,
@@ -232,8 +232,9 @@ const COMPATIBILITY: Record<BankExportProvider, BankExportCompatibility> = {
     },
     bankSpecificAutoMapSupported: false,
     guidance:
-      "MoneyFlow xác nhận VietinBank có lịch sử/sao kê ở các luồng first-party đã nghiên cứu, nhưng chưa xác minh định dạng file export cho tài khoản mục tiêu. Không bật auto-map theo ngân hàng; nếu có file CSV/Excel, dùng luồng import chung và review mapping.",
+      "VietinBank iPay Web có thể xuất dữ liệu giao dịch chi tiết dạng Excel, nhưng MoneyFlow chưa xác minh cấu trúc cột hoặc mã giao dịch ổn định. Không bật auto-map; hãy dùng luồng import chung và review mapping.",
     sourceUrls: [
+      "https://contact.vietinbank.vn/blog/obj_faq_42767083/fld_faqid_63024046/FAQ42",
       "https://www.vietinbank.vn/assets/cfa87952-5eb4-496d-b780-5b21335ba19f",
       "https://www.vietinbank.vn/assets/9a43a89d-a5c7-4655-8e28-2871c449359b",
     ],
