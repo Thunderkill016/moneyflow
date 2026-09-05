@@ -189,6 +189,12 @@ The known generic parser fallback-to-today behavior is a product-law concern. MO
 | no source-stable ID | existing heuristic/review path, no synthetic ID |
 | display/reference value marked unverified | not persisted as source identity |
 
+## Evaluation
+
+Independent evaluation for the selector is policy-oriented rather than runtime-oriented. Before merge, verify that the packet is bounded to the existing acquisition/provenance architecture, that no source identity is broadened beyond its proven namespace, that strict adapter-date behavior never invents dates, that no Vietnamese-bank layout/stable-ID claim exceeds current evidence, and that the selector performs no runtime/provider/schema/production mutation. A failed exact-head policy or knowledge check returns the selector to planning and requires a new head; retry-only success is not acceptance evidence.
+
+The implementation PR must later evaluate the actual diff against every counterexample above, including cross-institution/account collisions, replay/reordered exports, missing/ambiguous dates, pending→posted predecessor lineage, changed observations, removed-unmatched sources and no-ID fallback. Evaluation must read both the packet and the implementation diff and regress state if evidence conflicts with the plan.
+
 ## Verification plan
 
 Selector PR:
