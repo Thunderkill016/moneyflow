@@ -56,6 +56,35 @@ test("candidate provenance maps nullable Supabase fields without inventing data"
   );
 });
 
+test("candidate provenance retains lifecycle and predecessor evidence", () => {
+  assert.deepEqual(
+    candidateProvenanceFromRow({
+      source_external_id: "mf-src-v1|account|bank|acct|posted-1",
+      source_lifecycle_state: "posted",
+      source_predecessor_external_id: "mf-src-v1|account|bank|acct|pending-1",
+    }),
+    {
+      sourceRowIndex: undefined,
+      sourceExternalId: "mf-src-v1|account|bank|acct|posted-1",
+      sourceLifecycleState: "posted",
+      sourcePredecessorExternalId: "mf-src-v1|account|bank|acct|pending-1",
+      fingerprintVersion: undefined,
+      fingerprint: undefined,
+      parserVersion: undefined,
+      mappingVersion: undefined,
+      matchStatus: undefined,
+      matchReason: undefined,
+      matchConfidence: undefined,
+      possibleTransfer: undefined,
+      transferPairId: undefined,
+      approvedTransactionId: undefined,
+      approvedAt: undefined,
+      appliedRuleId: undefined,
+      appliedRuleVersion: undefined,
+    },
+  );
+});
+
 test("candidate provenance retains a concrete applied rule revision", () => {
   assert.deepEqual(
     candidateProvenanceFromRow({
@@ -109,6 +138,60 @@ test("candidate insert patch provides current explicit parser/mapping defaults",
     parser_version: "csv_import@1.0",
     mapping_version: CURRENT_IMPORT_MAPPING_VERSION,
   });
+});
+
+test("candidate insert patch persists coherent source lineage without truncating identity", () => {
+  const current = "mf-src-v1|account|bank|acct|posted-1";
+  const predecessor = "mf-src-v1|account|bank|acct|pending-1";
+  const patch = candidateProvenanceInsertPatch({
+    kind: "expense",
+    amount: 45_000,
+    merchant: "Cafe",
+    occurredOn: "2026-08-01",
+    source: "csv",
+    confidence: "high",
+    sourceExternalId: `  ${current}  `,
+    sourceLifecycleState: "posted",
+    sourcePredecessorExternalId: predecessor,
+  });
+  assert.equal(patch.source_external_id, current);
+  assert.equal(patch.source_lifecycle_state, "posted");
+  assert.equal(patch.source_predecessor_external_id, predecessor);
+});
+
+test("candidate insert patch omits unsafe source identity instead of truncating or orphaning lineage", () => {
+  const patch = candidateProvenanceInsertPatch({
+    kind: "expense",
+    amount: 45_000,
+    merchant: "Cafe",
+    occurredOn: "2026-08-01",
+    source: "csv",
+    confidence: "high",
+    sourceExternalId: "x".repeat(201),
+    sourceLifecycleState: "posted",
+    sourcePredecessorExternalId: "pending-1",
+  });
+  assert.equal(patch.source_external_id, null);
+  assert.equal(patch.source_lifecycle_state, null);
+  assert.equal(patch.source_predecessor_external_id, null);
+});
+
+test("candidate insert patch drops self-referential predecessor evidence", () => {
+  const sourceExternalId = "mf-src-v1|institution|bank|txn-1";
+  const patch = candidateProvenanceInsertPatch({
+    kind: "expense",
+    amount: 45_000,
+    merchant: "Cafe",
+    occurredOn: "2026-08-01",
+    source: "csv",
+    confidence: "high",
+    sourceExternalId,
+    sourceLifecycleState: "posted",
+    sourcePredecessorExternalId: sourceExternalId,
+  });
+  assert.equal(patch.source_external_id, sourceExternalId);
+  assert.equal(patch.source_lifecycle_state, "posted");
+  assert.equal(patch.source_predecessor_external_id, null);
 });
 
 test("candidate insert patch emits rule columns only for a complete evidence pair", () => {
