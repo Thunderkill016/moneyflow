@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   canonicalizeSourceExternalId,
+  normalizeStrictSourceAmount,
   normalizeStrictSourceDate,
+  persistableSourceExternalId,
   SOURCE_EXTERNAL_ID_MAX_LENGTH,
 } from "./source-adapter.ts";
 
@@ -90,6 +92,24 @@ test("identity fails closed when evidence, stability, namespace safety, or lengt
   assert.equal(
     canonicalizeSourceExternalId({
       value: "x".repeat(SOURCE_EXTERNAL_ID_MAX_LENGTH),
+      evidence: "confirmed",
+      stability: "source-stable",
+      scope: { kind: "institution", institutionKey: "bank" },
+    }),
+    undefined,
+  );
+});
+
+test("persistence guard never truncates identity and malformed Unicode fails closed", () => {
+  const prefix = "stable-";
+  assert.equal(persistableSourceExternalId(`  ${prefix}id  `), `${prefix}id`);
+  assert.equal(
+    persistableSourceExternalId("x".repeat(SOURCE_EXTERNAL_ID_MAX_LENGTH + 1)),
+    undefined,
+  );
+  assert.equal(
+    canonicalizeSourceExternalId({
+      value: "\ud800",
       evidence: "confirmed",
       stability: "source-stable",
       scope: { kind: "institution", institutionKey: "bank" },
@@ -204,5 +224,71 @@ test("Excel date normalization requires a known epoch and rejects the 1900 leap 
       calendarSemantics: "date-only",
     }),
     { ok: false, reason: "ambiguous_excel_datetime" },
+  );
+  assert.deepEqual(
+    normalizeStrictSourceDate({
+      value: Number.MAX_SAFE_INTEGER,
+      format: "excel-serial",
+      dateSystem: "1900",
+      calendarSemantics: "date-only",
+    }),
+    { ok: false, reason: "invalid_excel_serial" },
+  );
+});
+
+test("strict amount normalization requires safe integer VND and explicit direction", () => {
+  assert.deepEqual(
+    normalizeStrictSourceAmount({
+      value: 45_000,
+      currency: "VND",
+      direction: "debit",
+      amountSemantics: "absolute",
+    }),
+    { ok: true, amount: 45_000, kind: "expense" },
+  );
+  assert.deepEqual(
+    normalizeStrictSourceAmount({
+      value: 25_000_000,
+      currency: "vnd",
+      direction: "credit",
+      amountSemantics: "absolute",
+    }),
+    { ok: true, amount: 25_000_000, kind: "income" },
+  );
+  assert.deepEqual(
+    normalizeStrictSourceAmount({
+      value: 45_000.5,
+      currency: "VND",
+      direction: "debit",
+      amountSemantics: "absolute",
+    }),
+    { ok: false, reason: "invalid_amount" },
+  );
+  assert.deepEqual(
+    normalizeStrictSourceAmount({
+      value: 45_000,
+      currency: "USD",
+      direction: "debit",
+      amountSemantics: "absolute",
+    }),
+    { ok: false, reason: "unsupported_currency" },
+  );
+  assert.deepEqual(
+    normalizeStrictSourceAmount({
+      value: 45_000,
+      currency: "VND",
+      direction: "unknown",
+      amountSemantics: "absolute",
+    }),
+    { ok: false, reason: "ambiguous_direction" },
+  );
+  assert.deepEqual(
+    normalizeStrictSourceAmount({
+      value: 45_000,
+      currency: "VND",
+      direction: "debit",
+      amountSemantics: "unknown",
+    }),
+    { ok: false, reason: "ambiguous_amount_semantics" },
   );
 });
