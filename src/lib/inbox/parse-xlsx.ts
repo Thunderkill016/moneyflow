@@ -50,6 +50,8 @@ export type XlsxEvidenceResult =
     }
   | { ok: false; error: string };
 
+type ExcelEvidenceContainer = "ooxml-zip" | "cfb-xls" | "raw-biff";
+
 function emptyXlsxFail(fileName: string, error: string): ParseCsvResult {
   return {
     ok: false,
@@ -79,6 +81,33 @@ const OLE_COMPOUND_SIGNATURE = [
 ] as const;
 const BIFF_SECOND_BYTES = new Set([0x00, 0x02, 0x04, 0x08]);
 
+function excelEvidenceContainer(
+  data: ArrayBuffer | Uint8Array,
+): ExcelEvidenceContainer | null {
+  const bytes = toBytes(data);
+  if (bytes.length < 2) return null;
+
+  // OOXML XLSX/XLSM packages are ZIP containers. This is only a first gate;
+  // after parsing we also require the OOXML workbook marker.
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b) return "ooxml-zip";
+
+  // BIFF5/8 XLS normally uses the OLE/CFB compound container.
+  if (
+    bytes.length >= OLE_COMPOUND_SIGNATURE.length &&
+    OLE_COMPOUND_SIGNATURE.every((value, index) => bytes[index] === value)
+  ) {
+    return "cfb-xls";
+  }
+
+  // Earlier BIFF streams can start directly with a BOF record. SheetJS' file
+  // type detector treats 0x09 as BIFF; constrain byte 1 to known BOF versions.
+  if (bytes[0] === 0x09 && BIFF_SECOND_BYTES.has(bytes[1]!)) {
+    return "raw-biff";
+  }
+
+  return null;
+}
+
 /**
  * Strict evidence mode accepts only binary Excel-family signatures that can
  * carry typed cells. This intentionally rejects SheetJS' plaintext fallback,
@@ -87,24 +116,37 @@ const BIFF_SECOND_BYTES = new Set([0x00, 0x02, 0x04, 0x08]);
 export function hasSupportedExcelEvidenceSignature(
   data: ArrayBuffer | Uint8Array,
 ): boolean {
-  const bytes = toBytes(data);
-  if (bytes.length < 2) return false;
+  return excelEvidenceContainer(data) !== null;
+}
 
-  // OOXML XLSX/XLSM packages are ZIP containers. SheetJS identifies these by
-  // a leading 0x50 byte; requiring the PK pair avoids plain-text fallback.
-  if (bytes[0] === 0x50 && bytes[1] === 0x4b) return true;
+function workbookMatchesExcelContainer(
+  workbook: XLSX.WorkBook,
+  container: ExcelEvidenceContainer,
+): boolean {
+  if (container === "raw-biff") return true;
 
-  // BIFF5/8 XLS normally uses the OLE/CFB compound container.
-  if (
-    bytes.length >= OLE_COMPOUND_SIGNATURE.length &&
-    OLE_COMPOUND_SIGNATURE.every((value, index) => bytes[index] === value)
-  ) {
-    return true;
+  if (container === "ooxml-zip") {
+    const keys = (workbook as unknown as { keys?: unknown }).keys;
+    if (!Array.isArray(keys)) return false;
+    return keys.some((key) => {
+      if (typeof key !== "string") return false;
+      const normalized = key
+        .replace(/^Root Entry\//i, "")
+        .replace(/^\/+/, "")
+        .toLowerCase();
+      return normalized === "xl/workbook.xml";
+    });
   }
 
-  // Earlier BIFF streams can start directly with a BOF record. SheetJS' file
-  // type detector treats 0x09 as BIFF; constrain byte 1 to known BOF versions.
-  return bytes[0] === 0x09 && BIFF_SECOND_BYTES.has(bytes[1]!);
+  const fullPaths = (
+    workbook as unknown as { cfb?: { FullPaths?: unknown } }
+  ).cfb?.FullPaths;
+  if (!Array.isArray(fullPaths)) return false;
+  return fullPaths.some(
+    (path) =>
+      typeof path === "string" &&
+      /(?:^|\/)(?:workbook|book)\/?$/i.test(path),
+  );
 }
 
 /**
@@ -126,6 +168,7 @@ export function xlsxWorkbookDateSystem(
  *
  * It deliberately differs from the legacy generic parser:
  * - only typed Excel-family binary signatures are accepted;
+ * - ZIP/CFB containers must contain Excel workbook markers;
  * - `cellDates:false` preserves Excel date codes as numbers;
  * - `cellNF:true` preserves source number-format metadata;
  * - workbook epoch is returned explicitly;
@@ -141,7 +184,8 @@ export function readXlsxSourceEvidence(
   if (!data || (data as ArrayBuffer).byteLength === 0) {
     return { ok: false, error: "File Excel trống hoặc không đọc được." };
   }
-  if (!hasSupportedExcelEvidenceSignature(data)) {
+  const container = excelEvidenceContainer(data);
+  if (!container) {
     return {
       ok: false,
       error:
@@ -155,11 +199,20 @@ export function readXlsxSourceEvidence(
       type: "array",
       cellDates: false,
       cellNF: true,
+      bookFiles: true,
     });
   } catch {
     return {
       ok: false,
       error: "Không mở được file Excel để đọc bằng chứng nguồn.",
+    };
+  }
+
+  if (!workbookMatchesExcelContainer(workbook, container)) {
+    return {
+      ok: false,
+      error:
+        "Container bảng tính không xác nhận cấu trúc XLS/XLSX cho bằng chứng nguồn.",
     };
   }
 
