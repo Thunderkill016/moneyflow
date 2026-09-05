@@ -5,7 +5,8 @@
 **Active role:** planner
 **Permission scope:** branch_write
 **Owner:** ThunderK
-**Issue/PR:** Linear MON-62 / GitHub PR #550
+**Issue/PR:** Linear MON-62 / implementation PR pending
+**Selector:** GitHub PR #550
 **Fresh-main baseline:** `06c3a0cc804c3764e0b7e1a94b6c556009b2b46e`
 **Last updated:** 2026-09-05
 
