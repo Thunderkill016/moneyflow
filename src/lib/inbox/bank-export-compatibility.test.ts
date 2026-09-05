@@ -50,8 +50,8 @@ test("Phase A compatibility inventory covers exactly the three selected banks", 
   );
 });
 
-test("VCB and ACB Excel availability is confirmed without claiming file extension or exported headers", () => {
-  for (const provider of ["vietcombank", "acb"] as const) {
+test("target-bank Excel availability is confirmed without claiming exported headers or enabling auto-map", () => {
+  for (const provider of BANK_EXPORT_PROVIDERS) {
     const profile = getBankExportCompatibility(provider);
     assert.equal(profile.artifactFormat.value, "excel");
     assert.equal(profile.artifactFormat.evidence, "confirmed");
@@ -62,12 +62,14 @@ test("VCB and ACB Excel availability is confirmed without claiming file extensio
   }
 });
 
-test("VietinBank stays unknown for target downloadable file format", () => {
+test("VietinBank iPay Web Excel evidence remains layout-conservative", () => {
   const profile = getBankExportCompatibility("vietinbank");
   assert.equal(profile.statementOrHistoryAvailable.value, true);
   assert.equal(profile.statementOrHistoryAvailable.evidence, "confirmed");
-  assert.equal(profile.artifactFormat.value, "unknown");
-  assert.equal(profile.artifactFormat.evidence, "unknown");
+  assert.equal(profile.artifactFormat.value, "excel");
+  assert.equal(profile.artifactFormat.evidence, "confirmed");
+  assert.equal(profile.layoutHeaders.value, null);
+  assert.equal(profile.layoutHeaders.evidence, "unknown");
   assert.equal(canUseBankSpecificAutoMap("vietinbank"), false);
 });
 
