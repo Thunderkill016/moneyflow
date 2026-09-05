@@ -8,8 +8,8 @@ import {
   useId,
   useRef,
   useState,
-  type DragEvent,
   type ChangeEvent,
+  type DragEvent,
 } from "react";
 import { Icon } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
@@ -26,8 +26,15 @@ import {
   type ImportCandidateSource,
 } from "@/lib/inbox/parse-csv";
 import { trackProductEvent } from "@/lib/safe-analytics";
+import styles from "./capture-upload-page.module.css";
 
 type Phase = "idle" | "reading" | "error";
+
+type BankExportGuidance = {
+  provider: string;
+  displayName: string;
+  guidance: string;
+};
 
 const ACCEPT =
   ".csv,.xlsx,.xls,.pdf,text/csv,application/pdf,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -38,7 +45,13 @@ function formatBytes(n: number): string {
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
+export function CaptureUploadPage({
+  viewer,
+  bankExportGuidance,
+}: {
+  viewer: ViewerSummary;
+  bankExportGuidance: readonly BankExportGuidance[];
+}) {
   const router = useRouter();
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -220,6 +233,25 @@ export function CaptureUploadPage({ viewer }: { viewer: ViewerSummary }) {
               Về Inbox
             </Link>
           </div>
+        </section>
+
+        <section
+          className={styles.bankGuidance}
+          aria-labelledby="bank-export-guidance-heading"
+        >
+          <h2 id="bank-export-guidance-heading">Sao kê ngân hàng Việt Nam</h2>
+          <p>
+            MoneyFlow chưa tự nhận diện cấu trúc file theo ngân hàng. File vẫn đi
+            qua parser chung, Import Preview và Inbox để bạn kiểm tra trước khi
+            ghi sổ; ứng dụng không yêu cầu thông tin đăng nhập ngân hàng.
+          </p>
+          <ul>
+            {bankExportGuidance.map((profile) => (
+              <li key={profile.provider}>
+                <strong>{profile.displayName}:</strong> {profile.guidance}
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section
