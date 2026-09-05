@@ -4,8 +4,8 @@
   "containsCustomerData": false,
   "artifact": {
     "kind": "statement-or-history",
-    "format": "unknown",
-    "evidence": "unknown"
+    "format": "excel",
+    "evidence": "confirmed"
   },
   "layout": {
     "headers": [],
@@ -19,8 +19,8 @@
   },
   "syntheticRows": [],
   "notes": [
-    "Current first-party VietinBank material confirms statement/history concepts and iPay access.",
-    "No target consumer-account downloadable file format or header schema is asserted.",
+    "VietinBank first-party customer-support guidance confirms iPay Web can retrieve Excel detailed transaction data for the account.",
+    "The exact Excel extension, exported headers, field semantics and provider-stable transaction reference remain unverified.",
     "Posting-date/fee concepts from card material are not promoted to a target export contract."
   ]
 }
