@@ -88,9 +88,11 @@ M0 production schema remains the verified 56/56 migration baseline with the expe
 - MON-50: M1 — Vietnam Acquisition Depth — remains the broader program.
 - MON-62 / MON-63: Todo; not selected.
 
-## 9. Completed pull-request memory
+## 9. Open pull-request memory
 
 PR #546 delivered the evidence-tagged VCB/ACB/VietinBank matrix, fail-closed source-identity eligibility, privacy-safe evidence fixtures, focused counterexample tests, conservative Capture guidance, Playwright coverage, server-only research projection, completed packet and `PLAN_AUTHORITY.current → null` lifecycle transition.
+
+PR #547 is the current docs-only reconciliation PR. It only corrects stale post-merge durable memory and does not establish executable authority or select a follow-on slice.
 
 Important evidence boundary: first-party material confirms **Excel** export/data retrieval in scoped VCB, ACB and VietinBank flows, but does not prove exact `.xls`/`.xlsx`, exported headers/layout, field semantics or stable transaction identity. All three bank-specific auto-map flags remain disabled.
 
