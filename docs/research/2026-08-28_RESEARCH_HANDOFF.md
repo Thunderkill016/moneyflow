@@ -1,19 +1,19 @@
 # MoneyFlow — research handoff, 2026-08-28
 
-**Status:** active evidence handoff; not implementation authority  
-**Product repository baseline:** `main@6298e6c52cfff6f3a972cf72cf79022e341ce638` (PR #510)  
-**Research repository baseline:** `Thunderkill016/moneyflow-research@583df3e19fb9caec39e850654274c039f0b1ccea`  
+**Status:** historical evidence handoff; not implementation authority  
+**Product repository snapshot baseline:** `main@6298e6c52cfff6f3a972cf72cf79022e341ce638` (PR #510)  
+**Research repository snapshot baseline:** `Thunderkill016/moneyflow-research@583df3e19fb9caec39e850654274c039f0b1ccea`  
 **Authority boundary:** current MoneyFlow code, tests, migrations, `CURRENT_PROJECT_MEMORY`, plan authority and owner decisions remain higher authority than this document.
 
 ## 1. Why this exists
 
-The separate `moneyflow-research` repository now contains the larger project-intelligence corpus and its methodology. The product repository should not duplicate that corpus or treat research counts as runtime/product truth. It does need one durable pointer recording what changed, what is decision-relevant, and what must be verified before implementation.
+At the recorded 2026-08-28 snapshot, the separate `moneyflow-research` repository contained the larger project-intelligence corpus and its methodology. The product repository should not duplicate that corpus or treat research counts as runtime/product truth. It does need one durable pointer recording what changed, what is decision-relevant, and what must be verified before implementation.
 
 This handoff also records the UI/design historical-failure prerequisite agreed for any future broad redesign so later agents do not restart from visual exploration and repeat known architectural failures.
 
-## 2. External research repository — current snapshot
+## 2. External research repository — 2026-08-28 snapshot
 
-The current research snapshot reports:
+The recorded research snapshot reports:
 
 - 785 canonical posts;
 - 13,671 canonical comments;
@@ -23,7 +23,7 @@ The current research snapshot reports:
 
 The research repository explicitly treats the corpus as a **project-intelligence evidence base**, not only a feature-demand dataset. Product/user evidence and reusable project knowledge are separate interpretation lanes. Machine routing tags support retrieval and coverage analysis; they are not prevalence or confidence scores.
 
-Current strongest adjudicated product signals inside that corpus are:
+The strongest adjudicated product signals recorded in that snapshot were:
 
 - manual-entry / quick-capture burden;
 - habit and maintenance burden;
@@ -37,11 +37,11 @@ Current strongest adjudicated product signals inside that corpus are:
 
 These signals reinforce the merged #432 direction toward reducing trusted acquisition maintenance. They do **not** authorize bank/provider integration, AI mutation, auto-approval, broader matching semantics or a new roadmap item by themselves. The sample remains concentrated in tech-skewed Vietnamese communities, so market-generalization confidence is limited.
 
-Before using a research recommendation in MoneyFlow implementation, verify it against current product behavior, code/tests, active plan authority, privacy/security constraints and owner decisions.
+Before using a research recommendation in MoneyFlow implementation, verify it against current product behavior, code/tests, current plan authority, privacy/security constraints and owner decisions.
 
 ## 3. Corpus integrity rules worth preserving across project decisions
 
-The research repository now records a stable-identity-first ingestion and deduplication contract. The project-level lessons that matter outside the research repo are:
+At that snapshot, the research repository recorded a stable-identity-first ingestion and deduplication contract. The project-level lessons that matter outside the research repo are:
 
 1. source identity outranks text similarity;
 2. repeated acquisition of the same source is another observation, not another independent evidence unit;
@@ -122,7 +122,7 @@ Optimization target: **avoid another redesign caused by architecture/process fai
 
 ## 7. Retrieval pointers
 
-Primary external evidence:
+Primary external evidence for the recorded snapshot:
 
 - `Thunderkill016/moneyflow-research/README.md`
 - `Thunderkill016/moneyflow-research/decisions/2026-08-28-project-intelligence-corpus-policy.md`
