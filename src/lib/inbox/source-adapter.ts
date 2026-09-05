@@ -48,8 +48,26 @@ function safeNamespaceKey(value: string): string | null {
   return SAFE_NAMESPACE_KEY.test(normalized) ? normalized : null;
 }
 
-function encoded(value: string): string {
-  return encodeURIComponent(value.trim());
+function encoded(value: string): string | null {
+  try {
+    return encodeURIComponent(value.trim());
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Shared persistence guard for source identities. Identity is never truncated:
+ * an overlong value is omitted so two different source IDs cannot alias after a
+ * database-boundary shortening step.
+ */
+export function persistableSourceExternalId(
+  value: string | null | undefined,
+): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > SOURCE_EXTERNAL_ID_MAX_LENGTH) return undefined;
+  return trimmed;
 }
 
 /**
@@ -68,25 +86,28 @@ export function canonicalizeSourceExternalId(
   if (identity.evidence !== "confirmed") return undefined;
   if (identity.stability !== "source-stable") return undefined;
 
-  const value = identity.value.trim();
+  const value = persistableSourceExternalId(identity.value);
   if (!value) return undefined;
 
   const institutionKey = safeNamespaceKey(identity.scope.institutionKey);
   if (!institutionKey) return undefined;
 
+  const encodedValue = encoded(value);
+  if (!encodedValue) return undefined;
+
   const pieces = ["mf-src-v1"];
   if (identity.scope.kind === "institution") {
-    pieces.push("institution", institutionKey, encoded(value));
+    pieces.push("institution", institutionKey, encodedValue);
   } else {
     if (identity.scope.accountKeyPersistence !== "safe") return undefined;
     const accountKey = identity.scope.accountKey.trim();
     if (!accountKey) return undefined;
-    pieces.push("account", institutionKey, encoded(accountKey), encoded(value));
+    const encodedAccountKey = encoded(accountKey);
+    if (!encodedAccountKey) return undefined;
+    pieces.push("account", institutionKey, encodedAccountKey, encodedValue);
   }
 
-  const canonical = pieces.join("|");
-  if (canonical.length > SOURCE_EXTERNAL_ID_MAX_LENGTH) return undefined;
-  return canonical;
+  return persistableSourceExternalId(pieces.join("|"));
 }
 
 export type SourceDateFormat =
@@ -119,7 +140,8 @@ export type StrictSourceDateResult =
         | "excel_1900_leap_bug";
     };
 
-function formatUtcDate(date: Date): string {
+function formatUtcDate(date: Date): string | null {
+  if (!Number.isFinite(date.getTime())) return null;
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
   const day = String(date.getUTCDate()).padStart(2, "0");
@@ -158,12 +180,8 @@ function normalizeTextDate(
   const trimmed = text.trim();
   if (!trimmed) return { ok: false, reason: "missing_date" };
 
-  const match =
-    format === "iso-date"
-      ? trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-      : trimmed.match(/^(\d{1,2})[/-](\d{1,2})-(?!)$/);
-
   if (format === "iso-date") {
+    const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!match) return { ok: false, reason: "invalid_calendar_date" };
     const date = calendarDate(Number(match[1]), Number(match[2]), Number(match[3]));
     return date
@@ -191,18 +209,22 @@ function normalizeExcelDate(
     return { ok: false, reason: "ambiguous_excel_datetime" };
   }
 
+  let date: Date;
   if (dateSystem === "1900") {
     if (serial === 60) return { ok: false, reason: "excel_1900_leap_bug" };
     if (serial < 1) return { ok: false, reason: "invalid_excel_serial" };
     const adjustedDays = serial > 60 ? serial - 1 : serial;
     const base = Date.UTC(1899, 11, 31);
-    const date = new Date(base + adjustedDays * 86_400_000);
-    return { ok: true, date: formatUtcDate(date) };
+    date = new Date(base + adjustedDays * 86_400_000);
+  } else {
+    const base = Date.UTC(1904, 0, 1);
+    date = new Date(base + serial * 86_400_000);
   }
 
-  const base = Date.UTC(1904, 0, 1);
-  const date = new Date(base + serial * 86_400_000);
-  return { ok: true, date: formatUtcDate(date) };
+  const normalized = formatUtcDate(date);
+  return normalized
+    ? { ok: true, date: normalized }
+    : { ok: false, reason: "invalid_excel_serial" };
 }
 
 /**
@@ -228,6 +250,54 @@ export function normalizeStrictSourceDate(
     return { ok: false, reason: "invalid_calendar_date" };
   }
   return normalizeTextDate(input.value, input.format);
+}
+
+export type SourceAmountDirection = "debit" | "credit" | "unknown";
+
+export type SourceAmountEvidence = {
+  value: number;
+  currency: string;
+  direction: SourceAmountDirection;
+  /** Adapters must prove that the source value itself is absolute. */
+  amountSemantics: "absolute" | "unknown";
+};
+
+export type StrictSourceAmountResult =
+  | { ok: true; amount: number; kind: "expense" | "income" }
+  | {
+      ok: false;
+      reason:
+        | "invalid_amount"
+        | "unsupported_currency"
+        | "ambiguous_amount_semantics"
+        | "ambiguous_direction";
+    };
+
+/**
+ * Strict VND amount/direction normalization for evidence-backed adapters.
+ * Transfer classification remains downstream matching/review authority; this
+ * helper only establishes money direction from explicit debit/credit evidence.
+ */
+export function normalizeStrictSourceAmount(
+  input: SourceAmountEvidence,
+): StrictSourceAmountResult {
+  if (!Number.isSafeInteger(input.value) || input.value <= 0) {
+    return { ok: false, reason: "invalid_amount" };
+  }
+  if (input.currency.trim().toUpperCase() !== "VND") {
+    return { ok: false, reason: "unsupported_currency" };
+  }
+  if (input.amountSemantics !== "absolute") {
+    return { ok: false, reason: "ambiguous_amount_semantics" };
+  }
+  if (input.direction === "unknown") {
+    return { ok: false, reason: "ambiguous_direction" };
+  }
+  return {
+    ok: true,
+    amount: input.value,
+    kind: input.direction === "debit" ? "expense" : "income",
+  };
 }
 
 export type SourceAdapterTransport = "csv" | "xlsx" | "pdf";
