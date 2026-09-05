@@ -74,6 +74,39 @@ function toBytes(data: ArrayBuffer | Uint8Array): Uint8Array {
   return data instanceof Uint8Array ? data : new Uint8Array(data);
 }
 
+const OLE_COMPOUND_SIGNATURE = [
+  0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1,
+] as const;
+const BIFF_SECOND_BYTES = new Set([0x00, 0x02, 0x04, 0x08]);
+
+/**
+ * Strict evidence mode accepts only binary Excel-family signatures that can
+ * carry typed cells. This intentionally rejects SheetJS' plaintext fallback,
+ * where arbitrary bytes may otherwise be interpreted as CSV/TSV.
+ */
+export function hasSupportedExcelEvidenceSignature(
+  data: ArrayBuffer | Uint8Array,
+): boolean {
+  const bytes = toBytes(data);
+  if (bytes.length < 2) return false;
+
+  // OOXML XLSX/XLSM packages are ZIP containers. SheetJS identifies these by
+  // a leading 0x50 byte; requiring the PK pair avoids plain-text fallback.
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b) return true;
+
+  // BIFF5/8 XLS normally uses the OLE/CFB compound container.
+  if (
+    bytes.length >= OLE_COMPOUND_SIGNATURE.length &&
+    OLE_COMPOUND_SIGNATURE.every((value, index) => bytes[index] === value)
+  ) {
+    return true;
+  }
+
+  // Earlier BIFF streams can start directly with a BOF record. SheetJS' file
+  // type detector treats 0x09 as BIFF; constrain byte 1 to known BOF versions.
+  return bytes[0] === 0x09 && BIFF_SECOND_BYTES.has(bytes[1]!);
+}
+
 /**
  * Read the workbook epoch exactly as declared by Excel workbook metadata.
  * Missing/false means the default 1900 system; true means 1904.
@@ -81,11 +114,10 @@ function toBytes(data: ArrayBuffer | Uint8Array): Uint8Array {
 export function xlsxWorkbookDateSystem(
   workbook: XLSX.WorkBook,
 ): ExcelDateSystem {
-  const date1904 = (
-    workbook as XLSX.WorkBook & {
-      Workbook?: { WBProps?: { date1904?: boolean | number } };
-    }
-  ).Workbook?.WBProps?.date1904;
+  const wbProps = workbook.Workbook?.WBProps as
+    | { date1904?: unknown }
+    | undefined;
+  const date1904 = wbProps?.date1904;
   return date1904 === true || date1904 === 1 ? "1904" : "1900";
 }
 
@@ -93,6 +125,7 @@ export function xlsxWorkbookDateSystem(
  * Evidence-only XLS/XLSX reader for future strict source adapters.
  *
  * It deliberately differs from the legacy generic parser:
+ * - only typed Excel-family binary signatures are accepted;
  * - `cellDates:false` preserves Excel date codes as numbers;
  * - `cellNF:true` preserves source number-format metadata;
  * - workbook epoch is returned explicitly;
@@ -107,6 +140,13 @@ export function readXlsxSourceEvidence(
 ): XlsxEvidenceResult {
   if (!data || (data as ArrayBuffer).byteLength === 0) {
     return { ok: false, error: "File Excel trống hoặc không đọc được." };
+  }
+  if (!hasSupportedExcelEvidenceSignature(data)) {
+    return {
+      ok: false,
+      error:
+        "File không có chữ ký XLS/XLSX đủ tin cậy để đọc bằng chứng nguồn.",
+    };
   }
 
   let workbook: XLSX.WorkBook;
