@@ -1,20 +1,20 @@
 # MoneyFlow — current project memory
 
-**Status:** M0 is closed. M1 Phase A #523 / MON-61 implementation, owner merge and production verification are complete via PR #546.
+**Status:** M0 is closed. M1 Phase A #523 / MON-61 is closed after implementation, owner merge, production verification, durable-memory reconciliation and tracker synchronization.
 **Last reconciled:** 2026-09-05
-**Merged main baseline:** `0bf9335c748aeddfdd988aa458298d2edc8ae437` (PR #546)
+**Runtime baseline:** `0bf9335c748aeddfdd988aa458298d2edc8ae437` (PR #546); later docs-only reconciliation does not change runtime behavior.
 **Current authority:** `PLAN_AUTHORITY.current: null`; no follow-on slice is selected.
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
 
-MoneyFlow remains a Vietnamese personal-finance product built around one trustworthy user-owned ledger. M0 Release Integrity is complete.
+MoneyFlow remains a Vietnamese personal-finance product built around one trustworthy user-owned ledger. M0 Release Integrity is complete, and the first M1 Vietnam Acquisition Depth slice is now fully closed.
 
 PR #546 owner-merged #523 / MON-61 as `0bf9335c748aeddfdd988aa458298d2edc8ae437`. The slice added a bounded, evidence-backed Vietnam bank-export compatibility contract and conservative Capture guidance while preserving the existing generic acquisition, provenance, approval and ledger ownership model.
 
 First-party evidence currently confirms an **Excel artifact family** in scoped Vietcombank, ACB and VietinBank flows. The ACB ONE standard KHCN guide confirms `Xuất file excel` for transaction listing; VietinBank customer-support guidance confirms iPay Web Excel detailed transaction data; Vietcombank Digibank confirms transaction-history `Xuất excel`. None of these sources proves exact `.xls` versus `.xlsx`, exported headers/layout, field semantics or provider-stable transaction identity.
 
-Post-merge verification confirmed merged main authority is `current: null`, the Vercel production deployment for `0bf9335c...` is READY, `/api/health` returns 200 with the exact merged commit and `cache-control: no-store`, and no runtime errors were found in the checked one-hour production window. No MON-62 / MON-63 follow-on is selected.
+Post-merge verification confirmed authority `current: null`, Vercel production READY on the exact runtime commit, `/api/health` 200 with that commit and `cache-control: no-store`, and no runtime errors in the checked one-hour production window. Docs-only PR #547 then reconciled stale project memory and owner-merged as `897807cb2ee3e21d53197810bfd418f44d37f9a3`. GitHub #523 is closed completed and Linear MON-61 is Done. MON-62 / MON-63 remain unselected.
 
 ## 2. Current runtime and financial truth
 
@@ -70,9 +70,11 @@ CI covered policy/knowledge/migration identity, lint/typecheck, architecture/CSS
 
 The failed reconciliation head `a8668ff...` is not acceptance evidence; CI #3322 caught the accidental omission of `canUseBankSpecificAutoMap`, and the export was restored unchanged before final exact-head acceptance.
 
-Post-merge production evidence: Vercel deployment `dpl_HWvZJNht8Yo1WzWi8NWCowbLnKBT` is READY for exact merge commit `0bf9335c748aeddfdd988aa458298d2edc8ae437`; `/api/health` returned 200 with that commit and `no-store`; no runtime errors were found in the checked one-hour window.
+Post-merge production evidence: Vercel deployment `dpl_HWvZJNht8Yo1WzWi8NWCowbLnKBT` is READY for exact runtime commit `0bf9335c748aeddfdd988aa458298d2edc8ae437`; `/api/health` returned 200 with that commit and `no-store`; no runtime errors were found in the checked one-hour window.
 
-No production DB/Auth/provider write, external bank access or real customer statement data was part of #546.
+Docs-only PR #547 final exact head `8cd17e3ed3026442b6612b13b920ef67213ef84a` passed CI #3329, CI #3330, CodeQL #2358 and Secret history #2358 without retry before owner merge as `897807cb2ee3e21d53197810bfd418f44d37f9a3`.
+
+No production DB/Auth/provider write, external bank access or real customer statement data was part of #546/#547 verification.
 
 ## 7. Supabase security and production-schema truth
 
@@ -84,15 +86,17 @@ M0 production schema remains the verified 56/56 migration baseline with the expe
 - #527/#528/#531/#538: performance slice completed.
 - #536/#539/#540/#544: M0 security/runtime/database/lifecycle slice completed.
 - PR #546: owner-merged as `0bf9335c748aeddfdd988aa458298d2edc8ae437`; post-merge authority and production runtime verified.
-- #523 / MON-61: implementation and verification complete; closure synchronization is the remaining tracker operation.
+- PR #547: docs-only durable-memory reconciliation merged as `897807cb2ee3e21d53197810bfd418f44d37f9a3`.
+- GitHub #523: closed completed.
+- Linear MON-61: Done.
 - MON-50: M1 — Vietnam Acquisition Depth — remains the broader program.
 - MON-62 / MON-63: Todo; not selected.
 
 ## 9. Open pull-request memory
 
-PR #546 delivered the evidence-tagged VCB/ACB/VietinBank matrix, fail-closed source-identity eligibility, privacy-safe evidence fixtures, focused counterexample tests, conservative Capture guidance, Playwright coverage, server-only research projection, completed packet and `PLAN_AUTHORITY.current → null` lifecycle transition.
+No executable pull request or bounded implementation packet is active. `PLAN_AUTHORITY.current` is `null`.
 
-PR #547 is the current docs-only reconciliation PR. It only corrects stale post-merge durable memory and does not establish executable authority or select a follow-on slice.
+Historical PR #546 delivered the evidence-tagged VCB/ACB/VietinBank matrix, fail-closed source-identity eligibility, privacy-safe evidence fixtures, focused counterexample tests, conservative Capture guidance, Playwright coverage, server-only research projection, completed packet and `PLAN_AUTHORITY.current → null` lifecycle transition. PR #547 reconciled stale post-merge project memory. Docs-only maintenance or reconciliation PRs do not establish executable product authority by themselves.
 
 Important evidence boundary: first-party material confirms **Excel** export/data retrieval in scoped VCB, ACB and VietinBank flows, but does not prove exact `.xls`/`.xlsx`, exported headers/layout, field semantics or stable transaction identity. All three bank-specific auto-map flags remain disabled.
 
@@ -105,14 +109,18 @@ Important evidence boundary: first-party material confirms **Excel** export/data
 5. Privacy-safe structural statement examples before bank-specific parser aliases are enabled.
 6. Fresh-main owner selection before MON-62, MON-63 or any follow-on executable slice starts.
 
+Preparation note only, not executable authority: current official SheetJS guidance confirms spreadsheet date cells are commonly numeric serials plus number formats and formatted date text can be locale-sensitive; future source adapters should preserve raw cell values and normalize dates deterministically rather than trust rendered strings. External transaction APIs such as UK Open Banking and Plaid explicitly distinguish immutable transaction IDs from references and pending/posted linkage; that supports MoneyFlow's existing fail-closed identity rule but is **not** evidence that Vietnamese bank exports contain such stable IDs.
+
 ## 11. Next allowed action
 
-Synchronize the completed #523 / MON-61 tracker states after this post-merge memory reconciliation is accepted. Keep `PLAN_AUTHORITY.current` null. Do not start MON-62/MON-63 or any other executable follow-on until a fresh-main owner selection explicitly establishes new authority.
+Keep `PLAN_AUTHORITY.current` null. The dependency order is MON-61 → MON-62 → MON-63, so MON-62 is the next logical candidate, but it remains Todo/unselected. Before any executable work begins, perform fresh-main owner selection and encode the selected bounded packet through the repository authority mechanism. Do not start MON-62/MON-63 merely because the dependency predecessor is complete.
 
 ## 12. Superseded-status register
 
 - PR #545 is pending — **false**; it merged as `2ac2026c3d5a27898b17482b36f503a32a3dd4f6`.
 - PR #546 is pending / Ready for review — **false**; it owner-merged as `0bf9335c748aeddfdd988aa458298d2edc8ae437` and production verification passed.
+- PR #547 is the current open reconciliation PR — **false**; it owner-merged as `897807cb2ee3e21d53197810bfd418f44d37f9a3`.
+- #523 / MON-61 closure synchronization is pending — **false**; GitHub #523 is closed completed and Linear MON-61 is Done.
 - #523 was completed by selector PR #545 — **false**; #545 only selected it; #546 implemented and closed the slice technically.
 - PR #546 enables bank-specific auto-map — **false**; all target-bank auto-map flags remain disabled.
 - VCB/ACB/VietinBank “Excel” evidence proves `.xlsx` — **false**; exact extension remains unproven.
