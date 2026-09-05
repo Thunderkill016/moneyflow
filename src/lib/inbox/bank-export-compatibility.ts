@@ -121,17 +121,17 @@ const COMPATIBILITY: Record<BankExportProvider, BankExportCompatibility> = {
     statementOrHistoryAvailable: {
       value: true,
       evidence: "confirmed",
-      scope: "ACB ONE history and store-management transaction-history workflows",
+      scope: "ACB ONE standard personal-customer transaction history plus supported store-management flow",
     },
     artifactFormat: {
       value: "excel",
       evidence: "confirmed",
-      scope: "ACB first-party store-management/payment-account guidance documents Excel download",
+      scope: "ACB ONE standard KHCN guide documents “Xuất file excel” for transaction listing; store-management guidance independently documents Excel download",
     },
     layoutHeaders: {
       value: null,
       evidence: "unknown",
-      scope: "Store-management export evidence cannot be generalized to every personal-account layout",
+      scope: "Neither standard KHCN nor store-management evidence establishes the exact exported personal-account header contract",
     },
     dateTimezone: {
       value: null,
@@ -156,7 +156,7 @@ const COMPATIBILITY: Record<BankExportProvider, BankExportCompatibility> = {
     transactionReference: {
       value: "unknown",
       evidence: "unknown",
-      scope: "No provider-stable exported transaction reference established",
+      scope: "Standard KHCN guidance supports filtering/listing by reference, but does not establish a provider-stable exported transaction reference",
     },
     feeRepresentation: {
       value: null,
@@ -170,8 +170,9 @@ const COMPATIBILITY: Record<BankExportProvider, BankExportCompatibility> = {
     },
     bankSpecificAutoMapSupported: false,
     guidance:
-      "ACB có luồng tải lịch sử/sao kê Excel trong tài liệu first-party, nhưng cấu trúc consumer export chưa được xác minh. MoneyFlow chỉ dùng parser/mapping chung và không suy diễn trạng thái hay mã giao dịch từ file chưa xác minh.",
+      "ACB ONE có luồng Xuất file Excel cho liệt kê giao dịch, nhưng cấu trúc cột và mã giao dịch ổn định chưa được xác minh. MoneyFlow chỉ dùng parser/mapping chung và không suy diễn trạng thái hay source ID từ file chưa xác minh.",
     sourceUrls: [
+      "https://online.acb.com.vn/news/images/hdsd%20acbo%20khcn.pdf",
       "https://acb.com.vn/giai-phap-quan-ly-cua-hang",
       "https://acb.com.vn/acbwebsite/files/ACB_HDSD_Quanlycuahang.pdf",
       "https://acb.com.vn/thu-vien/nhung-cau-hoi-thuong-gap-khi-tao-tai-khoan-ngan-hang-online",
@@ -260,19 +261,4 @@ export function sourceExternalIdFromProviderReference(
   if (reference.evidence !== "confirmed") return undefined;
   if (reference.stability !== "source-stable") return undefined;
   return value;
-}
-
-export function canUseBankSpecificAutoMap(
-  provider: BankExportProvider,
-): boolean {
-  const compatibility = getBankExportCompatibility(provider);
-  return (
-    compatibility.bankSpecificAutoMapSupported &&
-    compatibility.artifactFormat.evidence === "confirmed" &&
-    compatibility.artifactFormat.value !== null &&
-    compatibility.artifactFormat.value !== "unknown" &&
-    compatibility.layoutHeaders.evidence === "confirmed" &&
-    Array.isArray(compatibility.layoutHeaders.value) &&
-    compatibility.layoutHeaders.value.length > 0
-  );
 }
