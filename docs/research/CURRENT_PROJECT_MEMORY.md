@@ -101,7 +101,7 @@ Failed/stale heads from those PRs are not acceptance evidence. No production dat
 
 M0 production schema remains the verified 56/56 migration baseline with the expected authenticated SECURITY DEFINER surface and the owner-accepted Supabase Free-plan leaked-password-protection limitation. M1 Phase A and selector PR #550 do not modify this boundary.
 
-## 8. Reconciled issue and tracker status
+## 8. Reconciled issue status
 
 - #432/#433: merged master product program.
 - #527/#528/#531/#538: performance slice completed.
@@ -129,7 +129,7 @@ The packet requires a pure deterministic adapter/normalized-row contract, explic
 
 PR #549 is docs-only and green but not executable authority. PR #512 remains stale/supersedable only after #549 merge. Neither authorizes MON-62 runtime work.
 
-## 10. True gaps
+## 10. True gaps after this audit
 
 1. Exact current VCB/ACB/VietinBank consumer export headers/layout versions and exact Excel extensions.
 2. Provider-stable transaction identity and its namespace across repeated/overlapping exports.
