@@ -25,6 +25,7 @@ Use one owner for each question; this router links to depth but is not a competi
 | How is it built? | `ARCHITECTURE.md` | affected code, tests and migrations |
 | Which delivery/permission rules apply? | `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` and `docs/engineering/AGENT_OPERATING_MODEL.md` | `npm run agent:doctor -- --json` projects existing policy; it grants no permission |
 | How do I research or recover history? | `docs/research/REPOSITORY_REFERENCE_MAP.md` and `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` | `docs/research/PR_MEMORY_LOG.md`, `docs/plans/completed/` and `docs/plans/archived/` |
+| Where is the larger external research corpus? | `Thunderkill016/moneyflow-research` (evidence only) | `docs/research/2026-08-28_RESEARCH_HANDOFF.md` is the dated handoff for the 2026-08-28 corpus snapshot; verify every implementation-impacting recommendation against current MoneyFlow truth before acting |
 | Where is configuration authority? | `docs/configuration.md` | `docs/deployment.md`, `docs/supabase-setup.md`, `.env.example`, `vercel.json` and deployment validator |
 
 The retired `docs/plans/active/README.md` is a compatibility pointer only. Never use it as a queue or authority source.
@@ -40,10 +41,10 @@ The retired `docs/plans/active/README.md` is a compatibility pointer only. Never
 | Reports/export | report/export domain modules and tests | transfer exclusion, safe integers, filter parity, formula safety |
 | Import/Inbox/rules | import workspaces, provenance migrations/tests | raw provenance, idempotency, confidence, tenant isolation |
 | Auth/provider/security | `docs/configuration.md`, `docs/supabase-setup.md`, `docs/security-rls-check.md` | repository readiness versus provider enforcement; rollback and smoke |
-| UI/mobile/accessibility | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md` | owning CSS layer, responsive/browser evidence, physical-device claims |
+| UI/mobile/accessibility | `docs/design-system.md`, `docs/UX_PRINCIPLES.md`, `docs/AI_UIUX_WORKFLOW.md`, `docs/research/2026-08-28_RESEARCH_HANDOFF.md` | owning CSS layer, responsive/browser evidence, physical-device claims; any future broad redesign must begin with the historical A0 failure review before visual exploration |
 | Architecture/dependency/tooling | `ARCHITECTURE.md`, `docs/engineering/AI_DELIVERY_WORKFLOW.md`, focused repository reference maps | license, security, privacy, ownership, operations and rollback |
 | CI/deployment/performance | `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`, CI classifier/workflows, load contracts | exact-head selected gates; no claim for skipped boundaries |
-| Brand/landing | brand guidelines and relevant UI research | owner judgment; candidate design is not product truth |
+| Brand/landing | brand guidelines, relevant UI research and `docs/research/2026-08-28_RESEARCH_HANDOFF.md` when redesign history is relevant | owner judgment; candidate design is not product truth; preserve historical failure lessons before broad redesign |
 
 ## Cold-memory retrieval
 
