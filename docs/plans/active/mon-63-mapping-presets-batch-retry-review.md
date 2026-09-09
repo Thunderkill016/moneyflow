@@ -1,13 +1,14 @@
 # MON-63 — mapping presets, batch history and retry/review UX
 
-**Status:** selector candidate; not executable until owner-merged selector resolves on fresh main
+**Status:** selected by PR #553; candidate before owner merge, executable only after merged authority resolves on fresh main
 **Execution state:** planned
 **Active role:** planner / selector handoff
 **Permission scope:** branch_write
 **Owner:** ThunderK
 **Issue/PR:** Linear MON-63 / implementation PR pending
 **Selector:** GitHub PR #553
-**Implementation base:** `main@05323e2cb45609a85b3e7e3f2a4af94679149c31`
+**Selector base:** `main@05323e2cb45609a85b3e7e3f2a4af94679149c31`
+**Implementation base:** fresh `main` after owner merge of PR #553; never reuse the selector-base SHA as runtime implementation authority
 **Last updated:** 2026-09-09
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This is a Class 3 acquisition/data-integrity work packet. The selector PR may only establish executable authority; runtime implementation begins only after owner merge plus fresh `npm run plan:resolve` and `npm run agent:doctor -- --json`.
@@ -22,7 +23,7 @@ The target outcome is not “more import screens.” It is a measurable reductio
 
 ### Repository reconnaissance
 
-Fresh baseline: `main@05323e2cb45609a85b3e7e3f2a4af94679149c31` after merged PR #552 and verified production deployment.
+Selector reconnaissance baseline: `main@05323e2cb45609a85b3e7e3f2a4af94679149c31` after merged PR #552 and verified production deployment. This is evidence for the selector, not the future implementation branch base.
 
 Current code already has important pieces that MON-63 must extend rather than rebuild:
 
@@ -125,20 +126,22 @@ Primary product evidence for the slice: manual interventions per representative 
 
 ## Implementation plan
 
-1. Inventory current import-batch metadata, authenticated server persistence, history UI, draft lifecycle, preview→Inbox commit seam, readiness classifier/tests and the two stale historical branches above for reusable principles only.
-2. Define pure mapping-preset eligibility/versioning and commit/recovery state machines with counterexamples before UI work, including equal-header/different-semantics cases.
-3. Reuse existing batch storage/server seams; add schema/RPC only if current structures cannot express the accepted durable state atomically and tenant-safely.
-4. Make preview→Inbox commit idempotent or reconcilable after an uncertain response. Prefer one transaction/RPC boundary if DB truth must change together; do not paper over partial success with client retries.
-5. Persist and apply mapping presets only behind deterministic eligibility; preserve manual mapping fallback and keep structural-only presets advisory/prefill-only where semantic evidence is incomplete.
-6. Enrich current history/provenance UI and recovery actions; do not replace the history page.
-7. Integrate existing exception-first readiness grouping into the batch workflow.
-8. Add privacy-safe analytics and focused browser tests for retry, cross-device draft absence, preset mismatch, semantic-collision and bulk review.
-9. Independently evaluate failure/replay/collision/privacy cases, run exact-head risk-selected gates, then same-PR lifecycle closeout to `current: null` before owner handoff.
+1. After selector merge, resolve fresh `main` and record that exact post-merge SHA as the implementation baseline before changing runtime code. Never branch implementation from the pre-merge selector base.
+2. Inventory current import-batch metadata, authenticated server persistence, history UI, draft lifecycle, preview→Inbox commit seam, readiness classifier/tests and the two stale historical branches above for reusable principles only.
+3. Define pure mapping-preset eligibility/versioning and commit/recovery state machines with counterexamples before UI work, including equal-header/different-semantics cases.
+4. Reuse existing batch storage/server seams; add schema/RPC only if current structures cannot express the accepted durable state atomically and tenant-safely.
+5. Make preview→Inbox commit idempotent or reconcilable after an uncertain response. Prefer one transaction/RPC boundary if DB truth must change together; do not paper over partial success with client retries.
+6. Persist and apply mapping presets only behind deterministic eligibility; preserve manual mapping fallback and keep structural-only presets advisory/prefill-only where semantic evidence is incomplete.
+7. Enrich current history/provenance UI and recovery actions; do not replace the history page.
+8. Integrate existing exception-first readiness grouping into the batch workflow.
+9. Add privacy-safe analytics and focused browser tests for retry, cross-device draft absence, preset mismatch, semantic-collision and bulk review.
+10. Independently evaluate failure/replay/collision/privacy cases, run exact-head risk-selected gates, then same-PR lifecycle closeout to `current: null` before owner handoff.
 
 Rollback: remove the new preset/recovery behavior and keep existing generic import/history paths readable. Any schema addition must be additive/backward-compatible until rollback safety is proven.
 
 ## Tasks
 
+- [ ] Resolve and record exact post-selector-merge fresh-main implementation baseline before runtime work.
 - [ ] Inventory authenticated import batch persistence and existing DB/RPC ownership.
 - [ ] Re-evaluate stale preset/retry branches against current code; salvage principles only, never stale authority/code by default.
 - [ ] Specify mapping-preset eligibility key and version semantics.
@@ -159,6 +162,7 @@ Rollback: remove the new preset/recovery behavior and keep existing generic impo
 
 Acceptance requires all of the following on the implementation PR's exact head:
 
+- implementation started from fresh main after owner merge of selector #553, not from selector-base `05323e2...`;
 - replay/retry cannot create a second candidate set for the same committed batch;
 - an uncertain commit result never presents false success and recovery is state-aware;
 - stable retry identity is reused for unchanged intent and fuzzy fingerprints remain advisory;
