@@ -68,6 +68,7 @@ export async function getReportsWorkspace(
       .lte("occurred_on", range.currentEnd)
       .order("occurred_on", { ascending: false })
       .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
       .range(from, to),
   );
   if (error) {

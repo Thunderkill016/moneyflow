@@ -59,6 +59,11 @@ test("large finance reads use bounded pages instead of the API row cap", () => {
     reports,
     /readAllPages\(\(from, to\) =>[\s\S]*?\.range\(from, to\)/,
   );
+  assert.match(
+    reports,
+    /\.order\("occurred_on", \{ ascending: false \}\)[\s\S]*?\.order\("created_at", \{ ascending: false \}\)[\s\S]*?\.order\("id", \{ ascending: false \}\)/,
+    "report pages need a deterministic final tie-breaker",
+  );
 });
 
 test("budget and report reads repeat the viewer tenant predicate", () => {
