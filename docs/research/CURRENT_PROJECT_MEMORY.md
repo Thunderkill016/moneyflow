@@ -1,42 +1,52 @@
 # MoneyFlow — current project memory
 
-**Status:** M0 is closed; MON-61 and MON-62 are completed. PR #553 carries the MON-63 selector projection; it is candidate authority before owner merge and executable only after merged authority resolves on fresh main.
+**Status:** M0, MON-61, MON-62 and MON-63 are completed. The PR #556 closeout projection leaves `PLAN_AUTHORITY.current` as `null`; no follow-on executable slice is selected.
 **Last reconciled:** 2026-09-09
-**Selector base:** `main@05323e2cb45609a85b3e7e3f2a4af94679149c31`, where `PLAN_AUTHORITY.current` is `null`.
-**Last explicitly verified production runtime baseline:** `05323e2cb45609a85b3e7e3f2a4af94679149c31` (PR #552), Vercel READY; `/api/health` returned 200 with that commit and post-deploy runtime-error check found no errors.
-**Authority projection carried by PR #553:** `docs/plans/active/mon-63-mapping-presets-batch-retry-review.md`, `selectedByPr: 553`.
+**Last verified production runtime baseline:** `63c239aefca9b5629561808c17948e3aea39bf3e` (PR #555), Vercel READY; `/api/health` returned 200 for that exact commit. PR #556 is test/docs/lifecycle closeout only and introduces no runtime or provider mutation.
+**Master program:** `docs/plans/active/432-vietnam-long-term-product-strategy.md` remains the long-term strategy authority.
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
 
 MoneyFlow remains a Vietnamese personal-finance product centered on one trustworthy user-owned ledger and progressively lower maintenance effort.
 
-MON-62 is merged, deployed and tracker-complete. PR #553 is the bounded selector for MON-63 — mapping presets, batch history and retry/review UX. On the selector base, authority is `null`; #553 projects MON-63 and activates it only if owner-merged and fresh-main authority resolution succeeds.
+MON-63 is complete through implementation PRs #554 and #555 plus closeout PR #556. Its closeout archives the packet and returns executable authority to `null`. No backlog item, open PR, Plate task or chat instruction becomes executable work until a fresh selector changes `PLAN_AUTHORITY.json`.
 
 ## 2. Current runtime and financial truth
 
 - VND is integer đồng; never floating point.
 - Transfers are balanced and neutral to income/expense/net.
-- Authenticated user-owned data is tenant-isolated through PostgreSQL/RLS; demo is explicit browser-local state.
-- Missing balances, dates, source coverage, provider semantics or financial intent are never guessed by authoritative adapter paths.
-- Source/provider evidence is not automatically a posted fact.
+- Authenticated user-owned data is tenant-isolated through PostgreSQL/RLS; demo mode remains explicit browser-local state.
+- Missing balances, dates, source coverage, provider semantics or financial intent are never guessed by authoritative paths.
+- Source/provider evidence is not automatically a posted ledger fact.
 - All accepted acquisition paths converge on candidate/provenance/matching/approval/ledger/reconciliation authority.
-- Corrections remain explicit/recoverable where required.
+- Corrections remain explicit and recoverable where required.
 - Full archive/restore remains separate from scoped/report export.
 
 ## 3. Acquisition and reconciliation truth
 
-Merged contracts provide exact-source matching, replay idempotency, source lifecycle, changed/predecessor observation, deleted/reimport precedence and tenant/source scoping.
+MON-62 established versioned source adapters, strict source identity/date/amount evidence, non-truncating persistence, Excel date-system evidence and lifecycle/parser/mapping provenance.
 
-PR #552 adds a pure/versioned source-adapter contract, strict source identity/date/amount evidence, non-truncating persistence, Excel 1900/1904 evidence handling and lifecycle/parser/mapping provenance through draft → preview → client → server → insert → reload.
+MON-63 then hardened the import-maintenance loop:
 
-Generic CSV/XLSX/PDF and Direct CSV remain compatibility paths. Current main already ships a **v1 device-local Direct CSV remembered mapping** keyed by normalized header shape. The UI requires the user to explicitly apply it and reminds them to verify the dry-run. That capability is structural convenience only; it is not source/bank semantic authority.
+- Direct CSV remembered mappings are versioned and eligibility is bound to parser/mapping semantics rather than header shape alone.
+- Remembered mapping remains an explicit user action followed by dry-run/review.
+- Manual mapping changes invalidate `preset_applied` evidence and return the batch to `mapping_reviewed`.
+- Authenticated preview→Inbox commit is atomic/replay-safe for the same batch intent; exact replay does not create a second candidate set.
+- Reusing a batch key with changed canonical financial intent fails closed.
+- Import history exposes safe outcome/provenance/retry/mapping evidence without raw statement contents.
+- Cross-device history does not claim a browser-local draft is resumable when that draft is absent.
+- Import maintenance counters are tenant-owned operational metadata, not tamper-proof telemetry and not financial truth.
 
-VCB/ACB/VietinBank bank-specific auto-map remains disabled because exact current consumer layouts and stable transaction identity are unproven.
+VCB/ACB/VietinBank bank-specific auto-map remains disabled because exact current layouts and stable transaction identity are not proven.
 
-## 4. MON-62 completion and production evidence
+## 4. MON-63 completion evidence
 
-PR #552 exact handoff passed CI, CodeQL, Secret History, database, browser and cross-device gates. Owner squash-merged it as `05323e2cb45609a85b3e7e3f2a4af94679149c31`; production deployment and exact health/runtime-error checks were verified. MON-62 is Done and its closeout left selector-base authority `null`.
+PR #554 implemented atomic import retry, versioned preset eligibility, truthful history/recovery and tenant-isolated database contracts. Exact-head CI included fresh Supabase reset/pgTAP, static quality, build, browser/e2e, CodeQL and secret-history evidence before owner squash merge.
+
+PR #555 added privacy-safe first-party maintenance counters and durable mapping evidence on existing `import_batches`, with tenant isolation and app-first schema fallback. It was owner squash-merged as `63c239aefca9b5629561808c17948e3aea39bf3e` and that exact commit was verified READY in production with `/api/health` 200.
+
+PR #556 added the missing affected browser proof: remember a Direct CSV mapping, re-upload, explicitly apply it, then manually change a mapping and verify review evidence returns from remembered preset to manual review. Exact head `cdbdef637f8c4dcc7ff46eb4d03348fe99402eab` passed CI #3450, CodeQL #2472 and Secret History #2472 before lifecycle closeout projection.
 
 ## 5. Current capability inventory
 
@@ -46,87 +56,80 @@ PR #552 exact handoff passed CI, CodeQL, Secret History, database, browser and c
 | Accounts | balances, register/history, archive/restore, statement reconciliation |
 | Planning | category budgets, recurring commitments/income, savings goals |
 | Understanding | reports, drill-downs, controlled import/export |
-| Acquisition | provenance/source-lineage; generic CSV/XLSX/PDF; Direct CSV and Share Target; provenance-safe adapter foundation; device-local Direct CSV remembered mapping; target-bank auto-map disabled |
-| Import operations | batch metadata/history exists; local states `parsed | committed | cancelled`; raw file content not retained after parse |
-| Review | exception-first Ready/Needs-attention plus duplicate/transfer/reconciliation contracts |
+| Acquisition | generic CSV/XLSX/PDF; Direct CSV and Share Target; provenance-safe source adapters; versioned explicit remembered mapping; target-bank auto-map disabled |
+| Import integrity | atomic/replay-safe authenticated batch commit; changed-intent fail-closed; no raw-statement retention |
+| Import operations | truthful batch history, mapping/retry evidence and no-false-resume cross-device state |
+| Review | existing exception-first Ready/Needs-attention semantics and explicit approval authority |
+| Measurement | tenant-owned operational counters for import maintenance/replay; no raw financial payloads |
 | Ownership | versioned archive/export/validation/restore with source-lineage generation |
 | Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
-| Executable authority | selector base `null`; #553 projects MON-63, active only after owner merge + fresh-main resolution |
+| Executable authority | `null` after PR #556 closeout; follow-on work unselected |
 
 ## 6. Research/evidence boundary
 
-External references support bounded workflow principles only:
+External product references remain workflow evidence only. Actual Budget supports stable imported IDs and reconciliation patterns; YNAB documents explicit file mapping, remembered settings and approval/matching patterns. These do not prove Vietnamese bank layouts, provider identity or MoneyFlow storage/mutation choices.
 
-- Actual Budget supports stable imported IDs, fallback reconciliation, dry-run and added/updated/errors outcomes.
-- YNAB documents explicit field mapping, inflow/outflow swap and remembered settings in account context.
-- YNAB matching/approval docs support lower-friction matched review and bulk actions.
-
-These do not prove Vietnamese bank layouts, identity or MoneyFlow storage/mutation choices. Equal headers are not source or semantic evidence. No evidence justifies raw-statement server retention or a background queue merely for MON-63.
+Equal headers do not prove equal financial semantics. No evidence justifies raw-statement server retention or a background queue for the completed MON-63 scope.
 
 ## 7. Security and production-schema truth
 
-Production Supabase remains healthy. Existing SECURITY DEFINER RPCs are privileged mutation surfaces with ownership/tenant contracts. MON-63 must first inventory current import-batch persistence and existing transactional RPC patterns before adding schema/RPC.
+New MON-63 database state stays under tenant ownership/RLS. Replay-safe mutation uses a bounded database transaction and row lock rather than a service-role bypass or background queue.
 
-Any new server-persisted preset or recovery state must be tenant-isolated and tested. Provider credentials, live bank sync, production DB/Auth/provider mutation and real customer statement use remain outside selector scope.
+Operational counters and mapping evidence are user-owned metadata. They are privacy-minimized and non-authoritative; a same-tenant user can own/change their own metadata, so it must not be described as tamper-proof audit evidence.
+
+Provider credentials, live bank sync, production provider mutation and real-customer statement ingestion remain outside MON-63 authorization.
 
 ## 8. Reconciled issue status
 
-- #432/#433: merged master product program; active strategy authority.
+- #432/#433: merged master Vietnam long-term product program; master authority remains active.
 - M0 security/runtime/release-integrity: completed.
 - #523 / MON-61: completed.
-- MON-62 / PR #552: merged, production-verified and Done.
-- MON-50: broader M1 Vietnam Acquisition Depth remains active.
-- MON-63: Todo/High at selector base; #553 is its explicit authority transition vehicle.
-- PR #553: Class-0 selector for a Class-3 packet; no runtime implementation in selector.
-- Open MON-63 runtime implementation PR: none.
+- MON-62 / PR #552: completed and production-verified.
+- MON-63 / PRs #553–#556: completed; #556 is the lifecycle closeout vehicle.
+- #554 and #555: merged implementation increments.
+- No current executable packet is selected after #556 merge.
+- Backlog/issues/Plate remain planning evidence only until selected by a fresh authority PR.
 
 ## 9. Open pull-request memory
 
-### PR #553 — MON-63 selector projection
+### PR #556 — MON-63 affected-flow evidence and closeout
 
-PR #553 starts from exact post-#552 `main@05323e2cb45609a85b3e7e3f2a4af94679149c31` and contains only planning/authority changes.
+PR #556 starts from post-#555 `main@63c239aefca9b5629561808c17948e3aea39bf3e`.
 
-Independent selector evaluation established:
+Its affected-flow browser test proves the remembered-mapping convenience remains explicit and reversible: applying a saved mapping surfaces remembered evidence, while a manual mapping edit restores manual-review evidence.
 
-- structural header equality is not financial semantic authority;
-- selector-base truth and post-merge authority projection must be represented separately so memory stays merge-stable;
-- required project-knowledge headings remain executable contracts;
-- runtime implementation base must be fresh main after selector merge, never the pre-merge selector SHA;
-- fresh-main reconnaissance found the v1 Direct CSV mapping preset is already live and actively used, so MON-63 must generalize/harden that current capability rather than describe it as a stale-branch-only prototype.
+The same PR archives MON-63, changes `PLAN_AUTHORITY.current` from the MON-63 packet to `null`, updates this snapshot and records lifecycle completion. It selects no follow-on work.
 
-The main retry/recovery gap remains the two-step preview→Inbox path: candidate creation can succeed before batch metadata completion, making blind retry unsafe.
-
-No runtime, schema, provider or production behavior changes are part of #553.
+After owner merge, this section is provenance only; PR #556 is not a second executable authority.
 
 ## 10. True gaps after this audit
 
-1. Generalize/harden the live device-local Direct CSV preset into deterministic, versioned, privacy-safe eligibility without inferring semantic equivalence from headers.
-2. State-aware, idempotent recovery when candidate creation and batch completion do not finish together.
-3. User-meaningful batch outcome/provenance on existing history without raw statement/source-ID leakage.
-4. Cross-device truth when server batch metadata exists but browser-local preview material does not.
-5. Measurement of repeated mapping/review interventions and retry outcomes.
-6. Exact current VCB/ACB/VietinBank export layouts and stable identity semantics remain evidence gaps.
-7. Owner merge of #553 plus fresh-main authority resolution before runtime implementation.
+1. Real-world maintenance improvement still needs cohort evidence over time; the new counters provide raw operational evidence but not a proven retention or time-saved claim.
+2. Exact VCB/ACB/VietinBank export layouts and stable transaction identity remain evidence gaps for bank-specific automation.
+3. Live bank/Open API connectivity still requires provider research, contracts, operational controls and explicit owner authorization.
+4. Public-beta provider/physical-device evidence remains separate from MON-63 completion.
+5. Daily-path simplification and other backlog improvements remain unselected until a fresh selector establishes authority.
 
 ## 11. Next allowed action
 
-If #553 is unmerged: latest exact head must pass required checks, remain mergeable with resolved threads, then only explicit owner merge may activate MON-63.
+Read fresh `main`, run `npm run plan:resolve`, then `npm run agent:doctor -- --json` in a fully materialized repository/toolchain environment.
 
-After owner merge: re-read fresh `main`, run `npm run plan:resolve` and `npm run agent:doctor -- --json`, record the exact post-selector-merge SHA, then begin bounded Class-3 implementation on a focused non-main branch.
+With `PLAN_AUTHORITY.current = null`, do not infer the next executable slice from issue priority, Plate, open PRs, newest documents or chat history. Select any follow-on work through a fresh authority transition from merged main.
 
-Do not treat selector merge as production/provider authorization.
+Do not treat MON-63 completion as authorization for provider sync, AI mutation, raw-statement retention or bank-specific guessing.
 
 ## 12. Superseded-status register
 
-- PR #552 is unmerged or unverified in production — **false**.
-- MON-62 remains selected after #552 — **false**; selector base is `null`.
-- MON-63 is automatically executable because MON-62 is Done — **false**.
-- Direct CSV mapping preset exists only on a stale branch — **false**; current main ships and actively uses a device-local v1 remembered-mapping seam.
-- Equal normalized headers prove equal financial semantics or provider identity — **false**.
-- MON-63 needs a brand-new batch-history subsystem — **false**; enrich current history.
-- Blind retry after preview→Inbox uncertainty is safe — **false**.
-- Mapping presets may key on filename, row contents or guessed bank identity — **false**.
-- VCB/ACB/VietinBank presets or auto-map are enabled — **false**.
-- Raw statements must be stored server-side for resume — **false**.
-- A background queue is required — **false until measured evidence proves it**.
+- MON-63 remains an implementing/current slice after PR #556 — **false** after owner merge.
+- PR #553 is still only a candidate selector — **false**; it was merged and activated MON-63.
+- Direct CSV remembered mapping is only a v1 header-shape helper — **false**; MON-63 hardened it with versioned semantic eligibility while preserving explicit apply/review.
+- Header equality proves equal source semantics — **false**.
+- Blind retry after an uncertain preview→Inbox response is safe — **false**; replay is state-aware and intent-bound.
+- Exact replay may create another candidate set — **false**.
+- Import history may promise resume when another device lacks the local draft — **false**.
+- Mapping/retry counters are tamper-proof audit telemetry — **false**; they are tenant-owned operational metadata.
+- VCB/ACB/VietinBank auto-map is enabled — **false**.
+- Raw statements are retained server-side for resume — **false**.
+- A background queue is required for the completed MON-63 design — **false**.
 - MON-63 authorizes live bank sync/provider credentials — **false**.
+- Plate or backlog priority is executable authority — **false**.
