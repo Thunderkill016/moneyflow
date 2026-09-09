@@ -109,7 +109,7 @@ Never emit raw source IDs, file contents, descriptions, amounts, account identif
 
 Primary product evidence for the slice: manual interventions per representative batch should fall without increasing correction/duplicate errors.
 
-## Plan
+## Implementation plan
 
 1. Inventory current import-batch metadata, authenticated server persistence, history UI, draft lifecycle, preview→Inbox commit seam and readiness classifier/tests.
 2. Define pure mapping-preset eligibility/versioning and commit/recovery state machines with counterexamples before UI work.
