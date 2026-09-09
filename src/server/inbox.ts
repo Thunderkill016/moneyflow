@@ -19,7 +19,7 @@ const CANDIDATE_RULE_COLUMNS =
   `${CANDIDATE_BASE_COLUMNS},applied_rule_id,applied_rule_version`;
 
 const BATCH_COLUMNS =
-  "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at,parser_version,mapping_version";
+  "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at,parser_version,mapping_version,commit_attempt_count,commit_replay_count";
 
 export type InboxListResult =
   | { ok: true; candidates: InboxCandidate[]; batches: ImportBatch[] }
