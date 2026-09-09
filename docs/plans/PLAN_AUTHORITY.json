@@ -10,5 +10,8 @@
       }
     ]
   },
-  "current": null
+  "current": {
+    "path": "docs/plans/active/mon-63-mapping-presets-batch-retry-review.md",
+    "selectedByPr": 553
+  }
 }
