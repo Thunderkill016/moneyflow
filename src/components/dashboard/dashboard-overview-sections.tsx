@@ -39,6 +39,7 @@ export function DashboardHeaderSections({
   totals,
   today,
   isEmptyLedger,
+  dataError,
   onAddTransaction,
 }: {
   displayName: string;
@@ -46,6 +47,7 @@ export function DashboardHeaderSections({
   totals: DashboardTotals;
   today: string;
   isEmptyLedger: boolean;
+  dataError?: string | null;
   onAddTransaction: () => void;
 }) {
   return (
@@ -99,7 +101,9 @@ export function DashboardHeaderSections({
           </ul>
         ) : (
           <p className="attention-strip-empty">
-            Không có mục nào cần xử lý lúc này.
+            {dataError
+              ? "Chưa thể tải các mục cần xử lý."
+              : "Không có mục nào cần xử lý lúc này."}
           </p>
         )}
       </section>

@@ -44,6 +44,7 @@ test("dashboard presentation composes Phase 2 feedback and action primitives", (
   assert.match(overview, /intent="secondary"/);
   assert.match(overview, /className="section-link shrink-0"/);
   assert.match(overview, /attention-strip-empty/);
+  assert.match(overview, /Chưa thể tải các mục cần xử lý/);
   assert.match(
     planning,
     /targetSize="important"[\s\S]*className="inline-flex items-center"[\s\S]*Xem tất cả mục tiêu/,
