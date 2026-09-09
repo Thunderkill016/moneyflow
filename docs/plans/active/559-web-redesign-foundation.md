@@ -6,8 +6,8 @@
 **Permission scope:** branch documentation/research only; no runtime/UI implementation in this slice
 **Owner:** human owner
 **Issue:** #559
-**PR:** #560
-**Branch:** `design/559-web-redesign-foundation`
+**PR:** #562
+**Branch:** `design/559-web-redesign-foundation-clean`
 **Base:** `main@60fdb1846e8cd8f9e6b48729ce1ff033778112e0`
 
 ## Outcome
@@ -278,7 +278,7 @@ Audited directly from `src/app`:
 ### 1. Migration Strategy (Vertical Slices)
 
 ```text
-Slice 0: Foundation & Specification (PR #560 - Candidate Research / Non-Executable)
+Slice 0: Foundation & Specification (PR #562 - Candidate Research / Non-Executable)
   → Slice 1: Design Tokens & Shared Primitives Proof (Button, Input, Dialog, etc.)
   → Slice 2: App Shell & Responsive Navigation Architecture
   → Slice 3: Today Surface (/dashboard, /insights)
@@ -349,4 +349,4 @@ This slice can close only when:
 
 ## Handoff
 
-Owner instruction on 2026-09-10 authorizes designing the complete MoneyFlow web experience. Repository policy requires this bounded foundation specification before runtime implementation. PR #560 remains a candidate specification in draft while #557 is active; merge remains owner decision.
+Owner instruction on 2026-09-10 authorizes designing the complete MoneyFlow web experience. Repository policy requires this bounded foundation specification before runtime implementation. PR #562 remains a candidate specification in draft while #557 is active; merge remains owner decision.
