@@ -392,4 +392,3 @@ Therefore the redesign's core architecture must make the full presentation chain
 10. **Debt direction is one-way:** presentation-ownership and `!important` debt may shrink, not grow.
 11. **Navigation slots are immutable:** route actions must never disable or hijack the global capture anchor.
 12. **Owner identity approval before code:** no runtime screen redesign without an approved visual territory brief.
-
