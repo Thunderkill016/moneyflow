@@ -48,6 +48,7 @@ const directCommitSchema = z.object({
   mapConfidence: z.number().min(0).max(1),
   headers: z.array(z.string().max(260)).max(200),
   columnMap: columnMapSchema,
+  mappingEvidence: z.enum(["preset_applied", "mapping_reviewed"]),
   allowHeuristicDuplicates: z.boolean().default(false),
   rows: z.array(directRowSchema).min(1).max(MAX_DIRECT_IMPORT_ROWS),
 });
@@ -200,6 +201,17 @@ export async function commitDirectCsvImportAction(
         "Lượt import đã được chuẩn bị nhưng phản hồi máy chủ không đầy đủ. Hãy mở Inbox hoặc Lịch sử import để kiểm tra trước khi thử lại.",
     };
   }
+
+  // Operational evidence is deliberately best-effort. During an application-first
+  // rollout production may not have the additive measurement RPC yet; financial
+  // preparation/approval must remain independent of this call's result.
+  await supabase.rpc("record_import_batch_measurement", {
+    p_batch_id: batchId,
+    p_event:
+      value.mappingEvidence === "preset_applied"
+        ? "mapping_preset_applied"
+        : "mapping_reviewed",
+  });
 
   const { data: preparedCandidates, error: preparedCandidatesError } = await supabase
     .from("inbox_candidates")
