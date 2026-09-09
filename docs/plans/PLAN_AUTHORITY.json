@@ -10,8 +10,5 @@
       }
     ]
   },
-  "current": {
-    "path": "docs/plans/active/557-turnstile-load-recovery.md",
-    "selectedByPr": 558
-  }
+  "current": null
 }
