@@ -19,6 +19,7 @@ import {
 } from "@/hooks/client-inbox";
 import {
   formatImportBatchDateShort,
+  formatImportBatchMaintenanceEvidence,
   formatImportBatchProvenance,
   formatImportBatchStats,
   importBatchRecoveryState,
@@ -216,6 +217,7 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
                 const hasLocalDraft = Boolean(readImportDraft(batch.id)?.rows.length);
                 const recovery = importBatchRecoveryState(batch, hasLocalDraft);
                 const provenance = formatImportBatchProvenance(batch);
+                const maintenance = formatImportBatchMaintenanceEvidence(batch);
                 return (
                   <li key={batch.id} className={styles.item}>
                     <div className={styles.identity}>
@@ -236,6 +238,7 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
                     <div className={styles.stats}>
                       <span>{formatImportBatchStats(batch)}</span>
                       {provenance ? <span>{provenance}</span> : null}
+                      {maintenance ? <span>{maintenance}</span> : null}
                       {recovery === "draft_unavailable" ? (
                         <span>Draft không có trên thiết bị này</span>
                       ) : null}
