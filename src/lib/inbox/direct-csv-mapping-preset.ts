@@ -1,12 +1,28 @@
 import type { CsvColumnMap } from "./parse-csv.ts";
+import {
+  CURRENT_IMPORT_MAPPING_VERSION,
+  parserVersionForSource,
+} from "./provenance.ts";
 
-export const DIRECT_CSV_MAPPING_PRESET_VERSION = 1;
+export const DIRECT_CSV_MAPPING_PRESET_VERSION = 2;
 export const DIRECT_CSV_MAPPING_PRESET_STORAGE_KEY =
-  "moneyflow-direct-csv-mapping-preset-v1";
+  "moneyflow-direct-csv-mapping-preset-v2";
+
+export type DirectCsvMappingSemanticContext = {
+  parserVersion: string;
+  mappingVersion: number;
+};
+
+export const CURRENT_DIRECT_CSV_MAPPING_CONTEXT: DirectCsvMappingSemanticContext = {
+  parserVersion: parserVersionForSource("csv"),
+  mappingVersion: CURRENT_IMPORT_MAPPING_VERSION,
+};
 
 export type DirectCsvMappingPreset = {
   version: typeof DIRECT_CSV_MAPPING_PRESET_VERSION;
   headerShape: string;
+  parserVersion: string;
+  mappingVersion: number;
   columnMap: CsvColumnMap;
 };
 
@@ -37,6 +53,18 @@ function validColumnMap(map: CsvColumnMap, headerCount: number): boolean {
     validColumnIndex(map.debit, headerCount) &&
     validColumnIndex(map.credit, headerCount) &&
     (map.amount !== null || map.debit !== null || map.credit !== null)
+  );
+}
+
+function validSemanticContext(
+  context: DirectCsvMappingSemanticContext,
+): boolean {
+  return (
+    typeof context.parserVersion === "string" &&
+    context.parserVersion.length >= 1 &&
+    context.parserVersion.length <= 80 &&
+    Number.isSafeInteger(context.mappingVersion) &&
+    context.mappingVersion >= 1
   );
 }
 
@@ -78,12 +106,21 @@ function parseStoredColumnMap(value: unknown): CsvColumnMap | null {
 export function createDirectCsvMappingPreset(
   headers: string[],
   columnMap: CsvColumnMap,
+  context: DirectCsvMappingSemanticContext = CURRENT_DIRECT_CSV_MAPPING_CONTEXT,
 ): DirectCsvMappingPreset | null {
   const headerShape = directCsvHeaderShape(headers);
-  if (!headerShape || !validColumnMap(columnMap, headers.length)) return null;
+  if (
+    !headerShape ||
+    !validColumnMap(columnMap, headers.length) ||
+    !validSemanticContext(context)
+  ) {
+    return null;
+  }
   return {
     version: DIRECT_CSV_MAPPING_PRESET_VERSION,
     headerShape,
+    parserVersion: context.parserVersion,
+    mappingVersion: context.mappingVersion,
     columnMap: copyColumnMap(columnMap),
   };
 }
@@ -91,13 +128,17 @@ export function createDirectCsvMappingPreset(
 export function resolveDirectCsvMappingPreset(
   headers: string[],
   preset: DirectCsvMappingPreset | null,
+  context: DirectCsvMappingSemanticContext = CURRENT_DIRECT_CSV_MAPPING_CONTEXT,
 ): CsvColumnMap | null {
   const headerShape = directCsvHeaderShape(headers);
   if (
     !preset ||
     preset.version !== DIRECT_CSV_MAPPING_PRESET_VERSION ||
+    !validSemanticContext(context) ||
     !headerShape ||
     preset.headerShape !== headerShape ||
+    preset.parserVersion !== context.parserVersion ||
+    preset.mappingVersion !== context.mappingVersion ||
     !validColumnMap(preset.columnMap, headers.length)
   ) {
     return null;
@@ -118,13 +159,22 @@ function parseStoredDirectCsvMappingPreset(
       preset.version !== DIRECT_CSV_MAPPING_PRESET_VERSION ||
       typeof preset.headerShape !== "string" ||
       preset.headerShape.length === 0 ||
+      typeof preset.parserVersion !== "string" ||
+      !Number.isSafeInteger(preset.mappingVersion) ||
       !columnMap
     ) {
       return null;
     }
+    const context = {
+      parserVersion: preset.parserVersion,
+      mappingVersion: preset.mappingVersion,
+    };
+    if (!validSemanticContext(context)) return null;
     return {
       version: DIRECT_CSV_MAPPING_PRESET_VERSION,
       headerShape: preset.headerShape,
+      parserVersion: context.parserVersion,
+      mappingVersion: context.mappingVersion,
       columnMap,
     };
   } catch {
@@ -135,10 +185,12 @@ function parseStoredDirectCsvMappingPreset(
 export function readDirectCsvMappingPreset(
   rawPreset: string | null,
   headers: string[],
+  context: DirectCsvMappingSemanticContext = CURRENT_DIRECT_CSV_MAPPING_CONTEXT,
 ): CsvColumnMap | null {
   return resolveDirectCsvMappingPreset(
     headers,
     parseStoredDirectCsvMappingPreset(rawPreset),
+    context,
   );
 }
 
@@ -151,6 +203,8 @@ export function writeDirectCsvMappingPreset(
     JSON.stringify({
       version: preset.version,
       headerShape: preset.headerShape,
+      parserVersion: preset.parserVersion,
+      mappingVersion: preset.mappingVersion,
       columnMap: copyColumnMap(preset.columnMap),
     }),
   );
