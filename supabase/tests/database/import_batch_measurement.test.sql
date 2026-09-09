@@ -1,5 +1,5 @@
 begin;
-select plan(10);
+select plan(13);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -94,6 +94,24 @@ select throws_ok(
   'replay count cannot exceed observed attempts'
 );
 
+select is(
+  public.record_import_batch_measurement(
+    '63110000-0000-4000-8000-000000000001'::uuid,
+    'mapping_preset_applied'
+  ) ->> 'mapping_evidence',
+  'preset_applied',
+  'explicit remembered mapping application is stored as bounded evidence'
+);
+
+select is(
+  public.record_import_batch_measurement(
+    '63110000-0000-4000-8000-000000000001'::uuid,
+    'mapping_reviewed'
+  ) ->> 'mapping_evidence',
+  'mapping_reviewed',
+  'later manual mapping review replaces preset evidence for final batch intent'
+);
+
 select throws_ok(
   $$ select public.record_import_batch_measurement(
     '63110000-0000-4000-8000-000000000001'::uuid, 'raw_statement'
@@ -107,11 +125,11 @@ set local request.jwt.claims = '{"sub":"63100000-0000-4000-8000-000000000002","r
 
 select throws_ok(
   $$ select public.record_import_batch_measurement(
-    '63110000-0000-4000-8000-000000000001'::uuid, 'commit_attempt'
+    '63110000-0000-4000-8000-000000000001'::uuid, 'mapping_preset_applied'
   ) $$,
   'P0001',
   'import_batch_measurement_not_recorded',
-  'another tenant cannot increment owner batch counters'
+  'another tenant cannot change owner mapping evidence'
 );
 
 reset role;
@@ -119,7 +137,14 @@ select is(
   (select commit_attempt_count from public.import_batches
    where id = '63110000-0000-4000-8000-000000000001'::uuid),
   1,
-  'cross-tenant attempt did not mutate owner measurement'
+  'cross-tenant measurement did not mutate owner counters'
+);
+
+select is(
+  (select mapping_evidence from public.import_batches
+   where id = '63110000-0000-4000-8000-000000000001'::uuid),
+  'mapping_reviewed',
+  'cross-tenant measurement did not mutate owner mapping evidence'
 );
 
 select * from finish();
