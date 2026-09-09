@@ -90,6 +90,44 @@ test.describe("Auth CAPTCHA provider readiness", () => {
     }
   });
 
+  test("successful script readiness is not overwritten by the watchdog", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await page.route(TURNSTILE_SCRIPT, async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/javascript",
+        body: `
+          window.turnstile = {
+            render: function (_container, options) {
+              options.callback("test-turnstile-token");
+              return "test-widget";
+            },
+            reset: function () {},
+            remove: function () {}
+          };
+        `,
+      });
+    });
+
+    await page.goto("/login");
+
+    const token = page.locator(CAPTCHA_TOKEN);
+    const status = page.getByRole("status");
+    const submit = page.getByRole("button", { name: "Đăng nhập", exact: true });
+
+    await expect(token).toHaveValue("test-turnstile-token");
+    await expect(status).toHaveText("Đã xác minh bảo mật.");
+    await expect(submit).toBeEnabled();
+
+    await page.clock.fastForward(TURNSTILE_SCRIPT_LOAD_DEADLINE_MS + 1);
+
+    await expect(token).toHaveValue("test-turnstile-token");
+    await expect(status).toHaveText("Đã xác minh bảo mật.");
+    await expect(submit).toBeEnabled();
+  });
+
   test("Turnstile recovery action reloads without bypassing the token gate", async ({
     page,
   }) => {
