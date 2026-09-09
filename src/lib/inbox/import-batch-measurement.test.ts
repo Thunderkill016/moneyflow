@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   formatImportBatchMaintenanceEvidence,
+  formatImportBatchMappingEvidence,
   isImportBatch,
   type ImportBatch,
 } from "./import-batch-store.ts";
@@ -49,13 +50,32 @@ test("maintenance evidence reports counts without financial payload", () => {
   );
 });
 
-test("batch validation accepts historical missing counters but rejects impossible replay order", () => {
+test("mapping evidence reports only bounded intervention categories", () => {
+  assert.equal(formatImportBatchMappingEvidence(base), null);
+  assert.equal(
+    formatImportBatchMappingEvidence({ ...base, mappingEvidence: "preset_applied" }),
+    "mapping đã nhớ được áp dụng",
+  );
+  assert.equal(
+    formatImportBatchMappingEvidence({ ...base, mappingEvidence: "mapping_reviewed" }),
+    "mapping đã review",
+  );
+});
+
+test("batch validation accepts historical missing measurement but rejects invalid evidence", () => {
   assert.equal(isImportBatch(base), true);
   assert.equal(
     isImportBatch({
       ...base,
       commitAttemptCount: 1,
       commitReplayCount: 2,
+    }),
+    false,
+  );
+  assert.equal(
+    isImportBatch({
+      ...base,
+      mappingEvidence: "bank_vcb",
     }),
     false,
   );
