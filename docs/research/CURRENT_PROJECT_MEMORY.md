@@ -1,7 +1,7 @@
 # MoneyFlow — current project memory
 
-**Status:** M0, MON-61, MON-62 and MON-63 are completed. The PR #556 closeout projection leaves `PLAN_AUTHORITY.current` as `null`; no follow-on executable slice is selected.
-**Last reconciled:** 2026-09-09
+**Status:** M0, MON-61, MON-62 and MON-63 are completed. PR #560 selects candidate foundation slice `docs/plans/active/559-web-redesign-foundation.md` as `PLAN_AUTHORITY.current`; runtime implementation remains blocked until owner merge.
+**Last reconciled:** 2026-09-10
 **Last verified production runtime baseline:** `63c239aefca9b5629561808c17948e3aea39bf3e` (PR #555), Vercel READY; `/api/health` returned 200 for that exact commit. PR #556 is test/docs/lifecycle closeout only and introduces no runtime or provider mutation.
 **Master program:** `docs/plans/active/432-vietnam-long-term-product-strategy.md` remains the long-term strategy authority.
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
@@ -87,20 +87,18 @@ Provider credentials, live bank sync, production provider mutation and real-cust
 - MON-62 / PR #552: completed and production-verified.
 - MON-63 / PRs #553–#556: completed; #556 is the lifecycle closeout vehicle.
 - #554 and #555: merged implementation increments.
-- No current executable packet is selected after #556 merge.
+- #559: web redesign foundation; selector vehicle is PR #560.
 - Backlog/issues/Plate remain planning evidence only until selected by a fresh authority PR.
 
 ## 9. Open pull-request memory
 
-### PR #556 — MON-63 affected-flow evidence and closeout
+### PR #560 — select #559 web redesign foundation
 
-PR #556 starts from post-#555 `main@63c239aefca9b5629561808c17948e3aea39bf3e`.
+PR #560 starts from exact post-MON-63 `main@ad0461514acaec1c9a8a100ba92592c83ece46b2` and is documentation/authority only.
 
-Its affected-flow browser test proves the remembered-mapping convenience remains explicit and reversible: applying a saved mapping surfaces remembered evidence, while a manual mapping edit restores manual-review evidence.
+Its packet records the forensic failure postmortem (F1–F10), complete 47-route inventory, Design System v3 specification, machine-verifiable guardrails design, and three distinct visual territories for owner decision.
 
-The same PR archives MON-63, changes `PLAN_AUTHORITY.current` from the MON-63 packet to `null`, updates this snapshot and records lifecycle completion. It selects no follow-on work.
-
-After owner merge, this section is provenance only; PR #556 is not a second executable authority.
+The manifest projection names #559 with `selectedByPr: 560`. Before owner merge it is a candidate projection; after owner merge it becomes executable authority. Runtime implementation begins only in subsequent vertical slices after owner decision.
 
 ## 10. True gaps after this audit
 
@@ -109,14 +107,15 @@ After owner merge, this section is provenance only; PR #556 is not a second exec
 3. Live bank/Open API connectivity still requires provider research, contracts, operational controls and explicit owner authorization.
 4. Public-beta provider/physical-device evidence remains separate from MON-63 completion.
 5. Daily-path simplification and other backlog improvements remain unselected until a fresh selector establishes authority.
+6. Web redesign requires owner decision on the three visual territories (*Kỷ Hà Đương Đại*, *Dòng Chảy Xanh*, *Bản Ghi Bản Lĩnh*) before Slice 1 tokens/primitives implementation.
 
 ## 11. Next allowed action
 
-Read fresh `main`, run `npm run plan:resolve`, then `npm run agent:doctor -- --json` in a fully materialized repository/toolchain environment.
+For PR #560: finish selector evaluation and exact-head governance checks. Only explicit owner merge may activate #559.
 
-With `PLAN_AUTHORITY.current = null`, do not infer the next executable slice from issue priority, Plate, open PRs, newest documents or chat history. Select any follow-on work through a fresh authority transition from merged main.
+After selector merge, read fresh main, run `npm run plan:resolve`, then `npm run agent:doctor -- --json` in a fully materialized repository/toolchain environment before runtime implementation.
 
-Do not treat MON-63 completion as authorization for provider sync, AI mutation, raw-statement retention or bank-specific guessing.
+Do not infer implementation authorization from Plate, the issue being open, or this candidate packet alone.
 
 ## 12. Superseded-status register
 
@@ -132,4 +131,6 @@ Do not treat MON-63 completion as authorization for provider sync, AI mutation, 
 - Raw statements are retained server-side for resume — **false**.
 - A background queue is required for the completed MON-63 design — **false**.
 - MON-63 authorizes live bank sync/provider credentials — **false**.
+- PR #560 being open makes #559 runtime work executable — **false**; selector merge history determines activation.
+- Foundation selection authorizes screen rewriting or runtime UI refactoring — **false**; runtime implementation begins only in subsequent vertical slices after owner decision.
 - Plate or backlog priority is executable authority — **false**.
