@@ -19,13 +19,18 @@ import {
 } from "@/hooks/client-inbox";
 import {
   formatImportBatchDateShort,
+  formatImportBatchProvenance,
   formatImportBatchStats,
+  importBatchRecoveryState,
   importBatchSourceLabel,
   importBatchStatusLabel,
   sortImportBatchesNewestFirst,
   type ImportBatch,
 } from "@/lib/inbox/import-batch-store";
-import { removeImportDraft } from "@/lib/inbox/import-draft-store";
+import {
+  readImportDraft,
+  removeImportDraft,
+} from "@/lib/inbox/import-draft-store";
 import styles from "./imports-page.module.css";
 
 function statusTone(status: ImportBatch["status"]) {
@@ -207,60 +212,85 @@ export function ImportsPage({ viewer }: { viewer: ViewerSummary }) {
             slot="import-batch-list"
           >
             <ol className={styles.list}>
-              {batches.map((batch) => (
-                <li key={batch.id} className={styles.item}>
-                  <div className={styles.identity}>
-                    <span className={styles.sourceIcon} aria-hidden="true">
-                      <Icon name="imports" />
-                    </span>
-                    <div className={styles.body}>
-                      <strong title={batch.fileName}>{batch.fileName}</strong>
-                      <p>
-                        <time dateTime={batch.createdAt}>
-                          {formatImportBatchDateShort(batch.createdAt)}
-                        </time>
-                        <span aria-hidden="true"> · </span>
-                        <span>{importBatchSourceLabel(batch.source)}</span>
-                      </p>
+              {batches.map((batch) => {
+                const hasLocalDraft = Boolean(readImportDraft(batch.id)?.rows.length);
+                const recovery = importBatchRecoveryState(batch, hasLocalDraft);
+                const provenance = formatImportBatchProvenance(batch);
+                return (
+                  <li key={batch.id} className={styles.item}>
+                    <div className={styles.identity}>
+                      <span className={styles.sourceIcon} aria-hidden="true">
+                        <Icon name="imports" />
+                      </span>
+                      <div className={styles.body}>
+                        <strong title={batch.fileName}>{batch.fileName}</strong>
+                        <p>
+                          <time dateTime={batch.createdAt}>
+                            {formatImportBatchDateShort(batch.createdAt)}
+                          </time>
+                          <span aria-hidden="true"> · </span>
+                          <span>{importBatchSourceLabel(batch.source)}</span>
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className={styles.stats}>
-                    <span>{formatImportBatchStats(batch)}</span>
-                    <span className={`${styles.status} ${statusTone(batch.status)}`}>
-                      {importBatchStatusLabel(batch.status)}
-                    </span>
-                  </div>
-                  <div className={styles.actions}>
-                    {batch.status === "committed" ? (
-                      <LinkButton
-                        href="/inbox"
-                        intent="secondary"
+                    <div className={styles.stats}>
+                      <span>{formatImportBatchStats(batch)}</span>
+                      {provenance ? <span>{provenance}</span> : null}
+                      {recovery === "draft_unavailable" ? (
+                        <span>Draft không có trên thiết bị này</span>
+                      ) : null}
+                      <span className={`${styles.status} ${statusTone(batch.status)}`}>
+                        {importBatchStatusLabel(batch.status)}
+                      </span>
+                    </div>
+                    <div className={styles.actions}>
+                      {recovery === "committed" ? (
+                        <LinkButton
+                          href="/inbox"
+                          intent="secondary"
+                          targetSize="important"
+                        >
+                          Xem Inbox
+                        </LinkButton>
+                      ) : recovery === "resumable_local_draft" ? (
+                        <LinkButton
+                          href={`/imports/${encodeURIComponent(batch.id)}/preview`}
+                          intent="secondary"
+                          targetSize="important"
+                        >
+                          Xem trước
+                        </LinkButton>
+                      ) : recovery === "draft_unavailable" ? (
+                        <LinkButton
+                          href="/capture/upload"
+                          intent="secondary"
+                          targetSize="important"
+                        >
+                          Tải lại file
+                        </LinkButton>
+                      ) : (
+                        <LinkButton
+                          href={`/imports/${encodeURIComponent(batch.id)}/preview`}
+                          intent="secondary"
+                          targetSize="important"
+                        >
+                          Chi tiết
+                        </LinkButton>
+                      )}
+                      <Button
+                        type="button"
+                        intent="destructive"
                         targetSize="important"
+                        onClick={() => setDeleteTarget(batch)}
+                        disabled={deletingId === batch.id}
+                        aria-label={`Xóa metadata import ${batch.fileName}`}
                       >
-                        Xem Inbox
-                      </LinkButton>
-                    ) : (
-                      <LinkButton
-                        href={`/imports/${encodeURIComponent(batch.id)}/preview`}
-                        intent="secondary"
-                        targetSize="important"
-                      >
-                        {batch.status === "cancelled" ? "Chi tiết" : "Xem trước"}
-                      </LinkButton>
-                    )}
-                    <Button
-                      type="button"
-                      intent="destructive"
-                      targetSize="important"
-                      onClick={() => setDeleteTarget(batch)}
-                      disabled={deletingId === batch.id}
-                      aria-label={`Xóa metadata import ${batch.fileName}`}
-                    >
-                      Xóa metadata
-                    </Button>
-                  </div>
-                </li>
-              ))}
+                        Xóa metadata
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
           </SecondarySection>
         ) : null}

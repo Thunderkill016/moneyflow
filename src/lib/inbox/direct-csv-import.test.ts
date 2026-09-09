@@ -338,8 +338,10 @@ test("a remembered Direct CSV preset matches only the same normalized ordered he
   );
 
   assert.deepEqual(preset, {
-    version: 1,
+    version: 2,
     headerShape: "ngày gd\u001fnội dung\u001fghi nợ\u001fghi có",
+    parserVersion: "csv_import@1.0",
+    mappingVersion: 1,
     columnMap: map,
   });
   assert.deepEqual(

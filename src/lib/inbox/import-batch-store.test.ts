@@ -3,8 +3,10 @@ import test from "node:test";
 import {
   createImportBatch,
   formatImportBatchDateShort,
+  formatImportBatchProvenance,
   formatImportBatchStats,
   getStoredImportBatch,
+  importBatchRecoveryState,
   importBatchSourceLabel,
   importBatchStatusLabel,
   isImportBatch,
@@ -34,6 +36,8 @@ const valid: ImportBatch = {
     credit: null,
   },
   createdAt: "2026-07-15T10:00:00.000Z",
+  parserVersion: "csv_import@1.0",
+  mappingVersion: 1,
 };
 
 test("isImportBatch accepts complete meta", () => {
@@ -52,9 +56,11 @@ test("isImportBatch rejects bad shapes", () => {
   assert.equal(isImportBatch({ ...valid, rowCount: -1 }), false);
   assert.equal(isImportBatch({ ...valid, source: "xml" }), false);
   assert.equal(isImportBatch({ ...valid, columnMap: { date: 0 } }), false);
+  assert.equal(isImportBatch({ ...valid, parserVersion: "" }), false);
+  assert.equal(isImportBatch({ ...valid, mappingVersion: 0 }), false);
 });
 
-test("createImportBatch defaults status parsed", () => {
+test("createImportBatch defaults status parsed and retains safe provenance", () => {
   const batch = createImportBatch({
     fileName: "a.csv",
     source: "csv",
@@ -69,10 +75,14 @@ test("createImportBatch defaults status parsed", () => {
       debit: null,
       credit: null,
     },
+    parserVersion: "csv_import@1.0",
+    mappingVersion: 1,
   });
   assert.equal(batch.status, "parsed");
   assert.ok(batch.id.startsWith("imp-"));
   assert.equal(batch.skippedRows, 0);
+  assert.equal(batch.parserVersion, "csv_import@1.0");
+  assert.equal(batch.mappingVersion, 1);
 });
 
 test("upsertImportBatch inserts and replaces", () => {
@@ -146,6 +156,37 @@ test("formatImportBatchStats wireframe-style", () => {
       status: "cancelled",
     }),
     "Đã hủy",
+  );
+});
+
+test("formatImportBatchProvenance exposes only version evidence", () => {
+  assert.equal(
+    formatImportBatchProvenance({
+      parserVersion: "csv_import@1.0",
+      mappingVersion: 1,
+    }),
+    "csv_import@1.0 · map v1",
+  );
+  assert.equal(
+    formatImportBatchProvenance({ parserVersion: undefined, mappingVersion: 2 }),
+    "map v2",
+  );
+  assert.equal(
+    formatImportBatchProvenance({ parserVersion: undefined, mappingVersion: undefined }),
+    null,
+  );
+});
+
+test("parsed batch is resumable only when this device still has its draft", () => {
+  assert.equal(importBatchRecoveryState(valid, true), "resumable_local_draft");
+  assert.equal(importBatchRecoveryState(valid, false), "draft_unavailable");
+  assert.equal(
+    importBatchRecoveryState({ status: "committed" }, false),
+    "committed",
+  );
+  assert.equal(
+    importBatchRecoveryState({ status: "cancelled" }, true),
+    "cancelled",
   );
 });
 

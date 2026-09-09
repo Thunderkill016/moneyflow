@@ -1,17 +1,18 @@
 # MON-63 — mapping presets, batch history and retry/review UX
 
-**Status:** selected by PR #553; candidate before owner merge, executable only after merged authority resolves on fresh main
-**Execution state:** planned
-**Active role:** planner / selector handoff
+**Status:** active after owner-merged selector PR #553
+**Execution state:** implementing
+**Active role:** implementer
 **Permission scope:** branch_write
 **Owner:** ThunderK
 **Issue/PR:** Linear MON-63 / implementation PR pending
 **Selector:** GitHub PR #553
 **Selector base:** `main@05323e2cb45609a85b3e7e3f2a4af94679149c31`
-**Implementation base:** fresh `main` after owner merge of PR #553; never reuse the selector-base SHA as runtime implementation authority
+**Implementation base:** `main@a34ac54dfe33175dc96c05348522463aa8cbe1d0` after owner-merged PR #553
+**Implementation branch:** `feat/mon-63-import-recovery-presets`
 **Last updated:** 2026-09-09
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This is a Class 3 acquisition/data-integrity work packet. The selector PR establishes authority only; runtime implementation starts only after owner merge plus fresh `npm run plan:resolve` and `npm run agent:doctor -- --json`.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This is a Class 3 acquisition/data-integrity work packet. PR #553 is merged and fresh-main plan authority resolves MON-63 as the sole current slice. The current connector sandbox cannot produce a truthful machine-level `agent:doctor` READY result because it cannot materialize the full Git checkout/toolchain; no doctor success is claimed. Exact-head repository CI/DB/browser gates remain mandatory before handoff.
 
 ## Outcome
 
@@ -23,7 +24,7 @@ All accepted acquisition paths still converge on the existing Inbox/provenance/m
 
 ### Repository reconnaissance
 
-Selector baseline: `main@05323e2cb45609a85b3e7e3f2a4af94679149c31` after merged/deployed MON-62. This is selector evidence, not the future runtime implementation base.
+Runtime implementation baseline: fresh `main@a34ac54dfe33175dc96c05348522463aa8cbe1d0`, the squash merge of selector PR #553. The older `05323e2...` SHA remains selector evidence only.
 
 Current code already has seams MON-63 must extend rather than rebuild:
 
@@ -34,7 +35,8 @@ Current code already has seams MON-63 must extend rather than rebuild:
 - `src/components/inbox/direct-csv-import-page.tsx` actively reads that preset, exposes an explicit user action to apply the remembered mapping, and tells the user to verify the dry-run before writing to the ledger. This is a current device-local structural convenience, not bank/source semantic authority.
 - Generic CSV parsing remains heuristic: column position/header matching plus date and amount-direction interpretation can differ even when normalized headers are equal.
 - PR #552 preserves parser/mapping/source provenance through the existing Inbox path.
-- Existing Direct CSV and Inbox database work already demonstrates transactional batch/approval patterns; MON-63 should reuse those patterns rather than introduce a generic queue.
+- Existing Direct CSV and Share Target database work demonstrates transactional batch/candidate patterns. Current generic authenticated preview still inserts candidates and updates batch metadata in separate requests, which is the MON-63 retry-integrity gap.
+- `import_batches` and `inbox_candidates` already have own-row RLS plus an owner-preserving composite `(import_batch_id,user_id)` FK, so an additive `SECURITY INVOKER` RPC can keep tenant authority in RLS rather than inventing a privileged bypass.
 - Exception-first Ready/Needs-attention semantics already exist and remain the review authority.
 
 ### Historical branch evidence
@@ -49,6 +51,7 @@ Historical branches are evidence only, not executable authority:
 1. Actual Budget import/API documentation uses stable imported IDs first, fallback reconciliation otherwise, supports dry-run and reports added/updated/errors. Applicability: idempotent outcome/recovery patterns only.
 2. YNAB file import documentation supports explicit field mapping, inflow/outflow swap and remembered settings in a known account context. Applicability: user-controlled remembered mappings, not bank-layout inference.
 3. YNAB matching/approval documentation supports lower-friction matched review and bulk actions. MoneyFlow keeps its own readiness classifier and explicit approval authority.
+4. Current Supabase/PostgreSQL guidance supports `SECURITY INVOKER` by default, explicit function EXECUTE grants, locked search paths, and row locking/transactional mutation for concurrency-safe state transitions. MON-63 follows those existing platform contracts rather than adding an application queue.
 
 ### Research limits
 
@@ -91,6 +94,8 @@ Use the smallest truthful durable state/outcome set that distinguishes:
 - cancelled.
 
 A successful commit records durable outcome metadata sufficient to explain added/skipped/changed/review-needed counts without storing the raw statement. Stable retry identity is reused for unchanged intent. Fuzzy fingerprints remain advisory, not permanent uniqueness authority.
+
+Implementation decision for the first integrity slice: the existing batch UUID is the stable idempotency key; a SHA-256 hash of canonical validated candidate intent is stored on the batch to reject reuse of that key for changed financial intent. Generated candidate UUIDs/timestamps are excluded from the intent hash. An own-row `FOR UPDATE` lock serializes concurrent commits. Exact replay returns the durable committed result without reinserting candidates; changed intent fails closed.
 
 Prefer an existing transactional/RPC pattern if candidate creation and batch completion must change together. Do not route around Inbox into ledger mutation.
 
@@ -140,21 +145,21 @@ Rollback: preserve existing generic import/history/Direct CSV paths. Any schema 
 
 ## Tasks
 
-- [ ] Resolve exact post-selector-merge fresh-main implementation baseline.
-- [ ] Inventory authenticated import-batch DB/RPC ownership and live Direct CSV preset usage.
-- [ ] Treat stale preset branch as provenance only; re-evaluate retry branch principles against current code.
+- [x] Resolve exact post-selector-merge fresh-main implementation baseline: `a34ac54dfe33175dc96c05348522463aa8cbe1d0`.
+- [x] Inventory authenticated import-batch DB/RPC ownership and live Direct CSV preset usage.
+- [x] Treat stale preset branch as provenance only; re-evaluate retry branch principles against current code.
 - [ ] Specify mapping eligibility key and semantic-version boundaries.
 - [ ] Add equal-header/different-semantics counterexamples.
 - [ ] Preserve explicit Direct CSV remembered-map + dry-run compatibility.
-- [ ] Specify minimal durable batch outcome/recovery states.
-- [ ] Prove replay/uncertain-response retry cannot duplicate candidates.
-- [ ] Preserve no-raw-statement server boundary by default.
+- [x] Specify minimal durable batch outcome/recovery states and the batch-id + intent-hash replay law.
+- [ ] Prove replay/uncertain-response retry cannot duplicate candidates on exact-head DB/CI gates.
+- [x] Preserve no-raw-statement server boundary by default.
 - [ ] Implement tenant-safe preset save/apply/delete where persistence requires it.
 - [ ] Enrich existing history with outcome/provenance/recovery.
 - [ ] Reuse existing Ready/Needs-attention classifier.
 - [ ] Add privacy-safe intervention/retry measurement.
 - [ ] Cover cross-device missing-draft behavior truthfully.
-- [ ] Keep VCB/ACB/VietinBank presets disabled without stronger evidence.
+- [x] Keep VCB/ACB/VietinBank presets disabled without stronger evidence.
 - [ ] Run independent evaluation and exact-head selected CI/CodeQL/Secret/browser/DB gates.
 - [ ] Complete same-PR lifecycle closeout and leave follow-on work unselected.
 
@@ -162,7 +167,7 @@ Rollback: preserve existing generic import/history/Direct CSV paths. Any schema 
 
 Acceptance requires all of the following on the implementation PR exact head:
 
-- implementation starts from fresh main after owner merge of #553, not selector-base `05323e2...`;
+- implementation starts from fresh main after owner merge of #553, specifically `a34ac54dfe33175dc96c05348522463aa8cbe1d0`, not selector-base `05323e2...`;
 - replay/retry cannot create a second candidate set for the same committed intent;
 - uncertain completion never presents false success and recovery is state-aware;
 - unchanged intent reuses stable retry identity; fuzzy fingerprints stay advisory;
