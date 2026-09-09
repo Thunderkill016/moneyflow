@@ -9,7 +9,7 @@ insert into auth.users (
   is_sso_user, is_anonymous
 ) values
 (
-  '00000000-0000-0000-0000-000000000000'::uuid,
+  '00000000-0000-0000-8000-000000000000'::uuid,
   '63000000-0000-4000-8000-000000000001'::uuid,
   'authenticated', 'authenticated', 'mon63-owner@example.invalid',
   crypt('discarded-test-password', gen_salt('bf')), now(),
@@ -19,7 +19,7 @@ insert into auth.users (
   now(), now(), '', '', false, false
 ),
 (
-  '00000000-0000-0000-0000-000000000000'::uuid,
+  '00000000-0000-4000-8000-000000000000'::uuid,
   '63000000-0000-4000-8000-000000000002'::uuid,
   'authenticated', 'authenticated', 'mon63-other@example.invalid',
   crypt('discarded-test-password', gen_salt('bf')), now(),
@@ -217,12 +217,23 @@ select throws_ok(
     select public.commit_import_batch_candidates(
       '63010000-0000-4000-8000-000000000001'::uuid,
       repeat('b', 64),
-      '[]'::jsonb
+      jsonb_build_array(
+        jsonb_build_object(
+          'id', '63020000-0000-4000-8000-000000000001',
+          'kind', 'expense', 'amount_minor', 46000, 'merchant', 'Changed Highlands',
+          'occurred_on', '2026-09-09', 'source', 'csv', 'confidence', 'high'
+        ),
+        jsonb_build_object(
+          'id', '63020000-0000-4000-8000-000000000002',
+          'kind', 'income', 'amount_minor', 900000, 'merchant', 'Salary',
+          'occurred_on', '2026-09-08', 'source', 'csv', 'confidence', 'medium'
+        )
+      )
     )
   $$,
   'P0001',
-  'invalid_import_candidate_count',
-  'changed replay must still provide a valid candidate envelope'
+  'import_batch_replay_mismatch',
+  'same batch identity rejects a changed financial intent'
 );
 
 select is(
