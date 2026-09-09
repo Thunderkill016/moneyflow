@@ -151,6 +151,18 @@ export function CommitmentsPage({
     return active;
   }, [active, statusFilter]);
   const visible = showArchived ? archived : visibleActive;
+  const emptyTitle = showArchived
+    ? "Không có khoản đã lưu trữ"
+    : statusFilter === "unpaid"
+      ? "Không có khoản chưa thanh toán"
+      : statusFilter === "paid"
+        ? "Chưa có khoản đã thanh toán"
+        : "Chưa có khoản định kỳ";
+  const emptyDescription = showArchived
+    ? "Các khoản được lưu trữ sẽ xuất hiện tại đây."
+    : statusFilter === "all"
+      ? "Thêm tiền nhà hoặc hóa đơn để theo dõi ngày và chỉ ghi chi khi bạn thanh toán."
+      : "Đổi bộ lọc để xem các khoản định kỳ khác hoặc thêm một khoản mới.";
   const totals = commitmentTotals(items);
   const unpaidCount = unpaidActiveCount(items);
   const paidCount = Math.max(0, active.length - unpaidCount);
@@ -579,16 +591,8 @@ export function CommitmentsPage({
               ) : (
                 <EmptyState
                   icon={<Icon name="calendar" />}
-                  title={
-                    showArchived
-                      ? "Không có khoản đã lưu trữ"
-                      : "Chưa có khoản định kỳ"
-                  }
-                  description={
-                    showArchived
-                      ? "Các khoản được lưu trữ sẽ xuất hiện tại đây."
-                      : "Thêm tiền nhà hoặc hóa đơn để theo dõi ngày và chỉ ghi chi khi bạn thanh toán."
-                  }
+                  title={emptyTitle}
+                  description={emptyDescription}
                   primaryAction={
                     !showArchived && canAdd ? (
                       <Button

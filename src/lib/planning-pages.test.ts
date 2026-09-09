@@ -160,6 +160,8 @@ test("all four Planning pages use the shared shell and UI empty state", () => {
   assert.match(commitments, /href="\/dashboard"/);
   assert.match(commitments, /statusFilter/);
   assert.match(commitments, /aria-pressed=\{statusFilter === value\}/);
+  assert.match(commitments, /Không có khoản chưa thanh toán/);
+  assert.match(commitments, /Chưa có khoản đã thanh toán/);
 
   const categories = read(CATEGORIES);
   assert.match(categories, /EmptyState/);
