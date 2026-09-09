@@ -10,7 +10,7 @@
 
 MoneyFlow remains a Vietnamese personal-finance product centered on one trustworthy user-owned ledger and progressively lower maintenance effort.
 
-#557 is complete at the implementation/evaluation level. PR #561 added finite truthful recovery for a stalled top-level Cloudflare Turnstile script while preserving the existing fail-closed real-token gate. The completing PR moved the active packet to the canonical completed-packet location `docs/plans/completed/557-turnstile-load-recovery.md` and set `PLAN_AUTHORITY.current` to `null`.
+#557 is complete at the implementation/evaluation level. PR #561 added finite truthful recovery for a stalled top-level Cloudflare Turnstile script while preserving the existing fail-closed real-token gate. The completing PR moved the active packet to the canonical completed-packet location `docs/plans/completed/2026-09-10-557-turnstile-load-recovery.md` and set `PLAN_AUTHORITY.current` to `null`.
 
 PR #561 is not merged by this lifecycle projection. Final exact-head governance checks must be green on the lifecycle-closeout head, then the PR may be handed off Ready. Merge remains an explicit owner action.
 
@@ -104,7 +104,7 @@ Parent #174 still contains operational/provider-console controls that must not b
 - #511: already completed by merged PR #522; do not reimplement from the still-open tracker.
 - #426: not executable as originally written; a fresh owner design decision is required before replacement work.
 - #174: remains the public-beta provider-control lane. Provider-console password/redirect/rate-limit/WAF work remains separate operational work and is currently unselected.
-- #557: implementation/evaluation complete in PR #561; packet moved to `docs/plans/completed/` and executable authority returned to null. PR merge remains pending owner action after final exact-head checks.
+- #557: implementation/evaluation complete in PR #561; packet moved to `docs/plans/completed/` with canonical dated naming and executable authority returned to null. PR merge remains pending owner action after final exact-head checks.
 
 ## 9. Open pull-request memory
 
@@ -114,7 +114,7 @@ Base: exact owner-merged selector `main@60fdb1846e8cd8f9e6b48729ce1ff033778112e0
 
 Implementation adds a bounded top-level Turnstile script watchdog/recovery state, preserves the real-token submit gate and adds deterministic stalled-script/stale-timer/keyboard-retry browser evidence. Exact implementation head `e4a5dfd49c9529ed19f1338a8a24630b57a2ebb8` passed CI, Browser smoke, Cross-device UI audit, CodeQL and Secret History.
 
-Evaluator pass found no scope or security regression. Lifecycle closeout is now represented in the same PR: #557 packet moved to canonical `docs/plans/completed/`, `PLAN_AUTHORITY.current` null, current memory reconciled and PR memory updated. Because those docs create a newer PR head, exact-head governance checks on the final lifecycle head remain required before Ready handoff.
+Evaluator pass found no scope or security regression. Lifecycle closeout is now represented in the same PR: #557 packet moved to canonical `docs/plans/completed/2026-09-10-557-turnstile-load-recovery.md`, `PLAN_AUTHORITY.current` null, current memory reconciled and PR memory updated. Because those docs create a newer PR head, exact-head governance checks on the final lifecycle head remain required before Ready handoff.
 
 ## 10. True gaps after #557
 
