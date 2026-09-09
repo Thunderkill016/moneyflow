@@ -168,7 +168,7 @@
     {
       "version": "20260804160000",
       "name": "20260804160000_financial_mutation_audit.sql",
-      "hash": "2bb6d5e7de58c1e6b7a517a85ef4182f"
+      "hash": "2bb6d5e7de58c1e6b7a517a85ef4182"
     },
     {
       "version": "20260804160100",
@@ -279,6 +279,11 @@
       "version": "20260825090000",
       "name": "20260825090000_direct_csv_rule_atomic_ingestion.sql",
       "hash": "802cf35df8a5f448ca246d9d3940c9c0"
+    },
+    {
+      "version": "20260909090000",
+      "name": "20260909090000_import_batch_atomic_commit.sql",
+      "hash": "f91f4f47199f0bfd5588ddcbee355fe9"
     }
   ]
 }
