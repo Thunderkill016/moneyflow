@@ -21,7 +21,7 @@ const CANDIDATE_RULE_COLUMNS =
 const BATCH_BASE_COLUMNS =
   "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at,parser_version,mapping_version";
 const BATCH_MEASUREMENT_COLUMNS =
-  `${BATCH_BASE_COLUMNS},commit_attempt_count,commit_replay_count`;
+  `${BATCH_BASE_COLUMNS},commit_attempt_count,commit_replay_count,mapping_evidence`;
 
 export type InboxListResult =
   | { ok: true; candidates: InboxCandidate[]; batches: ImportBatch[] }
@@ -47,7 +47,8 @@ function isMissingMeasurementColumn(error: InboxQueryError) {
     error.code === "42703" ||
     error.code === "PGRST204" ||
     message.includes("commit_attempt_count") ||
-    message.includes("commit_replay_count")
+    message.includes("commit_replay_count") ||
+    message.includes("mapping_evidence")
   );
 }
 
