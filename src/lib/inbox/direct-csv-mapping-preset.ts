@@ -155,19 +155,22 @@ function parseStoredDirectCsvMappingPreset(
     if (!value || typeof value !== "object") return null;
     const preset = value as Partial<DirectCsvMappingPreset>;
     const columnMap = parseStoredColumnMap(preset.columnMap);
+    const parserVersion = preset.parserVersion;
+    const mappingVersion = preset.mappingVersion;
     if (
       preset.version !== DIRECT_CSV_MAPPING_PRESET_VERSION ||
       typeof preset.headerShape !== "string" ||
       preset.headerShape.length === 0 ||
-      typeof preset.parserVersion !== "string" ||
-      !Number.isSafeInteger(preset.mappingVersion) ||
+      typeof parserVersion !== "string" ||
+      typeof mappingVersion !== "number" ||
+      !Number.isSafeInteger(mappingVersion) ||
       !columnMap
     ) {
       return null;
     }
-    const context = {
-      parserVersion: preset.parserVersion,
-      mappingVersion: preset.mappingVersion,
+    const context: DirectCsvMappingSemanticContext = {
+      parserVersion,
+      mappingVersion,
     };
     if (!validSemanticContext(context)) return null;
     return {
