@@ -6,7 +6,7 @@
 **Permission scope:** branch_write
 **Owner:** ThunderK
 **Issue/PR:** Linear MON-63 / implementation PR pending
-**Selector:** GitHub selector PR pending
+**Selector:** GitHub PR #553
 **Implementation base:** `main@05323e2cb45609a85b3e7e3f2a4af94679149c31`
 **Last updated:** 2026-09-09
 
