@@ -44,6 +44,13 @@ declare
   v_mapping_version integer;
   v_applied_rule_id uuid;
   v_applied_rule_version integer;
+  v_claimed_batch_id uuid;
+  v_claimed_user_id uuid;
+  v_possible_duplicate boolean;
+  v_source_external_id text;
+  v_source_lifecycle_state text;
+  v_source_predecessor_external_id text;
+  v_parser_version text;
 begin
   if v_user_id is null then
     raise exception 'authentication_required';
@@ -135,6 +142,19 @@ begin
       v_mapping_version := nullif(v_candidate ->> 'mapping_version', '')::integer;
       v_applied_rule_id := nullif(v_candidate ->> 'applied_rule_id', '')::uuid;
       v_applied_rule_version := nullif(v_candidate ->> 'applied_rule_version', '')::integer;
+      v_claimed_batch_id := nullif(v_candidate ->> 'import_batch_id', '')::uuid;
+      v_claimed_user_id := nullif(v_candidate ->> 'user_id', '')::uuid;
+      v_possible_duplicate := coalesce(
+        nullif(v_candidate ->> 'possible_duplicate', '')::boolean,
+        false
+      );
+      v_source_external_id := nullif(v_candidate ->> 'source_external_id', '');
+      v_source_lifecycle_state := nullif(v_candidate ->> 'source_lifecycle_state', '');
+      v_source_predecessor_external_id := nullif(
+        v_candidate ->> 'source_predecessor_external_id',
+        ''
+      );
+      v_parser_version := nullif(v_candidate ->> 'parser_version', '');
     exception when others then
       raise exception 'invalid_import_candidate';
     end;
@@ -157,22 +177,29 @@ begin
       or char_length(coalesce(v_candidate ->> 'category_name', '')) > 60
       or char_length(coalesce(v_candidate ->> 'account_name', '')) > 80
       or char_length(coalesce(v_candidate ->> 'raw_snippet', '')) > 2000
-      or char_length(coalesce(v_candidate ->> 'source_external_id', '')) > 200
-      or char_length(coalesce(v_candidate ->> 'source_predecessor_external_id', '')) > 200
-      or char_length(coalesce(v_candidate ->> 'parser_version', '')) > 80
+      or char_length(coalesce(v_source_external_id, '')) > 200
+      or char_length(coalesce(v_source_predecessor_external_id, '')) > 200
+      or char_length(coalesce(v_parser_version, '')) > 80
       or (v_source_row_index is not null and v_source_row_index < 0)
       or (v_mapping_version is not null and v_mapping_version < 1)
-      or (
-        (v_applied_rule_id is null) <> (v_applied_rule_version is null)
-      )
+      or ((v_applied_rule_id is null) <> (v_applied_rule_version is null))
       or (v_applied_rule_version is not null and v_applied_rule_version < 1)
+      or (v_claimed_batch_id is not null and v_claimed_batch_id <> p_batch_id)
+      or (v_claimed_user_id is not null and v_claimed_user_id <> v_user_id)
       or (
-        nullif(v_candidate ->> 'import_batch_id', '') is not null
-        and nullif(v_candidate ->> 'import_batch_id', '')::uuid <> p_batch_id
+        v_source_lifecycle_state is not null
+        and v_source_lifecycle_state not in ('pending', 'posted', 'removed')
       )
       or (
-        nullif(v_candidate ->> 'user_id', '') is not null
-        and nullif(v_candidate ->> 'user_id', '')::uuid <> v_user_id
+        v_source_external_id is null
+        and (
+          v_source_lifecycle_state is not null
+          or v_source_predecessor_external_id is not null
+        )
+      )
+      or (
+        v_source_predecessor_external_id is not null
+        and v_source_predecessor_external_id = v_source_external_id
       ) then
       raise exception 'invalid_import_candidate';
     end if;
@@ -217,7 +244,7 @@ begin
       v_candidate_source,
       v_confidence,
       'pending'::public.inbox_candidate_status,
-      coalesce((v_candidate ->> 'possible_duplicate')::boolean, false),
+      v_possible_duplicate,
       v_category_id,
       nullif(v_candidate ->> 'category_name', ''),
       v_account_id,
@@ -226,10 +253,10 @@ begin
       p_batch_id,
       null,
       v_source_row_index,
-      nullif(v_candidate ->> 'source_external_id', ''),
-      nullif(v_candidate ->> 'source_lifecycle_state', ''),
-      nullif(v_candidate ->> 'source_predecessor_external_id', ''),
-      nullif(v_candidate ->> 'parser_version', ''),
+      v_source_external_id,
+      v_source_lifecycle_state,
+      v_source_predecessor_external_id,
+      v_parser_version,
       v_mapping_version,
       v_applied_rule_id,
       v_applied_rule_version
