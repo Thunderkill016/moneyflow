@@ -32,6 +32,13 @@ Current code already has important pieces that MON-63 must extend rather than re
 - PR #552 established source identity, lineage and parser/mapping evidence transport without adding a second parser, dedupe or ledger authority.
 - Exception-first Inbox review already exists; MON-63 must reuse its deterministic readiness semantics instead of inventing a second taxonomy.
 
+### Historical branch evidence
+
+Two stale, unmerged branches contain useful lessons but are not current authority and must not be cherry-picked blindly:
+
+- `feat/p2-direct-csv-mapping-presets` is 53 commits behind current main. It prototyped a versioned normalized-header shape plus validated column map in browser storage. Reuse the deterministic/versioned header-shape idea only after re-specifying it for current generic import and tenant/privacy requirements; do not revive its old Direct-CSV-only storage/authority assumptions.
+- `fix/direct-import-retry-idempotency` is 265 commits behind current main. Its work packet identified the correct retry law: unchanged financial intent must reuse the same idempotency identity, confirmed rows must not be reposted, and fuzzy fingerprints remain advisory. It explicitly deferred page-reload/cross-device recovery to a durable server receipt. Reuse those principles, not the stale branch code or its historical scope.
+
 ### External references
 
 1. Actual Budget import/API documentation: stable `imported_id` prevents duplicate imports; otherwise fallback reconciliation is used. Its import API supports dry-run and reports added/updated/errors. Applicability: outcome/reporting and idempotent-import concepts. Not adopted: Actual storage/sync architecture or provider choices.
@@ -73,7 +80,7 @@ Required states/outcomes should be the smallest set that truthfully distinguish:
 
 Do not add generic job states or background processing unless the implementation evidence proves they are required.
 
-A successful commit records durable outcome metadata sufficient to explain added/skipped/changed/review-needed counts without storing the raw statement.
+A successful commit records durable outcome metadata sufficient to explain added/skipped/changed/review-needed counts without storing the raw statement. Retry identity must be stable for unchanged intent; fuzzy import fingerprints remain advisory and cannot become permanent uniqueness keys merely for convenience.
 
 ### 3. Batch history/provenance contract
 
@@ -111,7 +118,7 @@ Primary product evidence for the slice: manual interventions per representative 
 
 ## Implementation plan
 
-1. Inventory current import-batch metadata, authenticated server persistence, history UI, draft lifecycle, preview→Inbox commit seam and readiness classifier/tests.
+1. Inventory current import-batch metadata, authenticated server persistence, history UI, draft lifecycle, preview→Inbox commit seam, readiness classifier/tests and the two stale historical branches above for reusable principles only.
 2. Define pure mapping-preset eligibility/versioning and commit/recovery state machines with counterexamples before UI work.
 3. Reuse existing batch storage/server seams; add schema/RPC only if current structures cannot express the accepted durable state atomically and tenant-safely.
 4. Make preview→Inbox commit idempotent or reconcilable after an uncertain response. Prefer one transaction/RPC boundary if DB truth must change together; do not paper over partial success with client retries.
@@ -126,6 +133,7 @@ Rollback: remove the new preset/recovery behavior and keep existing generic impo
 ## Tasks
 
 - [ ] Inventory authenticated import batch persistence and existing DB/RPC ownership.
+- [ ] Re-evaluate stale preset/retry branches against current code; salvage principles only, never stale authority/code by default.
 - [ ] Specify mapping-preset eligibility key and version semantics.
 - [ ] Specify minimal durable batch outcome/recovery states.
 - [ ] Prove exact replay and uncertain-response retry cannot duplicate candidate creation.
@@ -145,6 +153,7 @@ Acceptance requires all of the following on the implementation PR's exact head:
 
 - replay/retry cannot create a second candidate set for the same committed batch;
 - an uncertain commit result never presents false success and recovery is state-aware;
+- stable retry identity is reused for unchanged intent and fuzzy fingerprints remain advisory;
 - preset application is deterministic, versioned and rejected on structural mismatch;
 - deleting/replacing a preset does not mutate prior financial facts;
 - batch history exposes truthful outcome/provenance without raw statement/source-ID leakage;
