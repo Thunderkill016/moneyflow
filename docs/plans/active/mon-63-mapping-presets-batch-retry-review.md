@@ -11,173 +11,174 @@
 **Implementation base:** fresh `main` after owner merge of PR #553; never reuse the selector-base SHA as runtime implementation authority
 **Last updated:** 2026-09-09
 
-Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This is a Class 3 acquisition/data-integrity work packet. The selector PR may only establish executable authority; runtime implementation begins only after owner merge plus fresh `npm run plan:resolve` and `npm run agent:doctor -- --json`.
+Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This is a Class 3 acquisition/data-integrity work packet. The selector PR establishes authority only; runtime implementation starts only after owner merge plus fresh `npm run plan:resolve` and `npm run agent:doctor -- --json`.
 
 ## Outcome
 
-Productize the acquisition foundation so a user can repeatedly import statements with less remapping and less uncertainty, while preserving the existing Inbox/provenance/approval path as the sole financial mutation authority.
+Reduce repeated import maintenance without creating a second financial truth. Repeated mappings should require less work, uncertain preview→Inbox completion should recover truthfully, import history should explain outcomes, and review should stay exception-first.
 
-The target outcome is not “more import screens.” It is a measurable reduction in maintenance: stable mappings are reusable only when their source/header contract is proven, recoverable failures resume truthfully, batch history explains what happened, and review is exception-first rather than approval-everything.
+All accepted acquisition paths still converge on the existing Inbox/provenance/matching/approval/ledger/reconciliation authority. MON-63 does not authorize provider sync, raw-statement retention, bank-specific guessing or automatic posting.
 
 ## Research
 
 ### Repository reconnaissance
 
-Selector reconnaissance baseline: `main@05323e2cb45609a85b3e7e3f2a4af94679149c31` after merged PR #552 and verified production deployment. This is evidence for the selector, not the future implementation branch base.
+Selector baseline: `main@05323e2cb45609a85b3e7e3f2a4af94679149c31` after merged/deployed MON-62. This is selector evidence, not the future runtime implementation base.
 
-Current code already has important pieces that MON-63 must extend rather than rebuild:
+Current code already has seams MON-63 must extend rather than rebuild:
 
-- `src/lib/inbox/import-batch-store.ts` already models local/meta-only import batches and intentionally does not retain raw file contents. Current status is only `parsed | committed | cancelled`.
-- Authenticated import history already exists and the current history UI already lists recent batches. MON-63 therefore enriches history/provenance; it does not create a second history subsystem.
-- `src/components/inbox/import-preview-page.tsx` currently creates candidates first and marks the batch committed second. If the second step fails, the UI correctly warns that candidates may already exist and asks the user to inspect Inbox before retrying. This is truthful but not yet an idempotent recovery contract.
-- Generic CSV parsing remains heuristic: header matching can fall back by column position, generic missing/unparseable dates can carry uncertainty with a current-date fallback, and amount direction can depend on signed/debit/credit interpretation. Therefore equal-looking headers are not proof of equal parsing semantics.
-- PR #552 established source identity, lineage and parser/mapping evidence transport without adding a second parser, dedupe or ledger authority.
-- Exception-first Inbox review already exists; MON-63 must reuse its deterministic readiness semantics instead of inventing a second taxonomy.
+- `src/lib/inbox/import-batch-store.ts` owns metadata-only batches with `parsed | committed | cancelled`; raw file contents are intentionally not retained.
+- Authenticated import history already exists. MON-63 enriches that surface instead of creating another history system.
+- `src/components/inbox/import-preview-page.tsx` creates candidates first and marks the batch committed second. If the second operation fails, candidates may already exist, so blind retry is unsafe.
+- `src/lib/inbox/direct-csv-mapping-preset.ts` already ships a version-1 normalized-header mapping preset stored in browser `localStorage`, with validated column indexes.
+- `src/components/inbox/direct-csv-import-page.tsx` actively reads that preset, exposes an explicit user action to apply the remembered mapping, and tells the user to verify the dry-run before writing to the ledger. This is a current device-local structural convenience, not bank/source semantic authority.
+- Generic CSV parsing remains heuristic: column position/header matching plus date and amount-direction interpretation can differ even when normalized headers are equal.
+- PR #552 preserves parser/mapping/source provenance through the existing Inbox path.
+- Existing Direct CSV and Inbox database work already demonstrates transactional batch/approval patterns; MON-63 should reuse those patterns rather than introduce a generic queue.
+- Exception-first Ready/Needs-attention semantics already exist and remain the review authority.
 
 ### Historical branch evidence
 
-Two stale, unmerged branches contain useful lessons but are not current authority and must not be cherry-picked blindly:
+Historical branches are evidence only, not executable authority:
 
-- `feat/p2-direct-csv-mapping-presets` is 53 commits behind current main. It prototyped a versioned normalized-header shape plus validated column map in browser storage. Reuse the deterministic/versioned header-shape idea only after re-specifying it for current generic import and tenant/privacy requirements; do not revive its old Direct-CSV-only storage/authority assumptions.
-- `fix/direct-import-retry-idempotency` is 265 commits behind current main. Its work packet identified the correct retry law: unchanged financial intent must reuse the same idempotency identity, confirmed rows must not be reposted, and fuzzy fingerprints remain advisory. It explicitly deferred page-reload/cross-device recovery to a durable server receipt. Reuse those principles, not the stale branch code or its historical scope.
+- `feat/p2-direct-csv-mapping-presets` is stale, but its v1 mapping helper has already been incorporated into current main and is actively used. Do not cherry-pick it. MON-63 must harden/generalize the live current seam.
+- `fix/direct-import-retry-idempotency` is stale but records a durable principle: unchanged financial intent should reuse the same idempotency identity; confirmed rows must not be reposted; fuzzy fingerprints remain advisory. Its mounted-attempt recovery is insufficient for page/cross-device recovery.
 
 ### External references
 
-1. Actual Budget import/API documentation: stable `imported_id` prevents duplicate imports; otherwise fallback reconciliation is used. Its import API supports dry-run and reports added/updated/errors. Applicability: outcome/reporting and idempotent-import concepts. Not adopted: Actual storage/sync architecture or provider choices.
-2. YNAB file import documentation (August 2026): CSV import supports explicit field mapping, swap inflow/outflow and “remember setting for this account.” Applicability: user-controlled remembered mappings tied to a known context. Not adopted: YNAB account/storage semantics.
-3. YNAB approval/matching documentation (August 2026): imported/manual matches can be auto-approved and bulk actions reduce repetitive review. Applicability: exception-first review principle. MoneyFlow keeps its own readiness classifier and explicit financial mutation authority.
+1. Actual Budget import/API documentation uses stable imported IDs first, fallback reconciliation otherwise, supports dry-run and reports added/updated/errors. Applicability: idempotent outcome/recovery patterns only.
+2. YNAB file import documentation supports explicit field mapping, inflow/outflow swap and remembered settings in a known account context. Applicability: user-controlled remembered mappings, not bank-layout inference.
+3. YNAB matching/approval documentation supports lower-friction matched review and bulk actions. MoneyFlow keeps its own readiness classifier and explicit approval authority.
 
 ### Research limits
 
-- No current evidence proves exact VCB/ACB/VietinBank consumer export headers/layout or stable transaction identity, so bank-specific presets remain disabled.
-- Header equality by itself does not prove equal date, amount, direction, currency or source semantics; external competitor behavior does not justify treating structural similarity as source identity.
-- No evidence justifies server-side retention of raw statements merely to enable resume.
-- No measured requirement yet justifies a background queue/job platform.
+- No current evidence proves exact VCB/ACB/VietinBank consumer export layout or stable transaction identity.
+- Equal headers do not prove equal date, amount, direction, currency, lifecycle or provider semantics.
+- No evidence justifies storing raw statements server-side merely to resume.
+- No measured requirement justifies a background queue for this slice.
 
 ## Specification
 
 ### 1. Mapping-preset contract
 
-A mapping preset may be persisted only when the source contract has a deterministic eligibility key. At minimum the packet expects an explicit versioned signature over safe structural metadata such as transport + normalized header contract + mapping contract version; it must not use filename, row contents, raw account number, mutable MoneyFlow account mapping or a one-off guessed auto-map as identity.
+MON-63 extends/hardens the live Direct CSV remembered-mapping seam; it does not treat presets as a new invention.
 
-**Structural equality is not semantic authority.** Two files with identical normalized headers can still encode dates, signs, debit/credit direction, currency or lifecycle differently. A preset that would bypass mapping review or alter parse semantics must therefore bind to the relevant parser/adapter semantic contract version and to evidence that makes those semantics safe. When only structural evidence is available, a preset may prefill the user's column choices, but it must not silently elevate confidence, suppress uncertainty or claim source/bank identity.
+A persisted preset needs a deterministic, versioned, privacy-safe eligibility contract. It must not use filename, row contents, raw account number, mutable MoneyFlow account mapping or guessed bank identity as authority.
+
+**Structural equality is not semantic authority.** The current v1 normalized-header preset is acceptable as an explicit structural convenience because the user chooses to apply it and still receives a dry-run review. Structural evidence alone may prefill column roles, but it must not suppress parser uncertainty, elevate confidence, identify a bank/source, or silently change financial interpretation.
 
 Requirements:
 
-- presets are user-owned and tenant-scoped when server-persisted;
-- each preset records the mapping contract version and enough safe source/header evidence to decide applicability;
-- parser/adapter semantic version is part of eligibility whenever preset application can affect date, amount, direction, currency, lifecycle or other financial interpretation;
-- applying a preset is deterministic and reviewable;
-- identical headers with incompatible semantics must fail closed or require explicit mapping review rather than share silent auto-application;
-- a structural-only generic preset may prefill column roles but cannot suppress parser uncertainty or become evidence of institution/account identity;
-- mismatch or ambiguity falls back to mapping review, never silent coercion;
-- a user can replace/delete a preset without affecting historical ledger facts;
-- no target-bank preset is enabled until exact source layout evidence exists.
+- preserve current explicit Direct CSV apply + dry-run behavior;
+- presets are user-owned and tenant-scoped if moved to server persistence;
+- each preset records mapping contract version and safe eligibility evidence;
+- parser/adapter semantic version is part of eligibility whenever application can affect date, amount, direction, currency, lifecycle or another financial interpretation;
+- identical headers with incompatible semantics fail closed or require explicit review;
+- mismatch or ambiguity falls back to mapping review;
+- delete/replace never mutates historical ledger facts;
+- target-bank presets remain disabled until exact source evidence exists.
 
 ### 2. Retry/resume contract
 
-The preview→Inbox operation must become state-aware and idempotent. A retry after an uncertain response must not create a second candidate set or report false success.
+Preview→Inbox commit must become state-aware and idempotent. Retry after an uncertain response must not create a second candidate set or claim false success.
 
-Required states/outcomes should be the smallest set that truthfully distinguish:
+Use the smallest truthful durable state/outcome set that distinguishes:
 
 - ready to commit;
-- committed with a durable result;
+- committed with durable result;
 - recoverable failure where retry is safe;
-- ambiguous/unknown completion where the system must reconcile existing candidates before offering retry;
+- ambiguous/unknown completion requiring reconciliation before retry;
 - cancelled.
 
-Do not add generic job states or background processing unless the implementation evidence proves they are required.
+A successful commit records durable outcome metadata sufficient to explain added/skipped/changed/review-needed counts without storing the raw statement. Stable retry identity is reused for unchanged intent. Fuzzy fingerprints remain advisory, not permanent uniqueness authority.
 
-A successful commit records durable outcome metadata sufficient to explain added/skipped/changed/review-needed counts without storing the raw statement. Retry identity must be stable for unchanged intent; fuzzy import fingerprints remain advisory and cannot become permanent uniqueness keys merely for convenience.
+Prefer an existing transactional/RPC pattern if candidate creation and batch completion must change together. Do not route around Inbox into ledger mutation.
 
 ### 3. Batch history/provenance contract
 
-Preserve the current history surface and enrich it with user-meaningful operational truth:
+Enrich the existing history surface with:
 
 - status/outcome;
-- row/warning/skipped counts;
-- parser/mapping version when available;
-- whether a reusable preset was applied or mapping required review;
+- row/warning/skipped/review-needed counts;
+- parser/mapping version where available;
+- whether a preset was applied or mapping required review;
 - safe source/provenance summary;
-- recovery action only when it is actually safe;
-- no raw transaction rows, source IDs or sensitive payloads in generic history/analytics.
+- recovery action only when actually safe.
 
-Cross-device behavior must stay truthful: metadata can be server-backed while a browser-local draft may be unavailable. Do not imply “resume” if the raw/draft material required for preview is absent.
+Do not expose raw transaction rows, raw source IDs or sensitive payloads in generic history/analytics. Cross-device UI must not promise resume when the browser-local draft/file material is absent.
 
 ### 4. Exception-first review contract
 
-Reuse the existing Inbox readiness classifier and matching authority. MON-63 may improve batch-level review/navigation, but it must not create auto-posting or a second ready/needs-attention taxonomy.
-
-Rows that are deterministically ready may be grouped for explicit bulk confirmation; ambiguous identity/date/amount/direction/match states stay in needs-attention.
+Reuse existing Ready/Needs-attention classification and matching authority. Deterministically ready rows may be grouped for explicit bulk confirmation; ambiguous identity/date/amount/direction/match states remain needs-attention. No auto-posting and no second taxonomy.
 
 ### 5. Measurement
 
-Add privacy-safe measurement sufficient to compare maintenance before/after:
+Measure only privacy-safe operational categories:
 
-- mapping preset applied vs mapping required;
+- preset applied vs mapping required;
 - import commit attempt/result;
-- retry/resume success/failure reason category;
+- retry/resume result category;
 - ready vs needs-attention counts;
 - batch completion outcome.
 
-Never emit raw source IDs, file contents, descriptions, amounts, account identifiers or row payloads.
-
-Primary product evidence for the slice: manual interventions per representative batch should fall without increasing correction/duplicate errors.
+Never emit raw file contents, descriptions, amounts, source IDs, account identifiers or credentials. Primary product evidence is fewer repeated mapping/review interventions without duplicate/correction regression.
 
 ## Implementation plan
 
-1. After selector merge, resolve fresh `main` and record that exact post-merge SHA as the implementation baseline before changing runtime code. Never branch implementation from the pre-merge selector base.
-2. Inventory current import-batch metadata, authenticated server persistence, history UI, draft lifecycle, preview→Inbox commit seam, readiness classifier/tests and the two stale historical branches above for reusable principles only.
-3. Define pure mapping-preset eligibility/versioning and commit/recovery state machines with counterexamples before UI work, including equal-header/different-semantics cases.
-4. Reuse existing batch storage/server seams; add schema/RPC only if current structures cannot express the accepted durable state atomically and tenant-safely.
-5. Make preview→Inbox commit idempotent or reconcilable after an uncertain response. Prefer one transaction/RPC boundary if DB truth must change together; do not paper over partial success with client retries.
-6. Persist and apply mapping presets only behind deterministic eligibility; preserve manual mapping fallback and keep structural-only presets advisory/prefill-only where semantic evidence is incomplete.
-7. Enrich current history/provenance UI and recovery actions; do not replace the history page.
-8. Integrate existing exception-first readiness grouping into the batch workflow.
-9. Add privacy-safe analytics and focused browser tests for retry, cross-device draft absence, preset mismatch, semantic-collision and bulk review.
-10. Independently evaluate failure/replay/collision/privacy cases, run exact-head risk-selected gates, then same-PR lifecycle closeout to `current: null` before owner handoff.
+1. After selector merge, resolve fresh `main` and record the exact post-merge SHA before any runtime change.
+2. Inventory the live Direct CSV preset seam, import-batch persistence/history, preview→Inbox commit boundary, current atomic RPC patterns and readiness tests.
+3. Specify pure mapping eligibility/versioning and commit/recovery state machines with equal-header/different-semantics and uncertain-response counterexamples before UI work.
+4. Reuse current batch/server seams; add schema/RPC only if current structures cannot express accepted durable state atomically and tenant-safely.
+5. Make preview→Inbox completion idempotent or reconcilable. Prefer one transactional boundary when DB truth must move together; do not paper over partial success with client retry.
+6. Generalize/harden preset persistence only behind deterministic eligibility while preserving the current explicit Direct CSV remembered-mapping fallback.
+7. Enrich current history/provenance and recovery UX; do not replace history.
+8. Reuse exception-first readiness for batch review.
+9. Add privacy-safe analytics and focused browser/DB tests for replay, retry, preset mismatch, semantic collision, cross-device missing-draft and bulk review.
+10. Independently evaluate failure/replay/collision/privacy cases, run exact-head Class-3 gates, then complete same-PR lifecycle closeout to `current: null` before owner handoff.
 
-Rollback: remove the new preset/recovery behavior and keep existing generic import/history paths readable. Any schema addition must be additive/backward-compatible until rollback safety is proven.
+Rollback: preserve existing generic import/history/Direct CSV paths. Any schema addition must remain additive/backward-compatible until rollback safety is proven.
 
 ## Tasks
 
-- [ ] Resolve and record exact post-selector-merge fresh-main implementation baseline before runtime work.
-- [ ] Inventory authenticated import batch persistence and existing DB/RPC ownership.
-- [ ] Re-evaluate stale preset/retry branches against current code; salvage principles only, never stale authority/code by default.
-- [ ] Specify mapping-preset eligibility key and version semantics.
-- [ ] Add counterexamples for identical normalized headers with different date/amount/direction semantics; prove they cannot silently share authoritative preset behavior.
+- [ ] Resolve exact post-selector-merge fresh-main implementation baseline.
+- [ ] Inventory authenticated import-batch DB/RPC ownership and live Direct CSV preset usage.
+- [ ] Treat stale preset branch as provenance only; re-evaluate retry branch principles against current code.
+- [ ] Specify mapping eligibility key and semantic-version boundaries.
+- [ ] Add equal-header/different-semantics counterexamples.
+- [ ] Preserve explicit Direct CSV remembered-map + dry-run compatibility.
 - [ ] Specify minimal durable batch outcome/recovery states.
-- [ ] Prove exact replay and uncertain-response retry cannot duplicate candidate creation.
+- [ ] Prove replay/uncertain-response retry cannot duplicate candidates.
 - [ ] Preserve no-raw-statement server boundary by default.
-- [ ] Implement deterministic preset save/apply/delete with tenant ownership where applicable.
-- [ ] Enrich existing history UI with provenance/outcome/recovery, not a replacement history subsystem.
-- [ ] Reuse existing Ready/Needs-attention classifier for batch review.
-- [ ] Add privacy-safe product events and intervention-count evidence.
+- [ ] Implement tenant-safe preset save/apply/delete where persistence requires it.
+- [ ] Enrich existing history with outcome/provenance/recovery.
+- [ ] Reuse existing Ready/Needs-attention classifier.
+- [ ] Add privacy-safe intervention/retry measurement.
 - [ ] Cover cross-device missing-draft behavior truthfully.
-- [ ] Keep VCB/ACB/VietinBank bank-specific presets disabled without stronger layout evidence.
-- [ ] Run independent evaluation and exact-head selected CI/CodeQL/Secret/browser/DB gates as applicable.
+- [ ] Keep VCB/ACB/VietinBank presets disabled without stronger evidence.
+- [ ] Run independent evaluation and exact-head selected CI/CodeQL/Secret/browser/DB gates.
 - [ ] Complete same-PR lifecycle closeout and leave follow-on work unselected.
 
 ## Evaluation
 
-Acceptance requires all of the following on the implementation PR's exact head:
+Acceptance requires all of the following on the implementation PR exact head:
 
-- implementation started from fresh main after owner merge of selector #553, not from selector-base `05323e2...`;
-- replay/retry cannot create a second candidate set for the same committed batch;
-- an uncertain commit result never presents false success and recovery is state-aware;
-- stable retry identity is reused for unchanged intent and fuzzy fingerprints remain advisory;
-- preset application is deterministic, versioned and rejected on structural mismatch;
-- identical normalized headers with incompatible date/amount/direction semantics cannot silently share an authoritative auto-applied preset;
-- structural-only presets cannot suppress uncertainty, elevate generic parsing to source identity or bypass required review without stronger semantic evidence;
-- deleting/replacing a preset does not mutate prior financial facts;
-- batch history exposes truthful outcome/provenance without raw statement/source-ID leakage;
-- browser-local draft absence on another device is presented as unavailable, not resumable;
-- exception-first review reuses existing readiness semantics and preserves explicit approval authority;
+- implementation starts from fresh main after owner merge of #553, not selector-base `05323e2...`;
+- replay/retry cannot create a second candidate set for the same committed intent;
+- uncertain completion never presents false success and recovery is state-aware;
+- unchanged intent reuses stable retry identity; fuzzy fingerprints stay advisory;
+- current Direct CSV explicit remembered-map + dry-run behavior remains compatible;
+- preset application is deterministic/versioned and structural mismatch is rejected;
+- equal headers with incompatible semantics cannot silently share authoritative auto-application;
+- structural-only presets cannot suppress uncertainty or become bank/source identity;
+- deleting/replacing preset does not mutate historical financial facts;
+- history exposes truthful outcome/provenance without raw statement/source-ID leakage;
+- another device with no local draft is shown as unavailable, not resumable;
+- review reuses existing readiness semantics and explicit approval authority;
 - generic CSV/XLSX/PDF/Direct CSV compatibility remains intact;
-- target-bank auto-map/presets remain disabled without new evidence;
-- tenant isolation is proven for any new server-persisted preset/batch state;
-- focused product evidence shows fewer repeated mapping/review interventions on representative batches without introducing duplicate/correction regressions;
+- target-bank auto-map remains disabled without evidence;
+- tenant isolation is proven for new server-persisted state;
+- representative evidence shows fewer interventions without duplicate/correction regression;
 - exact-head required checks are green without retry-only acceptance;
-- completing PR archives this packet, returns `PLAN_AUTHORITY.current` to `null`, reconciles current memory and leaves follow-on work unselected.
+- completing PR archives this packet, returns `PLAN_AUTHORITY.current` to `null`, reconciles memory and leaves follow-on work unselected.
 
-Stop and return to specification if durable retry requires retaining sensitive raw statement data, if existing database authority cannot express atomicity without a migration, or if a preset eligibility key cannot be proven stable, semantically safe and privacy-safe.
+Stop and return to specification if durable retry requires sensitive raw-statement retention, if atomicity cannot be expressed safely without a migration, or if preset eligibility cannot be proven stable, semantically safe and privacy-safe.
