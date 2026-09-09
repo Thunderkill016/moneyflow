@@ -5,7 +5,8 @@
 **Active role:** planner / evaluator
 **Permission scope:** selector PR is documentation/authority only; implementation may use `branch_write` only after selector merge and fresh authority resolution
 **Owner:** ThunderK
-**Issue/PR:** GitHub #557 / selector PR pending
+**Issue/PR:** GitHub #557 / implementation PR pending
+**Selector:** GitHub PR #558
 **Parent lane:** GitHub #174 — public-beta provider controls
 **Selector base:** `main@ad0461514acaec1c9a8a100ba92592c83ece46b2`
 **Last updated:** 2026-09-09
@@ -26,7 +27,7 @@ Selector baseline is fresh post-MON-63 `main@ad0461514acaec1c9a8a100ba92592c83ec
 
 Current code already has the correct fail-closed core:
 
-- `src/components/auth-form.tsx` enables the CAPTCHA only for login/register/forgot-password when public CAPTCHA config says it is enabled.
+- `src/components/auth-form.tsx` enables CAPTCHA only for login/register/forgot-password when public CAPTCHA config says it is enabled.
 - The form remains blocked whenever CAPTCHA is enabled but config is not ready or `captchaToken` is empty.
 - `src/components/auth-turnstile.tsx` starts with status `Đang tải xác minh bảo mật…`.
 - The Next.js `<Script>` has `onReady` and `onError` handlers.
@@ -194,7 +195,7 @@ Success means a blocked/stalled Turnstile resource produces a finite, honest rec
 |---|---|---|---|
 | 557.1 | fresh-main reconnaissance | `main@ad046151...`, #174/#557, current auth code/tests | done |
 | 557.2 | current Cloudflare/Next.js research | official docs listed above | done |
-| 557.3 | selector packet + authority projection | selector PR | in_progress |
+| 557.3 | selector packet + authority projection | PR #558 | in_progress |
 | 557.4 | implementation from fresh post-selector main | runtime branch | blocked |
 | 557.5 | stalled-script browser evidence | Playwright affected-flow test | blocked |
 | 557.6 | evaluator + exact-head verification | implementation PR checks/evidence | blocked |
@@ -205,7 +206,7 @@ Success means a blocked/stalled Turnstile resource produces a finite, honest rec
 | Date | From | To | State | Evidence | Remaining | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-09-09 | MON-63 closeout | planner | authority null | PR #556 merged; production READY; `PLAN_AUTHORITY.current = null` | choose one bounded follow-on | fresh-main audit |
-| 2026-09-09 | planner | selector evaluation | planning | #511 already complete via #522; #426 stale as executable; #174 code defect confirmed; official Turnstile docs refreshed | owner merge decision after exact-head selector gates | create selector PR for #557 |
+| 2026-09-09 | planner | selector evaluation | planning | #511 already complete via #522; #426 stale as executable; #174 code defect confirmed; official Turnstile docs refreshed | exact-head selector gates + owner merge decision | PR #558 selector evaluation |
 
 ## Current permission boundary
 
