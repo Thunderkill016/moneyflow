@@ -30,6 +30,10 @@ export type ImportBatch = {
   createdAt: string;
   /** ISO time when candidates were written to inbox. */
   committedAt?: string;
+  /** Safe parser provenance; never raw source data. */
+  parserVersion?: string;
+  /** Version of the structural mapping contract. */
+  mappingVersion?: number;
 };
 
 export type CreateImportBatchInput = {
@@ -45,6 +49,8 @@ export type CreateImportBatchInput = {
   id?: string;
   createdAt?: string;
   committedAt?: string;
+  parserVersion?: string;
+  mappingVersion?: number;
 };
 
 function isColumnMap(value: unknown): value is CsvColumnMap {
@@ -93,7 +99,15 @@ export function isImportBatch(value: unknown): value is ImportBatch {
     Number.isFinite(Date.parse(item.createdAt)) &&
     (item.committedAt === undefined ||
       (typeof item.committedAt === "string" &&
-        Number.isFinite(Date.parse(item.committedAt))))
+        Number.isFinite(Date.parse(item.committedAt)))) &&
+    (item.parserVersion === undefined ||
+      (typeof item.parserVersion === "string" &&
+        item.parserVersion.length >= 1 &&
+        item.parserVersion.length <= 80)) &&
+    (item.mappingVersion === undefined ||
+      (typeof item.mappingVersion === "number" &&
+        Number.isSafeInteger(item.mappingVersion) &&
+        item.mappingVersion >= 1))
   );
 }
 
@@ -111,6 +125,8 @@ export function createImportBatch(input: CreateImportBatchInput): ImportBatch {
     columnMap: { ...input.columnMap },
     createdAt: input.createdAt ?? new Date().toISOString(),
     committedAt: input.committedAt,
+    parserVersion: input.parserVersion,
+    mappingVersion: input.mappingVersion,
   };
 }
 
@@ -244,6 +260,35 @@ export function formatImportBatchStats(
     parts.push(`bỏ ${batch.skippedRows}`);
   }
   return parts.join(" · ");
+}
+
+/** Privacy-safe technical provenance for history; no raw statement/source ids. */
+export function formatImportBatchProvenance(
+  batch: Pick<ImportBatch, "parserVersion" | "mappingVersion">,
+): string | null {
+  const parts: string[] = [];
+  if (batch.parserVersion) parts.push(batch.parserVersion);
+  if (batch.mappingVersion) parts.push(`map v${batch.mappingVersion}`);
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+export type ImportBatchRecoveryState =
+  | "committed"
+  | "cancelled"
+  | "resumable_local_draft"
+  | "draft_unavailable";
+
+/**
+ * Server batch metadata can cross devices; parse drafts intentionally do not.
+ * Never promise resume for a parsed batch when this browser lacks its draft.
+ */
+export function importBatchRecoveryState(
+  batch: Pick<ImportBatch, "status">,
+  hasLocalDraft: boolean,
+): ImportBatchRecoveryState {
+  if (batch.status === "committed") return "committed";
+  if (batch.status === "cancelled") return "cancelled";
+  return hasLocalDraft ? "resumable_local_draft" : "draft_unavailable";
 }
 
 /** Newest first by createdAt (stable for equal timestamps). */
