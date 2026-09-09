@@ -116,7 +116,7 @@ Implementation adds a bounded top-level Turnstile script watchdog/recovery state
 
 Evaluator pass found no scope or security regression. Lifecycle closeout is now represented in the same PR: #557 packet moved to canonical `docs/plans/completed/2026-09-10-557-turnstile-load-recovery.md`, `PLAN_AUTHORITY.current` null, current memory reconciled and PR memory updated. Because those docs create a newer PR head, exact-head governance checks on the final lifecycle head remain required before Ready handoff.
 
-## 10. True gaps after #557
+## 10. True gaps after this audit
 
 1. #174 still has provider-console controls that cannot be proven or safely mutated from source code alone.
 2. Real-world import maintenance improvement still needs cohort evidence over time.
