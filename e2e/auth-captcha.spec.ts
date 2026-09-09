@@ -1,12 +1,31 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { TURNSTILE_SCRIPT_LOAD_DEADLINE_MS } from "../src/lib/auth-captcha";
 
 const CAPTCHA_TOKEN = 'input[name="captchaToken"]';
+const TURNSTILE_SCRIPT = "**/turnstile/v0/api.js?**";
 
 const authCases = [
   { path: "/login", submit: "Đăng nhập" },
   { path: "/register", submit: "Tạo tài khoản" },
   { path: "/forgot-password", submit: "Gửi liên kết" },
 ] as const;
+
+async function holdTurnstileScript(page: Page) {
+  let release!: () => void;
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  await page.route(TURNSTILE_SCRIPT, async (route) => {
+    await held;
+    await route.abort("failed").catch(() => undefined);
+  });
+
+  return async () => {
+    release();
+    await page.unrouteAll({ behavior: "wait" });
+  };
+}
 
 test.describe("Auth CAPTCHA provider readiness", () => {
   test("Turnstile produces a token for every email-auth entry point", async ({
@@ -26,6 +45,77 @@ test.describe("Auth CAPTCHA provider readiness", () => {
         () => document.documentElement.scrollWidth <= window.innerWidth,
       );
       expect(viewportFits).toBe(true);
+    }
+  });
+
+  test("a stalled Turnstile script fails closed with finite recovery", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const releaseScript = await holdTurnstileScript(page);
+
+    try {
+      for (const authCase of authCases) {
+        await page.goto(authCase.path, { waitUntil: "domcontentloaded" });
+
+        const token = page.locator(CAPTCHA_TOKEN);
+        const submit = page.getByRole("button", {
+          name: authCase.submit,
+          exact: true,
+        });
+        const status = page.getByRole("status");
+
+        await expect(token).toHaveValue("");
+        await expect(submit).toBeDisabled();
+        await expect(status).toHaveText("Đang tải xác minh bảo mật…");
+        await expect(page.locator("script#moneyflow-auth-turnstile")).toHaveCount(
+          1,
+        );
+
+        await page.clock.fastForward(TURNSTILE_SCRIPT_LOAD_DEADLINE_MS + 1);
+
+        await expect(status).toHaveText(
+          "Không thể tải xác minh bảo mật. Kiểm tra kết nối rồi tải lại trang.",
+        );
+        await expect(token).toHaveValue("");
+        await expect(submit).toBeDisabled();
+
+        const retry = page.getByRole("button", { name: "Tải lại trang" });
+        await expect(retry).toBeVisible();
+        await retry.focus();
+        await expect(retry).toBeFocused();
+      }
+    } finally {
+      await releaseScript();
+    }
+  });
+
+  test("Turnstile recovery action reloads without bypassing the token gate", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    const releaseScript = await holdTurnstileScript(page);
+
+    try {
+      await page.goto("/login", { waitUntil: "domcontentloaded" });
+      await expect(page.locator("script#moneyflow-auth-turnstile")).toHaveCount(1);
+      await page.clock.fastForward(TURNSTILE_SCRIPT_LOAD_DEADLINE_MS + 1);
+
+      const retry = page.getByRole("button", { name: "Tải lại trang" });
+      await expect(retry).toBeVisible();
+      await retry.focus();
+      await expect(retry).toBeFocused();
+      await retry.press("Enter");
+
+      await expect(page.getByRole("status")).toHaveText(
+        "Đang tải xác minh bảo mật…",
+      );
+      await expect(page.locator(CAPTCHA_TOKEN)).toHaveValue("");
+      await expect(
+        page.getByRole("button", { name: "Đăng nhập", exact: true }),
+      ).toBeDisabled();
+    } finally {
+      await releaseScript();
     }
   });
 
