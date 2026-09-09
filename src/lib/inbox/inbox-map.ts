@@ -16,6 +16,7 @@ import {
 } from "./candidate-store.ts";
 import type {
   ImportBatch,
+  ImportBatchMappingEvidence,
   ImportBatchSource,
   ImportBatchStatus,
 } from "./import-batch-store.ts";
@@ -91,6 +92,7 @@ export type ImportBatchRow = {
   committed_at: string | null;
   commit_attempt_count?: number | null;
   commit_replay_count?: number | null;
+  mapping_evidence?: string | null;
 } & BatchProvenanceRow;
 
 function safePositiveMoney(value: unknown): number {
@@ -112,6 +114,12 @@ function safeNonNegativeCounter(value: unknown): number {
     throw new Error("invalid_import_measurement_counter");
   }
   return value;
+}
+
+function safeMappingEvidence(value: unknown): ImportBatchMappingEvidence | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (value === "preset_applied" || value === "mapping_reviewed") return value;
+  throw new Error("invalid_import_mapping_evidence");
 }
 
 function asColumnMap(value: unknown): CsvColumnMap {
@@ -189,6 +197,7 @@ export function mapBatchRow(row: ImportBatchRow): PersistedImportBatch {
     committedAt: row.committed_at ?? undefined,
     commitAttemptCount,
     commitReplayCount,
+    mappingEvidence: safeMappingEvidence(row.mapping_evidence),
     ...batchProvenanceFromRow(row),
   };
   if (!isImportBatch(batch)) {
@@ -261,6 +270,7 @@ export function batchToInsertRow(
     ...batchProvenanceInsertPatch(batch),
     commit_attempt_count: batch.commitAttemptCount ?? 0,
     commit_replay_count: batch.commitReplayCount ?? 0,
+    mapping_evidence: batch.mappingEvidence ?? null,
     local_id: options?.localId === undefined ? null : options.localId,
     created_at: batch.createdAt,
     committed_at: batch.committedAt ?? null,
