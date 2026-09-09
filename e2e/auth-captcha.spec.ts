@@ -3,6 +3,7 @@ import { TURNSTILE_SCRIPT_LOAD_DEADLINE_MS } from "../src/lib/auth-captcha";
 
 const CAPTCHA_TOKEN = 'input[name="captchaToken"]';
 const TURNSTILE_SCRIPT = "**/turnstile/v0/api.js?**";
+const TURNSTILE_STATUS = 'small[role="status"][aria-live="polite"]';
 
 const authCases = [
   { path: "/login", submit: "Đăng nhập" },
@@ -63,7 +64,7 @@ test.describe("Auth CAPTCHA provider readiness", () => {
           name: authCase.submit,
           exact: true,
         });
-        const status = page.getByRole("status");
+        const status = page.locator(TURNSTILE_STATUS);
 
         await expect(token).toHaveValue("");
         await expect(submit).toBeDisabled();
@@ -114,7 +115,7 @@ test.describe("Auth CAPTCHA provider readiness", () => {
     await page.goto("/login");
 
     const token = page.locator(CAPTCHA_TOKEN);
-    const status = page.getByRole("status");
+    const status = page.locator(TURNSTILE_STATUS);
     const submit = page.getByRole("button", { name: "Đăng nhập", exact: true });
 
     await expect(token).toHaveValue("test-turnstile-token");
@@ -145,7 +146,7 @@ test.describe("Auth CAPTCHA provider readiness", () => {
       await expect(retry).toBeFocused();
       await retry.press("Enter");
 
-      await expect(page.getByRole("status")).toHaveText(
+      await expect(page.locator(TURNSTILE_STATUS)).toHaveText(
         "Đang tải xác minh bảo mật…",
       );
       await expect(page.locator(CAPTCHA_TOKEN)).toHaveValue("");
