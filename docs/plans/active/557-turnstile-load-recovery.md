@@ -3,7 +3,7 @@
 **Status:** selector candidate; executable only after owner merge
 **Execution state:** planning
 **Active role:** planner / evaluator
-**Permission scope:** selector PR is documentation/authority only; implementation may use `branch_write` only after selector merge and fresh authority resolution
+**Permission scope:** selector PR is docs/authority only; implementation may use `branch_write` only after selector merge and fresh authority resolution
 **Owner:** ThunderK
 **Issue/PR:** GitHub #557 / implementation PR pending
 **Selector:** GitHub PR #558
@@ -11,205 +11,158 @@
 **Selector base:** `main@ad0461514acaec1c9a8a100ba92592c83ece46b2`
 **Last updated:** 2026-09-09
 
-## Outcome
+## Repository reconnaissance
 
-Make the email-auth CAPTCHA gate finite, truthful and recoverable when the external Cloudflare Turnstile script never becomes ready, while preserving the existing fail-closed security boundary.
-
-A legitimate user must not be left indefinitely at `Đang tải xác minh bảo mật…`. MoneyFlow must explain that verification could not load and give a clear recovery action. It must never synthesize a token, bypass CAPTCHA, weaken provider enforcement or silently enable email-auth submission without a valid token.
-
-This is a bounded public-beta reliability/security slice. It does not complete the provider-console work still tracked by #174.
-
-## Research
-
-### Fresh repository reconnaissance
-
-Selector baseline is fresh post-MON-63 `main@ad0461514acaec1c9a8a100ba92592c83ece46b2`, where `PLAN_AUTHORITY.current` is `null`.
+Fresh selector baseline is post-MON-63 `main@ad0461514acaec1c9a8a100ba92592c83ece46b2`, where merged `PLAN_AUTHORITY.current` is `null`.
 
 Current code already has the correct fail-closed core:
 
 - `src/components/auth-form.tsx` enables CAPTCHA only for login/register/forgot-password when public CAPTCHA config says it is enabled.
-- The form remains blocked whenever CAPTCHA is enabled but config is not ready or `captchaToken` is empty.
-- `src/components/auth-turnstile.tsx` starts with status `Đang tải xác minh bảo mật…`.
-- The Next.js `<Script>` has `onReady` and `onError` handlers.
-- Once the widget renders, Turnstile `callback`, `expired-callback` and `error-callback` are handled.
-- There is no application-side deadline for the case where the top-level external script neither becomes ready nor reports an error promptly.
-- Existing `e2e/auth-captcha.spec.ts` proves successful token acquisition on login/register/forgot-password and small-screen layout, but it does not simulate a stalled top-level script.
+- Email-auth submit remains blocked whenever CAPTCHA is enabled but config is not ready or `captchaToken` is empty.
+- `src/components/auth-turnstile.tsx` starts at `Đang tải xác minh bảo mật…`, handles Next.js Script `onReady`/`onError`, then widget success/expiration/error callbacks.
+- There is no app-side deadline for a top-level Turnstile script that neither becomes ready nor reports an error promptly.
+- `e2e/auth-captcha.spec.ts` proves successful token acquisition for all three email-auth entry points and phone-width containment, but not a stalled top-level script.
+- #174 production verification already observed this unresolved state for more than 30 seconds.
 
-The unresolved failure was already observed during #174 production verification: when the script did not become ready, the UI remained in its loading message for more than 30 seconds with no explanation.
+Queue reconciliation prevents duplicated/stale work:
 
-### Historical authority reconciliation
+- #511 was already completed by merged PR #522; current classifier/UI/E2E still prove exception-first Ready/Needs-attention behavior.
+- #426 cannot execute as originally written: PR #480 proved desktop capture deletion removes paste/upload access, while later product direction superseded the dashboard-planning deletion. A fresh owner design decision is required before replacement work.
+- #174 remains a provider-control lane; #557 isolates one code-testable reliability defect and authorizes no provider-console write.
 
-- #511 must not be selected as new work: merged PR #522 already implemented and tested deterministic exception-first Ready/Needs-attention review and its merge commit explicitly states that it completes #511.
-- #426 must not be executed as originally written: PR #480 failed cross-device audit, removing the desktop capture entry would remove access to paste/upload capture, and the dashboard-planning deletion was superseded by later product direction. Its issue comment requires a fresh owner design decision rather than mechanical execution.
-- #174 remains a separate provider-control lane. This packet selects only the code-testable Turnstile load-stall defect; Supabase/Vercel provider-console writes remain outside this packet.
+## Research
 
-### Current external references
+Current official references reviewed on 2026-09-09:
 
-Cloudflare Turnstile documentation reviewed for this decision:
+1. Cloudflare Turnstile client-side errors — https://developers.cloudflare.com/turnstile/troubleshooting/client-side-errors/
+2. Cloudflare Turnstile widget configuration/callbacks — https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/widget-configurations/
+3. Cloudflare challenge solve issues — https://developers.cloudflare.com/cloudflare-challenges/troubleshooting/challenge-solve-issues/
+4. Cloudflare server-side validation — https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+5. Next.js Script — https://nextjs.org/docs/app/api-reference/components/script
 
-1. Client-side errors: https://developers.cloudflare.com/turnstile/troubleshooting/client-side-errors/
-2. Widget configuration and callbacks: https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/widget-configurations/
-3. Challenge solve issues, including network/browser-extension interference: https://developers.cloudflare.com/cloudflare-challenges/troubleshooting/challenge-solve-issues/
-4. Server-side validation: https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+What they establish:
 
-Next.js Script documentation reviewed for third-party script lifecycle behavior:
+- network/browser-extension conditions can prevent challenge resources from loading;
+- explicit client error/timeout handling is expected;
+- widget `timeout-callback` belongs to widget/challenge lifecycle and does not prove a top-level script stall will always resolve;
+- server-side token verification remains mandatory;
+- third-party Script lifecycle hooks do not replace MoneyFlow's product-level finite recovery contract.
 
-5. https://nextjs.org/docs/app/api-reference/components/script
+Research limits:
 
-Applicability:
-
-- Cloudflare recommends explicit client error/timeout handling and documents network/browser conditions that can prevent challenge resources from loading.
-- Turnstile widget `timeout-callback` concerns an interactive challenge after widget lifecycle exists; it does not replace an application-side deadline for a top-level script that never reaches the renderable state.
-- Server-side verification remains mandatory; this slice does not change it.
-
-### Research limits
-
-- No evidence justifies disabling CAPTCHA as a recovery path.
-- No evidence justifies changing provider site/secret keys, Supabase Auth settings, redirect allowlists, rate limits or WAF in this code slice.
-- No single timeout duration is a security truth. Implementation should choose one bounded constant, document the UX rationale and test it deterministically rather than hiding an arbitrary provider SLA claim.
+- no evidence supports disabling/bypassing CAPTCHA after timeout;
+- no evidence supports changing site/secret keys, Supabase Auth settings, redirect allowlists, rate limits or WAF in this slice;
+- no single timeout duration is a provider SLA. Implementation must use a bounded UX constant with a test/rationale, not invent a platform guarantee.
 
 ## Specification
 
-### 1. Finite script-load state machine
+### Outcome
 
-The Turnstile surface must distinguish at least:
+Make CAPTCHA script-load failure finite, truthful and recoverable while preserving the existing real-token gate.
 
-- `loading`: top-level script is not ready yet;
-- `ready`: script/widget can proceed normally;
-- `load_failed`: the script explicitly errors or exceeds the bounded application deadline.
+### State contract
 
-The deadline starts only while CAPTCHA is mounted and the script has not become ready.
+The Turnstile surface must distinguish at least `loading`, `ready` and `load_failed`.
 
-Requirements:
+The application deadline exists only while CAPTCHA is mounted and the top-level script is not ready. It must be cleared on successful `onReady`, explicit script failure and unmount. A stale timer must not overwrite later success.
 
-- clear the deadline when `onReady` succeeds;
-- clear it when explicit script failure is handled;
-- clear it on unmount;
-- prevent a stale timer callback from overwriting a later success state;
-- preserve existing widget callback / expiration / reset behavior after render.
+Existing widget success, expiration, error and post-submit reset behavior remains authoritative after render.
 
-### 2. Fail-closed recovery UX
+### Fail-closed recovery
 
-When script loading fails or exceeds the deadline:
+When top-level script loading errors or exceeds the bounded deadline:
 
 - clear any stale CAPTCHA token;
-- stop claiming the system is still loading;
-- show a short non-sensitive explanation that security verification could not load;
-- provide a keyboard-accessible retry/reload action;
-- keep the email-auth submit disabled until a real Turnstile token is obtained.
+- stop claiming the app is still loading;
+- show a short non-sensitive explanation;
+- expose a keyboard-accessible retry/reload action;
+- keep email-auth submit disabled until a real Turnstile token exists.
 
-A full-page retry/reload is acceptable and preferred over inventing a second custom script-loader lifecycle unless implementation evidence proves a smaller safe retry mechanism.
+A full-page retry is preferred over inventing a second custom script-loader lifecycle unless implementation evidence proves a smaller safe retry mechanism.
 
-Do not expose provider identifiers, keys, tokens, internal thresholds or diagnostics in user-visible copy or logs.
+Never log or expose CAPTCHA tokens, keys, provider identifiers, internal thresholds or sensitive auth payloads.
 
-### 3. Race and lifecycle safety
+### Race safety
 
-The implementation must handle these races deterministically:
+Implementation must challenge:
 
-- timeout fires just as `onReady` occurs;
-- explicit `onError` happens before the deadline;
-- component unmounts before the deadline;
-- a pending auth attempt finishes and the existing widget reset path runs;
-- widget-level `error-callback` fires after successful top-level script loading.
+- deadline and `onReady` occurring close together;
+- explicit `onError` before deadline;
+- unmount before deadline;
+- auth completion triggering existing widget reset;
+- widget `error-callback` after successful top-level script load.
 
-Late callbacks must not weaken the submit gate. A valid token remains the only client condition that unblocks CAPTCHA-enabled email auth.
+Late callbacks must never weaken the submit gate.
 
-### 4. Browser acceptance
+### Browser acceptance
 
-Add representative browser evidence that simulates the top-level Turnstile script remaining unresolved long enough to cross the app deadline without relying on a real provider outage.
+Add deterministic browser evidence for a top-level Turnstile script that remains unresolved long enough to cross the app deadline without relying on a real outage.
 
-The test must prove:
+The affected-flow test must prove:
 
-1. the initial loading state is visible;
-2. the state becomes a finite failure message after the bounded deadline;
-3. login/register/forgot-password submit remains disabled with no token;
-4. the recovery action is reachable by role/name and keyboard-usable;
-5. the test does not create a fake CAPTCHA token;
-6. existing successful Turnstile browser tests remain green.
+1. initial loading state appears;
+2. finite failure state replaces it after the bounded deadline;
+3. login/register/forgot-password submit stays disabled with no token;
+4. recovery action is role-addressable and keyboard-usable;
+5. no fake token is created;
+6. existing successful CAPTCHA browser tests stay green.
 
-The test may use Playwright routing/clock controls or another deterministic harness already supported by the repository. Do not shorten production security behavior through test-only runtime branches unless the mechanism is explicit and safe.
+Playwright route/clock controls or another existing deterministic harness may be used. Do not add hidden production bypasses just to make the test fast.
 
-### 5. No provider or financial mutation
+### Boundaries
 
-This slice changes no:
-
-- Supabase Auth provider settings;
-- Turnstile site/secret configuration;
-- Vercel/WAF configuration;
-- environment secret values;
-- database schema/RLS;
-- ledger/import/provider semantics;
-- production user data.
+This slice changes no Supabase Auth provider settings, Turnstile provider configuration, Vercel/WAF configuration, environment secrets, database schema/RLS, financial behavior or production user data.
 
 ## Implementation plan
 
-This is a Class 3 auth/security user-flow slice because it affects availability of login/register/password-reset entry points, even though it should require only a small client change and browser tests.
+This is a Class 3 auth/security user-flow slice because it affects availability of login/register/password-reset entry points, despite the expected code diff being small.
 
-After owner merges the selector:
+After owner merges #558:
 
 1. read fresh `main` and record the post-selector merge SHA;
-2. run `npm run plan:resolve` and `npm run agent:doctor -- --json` in a fully materialized repository/toolchain environment;
-3. inspect `auth-turnstile.tsx`, `auth-form.tsx`, `auth-captcha.spec.ts` and current auth action/server validation before code;
-4. implement the smallest coherent watchdog/recovery seam without changing the existing token gate;
-5. add deterministic browser evidence for a stalled top-level script;
-6. run exact-head policy, static, unit, build and affected browser gates plus CodeQL/Secret History; DB gate is not expected unless the diff unexpectedly crosses a database boundary;
-7. perform evaluator pass from issue/spec + exact diff, challenging fail-closed behavior and race handling;
-8. if the PR completes #557, close lifecycle in the same PR: archive this packet, set `PLAN_AUTHORITY.current → null`, reconcile current memory and leave #174/provider-console follow-on work unselected.
-
-## Acceptance matrix
-
-- [ ] application deadline makes unresolved top-level script loading finite;
-- [ ] user sees truthful actionable failure instead of indefinite loading;
-- [ ] recovery control is keyboard-accessible;
-- [ ] no fake/bypass token exists;
-- [ ] email-auth submit remains disabled without a valid token;
-- [ ] late-ready / timeout race cannot overwrite a successful state incorrectly;
-- [ ] explicit script `onError` remains handled;
-- [ ] widget callback / expiration / error / post-submit reset behavior remains intact;
-- [ ] login, register and forgot-password successful CAPTCHA flows remain green;
-- [ ] browser test proves stalled-script failure path deterministically;
-- [ ] no Supabase/Vercel/Turnstile provider configuration is changed;
-- [ ] no schema/RLS/financial/provider mutation is introduced;
-- [ ] exact-head required checks and evaluator pass are clean;
-- [ ] completing implementation PR performs same-PR lifecycle convergence to `current: null`.
-
-## Evaluation
-
-Evaluator must read #557, this packet and the exact implementation diff directly.
-
-Challenge questions:
-
-1. Can any failure path enable email auth without a real token?
-2. Can a stale timer override a later successful script/widget state?
-3. Can retry create duplicate script/widget lifecycle or leak callbacks?
-4. Does user-visible failure reveal provider secrets/configuration?
-5. Does the browser test really stall the top-level script, or merely exercise existing `onError`?
-6. Is the chosen deadline a UX constant rather than an unsupported provider SLA claim?
-7. Did the diff accidentally widen into provider-console, Auth policy, schema or unrelated UI work?
-
-Success means a blocked/stalled Turnstile resource produces a finite, honest recovery state while the security gate remains closed.
+2. run `npm run plan:resolve` and `npm run agent:doctor -- --json` in a fully materialized repo/toolchain environment;
+3. re-read `auth-turnstile.tsx`, `auth-form.tsx`, `auth-captcha.spec.ts` and current auth action/server token verification;
+4. implement the smallest coherent watchdog/recovery seam without changing `captchaBlocked` authority;
+5. add deterministic stalled-script browser evidence;
+6. run exact-head project-knowledge/policy, lint/typecheck, unit/static-RLS, build, browser/e2e, CodeQL and Secret History; DB is not expected unless the implementation crosses that boundary;
+7. evaluator reads #557 + this packet + exact diff directly and challenges fail-closed/race behavior;
+8. if implementation completes #557, archive this packet, set `PLAN_AUTHORITY.current → null`, reconcile memory and leave #174 provider-console follow-on unselected in the same PR.
 
 ## Tasks
 
 | ID | Task | Evidence | Status |
 |---|---|---|---|
 | 557.1 | fresh-main reconnaissance | `main@ad046151...`, #174/#557, current auth code/tests | done |
-| 557.2 | current Cloudflare/Next.js research | official docs listed above | done |
-| 557.3 | selector packet + authority projection | PR #558 | in_progress |
+| 557.2 | official Cloudflare/Next.js refresh | focused sources above | done |
+| 557.3 | selector + authority projection | PR #558 | in_progress |
 | 557.4 | implementation from fresh post-selector main | runtime branch | blocked |
-| 557.5 | stalled-script browser evidence | Playwright affected-flow test | blocked |
-| 557.6 | evaluator + exact-head verification | implementation PR checks/evidence | blocked |
+| 557.5 | stalled-script browser evidence | affected Playwright flow | blocked |
+| 557.6 | evaluator + exact-head gates | implementation PR evidence | blocked |
 | 557.7 | lifecycle closeout | same completing PR, `current → null` | blocked |
+
+## Evaluation
+
+Evaluator must answer from #557, this packet and the exact implementation diff rather than implementer summary:
+
+1. Can any failure path enable email auth without a real token?
+2. Can a stale timer overwrite a later successful script/widget state?
+3. Can retry duplicate script/widget lifecycle or leak callbacks?
+4. Does failure copy expose provider secrets/configuration?
+5. Does the browser test really stall the top-level script rather than merely exercise existing `onError`?
+6. Is the deadline represented as a UX constant, not an unsupported provider SLA?
+7. Did the diff widen into provider-console, Auth policy, schema or unrelated UI work?
+
+Success means a blocked/stalled Turnstile resource produces a finite honest recovery state while the security gate remains closed.
 
 ## Handoff record
 
 | Date | From | To | State | Evidence | Remaining | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-09-09 | MON-63 closeout | planner | authority null | PR #556 merged; production READY; `PLAN_AUTHORITY.current = null` | choose one bounded follow-on | fresh-main audit |
-| 2026-09-09 | planner | selector evaluation | planning | #511 already complete via #522; #426 stale as executable; #174 code defect confirmed; official Turnstile docs refreshed | exact-head selector gates + owner merge decision | PR #558 selector evaluation |
+| 2026-09-09 | MON-63 closeout | planner | authority null | #556 merged/deployed; current null | choose bounded follow-on | fresh audit |
+| 2026-09-09 | planner | selector evaluation | candidate | #511 already complete; #426 stale; #174 defect confirmed; official docs refreshed | exact-head selector gates + owner merge | PR #558 evaluation |
 
 ## Current permission boundary
 
-Selector PR may only add/update planning authority, project memory and PR memory needed to select #557. It may not edit runtime/auth code, Supabase settings, Turnstile provider settings, Vercel/WAF, environment secrets, schema/RLS or production data.
+#558 may only change planning authority/project memory needed to select #557. It may not edit runtime/auth code, Supabase/Turnstile/Vercel provider settings, environment secrets, schema/RLS or production data.
 
-If owner merges the selector, implementation permission is bounded to the client auth-resilience code/tests described above. Provider-console changes tracked by #174 still require their own explicit operational authorization and reversible verification.
+If owner merges #558, implementation permission is bounded to the client auth-resilience and browser-test surface described here. Provider-console controls in #174 remain separately authorized operational work.
