@@ -7,9 +7,12 @@
 import type {
   CandidateConfidence,
   CandidateKind,
-  CreateCandidateInput,
 } from "./candidate-store.ts";
 import { parseVndAmountToken, todayInHoChiMinh } from "./parse-text.ts";
+import type {
+  CandidateProvenance,
+  CreateCandidateWithProvenanceInput,
+} from "./provenance.ts";
 
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
 
@@ -25,6 +28,21 @@ export type CsvColumnMap = {
 
 export type UncertainCsvField = "amount" | "merchant" | "date" | "kind";
 
+type ParsedCsvRowProvenance = Pick<
+  CandidateProvenance,
+  | "sourceRowIndex"
+  | "sourceExternalId"
+  | "sourceLifecycleState"
+  | "sourcePredecessorExternalId"
+  | "parserVersion"
+  | "mappingVersion"
+>;
+
+/**
+ * Generic parsed rows can also carry source-adapter evidence. Ordinary CSV/XLSX
+ * parsing leaves these optional fields unset; evidence-aware adapters may set
+ * them and the draft/preview path must preserve them verbatim.
+ */
 export type ParsedCsvRow = {
   kind: CandidateKind;
   /** Absolute amount in VND đồng (integer, > 0). */
@@ -37,7 +55,7 @@ export type ParsedCsvRow = {
   explanations: string[];
   rawSnippet: string;
   rowIndex: number;
-};
+} & ParsedCsvRowProvenance;
 
 export type ParseCsvResult = {
   ok: boolean;
@@ -128,7 +146,6 @@ export function parseCsvMatrix(text: string): string[][] {
     if (ch === "\n") {
       row.push(cell);
       cell = "";
-      // Skip trailing empty-only rows later; keep structural rows
       rows.push(row);
       row = [];
       i += 1;
@@ -138,7 +155,6 @@ export function parseCsvMatrix(text: string): string[][] {
     i += 1;
   }
 
-  // Last cell / row
   if (cell.length > 0 || row.length > 0) {
     row.push(cell);
     rows.push(row);
@@ -156,14 +172,10 @@ function normalizeHeader(h: string): string {
     .replace(/\s+/g, " ");
 }
 
-/**
- * Score header name against a role pattern (higher = better).
- */
 function scoreHeader(header: string, pattern: RegExp): number {
   const h = normalizeHeader(header);
   if (!h) return 0;
   if (pattern.test(h)) return 3;
-  // Partial contains for multi-word headers
   const compact = h.toLowerCase().replace(/[_\s]+/g, " ");
   if (pattern.source.includes("amount") && /amount|số tiền|so tien|tiền|tien/.test(compact)) {
     return 2;
@@ -224,19 +236,11 @@ export function mapCsvColumns(headers: string[]): {
     }
   });
 
-  // If amount column not found but debit/credit exist, clear amount
-  if (map.amount === null && (map.debit !== null || map.credit !== null)) {
-    // fine
-  }
-
-  // Positional fallback when headers are generic / missing names
   if (map.date === null && headers.length >= 1) {
-    // Prefer first column as date only if it looks like date samples later
     map.date = 0;
     bestDate = Math.max(bestDate, 1);
   }
   if (map.amount === null && map.debit === null && map.credit === null) {
-    // Common layouts: date, desc, amount OR date, amount, desc
     if (headers.length >= 3) {
       map.amount = headers.length - 1;
       bestAmount = Math.max(bestAmount, 1);
@@ -246,7 +250,6 @@ export function mapCsvColumns(headers: string[]): {
     }
   }
   if (map.desc === null && headers.length >= 2) {
-    // Middle column often description
     if (headers.length >= 3) {
       map.desc = 1;
       bestDesc = Math.max(bestDesc, 1);
@@ -266,10 +269,6 @@ export function mapCsvColumns(headers: string[]): {
   return { map, confidence };
 }
 
-/**
- * Parse a cell into integer VND đồng. Supports:
- * 45000, 45.000, 45,000, 45.000 VND, -120000, (120000), 45k
- */
 export function parseCsvAmountCell(raw: string): {
   amount: number | null;
   signedNegative: boolean;
@@ -282,7 +281,6 @@ export function parseCsvAmountCell(raw: string): {
   let signedNegative = false;
   let body = text;
 
-  // Accounting negative: (1.200.000)
   const paren = body.match(/^\((.+)\)$/);
   if (paren) {
     signedNegative = true;
@@ -296,20 +294,17 @@ export function parseCsvAmountCell(raw: string): {
     body = body.slice(1).trim();
   }
 
-  // Strip currency words/symbols
   body = body
     .replace(/\b(vnd|vnđ|đồng|dong)\b/gi, "")
     .replace(/[₫đ]/g, "")
     .trim();
 
-  // Unit suffix k / tr
   const unitMatch = body.match(/^(.+?)\s*(k|tr|triệu|trieu|m)$/i);
   if (unitMatch) {
     const amount = parseVndAmountToken(unitMatch[1]!.trim(), unitMatch[2]!);
     return { amount, signedNegative };
   }
 
-  // Strip spaces used as thousand separators: 1 200 000
   body = body.replace(/\s/g, "");
 
   const amount = parseVndAmountToken(body);
@@ -323,13 +318,11 @@ export function parseCsvDateCell(raw: string, today: string): {
   const text = (raw ?? "").trim();
   if (!text) return { date: today, found: false };
 
-  // ISO YYYY-MM-DD (optional time)
   const iso = text.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
   if (iso) {
     return { date: `${iso[1]}-${iso[2]}-${iso[3]}`, found: true };
   }
 
-  // DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
   const dmyFull = text.match(/\b(\d{1,2})[/.−-](\d{1,2})[/.−-](20\d{2})\b/);
   if (dmyFull) {
     const dd = dmyFull[1]!.padStart(2, "0");
@@ -337,7 +330,6 @@ export function parseCsvDateCell(raw: string, today: string): {
     return { date: `${dmyFull[3]}-${mm}-${dd}`, found: true };
   }
 
-  // YYYY/MM/DD
   const ymd = text.match(/\b(20\d{2})[/.](\d{1,2})[/.](\d{1,2})\b/);
   if (ymd) {
     const mm = ymd[2]!.padStart(2, "0");
@@ -345,7 +337,6 @@ export function parseCsvDateCell(raw: string, today: string): {
     return { date: `${ymd[1]}-${mm}-${dd}`, found: true };
   }
 
-  // DD/MM (current year)
   const dmy = text.match(/\b(\d{1,2})[/.](\d{1,2})\b/);
   if (dmy) {
     const year = today.slice(0, 4);
@@ -370,7 +361,6 @@ function detectKindFromText(
     return { kind: "income", uncertain: false };
   }
   if (signedNegative) return { kind: "expense", uncertain: false };
-  // Default expense for bank statement lines
   return { kind: "expense", uncertain: true };
 }
 
@@ -413,9 +403,6 @@ function merchantFromDesc(desc: string): { merchant: string; uncertain: boolean 
   return { merchant, uncertain: cleaned.length < 2 };
 }
 
-/**
- * Parse a full CSV statement text into candidate drafts.
- */
 export function parseCsvStatement(
   text: string,
   options: ParseCsvOptions = {},
@@ -434,10 +421,6 @@ export function parseCsvStatement(
   return parseStatementFromMatrix(matrix, options);
 }
 
-/**
- * Shared statement heuristics over a string matrix (CSV or first XLSX sheet).
- * Money amounts stay integer VND đồng.
- */
 export function parseStatementFromMatrix(
   matrix: string[][],
   options: ParseCsvOptions = {},
@@ -450,7 +433,6 @@ export function parseStatementFromMatrix(
     return emptyFail(fileName, "Không tìm thấy dòng dữ liệu trong file.");
   }
 
-  // Header = first row if it looks non-numeric / has text labels
   const first = matrix[0]!;
   const hasHeader = looksLikeHeaderRow(first);
   const headers = hasHeader
@@ -558,7 +540,6 @@ function emptyFail(fileName: string, error: string): ParseCsvResult {
   };
 }
 
-/** Clamp optional indices; invalid indices become null. */
 export function normalizeColumnMap(map: CsvColumnMap): CsvColumnMap {
   const clamp = (n: number | null): number | null =>
     n === null || !Number.isInteger(n) || n < 0 ? null : n;
@@ -571,7 +552,6 @@ export function normalizeColumnMap(map: CsvColumnMap): CsvColumnMap {
   };
 }
 
-/** Empty map for UI state before auto-detect. */
 export function emptyColumnMap(): CsvColumnMap {
   return {
     date: null,
@@ -597,7 +577,6 @@ function looksLikeHeaderRow(row: string[]): boolean {
       textish += 1;
     }
   }
-  // Header if mostly labels
   return textish >= Math.max(1, Math.ceil(row.length / 2)) && moneyish === 0;
 }
 
@@ -609,7 +588,6 @@ function parseDataRow(
 ): ParsedCsvRow | null {
   const uncertainFields: UncertainCsvField[] = [];
 
-  // Amount from single column or debit/credit
   let amount: number | null = null;
   let signedNegative = false;
   let fromDebit = false;
@@ -679,12 +657,16 @@ function parseDataRow(
 
 export type ImportCandidateSource = "csv" | "xlsx" | "pdf";
 
-/** Map parsed statement rows to store inputs (source csv/xlsx/pdf + batch id). */
+/**
+ * Map preview rows to candidate inputs while preserving source evidence. Generic
+ * rows have no stable source id; sourceRowIndex is inspectability only and never
+ * becomes identity.
+ */
 export function toCsvCandidateInputs(
   rows: ParsedCsvRow[],
   importBatchId: string,
   source: ImportCandidateSource = "csv",
-): CreateCandidateInput[] {
+): CreateCandidateWithProvenanceInput[] {
   return rows.map((item) => ({
     kind: item.kind,
     amount: item.amount,
@@ -696,10 +678,15 @@ export function toCsvCandidateInputs(
     status: "pending" as const,
     rawSnippet: item.rawSnippet,
     importBatchId,
+    sourceRowIndex: item.sourceRowIndex ?? item.rowIndex,
+    sourceExternalId: item.sourceExternalId,
+    sourceLifecycleState: item.sourceLifecycleState,
+    sourcePredecessorExternalId: item.sourcePredecessorExternalId,
+    parserVersion: item.parserVersion,
+    mappingVersion: item.mappingVersion,
   }));
 }
 
-/** Validate upload file before reading. */
 export function validateUploadFile(file: {
   name: string;
   size: number;

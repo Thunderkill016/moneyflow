@@ -243,10 +243,6 @@ export function batchToInsertRow(
   };
 }
 
-/**
- * Build insert payloads for one-shot local → server migrate.
- * Remaps non-UUID batch ids; stores original ids in local_id.
- */
 export function buildMigratePayloads(
   batches: ImportBatch[],
   candidates: InboxCandidate[],
@@ -294,12 +290,10 @@ export function buildMigratePayloads(
   return { batchRows, candidateRows, batchIdMap };
 }
 
-/** Deterministic-ish UUID for tests when crypto.randomUUID is unavailable. */
 export function cryptoRandomUuid(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
-  // Fallback for node test environments without global crypto.randomUUID
   const bytes = new Uint8Array(16);
   for (let i = 0; i < 16; i += 1) bytes[i] = Math.floor(Math.random() * 256);
   bytes[6] = (bytes[6]! & 0x0f) | 0x40;
@@ -323,6 +317,8 @@ export function prepareCandidateForServer(
     ...candidate,
     sourceRowIndex: input.sourceRowIndex,
     sourceExternalId: input.sourceExternalId,
+    sourceLifecycleState: input.sourceLifecycleState,
+    sourcePredecessorExternalId: input.sourcePredecessorExternalId,
     parserVersion: input.parserVersion,
     mappingVersion: input.mappingVersion,
   };
@@ -340,9 +336,6 @@ export function prepareBatchForServer(
   };
 }
 
-/**
- * Whether server-side inbox is empty (trigger one-shot local migrate).
- */
 export function shouldMigrateLocal(
   serverCandidateCount: number,
   serverBatchCount: number,

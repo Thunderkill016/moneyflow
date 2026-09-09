@@ -74,57 +74,89 @@ test("VietinBank iPay Web Excel evidence remains layout-conservative", () => {
 });
 
 test("display/UI transaction references never become sourceExternalId", () => {
+  const scope = { kind: "institution" as const, institutionKey: "bank" };
   assert.equal(
-    sourceExternalIdFromProviderReference({
-      value: "5078-5253",
-      evidence: "observed-but-unverified",
-      stability: "display-only",
-    }),
+    sourceExternalIdFromProviderReference(
+      {
+        value: "5078-5253",
+        evidence: "observed-but-unverified",
+        stability: "display-only",
+      },
+      scope,
+    ),
     undefined,
   );
 
   assert.equal(
-    sourceExternalIdFromProviderReference({
-      value: "row-12",
-      evidence: "confirmed",
-      stability: "export-local",
-    }),
+    sourceExternalIdFromProviderReference(
+      {
+        value: "row-12",
+        evidence: "confirmed",
+        stability: "export-local",
+      },
+      scope,
+    ),
     undefined,
   );
 
   assert.equal(
-    sourceExternalIdFromProviderReference({
-      value: "fnv-preview-hash",
-      evidence: "confirmed",
-      stability: "unknown",
-    }),
+    sourceExternalIdFromProviderReference(
+      {
+        value: "fnv-preview-hash",
+        evidence: "confirmed",
+        stability: "unknown",
+      },
+      scope,
+    ),
     undefined,
   );
 });
 
-test("only a non-empty confirmed source-stable reference is eligible for sourceExternalId", () => {
+test("even a confirmed stable provider reference requires a proven namespace", () => {
+  const reference = {
+    value: "provider-stable-123",
+    evidence: "confirmed" as const,
+    stability: "source-stable" as const,
+  };
+  assert.equal(sourceExternalIdFromProviderReference(reference, undefined), undefined);
   assert.equal(
-    sourceExternalIdFromProviderReference({
-      value: "  provider-stable-123  ",
-      evidence: "confirmed",
-      stability: "source-stable",
+    sourceExternalIdFromProviderReference(reference, {
+      kind: "institution",
+      institutionKey: "bank-a",
     }),
-    "provider-stable-123",
+    "mf-src-v1|institution|bank-a|provider-stable-123",
   );
   assert.equal(
-    sourceExternalIdFromProviderReference({
-      value: "   ",
-      evidence: "confirmed",
-      stability: "source-stable",
+    sourceExternalIdFromProviderReference(reference, {
+      kind: "institution",
+      institutionKey: "bank-b",
     }),
+    "mf-src-v1|institution|bank-b|provider-stable-123",
+  );
+});
+
+test("empty or unconfirmed stable references remain ineligible", () => {
+  const scope = { kind: "institution" as const, institutionKey: "bank" };
+  assert.equal(
+    sourceExternalIdFromProviderReference(
+      {
+        value: "   ",
+        evidence: "confirmed",
+        stability: "source-stable",
+      },
+      scope,
+    ),
     undefined,
   );
   assert.equal(
-    sourceExternalIdFromProviderReference({
-      value: "provider-stable-123",
-      evidence: "observed-but-unverified",
-      stability: "source-stable",
-    }),
+    sourceExternalIdFromProviderReference(
+      {
+        value: "provider-stable-123",
+        evidence: "observed-but-unverified",
+        stability: "source-stable",
+      },
+      scope,
+    ),
     undefined,
   );
 });

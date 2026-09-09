@@ -14,10 +14,10 @@ import {
   applyCandidateListMutationAction,
 } from "@/app/actions/inbox";
 import {
-  addStoredCandidate,
   countPending,
   createCandidate,
   readStoredCandidates,
+  upsertCandidate,
   writeStoredCandidates,
   type InboxCandidate,
   type UpdateCandidateInput,
@@ -35,6 +35,7 @@ import { prepareCandidateForServer, prepareBatchForServer } from "@/lib/inbox/in
 import type {
   CreateCandidateWithProvenanceInput,
   CreateImportBatchWithProvenanceInput,
+  PersistedInboxCandidate,
 } from "@/lib/inbox/provenance";
 
 export type ClientInboxResult<T = undefined> = T extends undefined
@@ -131,6 +132,20 @@ export async function loadInboxForClient(
   }
 }
 
+function createLocalCandidateWithProvenance(
+  input: CreateCandidateWithProvenanceInput,
+): PersistedInboxCandidate {
+  return {
+    ...createCandidate(input),
+    sourceRowIndex: input.sourceRowIndex,
+    sourceExternalId: input.sourceExternalId,
+    sourceLifecycleState: input.sourceLifecycleState,
+    sourcePredecessorExternalId: input.sourcePredecessorExternalId,
+    parserVersion: input.parserVersion,
+    mappingVersion: input.mappingVersion,
+  };
+}
+
 export async function addCandidatesForClient(
   isDemo: boolean,
   inputs: CreateCandidateWithProvenanceInput[],
@@ -141,7 +156,12 @@ export async function addCandidatesForClient(
 
   if (isDemo) {
     try {
-      const created = inputs.map((input) => addStoredCandidate(input));
+      const created = inputs.map(createLocalCandidateWithProvenance);
+      let next = readStoredCandidates();
+      for (const candidate of created) {
+        next = upsertCandidate(next, candidate);
+      }
+      writeStoredCandidates(next);
       return { ok: true, candidates: created };
     } catch {
       return { ok: false, message: "Không lưu được vào Inbox trên thiết bị." };
@@ -168,6 +188,8 @@ export async function addCandidatesForClient(
       importBatchId: candidate.importBatchId,
       sourceRowIndex: candidate.sourceRowIndex,
       sourceExternalId: candidate.sourceExternalId,
+      sourceLifecycleState: candidate.sourceLifecycleState,
+      sourcePredecessorExternalId: candidate.sourcePredecessorExternalId,
       parserVersion: candidate.parserVersion,
       mappingVersion: candidate.mappingVersion,
       id: candidate.id,

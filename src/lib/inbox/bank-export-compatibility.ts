@@ -1,3 +1,8 @@
+import {
+  canonicalizeSourceExternalId,
+  type SourceIdentityScope,
+} from "./source-adapter.ts";
+
 export type BankExportProvider = "vietcombank" | "acb" | "vietinbank";
 
 export type BankExportEvidenceLevel =
@@ -252,15 +257,22 @@ export function listBankExportCompatibility(): BankExportCompatibility[] {
   return BANK_EXPORT_PROVIDERS.map((provider) => COMPATIBILITY[provider]);
 }
 
+/**
+ * A provider reference is not persistence-safe without an evidence-backed
+ * namespace. The helper therefore delegates to the source-adapter identity
+ * contract instead of returning a raw bank reference.
+ */
 export function sourceExternalIdFromProviderReference(
   reference: BankExportReferenceEvidence | null | undefined,
+  scope: SourceIdentityScope | null | undefined,
 ): string | undefined {
-  if (!reference) return undefined;
-  const value = reference.value.trim();
-  if (!value) return undefined;
-  if (reference.evidence !== "confirmed") return undefined;
-  if (reference.stability !== "source-stable") return undefined;
-  return value;
+  if (!reference || !scope) return undefined;
+  return canonicalizeSourceExternalId({
+    value: reference.value,
+    evidence: reference.evidence,
+    stability: reference.stability,
+    scope,
+  });
 }
 
 export function canUseBankSpecificAutoMap(
