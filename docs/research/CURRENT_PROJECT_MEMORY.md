@@ -94,7 +94,9 @@ Provider credentials, live bank sync, production DB/Auth/provider mutation and r
 - PR #553: Class-0 authority selector for the Class-3 MON-63 packet; no runtime implementation is contained in this PR.
 - Open runtime implementation PR for MON-63: none.
 
-## 9. PR #553 selector projection
+## 9. Open pull-request memory
+
+### PR #553 — MON-63 selector projection
 
 PR #553 starts from exact post-#552 `main@05323e2cb45609a85b3e7e3f2a4af94679149c31`.
 
