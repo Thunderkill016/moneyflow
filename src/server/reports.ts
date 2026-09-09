@@ -16,7 +16,7 @@ import { sampleTransactionsFor } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
 import { todayInVietnam } from "@/lib/vietnam-date";
 import { requireViewer } from "@/server/auth";
-import { mapTransactionFeedRow } from "@/server/finance";
+import { mapTransactionFeedRow, readAllPages } from "@/server/finance";
 
 const feedColumns =
   "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
@@ -59,14 +59,17 @@ export async function getReportsWorkspace(
       rangeNotice,
     };
   }
-  const { data, error } = await supabase
-    .from("transaction_feed")
-    .select(feedColumns)
-    .eq("user_id", viewer.id)
-    .gte("occurred_on", range.previousStart)
-    .lte("occurred_on", range.currentEnd)
-    .order("occurred_on", { ascending: false })
-    .order("created_at", { ascending: false });
+  const { data, error } = await readAllPages((from, to) =>
+    supabase
+      .from("transaction_feed")
+      .select(feedColumns)
+      .eq("user_id", viewer.id)
+      .gte("occurred_on", range.previousStart)
+      .lte("occurred_on", range.currentEnd)
+      .order("occurred_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range(from, to),
+  );
   if (error) {
     return {
       report: buildFinancialReport([], range),

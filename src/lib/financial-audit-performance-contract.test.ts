@@ -49,6 +49,18 @@ test("large authenticated finance reads repeat the viewer tenant predicate", () 
   }
 });
 
+test("large finance reads use bounded pages instead of the API row cap", () => {
+  assert.match(finance, /FINANCE_READ_PAGE_SIZE\s*=\s*500/);
+  assert.ok(
+    countMatches(finance, /readAllPages\(\(from, to\) =>/g) >= 3,
+    "full, dashboard-window and review reads must all use the shared paginator",
+  );
+  assert.match(
+    reports,
+    /readAllPages\(\(from, to\) =>[\s\S]*?\.range\(from, to\)/,
+  );
+});
+
 test("budget and report reads repeat the viewer tenant predicate", () => {
   assert.match(
     budgets,
@@ -65,7 +77,10 @@ test("budget and report reads repeat the viewer tenant predicate", () => {
 });
 
 test("audit schema is structural, append-only for browsers and trigger-owned", () => {
-  assert.match(migration, /create table public\.financial_mutation_audit_events/);
+  assert.match(
+    migration,
+    /create table public\.financial_mutation_audit_events/,
+  );
   assert.match(migration, /enable row level security/);
   assert.match(
     migration,

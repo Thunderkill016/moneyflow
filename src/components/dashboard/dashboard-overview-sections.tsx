@@ -3,16 +3,10 @@ import { Icon, type IconName } from "@/components/icons";
 import { MoneyValue } from "@/components/money-value";
 import { Button, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  EXPORT_CSV_LABEL,
-  EXPORT_SETTINGS_HREF,
-} from "@/lib/export-data";
+import { EXPORT_CSV_LABEL, EXPORT_SETTINGS_HREF } from "@/lib/export-data";
 import { INSIGHTS_LEDGER_EMPTY } from "@/lib/dashboard-planning-empty";
 import { GHI_CHI_TIEU_LABEL, PLANNING_LINKS } from "@/lib/nav-ia";
-import {
-  REPORTS_MONTH_HREF,
-  REPORTS_MONTH_LINK_LABEL,
-} from "@/lib/reports";
+import { REPORTS_MONTH_HREF, REPORTS_MONTH_LINK_LABEL } from "@/lib/reports";
 import { dashboardDrilldownHref } from "@/lib/dashboard-drilldown";
 import { categoryMeta, type Transaction } from "@/lib/sample-data";
 import { transferRowSubtitle } from "@/lib/transfers";
@@ -86,9 +80,9 @@ export function DashboardHeaderSections({
         isEmptyLedger={isEmptyLedger}
       />
 
-      {attentionItems.length > 0 ? (
-        <section className="attention-strip" aria-label="Cần chú ý">
-          <p className="attention-strip-label">Cần chú ý</p>
+      <section className="attention-strip" aria-label="Cần chú ý">
+        <p className="attention-strip-label">Cần chú ý</p>
+        {attentionItems.length > 0 ? (
           <ul className="attention-strip-list">
             {attentionItems.map((item) => (
               <li key={item.id}>
@@ -103,8 +97,12 @@ export function DashboardHeaderSections({
               </li>
             ))}
           </ul>
-        </section>
-      ) : null}
+        ) : (
+          <p className="attention-strip-empty">
+            Không có mục nào cần xử lý lúc này.
+          </p>
+        )}
+      </section>
 
       <nav className="insights-planning-nav" aria-label="Kế hoạch từ Tổng quan">
         <p className="insights-planning-label">Kế hoạch</p>

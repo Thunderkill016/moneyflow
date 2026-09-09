@@ -34,10 +34,31 @@ export type FinanceWorkspace = {
 
 const TRANSACTION_FEED_COLUMNS =
   "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
-const TRANSACTION_REVIEW_COLUMNS =
-  "id,review_status,occurred_on,created_at";
+const TRANSACTION_REVIEW_COLUMNS = "id,review_status,occurred_on,created_at";
 
 type FinanceWorkspaceScope = "full" | "dashboard";
+
+/** Keep each Data API response below its configured row cap while preserving the full ledger. */
+const FINANCE_READ_PAGE_SIZE = 500;
+
+type PageResult<T> = {
+  data: T[] | null;
+  error: unknown | null;
+};
+
+export async function readAllPages<T>(
+  readPage: (from: number, to: number) => PromiseLike<PageResult<T>>,
+): Promise<PageResult<T>> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += FINANCE_READ_PAGE_SIZE) {
+    const result = await readPage(from, from + FINANCE_READ_PAGE_SIZE - 1);
+    if (result.error) return { data: null, error: result.error };
+    const page = result.data ?? [];
+    rows.push(...page);
+    if (page.length < FINANCE_READ_PAGE_SIZE)
+      return { data: rows, error: null };
+  }
+}
 
 const accountSchema = z
   .object({
@@ -140,7 +161,7 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
     category:
       row.kind === "transfer"
         ? "Chuyển tiền"
-        : row.category_name ?? "Chưa phân loại",
+        : (row.category_name ?? "Chưa phân loại"),
     note: row.note || row.category_name || "Giao dịch",
     accountId: row.account_id,
     account: row.account_name,
@@ -157,10 +178,12 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
 
 function demoWorkspace(): FinanceWorkspace {
   return {
-    transactions: sampleTransactionsFor(todayInVietnam()).map((transaction) => ({
-      ...transaction,
-      reviewStatus: getTransactionReviewStatus(transaction),
-    })),
+    transactions: sampleTransactionsFor(todayInVietnam()).map(
+      (transaction) => ({
+        ...transaction,
+        reviewStatus: getTransactionReviewStatus(transaction),
+      }),
+    ),
     accounts: demoAccounts,
     categories: demoCategories,
     totalBalance: 15_735_000,
@@ -202,9 +225,7 @@ function readReviewState(
     const rows = z.array(reviewFeedSchema).parse(data ?? []);
     return {
       available: true,
-      byId: new Map(
-        rows.map((row) => [row.id, row.review_status] as const),
-      ),
+      byId: new Map(rows.map((row) => [row.id, row.review_status] as const)),
     };
   } catch {
     return {
@@ -228,21 +249,27 @@ async function loadFinanceWorkspace(
   const today = todayInVietnam();
   const periodFeedPromise =
     scope === "dashboard"
-      ? supabase
-          .from("transaction_feed")
-          .select(TRANSACTION_FEED_COLUMNS)
-          .eq("user_id", viewer.id)
-          .gte("occurred_on", dashboardTransactionStart(today))
-          .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false })
-      : supabase
-          .from("transaction_feed")
-          .select(TRANSACTION_FEED_COLUMNS)
-          .eq("user_id", viewer.id)
-          .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false });
+      ? readAllPages((from, to) =>
+          supabase
+            .from("transaction_feed")
+            .select(TRANSACTION_FEED_COLUMNS)
+            .eq("user_id", viewer.id)
+            .gte("occurred_on", dashboardTransactionStart(today))
+            .order("occurred_on", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, to),
+        )
+      : readAllPages((from, to) =>
+          supabase
+            .from("transaction_feed")
+            .select(TRANSACTION_FEED_COLUMNS)
+            .eq("user_id", viewer.id)
+            .order("occurred_on", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, to),
+        );
 
   const recentFeedPromise =
     scope === "dashboard"
@@ -258,13 +285,16 @@ async function loadFinanceWorkspace(
 
   const reviewFeedPromise =
     scope === "full"
-      ? supabase
-          .from("transaction_review_feed")
-          .select(TRANSACTION_REVIEW_COLUMNS)
-          .eq("user_id", viewer.id)
-          .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false })
+      ? readAllPages((from, to) =>
+          supabase
+            .from("transaction_review_feed")
+            .select(TRANSACTION_REVIEW_COLUMNS)
+            .eq("user_id", viewer.id)
+            .order("occurred_on", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, to),
+        )
       : Promise.resolve({ data: [] as unknown[], error: null });
 
   const [

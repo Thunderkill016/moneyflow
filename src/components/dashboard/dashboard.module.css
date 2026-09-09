@@ -126,6 +126,13 @@
   scrollbar-width: thin;
 }
 
+.dashboard :global(.attention-strip-empty) {
+  margin: 0;
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .dashboard :global(.attention-chip) {
   min-height: 44px;
   display: inline-flex;

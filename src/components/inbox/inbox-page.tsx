@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icons";
-import { InboxBulkBar, type BulkApplyPayload } from "@/components/inbox/inbox-bulk-bar";
+import {
+  InboxBulkBar,
+  type BulkApplyPayload,
+} from "@/components/inbox/inbox-bulk-bar";
 import {
   InboxReviewPanel,
   type ReviewSubmitPayload,
@@ -220,7 +223,11 @@ export function InboxPage({
       if (item.status !== "pending") continue;
       map.set(
         item.id,
-        classifyCandidateReadiness(item, workspace.accounts, workspace.categories),
+        classifyCandidateReadiness(
+          item,
+          workspace.accounts,
+          workspace.categories,
+        ),
       );
     }
     return map;
@@ -252,7 +259,9 @@ export function InboxPage({
 
   const activeSelectedIds = useMemo(() => {
     const pendingIds = new Set(
-      candidates.filter((item) => item.status === "pending").map((item) => item.id),
+      candidates
+        .filter((item) => item.status === "pending")
+        .map((item) => item.id),
     );
     return selectedIds.filter((id) => pendingIds.has(id));
   }, [candidates, selectedIds]);
@@ -277,7 +286,11 @@ export function InboxPage({
   }, [safeFocusedIndex]);
 
   async function persist(next: InboxCandidate[], changedIds: string[]) {
-    const result = await persistCandidateListForClient(viewer.isDemo, next, changedIds);
+    const result = await persistCandidateListForClient(
+      viewer.isDemo,
+      next,
+      changedIds,
+    );
     if (!result.ok) {
       setErrorMessage(result.message);
       return false;
@@ -302,7 +315,9 @@ export function InboxPage({
 
   function toggleSelect(id: string) {
     setSelectedIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id],
     );
   }
 
@@ -312,7 +327,9 @@ export function InboxPage({
       visibleIds.length > 0 &&
       visibleIds.every((id) => activeSelectedIds.includes(id));
     if (allSelected) {
-      setSelectedIds((current) => current.filter((id) => !visibleIds.includes(id)));
+      setSelectedIds((current) =>
+        current.filter((id) => !visibleIds.includes(id)),
+      );
       return;
     }
     setSelectedIds((current) => {
@@ -352,7 +369,10 @@ export function InboxPage({
     };
 
     const existingDemo = viewer.isDemo
-      ? findDemoApprovalTransaction(readStoredTransactions(), payload.candidateId)
+      ? findDemoApprovalTransaction(
+          readStoredTransactions(),
+          payload.candidateId,
+        )
       : null;
 
     if (existingDemo) {
@@ -436,8 +456,14 @@ export function InboxPage({
   }
 
   async function handleReject(candidateId: string) {
-    const target = candidatesRef.current.find((item) => item.id === candidateId);
-    const next = markCandidatesStatus(candidatesRef.current, [candidateId], "rejected");
+    const target = candidatesRef.current.find(
+      (item) => item.id === candidateId,
+    );
+    const next = markCandidatesStatus(
+      candidatesRef.current,
+      [candidateId],
+      "rejected",
+    );
     if (!(await persist(next, [candidateId]))) return;
     setSelectedIds((current) => current.filter((id) => id !== candidateId));
     setReviewId(null);
@@ -493,12 +519,16 @@ export function InboxPage({
           category,
         );
         if (!(await persist(next, payload.selectedIds))) return;
-        setNotice(`Đã gán danh mục “${category.name}” cho các ứng viên cùng loại.`);
+        setNotice(
+          `Đã gán danh mục “${category.name}” cho các ứng viên cùng loại.`,
+        );
         return;
       }
 
       const selected = new Set(payload.selectedIds);
-      const latestSelected = detectedRef.current.filter((item) => selected.has(item.id));
+      const latestSelected = detectedRef.current.filter((item) =>
+        selected.has(item.id),
+      );
       const currentReadiness = partitionPendingCandidates(
         latestSelected,
         workspace.accounts,
@@ -549,7 +579,8 @@ export function InboxPage({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.defaultPrevented || isEditableKeyboardTarget(event.target)) return;
+      if (event.defaultPrevented || isEditableKeyboardTarget(event.target))
+        return;
       if (reviewOpenRef.current) return;
 
       const action = resolveInboxShortcut(event.key, {
@@ -621,29 +652,46 @@ export function InboxPage({
     >
       <SecondaryWorkspace slot="inbox-workspace">
         <SecondaryHeader
-          section="Hộp thư tài chính"
-          title="Inbox"
+          section="Cần xem"
+          title="Giao dịch chờ xử lý"
           description={
             <p>
-              Sẵn sàng nghĩa là đủ dữ kiện xác định để duyệt theo nhóm — không phải
-              đã ghi sổ. Các ngoại lệ vẫn ở Cần xem lại cho tới khi bạn xử lý.
+              Sẵn sàng nghĩa là đủ dữ kiện xác định để duyệt theo nhóm — không
+              phải đã ghi sổ. Các ngoại lệ vẫn ở Cần xem lại cho tới khi bạn xử
+              lý.
             </p>
           }
           actions={
             <>
-              <LinkButton href="/capture/paste" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/capture/paste"
+                intent="secondary"
+                targetSize="important"
+              >
                 <Icon name="paste" />
                 Dán text / SMS
               </LinkButton>
-              <LinkButton href="/capture/upload" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/capture/upload"
+                intent="secondary"
+                targetSize="important"
+              >
                 <Icon name="upload" />
                 Tải sao kê
               </LinkButton>
-              <LinkButton href="/rules" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/rules"
+                intent="secondary"
+                targetSize="important"
+              >
                 <Icon name="rules" />
                 Quy tắc
               </LinkButton>
-              <LinkButton href="/imports" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/imports"
+                intent="secondary"
+                targetSize="important"
+              >
                 <Icon name="imports" />
                 Lịch sử import
               </LinkButton>
@@ -651,15 +699,21 @@ export function InboxPage({
           }
         />
 
-        <SecondarySummary label="Trạng thái Inbox" slot="inbox-summary">
+        <SecondarySummary label="Trạng thái cần xem" slot="inbox-summary">
           <SecondarySummaryItem label="Chờ duyệt" value={pendingCount} />
-          <SecondarySummaryItem label="Sẵn sàng" value={readiness.ready.length} />
+          <SecondarySummaryItem
+            label="Sẵn sàng"
+            value={readiness.ready.length}
+          />
           <SecondarySummaryItem
             label="Cần xem lại"
             value={readiness.needsAttention.length}
           />
           <SecondarySummaryItem label="Đang hiển thị" value={visible.length} />
-          <SecondarySummaryItem label="Đã chọn" value={activeSelectedIds.length} />
+          <SecondarySummaryItem
+            label="Đã chọn"
+            value={activeSelectedIds.length}
+          />
         </SecondarySummary>
 
         {workspace.dataError ? (
@@ -688,7 +742,11 @@ export function InboxPage({
         ) : null}
 
         <section className={styles.toolbar} aria-label="Bộ lọc Inbox">
-          <div className={styles.filters} role="toolbar" aria-label="Lọc ứng viên">
+          <div
+            className={styles.filters}
+            role="toolbar"
+            aria-label="Lọc ứng viên"
+          >
             {FILTERS.map((item) => (
               <Button
                 key={item.id}
@@ -734,7 +792,9 @@ export function InboxPage({
         {loadState === "ready" && visible.length === 0 ? (
           <EmptyState
             icon={<Icon name={pendingCount === 0 ? "inbox" : "search"} />}
-            title={pendingCount === 0 ? "Inbox trống" : "Không có mục khớp bộ lọc"}
+            title={
+              pendingCount === 0 ? "Inbox trống" : "Không có mục khớp bộ lọc"
+            }
             description={
               pendingCount === 0
                 ? "Dán nội dung, tải file hoặc thêm nhanh để tạo ứng viên chờ duyệt."
@@ -833,14 +893,19 @@ export function InboxPage({
                       data-slot="inbox-candidate-row"
                     >
                       <label className={styles.rowCheck}>
-                        <span className={styles.srOnly}>Chọn {candidate.merchant}</span>
+                        <span className={styles.srOnly}>
+                          Chọn {candidate.merchant}
+                        </span>
                         <input
                           type="checkbox"
                           checked={selected}
                           onChange={() => toggleSelect(candidate.id)}
                         />
                       </label>
-                      <time className={styles.date} dateTime={candidate.occurredOn}>
+                      <time
+                        className={styles.date}
+                        dateTime={candidate.occurredOn}
+                      >
                         {formatCandidateDate(candidate.occurredOn)}
                       </time>
                       <button
@@ -849,9 +914,15 @@ export function InboxPage({
                         onClick={() => setReviewId(candidate.id)}
                       >
                         <strong>{candidate.merchant}</strong>
-                        {candidate.note || candidate.category || candidate.account ? (
+                        {candidate.note ||
+                        candidate.category ||
+                        candidate.account ? (
                           <small>
-                            {[candidate.note, candidate.category, candidate.account]
+                            {[
+                              candidate.note,
+                              candidate.category,
+                              candidate.account,
+                            ]
                               .filter(Boolean)
                               .join(" · ")}
                           </small>
@@ -864,8 +935,11 @@ export function InboxPage({
                               Cần xem lại{reasonText ? ` · ${reasonText}` : ""}
                             </span>
                           )}
-                          {candidate.possibleDuplicate ? <span>Có thể trùng</span> : null}
-                          {candidate.possibleTransfer || candidate.kind === "transfer" ? (
+                          {candidate.possibleDuplicate ? (
+                            <span>Có thể trùng</span>
+                          ) : null}
+                          {candidate.possibleTransfer ||
+                          candidate.kind === "transfer" ? (
                             <span>Chuyển khoản</span>
                           ) : null}
                         </span>
@@ -878,7 +952,9 @@ export function InboxPage({
                         emphasis="strong"
                         className={styles.amount}
                       />
-                      <span className={styles.source}>{SOURCE_LABELS[candidate.source]}</span>
+                      <span className={styles.source}>
+                        {SOURCE_LABELS[candidate.source]}
+                      </span>
                       <span
                         className={`${styles.confidence} ${confidenceTone(candidate.confidence)}`}
                       >
@@ -900,12 +976,12 @@ export function InboxPage({
             </ul>
             <div className={styles.listFooter}>
               <p>
-                Hiển thị {visible.length}/{pendingCount} ứng viên chờ duyệt. Sẵn sàng
-                vẫn cần xác nhận; Cần xem lại không đi vào duyệt nhóm.
+                Hiển thị {visible.length}/{pendingCount} ứng viên chờ duyệt. Sẵn
+                sàng vẫn cần xác nhận; Cần xem lại không đi vào duyệt nhóm.
               </p>
               <p aria-label="Phím tắt Inbox">
-                <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>X</kbd> chọn · <kbd>C</kbd>{" "}
-                Capture · <kbd>N</kbd> Thêm nhanh
+                <kbd>J</kbd>/<kbd>K</kbd> di chuyển · <kbd>X</kbd> chọn ·{" "}
+                <kbd>C</kbd> Capture · <kbd>N</kbd> Thêm nhanh
               </p>
             </div>
           </section>

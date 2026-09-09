@@ -27,7 +27,10 @@ const retiredKpiClass = ["insights", "kpi"].join("-");
 
 test("dashboard route no longer imports page-global presentation styles", () => {
   assert.doesNotMatch(page, /import\s+["'][^"']+\.css["'];?/);
-  assert.doesNotMatch(page, /calm-ledger-overview|safe-ux-planning|safe-ux-weekly-summary/);
+  assert.doesNotMatch(
+    page,
+    /calm-ledger-overview|safe-ux-planning|safe-ux-weekly-summary/,
+  );
   assert.match(dashboard, /dashboard\.module\.css/);
   assert.match(dashboard, /<main className=\{styles\.dashboard\}>/);
   assert.doesNotMatch(dashboard, /className=["']dashboard(?:\s|["'])/);
@@ -40,6 +43,7 @@ test("dashboard presentation composes Phase 2 feedback and action primitives", (
   assert.match(overview, /Button, LinkButton/);
   assert.match(overview, /intent="secondary"/);
   assert.match(overview, /className="section-link shrink-0"/);
+  assert.match(overview, /attention-strip-empty/);
   assert.match(
     planning,
     /targetSize="important"[\s\S]*className="inline-flex items-center"[\s\S]*Xem tất cả mục tiêu/,
@@ -58,7 +62,10 @@ test("budget and goal ranges expose consistent semantics", () => {
   assert.match(planning, /aria-valuetext=\{featuredBudgetValueText\}/);
   assert.match(planning, /featuredBudgetOverage/);
   assert.match(planning, /role="progressbar"/);
-  assert.match(planning, /featuredGoalProgressValue = Math\.min\(featuredGoalProgress, 100\)/);
+  assert.match(
+    planning,
+    /featuredGoalProgressValue = Math\.min\(featuredGoalProgress, 100\)/,
+  );
   assert.match(planning, /aria-valuenow=\{featuredGoalProgressValue\}/);
 });
 

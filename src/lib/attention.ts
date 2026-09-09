@@ -3,7 +3,11 @@
  * Calm Vietnamese copy; no guilt language.
  */
 
-import { budgetStatusLabel, budgetThreshold, type BudgetSummary } from "./planning/budgets.ts";
+import {
+  budgetStatusLabel,
+  budgetThreshold,
+  type BudgetSummary,
+} from "./planning/budgets.ts";
 import { formatMoney } from "./money.ts";
 import type { RecurringCommitment } from "./planning/commitments.ts";
 
@@ -58,7 +62,7 @@ export function buildAttentionItems(input: {
   if (inboxCount > 0) {
     items.push({
       id: "inbox",
-      label: `${inboxCount} mục trong hộp thư chờ duyệt`,
+      label: `${inboxCount} mục cần xem trước khi ghi sổ`,
       href: "/inbox",
       tone: "neutral",
     });
