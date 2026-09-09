@@ -1,11 +1,10 @@
 # MoneyFlow — current project memory
 
-**Status:** M0 is closed; M1 Phase A / MON-61 and MON-62 are completed. PR #553 is a Draft selector candidate for MON-63; it is not executable authority until owner merge resolves on fresh main.
+**Status:** M0 is closed; M1 Phase A / MON-61 and MON-62 are completed. PR #553 carries the MON-63 selector projection; it is candidate authority before owner merge and becomes executable authority only if that selector is merged.
 **Last reconciled:** 2026-09-09
-**Repository baseline:** `main@05323e2cb45609a85b3e7e3f2a4af94679149c31` after owner-merged PR #552.
+**Selector base:** `main@05323e2cb45609a85b3e7e3f2a4af94679149c31` after owner-merged PR #552, where `PLAN_AUTHORITY.current` is `null`.
 **Last explicitly verified production runtime baseline:** `05323e2cb45609a85b3e7e3f2a4af94679149c31` (PR #552), Vercel production READY; `/api/health` returned 200 with the exact full commit and the post-deploy runtime-error check found no errors.
-**Merged executable authority:** `PLAN_AUTHORITY.current: null`.
-**Candidate authority in PR #553:** MON-63 packet `docs/plans/active/mon-63-mapping-presets-batch-retry-review.md`, `selectedByPr: 553`. This remains candidate evidence until owner merge.
+**Authority projection carried by PR #553:** MON-63 packet `docs/plans/active/mon-63-mapping-presets-batch-retry-review.md`, `selectedByPr: 553`. Before owner merge this is candidate evidence; after owner merge it is merged executable authority until the completing MON-63 PR closes the slice back to `null`.
 **Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
 
 ## 1. Current decision
@@ -14,7 +13,7 @@ MoneyFlow remains a Vietnamese personal-finance product centered on one trustwor
 
 MON-62 — provenance-safe source-adapter foundation — is merged, deployed and tracker-complete. It established strict adapter identity/date/amount evidence and preserved source lifecycle/provenance through the existing Inbox path without creating a second financial truth.
 
-The next recommended bounded slice is MON-63 — mapping presets, batch history and retry/review UX. Draft selector PR #553 proposes that transition. Until #553 is owner-merged, merged repository authority remains `null` and no MON-63 runtime implementation is authorized.
+PR #553 is the bounded selector vehicle for MON-63 — mapping presets, batch history and retry/review UX. On the selector base, executable authority is `null`. The PR projects `PLAN_AUTHORITY.current` to MON-63; that projection is non-executable candidate evidence before owner merge and becomes active only after the owner merges #553 and fresh-main authority resolution succeeds.
 
 ## 2. Current runtime and financial truth
 
@@ -49,7 +48,7 @@ PR #552 exact owner-handoff head `ac972eaccb27033c7698fae364c4d67f81eac46c` pass
 
 Owner squash-merged #552 as `05323e2cb45609a85b3e7e3f2a4af94679149c31`. Vercel production deployed that exact commit in READY state; `/api/health` returned 200 with the exact commit and the post-deploy runtime-error query found no errors.
 
-MON-62 is Done in Linear. The merged closeout archives its packet and leaves `PLAN_AUTHORITY.current: null`.
+MON-62 is Done in Linear. The merged closeout archives its packet and leaves the selector base with `PLAN_AUTHORITY.current: null`.
 
 ## 5. Current capability inventory
 
@@ -64,17 +63,17 @@ MON-62 is Done in Linear. The merged closeout archives its packet and leaves `PL
 | Review | existing exception-first Ready/Needs-attention semantics plus duplicate/transfer/reconciliation contracts |
 | Ownership | versioned archive/export/validation/restore with source-lineage generation |
 | Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
-| Executable authority | merged `null`; PR #553 is a Draft MON-63 selector candidate only |
+| Executable authority | selector base is `null`; PR #553 projects MON-63, which is candidate before owner merge and active only after merge + fresh-main resolution |
 
 ## 6. Research/evidence boundary
 
 Current external references inform bounded acquisition UX rather than provider claims:
 
 - Actual Budget import/API uses a stable imported ID first, fallback reconciliation otherwise, supports dry-run and reports added/updated/errors. This supports idempotent outcome/recovery concepts, not Actual's storage/provider architecture.
-- YNAB file import documentation (August 2026) supports explicit field mapping and remembered settings in a known account context. This supports user-controlled mapping-preset principles, not automatic bank-layout inference.
+- YNAB file import documentation (August 2026) supports explicit field mapping, inflow/outflow swap and remembered settings in a known account context. This supports user-controlled mapping-preset principles, not automatic bank-layout inference or semantic equivalence.
 - YNAB approval/matching documentation supports bulk actions and lower-friction review for matched transactions. MoneyFlow keeps its own existing readiness classifier and explicit approval authority.
 
-No source proves exact current VCB/ACB/VietinBank consumer headers/layout, stable transaction identity, status, timezone or fee semantics. No evidence justifies server-side raw-statement retention or a background queue merely to implement MON-63.
+No source proves exact current VCB/ACB/VietinBank consumer headers/layout, stable transaction identity, status, timezone or fee semantics. Header equality is not source or semantic evidence. No evidence justifies server-side raw-statement retention or a background queue merely to implement MON-63.
 
 ## 7. Security and production-schema truth
 
@@ -91,51 +90,54 @@ Provider credentials, live bank sync, production DB/Auth/provider mutation and r
 - #523 / MON-61: completed.
 - MON-62 / PR #552: merged, production-verified and Done.
 - MON-50: broader M1 — Vietnam Acquisition Depth program remains active.
-- MON-63: Todo/High; no longer materially blocked by completed MON-62, but still unselected on merged main.
-- PR #553: Draft Class-0 authority selector candidate for the Class-3 MON-63 packet.
+- MON-63: Todo/High at the selector base; PR #553 is the explicit authority transition vehicle and implementation remains blocked until owner merge plus fresh-main resolution.
+- PR #553: Class-0 authority selector for the Class-3 MON-63 packet; no runtime implementation is contained in this PR.
 - Open runtime implementation PR for MON-63: none.
 
-## 9. Open pull-request memory
-
-### PR #553 — MON-63 selector candidate
+## 9. PR #553 selector projection
 
 PR #553 starts from exact post-#552 `main@05323e2cb45609a85b3e7e3f2a4af94679149c31`.
 
-It proposes only planning/authority changes:
+It contains only planning/authority changes:
 
 - add the MON-63 active packet;
-- set candidate manifest authority to that packet with `selectedByPr: 553`;
-- reconcile this current memory from pre-merge #552 wording to post-merge/deployed truth;
+- project manifest authority to that packet with `selectedByPr: 553`;
+- reconcile this current memory from stale pre-merge #552 wording to merge-stable post-#552 / selector truth;
 - record PR #553 selector provenance.
 
 The proposed packet extends existing history/review/import seams rather than rebuilding them. It treats the current two-step preview→Inbox commit as the main retry/recovery risk: candidate creation can succeed before batch-commit metadata update fails, so implementation must become idempotent or state-reconciling rather than expose a blind retry.
+
+Independent selector evaluation also tightened mapping-preset semantics: normalized header equality may support structural prefill, but it is not sufficient authority to suppress uncertainty or alter date/amount/direction interpretation. Authoritative reuse must bind to the relevant parser/adapter semantic contract and fail closed on equal-header/different-semantics counterexamples.
 
 No runtime, schema, provider or production behavior changes are part of selector PR #553.
 
 ## 10. True gaps after this audit
 
-1. Durable, deterministic mapping-preset eligibility/versioning that does not guess a bank/source layout.
+1. Durable, deterministic mapping-preset eligibility/versioning that does not guess a bank/source layout or infer semantic equivalence from headers alone.
 2. State-aware, idempotent recovery when preview→Inbox candidate creation and batch metadata completion do not finish together.
 3. User-meaningful batch outcome/provenance on the existing history surface without raw statement/source-ID leakage.
 4. Cross-device truth when authenticated batch metadata exists but the browser-local preview draft does not.
 5. Measurement of repeated mapping/review interventions and retry outcomes.
 6. Exact current VCB/ACB/VietinBank consumer export layouts and stable identity semantics remain external evidence gaps.
-7. Owner merge of selector PR #553 before any MON-63 runtime implementation.
+7. Owner merge of selector PR #553 plus fresh-main authority resolution before any MON-63 runtime implementation.
 
 ## 11. Next allowed action
 
-Complete exact-head selector verification for PR #553, confirm Draft lifecycle/mergeability/review state, and hand it to the owner for an explicit merge decision.
+If PR #553 is still unmerged: complete its exact-head verification and hand it to the owner for the explicit merge decision. Do not implement MON-63 from candidate authority.
 
-Do not implement MON-63 before owner merge of #553 plus fresh-main `npm run plan:resolve` and `npm run agent:doctor -- --json`. Do not merge #553 without explicit owner instruction.
+After owner merge of #553: re-read fresh `main`, run `npm run plan:resolve` and `npm run agent:doctor -- --json`, confirm MON-63 resolves as the sole executable packet, then begin the bounded implementation on a new focused non-main branch under the packet's Class-3 gates.
+
+Do not treat selector merge as provider/database-production authorization. Provider writes, live bank access and production financial-data writes remain separately prohibited unless explicitly approved.
 
 ## 12. Superseded-status register
 
 - PR #552 is still unmerged or unverified in production — **false**; it merged as `05323e2...` and exact production deployment/health were verified.
-- `PLAN_AUTHORITY.current` still selects MON-62 — **false**; merged main is `null`.
-- MON-63 is automatically executable because MON-62 is Done — **false**; a fresh selector must owner-merge first.
+- MON-62 remains selected after #552 — **false**; #552 closed that slice to `null` on the selector base.
+- MON-63 is automatically executable because MON-62 is Done — **false**; it becomes executable only after explicit selector #553 owner merge and fresh-main authority resolution.
 - MON-63 needs a brand-new batch-history subsystem — **false**; batch/history metadata already exists and should be enriched.
 - Blind client retry after preview→Inbox uncertainty is safe — **false**; candidate creation may have succeeded before batch metadata update failed.
 - Mapping presets may be keyed by filename, row contents or guessed bank identity — **false**.
+- Equal normalized headers prove equal financial semantics or provider identity — **false**.
 - VCB/ACB/VietinBank presets or auto-map are enabled — **false**.
 - Raw statements must be stored server-side to support MON-63 — **false**; that boundary is not justified.
 - A background queue is required for ordinary import retry — **false until measured evidence proves it**.
