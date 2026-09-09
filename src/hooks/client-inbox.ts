@@ -29,21 +29,30 @@ export async function addCandidatesForClient(
   const batchId = isDemo ? null : singleBatchId(inputs);
   if (!batchId) return addCandidatesForClientCore(isDemo, inputs);
 
-  // Operational measurement is deliberately best-effort. A telemetry failure
-  // must never block or change the financial candidate commit contract.
-  void recordImportBatchMeasurementAction({
-    batchId,
-    event: "commit_attempt",
-  }).catch(() => undefined);
+  // Operational measurement is deliberately best-effort. Record the attempt
+  // before the commit so a later replay observation can never race ahead of it.
+  // A telemetry failure must never block or change the candidate commit contract.
+  try {
+    await recordImportBatchMeasurementAction({
+      batchId,
+      event: "commit_attempt",
+    });
+  } catch {
+    // Measurement is not financial authority.
+  }
 
   const result = await commitImportBatchCandidatesAction(batchId, inputs);
   if (!result.ok) return { ok: false, message: result.message };
 
   if (result.replayed) {
-    void recordImportBatchMeasurementAction({
-      batchId,
-      event: "commit_replay",
-    }).catch(() => undefined);
+    try {
+      await recordImportBatchMeasurementAction({
+        batchId,
+        event: "commit_replay",
+      });
+    } catch {
+      // Measurement is not financial authority.
+    }
   }
 
   return { ok: true, candidates: result.candidates };
