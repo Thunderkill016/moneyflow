@@ -14,6 +14,10 @@ export type ImportBatchStatus =
   | "committed"
   | "cancelled";
 
+export type ImportBatchMappingEvidence =
+  | "preset_applied"
+  | "mapping_reviewed";
+
 export type ImportBatch = {
   id: string;
   fileName: string;
@@ -34,6 +38,11 @@ export type ImportBatch = {
   parserVersion?: string;
   /** Version of the structural mapping contract. */
   mappingVersion?: number;
+  /** Privacy-safe maintenance counters. Historical/local batches may omit them. */
+  commitAttemptCount?: number;
+  commitReplayCount?: number;
+  /** Explicit final mapping-intervention evidence; never inferred bank identity. */
+  mappingEvidence?: ImportBatchMappingEvidence;
 };
 
 export type CreateImportBatchInput = {
@@ -51,6 +60,9 @@ export type CreateImportBatchInput = {
   committedAt?: string;
   parserVersion?: string;
   mappingVersion?: number;
+  commitAttemptCount?: number;
+  commitReplayCount?: number;
+  mappingEvidence?: ImportBatchMappingEvidence;
 };
 
 function isColumnMap(value: unknown): value is CsvColumnMap {
@@ -69,10 +81,34 @@ function isColumnMap(value: unknown): value is CsvColumnMap {
 
 const SOURCES: ImportBatchSource[] = ["csv", "xlsx", "pdf", "paste"];
 const STATUSES: ImportBatchStatus[] = ["parsed", "committed", "cancelled"];
+const MAPPING_EVIDENCE: ImportBatchMappingEvidence[] = [
+  "preset_applied",
+  "mapping_reviewed",
+];
+
+function isOptionalCounter(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (typeof value === "number" &&
+      Number.isSafeInteger(value) &&
+      value >= 0 &&
+      value <= 1_000_000)
+  );
+}
+
+function isOptionalMappingEvidence(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (typeof value === "string" &&
+      (MAPPING_EVIDENCE as string[]).includes(value))
+  );
+}
 
 export function isImportBatch(value: unknown): value is ImportBatch {
   if (!value || typeof value !== "object") return false;
   const item = value as Partial<ImportBatch>;
+  const attempts = item.commitAttemptCount ?? 0;
+  const replays = item.commitReplayCount ?? 0;
   return (
     typeof item.id === "string" &&
     item.id.length > 0 &&
@@ -107,7 +143,11 @@ export function isImportBatch(value: unknown): value is ImportBatch {
     (item.mappingVersion === undefined ||
       (typeof item.mappingVersion === "number" &&
         Number.isSafeInteger(item.mappingVersion) &&
-        item.mappingVersion >= 1))
+        item.mappingVersion >= 1)) &&
+    isOptionalCounter(item.commitAttemptCount) &&
+    isOptionalCounter(item.commitReplayCount) &&
+    replays <= attempts &&
+    isOptionalMappingEvidence(item.mappingEvidence)
   );
 }
 
@@ -127,6 +167,9 @@ export function createImportBatch(input: CreateImportBatchInput): ImportBatch {
     committedAt: input.committedAt,
     parserVersion: input.parserVersion,
     mappingVersion: input.mappingVersion,
+    commitAttemptCount: input.commitAttemptCount ?? 0,
+    commitReplayCount: input.commitReplayCount ?? 0,
+    mappingEvidence: input.mappingEvidence,
   };
 }
 
@@ -270,6 +313,27 @@ export function formatImportBatchProvenance(
   if (batch.parserVersion) parts.push(batch.parserVersion);
   if (batch.mappingVersion) parts.push(`map v${batch.mappingVersion}`);
   return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+/** Privacy-safe retry evidence; never expose row contents or financial values. */
+export function formatImportBatchMaintenanceEvidence(
+  batch: Pick<ImportBatch, "commitAttemptCount" | "commitReplayCount">,
+): string | null {
+  const attempts = batch.commitAttemptCount ?? 0;
+  const replays = batch.commitReplayCount ?? 0;
+  if (attempts <= 0) return null;
+  const parts = [`gửi ${attempts} lần`];
+  if (replays > 0) parts.push(`${replays} lần đối chiếu lại`);
+  return parts.join(" · ");
+}
+
+/** Explicit mapping intervention evidence; structural presets never imply bank identity. */
+export function formatImportBatchMappingEvidence(
+  batch: Pick<ImportBatch, "mappingEvidence">,
+): string | null {
+  if (batch.mappingEvidence === "preset_applied") return "mapping đã nhớ được áp dụng";
+  if (batch.mappingEvidence === "mapping_reviewed") return "mapping đã review";
+  return null;
 }
 
 export type ImportBatchRecoveryState =

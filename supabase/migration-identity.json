@@ -284,6 +284,11 @@
       "version": "20260909090000",
       "name": "20260909090000_import_batch_atomic_commit.sql",
       "hash": "f91f4f47199f0bfd5588ddcbee355fe9"
+    },
+    {
+      "version": "20260909120000",
+      "name": "20260909120000_import_batch_measurement.sql",
+      "hash": "b5991121cfa152c9770787e6303fefa9"
     }
   ]
 }

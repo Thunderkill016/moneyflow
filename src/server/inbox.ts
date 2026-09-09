@@ -18,8 +18,10 @@ const CANDIDATE_BASE_COLUMNS =
 const CANDIDATE_RULE_COLUMNS =
   `${CANDIDATE_BASE_COLUMNS},applied_rule_id,applied_rule_version`;
 
-const BATCH_COLUMNS =
+const BATCH_BASE_COLUMNS =
   "id,file_name,source,status,row_count,warning_count,skipped_rows,map_confidence,headers,column_map,local_id,created_at,committed_at,parser_version,mapping_version";
+const BATCH_MEASUREMENT_COLUMNS =
+  `${BATCH_BASE_COLUMNS},commit_attempt_count,commit_replay_count,mapping_evidence`;
 
 export type InboxListResult =
   | { ok: true; candidates: InboxCandidate[]; batches: ImportBatch[] }
@@ -35,6 +37,18 @@ function isMissingRuleProvenanceColumn(error: InboxQueryError) {
     error.code === "PGRST204" ||
     message.includes("applied_rule_id") ||
     message.includes("applied_rule_version")
+  );
+}
+
+function isMissingMeasurementColumn(error: InboxQueryError) {
+  if (!error) return false;
+  const message = error.message ?? "";
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    message.includes("commit_attempt_count") ||
+    message.includes("commit_replay_count") ||
+    message.includes("mapping_evidence")
   );
 }
 
@@ -87,12 +101,24 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
     candidateError = legacyResult.error;
   }
 
-  const batchResult = await supabase
+  const measurementResult = await supabase
     .from("import_batches")
-    .select(BATCH_COLUMNS)
+    .select(BATCH_MEASUREMENT_COLUMNS)
     .order("created_at", { ascending: false });
 
-  if (candidateError || batchResult.error) {
+  let batchRows: unknown[] = measurementResult.data ?? [];
+  let batchError: InboxQueryError = measurementResult.error;
+
+  if (isMissingMeasurementColumn(batchError)) {
+    const legacyBatchResult = await supabase
+      .from("import_batches")
+      .select(BATCH_BASE_COLUMNS)
+      .order("created_at", { ascending: false });
+    batchRows = legacyBatchResult.data ?? [];
+    batchError = legacyBatchResult.error;
+  }
+
+  if (candidateError || batchError) {
     return { ok: false, message: "Không tải được Inbox từ máy chủ." };
   }
 
@@ -100,7 +126,7 @@ export async function listInboxFromServer(): Promise<InboxListResult> {
     const candidates = candidateRows.map((row) =>
       mapCandidateRow(row as InboxCandidateRow),
     );
-    const batches = (batchResult.data ?? []).map((row) =>
+    const batches = batchRows.map((row) =>
       mapBatchRow(row as ImportBatchRow),
     );
     return { ok: true, candidates, batches };
