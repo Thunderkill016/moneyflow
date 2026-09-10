@@ -1,5 +1,5 @@
 begin;
-select plan(5);
+select plan(7);
 
 select ok(
   not exists (
@@ -70,6 +70,39 @@ select is(
   ),
   5,
   'all exposed finance views execute with caller security'
+);
+
+select ok(
+  exists (
+    select 1
+    from pg_default_acl default_acl
+    join pg_roles owner_role on owner_role.oid = default_acl.defaclrole
+    join pg_namespace namespace on namespace.oid = default_acl.defaclnamespace
+    where owner_role.rolname = 'postgres'
+      and namespace.nspname = 'public'
+      and default_acl.defaclobjtype = 'f'
+  ),
+  'postgres has an explicit default function ACL for the public schema'
+);
+
+select ok(
+  not exists (
+    select 1
+    from pg_default_acl default_acl
+    join pg_roles owner_role on owner_role.oid = default_acl.defaclrole
+    join pg_namespace namespace on namespace.oid = default_acl.defaclnamespace
+    cross join lateral aclexplode(default_acl.defaclacl) acl
+    left join pg_roles grantee_role on grantee_role.oid = acl.grantee
+    where owner_role.rolname = 'postgres'
+      and namespace.nspname = 'public'
+      and default_acl.defaclobjtype = 'f'
+      and acl.privilege_type = 'EXECUTE'
+      and (
+        acl.grantee = 0
+        or grantee_role.rolname in ('anon', 'authenticated')
+      )
+  ),
+  'new postgres-owned public functions do not grant EXECUTE to PUBLIC, anon or authenticated by default'
 );
 
 select * from finish();
