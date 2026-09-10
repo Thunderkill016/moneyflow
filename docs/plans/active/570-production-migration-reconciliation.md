@@ -5,7 +5,7 @@
 **Active role:** planner / evaluator
 **Permission scope:** selector PR is documentation/authority only; hosted database writes remain forbidden until selector owner merge and fresh authority resolution
 **Owner:** ThunderK
-**Issue/PR:** GitHub #570 / selector PR pending
+**Issue/PR:** GitHub #570 / selector PR #572
 **Parent program:** GitHub #432 — MoneyFlow master development program
 **Selector base:** `main@3c9794926effd3d0f0f0786ac286a8619d0518ca`
 **Last updated:** 2026-09-10
@@ -207,7 +207,7 @@ The slice is complete only when all applicable evidence is green:
 | 570.1 | fresh repo/production reconnaissance | main + hosted migration/catalog reads | done |
 | 570.2 | refresh official Supabase migration guidance | current CLI/workflow/docs/changelog | done |
 | 570.3 | define four-migration bounded runbook | this packet | done |
-| 570.4 | selector + authority projection | selector PR | in_progress |
+| 570.4 | selector + authority projection | selector PR #572 | in_progress |
 | 570.5 | preflight local/remote migration chain | production execution evidence | blocked |
 | 570.6 | canonical production migration rollout | hosted migration history | blocked |
 | 570.7 | import/measurement production verification | catalog + bounded smoke | blocked |
@@ -236,7 +236,7 @@ Success means repository and hosted migration truth agree, the already-reviewed 
 | Date | From | To | State | Evidence | Remaining | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-09-10 | post-#571 verification | planner | divergence confirmed | hosted migration history + catalog | select operational slice | docs-only selector |
-| 2026-09-10 | planner | selector evaluation | candidate | #570 + this packet + current Supabase guidance | authority projection, exact-head CI/evaluation, owner merge | selector-only changes |
+| 2026-09-10 | planner | selector evaluation | candidate | #570 + PR #572 + this packet + current Supabase guidance | exact-head governance/evaluation, owner merge | selector-only changes |
 
 ## Current permission boundary
 
