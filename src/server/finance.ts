@@ -20,6 +20,8 @@ import {
   sampleTransactionsFor,
 } from "@/lib/demo/transaction-fixtures";
 import { getTransactionReviewStatus } from "@/lib/transaction-review";
+import { PAGINATED_READ_PAGE_SIZE, readAllPages } from "@/lib/paginated-read";
+export { readAllPages } from "@/lib/paginated-read";
 
 export type FinanceWorkspace = {
   transactions: Transaction[];
@@ -39,26 +41,7 @@ const TRANSACTION_REVIEW_COLUMNS = "id,review_status,occurred_on,created_at";
 type FinanceWorkspaceScope = "full" | "dashboard";
 
 /** Keep each Data API response below its configured row cap while preserving the full ledger. */
-const FINANCE_READ_PAGE_SIZE = 500;
-
-type PageResult<T> = {
-  data: T[] | null;
-  error: unknown | null;
-};
-
-export async function readAllPages<T>(
-  readPage: (from: number, to: number) => PromiseLike<PageResult<T>>,
-): Promise<PageResult<T>> {
-  const rows: T[] = [];
-  for (let from = 0; ; from += FINANCE_READ_PAGE_SIZE) {
-    const result = await readPage(from, from + FINANCE_READ_PAGE_SIZE - 1);
-    if (result.error) return { data: null, error: result.error };
-    const page = result.data ?? [];
-    rows.push(...page);
-    if (page.length < FINANCE_READ_PAGE_SIZE)
-      return { data: rows, error: null };
-  }
-}
+const FINANCE_READ_PAGE_SIZE = PAGINATED_READ_PAGE_SIZE;
 
 const accountSchema = z
   .object({

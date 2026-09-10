@@ -50,7 +50,11 @@ test("large authenticated finance reads repeat the viewer tenant predicate", () 
 });
 
 test("large finance reads use bounded pages instead of the API row cap", () => {
-  assert.match(finance, /FINANCE_READ_PAGE_SIZE\s*=\s*500/);
+  assert.match(
+    finance,
+    /FINANCE_READ_PAGE_SIZE\s*=\s*PAGINATED_READ_PAGE_SIZE/,
+  );
+  assert.match(finance, /PAGINATED_READ_PAGE_SIZE/);
   assert.ok(
     countMatches(finance, /readAllPages\(\(from, to\) =>/g) >= 3,
     "full, dashboard-window and review reads must all use the shared paginator",

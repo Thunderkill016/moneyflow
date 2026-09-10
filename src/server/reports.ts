@@ -16,7 +16,8 @@ import { sampleTransactionsFor } from "@/lib/demo/transaction-fixtures";
 import { createClient } from "@/lib/supabase/server";
 import { todayInVietnam } from "@/lib/vietnam-date";
 import { requireViewer } from "@/server/auth";
-import { mapTransactionFeedRow, readAllPages } from "@/server/finance";
+import { mapTransactionFeedRow } from "@/server/finance";
+import { readAllPages } from "@/lib/paginated-read";
 
 const feedColumns =
   "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
