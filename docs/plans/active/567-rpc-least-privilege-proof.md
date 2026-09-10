@@ -24,7 +24,7 @@ It selects exactly two bounded hardening opportunities:
 
 No provider configuration, UI, product workflow, production user data or unrelated security surface is in scope.
 
-## Repository and production reconnaissance
+## Repository reconnaissance
 
 Fresh selector baseline is `main@1ea23a1e9600807e0b3edf10e02f7414bcdf1cf0`, where `docs/plans/PLAN_AUTHORITY.json.current` is `null`.
 
@@ -66,7 +66,7 @@ Production grants/policies show `authenticated` already has SELECT on those thre
 
 The helper is also used by the `security_invoker` `account_reconciliation_summaries` view and by privileged start/complete reconciliation functions. Any privilege reduction must preserve all three call paths.
 
-## External research refreshed
+## Research
 
 Official references reviewed on 2026-09-10:
 
