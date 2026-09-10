@@ -100,7 +100,7 @@ export function DashboardHeaderSections({
             ))}
           </ul>
         ) : (
-          <p className="attention-strip-empty">
+          <p className={styles.attentionStripEmpty}>
             {dataError
               ? "Chưa thể tải các mục cần xử lý."
               : "Không có mục nào cần xử lý lúc này."}
