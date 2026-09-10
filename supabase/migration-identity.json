@@ -289,6 +289,16 @@
       "version": "20260909120000",
       "name": "20260909120000_import_batch_measurement.sql",
       "hash": "b5991121cfa152c9770787e6303fefa9"
+    },
+    {
+      "version": "20260910181500",
+      "name": "20260910181500_function_default_acl_hardening.sql",
+      "hash": "5783ec4e10f3094ef3e7d8bffa955d04"
+    },
+    {
+      "version": "20260910182000",
+      "name": "20260910182000_reconciliation_snapshot_security_invoker.sql",
+      "hash": "95bb1051746055f253b613b00fbc50a7"
     }
   ]
 }
