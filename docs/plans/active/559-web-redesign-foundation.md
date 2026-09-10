@@ -1,20 +1,20 @@
 # #559 — MoneyFlow web redesign foundation
 
-**Status:** candidate research and foundation specification only
-**Execution state:** candidate specification (blocked from executable selection while #557 is active)
+**Status:** selector candidate; executable only after owner merge
+**Execution state:** planning
 **Active role:** researcher / product designer / planner
-**Permission scope:** branch documentation/research only; no runtime/UI implementation in this slice
+**Permission scope:** selector documentation/authority only; runtime/UI implementation requires a later fresh-main slice
 **Owner:** human owner
 **Issue:** #559
 **PR:** #562
 **Branch:** `design/559-web-redesign-foundation-clean`
-**Base:** `main@60fdb1846e8cd8f9e6b48729ce1ff033778112e0`
+**Selector base:** `main@394d7120990761dd3995302cbc26db2ec90432ca`
 
 ## Outcome
 
 Create the evidence, architecture, and design specifications required to redesign the full MoneyFlow web experience without repeating the product's prior UI/CSS/test failures.
 
-This slice is **candidate foundation research and specification only**. It does **not** claim or select active executable plan authority while #557 Turnstile load recovery remains active, and it does **not** redesign runtime screens. It establishes:
+This slice is **foundation research and selector specification only**. It does not redesign runtime screens. It establishes:
 
 1. historical design failure postmortem;
 2. current presentation/route authority inventory;
@@ -42,7 +42,7 @@ product/brand semantics
 
 ### Authority and Candidate Status
 
-This packet is candidate foundation research and design specification only. It is explicitly blocked from holding executable authority in `docs/plans/PLAN_AUTHORITY.json` while #557 (Turnstile load recovery) remains active. It will seek formal authority selection only after #557 completes to null, via a dedicated selection PR branched from fresh `main`.
+The #557 Turnstile load-recovery packet is now completed and `PLAN_AUTHORITY.current` is null on merged `main@394d7120`. This PR is the dedicated selection vehicle from that fresh base. If owner-merged, it makes this packet the current executable authority for the next bounded design-system slice; it still authorizes no runtime implementation in this PR.
 
 ## Product constraints
 
@@ -64,18 +64,18 @@ From current product law and project memory:
 
 The postmortem must inspect merged history and affected code/tests, not only PR summaries.
 
-| Failure class | Known symptom | Required prevention |
-|---|---|---|
-| presentation ownership gap | code emitted classes with no active CSS owner; onboarding shipped effectively unstyled | code→CSS ownership gate; debt shrink-only; component ownership graph |
-| token/runtime mismatch | semantic utilities emitted in JSX but missing from production bundle | token→build→generated CSS→computed style proof |
-| cascade conflict | global/unlayered rules can defeat primitive intent | cascade-layer authority + primitive consumer blast-radius tests |
-| runtime-mode false green | browser suites can prove demo while claiming authenticated behavior | explicit demo/auth test contracts and environment assertions |
-| screenshot false confidence | a frame can look correct while first-paint/persistence interaction is wrong | first-attempt interaction assertions; retry-pass treated as finding |
-| legacy accumulation | migration can add another compatibility/global layer rather than retire old ownership | replace-and-retire within each vertical slice; no new root override layer |
-| authority conflict | brand/design/docs/runtime can each imply different tokens/identity | one canonical brand/token authority before migration |
-| first-paint geometry shift | AppShell layout shifted between SSR and client hydration | explicit fixed geometry for critical shells; zero layout thrashing |
-| sync/async ledger divergence | demo mode sync mutation diverged from authenticated async RPC | unified ledger client interface and strict mode verification |
-| mobile action hijacking | route-level actions obscured fixed bottom navigation or primary FAB | reserved bottom-bar thumb zone and strict z-index layering |
+| Failure class                | Known symptom                                                                          | Required prevention                                                       |
+| ---------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| presentation ownership gap   | code emitted classes with no active CSS owner; onboarding shipped effectively unstyled | code→CSS ownership gate; debt shrink-only; component ownership graph      |
+| token/runtime mismatch       | semantic utilities emitted in JSX but missing from production bundle                   | token→build→generated CSS→computed style proof                            |
+| cascade conflict             | global/unlayered rules can defeat primitive intent                                     | cascade-layer authority + primitive consumer blast-radius tests           |
+| runtime-mode false green     | browser suites can prove demo while claiming authenticated behavior                    | explicit demo/auth test contracts and environment assertions              |
+| screenshot false confidence  | a frame can look correct while first-paint/persistence interaction is wrong            | first-attempt interaction assertions; retry-pass treated as finding       |
+| legacy accumulation          | migration can add another compatibility/global layer rather than retire old ownership  | replace-and-retire within each vertical slice; no new root override layer |
+| authority conflict           | brand/design/docs/runtime can each imply different tokens/identity                     | one canonical brand/token authority before migration                      |
+| first-paint geometry shift   | AppShell layout shifted between SSR and client hydration                               | explicit fixed geometry for critical shells; zero layout thrashing        |
+| sync/async ledger divergence | demo mode sync mutation diverged from authenticated async RPC                          | unified ledger client interface and strict mode verification              |
+| mobile action hijacking      | route-level actions obscured fixed bottom navigation or primary FAB                    | reserved bottom-bar thumb zone and strict z-index layering                |
 
 Deliverable: `docs/research/DESIGN_FAILURE_POSTMORTEM_2026.md` with `symptom -> root cause -> why missed -> cost -> repair -> permanent prevention`.
 
@@ -85,17 +85,18 @@ Deliverable: `docs/research/DESIGN_FAILURE_POSTMORTEM_2026.md` with `symptom -> 
 
 Audited directly from `src/app`:
 
-| Domain | Routes (`page.tsx`) | API & Metadata Endpoints | Primary User Job | Current Presentation Owner |
-|---|---|---|---|---|
-| **1. Core Ledger** | `/` (root), `/dashboard`, `/transactions`, `/timeline`, `/insights` (redirects to `/dashboard`) | — | Xem số dư tức thời, dòng tiền vào/ra, dòng thời gian và nhật ký giao dịch | `dashboard.module.css`, `statement.module.css`, `transactions-workspace.module.css`, `timeline-page.module.css` |
-| **2. Capture & Ingestion** | `/capture`, `/capture/quick`, `/capture/paste`, `/capture/share`, `/capture/upload`, `/imports`, `/imports/direct`, `/imports/[batchId]/preview`, `/inbox`, `/rules` | `/api/share-target` | Thu nhận giao dịch thủ công/hàng loạt, dán văn bản sao kê, nhập CSV/XLSX theo import contract hiện có; không hàm ý tự động nhận diện hoặc hỗ trợ layout ngân hàng cụ thể, duyệt hộp thư chờ và luật phân loại | `capture-quick-page.module.css`, `inbox-page.module.css`, `imports-page.module.css`, `rules-page.module.css` |
-| **3. Accounts & Reconciliation** | `/accounts`, `/accounts/[accountId]`, `/accounts/[accountId]/reconcile` | — | Quản lý ví/ngân hàng, theo dõi số dư riêng lẻ theo chuẩn VND, đối soát sổ với sao kê thực tế | `accounts-workspace.module.css`, `account-detail-page.module.css`, `account-reconciliation-page.module.css` |
-| **4. Planning** | `/budgets`, `/commitments`, `/income-templates`, `/goals` | — | Đặt hạn mức chi tiêu, cố định hóa đơn định kỳ, dự kiến mẫu thu nhập, tích lũy mục tiêu tài chính | `budgets-page.tsx`, `planning-workspace.module.css`, `planning-card.module.css`, `income-templates-page.module.css` |
-| **5. Reports & Analytics** | `/reports` | `/reports/export` | Báo cáo cơ cấu chi tiêu, xu hướng dòng tiền theo thời gian, trích xuất dữ liệu báo cáo | `reports-page.module.css` |
-| **6. Settings & Governance** | `/categories`, `/settings`, `/settings/appearance`, `/settings/backup`, `/settings/delete-account`, `/settings/export`, `/settings/notifications`, `/settings/privacy`, `/account-deletion-result` | `/api/client-error` | Quản lý danh mục, tùy chọn sáng/tối, sao lưu cục bộ, xuất toàn bộ dữ liệu CSV/JSON, xóa tài khoản và nhật ký lỗi | `categories-page.module.css`, `settings-surfaces.module.css`, `appearance-settings-page.module.css` |
-| **7. Public & Authentication** | `/landing`, `/login`, `/register`, `/forgot-password`, `/update-password`, `/onboarding`, `/privacy`, `/security` | `/auth/callback`, `/api/health`, `manifest.ts`, `robots.ts`, `sitemap.ts`, `not-found.tsx` | Giới thiệu sản phẩm, xác thực người dùng an toàn với Turnstile, hướng dẫn thiết lập ban đầu, chính sách bảo mật | `landing-page.module.css`, `public-brand-theme.module.css`, `auth-form.module.css`, `onboarding-flow.module.css` |
+| Domain                           | Routes (`page.tsx`)                                                                                                                                                                                | API & Metadata Endpoints                                                                   | Primary User Job                                                                                                                                                                                              | Current Presentation Owner                                                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **1. Core Ledger**               | `/` (root), `/dashboard`, `/transactions`, `/timeline`, `/insights` (redirects to `/dashboard`)                                                                                                    | —                                                                                          | Xem số dư tức thời, dòng tiền vào/ra, dòng thời gian và nhật ký giao dịch                                                                                                                                     | `dashboard.module.css`, `statement.module.css`, `transactions-workspace.module.css`, `timeline-page.module.css`     |
+| **2. Capture & Ingestion**       | `/capture`, `/capture/quick`, `/capture/paste`, `/capture/share`, `/capture/upload`, `/imports`, `/imports/direct`, `/imports/[batchId]/preview`, `/inbox`, `/rules`                               | `/api/share-target`                                                                        | Thu nhận giao dịch thủ công/hàng loạt, dán văn bản sao kê, nhập CSV/XLSX theo import contract hiện có; không hàm ý tự động nhận diện hoặc hỗ trợ layout ngân hàng cụ thể, duyệt hộp thư chờ và luật phân loại | `capture-quick-page.module.css`, `inbox-page.module.css`, `imports-page.module.css`, `rules-page.module.css`        |
+| **3. Accounts & Reconciliation** | `/accounts`, `/accounts/[accountId]`, `/accounts/[accountId]/reconcile`                                                                                                                            | —                                                                                          | Quản lý ví/ngân hàng, theo dõi số dư riêng lẻ theo chuẩn VND, đối soát sổ với sao kê thực tế                                                                                                                  | `accounts-workspace.module.css`, `account-detail-page.module.css`, `account-reconciliation-page.module.css`         |
+| **4. Planning**                  | `/budgets`, `/commitments`, `/income-templates`, `/goals`                                                                                                                                          | —                                                                                          | Đặt hạn mức chi tiêu, cố định hóa đơn định kỳ, dự kiến mẫu thu nhập, tích lũy mục tiêu tài chính                                                                                                              | `budgets-page.tsx`, `planning-workspace.module.css`, `planning-card.module.css`, `income-templates-page.module.css` |
+| **5. Reports & Analytics**       | `/reports`                                                                                                                                                                                         | `/reports/export`                                                                          | Báo cáo cơ cấu chi tiêu, xu hướng dòng tiền theo thời gian, trích xuất dữ liệu báo cáo                                                                                                                        | `reports-page.module.css`                                                                                           |
+| **6. Settings & Governance**     | `/categories`, `/settings`, `/settings/appearance`, `/settings/backup`, `/settings/delete-account`, `/settings/export`, `/settings/notifications`, `/settings/privacy`, `/account-deletion-result` | `/api/client-error`                                                                        | Quản lý danh mục, tùy chọn sáng/tối, sao lưu cục bộ, xuất toàn bộ dữ liệu CSV/JSON, xóa tài khoản và nhật ký lỗi                                                                                              | `categories-page.module.css`, `settings-surfaces.module.css`, `appearance-settings-page.module.css`                 |
+| **7. Public & Authentication**   | `/landing`, `/login`, `/register`, `/forgot-password`, `/update-password`, `/onboarding`, `/privacy`, `/security`                                                                                  | `/auth/callback`, `/api/health`, `manifest.ts`, `robots.ts`, `sitemap.ts`, `not-found.tsx` | Giới thiệu sản phẩm, xác thực người dùng an toàn với Turnstile, hướng dẫn thiết lập ban đầu, chính sách bảo mật                                                                                               | `landing-page.module.css`, `public-brand-theme.module.css`, `auth-form.module.css`, `onboarding-flow.module.css`    |
 
-*Phân loại 40 tuyến trang ứng dụng (`page.tsx`):*
+_Phân loại 40 tuyến trang ứng dụng (`page.tsx`):_
+
 - **30 trang không gian sản phẩm đã xác thực (Authenticated Product):** `/` (khi đã đăng nhập), `/dashboard`, `/transactions`, `/timeline`, `/capture`, `/capture/quick`, `/capture/paste`, `/capture/share`, `/capture/upload`, `/imports`, `/imports/direct`, `/imports/[batchId]/preview`, `/inbox`, `/rules`, `/accounts`, `/accounts/[accountId]`, `/accounts/[accountId]/reconcile`, `/budgets`, `/commitments`, `/income-templates`, `/goals`, `/reports`, `/categories`, `/settings`, `/settings/appearance`, `/settings/backup`, `/settings/delete-account`, `/settings/export`, `/settings/notifications`, `/settings/privacy`.
 - **7 trang công khai và xác thực (Public & Auth):** `/landing`, `/login`, `/register`, `/forgot-password`, `/update-password`, `/privacy`, `/security`.
 - **1 trang thiết lập ban đầu (Setup / Onboarding):** `/onboarding`.
@@ -167,15 +168,15 @@ Audited directly from `src/app`:
 
 ### 1. Validated target information architecture mapping
 
-| Current Route | Current User Job | Target IA Mental Model | URL Action | Migration Risk |
-|---|---|---|---|---|
-| `/dashboard`, `/insights` | Xem tình trạng tiền tổng quan | **Today** | Giữ `/dashboard`, redirect `/insights` -> `/dashboard` | Thấp |
-| `/transactions`, `/timeline` | Tra cứu, lọc, kiểm tra sổ cái | **Activity** (Sổ giao dịch) | Giữ `/transactions`, `/timeline` là view toggle | Thấp |
-| `/capture/*`, `/inbox`, `/imports/*`, `/rules` | Thu nhận & duyệt ngoại lệ | **Activity** (Thu nhận & Hộp thư) | Hợp nhất visual navigation trong Activity workstream, giữ URL cũ cho direct links | Trung bình |
-| `/accounts`, `/accounts/*` | Quản lý ví & đối soát | **Accounts** (Tài khoản & Đối soát) | Giữ nguyên cấu trúc route hiện tại, nâng cấp master/detail trên desktop | Thấp |
-| `/budgets`, `/commitments`, `/goals`, `/income-templates` | Kế hoạch thu chi & mục tiêu | **Plan** (Kế hoạch tích hợp) | Giữ các route độc lập, bổ sung thanh điều hướng ngữ cảnh gắn kết | Thấp |
-| `/reports` | Báo cáo chi tiết thu - chi | **Insights** (Báo cáo & Phân tích) | Giữ `/reports`, nâng cao khả năng drill-down về giao dịch gốc | Thấp |
-| `/settings/*`, `/categories` | Cấu hình & quản trị dữ liệu | **Settings & Data** | Giữ nguyên các path `/settings/*` | Thấp |
+| Current Route                                             | Current User Job              | Target IA Mental Model              | URL Action                                                                        | Migration Risk |
+| --------------------------------------------------------- | ----------------------------- | ----------------------------------- | --------------------------------------------------------------------------------- | -------------- |
+| `/dashboard`, `/insights`                                 | Xem tình trạng tiền tổng quan | **Today**                           | Giữ `/dashboard`, redirect `/insights` -> `/dashboard`                            | Thấp           |
+| `/transactions`, `/timeline`                              | Tra cứu, lọc, kiểm tra sổ cái | **Activity** (Sổ giao dịch)         | Giữ `/transactions`, `/timeline` là view toggle                                   | Thấp           |
+| `/capture/*`, `/inbox`, `/imports/*`, `/rules`            | Thu nhận & duyệt ngoại lệ     | **Activity** (Thu nhận & Hộp thư)   | Hợp nhất visual navigation trong Activity workstream, giữ URL cũ cho direct links | Trung bình     |
+| `/accounts`, `/accounts/*`                                | Quản lý ví & đối soát         | **Accounts** (Tài khoản & Đối soát) | Giữ nguyên cấu trúc route hiện tại, nâng cấp master/detail trên desktop           | Thấp           |
+| `/budgets`, `/commitments`, `/goals`, `/income-templates` | Kế hoạch thu chi & mục tiêu   | **Plan** (Kế hoạch tích hợp)        | Giữ các route độc lập, bổ sung thanh điều hướng ngữ cảnh gắn kết                  | Thấp           |
+| `/reports`                                                | Báo cáo chi tiết thu - chi    | **Insights** (Báo cáo & Phân tích)  | Giữ `/reports`, nâng cao khả năng drill-down về giao dịch gốc                     | Thấp           |
+| `/settings/*`, `/categories`                              | Cấu hình & quản trị dữ liệu   | **Settings & Data**                 | Giữ nguyên các path `/settings/*`                                                 | Thấp           |
 
 ### 2. Product Experience Architecture Principles
 
@@ -217,9 +218,10 @@ Audited directly from `src/app`:
 
 ### 4. Three Visual Territories Brief (Hướng thiết kế ứng viên chuẩn bị cho quyết định của Owner)
 
-*Lưu ý nguyên tắc:* Ba hướng thiết kế dưới đây là các giải pháp ứng viên (candidate directions) phục vụ công tác chuẩn bị và đối chiếu kiến trúc. Quyết định lựa chọn hướng cụ thể sẽ do Owner thực hiện sau khi nền tảng (foundation PR) được chấp thuận và trước khi bước vào Slice 1 (Tokens & Shared Primitives). Không tự ý kích hoạt trước hạn.
+_Lưu ý nguyên tắc:_ Ba hướng thiết kế dưới đây là các giải pháp ứng viên (candidate directions) phục vụ công tác chuẩn bị và đối chiếu kiến trúc. Quyết định lựa chọn hướng cụ thể sẽ do Owner thực hiện sau khi nền tảng (foundation PR) được chấp thuận và trước khi bước vào Slice 1 (Tokens & Shared Primitives). Không tự ý kích hoạt trước hạn.
 
 #### Territory 1: "Kỷ Hà Đương Đại" (Architectural Precision Ledger)
+
 - **Design Thesis:** Lấy cảm hứng từ thiết kế lưới Thụy Sĩ (Swiss Grid) và các công cụ cơ khí chính xác của Dieter Rams. Tối giản tuyệt đối, đường viền hairline 1px siêu nét, độ tương phản cao, triệt tiêu hoàn toàn đổ bóng màu mè.
 - **Product Emotion:** Độ tin cậy vững chắc, tĩnh lặng, minh bạch trí tuệ như một chiếc đồng hồ cơ khí cao cấp.
 - **Visual Density:** Compact / Normal. Mật độ thông tin cao, tối ưu hiển thị số lượng dòng giao dịch trên mỗi màn hình.
@@ -232,6 +234,7 @@ Audited directly from `src/app`:
 - **Rủi ro:** Có thể tạo cảm giác nghiêm nghị, cần micro-copy gần gũi để cân bằng.
 
 #### Territory 2: "Dòng Chảy Xanh" (Modern Tactile Flow)
+
 - **Design Thesis:** Lấy cảm hứng từ các sản phẩm công nghệ tài chính hiện đại hàng đầu thế giới (Wise, Linear, Copilot). Xem dòng tiền như một thực thể liên tục vận động; kết hợp góc bo mềm mại (16px–20px), các dải ribbon dòng tiền uyển chuyển và bề mặt sứ xúc giác (tactile porcelain).
 - **Product Emotion:** Sử dụng bề mặt mềm mại hơn để tạo cảm giác thị giác điềm tĩnh, hiện đại, khích lệ người dùng theo dõi chi tiêu định kỳ.
 - **Visual Density:** Comfortable. Khoảng cách thoáng đãng ở các thẻ tổng quan, chuyển sang dạng lưới gọn gàng khi xem bảng giao dịch.
@@ -244,6 +247,7 @@ Audited directly from `src/app`:
 - **Rủi ro:** Cần kiểm soát chặt chẽ để không làm lãng phí không gian hiển thị trên màn hình máy tính lớn.
 
 #### Territory 3: "Bản Ghi Bản Lĩnh" (Editorial Craft Ledger)
+
 - **Design Thesis:** Lấy cảm hứng từ các ấn bản báo chí kinh tế tài chính danh tiếng thế giới (The Economist, Financial Times, Bloomberg Markets). Chú trọng nghệ thuật dàn trang (editorial layout), đường chỉ phân cách thanh nhã, gam màu ấm áp như giấy in cao cấp.
 - **Product Emotion:** Tinh tế, trưởng thành, có chiều sâu, mang tính đúc kết và suy ngẫm cho các quyết định tài chính cá nhân.
 - **Visual Density:** Balanced Editorial. Sử dụng khoảng trắng và các đường kẻ phân cách (dividers) thay vì đóng khung trong các hộp card nặng nề.
@@ -278,7 +282,7 @@ Audited directly from `src/app`:
 ### 1. Migration Strategy (Vertical Slices)
 
 ```text
-Slice 0: Foundation & Specification (PR #562 - Candidate Research / Non-Executable)
+Slice 0: Foundation & Specification (PR #562 - selector / Non-Executable)
   → Slice 1: Design Tokens & Shared Primitives Proof (Button, Input, Dialog, etc.)
   → Slice 2: App Shell & Responsive Navigation Architecture
   → Slice 3: Today Surface (/dashboard, /insights)
@@ -291,7 +295,7 @@ Slice 0: Foundation & Specification (PR #562 - Candidate Research / Non-Executab
   → Slice 10: Legacy Presentation Retirement & Final Consistency Sweep
 ```
 
-*Quy tắc bất biến:* Mỗi slice khi chuyển đổi giao diện phải đồng thời gỡ bỏ (retire) mã CSS cũ tương ứng, không tạo thêm tầng CSS đè (override layer). Quá trình thi công bắt đầu từ Slice 1 chỉ sau khi: (1) #557 hoàn thành và current authority trở về null; (2) PR chọn authority cho #559 được tạo từ main mới và được merge; (3) Owner phê duyệt lựa chọn 1 trong 3 visual territories.
+_Quy tắc bất biến:_ Mỗi slice khi chuyển đổi giao diện phải đồng thời gỡ bỏ (retire) mã CSS cũ tương ứng, không tạo thêm tầng CSS đè (override layer). Quá trình thi công bắt đầu từ Slice 1 chỉ sau khi: (1) #557 hoàn thành và current authority trở về null; (2) PR chọn authority cho #559 được tạo từ main mới và được merge; (3) Owner phê duyệt lựa chọn 1 trong 3 visual territories.
 
 ### 2. Validation Matrix
 
@@ -320,17 +324,17 @@ This slice can close only when:
 
 ## Tasks
 
-| ID | Task | Status |
-|---|---|---|
-| D0.1 | prepare #559 candidate foundation specification (non-selector while #557 active) | completed |
-| D0.2 | forensic merged UI history / design failure postmortem | completed |
-| D0.3 | current route/component/CSS/test inventory | completed |
-| D0.4 | focused external UX/accessibility/pattern research | completed |
-| D0.5 | validate target IA against current route jobs | completed |
-| D0.6 | specify Design System v3 authority + guardrails | completed |
-| D0.7 | define visual-territory brief for exactly three directions | completed |
-| D0.8 | exact-head docs/knowledge/CI-policy verification | completed |
-| D0.9 | independent evaluation + owner handoff | completed |
+| ID   | Task                                                               | Status    |
+| ---- | ------------------------------------------------------------------ | --------- |
+| D0.1 | prepare #559 foundation specification and selector from fresh main | completed |
+| D0.2 | forensic merged UI history / design failure postmortem             | completed |
+| D0.3 | current route/component/CSS/test inventory                         | completed |
+| D0.4 | focused external UX/accessibility/pattern research                 | completed |
+| D0.5 | validate target IA against current route jobs                      | completed |
+| D0.6 | specify Design System v3 authority + guardrails                    | completed |
+| D0.7 | define visual-territory brief for exactly three directions         | completed |
+| D0.8 | exact-head docs/knowledge/CI-policy verification                   | completed |
+| D0.9 | independent evaluation + owner handoff                             | completed |
 
 ---
 
@@ -338,8 +342,8 @@ This slice can close only when:
 
 ### Verification Results
 
-1. `scripts/plan-selection.mjs`: `READY` (master: active `432-vietnam-long-term-product-strategy.md`; current slice: active `557-turnstile-load-recovery.md` selected by PR #558; schema 2).
-2. `scripts/lifecycle-projection.mjs`: `VALID` (lifecycle impact `none`; current authority remains unchanged at `557-turnstile-load-recovery.md`).
+1. `scripts/plan-selection.mjs`: `READY` on the selector branch (master active; #559 is a candidate until PR #562 is merged; schema 2).
+2. `scripts/lifecycle-projection.mjs`: `VALID` (selector transition is `null` → #559; no runtime lifecycle closeout occurs here).
 3. `scripts/check-project-knowledge.mjs`: `PASS` (all 6 required active packet headings present, PR memory record valid under budget, `CURRENT_PROJECT_MEMORY.md` unmodified from `origin/main`).
 4. `check:code-css-ownership`: `PASS` (419 emitted tokens, 285 reviewed historical baseline debt, 0 new unowned debt).
 5. Physical code inspection: zero runtime, component, or stylesheet modifications made in this slice.
@@ -349,4 +353,4 @@ This slice can close only when:
 
 ## Handoff
 
-Owner instruction on 2026-09-10 authorizes designing the complete MoneyFlow web experience. Repository policy requires this bounded foundation specification before runtime implementation. PR #562 remains a candidate specification in draft while #557 is active; merge remains owner decision.
+Owner instruction on 2026-09-10 authorizes designing the complete MoneyFlow web experience. Repository policy requires this bounded foundation specification before runtime implementation. PR #562 is the selector candidate from fresh merged main; owner merge is required before Slice 1 runtime work.
