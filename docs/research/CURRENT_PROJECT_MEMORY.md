@@ -1,6 +1,6 @@
 # MoneyFlow — current project memory
 
-**Status:** PR #572 is owner-merged as `ab02529b954c59dfe7335776ee9ec47c8cc18f9c`; merged `PLAN_AUTHORITY.current` selects #570 production Supabase migration reconciliation. Hosted Supabase is still four canonical migrations behind repo main. Draft PR #573 now proposes a temporary version-preserving production runner, but no #570 production DDL has occurred.
+**Status:** PR #572 is owner-merged as `ab02529b954c59dfe7335776ee9ec47c8cc18f9c`; merged `PLAN_AUTHORITY.current` selects #570 production Supabase migration reconciliation. Hosted Supabase is still four canonical migrations behind repo main. Open PR #573 proposes a temporary version-preserving production runner, but no #570 production DDL has occurred.
 **Last reconciled:** 2026-09-11
 **Application production baseline:** PR #571 merge `3c9794926effd3d0f0f0786ac286a8619d0518ca` was previously Vercel READY with `/api/health` 200; selector PR #572 is docs/authority only and did not change runtime behavior.
 **Hosted database baseline:** Supabase PostgreSQL 17.6, ACTIVE_HEALTHY; migration history still ends at `20260825090000_direct_csv_rule_atomic_ingestion`.
@@ -49,7 +49,7 @@ Pre-rollout Security Advisor evidence remains 43 authenticated-callable SECURITY
 | Review/rules | deterministic Ready/Needs-attention; explicit approval; tenant-owned rules |
 | Auth | authenticated/Supabase-RLS mode plus explicit demo-local mode |
 | Privileged RPCs | repo projects 42 authenticated SECURITY DEFINER endpoints after #571; hosted remains pre-rollout |
-| Production migration executor | temporary fail-closed Supabase CLI runner proposed in Draft PR #573; unmerged/unexecuted |
+| Production migration executor | temporary fail-closed Supabase CLI runner proposed in open PR #573; unmerged/unexecuted |
 | Executable authority | #570 selected on merged main via PR #572 |
 
 ## 6. Current production migration gap
@@ -73,9 +73,9 @@ Official Supabase guidance refreshed 2026-09-11 recommends CI/CD/GitHub Actions 
 
 The connected Supabase MCP `apply_migration` cannot accept an existing canonical version; upstream issue #241 documents server-generated timestamp behavior. It remains rejected for this four-file reconciliation.
 
-Draft PR #573 now proposes `.github/workflows/production-supabase-migrations.yml` as the separately reviewed temporary executor. The workflow pins Supabase CLI 2.117.0, runs only through manual `workflow_dispatch` or exact OWNER-authored commands on GitHub issue #570, checks current #570 authority, validates all four canonical Git blobs, validates a SHA-256 fingerprint of the intended production project ref, requires production connection secrets without printing them, rejects remote-only/history drift, requires the local-only set to equal exactly the four selected versions, requires dry-run to include all four versions, serializes execution, and refuses a second apply after convergence.
+PR #573 proposes `.github/workflows/production-supabase-migrations.yml` as the separately reviewed temporary executor. The workflow pins Supabase CLI 2.117.0, runs only through repository-owner `workflow_dispatch` or exact OWNER-authored commands on GitHub issue #570, checks current #570 authority, validates all four canonical Git blobs, validates a SHA-256 fingerprint of the intended production project ref, requires production connection secrets without printing them, rejects remote-only/history drift, requires the local-only set to equal exactly the four selected versions, requires dry-run to include all four versions, serializes execution, and refuses a second apply after convergence.
 
-This runner is still Draft/unmerged and therefore has no production execution force. First allowed run after explicit owner merge is preflight-only. Apply remains conditional on every gate passing.
+This runner remains unmerged and therefore has no production execution force. First allowed run after explicit owner merge is preflight-only. Apply remains conditional on every gate passing.
 
 ## 8. Reconciled issue status
 
@@ -87,7 +87,7 @@ This runner is still Draft/unmerged and therefore has no production execution fo
 - #559 / PRs #562–#566: design foundation completed; runtime UI deferred.
 - #567 / PR #571: repository implementation merged; production DB verification depends on #570 S4.
 - #570 / PR #572: selected current operational lane; production still four migrations behind.
-- #573: Draft temporary production runner + operational evidence for #570; no production DDL yet.
+- #573: open temporary production runner + operational evidence enabler for #570; no production DDL yet.
 - #569: open lifecycle/project-memory hardening lane; not selected.
 - #174: open provider-control lane; separate from #570.
 
@@ -97,15 +97,15 @@ This runner is still Draft/unmerged and therefore has no production execution fo
 
 Base: `main@ab02529b954c59dfe7335776ee9ec47c8cc18f9c` after owner merge of selector PR #572.
 
-PR #573 is no longer docs-only. It now adds one temporary, tightly scoped GitHub Actions runner plus the active packet/current-memory/PR-memory evidence required to review that execution surface. The runner never deploys on PR or push and cannot run from this unmerged branch against production.
+PR #573 is no longer docs-only. It adds one temporary, tightly scoped GitHub Actions runner plus the active packet/current-memory/PR-memory evidence required to review that execution surface. The runner never deploys on PR or push and cannot run from this unmerged branch against production.
 
-After owner merge, preflight-only is the first allowed execution. Apply requires exact current authority, frozen migration blobs, intended production-project fingerprint, exact migration-list divergence, exact dry-run, and explicit owner confirmation. The runner must be removed when #570 closes.
+After owner merge, preflight-only is the first allowed execution. Apply requires exact current authority, frozen migration blobs, intended production-project fingerprint, exact migration-list divergence, exact dry-run, repository-owner execution and explicit confirmation. The runner must be removed when #570 closes.
 
 ## 10. True gaps after this audit
 
 1. Hosted Supabase is four canonical migrations behind repository main.
 2. PR #573 temporary executor must pass exact-head CI/security review and explicit owner merge before it can provide the version-preserving production surface.
-3. Production connection secrets/variables required by the runner cannot be assumed until a merged preflight actually executes; missing configuration must fail closed.
+3. Production connection secrets required by the runner cannot be assumed until a merged preflight actually executes; missing configuration must fail closed.
 4. #567 security effects are code-complete but not production-verified.
 5. MON-63 maintenance measurement is not durable production truth until #570 S3 passes.
 6. Maintenance minutes/manual interventions still need a tighter semantic measurement contract after durable measurement rollout.
@@ -115,7 +115,7 @@ After owner merge, preflight-only is the first allowed execution. Apply requires
 
 ## 11. Next allowed action
 
-Validate Draft PR #573 exact head, including GitHub workflow syntax, project-knowledge/lifecycle contracts, CodeQL and Secret History. Do not merge automatically.
+Validate open enabler PR #573 exact head, including GitHub workflow syntax, project-knowledge/lifecycle contracts, CodeQL and Secret History. Do not merge automatically.
 
 If exact-head checks pass, perform independent review of the runner against #570. Then the next gate is explicit owner merge of PR #573. Only after that merge:
 
@@ -133,9 +133,9 @@ Any mismatch is a stop condition. Do not synthesize replacement migration histor
 
 - PR #572 is still candidate/unmerged — **false**; it is owner-merged as `ab02529b...` and #570 is current authority.
 - Merge of #572 means the four migrations are production-live — **false**; hosted history/catalog remain pre-rollout.
-- #570 has no possible version-preserving execution design — **false at Draft design level**; PR #573 now proposes one, but it remains unmerged/unexecuted.
+- #570 has no possible version-preserving execution design — **false at branch-design level**; PR #573 now proposes one, but it remains unmerged/unexecuted.
 - MCP `apply_migration` is equivalent to `db push` for these timestamped files — **false** unless canonical version preservation is proven.
-- PR #573 is docs-only — **false**; it now contains the temporary runner and must receive workflow/security review.
+- PR #573 is docs-only — **false**; it contains the temporary runner and requires workflow/security review.
 - #570 may broaden into provider/Auth/WAF/UI work — **false**.
 - #567 is production-verified merely because PR #571 merged — **false**.
 - Plate priority or generic chat continuation overrides repository authority/merge gates — **false**.
