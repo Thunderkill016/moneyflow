@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(9);
 
 create temporary table flagged_security_definer_functions on commit drop as
 select
@@ -36,9 +36,11 @@ where n.nspname = 'public'
 -- exact one-leg posted observation from pending to cleared, never reconciled.
 -- #463 adds one source-preparation boundary that validates the complete Direct
 -- CSV candidate set and any exact explicit rule evidence before batch approval.
+-- #567 removes `reconciliation_snapshot_for_user` after proving this read-only
+-- helper can run with caller privileges while RLS remains authoritative.
 select is(
   (select count(*)::integer from flagged_security_definer_functions),
-  43,
+  42,
   'the reviewed authenticated SECURITY DEFINER inventory stays explicit'
 );
 
@@ -98,6 +100,16 @@ select is(
   ),
   0,
   'every privileged RPC explicitly rejects unauthenticated execution'
+);
+
+select is(
+  (
+    select prosecdef
+    from pg_proc
+    where oid = 'public.reconciliation_snapshot_for_user(uuid,uuid,date)'::regprocedure
+  ),
+  false,
+  '#567 reconciliation snapshot executes with caller privileges'
 );
 
 select * from finish();
