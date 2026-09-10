@@ -66,7 +66,7 @@ Read-only production preflight on 2026-09-11 confirms all four versions and thei
 
 PR #572 is owner-merged as `ab02529b954c59dfe7335776ee9ec47c8cc18f9c`. `PLAN_AUTHORITY.current` now selects `docs/plans/active/570-production-migration-reconciliation.md` via `selectedByPr: 572`.
 
-Official Supabase workflow refreshed 2026-09-11 remains `supabase migration list` → `supabase db push --dry-run` → `supabase db push`. Remote reset/production seed are forbidden. Direct remote SQL bypasses migration history and is not an acceptable substitute. cite-not-stored
+Official Supabase workflow refreshed 2026-09-11 remains `supabase migration list` → `supabase db push --dry-run` → `supabase db push`. Remote reset/production seed are forbidden. Direct remote SQL bypasses migration history and is not an acceptable substitute.
 
 The connected Supabase MCP `apply_migration` surface accepts no caller-supplied canonical migration version. Upstream Supabase MCP issue #241 documents server-generated timestamp behavior, so that primitive is rejected for these four existing timestamped files. Current chat shell has no usable MoneyFlow checkout/Supabase CLI and no outbound DNS; repo search found no production Supabase deploy workflow.
 
