@@ -1,162 +1,141 @@
 # MoneyFlow — current project memory
 
-**Status:** PR #571 is owner-merged and application production is healthy at that commit, but hosted Supabase is still four migrations behind repo main. Ready selector PR #572 is the candidate authority transition for #570 production migration reconciliation; merged main remains `PLAN_AUTHORITY.current = null` until owner merge.
+**Status:** PR #572 is owner-merged as `ab02529b954c59dfe7335776ee9ec47c8cc18f9c`; merged `PLAN_AUTHORITY.current` selects #570 production Supabase migration reconciliation. Hosted Supabase is still four canonical migrations behind repo main. Open PR #573 proposes a temporary version-preserving production runner, but no #570 production DDL has occurred.
 **Last reconciled:** 2026-09-11
-**Last verified production runtime baseline:** `3c9794926effd3d0f0f0786ac286a8619d0518ca` (PR #571), Vercel READY; `/api/health` returned 200 with that exact commit and `cache-control: no-store` on 2026-09-10.
-**Hosted database baseline:** Supabase migration history still ends at `20260825090000_direct_csv_rule_atomic_ingestion`; production has not yet applied the four later repo migrations selected by #570.
-**Master program:** `docs/plans/active/432-vietnam-long-term-product-strategy.md` remains long-term strategy authority.
-**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named provenance needs.
+**Application production baseline:** PR #571 merge `3c9794926effd3d0f0f0786ac286a8619d0518ca` was previously Vercel READY with `/api/health` 200; selector PR #572 is docs/authority only and did not change runtime behavior.
+**Hosted database baseline:** Supabase PostgreSQL 17.6, ACTIVE_HEALTHY; migration history still ends at `20260825090000_direct_csv_rule_atomic_ingestion`.
+**Master program:** `docs/plans/active/432-vietnam-long-term-product-strategy.md`.
+**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named PR provenance.
 
 ## 1. Current decision
 
-MoneyFlow remains a Vietnamese personal-finance product centered on one trustworthy user-owned ledger and progressively lower maintenance effort.
+MoneyFlow remains centered on one trustworthy user-owned ledger and progressively lower maintenance effort. Financial truth, ownership and recoverability outrank novelty.
 
-Owner-merged PR #571 completed the repository implementation for #567, but post-merge production inspection proved the hosted database has not received those migrations. Repository completion and hosted production truth must therefore remain distinct.
-
-Ready PR #572 selects #570 as a bounded Class-3 operational slice whose only purpose is to reconcile the exact four-migration gap with production and verify affected behavior. The selector itself performs no production DDL and still has no execution force until explicit owner merge.
-
-Moving #572 from Draft to Ready triggered CI #3550, which correctly rejected the packet because selector PR #572 had been embedded inside `**Issue/PR:**` and was therefore parsed as the executable-work owner. The packet now follows the canonical selector metadata pattern used by #568: executable-work ownership remains pending in `**Issue/PR:**`, while `**Selector:** GitHub PR #572` records the selector separately. Fresh exact-head checks are required after that correction.
-
-The owner has explicitly deferred UI work. #559 remains design/reference foundation only; no runtime redesign slice is selected.
+Owner merge of PR #572 selected #570 as the current bounded Class-3 operational slice. Scope is limited to reconciling the four already-reviewed production migrations, a temporary fail-closed executor needed to preserve canonical migration identity, and bounded post-deploy verification. Provider/Auth/WAF/UI work remains outside this slice. Runtime UI redesign is explicitly deferred.
 
 ## 2. Financial and ownership truth
 
-- VND is integer đồng; never floating point.
+- VND is integer đồng.
 - Transfers are equal/opposite and neutral to income/expense/net.
-- Authenticated user-owned data is database-enforced tenant-isolated; demo mode is explicit browser-local state.
-- Source/provider observations are evidence, not permission to overwrite ledger facts.
-- Corrections remain explicit, auditable and recoverable where required.
-- Full archive/restore remains separate from scoped/report export.
-- Sensitive financial tables remain browser-read-oriented; reviewed RPCs own invariant-preserving mutations.
-- Missing source coverage, provider semantics, balances, dates or financial intent are never guessed by authoritative paths.
+- Authenticated data is tenant-isolated by database policy; demo truth is separate browser-local state.
+- Source/provider observations are evidence and never silently overwrite ledger facts.
+- Corrections remain explicit and auditable.
+- Completed reconciliation snapshots are historical facts.
+- Sensitive financial mutations remain invariant-preserving and ownership-enforced.
 
 ## 3. Acquisition and reconciliation truth
 
-MON-62 established versioned source adapters, strict source identity/date/amount evidence, non-truncating persistence and parser/mapping/lifecycle provenance.
+MON-62 established versioned source adapters, strict source identity/date/amount evidence, non-truncating persistence and provenance.
 
-MON-63 established versioned remembered mappings, dry-run/review, atomic authenticated preview→Inbox commit, exact-intent replay, changed-intent fail-closed behavior and privacy-safe import-maintenance evidence in the repository implementation. Hosted durable measurement capability is not yet production truth because its migration is still pending #570.
+MON-63 repository code contains replay-safe atomic preview→Inbox commit and privacy-safe bounded maintenance measurement. Hosted durable capability is not yet production truth because the required migrations remain pending #570.
 
-Exception-first Inbox review is implemented by #511/PR #522. Ready classification never auto-posts; duplicate/transfer/low-confidence or unresolved evidence remains attention-required.
-
-Reconciliation is statement-oriented and account-leg based. Completed snapshots are historical facts; later backdated activity does not silently rewrite them. Start, clear, complete and reopen transitions remain database-controlled and cross-tenant tested.
-
-VCB/ACB/VietinBank bank-specific automatic mapping remains disabled until exact current layouts and stable transaction identity are proven.
+Exception-first Inbox review is implemented. Ready classification never auto-posts. Reconciliation remains statement-oriented and account-leg based; start, clear, complete and reopen are database-controlled and cross-tenant tested.
 
 ## 4. #567 repository truth versus production truth
 
-The privileged-RPC audit established that 43 authenticated-callable `SECURITY DEFINER` functions were a reviewed privileged surface, not 43 confirmed vulnerabilities. Zero were executable by anon/PUBLIC; the reviewed endpoints pinned safe search paths and derived tenant identity from `auth.uid()`.
+PR #571 is repository-merged and locally verified. Its two security migrations are not yet live in hosted Supabase. Production still has `reconciliation_snapshot_for_user(uuid,uuid,date)` as SECURITY DEFINER and no global postgres future-function default ACL override.
 
-PR #571, merged as `3c9794926effd3d0f0f0786ac286a8619d0518ca`, passed final CI including fresh database reset/full pgTAP, archive round trips, static/unit/build, browser smoke, cross-device audit, CodeQL and Secret History. Repository implementation:
-
-- adds a global postgres function-default ACL override so future postgres-owned functions do not inherit automatic PUBLIC EXECUTE;
-- changes only `reconciliation_snapshot_for_user(uuid,uuid,date)` to SECURITY INVOKER;
-- reduces the reviewed authenticated SECURITY DEFINER inventory from 43 to 42 in repo-local tests.
-
-Hosted Supabase is still pre-#571 for those effects: no global postgres function-default ACL override is live and `reconciliation_snapshot_for_user(uuid,uuid,date)` remains SECURITY DEFINER. #567/THU-47 is therefore code-complete but production verification remains dependent on #570.
-
-Pre-rollout hosted Security Advisor evidence reports 43 authenticated-callable SECURITY DEFINER warnings, including the reconciliation snapshot helper. The intended #570 security delta is therefore 43 → 42 for this slice, not elimination of all findings. The separate leaked-password-protection warning remains #174/provider-control scope.
+Pre-rollout Security Advisor evidence remains 43 authenticated-callable SECURITY DEFINER findings. The intended #570 delta for this narrow slice is 43 → 42, not zero. The separate leaked-password-protection warning remains #174/provider-control scope.
 
 ## 5. Current capability inventory
 
 | Capability | Current truth |
 | --- | --- |
 | Core ledger | accounts; income/expense; balanced transfers; edit; recoverable deletion |
-| Accounts | balances, register/history, archive/restore, statement reconciliation |
-| Planning | category budgets, recurring commitments/income, savings goals |
-| Understanding | reports, drill-downs, controlled import/export |
-| Acquisition | generic CSV/XLSX/PDF; Direct CSV and Share Target; provenance-safe adapters; explicit remembered mapping |
-| Import integrity | replay-safe/atomic migration code is in repo; hosted production migration still pending #570 |
-| Review | deterministic Ready/Needs-attention semantics; explicit approval; no automatic posting |
-| Rules | deterministic tenant-owned candidate-stage categorization rules with version evidence |
-| Ownership | versioned archive/export/validation/restore with source-lineage generation |
-| Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
-| Auth CAPTCHA | real-token gated with finite stalled-script recovery |
-| Privileged RPCs | repo tests project 42 authenticated SECURITY DEFINER endpoints after #571; hosted production remains at pre-#571 execution identity until #570 rollout |
-| Executable authority | merged main is `current = null`; Ready PR #572 is candidate selection only |
+| Reconciliation | statement/account-leg lifecycle and historical completed snapshots |
+| Acquisition | generic CSV/XLSX/PDF, Direct CSV, Share Target, provenance-safe adapters |
+| Import integrity | replay-safe atomic commit code is merged; hosted migration pending #570 |
+| Maintenance evidence | bounded measurement code is merged; hosted migration pending #570 |
+| Review/rules | deterministic Ready/Needs-attention; explicit approval; tenant-owned rules |
+| Auth | authenticated/Supabase-RLS mode plus explicit demo-local mode |
+| Privileged RPCs | repo projects 42 authenticated SECURITY DEFINER endpoints after #571; hosted remains pre-rollout |
+| Production migration executor | temporary fail-closed Supabase CLI runner proposed in open PR #573; unmerged/unexecuted |
+| Executable authority | #570 selected on merged main via PR #572 |
 
 ## 6. Current production migration gap
 
-Read-only production inspection after PR #571 merge proves hosted migration history stops at `20260825090000`. Current main contains exactly four later migrations that are absent from hosted history:
+Hosted `supabase_migrations.schema_migrations` still ends at `20260825090000_direct_csv_rule_atomic_ingestion`. Exact `main@ab02529b...` contains exactly four later migration files, so the repo/remote divergence is one contiguous pending chain:
 
 1. `20260909090000_import_batch_atomic_commit.sql`;
 2. `20260909120000_import_batch_measurement.sql`;
 3. `20260910181500_function_default_acl_hardening.sql`;
 4. `20260910182000_reconciliation_snapshot_security_invoker.sql`.
 
-Repository directory inspection confirms these are the complete contiguous migration chain after the hosted tail. Expected measurement columns/RPC are not live. This does not by itself prove ledger corruption because measurement is best-effort, but it does mean durable production maintenance evidence cannot yet be claimed. The atomic commit and security migrations require their own production verification rather than being treated as harmless omissions.
+Read-only production preflight on 2026-09-11 confirms all four versions and their target objects/effects are absent. PostgreSQL is 17.6; `import_batches` had 1 row (~80 KiB) and `inbox_candidates` had 7 rows; there were no blocked sessions and no non-idle transaction older than 30 seconds at capture time. RLS is enabled with authenticated own-row policies on both affected import tables.
 
-Read-only preflight found no expected-object collision for the new import/measurement objects. Existing `import_batches` and `inbox_candidates` browser grants remain protected by authenticated own-row RLS policies with `auth.uid() = user_id`, matching the invoker design assumptions that must be re-verified immediately before rollout.
+The four migration files are identity-pinned by Git blob in #570/PR #573. Repository search found no `set role`/`reset role` choreography in the selected files.
 
 ## 7. #570 selector and deployment truth
 
-Ready PR #572 is docs/authority only. It projects `PLAN_AUTHORITY.current` to `docs/plans/active/570-production-migration-reconciliation.md` with `selectedByPr: 572`, but this projection has no execution force until owner merge.
+PR #572 is owner-merged as `ab02529b954c59dfe7335776ee9ec47c8cc18f9c`. `PLAN_AUTHORITY.current` selects `docs/plans/active/570-production-migration-reconciliation.md` via `selectedByPr: 572`.
 
-The #570 packet freezes the production operation to the four canonical merged migrations above. Before any write it requires fresh authority resolution, local/remote migration-history reconciliation, an exact dry-run/preview, private baseline capture and fail-closed handling of any unexpected remote drift.
+Official Supabase guidance refreshed 2026-09-11 recommends CI/CD/GitHub Actions for production migrations and continues to define `supabase migration list` → `supabase db push --dry-run` → `supabase db push` as the canonical migration-file workflow. Current stable CLI is 2.117.0. Remote reset and production seed remain forbidden.
 
-Current Supabase documentation uses `supabase migration list` to compare local and remote history and `supabase db push --dry-run` to preview pending migrations before `supabase db push`. Once migration history is authoritative, remote schema changes should come from migration files rather than direct Dashboard/SQL-editor edits. Remote reset is destructive and must never be used on production.
+The connected Supabase MCP `apply_migration` cannot accept an existing canonical version; upstream issue #241 documents server-generated timestamp behavior. It remains rejected for this four-file reconciliation.
 
-For these four existing timestamped repo migrations, the execution mechanism must preserve their canonical migration versions in hosted history. The currently available MCP `apply_migration` surface does not expose a caller-supplied migration version, so it is not accepted as a substitute unless exact version-preserving semantics are independently proven. The current chat execution environment also lacks the Supabase CLI/project checkout needed for the normal `db push` path; if that remains true after selector merge, execution must stop and acquire a version-preserving surface rather than synthesize or manually repair migration history.
+PR #573 proposes `.github/workflows/production-supabase-migrations.yml` as the separately reviewed temporary executor. The workflow pins Supabase CLI 2.117.0, runs only through repository-owner `workflow_dispatch` or exact OWNER-authored commands on GitHub issue #570, checks current #570 authority, validates all four canonical Git blobs, validates a SHA-256 fingerprint of the intended production project ref, requires production connection secrets without printing them, rejects remote-only/history drift, requires the local-only set to equal exactly the four selected versions, requires dry-run to include all four versions, serializes execution, and refuses a second apply after convergence.
 
-Repository CI currently proves local migrations via fresh reset/pgTAP but does not deploy hosted Supabase schema. Merge and Vercel deployment therefore cannot be used as evidence that database migrations reached production.
+This runner remains unmerged and therefore has no production execution force. First allowed run after explicit owner merge is preflight-only. Apply remains conditional on every gate passing.
 
 ## 8. Reconciled issue status
 
 - #432/#433: merged master Vietnam long-term product program.
-- #523 / MON-61: completed.
 - MON-62 / PR #552: completed and production-verified.
-- MON-63 / PRs #553–#556: repository implementation/lifecycle completed; hosted maintenance measurement remains pending #570.
+- MON-63 / PRs #553–#556: repository implementation complete; hosted durable measurement pending #570.
 - #511 / PR #522: completed.
-- #557 / PR #561: completed and merged.
+- #557 / PR #561: completed.
 - #559 / PRs #562–#566: design foundation completed; runtime UI deferred.
-- #567 / PR #571: repository implementation merged; production DB effects pending #570 verification.
-- #570 / PR #572: open production-migration reconciliation lane; selector is Ready but remains candidate-only until owner merge and fresh authority resolution.
-- #569: open deterministic project-memory/lifecycle hardening lane; not currently selected.
+- #567 / PR #571: repository implementation merged; production DB verification depends on #570 S4.
+- #570 / PR #572: selected current operational lane; production still four migrations behind.
+- #573: open temporary production runner + operational evidence enabler for #570; no production DDL yet.
+- #569: open lifecycle/project-memory hardening lane; not selected.
 - #174: open provider-control lane; separate from #570.
-- #426: stale original simplification recipe is not executable authority.
 
 ## 9. Open pull-request memory
 
-### PR #572 — select #570 production Supabase migration reconciliation
+### PR #573 — #570 production runner and execution evidence
 
-Base: owner-merged `main@3c9794926effd3d0f0f0786ac286a8619d0518ca` after PR #571.
+Base: `main@ab02529b954c59dfe7335776ee9ec47c8cc18f9c` after owner merge of selector PR #572.
 
-Scope is documentation/authority only: one #570 packet, `PLAN_AUTHORITY` candidate projection, this reconciled snapshot and PR-memory record. The selected future operation is exactly the four missing canonical migrations; no migration/runtime/provider/user-data/UI change is contained in the selector.
+PR #573 is no longer docs-only. It adds one temporary, tightly scoped GitHub Actions runner plus the active packet/current-memory/PR-memory evidence required to review that execution surface. The runner never deploys on PR or push and cannot run from this unmerged branch against production.
 
-Draft-state exact head `da5a8265205a4e4bf4113bdfc5d2e192b9c17393` passed CI #3549, CodeQL #2554 and Secret History #2554, including fresh local reset/full pgTAP, archive round trips, browser smoke and cross-device audit. Independent evaluator confirmed the four-migration chain and production preconditions.
-
-After #572 was moved to Ready, CI #3550 exposed a packet metadata ownership bug: placing selector PR #572 in `**Issue/PR:**` caused lifecycle projection to treat the selector as executable-work owner and demand same-PR lifecycle convergence. This was a valid governance failure, not a runtime/database defect. Packet metadata now separates `**Selector:** GitHub PR #572` from pending executable-work ownership. Durable memory is being reconciled on the same docs-only branch and a fresh exact-head validation run is required.
-
-Production application and database truth remain deliberately separated: Vercel is READY at `3c979492...` and `/api/health` returns 200, while hosted Supabase still lacks all four selected migration versions and their catalog effects.
-
-Production DDL remains forbidden while the selector is unmerged. Merge remains an explicit owner decision.
+After owner merge, preflight-only is the first allowed execution. Apply requires exact current authority, frozen migration blobs, intended production-project fingerprint, exact migration-list divergence, exact dry-run, repository-owner execution and explicit confirmation. The runner must be removed when #570 closes.
 
 ## 10. True gaps after this audit
 
-1. Hosted Supabase is four migrations behind repository main; #570 owns reconciliation.
-2. A version-preserving production migration execution surface is required before #570 can write hosted schema; current chat tooling must not synthesize replacement migration versions.
-3. Maintenance minutes and true manual interventions are not honestly derivable from generic timestamps/edits; instrumentation or a tighter semantic event contract is still required after durable measurement rollout.
-4. Real-world maintenance reduction needs repeated cohort evidence, not feature-count claims.
-5. Exact Vietnamese bank export layouts and stable identity remain incomplete evidence for bank-specific automation.
-6. #174 provider-console controls still require provider-side verification and reversible operational changes.
-7. Physical-device and post-deploy production evidence remain separate release gates.
-8. Lifecycle tooling should eventually prevent repository completion claims when required hosted rollout evidence is still absent; #569 owns deterministic hardening.
+1. Hosted Supabase is four canonical migrations behind repository main.
+2. PR #573 temporary executor must pass exact-head CI/security review and explicit owner merge before it can provide the version-preserving production surface.
+3. Production connection secrets required by the runner cannot be assumed until a merged preflight actually executes; missing configuration must fail closed.
+4. #567 security effects are code-complete but not production-verified.
+5. MON-63 maintenance measurement is not durable production truth until #570 S3 passes.
+6. Maintenance minutes/manual interventions still need a tighter semantic measurement contract after durable measurement rollout.
+7. Exact Vietnamese bank export identity/layout evidence remains incomplete for bank-specific automation.
+8. #174 provider-console controls remain a separate unresolved lane.
+9. Lifecycle tooling should prevent repository completion claims before required hosted rollout evidence exists; #569 owns that hardening.
 
 ## 11. Next allowed action
 
-Run exact-head governance/security checks after the Ready-state packet ownership correction and durable-memory reconciliation for selector PR #572.
+Validate open enabler PR #573 exact head, including GitHub workflow syntax, project-knowledge/lifecycle contracts, CodeQL and Secret History. Do not merge automatically.
 
-Do not apply production migrations while #572 is unmerged. If exact-head checks pass, the selector is ready for explicit owner merge only; do not auto-merge. If the owner explicitly merges #572, refresh from merged main, require `PLAN_AUTHORITY.current` to resolve #570, re-check hosted migration history/catalog, verify the actual Supabase CLI commands with `--help`, require a version-preserving execution path, preview the exact four-migration chain and stop on any unexpected divergence before writing.
+If exact-head checks pass, perform independent review of the runner against #570. Then the next gate is explicit owner merge of PR #573. Only after that merge:
 
-Do not start UI/redesign work; it remains deferred.
+1. trigger **preflight only**;
+2. require correct project fingerprint, #570 authority, canonical blobs, exact local/remote history and exact dry-run;
+3. refresh hosted catalog/lock state read-only;
+4. only if every gate is green, trigger one explicit apply;
+5. verify hosted migration history/catalog before any retry if result is ambiguous;
+6. run bounded S3/S4 production verification and application-health checks;
+7. remove the temporary runner and close lifecycle only after evidence is complete.
+
+Any mismatch is a stop condition. Do not synthesize replacement migration history.
 
 ## 12. Superseded-status register
 
-- PR #571 is still open — **false**; it is owner-merged as `3c979492...`.
-- Merge of #571 means its Supabase migrations are production-live — **false**; hosted migration history proves otherwise.
-- #570 contains only two missing migrations — **false**; the contiguous gap is now four after #571.
-- #570 is authorized merely because it is next in Plate or PR #572 is Ready — **false**; PR #572 must be owner-merged and fresh authority must resolve #570 first.
-- Any migration-history-writing primitive is equivalent to `db push` for existing timestamped repo migrations — **false** unless it demonstrably preserves the canonical version sequence.
-- Supabase Advisor's earlier SECURITY DEFINER count means every flagged function is a vulnerability — **false**.
-- Schema-scoped default-function REVOKE removes PostgreSQL's global PUBLIC EXECUTE default — **false**; #571 corrects this at the global layer.
-- #559 is current executable UI work — **false**; UI is explicitly deferred.
-- Plate priority or chat continuation alone overrides repository authority — **false**.
+- PR #572 is still candidate/unmerged — **false**; it is owner-merged as `ab02529b...` and #570 is current authority.
+- Merge of #572 means the four migrations are production-live — **false**; hosted history/catalog remain pre-rollout.
+- #570 has no possible version-preserving execution design — **false at branch-design level**; PR #573 now proposes one, but it remains unmerged/unexecuted.
+- MCP `apply_migration` is equivalent to `db push` for these timestamped files — **false** unless canonical version preservation is proven.
+- PR #573 is docs-only — **false**; it contains the temporary runner and requires workflow/security review.
+- #570 may broaden into provider/Auth/WAF/UI work — **false**.
+- #567 is production-verified merely because PR #571 merged — **false**.
+- Plate priority or generic chat continuation overrides repository authority/merge gates — **false**.
