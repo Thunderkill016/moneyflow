@@ -1,5 +1,5 @@
 begin;
-select plan(7);
+select plan(8);
 
 select ok(
   not exists (
@@ -72,17 +72,38 @@ select is(
   'all exposed finance views execute with caller security'
 );
 
+-- Function EXECUTE is granted to PUBLIC by PostgreSQL's hard-wired default.
+-- A per-schema REVOKE cannot remove a global/hard-wired privilege, so #567
+-- requires an explicit global default ACL override for postgres-owned functions.
 select ok(
   exists (
     select 1
     from pg_default_acl default_acl
     join pg_roles owner_role on owner_role.oid = default_acl.defaclrole
-    join pg_namespace namespace on namespace.oid = default_acl.defaclnamespace
     where owner_role.rolname = 'postgres'
-      and namespace.nspname = 'public'
+      and default_acl.defaclnamespace = 0
       and default_acl.defaclobjtype = 'f'
   ),
-  'postgres has an explicit default function ACL for the public schema'
+  'postgres has a global default function ACL overriding the hard-wired PUBLIC grant'
+);
+
+select ok(
+  not exists (
+    select 1
+    from pg_default_acl default_acl
+    join pg_roles owner_role on owner_role.oid = default_acl.defaclrole
+    cross join lateral aclexplode(default_acl.defaclacl) acl
+    left join pg_roles grantee_role on grantee_role.oid = acl.grantee
+    where owner_role.rolname = 'postgres'
+      and default_acl.defaclnamespace = 0
+      and default_acl.defaclobjtype = 'f'
+      and acl.privilege_type = 'EXECUTE'
+      and (
+        acl.grantee = 0
+        or grantee_role.rolname in ('anon', 'authenticated')
+      )
+  ),
+  'global postgres function defaults do not grant EXECUTE to PUBLIC, anon or authenticated'
 );
 
 select ok(
@@ -102,7 +123,7 @@ select ok(
         or grantee_role.rolname in ('anon', 'authenticated')
       )
   ),
-  'new postgres-owned public functions do not grant EXECUTE to PUBLIC, anon or authenticated by default'
+  'public-schema postgres defaults add no EXECUTE grant for PUBLIC, anon or authenticated'
 );
 
 select * from finish();
