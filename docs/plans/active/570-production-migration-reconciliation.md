@@ -1,11 +1,12 @@
 # #570 — Production Supabase migration reconciliation
 
 **Status:** active; selector owner-merged
-**Execution state:** temporary version-preserving runner prepared in Draft PR #573; production remains untouched until owner merge + exact preflight
+**Execution state:** temporary version-preserving runner prepared in PR #573; production remains untouched until owner merge + exact preflight
 **Active role:** operator / evaluator
 **Permission scope:** exactly four canonical migrations, temporary fail-closed executor, read-only pre/post evidence and bounded production smoke; no provider/UI/unrelated schema work
 **Owner:** ThunderK
-**Issue/PR:** GitHub #570 / Draft execution-evidence PR #573
+**Issue/PR:** GitHub #570 / production rollout execution pending
+**Enabler:** GitHub PR #573 — temporary production migration runner/evidence
 **Selector:** GitHub PR #572, owner-merged as `ab02529b954c59dfe7335776ee9ec47c8cc18f9c`
 **Parent program:** GitHub #432 — MoneyFlow master development program
 **Execution base:** protected `main`; migration identity pinned below
@@ -22,7 +23,7 @@ The selected operation is exactly four contiguous migrations:
 3. `20260910181500_function_default_acl_hardening.sql`;
 4. `20260910182000_reconciliation_snapshot_security_invoker.sql`.
 
-Authority is active because owner-merged PR #572 selected this packet. Production writes are allowed only through a mechanism that preserves the canonical migration versions and only after exact preflight. Draft PR #573 now proposes the bounded version-preserving execution surface; it has no production effect before owner merge.
+Authority is active because owner-merged PR #572 selected this packet. Production writes are allowed only through a mechanism that preserves the canonical migration versions and only after exact preflight. PR #573 proposes the bounded version-preserving execution surface; it has no production effect before owner merge.
 
 ## Repository reconnaissance
 
@@ -82,6 +83,7 @@ PR #573 may add one temporary workflow, `.github/workflows/production-supabase-m
 The workflow must fail closed before any database write unless all of the following are true:
 
 - execution is from protected `main` after owner merge;
+- manual dispatch actor is the repository owner, or the trigger is an exact OWNER-authored command on GitHub issue #570;
 - `PLAN_AUTHORITY.current` still selects #570 through PR #572;
 - all four migration files match the frozen Git blob identities above;
 - configured Supabase project identity matches the privately selected production-project fingerprint;
@@ -92,10 +94,11 @@ The workflow must fail closed before any database write unless all of the follow
 
 Operational controls:
 
-- `workflow_dispatch` defaults to preflight; apply requires exact confirmation `APPLY-570-FOUR-MIGRATIONS`;
+- `workflow_dispatch` defaults to preflight; only the repository owner may dispatch it, and apply requires exact confirmation `APPLY-570-FOUR-MIGRATIONS`;
 - an owner-authored exact command on GitHub issue #570 may also trigger preflight/apply, allowing the connected GitHub operator to drive the run after merge without exposing secrets;
 - non-owner issue comments cannot run the job;
 - workflow permissions are `contents: read` only;
+- production credentials are scoped only to remote Supabase steps that need them;
 - concurrency forbids overlapping production migration runs;
 - a second apply after convergence is rejected because the pending set is no longer the exact four versions;
 - no `migration repair`, manual history insert, direct SQL patch, remote reset, seed, MCP timestamp synthesis, provider change, user-data backfill or UI work is present;
@@ -194,7 +197,7 @@ Completion requires hosted evidence:
 
 ## Implementation plan
 
-1. review and validate Draft PR #573 exact head, including the temporary runner and lifecycle evidence;
+1. review and validate open enabler PR #573 exact head, including the temporary runner and lifecycle evidence;
 2. do not merge automatically; owner explicitly decides whether PR #573 may land;
 3. after owner merge, first trigger **preflight only**;
 4. require authority, production-project fingerprint, canonical blobs, migration list and dry-run to pass exactly;
@@ -243,7 +246,7 @@ The slice is complete only when:
 | 570.2 | refresh official Supabase migration guidance | CLI/workflow/docs + MCP version semantics | done |
 | 570.3 | define bounded four-migration runbook | this packet | done |
 | 570.4 | selector + authority projection | PR #572 / `main@ab02529b...` | done |
-| 570.5 | version-preserving executor + exact preflight | Draft PR #573 + merged-run evidence | in_progress — runner under review |
+| 570.5 | version-preserving executor + exact preflight | PR #573 + merged-run evidence | in_progress — runner under review |
 | 570.6 | canonical production migration rollout | hosted migration history | blocked on owner merge + 570.5 preflight |
 | 570.7 | import/measurement production verification | catalog + bounded smoke | blocked on 570.6 |
 | 570.8 | #567 security production verification | catalog + reconciliation/security smoke | blocked on 570.6 |
@@ -277,6 +280,6 @@ Current evaluation: the temporary executor design now satisfies the version-pres
 
 ## Current permission boundary
 
-#570 is active authority. Draft PR #573 may be reviewed and corrected as the temporary executor/evidence container. It has no production execution force before explicit owner merge.
+#570 is active authority. PR #573 may be reviewed and corrected as the temporary executor/evidence enabler. It has no production execution force before explicit owner merge.
 
 After owner merge, the first allowed run is preflight only. Production apply is allowed only after that run proves the intended project, current authority, frozen migration identities and exact four-version dry-run. Repository merge actions remain explicit owner decisions.
