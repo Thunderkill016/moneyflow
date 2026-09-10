@@ -5,10 +5,11 @@
 **Active role:** planner / evaluator
 **Permission scope:** selector PR is documentation/authority only; hosted database writes remain forbidden until selector owner merge and fresh authority resolution
 **Owner:** ThunderK
-**Issue/PR:** GitHub #570 / selector PR #572
+**Issue/PR:** GitHub #570 / operational execution evidence pending
+**Selector:** GitHub PR #572
 **Parent program:** GitHub #432 — MoneyFlow master development program
 **Selector base:** `main@3c9794926effd3d0f0f0786ac286a8619d0518ca`
-**Last updated:** 2026-09-10
+**Last updated:** 2026-09-11
 
 ## Outcome
 
@@ -48,7 +49,7 @@ Therefore the current problem is a proven repo/production migration divergence, 
 
 ## Research
 
-Official Supabase references refreshed on 2026-09-10:
+Official Supabase references refreshed on 2026-09-11:
 
 1. Supabase CLI reference documents `supabase migration list` for local/remote migration-history comparison and `supabase db push --dry-run` to preview migrations before applying them.
 2. Supabase local-development workflow documents `supabase db push` as the migration-file deployment path and explicitly warns that `supabase db reset --linked` is destructive and must never be used on production.
@@ -60,6 +61,7 @@ Research consequence:
 - reconcile history before execution;
 - preview the exact chain before execution;
 - use canonical migration files and the normal migration mechanism;
+- require a version-preserving deployment path for these existing timestamped migration files; do not substitute an execution primitive that synthesizes new migration versions;
 - never reset production and never include seed data;
 - do not use ad-hoc remote SQL variants merely because an MCP DDL primitive exists;
 - stop rather than repair history blindly if remote-only drift appears.
