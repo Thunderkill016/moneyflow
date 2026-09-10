@@ -118,13 +118,13 @@ Implementation adds a bounded top-level Turnstile script watchdog/recovery state
 
 Evaluator pass found no scope or security regression. Lifecycle closeout is now represented in the same PR: #557 packet moved to canonical `docs/plans/completed/2026-09-10-557-turnstile-load-recovery.md`, `PLAN_AUTHORITY.current` null, current memory reconciled and PR memory updated. Because those docs create a newer PR head, exact-head governance checks on the final lifecycle head remain required before Ready handoff.
 
-## 10. PR #562 redesign foundation truth
+## 9.5. PR #562 redesign foundation truth
 
 PR #562 is a selector candidate, not shipped UI. Its packet is grounded in the merged P0–P11 migration history and current route/CSS inventory. The three visual territories are options for owner selection; none is active. Slice 1 may begin only after the selector is merged, a fresh `plan:resolve`/`agent:doctor` pass succeeds, and the owner selects one territory.
 
 The candidate deliberately preserves current product truth: manual/import-assisted acquisition, explicit demo versus authenticated modes, VND integer semantics, progressive disclosure and mobile as a release gate. It makes no provider, schema, production or financial claim.
 
-## 11. True gaps after this audit
+## 10. True gaps after this audit
 
 1. #174 still has provider-console controls that cannot be proven or safely mutated from source code alone.
 2. Real-world import maintenance improvement still needs cohort evidence over time.
@@ -133,13 +133,13 @@ The candidate deliberately preserves current product truth: manual/import-assist
 5. #426 needs a fresh capture/navigation design decision rather than execution of its stale deletion plan.
 6. Physical-device evidence and post-merge production verification remain separate release gates; source/UI research cannot close them.
 
-## 12. Next allowed action
+## 11. Next allowed action
 
 Run exact-head governance checks for PR #562 after the fresh-main replay. If terminal green, hand the selector to the owner for merge. After merge, start a new bounded Slice 1 packet for Design System tokens/primitives; do not implement runtime UI from the selector PR.
 
 Do not select #174 provider-console work implicitly. Merged-main `PLAN_AUTHORITY.current` remains `null` until PR #562 is owner-merged.
 
-## 13. Superseded-status register
+## 12. Superseded-status register
 
 - MON-63 remains current after PR #556 — **false**; it is completed and archived.
 - #511 is the next unimplemented exception-first slice — **false**; PR #522 already completed it.
