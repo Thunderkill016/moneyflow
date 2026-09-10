@@ -6,7 +6,7 @@
 **Permission scope:** selector documentation/authority only; runtime/UI implementation requires a later fresh-main slice
 **Owner:** human owner
 **Issue:** #559
-**PR:** #562
+**Selector:** GitHub PR #562
 **Branch:** `design/559-web-redesign-foundation-clean`
 **Selector base:** `main@394d7120990761dd3995302cbc26db2ec90432ca`
 
