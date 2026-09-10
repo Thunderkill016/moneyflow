@@ -1,18 +1,17 @@
 # MoneyFlow — current project memory
 
-**Status:** PR #572 is owner-merged as `ab02529b954c59dfe7335776ee9ec47c8cc18f9c`; merged `PLAN_AUTHORITY.current` selects #570 production Supabase migration reconciliation. Hosted Supabase is still four canonical migrations behind repo main. Production DDL has not been performed in #570.
+**Status:** PR #572 is owner-merged as `ab02529b954c59dfe7335776ee9ec47c8cc18f9c`; merged `PLAN_AUTHORITY.current` selects #570 production Supabase migration reconciliation. Hosted Supabase is still four canonical migrations behind repo main. No #570 production DDL has been performed.
 **Last reconciled:** 2026-09-11
-**Application production baseline:** PR #571 merge `3c9794926effd3d0f0f0786ac286a8619d0518ca` was previously Vercel READY with `/api/health` 200; selector PR #572 is docs/authority only and does not itself change runtime behavior.
+**Application production baseline:** PR #571 merge `3c9794926effd3d0f0f0786ac286a8619d0518ca` was previously Vercel READY with `/api/health` 200; selector PR #572 is docs/authority only and does not change runtime behavior.
 **Hosted database baseline:** Supabase PostgreSQL 17.6; migration history still ends at `20260825090000_direct_csv_rule_atomic_ingestion`.
 **Master program:** `docs/plans/active/432-vietnam-long-term-product-strategy.md`.
+**Routing:** use `docs/context/README.md`; open `docs/research/pr-memory/YYYY/QN/` only for named PR provenance.
 
 ## 1. Current decision
 
 MoneyFlow remains centered on one trustworthy user-owned ledger and progressively lower maintenance effort. Financial truth, ownership and recoverability outrank novelty.
 
-Owner merge of PR #572 selected #570 as the current bounded Class-3 operational slice. The exact scope is production reconciliation of four already-reviewed migrations; no provider/Auth/WAF/UI work is selected.
-
-The owner has explicitly deferred runtime UI redesign. #559 remains reference/design-foundation history only.
+Owner merge of PR #572 selected #570 as the current bounded Class-3 operational slice. Scope is limited to production reconciliation of four already-reviewed migrations plus bounded verification. No provider/Auth/WAF/UI work is selected. Runtime UI redesign remains explicitly deferred.
 
 ## 2. Financial and ownership truth
 
@@ -24,101 +23,108 @@ The owner has explicitly deferred runtime UI redesign. #559 remains reference/de
 - Completed reconciliation snapshots are historical facts.
 - Sensitive financial mutations remain invariant-preserving and ownership-enforced.
 
-## 3. Current #570 authority
+## 3. Acquisition and reconciliation truth
 
-Merged `main@ab02529b954c59dfe7335776ee9ec47c8cc18f9c` contains:
+MON-62 established versioned source adapters, strict source identity/date/amount evidence, non-truncating persistence and provenance.
 
-```json
-"current": {
-  "path": "docs/plans/active/570-production-migration-reconciliation.md",
-  "selectedByPr": 572
-}
-```
+MON-63 repository code contains replay-safe atomic preview→Inbox commit and privacy-safe bounded maintenance measurement. Hosted durable capability is not yet production truth because the required migrations remain pending #570.
 
-The selected migration chain is exactly:
+Exception-first Inbox review is implemented. Ready classification never auto-posts. Reconciliation remains statement-oriented and account-leg based; start, clear, complete and reopen are database-controlled and cross-tenant tested.
+
+## 4. #567 repository truth versus production truth
+
+PR #571 is repository-merged and locally verified. Its two security migrations are not yet live in hosted Supabase. Production still has `reconciliation_snapshot_for_user(uuid,uuid,date)` as SECURITY DEFINER and no global postgres future-function default ACL override.
+
+Pre-rollout Security Advisor evidence remains 43 authenticated-callable SECURITY DEFINER findings. The intended #570 delta for this narrow slice is 43 → 42, not zero. The separate leaked-password-protection warning remains #174/provider-control scope.
+
+## 5. Current capability inventory
+
+| Capability | Current truth |
+| --- | --- |
+| Core ledger | accounts; income/expense; balanced transfers; edit; recoverable deletion |
+| Reconciliation | statement/account-leg lifecycle and historical completed snapshots |
+| Acquisition | generic CSV/XLSX/PDF, Direct CSV, Share Target, provenance-safe adapters |
+| Import integrity | replay-safe atomic commit code is merged; hosted migration pending #570 |
+| Maintenance evidence | bounded measurement code is merged; hosted migration pending #570 |
+| Review/rules | deterministic Ready/Needs-attention; explicit approval; tenant-owned rules |
+| Auth | authenticated/Supabase-RLS mode plus explicit demo-local mode |
+| Privileged RPCs | repo projects 42 authenticated SECURITY DEFINER endpoints after #571; hosted remains pre-rollout |
+| Executable authority | #570 selected on merged main via PR #572 |
+
+## 6. Current production migration gap
+
+Hosted `supabase_migrations.schema_migrations` still ends at `20260825090000_direct_csv_rule_atomic_ingestion`. Exact `main@ab02529b...` contains exactly four later migration files, so the repo/remote divergence is one contiguous pending chain:
 
 1. `20260909090000_import_batch_atomic_commit.sql`;
 2. `20260909120000_import_batch_measurement.sql`;
 3. `20260910181500_function_default_acl_hardening.sql`;
 4. `20260910182000_reconciliation_snapshot_security_invoker.sql`.
 
-Repository migration-directory inspection at exact `main@ab02529b...` confirms those are the only migrations after the hosted tail `20260825090000`, so the repo/remote divergence is one contiguous four-file chain.
+Read-only production preflight on 2026-09-11 confirms all four versions and their target objects/effects are absent. PostgreSQL is 17.6; `import_batches` had 1 row (~80 KiB) and `inbox_candidates` had 7 rows; there were no blocked sessions and no non-idle transaction older than 30 seconds at capture time. RLS is enabled with authenticated own-row policies on both affected import tables.
 
-## 4. Production preflight — 2026-09-11
+## 7. #570 selector and deployment truth
 
-Read-only hosted inspection after selector merge confirms:
+PR #572 is owner-merged as `ab02529b954c59dfe7335776ee9ec47c8cc18f9c`. `PLAN_AUTHORITY.current` now selects `docs/plans/active/570-production-migration-reconciliation.md` via `selectedByPr: 572`.
 
-- all four selected versions are absent from `supabase_migrations.schema_migrations`;
-- `public.commit_import_batch_candidates(uuid,text,jsonb)` is absent;
-- `public.record_import_batch_measurement(uuid,text)` is absent;
-- all five selected `import_batches` columns are absent;
-- no postgres global future-function default ACL override is live;
-- `public.reconciliation_snapshot_for_user(uuid,uuid,date)` remains STABLE + `SECURITY DEFINER`, executable by authenticated and denied to anon/PUBLIC;
-- `import_batches` and `inbox_candidates` have RLS enabled with authenticated own-row policies matching the SECURITY INVOKER assumptions;
-- `import_batches` had 1 row and about 80 KiB total relation size; `inbox_candidates` had 7 rows at capture time;
-- no blocked sessions and no non-idle transaction older than 30 seconds were present at capture time.
+Official Supabase workflow refreshed 2026-09-11 remains `supabase migration list` → `supabase db push --dry-run` → `supabase db push`. Remote reset/production seed are forbidden. Direct remote SQL bypasses migration history and is not an acceptable substitute. cite-not-stored
 
-Canonical migration files were re-read from exact main. The selected chain contains no destructive reset, seed, direct user-data backfill or unrelated schema redesign.
+The connected Supabase MCP `apply_migration` surface accepts no caller-supplied canonical migration version. Upstream Supabase MCP issue #241 documents server-generated timestamp behavior, so that primitive is rejected for these four existing timestamped files. Current chat shell has no usable MoneyFlow checkout/Supabase CLI and no outbound DNS; repo search found no production Supabase deploy workflow.
 
-## 5. Execution-surface blocker
+Therefore #570 is active authority but blocked before first write solely on acquiring a version-preserving execution surface. No migration-history repair, ad-hoc SQL, remote reset, seed, or blind retry is allowed.
 
-The remaining blocker is not schema ambiguity; it is version-preserving execution.
+## 8. Reconciled issue status
 
-Current official Supabase workflow remains:
+- #432/#433: merged master Vietnam long-term product program.
+- MON-62 / PR #552: completed and production-verified.
+- MON-63 / PRs #553–#556: repository implementation complete; hosted durable measurement pending #570.
+- #511 / PR #522: completed.
+- #557 / PR #561: completed.
+- #559 / PRs #562–#566: design foundation completed; runtime UI deferred.
+- #567 / PR #571: repository implementation merged; production DB verification depends on #570 S4.
+- #570 / PR #572: selected current operational lane; production rollout blocked before first write by missing version-preserving executor.
+- #573: Draft operational-evidence PR for #570; no production DDL.
+- #569: open lifecycle/project-memory hardening lane; not selected.
+- #174: open provider-control lane; separate from #570.
 
-- `supabase migration list` to reconcile local/remote history;
-- `supabase db push --dry-run` to preview the exact pending set;
-- `supabase db push` to apply timestamped migration files and register their canonical versions;
-- never use `db reset --linked` or seed on production.
+## 9. Open pull-request memory
 
-The current chat runtime has no MoneyFlow repository checkout, no usable Supabase CLI, and no outbound shell DNS. Repository search shows no production Supabase deploy workflow.
+### PR #573 — record #570 production preflight and executor blocker
 
-The connected Supabase MCP `apply_migration` action accepts only `name + query`, not a caller-supplied canonical version. Upstream Supabase MCP issue #241 documents that this path generates a server-side timestamp and can create remote-only migration-history entries. Therefore it is **not** an acceptable substitute for replaying these four existing timestamped files under #570.
+Base: `main@ab02529b954c59dfe7335776ee9ec47c8cc18f9c` after owner merge of selector PR #572.
 
-Do not use manual `schema_migrations` insertion/repair, ad-hoc SQL copies, remote reset, seed or blind retry to work around the missing executor. If a version-preserving CLI/project execution surface is unavailable, #570 must remain blocked before first write.
+Scope is operational evidence/lifecycle documentation only. It records the active #570 authority, exact four-file chain, hosted read-only preflight, canonical file identities and the executor blocker. It does not apply migrations, repair history, change runtime/provider settings, touch user data or start UI work.
 
-## 6. #567 and MON-63 dependency truth
+PR #573 remains Draft while production rollout is incomplete. Lifecycle impact is “implementation/operations continue under current slice #570”; it must not project current authority to null until hosted verification is complete.
 
-PR #571 repository implementation is merged and locally verified, but its hosted security effects remain pending #570. Until production rollout proves otherwise:
+## 10. True gaps after this audit
 
-- hosted reconciliation snapshot is still SECURITY DEFINER;
-- hosted postgres global future-function default ACL hardening is absent;
-- pre-rollout Security Advisor baseline remains 43 authenticated-callable SECURITY DEFINER findings.
+1. Hosted Supabase is four canonical migrations behind repository main.
+2. A version-preserving production migration executor is required before #570 can perform its first write.
+3. #567 security effects are code-complete but not production-verified.
+4. MON-63 maintenance measurement is not durable production truth until #570 S3 passes.
+5. Maintenance minutes/manual interventions still need a tighter semantic measurement contract after durable measurement rollout.
+6. Exact Vietnamese bank export identity/layout evidence remains incomplete for bank-specific automation.
+7. #174 provider-console controls remain a separate unresolved lane.
+8. Lifecycle tooling should prevent repository completion claims before required hosted rollout evidence exists; #569 owns that hardening.
 
-MON-63 repository code contains replay-safe import commit and privacy-safe maintenance measurement, but hosted durable capability cannot be claimed until the first two #570 migrations are live and verified.
+## 11. Next allowed action
 
-## 7. Plate/GitHub routing
+Acquire or use an execution environment with an exact fresh MoneyFlow checkout and authenticated/linked Supabase CLI that preserves the canonical migration filenames/versions. Immediately before any write:
 
-- THU-53 / GitHub #570: current executable operational lane; In Progress.
-- THU-47 / #567: repository implementation merged; production verification depends on #570 S4.
-- THU-44: maintenance-effort measurement depends on #570 S3 before durable production evidence is claimed.
-- THU-48 / #174: provider-control lane remains separate and is not selected.
-- THU-52 / #569: lifecycle/project-memory hardening remains separate and is not selected.
-- #559 UI runtime work remains deferred.
-
-## 8. Next allowed action
-
-Acquire or use an execution environment that has:
-
-1. exact repository checkout at fresh `main`;
-2. Supabase CLI authenticated/linked to the intended production project;
-3. a version-preserving path for the canonical migration filenames.
-
-Then, immediately before any write:
-
-1. resolve authority and require #570 to remain current;
-2. rerun hosted migration/catalog preflight;
+1. resolve authority and require #570 current;
+2. repeat hosted migration/catalog/lock preflight;
 3. run `supabase migration list`;
 4. run `supabase db push --dry-run`;
-5. require the preview to contain exactly the four selected versions and no unexpected remote/local drift;
-6. only then run the canonical `supabase db push` and perform bounded post-deploy verification.
+5. require exactly the four selected versions and no unexpected history/object drift;
+6. only then run one canonical `supabase db push` and perform bounded S3/S4 post-deploy verification.
 
-Any mismatch, ambiguous result or unexpected object/role delta is a stop condition. Do not synthesize a replacement migration history.
+Any mismatch or ambiguous result is a stop condition. Do not synthesize replacement migration history. Keep PR #573 Draft until rollout and hosted verification are complete.
 
-## 9. Superseded-status register
+## 12. Superseded-status register
 
-- PR #572 is still a candidate/unmerged selector — **false**; it is owner-merged as `ab02529b...` and #570 is current authority.
-- Merge of #572 means the four migrations are production-live — **false**; hosted history/catalog still show pre-rollout state.
-- MCP `apply_migration` is equivalent to `db push` for these timestamped files — **false** under the currently exposed schema because canonical version preservation is not available.
+- PR #572 is still candidate/unmerged — **false**; it is owner-merged as `ab02529b...` and #570 is current authority.
+- Merge of #572 means the four migrations are production-live — **false**; hosted history/catalog remain pre-rollout.
+- MCP `apply_migration` is equivalent to `db push` for these timestamped files — **false** unless canonical version preservation is proven.
 - #570 may broaden into provider/Auth/WAF/UI work — **false**.
-- Plate priority or generic chat continuation can override the selected packet — **false**.
+- #567 is production-verified merely because PR #571 merged — **false**.
+- Plate priority or generic chat continuation overrides repository authority — **false**.
