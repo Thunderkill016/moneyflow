@@ -76,6 +76,10 @@ begin
 end;
 $$;
 
+grant execute on function pg_temp.insert_source_candidate(
+  uuid, uuid, text, text, bigint, date, text, text, public.transaction_kind
+) to authenticated;
+
 set local request.jwt.claims = '{"sub":"44800000-0000-4000-8000-000000000001","role":"authenticated"}';
 set local role authenticated;
 
