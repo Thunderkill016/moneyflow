@@ -6,7 +6,7 @@
 **Permission scope:** selector PR is documentation/authority only; implementation may change only the bounded database/test surface below after selector merge and fresh authority resolution
 **Owner:** ThunderK
 **Issue/PR:** GitHub #567 / implementation PR pending
-**Selector:** draft PR pending
+**Selector:** GitHub PR #568
 **Parent program:** GitHub #432 — MoneyFlow master development program
 **Selector base:** `main@1ea23a1e9600807e0b3edf10e02f7414bcdf1cf0`
 **Last updated:** 2026-09-10
@@ -168,7 +168,7 @@ The implementation is acceptable only when all applicable evidence is green:
 | 567.1 | production/repo privileged-RPC reconnaissance | live catalog + migrations/tests | done |
 | 567.2 | official PostgreSQL/Supabase research refresh | references above | done |
 | 567.3 | identify bounded hardening scope | default ACL proof + snapshot invoker candidate | done |
-| 567.4 | selector + authority projection | selector PR | in_progress |
+| 567.4 | selector + authority projection | GitHub PR #568 | in_progress |
 | 567.5 | default ACL pgTAP regression proof | implementation branch | blocked |
 | 567.6 | snapshot invoker proof/change | implementation branch | blocked |
 | 567.7 | full DB/CI/security validation | exact implementation head | blocked |
@@ -193,7 +193,7 @@ Success means MoneyFlow has stronger regression proof and, where demonstrably sa
 | Date | From | To | State | Evidence | Remaining | Next allowed action |
 |---|---|---|---|---|---|---|
 | 2026-09-10 | audit | planner | evidence complete | production catalog, grants/RLS, security/reconciliation tests | select bounded slice | docs-only selector |
-| 2026-09-10 | planner | selector evaluation | candidate | GitHub #567 + this packet | selector PR number, exact-head governance/evaluation, owner merge | selector-only changes |
+| 2026-09-10 | planner | selector evaluation | candidate | GitHub #567 + PR #568 + this packet | exact-head governance/evaluation, owner merge | selector-only changes |
 
 ## Current permission boundary
 
