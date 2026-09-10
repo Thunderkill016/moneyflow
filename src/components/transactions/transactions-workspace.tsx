@@ -6,11 +6,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { AppShell } from "@/components/layout/app-shell";
 import { MoneyValue } from "@/components/money-value";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Button,
-  IconButton,
-  LinkButton,
-} from "@/components/ui/button";
+import { Button, IconButton, LinkButton } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { type ViewerSummary } from "@/components/user-chip";
 import { useTransactions } from "@/hooks/use-transactions";
@@ -58,7 +54,10 @@ const AddTransactionDialog = dynamic(
   { ssr: false },
 );
 const TransferDialog = dynamic(
-  () => import("@/components/transfer-dialog").then((module) => module.TransferDialog),
+  () =>
+    import("@/components/transfer-dialog").then(
+      (module) => module.TransferDialog,
+    ),
   { ssr: false },
 );
 const SplitExpenseDialog = dynamic(
@@ -244,12 +243,12 @@ export function TransactionsWorkspace({
   ]);
 
   const filterKey = `${kind}\0${account}\0${category}\0${review}\0${query}\0${fromDate}\0${toDate}\0${minAmountInput}\0${maxAmountInput}`;
-  const selectedIds =
-    selectionState.filterKey === filterKey ? selectionState.ids : [];
+  const selectedIds = useMemo(
+    () => (selectionState.filterKey === filterKey ? selectionState.ids : []),
+    [filterKey, selectionState.filterKey, selectionState.ids],
+  );
 
-  function setSelectedIds(
-    next: string[] | ((current: string[]) => string[]),
-  ) {
+  function setSelectedIds(next: string[] | ((current: string[]) => string[])) {
     setSelectionState((current) => {
       const currentIds = current.filterKey === filterKey ? current.ids : [];
       return {
@@ -311,7 +310,8 @@ export function TransactionsWorkspace({
    * event for a panel that is already open on mount, so a query-string-restored
    * filter would otherwise slam shut the moment it was cleared.
    */
-  const [userOpenedFilters, setUserOpenedFilters] = useState(hasSecondaryFilter);
+  const [userOpenedFilters, setUserOpenedFilters] =
+    useState(hasSecondaryFilter);
   const filtersOpen = userOpenedFilters || hasSecondaryFilter;
 
   const filtered = useMemo(
@@ -458,9 +458,14 @@ export function TransactionsWorkspace({
   }
 
   async function handleBulkReview(reviewStatus: TransactionReviewStatus) {
-    const result = await bulkSetReviewStatus({ ids: selectedIds, reviewStatus });
+    const result = await bulkSetReviewStatus({
+      ids: selectedIds,
+      reviewStatus,
+    });
     if (!result.ok) {
-      showNotice(safeUserNotice(result.message, "Không cập nhật được trạng thái."));
+      showNotice(
+        safeUserNotice(result.message, "Không cập nhật được trạng thái."),
+      );
       return;
     }
     showNotice(
@@ -675,7 +680,10 @@ export function TransactionsWorkspace({
           </Alert>
         ) : null}
 
-        <section className={styles.titleRow} aria-labelledby="transactions-title">
+        <section
+          className={styles.titleRow}
+          aria-labelledby="transactions-title"
+        >
           <div className={styles.titleCopy}>
             <p className={styles.eyebrow}>
               {isTimeline ? "Sổ đã duyệt" : "Dòng tiền của bạn"}
@@ -719,7 +727,8 @@ export function TransactionsWorkspace({
                   targetSize="important"
                   onClick={() => setTransferOpen(true)}
                   disabled={
-                    workspace.accounts.length < 2 || Boolean(workspace.dataError)
+                    workspace.accounts.length < 2 ||
+                    Boolean(workspace.dataError)
                   }
                 >
                   <Icon name="arrows" /> Chuyển tiền ví
@@ -778,7 +787,9 @@ export function TransactionsWorkspace({
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Tìm theo ghi chú, danh mục..."
                   aria-label={
-                    isTimeline ? "Tìm trong dòng thời gian" : "Tìm trong giao dịch"
+                    isTimeline
+                      ? "Tìm trong dòng thời gian"
+                      : "Tìm trong giao dịch"
                   }
                 />
               </div>
@@ -831,110 +842,123 @@ export function TransactionsWorkspace({
                 ) : null}
               </summary>
               <div className={styles.moreFiltersBody}>
-            <div className={styles.selectGrid}>
-              <label className={styles.field}>
-                <span>Danh mục</span>
-                <select
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                  aria-label="Lọc theo danh mục"
+                <div className={styles.selectGrid}>
+                  <label className={styles.field}>
+                    <span>Danh mục</span>
+                    <select
+                      value={category}
+                      onChange={(event) => setCategory(event.target.value)}
+                      aria-label="Lọc theo danh mục"
+                    >
+                      <option value="all">Mọi danh mục</option>
+                      {workspace.categories.map((item) => (
+                        <option value={item.name} key={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className={styles.field}>
+                    <span>Tài khoản</span>
+                    <select
+                      value={account}
+                      onChange={(event) => setAccount(event.target.value)}
+                      aria-label="Lọc theo tài khoản"
+                    >
+                      <option value="all">Mọi tài khoản</option>
+                      {workspace.accounts.map((item) => (
+                        <option value={item.name} key={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  {reviewFeatureAvailable ? (
+                    <label className={styles.field}>
+                      <span>Trạng thái</span>
+                      <select
+                        value={review}
+                        onChange={(event) =>
+                          setReview(
+                            event.target.value as TransactionReviewFilter,
+                          )
+                        }
+                        aria-label="Lọc theo trạng thái kiểm tra"
+                      >
+                        <option value="all">Mọi trạng thái</option>
+                        <option value="needs_review">Cần kiểm tra</option>
+                        <option value="reviewed">Đã duyệt</option>
+                      </select>
+                    </label>
+                  ) : null}
+                </div>
+
+                <div
+                  className={styles.rangeFilters}
+                  aria-label="Lọc theo thời gian và số tiền"
                 >
-                  <option value="all">Mọi danh mục</option>
-                  {workspace.categories.map((item) => (
-                    <option value={item.name} key={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className={styles.field}>
-                <span>Tài khoản</span>
-                <select
-                  value={account}
-                  onChange={(event) => setAccount(event.target.value)}
-                  aria-label="Lọc theo tài khoản"
-                >
-                  <option value="all">Mọi tài khoản</option>
-                  {workspace.accounts.map((item) => (
-                    <option value={item.name} key={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {reviewFeatureAvailable ? (
-                <label className={styles.field}>
-                  <span>Trạng thái</span>
-                  <select
-                    value={review}
-                    onChange={(event) =>
-                      setReview(event.target.value as TransactionReviewFilter)
-                    }
-                    aria-label="Lọc theo trạng thái kiểm tra"
-                  >
-                    <option value="all">Mọi trạng thái</option>
-                    <option value="needs_review">Cần kiểm tra</option>
-                    <option value="reviewed">Đã duyệt</option>
-                  </select>
-                </label>
-              ) : null}
-            </div>
-
-            <div className={styles.rangeFilters} aria-label="Lọc theo thời gian và số tiền">
-              <label className={styles.field}>
-                <span>Từ ngày</span>
-                <input
-                  type="date"
-                  value={fromDate}
-                  max={toDate || undefined}
-                  onChange={(event) => setFromDate(event.target.value)}
-                  aria-label="Từ ngày"
-                />
-              </label>
-              <label className={styles.field}>
-                <span>Đến ngày</span>
-                <input
-                  type="date"
-                  value={toDate}
-                  min={fromDate || undefined}
-                  onChange={(event) => setToDate(event.target.value)}
-                  aria-label="Đến ngày"
-                />
-              </label>
-              <label className={styles.field}>
-                <span>Từ số tiền</span>
-                <input
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={minAmountInput}
-                  onChange={(event) =>
-                    setMinAmountInput(normalizeTransactionAmountInput(event.target.value))
-                  }
-                  placeholder="Ví dụ: 100.000"
-                  aria-label="Số tiền tối thiểu"
-                />
-              </label>
-              <label className={styles.field}>
-                <span>Đến số tiền</span>
-                <input
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={maxAmountInput}
-                  onChange={(event) =>
-                    setMaxAmountInput(normalizeTransactionAmountInput(event.target.value))
-                  }
-                  placeholder="Ví dụ: 500.000"
-                  aria-label="Số tiền tối đa"
-                />
-              </label>
-            </div>
+                  <label className={styles.field}>
+                    <span>Từ ngày</span>
+                    <input
+                      type="date"
+                      value={fromDate}
+                      max={toDate || undefined}
+                      onChange={(event) => setFromDate(event.target.value)}
+                      aria-label="Từ ngày"
+                    />
+                  </label>
+                  <label className={styles.field}>
+                    <span>Đến ngày</span>
+                    <input
+                      type="date"
+                      value={toDate}
+                      min={fromDate || undefined}
+                      onChange={(event) => setToDate(event.target.value)}
+                      aria-label="Đến ngày"
+                    />
+                  </label>
+                  <label className={styles.field}>
+                    <span>Từ số tiền</span>
+                    <input
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={minAmountInput}
+                      onChange={(event) =>
+                        setMinAmountInput(
+                          normalizeTransactionAmountInput(event.target.value),
+                        )
+                      }
+                      placeholder="Ví dụ: 100.000"
+                      aria-label="Số tiền tối thiểu"
+                    />
+                  </label>
+                  <label className={styles.field}>
+                    <span>Đến số tiền</span>
+                    <input
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={maxAmountInput}
+                      onChange={(event) =>
+                        setMaxAmountInput(
+                          normalizeTransactionAmountInput(event.target.value),
+                        )
+                      }
+                      placeholder="Ví dụ: 500.000"
+                      aria-label="Số tiền tối đa"
+                    />
+                  </label>
+                </div>
               </div>
             </details>
 
             {filterError ? (
-              <Alert tone="error" live="assertive" className={styles.filterAlert}>
+              <Alert
+                tone="error"
+                live="assertive"
+                className={styles.filterAlert}
+              >
                 <AlertDescription>{filterError}</AlertDescription>
               </Alert>
             ) : null}
@@ -953,7 +977,10 @@ export function TransactionsWorkspace({
           </div>
 
           {reviewFeatureAvailable && filtered.length ? (
-            <div className={styles.selectionToolbar} aria-label="Chọn giao dịch">
+            <div
+              className={styles.selectionToolbar}
+              aria-label="Chọn giao dịch"
+            >
               <Button
                 type="button"
                 intent="secondary"
@@ -1037,7 +1064,9 @@ export function TransactionsWorkspace({
                 </Button>
               </div>
               {!bulkCategorySelection.ok ? (
-                <p className={styles.bulkReason}>{bulkCategorySelection.message}</p>
+                <p className={styles.bulkReason}>
+                  {bulkCategorySelection.message}
+                </p>
               ) : (
                 <p className={styles.bulkHint}>
                   Chỉ danh mục thay đổi; số tiền, ngày và tài khoản giữ nguyên.
@@ -1047,9 +1076,14 @@ export function TransactionsWorkspace({
           ) : null}
 
           {!reviewFeatureAvailable && !viewer.isDemo ? (
-            <Alert tone="info" live="polite" className={styles.featureUnavailable}>
+            <Alert
+              tone="info"
+              live="polite"
+              className={styles.featureUnavailable}
+            >
               <AlertDescription>
-                Kiểm tra và sửa hàng loạt sẽ xuất hiện sau khi migration tương ứng được bật.
+                Kiểm tra và sửa hàng loạt sẽ xuất hiện sau khi migration tương
+                ứng được bật.
               </AlertDescription>
             </Alert>
           ) : null}
@@ -1087,7 +1121,8 @@ export function TransactionsWorkspace({
                     const meta =
                       categoryMeta[transaction.category] ??
                       categoryMeta["Thu nhập khác"];
-                    const reviewStatus = getTransactionReviewStatus(transaction);
+                    const reviewStatus =
+                      getTransactionReviewStatus(transaction);
                     return (
                       <article
                         className={styles.row}
@@ -1095,7 +1130,9 @@ export function TransactionsWorkspace({
                         data-slot="ledger-row"
                         data-transaction-id={transaction.id}
                       >
-                        <span className={`${styles.transactionIcon} ${iconTone(transaction.kind)}`}>
+                        <span
+                          className={`${styles.transactionIcon} ${iconTone(transaction.kind)}`}
+                        >
                           <Icon name={meta.icon as IconName} />
                         </span>
                         <div className={styles.detail}>
@@ -1134,8 +1171,8 @@ export function TransactionsWorkspace({
                                   transaction.destinationAccount,
                                 )
                               : isSplitExpense(transaction)
-                                ? `${transaction.category} · ${transaction.account} · ${transaction.splits!
-                                    .map(
+                                ? `${transaction.category} · ${transaction.account} · ${transaction
+                                    .splits!.map(
                                       (line) =>
                                         `${line.category} ${formatMoney(line.amount)}`,
                                     )
@@ -1201,12 +1238,15 @@ export function TransactionsWorkspace({
                 </section>
               ))}
 
-              {listWindow.hasMore || listWindow.total > TRANSACTION_PAGE_SIZE ? (
+              {listWindow.hasMore ||
+              listWindow.total > TRANSACTION_PAGE_SIZE ? (
                 <div className={styles.loadMore} role="status">
                   <p>
                     Đang hiện <strong>{listWindow.shown}</strong> /{" "}
                     <strong>{listWindow.total}</strong> giao dịch
-                    {listWindow.hasMore ? ` · còn ${listWindow.remaining} nữa` : ""}
+                    {listWindow.hasMore
+                      ? ` · còn ${listWindow.remaining} nữa`
+                      : ""}
                   </p>
                   {listWindow.hasMore ? (
                     <Button
@@ -1215,7 +1255,8 @@ export function TransactionsWorkspace({
                       targetSize="important"
                       onClick={loadMore}
                     >
-                      Tải thêm {Math.min(TRANSACTION_PAGE_SIZE, listWindow.remaining)}
+                      Tải thêm{" "}
+                      {Math.min(TRANSACTION_PAGE_SIZE, listWindow.remaining)}
                     </Button>
                   ) : null}
                 </div>

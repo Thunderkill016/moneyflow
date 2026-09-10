@@ -66,4 +66,5 @@ test("buildAttentionItems includes inbox count calmly", () => {
   });
   assert.equal(items[0]!.href, "/inbox");
   assert.match(items[0]!.label, /3/);
+  assert.match(items[0]!.label, /cần xem/i);
 });

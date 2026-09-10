@@ -47,8 +47,15 @@ import {
 } from "@/lib/planning/commitments";
 import { commitmentDueLabel, commitmentDueTone } from "@/lib/planning-pages";
 import { maybeNotifyDueCommitments } from "@/lib/push-client";
-import { categoryMeta, type AccountOption, type CategoryOption } from "@/lib/sample-data";
-import { readStoredTransactions, writeStoredTransactions } from "@/lib/transaction-store";
+import {
+  categoryMeta,
+  type AccountOption,
+  type CategoryOption,
+} from "@/lib/sample-data";
+import {
+  readStoredTransactions,
+  writeStoredTransactions,
+} from "@/lib/transaction-store";
 
 const CommitmentDialog = dynamic(
   () =>
@@ -63,6 +70,7 @@ type CommitmentReview = {
   item: RecurringCommitment;
   action: CommitmentReviewAction;
 };
+type CommitmentStatusFilter = "all" | "unpaid" | "paid";
 
 export function CommitmentsPage({
   viewer,
@@ -90,11 +98,15 @@ export function CommitmentsPage({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [showArchived, setShowArchived] = useState(false);
+  const [statusFilter, setStatusFilter] =
+    useState<CommitmentStatusFilter>("all");
 
   useEffect(() => {
     if (!viewer.isDemo) return;
     const frame = window.requestAnimationFrame(() => {
-      setItems(hydrateCommitmentsWithOccurrences(initialCommitments, monthStart));
+      setItems(
+        hydrateCommitmentsWithOccurrences(initialCommitments, monthStart),
+      );
       setHydrated(true);
     });
     return () => window.cancelAnimationFrame(frame);
@@ -124,13 +136,36 @@ export function CommitmentsPage({
     () =>
       items
         .filter((item) => !item.isArchived)
-        .sort((a, b) => Number(a.isPaid) - Number(b.isPaid) || a.dueDay - b.dueDay),
+        .sort(
+          (a, b) => Number(a.isPaid) - Number(b.isPaid) || a.dueDay - b.dueDay,
+        ),
     [items],
   );
-  const archived = useMemo(() => items.filter((item) => item.isArchived), [items]);
-  const visible = showArchived ? archived : active;
+  const archived = useMemo(
+    () => items.filter((item) => item.isArchived),
+    [items],
+  );
+  const visibleActive = useMemo(() => {
+    if (statusFilter === "unpaid") return active.filter((item) => !item.isPaid);
+    if (statusFilter === "paid") return active.filter((item) => item.isPaid);
+    return active;
+  }, [active, statusFilter]);
+  const visible = showArchived ? archived : visibleActive;
+  const emptyTitle = showArchived
+    ? "Không có khoản đã lưu trữ"
+    : statusFilter === "unpaid"
+      ? "Không có khoản chưa thanh toán"
+      : statusFilter === "paid"
+        ? "Chưa có khoản đã thanh toán"
+        : "Chưa có khoản định kỳ";
+  const emptyDescription = showArchived
+    ? "Các khoản được lưu trữ sẽ xuất hiện tại đây."
+    : statusFilter === "all"
+      ? "Thêm tiền nhà hoặc hóa đơn để theo dõi ngày và chỉ ghi chi khi bạn thanh toán."
+      : "Đổi bộ lọc để xem các khoản định kỳ khác hoặc thêm một khoản mới.";
   const totals = commitmentTotals(items);
   const unpaidCount = unpaidActiveCount(items);
+  const paidCount = Math.max(0, active.length - unpaidCount);
   const canAdd = !dataError && accounts.length > 0 && categories.length > 0;
 
   function open(item: RecurringCommitment | null) {
@@ -166,7 +201,11 @@ export function CommitmentsPage({
           : [...current, next],
       );
       setDialogOpen(false);
-      setNotice(existing ? "Đã cập nhật khoản định kỳ demo." : "Đã thêm khoản định kỳ demo.");
+      setNotice(
+        existing
+          ? "Đã cập nhật khoản định kỳ demo."
+          : "Đã thêm khoản định kỳ demo.",
+      );
       return { ok: true };
     }
 
@@ -195,10 +234,16 @@ export function CommitmentsPage({
     }
     setItems((current) =>
       current.map((value) =>
-        value.id === item.id ? { ...value, isArchived: !value.isArchived } : value,
+        value.id === item.id
+          ? { ...value, isArchived: !value.isArchived }
+          : value,
       ),
     );
-    setNotice(item.isArchived ? "Đã khôi phục khoản định kỳ." : "Đã lưu trữ khoản định kỳ.");
+    setNotice(
+      item.isArchived
+        ? "Đã khôi phục khoản định kỳ."
+        : "Đã lưu trữ khoản định kỳ.",
+    );
     return true;
   }
 
@@ -207,10 +252,18 @@ export function CommitmentsPage({
     try {
       if (viewer.isDemo) {
         const transactionId = crypto.randomUUID();
-        const expense = buildCommitmentPaymentExpense(item, today, transactionId);
-        writeStoredTransactions(appendPaymentExpense(readStoredTransactions(), expense));
+        const expense = buildCommitmentPaymentExpense(
+          item,
+          today,
+          transactionId,
+        );
+        writeStoredTransactions(
+          appendPaymentExpense(readStoredTransactions(), expense),
+        );
         persistPayOccurrence(monthStart, item.id, transactionId);
-        setItems((current) => markCommitmentPaid(current, item.id, transactionId));
+        setItems((current) =>
+          markCommitmentPaid(current, item.id, transactionId),
+        );
       } else {
         const result = await payCommitmentAction(
           item.id,
@@ -226,7 +279,9 @@ export function CommitmentsPage({
           markCommitmentPaid(current, item.id, result.transactionId ?? "paid"),
         );
       }
-      setNotice(`Đã ghi khoản chi ${formatMoney(item.amount)} cho ${item.name} vào sổ giao dịch.`);
+      setNotice(
+        `Đã ghi khoản chi ${formatMoney(item.amount)} cho ${item.name} vào sổ giao dịch.`,
+      );
       return true;
     } catch {
       setNotice("Không thể ghi thanh toán. Hãy thử lại.");
@@ -265,7 +320,8 @@ export function CommitmentsPage({
     let succeeded = false;
     if (review.action === "pay") succeeded = await performPay(review.item);
     if (review.action === "undo") succeeded = await performUndo(review.item);
-    if (review.action === "archive") succeeded = await performArchive(review.item);
+    if (review.action === "archive")
+      succeeded = await performArchive(review.item);
     setBusyId(null);
     if (succeeded) setReview(null);
   }
@@ -288,7 +344,11 @@ export function CommitmentsPage({
   return (
     <AppShell
       viewer={viewer}
-      primaryAction={{ label: "Thêm khoản định kỳ", onClick: () => open(null), disabled: !canAdd }}
+      primaryAction={{
+        label: "Thêm khoản định kỳ",
+        onClick: () => open(null),
+        disabled: !canAdd,
+      }}
       showPrimaryActionOnMobile
       notice={notice}
     >
@@ -304,7 +364,8 @@ export function CommitmentsPage({
           title="Khoản định kỳ"
           description={
             <>
-              Theo dõi các khoản dự kiến phải trả và chỉ ghi chi khi bạn xác nhận đã thanh toán. {" "}
+              Theo dõi các khoản dự kiến phải trả và chỉ ghi chi khi bạn xác
+              nhận đã thanh toán.{" "}
               <Link href="/settings/notifications">Nhắc đến hạn (opt-in)</Link>
             </>
           }
@@ -317,13 +378,21 @@ export function CommitmentsPage({
             title="Không tải được khoản định kỳ"
             description="Dữ liệu của bạn vẫn được bảo vệ. Thử tải lại trang hoặc quay lại Tổng quan."
             primaryAction={
-              <LinkButton href="/dashboard" intent="secondary" targetSize="important">
+              <LinkButton
+                href="/dashboard"
+                intent="secondary"
+                targetSize="important"
+              >
                 Về Tổng quan
               </LinkButton>
             }
           />
         ) : !hydrated ? (
-          <section className={planningStyles.loadingGrid} aria-busy="true" aria-label="Đang tải khoản định kỳ">
+          <section
+            className={planningStyles.loadingGrid}
+            aria-busy="true"
+            aria-label="Đang tải khoản định kỳ"
+          >
             {Array.from({ length: 3 }, (_, index) => (
               <div className={planningStyles.loadingCard} key={index} />
             ))}
@@ -335,15 +404,52 @@ export function CommitmentsPage({
                 label="Dự kiến phải trả"
                 meta="Tổng các khoản đang hoạt động chưa được ghi thanh toán."
               >
-                <MoneyValue amount={totals.reserved} emphasis="strong" align="start" />
+                <MoneyValue
+                  amount={totals.reserved}
+                  emphasis="strong"
+                  align="start"
+                />
               </PlanningSummaryItem>
               <PlanningSummaryItem label="Đã ghi thanh toán">
-                <MoneyValue amount={totals.paid} emphasis="strong" align="start" />
+                <MoneyValue
+                  amount={totals.paid}
+                  emphasis="strong"
+                  align="start"
+                />
               </PlanningSummaryItem>
               <PlanningSummaryItem label="Chưa thanh toán">
                 <strong>{unpaidCount} khoản</strong>
               </PlanningSummaryItem>
             </PlanningSummary>
+
+            {!showArchived ? (
+              <div
+                className={planningStyles.filterBar}
+                role="group"
+                aria-label="Lọc khoản định kỳ"
+              >
+                <span className={planningStyles.filterLabel}>Hiển thị</span>
+                {(
+                  [
+                    ["all", `Tất cả (${active.length})`],
+                    ["unpaid", `Chưa thanh toán (${unpaidCount})`],
+                    ["paid", `Đã thanh toán (${paidCount})`],
+                  ] as const
+                ).map(([value, label]) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    intent={statusFilter === value ? "primary" : "secondary"}
+                    density="compact"
+                    targetSize="important"
+                    aria-pressed={statusFilter === value}
+                    onClick={() => setStatusFilter(value)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
 
             <PlanningSection
               title={showArchived ? "Đã lưu trữ" : "Lịch thanh toán tháng này"}
@@ -356,7 +462,9 @@ export function CommitmentsPage({
                   targetSize="important"
                   onClick={() => setShowArchived((value) => !value)}
                 >
-                  {showArchived ? "Xem đang hoạt động" : `Đã lưu trữ (${archived.length})`}
+                  {showArchived
+                    ? "Xem đang hoạt động"
+                    : `Đã lưu trữ (${archived.length})`}
                 </Button>
               }
             >
@@ -378,50 +486,78 @@ export function CommitmentsPage({
                           </span>
                           <div className={planningStyles.cardTitle}>
                             <h3>{item.name}</h3>
-                            <p>{item.categoryName} · {item.accountName} · hạn ngày {item.dueDay}</p>
+                            <p>
+                              {item.categoryName} · {item.accountName} · hạn
+                              ngày {item.dueDay}
+                            </p>
                           </div>
-                          <span className={planningStyles.status} data-slot="planning-card-status">
+                          <span
+                            className={planningStyles.status}
+                            data-slot="planning-card-status"
+                          >
                             {statusText}
                           </span>
                         </div>
 
                         <div className={planningStyles.metrics}>
                           <div className={planningStyles.metric}>
-                            <span className={planningStyles.metricLabel}>Số tiền</span>
-                            <MoneyValue amount={item.amount} emphasis="strong" align="start" />
+                            <span className={planningStyles.metricLabel}>
+                              Số tiền
+                            </span>
+                            <MoneyValue
+                              amount={item.amount}
+                              emphasis="strong"
+                              align="start"
+                            />
                           </div>
                           <div className={planningStyles.metric}>
-                            <span className={planningStyles.metricLabel}>Tài khoản</span>
+                            <span className={planningStyles.metricLabel}>
+                              Tài khoản
+                            </span>
                             <strong>{item.accountName}</strong>
                           </div>
                           <div className={planningStyles.metric}>
-                            <span className={planningStyles.metricLabel}>Trạng thái sổ</span>
-                            <strong>{item.isPaid ? "Đã có giao dịch chi" : "Chưa ghi giao dịch"}</strong>
+                            <span className={planningStyles.metricLabel}>
+                              Trạng thái sổ
+                            </span>
+                            <strong>
+                              {item.isPaid
+                                ? "Đã có giao dịch chi"
+                                : "Chưa ghi giao dịch"}
+                            </strong>
                           </div>
                         </div>
 
-                        <div className={planningStyles.actions} data-slot="planning-card-actions">
-                          {!item.isArchived && (item.isPaid ? (
-                            <Button
-                              type="button"
-                              intent="secondary"
-                              targetSize="important"
-                              disabled={busyId === item.id}
-                              onClick={() => setReview({ item, action: "undo" })}
-                            >
-                              <Icon name="restore" /> Hoàn tác thanh toán
-                            </Button>
-                          ) : (
-                            <Button
-                              type="button"
-                              intent="primary"
-                              targetSize="important"
-                              disabled={busyId === item.id}
-                              onClick={() => setReview({ item, action: "pay" })}
-                            >
-                              <Icon name="check" /> Ghi đã thanh toán
-                            </Button>
-                          ))}
+                        <div
+                          className={planningStyles.actions}
+                          data-slot="planning-card-actions"
+                        >
+                          {!item.isArchived &&
+                            (item.isPaid ? (
+                              <Button
+                                type="button"
+                                intent="secondary"
+                                targetSize="important"
+                                disabled={busyId === item.id}
+                                onClick={() =>
+                                  setReview({ item, action: "undo" })
+                                }
+                              >
+                                <Icon name="restore" /> Hoàn tác thanh toán
+                              </Button>
+                            ) : (
+                              <Button
+                                type="button"
+                                intent="primary"
+                                targetSize="important"
+                                disabled={busyId === item.id}
+                                onClick={() =>
+                                  setReview({ item, action: "pay" })
+                                }
+                              >
+                                <Icon name="check" /> Ghi đã thanh toán
+                              </Button>
+                            ))}
                           {!item.isArchived ? (
                             <Button
                               type="button"
@@ -438,9 +574,13 @@ export function CommitmentsPage({
                             intent="quiet"
                             targetSize="important"
                             disabled={busyId === item.id}
-                            onClick={() => setReview({ item, action: "archive" })}
+                            onClick={() =>
+                              setReview({ item, action: "archive" })
+                            }
                           >
-                            <Icon name={item.isArchived ? "restore" : "archive"} />
+                            <Icon
+                              name={item.isArchived ? "restore" : "archive"}
+                            />
                             {item.isArchived ? "Khôi phục" : "Lưu trữ"}
                           </Button>
                         </div>
@@ -451,15 +591,16 @@ export function CommitmentsPage({
               ) : (
                 <EmptyState
                   icon={<Icon name="calendar" />}
-                  title={showArchived ? "Không có khoản đã lưu trữ" : "Chưa có khoản định kỳ"}
-                  description={
-                    showArchived
-                      ? "Các khoản được lưu trữ sẽ xuất hiện tại đây."
-                      : "Thêm tiền nhà hoặc hóa đơn để theo dõi ngày và chỉ ghi chi khi bạn thanh toán."
-                  }
+                  title={emptyTitle}
+                  description={emptyDescription}
                   primaryAction={
                     !showArchived && canAdd ? (
-                      <Button type="button" intent="primary" targetSize="important" onClick={() => open(null)}>
+                      <Button
+                        type="button"
+                        intent="primary"
+                        targetSize="important"
+                        onClick={() => open(null)}
+                      >
                         <Icon name="plus" /> Thêm khoản đầu tiên
                       </Button>
                     ) : undefined
@@ -490,8 +631,14 @@ export function CommitmentsPage({
         details={[
           { label: "Khoản", value: review?.item.name ?? "" },
           { label: "Tài khoản", value: review?.item.accountName ?? "" },
-          { label: "Số tiền", value: review ? formatMoney(review.item.amount) : "" },
-          { label: "Hạn ngày", value: review ? String(review.item.dueDay) : "" },
+          {
+            label: "Số tiền",
+            value: review ? formatMoney(review.item.amount) : "",
+          },
+          {
+            label: "Hạn ngày",
+            value: review ? String(review.item.dueDay) : "",
+          },
         ]}
         consequence={reviewConsequence}
         confirmLabel={

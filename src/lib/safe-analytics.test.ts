@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   analyticsPropsContainRaw,
@@ -6,6 +7,8 @@ import {
   sanitizeAnalyticsProps,
   trackProductEvent,
 } from "./safe-analytics.ts";
+
+const source = readFileSync("src/lib/safe-analytics.ts", "utf8");
 
 test("sanitizeAnalyticsProps keeps counts and drops raw keys", () => {
   const safe = sanitizeAnalyticsProps({
@@ -48,11 +51,17 @@ test("trackProductEvent rejects invalid event names", () => {
   assert.equal(trackProductEvent("import_batch_created").ok, true);
 });
 
-test("analyticsPropsContainRaw detects sensitive keys", () => {
-  assert.equal(
-    analyticsPropsContainRaw({ raw_snippet: "x", count: 1 }),
-    true,
+test("the browser sink receives only the sanitized payload", () => {
+  assert.match(
+    source,
+    /import \{ track as vercelTrack \} from "@vercel\/analytics"/,
   );
+  assert.match(source, /vercelTrack\(name, safe\)/);
+  assert.doesNotMatch(source, /vercelTrack\(name, props\)/);
+});
+
+test("analyticsPropsContainRaw detects sensitive keys", () => {
+  assert.equal(analyticsPropsContainRaw({ raw_snippet: "x", count: 1 }), true);
   assert.equal(analyticsPropsContainRaw({ row_count: 1 }), false);
 });
 
