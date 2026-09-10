@@ -20,7 +20,7 @@ import {
   sampleTransactionsFor,
 } from "@/lib/demo/transaction-fixtures";
 import { getTransactionReviewStatus } from "@/lib/transaction-review";
-import { PAGINATED_READ_PAGE_SIZE, readAllPages } from "@/lib/paginated-read";
+import { readAllPages } from "@/lib/paginated-read";
 export { readAllPages } from "@/lib/paginated-read";
 
 export type FinanceWorkspace = {
@@ -39,9 +39,6 @@ const TRANSACTION_FEED_COLUMNS =
 const TRANSACTION_REVIEW_COLUMNS = "id,review_status,occurred_on,created_at";
 
 type FinanceWorkspaceScope = "full" | "dashboard";
-
-/** Keep each Data API response below its configured row cap while preserving the full ledger. */
-const FINANCE_READ_PAGE_SIZE = PAGINATED_READ_PAGE_SIZE;
 
 const accountSchema = z
   .object({
