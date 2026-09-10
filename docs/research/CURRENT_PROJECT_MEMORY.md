@@ -1,6 +1,6 @@
 # MoneyFlow — current project memory
 
-**Status:** M0, MON-61, MON-62, MON-63 and bounded auth-resilience issue #557 are completed. PR #561 has completed implementation/evaluation and lifecycle closeout; executable authority is null pending final exact-head governance checks and explicit owner merge.
+**Status:** M0, MON-61, MON-62, MON-63 and bounded auth-resilience issue #557 are completed. PR #561 and PR #564 are merged; PR #562 is the fresh-main selector candidate for the #559 web-redesign foundation, while executable authority remains null until that selector is owner-merged.
 **Last reconciled:** 2026-09-10
 **Last verified production runtime baseline:** `ad0461514acaec1c9a8a100ba92592c83ece46b2` (PR #556), Vercel READY; `/api/health` returned 200 for that exact commit and the post-deploy error/fatal log check was empty.
 **Master program:** `docs/plans/active/432-vietnam-long-term-product-strategy.md` remains the long-term strategy authority.
@@ -14,7 +14,9 @@ MoneyFlow remains a Vietnamese personal-finance product centered on one trustwor
 
 PR #561 is not merged by this lifecycle projection. Final exact-head governance checks must be green on the lifecycle-closeout head, then the PR may be handed off Ready. Merge remains an explicit owner action.
 
-No provider-console follow-on from parent #174 is selected. A new implementation slice requires fresh executable authority.
+PR #562 now carries the #559 redesign foundation from fresh `main@394d7120`: historical UI failure postmortem, route/CSS ownership inventory, target information architecture, focused accessibility/workflow research, three candidate visual territories and Design System v3 guardrails. It is documentation/authority only. Until owner merge, merged-main executable authority remains `null`; no runtime redesign is implied.
+
+No provider-console follow-on from parent #174 is selected. A runtime design slice requires the #559 selector to merge, a fresh authority pass and an explicit owner choice of one visual territory.
 
 ## 2. Current runtime and financial truth
 
@@ -58,19 +60,19 @@ PR #561 implementation head `e4a5dfd49c9529ed19f1338a8a24630b57a2ebb8` passed CI
 
 ## 5. Current capability inventory
 
-| Capability | Current truth |
-|---|---|
-| Core ledger | accounts; income/expense; balanced transfers; edit; recoverable deletion |
-| Accounts | balances, register/history, archive/restore, statement reconciliation |
-| Planning | category budgets, recurring commitments/income, savings goals |
-| Understanding | reports, drill-downs, controlled import/export |
-| Acquisition | generic CSV/XLSX/PDF; Direct CSV and Share Target; provenance-safe source adapters; explicit versioned remembered mapping; target-bank auto-map disabled |
-| Import integrity | atomic/replay-safe authenticated batch commit; changed-intent fail-closed; no raw-statement retention |
-| Review | deterministic exception-first Ready/Needs-attention semantics and explicit approval authority |
-| Ownership | versioned archive/export/validation/restore with source-lineage generation |
-| Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
-| Auth CAPTCHA | email-auth flows remain real-token gated; top-level Turnstile script stall now has a 15-second MoneyFlow UX watchdog, truthful finite failure state and full-page retry in PR #561 |
-| Executable authority | `PLAN_AUTHORITY.current = null`; master #432 remains long-term authority |
+| Capability           | Current truth                                                                                                                                                                      |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core ledger          | accounts; income/expense; balanced transfers; edit; recoverable deletion                                                                                                           |
+| Accounts             | balances, register/history, archive/restore, statement reconciliation                                                                                                              |
+| Planning             | category budgets, recurring commitments/income, savings goals                                                                                                                      |
+| Understanding        | reports, drill-downs, controlled import/export                                                                                                                                     |
+| Acquisition          | generic CSV/XLSX/PDF; Direct CSV and Share Target; provenance-safe source adapters; explicit versioned remembered mapping; target-bank auto-map disabled                           |
+| Import integrity     | atomic/replay-safe authenticated batch commit; changed-intent fail-closed; no raw-statement retention                                                                              |
+| Review               | deterministic exception-first Ready/Needs-attention semantics and explicit approval authority                                                                                      |
+| Ownership            | versioned archive/export/validation/restore with source-lineage generation                                                                                                         |
+| Runtime modes        | explicit demo and authenticated/Supabase-RLS modes                                                                                                                                 |
+| Auth CAPTCHA         | email-auth flows remain real-token gated; top-level Turnstile script stall now has a 15-second MoneyFlow UX watchdog, truthful finite failure state and full-page retry in PR #561 |
+| Executable authority | merged main remains `PLAN_AUTHORITY.current = null`; PR #562 proposes selecting `docs/plans/active/559-web-redesign-foundation.md`                                                 |
 
 ## 6. #557 security and browser truth
 
@@ -116,6 +118,12 @@ Implementation adds a bounded top-level Turnstile script watchdog/recovery state
 
 Evaluator pass found no scope or security regression. Lifecycle closeout is now represented in the same PR: #557 packet moved to canonical `docs/plans/completed/2026-09-10-557-turnstile-load-recovery.md`, `PLAN_AUTHORITY.current` null, current memory reconciled and PR memory updated. Because those docs create a newer PR head, exact-head governance checks on the final lifecycle head remain required before Ready handoff.
 
+## 9.5. PR #562 redesign foundation truth
+
+PR #562 is a selector candidate, not shipped UI. Its packet is grounded in the merged P0–P11 migration history and current route/CSS inventory. The three visual territories are options for owner selection; none is active. Slice 1 may begin only after the selector is merged, a fresh `plan:resolve`/`agent:doctor` pass succeeds, and the owner selects one territory.
+
+The candidate deliberately preserves current product truth: manual/import-assisted acquisition, explicit demo versus authenticated modes, VND integer semantics, progressive disclosure and mobile as a release gate. It makes no provider, schema, production or financial claim.
+
 ## 10. True gaps after this audit
 
 1. #174 still has provider-console controls that cannot be proven or safely mutated from source code alone.
@@ -123,13 +131,13 @@ Evaluator pass found no scope or security regression. Lifecycle closeout is now 
 3. Exact VCB/ACB/VietinBank export layouts and stable transaction identity remain evidence gaps for bank-specific automation.
 4. Live bank/Open API connectivity still requires provider research, contracts, operational controls and explicit owner authorization.
 5. #426 needs a fresh capture/navigation design decision rather than execution of its stale deletion plan.
-6. PR #561 still requires final exact-head governance success and explicit owner merge before its code becomes production baseline.
+6. Physical-device evidence and post-merge production verification remain separate release gates; source/UI research cannot close them.
 
 ## 11. Next allowed action
 
-Run/observe exact-head CI, CodeQL and Secret History for the final PR #561 lifecycle-closeout head. If required checks are terminal green and the PR remains within scope, mark #561 Ready for review.
+Run exact-head governance checks for PR #562 after the fresh-main replay. If terminal green, hand the selector to the owner for merge. After merge, start a new bounded Slice 1 packet for Design System tokens/primitives; do not implement runtime UI from the selector PR.
 
-Do not merge without explicit owner authorization. Do not select #174 provider-console work or another implementation slice implicitly; `PLAN_AUTHORITY.current` is null.
+Do not select #174 provider-console work implicitly. Merged-main `PLAN_AUTHORITY.current` remains `null` until PR #562 is owner-merged.
 
 ## 12. Superseded-status register
 
@@ -144,3 +152,5 @@ Do not merge without explicit owner authorization. Do not select #174 provider-c
 - #557 remains executable after PR #561 lifecycle closeout — **false**; its packet is completed and `PLAN_AUTHORITY.current` is null.
 - PR #561 lifecycle completion means it may be auto-merged — **false**; owner merge remains explicit.
 - Plate or backlog priority is executable authority — **false**.
+- PR #562 still targets the pre-#561/#564 base — **false**; its branch has been replayed onto `main@394d7120`.
+- A visual territory is already selected — **false**; all three remain owner decisions.
