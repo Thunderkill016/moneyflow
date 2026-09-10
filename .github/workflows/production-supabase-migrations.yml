@@ -1,0 +1,215 @@
+name: Production Supabase migration reconciliation
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Run read-only preflight or apply the exact #570 migration set
+        required: true
+        default: preflight
+        type: choice
+        options:
+          - preflight
+          - apply
+      confirmation:
+        description: For apply, enter APPLY-570-FOUR-MIGRATIONS
+        required: false
+        type: string
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-supabase-migration-reconciliation
+  cancel-in-progress: false
+
+jobs:
+  reconcile:
+    name: Reconcile production Supabase migrations
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.number == 570 &&
+       github.event.comment.author_association == 'OWNER' &&
+       (github.event.comment.body == '/run-570-preflight' ||
+        github.event.comment.body == '/run-570-apply APPLY-570-FOUR-MIGRATIONS'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || vars.SUPABASE_PROJECT_ID }}
+      EXPECTED_VERSIONS: 20260909090000,20260909120000,20260910181500,20260910182000
+    steps:
+      - name: Checkout protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Resolve requested mode
+        id: request
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          COMMENT_BODY: ${{ github.event.comment.body || '' }}
+          INPUT_MODE: ${{ inputs.mode || '' }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation || '' }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "issue_comment" ]]; then
+            if [[ "$COMMENT_BODY" == "/run-570-apply APPLY-570-FOUR-MIGRATIONS" ]]; then
+              mode="apply"
+            else
+              mode="preflight"
+            fi
+          else
+            mode="$INPUT_MODE"
+            if [[ "$mode" == "apply" && "$INPUT_CONFIRMATION" != "APPLY-570-FOUR-MIGRATIONS" ]]; then
+              echo "::error::Apply mode requires the exact #570 confirmation phrase."
+              exit 1
+            fi
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+
+      - name: Verify #570 authority and canonical migration identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs')
+          const authority = JSON.parse(fs.readFileSync('docs/plans/PLAN_AUTHORITY.json', 'utf8'))
+          const current = authority.current
+          if (!current || current.path !== 'docs/plans/active/570-production-migration-reconciliation.md' || current.selectedByPr !== 572) {
+            throw new Error('PLAN_AUTHORITY does not select #570 through PR #572')
+          }
+          NODE
+
+          declare -A expected_blobs=(
+            ["supabase/migrations/20260909090000_import_batch_atomic_commit.sql"]="9968c56e70e1eb7427bec8a146de9705d8071985"
+            ["supabase/migrations/20260909120000_import_batch_measurement.sql"]="745588452f68f7ad42c0eac4b11b02acb846b5b2"
+            ["supabase/migrations/20260910181500_function_default_acl_hardening.sql"]="b25bb94bdc73932926f1fac206db753f2716c6bb"
+            ["supabase/migrations/20260910182000_reconciliation_snapshot_security_invoker.sql"]="0b9898e316057e88834a66b74044e7bccd96e4fe"
+          )
+
+          for file in "${!expected_blobs[@]}"; do
+            actual="$(git hash-object "$file")"
+            if [[ "$actual" != "${expected_blobs[$file]}" ]]; then
+              echo "::error file=$file::Canonical migration identity changed; stop #570."
+              exit 1
+            fi
+          done
+
+      - name: Require production connection secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for variable in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "::error::$variable is not configured for the production migration runner."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Setup pinned Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+        with:
+          version: 2.117.0
+
+      - name: Link intended production project
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase --version
+          supabase link --project-ref "$SUPABASE_PROJECT_ID" --yes
+
+      - name: Require exact four-migration divergence
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list --linked | tee "$RUNNER_TEMP/migration-list-before.txt"
+          MIGRATION_LIST_FILE="$RUNNER_TEMP/migration-list-before.txt" node <<'NODE'
+          const fs = require('node:fs')
+          const expected = process.env.EXPECTED_VERSIONS.split(',')
+          const text = fs.readFileSync(process.env.MIGRATION_LIST_FILE, 'utf8')
+          const local = []
+          const remote = []
+          for (const rawLine of text.split(/\r?\n/)) {
+            const line = rawLine.replaceAll('│', '|')
+            if (!line.includes('|')) continue
+            const columns = line.split('|')
+            if (columns.length < 2) continue
+            const localVersion = columns[0].match(/\b\d{1,20}\b/)?.[0]
+            const remoteVersion = columns[1].match(/\b\d{1,20}\b/)?.[0]
+            if (localVersion) local.push(localVersion)
+            if (remoteVersion) remote.push(remoteVersion)
+          }
+          const localSet = new Set(local)
+          const remoteSet = new Set(remote)
+          const remoteOnly = [...remoteSet].filter((version) => !localSet.has(version)).sort()
+          const pending = [...localSet].filter((version) => !remoteSet.has(version)).sort()
+          const expectedSorted = [...expected].sort()
+          if (remoteOnly.length) {
+            throw new Error(`Remote-only migration versions detected: ${remoteOnly.join(',')}`)
+          }
+          if (JSON.stringify(pending) !== JSON.stringify(expectedSorted)) {
+            throw new Error(`Pending migrations are not the exact #570 set. Found: ${pending.join(',')}`)
+          }
+          NODE
+
+      - name: Dry-run exact pending migration set
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --linked --dry-run --yes | tee "$RUNNER_TEMP/db-push-dry-run.txt"
+          for version in ${EXPECTED_VERSIONS//,/ }; do
+            if ! grep -Fq "$version" "$RUNNER_TEMP/db-push-dry-run.txt"; then
+              echo "::error::Dry-run did not include expected migration version $version."
+              exit 1
+            fi
+          done
+
+      - name: Apply exact canonical migration set
+        if: steps.request.outputs.mode == 'apply'
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --linked --yes
+
+      - name: Verify migration history converged
+        if: steps.request.outputs.mode == 'apply'
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list --linked | tee "$RUNNER_TEMP/migration-list-after.txt"
+          MIGRATION_LIST_FILE="$RUNNER_TEMP/migration-list-after.txt" node <<'NODE'
+          const fs = require('node:fs')
+          const text = fs.readFileSync(process.env.MIGRATION_LIST_FILE, 'utf8')
+          const local = []
+          const remote = []
+          for (const rawLine of text.split(/\r?\n/)) {
+            const line = rawLine.replaceAll('│', '|')
+            if (!line.includes('|')) continue
+            const columns = line.split('|')
+            if (columns.length < 2) continue
+            const localVersion = columns[0].match(/\b\d{1,20}\b/)?.[0]
+            const remoteVersion = columns[1].match(/\b\d{1,20}\b/)?.[0]
+            if (localVersion) local.push(localVersion)
+            if (remoteVersion) remote.push(remoteVersion)
+          }
+          const localSet = new Set(local)
+          const remoteSet = new Set(remote)
+          const remoteOnly = [...remoteSet].filter((version) => !localSet.has(version)).sort()
+          const localOnly = [...localSet].filter((version) => !remoteSet.has(version)).sort()
+          if (remoteOnly.length || localOnly.length) {
+            throw new Error(`Migration history did not converge. local-only=${localOnly.join(',')} remote-only=${remoteOnly.join(',')}`)
+          }
+          for (const version of process.env.EXPECTED_VERSIONS.split(',')) {
+            if (!remoteSet.has(version)) throw new Error(`Expected version missing after apply: ${version}`)
+          }
+          NODE
