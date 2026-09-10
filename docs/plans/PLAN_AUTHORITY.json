@@ -10,5 +10,8 @@
       }
     ]
   },
-  "current": null
+  "current": {
+    "path": "docs/plans/active/567-rpc-least-privilege-proof.md",
+    "selectedByPr": 568
+  }
 }
