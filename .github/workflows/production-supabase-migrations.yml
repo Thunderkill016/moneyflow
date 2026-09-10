@@ -38,9 +38,6 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || vars.SUPABASE_PROJECT_ID }}
       EXPECTED_PROJECT_REF_SHA256: 9fe697fa4990f0ceb9f46ef58b1ce98b07a8ade23af11936ddede90ce65f7781
       EXPECTED_VERSIONS: 20260909090000,20260909120000,20260910181500,20260910182000
     steps:
@@ -104,8 +101,17 @@ jobs:
             fi
           done
 
+      - name: Setup pinned Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
+        with:
+          version: 2.117.0
+
       - name: Require intended production connection
         shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
           set -euo pipefail
           missing=0
@@ -125,13 +131,12 @@ jobs:
             exit 1
           fi
 
-      - name: Setup pinned Supabase CLI
-        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
-        with:
-          version: 2.117.0
-
       - name: Link intended production project
         shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
         run: |
           set -euo pipefail
           supabase --version
@@ -139,6 +144,9 @@ jobs:
 
       - name: Require exact four-migration divergence
         shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
           supabase migration list --linked 2>&1 | tee "$RUNNER_TEMP/migration-list-before.txt"
@@ -173,6 +181,9 @@ jobs:
 
       - name: Dry-run exact pending migration set
         shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
           supabase db push --linked --dry-run --yes 2>&1 | tee "$RUNNER_TEMP/db-push-dry-run.txt"
@@ -186,6 +197,9 @@ jobs:
       - name: Apply exact canonical migration set
         if: steps.request.outputs.mode == 'apply'
         shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
           supabase db push --linked --yes
@@ -193,6 +207,9 @@ jobs:
       - name: Verify migration history converged
         if: steps.request.outputs.mode == 'apply'
         shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
           supabase migration list --linked 2>&1 | tee "$RUNNER_TEMP/migration-list-after.txt"
