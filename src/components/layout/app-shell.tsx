@@ -15,11 +15,7 @@ import {
   viewerLabel,
   type ViewerSummary,
 } from "@/components/user-chip";
-import {
-  Button,
-  IconButton,
-  LinkButton,
-} from "@/components/ui/button";
+import { Button, IconButton, LinkButton } from "@/components/ui/button";
 import {
   ToastRegion,
   type ToastMessage,
@@ -90,9 +86,7 @@ type NavItem =
     };
 
 const mobileTabs: NavItem[] = [
-  ...PRIMARY_NAV.filter(
-    (item) => item.kind === "action" || item.mobileTab,
-  ),
+  ...PRIMARY_NAV.filter((item) => item.kind === "action" || item.mobileTab),
   { kind: "link", label: "Thêm", icon: "more", href: "#more" },
 ];
 
@@ -329,9 +323,7 @@ export function AppShell({
               prefetch
             >
               <Icon name="search" aria-hidden="true" />
-              <span className={styles.searchPlaceholder}>
-                Tìm giao dịch...
-              </span>
+              <span className={styles.searchPlaceholder}>Tìm giao dịch...</span>
               <kbd aria-hidden="true">⌘ K</kbd>
             </Link>
           )}
@@ -343,7 +335,8 @@ export function AppShell({
                 targetSize="important"
                 className={cx(
                   styles.primaryAction,
-                  showPrimaryActionOnMobile && styles.primaryActionMobileVisible,
+                  showPrimaryActionOnMobile &&
+                    styles.primaryActionMobileVisible,
                 )}
                 href={resolvedPrimary.href}
               >
@@ -360,7 +353,8 @@ export function AppShell({
                 targetSize="important"
                 className={cx(
                   styles.primaryAction,
-                  showPrimaryActionOnMobile && styles.primaryActionMobileVisible,
+                  showPrimaryActionOnMobile &&
+                    styles.primaryActionMobileVisible,
                 )}
                 onClick={resolvedPrimary.onClick}
                 disabled={resolvedPrimary.disabled}
@@ -396,13 +390,17 @@ export function AppShell({
         ) : null}
 
         {/*
-          * Quiet and persistent rather than a dialog: losing signal is not an
-          * error the reader caused, and interrupting them mid-entry would be a
-          * worse answer than letting them keep typing. `aria-live="polite"`
-          * announces it once without cutting across whatever they are doing.
-          */}
+         * Quiet and persistent rather than a dialog: losing signal is not an
+         * error the reader caused, and interrupting them mid-entry would be a
+         * worse answer than letting them keep typing. `aria-live="polite"`
+         * announces it once without cutting across whatever they are doing.
+         */}
         {connectionNotice ? (
-          <div className={styles.offlineBanner} role="status" aria-live="polite">
+          <div
+            className={styles.offlineBanner}
+            role="status"
+            aria-live="polite"
+          >
             <Icon name="bell" aria-hidden="true" />
             <span>{connectionNotice}</span>
           </div>
@@ -553,13 +551,11 @@ function MoreSheet({
         pathname={pathname}
         onClose={onClose}
       />
-      <p className={styles.sectionLabel}>Nâng cao · nhập hàng loạt</p>
+      <p className={styles.sectionLabel}>Cần xem · nhập hàng loạt</p>
       <nav className={styles.sheetNav} aria-label="Công cụ nâng cao">
         {ADVANCED_NAV_LINKS.map((item) => {
           const badge =
-            item.href === "/inbox" && inboxCount > 0
-              ? inboxCount
-              : undefined;
+            item.href === "/inbox" && inboxCount > 0 ? inboxCount : undefined;
           const active = pathIsActive(pathname, item.href);
           return (
             <Link
@@ -609,10 +605,7 @@ function MoreSheet({
         {viewer.isDemo ? (
           <Link
             href="/register"
-            className={cx(
-              styles.accountAction,
-              styles.accountActionPrimary,
-            )}
+            className={cx(styles.accountAction, styles.accountActionPrimary)}
             onClick={onClose}
           >
             <Icon name="arrowRight" aria-hidden="true" />
@@ -624,10 +617,7 @@ function MoreSheet({
               type="submit"
               unstyled
               targetSize="important"
-              className={cx(
-                styles.accountAction,
-                styles.accountActionDanger,
-              )}
+              className={cx(styles.accountAction, styles.accountActionDanger)}
             >
               <Icon name="arrowRight" aria-hidden="true" />
               <span>Đăng xuất</span>
@@ -658,10 +648,7 @@ function SheetLinks({
           <Link
             key={item.href}
             href={item.href}
-            className={cx(
-              styles.sheetNavLink,
-              active && styles.sheetNavActive,
-            )}
+            className={cx(styles.sheetNavLink, active && styles.sheetNavActive)}
             onClick={onClose}
           >
             <Icon name={item.icon} aria-hidden="true" />

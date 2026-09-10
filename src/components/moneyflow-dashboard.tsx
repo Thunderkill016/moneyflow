@@ -50,7 +50,8 @@ const AddTransactionDialog = dynamic(
   { ssr: false },
 );
 const TransferDialog = dynamic(
-  () => import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
+  () =>
+    import("@/components/transfer-dialog").then((mod) => mod.TransferDialog),
   { ssr: false },
 );
 
@@ -170,11 +171,7 @@ export function MoneyFlowDashboard({
     () =>
       budgets.map((budget) => {
         const spentDelta =
-          sumBudgetSpent(
-            transactions,
-            budget.categoryId,
-            budget.monthStart,
-          ) -
+          sumBudgetSpent(transactions, budget.categoryId, budget.monthStart) -
           sumBudgetSpent(
             workspace.transactions,
             budget.categoryId,
@@ -280,6 +277,7 @@ export function MoneyFlowDashboard({
           totals={totals}
           today={workspace.today}
           isEmptyLedger={isEmptyLedger && !workspace.dataError}
+          dataError={workspace.dataError}
           onAddTransaction={openGhiChi}
         />
 

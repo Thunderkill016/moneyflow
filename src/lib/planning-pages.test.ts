@@ -27,7 +27,10 @@ const INCOME = join(root, "src/components/planning/income-templates-page.tsx");
 const GOALS = join(root, "src/components/planning/goals-page.tsx");
 const CATEGORIES = join(root, "src/components/categories-page.tsx");
 const SHELL = join(root, "src/components/planning/planning-card.tsx");
-const SHELL_CSS = join(root, "src/components/planning/planning-card.module.css");
+const SHELL_CSS = join(
+  root,
+  "src/components/planning/planning-card.module.css",
+);
 
 function read(path: string) {
   return readFileSync(path, "utf8");
@@ -62,7 +65,10 @@ test("page empty copy is calm Vietnamese (no guilt)", () => {
     PAGE_EMPTY_GOAL,
     PAGE_EMPTY_CATEGORY,
   ]
-    .map((config) => `${config.title} ${config.description} ${config.actionLabel ?? ""}`)
+    .map(
+      (config) =>
+        `${config.title} ${config.description} ${config.actionLabel ?? ""}`,
+    )
     .join(" ");
   assert.doesNotMatch(blob, /lãng phí|tội|phải tiết kiệm|sai lầm|thất bại/i);
 });
@@ -135,8 +141,16 @@ test("all four Planning pages use the shared shell and UI empty state", () => {
   for (const path of [BUDGETS, COMMITMENTS, INCOME, GOALS]) {
     const source = read(path);
     assert.match(source, /PlanningCard/, `${path} must use PlanningCard`);
-    assert.match(source, /PlanningWorkspace/, `${path} must use PlanningWorkspace`);
-    assert.match(source, /from "@\/components\/planning\/planning-card"/, `${path} import`);
+    assert.match(
+      source,
+      /PlanningWorkspace/,
+      `${path} must use PlanningWorkspace`,
+    );
+    assert.match(
+      source,
+      /from "@\/components\/planning\/planning-card"/,
+      `${path} import`,
+    );
     assert.match(source, /@\/components\/ui\/empty-state/);
     assert.doesNotMatch(source, /secondaryLabel/);
   }
@@ -144,6 +158,10 @@ test("all four Planning pages use the shared shell and UI empty state", () => {
   const commitments = read(COMMITMENTS);
   assert.match(commitments, /commitmentDueTone|commitmentDueLabel/);
   assert.match(commitments, /href="\/dashboard"/);
+  assert.match(commitments, /statusFilter/);
+  assert.match(commitments, /aria-pressed=\{statusFilter === value\}/);
+  assert.match(commitments, /Không có khoản chưa thanh toán/);
+  assert.match(commitments, /Chưa có khoản đã thanh toán/);
 
   const categories = read(CATEGORIES);
   assert.match(categories, /EmptyState/);

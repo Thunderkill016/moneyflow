@@ -160,6 +160,20 @@
   line-height: 1.45;
 }
 
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.filterLabel {
+  margin-right: 0.25rem;
+  color: var(--mf-text-muted);
+  font-size: 0.8125rem;
+  font-weight: 650;
+}
+
 .section {
   display: grid;
   gap: 0.875rem;

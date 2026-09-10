@@ -43,18 +43,26 @@ test("Categories owns identity and reversible hide review", () => {
   assert.match(categories, /Giao dịch, ngân sách và lịch sử cũ không bị xóa/);
   assert.match(categoryDialog, /label="Biểu tượng"/);
   assert.match(categoryDialog, /label="Màu nhận diện"/);
-  assert.doesNotMatch(categories, new RegExp(browserConfirm.replace(".", "\\.")));
+  assert.doesNotMatch(
+    categories,
+    new RegExp(browserConfirm.replace(".", "\\.")),
+  );
 });
 
 test("Inbox review is explicit and retries use candidate identity", () => {
   const normalizedInboxReview = normalizeSource(inboxReview);
   assert.match(inbox, /SecondaryWorkspace slot="inbox-workspace"/);
+  assert.match(inbox, /section="Cần xem"/);
+  assert.match(inbox, /title="Giao dịch chờ xử lý"/);
   assert.match(inbox, /approvalIdempotencyKey\(candidate\.id\)/);
   assert.match(inbox, /không tạo giao dịch trùng/);
   assert.match(inboxReview, /data-slot="inbox-review"/);
   assert.match(inboxReview, /Độ tin thấp/);
   assert.match(normalizedInboxReview, /Gắn nguồn, giữ nguyên sổ/);
-  assert.match(normalizedInboxReview, /trạng thái đối soát của giao dịch đã có/);
+  assert.match(
+    normalizedInboxReview,
+    /trạng thái đối soát của giao dịch đã có/,
+  );
   assert.match(
     normalizedInboxReview,
     /Các chỉnh sửa trong form này không được áp dụng khi gắn nguồn/,
@@ -112,19 +120,22 @@ test("Rules and Imports expose review consequences without browser confirms", ()
   assert.match(rules, /slot="rule-delete-review"/);
   assert.match(rules, /không tự tạo giao dịch trong sổ/);
   assert.match(imports, /slot="import-delete-review"/);
-  assert.match(imports, /Xóa metadata không xóa giao dịch đã được duyệt vào sổ/);
+  assert.match(
+    imports,
+    /Xóa metadata không xóa giao dịch đã được duyệt vào sổ/,
+  );
   assert.match(importPreview, /slot="import-preview-commit-review"/);
   assert.match(directImport, /slot="direct-import-review"/);
-  assert.match(directImport, /nếu một dòng bị máy chủ từ chối thì không dòng nào của lượt ghi trở thành giao dịch/i);
+  assert.match(
+    directImport,
+    /nếu một dòng bị máy chủ từ chối thì không dòng nào của lượt ghi trở thành giao dịch/i,
+  );
   assert.match(directImport, /hoàn tác vẫn theo lifecycle của từng giao dịch/i);
   assert.match(
     directImport,
     /setRecovery\(retainedDirectImportRecovery\(result\.batchId\)\)/,
   );
-  assert.match(
-    directImport,
-    /đừng thử lại trước khi xem Inbox/,
-  );
+  assert.match(directImport, /đừng thử lại trước khi xem Inbox/);
   assert.match(directImport, /href=\{recovery\.inboxHref\}/);
   assert.match(directImport, /href=\{recovery\.importsHref\}/);
   assert.match(directImport, /DIRECT_CSV_MAPPING_PRESET_STORAGE_KEY/);

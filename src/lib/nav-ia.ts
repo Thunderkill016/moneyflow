@@ -174,10 +174,10 @@ export const MORE_NAV_LINKS: SecondaryNavItem[] = [
  */
 export const ADVANCED_NAV_LINKS: SecondaryNavItem[] = [
   {
-    label: "Hộp thư",
+    label: "Cần xem",
     href: "/inbox",
     icon: "inbox",
-    description: "Duyệt ứng viên dán/import trước khi vào sổ",
+    description: "Duyệt giao dịch dán/import trước khi vào sổ",
   },
   {
     label: "Timeline đã duyệt",

@@ -14,19 +14,33 @@ import {
   mkdirSync,
   mkdtempSync,
   readdirSync,
-  readFileSync,
   rmSync,
   statSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, extname, join, relative, resolve, sep } from "node:path";
+import {
+  basename,
+  dirname,
+  extname,
+  join,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import ts from "typescript";
 
 const root = process.cwd();
 const scanner = fileURLToPath(new URL("./check-dead-css.mjs", import.meta.url));
-const SOURCE_EXTENSIONS = new Set([".tsx", ".ts", ".jsx", ".js", ".mjs", ".html"]);
+const SOURCE_EXTENSIONS = new Set([
+  ".tsx",
+  ".ts",
+  ".jsx",
+  ".js",
+  ".mjs",
+  ".html",
+]);
 const NEXT_ENTRY_BASENAMES = new Set([
   "page",
   "layout",
@@ -87,10 +101,13 @@ function walk(dir, predicate) {
   return files;
 }
 
-const productFiles = walk(join(root, "src"), (path) =>
-  SOURCE_EXTENSIONS.has(extname(path)) && !isTest(path),
+const productFiles = walk(
+  join(root, "src"),
+  (path) => SOURCE_EXTENSIONS.has(extname(path)) && !isTest(path),
 );
-const productByNormalizedPath = new Map(productFiles.map((path) => [normalized(path), path]));
+const productByNormalizedPath = new Map(
+  productFiles.map((path) => [normalized(path), path]),
+);
 
 const configPath = ts.findConfigFile(root, ts.sys.fileExists, "tsconfig.json");
 let compilerOptions = {
@@ -115,7 +132,8 @@ function isRuntimeEntry(file) {
   const rel = relativePath(file);
   if (extname(file) === ".html") return true;
   if (rel.startsWith("src/pages/")) return true;
-  if (/^src\/(?:middleware|proxy|instrumentation)\.[jt]sx?$/.test(rel)) return true;
+  if (/^src\/(?:middleware|proxy|instrumentation)\.[jt]sx?$/.test(rel))
+    return true;
   if (!rel.startsWith("src/app/")) return false;
   const name = basename(file).replace(/\.[^.]+$/, "");
   return NEXT_ENTRY_BASENAMES.has(name);
@@ -208,7 +226,9 @@ function copyIntoFixture(source, fixtureRoot) {
   copyFileSync(source, destination);
 }
 
-const fixtureRoot = mkdtempSync(join(tmpdir(), "moneyflow-dead-css-reachable-"));
+const fixtureRoot = mkdtempSync(
+  join(tmpdir(), "moneyflow-dead-css-reachable-"),
+);
 try {
   if (configPath) copyFileSync(configPath, join(fixtureRoot, "tsconfig.json"));
 

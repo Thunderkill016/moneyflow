@@ -20,6 +20,8 @@ import {
   sampleTransactionsFor,
 } from "@/lib/demo/transaction-fixtures";
 import { getTransactionReviewStatus } from "@/lib/transaction-review";
+import { readAllPages } from "@/lib/paginated-read";
+export { readAllPages } from "@/lib/paginated-read";
 
 export type FinanceWorkspace = {
   transactions: Transaction[];
@@ -34,8 +36,7 @@ export type FinanceWorkspace = {
 
 const TRANSACTION_FEED_COLUMNS =
   "id,kind,note,occurred_on,created_at,amount_minor,account_id,account_name,category_id,category_name,destination_account_id,destination_account_name,is_recurring_payment,split_lines";
-const TRANSACTION_REVIEW_COLUMNS =
-  "id,review_status,occurred_on,created_at";
+const TRANSACTION_REVIEW_COLUMNS = "id,review_status,occurred_on,created_at";
 
 type FinanceWorkspaceScope = "full" | "dashboard";
 
@@ -140,7 +141,7 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
     category:
       row.kind === "transfer"
         ? "Chuyển tiền"
-        : row.category_name ?? "Chưa phân loại",
+        : (row.category_name ?? "Chưa phân loại"),
     note: row.note || row.category_name || "Giao dịch",
     accountId: row.account_id,
     account: row.account_name,
@@ -157,10 +158,12 @@ export function mapTransactionFeedRow(value: unknown): Transaction {
 
 function demoWorkspace(): FinanceWorkspace {
   return {
-    transactions: sampleTransactionsFor(todayInVietnam()).map((transaction) => ({
-      ...transaction,
-      reviewStatus: getTransactionReviewStatus(transaction),
-    })),
+    transactions: sampleTransactionsFor(todayInVietnam()).map(
+      (transaction) => ({
+        ...transaction,
+        reviewStatus: getTransactionReviewStatus(transaction),
+      }),
+    ),
     accounts: demoAccounts,
     categories: demoCategories,
     totalBalance: 15_735_000,
@@ -202,9 +205,7 @@ function readReviewState(
     const rows = z.array(reviewFeedSchema).parse(data ?? []);
     return {
       available: true,
-      byId: new Map(
-        rows.map((row) => [row.id, row.review_status] as const),
-      ),
+      byId: new Map(rows.map((row) => [row.id, row.review_status] as const)),
     };
   } catch {
     return {
@@ -228,21 +229,27 @@ async function loadFinanceWorkspace(
   const today = todayInVietnam();
   const periodFeedPromise =
     scope === "dashboard"
-      ? supabase
-          .from("transaction_feed")
-          .select(TRANSACTION_FEED_COLUMNS)
-          .eq("user_id", viewer.id)
-          .gte("occurred_on", dashboardTransactionStart(today))
-          .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false })
-      : supabase
-          .from("transaction_feed")
-          .select(TRANSACTION_FEED_COLUMNS)
-          .eq("user_id", viewer.id)
-          .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false });
+      ? readAllPages((from, to) =>
+          supabase
+            .from("transaction_feed")
+            .select(TRANSACTION_FEED_COLUMNS)
+            .eq("user_id", viewer.id)
+            .gte("occurred_on", dashboardTransactionStart(today))
+            .order("occurred_on", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, to),
+        )
+      : readAllPages((from, to) =>
+          supabase
+            .from("transaction_feed")
+            .select(TRANSACTION_FEED_COLUMNS)
+            .eq("user_id", viewer.id)
+            .order("occurred_on", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, to),
+        );
 
   const recentFeedPromise =
     scope === "dashboard"
@@ -258,13 +265,16 @@ async function loadFinanceWorkspace(
 
   const reviewFeedPromise =
     scope === "full"
-      ? supabase
-          .from("transaction_review_feed")
-          .select(TRANSACTION_REVIEW_COLUMNS)
-          .eq("user_id", viewer.id)
-          .order("occurred_on", { ascending: false })
-          .order("created_at", { ascending: false })
-          .order("id", { ascending: false })
+      ? readAllPages((from, to) =>
+          supabase
+            .from("transaction_review_feed")
+            .select(TRANSACTION_REVIEW_COLUMNS)
+            .eq("user_id", viewer.id)
+            .order("occurred_on", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .range(from, to),
+        )
       : Promise.resolve({ data: [] as unknown[], error: null });
 
   const [
