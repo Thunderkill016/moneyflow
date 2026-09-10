@@ -52,7 +52,25 @@ PR #571, merged as `3c9794926effd3d0f0f0786ac286a8619d0518ca`, passed final CI i
 
 Hosted Supabase is still pre-#571 for those effects: no global postgres function-default ACL override is live and `reconciliation_snapshot_for_user(uuid,uuid,date)` remains SECURITY DEFINER. #567/THU-47 is therefore code-complete but production verification remains dependent on #570.
 
-## 5. Current production migration gap
+## 5. Current capability inventory
+
+| Capability | Current truth |
+| --- | --- |
+| Core ledger | accounts; income/expense; balanced transfers; edit; recoverable deletion |
+| Accounts | balances, register/history, archive/restore, statement reconciliation |
+| Planning | category budgets, recurring commitments/income, savings goals |
+| Understanding | reports, drill-downs, controlled import/export |
+| Acquisition | generic CSV/XLSX/PDF; Direct CSV and Share Target; provenance-safe adapters; explicit remembered mapping |
+| Import integrity | replay-safe/atomic migration code is in repo; hosted production migration still pending #570 |
+| Review | deterministic Ready/Needs-attention semantics; explicit approval; no automatic posting |
+| Rules | deterministic tenant-owned candidate-stage categorization rules with version evidence |
+| Ownership | versioned archive/export/validation/restore with source-lineage generation |
+| Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
+| Auth CAPTCHA | real-token gated with finite stalled-script recovery |
+| Privileged RPCs | repo tests project 42 authenticated SECURITY DEFINER endpoints after #571; hosted production remains at pre-#571 execution identity until #570 rollout |
+| Executable authority | merged main is `current = null`; PR #572 is candidate selection only |
+
+## 6. Current production migration gap
 
 Read-only production inspection after PR #571 merge proves hosted migration history stops at `20260825090000`. Current main contains exactly four later migrations that are absent from hosted history:
 
@@ -63,19 +81,13 @@ Read-only production inspection after PR #571 merge proves hosted migration hist
 
 Expected measurement columns/RPC are not live. This does not by itself prove ledger corruption because measurement is best-effort, but it does mean durable production maintenance evidence cannot yet be claimed. The atomic commit and security migrations require their own production verification rather than being treated as harmless omissions.
 
-## 6. #570 selector truth
+## 7. #570 selector and deployment truth
 
 Draft PR #572 is docs/authority only. It projects `PLAN_AUTHORITY.current` to `docs/plans/active/570-production-migration-reconciliation.md` with `selectedByPr: 572`, but this projection has no execution force until owner merge.
 
 The #570 packet freezes the production operation to the four canonical merged migrations above. Before any write it requires fresh authority resolution, local/remote migration-history reconciliation, an exact dry-run/preview, private baseline capture and fail-closed handling of any unexpected remote drift.
 
-Execution must use the normal migration-file deployment mechanism. `db reset --linked`, seed deployment, blind migration-history repair, ad-hoc SQL variants, user-data rewrites, provider Auth/WAF changes and UI work are outside scope.
-
-## 7. Current Supabase deployment guidance
-
 Current Supabase documentation uses `supabase migration list` to compare local and remote history and `supabase db push --dry-run` to preview pending migrations before `supabase db push`. Once migration history is authoritative, remote schema changes should come from migration files rather than direct Dashboard/SQL-editor edits. Remote reset is destructive and must never be used on production.
-
-No current Supabase breaking-change notice alters this migration workflow for #570.
 
 Repository CI currently proves local migrations via fresh reset/pgTAP but does not deploy hosted Supabase schema. Merge and Vercel deployment therefore cannot be used as evidence that database migrations reached production.
 
@@ -94,25 +106,19 @@ Repository CI currently proves local migrations via fresh reset/pgTAP but does n
 - #174: open provider-control lane; separate from #570.
 - #426: stale original simplification recipe is not executable authority.
 
-## 9. Current capability inventory
+## 9. Open pull-request memory
 
-| Capability | Current truth |
-| --- | --- |
-| Core ledger | accounts; income/expense; balanced transfers; edit; recoverable deletion |
-| Accounts | balances, register/history, archive/restore, statement reconciliation |
-| Planning | category budgets, recurring commitments/income, savings goals |
-| Understanding | reports, drill-downs, controlled import/export |
-| Acquisition | generic CSV/XLSX/PDF; Direct CSV and Share Target; provenance-safe adapters; explicit remembered mapping |
-| Import integrity | replay-safe/atomic migration code is in repo; hosted production migration still pending #570 |
-| Review | deterministic Ready/Needs-attention semantics; explicit approval; no automatic posting |
-| Rules | deterministic tenant-owned candidate-stage categorization rules with version evidence |
-| Ownership | versioned archive/export/validation/restore with source-lineage generation |
-| Runtime modes | explicit demo and authenticated/Supabase-RLS modes |
-| Auth CAPTCHA | real-token gated with finite stalled-script recovery |
-| Privileged RPCs | repo tests project 42 authenticated SECURITY DEFINER endpoints after #571; hosted production remains at pre-#571 execution identity until #570 rollout |
-| Executable authority | merged main is `current = null`; PR #572 is candidate selection only |
+### PR #572 — select #570 production Supabase migration reconciliation
 
-## 10. True gaps
+Base: owner-merged `main@3c9794926effd3d0f0f0786ac286a8619d0518ca` after PR #571.
+
+Scope is documentation/authority only: one #570 packet, `PLAN_AUTHORITY` candidate projection, this reconciled snapshot and PR-memory record. The selected future operation is exactly the four missing canonical migrations; no migration/runtime/provider/user-data/UI change is contained in the selector.
+
+Production application and database truth are deliberately separated: Vercel is READY at `3c979492...` and `/api/health` returns 200, while hosted Supabase still lacks all four selected migration versions and their catalog effects.
+
+PR #572 must pass exact-head governance/security checks and independent selector evaluation before Ready handoff. Production DDL remains forbidden while the PR is open. Merge remains an explicit owner decision.
+
+## 10. True gaps after this audit
 
 1. Hosted Supabase is four migrations behind repository main; #570 owns reconciliation.
 2. Maintenance minutes and true manual interventions are not honestly derivable from generic timestamps/edits; instrumentation or a tighter semantic event contract is still required after durable measurement rollout.
