@@ -41,6 +41,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID || vars.SUPABASE_PROJECT_ID }}
+      EXPECTED_PROJECT_REF_SHA256: 9fe697fa4990f0ceb9f46ef58b1ce98b07a8ade23af11936ddede90ce65f7781
       EXPECTED_VERSIONS: 20260909090000,20260909120000,20260910181500,20260910182000
     steps:
       - name: Checkout protected main
@@ -103,7 +104,7 @@ jobs:
             fi
           done
 
-      - name: Require production connection secrets
+      - name: Require intended production connection
         shell: bash
         run: |
           set -euo pipefail
@@ -114,7 +115,15 @@ jobs:
               missing=1
             fi
           done
-          exit "$missing"
+          if [[ "$missing" -ne 0 ]]; then
+            exit 1
+          fi
+
+          actual_project_hash="$(printf '%s' "$SUPABASE_PROJECT_ID" | sha256sum | awk '{print $1}')"
+          if [[ "$actual_project_hash" != "$EXPECTED_PROJECT_REF_SHA256" ]]; then
+            echo "::error::Configured Supabase project does not match the selected MoneyFlow production project."
+            exit 1
+          fi
 
       - name: Setup pinned Supabase CLI
         uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3.0.0
@@ -132,7 +141,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          supabase migration list --linked | tee "$RUNNER_TEMP/migration-list-before.txt"
+          supabase migration list --linked 2>&1 | tee "$RUNNER_TEMP/migration-list-before.txt"
           MIGRATION_LIST_FILE="$RUNNER_TEMP/migration-list-before.txt" node <<'NODE'
           const fs = require('node:fs')
           const expected = process.env.EXPECTED_VERSIONS.split(',')
@@ -166,7 +175,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          supabase db push --linked --dry-run --yes | tee "$RUNNER_TEMP/db-push-dry-run.txt"
+          supabase db push --linked --dry-run --yes 2>&1 | tee "$RUNNER_TEMP/db-push-dry-run.txt"
           for version in ${EXPECTED_VERSIONS//,/ }; do
             if ! grep -Fq "$version" "$RUNNER_TEMP/db-push-dry-run.txt"; then
               echo "::error::Dry-run did not include expected migration version $version."
@@ -186,7 +195,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          supabase migration list --linked | tee "$RUNNER_TEMP/migration-list-after.txt"
+          supabase migration list --linked 2>&1 | tee "$RUNNER_TEMP/migration-list-after.txt"
           MIGRATION_LIST_FILE="$RUNNER_TEMP/migration-list-after.txt" node <<'NODE'
           const fs = require('node:fs')
           const text = fs.readFileSync(process.env.MIGRATION_LIST_FILE, 'utf8')
