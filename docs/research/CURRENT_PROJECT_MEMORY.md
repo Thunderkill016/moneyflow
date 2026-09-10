@@ -1,6 +1,6 @@
 # MoneyFlow — current project memory
 
-**Status:** M0, MON-61, MON-62, MON-63 and bounded auth-resilience issue #557 are completed. PR #561, PR #562 and PR #564 are merged; PR #565 is a selector-provenance repair for the #559 web-redesign foundation because the #562 merge subject omitted the resolver marker.
+**Status:** M0, MON-61, MON-62, MON-63, #557 auth resilience and the #559 web-redesign foundation are completed at implementation/evaluation level. PR #561, #562, #564 and #565 are merged; the current executable authority is null between bounded slices.
 **Last reconciled:** 2026-09-10
 **Last verified production runtime baseline:** `ad0461514acaec1c9a8a100ba92592c83ece46b2` (PR #556), Vercel READY; `/api/health` returned 200 for that exact commit and the post-deploy error/fatal log check was empty.
 **Master program:** `docs/plans/active/432-vietnam-long-term-product-strategy.md` remains the long-term strategy authority.
@@ -14,7 +14,7 @@ MoneyFlow remains a Vietnamese personal-finance product centered on one trustwor
 
 PR #561 is not merged by this lifecycle projection. Final exact-head governance checks must be green on the lifecycle-closeout head, then the PR may be handed off Ready. Merge remains an explicit owner action.
 
-PR #562 carries the #559 redesign foundation from fresh `main@394d7120`: historical UI failure postmortem, route/CSS ownership inventory, target information architecture, focused accessibility/workflow research, three candidate visual territories and Design System v3 guardrails. It is documentation/authority only. Its squash merge used a subject without the `(#562)` marker expected by the first-parent resolver, so PR #565 reasserts the same authority with a parseable selector provenance. No runtime redesign is implied.
+PR #562 carried the #559 redesign foundation from fresh `main@394d7120`: historical UI failure postmortem, route/CSS ownership inventory, target information architecture, focused accessibility/workflow research, three candidate visual territories and Design System v3 guardrails. PR #565 repaired its selector provenance after the #562 squash subject omitted the resolver marker. The foundation is now archived by this lifecycle closeout; no runtime redesign was implied or shipped.
 
 No provider-console follow-on from parent #174 is selected. A runtime design slice requires the #559 selector to merge, a fresh authority pass and an explicit owner choice of one visual territory.
 
@@ -72,7 +72,7 @@ PR #561 implementation head `e4a5dfd49c9529ed19f1338a8a24630b57a2ebb8` passed CI
 | Ownership            | versioned archive/export/validation/restore with source-lineage generation                                                                                                         |
 | Runtime modes        | explicit demo and authenticated/Supabase-RLS modes                                                                                                                                 |
 | Auth CAPTCHA         | email-auth flows remain real-token gated; top-level Turnstile script stall now has a 15-second MoneyFlow UX watchdog, truthful finite failure state and full-page retry in PR #561 |
-| Executable authority | PR #565 proposes repairing `selectedByPr` for `docs/plans/active/559-web-redesign-foundation.md`; no runtime slice is selected until it merges                                     |
+| Executable authority | `PLAN_AUTHORITY.current = null` after the #559 foundation closeout; the next runtime slice needs a fresh packet                                                                    |
 
 ## 6. #557 security and browser truth
 
@@ -118,13 +118,13 @@ Implementation adds a bounded top-level Turnstile script watchdog/recovery state
 
 Evaluator pass found no scope or security regression. Lifecycle closeout is now represented in the same PR: #557 packet moved to canonical `docs/plans/completed/2026-09-10-557-turnstile-load-recovery.md`, `PLAN_AUTHORITY.current` null, current memory reconciled and PR memory updated. Because those docs create a newer PR head, exact-head governance checks on the final lifecycle head remain required before Ready handoff.
 
-## 9.5. PR #562 redesign foundation truth
+## 9.5. Redesign foundation truth
 
-PR #562 is a selector candidate, not shipped UI. Its packet is grounded in the merged P0–P11 migration history and current route/CSS inventory. The three visual territories are options for owner selection; none is active. Slice 1 may begin only after the selector is merged, a fresh `plan:resolve`/`agent:doctor` pass succeeds, and the owner selects one territory.
+The #559 foundation is documentation and authority research, not shipped UI. Its packet is grounded in the merged P0–P11 migration history and current route/CSS inventory. The three visual territories remain options for owner selection; none is active. Slice 1 may begin only through a fresh bounded packet after `plan:resolve`/`agent:doctor` and an explicit choice.
 
 The candidate deliberately preserves current product truth: manual/import-assisted acquisition, explicit demo versus authenticated modes, VND integer semantics, progressive disclosure and mobile as a release gate. It makes no provider, schema, production or financial claim.
 
-Merged main currently reports the packet as invalid only because `selectedByPr: 562` cannot be recovered from merge commit `6204c098`'s subject. PR #565 changes only that manifest provenance to its own selector PR and leaves the packet content and runtime unchanged.
+PR #565 repaired the merged-main provenance by making `selectedByPr: 565` parseable, then this closeout archived the packet and returned `PLAN_AUTHORITY.current` to `null`. The repair and closeout changed only authority documentation; runtime remains unchanged.
 
 ## 10. True gaps after this audit
 
@@ -137,9 +137,9 @@ Merged main currently reports the packet as invalid only because `selectedByPr: 
 
 ## 11. Next allowed action
 
-Run exact-head governance checks for PR #565. If terminal green, merge the selector-provenance repair, then run a fresh `plan:resolve`/`agent:doctor` pass before starting a new bounded Slice 1 packet for Design System tokens/primitives. Do not implement runtime UI from the repair PR.
+Create a fresh bounded Slice 1 packet for Design System tokens/primitives only after the owner chooses one of the three visual territories. Do not implement runtime UI from this closeout packet.
 
-Do not select #174 provider-console work implicitly. Merged-main `PLAN_AUTHORITY.current` remains `null` until PR #562 is owner-merged.
+Do not select #174 provider-console work implicitly. Merged-main `PLAN_AUTHORITY.current` remains `null` between bounded slices.
 
 ## 12. Superseded-status register
 
@@ -155,5 +155,5 @@ Do not select #174 provider-console work implicitly. Merged-main `PLAN_AUTHORITY
 - PR #561 lifecycle completion means it may be auto-merged — **false**; owner merge remains explicit.
 - Plate or backlog priority is executable authority — **false**.
 - PR #562 still targets the pre-#561/#564 base — **false**; its branch has been replayed onto `main@394d7120`.
-- `selectedByPr: 562` is valid on merged main — **false**; merge subject `docs: select MoneyFlow redesign foundation` lacks the resolver's `(#562)` marker, so PR #565 repairs provenance.
+- The #559 foundation is still current executable work — **false**; this closeout returns `PLAN_AUTHORITY.current` to `null`.
 - A visual territory is already selected — **false**; all three remain owner decisions.

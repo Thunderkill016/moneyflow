@@ -1,14 +1,16 @@
 # #559 — MoneyFlow web redesign foundation
 
-**Status:** selector candidate; executable only after owner merge
-**Execution state:** planning
-**Active role:** researcher / product designer / planner
-**Permission scope:** selector documentation/authority only; runtime/UI implementation requires a later fresh-main slice
+**Status:** completed
+**Execution state:** merged
+**Active role:** none
+**Permission scope:** completed foundation research and authority selection only; no runtime/UI implementation occurred
 **Owner:** human owner
 **Issue:** #559
 **Selector:** GitHub PR #565
 **Branch:** `design/559-web-redesign-foundation-clean`
 **Selector base:** `main@394d7120990761dd3995302cbc26db2ec90432ca`
+**Merged authority:** `main@4e20315cdcaec5528174f5ee7d74e4f8ecf2ab28`
+**Completed:** 2026-09-10
 
 ## Outcome
 
@@ -42,7 +44,7 @@ product/brand semantics
 
 ### Authority and Candidate Status
 
-The #557 Turnstile load-recovery packet is now completed and `PLAN_AUTHORITY.current` is null on merged `main@394d7120`. This PR is the dedicated selection vehicle from that fresh base. If owner-merged, it makes this packet the current executable authority for the next bounded design-system slice; it still authorizes no runtime implementation in this PR.
+The #557 Turnstile load-recovery packet was completed before this foundation was selected. PR #562 and the selector-provenance repair PR #565 are now merged, so this packet's research and authority-selection work is complete. Runtime implementation was never authorized by this packet; the next design-system slice requires a fresh packet and an explicit visual-territory choice.
 
 ## Product constraints
 
@@ -282,7 +284,7 @@ _Lưu ý nguyên tắc:_ Ba hướng thiết kế dưới đây là các giải 
 ### 1. Migration Strategy (Vertical Slices)
 
 ```text
-Slice 0: Foundation & Specification (PR #562 - selector / Non-Executable)
+Slice 0: Foundation & Specification (PR #562 + #565 - completed selector / Non-Executable)
   → Slice 1: Design Tokens & Shared Primitives Proof (Button, Input, Dialog, etc.)
   → Slice 2: App Shell & Responsive Navigation Architecture
   → Slice 3: Today Surface (/dashboard, /insights)
@@ -353,4 +355,4 @@ This slice can close only when:
 
 ## Handoff
 
-Owner instruction on 2026-09-10 authorizes designing the complete MoneyFlow web experience. Repository policy requires this bounded foundation specification before runtime implementation. PR #562 is the selector candidate from fresh merged main; owner merge is required before Slice 1 runtime work.
+Owner instruction on 2026-09-10 authorizes designing the complete MoneyFlow web experience. This foundation was selected from fresh merged main by PR #562 and repaired by PR #565. It is now archived; Slice 1 requires a new bounded packet after the owner chooses one visual territory.
