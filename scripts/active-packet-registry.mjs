@@ -1,62 +1,31 @@
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { PLAN_AUTHORITY_MANIFEST_PATH } from "./plan-authority.mjs";
-
 const ACTIVE_PACKET_DIRECTORY = "docs/plans/active";
-const RETIRED_BOARD_PATH = "docs/plans/active/README.md";
-const RETIRED_BOARD_MARKER = "**Status:** retired as executable authority";
+const INDEX_PATH = "docs/plans/active/README.md";
+const INDEX_MARKER = "**Status:** packet directory, not a queue or authority source";
 
 export function validateActivePacketRegistry(root) {
   const failures = [];
-  let manifest;
-
   try {
-    manifest = JSON.parse(
-      readFileSync(join(root, PLAN_AUTHORITY_MANIFEST_PATH), "utf8"),
-    );
-  } catch {
-    return [`missing or invalid plan authority manifest: ${PLAN_AUTHORITY_MANIFEST_PATH}`];
-  }
-
-  for (const [label, entry] of [
-    ["master", manifest?.master],
-    ["current", manifest?.current],
-  ]) {
-    if (entry == null && label === "current") continue;
-    const path = entry?.path;
-    if (typeof path !== "string" || !path.startsWith(`${ACTIVE_PACKET_DIRECTORY}/`)) {
-      failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} ${label}.path must point inside ${ACTIVE_PACKET_DIRECTORY}`);
-      continue;
+    const index = readFileSync(join(root, INDEX_PATH), "utf8");
+    if (!index.includes(INDEX_MARKER)) {
+      failures.push(`${INDEX_PATH} must remain a packet-directory guide, not a queue or authority source`);
     }
-    try {
-      if (!statSync(join(root, path)).isFile()) {
-        failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} ${label} packet is not a file: ${path}`);
-      }
-    } catch {
-      failures.push(`${PLAN_AUTHORITY_MANIFEST_PATH} ${label} packet is missing: ${path}`);
-    }
-  }
-
-  try {
-    const retired = readFileSync(join(root, RETIRED_BOARD_PATH), "utf8");
-    if (!retired.includes(RETIRED_BOARD_MARKER)) {
-      failures.push(
-        `${RETIRED_BOARD_PATH} may exist only as a retired compatibility pointer; it must not regain board/authority semantics`,
-      );
+    if (/\|\s*(?:NOW|NEXT)\s*\|/iu.test(index) || /current work board/iu.test(index)) {
+      failures.push(`${INDEX_PATH} must not regain a NOW/NEXT board or current-work authority semantics`);
     }
   } catch {
-    failures.push(`${RETIRED_BOARD_PATH} compatibility pointer is missing`);
+    failures.push(`${INDEX_PATH} is missing`);
   }
-
   return failures;
 }
 
-export function validateAuthorityPacketReferences(root, authorityPaths) {
+export function validateActivePacketReferences(root, referencePaths) {
   const failures = [];
   const activeRoot = join(root, ACTIVE_PACKET_DIRECTORY);
 
-  for (const path of authorityPaths) {
+  for (const path of referencePaths) {
     let content;
     try {
       content = readFileSync(join(root, path), "utf8");
@@ -67,6 +36,7 @@ export function validateAuthorityPacketReferences(root, authorityPaths) {
     for (const [, packet] of content.matchAll(
       /docs\/plans\/active\/([A-Za-z0-9._-]+\.md)/gmu,
     )) {
+      if (packet === "README.md") continue;
       try {
         if (!statSync(join(activeRoot, packet)).isFile()) {
           failures.push(`${path} references missing active packet: ${packet}`);

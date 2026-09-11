@@ -4,318 +4,96 @@ MoneyFlow uses AI as an engineering multiplier inside a controlled delivery syst
 
 ## Operating contract
 
-`docs/engineering/AGENT_OPERATING_MODEL.md` is the execution contract for this workflow. It applies useful patterns from external agent systems without making those frameworks MoneyFlow runtime dependencies. The local agent harness follows the same rule: architecture patterns may be adopted after review, while MoneyFlow keeps its own authority, permission and evidence boundaries.
+`docs/engineering/AGENT_OPERATING_MODEL.md` is the execution contract for this workflow. The local agent harness follows the same rule: architecture patterns may be adopted after review, while MoneyFlow keeps its own permission and evidence boundaries.
 
-Every non-trivial work packet records:
+Every non-trivial work packet records one current execution state, active responsibility, granted permission scope, repository-backed artifacts/evidence, explicit handoffs, unverified claims and the next allowed action. **Hidden chat context is not a valid project artifact.**
 
-- one current execution state;
-- the active responsibility/role;
-- the granted permission scope;
-- repository-backed artifacts and evidence;
-- an explicit handoff when responsibility or state changes;
-- unverified claims, stop conditions and the next allowed action.
-
-State transitions describe evidence, not percentage complete. Hidden chat context is not a valid project artifact.
+Task authorization is not stored in a current-state manifest. The explicit owner request and relevant GitHub issue/PR define scope; a work packet describes that scope when required but does not grant permission by existing.
 
 ## Roles
 
-### Human owner
-
-- Defines or approves the problem and acceptable outcome.
-- Resolves product trade-offs and risky assumptions.
-- Reviews evidence, not only generated explanations.
-- Decides whether a change is worth merging.
-
-### Researcher and planner
-
-- Read current repository truth before external research.
-- State the exact unresolved decision.
-- Select focused sources and record their limits.
-- Produce the specification, architecture fit, tasks, risks and verification plan before implementation.
-
-### Implementing agent
-
-- Reads the repository and relevant history.
-- Researches unresolved external questions when acting as researcher.
-- Writes or updates the work packet before non-trivial implementation.
-- Makes a focused change on an isolated branch or worktree.
-- Stays inside the granted permission scope.
-- Runs tests and records evidence.
-
-### Evaluating agent or reviewer
-
-- Checks the implementation against the specification and actual diff.
-- Searches for omitted edge cases, duplicated logic and unsafe assumptions.
-- Reviews browser/screenshots for UI work.
-- Records findings and unverified claims rather than expanding scope while reviewing.
-
-### CI and production systems
-
-- Enforce repeatable contracts.
-- Preserve failure diagnostics and browser evidence.
-- Prove only what their layer covers; they do not replace product judgment.
+- **Human owner:** defines/approves the problem, product/risk trade-offs, merge and acceptance.
+- **Researcher/planner:** reads current repository truth first, researches bounded uncertainty and produces specification, architecture fit, tasks, risks and verification.
+- **Implementer:** works on a focused branch, stays inside granted permission, makes a bounded change and records evidence.
+- **Evaluator:** checks the actual diff against the specification and searches for counterexamples.
+- **CI/production:** provides repeatable layer-specific evidence; it does not replace product judgment.
 
 ## Task classification
 
-### Tiny mechanical change
-
-Examples: typo, broken link, one-line safe configuration correction.
-
-Requirements:
-
-- Read the affected file and its source of truth.
-- State a short inline plan.
-- Run proportionate checks.
-- Use a focused branch and PR when the repository changes.
-
-### Non-trivial change
-
-Examples: product behavior, financial calculation, schema, multi-file feature, UI flow, security, architecture or performance work.
-
-Requirements:
-
-- Create a work packet from `docs/templates/FEATURE_WORK_PACKET.md`.
-- Start in `discovery` with `read_only` unless a narrower or broader scope is explicitly justified.
-- Complete reconnaissance, research/specification, plan and tasks before implementation.
-- Keep the packet updated when verified facts change.
-- Advance states only with the evidence defined in `docs/engineering/AGENT_OPERATING_MODEL.md`.
+Tiny mechanical work may use an inline plan. Non-trivial product behavior, financial calculations, schema, multi-file UI, security, architecture, CI policy or performance work follows the change class in `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md` and uses a full packet when required.
 
 ## Standard lifecycle
 
-The lifecycle maps to the operating states:
+`discovery → specified → planned → implementing → evaluating → ready_for_review → merged → deployed → accepted`
 
-```text
-discovery → specified → planned → implementing → evaluating
-→ ready_for_review → merged → deployed → accepted
-```
+States describe evidence, not percentage complete. A task may move backward when new evidence invalidates an assumption; record why rather than relabeling progress.
 
-A task may move backward when new evidence invalidates an assumption. Record the reason and preserve the prior evidence; never silently relabel progress.
+### 1. Repository reconnaissance — discovery
 
-### 1. Repository reconnaissance — `discovery`
+Inspect current product/architecture truth, affected code/tests/migrations, relevant issue/PR, recent similar implementations and production behavior when operational/UI evidence matters.
 
-The agent must inspect the current system before proposing a solution:
+### 2. Research — discovery to specified
 
-- product and architecture sources of truth;
-- routes, components, domain modules and stores involved;
-- existing tests and fixtures;
-- relevant migrations, RLS policies and database tests;
-- current issues, recent PRs and similar implementations;
-- production behavior or screenshots when the task is UI/operational.
-
-Output: a short map of relevant files, reusable code, current behavior and unresolved questions.
-
-Handoff requirement: the planner receives repository paths, verified behavior, open questions and any forbidden boundaries.
-
-### 2. Research — `discovery` to `specified`
-
-Research is required when behavior depends on external products, current APIs, standards, finance practices, security guidance or unfamiliar technology.
+Research is required when behavior depends on current APIs, standards, finance practices, security guidance or unfamiliar technology.
 
 Start from one explicit decision question. Consult the smallest relevant section of:
 
 - `docs/research/REPOSITORY_REFERENCE_MAP.md` for finance-product and implementation behavior;
-- `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` for AI delivery, research, product direction, code quality, architecture, testing, security and operations.
+- `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md` for delivery, architecture, testing, security and operations.
 
-Select **two to four focused sources by default**. More sources require a reason in the work packet; fewer are acceptable when one authoritative primary source fully answers a narrow question.
-
-Rules:
-
-- Prefer official documentation, standards, source code and primary evidence.
-- Record publication or access date for changeable information.
-- State what each source establishes, its authority type and where it does not apply.
-- Separate observed facts from inference and product judgment.
-- Compare alternatives and explain why rejected options do not fit MoneyFlow.
-- Never use competitor behavior as proof that a financial assumption is correct.
-- A repository appearing in a reference map is permission to study it, not approval to copy code, add a dependency or adopt its architecture.
-- Generated research summaries are leads; verify load-bearing claims against the underlying source.
-
-Output: decisions, sources, applicability, rejected alternatives and remaining uncertainty.
+Select **two to four focused sources** by default. Prefer official documentation, standards, source code and primary evidence. Record date for changeable information, what each source establishes, limits/applicability, rejected alternatives and remaining uncertainty. Generated summaries are leads, not load-bearing evidence.
 
 #### Tool, dependency and architecture adoption gate
 
-Before adding a tool, dependency, provider, service, framework or architecture pattern, the work packet must record:
+Before adding a tool, dependency, provider, service, framework or architecture pattern, record:
 
-1. the observed problem it solves;
-2. why existing code or a simpler alternative is insufficient;
-3. license and code-reuse compatibility;
-4. secrets, user-data and privacy exposure;
-5. runtime, bundle, deployment and operational cost;
-6. the owning boundary and maintenance responsibility;
-7. verification, migration and rollback strategy;
-8. the removal condition if the expected benefit does not appear.
+1. observed problem and why simpler existing options are insufficient;
+2. license/code-reuse compatibility;
+3. secrets, user-data and privacy exposure;
+4. runtime, bundle, deployment and operational cost;
+5. owning boundary and maintenance responsibility;
+6. verification, migration and rollback strategy;
+7. removal condition if benefit does not appear.
 
-Popularity, benchmark rank, AI capability or use by a larger repository is not sufficient evidence.
+Popularity or benchmark rank is not approval. **Sentry and Trigger.dev** remain subject to the explicit adoption triggers/privacy boundaries in `docs/engineering/AGENT_OPERATING_MODEL.md`.
 
-Sentry and Trigger.dev follow the explicit adoption triggers and privacy boundaries in `docs/engineering/AGENT_OPERATING_MODEL.md`; neither is a default dependency.
+### 3. Specification — specified
 
-### 3. Specification — `specified`
+Define affected user/problem, critical flow, observable acceptance criteria, financial/security constraints, required states, accessibility/mobile/long-data behavior, out-of-scope behavior and completion evidence. Resolve or exclude material unknowns before implementation.
 
-Define the outcome without prescribing code prematurely:
+### 4. Implementation plan — planned
 
-- problem and affected user;
-- user stories and critical flow;
-- functional acceptance criteria;
-- financial/security constraints;
-- loading, empty, populated, error and recovery states;
-- mobile, accessibility and long-data requirements;
-- out-of-scope behavior;
-- measurable evidence required for completion.
+Map the specification to existing repository boundaries, reuse, data/migration impact, API/state transitions, rollback/compatibility, tests, risks and permission/approval points. Avoid speculative abstractions.
 
-Unknown product decisions must be resolved or explicitly excluded before implementation.
+### 5. Tasks — planned
 
-### 4. Implementation plan — `planned`
+Split work into small reviewable checkpoints with expected result, exact area, dependency, evidence and status. Parallel tasks must not edit overlapping ownership areas.
 
-The plan connects the specification to the existing architecture:
+### 6. Implementation — implementing
 
-- files and boundaries affected;
-- existing code to reuse;
-- data model or migration impact;
-- API and state transitions;
-- rollout, rollback and compatibility;
-- tests to add at each layer;
-- risks and counterexamples;
-- browser and production verification;
-- required permission scope and approval points.
+Use a focused branch/worktree or approved sandbox. Implement one bounded task at a time, keep diffs surgical, stay inside permission scope and return to `specified` if implementation reveals a wrong requirement.
 
-A plan should make it obvious why each file must change. Avoid speculative abstractions.
+### 7. Evaluation — evaluating
 
-Handoff requirement: implementation begins only after the packet identifies the exact branch, files, permissions, acceptance criteria and stop conditions.
+Evaluate against the specification and actual diff, not the implementer's summary. Check acceptance criteria, prohibited scope, research applicability, ownership/RLS, domain centralization, UI states, recovery, duplication, permissions and remaining unverified claims.
 
-### 5. Tasks — `planned`
+### 8. Verification and delivery — ready_for_review to accepted
 
-Split work into small checkpoints that can be implemented and verified independently. Each task includes:
+Run risk-selected static/domain/database/browser/responsive gates and review generated artifacts. Every PR targeting `main` carries one bounded record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md` with changed/verified/remaining status and production/provider evidence when available.
 
-- expected result;
-- exact area of the repository;
-- test/evidence required;
-- dependencies;
-- status.
+Only exact-head evidence supports `ready_for_review`. Merge is a human-owner or approved repository-policy transition. Production/provider writes require their own explicit approval and rollback; merge does not imply either.
 
-Parallel agents may only take tasks that do not edit overlapping ownership areas and have clear contracts. Role names are responsibility boundaries, not fictional personas.
-
-### 6. Implementation — `implementing`
-
-- Work on a focused branch, isolated worktree or approved sandbox.
-- Implement one task at a time.
-- Prefer tests or counterexamples before changing financial/domain behavior.
-- Keep diffs surgical; unrelated cleanup becomes separate work.
-- Stay inside the recorded permission scope; repository access does not imply provider or production-data write permission.
-- When implementation reveals a wrong requirement, stop and move back to `specified` instead of silently changing behavior.
-
-### 7. Evaluation — `evaluating`
-
-Evaluate the result against the work packet and actual diff, not against the implementing agent's summary.
-
-Check:
-
-- every acceptance criterion has evidence;
-- no prohibited or out-of-scope behavior was introduced;
-- research claims remain supported and applicable to the final design;
-- adopted tools or patterns passed the stated license, security, ownership and rollback gate;
-- domain rules remain centralized and tested;
-- database ownership is enforced below the UI;
-- UI uses existing tokens/components and works across supported states;
-- error/recovery behavior is understandable;
-- docs and repository map remain accurate;
-- permissions used were no broader than required;
-- the final handoff lists unverified claims and the next allowed transition.
-
-A review that reads only the PR summary is incomplete.
-
-### 8. Verification and delivery — `ready_for_review` to `accepted`
-
-Run the required static, domain, database, browser and responsive gates. Review generated artifacts. Open or update the PR with:
-
-- problem and outcome;
-- research/plan link;
-- selected sources, applicability and rejected scope;
-- current execution state, permission scope and last handoff;
-- important decisions and risks;
-- test results;
-- screenshots or browser evidence;
-- production verification instructions.
-
-Only exact-head evidence supports `ready_for_review`. Merge is a human-owner or approved repository-policy transition.
-
-When this PR **completes the current agent-executable slice**, convergence happens **before owner handoff in the same PR**, not in a routine follow-up PR:
-
-1. its PR-memory record declares `Lifecycle impact: completes current slice`;
-2. Current Work carries `Post-merge projection: PR #<this PR>`;
-3. projected Current Work leaves zero current agent-executable slices and does not pre-promote NEXT;
-4. the completed work packet moves from `docs/plans/active/` to `docs/plans/completed/`;
-5. `CURRENT_PROJECT_MEMORY.md` records projected post-merge truth with the same PR marker.
-
-`scripts/lifecycle-projection.mjs`, reached through `npm run check:knowledge`, enforces the bundle. The unmerged projection intentionally keeps task selection NOT READY, but the already-started PR may repair acceptance defects inside its recorded scope. If the PR merges, that same projected repository state becomes merged lifecycle truth; no second cleanup PR is normally required. A dedicated reconciliation PR is recovery-only for legacy/stale state or an exceptional merge race.
-
-After merge and successful deployment, verify only the production evidence actually required by the scope. Production/provider evidence that cannot exist pre-merge may be recorded later as new evidence, but routine board/memory/packet cleanup is not deferred.
+Work packets may move from `docs/plans/active/` to `docs/plans/completed/` when their durable evidence is complete. This archive action is provenance only; it is not a task-selection state machine and it must not create routine cleanup work merely to flip a tracking bit.
 
 ## UI/UX-specific loop
 
-For UI work:
-
-1. Capture the current screen and identify the user decision/action.
-2. Inventory existing design tokens and reusable components.
-3. Generate multiple structural directions with explicit trade-offs.
-4. Select one using product truth, mobile usability, financial honesty and maintainability.
-5. Implement the smallest production slice.
-6. Run responsive/a11y invariants.
-7. Review screenshots at phone, tablet, desktop, dark mode and long-data states.
-8. Check at least one physical device before claiming device readiness.
-
-AI-generated visual polish without a user problem, state model or evidence is not accepted work.
+For UI work: capture current behavior, inventory tokens/components, explore structural options, choose using product truth/mobile usability/financial honesty, implement the smallest slice, run responsive/a11y invariants, review phone/tablet/desktop/dark/long-data states and check a physical device before claiming device readiness.
 
 ## Local agent harness
 
-The owner may opt in to the local harness after `gh auth status` and the selected agent-provider authentication succeed. `npm run agent:dispatch` runs one cycle; `npm run agent:dispatch:watch` runs serial cycles with no overlapping poll executions.
+The owner may opt in to the local harness after required authentication succeeds. `npm run agent:dispatch` runs one cycle; `npm run agent:dispatch:watch` runs serial cycles. The harness uses isolated exact-main workspaces, guarded Git/GitHub access, fail-loud capability negotiation, append-only local run journals and holder-owned execution cleanup.
 
-The direct Codex route is currently:
-
-```text
-GitHub owner-authored /agent codex command
-        ↓
-source/github capability
-        ↓
-thin harness runtime
-        ↓
-workspace/local → fresh exact-main isolated worktree
-permission/guarded → token scrub + Git/GitHub command boundary
-agent/codex → owned run handle
-        ↓
-append-only .agent-harness run journal + private local output log
-        ↓
-concise GitHub status only
-```
-
-The harness uses four rules adapted from agent-runtime research while keeping MoneyFlow-specific policy:
-
-1. **Thin coordinator.** `scripts/agent-harness/runtime.mjs` owns ordering only. GitHub source discovery, workspace preparation, permission environment and agent execution live behind named providers in the capability context.
-2. **Fail-loud capability negotiation.** An agent provider must explicitly support isolated workspaces and guarded environments before a command is accepted. Missing, conflicting or under-capable providers do not silently fall back.
-3. **Append-only run truth.** `.agent-harness/runs/<command-id>.jsonl` is the run-lifecycle source of truth. Terminal/dedup state is projected from its contiguous events. An accepted run with no terminal event is `interrupted` and is never automatically replayed because prior side effects are ambiguous.
-4. **Holder-owned execution.** A provider returns a run handle with `result`, `cancel()` and `dispose()`. The runtime owns that handle until settlement and waits for disposal/cleanup instead of abandoning child work.
-
-The v1 `.agent-dispatcher/state.json` format is legacy migration input only. Before source dispatch, v2 projects completed and failed identities into terminal journals and running identities into non-terminal interrupted journals. Malformed legacy state blocks the cycle; migration never deletes the legacy file. This prevents an upgrade from silently re-executing an old command.
-
-The current built-in agent provider is `codex`. The command grammar is provider-neutral (`/agent <provider> ...`), but naming a provider does not grant it authority: it must be registered and meet the mandatory capability contract. Future providers reuse the same source/workspace/permission/run-journal boundaries rather than adding another dispatcher state machine.
-
-By default, the harness does **not** grant merge, main-branch mutation,
-force-push, provider write, deployment or production-data authority. Child
-Git/GitHub commands run through the preserved allowlist guard; GitHub token
-variables are removed before the agent process starts. Detailed agent output
-remains local/private and GitHub receives only concise status.
-
-An owner may opt one command into delivery by writing
-`/agent codex --automerge <task>` as the first substantive line. This does not
-grant the child merge authority: the guarded child still creates only its own
-draft PR. After a successful worker result, a host-owned GitHub delivery
-provider finds exactly that isolated-branch PR, marks it ready, waits for all
-required checks to pass, rereads its head/base/merge state and review threads,
-confirms remote `main` still equals the run base, then makes one direct
-**squash** request with the observed head SHA. It never schedules GitHub
-auto-merge, bypasses a queue/protection, creates reviews, retries an ambiguous
-state, merges another branch, deploys or changes provider/production data. Any
-missing, skipped, pending, failed or changed fact stops delivery without a
-merge.
-
-The architecture was informed by DeepSeek Harness's thin loop, capability seams, event-sourced sessions, fail-loud provider negotiation and holder-owned workflow/subagent runs. MoneyFlow intentionally does not import DeepSeek Harness/Cordis, dynamic self-modification, runtime plugin installation or unrestricted agent swarms.
+By default it grants no merge, main-branch mutation, force-push, provider write, deployment or production-data authority. Detailed model output remains local/private. Any delivery mode must still satisfy exact-head checks, remote-main stability and the explicit permission model.
 
 ## Knowledge maintenance
 
@@ -323,12 +101,11 @@ Documentation is part of the system:
 
 - `AGENTS.md` stays short and points to sources of truth.
 - `ARCHITECTURE.md` changes only when product/runtime boundaries change.
-- Product truth lives in `docs/product/PRINCIPLES.md`.
+- Product truth lives in `docs/product/PRINCIPLES.md` plus current code/tests.
 - `docs/engineering/AGENT_OPERATING_MODEL.md` owns execution states, handoffs, permissions and runtime-tool adoption triggers.
-- This workflow owns the local agent-harness orchestration contract; executable behavior in `scripts/agent-harness/` and its tests outranks prose.
-- Research may be historical, but must be labeled when superseded.
-- The two repository reference maps are maintained indexes, not roadmaps or dependency manifests.
-- Active work packets describe current execution; completed packets preserve decisions.
+- Research may be historical but must be labeled when superseded.
+- Reference maps are indexes, not roadmaps or dependency manifests.
+- Work packets describe scoped execution/evidence when explicitly tied to a task; completed packets preserve decisions.
 - Important rules should migrate from prose into tests, scripts, schema constraints or lint checks when feasible.
 
 Run `npm run check:knowledge` to catch missing operating documents, weakened research/agent-contract markers and selected stale product claims.

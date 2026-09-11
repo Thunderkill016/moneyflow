@@ -8,22 +8,20 @@ Bank/Open API sync, native mobile acquisition, wealth, household finance and AI 
 
 MoneyFlow has a functional MVP but is **not public-beta ready**.
 
-Before selecting or resuming executable work, run:
+For non-trivial work, start with:
 
 ```bash
-npm run plan:resolve
 npm run agent:doctor -- --json
 ```
 
-Execution authority lives in one place:
+Repository responsibilities are deliberately separated:
 
-- **[Plan authority graph](docs/plans/PLAN_AUTHORITY.json)** — machine-readable master + zero/one current executable packet, activated by merged Git first-parent history.
-- **[Current project memory](docs/research/CURRENT_PROJECT_MEMORY.md)** — compact implementation/trust truth and named limitations.
-- **[Current master program](docs/plans/active/432-vietnam-long-term-product-strategy.md)** — acquisition-first long-term direction installed by PR #433.
-- **[Retired active-board pointer](docs/plans/active/README.md)** — compatibility link only; it is not a queue or authority source.
-- **[PR memory index](docs/research/PR_MEMORY_LOG.md)** — bounded per-PR provenance.
+- **GitHub Issues/PRs** — human backlog, current task status, review and owner decisions.
+- **[Work packets](docs/plans/README.md)** — scoped specification, risks, permissions and evidence when the change class requires one; they are not a queue or authority selector.
+- **[PR memory index](docs/research/PR_MEMORY_LOG.md)** — bounded per-PR provenance, loaded only when history is needed.
+- **Code, tests and migrations** — implemented product truth.
 
-Human backlog, priority, blockers and follow-up work belong in GitHub Issues and pull requests. Do not infer current work from a filename, date, newest document, open PR or chat summary.
+Do not infer current work from a filename, date, newest document, open PR or chat summary.
 
 ## What MoneyFlow does today
 
@@ -110,14 +108,15 @@ Start with [`AGENTS.md`](AGENTS.md) and [`docs/context/README.md`](docs/context/
 
 | Question | Authority |
 |---|---|
-| Master/current executable plan | `docs/plans/PLAN_AUTHORITY.json` + `npm run plan:resolve` |
-| Current implementation/trust state | `docs/research/CURRENT_PROJECT_MEMORY.md` |
+| Current task scope/status | explicit owner request + GitHub issue/PR |
+| Implemented product truth | current code, tests and migrations |
 | Product identity and principles | [docs/product/PRINCIPLES.md](docs/product/PRINCIPLES.md) |
 | Released MVP capability reference | `docs/MVP_DEFINITION.md` |
 | Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Change classes and gates | [docs/engineering/RISK_PROPORTIONAL_DELIVERY.md](docs/engineering/RISK_PROPORTIONAL_DELIVERY.md) |
 | Permission/handoff rules | [docs/engineering/AGENT_OPERATING_MODEL.md](docs/engineering/AGENT_OPERATING_MODEL.md) |
 | Context/research routing | `docs/context/README.md` |
+| Work-packet convention | `docs/plans/README.md` |
 | App/deployment configuration | `docs/configuration.md` |
 | External reference repositories | `docs/research/MONEYFLOW_REFERENCE_REPO_ATLAS_2026.md` |
 | PR provenance | `docs/research/PR_MEMORY_LOG.md` |
@@ -126,13 +125,13 @@ Historical research, completed packets and old issues are evidence, not permissi
 
 ## Change workflow
 
-1. Run `npm run plan:resolve`; stop if authority is candidate, invalid or ambiguous.
-2. Read the selected packet and affected code/tests.
-3. Create/use a focused non-main branch.
-4. Run `npm run agent:doctor -- --json` and follow the risk-selected gates.
+1. Read the explicit task/issue/PR, affected code/tests and `docs/context/README.md`.
+2. Create/use a focused non-main branch.
+3. Run `npm run agent:doctor -- --json` and follow the risk-selected gates.
+4. Create a full work packet from `docs/templates/FEATURE_WORK_PACKET.md` when the change class requires it.
 5. Implement the smallest coherent change; avoid drive-by refactors.
 6. Update the spec before changing requirements.
-7. Create the mandatory PR-memory record and update current memory only when truth changes.
+7. Create the mandatory per-PR provenance record.
 8. Require exact-head checks appropriate to the affected boundary.
 9. Human owner decides merge, provider writes, deployment and public-beta acceptance.
 
