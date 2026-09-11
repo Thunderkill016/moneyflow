@@ -10,7 +10,7 @@ import {
 import {
   parseXlsxStatement,
   readXlsxSourceEvidence,
-  workbookFirstSheetToMatrix,
+  xlsxCellToString,
   type XlsxEvidenceCell,
   type XlsxEvidenceResult,
 } from "./parse-xlsx.ts";
@@ -53,10 +53,19 @@ export type XlsxPilotParseResult = {
   inspection: XlsxPilotInspection;
 };
 
+type ParseXlsxOptions = ParseCsvOptions & {
+  sheetIndex?: number;
+};
+
 type HeaderCandidate = {
   index: number;
   map: CsvColumnMap;
   confidence: number;
+};
+
+type IndexedMatrix = {
+  matrix: string[][];
+  rowNumbers: number[];
 };
 
 function textForEvidenceCell(cell: XlsxEvidenceCell): string {
@@ -125,9 +134,7 @@ function inspectionFromEvidence(
 
   const firstEvidenceRow = evidence.rows[header?.index ?? -1];
   const candidateHeaderRow =
-    header && firstEvidenceRow?.[0]
-      ? firstEvidenceRow[0].rowIndex
-      : null;
+    header && firstEvidenceRow?.[0] ? firstEvidenceRow[0].rowIndex : null;
 
   return {
     ok: true,
@@ -146,6 +153,39 @@ function inspectionFromEvidence(
     formulaCellCount,
     unknowns: [...XLSX_PILOT_UNKNOWNS],
   };
+}
+
+/**
+ * Convert one worksheet into a rectangular matrix without dropping blank rows.
+ * The generic workbook helper intentionally drops empty rows, which is useful
+ * for loose parsing but would make source-row provenance drift when a real bank
+ * export contains visual spacing before/between rows.
+ */
+function worksheetToIndexedMatrix(
+  workbook: XLSX.WorkBook,
+  sheetIndex: number,
+): IndexedMatrix | null {
+  const names = workbook.SheetNames ?? [];
+  if (names.length === 0) return null;
+  const index = Math.max(0, Math.min(sheetIndex, names.length - 1));
+  const sheet = workbook.Sheets[names[index]!];
+  if (!sheet || !sheet["!ref"]) return null;
+
+  const range = XLSX.utils.decode_range(sheet["!ref"]);
+  const matrix: string[][] = [];
+  const rowNumbers: number[] = [];
+
+  for (let row = range.s.r; row <= range.e.r; row += 1) {
+    const cells: string[] = [];
+    for (let column = range.s.c; column <= range.e.c; column += 1) {
+      const address = XLSX.utils.encode_cell({ r: row, c: column });
+      cells.push(xlsxCellToString(sheet[address]?.v));
+    }
+    matrix.push(cells);
+    rowNumbers.push(row + 1);
+  }
+
+  return { matrix, rowNumbers };
 }
 
 function offsetParsedRows(
@@ -185,10 +225,13 @@ export function parseXlsxPilotStatement(
 
   let workbook: XLSX.WorkBook;
   try {
-    workbook = XLSX.read(data instanceof Uint8Array ? data : new Uint8Array(data), {
-      type: "array",
-      cellDates: true,
-    });
+    workbook = XLSX.read(
+      data instanceof Uint8Array ? data : new Uint8Array(data),
+      {
+        type: "array",
+        cellDates: true,
+      },
+    );
   } catch {
     return {
       result: parseXlsxStatement(data, options),
@@ -196,15 +239,15 @@ export function parseXlsxPilotStatement(
     };
   }
 
-  const extracted = workbookFirstSheetToMatrix(workbook, sheetIndex);
-  if ("error" in extracted) {
+  const indexed = worksheetToIndexedMatrix(workbook, sheetIndex);
+  if (!indexed) {
     return {
       result: parseXlsxStatement(data, options),
       inspection,
     };
   }
 
-  const header = findLikelyXlsxHeaderRow(extracted.matrix);
+  const header = findLikelyXlsxHeaderRow(indexed.matrix);
   if (!header || header.index === 0) {
     return {
       result: parseXlsxStatement(data, options),
@@ -212,17 +255,21 @@ export function parseXlsxPilotStatement(
     };
   }
 
-  const result = parseStatementFromMatrix(extracted.matrix.slice(header.index), {
+  const headerRowNumber = indexed.rowNumbers[header.index];
+  if (headerRowNumber === undefined) {
+    return {
+      result: parseXlsxStatement(data, options),
+      inspection,
+    };
+  }
+
+  const result = parseStatementFromMatrix(indexed.matrix.slice(header.index), {
     ...options,
     fileName: options.fileName ?? "statement.xlsx",
   });
 
   return {
-    result: offsetParsedRows(result, header.index),
+    result: offsetParsedRows(result, headerRowNumber - 1),
     inspection,
   };
 }
-
-type ParseXlsxOptions = ParseCsvOptions & {
-  sheetIndex?: number;
-};
