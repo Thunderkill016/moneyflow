@@ -17,6 +17,8 @@ import {
 
 const HEADER_SCAN_LIMIT = 25;
 const HEADER_CONFIDENCE_FLOOR = 0.85;
+const TRANSACTION_DATE_HEADERS =
+  /^(transaction\s*date|trans\s*date|txn\s*date|ngay\s*giao\s*dich|ngày\s*giao\s*dịch|ngay\s*gd|ngày\s*gd)$/i;
 
 export const XLSX_PILOT_UNKNOWNS = [
   "exact_headers_unrecorded",
@@ -80,6 +82,18 @@ function textForEvidenceCell(cell: XlsxEvidenceCell): string {
   return "";
 }
 
+function preferExplicitTransactionDate(
+  headers: string[],
+  map: CsvColumnMap,
+): CsvColumnMap {
+  const transactionDateIndex = headers.findIndex((header) =>
+    TRANSACTION_DATE_HEADERS.test(header.trim().replace(/[_\s]+/g, " ")),
+  );
+  return transactionDateIndex >= 0
+    ? { ...map, date: transactionDateIndex }
+    : map;
+}
+
 export function findLikelyXlsxHeaderRow(
   matrix: string[][],
 ): HeaderCandidate | null {
@@ -99,7 +113,7 @@ export function findLikelyXlsxHeaderRow(
     if (!best || mapped.confidence > best.confidence) {
       best = {
         index,
-        map: mapped.map,
+        map: preferExplicitTransactionDate(row, mapped.map),
         confidence: mapped.confidence,
       };
     }
@@ -211,9 +225,11 @@ function offsetParsedRows(
  *
  * This stays deliberately generic: it only skips a leading workbook preamble
  * when at least two familiar column roles make a later header row high
- * confidence. It never enables a bank-specific map or invents stable identity.
- * The inspection object contains structural metadata only; no cell text, amount,
- * description, account number, sheet name or raw row is returned.
+ * confidence. When a workbook exposes both posting/value date and an explicit
+ * transaction-date column, the latter is preferred for `occurredOn`. It never
+ * enables a bank-specific map or invents stable identity. The inspection object
+ * contains structural metadata only; no cell text, amount, description, account
+ * number, sheet name or raw row is returned.
  */
 export function parseXlsxPilotStatement(
   data: ArrayBuffer | Uint8Array,
@@ -248,7 +264,7 @@ export function parseXlsxPilotStatement(
   }
 
   const header = findLikelyXlsxHeaderRow(indexed.matrix);
-  if (!header || header.index === 0) {
+  if (!header) {
     return {
       result: parseXlsxStatement(data, options),
       inspection,
@@ -266,6 +282,7 @@ export function parseXlsxPilotStatement(
   const result = parseStatementFromMatrix(indexed.matrix.slice(header.index), {
     ...options,
     fileName: options.fileName ?? "statement.xlsx",
+    columnMap: options.columnMap ?? header.map,
   });
 
   return {
