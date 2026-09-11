@@ -2,13 +2,13 @@
 
 MoneyFlow adopts GitHub Spec Kit as a **feature-artifact interface**, not as a second project-management or governance system.
 
-Current authority route:
+Current route:
 
-`AGENTS.md` → `docs/plans/PLAN_AUTHORITY.json` / `npm run plan:resolve` → manifest-selected active packet → affected code/tests.
+`explicit owner task / GitHub issue or PR → AGENTS.md + affected code/tests → relevant MoneyFlow policy → work packet when required → feature artifacts`
 
-The retired `docs/plans/active/README.md` is a compatibility pointer only. GitHub Issues/PRs track human backlog and status.
+GitHub Issues/PRs track backlog and status. `docs/plans/active/` contains scoped work packets; it is not a queue or authority source.
 
-Spec Kit may generate feature specifications, plans, tasks, checklists and consistency analysis. MoneyFlow's repository law remains authoritative for product scope, architecture, permissions, verification, PR memory and owner acceptance.
+Spec Kit may generate feature specifications, plans, tasks, checklists and consistency analysis. MoneyFlow's repository law remains authoritative for product scope, architecture, permissions, verification, PR provenance and owner acceptance.
 
 ## Pinned upstream reference
 
@@ -23,10 +23,10 @@ Spec Kit may generate feature specifications, plans, tasks, checklists and consi
 ## Authority and responsibility boundary
 
 ```text
-Owner decision
-  > PLAN_AUTHORITY.json + selected packet
+Owner decision + current GitHub task
   > current code, migrations and tests
-  > current project memory and MoneyFlow product/architecture policy
+  > accepted MoneyFlow product/architecture/delivery policy
+  > task work packet when required
   > .specify/memory/constitution.md
   > feature artifacts under specs/
   > historical research and closed PR artifacts
@@ -70,15 +70,16 @@ Before committing generated output:
 | `clarify` | Resolve material ambiguity; never guess financial data, ownership or product scope. |
 | `plan` | Map accepted spec to existing boundaries, risk class, rollback and verification. |
 | `tasks` | Produce small reviewable tasks with paths, dependencies and evidence. |
-| `analyze` | Check artifacts against the constitution and selected MoneyFlow packet. |
-| `implement` | Work only on authorized tasks; update the spec before changing requirements. |
+| `analyze` | Check artifacts against the constitution and current task/work packet. |
+| `implement` | Work only on explicitly authorized tasks; update the spec before changing requirements. |
 | `checklist` | Validate requirements quality and acceptance evidence. |
 
 ## Artifact coexistence rules
 
 - Class 0/1 and bounded Class 2 changes may use `specs/<feature>/` plus a concise PR plan.
-- Class 3, cross-cutting, multi-day, provider/production, non-obvious rollback or unresolved-research work still requires `docs/plans/active/<slug>.md`.
-- When both exist, the manifest-selected packet owns execution state, permissions, handoffs and delivery evidence. Spec Kit owns feature requirements/planning/task decomposition.
+- Class 3, cross-cutting, multi-day, provider/production, non-obvious rollback or unresolved-research work still requires a full work packet.
+- When both exist, the work packet owns execution state, permissions, handoffs and delivery evidence. Spec Kit owns feature requirements/planning/task decomposition.
+- No packet or generated feature directory grants execution authority by existing; explicit current task scope does.
 - Never treat an unmerged feature directory as current product truth.
 
 ## Upgrade policy

@@ -2,19 +2,19 @@
 
 # Claude Code orientation
 
-This file is a Claude Code adapter. It does not replace `AGENTS.md`, `docs/plans/PLAN_AUTHORITY.json`, current-project memory, current code/tests or merged GitHub history.
+This file is a Claude Code adapter. It does not replace `AGENTS.md`, current code/tests, architecture/product policy, explicit owner decisions or merged GitHub history.
 
 ## Before editing
 
 1. Run `git status -sb`, `git branch --show-current` and `git log -5 --oneline`.
 2. Follow the read order in `AGENTS.md`.
-3. Run `npm run plan:resolve`; open only the manifest-selected controlling packet plus relevant issue/PR evidence.
+3. Read the explicit issue/PR and affected work packet when one is tied to the task.
 4. Run `npm run agent:doctor -- --json` for non-trivial work.
 5. Check whether another open PR changes the same files or source of truth.
 6. Separate observed facts, inference, stale documentation and unresolved questions.
 7. Complete reconnaissance, specification, plan, tasks and verification criteria before non-trivial runtime edits.
 
-The former `docs/plans/active/README.md` Current Work Board is retired as executable authority and exists only as a compatibility pointer. GitHub Issues/PRs track human backlog/status.
+`docs/plans/active/` is a packet directory, not a queue. GitHub Issues/PRs track human backlog and status. A packet filename or presence does not authorize work.
 
 ## Current project facts
 
@@ -34,18 +34,18 @@ The former `docs/plans/active/README.md` Current Work Board is retired as execut
 
 When sources conflict, use this order:
 
-1. Explicit human decisions for the current task.
+1. Explicit human decisions for the current task and applicable legal/security constraints.
 2. Current code, tests, migrations and merged PR history.
-3. `docs/plans/PLAN_AUTHORITY.json` plus the selected work packet.
-4. `docs/product/PRINCIPLES.md`, `ARCHITECTURE.md` and current-project memory.
-5. Historical research and old draft PRs as evidence only.
+3. Accepted task specification/work packet and current GitHub issue/PR evidence.
+4. `docs/product/PRINCIPLES.md`, `ARCHITECTURE.md`, `docs/MVP_DEFINITION.md` and engineering policy.
+5. Historical research, completed packets and old draft PRs as evidence only.
 
 For the complete question-to-authority route, use `docs/context/README.md`. Do not use `.claude/skills/` as product, project-state or permission authority.
 
 ## Delivery guardrails
 
 - Use a focused branch and pull request; do not write feature/fix commits directly to `main`.
-- Keep non-trivial work in an active packet when required by `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
+- Keep non-trivial work in a work packet when required by `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`.
 - Run verification layers appropriate to the change; one passing layer does not prove another.
 - Do not infer database, browser or production correctness from a build status.
 - Do not merge or deploy without explicit human-owner approval.

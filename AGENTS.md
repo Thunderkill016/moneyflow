@@ -10,13 +10,9 @@ This version has breaking changes. Before using unfamiliar App Router APIs, read
 
 ## Authority route
 
-Before selecting or resuming work after authority/base may have changed, run `npm run plan:resolve`.
+Executable scope comes from the explicit human request plus the current GitHub issue/PR when one exists. Code, tests and migrations define implemented truth. Work packets provide specification, permissions, risks and evidence when the risk class requires one; their filename, date or mere presence never authorizes work.
 
-`docs/plans/PLAN_AUTHORITY.json` is the single machine-readable executable-plan authority. It names one master packet and zero or one current agent-executable packet. Each authority entry records `introducedByPr`; Git first-parent history decides whether that entry is active or still candidate.
-
-The former `docs/plans/active/README.md` Current Work Board is retired as executable authority. It is a compatibility pointer only. Human backlog, priority, blockers and follow-up status belong in GitHub Issues/PRs. Never infer executable work from a Markdown queue, filename/date, newest document, open PR or chat summary.
-
-Then read `README.md`, `docs/research/CURRENT_PROJECT_MEMORY.md`, `docs/context/README.md` and the manifest-selected packet. Historical packets never reopen work.
+GitHub Issues/PRs own backlog, status and review. Do not infer executable work from a Markdown queue, newest document, open PR, old packet or chat continuation. A handoff must name the current task, artifacts, permission scope and next allowed action.
 
 ## Read order
 
@@ -24,17 +20,17 @@ For every change:
 
 1. `README.md`;
 2. affected code, tests and migrations;
-3. `docs/research/CURRENT_PROJECT_MEMORY.md`;
-4. `docs/context/README.md` to select warm context;
-5. `ARCHITECTURE.md`, `docs/product/PRINCIPLES.md` and `docs/MVP_DEFINITION.md` when the boundary requires them;
-6. `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`;
-7. `docs/engineering/AGENT_OPERATING_MODEL.md` when permissions/handoffs matter.
+3. `docs/context/README.md` to select warm context;
+4. `ARCHITECTURE.md`, `docs/product/PRINCIPLES.md` and `docs/MVP_DEFINITION.md` when the boundary requires them;
+5. `docs/engineering/RISK_PROPORTIONAL_DELIVERY.md`;
+6. `docs/engineering/AGENT_OPERATING_MODEL.md` when permissions/handoffs matter;
+7. the issue/PR and relevant work packet explicitly tied to the task.
 
-For master-program work, read the master packet returned by `npm run plan:resolve` and only the research it names. For cross-cutting research choose from `docs/research/REPOSITORY_REFERENCE_MAP.md` and `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md`. Historical competitive/capability context lives in `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md` and `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`; it is evidence, not next-work authority.
+For cross-cutting research choose from `docs/research/REPOSITORY_REFERENCE_MAP.md` and `docs/research/ENGINEERING_FOUNDATIONS_REFERENCE_MAP.md`. Historical competitive/capability context lives in `docs/research/PRODUCT_CAPABILITY_GAP_MATRIX.md` and `docs/research/PRODUCT_COMPETITIVE_MEMORY.md`; it is evidence, not next-work authority.
 
 For PR provenance read `docs/research/PR_MEMORY_LOG.md`, then only the named `docs/research/pr-memory/YYYY/QN/PR-<number>.md` record needed for the decision.
 
-For Spec Kit features, also read `.specify/README.md`, `.specify/memory/constitution.md` and the active `specs/<feature>/` artifacts. They never override current code/tests, project memory, MoneyFlow policy, the selected packet or owner decisions.
+For Spec Kit features, also read `.specify/README.md`, `.specify/memory/constitution.md` and the relevant `specs/<feature>/` artifacts. They never override current code/tests, MoneyFlow policy or owner decisions.
 
 ## Product law
 
@@ -57,18 +53,16 @@ For Spec Kit features, also read `.specify/README.md`, `.specify/memory/constitu
 
 ## Delivery workflow
 
-Before starting or resuming executable work, `npm run plan:resolve` must pass, then run `npm run agent:doctor -- --json`. The doctor projects policy; it grants no permission.
+Run `npm run agent:doctor -- --json` before non-trivial work. The doctor projects policy; it grants no permission.
 
 Classify first:
 
 - **Class 0:** docs/mechanical; inline plan or clear PR description.
 - **Class 1:** bounded code in one subsystem with straightforward rollback.
 - **Class 2:** bounded UI/flow; full packet for multi-flow redesign or unresolved research.
-- **Class 3:** financial/data/security/operations/CI-policy; full packet under `docs/plans/active/`.
+- **Class 3:** financial/data/security/operations/CI-policy; full work packet based on `docs/templates/FEATURE_WORK_PACKET.md`.
 
-Packet lifecycle: reconnaissance → research → specification → plan → tasks → implementation → independent evaluation → exact-head verification → same-PR lifecycle convergence → owner handoff.
-
-A PR that completes the current executable slice must change `PLAN_AUTHORITY.json.current` from that packet to `null`, archive the packet under `docs/plans/completed/`, update `docs/research/CURRENT_PROJECT_MEMORY.md`, and leave follow-on work unselected. A later PR from fresh main may select the next packet. No post-merge SHA marker or Markdown board projection is required.
+Packet lifecycle: reconnaissance → research → specification → plan → tasks → implementation → independent evaluation → exact-head verification → owner handoff. Archive a finished packet under `docs/plans/completed/` when it is useful as durable decision/evidence provenance. Packet movement is documentation lifecycle, not task-selection authority.
 
 Record the **current execution state**, active responsibility, permission scope and every handoff. **Hidden chat context is not a handoff artifact.**
 
@@ -76,9 +70,9 @@ Research uses **two to four focused sources** by default. Record what each estab
 
 ## Memory and trust rules
 
-- Every PR creates one truthful record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md` and includes `Lifecycle impact:`.
-- `docs/research/CURRENT_PROJECT_MEMORY.md` changes only when current implementation/authority truth changes.
-- Do not copy secrets, private data, full logs, patches or participant financial data into memory.
+- Every PR creates one truthful record at `docs/research/pr-memory/YYYY/QN/PR-<number>.md`.
+- PR records are bounded provenance, not a second current-state database or task queue.
+- Do not copy secrets, private data, full logs, patches or participant financial data into repository memory.
 - Code, migrations and tests outrank prose.
 - Open PRs and unmerged strategy/spec artifacts are candidate evidence until merge.
 - Use `docs/context/README.md`; do not scan historical records by default.
@@ -123,8 +117,9 @@ Boundary-specific checks include `npm run test:db`, `npm run test:e2e` and `npm 
 2. Never change branch protection, required checks, workflow permissions or `CODEOWNERS` inside feature work.
 3. One task, one scope; report unrelated defects instead of fixing them.
 4. Never commit secrets or environment values.
-5. Do not create a second management layer; extend existing issue, packet, manifest or memory.
+5. Do not create a second management layer; GitHub Issues/PRs own status, work packets own scoped specification/evidence, and PR records own provenance.
 6. State exactly which gates ran, passed or were not applicable.
+7. Provider or production-data writes require separate explicit owner approval and a rollback plan; merge permission never implies them.
 
 ## Load-bearing traps
 
@@ -136,4 +131,4 @@ Boundary-specific checks include `npm run test:db`, `npm run test:e2e` and `npm 
 
 ## Definition of done
 
-The focused branch and PR exist; manifest authority is valid against merged Git history; scope/evidence are honest; risk-selected exact-head checks are green; the bounded PR record exists; and a completing current-slice PR already carries current→null manifest convergence, completed packet and updated memory with no follow-on current slice. Required human review and affected production verification are complete. Merge and deployment remain owner decisions.
+A focused branch and PR exist; scope/evidence are honest; the risk-selected exact-head checks are green; the bounded PR record exists; required human review is complete; and affected production verification exists when the change actually alters production behavior. Retry-pass is a finding, not acceptance: investigate the original failure and require fresh exact-head evidence after any fix. Merge, deployment and provider/production writes remain owner decisions.
