@@ -1,5 +1,5 @@
 import type { ParsedCsvRow, UncertainCsvField } from "./parse-csv.ts";
-import type { NormalizedSourceAdapterRow } from "./source-adapter.ts";
+import type { CanonicalSourceCandidate } from "./source-observation.ts";
 
 const REVIEW_FIELDS = new Set<UncertainCsvField>([
   "amount",
@@ -9,7 +9,7 @@ const REVIEW_FIELDS = new Set<UncertainCsvField>([
 ]);
 
 function uncertainFieldsFromAdapterRow(
-  row: NormalizedSourceAdapterRow,
+  row: CanonicalSourceCandidate,
 ): UncertainCsvField[] {
   const fields: UncertainCsvField[] = [];
   for (const finding of row.findings) {
@@ -22,12 +22,14 @@ function uncertainFieldsFromAdapterRow(
 }
 
 /**
- * Pure bridge from an accepted adapter row into the existing import-draft row.
- * It preserves source evidence verbatim and turns adapter findings into review
- * explanations; it does not perform matching, persistence, or ledger mutation.
+ * Pure bridge from a canonical source candidate into the existing import-draft
+ * row. Source observations must be normalized before reaching this boundary.
+ * The bridge preserves source evidence verbatim and turns normalization findings
+ * into review explanations; it does not perform matching, persistence, or ledger
+ * mutation.
  */
 export function sourceAdapterRowToParsedCsvRow(
-  row: NormalizedSourceAdapterRow,
+  row: CanonicalSourceCandidate,
 ): ParsedCsvRow {
   return {
     kind: row.kind,
@@ -50,7 +52,7 @@ export function sourceAdapterRowToParsedCsvRow(
 }
 
 export function sourceAdapterRowsToParsedCsvRows(
-  rows: NormalizedSourceAdapterRow[],
+  rows: CanonicalSourceCandidate[],
 ): ParsedCsvRow[] {
   return rows.map(sourceAdapterRowToParsedCsvRow);
 }
