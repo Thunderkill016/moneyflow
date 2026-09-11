@@ -18,7 +18,13 @@ import {
 const HEADER_SCAN_LIMIT = 25;
 const HEADER_CONFIDENCE_FLOOR = 0.85;
 const TRANSACTION_DATE_HEADERS =
-  /^(transaction\s*date|trans\s*date|txn\s*date|ngay\s*giao\s*dich|ngày\s*giao\s*dịch|ngay\s*gd|ngày\s*gd)$/i;
+  /^(transaction\s*date|trans\s*date|txn\s*date|ngay\s*giao\s*dich|ngày\s*giao\s*dịch|ngay\s*phat\s*sinh\s*giao\s*dich|ngày\s*phát\s*sinh\s*giao\s*dịch|ngay\s*gd|ngày\s*gd)$/i;
+const PILOT_DEBIT_HEADERS =
+  /^(debit|no|nợ|ghi\s*no|ghi\s*nợ)$/i;
+const PILOT_CREDIT_HEADERS =
+  /^(credit|co|có|ghi\s*co|ghi\s*có)$/i;
+const PILOT_DESCRIPTION_HEADERS =
+  /^(transaction\s*description|description|mo\s*ta\s*giao\s*dich|mô\s*tả\s*giao\s*dịch|noi\s*dung\s*giao\s*dich|nội\s*dung\s*giao\s*dịch)$/i;
 const STANDALONE_DIRECTION_HEADERS =
   /^(change|direction|sign|thay\s*doi|thay\s*đổi)$/i;
 
@@ -88,16 +94,43 @@ function normalizePilotHeader(header: string): string {
   return header.trim().replace(/[_\s]+/g, " ");
 }
 
-function preferExplicitTransactionDate(
+function pilotHeaderSegments(header: string): string[] {
+  return normalizePilotHeader(header)
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function findPilotRoleIndex(headers: string[], pattern: RegExp): number {
+  return headers.findIndex((header) =>
+    pilotHeaderSegments(header).some((segment) => pattern.test(segment)),
+  );
+}
+
+function preferExplicitPilotRoles(
   headers: string[],
   map: CsvColumnMap,
 ): CsvColumnMap {
-  const transactionDateIndex = headers.findIndex((header) =>
-    TRANSACTION_DATE_HEADERS.test(normalizePilotHeader(header)),
+  const transactionDateIndex = findPilotRoleIndex(
+    headers,
+    TRANSACTION_DATE_HEADERS,
   );
-  return transactionDateIndex >= 0
-    ? { ...map, date: transactionDateIndex }
-    : map;
+  const debitIndex = findPilotRoleIndex(headers, PILOT_DEBIT_HEADERS);
+  const creditIndex = findPilotRoleIndex(headers, PILOT_CREDIT_HEADERS);
+  const descriptionIndex = findPilotRoleIndex(
+    headers,
+    PILOT_DESCRIPTION_HEADERS,
+  );
+  const hasDebitCredit = debitIndex >= 0 || creditIndex >= 0;
+
+  return {
+    ...map,
+    date: transactionDateIndex >= 0 ? transactionDateIndex : map.date,
+    amount: hasDebitCredit ? null : map.amount,
+    debit: debitIndex >= 0 ? debitIndex : map.debit,
+    credit: creditIndex >= 0 ? creditIndex : map.credit,
+    desc: descriptionIndex >= 0 ? descriptionIndex : map.desc,
+  };
 }
 
 /**
@@ -171,7 +204,7 @@ export function findLikelyXlsxHeaderRow(
     if (!best || mapped.confidence > best.confidence) {
       best = {
         index,
-        map: preferExplicitTransactionDate(row, mapped.map),
+        map: preferExplicitPilotRoles(row, mapped.map),
         confidence: mapped.confidence,
       };
     }
@@ -284,11 +317,13 @@ function offsetParsedRows(
  * This stays deliberately generic: it only skips a leading workbook preamble
  * when at least two familiar column roles make a later header row high
  * confidence. When a workbook exposes both posting/value date and an explicit
- * transaction-date column, the latter is preferred for `occurredOn`. A separate
- * standalone direction column can qualify an otherwise unsigned amount, but it
- * never becomes identity or a bank-specific contract. The inspection object
- * contains structural metadata only; no cell text, amount, description, account
- * number, sheet name or raw row is returned.
+ * transaction-date column, the latter is preferred for `occurredOn`. Bilingual
+ * debit/credit headers are treated as explicit amount roles rather than letting
+ * the generic fallback pick a balance/reference column. A separate standalone
+ * direction column can qualify an otherwise unsigned amount, but it never
+ * becomes identity or a bank-specific contract. The inspection object contains
+ * structural metadata only; no cell text, amount, description, account number,
+ * sheet name or raw row is returned.
  */
 export function parseXlsxPilotStatement(
   data: ArrayBuffer | Uint8Array,
