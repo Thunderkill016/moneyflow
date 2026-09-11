@@ -13,9 +13,10 @@ function workbookBytes(rows: unknown[][]): ArrayBuffer {
   return XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
 }
 
-test("pilot parser skips a high-confidence Excel preamble without inventing bank semantics", () => {
+test("pilot parser skips a high-confidence Excel preamble and preserves worksheet row numbers", () => {
   const bytes = workbookBytes([
     ["Sao kê tài khoản thử nghiệm"],
+    [],
     ["Khoảng thời gian thử nghiệm"],
     ["Ngày", "Nội dung", "Ghi nợ", "Ghi có"],
     ["10/09/2026", "Mua hàng mẫu", 125000, ""],
@@ -30,17 +31,18 @@ test("pilot parser skips a high-confidence Excel preamble without inventing bank
   assert.equal(result.ok, true);
   assert.deepEqual(result.headers, ["Ngày", "Nội dung", "Ghi nợ", "Ghi có"]);
   assert.equal(result.rows.length, 2);
-  assert.equal(result.rows[0]!.rowIndex, 4);
+  assert.equal(result.rows[0]!.rowIndex, 5);
   assert.equal(result.rows[0]!.kind, "expense");
   assert.equal(result.rows[0]!.amount, 125000);
   assert.equal(result.rows[0]!.occurredOn, "2026-09-10");
+  assert.equal(result.rows[1]!.rowIndex, 6);
   assert.equal(result.rows[1]!.kind, "income");
   assert.equal(result.rows[1]!.amount, 50000);
 
   assert.equal(inspection.ok, true);
   if (!inspection.ok) return;
   assert.equal(inspection.sheetNumber, 1);
-  assert.equal(inspection.candidateHeaderRow, 3);
+  assert.equal(inspection.candidateHeaderRow, 4);
   assert.equal(inspection.mapConfidence, 1);
   assert.deepEqual(inspection.columnMap, {
     date: 0,
@@ -70,7 +72,9 @@ test("header detection stays off when generic column roles are not proven", () =
 });
 
 test("non-Excel bytes do not become trusted pilot evidence", () => {
-  const bytes = new TextEncoder().encode("Ngay,Noi dung,So tien\n10/09/2026,Mau,1000");
+  const bytes = new TextEncoder().encode(
+    "Ngay,Noi dung,So tien\n10/09/2026,Mau,1000",
+  );
   const { inspection } = parseXlsxPilotStatement(bytes, {
     fileName: "not-really.xlsx",
     today: "2026-09-11",
