@@ -61,7 +61,7 @@ test("pilot parser skips a high-confidence Excel preamble and preserves workshee
   assert.doesNotMatch(serialized, /125000/);
 });
 
-test("public VCB-style statement layout reaches generic preview without bank-specific mapping", () => {
+test("public VCB-style statement uses standalone change sign for direction", () => {
   const bytes = workbookBytes([
     ["SAO KÊ TÀI KHOẢN"],
     ["Ngày thực hiện: 26/10/2019"],
@@ -82,8 +82,11 @@ test("public VCB-style statement layout reaches generic preview without bank-spe
   assert.equal(result.rows[0]!.amount, 332);
   assert.equal(result.rows[0]!.kind, "income");
   assert.equal(result.rows[0]!.occurredOn, "2019-10-25");
+  assert.equal(result.rows[0]!.uncertainFields.includes("kind"), false);
   assert.equal(result.rows[1]!.amount, 24173);
+  assert.equal(result.rows[1]!.kind, "expense");
   assert.equal(result.rows[1]!.occurredOn, "2019-10-25");
+  assert.equal(result.rows[1]!.uncertainFields.includes("kind"), false);
 
   assert.equal(inspection.ok, true);
   if (!inspection.ok) return;
@@ -95,6 +98,23 @@ test("public VCB-style statement layout reaches generic preview without bank-spe
     debit: null,
     credit: null,
   });
+});
+
+test("reference hyphens are not inferred as financial direction", () => {
+  const bytes = workbookBytes([
+    ["Ngày giao dịch", "Số tham chiếu", "Số tiền", "Mô tả"],
+    ["25/10/2019", "9713 - 0045853", 24173, "POS SAMPLE"],
+  ]);
+
+  const { result } = parseXlsxPilotStatement(bytes, {
+    fileName: "reference-hyphen.xlsx",
+    today: "2026-09-11",
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0]!.kind, "expense");
+  assert.equal(result.rows[0]!.uncertainFields.includes("kind"), true);
 });
 
 test("public ACB-style statement prefers transaction date over effective date", () => {
