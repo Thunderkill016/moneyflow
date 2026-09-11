@@ -22,7 +22,7 @@ const TRANSACTION_DATE_HEADERS =
 const STANDALONE_DIRECTION_HEADERS =
   /^(change|direction|sign|thay\s*doi|thay\s*đổi)$/i;
 
-export const XLSX_PILOT_UNKNOWS = [
+export const XLSX_PILOT_UNKNOWNS = [
   "exact_headers_unrecorded",
   "source_reference_stability_unknown",
   "debit_credit_semantics_unverified",
@@ -30,7 +30,7 @@ export const XLSX_PILOT_UNKNOWS = [
   "overlap_dedupe_unverified",
 ] as const;
 
-export type XlsxPilotUnknown = (typeof XLSX_PILOT_UNKNOWS)[number];
+export type XlsxPilotUnknown = (typeof XLSX_PILOT_UNKNOWNS)[number];
 
 export type XlsxPilotInspection =
   | {
@@ -223,7 +223,7 @@ function inspectionFromEvidence(
     numericColumns: [...numericColumns].sort((a, b) => a - b),
     dateLikeColumns: [...dateLikeColumns].sort((a, b) => a - b),
     formulaCellCount,
-    unknowns: [...XLSX_PILOT_UNKNOWS],
+    unknowns: [...XLSX_PILOT_UNKNOWNS],
   };
 }
 
