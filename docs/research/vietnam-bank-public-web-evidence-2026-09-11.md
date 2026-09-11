@@ -1,0 +1,139 @@
+# Vietnam bank-export public web evidence — 2026-09-11
+
+## Purpose
+
+This note records privacy-safe evidence gathered from first-party bank documentation and publicly indexed statement/export artifacts for GitHub #576 / Plate THU-46. It intentionally does not copy account holders, account numbers, tax IDs, phone numbers, addresses, raw transaction descriptions, raw statement rows, transaction values, or downloadable statement bytes into the repository.
+
+Evidence levels used here:
+
+- `confirmed`: first-party bank documentation explicitly establishes the capability or API behavior.
+- `observed-but-unverified`: a public statement/export artifact shows a concrete layout/row behavior, but the bank does not promise it as a stable export contract.
+- `unknown`: evidence is still insufficient for a durable product assumption.
+
+## Vietcombank
+
+### Confirmed
+
+- VCB Digibank supports transaction-history search by a chosen date range and lets the user export the result to Excel after searching.
+- First-party VCB material therefore confirms `Excel` as a supported acquisition artifact, but it does not define a stable downloaded-file schema contract.
+
+First-party source:
+
+- https://digibankm5.vietcombank.com.vn/get_file/ibomni/html/hdsd-ib/pages/vi/tinh-nang-giao-dich-ngan-hang/tai-khoan/3-lich-su-giao-dich.html
+
+### Observed-but-unverified — public XLSX artifact
+
+A directly accessible public `.xlsx` artifact was parsed through an external document parser with PII redaction enabled before inspection:
+
+- https://hdld.vn/data/files/Vietcombank_Account_Statement_P2.xlsx
+
+Privacy-safe structural findings:
+
+- workbook contains multiple sheets representing raw/edited variants of the same statement-shaped data;
+- observed header row is `Ngày giao dịch | Số tham chiếu | Số tiền ghi nợ | Số tiền ghi có | Mô tả`;
+- debit and credit are represented as separate amount columns;
+- the same workbook contains formatting/value-representation variation across sheet variants while preserving the same financial roles;
+- the artifact therefore supports layout/version fingerprinting and generic debit/credit role aliases, but not a provider-guaranteed current schema contract;
+- the public workbook is not a same-account overlapping export pair, so it provides no source-reference stability proof.
+
+This is stronger than screenshot/PDF-only evidence because the source artifact itself is an XLSX file, but it remains third-party/public evidence rather than first-party provider contract evidence.
+
+### Other observed statement evidence
+
+Other public statement artifacts show older shapes such as:
+
+`Ngày giao dịch | Số tham chiếu | Thay đổi | Số tiền | Mô tả`
+
+They also show fee rows as ordinary statement rows with a negative direction and a fee description.
+
+A public multi-month statement shows the same trailing numeric component inside `Số tham chiếu` on distinct fee and interest rows while the leading transaction-code component differs. This is **not** evidence that the entire displayed reference string repeats. It is negative evidence only against stripping/canonicalizing the reference down to that trailing component and treating the suffix as a unique identity. Uniqueness and stability of the full displayed reference across repeated exports remain unproven.
+
+Implication:
+
+- keep VCB reference classified `display-only / observed-but-unverified`;
+- never derive `sourceExternalId` from a reference suffix or from the full displayed VCB reference without confirmed overlap stability and scope;
+- retain fingerprint duplicate fallback;
+- recognize observed debit/credit role aliases generically;
+- key compatibility by layout fingerprint/version rather than `bank=VCB` alone;
+- bank-specific auto-map stays disabled because the downloaded Excel contract is not provider-confirmed.
+
+Other public artifact source used only for structural/aggregate observation:
+
+- https://www.scribd.com/document/498083218/Vietcombank-Account-Statement
+
+## ACB
+
+### Confirmed
+
+- ACB documents Excel statement/history download in ACB ONE flows.
+- ACB's Developer Portal exposes account-history APIs where `transaction_number`, `from_transaction_number`, and `to_transaction_number` are first-class query fields.
+- Transaction-history queries using transaction-number bounds are still scoped by account plus date/range context. This is useful provider evidence that a transaction number exists, but it does **not** document that the number alone is a globally unique/stable source identity, and it does not prove equivalence to the downloaded-file `Số GD` field.
+
+First-party sources:
+
+- https://acb.com.vn/giai-phap-quan-ly-cua-hang
+- https://developer.acb.com.vn/acb/open/vi/node/96
+- https://developer.acb.com.vn/acb/open/vi/node/3573
+
+### Observed-but-unverified
+
+Public ACB statement artifacts show material layout variation across time.
+
+Observed 2019 ACB Online layout:
+
+`Ngày | Số GD | Diễn giải | Ghi nợ | Ghi có | Số dư`
+
+Observed 2024 statement layout:
+
+`Ngày | Số GD | Nội dung giao dịch | Số tiền rút ra | Số tiền gửi vào | Số dư`
+
+Both public shapes show fees as separate debit rows rather than a provider-guaranteed fee field. The 2024 artifact also shows `Số GD` continuing as a sequence across monthly statements, but no same-transaction overlapping-window pair was found; therefore stability across repeated exports remains unproven.
+
+Implication:
+
+- ACB support must be keyed by layout fingerprint/version, not just `bank=ACB`;
+- the generic importer should recognize both `Ghi nợ/Ghi có` and `Số tiền rút ra/Số tiền gửi vào` as debit/credit aliases, while keeping that logic generic rather than creating an ACB-owned financial core;
+- keep `Số GD` out of `sourceExternalId` until overlapping downloaded files establish stability and scope;
+- bank-specific auto-map stays disabled.
+
+Public artifact sources used only for structural/aggregate observation:
+
+- https://www.scribd.com/document/506860867/ACB-20190501-20190701
+- https://www.studocu.vn/vn/document/truong-dai-hoc-ngoai-thuong/nguyen-ly-hoat-dong-ngan-hang/sao-ke-tai-khoan-cty-tnhh-dt-tm-thep-sai-gon-vnd-243548269/124073688
+
+## VietinBank
+
+Previously recorded public eFAST evidence remains valid:
+
+- two public same-account statements overlap on 31/03/2026;
+- transaction numbers 1942/1943/1944 are preserved with matching row semantics across the overlap;
+- public eFAST rows show service fees and VAT as ordinary debit rows;
+- this remains `source-stable / observed-but-unverified`, not a provider guarantee.
+
+Public artifact sources:
+
+- https://www.studocu.vn/vn/document/truong-dai-hoc-ngoai-thuong/ke-toan-tai-chinh/lich-su-giao-dich-tai-khoan-vietinbank-efast-29062026/167509901
+- https://www.studocu.vn/vn/document/truong-dai-hoc-ngoai-thuong/ke-toan-tai-chinh/lich-su-giao-dich-tai-khoan-vietinbank-efast-118002939123/167509907
+
+## Product / architecture conclusions
+
+1. The acquisition architecture remains correct: universal importer first, thin bank/layout profile second.
+2. A bank name is not a sufficient schema key. VCB and ACB both have multiple observed public statement/export layouts.
+3. Displayed provider references must not automatically become identity. VCB public evidence shows that a stable-looking reference suffix can recur across semantically distinct rows even when the full reference differs, so reference canonicalization must not discard scope-bearing components; full-reference stability still requires overlapping-export proof.
+4. The public VCB XLSX artifact is sufficient evidence for synthetic compatibility regressions and generic debit/credit alias support, but not for claims of provider-guaranteed schema or identity stability.
+5. Multiple sheets/variants inside the public VCB workbook reinforce layout/version fingerprinting and fail-closed mapping rather than bank-name-only parsing.
+6. Only `confirmed + source-stable` identity may become `sourceExternalId`.
+7. Bank-specific auto-map stays disabled for VCB/ACB/VietinBank under the current evidence threshold.
+
+## Remaining evidence gaps
+
+The highest-value next evidence is still two unedited, same-account, same-export-mode downloaded files with overlapping date windows for VCB and ACB. Public internet search has not yet produced such a pair.
+
+That evidence is required to answer:
+
+- whether repeated exports preserve the same normalized date/amount/description fields;
+- whether ACB `Số GD` survives overlapping repeated downloads with the same scope;
+- whether the full VCB displayed reference survives overlapping repeated downloads with stable uniqueness/scope;
+- whether fee representation remains row-based in the current downloaded export modes.
+
+Until those gaps close, the generic parser + review + heuristic duplicate path remains the safe production behavior.
