@@ -17,6 +17,16 @@ import {
 
 const HEADER_SCAN_LIMIT = 25;
 const HEADER_CONFIDENCE_FLOOR = 0.85;
+const TRANSACTION_DATE_HEADERS =
+  /^(transaction\s*date|trans\s*date|txn\s*date|ngay\s*giao\s*dich|ngày\s*giao\s*dịch|ngay\s*phat\s*sinh\s*giao\s*dich|ngày\s*phát\s*sinh\s*giao\s*dịch|ngay\s*gd|ngày\s*gd)$/i;
+const PILOT_DEBIT_HEADERS =
+  /^(debit|nợ|ghi\s*no|ghi\s*nợ)$/i;
+const PILOT_CREDIT_HEADERS =
+  /^(credit|có|ghi\s*co|ghi\s*có)$/i;
+const PILOT_DESCRIPTION_HEADERS =
+  /^(transaction\s*description|description|mo\s*ta\s*giao\s*dich|mô\s*tả\s*giao\s*dịch|noi\s*dung\s*giao\s*dich|nội\s*dung\s*giao\s*dịch)$/i;
+const STANDALONE_DIRECTION_HEADERS =
+  /^(change|direction|sign|thay\s*doi|thay\s*đổi)$/i;
 
 export const XLSX_PILOT_UNKNOWNS = [
   "exact_headers_unrecorded",
@@ -80,6 +90,101 @@ function textForEvidenceCell(cell: XlsxEvidenceCell): string {
   return "";
 }
 
+function normalizePilotHeader(header: string): string {
+  return header.trim().replace(/[_\s]+/g, " ");
+}
+
+function pilotHeaderSegments(header: string): string[] {
+  return normalizePilotHeader(header)
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+}
+
+function findPilotRoleIndex(headers: string[], pattern: RegExp): number {
+  return headers.findIndex((header) =>
+    pilotHeaderSegments(header).some((segment) => pattern.test(segment)),
+  );
+}
+
+function preferExplicitPilotRoles(
+  headers: string[],
+  map: CsvColumnMap,
+): CsvColumnMap {
+  const transactionDateIndex = findPilotRoleIndex(
+    headers,
+    TRANSACTION_DATE_HEADERS,
+  );
+  const debitIndex = findPilotRoleIndex(headers, PILOT_DEBIT_HEADERS);
+  const creditIndex = findPilotRoleIndex(headers, PILOT_CREDIT_HEADERS);
+  const descriptionIndex = findPilotRoleIndex(
+    headers,
+    PILOT_DESCRIPTION_HEADERS,
+  );
+  const hasDebitCredit = debitIndex >= 0 || creditIndex >= 0;
+
+  return {
+    ...map,
+    date: transactionDateIndex >= 0 ? transactionDateIndex : map.date,
+    amount: hasDebitCredit ? null : map.amount,
+    debit: debitIndex >= 0 ? debitIndex : map.debit,
+    credit: creditIndex >= 0 ? creditIndex : map.credit,
+    desc: descriptionIndex >= 0 ? descriptionIndex : map.desc,
+  };
+}
+
+/**
+ * Some statement exports represent direction in a dedicated column while the
+ * amount itself remains unsigned (for example `+` / `-` beside `Số tiền`).
+ * Preserve the generic parser contract by applying that explicit sign to a
+ * cloned amount cell before parsing. This intentionally requires an exact
+ * direction-style header and standalone sign cells; arbitrary text/hyphens are
+ * never treated as financial direction.
+ */
+function applyStandaloneDirectionToAmount(
+  matrix: string[][],
+  map: CsvColumnMap,
+): string[][] {
+  if (
+    matrix.length < 2 ||
+    map.amount === null ||
+    map.debit !== null ||
+    map.credit !== null
+  ) {
+    return matrix;
+  }
+
+  const headers = matrix[0] ?? [];
+  const directionIndex = headers.findIndex((header) =>
+    STANDALONE_DIRECTION_HEADERS.test(normalizePilotHeader(header)),
+  );
+  if (directionIndex < 0) return matrix;
+
+  let changed = false;
+  const next = matrix.map((row, index) => {
+    if (index === 0) return row;
+
+    const direction = row[directionIndex]?.trim();
+    if (direction !== "+" && direction !== "-") return row;
+
+    const amount = row[map.amount!]?.trim();
+    if (
+      !amount ||
+      /^[+\-–—]/.test(amount) ||
+      /^\(.+\)$/.test(amount)
+    ) {
+      return row;
+    }
+
+    const updated = [...row];
+    updated[map.amount!] = `${direction}${amount}`;
+    changed = true;
+    return updated;
+  });
+
+  return changed ? next : matrix;
+}
+
 export function findLikelyXlsxHeaderRow(
   matrix: string[][],
 ): HeaderCandidate | null {
@@ -99,7 +204,7 @@ export function findLikelyXlsxHeaderRow(
     if (!best || mapped.confidence > best.confidence) {
       best = {
         index,
-        map: mapped.map,
+        map: preferExplicitPilotRoles(row, mapped.map),
         confidence: mapped.confidence,
       };
     }
@@ -211,9 +316,14 @@ function offsetParsedRows(
  *
  * This stays deliberately generic: it only skips a leading workbook preamble
  * when at least two familiar column roles make a later header row high
- * confidence. It never enables a bank-specific map or invents stable identity.
- * The inspection object contains structural metadata only; no cell text, amount,
- * description, account number, sheet name or raw row is returned.
+ * confidence. When a workbook exposes both posting/value date and an explicit
+ * transaction-date column, the latter is preferred for `occurredOn`. Bilingual
+ * debit/credit headers are treated as explicit amount roles rather than letting
+ * the generic fallback pick a balance/reference column. A separate standalone
+ * direction column can qualify an otherwise unsigned amount, but it never
+ * becomes identity or a bank-specific contract. The inspection object contains
+ * structural metadata only; no cell text, amount, description, account number,
+ * sheet name or raw row is returned.
  */
 export function parseXlsxPilotStatement(
   data: ArrayBuffer | Uint8Array,
@@ -248,7 +358,7 @@ export function parseXlsxPilotStatement(
   }
 
   const header = findLikelyXlsxHeaderRow(indexed.matrix);
-  if (!header || header.index === 0) {
+  if (!header) {
     return {
       result: parseXlsxStatement(data, options),
       inspection,
@@ -263,9 +373,15 @@ export function parseXlsxPilotStatement(
     };
   }
 
-  const result = parseStatementFromMatrix(indexed.matrix.slice(header.index), {
+  const columnMap = options.columnMap ?? header.map;
+  const statementMatrix = applyStandaloneDirectionToAmount(
+    indexed.matrix.slice(header.index),
+    columnMap,
+  );
+  const result = parseStatementFromMatrix(statementMatrix, {
     ...options,
     fileName: options.fileName ?? "statement.xlsx",
+    columnMap,
   });
 
   return {

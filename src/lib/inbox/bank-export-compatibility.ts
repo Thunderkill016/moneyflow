@@ -222,27 +222,29 @@ const COMPATIBILITY: Record<BankExportProvider, BankExportCompatibility> = {
       scope: "No downloadable source-lifecycle/status field established",
     },
     transactionReference: {
-      value: "unknown",
-      evidence: "unknown",
-      scope: "No provider-stable exported transaction reference established",
+      value: "source-stable",
+      evidence: "observed-but-unverified",
+      scope: "Two public eFAST statements for the same account with overlapping 31-03-2026 coverage preserve Transaction number values 1942, 1943 and 1944 with matching row semantics; this is observed overlap evidence, not a provider guarantee",
     },
     feeRepresentation: {
-      value: "Card statements can include fees",
+      value: "Public eFAST statements show service-fee and VAT rows as ordinary debits",
       evidence: "observed-but-unverified",
-      scope: "Current card statement concept; not a target consumer-account export layout",
+      scope: "Observed public eFAST statements; not a guaranteed provider export contract",
     },
     overlapDedupe: {
-      value: null,
-      evidence: "unknown",
-      scope: "No stable-ID or overlapping-export contract established",
+      value: "Observed overlapping eFAST windows preserve transaction numbers and row semantics; MoneyFlow still requires confirmed identity evidence before persisting sourceExternalId and retains fingerprint duplicate fallback",
+      evidence: "observed-but-unverified",
+      scope: "Same-account public eFAST statements overlapping on 31-03-2026 plus MoneyFlow overlap pgTAP; not a provider guarantee",
     },
     bankSpecificAutoMapSupported: false,
     guidance:
-      "VietinBank iPay Web có thể xuất dữ liệu giao dịch chi tiết dạng Excel, nhưng MoneyFlow chưa xác minh cấu trúc cột hoặc mã giao dịch ổn định. Không bật auto-map; hãy dùng luồng import chung và review mapping.",
+      "VietinBank iPay Web có thể xuất dữ liệu giao dịch chi tiết dạng Excel. Public overlap evidence cho thấy Transaction number có thể ổn định qua hai kỳ chồng lấn, nhưng bằng chứng vẫn chưa đạt mức provider-confirmed nên MoneyFlow chưa dùng nó làm source ID và chưa bật auto-map. Tiếp tục dùng import chung + review/dedupe fallback.",
     sourceUrls: [
       "https://contact.vietinbank.vn/blog/obj_faq_42767083/fld_faqid_63024046/FAQ42",
       "https://www.vietinbank.vn/assets/cfa87952-5eb4-496d-b780-5b21335ba19f",
       "https://www.vietinbank.vn/assets/9a43a89d-a5c7-4655-8e28-2871c449359b",
+      "https://www.studocu.vn/vn/document/truong-dai-hoc-ngoai-thuong/ke-toan-tai-chinh/lich-su-giao-dich-tai-khoan-vietinbank-efast-29062026/167509901",
+      "https://www.studocu.vn/vn/document/truong-dai-hoc-ngoai-thuong/ke-toan-tai-chinh/lich-su-giao-dich-tai-khoan-vietinbank-efast-118002939123/167509907",
     ],
   },
 };
