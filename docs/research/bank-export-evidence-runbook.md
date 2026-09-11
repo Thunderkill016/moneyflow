@@ -8,6 +8,15 @@ Collect enough repeatable evidence to compare two overlapping exports without co
 
 For reference-stability questions, use two exports that you independently know came from the **same bank account and same export mode**, with overlapping date windows. The command cannot prove that context for you.
 
+A practical controlled pair is:
+
+- window A: days 1–15;
+- window B: days 10–25;
+- same account, same banking channel, same export format/mode;
+- leave both workbooks unedited after download.
+
+Official Vietcombank Digibank guidance confirms users can choose a transaction-history date range and export it to Excel. Official ACB material confirms Excel statement/history download capability. These capability documents support this collection protocol, but they do **not** prove a stable downloaded-file schema or stable transaction reference.
+
 ## Run locally
 
 ```bash
