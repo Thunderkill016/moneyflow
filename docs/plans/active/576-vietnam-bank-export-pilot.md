@@ -1,11 +1,11 @@
 # #576 Vietnam bank-export acquisition pilot
 
-**Status:** implementing  
-**Execution state:** implementing  
-**Active role:** implementer  
-**Permission scope:** branch_write  
-**Owner:** Thunderkill016  
-**Issue/PR:** GitHub #576 / PR pending  
+**Status:** evaluating
+**Execution state:** evaluating
+**Active role:** evaluator
+**Permission scope:** branch_write
+**Owner:** Thunderkill016
+**Issue/PR:** GitHub #576 / PR #577
 **Last updated:** 2026-09-11
 
 Follow `docs/engineering/AGENT_OPERATING_MODEL.md`. This packet is scoped specification/evidence only; GitHub #576 and the explicit owner instruction select the work.
@@ -109,14 +109,14 @@ MoneyFlow can already parse Excel statements, but a real Vietnamese bank workboo
 
 ### Acceptance criteria
 
-- [ ] XLS/XLSX is structurally inspected locally before creating a persistent import batch.
-- [ ] Preflight output contains structural metadata only: sheet ordinal, used dimensions, candidate header row, generic role map/confidence, numeric/date-like column positions, date system, formula count and fixed unknown categories.
-- [ ] Preflight output does not expose/persist sheet name, cell text, amounts, descriptions, account numbers or raw rows as pilot evidence.
-- [ ] A high-confidence later generic header can skip leading preamble rows while retaining correct original worksheet row indices for review provenance.
-- [ ] Ambiguous/unproven input falls back conservatively; no bank-specific mapping or stable source id is created.
-- [ ] The user must explicitly continue from Excel preflight before the existing import batch/draft is created.
-- [ ] CSV/PDF and the downstream Import Preview → Inbox → commit contracts remain unchanged.
-- [ ] Exact-head risk-selected CI is green.
+- [x] XLS/XLSX is structurally inspected locally before creating a persistent import batch.
+- [x] Preflight output contains structural metadata only: sheet ordinal, used dimensions, candidate header row, generic role map/confidence, numeric/date-like column positions, date system, formula count and fixed unknown categories.
+- [x] Preflight output does not expose/persist sheet name, cell text, amounts, descriptions, account numbers or raw rows as pilot evidence.
+- [x] A high-confidence later generic header can skip leading preamble rows while retaining correct original worksheet row indices for review provenance.
+- [x] Ambiguous/unproven input falls back conservatively; no bank-specific mapping or stable source id is created.
+- [x] The user must explicitly continue from Excel preflight before the existing import batch/draft is created.
+- [x] CSV/PDF and the downstream Import Preview → Inbox → commit contracts remain unchanged by implementation design and unit/static verification.
+- [ ] Final exact-head risk-selected CI is green.
 
 ### Required states
 
@@ -159,6 +159,7 @@ The behavior stays inside the existing Inbox acquisition boundary. A new pure `x
 | `src/lib/inbox/xlsx-pilot.test.ts` | synthetic workbook and privacy/ambiguity tests | prove preamble handling and evidence minimization |
 | `src/components/inbox/capture-upload-page.tsx` | require Excel preflight/explicit continue before batch persistence | make pilot inspectable and reversible |
 | `src/components/inbox/capture-upload-page.module.css` | bounded responsive presentation | keep report readable without design-system change |
+| `src/lib/capture-upload-performance.test.ts` | keep the heavier Excel pilot path lazy-loaded | preserve upload-page performance contract |
 | this packet + PR record | research/evidence/provenance | Class 3 delivery requirement |
 
 ### Data and migration impact
@@ -176,8 +177,9 @@ The behavior stays inside the existing Inbox acquisition boundary. A new pure `x
 | bank-specific semantics accidentally inferred | only generic mapper; explicit unknown list; compatibility auto-map remains false |
 | real statement values leak into pilot evidence | inspection type excludes cell text/values/sheet name; unit test serializes inspection and asserts synthetic private values absent |
 | malformed text renamed `.xlsx` is treated as evidence | strict evidence reader requires Excel-family binary signature/container marker |
-| row provenance changes after skipping preamble | offset parsed row/source-row indices to original worksheet positions |
+| blank preamble rows shift source provenance | worksheet matrix preserves original row positions; synthetic test proves row 5/6 remain row 5/6 |
 | UI creates persistence before review | Excel holds parsed rows in component state until explicit continue action |
+| heavy SheetJS runtime leaks into initial upload bundle | dynamic import contract loads `xlsx-pilot` only after Excel selection |
 | existing CSV/PDF behavior regresses | keep those paths using existing parser/persistence flow; browser/unit CI |
 
 ### Verification plan
@@ -194,16 +196,17 @@ The behavior stays inside the existing Inbox acquisition boundary. A new pure `x
 | ID | Task | Dependency | Evidence | Status |
 |---|---|---|---|---|
 | T1 | Reconcile repo pipeline and official VCB/ACB export evidence | none | code + first-party docs | done |
-| T2 | Implement privacy-safe XLSX structural preflight | T1 | helper + tests | implementing |
-| T3 | Gate Excel import persistence behind explicit preflight continue | T2 | capture upload UI | implementing |
-| T4 | Independent evaluation + exact-head CI | T2/T3 | PR jobs + review | todo |
-| T5 | Use sanitized real VCB/ACB export to resolve source unknowns | owner-provided/private real evidence | bounded evidence record, no raw statement in repo | todo / follow-up |
+| T2 | Implement privacy-safe XLSX structural preflight | T1 | helper + tests | done |
+| T3 | Gate Excel import persistence behind explicit preflight continue | T2 | capture upload UI | done |
+| T4 | Independent evaluation + exact-head CI | T2/T3 | PR #577 jobs + diff review | evaluating |
+| T5 | Use sanitized real VCB/ACB export to resolve source unknowns | owner-provided/private real evidence | bounded evidence record, no raw statement in repo | follow-up |
 
 ## Handoff record
 
 | Date | From | To | State | Artifacts/evidence | Open risks or unverified claims | Next allowed action |
 |---|---|---|---|---|---|---|
-| 2026-09-11 | researcher | implementer | implementing | #576, THU-46, official VCB/ACB docs, current parser/source-adapter contracts | real exported headers/stable reference/fees/overlap remain unverified | finish branch implementation and exact-head evaluation |
+| 2026-09-11 | researcher | implementer | implementing | #576, THU-46, official VCB/ACB docs, current parser/source-adapter contracts | real exported headers/stable reference/fees/overlap remain unverified | implement bounded preflight |
+| 2026-09-11 | implementer | evaluator | evaluating | PR #577, synthetic XLSX tests, explicit preflight gate; first CI failure identified as stale lazy-load contract and fixed; second policy failure identified as packet trailing whitespace and fixed in this evaluation update | final exact-head CI pending; real VCB/ACB semantics still unverified | require fresh exact-head evidence and bounded diff review |
 
 ### Current permission boundary
 
@@ -219,11 +222,12 @@ The behavior stays inside the existing Inbox acquisition boundary. A new pure `x
 
 | Criterion | Evidence | Result |
 |---|---|---|
-| Structural preflight before Excel batch persistence | pending exact-head browser/code review | pending |
-| Preamble handling remains generic and high-confidence | `xlsx-pilot.test.ts` | pending CI |
-| No private cell values in structural inspection | serialized-inspection unit assertion | pending CI |
-| No bank-specific map/stable identity | compatibility + adapter guards | pending CI |
-| Existing import path green | exact-head CI | pending |
+| Structural preflight before Excel batch persistence | `capture-upload-page.tsx` explicit `excel-review` state and continue action | pass by code review; browser gate pending final head |
+| Preamble handling remains generic and high-confidence | `xlsx-pilot.test.ts` | pass in CI run #3588 unit shard |
+| Original worksheet provenance survives blank preamble rows | synthetic blank-row test | pass in CI run #3588 unit shard |
+| No private cell values in structural inspection | serialized-inspection unit assertion | pass in CI run #3588 unit shard |
+| No bank-specific map/stable identity | generic mapper + unchanged compatibility/adapter guards | pass by bounded diff review; final policy gate pending |
+| Existing import path/build remains healthy | production build + unit/static shard | pass in CI run #3588; final head pending |
 
 ### Research and adoption evidence
 
@@ -233,11 +237,13 @@ The behavior stays inside the existing Inbox acquisition boundary. A new pure `x
 
 ### Review findings
 
-- Correctness: pending CI/evaluator.
-- Security/ownership: no DB/provider write; preflight minimizes source content exposure.
-- UI/UX/accessibility: pending browser/UI audit.
+- Correctness: independent review found one provenance defect before acceptance: the generic matrix helper drops blank rows. The pilot now iterates the worksheet rectangular range directly and preserves original row numbers; a counterexample test covers the fix.
+- CI finding 1: run #3587 exposed a stale performance test that required a direct lazy import of `parse-xlsx`; implementation correctly moved SheetJS ownership behind lazy-loaded `xlsx-pilot`. The contract test was updated to preserve the actual invariant: no heavy Excel runtime on the initial upload page.
+- CI finding 2: run #3588 passed unit/static, build and static quality but policy diff hygiene rejected Markdown trailing spaces in the initial packet header. The whitespace is removed in this update.
+- Security/ownership: no DB/provider write; preflight minimizes source-content exposure and does not create new source identity.
+- UI/UX/accessibility: semantic heading/list/dl and explicit continue/cancel controls; final browser/UI audit pending exact head.
 - Maintainability/duplication: new helper composes existing parser/evidence functions rather than adding a second pipeline.
-- Scope compliance: pending final diff review.
+- Scope compliance: no migration/provider config or production-write surface introduced.
 
 ### Remaining limitations
 
@@ -247,9 +253,9 @@ The behavior stays inside the existing Inbox acquisition boundary. A new pure `x
 ## Delivery record
 
 - Branch: `feat/576-vietnam-bank-export-pilot`
-- PR: pending
-- Squash commit: pending
-- CI run: pending
+- PR: #577
+- Squash commit: pending owner merge decision
+- CI: #3587 found stale lazy-load contract and was fixed; #3588 unit/static, build and static quality passed but policy diff hygiene found packet trailing whitespace; fresh final exact-head run pending
 - Production deployment: not part of this branch work
 - Production flow verified: not applicable pre-merge; no production write
-- Work packet moved to `docs/plans/completed/`: pending completion
+- Work packet moved to `docs/plans/completed/`: no; active pilot remains open until owner decision and real-file follow-up is separately resolved
