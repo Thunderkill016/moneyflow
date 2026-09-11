@@ -299,6 +299,11 @@
       "version": "20260910182000",
       "name": "20260910182000_reconciliation_snapshot_security_invoker.sql",
       "hash": "95bb1051746055f253b613b00fbc50a7"
+    },
+    {
+      "version": "20260911150000",
+      "name": "20260911150000_ledger_trusted_through.sql",
+      "hash": "63c0ad68eba843b829f23f75577eca26"
     }
   ]
 }
