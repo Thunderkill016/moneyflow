@@ -12,8 +12,7 @@ and is meaningful only when both exports are known to represent the same account
 function fail(message: string): never {
   console.error(message);
   console.error(USAGE);
-  process.exitCode = 1;
-  throw new Error("bank_export_evidence_cli_failed");
+  process.exit(1);
 }
 
 function validExtension(path: string): boolean {
