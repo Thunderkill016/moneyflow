@@ -20,9 +20,9 @@ const HEADER_CONFIDENCE_FLOOR = 0.85;
 const TRANSACTION_DATE_HEADERS =
   /^(transaction\s*date|trans\s*date|txn\s*date|ngay\s*giao\s*dich|ngày\s*giao\s*dịch|ngay\s*phat\s*sinh\s*giao\s*dich|ngày\s*phát\s*sinh\s*giao\s*dịch|ngay\s*gd|ngày\s*gd)$/i;
 const PILOT_DEBIT_HEADERS =
-  /^(debit|nợ|ghi\s*no|ghi\s*nợ)$/i;
+  /^(debit|nợ|ghi\s*no|ghi\s*nợ|so\s*tien\s*rut\s*ra|số\s*tiền\s*rút\s*ra)$/i;
 const PILOT_CREDIT_HEADERS =
-  /^(credit|có|ghi\s*co|ghi\s*có)$/i;
+  /^(credit|có|ghi\s*co|ghi\s*có|so\s*tien\s*gui\s*vao|số\s*tiền\s*gửi\s*vào)$/i;
 const PILOT_DESCRIPTION_HEADERS =
   /^(transaction\s*description|description|mo\s*ta\s*giao\s*dich|mô\s*tả\s*giao\s*dịch|noi\s*dung\s*giao\s*dich|nội\s*dung\s*giao\s*dịch)$/i;
 const STANDALONE_DIRECTION_HEADERS =
@@ -319,11 +319,12 @@ function offsetParsedRows(
  * confidence. When a workbook exposes both posting/value date and an explicit
  * transaction-date column, the latter is preferred for `occurredOn`. Bilingual
  * debit/credit headers are treated as explicit amount roles rather than letting
- * the generic fallback pick a balance/reference column. A separate standalone
- * direction column can qualify an otherwise unsigned amount, but it never
- * becomes identity or a bank-specific contract. The inspection object contains
- * structural metadata only; no cell text, amount, description, account number,
- * sheet name or raw row is returned.
+ * the generic fallback pick a balance/reference column. Observed withdraw/deposit
+ * headers are also treated as debit/credit roles without introducing bank-owned
+ * financial logic. A separate standalone direction column can qualify an otherwise
+ * unsigned amount, but it never becomes identity or a bank-specific contract. The
+ * inspection object contains structural metadata only; no cell text, amount,
+ * description, account number, sheet name or raw row is returned.
  */
 export function parseXlsxPilotStatement(
   data: ArrayBuffer | Uint8Array,
