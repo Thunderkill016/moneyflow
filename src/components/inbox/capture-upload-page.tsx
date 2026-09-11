@@ -23,17 +23,28 @@ import {
   MAX_UPLOAD_BYTES,
   parseCsvStatement,
   validateUploadFile,
+  type CsvColumnMap,
   type ImportCandidateSource,
+  type ParseCsvResult,
 } from "@/lib/inbox/parse-csv";
+import type {
+  XlsxPilotInspection,
+  XlsxPilotUnknown,
+} from "@/lib/inbox/xlsx-pilot";
 import { trackProductEvent } from "@/lib/safe-analytics";
 import styles from "./capture-upload-page.module.css";
 
-type Phase = "idle" | "reading" | "error";
+type Phase = "idle" | "reading" | "excel-review" | "error";
 
 type BankExportGuidance = {
   provider: string;
   displayName: string;
   guidance: string;
+};
+
+type PendingImport = {
+  result: ParseCsvResult;
+  source: ImportCandidateSource;
 };
 
 const ACCEPT =
@@ -43,6 +54,39 @@ function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
   return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatColumns(columns: number[]): string {
+  return columns.length > 0
+    ? columns.map((index) => `cột ${index + 1}`).join(", ")
+    : "chưa thấy";
+}
+
+function formatMappedColumn(index: number | null): string {
+  return index === null ? "chưa xác định" : `cột ${index + 1}`;
+}
+
+function formatColumnMap(map: CsvColumnMap): string {
+  const amount =
+    map.amount !== null
+      ? `Số tiền ${formatMappedColumn(map.amount)}`
+      : `Ghi nợ ${formatMappedColumn(map.debit)} · Ghi có ${formatMappedColumn(map.credit)}`;
+  return `Ngày ${formatMappedColumn(map.date)} · Nội dung ${formatMappedColumn(map.desc)} · ${amount}`;
+}
+
+function pilotUnknownLabel(value: XlsxPilotUnknown): string {
+  switch (value) {
+    case "exact_headers_unrecorded":
+      return "Tên header chính xác chưa được ghi thành contract ngân hàng.";
+    case "source_reference_stability_unknown":
+      return "Độ ổn định của mã tham chiếu giao dịch chưa được chứng minh.";
+    case "debit_credit_semantics_unverified":
+      return "Quy ước ghi nợ / ghi có của file ngân hàng chưa được xác minh riêng.";
+    case "fee_semantics_unverified":
+      return "Cách biểu diễn phí trong file chưa được xác minh.";
+    case "overlap_dedupe_unverified":
+      return "Hành vi khi xuất hai khoảng thời gian chồng lấp chưa được xác minh.";
+  }
 }
 
 export function CaptureUploadPage({
@@ -63,6 +107,9 @@ export function CaptureUploadPage({
   const [fileSize, setFileSize] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
   const [notice, setNotice] = useState("");
+  const [pendingImport, setPendingImport] = useState<PendingImport | null>(null);
+  const [xlsxInspection, setXlsxInspection] =
+    useState<XlsxPilotInspection | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,63 +132,16 @@ export function CaptureUploadPage({
     setError("");
     setFileName("");
     setFileSize(0);
+    setPendingImport(null);
+    setXlsxInspection(null);
     if (inputRef.current) inputRef.current.value = "";
   }, []);
 
-  const processFile = useCallback(
-    async (file: File) => {
-      setError("");
-      setFileName(file.name);
-      setFileSize(file.size);
-
-      const check = validateUploadFile({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
-      if (!check.ok) {
-        setPhase("error");
-        setError(check.error);
-        return;
-      }
-
+  const persistParsedImport = useCallback(
+    async (result: ParseCsvResult, source: ImportCandidateSource) => {
       setPhase("reading");
+      setError("");
       try {
-        const kind = check.kind;
-        const source: ImportCandidateSource =
-          kind === "xlsx" ? "xlsx" : kind === "pdf" ? "pdf" : "csv";
-
-        let result;
-        if (kind === "xlsx") {
-          const { parseXlsxStatement } = await import("@/lib/inbox/parse-xlsx");
-          result = parseXlsxStatement(await file.arrayBuffer(), {
-            fileName: file.name,
-          });
-        } else if (kind === "pdf") {
-          const { parsePdfStatement } = await import("@/lib/inbox/parse-pdf");
-          result = parsePdfStatement(await file.arrayBuffer(), {
-            fileName: file.name,
-          });
-        } else {
-          result = parseCsvStatement(await file.text(), {
-            fileName: file.name,
-          });
-        }
-
-        if (!result.ok || result.rows.length === 0) {
-          setPhase("error");
-          setError(
-            result.error ??
-              (kind === "xlsx"
-                ? "Không phân tích được Excel (chỉ sheet đầu)."
-                : kind === "pdf"
-                  ? "Không phân tích được PDF text-layer."
-                  : "Không phân tích được CSV."),
-          );
-          return;
-        }
-
-        // Gate: create batch + draft rows, then Import Preview before Inbox.
         const batchResult = await addImportBatchForClient(viewer.isDemo, {
           fileName: result.fileName,
           source,
@@ -170,12 +170,89 @@ export function CaptureUploadPage({
         router.push(`/imports/${batchResult.batch.id}/preview`);
       } catch {
         setPhase("error");
+        setError("Không tạo được Import Preview. File vẫn chưa được ghi vào sổ.");
+      }
+    },
+    [router, viewer.isDemo],
+  );
+
+  const processFile = useCallback(
+    async (file: File) => {
+      setError("");
+      setPendingImport(null);
+      setXlsxInspection(null);
+      setFileName(file.name);
+      setFileSize(file.size);
+
+      const check = validateUploadFile({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+      if (!check.ok) {
+        setPhase("error");
+        setError(check.error);
+        return;
+      }
+
+      setPhase("reading");
+      try {
+        const kind = check.kind;
+        const source: ImportCandidateSource =
+          kind === "xlsx" ? "xlsx" : kind === "pdf" ? "pdf" : "csv";
+
+        let result: ParseCsvResult;
+        let inspection: XlsxPilotInspection | null = null;
+        if (kind === "xlsx") {
+          const { parseXlsxPilotStatement } = await import(
+            "@/lib/inbox/xlsx-pilot"
+          );
+          const pilot = parseXlsxPilotStatement(await file.arrayBuffer(), {
+            fileName: file.name,
+          });
+          result = pilot.result;
+          inspection = pilot.inspection;
+        } else if (kind === "pdf") {
+          const { parsePdfStatement } = await import("@/lib/inbox/parse-pdf");
+          result = parsePdfStatement(await file.arrayBuffer(), {
+            fileName: file.name,
+          });
+        } else {
+          result = parseCsvStatement(await file.text(), {
+            fileName: file.name,
+          });
+        }
+
+        if (!result.ok || result.rows.length === 0) {
+          setPhase("error");
+          setError(
+            result.error ??
+              (kind === "xlsx"
+                ? "Không phân tích được Excel (chỉ sheet đầu)."
+                : kind === "pdf"
+                  ? "Không phân tích được PDF text-layer."
+                  : "Không phân tích được CSV."),
+          );
+          return;
+        }
+
+        if (kind === "xlsx") {
+          // Pilot gate: inspect locally before any import-batch persistence.
+          setPendingImport({ result, source });
+          setXlsxInspection(inspection);
+          setPhase("excel-review");
+          return;
+        }
+
+        await persistParsedImport(result, source);
+      } catch {
+        setPhase("error");
         setError(
           "Không đọc được file. Thử CSV UTF-8, .xlsx, hoặc PDF text-layer (≤10MB).",
         );
       }
     },
-    [router, viewer.isDemo],
+    [persistParsedImport],
   );
 
   function onInputChange(event: ChangeEvent<HTMLInputElement>) {
@@ -198,6 +275,11 @@ export function CaptureUploadPage({
   function onDragLeave(event: DragEvent<HTMLDivElement>) {
     event.preventDefault();
     setDragOver(false);
+  }
+
+  function continueExcelImport() {
+    if (!pendingImport) return;
+    void persistParsedImport(pendingImport.result, pendingImport.source);
   }
 
   return (
@@ -276,7 +358,9 @@ export function CaptureUploadPage({
             <p className="capture-upload-drop-title">
               {phase === "reading"
                 ? "Đang phân tích…"
-                : "Kéo thả CSV, XLS, XLSX, PDF"}
+                : phase === "excel-review"
+                  ? "Excel đã đọc — kiểm tra cấu trúc trước khi tiếp tục"
+                  : "Kéo thả CSV, XLS, XLSX, PDF"}
             </p>
             <p id="upload-limits" className="capture-upload-drop-meta">
               tối đa {formatBytes(MAX_UPLOAD_BYTES)} · không chờ hành · CSV /
@@ -308,6 +392,94 @@ export function CaptureUploadPage({
               Inbox · không lưu nội dung file thô, chỉ meta + draft parse.
             </span>
           </p>
+
+          {phase === "excel-review" && pendingImport && (
+            <section
+              className={styles.pilotInspection}
+              aria-labelledby="xlsx-pilot-inspection-heading"
+            >
+              <div>
+                <h3 id="xlsx-pilot-inspection-heading">
+                  Kiểm tra cấu trúc Excel trước khi import
+                </h3>
+                <p>
+                  Bước này chạy cục bộ trước khi tạo import batch. Báo cáo chỉ
+                  giữ metadata cấu trúc; không đưa số tiền, nội dung giao dịch,
+                  số tài khoản, tên sheet hay dòng thô vào pilot evidence.
+                </p>
+              </div>
+
+              {xlsxInspection?.ok ? (
+                <>
+                  <dl className={styles.pilotMetrics}>
+                    <div>
+                      <dt>Sheet</dt>
+                      <dd>{xlsxInspection.sheetNumber}</dd>
+                    </div>
+                    <div>
+                      <dt>Kích thước dùng</dt>
+                      <dd>
+                        {xlsxInspection.rowCount} hàng × {xlsxInspection.columnCount} cột
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Dòng tiêu đề khả dĩ</dt>
+                      <dd>{xlsxInspection.candidateHeaderRow ?? "chưa đủ bằng chứng"}</dd>
+                    </div>
+                    <div>
+                      <dt>Độ tin cậy map chung</dt>
+                      <dd>{Math.round(xlsxInspection.mapConfidence * 100)}%</dd>
+                    </div>
+                    <div>
+                      <dt>Cột số</dt>
+                      <dd>{formatColumns(xlsxInspection.numericColumns)}</dd>
+                    </div>
+                    <div>
+                      <dt>Cột có format ngày</dt>
+                      <dd>{formatColumns(xlsxInspection.dateLikeColumns)}</dd>
+                    </div>
+                  </dl>
+                  <p className={styles.pilotMap}>
+                    <strong>Map chung:</strong> {formatColumnMap(xlsxInspection.columnMap)}
+                  </p>
+                  <p className={styles.pilotMap}>
+                    Hệ ngày Excel: {xlsxInspection.dateSystem} · công thức trong vùng dùng: {xlsxInspection.formulaCellCount}
+                  </p>
+                  <div>
+                    <strong>Vẫn chưa được chứng minh:</strong>
+                    <ul className={styles.pilotUnknowns}>
+                      {xlsxInspection.unknowns.map((unknown) => (
+                        <li key={unknown}>{pilotUnknownLabel(unknown)}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
+              ) : (
+                <p className={styles.pilotWarning}>
+                  Không xác minh được cấu trúc nhị phân XLS/XLSX đủ chặt cho pilot.
+                  Parser chung vẫn đọc được file này, nhưng MoneyFlow không coi đây
+                  là bằng chứng để bật auto-map hay source identity.
+                </p>
+              )}
+
+              <div className="capture-paste-actions">
+                <button
+                  type="button"
+                  className="primary-button"
+                  onClick={continueExcelImport}
+                >
+                  Tiếp tục Import Preview
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={reset}
+                >
+                  Chọn file khác
+                </button>
+              </div>
+            </section>
+          )}
 
           {fileName && phase === "error" && (
             <p className="capture-upload-file-meta" role="status">
