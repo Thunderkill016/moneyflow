@@ -1,4 +1,5 @@
-.bankGuidance {
+.bankGuidance,
+.pilotInspection {
   display: grid;
   gap: 12px;
   padding: 18px;
@@ -9,36 +10,73 @@
 
 .bankGuidance h2,
 .bankGuidance p,
-.bankGuidance ul {
+.bankGuidance ul,
+.pilotInspection h3,
+.pilotInspection p,
+.pilotInspection dl,
+.pilotInspection ul {
   margin: 0;
 }
 
-.bankGuidance h2 {
+.bankGuidance h2,
+.pilotInspection h3 {
   font-size: 18px;
   line-height: 1.3;
 }
 
-.bankGuidance > p {
+.bankGuidance > p,
+.pilotInspection > div > p,
+.pilotMap,
+.pilotWarning {
   max-width: 72ch;
   color: var(--mf-text-muted);
   font-size: 14px;
   line-height: 1.55;
 }
 
-.bankGuidance ul {
+.bankGuidance ul,
+.pilotUnknowns {
   display: grid;
   gap: 8px;
   padding-left: 20px;
 }
 
-.bankGuidance li {
+.bankGuidance li,
+.pilotUnknowns li {
   padding-left: 2px;
   font-size: 14px;
   line-height: 1.55;
 }
 
+.pilotMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.pilotMetrics > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--mf-border);
+  border-radius: 12px;
+}
+
+.pilotMetrics dt {
+  color: var(--mf-text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.pilotMetrics dd {
+  margin: 0;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
 @media (max-width: 760px) {
-  .bankGuidance {
+  .bankGuidance,
+  .pilotInspection {
     padding: 16px;
     border-radius: 14px;
   }

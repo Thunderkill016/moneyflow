@@ -13,10 +13,15 @@ test("capture upload defers heavy Excel and PDF parsers until selected", () => {
     /^import .*parse-(?:xlsx|pdf)/m,
     "Excel/PDF parsers must not be part of the initial upload-page bundle",
   );
+  assert.doesNotMatch(
+    uploadPage,
+    /^import (?!type\b).*xlsx-pilot/m,
+    "Excel pilot runtime must not be part of the initial upload-page bundle",
+  );
   assert.match(
     uploadPage,
-    /await import\("@\/lib\/inbox\/parse-xlsx"\)/,
-    "SheetJS parser must load only for Excel files",
+    /await import\(\s*"@\/lib\/inbox\/xlsx-pilot"\s*\)/,
+    "SheetJS pilot parser must load only for Excel files",
   );
   assert.match(
     uploadPage,
