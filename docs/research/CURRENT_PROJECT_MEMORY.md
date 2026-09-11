@@ -102,13 +102,15 @@ Supabase Security Advisor reports the expected 42 authenticated-callable SECURIT
 - #569: open lifecycle/project-memory hardening lane; not selected by the closeout projection.
 - #174: open provider-control lane; separate from #570.
 
-## 9. Closeout truth
+## 9. Open pull-request memory
 
-The #570 temporary workflow was intentionally single-purpose. Once production history converged and S3/S4 passed, retaining that production apply surface would add operational risk without value. The closeout projection therefore removes `.github/workflows/production-supabase-migrations.yml`, moves the #570 packet to `docs/plans/completed/2026-09-11-570-production-migration-reconciliation.md`, reconciles this memory and sets `PLAN_AUTHORITY.current` to `null`.
+### PR #574 — #570 production reconciliation lifecycle closeout
 
-The closeout PR performs no DDL and no production write. Merge remains an explicit owner action.
+The #570 temporary workflow was intentionally single-purpose. Once production history converged and S3/S4 passed, retaining that production apply surface would add operational risk without value. PR #574 removes `.github/workflows/production-supabase-migrations.yml`, moves the #570 packet to `docs/plans/completed/2026-09-11-570-production-migration-reconciliation.md`, reconciles this memory and sets `PLAN_AUTHORITY.current` to `null`.
 
-## 10. True gaps after #570
+PR #574 performs no DDL and no production write. Its lifecycle impact is `completes current slice`; merge remains an explicit owner action.
+
+## 10. True gaps after this audit
 
 1. THU-44 still owns broader privacy-safe maintenance-effort semantics such as interventions/100 observed transactions, maintenance time, Ready vs Needs-attention, duplicate/correction rate, reconciliation completion and source coverage; #570 only makes the bounded batch measurement substrate durable.
 2. Exact Vietnamese bank export identity/layout evidence remains incomplete for bank-specific automation.
