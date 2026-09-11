@@ -29,12 +29,12 @@ Public statement artifacts show the shape:
 
 They also show fee rows as ordinary statement rows with a negative direction and a fee description.
 
-More importantly, one public same-account statement spanning multiple months shows the same displayed `Số tham chiếu` value reused on distinct monthly fee rows and on separate interest rows. That is direct negative evidence against treating the displayed VCB reference as a unique transaction identity.
+A public multi-month statement shows the same trailing numeric component inside `Số tham chiếu` on distinct fee and interest rows while the leading transaction-code component differs (for example fee vs interest code families). This is **not** evidence that the entire displayed reference string repeats. It is negative evidence only against stripping/canonicalizing the reference down to that trailing component and treating the suffix as a unique identity. Uniqueness and stability of the full displayed reference across repeated exports remain unproven.
 
 Implication:
 
 - keep VCB reference classified `display-only / observed-but-unverified`;
-- never derive `sourceExternalId` from the displayed VCB reference alone;
+- never derive `sourceExternalId` from a reference suffix or from the full displayed VCB reference without confirmed overlap stability and scope;
 - retain fingerprint duplicate fallback;
 - bank-specific auto-map stays disabled because the current downloaded Excel contract is still not provider-confirmed.
 
@@ -48,7 +48,7 @@ Public artifact source used only for structural/aggregate observation:
 
 - ACB documents Excel statement/history download in ACB ONE flows.
 - ACB's Developer Portal exposes account-history APIs where `transaction_number`, `from_transaction_number`, and `to_transaction_number` are first-class query fields.
-- Exact transaction-number lookup in the documented API still requires account plus date/range context. This is useful provider evidence that a transaction number exists, but it does **not** document that the number alone is a globally unique/stable source identity, and it does not prove equivalence to the downloaded-file `Số GD` field.
+- Transaction-history queries using transaction-number bounds are still scoped by account plus date/range context. This is useful provider evidence that a transaction number exists, but it does **not** document that the number alone is a globally unique/stable source identity, and it does not prove equivalence to the downloaded-file `Số GD` field.
 
 First-party sources:
 
@@ -100,7 +100,7 @@ Public artifact sources:
 
 1. The acquisition architecture remains correct: universal importer first, thin bank/layout profile second.
 2. A bank name is not a sufficient schema key. ACB alone now has multiple observed public statement layouts.
-3. Displayed provider references must not automatically become identity. VCB provides concrete negative evidence because a displayed reference is reused across distinct rows.
+3. Displayed provider references must not automatically become identity. VCB public evidence shows that a stable-looking reference suffix can recur across semantically distinct rows even when the full reference differs, so reference canonicalization must not discard scope-bearing components; full-reference stability still requires overlapping-export proof.
 4. Public statement evidence is sufficient for synthetic compatibility regressions and alias hardening, but not for claims of provider-guaranteed schema or identity stability.
 5. Only `confirmed + source-stable` identity may become `sourceExternalId`.
 6. Bank-specific auto-map stays disabled for VCB/ACB/VietinBank under the current evidence threshold.
@@ -112,7 +112,7 @@ The highest-value next evidence is still two unedited, same-account, same-export
 - whether the current downloaded Excel layout matches public artifacts;
 - whether date/amount/description normalization changes between repeated exports;
 - whether ACB `Số GD` survives overlapping repeated downloads with the same scope;
-- whether any VCB field other than the visibly non-unique displayed reference provides stable identity;
+- whether the full VCB displayed reference survives overlapping repeated downloads with stable uniqueness/scope;
 - whether fee representation remains row-based in the current downloaded export modes.
 
 Until those gaps close, the generic parser + review + heuristic duplicate path remains the safe production behavior.
