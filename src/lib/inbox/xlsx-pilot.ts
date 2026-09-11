@@ -20,9 +20,9 @@ const HEADER_CONFIDENCE_FLOOR = 0.85;
 const TRANSACTION_DATE_HEADERS =
   /^(transaction\s*date|trans\s*date|txn\s*date|ngay\s*giao\s*dich|ngày\s*giao\s*dịch|ngay\s*phat\s*sinh\s*giao\s*dich|ngày\s*phát\s*sinh\s*giao\s*dịch|ngay\s*gd|ngày\s*gd)$/i;
 const PILOT_DEBIT_HEADERS =
-  /^(debit|no|nợ|ghi\s*no|ghi\s*nợ)$/i;
+  /^(debit|nợ|ghi\s*no|ghi\s*nợ)$/i;
 const PILOT_CREDIT_HEADERS =
-  /^(credit|co|có|ghi\s*co|ghi\s*có)$/i;
+  /^(credit|có|ghi\s*co|ghi\s*có)$/i;
 const PILOT_DESCRIPTION_HEADERS =
   /^(transaction\s*description|description|mo\s*ta\s*giao\s*dich|mô\s*tả\s*giao\s*dịch|noi\s*dung\s*giao\s*dich|nội\s*dung\s*giao\s*dịch)$/i;
 const STANDALONE_DIRECTION_HEADERS =
