@@ -11,6 +11,7 @@ returns table (
   clean_reconciled_account_count integer,
   pending_inbox_count bigint,
   needs_review_transaction_count bigint,
+  unreconciled_account_leg_count bigint,
   earliest_unresolved_on date,
   coverage_scope text
 )
@@ -26,8 +27,10 @@ declare
   v_base_reconciliation_through date;
   v_pending_inbox_count bigint := 0;
   v_needs_review_transaction_count bigint := 0;
+  v_unreconciled_account_leg_count bigint := 0;
   v_earliest_pending_inbox date;
   v_earliest_needs_review date;
+  v_earliest_unreconciled_leg date;
   v_earliest_unresolved date;
 begin
   if v_user_id is null then
@@ -49,6 +52,7 @@ begin
       'no_active_accounts'::text,
       v_active_account_count,
       0::integer,
+      0::bigint,
       0::bigint,
       0::bigint,
       null::date,
@@ -94,6 +98,7 @@ begin
       v_clean_reconciled_account_count,
       0::bigint,
       0::bigint,
+      0::bigint,
       null::date,
       'known_ledger_state_only'::text;
     return;
@@ -122,12 +127,32 @@ begin
     and transaction.review_status = 'needs_review'::public.transaction_review_status
     and transaction.occurred_on <= v_base_reconciliation_through;
 
-  v_earliest_unresolved := least(v_earliest_pending_inbox, v_earliest_needs_review);
-  if v_earliest_pending_inbox is null then
-    v_earliest_unresolved := v_earliest_needs_review;
-  elsif v_earliest_needs_review is null then
-    v_earliest_unresolved := v_earliest_pending_inbox;
-  end if;
+  select
+    count(*)::bigint,
+    min(transaction.occurred_on)
+  into
+    v_unreconciled_account_leg_count,
+    v_earliest_unreconciled_leg
+  from public.transaction_entries entry
+  join public.financial_transactions transaction
+    on transaction.id = entry.transaction_id
+   and transaction.user_id = entry.user_id
+  join public.accounts account
+    on account.id = entry.account_id
+   and account.user_id = entry.user_id
+  where entry.user_id = v_user_id
+    and not account.is_archived
+    and transaction.deleted_at is null
+    and transaction.occurred_on <= v_base_reconciliation_through
+    and entry.reconciliation_state <> 'reconciled'::public.entry_reconciliation_state;
+
+  select min(unresolved_on)
+  into v_earliest_unresolved
+  from (values
+    (v_earliest_pending_inbox),
+    (v_earliest_needs_review),
+    (v_earliest_unreconciled_leg)
+  ) unresolved(unresolved_on);
 
   if v_earliest_unresolved is not null then
     return query
@@ -140,6 +165,7 @@ begin
       v_clean_reconciled_account_count,
       v_pending_inbox_count,
       v_needs_review_transaction_count,
+      v_unreconciled_account_leg_count,
       v_earliest_unresolved,
       'known_ledger_state_only'::text;
     return;
@@ -155,6 +181,7 @@ begin
     v_clean_reconciled_account_count,
     0::bigint,
     0::bigint,
+    0::bigint,
     null::date,
     'known_ledger_state_only'::text;
 end;
@@ -165,4 +192,4 @@ revoke all on function public.ledger_trust_summary() from anon;
 grant execute on function public.ledger_trust_summary() to authenticated;
 
 comment on function public.ledger_trust_summary() is
-  'Returns the maximum date through which the caller''s known MoneyFlow ledger state is trusted from clean completed reconciliations and known unresolved review work. It does not assert external source completeness.';
+  'Returns the maximum date through which the caller''s known MoneyFlow ledger state is trusted from clean completed reconciliations and known unresolved ledger/review work. It does not assert external source completeness.';
