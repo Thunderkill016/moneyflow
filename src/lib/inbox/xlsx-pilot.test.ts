@@ -69,6 +69,7 @@ test("public VCB-style statement uses standalone change sign for direction", () 
     ["Ngày giao dịch", "Số tham chiếu", "Thay đổi", "Số tiền", "Mô tả"],
     ["25/10/2019", "DD4400 - 046045", "+", 332, "GIAO DICH TRA LAI TU DONG"],
     ["25/10/2019", "9713 - 0045853", "-", 24173, "POS SAMPLE"],
+    ["26/10/2019", "9401 - 0001000000", "-", 2300, "THU PHI DICH VU MAU"],
   ]);
 
   const { result, inspection } = parseXlsxPilotStatement(bytes, {
@@ -77,7 +78,7 @@ test("public VCB-style statement uses standalone change sign for direction", () 
   });
 
   assert.equal(result.ok, true);
-  assert.equal(result.rows.length, 2);
+  assert.equal(result.rows.length, 3);
   assert.equal(result.rows[0]!.rowIndex, 5);
   assert.equal(result.rows[0]!.amount, 332);
   assert.equal(result.rows[0]!.kind, "income");
@@ -87,6 +88,10 @@ test("public VCB-style statement uses standalone change sign for direction", () 
   assert.equal(result.rows[1]!.kind, "expense");
   assert.equal(result.rows[1]!.occurredOn, "2019-10-25");
   assert.equal(result.rows[1]!.uncertainFields.includes("kind"), false);
+  assert.equal(result.rows[2]!.rowIndex, 7);
+  assert.equal(result.rows[2]!.amount, 2300);
+  assert.equal(result.rows[2]!.kind, "expense");
+  assert.equal(result.rows[2]!.uncertainFields.includes("kind"), false);
 
   assert.equal(inspection.ok, true);
   if (!inspection.ok) return;
@@ -148,6 +153,15 @@ test("public ACB-style statement prefers transaction date over effective date", 
       50000,
       338000,
     ],
+    [
+      "06/05/2026",
+      "06/05/2026 08:00:00",
+      "9464",
+      "THU PHI DICH VU MAU",
+      15000,
+      "",
+      323000,
+    ],
   ]);
 
   const { result, inspection } = parseXlsxPilotStatement(bytes, {
@@ -156,7 +170,7 @@ test("public ACB-style statement prefers transaction date over effective date", 
   });
 
   assert.equal(result.ok, true);
-  assert.equal(result.rows.length, 2);
+  assert.equal(result.rows.length, 3);
   assert.equal(result.columnMap.date, 1);
   assert.equal(result.rows[0]!.rowIndex, 4);
   assert.equal(result.rows[0]!.occurredOn, "2026-05-02");
@@ -165,6 +179,10 @@ test("public ACB-style statement prefers transaction date over effective date", 
   assert.equal(result.rows[1]!.occurredOn, "2026-05-05");
   assert.equal(result.rows[1]!.kind, "income");
   assert.equal(result.rows[1]!.amount, 50000);
+  assert.equal(result.rows[2]!.occurredOn, "2026-05-06");
+  assert.equal(result.rows[2]!.kind, "expense");
+  assert.equal(result.rows[2]!.amount, 15000);
+  assert.equal(result.rows[2]!.uncertainFields.includes("kind"), false);
 
   assert.equal(inspection.ok, true);
   if (!inspection.ok) return;
