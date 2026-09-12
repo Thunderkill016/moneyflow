@@ -164,60 +164,133 @@ test.describe("cross-device responsive audit", () => {
     page,
   }, testInfo) => {
     const width = page.viewportSize()?.width ?? 1_440;
-    test.skip(width > 430, "SAFE-09 is specific to the mobile transaction layout");
+    test.skip(width > 430, "SAFE-09 is specific to phone transaction groups");
 
+    // This audit owns transaction-group geometry, not the quick-capture flow.
+    // Seed one contract-valid demo transaction directly, then reload so the
+    // locator is resolved after the demo store hydration has completed.
     await page.goto("/transactions", { waitUntil: "domcontentloaded" });
-    const dayHeaders = page.locator(".transactions-day-header");
-    const transactionRows = page.locator(".transaction-row");
-
-    await expect(dayHeaders.first()).toBeVisible();
-    await expect(transactionRows.first()).toBeVisible();
-
-    const metrics = await page.evaluate(() => {
-      const headers = Array.from(
-        document.querySelectorAll<HTMLElement>(".transactions-day-header"),
+    await page.evaluate(() => {
+      window.localStorage.setItem(
+        "moneyflow-demo-transactions-v1",
+        JSON.stringify([
+          {
+            id: "safe-09-layout-fixture",
+            kind: "expense",
+            categoryId: "safe-09-food",
+            category: "Ăn uống",
+            note: "SAFE-09 layout fixture",
+            accountId: "safe-09-account",
+            account: "MB Bank",
+            amount: 125_000,
+            occurredOn: "2026-08-03",
+            occurredAt: "2026-08-03T00:00:00.000Z",
+            relativeDate: "Vừa xong",
+          },
+        ]),
       );
-      const rows = Array.from(
-        document.querySelectorAll<HTMLElement>(".transaction-row"),
-      );
-      return {
-        viewport: {
-          width: document.documentElement.clientWidth,
-          height: document.documentElement.clientHeight,
-        },
-        documentOverflow:
-          document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        headers: headers.map((element) => {
-          const rect = element.getBoundingClientRect();
-          return {
-            top: rect.top,
-            bottom: rect.bottom,
-            height: rect.height,
-          };
-        }),
-        rows: rows.map((element) => {
-          const rect = element.getBoundingClientRect();
-          return {
-            top: rect.top,
-            bottom: rect.bottom,
-            height: rect.height,
-          };
-        }),
-      };
     });
+    await page.reload({ waitUntil: "domcontentloaded" });
 
-    await testInfo.attach(`safe-09-transactions-${testInfo.project.name}.json`, {
+    const header = page
+      .locator('[data-slot="ledger-day-group"]:visible > header')
+      .first();
+    await expect(header).toBeVisible();
+
+    const readMetrics = async () =>
+      header.evaluate((element) => {
+        if (!element.isConnected) return null;
+        const row = element.parentElement?.querySelector<HTMLElement>(
+          '[data-slot="ledger-row"]',
+        );
+        if (!row?.isConnected) return null;
+
+        const position = getComputedStyle(element).position;
+        if (!position) return null;
+        const headerRect = element.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
+        return {
+          position,
+          headerHeight: headerRect.height,
+          headerBottom: headerRect.bottom,
+          rowTop: rowRect.top,
+          overlap: Math.max(0, headerRect.bottom - rowRect.top),
+        };
+      });
+
+    await expect
+      .poll(
+        async () => {
+          const current = await readMetrics();
+          return current?.position === "static" && current.headerHeight > 0;
+        },
+        { timeout: 15_000 },
+      )
+      .toBe(true);
+
+    const metrics = await readMetrics();
+    if (!metrics) throw new Error("Missing stable transaction group metrics for SAFE-09");
+
+    const evidence = await page.screenshot({ animations: "disabled" });
+    await testInfo.attach(`safe-09-day-total-${testInfo.project.name}.png`, {
+      body: evidence,
+      contentType: "image/png",
+    });
+    await testInfo.attach(`safe-09-day-total-${testInfo.project.name}.json`, {
       body: Buffer.from(JSON.stringify(metrics, null, 2)),
       contentType: "application/json",
     });
 
-    expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
-    for (const header of metrics.headers) {
-      expect(header.height).toBeGreaterThan(0);
-      for (const row of metrics.rows) {
-        const overlaps = header.top < row.bottom && header.bottom > row.top;
-        expect(overlaps).toBe(false);
+    expect(metrics.position).toBe("static");
+    expect(metrics.headerHeight).toBeGreaterThanOrEqual(44);
+    expect(metrics.headerBottom).toBeLessThanOrEqual(metrics.rowTop + 1);
+    expect(metrics.overlap).toBeLessThanOrEqual(1);
+  });
+
+  test("SAFE-04/05 detail summaries stack and actions stay tappable on phones", async ({
+    page,
+  }) => {
+    const width = page.viewportSize()?.width ?? 1_440;
+    test.skip(width > 430, "detail repair is asserted on phone widths");
+
+    for (const route of [
+      {
+        path: "/budgets",
+        summaryName: "Tổng quan ngân sách",
+        listSlot: "budget-list",
+      },
+      {
+        path: "/goals",
+        summaryName: "Tổng quan mục tiêu",
+        listSlot: "goal-list",
+      },
+    ]) {
+      await page.goto(route.path, { waitUntil: "domcontentloaded" });
+      const summary = page.getByRole("region", { name: route.summaryName });
+      await expect(summary).toBeVisible();
+
+      const gridColumns = await summary.evaluate(
+        (element) => getComputedStyle(element).gridTemplateColumns,
+      );
+      expect(gridColumns.trim().split(/\s+/)).toHaveLength(1);
+
+      const actions = page.locator(
+        `[data-slot="${route.listSlot}"] [data-slot="planning-card-actions"] a, ` +
+          `[data-slot="${route.listSlot}"] [data-slot="planning-card-actions"] button`,
+      );
+      await expect(actions.first()).toBeVisible();
+      const actionHeights = await actions.evaluateAll((elements) =>
+        elements.map((element) => element.getBoundingClientRect().height),
+      );
+      expect(actionHeights.length).toBeGreaterThan(0);
+      for (const height of actionHeights) {
+        expect(height).toBeGreaterThanOrEqual(44);
       }
+
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(1);
     }
   });
 });
