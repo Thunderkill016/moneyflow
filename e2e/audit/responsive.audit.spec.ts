@@ -24,6 +24,13 @@ const ROUTES: AuditRoute[] = [
   { label: "settings-export", path: "/settings/export" },
 ];
 
+const MOBILE_PLANNING_LINKS = [
+  { name: /Ngân sách/, href: "/budgets" },
+  { name: /Định kỳ/, href: "/commitments" },
+  { name: /Lương định kỳ/, href: "/income-templates" },
+  { name: /Mục tiêu/, href: "/goals" },
+] as const;
+
 test.describe("cross-device responsive audit", () => {
   test.describe.configure({ mode: "parallel" });
 
@@ -72,60 +79,60 @@ test.describe("cross-device responsive audit", () => {
     });
   });
 
-  test("SAFE-04/05/06 repairs mobile Dashboard planning surfaces", async ({
+  test("THU-41 keeps compact Dashboard planning navigation usable on mobile", async ({
     page,
   }, testInfo) => {
     const width = page.viewportSize()?.width ?? 1_440;
-    test.skip(width > 430, "owner evidence is from a phone-sized Dashboard");
+    test.skip(width > 430, "THU-41 mobile evidence is phone-sized");
 
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-    const budget = page.locator(".budget-panel");
-    const goal = page.locator(".goal-dashboard-panel");
-    const weekly = page.locator(".weekly-summary-panel");
 
-    await expect(budget).toBeVisible();
-    await expect(goal).toBeVisible();
-    await expect(weekly).toBeVisible();
+    const navigation = page.getByRole("navigation", {
+      name: "Kế hoạch từ Tổng quan",
+    });
+    await expect(navigation).toBeVisible();
+
+    const links = [] as Array<{
+      href: string;
+      x: number;
+      right: number;
+      width: number;
+      height: number;
+    }>;
+
+    for (const expected of MOBILE_PLANNING_LINKS) {
+      const link = navigation.getByRole("link", { name: expected.name });
+      await expect(link).toHaveCount(1);
+      await expect(link).toBeVisible();
+      await expect(link).toHaveAttribute("href", expected.href);
+
+      const box = await link.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+      expect(box!.width).toBeGreaterThanOrEqual(44);
+      expect(box!.x).toBeGreaterThanOrEqual(0);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width + 1);
+
+      links.push({
+        href: expected.href,
+        x: box!.x,
+        right: box!.x + box!.width,
+        width: box!.width,
+        height: box!.height,
+      });
+    }
+
+    // Detailed planning stays one tap away instead of competing with the ledger
+    // on the signed-in home. These historical dashboard cards must not creep
+    // back in as a second planning surface.
+    await expect(page.locator(".budget-panel")).toHaveCount(0);
+    await expect(page.locator(".goal-dashboard-panel")).toHaveCount(0);
+    await expect(page.locator(".weekly-summary-panel")).toHaveCount(0);
 
     const metrics = await page.evaluate(() => {
-      const read = (selector: string) => {
-        const element = document.querySelector<HTMLElement>(selector);
-        if (!element) throw new Error(`Missing ${selector}`);
-        const rect = element.getBoundingClientRect();
-        const headingDetail = element.querySelector<HTMLElement>(".section-heading p");
-        return {
-          selector,
-          width: rect.width,
-          background: getComputedStyle(element).backgroundColor,
-          borderColor: getComputedStyle(element).borderColor,
-          headingDetailDisplay: headingDetail
-            ? getComputedStyle(headingDetail).display
-            : null,
-        };
-      };
-
-      // The four-card KPI row is now one balance statement. The rule this
-      // measures is unchanged: the primary balance surface carries no
-      // background image (no gradient).
       const firstKpi = document.querySelector<HTMLElement>(
         '[aria-labelledby="mf-standing-label"]',
       );
-      const weeklyPanel = document.querySelector<HTMLElement>(
-        ".weekly-summary-panel",
-      );
-      const weeklyHeading = weeklyPanel?.querySelector<HTMLElement>(
-        ".section-heading",
-      );
-      const weeklyBody = weeklyPanel?.querySelector<HTMLElement>(
-        ".weekly-summary-kpis, .planning-card-empty",
-      );
-      if (!weeklyPanel || !weeklyHeading || !weeklyBody) {
-        throw new Error("Missing weekly summary alignment elements");
-      }
-      const weeklyPanelRect = weeklyPanel.getBoundingClientRect();
-      const weeklyHeadingRect = weeklyHeading.getBoundingClientRect();
-      const weeklyBodyRect = weeklyBody.getBoundingClientRect();
-
       return {
         viewport: {
           width: document.documentElement.clientWidth,
@@ -133,46 +140,24 @@ test.describe("cross-device responsive audit", () => {
         },
         documentOverflow:
           document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        budget: read(".budget-panel"),
-        goal: read(".goal-dashboard-panel"),
         firstKpiBackground: firstKpi
           ? getComputedStyle(firstKpi).backgroundImage
           : null,
-        weekly: {
-          bodyGap: weeklyBodyRect.top - weeklyHeadingRect.bottom,
-          bodyBottomInset: weeklyPanelRect.bottom - weeklyBodyRect.bottom,
-        },
       };
     });
 
-    const budgetImage = await budget.screenshot({ animations: "disabled" });
-    const goalImage = await goal.screenshot({ animations: "disabled" });
-    const weeklyImage = await weekly.screenshot({ animations: "disabled" });
-    await testInfo.attach(`safe-04-budget-${testInfo.project.name}.png`, {
-      body: budgetImage,
+    const image = await navigation.screenshot({ animations: "disabled" });
+    await testInfo.attach(`thu-41-planning-nav-${testInfo.project.name}.png`, {
+      body: image,
       contentType: "image/png",
     });
-    await testInfo.attach(`safe-05-goal-${testInfo.project.name}.png`, {
-      body: goalImage,
-      contentType: "image/png",
-    });
-    await testInfo.attach(`safe-06b-weekly-${testInfo.project.name}.png`, {
-      body: weeklyImage,
-      contentType: "image/png",
-    });
-    await testInfo.attach(`safe-04-05-06-${testInfo.project.name}.json`, {
-      body: Buffer.from(JSON.stringify(metrics, null, 2)),
+    await testInfo.attach(`thu-41-planning-nav-${testInfo.project.name}.json`, {
+      body: Buffer.from(JSON.stringify({ ...metrics, links }, null, 2)),
       contentType: "application/json",
     });
 
     expect(metrics.documentOverflow).toBeLessThanOrEqual(1);
-    expect(metrics.budget.headingDetailDisplay).not.toBe("none");
-    expect(metrics.goal.headingDetailDisplay).not.toBe("none");
-    expect(metrics.budget.background).toBe(metrics.goal.background);
     expect(metrics.firstKpiBackground).toBe("none");
-    expect(metrics.weekly.bodyGap).toBeGreaterThanOrEqual(0);
-    expect(metrics.weekly.bodyGap).toBeLessThanOrEqual(24);
-    expect(metrics.weekly.bodyBottomInset).toBeGreaterThanOrEqual(0);
   });
 
   test("SAFE-09 keeps mobile transaction day totals outside transaction rows", async ({
